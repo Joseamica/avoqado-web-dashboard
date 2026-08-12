@@ -161,6 +161,10 @@ export const SettingsLayout = lazyWithRetry(() => import('@/pages/Settings/Setti
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))
 export const PrintStations = lazyWithRetry(() => import('@/pages/Settings/PrintStations'))
 export const AreaTickets = lazyWithRetry(() => import('@/pages/Settings/AreaTickets'))
+// Colas de sólo lectura de la ruta externa (§caja externa fase 1, Task 15) — vive en
+// su propia carpeta (no en Settings/) porque es trabajo operativo del día a día, no
+// configuración.
+export const ExternalSettlements = lazyWithRetry(() => import('@/pages/AreaTickets/ExternalSettlements'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
 
 // Google Calendar Sync — picker page the OAuth callback redirects to with ?session=<token>

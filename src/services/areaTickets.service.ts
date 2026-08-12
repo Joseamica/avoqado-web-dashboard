@@ -249,3 +249,116 @@ export async function getAreaTicketOperations(venueId: string): Promise<AreaTick
   const response = await api.get(`${base(venueId)}/operations`)
   return response.data.data
 }
+
+// ----------------------------------------------------------------------------
+// Colas de sólo lectura de la ruta externa (§caja externa fase 1, Task 15) — qué
+// cobros nadie confirmó y qué incidencias quedaron abiertas. Ningún tipo ni función
+// de aquí abajo confirma, resuelve ni reabre nada: eso no existe todavía en esta
+// fase. Los importes son SIEMPRE de referencia — lo que Avoqado calculó para el
+// vale — nunca una venta: ese dinero entró en la caja de otro punto de venta.
+// ----------------------------------------------------------------------------
+
+export type ExternalSettlementStatus = 'PENDING' | 'ASSUMED' | 'CONFIRMED' | 'DISCREPANCY' | 'NOT_CHARGED'
+export type ExternalHandoffState = 'PENDING' | 'HANDED_OFF' | 'RETURNED'
+export type ExternalIncidentKind = 'UNCONFIRMED_CHARGE' | 'AMOUNT_VARIANCE' | 'NEGATIVE_STOCK' | 'CODE_MISMATCH' | 'REPRINT_RISK'
+export type ExternalIncidentStatus = 'OPEN' | 'RESOLVED' | 'DISMISSED'
+
+export interface ExternalSettlementItem {
+  id: string
+  status: ExternalSettlementStatus
+  handoffState: ExternalHandoffState
+  confirmationMode: ExternalConfirmationMode
+  /** Importe que Avoqado calculó para el vale — de REFERENCIA, nunca una venta. */
+  referenceAmount: string
+  /** Lo que alguien reportó que la otra caja cobró. `null` mientras nadie lo capture. */
+  externalAmount: string | null
+  /** externalAmount − referenceAmount, YA con signo. Se deriva en el server; nunca viene de una columna. */
+  variance: string | null
+  externalReference: string | null
+  notes: string | null
+  createdAt: string
+  confirmedAt: string | null
+  confirmedBy: string | null
+  terminal: { id: string; name: string } | null
+  areaTicket: { id: string; code: string; issuedAt: string }
+  area: { id: string; name: string } | null
+}
+
+export interface ExternalIncidentItem {
+  id: string
+  kind: ExternalIncidentKind
+  status: ExternalIncidentStatus
+  /** Forma libre según `kind` — ya viene en pesos y formateada por quien la abrió. */
+  detail: Record<string, unknown>
+  openedAt: string
+  occurrenceCount: number
+  reopenedAt: string | null
+  resolvedAt: string | null
+  resolution: string | null
+  resolvedBy: string | null
+  areaTicket: { id: string; code: string } | null
+  area: { id: string; name: string } | null
+}
+
+export interface ExternalSettlementsPage {
+  items: ExternalSettlementItem[]
+  nextCursor: string | null
+}
+
+export interface ExternalIncidentsPage {
+  items: ExternalIncidentItem[]
+  nextCursor: string | null
+}
+
+export interface ListExternalSettlementsFilters {
+  areaId?: string | null
+  status?: ExternalSettlementStatus | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  cursor?: string
+  pageSize?: number
+}
+
+export interface ListExternalIncidentsFilters {
+  areaId?: string | null
+  kind?: ExternalIncidentKind | null
+  status?: ExternalIncidentStatus | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  cursor?: string
+  pageSize?: number
+}
+
+/** Cola "Cobros por confirmar". Sin `status`, el server devuelve TODOS los estados. */
+export async function getExternalSettlements(
+  venueId: string,
+  filters: ListExternalSettlementsFilters = {},
+): Promise<ExternalSettlementsPage> {
+  const response = await api.get(`${base(venueId)}/external-settlements`, {
+    params: {
+      areaId: filters.areaId || undefined,
+      status: filters.status || undefined,
+      dateFrom: filters.dateFrom || undefined,
+      dateTo: filters.dateTo || undefined,
+      cursor: filters.cursor,
+      pageSize: filters.pageSize,
+    },
+  })
+  return response.data.data
+}
+
+/** Cola "Incidencias". Sin `status`, el server devuelve abiertas y cerradas. */
+export async function getExternalIncidents(venueId: string, filters: ListExternalIncidentsFilters = {}): Promise<ExternalIncidentsPage> {
+  const response = await api.get(`${base(venueId)}/external-incidents`, {
+    params: {
+      areaId: filters.areaId || undefined,
+      kind: filters.kind || undefined,
+      status: filters.status || undefined,
+      dateFrom: filters.dateFrom || undefined,
+      dateTo: filters.dateTo || undefined,
+      cursor: filters.cursor,
+      pageSize: filters.pageSize,
+    },
+  })
+  return response.data.data
+}

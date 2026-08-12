@@ -578,6 +578,7 @@
       "saved": "Settlement route updated",
       "saveError": "Couldn't save",
       "saveErrorFallback": "Try again.",
+      "viewQueueLink": "View charges to confirm and incidents",
       "policiesDisabledNote": "These policies only apply when another checkout charges this area's tickets.",
       "confirmDialog": {
         "title": "Change the settlement route?",
@@ -605,6 +606,78 @@
         "untracked": "Untracked",
         "untrackedHint": "The area hands it over by checking the paper ticket; nothing is recorded, no queue."
       }
+    },
+    "externalSettlements": {
+      "title": "External charges",
+      "subtitle": "Which external-route charges nobody has confirmed yet, and which incidents are still open. Read-only: nothing here confirms or resolves anything.",
+      "tabs": {
+        "settlements": "Charges to confirm",
+        "incidents": "Incidents"
+      },
+      "referenceDisclaimer": "These numbers are the reference amount Avoqado calculated for each ticket — not Avoqado sales: that money went into another point of sale's register and is not added to your sales reports.",
+      "incidentDisclaimer": "The system opens these incidents on its own, whenever something on the external route needs a person to review it — a charge nobody confirmed in time, an amount mismatch. No action on this screen confirms or resolves anything yet.",
+      "loading": "Loading…",
+      "loadError": "Couldn't load",
+      "loadErrorFallback": "Try again.",
+      "loadMore": "Load more",
+      "noValue": "—",
+      "filters": {
+        "area": "Area",
+        "status": "Status",
+        "kind": "Type",
+        "date": "Date",
+        "dateFrom": "From",
+        "dateTo": "To",
+        "apply": "Apply",
+        "clear": "Clear",
+        "noAreas": "No areas"
+      },
+      "columns": {
+        "ticket": "Ticket",
+        "referenceAmount": "Reference amount",
+        "externalAmount": "Amount charged",
+        "variance": "Variance",
+        "status": "Status",
+        "confirmedBy": "Confirmed by",
+        "issuedAt": "Issued"
+      },
+      "settlementStatus": {
+        "PENDING": "Pending",
+        "ASSUMED": "Assumed",
+        "CONFIRMED": "Confirmed",
+        "DISCREPANCY": "Discrepancy",
+        "NOT_CHARGED": "Not charged"
+      },
+      "emptyDefault": "No charges are waiting to be confirmed right now. External-route tickets that nobody has confirmed yet will show up here.",
+      "emptyFiltered": "No external charge matches these filters. Try different filters or clear them to see more.",
+      "incidentColumns": {
+        "ticket": "Ticket",
+        "kind": "Type",
+        "detail": "Detail",
+        "status": "Status",
+        "openedAt": "Opened",
+        "resolvedBy": "Resolved by"
+      },
+      "incidentKind": {
+        "UNCONFIRMED_CHARGE": "Unconfirmed charge",
+        "AMOUNT_VARIANCE": "Amount variance",
+        "NEGATIVE_STOCK": "Negative stock",
+        "CODE_MISMATCH": "Code mismatch",
+        "REPRINT_RISK": "Reprint risk"
+      },
+      "incidentStatus": {
+        "OPEN": "Open",
+        "RESOLVED": "Resolved",
+        "DISMISSED": "Dismissed"
+      },
+      "incidentDetail": {
+        "unconfirmedCharge": "Reference amount: ${{amount}}",
+        "amountVariance": "Variance: {{variance}}",
+        "generic": "See detail"
+      },
+      "reopenedCount": "Reopened {{count}} times",
+      "incidentEmptyDefault": "No incidents are open. Problems the system detects on its own — an external charge nobody confirmed in time, an amount mismatch — will show up here for someone to review.",
+      "incidentEmptyFiltered": "No incident matches these filters. Try different filters or clear them to see more."
     }
   }
 }

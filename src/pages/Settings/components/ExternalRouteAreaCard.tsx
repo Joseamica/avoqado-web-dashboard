@@ -135,7 +135,7 @@ export function ExternalRouteAreaCard({ venueId, area, onSaved }: { venueId: str
             </div>
             <Switch checked={isExternal} disabled={disabled} onCheckedChange={handleToggle} data-tour="area-external-route-toggle" />
           </div>
-          {!canConfigure && <p className="text-sm text-amber-600">{t('areaTickets.externalRoute.noPermission')}</p>}
+          {!canConfigure && <p className="text-sm text-warning-foreground">{t('areaTickets.externalRoute.noPermission')}</p>}
 
           {!isExternal && <p className="text-xs text-muted-foreground">{t('areaTickets.externalRoute.policiesDisabledNote')}</p>}
 
@@ -213,7 +213,7 @@ export function ExternalRouteAreaCard({ venueId, area, onSaved }: { venueId: str
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <AlertTriangle className="h-5 w-5 text-warning-foreground" />
               {t('areaTickets.externalRoute.confirmDialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>{t('areaTickets.externalRoute.confirmDialog.description')}</AlertDialogDescription>

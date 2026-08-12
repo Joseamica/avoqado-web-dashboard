@@ -616,6 +616,7 @@
       "saved": "Ruta de cobro actualizada",
       "saveError": "No se pudo guardar",
       "saveErrorFallback": "Intenta de nuevo.",
+      "viewQueueLink": "Ver cobros por confirmar e incidencias",
       "policiesDisabledNote": "Estas políticas sólo aplican cuando otra caja cobra los vales de esta área.",
       "confirmDialog": {
         "title": "¿Cambiar la ruta de cobro?",
@@ -643,6 +644,78 @@
         "untracked": "Sin seguimiento",
         "untrackedHint": "El área entrega mirando el papel del vale; no queda registro ni cola."
       }
+    },
+    "externalSettlements": {
+      "title": "Cobros externos",
+      "subtitle": "Qué cobros de la ruta externa nadie ha confirmado todavía, y qué incidencias quedaron abiertas. Sólo lectura: aquí no se confirma ni se resuelve nada.",
+      "tabs": {
+        "settlements": "Cobros por confirmar",
+        "incidents": "Incidencias"
+      },
+      "referenceDisclaimer": "Estos números son el importe de referencia que Avoqado calculó para cada vale — no son ventas de Avoqado: ese dinero entró en la caja de otro punto de venta y no se suma a tus reportes de ventas.",
+      "incidentDisclaimer": "El sistema abre estas incidencias solo, cuando algo en la ruta externa necesita que una persona lo revise — un cobro que nadie confirmó a tiempo, una diferencia de importe. Ninguna acción de esta pantalla confirma ni resuelve nada todavía.",
+      "loading": "Cargando…",
+      "loadError": "No se pudo cargar",
+      "loadErrorFallback": "Intenta de nuevo.",
+      "loadMore": "Cargar más",
+      "noValue": "—",
+      "filters": {
+        "area": "Área",
+        "status": "Estado",
+        "kind": "Tipo",
+        "date": "Fecha",
+        "dateFrom": "Desde",
+        "dateTo": "Hasta",
+        "apply": "Aplicar",
+        "clear": "Limpiar",
+        "noAreas": "No hay áreas"
+      },
+      "columns": {
+        "ticket": "Vale",
+        "referenceAmount": "Importe de referencia",
+        "externalAmount": "Importe cobrado",
+        "variance": "Diferencia",
+        "status": "Estado",
+        "confirmedBy": "Confirmado por",
+        "issuedAt": "Emitido"
+      },
+      "settlementStatus": {
+        "PENDING": "Pendiente",
+        "ASSUMED": "Asumido",
+        "CONFIRMED": "Confirmado",
+        "DISCREPANCY": "Con diferencia",
+        "NOT_CHARGED": "No se cobró"
+      },
+      "emptyDefault": "No hay cobros pendientes de confirmar ahora mismo. Aquí aparecerán los vales de la ruta externa cuyo cobro nadie ha confirmado todavía.",
+      "emptyFiltered": "Ningún cobro externo coincide con estos filtros. Prueba con otros filtros o quítalos para ver más.",
+      "incidentColumns": {
+        "ticket": "Vale",
+        "kind": "Tipo",
+        "detail": "Detalle",
+        "status": "Estado",
+        "openedAt": "Abierta",
+        "resolvedBy": "Resuelta por"
+      },
+      "incidentKind": {
+        "UNCONFIRMED_CHARGE": "Cobro sin confirmar",
+        "AMOUNT_VARIANCE": "Diferencia de importe",
+        "NEGATIVE_STOCK": "Inventario negativo",
+        "CODE_MISMATCH": "Código no coincide",
+        "REPRINT_RISK": "Riesgo de reimpresión"
+      },
+      "incidentStatus": {
+        "OPEN": "Abierta",
+        "RESOLVED": "Resuelta",
+        "DISMISSED": "Descartada"
+      },
+      "incidentDetail": {
+        "unconfirmedCharge": "Importe de referencia: ${{amount}}",
+        "amountVariance": "Diferencia: {{variance}}",
+        "generic": "Ver detalle"
+      },
+      "reopenedCount": "Reabierta {{count}} veces",
+      "incidentEmptyDefault": "No hay incidencias abiertas. Aquí aparecerían los problemas que el sistema detecta solo — un cobro externo que nadie confirmó a tiempo, una diferencia de importe — para que alguien los revise.",
+      "incidentEmptyFiltered": "Ninguna incidencia coincide con estos filtros. Prueba con otros filtros o quítalos para ver más."
     }
   }
 }

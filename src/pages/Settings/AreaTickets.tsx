@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -96,7 +97,7 @@ function SettingRow({
 
 export default function AreaTickets() {
   const { t } = useTranslation('settings')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
   const overviewQuery = useQuery({
     queryKey: ['area-ticket-overview', venueId],
@@ -167,7 +168,7 @@ export default function AreaTickets() {
           <FlowSettings venueId={venueId} initial={data.settings} entitled={data.entitlements.areaTickets} onSaved={refresh} />
         </TabsContent>
         <TabsContent value="areas" className="mt-6">
-          <AreasSettings venueId={venueId} areas={data.areas} onSaved={refresh} />
+          <AreasSettings venueId={venueId} fullBasePath={fullBasePath} areas={data.areas} onSaved={refresh} />
         </TabsContent>
         <TabsContent value="terminals" className="mt-6">
           <TerminalSettings
@@ -326,9 +327,20 @@ function FlowSettings({
   )
 }
 
-function AreasSettings({ venueId, areas, onSaved }: { venueId: string; areas: FulfillmentArea[]; onSaved: () => void }) {
+function AreasSettings({
+  venueId,
+  fullBasePath,
+  areas,
+  onSaved,
+}: {
+  venueId: string
+  fullBasePath: string
+  areas: FulfillmentArea[]
+  onSaved: () => void
+}) {
   const { t } = useTranslation('settings')
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [mode, setMode] = useState<FulfillmentMode>('HOLD_UNTIL_PAID')
   const createMutation = useMutation({
@@ -424,9 +436,20 @@ function AreasSettings({ venueId, areas, onSaved }: { venueId: string; areas: Fu
 
       {areas.length > 0 && (
         <div className="space-y-3">
-          <div>
-            <h2 className="text-lg font-semibold">{t('areaTickets.externalRoute.sectionTitle')}</h2>
-            <p className="text-sm text-muted-foreground">{t('areaTickets.externalRoute.sectionDescription')}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">{t('areaTickets.externalRoute.sectionTitle')}</h2>
+              <p className="text-sm text-muted-foreground">{t('areaTickets.externalRoute.sectionDescription')}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`${fullBasePath}/settings/area-tickets/external-settlements`)}
+              data-tour="area-external-settlements-link"
+            >
+              {t('areaTickets.externalRoute.viewQueueLink')}
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
           </div>
           {areas.map(area => (
             <ExternalRouteAreaCard key={area.id} venueId={venueId} area={area} onSaved={onSaved} />

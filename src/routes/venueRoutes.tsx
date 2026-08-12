@@ -102,6 +102,7 @@ import {
   RolePermissions,
   PrintStations,
   AreaTickets,
+  ExternalSettlements,
   SalesByItem,
   SalesByCategory,
   PaymentMethods,
@@ -811,6 +812,14 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'area-tickets',
           element: <PermissionProtectedRoute permission="area-tickets:configure" />,
           children: [{ index: true, element: <AreaTickets /> }],
+        },
+        // Cobros por confirmar + incidencias de la ruta externa (§caja externa fase 1,
+        // Task 15) — misma permiso que la configuración de arriba: quien puede
+        // encender la ruta externa puede ver su cola de trabajo. Sólo lectura.
+        {
+          path: 'area-tickets/external-settlements',
+          element: <PermissionProtectedRoute permission="area-tickets:configure" />,
+          children: [{ index: true, element: <ExternalSettlements /> }],
         },
       ],
     },
