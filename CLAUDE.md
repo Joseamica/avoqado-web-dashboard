@@ -40,6 +40,14 @@ behind a paywall. **This is the one client that already enforces tiers** — wir
 
 ---
 
+## 🔴 Comparar contra Square ANTES de juzgar una feature o un bug
+
+Regla completa en `../CLAUDE.md` (auto-carga con este archivo). En corto: **investiga cómo lo hace
+Square, compáralo con lo nuestro, y trae las dos versiones al reporte — la decisión se toma entre el
+founder y tú.** Lo que parece un bug suele ser una decisión deliberada (caso real: el stock negativo,
+que Square permite a propósito y nosotros bloqueábamos). Aquí aplica igual a reportes e historiales:
+antes de "arreglar" cómo se ve un dato, verifica qué muestra Square y por qué.
+
 ## Identity & Tech Stack
 
 **Avoqado Web Dashboard** — Multi-tenant SaaS dashboard for restaurant/retail management.

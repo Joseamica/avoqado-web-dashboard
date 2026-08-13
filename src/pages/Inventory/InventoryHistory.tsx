@@ -9,13 +9,14 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { inventoryHistoryApi, GlobalInventoryMovement } from '@/services/inventory.service'
 import { useQuery } from '@tanstack/react-query'
-import { ColumnDef } from '@tanstack/react-table'
+import { ColumnDef, PaginationState } from '@tanstack/react-table'
+import { useDebounce } from '@/hooks/useDebounce'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ArrowDown, ArrowUp, Search, X, Info, HelpCircle } from 'lucide-react'
 import { useHistoryReviewTour } from '@/hooks/useHistoryReviewTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FilterPill } from '@/components/filters/FilterPill'
 import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
@@ -141,17 +142,45 @@ export default function InventoryHistory() {
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['createdAt', 'name', 'sku', 'provider', 'totalCost', 'adjustment'])
 
+  // Paginación REAL contra el servidor. Antes se pedía una sola página sin
+  // parámetros → el backend devolvía sus 50 más recientes y la pantalla no
+  // tenía forma de llegar al resto: un conteo hecho hace unas horas
+  // simplemente no aparecía, y los filtros —que corren en el navegador—
+  // filtraban sobre esos 50, así que tampoco lo encontraban.
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 50 })
+
+  // La búsqueda viaja al SERVIDOR (por eso encuentra en todo el historial, no
+  // sólo en la página cargada). 300ms de debounce, como el resto del dashboard.
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  // El backend acepta UN tipo. Con varios seleccionados el filtrado sigue
+  // siendo en cliente sobre la página visible (limitación conocida).
+  const serverTypeFilter = typeFilter.length === 1 ? typeFilter[0] : undefined
+
+  // Volver a la primera página cuando cambia un filtro: si no, se queda en la
+  // página 7 de un resultado que ahora tiene 2.
+  useEffect(() => {
+    setPagination(prev => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }))
+  }, [debouncedSearch, serverTypeFilter, dateFilter])
+
   // Fetch History Query
   const { data, isLoading } = useQuery({
-    queryKey: ['inventory-history', venueId],
+    queryKey: ['inventory-history', venueId, pagination.pageIndex, pagination.pageSize, debouncedSearch, serverTypeFilter],
     queryFn: async () => {
-      const response = await inventoryHistoryApi.getGlobalMovements(venueId!, {})
+      const response = await inventoryHistoryApi.getGlobalMovements(venueId!, {
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize,
+        search: debouncedSearch || undefined,
+        type: serverTypeFilter,
+      })
       return response.data
     },
     enabled: !!venueId,
   })
 
   const movements = useMemo(() => (data as any)?.data || [], [data])
+  /** Total REAL del servidor (antes venía el literal 1000). */
+  const totalMovements = (data as any)?.meta?.total ?? movements.length
 
   // Extract unique filter options from data (ordered by column position)
   const typeOptions = useMemo(() => {
@@ -288,20 +317,15 @@ export default function InventoryHistory() {
         return false
       }
 
-      // Search query (name, SKU, GTIN)
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const productName = (movement.productName || movement.rawMaterialName || '').toLowerCase()
-        const sku = (movement.sku || '').toLowerCase()
-        const gtin = (movement.gtin || '').toLowerCase()
-        if (!productName.includes(query) && !sku.includes(query) && !gtin.includes(query)) {
-          return false
-        }
-      }
+      // La BÚSQUEDA ya la resolvió el servidor sobre TODO el historial.
+      // Filtrarla otra vez aquí sólo podía quitar resultados buenos: leía
+      // `movement.productName` / `movement.rawMaterialName`, campos que el
+      // backend NUNCA envió (manda `itemName`), así que buscar por nombre
+      // devolvía vacío salvo que el texto coincidiera con el SKU.
 
       return true
     })
-  }, [movements, dateFilter, skuFilter, providerFilter, totalCostFilter, typeFilter, searchQuery])
+  }, [movements, dateFilter, skuFilter, providerFilter, totalCostFilter, typeFilter])
 
   // Reset filters
   const resetFilters = () => {
@@ -428,11 +452,22 @@ export default function InventoryHistory() {
             return <span className="text-muted-foreground">-</span>
           }
 
-          // Calculate quantity for cost calculation
-          const qty = movement.quantity ? Math.abs(movement.quantity) : Math.abs(movement.newStock - movement.previousStock)
+          // El costo del backend ya viene CON SIGNO (negativo = salió valor del
+          // inventario). Antes se tomaba en valor absoluto y además se ocultaba
+          // todo lo que no fuera positivo: una merma de $200 se veía igual que
+          // una compra de $200, o directamente como "-".
+          const fallback = (movement.newStock - movement.previousStock) * unitCost
+          const totalCost = typeof movement.totalCost === 'number' ? movement.totalCost : fallback
+          if (!totalCost) {
+            return <span className="text-muted-foreground">-</span>
+          }
 
-          const totalCost = movement.totalCost || qty * unitCost
-          return <span className="font-medium">{totalCost > 0 ? Currency(totalCost) : '-'}</span>
+          const salida = totalCost < 0
+          return (
+            <span className={salida ? 'font-medium text-destructive' : 'font-medium'}>
+              {salida ? `−${Currency(Math.abs(totalCost))}` : Currency(totalCost)}
+            </span>
+          )
         },
       },
       {
@@ -683,7 +718,9 @@ export default function InventoryHistory() {
           <DataTable
             columns={filteredColumns}
             data={filteredData}
-            rowCount={filteredData.length}
+            rowCount={totalMovements}
+            pagination={pagination}
+            setPagination={setPagination}
             onRowClick={(movement) => {
               setSelectedMovement(movement)
               setDetailDialogOpen(true)

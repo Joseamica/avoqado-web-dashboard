@@ -737,7 +737,9 @@ export const inventoryHistoryApi = {
       type?: string
       search?: string
       limit?: number
-      offset?: number
+      /** 1-based. El backend pagina por `page`, NO por `offset` — mandar
+       *  `offset` era un parámetro que el server ignoraba en silencio. */
+      page?: number
     },
   ) => api.get<{ data: GlobalInventoryMovement[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/dashboard/venues/${venueId}/inventory/movements`, { params: filters }),
 }
