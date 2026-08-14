@@ -525,5 +525,13 @@
     "currentlyValid": "Currently valid",
     "notYetValid": "Not yet valid",
     "noLongerValid": "No longer valid"
+  },
+  "bundles": {
+    "title": "Combos & bundles",
+    "subtitle": "Build combos, bundles and 2-for-1 deals priced to the cent. Publish them when ready and they show up on the POS.",
+    "list": {
+      "emptyState": "No promotions yet",
+      "emptyStateDesc": "Create your first combo or 2-for-1. It saves as a draft and won't show on the POS until you publish it."
+    }
   }
 }

@@ -18,6 +18,7 @@
   },
   "promotionsMenu": {
     "title": "Promociones",
+    "bundles": "Combos y paquetes",
     "discounts": "Descuentos",
     "coupons": "Códigos de Cupón",
     "upsell": "Sugerencias al cobrar"

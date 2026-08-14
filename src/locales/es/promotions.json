@@ -525,5 +525,13 @@
     "currentlyValid": "Actualmente válido",
     "notYetValid": "Aún no válido",
     "noLongerValid": "Ya no válido"
+  },
+  "bundles": {
+    "title": "Combos y paquetes",
+    "subtitle": "Arma combos, paquetes y 2x1 con precio exacto al centavo. Publícalos cuando estén listos y aparecen en el POS.",
+    "list": {
+      "emptyState": "Sin promociones todavía",
+      "emptyStateDesc": "Crea tu primer combo o 2x1. Se guarda como borrador y no aparece en el POS hasta que lo publiques."
+    }
   }
 }

@@ -559,6 +559,14 @@ export function AppSidebar({
       // here — it can't tier-gate (short-circuits true for normal venues).
       const hasPromotionsFeature = hasFeatureAccess('PROMOTIONS')
       const promoItems = [
+        {
+          title: t('sidebar:promotionsMenu.bundles'),
+          url: 'promotions/bundles',
+          permission: 'discounts:read',
+          premiumLocked: !hasPromotionsFeature,
+          gatedFeature: 'PROMOTIONS',
+          keywords: ['combos', 'paquetes', '2x1', 'bundle', 'promo'],
+        },
         { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['ofertas', 'promociones'] },
         { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['codigos', 'vouchers'] },
         // Upsell "¿Algo más?" — se gatea con su PROPIO feature (UPSELL, PRO), no con

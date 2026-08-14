@@ -522,5 +522,13 @@
 		"currentlyValid": "Actuellement valide",
 		"notYetValid": "Pas encore valide",
 		"noLongerValid": "N'est plus valide"
+	},
+	"bundles": {
+		"title": "Combos et formules",
+		"subtitle": "Créez des combos, formules et 2 pour 1 au prix exact, au centime près. Publiez-les quand ils sont prêts et ils apparaissent sur le POS.",
+		"list": {
+			"emptyState": "Aucune promotion pour le moment",
+			"emptyStateDesc": "Créez votre premier combo ou 2 pour 1. Il est enregistré comme brouillon et n'apparaît pas sur le POS tant que vous ne le publiez pas."
+		}
 	}
 }

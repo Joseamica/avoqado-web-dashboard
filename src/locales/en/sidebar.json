@@ -19,6 +19,7 @@
   },
   "promotionsMenu": {
     "title": "Promotions",
+    "bundles": "Combos & bundles",
     "discounts": "Discounts",
     "coupons": "Coupon Codes",
     "upsell": "Checkout suggestions"

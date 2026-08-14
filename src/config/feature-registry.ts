@@ -433,6 +433,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       { path: 'promotions', element: 'Promotions' },
       { path: 'promotions/discounts', element: 'Discounts' },
       { path: 'promotions/coupons', element: 'Coupons' },
+      { path: 'promotions/bundles', element: 'Bundles' },
     ],
 
     configSchema: {

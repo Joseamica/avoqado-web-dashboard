@@ -227,6 +227,7 @@ export const DiscountDetail = lazyWithRetry(() => import('@/pages/Promotions/Dis
 export const Coupons = lazyWithRetry(() => import('@/pages/Promotions/Coupons'))
 export const Upsell = lazyWithRetry(() => import('@/pages/Promotions/Upsell'))
 export const CouponForm = lazyWithRetry(() => import('@/pages/Promotions/CouponForm'))
+export const Bundles = lazyWithRetry(() => import('@/pages/Promotions/Bundles'))
 export const CreditPacks = lazyWithRetry(() => import('@/pages/CreditPacks/CreditPacks'))
 
 // Organization (OWNER dashboard)

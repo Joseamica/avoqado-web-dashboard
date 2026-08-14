@@ -30,6 +30,7 @@ import {
   BillingPaymentMethods,
   BillingSubscriptions,
   BillingTokens,
+  Bundles,
   Categories,
   CategoryId,
   CommissionConfigDetailPage,
@@ -689,6 +690,15 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'create', element: <CouponForm /> },
         { path: ':couponId', element: <CouponForm /> },
       ],
+    },
+
+    // Promotions - Combos y paquetes (BUNDLE/COMBO/2x1). Teaser visible: el
+    // permiso protege la ruta; el tier lo gatea <FeatureGate> DENTRO de la
+    // página para que FREE vea el candado y el upsell, no un redirect.
+    {
+      path: 'promotions/bundles',
+      element: <PermissionProtectedRoute permission="discounts:read" />,
+      children: [{ index: true, element: <Bundles /> }],
     },
 
     // Notifications
