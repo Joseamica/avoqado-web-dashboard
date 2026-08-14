@@ -18,8 +18,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { CheckboxFilterContent, FilterPill } from '@/components/filters' // 🔴 regla ui-patterns: filtros Stripe, no Select — espejar props exactas de src/pages/Order/Orders.tsx
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { usePromotionCreationTour } from '@/hooks/usePromotionCreationTour'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
 import promotionService from '@/services/promotion.service'
@@ -43,6 +45,7 @@ export default function Bundles() {
   // sin este enabled, un venue FREE dispararía queries que terminan en 403
   // escondidos bajo el paywall.
   const { hasAccess } = useTierFeatureAccess('PROMOTIONS')
+  const { start: startPromotionTour } = usePromotionCreationTour()
 
   const [statusFilter, setStatusFilter] = useState<string[]>([]) // multi-select estilo Stripe; vacío = todas
   const [editorOpen, setEditorOpen] = useState(false)
@@ -240,20 +243,45 @@ export default function Bundles() {
           </div>
         </div>
 
+        {/* storageKey es prop OBLIGATORIA (TourDiscoveryBanner.tsx:7) y ctaLabel se
+            traduce — el fallback interno está hardcodeado en español (:66) */}
+        <TourDiscoveryBanner
+          className="mt-4"
+          storageKey="bundles-activation"
+          title={t('bundles.activation.bannerTitle')}
+          description={t('bundles.activation.bannerDesc')}
+          ctaLabel={t('bundles.activation.startGuide')}
+          onStart={startPromotionTour}
+        />
+
         <div className="mt-6">
-          {/* rowCount es prop OBLIGATORIA (data-table.tsx:28). enableSearch sin
-              onSearch pinta una caja MUERTA (data-table.tsx:187): el filtrado
-              client-side lo hace onSearch. */}
-          <DataTable
-            data={rows}
-            columns={columns}
-            rowCount={rows.length}
-            isLoading={isLoading}
-            enableSearch
-            searchPlaceholder={t('bundles.list.searchPlaceholder')}
-            onSearch={(term, items) => items.filter(p => p.name.toLowerCase().includes(term.toLowerCase()))}
-            showColumnCustomizer={false}
-          />
+          {!isLoading && rows.length === 0 ? (
+            <div className="mt-10 rounded-2xl border border-input bg-card p-8 text-center space-y-3">
+              <p className="text-lg font-medium">{t('bundles.activation.emptyTitle')}</p>
+              <ol className="mx-auto max-w-md list-decimal space-y-1 pl-5 text-left text-sm text-muted-foreground">
+                <li>{t('bundles.activation.step1')}</li>
+                <li>{t('bundles.activation.step2')}</li>
+                <li>{t('bundles.activation.step3')}</li>
+              </ol>
+              <Button className="mt-2" onClick={startPromotionTour} data-tour="bundle-guide-start">
+                {t('bundles.activation.startGuide')}
+              </Button>
+            </div>
+          ) : (
+            // rowCount es prop OBLIGATORIA (data-table.tsx:28). enableSearch sin
+            // onSearch pinta una caja MUERTA (data-table.tsx:187): el filtrado
+            // client-side lo hace onSearch.
+            <DataTable
+              data={rows}
+              columns={columns}
+              rowCount={rows.length}
+              isLoading={isLoading}
+              enableSearch
+              searchPlaceholder={t('bundles.list.searchPlaceholder')}
+              onSearch={(term, items) => items.filter(p => p.name.toLowerCase().includes(term.toLowerCase()))}
+              showColumnCustomizer={false}
+            />
+          )}
         </div>
 
         <PermissionGate permission="venues:update">

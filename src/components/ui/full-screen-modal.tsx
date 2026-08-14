@@ -60,6 +60,7 @@ export function FullScreenModal({
                 variant="secondary"
                 size="icon"
                 className="h-12 w-12 rounded-full"
+                data-tour="bundle-editor-close"
               >
                 <X className="h-6 w-6" />
                 <span className="sr-only">Cerrar</span>

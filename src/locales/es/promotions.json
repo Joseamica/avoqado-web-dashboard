@@ -589,6 +589,24 @@
       "tab": "Pestaña", "sidePanel": "Panel lateral", "hidden": "Ocultas",
       "saved": "Ajuste guardado",
       "saveError": "No se pudo guardar el ajuste. Intenta de nuevo."
+    },
+    "activation": {
+      "bannerTitle": "¿Primera promoción?",
+      "bannerDesc": "Te llevamos de la mano: crear, publicar y elegir dónde se ve en el POS.",
+      "emptyTitle": "Así se prende una promoción",
+      "step1": "Crea el combo o 2x1 con el botón \"Nueva promoción\" — se guarda como borrador.",
+      "step2": "Publícalo desde el menú de la fila (⋯ → Publicar). Sólo lo publicado llega al POS.",
+      "step3": "Elige abajo dónde se ve en cada pantalla del POS. Las terminales lo toman solas: no hay que instalar nada.",
+      "startGuide": "Iniciar guía"
+    },
+    "tour": {
+      "welcomeTitle": "Promociones", "welcomeDesc": "Aquí viven tus combos, paquetes y 2x1. Nada de lo que hagas aquí cobra distinto hasta que publiques.",
+      "createTitle": "Crear", "createDesc": "Todo empieza como borrador: puedes armarlo con calma.",
+      "modeTitle": "¿Cómo se cobra?", "modeDesc": "Precio fijo (\"todo por $99\") o 2x1 (entran 2, se cobra 1).",
+      "groupsTitle": "Qué incluye", "groupsDesc": "Cada parte del combo. Si una parte tiene varias opciones, el cliente elige.",
+      "saveTitle": "Guardar", "saveDesc": "Guarda el borrador. Aún no lo ve nadie.",
+      "publishTitle": "Publicar", "publishDesc": "Este es el interruptor real: al publicar, la promoción aparece en el POS. Si algo está mal armado te decimos TODO lo que falta, de una vez.",
+      "panelTitle": "Dónde se ve", "panelDesc": "Pestaña, panel lateral u oculta — por pantalla. Y listo: no hay que tocar las terminales."
     }
   }
 }

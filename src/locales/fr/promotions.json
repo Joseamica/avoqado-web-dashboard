@@ -586,6 +586,24 @@
 			"tab": "Onglet", "sidePanel": "Panneau latéral", "hidden": "Masquées",
 			"saved": "Réglage enregistré",
 			"saveError": "Impossible d'enregistrer le réglage. Réessayez."
+		},
+		"activation": {
+			"bannerTitle": "Première promotion ?",
+			"bannerDesc": "On vous guide : créer, publier et choisir où elle apparaît sur le POS.",
+			"emptyTitle": "Voici comment activer une promotion",
+			"step1": "Créez le combo ou le 2 pour 1 avec le bouton « Nouvelle promotion » — il est enregistré comme brouillon.",
+			"step2": "Publiez-le depuis le menu de la ligne (⋯ → Publier). Seul ce qui est publié arrive sur le POS.",
+			"step3": "Choisissez ci-dessous où elle apparaît sur chaque écran du POS. Les terminaux la récupèrent seuls : rien à installer.",
+			"startGuide": "Démarrer le guide"
+		},
+		"tour": {
+			"welcomeTitle": "Promotions", "welcomeDesc": "C'est ici que vivent vos combos, formules et 2 pour 1. Rien de ce que vous faites ici ne change la facturation tant que vous ne publiez pas.",
+			"createTitle": "Créer", "createDesc": "Tout commence comme un brouillon : vous pouvez le construire tranquillement.",
+			"modeTitle": "Comment est-ce facturé ?", "modeDesc": "Prix fixe (« tout pour 99 $ ») ou 2 pour 1 (2 entrent, 1 est facturée).",
+			"groupsTitle": "Ce qui est inclus", "groupsDesc": "Chaque partie du combo. Si une partie a plusieurs options, le client en choisit une.",
+			"saveTitle": "Enregistrer", "saveDesc": "Enregistre le brouillon. Personne ne le voit encore.",
+			"publishTitle": "Publier", "publishDesc": "C'est le vrai interrupteur : une fois publiée, la promotion apparaît sur le POS. S'il manque quelque chose, on vous dit TOUT d'un coup.",
+			"panelTitle": "Où elle apparaît", "panelDesc": "Onglet, panneau latéral ou masquée — par écran. Et voilà : rien à toucher sur les terminaux."
 		}
 	}
 }

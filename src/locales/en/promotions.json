@@ -589,6 +589,24 @@
       "tab": "Tab", "sidePanel": "Side panel", "hidden": "Hidden",
       "saved": "Setting saved",
       "saveError": "Couldn't save the setting. Try again."
+    },
+    "activation": {
+      "bannerTitle": "First promotion?",
+      "bannerDesc": "We'll walk you through it: create, publish, and choose where it shows on the POS.",
+      "emptyTitle": "Here's how to turn on a promotion",
+      "step1": "Create the combo or 2-for-1 with the \"New promotion\" button — it saves as a draft.",
+      "step2": "Publish it from the row menu (⋯ → Publish). Only published promotions reach the POS.",
+      "step3": "Pick below where it shows on each POS screen. Terminals pick it up on their own — nothing to install.",
+      "startGuide": "Start guide"
+    },
+    "tour": {
+      "welcomeTitle": "Promotions", "welcomeDesc": "This is where your combos, bundles and 2-for-1s live. Nothing you do here charges differently until you publish.",
+      "createTitle": "Create", "createDesc": "Everything starts as a draft: you can take your time building it.",
+      "modeTitle": "How is it charged?", "modeDesc": "Fixed price (\"all for $99\") or 2-for-1 (2 go in, 1 gets charged).",
+      "groupsTitle": "What's included", "groupsDesc": "Each part of the combo. If a part has several options, the customer picks one.",
+      "saveTitle": "Save", "saveDesc": "Saves the draft. No one sees it yet.",
+      "publishTitle": "Publish", "publishDesc": "This is the real switch: once published, the promotion shows up on the POS. If something's missing, we tell you EVERYTHING at once.",
+      "panelTitle": "Where it shows", "panelDesc": "Tab, side panel, or hidden — per screen. That's it: nothing to touch on the terminals."
     }
   }
 }
