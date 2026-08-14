@@ -526,9 +526,28 @@
 	"bundles": {
 		"title": "Combos et formules",
 		"subtitle": "Créez des combos, formules et 2 pour 1 au prix exact, au centime près. Publiez-les quand ils sont prêts et ils apparaissent sur le POS.",
+		"create": "Nouvelle promotion",
 		"list": {
 			"emptyState": "Aucune promotion pour le moment",
-			"emptyStateDesc": "Créez votre premier combo ou 2 pour 1. Il est enregistré comme brouillon et n'apparaît pas sur le POS tant que vous ne le publiez pas."
+			"emptyStateDesc": "Créez votre premier combo ou 2 pour 1. Il est enregistré comme brouillon et n'apparaît pas sur le POS tant que vous ne le publiez pas.",
+			"name": "Promotion", "mode": "Type de prix", "modeFixed": "Prix fixe", "modePerUnit": "2 pour 1 / NxM",
+			"price": "Prix", "status": "Statut", "filterAll": "Toutes", "searchPlaceholder": "Rechercher une promotion…"
+		},
+		"status": { "DRAFT": "Brouillon", "PUBLISHED": "Publiée", "ARCHIVED": "Archivée" },
+		"actions": { "edit": "Modifier", "publish": "Publier", "archive": "Archiver", "unarchive": "Désarchiver", "delete": "Supprimer le brouillon" },
+		"toasts": {
+			"published": "Promotion publiée : elle apparaît maintenant sur le POS",
+			"publishFailed": "Impossible de publier la promotion",
+			"archived": "Promotion archivée : elle n'apparaît plus sur le POS",
+			"unarchived": "Promotion désarchivée : redevenue brouillon",
+			"deleted": "Brouillon supprimé",
+			"deleteFailed": "Impossible de supprimer"
+		},
+		"publishErrors": { "title": "Impossible de publier ainsi", "ok": "Compris" },
+		"delete": {
+			"title": "Supprimer « {{name}} » ?",
+			"description": "Seuls les brouillons sans ventes peuvent être supprimés. Cette action est irréversible.",
+			"cancel": "Annuler", "confirm": "Supprimer"
 		},
 		"form": {
 			"createTitle": "Nouvelle promotion", "editTitle": "Modifier la promotion",

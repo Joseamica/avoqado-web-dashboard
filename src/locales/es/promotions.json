@@ -529,9 +529,28 @@
   "bundles": {
     "title": "Combos y paquetes",
     "subtitle": "Arma combos, paquetes y 2x1 con precio exacto al centavo. Publícalos cuando estén listos y aparecen en el POS.",
+    "create": "Nueva promoción",
     "list": {
       "emptyState": "Sin promociones todavía",
-      "emptyStateDesc": "Crea tu primer combo o 2x1. Se guarda como borrador y no aparece en el POS hasta que lo publiques."
+      "emptyStateDesc": "Crea tu primer combo o 2x1. Se guarda como borrador y no aparece en el POS hasta que lo publiques.",
+      "name": "Promoción", "mode": "Tipo de precio", "modeFixed": "Precio fijo", "modePerUnit": "2x1 / NxM",
+      "price": "Precio", "status": "Estado", "filterAll": "Todas", "searchPlaceholder": "Buscar promoción…"
+    },
+    "status": { "DRAFT": "Borrador", "PUBLISHED": "Publicada", "ARCHIVED": "Archivada" },
+    "actions": { "edit": "Editar", "publish": "Publicar", "archive": "Archivar", "unarchive": "Desarchivar", "delete": "Borrar borrador" },
+    "toasts": {
+      "published": "Promoción publicada: ya aparece en el POS",
+      "publishFailed": "No se pudo publicar la promoción",
+      "archived": "Promoción archivada: ya no aparece en el POS",
+      "unarchived": "Promoción desarchivada: quedó como borrador",
+      "deleted": "Borrador eliminado",
+      "deleteFailed": "No se pudo borrar"
+    },
+    "publishErrors": { "title": "Así no se puede publicar", "ok": "Entendido" },
+    "delete": {
+      "title": "¿Borrar \"{{name}}\"?",
+      "description": "Sólo se borran borradores sin ventas. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar", "confirm": "Borrar"
     },
     "form": {
       "createTitle": "Nueva promoción", "editTitle": "Editar promoción",

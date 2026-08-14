@@ -529,9 +529,28 @@
   "bundles": {
     "title": "Combos & bundles",
     "subtitle": "Build combos, bundles and 2-for-1 deals priced to the cent. Publish them when ready and they show up on the POS.",
+    "create": "New promotion",
     "list": {
       "emptyState": "No promotions yet",
-      "emptyStateDesc": "Create your first combo or 2-for-1. It saves as a draft and won't show on the POS until you publish it."
+      "emptyStateDesc": "Create your first combo or 2-for-1. It saves as a draft and won't show on the POS until you publish it.",
+      "name": "Promotion", "mode": "Pricing type", "modeFixed": "Fixed price", "modePerUnit": "2-for-1 / NxM",
+      "price": "Price", "status": "Status", "filterAll": "All", "searchPlaceholder": "Search promotion…"
+    },
+    "status": { "DRAFT": "Draft", "PUBLISHED": "Published", "ARCHIVED": "Archived" },
+    "actions": { "edit": "Edit", "publish": "Publish", "archive": "Archive", "unarchive": "Unarchive", "delete": "Delete draft" },
+    "toasts": {
+      "published": "Promotion published: now showing on the POS",
+      "publishFailed": "Couldn't publish the promotion",
+      "archived": "Promotion archived: no longer showing on the POS",
+      "unarchived": "Promotion unarchived: back to draft",
+      "deleted": "Draft deleted",
+      "deleteFailed": "Couldn't delete"
+    },
+    "publishErrors": { "title": "This can't be published yet", "ok": "Got it" },
+    "delete": {
+      "title": "Delete \"{{name}}\"?",
+      "description": "Only drafts with no sales can be deleted. This action can't be undone.",
+      "cancel": "Cancel", "confirm": "Delete"
     },
     "form": {
       "createTitle": "New promotion", "editTitle": "Edit promotion",
