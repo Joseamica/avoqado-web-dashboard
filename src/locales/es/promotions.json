@@ -542,7 +542,9 @@
       "published": "Promoción publicada: ya aparece en el POS",
       "publishFailed": "No se pudo publicar la promoción",
       "archived": "Promoción archivada: ya no aparece en el POS",
+      "archiveFailed": "No se pudo archivar la promoción",
       "unarchived": "Promoción desarchivada: quedó como borrador",
+      "unarchiveFailed": "No se pudo desarchivar la promoción",
       "deleted": "Borrador eliminado",
       "deleteFailed": "No se pudo borrar"
     },

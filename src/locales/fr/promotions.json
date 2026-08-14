@@ -539,7 +539,9 @@
 			"published": "Promotion publiée : elle apparaît maintenant sur le POS",
 			"publishFailed": "Impossible de publier la promotion",
 			"archived": "Promotion archivée : elle n'apparaît plus sur le POS",
+			"archiveFailed": "Impossible d'archiver la promotion",
 			"unarchived": "Promotion désarchivée : redevenue brouillon",
+			"unarchiveFailed": "Impossible de désarchiver la promotion",
 			"deleted": "Brouillon supprimé",
 			"deleteFailed": "Impossible de supprimer"
 		},

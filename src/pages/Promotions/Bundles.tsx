@@ -84,6 +84,7 @@ export default function Bundles() {
       toast({ title: t('bundles.toasts.archived') })
       invalidate()
     },
+    onError: () => toast({ title: t('bundles.toasts.archiveFailed'), variant: 'destructive' }),
   })
 
   const unarchiveMutation = useMutation({
@@ -92,6 +93,7 @@ export default function Bundles() {
       toast({ title: t('bundles.toasts.unarchived') })
       invalidate()
     },
+    onError: () => toast({ title: t('bundles.toasts.unarchiveFailed'), variant: 'destructive' }),
   })
 
   const deleteMutation = useMutation({

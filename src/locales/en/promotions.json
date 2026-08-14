@@ -542,7 +542,9 @@
       "published": "Promotion published: now showing on the POS",
       "publishFailed": "Couldn't publish the promotion",
       "archived": "Promotion archived: no longer showing on the POS",
+      "archiveFailed": "Couldn't archive the promotion",
       "unarchived": "Promotion unarchived: back to draft",
+      "unarchiveFailed": "Couldn't unarchive the promotion",
       "deleted": "Draft deleted",
       "deleteFailed": "Couldn't delete"
     },
