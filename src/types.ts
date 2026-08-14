@@ -637,6 +637,10 @@ export interface VenueSettings {
   lowStockAlert: boolean
   lowStockThreshold: number
 
+  /** Dónde salen las promociones en el POS. HIDDEN = preferencia de layout del local, no el candado de tier. */
+  promotionsPanelCashier?: 'HIDDEN' | 'TAB' | 'SIDE_PANEL'
+  promotionsPanelCustomer?: 'HIDDEN' | 'TAB' | 'SIDE_PANEL'
+
   // Customer features
   allowReservations: boolean
   allowTakeout: boolean
@@ -1355,8 +1359,23 @@ export interface Table {
 }
 
 // Shift breakdown types (for detailed shift reports)
+
+/** Cómo pintar el método. Evita el viejo "todo lo que no es efectivo es tarjeta". */
+export type PaymentMethodKind = 'CASH' | 'CARD' | 'OTHER'
+
 export interface PaymentMethodBreakdown {
-  method: 'CASH' | 'CARD'
+  /**
+   * El método REAL del backend: `CASH`, `CREDIT_CARD`, `DEBIT_CARD`, `BANK_TRANSFER`…
+   *
+   * 🔴 Antes esto era el literal `'CASH' | 'CARD'` y el backend colapsaba todo a esas dos
+   * cubetas, así que el dueño no veía débito contra crédito aunque la base sí lo guarda.
+   * El tipo mentía sin romper la compilación, porque la respuesta llega sin tipar.
+   * Ahora el backend manda el método real + `kind` + `label`.
+   */
+  method: string
+  kind: PaymentMethodKind
+  /** Etiqueta en español que ya manda el backend ("Tarjeta de débito"). */
+  label: string
   total: number
   tips: number
   count: number

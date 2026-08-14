@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import promotionService from '@/services/promotion.service'
 import type { Promotion, PromotionStatus } from '@/types/promotion'
 import { BundleEditor } from './components/BundleEditor'
+import { PanelSettingsCard } from './components/PanelSettingsCard'
 
 const STATUS_BADGE: Record<PromotionStatus, 'default' | 'secondary' | 'outline'> = {
   PUBLISHED: 'default',
@@ -254,6 +255,10 @@ export default function Bundles() {
             showColumnCustomizer={false}
           />
         </div>
+
+        <PermissionGate permission="venues:update">
+          <PanelSettingsCard venueId={venueId!} />
+        </PermissionGate>
 
         <BundleEditor
           open={editorOpen}

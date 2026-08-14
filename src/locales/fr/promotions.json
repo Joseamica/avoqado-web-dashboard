@@ -576,6 +576,15 @@
 			"scheduleHelp": "Sans disponibilité définie, la promotion s'applique tant qu'elle est publiée.",
 			"validFrom": "Du", "validUntil": "Au", "timeFrom": "Heure de début", "timeUntil": "Heure de fin",
 			"daysHelp": "Sans jour coché, elle s'applique tous les jours."
+		},
+		"panel": {
+			"title": "Où elles apparaissent sur le POS",
+			"description": "Choisissez comment les promotions publiées apparaissent sur chaque écran. Les masquer ici est une préférence d'affichage : vous pouvez revenir en arrière à tout moment.",
+			"cashier": "Écran du caissier", "customer": "Écran du client",
+			"cashierHelp": "L'onglet laisse plus de place à la grille ; le panneau latéral les garde toujours visibles.",
+			"customerHelp": "Ce que voit le client pendant qu'on l'encaisse.",
+			"tab": "Onglet", "sidePanel": "Panneau latéral", "hidden": "Masquées",
+			"saved": "Réglage enregistré"
 		}
 	}
 }

@@ -579,6 +579,15 @@
       "scheduleHelp": "Without a schedule, the promotion applies anytime it's published.",
       "validFrom": "From", "validUntil": "Until", "timeFrom": "Start time", "timeUntil": "End time",
       "daysHelp": "With no days checked it applies every day."
+    },
+    "panel": {
+      "title": "Where they show up on the POS",
+      "description": "Choose how published promotions appear on each screen. Hiding them here is a layout preference — you can revert it anytime.",
+      "cashier": "Cashier screen", "customer": "Customer screen",
+      "cashierHelp": "Tab leaves more room for the grid; side panel keeps them always visible.",
+      "customerHelp": "What the customer sees while being charged.",
+      "tab": "Tab", "sidePanel": "Side panel", "hidden": "Hidden",
+      "saved": "Setting saved"
     }
   }
 }
