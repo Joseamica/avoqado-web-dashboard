@@ -584,7 +584,8 @@
 			"cashierHelp": "L'onglet laisse plus de place à la grille ; le panneau latéral les garde toujours visibles.",
 			"customerHelp": "Ce que voit le client pendant qu'on l'encaisse.",
 			"tab": "Onglet", "sidePanel": "Panneau latéral", "hidden": "Masquées",
-			"saved": "Réglage enregistré"
+			"saved": "Réglage enregistré",
+			"saveError": "Impossible d'enregistrer le réglage. Réessayez."
 		}
 	}
 }

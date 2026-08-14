@@ -587,7 +587,8 @@
       "cashierHelp": "Tab leaves more room for the grid; side panel keeps them always visible.",
       "customerHelp": "What the customer sees while being charged.",
       "tab": "Tab", "sidePanel": "Side panel", "hidden": "Hidden",
-      "saved": "Setting saved"
+      "saved": "Setting saved",
+      "saveError": "Couldn't save the setting. Try again."
     }
   }
 }

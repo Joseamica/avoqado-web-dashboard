@@ -587,7 +587,8 @@
       "cashierHelp": "Pestaña deja más espacio a la cuadrícula; panel lateral las tiene siempre a la vista.",
       "customerHelp": "Lo que ve el cliente mientras le cobran.",
       "tab": "Pestaña", "sidePanel": "Panel lateral", "hidden": "Ocultas",
-      "saved": "Ajuste guardado"
+      "saved": "Ajuste guardado",
+      "saveError": "No se pudo guardar el ajuste. Intenta de nuevo."
     }
   }
 }

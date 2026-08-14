@@ -28,6 +28,7 @@ export function PanelSettingsCard({ venueId }: { venueId: string }) {
       toast({ title: t('bundles.panel.saved') })
       queryClient.invalidateQueries({ queryKey: ['venue-settings', venueId] })
     },
+    onError: () => toast({ title: t('bundles.panel.saveError'), variant: 'destructive' }),
   })
 
   const renderSelect = (
