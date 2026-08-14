@@ -91,7 +91,16 @@ test.describe('Promociones (combos y paquetes)', () => {
     await setupPromotionMocks(page)
 
     await page.goto('/venues/venue-alpha/promotions/bundles')
-    // Content stays blurred behind the FeatureGate upgrade card
-    await expect(page.getByText(/PRO/i).first()).toBeVisible()
+    // 🔴 FeatureGate ALWAYS mounts children (only blurs them) — asserting on
+    // /PRO/i alone is a hollow match: "Nueva promoción" also contains "pro" and
+    // is visible even if the gate is broken. Assert the paywall's EXCLUSIVE copy
+    // (billing.json featureGate.upgrade, interpolated: "Mejora a {{tier}}" → "Mejora a Pro").
+    await expect(page.getByText('Mejora a Pro')).toBeVisible()
+
+    // Negative behavioral check: the blurred content sits behind
+    // pointer-events-none (FeatureGate.tsx), so the create button underneath
+    // must NOT be clickable — clicking it must never open the editor.
+    await page.locator('[data-tour="bundle-create"]').click({ timeout: 3000 }).catch(() => {})
+    await expect(page.locator('[data-tour="bundle-save"]')).not.toBeVisible()
   })
 })
