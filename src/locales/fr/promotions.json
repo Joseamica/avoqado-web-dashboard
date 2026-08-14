@@ -529,6 +529,34 @@
 		"list": {
 			"emptyState": "Aucune promotion pour le moment",
 			"emptyStateDesc": "Créez votre premier combo ou 2 pour 1. Il est enregistré comme brouillon et n'apparaît pas sur le POS tant que vous ne le publiez pas."
+		},
+		"form": {
+			"createTitle": "Nouvelle promotion", "editTitle": "Modifier la promotion",
+			"subtitle": "Enregistrée comme brouillon. La publier est une étape à part.",
+			"save": "Enregistrer le brouillon", "saving": "Enregistrement…",
+			"savedNew": "Brouillon enregistré. Publiez-le quand il est prêt.",
+			"savedEdit": "Modifications enregistrées. Ce qui est déjà vendu ne change pas.",
+			"saveFailed": "Impossible d'enregistrer",
+			"name": "Nom", "namePlaceholder": "Combo du jour",
+			"description": "Description (optionnel)",
+			"image": "Photo (optionnel)", "imageUpload": "Ajouter une photo", "imageConfirm": "Utiliser le recadrage", "imageCancel": "Annuler", "imageRemove": "Retirer la photo",
+			"pricingMode": "Comment est-ce facturé ?",
+			"modeFixed": "Prix fixe du forfait", "modePerUnit": "2 pour 1 / payer moins d'unités",
+			"modeFixedHelp": "Le forfait coûte ce que vous indiquez ici, peu importe la somme des produits.",
+			"modePerUnitHelp": "Plus d'unités entrent que celles facturées : dans un 2 pour 1, 2 entrent et 1 est facturée.",
+			"price": "Prix du forfait",
+			"groups": "Ce qui est inclus", "addGroup": "Ajouter une partie",
+			"groupsHelp": "Chaque partie est un élément inclus dans la promotion. Si une partie a plusieurs options, le client en choisit une.",
+			"groupNamePlaceholder": "Ex. Choisissez votre plat",
+			"product": "Produit", "productPlaceholder": "Choisir un produit…",
+			"quantity": "Incluses", "chargedQuantity": "Facturées", "priceDelta": "Supplément",
+			"addOption": "Ajouter une option",
+			"perUnitRowHelp": "« Incluses » est ce que le client emporte ; « facturées » est ce qu'il paie. 2 pour 1 = 2 incluses, 1 facturée.",
+			"fixedRowHelp": "Le supplément s'ajoute au prix du forfait si le client choisit cette option.",
+			"schedule": "Disponibilité (optionnel)",
+			"scheduleHelp": "Sans disponibilité définie, la promotion s'applique tant qu'elle est publiée.",
+			"validFrom": "Du", "validUntil": "Au", "timeFrom": "Heure de début", "timeUntil": "Heure de fin",
+			"daysHelp": "Sans jour coché, elle s'applique tous les jours."
 		}
 	}
 }

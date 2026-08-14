@@ -532,6 +532,34 @@
     "list": {
       "emptyState": "Sin promociones todavía",
       "emptyStateDesc": "Crea tu primer combo o 2x1. Se guarda como borrador y no aparece en el POS hasta que lo publiques."
+    },
+    "form": {
+      "createTitle": "Nueva promoción", "editTitle": "Editar promoción",
+      "subtitle": "Se guarda como borrador. Publicarla es un paso aparte.",
+      "save": "Guardar borrador", "saving": "Guardando…",
+      "savedNew": "Borrador guardado. Publícalo cuando esté listo.",
+      "savedEdit": "Cambios guardados. Lo ya vendido no cambia.",
+      "saveFailed": "No se pudo guardar",
+      "name": "Nombre", "namePlaceholder": "Combo del día",
+      "description": "Descripción (opcional)",
+      "image": "Foto (opcional)", "imageUpload": "Subir foto", "imageConfirm": "Usar recorte", "imageCancel": "Cancelar", "imageRemove": "Quitar foto",
+      "pricingMode": "¿Cómo se cobra?",
+      "modeFixed": "Precio fijo del paquete", "modePerUnit": "2x1 / paga menos unidades",
+      "modeFixedHelp": "El paquete cuesta lo que digas aquí, sin importar lo que sumen los productos.",
+      "modePerUnitHelp": "Entran más unidades de las que se cobran: en un 2x1 entran 2 y se cobra 1.",
+      "price": "Precio del paquete",
+      "groups": "Qué incluye", "addGroup": "Agregar parte",
+      "groupsHelp": "Cada parte es algo que incluye la promoción. Si una parte tiene varias opciones, el cliente elige una.",
+      "groupNamePlaceholder": "Ej. Elige tu plato",
+      "product": "Producto", "productPlaceholder": "Elegir producto…",
+      "quantity": "Entran", "chargedQuantity": "Se cobran", "priceDelta": "Sobreprecio",
+      "addOption": "Agregar opción",
+      "perUnitRowHelp": "\"Entran\" es lo que se lleva el cliente; \"se cobran\" es lo que paga. 2x1 = entran 2, se cobra 1.",
+      "fixedRowHelp": "El sobreprecio se suma al precio del paquete si el cliente elige esa opción.",
+      "schedule": "Vigencia (opcional)",
+      "scheduleHelp": "Sin vigencia, la promoción aplica siempre que esté publicada.",
+      "validFrom": "Desde", "validUntil": "Hasta", "timeFrom": "Hora inicio", "timeUntil": "Hora fin",
+      "daysHelp": "Sin días marcados aplica todos los días."
     }
   }
 }
