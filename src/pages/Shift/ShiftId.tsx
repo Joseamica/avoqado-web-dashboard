@@ -223,7 +223,11 @@ const UnifiedPaymentSection = ({
   return (
     <div className="space-y-4">
       {paymentMethods.map(method => {
-        const isCardMethod = method.method !== 'CASH'
+        // 🔴 Antes era `method.method !== 'CASH'`, o sea "todo lo que no es efectivo es
+        // tarjeta" — con el desglose real eso pintaría una transferencia como tarjeta y le
+        // colgaría debajo las marcas VISA/MASTERCARD. El backend ahora manda `kind`.
+        const kind = method.kind ?? (method.method === 'CASH' ? 'CASH' : 'CARD')
+        const isCardMethod = kind === 'CARD'
 
         return (
           <div key={method.method} className="space-y-2">
@@ -232,17 +236,22 @@ const UnifiedPaymentSection = ({
               <div className="flex items-center gap-2">
                 <div
                   className={`flex items-center justify-center w-8 h-8 rounded-lg ${
-                    method.method === 'CASH' ? 'bg-green-500/10' : 'bg-blue-500/10'
+                    kind === 'CASH' ? 'bg-green-500/10' : kind === 'CARD' ? 'bg-blue-500/10' : 'bg-muted'
                   }`}
                 >
-                  {method.method === 'CASH' ? (
+                  {kind === 'CASH' ? (
                     <Banknote className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
+                  ) : kind === 'CARD' ? (
                     <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  ) : (
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{t(`methods.${method.method}`)}</p>
+                  {/* Las llaves de `methods.*` ya existen en es/en/fr para los métodos reales
+                      (CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER…). `label` del backend queda de
+                      respaldo por si aparece un método que la UI todavía no traduce. */}
+                  <p className="text-sm font-medium">{t(`methods.${method.method}`, { defaultValue: method.label ?? method.method })}</p>
                   <p className="text-xs text-muted-foreground">
                     {method.count} {t('detail.paymentBreakdown.payments')}
                   </p>
