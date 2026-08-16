@@ -21,7 +21,8 @@
       "areaTickets": "Vales por área",
       "paymentConfig": "Config. de pagos",
       "ecommerceChannels": "Comercios e-commerce",
-      "merchantAccounts": "Cuentas merchant"
+      "merchantAccounts": "Cuentas merchant",
+      "tenderTypes": "Tipos de pago"
     }
   },
   "preferences": {

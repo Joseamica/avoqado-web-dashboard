@@ -102,6 +102,7 @@ import {
   DeliveryPage,
   RolePermissions,
   PrintStations,
+  TenderTypes,
   AreaTickets,
   ExternalSettlements,
   SalesByItem,
@@ -817,6 +818,13 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'print-stations',
           element: <PermissionProtectedRoute permission="printers:read" />,
           children: [{ index: true, element: <PrintStations /> }],
+        },
+        // Este local — tipos de pago personalizados (VenueTenderType, core/FREE; el POS
+        // los consumirá en la slice B — mientras tanto la pantalla lo dice con un badge)
+        {
+          path: 'tender-types',
+          element: <PermissionProtectedRoute permission="tender-types:read" />,
+          children: [{ index: true, element: <TenderTypes /> }],
         },
         {
           path: 'area-tickets',

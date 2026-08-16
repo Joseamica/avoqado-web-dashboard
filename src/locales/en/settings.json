@@ -21,7 +21,8 @@
       "areaTickets": "Area tickets",
       "paymentConfig": "Payment config",
       "ecommerceChannels": "E-commerce merchants",
-      "merchantAccounts": "Merchant accounts"
+      "merchantAccounts": "Merchant accounts",
+      "tenderTypes": "Payment types"
     }
   },
   "preferences": {

@@ -160,6 +160,7 @@ export const MerchantRoutingRules = lazyWithRetry(() => import('@/pages/Payment/
 export const SettingsLayout = lazyWithRetry(() => import('@/pages/Settings/SettingsLayout'))
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))
 export const PrintStations = lazyWithRetry(() => import('@/pages/Settings/PrintStations'))
+export const TenderTypes = lazyWithRetry(() => import('@/pages/Settings/TenderTypes'))
 export const AreaTickets = lazyWithRetry(() => import('@/pages/Settings/AreaTickets'))
 // Colas de sólo lectura de la ruta externa (§caja externa fase 1, Task 15) — vive en
 // su propia carpeta (no en Settings/) porque es trabajo operativo del día a día, no

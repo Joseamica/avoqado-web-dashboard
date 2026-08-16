@@ -163,6 +163,8 @@ import cfdiEn from '@/locales/en/cfdi.json'
 import cfdiEs from '@/locales/es/cfdi.json'
 import printStationsEn from '@/locales/en/printStations.json'
 import printStationsEs from '@/locales/es/printStations.json'
+import tenderTypesEn from '@/locales/en/tenderTypes.json'
+import tenderTypesEs from '@/locales/es/tenderTypes.json'
 import deliveryEn from '@/locales/en/delivery.json'
 import deliveryEs from '@/locales/es/delivery.json'
 import deliveryFr from '@/locales/fr/delivery.json'
@@ -737,6 +739,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'printStations', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', tenderTypesEn],
+    ['es', tenderTypesEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'tenderTypes', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

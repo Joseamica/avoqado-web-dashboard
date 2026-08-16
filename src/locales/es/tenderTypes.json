@@ -1,0 +1,59 @@
+{
+  "title": "Tipos de pago",
+  "description": "Activa los tipos de pago que aceptas y ordénalos como quieres que aparezcan al cobrar. Los tipos personalizados (Uber Eats, vales) solo registran la venta — Avoqado no procesa ese dinero.",
+  "comingSoonPos": "Muy pronto en el punto de venta",
+  "newButton": "Nuevo tipo de pago",
+  "empty": "Sin tipos de pago en esta sección.",
+  "sections": {
+    "primary": "Tipos de pago principales",
+    "more": "Más tipos de pago",
+    "disabled": "Tipos de pago desactivados",
+    "disabledEmpty": "Ninguno desactivado."
+  },
+  "badges": {
+    "system": "Sistema",
+    "cash": "Entra a caja",
+    "noTip": "Sin propina",
+    "commission": "{{percent}}% comisión",
+    "sat": "Facturable — forma SAT {{code}}",
+    "notInvoiceable": "No facturable individualmente"
+  },
+  "form": {
+    "createTitle": "Nuevo tipo de pago",
+    "editTitle": "Editar tipo de pago",
+    "name": "Nombre",
+    "namePlaceholder": "Uber Eats, Vale de despensa…",
+    "nameRequired": "El nombre es requerido",
+    "section": "Sección al cobrar",
+    "sectionPrimary": "Principal (primer nivel)",
+    "sectionMore": "Detrás de \"Más\"",
+    "countsAsCash": "Entra al cajón de efectivo",
+    "countsAsCashHint": "Actívalo si este pago entra físicamente a la caja (ej. vales). Uber Eats no entra.",
+    "captureTip": "Capturar propina",
+    "captureTipHint": "El punto de venta pedirá propina al cobrar con este tipo.",
+    "showOnPos": "Mostrar en el punto de venta",
+    "showOnPosHint": "Apágalo si solo lo usas para que cuadren los reportes.",
+    "commission": "Comisión de la plataforma",
+    "commissionHint": "Porcentaje que retiene la plataforma o el emisor (ej. Uber ~30%). Solo informativo para tus reportes.",
+    "commissionInvalid": "La comisión debe estar entre 0 y 100",
+    "sat": "Forma de pago SAT (facturación)",
+    "satNone": "No facturable individualmente",
+    "satHint": "Si un cliente pide factura de una venta con este tipo, se usará esta forma de pago. Sin forma configurada, la factura individual queda bloqueada.",
+    "satCodes": {
+      "05": "Monedero electrónico (vale en tarjeta)",
+      "08": "Vales de despensa (papel)",
+      "03": "Transferencia electrónica",
+      "02": "Cheque nominativo",
+      "06": "Dinero electrónico",
+      "29": "Tarjeta de servicios",
+      "31": "Intermediario de pagos"
+    },
+    "save": "Guardar",
+    "cancel": "Cancelar"
+  },
+  "toast": {
+    "created": "Tipo de pago creado",
+    "updated": "Tipo de pago actualizado",
+    "error": "No se pudo guardar"
+  }
+}

@@ -14,6 +14,7 @@ import {
   Store,
   TicketCheck,
   User,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -90,6 +91,9 @@ export default function SettingsLayout() {
           : []),
         ...(can('printers:read')
           ? [{ to: 'print-stations', label: t('hub.items.printStations'), icon: Printer, dataTour: 'settings-nav-print-stations' }]
+          : []),
+        ...(can('tender-types:read')
+          ? [{ to: 'tender-types', label: t('hub.items.tenderTypes'), icon: Wallet, dataTour: 'settings-nav-tender-types' }]
           : []),
         ...(can('area-tickets:configure')
           ? [

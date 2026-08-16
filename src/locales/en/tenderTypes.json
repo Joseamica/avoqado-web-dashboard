@@ -1,0 +1,59 @@
+{
+  "title": "Payment types",
+  "description": "Turn on the payment types you accept and order them the way you want them shown at checkout. Custom types (Uber Eats, vouchers) only record the sale — Avoqado does not process that money.",
+  "comingSoonPos": "Coming soon to the point of sale",
+  "newButton": "New payment type",
+  "empty": "No payment types in this section.",
+  "sections": {
+    "primary": "Main payment types",
+    "more": "More payment types",
+    "disabled": "Disabled payment types",
+    "disabledEmpty": "None disabled."
+  },
+  "badges": {
+    "system": "System",
+    "cash": "Enters cash drawer",
+    "noTip": "No tip",
+    "commission": "{{percent}}% commission",
+    "sat": "Invoiceable — SAT form {{code}}",
+    "notInvoiceable": "Not individually invoiceable"
+  },
+  "form": {
+    "createTitle": "New payment type",
+    "editTitle": "Edit payment type",
+    "name": "Name",
+    "namePlaceholder": "Uber Eats, Meal voucher…",
+    "nameRequired": "Name is required",
+    "section": "Checkout section",
+    "sectionPrimary": "Main (first level)",
+    "sectionMore": "Behind \"More\"",
+    "countsAsCash": "Enters the cash drawer",
+    "countsAsCashHint": "Turn on if this payment physically enters the drawer (e.g. vouchers). Uber Eats does not.",
+    "captureTip": "Capture tip",
+    "captureTipHint": "The point of sale will ask for a tip when charging with this type.",
+    "showOnPos": "Show on the point of sale",
+    "showOnPosHint": "Turn off if you only use it to reconcile reports.",
+    "commission": "Platform commission",
+    "commissionHint": "Percentage the platform or issuer keeps (e.g. Uber ~30%). Informational, for your reports.",
+    "commissionInvalid": "Commission must be between 0 and 100",
+    "sat": "SAT payment form (invoicing)",
+    "satNone": "Not individually invoiceable",
+    "satHint": "If a customer requests an invoice for a sale with this type, this SAT form will be used. Without one, individual invoicing is blocked.",
+    "satCodes": {
+      "05": "Electronic wallet (voucher card)",
+      "08": "Paper meal vouchers",
+      "03": "Electronic transfer",
+      "02": "Check",
+      "06": "Electronic money",
+      "29": "Services card",
+      "31": "Payment intermediary"
+    },
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "toast": {
+    "created": "Payment type created",
+    "updated": "Payment type updated",
+    "error": "Could not save"
+  }
+}
