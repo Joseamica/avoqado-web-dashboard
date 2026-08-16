@@ -191,6 +191,18 @@
       "unavailableError": "No pudimos verificar o guardar la configuración. Intenta de nuevo.",
       "saveError": "Ocurrió un error al guardar la configuración."
     },
+    "managerPinOverride": {
+      "title": "Autorización con código de encargado",
+      "description": "Cuando alguien intente una acción para la que no tiene permiso, el punto de venta pedirá el código de un encargado para autorizarla esa vez. No deja la terminal con permisos abiertos.",
+      "switchLabel": "Activar autorización con código",
+      "enabledTitle": "Autorización con código activada",
+      "disabledTitle": "Autorización con código desactivada",
+      "saved": "La configuración se guardó correctamente.",
+      "readOnly": "Necesitas permiso para actualizar la configuración del local.",
+      "errorTitle": "No se guardó el cambio",
+      "permissionError": "No tienes permiso para cambiar esta configuración.",
+      "saveError": "Ocurrió un error al guardar la configuración."
+    },
     "operationalRoles": { "STORE": "Tienda", "CEDIS": "CEDIS", "HYBRID": "Híbrido" },
     "placeholders": {
       "name": "Ingresa el nombre del local",

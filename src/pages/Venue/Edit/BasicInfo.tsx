@@ -37,6 +37,7 @@ import { useVenueEditActions } from '../VenueEditLayout'
 import { BusinessType } from '@/types'
 import type { FieldErrors } from 'react-hook-form'
 import { CashReconciliationSetting } from './components/CashReconciliationSetting'
+import { ManagerPinOverrideSetting } from './components/ManagerPinOverrideSetting'
 
 const LEGACY_BUSINESS_TYPE_MAP: Record<string, BusinessType> = {
   HOTEL_RESTAURANT: BusinessType.HOTEL,
@@ -1119,6 +1120,17 @@ export default function BasicInfo() {
                         </div>
                       </div>
                     </div>
+
+                    {/* PIN de autorización de gerente — fuera del bloque de turnos a propósito:
+                        no depende de que el venue use turnos. Core, sin candado de plan. */}
+                    {venueId && (
+                      <div className="mt-3">
+                        <ManagerPinOverrideSetting
+                          venueId={venueId}
+                          storedSetting={venue.settings?.managerPinOverrideEnabled ?? false}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

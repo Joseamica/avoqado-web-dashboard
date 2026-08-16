@@ -152,6 +152,18 @@
       "unavailableError": "Impossible de vérifier ou d’enregistrer le réglage. Réessayez.",
       "saveError": "Une erreur s’est produite lors de l’enregistrement."
     },
+    "managerPinOverride": {
+      "title": "Autorisation par code responsable",
+      "description": "Lorsqu'une personne tente une action sans en avoir la permission, le point de vente demande le code d'un responsable pour l'autoriser une seule fois. Le terminal ne reste jamais avec des droits élevés.",
+      "switchLabel": "Activer l'autorisation par code",
+      "enabledTitle": "Autorisation par code activée",
+      "disabledTitle": "Autorisation par code désactivée",
+      "saved": "Les paramètres ont été enregistrés.",
+      "readOnly": "Vous devez avoir la permission de modifier les paramètres de l'établissement.",
+      "errorTitle": "Modification non enregistrée",
+      "permissionError": "Vous n’avez pas l’autorisation de modifier ce réglage.",
+      "saveError": "Une erreur est survenue lors de l’enregistrement."
+    },
     "documents": {
       "title": "Documentation Fiscale",
       "subtitle": "Documents officiels et fiscaux de l'établissement",

@@ -191,6 +191,18 @@
       "unavailableError": "We could not verify or save the setting. Please try again.",
       "saveError": "An error occurred while saving the setting."
     },
+    "managerPinOverride": {
+      "title": "Manager passcode approval",
+      "description": "When someone tries an action they don't have permission for, the point of sale asks a manager for their code to approve it that one time. The terminal is never left elevated.",
+      "switchLabel": "Enable passcode approval",
+      "enabledTitle": "Passcode approval enabled",
+      "disabledTitle": "Passcode approval disabled",
+      "saved": "The setting was saved successfully.",
+      "readOnly": "You need permission to update venue settings.",
+      "errorTitle": "The change was not saved",
+      "permissionError": "You do not have permission to change this setting.",
+      "saveError": "An error occurred while saving the setting."
+    },
     "operationalRoles": { "STORE": "Store", "CEDIS": "Distribution center", "HYBRID": "Hybrid" },
     "placeholders": {
       "name": "Enter venue name",

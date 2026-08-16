@@ -619,6 +619,8 @@ export interface VenueSettings {
   requirePinLogin: boolean
   /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
   enforceTableOwnership?: boolean
+  /** PIN de autorización de gerente. Core (sin candado de plan), nace OFF; el POS sólo lo lee. */
+  managerPinOverrideEnabled?: boolean
 
   // Auto Clock-Out (HR automation)
   autoClockOutEnabled: boolean
