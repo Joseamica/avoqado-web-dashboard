@@ -148,6 +148,10 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'orders:create',
     'orders:update',
     'orders:cancel',
+    // Fusionar cuentas — MANAGER+; WAITER queda a un PIN de distancia.
+    // Espejo de DEFAULT_PERMISSIONS[MANAGER] en avoqado-server/src/lib/permissions.ts.
+    // ADMIN/OWNER/SUPERADMIN ya lo cubren con '*:*'.
+    'orders:merge',
     'area-tickets:issue',
     'area-tickets:checkout',
     'area-tickets:cancel',
@@ -306,7 +310,10 @@ export const PERMISSION_CATEGORIES = {
   },
   ORDERS: {
     label: 'Orders',
-    permissions: ['orders:read', 'orders:create', 'orders:update', 'orders:cancel'],
+    // 'orders:merge' es permiso propio en el server desde 2026-08 — sin esta línea
+    // existiría en el backend y sería inasignable desde la UI (el grid es una lista
+    // hardcodeada del cliente, no viene del catálogo del backend).
+    permissions: ['orders:read', 'orders:create', 'orders:update', 'orders:cancel', 'orders:merge'],
   },
   AREA_TICKETS: {
     label: 'Vales por área',

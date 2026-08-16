@@ -290,6 +290,7 @@
       "redeem": "Redeem",
       "comp": "Comp",
       "void": "Void",
+      "merge": "Merge",
       "discount": "Discount",
       "send-receipt": "Send Receipt",
       "assign": "Assign",
@@ -340,6 +341,7 @@
       "orders_create": "Create orders",
       "orders_update": "Update orders",
       "orders_cancel": "Cancel orders",
+      "orders_merge": "Merge checks",
       "payments_read": "View payments and transactions",
       "payments_create": "Process payments",
       "payments_refund": "Issue refunds",
@@ -486,7 +488,8 @@
       "settings_manage": "Includes roles, permissions, integrations, and general venue settings.",
       "teams_invite": "Sends an email invitation to join the venue's team.",
       "loyalty_redeem": "Allows redeeming accumulated points at checkout.",
-      "shifts_close": "Generates the cash register cut with the shift's sales summary."
+      "shifts_close": "Generates the cash register cut with the shift's sales summary.",
+      "orders_merge": "Allows combining two open checks into one and closing the source check. This cannot be undone."
     },
     "resources": {
       "home": "Home",

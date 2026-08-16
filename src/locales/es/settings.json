@@ -291,6 +291,7 @@
       "redeem": "Canjear",
       "comp": "Cortesía",
       "void": "Anular",
+      "merge": "Fusionar",
       "discount": "Descuento",
       "send-receipt": "Enviar Recibo",
       "assign": "Asignar",
@@ -346,6 +347,7 @@
       "orders_create": "Crear pedidos",
       "orders_update": "Actualizar pedidos",
       "orders_cancel": "Cancelar pedidos",
+      "orders_merge": "Fusionar cuentas",
       "payments_read": "Ver pagos y transacciones",
       "payments_create": "Procesar pagos",
       "payments_refund": "Realizar reembolsos",
@@ -492,7 +494,8 @@
       "settings_manage": "Incluye roles, permisos, integraciones y configuración general del venue.",
       "teams_invite": "Envía un correo de invitación para unirse al equipo del venue.",
       "loyalty_redeem": "Permite canjear puntos acumulados al momento de cobrar.",
-      "shifts_close": "Genera el corte de caja con el resumen de ventas del turno."
+      "shifts_close": "Genera el corte de caja con el resumen de ventas del turno.",
+      "orders_merge": "Permite juntar dos cuentas abiertas en una sola y cerrar la de origen. No se puede deshacer."
     },
     "resources": {
       "home": "Inicio",

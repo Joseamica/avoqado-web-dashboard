@@ -47,6 +47,9 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'orders:cancel',
     'payments:read', // Need to see if refund is needed
   ],
+  // "Fusionar cuentas": junta el dinero de dos cheques en uno y cierra el origen.
+  // Espejo EXACTO de PERMISSION_DEPENDENCIES en avoqado-server/src/lib/permissions.ts.
+  'orders:merge': ['orders:read', 'orders:update', 'orders:merge', 'tables:read'],
 
   // ===========================
   // AREA TICKETS + SCALES
