@@ -204,11 +204,17 @@ export default function CreditPackPurchasesTab() {
                 </div>
                 {purchase.status === 'ACTIVE' && balance.remainingQuantity > 0 && (
                   <div className="flex gap-2">
-                    <PermissionGate permission="creditPacks:update">
+                    {/* Canjear y ajustar dejaron de compartir permiso (founder, 2026-08-16):
+                        canjear es OPERAR (`creditPacks:redeem`, que el mostrador ya trae) y
+                        ajustar un saldo a mano sigue siendo ADMINISTRAR (`creditPacks:update`).
+                        Con un solo gate el boton se le escondia a quien el server SI autoriza. */}
+                    <PermissionGate permission="creditPacks:redeem">
                       <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => { setRedeemingBalance(balance); setRedeemQuantity(1) }}>
                         <RefreshCcw className="h-3 w-3 mr-1" />
                         {t('actions.redeem')}
                       </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="creditPacks:update">
                       <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => { setAdjustingBalance(balance); setAdjustQuantity(0); setAdjustReason('') }}>
                         {t('actions.adjust')}
                       </Button>

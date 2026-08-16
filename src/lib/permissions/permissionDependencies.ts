@@ -248,6 +248,22 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'referral:configure': ['referral:read', 'referral:configure', 'customers:read'],
 
   // ===========================
+  // CREDIT PACKS (paquetes y membresías prepagadas)
+  // ===========================
+  // Espejo EXACTO de PERMISSION_DEPENDENCIES en avoqado-server/src/lib/permissions.ts.
+  // Dos ejes separados a propósito (decisión del founder, 2026-08-16):
+  //   ADMINISTRAR el catálogo → create / update / delete (precio y número de sesiones)
+  //   OPERAR en el mostrador  → sell / redeem, espejo de `coupons:redeem`
+  // Los dos puentes (create→sell, update→redeem) evitan que un rol personalizado que
+  // ya administraba paquetes pierda vender/canjear al mover las rutas.
+  'creditPacks:read': ['creditPacks:read'],
+  'creditPacks:create': ['creditPacks:read', 'creditPacks:create', 'creditPacks:sell'],
+  'creditPacks:update': ['creditPacks:read', 'creditPacks:update', 'creditPacks:redeem'],
+  'creditPacks:delete': ['creditPacks:read', 'creditPacks:delete'],
+  'creditPacks:sell': ['creditPacks:sell', 'creditPacks:read', 'customers:read'],
+  'creditPacks:redeem': ['creditPacks:redeem', 'creditPacks:read', 'customers:read'],
+
+  // ===========================
   // ORG-LEVEL MANAGEMENT
   // ===========================
   'goals:org-manage': ['goals:org-manage', 'commissions:read'],

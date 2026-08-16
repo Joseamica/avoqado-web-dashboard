@@ -51,6 +51,9 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reservations:cancel',
     'teams:read',
     'customers:read',
+    // Alta de cliente desde recepción / reservas (founder, 2026-08-16). Espejo del server.
+    // Editar y borrar el directorio SE QUEDA en MANAGER+.
+    'customers:create',
     'loyalty:read',
     'referral:read',
   ],
@@ -92,10 +95,18 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'teams:read',
     'tpv:read', // Can view TPV terminals (but not create/edit/command)
     'customers:read',
+    // Alta de cliente en el cobro (founder, 2026-08-16). Espejo del server: sin esto la
+    // venta queda anónima. Editar/borrar el directorio se queda en MANAGER+.
+    'customers:create',
     'loyalty:read',
     'referral:read',
     'discounts:read',
     'discounts:apply',
+    // Paquetes y membresías (founder, 2026-08-16): el mostrador VENDE y CANJEA; el
+    // CATÁLOGO (create/update/delete) se queda en MANAGER+. Espejo del server.
+    'creditPacks:read',
+    'creditPacks:sell',
+    'creditPacks:redeem',
     'commissions:view_own', // Can view their own commissions
   ],
 
@@ -116,12 +127,20 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reviews:read',
     'teams:read',
     'customers:read',
+    // Alta de cliente en el cobro (founder, 2026-08-16). Espejo del server: sin esto la
+    // venta queda anónima. Editar/borrar el directorio se queda en MANAGER+.
+    'customers:create',
     'loyalty:read',
     'loyalty:redeem', // Can redeem points at POS
     'referral:read',
     'discounts:read',
     'discounts:apply',
     'coupons:read', // Can validate coupons at POS
+    // Paquetes y membresías (founder, 2026-08-16): en gym/estética/spa el paquete ES la
+    // venta principal. El mostrador VENDE y CANJEA; el CATÁLOGO se queda en MANAGER+.
+    'creditPacks:read',
+    'creditPacks:sell',
+    'creditPacks:redeem',
     'commissions:view_own', // Can view their own commissions
   ],
 
@@ -425,6 +444,20 @@ export const PERMISSION_CATEGORIES = {
   COUPONS: {
     label: 'Coupons',
     permissions: ['coupons:read', 'coupons:create', 'coupons:update', 'coupons:delete'],
+  },
+  // Espejo de INDIVIDUAL_PERMISSIONS_BY_RESOURCE.creditPacks del server. Faltaba entero:
+  // los permisos existían en el backend y eran inasignables desde el editor de roles.
+  // `sell`/`redeem` = MOSTRADOR (operar); `create`/`update`/`delete` = CATÁLOGO (administrar).
+  CREDIT_PACKS: {
+    label: 'Paquetes y membresías',
+    permissions: [
+      'creditPacks:read',
+      'creditPacks:sell',
+      'creditPacks:redeem',
+      'creditPacks:create',
+      'creditPacks:update',
+      'creditPacks:delete',
+    ],
   },
   TPV_SETTINGS: {
     label: 'TPV Settings',
