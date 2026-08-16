@@ -5,7 +5,7 @@ import { Banknote, Loader2, Pencil, Plus, Wallet } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -253,17 +253,30 @@ export default function TenderTypes() {
         </>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? t('form.editTitle') : t('form.createTitle')}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
+      <FullScreenModal
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false)
+          setEditing(null)
+        }}
+        title={editing ? t('form.editTitle') : t('form.createTitle')}
+        subtitle={t('title')}
+        contentClassName="bg-muted/30"
+        actions={
+          <Button onClick={submitForm} disabled={createMutation.isPending || updateMutation.isPending} data-tour="tender-types-save">
+            {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+            {t('form.save')}
+          </Button>
+        }
+      >
+        <div className="mx-auto flex max-w-2xl flex-col gap-6 p-4 md:p-6">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border/50 bg-card p-6">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="tender-name">{t('form.name')}</Label>
               <Input
                 id="tender-name"
                 data-tour="tender-types-name"
+                className="h-12 text-base"
                 value={form.name}
                 maxLength={80}
                 placeholder={t('form.namePlaceholder')}
@@ -321,6 +334,7 @@ export default function TenderTypes() {
               <Input
                 id="tender-commission"
                 type="number"
+                className="h-12 text-base"
                 min={0}
                 max={100}
                 step="0.01"
@@ -349,17 +363,8 @@ export default function TenderTypes() {
               <p className="text-xs text-muted-foreground">{t('form.satHint')}</p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              {t('form.cancel')}
-            </Button>
-            <Button onClick={submitForm} disabled={createMutation.isPending || updateMutation.isPending} data-tour="tender-types-save">
-              {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              {t('form.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </FullScreenModal>
     </div>
   )
 }
