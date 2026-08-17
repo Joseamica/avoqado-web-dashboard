@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Currency } from '@/utils/currency'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -18,8 +19,7 @@ import {
   listTenderTypes,
   updateTenderType,
   type CreateTenderTypeInput,
-  type TenderType,
-} from '@/services/tenderType.service'
+  type TenderType,, getTenderCommissions } from '@/services/tenderType.service'
 
 /**
  * Ajustes → Tipos de pago (VenueTenderType, slice A1) — catálogo core/FREE.
@@ -67,6 +67,14 @@ export default function TenderTypes() {
   const { data: tenderTypes, isLoading } = useQuery({
     queryKey: ['tender-types', venueId],
     queryFn: () => listTenderTypes(venueId!),
+    enabled: !!venueId,
+  })
+
+  // Comisiones pagadas. Es una lectura aparte del catálogo a propósito: el catálogo se
+  // invalida en cada edición y este reporte no tiene por qué recargarse con ella.
+  const { data: commissions } = useQuery({
+    queryKey: ['tender-commissions', venueId],
+    queryFn: () => getTenderCommissions(venueId!),
     enabled: !!venueId,
   })
 
@@ -221,6 +229,57 @@ export default function TenderTypes() {
     </div>
   )
 
+  /**
+   * "¿Cuánto me cobró Uber Eats?" — la lectura que faltaba. Vive aquí, junto al catálogo
+   * donde se configura la comisión, para que el dueño vea el efecto de lo que configuró.
+   * Se oculta si no hay cobros: una tabla de ceros no informa nada.
+   */
+  const renderCommissions = () => {
+    const rows = commissions?.rows ?? []
+    if (rows.length === 0) return null
+    return (
+      <div>
+        <h2 className="mb-1 text-sm font-medium text-muted-foreground">{t('commissions.title')}</h2>
+        <p className="mb-2 text-xs text-muted-foreground">{t('commissions.subtitle')}</p>
+        <Card className="border-input">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-muted-foreground">
+                    <th className="px-4 py-2 text-left font-medium">{t('commissions.colType')}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t('commissions.colCount')}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t('commissions.colGross')}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t('commissions.colCommission')}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t('commissions.colNet')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(row => (
+                    <tr key={row.tenderTypeId} className="border-b last:border-0">
+                      <td className="px-4 py-2">{row.tenderLabel}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{row.count}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{Currency(row.gross)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{Currency(row.commission)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-medium">{Currency(row.net)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-muted/40">
+                    <td className="px-4 py-2 font-medium">{t('commissions.total')}</td>
+                    <td className="px-4 py-2" />
+                    <td className="px-4 py-2 text-right tabular-nums">{Currency(commissions?.totalGross ?? 0)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{Currency(commissions?.totalCommission ?? 0)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums font-medium">{Currency(commissions?.totalNet ?? 0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -229,9 +288,6 @@ export default function TenderTypes() {
             <Wallet className="h-6 w-6" /> {t('title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
-          <Badge variant="outline" className="mt-2 text-[10px]">
-            {t('comingSoonPos')}
-          </Badge>
         </div>
         {canManage && (
           <Button onClick={openCreate} data-tour="tender-types-new">
@@ -250,6 +306,7 @@ export default function TenderTypes() {
           {renderSection(t('sections.primary'), sections.primary)}
           {renderSection(t('sections.more'), sections.more)}
           {renderSection(t('sections.disabled'), sections.disabled, t('sections.disabledEmpty'))}
+          {renderCommissions()}
         </>
       )}
 

@@ -1,7 +1,6 @@
 {
   "title": "Tipos de pago",
   "description": "Activa los tipos de pago que aceptas y ordénalos como quieres que aparezcan al cobrar. Los tipos personalizados (Uber Eats, vales) solo registran la venta — Avoqado no procesa ese dinero.",
-  "comingSoonPos": "Muy pronto en el punto de venta",
   "newButton": "Nuevo tipo de pago",
   "empty": "Sin tipos de pago en esta sección.",
   "sections": {
@@ -55,5 +54,16 @@
     "created": "Tipo de pago creado",
     "updated": "Tipo de pago actualizado",
     "error": "No se pudo guardar"
+  },
+  "commissions": {
+    "title": "Lo que te costaron",
+    "subtitle": "Comisión que pagaste por cada tipo de pago en los últimos 30 días.",
+    "empty": "Todavía no has cobrado con ningún tipo de pago propio.",
+    "colType": "Tipo",
+    "colCount": "Cobros",
+    "colGross": "Venta",
+    "colCommission": "Comisión",
+    "colNet": "Te queda",
+    "total": "Total"
   }
 }

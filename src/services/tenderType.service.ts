@@ -63,6 +63,33 @@ export async function listTenderTypes(venueId: string): Promise<TenderType[]> {
   return res.data.tenderTypes
 }
 
+/**
+ * Comisiones pagadas por tipo de pago. Los montos vienen en PESOS y la comisión es la
+ * CONGELADA en cada cobro — cambiar el porcentaje hoy NO reescribe lo del mes pasado.
+ */
+export interface TenderCommissionRow {
+  tenderTypeId: string
+  tenderLabel: string
+  count: number
+  gross: number
+  commission: number
+  net: number
+}
+
+export interface TenderCommissionsReport {
+  from: string
+  to: string
+  rows: TenderCommissionRow[]
+  totalGross: number
+  totalCommission: number
+  totalNet: number
+}
+
+export async function getTenderCommissions(venueId: string, params?: { from?: string; to?: string }): Promise<TenderCommissionsReport> {
+  const res = await api.get(`${base(venueId)}/commissions`, { params })
+  return res.data
+}
+
 export async function createTenderType(venueId: string, input: CreateTenderTypeInput): Promise<TenderType> {
   const res = await api.post(base(venueId), input)
   return res.data.tenderType
