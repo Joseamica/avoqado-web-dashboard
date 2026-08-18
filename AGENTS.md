@@ -175,3 +175,17 @@ Un "listo" que esconde lo que no se corrió es un reporte falso.
 - Check timezone handling uses `useVenueDateTime()`, not `new Date().toLocale*()`
 - Verify `npm run build` and `npm run lint` pass
 - Test with VIEWER, WAITER, MANAGER, OWNER roles
+
+## 🔴 Cómo hablarle al founder
+
+Regla completa en `~/.claude/CLAUDE.md` (aplica a todos sus proyectos) y en
+`Avoqado/.claude/rules/como-hablarle-al-founder.md`.
+
+- **Cuando le pidas una opinión o le hagas una pregunta: explícale FÁCIL.** Analogías antes que
+  jerga, y **diagrama** (`mcp__visualize__show_widget`) siempre que sean dos caminos, dos
+  mecanismos, un flujo o un antes/después. Una pregunta a la vez, opciones cortas, la consecuencia
+  de cada una en una línea.
+- **Las respuestas largas están bien** — le sirve que razones y no adivines.
+- 🔴 **SIEMPRE cierra con 2-3 líneas en lenguaje llano**: qué pasó, qué significa para él, y qué
+  necesitas de él. Sin ese cierre, el contenido puede ser correcto y aun así no llegarle.
+

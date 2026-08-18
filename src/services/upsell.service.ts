@@ -19,6 +19,28 @@ export interface UpsellRuleProduct {
 	price: number
 	imageUrl: string | null
 	upsellEnabled: boolean
+	/**
+	 * Ronda 1 de correcciones (2026-08-16): `GET .../upsell-rules` (avoqado-server
+	 * `listRules`) ahora selecciona `active`, `soldByWeight` y `modifierGroups` en
+	 * `suggestedProduct` — antes sólo traía `upsellEnabled`, así que el badge de
+	 * `RuleRow` sólo podía detectar el veto y mentía por omisión sobre las otras
+	 * cuatro razones. `suggestabilityOf` ya ve los 5 filtros reales aquí.
+	 *
+	 * 🔴 La única excepción sigue siendo `isOutOfStock`: no existe como columna en
+	 * `Product` (es un valor que Android calcula localmente), así que llega
+	 * `undefined` siempre. `suggestabilityOf` lo trata como "no aplica"
+	 * (fail-open) — dictaminado, no se persigue.
+	 */
+	active?: boolean | null
+	soldByWeight?: boolean | null
+	isOutOfStock?: boolean | null
+	modifierGroups?: Array<{ group?: { required?: boolean } }>
+}
+
+/** Selección de una opción obligatoria: qué modificador de qué grupo. */
+export interface UpsellSuggestedModifierSelection {
+	groupId: string
+	modifierId: string
 }
 
 export interface UpsellRule {
@@ -29,6 +51,13 @@ export interface UpsellRule {
 	triggerCategoryIds: string[]
 	suggestedProductId: string
 	suggestedProduct: UpsellRuleProduct | null
+	/**
+	 * Selección guardada (ids, sin resolver) para los grupos obligatorios del
+	 * producto sugerido. `GET /mobile/.../upsell-rules` la resuelve con nombre y
+	 * precio para el POS; aquí llega tal cual se guardó. Nunca null en la práctica
+	 * (el server guarda `[]` cuando no aplica), pero se tipa opcional por si acaso.
+	 */
+	suggestedModifiers?: UpsellSuggestedModifierSelection[] | null
 	headline: string | null
 	origin: UpsellOrigin
 	status: UpsellRuleStatus
@@ -75,6 +104,8 @@ export interface CreateUpsellRuleRequest {
 	triggerProductIds?: string[]
 	triggerCategoryIds?: string[]
 	suggestedProductId: string
+	/** Cubre TODOS los grupos obligatorios del producto sugerido, o el server rechaza con 400. */
+	suggestedModifiers?: UpsellSuggestedModifierSelection[] | null
 	headline?: string | null
 	priority?: number
 	daysOfWeek?: number[]

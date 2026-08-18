@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { Currency } from '@/utils/currency'
 import { getProducts } from '@/services/menu.service'
+import { suggestabilityOf } from '@/lib/upsell/suggestability'
 import {
 	upsellService,
 	type UpsellOrigin,
@@ -271,18 +272,26 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 	const [triggerProductIds, setTriggerProductIds] = useState<string[]>([])
 	const [suggestedProductId, setSuggestedProductId] = useState('')
 	const [headline, setHeadline] = useState('')
+	// Opciones obligatorias del producto elegido (B3): groupId -> modifierId.
+	const [modifierPicks, setModifierPicks] = useState<Record<string, string>>({})
 
 	// Catálogo completo: sirve para el disparador (cualquier producto puede
-	// disparar) y para el sugerido (sólo los habilitados).
+	// disparar) y para el sugerido (con su motivo si no se puede sugerir).
 	const { data: products, isLoading: loadingProducts } = useQuery({
 		queryKey: ['products-for-upsell', venueId],
-		queryFn: () => getProducts(venueId, { orderBy: 'name', includeRecipe: false, includeModifiers: false }),
+		queryFn: () => getProducts(venueId, { orderBy: 'name', includeRecipe: false, includeModifiers: true }),
 		enabled: open,
 	})
 
-	// 🔴 Sólo se puede SUGERIR lo que el dueño habilitó en la ficha del producto.
-	// Si esta lista sale vacía, no hay nada que crear — y eso se le dice.
-	const suggestable = useMemo(() => (products ?? []).filter((p: any) => p.upsellEnabled), [products])
+	// 🔴 Se anota TODO el catálogo con el motivo — nunca se filtra. Ver el motivo
+	// vale más que no ver el producto, y las que sólo piden opciones obligatorias
+	// se pueden resolver aquí mismo (ver `gruposObligatorios` abajo).
+	const anotados = useMemo(
+		() => (products ?? []).map((p: any) => ({ ...p, suggestability: suggestabilityOf(p) })),
+		[products],
+	)
+	const productoElegido = anotados.find((p: any) => p.id === suggestedProductId)
+	const gruposObligatorios = (productoElegido?.modifierGroups ?? []).filter((g: any) => g.group?.required)
 
 	const create = useMutation({
 		mutationFn: () =>
@@ -290,6 +299,10 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 				triggerType,
 				triggerProductIds: triggerType === 'PRODUCT' ? triggerProductIds : undefined,
 				suggestedProductId,
+				suggestedModifiers: gruposObligatorios.map((g: any) => ({
+					groupId: g.group.id,
+					modifierId: modifierPicks[g.group.id],
+				})),
 				headline: headline.trim() || null,
 			}),
 		onSuccess: () => {
@@ -299,6 +312,7 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 			setTriggerType('ALWAYS')
 			setTriggerProductIds([])
 			setSuggestedProductId('')
+			setModifierPicks({})
 			setHeadline('')
 		},
 		onError: (e: any) =>
@@ -309,7 +323,8 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 			}),
 	})
 
-	const canSubmit = !!suggestedProductId && (triggerType !== 'PRODUCT' || triggerProductIds.length > 0)
+	const obligatoriosResueltos = gruposObligatorios.every((g: any) => modifierPicks[g.group.id])
+	const canSubmit = !!suggestedProductId && obligatoriosResueltos && (triggerType !== 'PRODUCT' || triggerProductIds.length > 0)
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -321,15 +336,12 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 
 				{loadingProducts ? (
 					<Skeleton className="h-48 w-full" />
-				) : suggestable.length === 0 ? (
-					// El callejón sin salida honesto: sin productos habilitados no hay
-					// nada que sugerir, y le decimos exactamente dónde se habilita.
+				) : (products ?? []).length === 0 ? (
+					// Callejón sin salida honesto: sin productos en el catálogo no hay
+					// nada que ofrecer.
 					<div className="space-y-2 py-6 text-center">
-						<p className="text-sm font-medium">Todavía no hay productos sugeribles</p>
-						<p className="text-sm text-muted-foreground">
-							Abre un producto en tu menú y prende <strong>“Sugerir en promociones”</strong>. Ese interruptor es
-							el permiso: sin él, ningún producto se ofrece.
-						</p>
+						<p className="text-sm font-medium">Todavía no hay productos en tu menú</p>
+						<p className="text-sm text-muted-foreground">Agrega productos a tu menú antes de crear una sugerencia.</p>
 					</div>
 				) : (
 					<div className="space-y-4">
@@ -366,22 +378,69 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 
 						<div className="space-y-2">
 							<Label>Producto a sugerir</Label>
-							<Select value={suggestedProductId} onValueChange={setSuggestedProductId}>
+							<Select
+								value={suggestedProductId}
+								onValueChange={v => {
+									setSuggestedProductId(v)
+									// Opciones de un producto distinto: nunca heredar la selección anterior.
+									setModifierPicks({})
+								}}
+							>
 								<SelectTrigger>
-									<SelectValue placeholder="Elige un producto" />
+									{/* Children explícitos: si dejáramos que Select mirara el texto del
+									    SelectItem seleccionado, el motivo (para las resolubles) se colaría
+									    también aquí una vez elegidas — Radix copia TODO el contenido del item. */}
+									<SelectValue placeholder="Elige un producto">{productoElegido?.name}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
-									{suggestable.map((p: any) => (
-										<SelectItem key={p.id} value={p.id}>
+									{anotados.map((p: any) => (
+										<SelectItem
+											key={p.id}
+											value={p.id}
+											disabled={p.suggestability.blocked && !p.suggestability.resolvable}
+										>
 											{p.name}
+											{p.suggestability.label && (
+												<span className="ml-2 text-xs text-muted-foreground">{p.suggestability.label}</span>
+											)}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 							<p className="text-xs text-muted-foreground">
-								Sólo aparecen los productos que marcaste como sugeribles en su ficha.
+								Los atenuados no se pueden sugerir; el motivo aparece junto al nombre.
 							</p>
 						</div>
+
+						{gruposObligatorios.length > 0 && (
+							<div className="space-y-3 rounded-lg border border-input bg-muted/30 p-3">
+								<p className="text-xs text-muted-foreground">
+									Esta sugerencia se agrega con un toque, así que hay que dejar elegidas sus opciones desde
+									ahora.
+								</p>
+								{gruposObligatorios.map((g: any) => (
+									<div key={g.group.id} className="space-y-1.5">
+										<Label className="text-xs">{g.group.name}</Label>
+										<Select
+											value={modifierPicks[g.group.id] ?? ''}
+											onValueChange={v => setModifierPicks(prev => ({ ...prev, [g.group.id]: v }))}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Elige una opción" />
+											</SelectTrigger>
+											<SelectContent>
+												{(g.group.modifiers ?? []).map((m: any) => (
+													<SelectItem key={m.id} value={m.id}>
+														{m.name}
+														{m.price ? ` (+${Currency(m.price)})` : ''}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								))}
+							</div>
+						)}
 
 						<div className="space-y-2">
 							<Label>Gancho (opcional)</Label>
@@ -448,16 +507,24 @@ function RuleRow({ rule, venueId }: { rule: UpsellRule; venueId: string }) {
 					? 'Cuando la cuenta lleva algo de cierta categoría'
 					: `Cuando la cuenta lleva algo de ${rule.triggerCategoryIds.length} categorías`
 
+	// El badge usa el motivo REAL (los 5 filtros del POS), no sólo el veto. Pero
+	// una regla YA resuelta (sus opciones obligatorias elegidas) no debe salir
+	// como bloqueada por PIDE_OPCIONES — ese motivo se ignora cuando ya hay una
+	// selección guardada.
+	const suggestability = rule.suggestedProduct ? suggestabilityOf(rule.suggestedProduct) : null
+	const bloqueadoDeVerdad =
+		!!suggestability?.blocked && !(suggestability.reason === 'PIDE_OPCIONES' && (rule.suggestedModifiers?.length ?? 0) > 0)
+
 	return (
 		<div className="flex items-start justify-between gap-4 py-3">
 			<div className="min-w-0">
 				<div className="flex flex-wrap items-center gap-2">
 					<span className="text-sm font-medium">{rule.suggestedProduct?.name ?? 'Producto'}</span>
 					<OriginBadge origin={rule.origin} />
-					{/* El producto puede estar vetado aunque la regla exista: el veto gana. */}
-					{rule.suggestedProduct && !rule.suggestedProduct.upsellEnabled && (
+					{/* El producto puede haber dejado de ser sugerible aunque la regla exista. */}
+					{bloqueadoDeVerdad && suggestability && (
 						<Badge variant="destructive" className="font-normal">
-							No sugerible
+							{suggestability.label}
 						</Badge>
 					)}
 				</div>
