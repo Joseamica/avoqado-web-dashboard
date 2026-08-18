@@ -666,7 +666,10 @@
       "commissions": "Commissions",
       "goals": "Goals",
       "billing": "Billing"
-    }
+    },
+    "impliedByInline": "included in",
+    "includedInBadge": "Included",
+    "impliedByTooltip": "This permission comes bundled with another one the role keeps. To remove it, remove that one too."
   },
   "roleDisplayNames": {
     "infoAlert": "Customize how role names appear in your venue. This only affects the display name, not the actual permissions.",

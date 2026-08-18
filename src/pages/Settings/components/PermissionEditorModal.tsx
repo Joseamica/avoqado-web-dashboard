@@ -365,7 +365,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       setHasConfigChanges(false)
       onClose()
     }
-  }, [modifiedPermissions, allPermissions, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, updateConfigsAsync, toast, tCommon, t, onClose])
+  }, [defaultEfectivos, modifiedPermissions, allPermissions, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, updateConfigsAsync, toast, tCommon, t, onClose])
 
   const handleClose = useCallback(() => {
     if (hasChanges || hasConfigChanges) {

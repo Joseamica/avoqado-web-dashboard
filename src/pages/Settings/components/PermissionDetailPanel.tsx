@@ -143,16 +143,17 @@ function PermissionRow({
         'hover:bg-accent/40',
         indented && 'pl-9',
         isCritical && 'cursor-not-allowed',
+        impliedBy && 'cursor-not-allowed bg-muted/40',
         disabled && 'cursor-not-allowed opacity-60',
       )}
     >
       <Checkbox
         checked={isEnabled}
         onCheckedChange={(checked) => {
-          if (isCritical || disabled) return
+          if (isCritical || disabled || impliedBy) return
           onChange(permission, !!checked)
         }}
-        disabled={disabled || isCritical}
+        disabled={disabled || isCritical || !!impliedBy}
         className={cn(
           'h-5 w-5 rounded mt-0.5 flex-shrink-0',
           isEnabled && 'data-[state=checked]:bg-foreground data-[state=checked]:border-foreground dark:data-[state=checked]:bg-foreground dark:data-[state=checked]:border-foreground',
@@ -165,6 +166,11 @@ function PermissionRow({
         )}>
           {label}
         </span>
+        {impliedBy && (
+          <span className="ml-2 text-xs text-muted-foreground italic">
+            {t('rolePermissions.impliedByInline')} {impliedBy}
+          </span>
+        )}
         {description && (
           <p className="text-xs text-muted-foreground/70 mt-0.5 leading-relaxed">
             {description}

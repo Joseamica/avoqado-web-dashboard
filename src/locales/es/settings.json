@@ -671,7 +671,10 @@
       "serialized-inventory": "Inventario Serializado",
       "commissions": "Comisiones",
       "goals": "Metas"
-    }
+    },
+    "impliedByInline": "incluido en",
+    "includedInBadge": "Incluido",
+    "impliedByTooltip": "Este permiso viene incluido en otro que el rol conserva. Para quitarlo, quita también ese."
   },
   "crypto": {
     "title": "Pagos con Criptomonedas",
