@@ -48,6 +48,7 @@
   Scale,
   Upload,
   Truck,
+  Tags,
 } from 'lucide-react'
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -608,6 +609,7 @@ export function AppSidebar({
       { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Tag, permission: 'reports:read', keywords: ['categorias', 'familias de productos', 'ventas por categoria'] },
       { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', keywords: ['metodos de pago', 'efectivo', 'tarjeta', 'propinas', 'comisiones'] },
       { title: t('sidebar:reportsMenu.refunds'), url: 'reports/refunds', icon: RefreshCw, permission: 'reports:read', keywords: ['reembolsos', 'devoluciones', 'refunds', 'dinero devuelto'] },
+      { title: t('sidebar:reportsMenu.promotions'), url: 'reports/promotions', icon: Tags, permission: 'reports:read', premiumLocked: !hasFeatureAccess('PROMOTIONS'), gatedFeature: 'PROMOTIONS', keywords: ['promociones', 'combos', 'bundles', '2x1', 'descuentos por promocion'] },
       { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', icon: Receipt, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', icon: Receipt, permission: 'reports:read', comingSoon: true },

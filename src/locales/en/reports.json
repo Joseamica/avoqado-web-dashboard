@@ -1026,6 +1026,43 @@
       "label": "Total"
     }
   },
+  "promotionSales": {
+    "title": "Promotions",
+    "noData": "No promotions sold in this period",
+    "loadError": "Could not load the promotions report",
+    "exportCsv": "Export CSV",
+    "byPeriod": "How it moved over time",
+    "footnote": "Each promotion counts as one line. The products inside it appear separately in Sales by Item, tagged with the combo name: two views of the same money — do not add them together.",
+    "needsReview": "{{count}} sale(s) were flagged for review: the promotion was archived or out of schedule when it synced, so they went in at list price.",
+    "rowNeedsReview": "{{count}} to review",
+    "periods": {
+      "summary": "Total",
+      "days": "By day",
+      "weeks": "By week",
+      "months": "By month"
+    },
+    "kinds": {
+      "COMBO": "Combo",
+      "BUNDLE": "Bundle",
+      "PER_UNIT": "2-for-1",
+      "UNKNOWN": "Promotion"
+    },
+    "columns": {
+      "promotion": "Promotion",
+      "kind": "Type",
+      "timesSold": "Times sold",
+      "grossSales": "List price",
+      "discounts": "Discount given",
+      "netSales": "Net sales"
+    },
+    "summary": {
+      "given": "Given away in promotions",
+      "distinct": "Distinct promotions"
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
   "expenses": {
     "title": "CFDI Inbox · Expenses",
     "subtitle": "The CFDIs your suppliers issue you. They enable your creditable VAT, the DIOT and real costs (by tax ID).",

@@ -289,6 +289,7 @@ export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByIt
 export const SalesByCategory = lazyWithRetry(() => import('@/pages/Reports/SalesByCategory'))
 export const PaymentMethods = lazyWithRetry(() => import('@/pages/Reports/PaymentMethods'))
 export const Refunds = lazyWithRetry(() => import('@/pages/Reports/Refunds'))
+export const PromotionSales = lazyWithRetry(() => import('@/pages/Reports/PromotionSales'))
 export const HomeDashboardCharts = lazyWithRetry(() => import('@/pages/Reports/HomeDashboardCharts'))
 
 // Demo Pages (temporary)

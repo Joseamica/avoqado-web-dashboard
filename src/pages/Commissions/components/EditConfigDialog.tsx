@@ -415,10 +415,20 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
                 onCheckedChange={(checked) => updateData({ includeTips: checked })}
               />
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="edit-includeDiscount" className="text-sm">
-                {t('wizard.step2.includeDiscount')}
-              </Label>
+            {/* Base de la comisión — misma semántica que el asistente: la etiqueta
+                muestra la base vigente, no "incluir descuentos". */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Label htmlFor="edit-includeDiscount" className="text-sm">
+                  {t('wizard.step2.commissionBase')}:{' '}
+                  {data.includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet')}
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {data.includeDiscount
+                    ? t('wizard.step2.commissionBaseListHint')
+                    : t('wizard.step2.commissionBaseNetHint')}
+                </p>
+              </div>
               <Switch
                 id="edit-includeDiscount"
                 checked={data.includeDiscount}

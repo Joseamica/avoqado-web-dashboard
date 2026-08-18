@@ -70,10 +70,18 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
   const paymentStatusCfg = getOrderStatusConfig(order.paymentStatus)
   const hasCustomerLink = Boolean((order.orderCustomers?.length || 0) > 0 || order.customerId)
   const hasPendingBalance = Number(order.remainingBalance ?? 0) > 0
+  // Carril del reembolso (server, 2026-08-18). Ausente = comportamiento de siempre.
+  const refundState = order.refundState ?? 'NONE'
+  const refundedAmount = Number(order.refundedAmount ?? 0)
+  const isRefunded = refundState !== 'NONE'
   const isPayLaterOrder =
     hasCustomerLink &&
     hasPendingBalance &&
-    (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
+    (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL') &&
+    // 🔴 Una venta devuelta NO se persigue para cobrar: el saldo que quedó abierto
+    // es consecuencia del reembolso, no una deuda del cliente. Sin esto la pantalla
+    // decía "Por Cobrar" sobre dinero que el negocio ya regresó.
+    !isRefunded
 
   return (
     <div data-print-root className="flex flex-col h-full bg-background">
@@ -129,6 +137,19 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
                 className="text-xs px-1.5 py-0.5 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
               >
                 {t('payLater.badge', { defaultValue: 'Por Cobrar' })}
+              </Badge>
+            )}
+            {isRefunded && (
+              <Badge
+                variant="outline"
+                className="text-xs px-1.5 py-0.5 bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800"
+              >
+                {refundState === 'FULL'
+                  ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
+                  : t('drawer.refund.partial', {
+                      amount: Currency(refundedAmount),
+                      defaultValue: 'Reembolso parcial: {{amount}}',
+                    })}
               </Badge>
             )}
           </div>

@@ -466,8 +466,6 @@ export default function Orders() {
       customerName: string
       tableId: string
       servedById: string
-      tipAmount: number
-      total: number
       createdAt: string
       orderNumber: string
       type: OrderTypeEnum
@@ -477,8 +475,8 @@ export default function Orders() {
         customerName: data.customerName,
         tableId: data.tableId || null,
         servedById: data.servedById || null,
-        tipAmount: data.tipAmount,
-        total: data.total,
+        // total / tipAmount NO viajan: se derivan de renglones y pagos (el server
+        // los ignora aunque lleguen). Ver el bloque de sólo lectura del diálogo.
         createdAt: data.createdAt,
         orderNumber: data.orderNumber,
         type: data.type,
@@ -537,9 +535,6 @@ export default function Orders() {
         customerName: editValues.customerName,
         tableId: editValues.tableId,
         servedById: editValues.servedById,
-        // Coerce undefined (cleared input) → 0 at submit. Schema expects number.
-        tipAmount: editValues.tipAmount ?? 0,
-        total: editValues.total ?? 0,
         createdAt: editValues.createdAt,
         orderNumber: editValues.orderNumber,
         type: editValues.type,
@@ -1584,39 +1579,23 @@ export default function Orders() {
               </div>
             </div>
 
-            {/* Row 4: Tip and Total */}
+            {/* Row 4: Tip and Total — sólo lectura. El dinero de la orden se deriva de
+                los renglones y de los pagos (propina = Payment.tipAmount); editarlo a
+                mano dejaba números que ningún reporte podía cuadrar (rebanada 0 de
+                "propina fuera del total", 2026-08-18). El server ignora estos campos. */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Tip field */}
               <div className="space-y-2">
                 <Label htmlFor="edit-tip">{t('columns.tip')}</Label>
-                <Input
-                  id="edit-tip"
-                  type="number"
-                  step="0.01"
-                  value={editValues.tipAmount ?? ''}
-                  onChange={e => {
-                    const raw = e.target.value
-                    setEditValues(prev => ({ ...prev, tipAmount: raw === '' ? undefined : parseFloat(raw) }))
-                  }}
-                  className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
-                />
+                <Input id="edit-tip" type="number" step="0.01" value={editValues.tipAmount ?? ''} readOnly disabled />
               </div>
-
-              {/* Total field */}
               <div className="space-y-2">
                 <Label htmlFor="edit-total">{t('columns.total')}</Label>
-                <Input
-                  id="edit-total"
-                  type="number"
-                  step="0.01"
-                  value={editValues.total ?? ''}
-                  onChange={e => {
-                    const raw = e.target.value
-                    setEditValues(prev => ({ ...prev, total: raw === '' ? undefined : parseFloat(raw) }))
-                  }}
-                  className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
-                />
+                <Input id="edit-total" type="number" step="0.01" value={editValues.total ?? ''} readOnly disabled />
               </div>
+              <p className="col-span-2 text-xs text-muted-foreground">
+                El total y la propina se calculan de los renglones y de los pagos registrados; no se editan a mano.
+                Para corregir dinero: ajusta los renglones, registra un pago o un reembolso.
+              </p>
             </div>
 
             {/* Row 5: Customer Name */}

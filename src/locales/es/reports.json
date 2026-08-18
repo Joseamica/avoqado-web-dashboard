@@ -1026,6 +1026,43 @@
       "label": "Total"
     }
   },
+  "promotionSales": {
+    "title": "Promociones",
+    "noData": "Sin promociones vendidas en este período",
+    "loadError": "No se pudo cargar el reporte de promociones",
+    "exportCsv": "Exportar CSV",
+    "byPeriod": "Cómo se movió en el tiempo",
+    "footnote": "Cada promoción cuenta como un renglón. Los productos que la integran aparecen por separado en Ventas por artículo, marcados con el nombre del combo: son dos vistas del mismo dinero, no se suman.",
+    "needsReview": "{{count}} venta(s) quedaron marcadas para revisión: la promoción estaba archivada o fuera de vigencia al registrarse, así que entraron a precio de lista.",
+    "rowNeedsReview": "{{count}} para revisión",
+    "periods": {
+      "summary": "Total",
+      "days": "Por día",
+      "weeks": "Por semana",
+      "months": "Por mes"
+    },
+    "kinds": {
+      "COMBO": "Combo",
+      "BUNDLE": "Paquete",
+      "PER_UNIT": "2x1",
+      "UNKNOWN": "Promoción"
+    },
+    "columns": {
+      "promotion": "Promoción",
+      "kind": "Tipo",
+      "timesSold": "Veces vendida",
+      "grossSales": "Precio de lista",
+      "discounts": "Descuento otorgado",
+      "netSales": "Venta neta"
+    },
+    "summary": {
+      "given": "Regalado en promociones",
+      "distinct": "Promociones distintas"
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
   "expenses": {
     "title": "Buzón de CFDIs · Gastos",
     "subtitle": "Los CFDIs que te emiten tus proveedores. Habilitan tu IVA acreditable, la DIOT y tus costos reales (por RFC).",

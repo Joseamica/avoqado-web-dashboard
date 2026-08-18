@@ -236,10 +236,24 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 							onCheckedChange={(checked) => updateData({ includeTips: checked })}
 						/>
 					</div>
-					<div className="flex items-center justify-between">
-						<Label htmlFor="includeDiscount" className="text-sm">
-							{t('wizard.step2.includeDiscount')}
-						</Label>
+					{/* Base de la comisión. El interruptor NO dice "incluir descuentos":
+					    la etiqueta muestra SIEMPRE la base vigente y el texto de abajo
+					    explica qué pasa con descuentos y promociones. El campo que se
+					    guarda sigue siendo `includeDiscount` (compatibilidad de API). */}
+					<div className="flex items-start justify-between gap-4">
+						<div>
+							<Label htmlFor="includeDiscount" className="text-sm">
+								{t('wizard.step2.commissionBase')}:{' '}
+								{data.includeDiscount
+									? t('wizard.step2.commissionBaseList')
+									: t('wizard.step2.commissionBaseNet')}
+							</Label>
+							<p className="text-xs text-muted-foreground mt-0.5">
+								{data.includeDiscount
+									? t('wizard.step2.commissionBaseListHint')
+									: t('wizard.step2.commissionBaseNetHint')}
+							</p>
+						</div>
 						<Switch
 							id="includeDiscount"
 							checked={data.includeDiscount}

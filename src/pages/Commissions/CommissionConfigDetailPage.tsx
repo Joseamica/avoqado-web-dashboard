@@ -362,10 +362,24 @@ export default function CommissionConfigDetailPage() {
 								enabled={config.includeTips ?? false}
 								label={t('wizard.step2.includeTips')}
 							/>
-							<ToggleIndicator
-								enabled={config.includeDiscount ?? false}
-								label={t('wizard.step2.includeDiscount')}
-							/>
+							{/* La base NO es un "activado/desactivado": son dos opciones y
+							    ambas son válidas. Un ícono rojo junto a "Base de la comisión"
+							    leería como error cuando es el default recomendado. */}
+							<div className="flex items-start justify-between gap-4 pt-1">
+								<span className="text-sm text-muted-foreground">
+									{t('wizard.step2.commissionBase')}
+								</span>
+								<span className="text-sm font-medium text-right">
+									{config.includeDiscount
+										? t('wizard.step2.commissionBaseList')
+										: t('wizard.step2.commissionBaseNet')}
+								</span>
+							</div>
+							<p className="text-xs text-muted-foreground">
+								{config.includeDiscount
+									? t('wizard.step2.commissionBaseListHint')
+									: t('wizard.step2.commissionBaseNetHint')}
+							</p>
 						</div>
 					</div>
 

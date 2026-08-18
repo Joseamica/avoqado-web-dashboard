@@ -474,7 +474,42 @@ export interface OrderItem {
   prepTime?: number | null
   externalId: string | null
   createdAt: string
+  /**
+   * Ata la línea a la promoción (combo / paquete / 2x1) que la creó. `null` o
+   * ausente = línea suelta. El detalle de la orden agrupa por este id para
+   * pintar el nombre del combo arriba y sus componentes debajo (patrón Fudo).
+   */
+  orderPromotionId?: string | null
+  /** Descuento de la línea, en pesos. En una línea de combo es su parte del regalo. */
+  discountAmount?: number
 }
+
+/**
+ * Una promoción vendida en la orden, tal como la devuelve el server (2026-08-18).
+ *
+ * 🔑 `name` es el nombre que se COBRÓ (snapshot), no el nombre vivo de la
+ * promoción: renombrarla no puede reescribir una venta pasada. Montos en PESOS.
+ */
+export interface OrderPromotionSummary {
+  id: string
+  instanceId: string
+  name: string
+  /** BUNDLE | COMBO */
+  type: string | null
+  /** FIXED_TOTAL | PER_UNIT (2x1) */
+  pricingMode: string | null
+  gross: number
+  discount: number
+  net: number
+  /** La promo estaba archivada o fuera de vigencia al registrarse la venta. */
+  needsReview: boolean
+  reviewReason?: string | null
+  /** Ids de las líneas que forman la promoción. */
+  itemIds: string[]
+}
+
+/** Estado del reembolso de una venta completa (server: `summarizeRefunds`). */
+export type OrderRefundState = 'NONE' | 'PARTIAL' | 'FULL'
 
 // OBSOLETO: Esta definición se mantiene temporalmente para compatibilidad
 export interface PaymentLegacy {
@@ -1034,6 +1069,18 @@ export interface Order {
   terminal?: { id: string; name: string } | null
   actions?: OrderAction[]
   completedAt?: string | null
+  /**
+   * Promociones vendidas en la orden (2026-08-18). Opcional: los endpoints que
+   * aún no la mandan dejan el detalle exactamente como estaba.
+   */
+  promotions?: OrderPromotionSummary[]
+  /**
+   * Carril del reembolso, independiente del saldo (2026-08-18). Opcional a
+   * propósito: si el campo no viene, la pantalla se comporta como siempre.
+   */
+  refundState?: OrderRefundState
+  /** Lo devuelto, en PESOS y positivo. 0 cuando no hay reembolsos. */
+  refundedAmount?: number
 }
 
 // Junction table for many-to-many Order <-> Customer relationship

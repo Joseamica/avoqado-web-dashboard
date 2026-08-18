@@ -111,6 +111,7 @@
     "salesByCategory": "Sales by Category",
     "paymentMethods": "Payment Methods",
     "refunds": "Refunds",
+    "promotions": "Promotions",
     "taxes": "Taxes",
     "voids": "Voids",
     "modifiers": "Modifiers"

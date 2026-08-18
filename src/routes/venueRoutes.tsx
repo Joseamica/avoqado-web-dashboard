@@ -106,6 +106,7 @@ import {
   SalesByCategory,
   PaymentMethods,
   Refunds,
+  PromotionSales,
   SalesSummary,
   IncomeStatement,
   BankReconciliation,
@@ -297,6 +298,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'reports/refunds',
       element: <KYCProtectedRoute />,
       children: [{ index: true, element: <Refunds /> }],
+    },
+    // Promociones: el COMBO como renglón. Complemento de reports/sales-by-item,
+    // que muestra los componentes marcados "dentro de «Combo X»".
+    {
+      path: 'reports/promotions',
+      element: <KYCProtectedRoute />,
+      children: [{ index: true, element: <PromotionSales /> }],
     },
     // Bancos — hub de banca en vivo (PRO, teaser visible). Permiso financialConnections:manage;
     // el FeatureGate PRO vive dentro de cada página. Distinto de contabilidad/bancos (conciliación).

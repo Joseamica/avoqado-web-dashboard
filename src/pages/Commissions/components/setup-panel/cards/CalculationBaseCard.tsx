@@ -28,14 +28,14 @@ export default function CalculationBaseCard({ state, dispatch }: CalculationBase
 
   const { includeTax, includeTips, includeDiscount } = state.calculationBase
 
-  const parts: string[] = []
-  if (!includeTax && !includeTips && !includeDiscount) {
-    parts.push(t('setup.calcBase.subtotalOnly'))
-  } else {
-    if (includeTax) parts.push(isMexico ? 'IVA' : t('setup.calcBase.tax'))
-    if (includeTips) parts.push(t('setup.calcBase.tips'))
-    if (includeDiscount) parts.push(t('setup.calcBase.discounts'))
-  }
+  // La base SIEMPRE se ve en el resumen: es la decisión que más mueve el dinero
+  // del vendedor, y antes sólo aparecía la palabra "Descuentos" cuando estaba
+  // prendida — apagada no decía nada.
+  const parts: string[] = [
+    includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet'),
+  ]
+  if (includeTax) parts.push(isMexico ? 'IVA' : t('setup.calcBase.tax'))
+  if (includeTips) parts.push(t('setup.calcBase.tips'))
 
   return (
     <>
@@ -89,8 +89,18 @@ export default function CalculationBaseCard({ state, dispatch }: CalculationBase
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">{t('wizard.step2.includeDiscount')}</Label>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Label className="text-sm">
+                    {t('wizard.step2.commissionBase')}:{' '}
+                    {includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {includeDiscount
+                      ? t('wizard.step2.commissionBaseListHint')
+                      : t('wizard.step2.commissionBaseNetHint')}
+                  </p>
+                </div>
                 <Switch
                   checked={includeDiscount}
                   onCheckedChange={checked =>

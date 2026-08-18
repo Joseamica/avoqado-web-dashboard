@@ -1,6 +1,7 @@
 import { Separator } from '@/components/ui/separator'
-import type { Order, OrderItem } from '@/types'
+import type { Order, OrderItem, OrderPromotionSummary } from '@/types'
 import { Currency } from '@/utils/currency'
+import { Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -61,6 +62,49 @@ const ItemRow = ({ item }: { item: OrderItem }) => {
   )
 }
 
+/**
+ * El bloque de un combo: nombre arriba, componentes anidados debajo.
+ *
+ * Es el patrón que usa TODO el mercado y que aquí faltaba — el detalle mostraba
+ * los tres productos sueltos y un descuento anónimo, sin decir nunca que venían
+ * de "Combo Café + 2 Medialunas". Fudo imprime "el nombre del combo y, debajo,
+ * cada producto asociado"; Square marca el refresco como "part of the Burger
+ * Combo"; Maitre'D lo lleva a reportes, pantalla, cuenta y recibo.
+ *
+ * El nombre viene del snapshot del server: es el que se COBRÓ, no el actual.
+ */
+const PromotionBlock = ({ promotion, items }: { promotion: OrderPromotionSummary; items: OrderItem[] }) => {
+  const { t } = useTranslation('orders')
+
+  return (
+    <div className="border-b border-border last:border-b-0">
+      <div className="flex items-center justify-between gap-2 pt-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Tags className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span className="truncate text-sm font-semibold text-foreground">{promotion.name}</span>
+        </div>
+        {promotion.discount > 0 && (
+          <span className="whitespace-nowrap text-sm font-medium text-emerald-600 dark:text-emerald-400">
+            -{Currency(promotion.discount)}
+          </span>
+        )}
+      </div>
+      {promotion.needsReview && (
+        <p className="pl-6 pt-1 text-xs text-amber-600 dark:text-amber-400">
+          {t('drawer.items.promotionNeedsReview', {
+            defaultValue: 'Esta promoción se registró fuera de vigencia: los productos entraron a precio de lista.',
+          })}
+        </p>
+      )}
+      <div className="pl-6">
+        {items.map(item => (
+          <ItemRow key={item.id} item={item} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ItemsSection({ order }: Props) {
   const { t } = useTranslation('orders')
   const items = order.items ?? []
@@ -72,12 +116,34 @@ export function ItemsSection({ order }: Props) {
   // 100% off (discount covers full subtotal) = cortesía; anything less = descuento parcial.
   const isFullyComped = discount > 0 && subtotal > 0 && discount >= subtotal
 
+  // Agrupación por promoción. Aditiva: si el server no manda `promotions` (o la
+  // orden no trae combos), `promotionBlocks` queda vacío y la lista se pinta
+  // plana, exactamente como antes.
+  const promotions = order.promotions ?? []
+  const itemsById = new Map(items.map(i => [i.id, i]))
+  const claimedItemIds = new Set<string>()
+  const promotionBlocks = promotions
+    .map(promotion => {
+      const promotionItems = promotion.itemIds.map(id => itemsById.get(id)).filter((i): i is OrderItem => Boolean(i))
+      promotionItems.forEach(i => claimedItemIds.add(i.id))
+      return { promotion, items: promotionItems }
+    })
+    .filter(block => block.items.length > 0)
+  const looseItems = items.filter(i => !claimedItemIds.has(i.id))
+
   return (
     <section>
       <h2 className="text-lg font-semibold text-foreground mb-3">{t('drawer.sections.items')}</h2>
       <div className="rounded-lg border border-border bg-background px-4">
         {items.length > 0 ? (
-          items.map(item => <ItemRow key={item.id} item={item} />)
+          <>
+            {promotionBlocks.map(block => (
+              <PromotionBlock key={block.promotion.id} promotion={block.promotion} items={block.items} />
+            ))}
+            {looseItems.map(item => (
+              <ItemRow key={item.id} item={item} />
+            ))}
+          </>
         ) : (
           <p className="py-4 text-sm text-muted-foreground">{t('drawer.items.noItems', { defaultValue: 'Sin artículos' })}</p>
         )}
