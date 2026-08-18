@@ -39,8 +39,21 @@ export interface ItemSalesMetrics {
 export interface TimePeriodItemMetrics {
   period: string
   periodLabel?: string
+  /**
+   * Precio de lista: SUM(unitPrice * quantity). Deliberadamente BRUTO — la barra de la gráfica
+   * dice "Ventas brutas", igual que el encabezado de la tabla (paridad con Square: bruto y
+   * descuento como líneas separadas, no un neto disfrazado).
+   */
   grossSales: number
   itemsSold: number
+  /**
+   * El server los manda desde el fix de 2026-08-17 (`sales-by-item.dashboard.service.ts`), pero
+   * este tipo no los declaraba: llegaban en el JSON y TypeScript los tiraba, así que la gráfica
+   * sólo podía pintar el bruto. Resultado visible: la barra decía 806 y la tabla de abajo 781,
+   * sin nada que explicara los 25 de diferencia.
+   */
+  discounts: number
+  netSales: number
 }
 
 export interface SalesByItemResponse {

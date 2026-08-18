@@ -61,9 +61,6 @@ import homeFr from '@/locales/fr/home.json'
 import ordersEn from '@/locales/en/orders.json'
 import ordersEs from '@/locales/es/orders.json'
 import ordersFr from '@/locales/fr/orders.json'
-import analyticsEn from '@/locales/en/analytics.json'
-import analyticsEs from '@/locales/es/analytics.json'
-import analyticsFr from '@/locales/fr/analytics.json'
 import shiftsEn from '@/locales/en/shifts.json'
 import shiftsEs from '@/locales/es/shifts.json'
 import shiftsFr from '@/locales/fr/shifts.json'
@@ -409,15 +406,6 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'orders', bundle as Record<string, unknown>, true, true)
-})
-;(
-  [
-    ['en', analyticsEn],
-    ['es', analyticsEs],
-    ['fr', analyticsFr],
-  ] as const
-).forEach(([lng, bundle]) => {
-  i18n.addResourceBundle(lng, 'analytics', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

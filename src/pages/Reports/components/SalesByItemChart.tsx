@@ -43,15 +43,16 @@ export function SalesByItemChart({ data, reportType: _reportType }: SalesByItemC
     return null
   }
 
-  // Ensure grossSales are numbers (handle Decimal objects from API)
+  // Ensure the figures are numbers (handle Decimal objects from API)
+  const toNumber = (value: unknown) => (typeof value === 'object' && value !== null ? Number(value) : Number(value) || 0)
+
   const normalizedData = data.map(d => ({
     ...d,
-    grossSales: typeof d.grossSales === 'object' && d.grossSales !== null
-      ? Number(d.grossSales)
-      : Number(d.grossSales) || 0,
-    itemsSold: typeof d.itemsSold === 'object' && d.itemsSold !== null
-      ? Number(d.itemsSold)
-      : Number(d.itemsSold) || 0,
+    grossSales: toNumber(d.grossSales),
+    itemsSold: toNumber(d.itemsSold),
+    // Un periodo sin descuentos puede llegar sin el campo desde un backend viejo → 0, no NaN.
+    discounts: toNumber(d.discounts),
+    netSales: d.netSales === undefined || d.netSales === null ? toNumber(d.grossSales) - toNumber(d.discounts) : toNumber(d.netSales),
   }))
 
   // Calculate max value for scaling
@@ -114,10 +115,22 @@ export function SalesByItemChart({ data, reportType: _reportType }: SalesByItemC
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
+                      {/*
+                        La barra mide el BRUTO a propósito (paridad con Square). El tooltip es lo
+                        que hace cuadrar la barra con la tabla de abajo: sin el descuento y el
+                        neto, un periodo con un combo mostraba 806 en la barra y 781 en la tabla,
+                        sin nada que explicara la diferencia.
+                      */}
                       <div className="space-y-1">
                         <p className="font-medium">{item.periodLabel || item.period}</p>
                         <p className="text-muted-foreground">
                           {t('salesByItem.columns.grossSales')}: {Currency(item.grossSales)}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {t('salesByItem.columns.discounts')}: {item.discounts > 0 ? `-${Currency(item.discounts)}` : '—'}
+                        </p>
+                        <p className="font-medium">
+                          {t('salesByItem.columns.netSales')}: {Currency(item.netSales)}
                         </p>
                         <p className="text-muted-foreground">
                           {t('salesByItem.columns.itemsSold')}: {item.itemsSold}

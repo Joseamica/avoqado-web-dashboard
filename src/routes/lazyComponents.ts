@@ -128,10 +128,6 @@ export { default as SuperadminV2Layout } from '@/pages/SuperadminV2/SuperadminV2
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))
 export const Privacy = lazyWithRetry(() => import('@/pages/Legal/Privacy'))
 
-// Analytics
-export const AnalyticsLayout = lazyWithRetry(() => import('@/pages/Analytics/AnalyticsLayout'))
-export const AnalyticsOverview = lazyWithRetry(() => import('@/pages/Analytics/AnalyticsOverview'))
-
 // Inventory
 export const InventoryLayout = lazyWithRetry(() => import('@/pages/Inventory/InventoryLayout'))
 export const InventorySummary = lazyWithRetry(() => import('@/pages/Inventory/InventorySummary'))

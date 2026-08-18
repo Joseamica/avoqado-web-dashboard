@@ -19,7 +19,7 @@ import {
   listTenderTypes,
   updateTenderType,
   type CreateTenderTypeInput,
-  type TenderType,, getTenderCommissions } from '@/services/tenderType.service'
+  type TenderType, getTenderCommissions } from '@/services/tenderType.service'
 
 /**
  * Ajustes → Tipos de pago (VenueTenderType, slice A1) — catálogo core/FREE.

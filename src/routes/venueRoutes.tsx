@@ -15,14 +15,11 @@ import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
-import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
 import LegacyRedirect from './LegacyRedirect'
 import SettingsIndexRedirect from './SettingsIndexRedirect'
 
 import {
-  AnalyticsLayout,
-  AnalyticsOverview,
   AvailableBalance,
   BasicInfo,
   BillingHistory,
@@ -260,22 +257,10 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Analytics (requires MANAGER+ or VIEWER role + KYC verification)
-    {
-      path: 'analytics',
-      element: <ManagerProtectedRoute allowViewer={true} />,
-      children: [
-        {
-          element: <KYCProtectedRoute />,
-          children: [
-            {
-              element: <AnalyticsLayout />,
-              children: [{ index: true, element: <AnalyticsOverview /> }],
-            },
-          ],
-        },
-      ],
-    },
+    // (removed 2026-08-17) La ruta 'analytics' servía `/api/v1/analytics/overview`, que era un MOCK
+    // con `Math.random()`: ARR/MRR/NPS/churn inventados —métricas de SaaS, ni siquiera de un venue—
+    // que cambiaban en cada recarga y cualquier MANAGER/OWNER/VIEWER podía abrir como si fueran suyos.
+    // No estaba enlazada en ningún lado. Los reportes REALES viven en /reports y /command-center.
 
     // Reports
     {

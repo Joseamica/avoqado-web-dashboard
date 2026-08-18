@@ -8,8 +8,6 @@ import {
   AcceptAdminInvitation,
   AdminDashboard,
   Aggregators,
-  AnalyticsLayout,
-  AnalyticsOverview,
   CostStructures,
   CatalogAuditPage,
   CatalogBindingsPage,
@@ -129,7 +127,6 @@ import { createVenueRoutes } from './venueRoutes'
 
 import { Layout } from '@/Layout'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
-import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { ModuleProtectedRoute } from './ModuleProtectedRoute'
 import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
@@ -213,18 +210,9 @@ const router = createBrowserRouter(
               path: '/go/*',
               element: <DashboardRouteResolver />,
             },
-            // Executive Analytics (org/venue scoped via backend auth)
-            // Requires MANAGER+ or VIEWER role
-            {
-              path: '/analytics',
-              element: <ManagerProtectedRoute allowViewer={true} />,
-              children: [
-                {
-                  element: <AnalyticsLayout />,
-                  children: [{ index: true, element: <AnalyticsOverview /> }],
-                },
-              ],
-            },
+            // (removed 2026-08-17) "Executive Analytics" servía `/api/v1/analytics/overview`, un MOCK
+            // con `Math.random()` (ARR/MRR/NPS/churn inventados, distintos en cada recarga). Ver la
+            // nota en `venueRoutes.tsx`.
             // Add venues route before venues/:slug
             {
               path: '/venues',
