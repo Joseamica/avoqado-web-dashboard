@@ -131,7 +131,7 @@ function StatusBadge({ status }: { status: CategoryStatus }) {
     return (
       <Badge
         variant="default"
-        className="text-[10px] px-1.5 py-0 h-[18px] bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/15"
+        className="shrink-0 whitespace-nowrap text-[10px] px-1.5 py-0 h-[18px] bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/15"
       >
         ON
       </Badge>
@@ -141,7 +141,7 @@ function StatusBadge({ status }: { status: CategoryStatus }) {
     return (
       <Badge
         variant="outline"
-        className="text-[10px] px-1.5 py-0 h-[18px] border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
+        className="shrink-0 whitespace-nowrap text-[10px] px-1.5 py-0 h-[18px] border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
       >
         Partial
       </Badge>
@@ -150,7 +150,7 @@ function StatusBadge({ status }: { status: CategoryStatus }) {
   return (
     <Badge
       variant="outline"
-      className="text-[10px] px-1.5 py-0 h-[18px] text-muted-foreground/60 border-border/50"
+      className="shrink-0 whitespace-nowrap text-[10px] px-1.5 py-0 h-[18px] text-muted-foreground/60 border-border/50"
     >
       OFF
     </Badge>
@@ -220,7 +220,7 @@ export function PermissionCategoryNav({
                         {cat.icon}
                       </span>
                       <span className={cn(
-                        'flex-1 text-sm truncate',
+                        'flex-1 min-w-0 text-sm truncate',
                         isSelected ? 'font-medium' : 'text-muted-foreground'
                       )}>
                         {t(`rolePermissions.categories.${cat.key.toLowerCase()}`, cat.label)}

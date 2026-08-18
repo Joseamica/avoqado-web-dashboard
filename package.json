@@ -14,6 +14,8 @@
     "vite": "vite",
     "check:endpoints": "node scripts/check-endpoints.js",
     "check:endpoints:verbose": "node scripts/check-endpoints.js --verbose",
+    "permissions:catalog": "node scripts/regenerar-catalogo-permisos.mjs",
+    "check:permissions": "node scripts/regenerar-catalogo-permisos.mjs --check",
     "pre-deploy": "bash scripts/pre-deploy-check.sh",
     "pre-deploy:smart": "bash scripts/pre-deploy-check.sh --smart --jobs=3 --max-old-space-size=8192",
     "deploy": "npm run build && wrangler pages deploy",

@@ -392,7 +392,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
         title={roleLabel}
         actions={headerActions}
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Self-modification warning */}
           {isOwnRole && (
             <Alert className="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800">
@@ -529,7 +529,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
           <PermissionSearch value={searchTerm} onChange={setSearchTerm} className="max-w-lg" />
 
           {/* Two-column layout: Category Nav | Detail Panel */}
-          <div className="grid gap-5 md:grid-cols-[260px_1fr] min-h-[400px]">
+          <div className="grid gap-5 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] min-h-[400px]">
             {/* Left: Category navigation (desktop) */}
             <div className="hidden md:block rounded-xl border border-border overflow-hidden sticky top-0 self-start h-[calc(100vh-320px)]">
               <PermissionCategoryNav

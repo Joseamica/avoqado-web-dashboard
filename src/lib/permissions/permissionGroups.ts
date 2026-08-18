@@ -1,5 +1,6 @@
 import { StaffRole } from '@/types'
 import { PERMISSION_CATEGORIES, DEFAULT_PERMISSIONS } from './defaultPermissions'
+import { SUPER_CATEGORY_KEYS } from './generated/permissionCatalog.generated'
 import { includesNormalized } from '@/lib/utils'
 
 /**
@@ -25,7 +26,7 @@ export interface SuperCategory {
   descriptionKey: string // i18n key
   icon: string // Lucide icon name
   accentColor: AccentColor
-  categoryKeys: (keyof typeof PERMISSION_CATEGORIES)[]
+  categoryKeys: readonly (keyof typeof PERMISSION_CATEGORIES)[]
 }
 
 export interface RoleTemplate {
@@ -47,7 +48,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.coreOperationsDesc',
     icon: 'LayoutDashboard',
     accentColor: 'blue',
-    categoryKeys: ['HOME', 'ANALYTICS', 'SETTLEMENTS', 'REPORTS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['core-operations'],
   },
   {
     id: 'sales-orders',
@@ -55,7 +56,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.salesOrdersDesc',
     icon: 'ShoppingCart',
     accentColor: 'green',
-    categoryKeys: ['MENU', 'ORDERS', 'PAYMENTS', 'PRODUCTS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['sales-orders'],
   },
   {
     id: 'operations',
@@ -63,7 +64,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.operationsDesc',
     icon: 'Settings',
     accentColor: 'purple',
-    categoryKeys: ['SHIFTS', 'TPV', 'INVENTORY'],
+    categoryKeys: SUPER_CATEGORY_KEYS['operations'],
   },
   {
     id: 'customer-experience',
@@ -71,7 +72,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.customerExperienceDesc',
     icon: 'Star',
     accentColor: 'orange',
-    categoryKeys: ['REVIEWS', 'TABLES', 'RESERVATIONS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['customer-experience'],
   },
   {
     id: 'team-settings',
@@ -79,7 +80,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.teamSettingsDesc',
     icon: 'Building',
     accentColor: 'blue',
-    categoryKeys: ['TEAMS', 'SETTINGS', 'VENUES', 'BILLING', 'ROLE_CONFIG', 'FEATURES', 'NOTIFICATIONS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['team-settings'],
   },
   {
     id: 'marketing-loyalty',
@@ -87,7 +88,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.marketingLoyaltyDesc',
     icon: 'Heart',
     accentColor: 'purple',
-    categoryKeys: ['CUSTOMERS', 'CUSTOMER_GROUPS', 'LOYALTY', 'REFERRAL', 'DISCOUNTS', 'COUPONS', 'CREDIT_PACKS', 'TPV_SETTINGS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['marketing-loyalty'],
   },
 ]
 
@@ -102,7 +103,7 @@ export const TPV_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.terminalOperationsDesc',
     icon: 'Monitor',
     accentColor: 'blue',
-    categoryKeys: ['TPV_TERMINAL', 'TPV_SHIFTS', 'TPV_FACTORY_RESET', 'TPV_DEVICES', 'TPV_KIOSK'],
+    categoryKeys: SUPER_CATEGORY_KEYS['terminal-operations'],
   },
   {
     id: 'tpv-orders-payments',
@@ -110,7 +111,7 @@ export const TPV_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.tpvOrdersPaymentsDesc',
     icon: 'CreditCard',
     accentColor: 'green',
-    categoryKeys: ['TPV_ORDERS', 'TPV_PAYMENTS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['tpv-orders-payments'],
   },
   {
     id: 'floor-management',
@@ -118,7 +119,7 @@ export const TPV_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.floorManagementDesc',
     icon: 'Grid3x3',
     accentColor: 'purple',
-    categoryKeys: ['TPV_TABLES', 'TPV_FLOOR_ELEMENTS'],
+    categoryKeys: SUPER_CATEGORY_KEYS['floor-management'],
   },
   {
     id: 'staff-customers',
@@ -126,7 +127,7 @@ export const TPV_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.staffCustomersDesc',
     icon: 'Users',
     accentColor: 'orange',
-    categoryKeys: ['TPV_CUSTOMERS', 'TPV_TIME_ENTRIES', 'TPV_REPORTS', 'TPV_PRODUCTS', 'TPV_MESSAGES', 'SERIALIZED_INVENTORY', 'VENUE_CRYPTO'],
+    categoryKeys: SUPER_CATEGORY_KEYS['staff-customers'],
   },
 ]
 
