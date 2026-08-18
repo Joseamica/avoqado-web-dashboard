@@ -84,8 +84,7 @@ export function suggestabilityOf(product: ProductLike): {
   // porque las existencias son transitorias: el POS se cura solo cuando vuelve
   // el stock y no se persiste nada malo. Es una decisión, no una imposibilidad.
   //
-  // Se
-  // deja la rama de todos modos: el día que algún consumidor sí traiga el dato,
+  // Se deja la rama de todos modos: el día que algún consumidor sí traiga el dato,
   // se enciende sola sin tocar este archivo, y mientras tanto sigue siendo fiel
   // al ORDEN real de `UpsellResolver.kt` (VETADO → DESACTIVADO → SIN_EXISTENCIAS
   // → POR_PESO), que es lo que garantiza que si dos motivos aplicaran a la vez,
