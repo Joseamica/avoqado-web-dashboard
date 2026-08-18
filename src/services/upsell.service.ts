@@ -34,7 +34,13 @@ export interface UpsellRuleProduct {
 	active?: boolean | null
 	soldByWeight?: boolean | null
 	isOutOfStock?: boolean | null
-	modifierGroups?: Array<{ group?: { required?: boolean } }>
+	/**
+	 * `group.id` viaja porque `PRODUCT_VALIDATION_SELECT` (server) siempre lo
+	 * selecciona — lo usa `coversAllRequiredGroups` (`lib/upsell/suggestability.ts`,
+	 * ronda final de correcciones 2026-08-17) para decidir si `suggestedModifiers`
+	 * cubre TODOS los grupos obligatorios, no sólo si trae alguno.
+	 */
+	modifierGroups?: Array<{ group?: { id?: string; required?: boolean } }>
 }
 
 /** Selección de una opción obligatoria: qué modificador de qué grupo. */

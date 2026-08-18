@@ -27,7 +27,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { Currency } from '@/utils/currency'
 import { getProducts } from '@/services/menu.service'
-import { suggestabilityOf } from '@/lib/upsell/suggestability'
+import { suggestabilityOf, coversAllRequiredGroups } from '@/lib/upsell/suggestability'
+import { resolveSuggestionPreview } from '@/lib/upsell/preview'
 import {
 	upsellService,
 	type UpsellOrigin,
@@ -293,6 +294,18 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 	const productoElegido = anotados.find((p: any) => p.id === suggestedProductId)
 	const gruposObligatorios = (productoElegido?.modifierGroups ?? []).filter((g: any) => g.group?.required)
 
+	// 🔴 Spec §4.2, ronda final de correcciones (2026-08-17): vista previa con el
+	// nombre resuelto y el precio final — no existía, así que el dueño elegía
+	// "Grande" y nunca veía, antes de guardar, que la tarjeta iba a decir
+	// "Agua Mineral 1L (Grande)" a $50.00 y no los $35.00 de la ficha. Sólo se
+	// suman los modificadores YA elegidos (no todo el grupo obligatorio), así se
+	// actualiza en vivo conforme el dueño va escogiendo — el botón "Crear" sigue
+	// deshabilitado hasta que `obligatoriosResueltos` sea true, más abajo.
+	const modificadoresElegidos = gruposObligatorios
+		.map((g: any) => (g.group.modifiers ?? []).find((m: any) => m.id === modifierPicks[g.group.id]))
+		.filter(Boolean)
+	const preview = resolveSuggestionPreview(productoElegido, modificadoresElegidos)
+
 	const create = useMutation({
 		mutationFn: () =>
 			upsellService.createRule(venueId, {
@@ -442,6 +455,19 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 							</div>
 						)}
 
+						{/* Spec §4.2: la tarjeta de vista previa muestra el nombre resuelto y el
+						    precio final — que nadie confirme una regla sin ver, primero, qué
+						    precio va a mostrar en la pantalla del cliente. */}
+						{preview && (
+							<div className="space-y-1 rounded-lg border border-input bg-muted/30 p-3">
+								<p className="text-xs text-muted-foreground">Así se va a ver la tarjeta</p>
+								<div className="flex items-center justify-between gap-3">
+									<p className="truncate text-sm font-medium">{preview.name}</p>
+									<p className="shrink-0 text-sm font-semibold tabular-nums">{Currency(preview.finalPrice)}</p>
+								</div>
+							</div>
+						)}
+
 						<div className="space-y-2">
 							<Label>Gancho (opcional)</Label>
 							<Input
@@ -509,11 +535,23 @@ function RuleRow({ rule, venueId }: { rule: UpsellRule; venueId: string }) {
 
 	// El badge usa el motivo REAL (los 5 filtros del POS), no sólo el veto. Pero
 	// una regla YA resuelta (sus opciones obligatorias elegidas) no debe salir
-	// como bloqueada por PIDE_OPCIONES — ese motivo se ignora cuando ya hay una
-	// selección guardada.
+	// como bloqueada por PIDE_OPCIONES — ese motivo se ignora cuando la selección
+	// CUBRE TODOS los grupos obligatorios del producto.
+	//
+	// 🔴 Ronda final de correcciones (2026-08-17): antes preguntaba "¿trae
+	// ALGUNA selección?" (`suggestedModifiers.length > 0`) — un producto con 2
+	// obligatorios y una regla que sólo resolvió 1 pasaba esa pregunta, el badge
+	// desaparecía, y el POS (que exige `coversAllRequiredGroups`, el subconjunto
+	// COMPLETO) seguía descartando la tarjeta. `coversAllRequiredGroups` es la
+	// misma pregunta ESTRICTA que hace el POS.
 	const suggestability = rule.suggestedProduct ? suggestabilityOf(rule.suggestedProduct) : null
 	const bloqueadoDeVerdad =
-		!!suggestability?.blocked && !(suggestability.reason === 'PIDE_OPCIONES' && (rule.suggestedModifiers?.length ?? 0) > 0)
+		!!suggestability?.blocked &&
+		!(
+			suggestability.reason === 'PIDE_OPCIONES' &&
+			rule.suggestedProduct &&
+			coversAllRequiredGroups(rule.suggestedProduct, rule.suggestedModifiers)
+		)
 
 	return (
 		<div className="flex items-start justify-between gap-4 py-3">

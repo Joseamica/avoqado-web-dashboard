@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { suggestabilityOf } from './suggestability'
+import { suggestabilityOf, coversAllRequiredGroups } from './suggestability'
 
 const req = (required: boolean) => ({ group: { required } })
 
@@ -73,5 +73,57 @@ describe('suggestabilityOf — espejo EXACTO de los 5 filtros del POS', () => {
   // debe seguir siendo un espejo fiel del orden real por si algún día sí llega.
   it('sin existencias gana sobre por peso cuando ambos aplican (mismo orden que UpsellResolver)', () => {
     expect(suggestabilityOf({ upsellEnabled: true, isOutOfStock: true, soldByWeight: true }).reason).toBe('SIN_EXISTENCIAS')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// coversAllRequiredGroups — Ronda final de correcciones (2026-08-17)
+//
+// Espejo de `UpsellRule.coversAllRequiredGroups` (Android) / `isSubset` (iOS).
+// `RuleRow` (Upsell.tsx) preguntaba "¿trae ALGUNA selección?" — esta es la
+// pregunta ESTRICTA que en verdad decide si el POS pinta la tarjeta.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const grupo = (id: string, required: boolean) => ({ group: { id, required } })
+
+describe('coversAllRequiredGroups — espejo EXACTO de UpsellResolver (Android/iOS)', () => {
+  it('sin grupos obligatorios → true por vacuidad, sin selección', () => {
+    expect(coversAllRequiredGroups({ modifierGroups: [] }, null)).toBe(true)
+    expect(coversAllRequiredGroups({}, undefined)).toBe(true)
+  })
+
+  it('sólo grupos OPCIONALES → true sin elegir nada', () => {
+    expect(coversAllRequiredGroups({ modifierGroups: [grupo('g_op', false)] }, [])).toBe(true)
+  })
+
+  it('un grupo obligatorio, selección vacía → false', () => {
+    expect(coversAllRequiredGroups({ modifierGroups: [grupo('g_tam', true)] }, [])).toBe(false)
+    expect(coversAllRequiredGroups({ modifierGroups: [grupo('g_tam', true)] }, null)).toBe(false)
+  })
+
+  it('un grupo obligatorio, resuelto → true', () => {
+    expect(coversAllRequiredGroups({ modifierGroups: [grupo('g_tam', true)] }, [{ groupId: 'g_tam', modifierId: 'm_gr' }])).toBe(true)
+  })
+
+  // 🔴 El caso que motiva la tarea: 2 obligatorios, sólo 1 resuelto. La cuenta
+  // vieja (`suggestedModifiers.length > 0`) daba TRUE aquí — mentira por
+  // omisión, el POS descarta la tarjeta de todos modos.
+  it('🔴 DOS grupos obligatorios, sólo UNO resuelto → false (la cuenta vieja decía true)', () => {
+    const product = { modifierGroups: [grupo('g_tam', true), grupo('g_sabor', true)] }
+    expect(coversAllRequiredGroups(product, [{ groupId: 'g_tam', modifierId: 'm_gr' }])).toBe(false)
+  })
+
+  it('DOS grupos obligatorios, AMBOS resueltos → true', () => {
+    const product = { modifierGroups: [grupo('g_tam', true), grupo('g_sabor', true)] }
+    expect(
+      coversAllRequiredGroups(product, [
+        { groupId: 'g_tam', modifierId: 'm_gr' },
+        { groupId: 'g_sabor', modifierId: 'm_ch' },
+      ]),
+    ).toBe(true)
+  })
+
+  it('una selección para un grupo AJENO no cuenta como resuelto', () => {
+    expect(coversAllRequiredGroups({ modifierGroups: [grupo('g_tam', true)] }, [{ groupId: 'g_otro', modifierId: 'm_x' }])).toBe(false)
   })
 })
