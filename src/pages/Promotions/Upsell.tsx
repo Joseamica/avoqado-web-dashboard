@@ -28,7 +28,7 @@ import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { Currency } from '@/utils/currency'
 import { getProducts } from '@/services/menu.service'
 import { suggestabilityOf, coversAllRequiredGroups } from '@/lib/upsell/suggestability'
-import { resolveSuggestionPreview } from '@/lib/upsell/preview'
+import { resolveSuggestionPreview, chosenPreviewModifiers } from '@/lib/upsell/preview'
 import {
 	upsellService,
 	type UpsellOrigin,
@@ -301,9 +301,7 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 	// suman los modificadores YA elegidos (no todo el grupo obligatorio), así se
 	// actualiza en vivo conforme el dueño va escogiendo — el botón "Crear" sigue
 	// deshabilitado hasta que `obligatoriosResueltos` sea true, más abajo.
-	const modificadoresElegidos = gruposObligatorios
-		.map((g: any) => (g.group.modifiers ?? []).find((m: any) => m.id === modifierPicks[g.group.id]))
-		.filter(Boolean)
+	const modificadoresElegidos = chosenPreviewModifiers(gruposObligatorios, modifierPicks)
 	const preview = resolveSuggestionPreview(productoElegido, modificadoresElegidos)
 
 	const create = useMutation({

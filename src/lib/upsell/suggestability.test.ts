@@ -126,4 +126,31 @@ describe('coversAllRequiredGroups — espejo EXACTO de UpsellResolver (Android/i
   it('una selección para un grupo AJENO no cuenta como resuelto', () => {
     expect(coversAllRequiredGroups({ modifierGroups: [grupo('g_tam', true)] }, [{ groupId: 'g_otro', modifierId: 'm_x' }])).toBe(false)
   })
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🔴 P2 (2026-08-17): fail-CLOSED, no fail-open. Antes, `g.group.id` vivía
+  // DENTRO del predicado del filtro (`g.group?.required && g.group.id`): un
+  // grupo obligatorio SIN id se caía del conjunto exigido y la función
+  // respondía "sí cubre" — al revés de Android/iOS, donde el id no es
+  // opcional. Con el bug presente, el primer test de abajo daba `true`.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('🔴 un grupo OBLIGATORIO sin id NUNCA cuenta como cubierto (fail-closed, como el POS)', () => {
+    const productoConIdCorrupto = { modifierGroups: [{ group: { required: true } }] } // sin `id`
+    expect(coversAllRequiredGroups(productoConIdCorrupto, [])).toBe(false)
+    // Ni siquiera con selecciones de sobra: no hay id contra el cuál resolverlo.
+    expect(coversAllRequiredGroups(productoConIdCorrupto, [{ groupId: 'g_tam', modifierId: 'm_gr' }])).toBe(false)
+  })
+
+  it('🔴 un grupo obligatorio SIN id junto a uno CON id, ambos resueltos → sigue false', () => {
+    // El grupo sano no debe "tapar" al corrupto: basta que UNO no se pueda
+    // verificar para que la respuesta completa sea "no cubre".
+    const producto = { modifierGroups: [{ group: { required: true } }, grupo('g_sabor', true)] }
+    expect(coversAllRequiredGroups(producto, [{ groupId: 'g_sabor', modifierId: 'm_ch' }])).toBe(false)
+  })
+
+  it('un grupo obligatorio con id VACÍO ("") también bloquea, no sólo undefined', () => {
+    const producto = { modifierGroups: [{ group: { id: '', required: true } }] }
+    expect(coversAllRequiredGroups(producto, [])).toBe(false)
+  })
 })

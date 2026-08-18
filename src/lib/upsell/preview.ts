@@ -51,3 +51,32 @@ export function resolveSuggestionPreview(
 
 	return { name, finalPrice }
 }
+
+export interface RequiredModifierGroup {
+	group: {
+		id: string
+		modifiers?: Array<{ id: string; name: string; price: number }>
+	}
+}
+
+/**
+ * De los grupos OBLIGATORIOS de un producto, cuáles modificadores ya tiene
+ * elegidos el dueño (`picks`, groupId -> modifierId). Un grupo todavía
+ * PENDIENTE (sin selección en `picks`) se EXCLUYE — nunca se cuela como
+ * `undefined` — para que `resolveSuggestionPreview` de arriba reciba sólo lo
+ * ya elegido y se actualice en vivo conforme el dueño va escogiendo.
+ *
+ * 🔴 P2 (2026-08-17): esto vivía inline en `Upsell.tsx` (`CreateRuleDialog`,
+ * ~línea 304), sin ningún test que lo ejercitara — el test que decía probarlo
+ * en `preview.test.ts` en realidad era una copia byte a byte de otro test, con
+ * el mismo input ya "pre-filtrado" a mano. Se extrae aquí para que el caso que
+ * motiva su propio nombre ("2 obligatorios, sólo 1 elegido") sí se pruebe.
+ */
+export function chosenPreviewModifiers(
+	requiredGroups: RequiredModifierGroup[],
+	picks: Record<string, string | undefined>,
+): Array<{ id: string; name: string; price: number }> {
+	return requiredGroups
+		.map(g => (g.group.modifiers ?? []).find(m => m.id === picks[g.group.id]))
+		.filter((m): m is { id: string; name: string; price: number } => m !== undefined)
+}

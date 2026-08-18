@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveSuggestionPreview } from './preview'
+import { resolveSuggestionPreview, chosenPreviewModifiers } from './preview'
 
 describe('resolveSuggestionPreview — spec §4.2 (nombre resuelto + precio final)', () => {
 	it('sin producto elegido → null', () => {
@@ -34,12 +34,69 @@ describe('resolveSuggestionPreview — spec §4.2 (nombre resuelto + precio fina
 		})
 	})
 
-	it('se actualiza en vivo con sólo los modificadores YA elegidos (el llamador filtra los pendientes)', () => {
-		// Producto con 2 obligatorios, sólo 1 elegido todavía: la vista previa no
-		// espera a que estén completos para mostrar algo honesto de lo que hay.
-		expect(resolveSuggestionPreview({ name: 'Agua Mineral 1L', price: 35 }, [{ name: 'Grande', price: 15 }])).toEqual({
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// chosenPreviewModifiers — "el llamador filtra los pendientes"
+//
+// 🔴 P2 (2026-08-17): esto antes se afirmaba con un test que era copia byte a
+// byte del de arriba ("un modificador agrega su precio...") — mismo input,
+// mismo expected, cero cobertura real del caso "2 obligatorios, sólo 1
+// elegido" que su propia descripción prometía. La lógica vivía inline en
+// `Upsell.tsx` (`CreateRuleDialog`, ~línea 304) sin ningún test que la
+// ejercitara; se extrajo a `chosenPreviewModifiers` (`preview.ts`)
+// específicamente para poder probar ESTO.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('chosenPreviewModifiers — se actualiza en vivo con sólo lo YA elegido', () => {
+	const grupo = (groupId: string, modifiers: Array<{ id: string; name: string; price: number }>) => ({
+		group: { id: groupId, modifiers },
+	})
+
+	it('sin grupos obligatorios → nada que elegir', () => {
+		expect(chosenPreviewModifiers([], {})).toEqual([])
+	})
+
+	it('un grupo obligatorio, todavía SIN elegir → se excluye, no aparece como undefined', () => {
+		const grupos = [grupo('g_tam', [{ id: 'm_ch', name: 'Chico', price: 0 }])]
+		expect(chosenPreviewModifiers(grupos, {})).toEqual([])
+	})
+
+	// 🔴 El caso que el test viejo prometía probar y no probaba: 2 obligatorios
+	// (Tamaño, Sabor), el dueño sólo eligió Tamaño. La vista previa debe
+	// mostrar SÓLO "Grande" — Sabor pendiente no debe colarse ni tronar.
+	it('🔴 DOS grupos obligatorios, sólo UNO elegido → sólo ese llega, el pendiente se excluye', () => {
+		const grupos = [
+			grupo('g_tam', [{ id: 'm_gr', name: 'Grande', price: 15 }]),
+			grupo('g_sabor', [{ id: 'm_van', name: 'Vainilla', price: 5 }]),
+		]
+		const elegidos = chosenPreviewModifiers(grupos, { g_tam: 'm_gr' }) // g_sabor: pendiente
+
+		expect(elegidos).toEqual([{ id: 'm_gr', name: 'Grande', price: 15 }])
+
+		// Y la vista previa que arma con esto refleja SÓLO lo elegido — el caso
+		// real que motiva la función: no espera a que Sabor también se elija.
+		expect(resolveSuggestionPreview({ name: 'Agua Mineral 1L', price: 35 }, elegidos)).toEqual({
 			name: 'Agua Mineral 1L (Grande)',
 			finalPrice: 50,
 		})
+	})
+
+	it('DOS grupos obligatorios, AMBOS elegidos → los dos llegan, en el orden de los grupos', () => {
+		const grupos = [
+			grupo('g_tam', [{ id: 'm_gr', name: 'Grande', price: 15 }]),
+			grupo('g_sabor', [{ id: 'm_van', name: 'Vainilla', price: 5 }]),
+		]
+		const elegidos = chosenPreviewModifiers(grupos, { g_tam: 'm_gr', g_sabor: 'm_van' })
+
+		expect(elegidos).toEqual([
+			{ id: 'm_gr', name: 'Grande', price: 15 },
+			{ id: 'm_van', name: 'Vainilla', price: 5 },
+		])
+	})
+
+	it('un pick que no corresponde a ningún modificador del grupo (dato viejo/huérfano) se excluye', () => {
+		const grupos = [grupo('g_tam', [{ id: 'm_gr', name: 'Grande', price: 15 }])]
+		expect(chosenPreviewModifiers(grupos, { g_tam: 'm_ya_no_existe' })).toEqual([])
 	})
 })

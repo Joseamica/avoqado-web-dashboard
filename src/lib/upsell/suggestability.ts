@@ -125,11 +125,21 @@ export function coversAllRequiredGroups(
   // "propiedad desconocida".
   suggestedModifiers: Array<{ groupId: string; modifierId?: string }> | null | undefined,
 ): boolean {
-  const requiredGroupIds = (product.modifierGroups ?? [])
-    .filter(g => g.group?.required && g.group.id)
-    .map(g => g.group!.id as string)
-  if (requiredGroupIds.length === 0) return true
+  const requiredGroups = (product.modifierGroups ?? []).filter(g => g.group?.required)
+  if (requiredGroups.length === 0) return true
 
+  // 🔴 P2 (2026-08-17): fail-CLOSED, no fail-open. Antes, `g.group.id` vivía
+  // DENTRO del predicado del `.filter()` de arriba (`g.group?.required &&
+  // g.group.id`): un grupo obligatorio SIN id se caía del conjunto exigido y
+  // esta función respondía "sí cubre todo" — al revés de Android/iOS, donde
+  // `id` NO es opcional y esta situación no puede darse. Hoy `listRules`
+  // (server) siempre selecciona `group.id`, así que esta rama no se alcanza en
+  // producción — pero el TIPO de `ProductLike` lo declara opcional, así que la
+  // puerta queda entreabierta para el próximo consumidor. Si el dato viniera
+  // corrupto, la pregunta "¿esto cubre lo obligatorio?" debe responder que NO.
+  if (requiredGroups.some(g => !g.group?.id)) return false
+
+  const requiredGroupIds = requiredGroups.map(g => g.group!.id as string)
   const resolvedGroupIds = new Set((suggestedModifiers ?? []).map(m => m.groupId))
   return requiredGroupIds.every(id => resolvedGroupIds.has(id))
 }
