@@ -4,7 +4,19 @@ import { StaffRole } from '@/types'
 // Role Permission interfaces
 export interface RolePermission {
   role: StaffRole
+  /**
+   * Lo que este venue AGREGA sobre los permisos de fábrica del rol. Es ADITIVO a propósito:
+   * gracias a eso, cuando la plataforma le suma permisos nuevos a un rol, los venues que ya
+   * habían personalizado también los reciben en vez de quedarse congelados.
+   */
   permissions: string[]
+  /**
+   * Lo que este venue QUITA. Va aparte porque un solo campo no podía decir las dos cosas, y
+   * por eso quitar un permiso NUNCA funcionaba: el backend sumaba lo que la pantalla creía
+   * estar reemplazando. Ver `getEffectiveRolePermissions` en avoqado-server.
+   * Opcional: un backend viejo no lo manda.
+   */
+  deniedPermissions?: string[]
   isCustom: boolean
   modifiedBy: {
     id: string
@@ -26,6 +38,8 @@ export interface RoleHierarchyInfo {
 
 export interface UpdateRolePermissionsRequest {
   permissions: string[]
+  /** Ver `RolePermission.deniedPermissions`. Opcional: el servidor lo trata como `[]`. */
+  deniedPermissions?: string[]
 }
 
 export interface RolePermissionResponse {
@@ -71,9 +85,16 @@ export const rolePermissionService = {
     venueId: string,
     role: StaffRole,
     permissions: string[],
+    /**
+     * Lo que el admin QUITÓ. Sin esto, desmarcar una casilla no hacía nada: el campo
+     * `permissions` es aditivo en el backend, así que la pantalla creía estar reemplazando
+     * la lista y el backend la sumaba a los permisos de fábrica. Ver el KDoc del tipo.
+     */
+    deniedPermissions: string[] = [],
   ): Promise<RolePermissionResponse> {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/role-permissions/${role}`, {
       permissions,
+      deniedPermissions,
     })
     return response.data
   },

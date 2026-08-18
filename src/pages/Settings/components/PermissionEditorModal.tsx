@@ -20,6 +20,7 @@ import { RoleConfigInput, StaffRole, DEFAULT_ROLE_DISPLAY_NAMES } from '@/types'
 import rolePermissionService from '@/services/rolePermission.service'
 import { PERMISSION_CATEGORIES, CRITICAL_PERMISSIONS } from '@/lib/permissions/roleHierarchy'
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
+import { PERMISSION_DEPENDENCIES, resolvePermissions } from '@/lib/permissions/permissionDependencies'
 import {
   DASHBOARD_SUPER_CATEGORIES,
   TPV_SUPER_CATEGORIES,
@@ -83,6 +84,33 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   )
 
   const selectedPermissionsSet = useMemo(() => new Set(modifiedPermissions), [modifiedPermissions])
+
+  /**
+   * Lo que el rol tendría de fábrica, YA con sus dependencias resueltas. Es la base contra
+   * la que se calcula qué quitó el admin — no el catálogo completo. Mandar como "excluido"
+   * algo que el rol nunca tuvo bloquearía un permiso que quizá le demos por default mañana,
+   * o sea que reintroduciría el congelamiento que este diseño existe para evitar.
+   */
+  const defaultEfectivos = useMemo(
+    () => Array.from(resolvePermissions(DEFAULT_PERMISSIONS[role] || [])),
+    [role]
+  )
+
+  /**
+   * Para cada permiso, cuál de los MARCADOS lo implica. Alimenta el aviso "viene incluido
+   * en X" y bloquea su casilla: el backend lo repone automáticamente, así que dejar
+   * desmarcarlo sería mentirle al admin (se destapó el 2026-08-18 con la auditoría).
+   */
+  const impliedMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const marcado of modifiedPermissions) {
+      for (const dep of PERMISSION_DEPENDENCIES[marcado] ?? []) {
+        if (dep === marcado) continue
+        if (!m.has(dep)) m.set(dep, marcado)
+      }
+    }
+    return m
+  }, [modifiedPermissions])
 
   // Fetch role permissions
   const { data: rolePermissionsData, isLoading: isLoadingPermissions } = useQuery({
@@ -229,8 +257,8 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
 
   // Save mutation
   const updateMutation = useMutation({
-    mutationFn: (permissions: string[]) =>
-      rolePermissionService.updateRolePermissions(venueId, role, permissions),
+    mutationFn: ({ permissions, denied }: { permissions: string[]; denied: string[] }) =>
+      rolePermissionService.updateRolePermissions(venueId, role, permissions, denied),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', venueId] })
       toast({
@@ -318,7 +346,20 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       ) {
         permissionsToSave = ['*:*']
       }
-      updateMutation.mutate(permissionsToSave)
+
+      // Lo que el admin QUITÓ: de lo que el rol tendría de fábrica, lo que desmarcó.
+      //
+      // Se calcula contra `defaultEfectivos` y NO contra el catálogo completo. Mandar como
+      // excluido algo que el rol nunca tuvo lo dejaría bloqueado para siempre —incluso si
+      // mañana se lo damos por default—, que es justo el congelamiento que el campo
+      // separado existe para evitar.
+      //
+      // Sin esto, desmarcar una casilla no hacía absolutamente nada: `permissions` es
+      // aditivo en el backend, así que la pantalla creía reemplazar y el backend sumaba.
+      const seleccionados = new Set(modifiedPermissions)
+      const deniedToSave = defaultEfectivos.filter(p => !seleccionados.has(p))
+
+      updateMutation.mutate({ permissions: permissionsToSave, denied: deniedToSave })
     } else if (hasConfigChanges) {
       // Appearance-only save already succeeded above; just close the modal.
       setHasConfigChanges(false)
@@ -556,6 +597,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                       superCategory={superCategory}
                       selectedPermissions={selectedPermissionsSet}
                       defaultPermissions={defaultPermissions}
+                      impliedMap={impliedMap}
                       onChange={handlePermissionChange}
                       searchTerm={debouncedSearchTerm}
                       isExpanded={expandedCategories.has(superCategory.id)}
@@ -574,6 +616,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                     categoryKey={selectedCategoryKey}
                     selectedPermissions={selectedPermissionsSet}
                     defaultPermissions={defaultPermissions}
+                    impliedMap={impliedMap}
                     onChange={handlePermissionChange}
                     disabled={updateMutation.isPending || revertMutation.isPending}
                     isOwnRole={isOwnRole}

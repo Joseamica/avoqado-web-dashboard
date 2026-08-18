@@ -47,6 +47,12 @@ interface PermissionSuperCategoryProps {
   superCategory: SuperCategory
   selectedPermissions: Set<string>
   defaultPermissions: string[]
+  /**
+   * Mapa permiso → el permiso MARCADO que lo implica. Si un permiso está aquí, su casilla
+   * se bloquea y se explica por qué: el backend lo repone automáticamente, así que dejar
+   * desmarcarlo sería mentirle al admin. Ver `PermissionToggle.impliedBy`.
+   */
+  impliedMap?: Map<string, string>
   onChange: (permission: string, enabled: boolean) => void
   searchTerm?: string
   isExpanded: boolean
@@ -82,6 +88,12 @@ interface PermissionCategoryGroupProps {
   category: (typeof PERMISSION_CATEGORIES)[keyof typeof PERMISSION_CATEGORIES]
   selectedPermissions: Set<string>
   defaultPermissions: string[]
+  /**
+   * Mapa permiso → el permiso MARCADO que lo implica. Si un permiso está aquí, su casilla
+   * se bloquea y se explica por qué: el backend lo repone automáticamente, así que dejar
+   * desmarcarlo sería mentirle al admin. Ver `PermissionToggle.impliedBy`.
+   */
+  impliedMap?: Map<string, string>
   onChange: (permission: string, enabled: boolean) => void
   disabled?: boolean
   isOwnRole?: boolean
@@ -93,6 +105,7 @@ function PermissionCategoryGroup({
   category,
   selectedPermissions,
   defaultPermissions,
+  impliedMap,
   onChange,
   disabled = false,
   isOwnRole = false,
@@ -169,6 +182,7 @@ function PermissionCategoryGroup({
             isEnabled={selectedPermissions.has(permission)}
             isDefault={defaultPermissions.includes(permission) || defaultPermissions.includes('*:*')}
             isCritical={isOwnRole && CRITICAL_PERMISSIONS.includes(permission)}
+            impliedBy={impliedMap?.get(permission) ?? null}
             onChange={enabled => onChange(permission, enabled)}
             disabled={disabled}
             highlighted={!!searchTerm && includesNormalized(permission ?? '', searchTerm)}
@@ -196,6 +210,7 @@ export function PermissionSuperCategory({
   superCategory,
   selectedPermissions,
   defaultPermissions,
+  impliedMap,
   onChange,
   searchTerm = '',
   isExpanded,
@@ -297,6 +312,7 @@ export function PermissionSuperCategory({
                 category={category}
                 selectedPermissions={selectedPermissions}
                 defaultPermissions={defaultPermissions}
+                impliedMap={impliedMap}
                 onChange={onChange}
                 disabled={disabled}
                 isOwnRole={isOwnRole}

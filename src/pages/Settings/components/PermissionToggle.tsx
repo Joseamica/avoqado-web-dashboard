@@ -14,6 +14,17 @@ interface PermissionToggleProps {
   onChange: (enabled: boolean) => void
   disabled?: boolean
   highlighted?: boolean
+  /**
+   * Nombre legible del permiso que IMPLICA a éste, si lo hay. Cuando viene, la casilla se
+   * bloquea y se explica por qué.
+   *
+   * No es cosmético: el backend repone automáticamente los permisos implicados (sin
+   * `orders:create` no funciona `tpv-payments:pay-later`). Sin este aviso, el admin
+   * desmarcaba la casilla, guardaba, y el permiso seguía ahí sin ninguna explicación — la
+   * pantalla mentía. Decisión del founder (2026-08-18): lo incluido no se quita por
+   * separado, pero se VE.
+   */
+  impliedBy?: string | null
 }
 
 /**
@@ -57,6 +68,7 @@ export function PermissionToggle({
   isCritical,
   onChange,
   disabled = false,
+  impliedBy = null,
   highlighted = false,
 }: PermissionToggleProps) {
   const { t } = useTranslation('settings')
@@ -68,7 +80,7 @@ export function PermissionToggle({
 
   const handleChange = (checked: boolean) => {
     // Don't allow changes to critical permissions
-    if (isCritical) return
+    if (isCritical || impliedBy) return
     onChange(checked)
   }
 
@@ -78,6 +90,7 @@ export function PermissionToggle({
         'flex items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all gap-2',
         isEnabled ? 'bg-green-50 dark:bg-green-950/20' : 'bg-muted/30 hover:bg-muted/50',
         isCritical && 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800',
+        !isCritical && impliedBy && 'bg-muted/40 border border-border',
         highlighted && 'ring-2 ring-primary/30 ring-offset-1 ring-offset-background'
       )}
     >
@@ -85,10 +98,11 @@ export function PermissionToggle({
         <Switch
           checked={isEnabled}
           onCheckedChange={handleChange}
-          disabled={disabled || isCritical}
+          disabled={disabled || isCritical || !!impliedBy}
           className={cn(
             'data-[state=checked]:bg-green-500 dark:data-[state=checked]:bg-green-600 flex-shrink-0 scale-90 sm:scale-100',
-            isCritical && 'opacity-50 cursor-not-allowed'
+            isCritical && 'opacity-50 cursor-not-allowed',
+            !isCritical && impliedBy && 'opacity-50 cursor-not-allowed'
           )}
           aria-label={`${resource}: ${action}`}
         />
@@ -96,6 +110,7 @@ export function PermissionToggle({
           className={cn(
             'text-xs sm:text-sm cursor-pointer select-none min-w-0',
             isCritical && 'cursor-not-allowed opacity-70',
+            !isCritical && impliedBy && 'cursor-not-allowed opacity-70',
             disabled && 'cursor-not-allowed'
           )}
         >
@@ -124,7 +139,25 @@ export function PermissionToggle({
             </Tooltip>
           </TooltipProvider>
         )}
-        {isModified && !isCritical && (
+        {!isCritical && impliedBy && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="cursor-help text-[10px] sm:text-xs px-1 sm:px-1.5 py-0 h-4 sm:h-5 whitespace-nowrap shrink-0 text-muted-foreground">
+                  {t('rolePermissions.includedInBadge', 'Incluido')}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs">
+                <p className="text-sm">
+                  {t('rolePermissions.impliedByTooltip', 'This permission comes bundled with "{{permission}}". To remove it, remove that one too.', {
+                    permission: impliedBy,
+                  })}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {isModified && !isCritical && !impliedBy && (
           <Badge
             variant="outline"
             className={cn(

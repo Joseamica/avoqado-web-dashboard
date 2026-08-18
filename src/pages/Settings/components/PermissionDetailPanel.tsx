@@ -11,6 +11,12 @@ interface PermissionDetailPanelProps {
   categoryKey: string
   selectedPermissions: Set<string>
   defaultPermissions: string[]
+  /**
+   * Mapa permiso → el permiso MARCADO que lo implica. Si un permiso está aquí, su casilla
+   * se bloquea y se explica por qué: el backend lo repone automáticamente, así que dejar
+   * desmarcarlo sería mentirle al admin. Ver `PermissionToggle.impliedBy`.
+   */
+  impliedMap?: Map<string, string>
   onChange: (permission: string, enabled: boolean) => void
   disabled?: boolean
   isOwnRole?: boolean
@@ -114,6 +120,7 @@ function PermissionRow({
   label,
   description,
   onChange,
+  impliedBy = null,
   indented = false,
   t,
 }: {
@@ -124,6 +131,8 @@ function PermissionRow({
   label: string
   description: string
   onChange: (permission: string, enabled: boolean) => void
+  /** Ver `PermissionToggle.impliedBy`: el permiso marcado que trae éste incluido. */
+  impliedBy?: string | null
   indented?: boolean
   t: (key: string) => string
 }) {
@@ -188,6 +197,7 @@ function PermissionGroupSection({
   selectedPermissions,
   disabled,
   isOwnRole,
+  impliedMap,
   onChange,
   isExpanded,
   onToggleExpand,
@@ -197,6 +207,8 @@ function PermissionGroupSection({
   selectedPermissions: Set<string>
   disabled: boolean
   isOwnRole: boolean
+  /** Ver `PermissionToggle.impliedBy`. Mapa permiso → el marcado que lo trae incluido. */
+  impliedMap?: Map<string, string>
   onChange: (permission: string, enabled: boolean) => void
   isExpanded: boolean
   onToggleExpand: () => void
@@ -294,6 +306,7 @@ function PermissionGroupSection({
                 permission={permission}
                 isEnabled={isEnabled}
                 isCritical={isCritical}
+                impliedBy={impliedMap?.get(permission) ?? null}
                 disabled={disabled}
                 label={formatPermissionLabel(permission, t)}
                 description={getPermissionDescription(permission, t)}
@@ -316,6 +329,7 @@ export function PermissionDetailPanel({
   categoryKey,
   selectedPermissions,
   defaultPermissions: _defaultPermissions,
+  impliedMap,
   onChange,
   disabled = false,
   isOwnRole = false,
@@ -449,6 +463,7 @@ export function PermissionDetailPanel({
                     permission={permission}
                     isEnabled={isEnabled}
                     isCritical={isCritical}
+                    impliedBy={impliedMap?.get(permission) ?? null}
                     disabled={disabled}
                     label={formatPermissionLabel(permission, t)}
                     description={getPermissionDescription(permission, t)}
@@ -466,6 +481,7 @@ export function PermissionDetailPanel({
                   selectedPermissions={selectedPermissions}
                   disabled={disabled}
                   isOwnRole={isOwnRole}
+                impliedMap={impliedMap}
                   onChange={onChange}
                   isExpanded={isGroupExpanded(group)}
                   onToggleExpand={() => toggleGroupExpand(group)}
