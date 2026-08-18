@@ -837,6 +837,8 @@
     "title": "Ventas por artículo",
     "subtitle": "Desglose de ventas por artículo del período",
     "noData": "Sin datos de ventas para este período",
+    "insidePromotion": "{{units}} dentro de «{{name}}»",
+    "insidePromotions": "Vendido dentro de {{n}} promociones",
     "chart": {
       "title": "Ventas por período"
     },
@@ -844,6 +846,7 @@
       "item": "Artículo",
       "sku": "SKU",
       "category": "Categoría",
+      "promotion": "Dentro de promoción",
       "unit": "Unidad",
       "itemsSold": "Artículos vendidos",
       "unitsSold": "Unidades vendidas",
@@ -1033,8 +1036,8 @@
     "exportCsv": "Exportar CSV",
     "byPeriod": "Cómo se movió en el tiempo",
     "footnote": "Cada promoción cuenta como un renglón. Los productos que la integran aparecen por separado en Ventas por artículo, marcados con el nombre del combo: son dos vistas del mismo dinero, no se suman.",
-    "needsReview": "{{count}} venta(s) quedaron marcadas para revisión: la promoción estaba archivada o fuera de vigencia al registrarse, así que entraron a precio de lista.",
-    "rowNeedsReview": "{{count}} para revisión",
+    "needsReview": "{{n}} venta(s) quedaron marcadas para revisión: la promoción estaba archivada o fuera de vigencia al registrarse, así que entraron a precio de lista.",
+    "rowNeedsReview": "{{n}} para revisión",
     "periods": {
       "summary": "Total",
       "days": "Por día",

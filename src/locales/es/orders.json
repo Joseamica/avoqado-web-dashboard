@@ -113,7 +113,13 @@
       "customAmount": "Importe personalizado",
       "skuLabel": "SKU",
       "noItems": "Sin artículos",
-      "refunded": "Reembolsado"
+      "refunded": "Reembolsado",
+      "promotionNeedsReview": "Esta promoción se registró fuera de vigencia: los productos entraron a precio de lista."
+    },
+    "refund": {
+      "full": "Reembolsada",
+      "partial": "Reembolso parcial: {{amount}}",
+      "partialLabel": "Reembolso parcial"
     },
     "totals": {
       "subtotal": "Subtotal",

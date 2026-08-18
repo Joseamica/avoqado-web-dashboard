@@ -413,7 +413,9 @@ export default function SalesByItem() {
     // Header - conditional columns based on groupBy
     const headerRow = [getFirstColumnLabel()]
     if (groupBy === 'none') {
-      headerRow.push(t('salesByItem.columns.sku'), t('salesByItem.columns.category'))
+      // La columna de promoción viaja al CSV: sin ella, exportar el mix pierde
+      // justo el dato que explica por qué un producto trae descuento.
+      headerRow.push(t('salesByItem.columns.sku'), t('salesByItem.columns.category'), t('salesByItem.columns.promotion'))
     }
     headerRow.push(
       t('salesByItem.columns.unit'),
@@ -428,7 +430,7 @@ export default function SalesByItem() {
     sortedItems.forEach(item => {
       const dataRow = [item.productName]
       if (groupBy === 'none') {
-        dataRow.push(item.productSku || '', item.categoryName || '')
+        dataRow.push(item.productSku || '', item.categoryName || '', (item.promotions ?? []).map(p => `${p.name} (${p.unitsSold})`).join(' · '))
       }
       dataRow.push(
         item.unit,
@@ -443,7 +445,7 @@ export default function SalesByItem() {
     // Totals row
     const totalsRow = [t('salesByItem.totals.label')]
     if (groupBy === 'none') {
-      totalsRow.push('', '')
+      totalsRow.push('', '', '')
     }
     totalsRow.push(
       '',
@@ -930,7 +932,25 @@ export default function SalesByItem() {
                     className="border-b border-border/30 hover:bg-muted/20 transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <span className="text-sm font-medium">{item.productName}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{item.productName}</span>
+                        {/* Este reporte desglosa los COMPONENTES (modelo Square); la marca dice
+                            de qué combo salieron, para que no se lea como venta suelta ni se
+                            sume dos veces con el reporte de Promociones. */}
+                        {item.promotions && item.promotions.length > 0 && (
+                          <span
+                            className="text-xs text-muted-foreground"
+                            title={item.promotions.map(p => `${p.name} · ${p.unitsSold}`).join(' · ')}
+                          >
+                            {item.promotionName
+                              ? t('salesByItem.insidePromotion', {
+                                  name: item.promotionName,
+                                  units: item.promotions[0].unitsSold,
+                                })
+                              : t('salesByItem.insidePromotions', { n: item.promotions.length })}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {showProductColumns && (
                       <td className="px-4 py-3 hidden md:table-cell">

@@ -296,5 +296,38 @@
     "merchantSaveError": "No se pudo guardar la configuración del comercio.",
     "cancelRequested": "Cancelación solicitada.",
     "cancelError": "No se pudo cancelar la factura."
+  },
+  "creditNote": {
+    "title": "Nota de crédito (CFDI de Egreso)",
+    "badge": "CFDI de Egreso",
+    "issued": "Nota de crédito emitida",
+    "pdf": "PDF",
+    "xml": "XML",
+    "planLocked": "La facturación (CFDI) no está activa en este local, así que no se puede emitir la nota de crédito de esta devolución. Actívala en tu plan o pídeselo al dueño de la cuenta.",
+    "help": "La factura original NO se cancela: se emite un comprobante nuevo relacionado a ella por el importe devuelto.",
+    "cta": "Emitir nota de crédito",
+    "noPermission": "No tienes permiso para facturar. Pídeselo a un administrador de este local.",
+    "confirm": {
+      "title": "¿Emitir la nota de crédito?",
+      "body": "Se timbrará ante el SAT una nota de crédito por {{amount}} relacionada a la factura {{folio}}.",
+      "amount": "Importe a acreditar",
+      "relatedInvoice": "Factura relacionada",
+      "relatedUuid": "UUID relacionado",
+      "receptor": "Receptor",
+      "rfc": "RFC",
+      "tipExcluded": "La propina devuelta ({{tip}}) no entra: nunca formó parte de la factura.",
+      "irreversible": "Esto es irreversible: deshacerlo obliga a cancelar la nota de crédito ante el SAT.",
+      "cancel": "Cancelar",
+      "submit": "Emitir",
+      "submitting": "Emitiendo…"
+    },
+    "error": {
+      "pac": "El PAC rechazó el timbrado",
+      "generic": "No se pudo emitir la nota de crédito"
+    },
+    "toast": {
+      "success": "Nota de crédito emitida",
+      "successDetail": "{{folio}} · {{uuid}}"
+    }
   }
 }

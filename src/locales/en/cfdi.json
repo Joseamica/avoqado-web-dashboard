@@ -296,5 +296,38 @@
     "merchantSaveError": "Could not save the merchant configuration.",
     "cancelRequested": "Cancellation requested.",
     "cancelError": "Could not cancel the invoice."
+  },
+  "creditNote": {
+    "title": "Credit note (CFDI de Egreso)",
+    "badge": "CFDI de Egreso",
+    "issued": "Credit note issued",
+    "pdf": "PDF",
+    "xml": "XML",
+    "planLocked": "Invoicing (CFDI) is not active for this venue, so the credit note for this refund cannot be issued. Enable it on your plan or ask the account owner.",
+    "help": "The original invoice is NOT cancelled: a new document related to it is issued for the refunded amount.",
+    "cta": "Issue credit note",
+    "noPermission": "You do not have permission to invoice. Ask an administrator of this venue.",
+    "confirm": {
+      "title": "Issue the credit note?",
+      "body": "A credit note for {{amount}} related to invoice {{folio}} will be stamped with the SAT.",
+      "amount": "Amount to credit",
+      "relatedInvoice": "Related invoice",
+      "relatedUuid": "Related UUID",
+      "receptor": "Recipient",
+      "rfc": "Tax ID (RFC)",
+      "tipExcluded": "The refunded tip ({{tip}}) is excluded: it was never part of the invoice.",
+      "irreversible": "This is irreversible: undoing it requires cancelling the credit note with the SAT.",
+      "cancel": "Cancel",
+      "submit": "Issue",
+      "submitting": "Issuing…"
+    },
+    "error": {
+      "pac": "The PAC rejected the stamping",
+      "generic": "Could not issue the credit note"
+    },
+    "toast": {
+      "success": "Credit note issued",
+      "successDetail": "{{folio}} · {{uuid}}"
+    }
   }
 }

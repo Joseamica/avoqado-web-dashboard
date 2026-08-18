@@ -194,6 +194,63 @@ export function useTriggerGlobalCfdi() {
   })
 }
 
+export const refundCreditNoteQueryKey = (venueId: string | null, refundId: string) => ['refund-credit-note', venueId, refundId]
+
+/**
+ * Estado de la nota de crédito (CFDI de Egreso) de un reembolso.
+ *
+ * Un 403 significa que el local NO tiene la feature CFDI: NO es un error que haya que
+ * reintentar ni gritar — el panel lo pinta como "apagado" con su explicación. Por eso
+ * no reintentamos en 403/404 y dejamos el error disponible para el componente.
+ */
+export function useRefundCreditNote(refundId: string, options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+  const enabled = options?.enabled ?? true
+
+  return useQuery({
+    queryKey: refundCreditNoteQueryKey(venueId, refundId),
+    queryFn: () => cfdiService.getRefundCreditNote(venueId!, refundId),
+    enabled: !!venueId && !!refundId && enabled,
+    retry: (failureCount, err: any) => {
+      const status = err?.response?.status
+      if (status === 403 || status === 404) return false
+      return failureCount < 1
+    },
+    staleTime: 30 * 1000,
+  })
+}
+
+/**
+ * Timbra la nota de crédito de un reembolso.
+ *
+ * 🔴 Irreversible (documento fiscal real): el caller confirma antes. No se hace toast de
+ * error aquí — cada status necesita su propio texto (409 regla de negocio, 422 validación,
+ * 502 PAC), así que el componente ramifica sobre `err.response`.
+ */
+export function useEmitRefundCreditNote() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation('cfdi')
+
+  return useMutation({
+    mutationFn: (refundId: string) => cfdiService.emitRefundCreditNote(venueId!, refundId),
+    onSuccess: (data, refundId) => {
+      queryClient.invalidateQueries({ queryKey: refundCreditNoteQueryKey(venueId, refundId) })
+      queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
+      const cn = data?.creditNote
+      const folio = cn ? `${cn.serie ?? ''}${cn.folio ?? ''}` : ''
+      toast({
+        title: t('creditNote.toast.success', { defaultValue: 'Nota de crédito emitida' }),
+        description: cn?.uuid
+          ? t('creditNote.toast.successDetail', { folio, uuid: cn.uuid, defaultValue: `${folio} · ${cn.uuid}` })
+          : undefined,
+      })
+    },
+    // Error handling intencionalmente en el caller (texto por status).
+  })
+}
+
 /** Cancel an issued CFDI with a SAT motivo (01-04). */
 export function useCancelCfdi() {
   const { venueId } = useCurrentVenue()

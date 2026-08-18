@@ -112,7 +112,13 @@
       "customAmount": "Custom amount",
       "skuLabel": "SKU",
       "noItems": "No items",
-      "refunded": "Refunded"
+      "refunded": "Refunded",
+      "promotionNeedsReview": "This promotion was recorded outside its schedule: the products went in at list price."
+    },
+    "refund": {
+      "full": "Refunded",
+      "partial": "Partial refund: {{amount}}",
+      "partialLabel": "Partial refund"
     },
     "totals": {
       "subtotal": "Subtotal",

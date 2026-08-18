@@ -259,7 +259,7 @@ export default function PromotionSales() {
                   <div className="mt-4 flex items-start gap-2 rounded-lg border border-input bg-muted/40 px-3 py-2">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                     <p className="text-xs text-muted-foreground">
-                      {t('promotionSales.needsReview', { count: apiResponse.totals.needsReview })}
+                      {t('promotionSales.needsReview', { n: apiResponse.totals.needsReview })}
                     </p>
                   </div>
                 )}
@@ -325,7 +325,7 @@ export default function PromotionSales() {
                           <span className="text-sm font-medium">{p.name}</span>
                           {p.needsReview > 0 && (
                             <span className="text-xs text-amber-600 dark:text-amber-400">
-                              {t('promotionSales.rowNeedsReview', { count: p.needsReview })}
+                              {t('promotionSales.rowNeedsReview', { n: p.needsReview })}
                             </span>
                           )}
                         </div>

@@ -34,6 +34,26 @@ export interface ItemSalesMetrics {
   grossSales: number
   discounts: number
   netSales: number
+  /**
+   * Qué parte del renglón se vendió DENTRO de una promoción, con el nombre del
+   * combo tal como se cobró. Sólo viene con `groupBy = 'none'`.
+   *
+   * Este reporte sigue el modelo SQUARE (desglosa los COMPONENTES) y el reporte
+   * de Promociones el de FUDO/TOAST (el combo como renglón): son las dos vistas
+   * que el founder decidió dar sin switch (2026-08-18), y esta marca es lo que
+   * evita que se lean como contabilidad doble.
+   *
+   * 🔴 Declarar los campos NO es opcional: el server los manda, pero si el tipo
+   * no los tiene TypeScript los tira en silencio — le pasó exactamente eso a
+   * `discounts`/`netSales` el 2026-08-17 (ver TimePeriodItemMetrics abajo).
+   */
+  promotions?: Array<{ name: string; unitsSold: number; netSales: number }>
+  /**
+   * El nombre cuando TODA la parte promocionada del renglón vino de UNA sola
+   * promoción. `null` si vino de varias (la UI dice "en N promociones");
+   * ausente si el producto nunca se vendió en promoción.
+   */
+  promotionName?: string | null
 }
 
 export interface TimePeriodItemMetrics {

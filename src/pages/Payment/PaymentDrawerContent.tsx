@@ -24,6 +24,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AddCustomerSheet, Customer, CustomerFormSheet } from './CustomerSheets'
 import { IssueRefundSheet } from './IssueRefundSheet'
+import { RefundCreditNotePanel } from './RefundCreditNotePanel'
 
 interface PaymentDrawerContentProps {
   paymentId: string
@@ -308,6 +309,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         {refunds.map(r => (
           <RefundCard
             key={r.id}
+            refundId={r.id}
             amount={Math.abs(Number(r.amount) || 0)}
             createdAt={r.createdAt}
             methodLabel={formatMethod(r.method, t)}
@@ -552,6 +554,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
 }
 
 function RefundCard({
+  refundId,
   amount,
   createdAt,
   methodLabel,
@@ -561,6 +564,8 @@ function RefundCard({
   venueTimezone,
   t,
 }: {
+  /** Id del `Payment` type=REFUND — la nota de crédito se emite contra él. */
+  refundId: string
   amount: number
   createdAt: string
   methodLabel: string
@@ -627,6 +632,10 @@ function RefundCard({
         </div>
         <p className="text-xs text-muted-foreground">{dateShort}</p>
       </div>
+
+      {/* Comprobante fiscal de la devolución. La venta original NO se modifica y su
+          factura NO se cancela — se emite un CFDI de Egreso relacionado (relación 01, uso G02). */}
+      <RefundCreditNotePanel refundId={refundId} />
     </div>
   )
 }

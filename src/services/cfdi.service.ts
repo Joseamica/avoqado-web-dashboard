@@ -10,6 +10,47 @@ import api from '@/api'
  * Money fields on a Cfdi are INTEGER CENTS — divide by 100 for display.
  */
 
+// ─── Nota de crédito (CFDI de EGRESO) por un reembolso ──────────────────────
+
+/** Por qué NO se puede emitir la nota de crédito de un reembolso. */
+export type CreditNoteBlockReason =
+  | 'NOT_A_REFUND'
+  | 'REFUND_NOT_COMPLETED'
+  | 'NO_ORIGINAL_CFDI'
+  | 'ORIGINAL_CANCELLED'
+  | 'TIP_ONLY'
+  | 'EXCEEDS_REMAINING'
+
+export interface RefundCreditNote {
+  id: string
+  status: 'DRAFT' | 'VALIDATING' | 'VALIDATION_FAILED' | 'STAMPING' | 'STAMPED' | 'STAMP_FAILED' | 'CANCEL_REQUESTED' | 'CANCELLED'
+  uuid: string | null
+  serie: string | null
+  folio: string | null
+  /** INTEGER CENTS — dividir entre 100 para mostrar. */
+  totalCents: number
+  subtotalCents?: number
+  taxCents?: number
+  stampedAt?: string | null
+  xmlUrl: string | null
+  pdfUrl: string | null
+  lastError?: string | null
+}
+
+export interface RefundCreditNoteStatus {
+  /** La nota de crédito ya emitida (cualquier estado), o `null` si aún no se emite. */
+  creditNote: RefundCreditNote | null
+  /** El servidor decide si procede — y cuándo no, trae el texto en español. */
+  eligibility: { eligible: boolean; reason: CreditNoteBlockReason | null; message: string | null }
+  preview: {
+    facturaOriginal: { folio: string; uuid: string; totalCents: number } | null
+    receptor: { rfc: string; nombre: string } | null
+    /** INTEGER CENTS. Es la MERCANCÍA devuelta — la propina va aparte y NO se factura. */
+    amountToCreditCents: number
+    tipRefundCents: number
+  } | null
+}
+
 // ─── Emisor (the fiscal issuer / "RFC emisor") ──────────────────────────────
 
 export type CsdStatus = 'NONE' | 'ACTIVE' | 'EXPIRED' | 'REVOKED'
@@ -356,6 +397,32 @@ export const cfdiService = {
       ...(receptor.email?.trim() && { email: receptor.email.trim() }),
     }
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cfdi`, body)
+    return response.data?.data ?? response.data
+  },
+
+  // ── Nota de crédito (CFDI de EGRESO) por un reembolso ────────────────────
+
+  /**
+   * Estado de la nota de crédito de un reembolso: si ya existe, si se puede emitir,
+   * y —cuando no— el motivo EN ESPAÑOL listo para pintarse.
+   *
+   * 404 = el reembolso no existe en este local. 403 = el local no tiene la feature CFDI.
+   */
+  async getRefundCreditNote(venueId: string, refundId: string): Promise<RefundCreditNoteStatus> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/refunds/${refundId}/credit-note`)
+    return (response.data?.data ?? response.data) as RefundCreditNoteStatus
+  },
+
+  /**
+   * Timbra la nota de crédito (CFDI de Egreso) que ampara un reembolso.
+   *
+   * 🔴 Irreversible: crea un documento fiscal real. La venta original NO se modifica y su
+   * CFDI de ingreso NO se cancela — el egreso va relacionado (TipoRelacion 01, uso G02).
+   * Errores: 409 regla de negocio (sin factura original, cancelada, sólo propina, importe
+   * excedido, ya en proceso) · 422 validación previa · 502 el PAC rechazó · 403 sin plan.
+   */
+  async emitRefundCreditNote(venueId: string, refundId: string): Promise<{ creditNote: RefundCreditNote }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/refunds/${refundId}/credit-note`)
     return response.data?.data ?? response.data
   },
 
