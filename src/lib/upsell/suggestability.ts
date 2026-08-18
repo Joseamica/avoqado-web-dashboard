@@ -70,12 +70,21 @@ export function suggestabilityOf(product: ProductLike): {
   if (product.active === false) return { blocked: true, reason: 'DESACTIVADO', label: LABELS.DESACTIVADO, resolvable: false }
   // 🔴 Esta rama NUNCA dispara hoy — dicho con la verdad, no con optimismo.
   // `isOutOfStock` no existe como columna de `Product` en `avoqado-server`
-  // (verificado en `prisma/schema.prisma`) ni se calcula en NINGÚN endpoint de
-  // productos del dashboard, con o sin `includeRecipe` — es un valor que el POS
-  // (Android/iOS) calcula localmente contra el carrito en el momento de cobrar
-  // (`UpsellResolver.kt`/`UpsellResolver.swift`), no algo que el catálogo del
-  // dashboard pueda traer. Por eso `product.isOutOfStock` llega `undefined`
-  // siempre desde `CreateRuleDialog`/`RuleRow` (`Upsell.tsx`), nunca `true`. Se
+  // (verificado en `prisma/schema.prisma`): es un valor que el POS (Android/iOS)
+  // deriva localmente al cobrar (`UpsellResolver.kt`/`UpsellResolver.swift`), y
+  // el catálogo del dashboard no lo manda con ese nombre. Por eso
+  // `product.isOutOfStock` llega `undefined` siempre desde
+  // `CreateRuleDialog`/`RuleRow` (`Upsell.tsx`), nunca `true`.
+  //
+  // ⚠️ OJO, que ya se afirmó al revés dos veces en esta feature: NO es que el
+  // dato sea imposible de traer. `product.dashboard.service.ts` SÍ calcula
+  // `availableQuantity` (modo QUANTITY = existencia actual; modo RECIPE =
+  // porciones mínimas), así que derivarlo es alcanzable. No se hizo por COSTO y
+  // alcance —cargar ese cálculo en una query que sirve a ~10 pantallas— y
+  // porque las existencias son transitorias: el POS se cura solo cuando vuelve
+  // el stock y no se persiste nada malo. Es una decisión, no una imposibilidad.
+  //
+  // Se
   // deja la rama de todos modos: el día que algún consumidor sí traiga el dato,
   // se enciende sola sin tocar este archivo, y mientras tanto sigue siendo fiel
   // al ORDEN real de `UpsellResolver.kt` (VETADO → DESACTIVADO → SIN_EXISTENCIAS
