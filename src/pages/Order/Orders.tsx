@@ -5,7 +5,14 @@ import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { ChannelBadge } from '@/components/delivery/ChannelBadge'
-import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, FilterPillBar, type AmountFilter } from '@/components/filters'
+import {
+  AmountFilterContent,
+  CheckboxFilterContent,
+  ColumnCustomizer,
+  FilterPill,
+  FilterPillBar,
+  type AmountFilter,
+} from '@/components/filters'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
@@ -201,25 +208,8 @@ export default function Orders() {
   // Multi-select filters, date range and search are sent to backend so pagination
   // respects them. Infinite query stitches pages 1, 2, 3... on scroll/load-more.
   // Amount filters (total/tip) remain client-side — backend does not support them yet.
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: [
-      'orders-infinite',
-      venueId,
-      statusFilter,
-      typeFilter,
-      tableFilter,
-      waiterFilter,
-      dateRange,
-      debouncedSearchTerm,
-    ],
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ['orders-infinite', venueId, statusFilter, typeFilter, tableFilter, waiterFilter, dateRange, debouncedSearchTerm],
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
       const response = await orderService.getOrders(
@@ -259,7 +249,12 @@ export default function Orders() {
   const { data: tablesData } = useQuery({
     queryKey: ['tables', venueId],
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; data: Table[] }>(`/api/v1/tpv/venues/${venueId}/tables`)
+      // /mobile y no /tpv: la ruta TPV exige que el venue de la URL sea EL del token (una terminal
+      // está atada a un solo local), así que al superadmin —cuyo token trae su venue "de casa"—
+      // le contestaba 403 y el desplegable quedaba vacío (/full-testing 2026-08-18). La ruta
+      // mobile devuelve el MISMO payload (getTablesWithStatus) bajo checkPermission('tables:read'),
+      // que resuelve el rol para el venue de la URL (superadmin y OWNER multi-venue incluidos).
+      const response = await api.get<{ success: boolean; data: Table[] }>(`/api/v1/mobile/venues/${venueId}/tables`)
       return response.data.data
     },
     enabled: isSuperAdmin && editDialogOpen,
@@ -304,16 +299,7 @@ export default function Orders() {
   // the summary cards and tab counts reflect everything inside the date range /
   // filters, not just the page currently visible in the table.
   const { data: summaryOrders } = useQuery({
-    queryKey: [
-      'orders-summary',
-      venueId,
-      statusFilter,
-      typeFilter,
-      tableFilter,
-      waiterFilter,
-      dateRange,
-      debouncedSearchTerm,
-    ],
+    queryKey: ['orders-summary', venueId, statusFilter, typeFilter, tableFilter, waiterFilter, dateRange, debouncedSearchTerm],
     queryFn: async () => {
       const response = await orderService.getOrders(
         venueId,
@@ -1593,8 +1579,8 @@ export default function Orders() {
                 <Input id="edit-total" type="number" step="0.01" value={editValues.total ?? ''} readOnly disabled />
               </div>
               <p className="col-span-2 text-xs text-muted-foreground">
-                El total y la propina se calculan de los renglones y de los pagos registrados; no se editan a mano.
-                Para corregir dinero: ajusta los renglones, registra un pago o un reembolso.
+                El total y la propina se calculan de los renglones y de los pagos registrados; no se editan a mano. Para corregir dinero:
+                ajusta los renglones, registra un pago o un reembolso.
               </p>
             </div>
 
@@ -1659,11 +1645,7 @@ export default function Orders() {
         </SheetContent>
       </Sheet>
 
-      <ManualPaymentDialog
-        open={manualPaymentOpen}
-        onClose={() => setManualPaymentOpen(false)}
-        venueId={venueId}
-      />
+      <ManualPaymentDialog open={manualPaymentOpen} onClose={() => setManualPaymentOpen(false)} venueId={venueId} />
 
       {/* Advanced export dialog — date range, columns, format. Backend streams the file. */}
       <ExportDialog

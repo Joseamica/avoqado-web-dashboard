@@ -25,9 +25,16 @@ import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { StaffRole } from '@/types'
 
 export function KYCProtectedRoute() {
-  const { activeVenue, user, isLoading } = useAuth()
+  const { activeVenue, user, isLoading, getVenueBySlug } = useAuth()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
+
+  // El venue se resuelve por el SLUG de la URL (mismo criterio que `useCurrentVenue`), no por
+  // `activeVenue`: AuthContext fija activeVenue en un useEffect, o sea UN render DESPUÉS de que
+  // isLoading pasa a false. En ese render el guard veía null → kyc-required → y esa página, al ver
+  // el venue VERIFIED, mandaba a /home. Así todo deep link a /venues/:slug/orders aterrizaba en
+  // home aunque el usuario tuviera permiso y KYC (hallazgo de /full-testing 2026-08-18).
+  const venue = (slug ? getVenueBySlug?.(slug) : null) ?? activeVenue
 
   // While the session resolves, `activeVenue` is still null and
   // `canAccessOperationalFeatures(null)` is false — so without this the guard
@@ -52,17 +59,18 @@ export function KYCProtectedRoute() {
       : `/venues/${slug}/kyc-required`
     : '/kyc-required'
 
+  // Slug presente pero todavía sin venue resuelto: NO es "bloqueado", es "no sé aún". Si el slug
+  // no es accesible, AuthContext ya redirige al venue default; y si sólo falta un render, la
+  // pantalla en blanco dura eso. Redirigir aquí es lo que producía el rebote a home.
+  if (slug && !venue) {
+    return null
+  }
+
   // Check if venue can access operational features
-  if (!canAccessOperationalFeatures(activeVenue)) {
+  if (!canAccessOperationalFeatures(venue)) {
     // Redirect to KYC setup required page
     // Preserve current location in state for potential redirect back after KYC completion
-    return (
-      <Navigate
-        to={kycRequiredPath}
-        replace
-        state={{ from: `${location.pathname}${location.search}` }}
-      />
-    )
+    return <Navigate to={kycRequiredPath} replace state={{ from: `${location.pathname}${location.search}` }} />
   }
 
   // Venue has access - render nested routes
