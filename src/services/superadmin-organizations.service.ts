@@ -13,6 +13,11 @@ export interface Organization {
   phone: string
   taxId: string | null
   type: BusinessType
+  /**
+   * Grandfathered at the ORGANIZATION level: every venue it has now — and every venue it opens
+   * later — is exempt from the Free seat cap and from all feature paywalls.
+   */
+  seatCapExempt: boolean
   createdAt: string
   updatedAt: string
   venueCount: number
@@ -141,6 +146,30 @@ export async function updateOrganization(
   data: UpdateOrganizationData,
 ): Promise<{ organization: OrganizationDetail }> {
   const response = await api.patch(`/api/v1/dashboard/superadmin/organizations/${organizationId}`, data)
+  return response.data
+}
+
+export interface SetOrganizationGrandfatheredResult {
+  organizationId: string
+  organizationName: string
+  grandfathered: boolean
+  /** Venues that inherit the flag right now. Future venues inherit it automatically. */
+  inheritedByVenues: number
+}
+
+/**
+ * Mark (or unmark) a WHOLE organization as grandfathered — exempt from the Free seat cap and
+ * from every feature paywall, inherited by all its venues INCLUDING the ones it opens later.
+ *
+ * Use it for legacy / white-label clients whose store count keeps growing: flagging venues one
+ * by one can't reach a store that doesn't exist yet, so each new store is born capped and the
+ * block only surfaces when someone tries to invite the third employee.
+ */
+export async function setOrganizationGrandfathered(
+  organizationId: string,
+  grandfathered: boolean,
+): Promise<{ success: boolean; data: SetOrganizationGrandfatheredResult; message: string }> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/organizations/${organizationId}/plan/grandfathered`, { grandfathered })
   return response.data
 }
 
@@ -365,6 +394,7 @@ export const organizationAPI = {
   createOrganization,
   updateOrganization,
   deleteOrganization,
+  setOrganizationGrandfathered,
   // Module Management
   getModulesForOrganization,
   enableModuleForOrganization,

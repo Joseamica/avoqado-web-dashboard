@@ -38,6 +38,7 @@ import {
   Search,
   Settings,
   Settings2,
+  ShieldCheck,
   Store,
   Trash2,
   Users,
@@ -103,6 +104,7 @@ interface OrganizationCardProps {
   onManageModules: (org: Organization) => void
   onPaymentConfig: (org: Organization) => void
   onPaymentWizard: (org: Organization) => void
+  onToggleGrandfathered: (org: Organization) => void
 }
 
 const OrganizationCard: React.FC<OrganizationCardProps> = ({
@@ -112,6 +114,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
   onManageModules,
   onPaymentConfig,
   onPaymentWizard,
+  onToggleGrandfathered,
 }) => {
   const businessTypeLabel = BUSINESS_TYPES.find(bt => bt.value === organization.type)?.label || organization.type
 
@@ -136,6 +139,18 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
       <Badge variant="outline" className="text-[10px] rounded-full px-2 py-0.5 hidden lg:flex flex-shrink-0">
         {businessTypeLabel}
       </Badge>
+
+      {/* Plan-exempt badge — the state has to be visible, not buried in the menu that changes it */}
+      {organization.seatCapExempt && (
+        <Badge
+          variant="outline"
+          className="text-[10px] rounded-full px-2 py-0.5 flex-shrink-0 gap-1"
+          title="Exenta del límite de usuarios y de los candados de plan. Sus sucursales nuevas lo heredan."
+        >
+          <ShieldCheck className="w-3 h-3" />
+          <span className="hidden sm:inline">Sin límites</span>
+        </Badge>
+      )}
 
       {/* Stats */}
       <div className="flex items-center gap-3 flex-shrink-0 text-xs text-muted-foreground">
@@ -181,6 +196,10 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
           <DropdownMenuItem onClick={() => onPaymentWizard(organization)} className="cursor-pointer">
             <Settings className="w-4 h-4 mr-2" />
             Wizard de Pagos
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onToggleGrandfathered(organization)} className="cursor-pointer">
+            <ShieldCheck className="w-4 h-4 mr-2" />
+            {organization.seatCapExempt ? 'Quitar exención de plan' : 'Exentar de límites de plan'}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -417,6 +436,76 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ open, onOpenChange, organiz
           <Button variant="destructive" onClick={onConfirm} disabled={!canDelete || isLoading} className="rounded-full cursor-pointer">
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Eliminar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ===========================================
+// GRANDFATHERED (PLAN EXEMPTION) DIALOG
+// ===========================================
+
+interface GrandfatherDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organization: Organization | null
+  onConfirm: () => void
+  isLoading: boolean
+}
+
+/**
+ * Confirm exempting (or un-exempting) a whole organization from plan limits.
+ *
+ * Worth a confirmation step because it changes access for EVERY venue at once, and — unlike the
+ * per-venue toggle — it also silently covers stores that don't exist yet. The dialog states the
+ * venue count so the superadmin sees the blast radius before committing.
+ */
+const GrandfatherDialog: React.FC<GrandfatherDialogProps> = ({ open, onOpenChange, organization, onConfirm, isLoading }) => {
+  if (!organization) return null
+
+  const turningOn = !organization.seatCapExempt
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5" />
+            {turningOn ? 'Exentar de límites de plan' : 'Quitar la exención de límites'}
+          </DialogTitle>
+          <DialogDescription>
+            {turningOn
+              ? `"${organization.name}" dejará de tener límite de usuarios y candados de plan en todas sus sucursales.`
+              : `"${organization.name}" volverá a regirse por el plan que tenga cada sucursal.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg border border-input p-3 space-y-2">
+          <p className="text-sm">
+            Aplica a <span className="font-medium">{organization.venueCount}</span>{' '}
+            {organization.venueCount === 1 ? 'sucursal' : 'sucursales'}.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {turningOn
+              ? 'Las sucursales que abra más adelante lo heredan automáticamente: no hay que marcarlas una por una.'
+              : 'Las sucursales marcadas individualmente conservan su propia exención; solo se retira la de la organización.'}
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full cursor-pointer">
+            Cancelar
+          </Button>
+          <Button
+            variant={turningOn ? 'default' : 'destructive'}
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="rounded-full cursor-pointer"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {turningOn ? 'Exentar' : 'Quitar exención'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1285,6 +1374,7 @@ const OrganizationManagement: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isGrandfatherDialogOpen, setIsGrandfatherDialogOpen] = useState(false)
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
   const [isPaymentConfigDialogOpen, setIsPaymentConfigDialogOpen] = useState(false)
   const [isPaymentWizardOpen, setIsPaymentWizardOpen] = useState(false)
@@ -1365,10 +1455,40 @@ const OrganizationManagement: React.FC = () => {
     },
   })
 
+  // Grandfathered (plan-exemption) mutation — org-level, inherited by every venue incl. future ones
+  const grandfatherMutation = useMutation({
+    mutationFn: ({ id, grandfathered }: { id: string; grandfathered: boolean }) =>
+      organizationAPI.setOrganizationGrandfathered(id, grandfathered),
+    onSuccess: data => {
+      toast({ title: data.data.grandfathered ? 'Organización exenta' : 'Exención retirada', description: data.message })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+      setIsGrandfatherDialogOpen(false)
+      setSelectedOrganization(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al cambiar la exención de plan',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
   // Handlers
   const handleEdit = (org: Organization) => {
     setSelectedOrganization(org)
     setIsEditDialogOpen(true)
+  }
+
+  const handleToggleGrandfathered = (org: Organization) => {
+    setSelectedOrganization(org)
+    setIsGrandfatherDialogOpen(true)
+  }
+
+  const handleConfirmGrandfathered = () => {
+    if (selectedOrganization) {
+      grandfatherMutation.mutate({ id: selectedOrganization.id, grandfathered: !selectedOrganization.seatCapExempt })
+    }
   }
 
   const handleDelete = (org: Organization) => {
@@ -1527,6 +1647,7 @@ const OrganizationManagement: React.FC = () => {
                 onManageModules={handleManageModules}
                 onPaymentConfig={handlePaymentConfig}
                 onPaymentWizard={handlePaymentWizard}
+                onToggleGrandfathered={handleToggleGrandfathered}
               />
             ))}
           </div>
@@ -1556,6 +1677,14 @@ const OrganizationManagement: React.FC = () => {
         organization={selectedOrganization}
         onConfirm={handleConfirmDelete}
         isLoading={deleteMutation.isPending}
+      />
+
+      <GrandfatherDialog
+        open={isGrandfatherDialogOpen}
+        onOpenChange={setIsGrandfatherDialogOpen}
+        organization={selectedOrganization}
+        onConfirm={handleConfirmGrandfathered}
+        isLoading={grandfatherMutation.isPending}
       />
 
       <ModuleManagementDialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen} organization={selectedOrganization} />
