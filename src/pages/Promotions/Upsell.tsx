@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Info, Lightbulb, Plus, Sparkles, Store, Tag, Trash2, Users, Wifi, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Check, Eye, Info, Lightbulb, Loader2, MessageSquare, Plus, Sparkles, Store, Tag, Trash2, Users, Wifi, X, Zap } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
 
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -8,14 +8,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from '@/components/ui/dialog'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -265,6 +258,28 @@ function SurfacesPanel({ venueId }: { venueId: string }) {
 // Alta de una regla
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * El botón que crea vive en el ENCABEZADO del modal (patrón obligatorio), no
+ * abajo del formulario: se conectan por este id, igual que `ProductWizardDialog`.
+ */
+const CREATE_RULE_FORM_ID = 'upsell-create-rule-form'
+
+/**
+ * Encabezado de sección — el mismo bloque que usa `ProductWizardDialog`, que es
+ * la referencia obligatoria de `.claude/rules/ui-patterns.md` para cualquier
+ * alta dentro de un `FullScreenModal`.
+ */
+function SectionHeader({ icon: Icon, title }: { icon: typeof Store; title: string }) {
+	return (
+		<div className="mb-6 flex items-center gap-3">
+			<div className="rounded-xl bg-primary/10 p-2.5">
+				<Icon className="h-5 w-5 text-primary" />
+			</div>
+			<h2 className="text-lg font-semibold">{title}</h2>
+		</div>
+	)
+}
+
 function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
 	const queryClient = useQueryClient()
 	const { toast } = useToast()
@@ -337,160 +352,216 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 	const obligatoriosResueltos = gruposObligatorios.every((g: any) => modifierPicks[g.group.id])
 	const canSubmit = !!suggestedProductId && obligatoriosResueltos && (triggerType !== 'PRODUCT' || triggerProductIds.length > 0)
 
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Nueva sugerencia</DialogTitle>
-					<DialogDescription>Define qué producto ofrecer y en qué momento.</DialogDescription>
-				</DialogHeader>
+	// Catálogo vacío ≠ catálogo cargando: se separan para no pintar el callejón
+	// sin salida antes de tiempo.
+	const sinProductos = !loadingProducts && (products ?? []).length === 0
 
+	// El botón "Crear" vive en el encabezado del modal, así que dispara este
+	// formulario por `form=` + `type="submit"` — igual que `ProductWizardDialog`.
+	// De regalo, Enter dentro del formulario también crea.
+	const submit = (e: FormEvent) => {
+		e.preventDefault()
+		if (!canSubmit || create.isPending) return
+		create.mutate()
+	}
+
+	return (
+		<FullScreenModal
+			open={open}
+			onClose={() => onOpenChange(false)}
+			title="Nueva sugerencia"
+			subtitle="Define qué producto ofrecer y en qué momento"
+			contentClassName="bg-muted/30"
+			actions={
+				<Button
+					type="submit"
+					form={CREATE_RULE_FORM_ID}
+					data-tour="upsell-rule-submit"
+					disabled={!canSubmit || create.isPending || loadingProducts || sinProductos}
+				>
+					{create.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+					Crear
+				</Button>
+			}
+		>
+			<div className="mx-auto max-w-5xl space-y-6 p-6">
 				{loadingProducts ? (
-					<Skeleton className="h-48 w-full" />
-				) : (products ?? []).length === 0 ? (
+					<Skeleton className="h-64 w-full" />
+				) : sinProductos ? (
 					// Callejón sin salida honesto: sin productos en el catálogo no hay
 					// nada que ofrecer.
-					<div className="space-y-2 py-6 text-center">
-						<p className="text-sm font-medium">Todavía no hay productos en tu menú</p>
-						<p className="text-sm text-muted-foreground">Agrega productos a tu menú antes de crear una sugerencia.</p>
-					</div>
+					<section className="rounded-2xl border border-border/50 bg-card p-6">
+						<div className="space-y-2 py-6 text-center">
+							<p className="text-sm font-medium">Todavía no hay productos en tu menú</p>
+							<p className="text-sm text-muted-foreground">Agrega productos a tu menú antes de crear una sugerencia.</p>
+						</div>
+					</section>
 				) : (
-					<div className="space-y-4">
-						<div className="space-y-2">
-							<Label>¿Cuándo se ofrece?</Label>
-							<Select value={triggerType} onValueChange={v => setTriggerType(v as UpsellTriggerType)}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="ALWAYS">Siempre, en cualquier cuenta</SelectItem>
-									<SelectItem value="PRODUCT">Sólo si ya llevan cierto producto</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
+					<form id={CREATE_RULE_FORM_ID} onSubmit={submit} className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+						<div className="space-y-6 lg:col-span-8">
+							{/* ── Cuándo se ofrece ─────────────────────────────────── */}
+							<section className="rounded-2xl border border-border/50 bg-card p-6">
+								<SectionHeader icon={Zap} title="¿Cuándo se ofrece?" />
 
-						{triggerType === 'PRODUCT' && (
-							<div className="space-y-2">
-								<Label>Producto que dispara</Label>
-								<Select value={triggerProductIds[0] ?? ''} onValueChange={v => setTriggerProductIds([v])}>
-									<SelectTrigger>
-										<SelectValue placeholder="Elige un producto" />
-									</SelectTrigger>
-									<SelectContent>
-										{(products ?? []).map((p: any) => (
-											<SelectItem key={p.id} value={p.id}>
-												{p.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						)}
-
-						<div className="space-y-2">
-							<Label>Producto a sugerir</Label>
-							<Select
-								value={suggestedProductId}
-								onValueChange={v => {
-									setSuggestedProductId(v)
-									// Opciones de un producto distinto: nunca heredar la selección anterior.
-									setModifierPicks({})
-								}}
-							>
-								<SelectTrigger>
-									{/* Children explícitos: si dejáramos que Select mirara el texto del
-									    SelectItem seleccionado, el motivo (para las resolubles) se colaría
-									    también aquí una vez elegidas — Radix copia TODO el contenido del item. */}
-									<SelectValue placeholder="Elige un producto">{productoElegido?.name}</SelectValue>
-								</SelectTrigger>
-								<SelectContent>
-									{anotados.map((p: any) => (
-										<SelectItem
-											key={p.id}
-											value={p.id}
-											disabled={p.suggestability.blocked && !p.suggestability.resolvable}
-										>
-											{p.name}
-											{p.suggestability.label && (
-												<span className="ml-2 text-xs text-muted-foreground">{p.suggestability.label}</span>
-											)}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<p className="text-xs text-muted-foreground">
-								Los atenuados no se pueden sugerir; el motivo aparece junto al nombre.
-							</p>
-						</div>
-
-						{gruposObligatorios.length > 0 && (
-							<div className="space-y-3 rounded-lg border border-input bg-muted/30 p-3">
-								<p className="text-xs text-muted-foreground">
-									Esta sugerencia se agrega con un toque, así que hay que dejar elegidas sus opciones desde
-									ahora.
-								</p>
-								{gruposObligatorios.map((g: any) => (
-									<div key={g.group.id} className="space-y-1.5">
-										<Label className="text-xs">{g.group.name}</Label>
-										<Select
-											value={modifierPicks[g.group.id] ?? ''}
-											onValueChange={v => setModifierPicks(prev => ({ ...prev, [g.group.id]: v }))}
-										>
-											<SelectTrigger>
-												<SelectValue placeholder="Elige una opción" />
+								<div className="space-y-5">
+									<div className="space-y-2">
+										<Label htmlFor="upsell-trigger-type">Momento</Label>
+										<Select value={triggerType} onValueChange={v => setTriggerType(v as UpsellTriggerType)}>
+											<SelectTrigger id="upsell-trigger-type" className="h-12" data-tour="upsell-rule-trigger-type">
+												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
-												{(g.group.modifiers ?? []).map((m: any) => (
-													<SelectItem key={m.id} value={m.id}>
-														{m.name}
-														{m.price ? ` (+${Currency(m.price)})` : ''}
+												<SelectItem value="ALWAYS">Siempre, en cualquier cuenta</SelectItem>
+												<SelectItem value="PRODUCT">Sólo si ya llevan cierto producto</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									{triggerType === 'PRODUCT' && (
+										<div className="space-y-2">
+											<Label htmlFor="upsell-trigger-product">Producto que dispara</Label>
+											<Select value={triggerProductIds[0] ?? ''} onValueChange={v => setTriggerProductIds([v])}>
+												<SelectTrigger id="upsell-trigger-product" className="h-12" data-tour="upsell-rule-trigger-product">
+													<SelectValue placeholder="Elige un producto" />
+												</SelectTrigger>
+												<SelectContent>
+													{(products ?? []).map((p: any) => (
+														<SelectItem key={p.id} value={p.id}>
+															{p.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									)}
+								</div>
+							</section>
+
+							{/* ── Qué se ofrece ────────────────────────────────────── */}
+							<section className="rounded-2xl border border-border/50 bg-card p-6">
+								<SectionHeader icon={Tag} title="¿Qué se ofrece?" />
+
+								<div className="space-y-5">
+									<div className="space-y-2">
+										<Label htmlFor="upsell-suggested-product">Producto a sugerir</Label>
+										<Select
+											value={suggestedProductId}
+											onValueChange={v => {
+												setSuggestedProductId(v)
+												// Opciones de un producto distinto: nunca heredar la selección anterior.
+												setModifierPicks({})
+											}}
+										>
+											<SelectTrigger id="upsell-suggested-product" className="h-12" data-tour="upsell-rule-suggested-product">
+												{/* Children explícitos: si dejáramos que Select mirara el texto del SelectItem
+												seleccionado, el motivo (para las resolubles) se colaría también aquí una vez
+												elegidas — Radix copia TODO el contenido del item. */}
+												<SelectValue placeholder="Elige un producto">{productoElegido?.name}</SelectValue>
+											</SelectTrigger>
+											<SelectContent>
+												{anotados.map((p: any) => (
+													<SelectItem key={p.id} value={p.id} disabled={p.suggestability.blocked && !p.suggestability.resolvable}>
+														{p.name}
+														{p.suggestability.label && (
+															<span className="ml-2 text-xs text-muted-foreground">{p.suggestability.label}</span>
+														)}
 													</SelectItem>
 												))}
 											</SelectContent>
 										</Select>
+										<p className="text-xs text-muted-foreground">
+											Los atenuados no se pueden sugerir; el motivo aparece junto al nombre.
+										</p>
 									</div>
-								))}
-							</div>
-						)}
 
-						{/* Spec §4.2: la tarjeta de vista previa muestra el nombre resuelto y el
-						    precio final — que nadie confirme una regla sin ver, primero, qué
-						    precio va a mostrar en la pantalla del cliente. */}
-						{preview && (
-							<div className="space-y-1 rounded-lg border border-input bg-muted/30 p-3">
-								<p className="text-xs text-muted-foreground">Así se va a ver la tarjeta</p>
-								<div className="flex items-center justify-between gap-3">
-									<p className="truncate text-sm font-medium">{preview.name}</p>
-									<p className="shrink-0 text-sm font-semibold tabular-nums">{Currency(preview.finalPrice)}</p>
+									{gruposObligatorios.length > 0 && (
+										<div className="space-y-3 rounded-xl border border-input bg-muted/30 p-4" data-tour="upsell-rule-modifiers">
+											<p className="text-xs text-muted-foreground">
+												Esta sugerencia se agrega con un toque, así que hay que dejar elegidas sus opciones desde ahora.
+											</p>
+											{gruposObligatorios.map((g: any) => (
+												<div key={g.group.id} className="space-y-1.5">
+													<Label className="text-xs" htmlFor={`upsell-modifier-${g.group.id}`}>
+														{g.group.name}
+													</Label>
+													<Select
+														value={modifierPicks[g.group.id] ?? ''}
+														onValueChange={v => setModifierPicks(prev => ({ ...prev, [g.group.id]: v }))}
+													>
+														<SelectTrigger
+															id={`upsell-modifier-${g.group.id}`}
+															className="h-12"
+															data-tour={`upsell-rule-modifier-${g.group.id}`}
+														>
+															<SelectValue placeholder="Elige una opción" />
+														</SelectTrigger>
+														<SelectContent>
+															{(g.group.modifiers ?? []).map((m: any) => (
+																<SelectItem key={m.id} value={m.id}>
+																	{m.name}
+																	{m.price ? ` (+${Currency(m.price)})` : ''}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</div>
+											))}
+										</div>
+									)}
 								</div>
-							</div>
-						)}
+							</section>
 
-						<div className="space-y-2">
-							<Label>Gancho (opcional)</Label>
-							<Input
-								value={headline}
-								maxLength={120}
-								placeholder="¿Le agregamos un croissant calientito?"
-								onChange={e => setHeadline(e.target.value)}
-							/>
-							<p className="text-xs text-muted-foreground">
-								Lo lee el cliente en su pantalla. Si lo dejas vacío, se usa el nombre del producto.
-							</p>
+							{/* ── El gancho ────────────────────────────────────────── */}
+							<section className="rounded-2xl border border-border/50 bg-card p-6">
+								<SectionHeader icon={MessageSquare} title="El gancho" />
+
+								<div className="space-y-2">
+									<Label htmlFor="upsell-headline">Gancho (opcional)</Label>
+									<Input
+										id="upsell-headline"
+										className="h-12 text-base"
+										value={headline}
+										maxLength={120}
+										placeholder="¿Le agregamos un croissant calientito?"
+										data-tour="upsell-rule-headline"
+										onChange={e => setHeadline(e.target.value)}
+									/>
+									<p className="text-xs text-muted-foreground">
+										Lo lee el cliente en su pantalla. Si lo dejas vacío, se usa el nombre del producto.
+									</p>
+								</div>
+							</section>
 						</div>
-					</div>
-				)}
 
-				<DialogFooter>
-					<Button variant="ghost" onClick={() => onOpenChange(false)}>
-						Cancelar
-					</Button>
-					<Button disabled={!canSubmit || create.isPending} onClick={() => create.mutate()}>
-						Crear
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+						{/* ── Vista previa ─────────────────────────────────────────
+								Spec §4.2: el nombre resuelto y el precio final, para que nadie
+								confirme una regla sin ver primero qué precio va a mostrar la
+								pantalla del cliente. En su propia columna y pegada arriba: se
+								actualiza en vivo mientras el dueño elige las opciones
+								obligatorias, que es justo cuando el precio cambia sin avisar. */}
+						<div className="lg:col-span-4">
+							<section className="rounded-2xl border border-border/50 bg-card p-6 lg:sticky lg:top-6" data-tour="upsell-rule-preview">
+								<SectionHeader icon={Eye} title="Así se va a ver la tarjeta" />
+
+								{preview ? (
+									<div className="space-y-3">
+										<div className="rounded-xl border border-input bg-muted/30 p-4">
+											<p className="text-sm font-medium">{preview.name}</p>
+											<p className="mt-1 text-lg font-semibold tabular-nums">{Currency(preview.finalPrice)}</p>
+										</div>
+										<p className="text-xs text-muted-foreground">Es el nombre y el precio que el cliente lee en su pantalla.</p>
+									</div>
+								) : (
+									<p className="text-sm text-muted-foreground">
+										Elige el producto a sugerir y aquí verás el nombre y el precio final que le aparece al cliente.
+									</p>
+								)}
+							</section>
+						</div>
+					</form>
+				)}
+			</div>
+		</FullScreenModal>
 	)
 }
 
@@ -509,6 +580,17 @@ function RuleRow({ rule, venueId }: { rule: UpsellRule; venueId: string }) {
 			invalidate()
 			toast({ title: 'Sugerencia activada' })
 		},
+		// El server responde 400 cuando el producto sigue bloqueado (pide opciones sin
+		// resolver, vetado, desactivado…) y la regla se queda en PROPOSED — eso es
+		// correcto. Lo que NO era correcto es que antes ese 400 desaparecía en
+		// silencio: cero toast, cero [role=alert], y el botón seguía habilitado para
+		// que el dueño lo picara otra vez. Mismo patrón que CreateRuleDialog.create.
+		onError: (e: any) =>
+			toast({
+				title: 'No se pudo activar',
+				description: e?.response?.data?.message ?? 'Revisa el producto e intenta de nuevo.',
+				variant: 'destructive',
+			}),
 	})
 	const dismiss = useMutation({
 		mutationFn: () => upsellService.dismissRule(venueId, rule.id),
@@ -551,6 +633,14 @@ function RuleRow({ rule, venueId }: { rule: UpsellRule; venueId: string }) {
 			coversAllRequiredGroups(rule.suggestedProduct, rule.suggestedModifiers)
 		)
 
+	// Apagado no puede ser mudo (regla del workspace): el porqué ya lo dice el
+	// badge de abajo (`suggestability.label`); esto agrega el QUÉ HACER. Sólo
+	// PIDE_OPCIONES se resuelve recreando la regla — el resto (vetado,
+	// desactivado, por peso…) se arregla en Catálogo.
+	const comoResolver = suggestability?.resolvable
+		? 'Descártala y créala de nuevo desde "+ Nueva regla" para elegir la opción obligatoria.'
+		: 'Corrígelo en Catálogo o descarta la propuesta.'
+
 	return (
 		<div className="flex items-start justify-between gap-4 py-3">
 			<div className="min-w-0">
@@ -575,13 +665,28 @@ function RuleRow({ rule, venueId }: { rule: UpsellRule; venueId: string }) {
 						{rule.rationale}
 					</p>
 				)}
+				{/* Apagado no puede ser mudo: esto SIEMPRE se ve, nunca depende de hover
+				    (un title en un botón disabled no dispara — pointer-events:none — y en
+				    tablet, el dispositivo principal del founder, no hay hover de todos
+				    modos). El badge de arriba ya dice QUÉ pasa; esto dice QUÉ HACER. */}
+				{bloqueadoDeVerdad && (
+					<p className="mt-1 flex items-start gap-1 text-xs text-muted-foreground">
+						<Info className="mt-0.5 h-3 w-3 shrink-0" />
+						{comoResolver}
+					</p>
+				)}
 			</div>
 
 			<PermissionGate permission="upsells:update">
 				<div className="flex shrink-0 gap-1">
 					{rule.status === 'PROPOSED' ? (
 						<>
-							<Button size="sm" variant="outline" disabled={approve.isPending} onClick={() => approve.mutate()}>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={approve.isPending || bloqueadoDeVerdad}
+								onClick={() => approve.mutate()}
+							>
 								<Check className="mr-1 h-3.5 w-3.5" />
 								Activar
 							</Button>
@@ -714,7 +819,7 @@ function RulesPanel({ venueId }: { venueId: string }) {
 					<PermissionGate permission="upsells:create">
 						<div className="flex gap-2">
 							<GenerateWithAiButton venueId={venueId} />
-							<Button size="sm" onClick={() => setCreating(true)}>
+							<Button size="sm" data-tour="upsell-rule-new" onClick={() => setCreating(true)}>
 								<Plus className="mr-1 h-4 w-4" />
 								Nueva
 							</Button>
