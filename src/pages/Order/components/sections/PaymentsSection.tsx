@@ -155,13 +155,31 @@ export function PaymentsSection({ order, venueTimezone }: Props) {
   const { t } = useTranslation('orders')
   const payments = order.payments ?? []
   const remainingBalance = Number(order.remainingBalance ?? 0)
-  const hasPendingBalance = remainingBalance > 0 && (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
+  // Carril del reembolso (server, 2026-08-18). Si el campo no viene, todo se
+  // comporta exactamente como antes.
+  const refundState = order.refundState ?? 'NONE'
+  const refundedAmount = Number(order.refundedAmount ?? 0)
+  const isRefunded = refundState !== 'NONE'
+  // 🔴 Devuelta ≠ por cobrar. Un reembolso reabre el saldo de la venta, y sin este
+  // guard la pantalla invitaba a "cobrar" un dinero que el negocio YA regresó.
+  const hasPendingBalance =
+    !isRefunded && remainingBalance > 0 && (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
 
   return (
     <section>
       <h2 className="text-lg font-semibold text-foreground mb-3">{t('drawer.sections.payments')}</h2>
       <div className="rounded-lg border border-border bg-background px-4">
         {payments.length > 0 && payments.map(p => <PaymentRow key={p.id} p={p} venueTimezone={venueTimezone} />)}
+        {isRefunded && (
+          <div className="py-3 flex items-center justify-between gap-3 border-t border-rose-200/60 dark:border-rose-800/40 first:border-t-0">
+            <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
+              {refundState === 'FULL'
+                ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
+                : t('drawer.refund.partialLabel', { defaultValue: 'Reembolso parcial' })}
+            </span>
+            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">-{Currency(refundedAmount)}</span>
+          </div>
+        )}
         {hasPendingBalance ? (
           <div className="py-3 flex items-center justify-between gap-3 border-t border-red-200/60 dark:border-red-800/40 first:border-t-0">
             <span className="text-sm font-medium text-red-700 dark:text-red-400">
