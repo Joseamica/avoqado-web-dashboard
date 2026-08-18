@@ -15,7 +15,7 @@
     "check:endpoints": "node scripts/check-endpoints.js",
     "check:endpoints:verbose": "node scripts/check-endpoints.js --verbose",
     "permissions:catalog": "node scripts/regenerar-catalogo-permisos.mjs",
-    "check:permissions": "node scripts/regenerar-catalogo-permisos.mjs --check",
+    "check:permissions": "node scripts/regenerar-catalogo-permisos.mjs --check && node scripts/regenerar-dependencias-permisos.mjs --check",
     "pre-deploy": "bash scripts/pre-deploy-check.sh",
     "pre-deploy:smart": "bash scripts/pre-deploy-check.sh --smart --jobs=3 --max-old-space-size=8192",
     "deploy": "npm run build && wrangler pages deploy",
@@ -34,7 +34,8 @@
     "pre-commit": "npm run lint && npm run test:run && npm run validate:contracts && npm run build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "permissions:deps": "node scripts/regenerar-dependencias-permisos.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

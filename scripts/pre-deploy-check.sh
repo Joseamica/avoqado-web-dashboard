@@ -150,6 +150,22 @@ run_sequential_core() {
   echo ""
   STEP=$((STEP + 1))
 
+  # Los permisos que el admin puede otorgar, y las dependencias entre ellos, se GENERAN de
+  # avoqado-server. Si alguien agrega un permiso allá y no regenera aquí, la pantalla de
+  # roles queda incompleta EN SILENCIO — el admin no puede otorgarlo y nadie se entera.
+  # Ya pasó: el catálogo llegó a 170 contra 233 del servidor, y las dependencias a 68
+  # contra 180. Por eso es una puerta y no un recordatorio.
+  echo "🔐 Step $STEP/$TOTAL_STEPS: Checking permission catalog + dependencies..."
+  if npm run check:permissions; then
+    echo -e "${GREEN}✅ Permission check passed!${NC}"
+  else
+    echo -e "${RED}❌ Permission catalog/dependencies are out of sync with avoqado-server!${NC}"
+    echo -e "${YELLOW}💡 Run 'npm run permissions:catalog' and 'npm run permissions:deps'${NC}"
+    exit 1
+  fi
+  echo ""
+  STEP=$((STEP + 1))
+
   echo "🏗️ Step $STEP/$TOTAL_STEPS: Building application..."
   if npm run build; then
     echo -e "${GREEN}✅ Build successful!${NC}"
@@ -177,6 +193,8 @@ run_smart_core() {
   task_cmds+=("npm run lint -- --quiet")
   task_names+=("API endpoint check")
   task_cmds+=("npm run check:endpoints")
+  task_names+=("Permission catalog + deps")
+  task_cmds+=("npm run check:permissions")
   task_names+=("Build application")
   task_cmds+=("npm run build")
 
@@ -278,7 +296,7 @@ cleanup_smart_logs() {
 if [ "$SMART_MODE" = true ]; then
   TOTAL_STEPS=3 # smart core + cross-repo + git-status
 else
-  TOTAL_STEPS=5 # lint + endpoints + build + cross-repo + git-status
+  TOTAL_STEPS=6 # lint + endpoints + permisos + build + cross-repo + git-status
 fi
 [ "$SKIP_E2E" = false ] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
 
