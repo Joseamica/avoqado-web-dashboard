@@ -1,5 +1,26 @@
 # AGENTS.md — Avoqado Web Dashboard
 
+## 🔴 Verificación pesada: por `avq-verify`, nunca a mano
+
+**Van SIEMPRE por el script, sin importar cuánto tarden:** `./gradlew` (cualquier tarea que
+compile), `xcodebuild`, `tsc` / `npm run build`, y cualquier corrida de jest/vitest de más de un
+archivo. **Van a pelo:** lint, formato, UN archivo de test, y lo que no reserve memoria en serio.
+
+Esto NO contradice "un compile de un solo proyecto se corre siempre, aunque la máquina esté
+saturada": aquello decide **si** verificas (siempre sí), esto decide **cómo** lo lanzas —
+haciendo fila en vez de encimarte. Se lanza desde el root del workspace:
+
+```bash
+cd /Users/amieva/Documents/Programming/Avoqado
+./scripts/avq-verify.sh avoqado-web-dashboard <comando>
+```
+
+Hace fila: un trabajo pesado a la vez en esta Mac, que corre con ~20 sesiones de IA encima y vive
+con el swap al límite. Hoy corre en **los dos lados y compara** (periodo de prueba hasta el 2026-09-01). Si dice `DIFIEREN` o `INCONCLUSO`, **ningún resultado vale**: investiga por qué y ajusta la regla.
+
+Detalle completo: `Avoqado/CLAUDE.md`, sección "Verificación repartida".
+
+
 Agent roles for multi-agent workflows. Each role defines scope, context to load, and role-specific focus areas.
 
 **Shared context**: All agents auto-load `.claude/rules/*.md`. Additional context listed per role.
