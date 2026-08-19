@@ -378,6 +378,7 @@
     "requireClockInToLoginDesc": "Le personnel doit avoir un pointage actif pour accéder au système",
     "kioskSection": "Mode Kiosque",
     "kioskSectionDesc": "Configuration du mode libre-service",
+    "comingSoon": "Bientôt disponible",
     "kioskModeEnabled": "Activer le Mode Kiosque",
     "kioskModeEnabledDesc": "Permet à ce terminal d'entrer en mode libre-service pour les clients",
     "kioskDefaultMerchant": "Commerçant par défaut",

@@ -448,6 +448,7 @@
     "geofenceMeters": "metros",
     "kioskSection": "Modo Kiosk",
     "kioskSectionDesc": "Configuración del modo autoservicio",
+    "comingSoon": "Muy pronto",
     "kioskModeEnabled": "Habilitar Modo Kiosk",
     "kioskModeEnabledDesc": "Permite que este terminal entre en modo autoservicio para clientes",
     "kioskDefaultMerchant": "Comercio predeterminado",

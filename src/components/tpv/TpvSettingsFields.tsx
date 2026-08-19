@@ -89,6 +89,7 @@ function SettingRow({
   checked,
   onCheckedChange,
   disabled,
+  badge,
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
@@ -96,13 +97,22 @@ function SettingRow({
   checked: boolean
   onCheckedChange: (checked: boolean) => void
   disabled?: boolean
+  /** Etiqueta de estado junto al nombre (ej. "Muy pronto"). Ver `.claude/rules/critical-warnings.md`. */
+  badge?: string
 }) {
   return (
     <div className="flex items-center justify-between py-3">
       <div className="flex items-start gap-3">
         <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
         <div>
-          <Label className="text-sm font-medium">{label}</Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">{label}</Label>
+            {badge && (
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                {badge}
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         </div>
       </div>
@@ -542,13 +552,25 @@ export function TpvSettingsFields({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-1">
+              {/*
+                🔴 Muy pronto — auditoría 2026-08-18: este switch NO hace nada todavía.
+                Android recibe `kioskModeEnabled` en TpvSettings y ningún código lo lee,
+                así que prenderlo no pone la terminal en autoservicio. Se deja visible y
+                deshabilitado (regla "Unimplemented Features: Always Badge Them") para que
+                nadie crea que ya lo activó.
+
+                No confundirlo con "Esconder barras de Android" del POS (antes llamado
+                "modo kiosco"), que SÍ funciona y es otra cosa: aquélla decide si se puede
+                salir de la app; ésta, quién la opera — personal o cliente.
+              */}
               <SettingRow
                 icon={Tablet}
                 label={t('tpvSettings.kioskModeEnabled')}
                 description={t('tpvSettings.kioskModeEnabledDesc')}
+                badge={t('tpvSettings.comingSoon')}
                 checked={settings.kioskModeEnabled}
                 onCheckedChange={checked => handleToggle('kioskModeEnabled', checked)}
-                disabled={isDisabled}
+                disabled
               />
               {/* kioskDefaultMerchantId is per-terminal only — hidden in org mode */}
               {mode === 'terminal' && settings.kioskModeEnabled && (

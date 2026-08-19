@@ -437,6 +437,7 @@
     "geofenceMeters": "meters",
     "kioskSection": "Kiosk Mode",
     "kioskSectionDesc": "Self-service mode configuration",
+    "comingSoon": "Coming soon",
     "kioskModeEnabled": "Enable Kiosk Mode",
     "kioskModeEnabledDesc": "Allows this terminal to enter self-service mode for customers",
     "kioskDefaultMerchant": "Default merchant",
