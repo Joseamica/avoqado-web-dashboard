@@ -169,6 +169,18 @@ import deliveryFr from '@/locales/fr/delivery.json'
 const simpleDetector = {
   type: 'languageDetector' as const,
   detect() {
+    // `?lang=` gana sobre todo lo demas: es como llega alguien invitado desde
+    // fuera del dashboard —el correo de bienvenida del alta por landing, que va
+    // en espanol— y ahi el idioma correcto lo sabe quien mando el enlace, no el
+    // navegador de quien lo abre.
+    try {
+      if (typeof window !== 'undefined') {
+        const pedido = new URLSearchParams(window.location.search).get('lang') || ''
+        if (pedido.startsWith('es') || pedido.startsWith('en') || pedido.startsWith('fr')) return pedido.slice(0, 2)
+      }
+    } catch (_e) {
+      // una URL rara nunca debe impedir que cargue la app
+    }
     try {
       const persisted = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || ''
       if (persisted && (persisted.startsWith('en') || persisted.startsWith('es'))) return persisted.slice(0, 2)

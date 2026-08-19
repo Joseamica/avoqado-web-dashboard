@@ -34,6 +34,9 @@ const ResetPassword: React.FC = () => {
   const [isValidatingToken, setIsValidatingToken] = useState(true)
   const [isTokenValid, setIsTokenValid] = useState(false)
   const [maskedEmail, setMaskedEmail] = useState('')
+  // Alguien que llega por el correo de bienvenida NUNCA tuvo contrasena; decirle
+  // "restablece la tuya" lo hace dudar de si se equivoco de correo.
+  const [esCuentaNueva, setEsCuentaNueva] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
   const [password, setPassword] = useState('')
@@ -97,6 +100,9 @@ const ResetPassword: React.FC = () => {
         if (response.valid) {
           setIsTokenValid(true)
           setMaskedEmail(response.email || '')
+          // Cuenta que nunca ha tenido contrasena (alta desde la landing): la
+          // pantalla habla de CREAR, no de restablecer.
+          setEsCuentaNueva(Boolean(response.isNewAccount))
         } else {
           setIsTokenValid(false)
           toast({
@@ -205,8 +211,8 @@ const ResetPassword: React.FC = () => {
             {!resetSuccess ? (
               <Card className="border-border">
                 <CardHeader className="space-y-1">
-                  <CardTitle className="text-2xl font-bold text-foreground">{t('resetPassword.title')}</CardTitle>
-                  <CardDescription className="text-muted-foreground">{t('resetPassword.subtitle')}</CardDescription>
+                  <CardTitle className="text-2xl font-bold text-foreground">{esCuentaNueva ? t('resetPassword.createTitle') : t('resetPassword.title')}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{esCuentaNueva ? t('resetPassword.createSubtitle') : t('resetPassword.subtitle')}</CardDescription>
                   {maskedEmail && (
                     <Alert className="border-primary/20 bg-primary/5 mt-2">
                       <Lock className="h-4 w-4 text-primary" />
@@ -269,7 +275,7 @@ const ResetPassword: React.FC = () => {
                       ) : (
                         <>
                           <Lock className="mr-2 h-4 w-4" />
-                          {t('resetPassword.resetButton')}
+                          {esCuentaNueva ? t('resetPassword.createButton') : t('resetPassword.resetButton')}
                         </>
                       )}
                     </Button>
@@ -292,9 +298,9 @@ const ResetPassword: React.FC = () => {
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                     <CheckCircle2 className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl font-bold text-foreground">{t('resetPassword.successTitle')}</CardTitle>
+                  <CardTitle className="text-2xl font-bold text-foreground">{esCuentaNueva ? t('resetPassword.createSuccessTitle') : t('resetPassword.successTitle')}</CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    {t('resetPassword.successDescription')}
+                    {esCuentaNueva ? t('resetPassword.createSuccessDescription') : t('resetPassword.successDescription')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center space-y-4">

@@ -150,6 +150,11 @@ export interface ValidateResetTokenResponse {
   success: boolean
   valid: boolean
   email?: string
+  /** true = la cuenta nunca ha tenido contrasena (alta desde la landing). La
+   *  pantalla dice "Crea tu contrasena" en vez de "Restablecer contrasena".
+   *  Opcional a proposito: un server viejo no lo manda y la pantalla cae al
+   *  texto de siempre. */
+  isNewAccount?: boolean
 }
 
 export interface ResetPasswordDto {
