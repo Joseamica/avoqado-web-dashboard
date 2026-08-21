@@ -571,7 +571,7 @@
     "subtitle": "Upload the file, review the preview, and confirm to create the sales.",
     "downloadTemplate": "Download template",
     "dragDrop": "Drag your sales Excel file here (.xlsx)",
-    "formatHint": "Excel (.xlsx) with columns: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta",
+    "formatHint": "Excel (.xlsx) with columns: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta. Optional: Estatus de Venta (Aprobada or Rechazada) and Motivo de Rechazo.",
     "previewTitle": "Preview",
     "crearCount": "{{count}} to create",
     "omitirCount": "{{count}} to skip",
@@ -597,7 +597,16 @@
     "erroredSummary": "{{count}} with error",
     "noOrg": "Could not find the current organization",
     "uploadErrorTitle": "Could not process the file",
-    "uploadError": "The file could not be processed. Check it and try again."
+    "uploadError": "The file could not be processed. Check it and try again.",
+    "venta": "Sale",
+    "saleStatus": {
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "rejectedCount": "{{count}} rejected",
+    "rejectedCount_plural": "{{count}} rejected",
+    "rejectedSummary": "{{count}} of them rejected",
+    "rejectedSummary_plural": "{{count}} of them rejected"
   },
   "common": {
     "active": "Active",

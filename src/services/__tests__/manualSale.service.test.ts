@@ -218,3 +218,85 @@ describe('applyManualSales', () => {
     expect(result).toEqual(applyResponse)
   })
 })
+
+/**
+ * Columna "Estatus de Venta" — ventas rechazadas subidas por el mismo Excel
+ * (Asana 1217555947497817). El nombre de la columna NO es "Estado" a propósito:
+ * el archivo real ya trae "Estado" (la entidad federativa) y "Estado Avoqado",
+ * y ambos deben seguir ignorándose.
+ */
+async function buildWorkbookWithStatus(): Promise<File> {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('Ventas')
+
+  sheet.addRow([])
+  sheet.addRow([
+    'ID SIM',
+    'Nombre de la Tienda',
+    'Fecha',
+    'Tipo de Venta',
+    'Forma de Pago',
+    'Monto de Venta',
+    'Estatus de Venta',
+    'Motivo de Rechazo',
+    'Estado',
+    'Estado Avoqado',
+  ])
+  sheet.addRow([
+    '8952140064479469125F',
+    'BAE Unidad Pavón (898)',
+    '2026-08-11',
+    'Línea nueva',
+    'No aplica',
+    'No aplica',
+    'Rechazada',
+    'No se pudo vincular; el cliente ya se lo llevó',
+    'San Luis Potosí',
+    'Confirmado',
+  ])
+  sheet.addRow([
+    '8952140064479469126F',
+    'BAE Papagayo (899)',
+    '2026-08-11',
+    'Línea nueva',
+    'Efectivo',
+    150,
+    'Aprobada',
+    '',
+    'Querétaro',
+    'Confirmado',
+  ])
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  return new File([buffer as ArrayBuffer], 'ventas-con-estatus.xlsx', {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+}
+
+describe('parseSalesFile — columna de estatus', () => {
+  it('mapea "Estatus de Venta" y "Motivo de Rechazo"', async () => {
+    const rows = await parseSalesFile(await buildWorkbookWithStatus())
+
+    expect(rows).toHaveLength(2)
+    expect(rows[0].saleStatus).toBe('Rechazada')
+    expect(rows[0].rejectionNote).toBe('No se pudo vincular; el cliente ya se lo llevó')
+    expect(rows[1].saleStatus).toBe('Aprobada')
+    expect(rows[1].rejectionNote).toBeUndefined()
+  })
+
+  it('sigue ignorando "Estado" y "Estado Avoqado" — el estado no es el estatus', async () => {
+    const rows = await parseSalesFile(await buildWorkbookWithStatus())
+
+    // Si "Estado" se colara al mismo campo, la primera fila diría "San Luis Potosí"
+    // y el backend rechazaría el archivo entero por estatus inválido.
+    expect(rows[0].saleStatus).not.toContain('San Luis')
+    expect(Object.values(rows[0])).not.toContain('Confirmado')
+  })
+
+  it('un archivo SIN la columna deja el estatus vacío (los archivos viejos siguen sirviendo)', async () => {
+    const rows = await parseSalesFile(await buildSampleWorkbookFile())
+
+    expect(rows[0].saleStatus).toBeUndefined()
+    expect(rows[0].rejectionNote).toBeUndefined()
+  })
+})

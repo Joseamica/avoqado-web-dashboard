@@ -571,7 +571,7 @@
     "subtitle": "Sube el archivo, revisa la vista previa y confirma para crear las ventas.",
     "downloadTemplate": "Descargar template",
     "dragDrop": "Arrastra aquí tu Excel de ventas (.xlsx)",
-    "formatHint": "Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta",
+    "formatHint": "Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo.",
     "previewTitle": "Vista previa",
     "crearCount": "{{count}} a crear",
     "omitirCount": "{{count}} a omitir",
@@ -597,7 +597,16 @@
     "erroredSummary": "{{count}} con error",
     "noOrg": "No se encontró la organización actual",
     "uploadErrorTitle": "Error al procesar el archivo",
-    "uploadError": "No se pudo procesar el archivo. Revísalo e inténtalo de nuevo."
+    "uploadError": "No se pudo procesar el archivo. Revísalo e inténtalo de nuevo.",
+    "venta": "Venta",
+    "saleStatus": {
+      "approved": "Aprobada",
+      "rejected": "Rechazada"
+    },
+    "rejectedCount": "{{count}} rechazada",
+    "rejectedCount_plural": "{{count}} rechazadas",
+    "rejectedSummary": "de ellas, {{count}} rechazada",
+    "rejectedSummary_plural": "de ellas, {{count}} rechazadas"
   },
   "common": {
     "active": "Activo",

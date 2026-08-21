@@ -57,10 +57,18 @@ function formatAmount(amount: ManualSaleRow['amount']): string {
   return amount
 }
 
+/** Cómo se pinta el resultado declarado de la venta ("Estatus de Venta" del Excel). */
+const SALE_STATUS_BADGE: Record<'COMPLETED' | 'REJECTED', string> = {
+  COMPLETED: 'bg-muted text-muted-foreground border-transparent',
+  REJECTED: 'bg-destructive/15 text-destructive border-transparent',
+}
+
 interface PreviewRow {
   bucket: RowBucket
   row: ManualSaleRow
   motivo?: string
+  /** Estatus normalizado por el backend; ausente en las filas que ni siquiera se pudieron resolver. */
+  saleStatus?: 'COMPLETED' | 'REJECTED'
 }
 
 export default function ManualSalesUpload() {
@@ -148,7 +156,7 @@ export default function ManualSalesUpload() {
         .map((r): PreviewRow | null => {
           const row = rows[r.index]
           if (!row) return null
-          return { bucket, row, motivo: r.motivo }
+          return { bucket, row, motivo: r.motivo, saleStatus: r.saleStatus }
         })
         .filter((r): r is PreviewRow => r !== null)
 
@@ -162,6 +170,11 @@ export default function ManualSalesUpload() {
   const crearCount = preview?.crear.length ?? 0
   const omitirCount = preview?.omitir.length ?? 0
   const errorCount = preview?.error.length ?? 0
+  // Cuántas de las que se van a crear son ventas RECHAZADAS. Se muestra aparte
+  // porque una rechazada creada por error queda como venta perdida y sólo se
+  // deshace a mano: el operador tiene que verlas antes de confirmar.
+  const rechazadasCount = preview?.crear.filter(r => r.saleStatus === 'REJECTED').length ?? 0
+  const rechazadasCreadas = result?.crear.filter(r => r.saleStatus === 'REJECTED').length ?? 0
 
   return (
     <div className="space-y-6">
@@ -196,7 +209,7 @@ export default function ManualSalesUpload() {
         dragDropLabel={t('manualSales.dragDrop', { defaultValue: 'Arrastra aquí tu Excel de ventas (.xlsx)' })}
         formatHint={t('manualSales.formatHint', {
           defaultValue:
-            'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta',
+            'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo.',
         })}
       />
 
@@ -213,6 +226,14 @@ export default function ManualSalesUpload() {
             <Badge className={BUCKET_BADGE.error.className}>
               {t('manualSales.errorCount', { defaultValue: `${errorCount} con error`, count: errorCount })}
             </Badge>
+            {rechazadasCount > 0 && (
+              <Badge className={SALE_STATUS_BADGE.REJECTED}>
+                {t('manualSales.rejectedCount', {
+                  defaultValue: `${rechazadasCount} rechazada${rechazadasCount === 1 ? '' : 's'}`,
+                  count: rechazadasCount,
+                })}
+              </Badge>
+            )}
           </div>
 
           {previewRows.length === 0 ? (
@@ -229,11 +250,12 @@ export default function ManualSalesUpload() {
                     <th className="py-2 pr-3 font-medium">{t('manualSales.tienda', { defaultValue: 'Tienda' })}</th>
                     <th className="py-2 pr-3 font-medium">{t('manualSales.fecha', { defaultValue: 'Fecha' })}</th>
                     <th className="py-2 pr-3 text-right font-medium">{t('manualSales.monto', { defaultValue: 'Monto' })}</th>
+                    <th className="py-2 pr-3 font-medium">{t('manualSales.venta', { defaultValue: 'Venta' })}</th>
                     <th className="py-2 pr-3 font-medium">{t('manualSales.estado', { defaultValue: 'Estado' })}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {previewRows.map(({ bucket, row, motivo }, idx) => {
+                  {previewRows.map(({ bucket, row, motivo, saleStatus }, idx) => {
                     const { className, icon: Icon } = BUCKET_BADGE[bucket]
                     return (
                       <tr key={`${row.iccid}-${idx}`} className="border-b border-input/50 align-top">
@@ -242,6 +264,17 @@ export default function ManualSalesUpload() {
                         <td className="py-2 pr-3">{row.storeName}</td>
                         <td className="py-2 pr-3">{row.saleDate}</td>
                         <td className="py-2 pr-3 text-right tabular-nums">{formatAmount(row.amount)}</td>
+                        <td className="py-2 pr-3">
+                          {saleStatus ? (
+                            <Badge className={SALE_STATUS_BADGE[saleStatus]}>
+                              {saleStatus === 'REJECTED'
+                                ? t('manualSales.saleStatus.rejected', { defaultValue: 'Rechazada' })
+                                : t('manualSales.saleStatus.approved', { defaultValue: 'Aprobada' })}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{row.saleStatus || '—'}</span>
+                          )}
+                        </td>
                         <td className="py-2 pr-3">
                           <div className="flex items-center gap-1.5">
                             <Badge className={`gap-1 ${className}`}>
@@ -297,6 +330,14 @@ export default function ManualSalesUpload() {
                 count: result.error.length,
               })}
             </span>
+            {rechazadasCreadas > 0 && (
+              <span className="text-muted-foreground">
+                {t('manualSales.rejectedSummary', {
+                  defaultValue: `de ellas, ${rechazadasCreadas} rechazada${rechazadasCreadas === 1 ? '' : 's'}`,
+                  count: rechazadasCreadas,
+                })}
+              </span>
+            )}
           </div>
         </GlassCard>
       )}

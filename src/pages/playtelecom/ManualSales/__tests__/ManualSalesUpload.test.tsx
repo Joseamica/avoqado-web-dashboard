@@ -228,3 +228,74 @@ describe('ManualSalesUpload', () => {
     )
   })
 })
+
+/**
+ * Ventas rechazadas (Asana 1217555947497817): el operador tiene que VER cuáles
+ * va a subir como rechazadas antes de confirmar — una rechazada creada por error
+ * queda como venta perdida y sólo se deshace a mano.
+ */
+describe('ManualSalesUpload — ventas rechazadas', () => {
+  beforeEach(() => {
+    mockParseSalesFile.mockReset()
+    mockPreviewManualSales.mockReset()
+    mockApplyManualSales.mockReset()
+    mockCan.mockReset()
+    mockCan.mockReturnValue(true)
+    mockToast.mockReset()
+
+    mockParseSalesFile.mockResolvedValue(SAMPLE_ROWS)
+    mockPreviewManualSales.mockResolvedValue({
+      crear: [
+        { index: 0, iccid: '8952140063000001234', storeName: 'BAE Pavón', saleStatus: 'REJECTED' },
+        { index: 1, iccid: '8952140063000001235', storeName: 'BAE Pavón', saleStatus: 'COMPLETED' },
+      ],
+      omitir: [],
+      error: [],
+    } as BulkManualSalesResult)
+  })
+
+  it('marca cada fila con su estatus y avisa cuántas van como rechazadas', async () => {
+    render(<ManualSalesUpload />)
+
+    await uploadSampleFile()
+
+    expect(screen.getByText('Rechazada')).toBeInTheDocument()
+    expect(screen.getByText('Aprobada')).toBeInTheDocument()
+    expect(screen.getByText('1 rechazada')).toBeInTheDocument()
+  })
+
+  it('el resumen final dice cuántas de las creadas quedaron rechazadas', async () => {
+    mockApplyManualSales.mockResolvedValue({
+      crear: [
+        { index: 0, iccid: '8952140063000001234', storeName: 'BAE Pavón', saleStatus: 'REJECTED' },
+        { index: 1, iccid: '8952140063000001235', storeName: 'BAE Pavón', saleStatus: 'COMPLETED' },
+      ],
+      omitir: [],
+      error: [],
+      created: 2,
+    } as BulkManualSalesResult)
+
+    render(<ManualSalesUpload />)
+    await uploadSampleFile()
+    fireEvent.click(screen.getByRole('button', { name: /Crear 2 ventas/i }))
+
+    await waitFor(() => expect(screen.getByText('2 creadas')).toBeInTheDocument())
+    expect(screen.getByText('de ellas, 1 rechazada')).toBeInTheDocument()
+  })
+
+  // REGRESIÓN: sin estatus (backend viejo o archivo sin la columna) la tabla no truena.
+  it('sin estatus en la respuesta la fila no muestra badge y la pantalla sigue funcionando', async () => {
+    mockPreviewManualSales.mockResolvedValue({
+      crear: [{ index: 0, iccid: '8952140063000001234', storeName: 'BAE Pavón' }],
+      omitir: [],
+      error: [],
+    } as BulkManualSalesResult)
+
+    render(<ManualSalesUpload />)
+    await uploadSampleFile()
+
+    expect(screen.getByText('8952140063000001234')).toBeInTheDocument()
+    expect(screen.queryByText('Rechazada')).not.toBeInTheDocument()
+    expect(screen.queryByText('1 rechazada')).not.toBeInTheDocument()
+  })
+})

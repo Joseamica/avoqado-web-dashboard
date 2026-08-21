@@ -40,6 +40,13 @@ export interface ManualSaleRow {
   amount: number | string
   /** "Tipo de SIM" — optional; falls back to the item's existing category. */
   simType?: string
+  /**
+   * "Estatus de Venta" — "Aprobada" | "Rechazada". Ausente o vacía = "Aprobada",
+   * para que los archivos que el operador ya venía subiendo sigan funcionando.
+   */
+  saleStatus?: string
+  /** "Motivo de Rechazo" — texto libre; sólo se usa cuando la venta viene rechazada. */
+  rejectionNote?: string
 }
 
 /** One row's classification result, as returned by the backend (Task 5). */
@@ -48,6 +55,8 @@ export interface RowResult {
   iccid: string
   storeName: string
   motivo?: string
+  /** Estatus ya normalizado por el backend — lo que de verdad se va a guardar. */
+  saleStatus?: 'COMPLETED' | 'REJECTED'
 }
 
 /** `{ crear, omitir, error, created? }` — shared shape of preview + apply responses. */
@@ -70,6 +79,15 @@ const HEADER_TO_FIELD: Record<string, keyof ManualSaleRow> = {
   'Tipo de Venta': 'saleType',
   'Forma de Pago': 'paymentForm',
   'Monto de Venta': 'amount',
+  // Estatus de la venta. NO se mapea la columna "Estado" que el archivo real ya
+  // trae (es el estado de la República), ni "Estado Avoqado" — de ahí que la
+  // columna nueva se llame "Estatus" y no "Estado".
+  'Estatus de Venta': 'saleStatus',
+  'Estatus de la Venta': 'saleStatus',
+  'Status de Venta': 'saleStatus',
+  Estatus: 'saleStatus',
+  'Motivo de Rechazo': 'rejectionNote',
+  'Motivo del Rechazo': 'rejectionNote',
 }
 
 /** Fields that must always come out of the parser as strings, never numbers. */
@@ -83,6 +101,8 @@ const STRING_FIELDS = new Set<keyof ManualSaleRow>([
   'saleType',
   'paymentForm',
   'simType',
+  'saleStatus',
+  'rejectionNote',
 ])
 
 /**
@@ -287,6 +307,8 @@ const TEMPLATE_HEADERS = [
   'Tipo de Venta',
   'Forma de Pago',
   'Monto de Venta',
+  'Estatus de Venta',
+  'Motivo de Rechazo',
 ] as const
 
 /**
