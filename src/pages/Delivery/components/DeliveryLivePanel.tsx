@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -55,7 +55,11 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { data: summary, isLoading: summaryLoading, isError: summaryError } = useQuery({
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    isError: summaryError,
+  } = useQuery({
     queryKey: ['deliverySummary', venueId],
     queryFn: () => getDeliverySummary(venueId),
     enabled: !!venueId,
@@ -148,6 +152,45 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                     <p>
                       {t('live.lastSync')}: {channel.lastMenuSyncAt ? formatDateTime(channel.lastMenuSyncAt) : t('live.lastSyncNever')}
                     </p>
+                  </div>
+
+                  {/* Dos señales que hasta ahora sólo vivían en el log o en la base, y que
+                      son justo las que el dueño necesita ver ANTES de que le cueste dinero. */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Un menú que nunca se logró publicar deja al proveedor vendiendo otra
+                        carta —o ninguna— y nadie se entera hasta que un cliente se queja.
+                        Sólo se muestra cuando hay algo que decir: un canal al día no necesita
+                        una etiqueta que felicitar. */}
+                    {channel.menuSyncStatus === 'NUNCA_PUBLICADO' && (
+                      <Badge variant="destructive" className="gap-1 text-[11px]">
+                        <AlertTriangle className="h-3 w-3" />
+                        {t('live.menuNeverPublished')}
+                      </Badge>
+                    )}
+                    {channel.menuSyncStatus === 'MANUAL' && (
+                      <Badge variant="outline" className="text-[11px]">
+                        {t('live.menuManual')}
+                      </Badge>
+                    )}
+
+                    {/* 🔴 La tasa de inyección: el número con el que el proveedor decide
+                        REVOCAR el acceso. Se pinta SÓLO fuera de lo normal — un 100% no
+                        necesita adorno, y una etiqueta permanente se vuelve invisible justo
+                        cuando cambia a rojo. `SIN_DATOS` no se muestra: aún no hay pedidos,
+                        y un 0% ahí sería una alarma falsa. */}
+                    {channel.injectionRate && (channel.injectionRate.estado === 'CRITICO' || channel.injectionRate.estado === 'ALERTA') && (
+                      <Badge
+                        variant={channel.injectionRate.estado === 'CRITICO' ? 'destructive' : 'secondary'}
+                        className="gap-1 text-[11px]"
+                        title={t('live.injectionTooltip', {
+                          aceptados: channel.injectionRate.aceptados,
+                          recibidos: channel.injectionRate.recibidos,
+                        })}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {t('live.injectionRate', { pct: channel.injectionRate.porcentaje })}
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Acceptance mode (AUTO/MANUAL) — editable via updateChannel. Gated by

@@ -223,4 +223,42 @@ describe('DeliveryLivePanel', () => {
     const link = await screen.findByRole('link', { name: /live\.viewOrders/ })
     expect(link).toHaveAttribute('href', '/venues/test/orders')
   })
+  // ── Señales que hasta hoy sólo vivían en el log o en la base ──────────────────────────
+  describe('avisos de menú y de tasa de aceptación', () => {
+    it('🔴 avisa cuando el menú NUNCA se logró publicar', async () => {
+      // El proveedor está vendiendo otra carta —o ninguna— y nadie se entera hasta que un
+      // cliente se queja. Es el aviso que más temprano evita perder ventas.
+      renderPanel([channel({ menuSyncStatus: 'NUNCA_PUBLICADO' })])
+      expect(await screen.findByText('live.menuNeverPublished')).toBeInTheDocument()
+    })
+
+    it('un menú AL DÍA no pinta nada: no se felicita a un canal sano', async () => {
+      // Una etiqueta permanente se vuelve invisible justo cuando cambia a roja.
+      renderPanel([channel({ menuSyncStatus: 'AL_DIA' })])
+      await screen.findByText('live.channelsTitle')
+      expect(screen.queryByText('live.menuNeverPublished')).not.toBeInTheDocument()
+      expect(screen.queryByText('live.menuManual')).not.toBeInTheDocument()
+    })
+
+    it('🔴 avisa cuando la tasa de aceptación cae bajo el umbral de revocación', async () => {
+      // Es el número con el que el proveedor decide quitar el acceso. Verlo tarde es
+      // enterarse por correo de que ya lo quitaron.
+      renderPanel([channel({ injectionRate: { recibidos: 100, aceptados: 97, porcentaje: 97, estado: 'CRITICO' } })])
+      expect(await screen.findByText('live.injectionRate')).toBeInTheDocument()
+    })
+
+    it('🔴 SIN_DATOS no pinta alarma: aún no hay pedidos, no es un 0%', async () => {
+      // Un canal recién conectado no ha recibido nada. Pintarlo en rojo enseñaría a ignorar
+      // el aviso justo antes del que sí importa.
+      renderPanel([channel({ injectionRate: { recibidos: 0, aceptados: 0, porcentaje: null, estado: 'SIN_DATOS' } })])
+      await screen.findByText('live.channelsTitle')
+      expect(screen.queryByText('live.injectionRate')).not.toBeInTheDocument()
+    })
+
+    it('una tasa OK tampoco pinta nada', async () => {
+      renderPanel([channel({ injectionRate: { recibidos: 100, aceptados: 100, porcentaje: 100, estado: 'OK' } })])
+      await screen.findByText('live.channelsTitle')
+      expect(screen.queryByText('live.injectionRate')).not.toBeInTheDocument()
+    })
+  })
 })

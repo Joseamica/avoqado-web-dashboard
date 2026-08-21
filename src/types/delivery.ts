@@ -20,6 +20,27 @@ export interface DeliveryChannelLink {
   orderAcceptanceMode: 'AUTO' | 'MANUAL'
   autoSyncMenu: boolean
   lastMenuSyncAt: string | null
+  /**
+   * ¿Está el menú al día en el proveedor?
+   *  · MANUAL          — el dueño apagó el auto-sync y lo mantiene a mano.
+   *  · NUNCA_PUBLICADO — 🚨 el que hay que ver: el proveedor está vendiendo otra carta, o
+   *                      ninguna, y nadie se entera hasta que un cliente se queja.
+   *  · AL_DIA          — publicado.
+   */
+  menuSyncStatus?: 'MANUAL' | 'NUNCA_PUBLICADO' | 'AL_DIA'
+  /**
+   * La tasa de inyección: el número con el que el proveedor decide REVOCAR el acceso
+   * (Uber exige 99.9%, revoca por debajo de 99%).
+   *
+   * `porcentaje: null` con `estado: SIN_DATOS` significa que aún no llegan pedidos — NO que
+   * la tasa sea 0.
+   */
+  injectionRate?: {
+    recibidos: number
+    aceptados: number
+    porcentaje: number | null
+    estado: 'SIN_DATOS' | 'OK' | 'ALERTA' | 'CRITICO'
+  } | null
   externalLocationId: string
 }
 

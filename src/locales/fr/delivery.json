@@ -53,6 +53,10 @@
     "pauseToastError": "Impossible de mettre à jour le canal",
     "modeToastSuccess": "Mode d'acceptation mis à jour",
     "modeToastError": "Impossible de mettre à jour le mode d'acceptation",
-    "viewOrders": "Voir les commandes de livraison"
+    "viewOrders": "Voir les commandes de livraison",
+    "menuNeverPublished": "Menu non publié",
+    "menuManual": "Menu manuel",
+    "injectionRate": "Acceptation {{pct}} %",
+    "injectionTooltip": "{{aceptados}} commandes sur {{recibidos}} sont passées. En dessous de 99 %, le fournisseur peut suspendre l'intégration."
   }
 }

@@ -53,6 +53,10 @@
     "pauseToastError": "Couldn't update the channel",
     "modeToastSuccess": "Acceptance mode updated",
     "modeToastError": "Couldn't update the acceptance mode",
-    "viewOrders": "View delivery orders"
+    "viewOrders": "View delivery orders",
+    "menuNeverPublished": "Menu not published",
+    "menuManual": "Manual menu",
+    "injectionRate": "Acceptance {{pct}}%",
+    "injectionTooltip": "{{aceptados}} of {{recibidos}} orders got through. Below 99% the provider may suspend the integration."
   }
 }

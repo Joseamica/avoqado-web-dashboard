@@ -53,6 +53,10 @@
     "pauseToastError": "No se pudo actualizar el canal",
     "modeToastSuccess": "Modo de aceptación actualizado",
     "modeToastError": "No se pudo actualizar el modo de aceptación",
-    "viewOrders": "Ver pedidos de delivery"
+    "viewOrders": "Ver pedidos de delivery",
+    "menuNeverPublished": "Menú sin publicar",
+    "menuManual": "Menú manual",
+    "injectionRate": "Aceptación {{pct}}%",
+    "injectionTooltip": "{{aceptados}} de {{recibidos}} pedidos entraron. Por debajo del 99% el proveedor puede suspender la integración."
   }
 }
