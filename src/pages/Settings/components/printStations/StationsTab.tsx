@@ -102,6 +102,7 @@ export function StationsTab({ venueId }: { venueId: string }) {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{station.name}</span>
                         {station.isDefault && <Badge variant="secondary">{t('stations.defaultBadge')}</Badge>}
+                        {station.isPacking && <Badge variant="outline">{t('stations.packingBadge')}</Badge>}
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -152,6 +153,7 @@ const stationSchema = z.object({
   printerId: z.string().nullable(),
   copies: z.number().int().min(1).optional(),
   isDefault: z.boolean(),
+  isPacking: z.boolean(),
   active: z.boolean(),
 })
 type StationForm = z.infer<typeof stationSchema>
@@ -188,12 +190,14 @@ function StationFormModal({
       printerId: station?.printerId ?? null,
       copies: station?.copies ?? 1,
       isDefault: station?.isDefault ?? false,
+      isPacking: station?.isPacking ?? false,
       active: station?.active ?? true,
     },
   })
 
   const printerId = watch('printerId')
   const isDefault = watch('isDefault')
+  const isPacking = watch('isPacking')
   const active = watch('active')
   const copies = watch('copies')
 
@@ -204,6 +208,7 @@ function StationFormModal({
         printerId: values.printerId,
         copies: values.copies ?? 1,
         isDefault: values.isDefault,
+        isPacking: values.isPacking,
       }
       return station
         ? updatePrintStation(venueId, station.id, { ...body, active: values.active })
@@ -290,6 +295,22 @@ function StationFormModal({
               <p className="text-xs text-muted-foreground">{t('stations.fields.isDefaultHint')}</p>
             </div>
             <Switch checked={isDefault} onCheckedChange={v => setValue('isDefault', v, { shouldDirty: true })} />
+          </div>
+
+          {/* El ticket de EMPAQUE no es una comanda más: lleva el pedido completo en una hoja
+              para quien mete todo en la bolsa. Va aparte de "estación por default" a
+              propósito — mandarlo ahí haría que la cocina reciba DOS papeles del mismo
+              pedido, que es el doble-impreso clásico de los pedidos en línea. */}
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-4">
+            <div>
+              <p className="text-sm font-medium">{t('stations.fields.isPacking')}</p>
+              <p className="text-xs text-muted-foreground">{t('stations.fields.isPackingHint')}</p>
+            </div>
+            <Switch
+              data-tour="print-station-packing"
+              checked={isPacking}
+              onCheckedChange={v => setValue('isPacking', v, { shouldDirty: true })}
+            />
           </div>
 
           {station && (

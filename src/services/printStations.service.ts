@@ -33,6 +33,8 @@ export interface PrintStation {
   printerId: string | null
   copies: number
   isDefault: boolean
+  /** ¿Aquí se empaca? Recibe el ticket consolidado del pedido de reparto. UNA por negocio. */
+  isPacking: boolean
   active: boolean
   displayOrder: number
   printer?: { id: string; name: string; active: boolean; lastStatus: string | null } | null
@@ -97,6 +99,7 @@ export interface CreateStationInput {
   printerId?: string | null
   copies?: number
   isDefault?: boolean
+  isPacking?: boolean
   displayOrder?: number
 }
 export type UpdateStationInput = Partial<CreateStationInput> & { active?: boolean }

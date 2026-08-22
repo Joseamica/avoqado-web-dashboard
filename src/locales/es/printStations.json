@@ -33,6 +33,7 @@
     "colStatus": "Estado",
     "noPrinter": "Sin impresora",
     "defaultBadge": "Por defecto",
+    "packingBadge": "Empaque",
     "statusActive": "Activa",
     "statusInactive": "Inactiva",
     "fields": {
@@ -42,7 +43,9 @@
       "printerNone": "Sin impresora",
       "copies": "Copias por comanda",
       "isDefault": "Estación por defecto",
+      "isPacking": "Aquí se empaca",
       "isDefaultHint": "La estación por defecto recibe los productos sin ruta asignada.",
+      "isPackingHint": "Recibe un ticket con el pedido completo, para quien arma la bolsa de reparto. Solo una estación por negocio.",
       "active": "Estación activa"
     },
     "saved": "Estación guardada",

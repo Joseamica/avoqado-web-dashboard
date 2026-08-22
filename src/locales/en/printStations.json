@@ -33,6 +33,7 @@
     "colStatus": "Status",
     "noPrinter": "No printer",
     "defaultBadge": "Default",
+    "packingBadge": "Packing",
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "fields": {
@@ -42,7 +43,9 @@
       "printerNone": "No printer",
       "copies": "Copies per ticket",
       "isDefault": "Default station",
+      "isPacking": "Packing happens here",
       "isDefaultHint": "The default station receives products that have no route assigned.",
+      "isPackingHint": "Gets one ticket with the whole order, for whoever bags it for delivery. Only one station per venue.",
       "active": "Station active"
     },
     "saved": "Station saved",
