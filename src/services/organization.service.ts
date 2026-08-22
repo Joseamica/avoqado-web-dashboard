@@ -274,6 +274,21 @@ export async function getOrganizationPromoters(orgId: string): Promise<Organizat
 }
 
 /**
+ * Lookup: staff with role MANAGER active in any venue of the org — the
+ * "Supervisor" of the SIM custody chain.
+ *
+ * Used by the "Asignar SIMs" and "Reasignar a otro Supervisor" dropdowns.
+ * Accessible to any staff member of the org — unlike `getOrganizationTeam`,
+ * which is OWNER-only and left ADMIN (who DOES hold
+ * `sim-custody:assign-to-supervisor` / `:reassign-supervisor`) with a silently
+ * empty dropdown.
+ */
+export async function getOrganizationSupervisors(orgId: string): Promise<OrganizationTeamMember[]> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/supervisors`)
+  return response.data?.data ?? []
+}
+
+/**
  * Get lightweight organization stats (for header/nav)
  */
 export async function getOrganizationStats(orgId: string): Promise<OrganizationStats> {

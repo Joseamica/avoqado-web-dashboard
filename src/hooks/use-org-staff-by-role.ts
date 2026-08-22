@@ -3,8 +3,9 @@
  *
  * Reuses `getOrganizationTeam` (already in the services layer) and filters
  * client-side — the team list is small enough that server-side filtering
- * would be over-engineering. Consumers are the SupervisorSelect / PromoterSelect
- * dropdowns in the SIM custody UI (plan §2.5).
+ * would be over-engineering. It has NO consumers today: both SIM custody
+ * dropdowns moved to the dedicated lookups below. Kept only for a future
+ * OWNER-only screen that genuinely needs the whole team.
  *
  * Accepts a single role or an array of roles. The PlayTelecom "Promoter"
  * business concept maps to BOTH `WAITER` and `CASHIER` — see
@@ -13,13 +14,20 @@
  * `useOrgPromoters` wrapper when you mean "promoters" so the rule stays in
  * one place.
  *
- * Note: `getOrganizationTeam` requires OWNER role — don't use this hook for
- * the SIM custody Promoter dropdown (the Supervisor is a MANAGER, not OWNER).
- * Use `useOrgPromoters` instead; it calls a dedicated endpoint accessible to
- * any staff member of the org.
+ * 🔴 `getOrganizationTeam` requires OWNER — this hook returns an EMPTY list for
+ * anybody else (the 403 is swallowed by the query). Never use it to feed a
+ * dropdown whose action is available below OWNER. The two SIM custody dropdowns
+ * have dedicated, org-staff-accessible endpoints instead:
+ *   - Promotores  → `useOrgPromoters`
+ *   - Supervisores → `useOrgSupervisors`
  */
 import { useQuery } from '@tanstack/react-query'
-import { getOrganizationTeam, getOrganizationPromoters, type OrganizationTeamMember } from '@/services/organization.service'
+import {
+  getOrganizationTeam,
+  getOrganizationPromoters,
+  getOrganizationSupervisors,
+  type OrganizationTeamMember,
+} from '@/services/organization.service'
 
 type StaffRoleId = 'MANAGER' | 'WAITER' | 'CASHIER' | 'ADMIN' | 'OWNER'
 
@@ -67,6 +75,32 @@ export function useOrgPromoters(orgId: string | undefined) {
     queryFn: async () => {
       if (!orgId) return []
       const members = await getOrganizationPromoters(orgId)
+      return members.map(toOption)
+    },
+    enabled: Boolean(orgId),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/**
+ * A "Supervisor" in the SIM custody chain is any staff with role `MANAGER`
+ * active in a venue of the org — the exact predicate the backend validates the
+ * target against (`custody.service.ts#reassignSupervisor`), so this dropdown can
+ * never offer someone the service rejects with `SUPERVISOR_NOT_FOUND`.
+ *
+ * Backed by the dedicated `/organizations/:orgId/supervisors` endpoint, readable
+ * by any staff member of the org. `useOrgStaffByRole(orgId, 'MANAGER')` — which
+ * this replaces — went through the OWNER-only `/team` endpoint, so an ADMIN
+ * (who DOES hold `sim-custody:assign-to-supervisor` and
+ * `sim-custody:reassign-supervisor`) got a silently empty dropdown. Same bug
+ * `useOrgPromoters` fixed one level down the chain.
+ */
+export function useOrgSupervisors(orgId: string | undefined) {
+  return useQuery<OrgStaffOption[]>({
+    queryKey: ['org-supervisors', orgId],
+    queryFn: async () => {
+      if (!orgId) return []
+      const members = await getOrganizationSupervisors(orgId)
       return members.map(toOption)
     },
     enabled: Boolean(orgId),

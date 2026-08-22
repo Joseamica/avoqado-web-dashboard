@@ -23,13 +23,14 @@ import {
   assignSimsToSupervisor,
   type BulkResponse,
 } from '@/services/simCustody.service'
-import { useOrgStaffByRole, useOrgPromoters } from '@/hooks/use-org-staff-by-role'
+import { useOrgSupervisors, useOrgPromoters } from '@/hooks/use-org-staff-by-role'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
 import { useOrgStockControl } from '../hooks/useOrgStockControl'
 import { SimMultiSelect } from './SimMultiSelect'
+import { SupervisorSelect } from './SupervisorSelect'
 
 type AssignTarget = 'supervisor' | 'promoter-direct'
 
@@ -80,7 +81,10 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
   const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])
 
-  const supervisors = useOrgStaffByRole(orgId, 'MANAGER')
+  // Both lookups go through org-staff-accessible endpoints, NOT the OWNER-only
+  // `/team`: `sim-custody:assign-to-supervisor` is granted to ADMIN as well, and
+  // `/team` returned 403 → an empty dropdown with no explanation.
+  const supervisors = useOrgSupervisors(orgId)
   const promoters = useOrgPromoters(orgId)
 
   // Categories used as the optional Buscar filter only.
@@ -222,27 +226,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
             )}
 
             {target === 'supervisor' ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Supervisor</label>
-                <SearchableSelect
-                  value={supervisorStaffId}
-                  onValueChange={setSupervisorStaffId}
-                  options={(supervisors.data ?? []).map(s => ({
-                    value: s.id,
-                    // Suffix the org-internal ID (white-label orgs) so the
-                    // selector lets you disambiguate two people with the same
-                    // name. Empty suffix when there's no code, so non-WL orgs
-                    // see just the name.
-                    label: s.employeeCode ? `${s.fullName} (${s.employeeCode})` : s.fullName,
-                  }))}
-                  placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'}
-                  searchPlaceholder="Buscar por nombre…"
-                  emptyMessage="Sin resultados"
-                  disabled={supervisors.isLoading}
-                  searchThreshold={0}
-                  className="w-full"
-                />
-              </div>
+              <SupervisorSelect value={supervisorStaffId} onValueChange={setSupervisorStaffId} query={supervisors} />
             ) : (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Promotor</label>

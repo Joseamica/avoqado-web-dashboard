@@ -14,15 +14,15 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { reassignSimsToSupervisor, type BulkResponse } from '@/services/simCustody.service'
-import { useOrgStaffByRole } from '@/hooks/use-org-staff-by-role'
+import { useOrgSupervisors } from '@/hooks/use-org-staff-by-role'
 import { useOrgStockControl } from '../hooks/useOrgStockControl'
 import { SimMultiSelect } from './SimMultiSelect'
+import { SupervisorSelect } from './SupervisorSelect'
 
 interface Props {
   open: boolean
@@ -45,8 +45,10 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
   const [onlyErrors, setOnlyErrors] = useState(false)
 
   // Same role the backend validates (active MANAGER of the org) — the dropdown can
-  // never propose a target that comes back as SUPERVISOR_NOT_FOUND.
-  const supervisors = useOrgStaffByRole(orgId, 'MANAGER')
+  // never propose a target that comes back as SUPERVISOR_NOT_FOUND. Reads the
+  // org-staff-accessible `/supervisors` lookup, NOT the OWNER-only `/team`: this
+  // action is granted to ADMIN too, and `/team` left them with an empty dropdown.
+  const supervisors = useOrgSupervisors(orgId)
 
   // Load org SIMs for the search combobox. Freeze the date window ONCE per dialog
   // mount to avoid an infinite refetch loop (same trick as AssignToSupervisorDialog).
@@ -124,23 +126,12 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
 
         {!result ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Supervisor destino</label>
-              <SearchableSelect
-                value={toSupervisorStaffId}
-                onValueChange={setToSupervisorStaffId}
-                options={(supervisors.data ?? []).map(s => ({
-                  value: s.id,
-                  label: s.employeeCode ? `${s.fullName} (${s.employeeCode})` : s.fullName,
-                }))}
-                placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'}
-                searchPlaceholder="Buscar por nombre…"
-                emptyMessage="Sin resultados"
-                disabled={supervisors.isLoading}
-                searchThreshold={0}
-                className="w-full"
-              />
-            </div>
+            <SupervisorSelect
+              label="Supervisor destino"
+              value={toSupervisorStaffId}
+              onValueChange={setToSupervisorStaffId}
+              query={supervisors}
+            />
 
             <Tabs value={mode} onValueChange={v => setMode(v as 'search' | 'manual' | 'csv')}>
               <TabsList className="rounded-full bg-muted/60 p-1">
