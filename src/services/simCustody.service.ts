@@ -36,13 +36,7 @@ export type SimCustodyErrorCode =
 
 export type SimCustodyCollectionReason = 'STAFF_TERMINATED' | 'DAMAGED_SIM' | 'SUPERVISOR_COLLECTION'
 
-export type SimCustodyState =
-  | 'ADMIN_HELD'
-  | 'SUPERVISOR_HELD'
-  | 'PROMOTER_PENDING'
-  | 'PROMOTER_HELD'
-  | 'PROMOTER_REJECTED'
-  | 'SOLD'
+export type SimCustodyState = 'ADMIN_HELD' | 'SUPERVISOR_HELD' | 'PROMOTER_PENDING' | 'PROMOTER_HELD' | 'PROMOTER_REJECTED' | 'SOLD'
 
 export interface BulkRow {
   serialNumber: string
@@ -199,11 +193,7 @@ export async function collectFromSupervisor(
  * Only SIMs in PROMOTER_HELD / PROMOTER_PENDING state are eligible.
  * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
  */
-export async function reassignSimsToPromoter(
-  orgId: string,
-  body: ReassignToPromoterInput,
-  venueId?: string | null,
-): Promise<BulkResponse> {
+export async function reassignSimsToPromoter(orgId: string, body: ReassignToPromoterInput, venueId?: string | null): Promise<BulkResponse> {
   const { data } = await api.post(`${base(orgId)}/reassign-promoter`, body, {
     headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
   })

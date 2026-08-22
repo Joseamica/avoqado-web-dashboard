@@ -14,6 +14,7 @@ import { SimTimelineDrawer } from '../components/SimTimelineDrawer'
 import { CollectSimDialog, type CollectFrom } from '../components/CollectSimDialog'
 import { AssignToPromoterDialog } from '../components/AssignToPromoterDialog'
 import { ReassignPromoterDialog } from '../components/ReassignPromoterDialog'
+import { ReassignSupervisorDialog } from '../components/ReassignSupervisorDialog'
 import { ChangeCategoryDialog } from '../components/ChangeCategoryDialog'
 import { collectFromPromoter, collectFromSupervisor, type SimCustodyState } from '@/services/simCustody.service'
 import { useAccess } from '@/hooks/use-access'
@@ -45,6 +46,7 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
   } | null>(null)
   const [assignPromoterSerials, setAssignPromoterSerials] = useState<string[] | null>(null)
   const [reassignPromoterOpen, setReassignPromoterOpen] = useState(false)
+  const [reassignSupervisorOpen, setReassignSupervisorOpen] = useState(false)
   const [changeCategoryOpen, setChangeCategoryOpen] = useState(false)
 
   // Mirror OrgUsersPage pattern: useAccess stays empty on org-level routes
@@ -59,6 +61,7 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
   const canCollectSupervisor = can('sim-custody:collect-from-supervisor') || isSuperOrOwner
   const canAssignToPromoter = can('sim-custody:assign-to-promoter') || isSuperOrOwner
   const canReassignPromoter = can('sim-custody:reassign') || isAdminOrAbove
+  const canReassignSupervisor = can('sim-custody:reassign-supervisor') || isAdminOrAbove
   const canChangeCategory = can('serialized-inventory:change-category') || isAdminOrAbove
   const currentStaffId = user?.id ?? null
 
@@ -131,6 +134,11 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h3 className="text-lg font-semibold">Detalle SIMs</h3>
         <div className="flex items-center gap-2">
+          {canReassignSupervisor && (
+            <Button variant="outline" size="sm" onClick={() => setReassignSupervisorOpen(true)}>
+              Reasignar a Supervisor
+            </Button>
+          )}
           {canReassignPromoter && (
             <Button variant="outline" size="sm" onClick={() => setReassignPromoterOpen(true)}>
               Reasignar a Promotor
@@ -236,9 +244,7 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
                   canAssignToPromoter={canAssignToPromoter}
                   currentStaffId={currentStaffId}
                   onTimeline={() => setTimelineSerial(item.serialNumber)}
-                  onCollect={(from, contextLabel) =>
-                    setCollectState({ serialNumber: item.serialNumber, from, contextLabel })
-                  }
+                  onCollect={(from, contextLabel) => setCollectState({ serialNumber: item.serialNumber, from, contextLabel })}
                   onAssignToPromoter={() => setAssignPromoterSerials([item.serialNumber])}
                 />
               ))
@@ -348,21 +354,11 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
         />
       )}
 
-      {orgId && (
-        <ReassignPromoterDialog
-          open={reassignPromoterOpen}
-          onOpenChange={setReassignPromoterOpen}
-          orgId={orgId}
-        />
-      )}
+      {orgId && <ReassignSupervisorDialog open={reassignSupervisorOpen} onOpenChange={setReassignSupervisorOpen} orgId={orgId} />}
 
-      {orgId && (
-        <ChangeCategoryDialog
-          open={changeCategoryOpen}
-          onOpenChange={setChangeCategoryOpen}
-          orgId={orgId}
-        />
-      )}
+      {orgId && <ReassignPromoterDialog open={reassignPromoterOpen} onOpenChange={setReassignPromoterOpen} orgId={orgId} />}
+
+      {orgId && <ChangeCategoryDialog open={changeCategoryOpen} onOpenChange={setChangeCategoryOpen} orgId={orgId} />}
     </GlassCard>
   )
 }
@@ -390,13 +386,8 @@ function SimRow({
 }: SimRowProps) {
   const status = STATUS_CONFIG[item.status] ?? { label: item.status, className: 'bg-muted text-muted-foreground' }
   const custody = (item.custodyState ?? 'ADMIN_HELD') as SimCustodyState
-  const canCollectFromPromoter =
-    canCollectPromoter &&
-    Boolean(item.assignedPromoterId) &&
-    custody !== 'SOLD'
-  const canCollectFromSupervisor =
-    canCollectSupervisor &&
-    custody === 'SUPERVISOR_HELD' // plan §1.4 — only valid when nobody downstream
+  const canCollectFromPromoter = canCollectPromoter && Boolean(item.assignedPromoterId) && custody !== 'SOLD'
+  const canCollectFromSupervisor = canCollectSupervisor && custody === 'SUPERVISOR_HELD' // plan §1.4 — only valid when nobody downstream
   // Asana requirement §"FLUJO DE ASIGNACIÓN DE SIMS DE SUPERVISOR A PROMOTOR":
   // "El Supervisor ingresa a Dashboard y busca el ID SIM... se asigna a un
   // usuario promotor". The Supervisor owner is the actor; OWNER/SUPERADMIN
@@ -412,12 +403,7 @@ function SimRow({
       style={{ contentVisibility: 'auto', containIntrinsicSize: '0 44px' } as React.CSSProperties}
     >
       <td className="py-3 px-2">
-        <button
-          type="button"
-          onClick={onTimeline}
-          className="text-left"
-          title="Ver historial del SIM"
-        >
+        <button type="button" onClick={onTimeline} className="text-left" title="Ver historial del SIM">
           <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono hover:bg-muted">{item.serialNumber}</code>
         </button>
       </td>
