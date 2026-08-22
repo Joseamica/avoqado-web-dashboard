@@ -57,6 +57,36 @@
     "menuNeverPublished": "Menú sin publicar",
     "menuManual": "Menú manual",
     "injectionRate": "Aceptación {{pct}}%",
-    "injectionTooltip": "{{aceptados}} de {{recibidos}} pedidos entraron. Por debajo del 99% el proveedor puede suspender la integración."
+    "injectionTooltip": "{{aceptados}} de {{recibidos}} pedidos entraron. Por debajo del 99% el proveedor puede suspender la integración.",
+    "settingsAction": "Horario y precios"
+  },
+  "settings": {
+    "title": "Horario y precios del canal",
+    "save": "Guardar",
+    "saveSuccess": "Ajustes guardados",
+    "saveError": "No se pudieron guardar los ajustes",
+    "saveErrorFallback": "Intenta de nuevo en unos segundos.",
+    "hoursTitle": "Horario de pedidos",
+    "hoursHelp": "A qué horas acepta pedidos este canal. Fuera de este horario el marketplace no te manda pedidos, así que no tienes que rechazarlos — y rechazar cuenta en tu contra.",
+    "hoursEstimated": "Todavía no configuras un horario: se está publicando uno estimado (lunes a sábado, 9:00 a 22:00). Ajústalo al horario real de tu negocio.",
+    "closed": "Cerrado",
+    "opensAt": "Hora de apertura de {{day}}",
+    "closesAt": "Hora de cierre de {{day}}",
+    "markupTitle": "Margen para delivery",
+    "markupHelp": "Porcentaje que se suma a tu precio de mostrador sólo en este canal. El marketplace se queda con una comisión de cada pedido; sin margen, cada venta por delivery te deja menos de lo que crees.",
+    "markupExample": "Un producto de ${{base}} se publica en ${{resultado}}.",
+    "errorDayNoRange": "{{day}}: está prendido pero sin horario.",
+    "errorBadTime": "{{day}}: la hora no es válida.",
+    "errorCloseBeforeOpen": "{{day}}: la hora de cierre debe ser posterior a la de apertura.",
+    "errorMarkupRange": "El margen debe estar entre 0 y {{max}} por ciento.",
+    "day": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    }
   }
 }

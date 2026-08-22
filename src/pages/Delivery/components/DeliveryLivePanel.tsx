@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Loader2, Settings2 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +15,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
 import { useToast } from '@/hooks/use-toast'
 import { getDeliverySummary, pauseChannel, updateChannel } from '@/services/delivery.service'
+import { ChannelSettingsDialog } from './ChannelSettingsDialog'
 import { providerLabel } from '../providerLabels'
 import type { DeliveryChannelLink, DeliveryChannelStatus } from '@/types/delivery'
 
@@ -54,6 +56,9 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
   const { formatDateTime } = useVenueDateTime()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // Se guarda el canal ENTERO, no el id: el modal necesita su `config` actual para pintar el
+  // horario y el margen que ya tiene. Guardar sólo el id obligaría a buscarlo de nuevo.
+  const [ajustesDe, setAjustesDe] = useState<DeliveryChannelLink | null>(null)
 
   const {
     data: summary,
@@ -220,6 +225,25 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                     </div>
                   </div>
 
+                  {/* Horario y margen — hasta hoy sólo se podían poner con un UPDATE en
+                      Postgres. Sin horario entran pedidos de madrugada que nadie cocina (y
+                      cada rechazo cuenta contra la tasa de inyección); sin margen se publica
+                      el precio de mostrador y el comercio pierde en cada pedido, porque el
+                      marketplace se queda ~30%. Mismo candado que el resto: se RENDERIZA
+                      siempre y se deshabilita sin permiso, nunca se esconde. */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    data-tour="delivery-channel-settings-btn"
+                    disabled={!canManage}
+                    className="w-full cursor-pointer gap-1.5 text-xs"
+                    onClick={() => setAjustesDe(channel)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                    {t('live.settingsAction')}
+                  </Button>
+
                   {isTogglable && (
                     <div className="flex items-center justify-between border-t border-input pt-3">
                       <span className="text-sm">{channel.status === 'ACTIVE' ? t('live.pauseAction') : t('live.resumeAction')}</span>
@@ -236,6 +260,10 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
           })}
         </div>
       </div>
+
+      {ajustesDe && (
+        <ChannelSettingsDialog open onClose={() => setAjustesDe(null)} venueId={venueId} channel={ajustesDe} />
+      )}
 
       {/* (c) Link into the EXISTING Orders view — reused, not rebuilt. */}
       <Link to={`${fullBasePath}/orders`} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">

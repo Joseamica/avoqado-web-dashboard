@@ -6,7 +6,7 @@
  * cada fn desenvuelve `response.data.data`.
  */
 import api from '@/api'
-import type { DeliveryChannelLink, DeliveryActivationRequest, DeliverySummary } from '@/types/delivery'
+import type { DeliveryChannelConfig, DeliveryChannelLink, DeliveryActivationRequest, DeliverySummary } from '@/types/delivery'
 
 const base = (venueId: string) => `/api/v1/delivery-channels/venues/${venueId}`
 
@@ -41,5 +41,7 @@ export const pauseChannel = async (venueId: string, linkId: string, paused: bool
 export const updateChannel = async (
   venueId: string,
   linkId: string,
-  body: { orderAcceptanceMode?: 'AUTO' | 'MANUAL'; autoSyncMenu?: boolean },
+  // `config` se MEZCLA en el backend, no reemplaza: mandar sólo `deliveryHours` deja
+  // `precios` intacto. Mandar `null` sí limpia todo — es el borrado explícito.
+  body: { orderAcceptanceMode?: 'AUTO' | 'MANUAL'; autoSyncMenu?: boolean; config?: DeliveryChannelConfig | null },
 ): Promise<DeliveryChannelLink> => (await api.patch(`${base(venueId)}/channels/${linkId}`, body)).data.data

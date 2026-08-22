@@ -42,6 +42,42 @@ export interface DeliveryChannelLink {
     estado: 'SIN_DATOS' | 'OK' | 'ALERTA' | 'CRITICO'
   } | null
   externalLocationId: string
+  /**
+   * Ajustes propios del canal. Es UNA columna JSON con VARIAS cosas adentro, así que el
+   * backend la MEZCLA en vez de reemplazarla: mandar sólo `deliveryHours` no borra
+   * `precios`. (Antes sí lo hacía — y el markup es lo único que evita perder dinero en cada
+   * pedido, porque el marketplace se queda ~30%.)
+   */
+  config?: DeliveryChannelConfig | null
+}
+
+/** Un rango de atención, en hora local del negocio. */
+export interface DeliveryHourRange {
+  open: string
+  close: string
+}
+
+export interface DeliveryDayHours {
+  enabled: boolean
+  ranges: DeliveryHourRange[]
+}
+
+export type DeliveryWeekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+
+export type DeliveryWeeklyHours = Record<DeliveryWeekday, DeliveryDayHours>
+
+/** Precios propios del canal — espejo de `PreciosDeCanal` en el server (uber.menuMapper.ts). */
+export interface DeliveryChannelPrices {
+  /** Porcentaje que se SUMA al precio de mostrador. `30` = +30%. Tope del backend: 200. */
+  markupPercent?: number
+  /** Precio fijo en PESOS para un SKU concreto. Gana sobre el markup. */
+  overrides?: Record<string, number>
+}
+
+export interface DeliveryChannelConfig {
+  deliveryHours?: DeliveryWeeklyHours | null
+  precios?: DeliveryChannelPrices | null
+  [key: string]: unknown
 }
 
 export type DeliveryActivationStatus = 'PENDING' | 'CONTACTED' | 'CONNECTED' | 'DISMISSED'

@@ -57,6 +57,36 @@
     "menuNeverPublished": "Menu not published",
     "menuManual": "Manual menu",
     "injectionRate": "Acceptance {{pct}}%",
-    "injectionTooltip": "{{aceptados}} of {{recibidos}} orders got through. Below 99% the provider may suspend the integration."
+    "injectionTooltip": "{{aceptados}} of {{recibidos}} orders got through. Below 99% the provider may suspend the integration.",
+    "settingsAction": "Hours and pricing"
+  },
+  "settings": {
+    "title": "Channel hours and pricing",
+    "save": "Save",
+    "saveSuccess": "Settings saved",
+    "saveError": "Couldn't save the settings",
+    "saveErrorFallback": "Try again in a few seconds.",
+    "hoursTitle": "Order hours",
+    "hoursHelp": "When this channel accepts orders. Outside these hours the marketplace won't send you orders, so you don't have to reject them — and rejections count against you.",
+    "hoursEstimated": "You haven't set hours yet, so an estimate is being published (Monday to Saturday, 9:00 to 22:00). Adjust it to your real hours.",
+    "closed": "Closed",
+    "opensAt": "Opening time on {{day}}",
+    "closesAt": "Closing time on {{day}}",
+    "markupTitle": "Delivery markup",
+    "markupHelp": "Percentage added to your counter price on this channel only. The marketplace takes a commission from every order; without a markup, each delivery sale leaves you less than you think.",
+    "markupExample": "A ${{base}} item is published at ${{resultado}}.",
+    "errorDayNoRange": "{{day}}: it is on but has no hours.",
+    "errorBadTime": "{{day}}: the time is not valid.",
+    "errorCloseBeforeOpen": "{{day}}: the closing time must be after the opening time.",
+    "errorMarkupRange": "The markup must be between 0 and {{max}} percent.",
+    "day": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
   }
 }

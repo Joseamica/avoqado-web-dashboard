@@ -57,6 +57,36 @@
     "menuNeverPublished": "Menu non publié",
     "menuManual": "Menu manuel",
     "injectionRate": "Acceptation {{pct}} %",
-    "injectionTooltip": "{{aceptados}} commandes sur {{recibidos}} sont passées. En dessous de 99 %, le fournisseur peut suspendre l'intégration."
+    "injectionTooltip": "{{aceptados}} commandes sur {{recibidos}} sont passées. En dessous de 99 %, le fournisseur peut suspendre l'intégration.",
+    "settingsAction": "Horaires et prix"
+  },
+  "settings": {
+    "title": "Horaires et prix du canal",
+    "save": "Enregistrer",
+    "saveSuccess": "Paramètres enregistrés",
+    "saveError": "Impossible d'enregistrer les paramètres",
+    "saveErrorFallback": "Réessayez dans quelques secondes.",
+    "hoursTitle": "Horaires de commande",
+    "hoursHelp": "Quand ce canal accepte des commandes. En dehors de ces horaires, la plateforme ne vous envoie pas de commandes, vous n'avez donc pas à les refuser — et les refus comptent contre vous.",
+    "hoursEstimated": "Vous n'avez pas encore défini d'horaires : une estimation est publiée (du lundi au samedi, 9h00 à 22h00). Ajustez-la à vos horaires réels.",
+    "closed": "Fermé",
+    "opensAt": "Heure d'ouverture le {{day}}",
+    "closesAt": "Heure de fermeture le {{day}}",
+    "markupTitle": "Majoration livraison",
+    "markupHelp": "Pourcentage ajouté à votre prix en boutique sur ce canal uniquement. La plateforme prélève une commission sur chaque commande ; sans majoration, chaque vente en livraison vous rapporte moins que prévu.",
+    "markupExample": "Un article à {{base}} $ est publié à {{resultado}} $.",
+    "errorDayNoRange": "{{day}} : activé mais sans horaires.",
+    "errorBadTime": "{{day}} : l'heure n'est pas valide.",
+    "errorCloseBeforeOpen": "{{day}} : l'heure de fermeture doit être après celle d'ouverture.",
+    "errorMarkupRange": "La majoration doit être comprise entre 0 et {{max}} pour cent.",
+    "day": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    }
   }
 }
