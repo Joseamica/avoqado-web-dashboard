@@ -572,6 +572,7 @@
       "delivery-channels_read": "View delivery channels",
       "delivery-channels_manage": "Manage delivery channels",
       "delivery-channels_request": "Request a delivery channel",
+      "delivery-channels_snooze": "Pause delivery for a while",
       "catalog-venue_read": "View venue catalog",
       "catalog-venue_request-override": "Request catalog override",
       "tables_manage-all": "Manage any table",

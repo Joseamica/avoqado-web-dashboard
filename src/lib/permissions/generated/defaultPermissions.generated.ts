@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella d7854e3f9c637afc.
- * ADMIN 98 · CASHIER 37 · HOST 16 · KITCHEN 8 · MANAGER 117 · OWNER 103 · SUPERADMIN 4 · VIEWER 16 · WAITER 40
+ * 9 roles · huella 3f49e33e2121159e.
+ * ADMIN 98 · CASHIER 38 · HOST 16 · KITCHEN 9 · MANAGER 118 · OWNER 103 · SUPERADMIN 4 · VIEWER 16 · WAITER 41
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -129,6 +129,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'menu:read',
     'orders:read',
     'orders:update',
+    'delivery-channels:snooze',
     'payments:read',
     'payments:create',
     'payments:refund',
@@ -189,6 +190,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'area-tickets:issue',
     'area-tickets:deliver',
     'scale:use',
+    'delivery-channels:snooze',
     'calendar:connect_self',
   ],
   MANAGER: [
@@ -308,6 +310,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:view_status',
     'cfdi:issue',
     'cfdi:view',
+    'delivery-channels:snooze',
     'delivery-channels:read',
   ],
   OWNER: [
@@ -446,6 +449,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'orders:create',
     'orders:update',
     'orders:cancel-unpaid',
+    'delivery-channels:snooze',
     'payments:read',
     'payments:create',
     'area-tickets:issue',
@@ -483,4 +487,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'd7854e3f9c637afc'
+export const DEFAULT_PERMISSIONS_DIGEST = '3f49e33e2121159e'

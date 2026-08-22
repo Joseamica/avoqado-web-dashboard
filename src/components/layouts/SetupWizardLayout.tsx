@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
@@ -19,6 +20,12 @@ interface SetupWizardLayoutProps {
   }
   /** Hide finish later (e.g., on signup step) */
   hideFinishLater?: boolean
+  /**
+   * Widen the content column. The wizard is a 640px form column by default — right for
+   * every question-and-answer step, far too narrow for the plan step's 4-tier pricing
+   * comparison, which needs the cards side by side to be readable.
+   */
+  wide?: boolean
 }
 
 export function SetupWizardLayout({
@@ -27,6 +34,7 @@ export function SetupWizardLayout({
   onFinishLater,
   primaryAction,
   hideFinishLater = false,
+  wide = false,
 }: SetupWizardLayoutProps) {
   const { t } = useTranslation('setup')
 
@@ -89,7 +97,7 @@ export function SetupWizardLayout({
 
       {/* Content — centered with generous whitespace */}
       <main className="flex flex-1 justify-center px-4 pt-8 pb-16 sm:pt-16 md:pt-20">
-        <div className="w-full max-w-[640px]">{children}</div>
+        <div className={cn('w-full', wide ? 'max-w-[1120px]' : 'max-w-[640px]')}>{children}</div>
       </main>
     </div>
   )

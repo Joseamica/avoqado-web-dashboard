@@ -29,6 +29,10 @@ export type SimCustodyErrorCode =
   | 'REASON_REQUIRED'
   | 'TENANT_MISMATCH'
   | 'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_BODY'
+  | 'PROMOTER_NOT_FOUND'
+  | 'NOT_IN_PROMOTER_STATE'
+  | 'SUPERVISOR_NOT_FOUND'
+  | 'NOT_IN_SUPERVISOR_STATE'
 
 export type SimCustodyCollectionReason = 'STAFF_TERMINATED' | 'DAMAGED_SIM' | 'SUPERVISOR_COLLECTION'
 
@@ -77,6 +81,11 @@ export interface CollectInput {
 
 export interface ReassignToPromoterInput {
   toPromoterStaffId: string
+  serialNumbers: string[]
+}
+
+export interface ReassignToSupervisorInput {
+  toSupervisorStaffId: string
   serialNumbers: string[]
 }
 
@@ -196,6 +205,24 @@ export async function reassignSimsToPromoter(
   venueId?: string | null,
 ): Promise<BulkResponse> {
   const { data } = await api.post(`${base(orgId)}/reassign-promoter`, body, {
+    headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
+  })
+  return data
+}
+
+/**
+ * Admin bulk reassign one level up the chain: move SIMs from one supervisor to
+ * another. ONLY SUPERVISOR_HELD SIMs are eligible — a SIM a promoter already
+ * carries keeps its old supervisor and comes back as NOT_IN_SUPERVISOR_STATE
+ * (collect it from the promoter first). The promoter and the sale are untouched.
+ * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
+ */
+export async function reassignSimsToSupervisor(
+  orgId: string,
+  body: ReassignToSupervisorInput,
+  venueId?: string | null,
+): Promise<BulkResponse> {
+  const { data } = await api.post(`${base(orgId)}/reassign-supervisor`, body, {
     headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
   })
   return data

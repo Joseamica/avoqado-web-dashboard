@@ -74,7 +74,11 @@
       "errorToast": "Could not switch your plan. Please try again."
     },
     "currentBadge": "Your current plan",
-    "billing": { "monthly": "Monthly", "annual": "Yearly", "save": "2 months free" },
+    "billing": {
+      "monthly": "Monthly",
+      "annual": "Yearly",
+      "save": "2 months free"
+    },
     "perMonth": "/mo",
     "perYear": "/yr",
     "plusIva": "+ VAT",
@@ -89,12 +93,31 @@
     "checkoutSuccess": "Welcome to Pro! Your plan is active.",
     "checkoutCanceled": "Payment canceled. Your plan didn't change.",
     "checkoutError": "We couldn't open checkout. Please try again.",
-    "cta": { "current": "Your current plan", "upgrade": "Upgrade to {{tier}}", "downgrade": "Switch to {{tier}}", "contact": "Contact sales" },
+    "cta": {
+      "current": "Your current plan",
+      "upgrade": "Upgrade to {{tier}}",
+      "downgrade": "Switch to {{tier}}",
+      "contact": "Contact sales",
+      "choose": "Choose {{tier}}",
+      "selected": "Selected"
+    },
     "tiers": {
-      "free": { "name": "Free", "pitch": "Everything to run your business, free." },
-      "pro": { "name": "Pro", "pitch": "Grow and understand your business: history, AI, more sales." },
-      "premium": { "name": "Premium", "pitch": "Go pro: invoicing, serious inventory, multi-location." },
-      "enterprise": { "name": "Enterprise", "pitch": "For chains: own brand, integrations, volume pricing." }
+      "free": {
+        "name": "Free",
+        "pitch": "Everything to run your business, free."
+      },
+      "pro": {
+        "name": "Pro",
+        "pitch": "Grow and understand your business: history, AI, more sales."
+      },
+      "premium": {
+        "name": "Premium",
+        "pitch": "Go pro: invoicing, serious inventory, multi-location."
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "pitch": "For chains: own brand, integrations, volume pricing."
+      }
     },
     "features": {
       "pos": "Card payments (POS)",
@@ -121,7 +144,8 @@
       "whiteLabel": "White-label",
       "apiIntegrations": "API & integrations",
       "slaSupport": "SLA & dedicated support"
-    }
+    },
+    "chooseAria": "Choose your plan"
   },
   "featureGate": {
     "tierTag": "Included in {{tier}}",

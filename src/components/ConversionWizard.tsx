@@ -747,10 +747,13 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
           {/* Reuse the billing PlanPicker — same cards + monthly/annual toggle.
               `currentTier` is bound to the in-wizard selection so the chosen tier
-              reads as "selected". Enterprise routes to "contact" (no self-serve). */}
+              reads as "selected"; `selectionMode="choice"` is what makes that selection
+              stay live (whole card clickable, no disabled "Tu plan actual" CTA).
+              Enterprise routes to "contact" (no self-serve). */}
           <div data-tour="conversion-plan-picker">
             <PlanPicker
               currentTier={selectedTier}
+              selectionMode="choice"
               onSelectTier={(tier, interval) => {
                 if (tier === 'ENTERPRISE') {
                   // Enterprise is contact-sales only — no self-serve conversion path.

@@ -74,7 +74,11 @@
       "errorToast": "No se pudo cambiar el plan. Intenta de nuevo."
     },
     "currentBadge": "Tu plan actual",
-    "billing": { "monthly": "Mensual", "annual": "Anual", "save": "2 meses gratis" },
+    "billing": {
+      "monthly": "Mensual",
+      "annual": "Anual",
+      "save": "2 meses gratis"
+    },
     "perMonth": "/mes",
     "perYear": "/año",
     "plusIva": "+ IVA",
@@ -93,13 +97,27 @@
       "current": "Tu plan actual",
       "upgrade": "Mejorar a {{tier}}",
       "downgrade": "Cambiar a {{tier}}",
-      "contact": "Contactar ventas"
+      "contact": "Contactar ventas",
+      "choose": "Elegir {{tier}}",
+      "selected": "Seleccionado"
     },
     "tiers": {
-      "free": { "name": "Free", "pitch": "Todo para operar tu negocio, gratis." },
-      "pro": { "name": "Pro", "pitch": "Crece y entiende tu negocio: histórico, IA y más ventas." },
-      "premium": { "name": "Premium", "pitch": "Profesionaliza: facturación, inventario serio y multisucursal." },
-      "enterprise": { "name": "Enterprise", "pitch": "Para cadenas: marca propia, integraciones y precio por volumen." }
+      "free": {
+        "name": "Free",
+        "pitch": "Todo para operar tu negocio, gratis."
+      },
+      "pro": {
+        "name": "Pro",
+        "pitch": "Crece y entiende tu negocio: histórico, IA y más ventas."
+      },
+      "premium": {
+        "name": "Premium",
+        "pitch": "Profesionaliza: facturación, inventario serio y multisucursal."
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "pitch": "Para cadenas: marca propia, integraciones y precio por volumen."
+      }
     },
     "features": {
       "pos": "Cobra con tarjeta (TPV)",
@@ -126,7 +144,8 @@
       "whiteLabel": "Marca propia (white-label)",
       "apiIntegrations": "API e integraciones",
       "slaSupport": "SLA y soporte dedicado"
-    }
+    },
+    "chooseAria": "Elige tu plan"
   },
   "featureGate": {
     "tierTag": "Incluido en {{tier}}",

@@ -240,6 +240,9 @@
     "freeNote": "Empieza gratis sin tarjeta. Puedes mejorar tu plan cuando quieras desde Facturación.",
     "freeContinue": "Continuar con el plan Gratis",
     "loading": "Cargando…",
-    "finishLaterWarning": "Tu cuenta no se activará hasta que completes tu plan. ¿Pausar de todos modos?"
+    "finishLaterWarning": "Tu cuenta no se activará hasta que completes tu plan. ¿Pausar de todos modos?",
+    "setupIntentError": "No pudimos preparar el pago",
+    "setupIntentErrorBody": "No pudimos preparar el pago con tarjeta. Vuelve a intentarlo o continúa con el plan Gratis y mejóralo después.",
+    "retry": "Reintentar"
   }
 }

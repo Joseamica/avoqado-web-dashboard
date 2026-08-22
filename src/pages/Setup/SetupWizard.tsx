@@ -453,7 +453,9 @@ export default function SetupWizard() {
   const provisionalVenueId = (progressData as any)?.progress?.venueId ?? (data as any).venueId ?? undefined
 
   return (
-    <SetupWizardLayout onBack={isFirstStep ? undefined : handleBack} onFinishLater={handleFinishLater}>
+    // The plan step is a 4-tier pricing comparison, not a form — it needs the full column
+    // width so the cards sit side by side instead of being squeezed into the 640px form column.
+    <SetupWizardLayout onBack={isFirstStep ? undefined : handleBack} onFinishLater={handleFinishLater} wide={stepId === 'plan'}>
       {isSaving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50">
           <Icons.spinner className="h-8 w-8 animate-spin text-foreground" />

@@ -240,6 +240,9 @@
     "freeNote": "Start free, no card required. You can upgrade anytime from Billing.",
     "freeContinue": "Continue with the Free plan",
     "loading": "Loading…",
-    "finishLaterWarning": "Your account won't activate until you complete your plan. Pause anyway?"
+    "finishLaterWarning": "Your account won't activate until you complete your plan. Pause anyway?",
+    "setupIntentError": "We couldn't set up the payment",
+    "setupIntentErrorBody": "We couldn't set up card payment. Try again, or continue on the Free plan and upgrade later.",
+    "retry": "Try again"
   }
 }

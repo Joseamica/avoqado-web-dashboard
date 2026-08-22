@@ -577,6 +577,7 @@
       "delivery-channels_read": "Ver canales de entrega",
       "delivery-channels_manage": "Gestionar canales de entrega",
       "delivery-channels_request": "Solicitar un canal de entrega",
+      "delivery-channels_snooze": "Pausar el reparto un rato",
       "catalog-venue_read": "Ver catálogo del negocio",
       "catalog-venue_request-override": "Solicitar excepción de catálogo",
       "tables_manage-all": "Administrar cualquier mesa",
