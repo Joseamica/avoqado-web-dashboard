@@ -161,4 +161,33 @@ describe('CustomersAwaitingApproval', () => {
       ),
     )
   }, 20000)
+
+  it('🔴 la espera se muestra como ANTIGÜEDAD en el idioma de la interfaz, no como fecha en inglés', async () => {
+    // Bug real visto en pantalla el 2026-08-24: la fila decía "Aug 24, 2026" en un dashboard
+    // enteramente en español. La causa NO era de este componente sino de `formatDate`, que no
+    // fija locale y cae al del navegador — por eso aquí se afirma la FORMA del texto ("hace…" /
+    // "en…"), que es lo que se rompería si alguien volviera a pintar la fecha absoluta.
+    mockCan.mockReturnValue(true)
+    mockGetAwaiting.mockResolvedValue({ ...RESPONSE_FIXTURE, data: [ANA], meta: { page: 1, pageSize: 20, total: 1 } })
+    renderTray()
+
+    const espera = await screen.findByTitle(ANA.approvalRequestedAt)
+    // Luxon en español: "hace 3 días" hacia atrás, "dentro de 7 días" hacia adelante.
+    // (La primera versión de este test asumía "en 7 días" y falló — el propio test corrigió
+    //  la suposición, que es exactamente para lo que sirve.)
+    expect(espera.textContent?.trim()).toMatch(/^(hace|dentro de) /)
+    expect(espera.textContent).not.toMatch(/\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/)
+  }, 20000)
+
+  it('muestra correo Y teléfono: quien aprueba tiene que reconocer a la persona', async () => {
+    // Antes era `email ?? phone`, así que a quien tenía los dos se le escondía el teléfono —
+    // que en un gimnasio o una estética es justo el dato con el que se identifica a alguien.
+    mockCan.mockReturnValue(true)
+    const conAmbos = { ...ANA, phone: '5555550101' }
+    mockGetAwaiting.mockResolvedValue({ ...RESPONSE_FIXTURE, data: [conAmbos], meta: { page: 1, pageSize: 20, total: 1 } })
+    renderTray()
+
+    await screen.findByText(/ana@test\.com/)
+    expect(screen.getByText(/ana@test\.com/).textContent).toContain('5555550101')
+  }, 20000)
 })
