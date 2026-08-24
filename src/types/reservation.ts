@@ -212,6 +212,14 @@ export interface ReservationSettings {
     showStaffPicker?: boolean
     requirePhone: boolean
     requireEmail: boolean
+    /**
+     * El cliente debe iniciar sesión o registrarse antes de reservar. El server y el widget
+     * ya lo respetaban desde antes; el dashboard NUNCA lo expuso, así que sólo se podía
+     * prender por API. Es además el prerequisito de `requireCustomerApproval`.
+     */
+    requireAccount?: boolean
+    /** Fase 1: el negocio aprueba a mano a cada cliente nuevo. Exige `requireAccount`. */
+    requireCustomerApproval?: boolean
   }
   payments?: {
     appointmentUpfrontDefault: 'required' | 'at_venue' | 'optional'

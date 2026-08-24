@@ -28,6 +28,7 @@ interface ServiceFormData {
   price: number | string
   categoryId: string
   duration: number | string
+  bufferAfterMin: number | string
   maxParticipants: number | string
   active: boolean
   imageUrl: string | null
@@ -76,10 +77,8 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
   const categoryItems = useMemo<SearchComboboxItem[]>(() => categories.map(c => ({ id: c.id, label: c.name })), [categories])
   const [categorySearch, setCategorySearch] = useState('')
   const filteredCategoryItems = useMemo(
-    () => categorySearch.trim()
-      ? categoryItems.filter(c => includesNormalized(c.label ?? '', categorySearch))
-      : categoryItems,
-    [categoryItems, categorySearch]
+    () => (categorySearch.trim() ? categoryItems.filter(c => includesNormalized(c.label ?? '', categorySearch)) : categoryItems),
+    [categoryItems, categorySearch],
   )
 
   // Inline category creation
@@ -122,6 +121,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
       price: '',
       categoryId: '',
       duration: '',
+      bufferAfterMin: '',
       maxParticipants: '',
       active: true,
       imageUrl: null,
@@ -152,6 +152,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
         price: existingProduct.price,
         categoryId: existingProduct.categoryId,
         duration: existingProduct.duration ?? '',
+        bufferAfterMin: (existingProduct as any).bufferAfterMin ?? '',
         maxParticipants: existingProduct.maxParticipants ?? '',
         active: existingProduct.active,
         imageUrl: existingProduct.imageUrl,
@@ -174,6 +175,9 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
         price: '',
         categoryId: '',
         duration: isAppointment ? 60 : '',
+        // Sin tiempo de limpieza por default: el buffer sólo existe si el
+        // negocio lo pide explícitamente.
+        bufferAfterMin: '',
         maxParticipants: isClass ? 15 : '',
         active: true,
         imageUrl: null,
@@ -199,6 +203,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
           type: effectiveType,
           imageUrl: uploadedImageUrl || undefined,
           duration: isAppointment && data.duration ? Number(data.duration) : undefined,
+          bufferAfterMin: isAppointment && data.bufferAfterMin ? Number(data.bufferAfterMin) : undefined,
           maxParticipants: isClass && data.maxParticipants ? Number(data.maxParticipants) : undefined,
           layoutConfig: isClass ? data.layoutConfig : undefined,
           allowCreditRedemption: data.allowCreditRedemption,
@@ -243,6 +248,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
       }
       if (isAppointment) {
         payload.duration = data.duration ? Number(data.duration) : null
+        payload.bufferAfterMin = data.bufferAfterMin ? Number(data.bufferAfterMin) : null
       }
       if (isClass) {
         payload.maxParticipants = data.maxParticipants ? Number(data.maxParticipants) : null
@@ -410,6 +416,27 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
                     />
                     {errors.duration && <p className="text-xs text-destructive">{errors.duration.message as string}</p>}
                     <p className="text-xs text-muted-foreground">{t('services.form.durationOptionalHelp')}</p>
+                  </div>
+                )}
+
+                {isAppointment && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bufferAfterMin">{t('services.form.bufferAfterLabel')}</Label>
+                    <Input
+                      id="bufferAfterMin"
+                      type="number"
+                      min="0"
+                      max="240"
+                      data-tour="service-buffer-after"
+                      placeholder={t('services.form.bufferAfterPlaceholder')}
+                      {...register('bufferAfterMin', {
+                        setValueAs: raw => (raw === '' || raw === null ? null : Number(raw)),
+                        min: { value: 0, message: t('services.form.bufferAfterMin') },
+                        max: { value: 240, message: t('services.form.bufferAfterMax') },
+                      })}
+                    />
+                    {errors.bufferAfterMin && <p className="text-xs text-destructive">{errors.bufferAfterMin.message as string}</p>}
+                    <p className="text-xs text-muted-foreground">{t('services.form.bufferAfterHelp')}</p>
                   </div>
                 )}
 
@@ -618,9 +645,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
                         onChange={e => field.onChange(e.target.value as ServiceFormData['upfrontPolicy'])}
                         className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       >
-                        <option value="inherit">
-                          {t('services.form.upfrontPolicy.inherit', { defaultValue: 'Heredar del venue' })}
-                        </option>
+                        <option value="inherit">{t('services.form.upfrontPolicy.inherit', { defaultValue: 'Heredar del venue' })}</option>
                         <option value="required">
                           {t('services.form.upfrontPolicy.required', { defaultValue: 'Pago obligatorio al reservar' })}
                         </option>
@@ -667,9 +692,13 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
                           field.onChange(item.id)
                           setCategorySearch('')
                         }}
-                        onCreateNew={trimmedSearch && !exactMatch ? (term => {
-                          if (term.trim()) createCategoryMutation.mutate(term.trim())
-                        }) : undefined}
+                        onCreateNew={
+                          trimmedSearch && !exactMatch
+                            ? term => {
+                                if (term.trim()) createCategoryMutation.mutate(term.trim())
+                              }
+                            : undefined
+                        }
                         createNewLabel={term => `${term} (${t('services.form.createCategory', { defaultValue: 'Crear categoría' })})`}
                         placeholder={t('products.create.categoryPlaceholder')}
                       />
@@ -689,9 +718,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
                   render={({ field }) => (
                     <div className="flex items-center justify-between rounded-lg border border-border p-4">
                       <div className="space-y-0.5">
-                        <p className="text-sm font-medium">
-                          {field.value ? t('services.filters.active') : t('services.filters.inactive')}
-                        </p>
+                        <p className="text-sm font-medium">{field.value ? t('services.filters.active') : t('services.filters.inactive')}</p>
                         <p className="text-xs text-muted-foreground">{t('services.form.activeHelp')}</p>
                       </div>
                       <Switch

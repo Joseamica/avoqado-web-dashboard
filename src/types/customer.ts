@@ -124,6 +124,51 @@ export interface PaginatedCustomerGroupsResponse {
 	meta: PaginationMeta
 }
 
+/**
+ * Aprobación de clientes — el negocio decide quién puede reservar en línea.
+ * Sólo aplica cuando `requireCustomerApproval` está prendido en Ajustes de Reservaciones.
+ */
+export type CustomerApprovalStatus = 'APPROVED' | 'PENDING' | 'REJECTED'
+
+export interface CustomerAwaitingApproval {
+	id: string
+	firstName: string | null
+	lastName: string | null
+	email: string | null
+	phone: string | null
+	approvalStatus: CustomerApprovalStatus
+	/** Write-CAS: viaja de vuelta en la decisión para no pisar a quien decidió primero. */
+	approvalVersion: number
+	approvalRequestedAt: string | null
+	accountActivatedAt: string | null
+	createdAt: string
+}
+
+/**
+ * 🔴 Meta PROPIA, no `PaginationMeta`.
+ *
+ * El endpoint devuelve `{ page, pageSize, total }` — no el shape de las listas viejas
+ * (`totalCount`, `currentPage`, `totalPages`, `hasNextPage`…). Reusar `PaginationMeta` "porque
+ * es paginado" tipaba una mentira: el conteo salía `undefined` en pantalla.
+ */
+export interface CustomerApprovalPaginationMeta {
+	page: number
+	pageSize: number
+	total: number
+}
+
+export interface CustomersAwaitingApprovalResponse {
+	data: CustomerAwaitingApproval[]
+	meta: CustomerApprovalPaginationMeta
+}
+
+export interface CustomerApprovalDecisionResponse {
+	approvalStatus: CustomerApprovalStatus
+	approvalVersion: number
+	/** `false` = ya estaba así; la decisión fue idempotente y no se avisó a nadie de nuevo. */
+	changed: boolean
+}
+
 export interface PaginatedLoyaltyTransactionsResponse {
 	data: LoyaltyTransaction[]
 	meta: PaginationMeta

@@ -792,7 +792,12 @@
       "serviceImage": "Service image",
       "createCategory": "Create category",
       "newCategoryPlaceholder": "Category name",
-      "categoryCreated": "Category created"
+      "categoryCreated": "Category created",
+      "bufferAfterLabel": "Cleanup time after (minutes)",
+      "bufferAfterPlaceholder": "e.g. 15",
+      "bufferAfterMin": "Cleanup time cannot be negative",
+      "bufferAfterMax": "Cleanup time cannot exceed 240 minutes",
+      "bufferAfterHelp": "Optional. Blocks this much time after the appointment for cleanup or setup, and nobody can book it. The customer still sees when their service ends, not this."
     },
     "toasts": {
       "created": "Service created",

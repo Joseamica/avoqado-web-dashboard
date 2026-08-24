@@ -1,241 +1,263 @@
 {
-	"title": "Customers",
-	"subtitle": "Manage your customer database and loyalty program",
-	"emptyState": {
-		"title": "No customers yet",
-		"description": "Your customers will appear here once they start making purchases"
-	},
-	"list": {
-		"searchPlaceholder": "Search by name, email, or phone...",
-		"filters": {
-			"allGroups": "All Groups",
-			"noGroup": "No Group",
-			"pendingBalance": "With Pending Balance"
-		},
-		"sort": {
-			"label": "Sort by",
-			"createdAt": "Date added",
-			"totalSpent": "Total spent",
-			"visitCount": "Visits",
-			"lastVisit": "Last visit"
-		},
-		"columns": {
-			"name": "Name",
-			"email": "Email",
-			"phone": "Phone",
-			"group": "Group",
-			"totalSpent": "Total Spent",
-			"visits": "Visits",
-			"points": "Points",
-			"lastVisit": "Last Visit",
-			"pendingOrders": "Pending Orders",
-			"pendingBalance": "Pending Balance"
-		}
-	},
-	"detail": {
-		"backToList": "Back to Customers",
-		"memberSince": "Member since {{date}}",
-		"lastVisit": "Last visit {{date}}",
-		"noLastVisit": "No visits yet",
-		"stats": {
-			"totalSpent": "Total Spent",
-			"visits": "Visits",
-			"avgOrder": "Avg. Order",
-			"points": "Loyalty Points"
-		},
-		"tabs": {
-			"orders": "Orders",
-			"loyalty": "Loyalty History",
-			"credits": "Credits",
-			"notes": "Notes"
-		},
-		"credits": {
-			"title": "Credit Packs",
-			"description": "Active purchases and remaining credits per product",
-			"emptyState": "This customer has no credit pack purchases",
-			"remaining": "{{remaining}} of {{total}}",
-			"remainingAdjusted": "{{remaining}} available",
-			"expires": "Expires {{date}}",
-			"noExpiry": "No expiry",
-			"purchasedAt": "Purchased {{date}}",
-			"amountPaid": "Paid",
-			"status": {
-				"ACTIVE": "Active",
-				"EXHAUSTED": "Exhausted",
-				"EXPIRED": "Expired",
-				"REFUNDED": "Refunded"
-			}
-		},
-		"orders": {
-			"title": "Recent Orders",
-			"emptyState": "No orders yet",
-			"orderNumber": "Order #{{number}}",
-			"viewOrder": "View Order"
-		},
-		"loyalty": {
-			"title": "Loyalty Transactions",
-			"emptyState": "No loyalty transactions yet",
-			"currentBalance": "Current Balance",
-			"pointsValue": "Worth {{value}}",
-			"filterType": "Filter by type",
-			"allTypes": "All Types",
-			"types": {
-				"EARN": "Earned",
-				"REDEEM": "Redeemed",
-				"EXPIRE": "Expired",
-				"ADJUST": "Adjusted"
-			}
-		}
-	},
-	"form": {
-		"createTitle": "New Customer",
-		"editTitle": "Edit Customer",
-		"fields": {
-			"firstName": "First Name",
-			"lastName": "Last Name",
-			"email": "Email",
-			"phone": "Phone",
-			"group": "Customer Group"
-		},
-		"placeholders": {
-			"firstName": "Enter first name",
-			"lastName": "Enter last name",
-			"email": "Enter email address",
-			"phone": "Enter phone number",
-			"selectGroup": "Select a group (optional)"
-		},
-		"validation": {
-			"firstNameRequired": "First name is required",
-			"lastNameRequired": "Last name is required",
-			"emailRequired": "Email is required",
-			"emailInvalid": "Please enter a valid email",
-			"phoneRequired": "Phone number is required",
-			"phoneInvalid": "Phone number must be at least 10 characters"
-		},
-		"buttons": {
-			"create": "Create Customer",
-			"save": "Save Changes",
-			"cancel": "Cancel"
-		}
-	},
-	"delete": {
-		"title": "Delete Customer",
-		"description": "Are you sure you want to delete {{name}}? This action cannot be undone.",
-		"confirm": "Delete Customer",
-		"cancel": "Cancel"
-	},
-	"adjustPoints": {
-		"title": "Adjust Loyalty Points",
-		"description": "Manually adjust loyalty points for {{name}}",
-		"currentBalance": "Current Balance",
-		"fields": {
-			"points": "Points to Add/Remove",
-			"reason": "Reason"
-		},
-		"placeholders": {
-			"points": "Enter points (use negative to subtract)",
-			"reason": "Enter reason for adjustment (required)"
-		},
-		"validation": {
-			"pointsRequired": "Points amount is required",
-			"reasonRequired": "Reason is required",
-			"reasonMin": "Reason must be at least 5 characters",
-			"reasonMax": "Reason cannot exceed 500 characters",
-			"insufficientPoints": "Cannot reduce below 0 points"
-		},
-		"newBalance": "New Balance",
-		"submit": "Adjust Points",
-		"cancel": "Cancel"
-	},
-	"groups": {
-		"title": "Customer Groups",
-		"subtitle": "Organize customers into groups for better targeting",
-		"emptyState": {
-			"title": "No groups yet",
-			"description": "Create your first customer group to start organizing customers"
-		},
-		"columns": {
-			"name": "Name",
-			"description": "Description",
-			"customers": "Customers",
-			"status": "Status"
-		},
-		"status": {
-			"active": "Active",
-			"inactive": "Inactive"
-		},
-		"form": {
-			"createTitle": "New Customer Group",
-			"editTitle": "Edit Customer Group",
-			"fields": {
-				"name": "Group Name",
-				"description": "Description",
-				"color": "Color",
-				"active": "Active"
-			},
-			"placeholders": {
-				"name": "Enter group name",
-				"description": "Enter description (optional)"
-			},
-			"validation": {
-				"nameRequired": "Group name is required",
-				"colorRequired": "Color is required"
-			},
-			"buttons": {
-				"create": "Create Group",
-				"save": "Save Changes"
-			}
-		},
-		"delete": {
-			"title": "Delete Group",
-			"description": "Are you sure you want to delete the group \"{{name}}\"? Customers in this group will be removed from it.",
-			"confirm": "Delete Group"
-		},
-		"assign": {
-			"title": "Assign Customers",
-			"description": "Select customers to add to this group",
-			"searchPlaceholder": "Search customers...",
-			"selectedCount": "{{count}} selected",
-			"submit": "Assign to Group",
-			"success": "{{count}} customers assigned to group"
-		},
-		"remove": {
-			"title": "Remove from Group",
-			"description": "Select customers to remove from this group",
-			"submit": "Remove from Group",
-			"success": "{{count}} customers removed from group"
-		}
-	},
-	"toasts": {
-		"createSuccess": "Customer created successfully",
-		"updateSuccess": "Customer updated successfully",
-		"deleteSuccess": "Customer deleted successfully",
-		"adjustPointsSuccess": "Points adjusted successfully",
-		"groupCreateSuccess": "Customer group created successfully",
-		"groupUpdateSuccess": "Customer group updated successfully",
-		"groupDeleteSuccess": "Customer group deleted successfully",
-		"error": "An error occurred. Please try again."
-	},
-	"actions": {
-		"newCustomer": "New Customer",
-		"edit": "Edit",
-		"delete": "Delete",
-		"adjustPoints": "Adjust Points",
-		"viewDetails": "View Details",
-		"assignToGroup": "Assign to Group",
-		"removeFromGroup": "Remove from Group",
-		"settleBalance": "Settle Balance"
-	},
-	"settleBalance": {
-		"title": "Settle Pending Balance",
-		"description": "Mark all pending orders for {{name}} as paid",
-		"pendingOrders": "Pending orders",
-		"totalBalance": "Total balance",
-		"notesLabel": "Notes (optional)",
-		"notesPlaceholder": "E.g.: Cash payment, Bank transfer...",
-		"notesHelp": "Add details about how the payment was received",
-		"confirm": "Settle Balance",
-		"successTitle": "Balance Settled",
-		"successDescription": "Settled {{count}} order(s) for a total of {{amount}}"
-	}
+  "title": "Customers",
+  "subtitle": "Manage your customer database and loyalty program",
+  "emptyState": {
+    "title": "No customers yet",
+    "description": "Your customers will appear here once they start making purchases"
+  },
+  "list": {
+    "searchPlaceholder": "Search by name, email, or phone...",
+    "filters": {
+      "allGroups": "All Groups",
+      "noGroup": "No Group",
+      "pendingBalance": "With Pending Balance"
+    },
+    "sort": {
+      "label": "Sort by",
+      "createdAt": "Date added",
+      "totalSpent": "Total spent",
+      "visitCount": "Visits",
+      "lastVisit": "Last visit"
+    },
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "group": "Group",
+      "totalSpent": "Total Spent",
+      "visits": "Visits",
+      "points": "Points",
+      "lastVisit": "Last Visit",
+      "pendingOrders": "Pending Orders",
+      "pendingBalance": "Pending Balance"
+    }
+  },
+  "detail": {
+    "backToList": "Back to Customers",
+    "memberSince": "Member since {{date}}",
+    "lastVisit": "Last visit {{date}}",
+    "noLastVisit": "No visits yet",
+    "stats": {
+      "totalSpent": "Total Spent",
+      "visits": "Visits",
+      "avgOrder": "Avg. Order",
+      "points": "Loyalty Points"
+    },
+    "tabs": {
+      "orders": "Orders",
+      "loyalty": "Loyalty History",
+      "credits": "Credits",
+      "notes": "Notes"
+    },
+    "credits": {
+      "title": "Credit Packs",
+      "description": "Active purchases and remaining credits per product",
+      "emptyState": "This customer has no credit pack purchases",
+      "remaining": "{{remaining}} of {{total}}",
+      "remainingAdjusted": "{{remaining}} available",
+      "expires": "Expires {{date}}",
+      "noExpiry": "No expiry",
+      "purchasedAt": "Purchased {{date}}",
+      "amountPaid": "Paid",
+      "status": {
+        "ACTIVE": "Active",
+        "EXHAUSTED": "Exhausted",
+        "EXPIRED": "Expired",
+        "REFUNDED": "Refunded"
+      }
+    },
+    "orders": {
+      "title": "Recent Orders",
+      "emptyState": "No orders yet",
+      "orderNumber": "Order #{{number}}",
+      "viewOrder": "View Order"
+    },
+    "loyalty": {
+      "title": "Loyalty Transactions",
+      "emptyState": "No loyalty transactions yet",
+      "currentBalance": "Current Balance",
+      "pointsValue": "Worth {{value}}",
+      "filterType": "Filter by type",
+      "allTypes": "All Types",
+      "types": {
+        "EARN": "Earned",
+        "REDEEM": "Redeemed",
+        "EXPIRE": "Expired",
+        "ADJUST": "Adjusted"
+      }
+    }
+  },
+  "form": {
+    "createTitle": "New Customer",
+    "editTitle": "Edit Customer",
+    "fields": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "group": "Customer Group"
+    },
+    "placeholders": {
+      "firstName": "Enter first name",
+      "lastName": "Enter last name",
+      "email": "Enter email address",
+      "phone": "Enter phone number",
+      "selectGroup": "Select a group (optional)"
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email",
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Phone number must be at least 10 characters"
+    },
+    "buttons": {
+      "create": "Create Customer",
+      "save": "Save Changes",
+      "cancel": "Cancel"
+    }
+  },
+  "delete": {
+    "title": "Delete Customer",
+    "description": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+    "confirm": "Delete Customer",
+    "cancel": "Cancel"
+  },
+  "adjustPoints": {
+    "title": "Adjust Loyalty Points",
+    "description": "Manually adjust loyalty points for {{name}}",
+    "currentBalance": "Current Balance",
+    "fields": {
+      "points": "Points to Add/Remove",
+      "reason": "Reason"
+    },
+    "placeholders": {
+      "points": "Enter points (use negative to subtract)",
+      "reason": "Enter reason for adjustment (required)"
+    },
+    "validation": {
+      "pointsRequired": "Points amount is required",
+      "reasonRequired": "Reason is required",
+      "reasonMin": "Reason must be at least 5 characters",
+      "reasonMax": "Reason cannot exceed 500 characters",
+      "insufficientPoints": "Cannot reduce below 0 points"
+    },
+    "newBalance": "New Balance",
+    "submit": "Adjust Points",
+    "cancel": "Cancel"
+  },
+  "groups": {
+    "title": "Customer Groups",
+    "subtitle": "Organize customers into groups for better targeting",
+    "emptyState": {
+      "title": "No groups yet",
+      "description": "Create your first customer group to start organizing customers"
+    },
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "customers": "Customers",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "form": {
+      "createTitle": "New Customer Group",
+      "editTitle": "Edit Customer Group",
+      "fields": {
+        "name": "Group Name",
+        "description": "Description",
+        "color": "Color",
+        "active": "Active"
+      },
+      "placeholders": {
+        "name": "Enter group name",
+        "description": "Enter description (optional)"
+      },
+      "validation": {
+        "nameRequired": "Group name is required",
+        "colorRequired": "Color is required"
+      },
+      "buttons": {
+        "create": "Create Group",
+        "save": "Save Changes"
+      }
+    },
+    "delete": {
+      "title": "Delete Group",
+      "description": "Are you sure you want to delete the group \"{{name}}\"? Customers in this group will be removed from it.",
+      "confirm": "Delete Group"
+    },
+    "assign": {
+      "title": "Assign Customers",
+      "description": "Select customers to add to this group",
+      "searchPlaceholder": "Search customers...",
+      "selectedCount": "{{count}} selected",
+      "submit": "Assign to Group",
+      "success": "{{count}} customers assigned to group"
+    },
+    "remove": {
+      "title": "Remove from Group",
+      "description": "Select customers to remove from this group",
+      "submit": "Remove from Group",
+      "success": "{{count}} customers removed from group"
+    }
+  },
+  "toasts": {
+    "createSuccess": "Customer created successfully",
+    "updateSuccess": "Customer updated successfully",
+    "deleteSuccess": "Customer deleted successfully",
+    "adjustPointsSuccess": "Points adjusted successfully",
+    "groupCreateSuccess": "Customer group created successfully",
+    "groupUpdateSuccess": "Customer group updated successfully",
+    "groupDeleteSuccess": "Customer group deleted successfully",
+    "error": "An error occurred. Please try again."
+  },
+  "actions": {
+    "newCustomer": "New Customer",
+    "edit": "Edit",
+    "delete": "Delete",
+    "adjustPoints": "Adjust Points",
+    "viewDetails": "View Details",
+    "assignToGroup": "Assign to Group",
+    "removeFromGroup": "Remove from Group",
+    "settleBalance": "Settle Balance"
+  },
+  "settleBalance": {
+    "title": "Settle Pending Balance",
+    "description": "Mark all pending orders for {{name}} as paid",
+    "pendingOrders": "Pending orders",
+    "totalBalance": "Total balance",
+    "notesLabel": "Notes (optional)",
+    "notesPlaceholder": "E.g.: Cash payment, Bank transfer...",
+    "notesHelp": "Add details about how the payment was received",
+    "confirm": "Settle Balance",
+    "successTitle": "Balance Settled",
+    "successDescription": "Settled {{count}} order(s) for a total of {{amount}}"
+  },
+  "approval": {
+    "title": "Waiting for approval",
+    "description": "These people created an account and cannot book until you approve them.",
+    "unnamed": "Unnamed customer",
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "reject": {
+      "title": "Reject {{name}}",
+      "description": "The reason you write is emailed to them. You can leave it empty if you prefer not to give one.",
+      "placeholder": "Reason (optional)",
+      "pending": "Rejecting…",
+      "descriptionNoEmail": "This person signed up over WhatsApp and has no email, so they will not be notified of this decision. Add a reason if you want it on record."
+    },
+    "toasts": {
+      "approved": "Customer approved. They can book now.",
+      "rejected": "Customer rejected.",
+      "conflict": "Someone else already decided",
+      "conflictHelp": "Another person approved or rejected this customer while you were reviewing. The list has been refreshed."
+    }
+  }
 }

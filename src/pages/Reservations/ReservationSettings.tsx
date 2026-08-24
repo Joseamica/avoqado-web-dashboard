@@ -322,6 +322,8 @@ function SettingToggleRow({
   checked,
   onCheckedChange,
   tourId,
+  disabled = false,
+  requirementHint,
 }: {
   label: ReactNode
   tooltip?: ReactNode
@@ -329,15 +331,22 @@ function SettingToggleRow({
   checked: boolean
   onCheckedChange: (v: boolean) => void
   tourId?: string
+  /** Apagado por depender de otro ajuste. La fila SIGUE visible: nunca desaparece en silencio. */
+  disabled?: boolean
+  /** Qué hay que prender primero. Se muestra bajo la etiqueta cuando `disabled` es true. */
+  requirementHint?: ReactNode
 }) {
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <ScopeBadge scope={scope} />
-        {tooltip ? <InfoTooltip content={tooltip} /> : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className={cn('text-sm font-medium', disabled ? 'text-muted-foreground' : 'text-foreground')}>{label}</p>
+          <ScopeBadge scope={scope} />
+          {tooltip ? <InfoTooltip content={tooltip} /> : null}
+        </div>
+        {disabled && requirementHint ? <p className="mt-1 text-xs text-muted-foreground">{requirementHint}</p> : null}
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} data-tour={tourId} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} data-tour={tourId} />
     </div>
   )
 }
@@ -449,6 +458,10 @@ const settingsSchema = z.object({
   showStaffPicker: z.boolean(),
   requirePhone: z.boolean(),
   requireEmail: z.boolean(),
+  // El cliente debe tener cuenta para reservar. Prerequisito de la aprobación manual.
+  requireAccount: z.boolean(),
+  // Fase 1: el negocio aprueba a mano a cada cliente nuevo antes de dejarlo reservar.
+  requireCustomerApproval: z.boolean(),
   // Cancellation
   allowCustomerCancel: z.boolean(),
   minHoursBeforeCancel: nullableNumber(z.number().min(0)),
@@ -519,8 +532,13 @@ export default function ReservationSettings() {
     queryKey: ['google-calendar', 'connections'],
     queryFn: () => googleCalendarService.listConnections(),
   })
+  // `connections?.` y no `connections.`: si la respuesta llega sin la lista
+  // —error transitorio, forma inesperada, respuesta vacía— el `.find()` sobre
+  // undefined tumbaba TODA la pantalla de Ajustes con un "¡Ups!", no sólo la
+  // tarjeta de Google Calendar. Una integración caída no puede impedir editar
+  // horarios, depósitos o lista de espera.
   const venueGoogleCalendarConnection =
-    gcalConnectionsData?.connections.find(c => c.scope === 'VENUE' && c.venueId === venueId && c.status !== 'DISCONNECTED') ?? null
+    gcalConnectionsData?.connections?.find(c => c.scope === 'VENUE' && c.venueId === venueId && c.status !== 'DISCONNECTED') ?? null
 
   const {
     handleSubmit,
@@ -550,6 +568,8 @@ export default function ReservationSettings() {
       showStaffPicker: false,
       requirePhone: true,
       requireEmail: false,
+      requireAccount: false,
+      requireCustomerApproval: false,
       allowCustomerCancel: true,
       minHoursBeforeCancel: 2,
       forfeitDeposit: false,
@@ -602,6 +622,9 @@ export default function ReservationSettings() {
         showStaffPicker: staffAwareSettings.showStaffPicker,
         requirePhone: settings.publicBooking.requirePhone,
         requireEmail: settings.publicBooking.requireEmail,
+        // Opcionales mientras el backend rueda: un server viejo no manda estos campos.
+        requireAccount: settings.publicBooking.requireAccount ?? false,
+        requireCustomerApproval: settings.publicBooking.requireCustomerApproval ?? false,
         allowCustomerCancel: settings.cancellation.allowCustomerCancel,
         minHoursBeforeCancel: settings.cancellation.minHoursBeforeStart,
         forfeitDeposit: settings.cancellation.forfeitDeposit,
@@ -660,6 +683,8 @@ export default function ReservationSettings() {
           enabled: data.publicBookingEnabled,
           requirePhone: data.requirePhone,
           requireEmail: data.requireEmail,
+          requireAccount: data.requireAccount,
+          requireCustomerApproval: data.requireCustomerApproval,
           ...staffAwarePatch.publicBooking,
         },
         cancellation: {
@@ -1095,6 +1120,36 @@ export default function ReservationSettings() {
                   tooltip={t('settings.publicBooking.requireEmailTooltip')}
                   checked={formValues.requireEmail}
                   onCheckedChange={v => setValue('requireEmail', v, { shouldDirty: true })}
+                />
+                {/* El server y el widget respetaban `requireAccount` desde antes, pero el
+                    dashboard nunca lo expuso: sólo se podía prender por API. Además es el
+                    prerequisito del switch de abajo, así que sin esta fila la aprobación de
+                    clientes sería imposible de activar desde la pantalla. */}
+                <SettingToggleRow
+                  label={t('settings.publicBooking.requireAccount')}
+                  tooltip={t('settings.publicBooking.requireAccountTooltip')}
+                  checked={formValues.requireAccount}
+                  onCheckedChange={v => {
+                    setValue('requireAccount', v, { shouldDirty: true })
+                    // Apagar la cuenta apaga la aprobación: dejarla prendida guardaría un
+                    // estado que el server rechaza, y el error saldría al guardar sin decir
+                    // cuál de los dos switches lo causó.
+                    if (!v) setValue('requireCustomerApproval', false, { shouldDirty: true })
+                  }}
+                  tourId="reservation-require-account"
+                />
+                {/* Fase 1 — aprobar clientes EXIGE requerir cuenta: sin cuenta no hay a quién
+                    aprobar (el server lo rechaza con un CHECK). En vez de dejar prenderlo y
+                    fallar al guardar, el switch se deshabilita y se explica qué prender
+                    primero — "apagado se VE y se EXPLICA". */}
+                <SettingToggleRow
+                  label={t('settings.publicBooking.requireCustomerApproval')}
+                  tooltip={t('settings.publicBooking.requireCustomerApprovalTooltip')}
+                  checked={formValues.requireCustomerApproval}
+                  onCheckedChange={v => setValue('requireCustomerApproval', v, { shouldDirty: true })}
+                  tourId="reservation-require-customer-approval"
+                  disabled={!formValues.requireAccount}
+                  requirementHint={t('settings.publicBooking.requireCustomerApprovalNeedsAccount')}
                 />
               </div>
             </Card>

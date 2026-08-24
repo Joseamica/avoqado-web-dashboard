@@ -657,7 +657,12 @@
       "requirePhone": "Requerir teléfono",
       "requirePhoneTooltip": "El cliente debe ingresar su teléfono al hacer la reserva online.",
       "requireEmail": "Requerir email",
-      "requireEmailTooltip": "El cliente debe ingresar su correo electrónico al hacer la reserva online."
+      "requireEmailTooltip": "El cliente debe ingresar su correo electrónico al hacer la reserva online.",
+      "requireAccount": "Requerir cuenta para reservar",
+      "requireAccountTooltip": "El cliente debe iniciar sesión o registrarse antes de reservar en línea.",
+      "requireCustomerApproval": "Aprobar manualmente a cada cliente nuevo",
+      "requireCustomerApprovalTooltip": "Cada cuenta nueva queda en espera hasta que tú la apruebes. Mientras tanto no puede reservar ni comprar paquetes. Las cuentas que ya existían no se ven afectadas.",
+      "requireCustomerApprovalNeedsAccount": "Activa primero “Requerir cuenta para reservar”: sin cuenta no hay a quién aprobar."
     },
     "cancellation": {
       "allowCustomerCancel": "Permitir cancelación por cliente",

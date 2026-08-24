@@ -787,7 +787,12 @@
       "serviceImage": "Imagen del servicio",
       "createCategory": "Crear categoría",
       "newCategoryPlaceholder": "Nombre de la categoría",
-      "categoryCreated": "Categoría creada"
+      "categoryCreated": "Categoría creada",
+      "bufferAfterLabel": "Tiempo de limpieza después (minutos)",
+      "bufferAfterPlaceholder": "Ej. 15",
+      "bufferAfterMin": "El tiempo de limpieza no puede ser negativo",
+      "bufferAfterMax": "El tiempo de limpieza no puede pasar de 240 minutos",
+      "bufferAfterHelp": "Opcional. Aparta este rato después de la cita para limpiar o preparar, y nadie puede reservarlo. Al cliente se le sigue mostrando la hora en que termina su servicio, no esta."
     },
     "toasts": {
       "created": "Servicio creado",

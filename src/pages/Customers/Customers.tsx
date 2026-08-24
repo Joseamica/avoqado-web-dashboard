@@ -44,6 +44,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import CustomerForm from './components/CustomerForm'
+import { CustomersAwaitingApproval } from './components/CustomersAwaitingApproval'
 
 export default function Customers() {
 	const { venueId } = useCurrentVenue()
@@ -398,6 +399,10 @@ export default function Customers() {
 					</Dialog>
 				</PermissionGate>
 			</div>
+
+			{/* Fase 1 — quién está esperando a que el negocio lo apruebe. Se pinta solo si hay
+			    alguien en espera: es un aviso que exige acción, no una sección permanente. */}
+			<CustomersAwaitingApproval venueId={venueId} />
 
 			{/* Data Table */}
 			<DataTable

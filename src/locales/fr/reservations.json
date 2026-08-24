@@ -196,7 +196,12 @@
     },
     "publicBooking": {
       "showStaffPicker": "Permettre au client de choisir un professionnel",
-      "showStaffPickerHelp": "Affiche les professionnels éligibles et disponibles. Désactivez cette option pour une attribution automatique."
+      "showStaffPickerHelp": "Affiche les professionnels éligibles et disponibles. Désactivez cette option pour une attribution automatique.",
+      "requireAccount": "Exiger un compte pour réserver",
+      "requireAccountTooltip": "Le client doit se connecter ou s’inscrire avant de réserver en ligne.",
+      "requireCustomerApproval": "Approuver manuellement chaque nouveau client",
+      "requireCustomerApprovalTooltip": "Chaque nouveau compte reste en attente jusqu’à votre approbation. Entre-temps, il ne peut ni réserver ni acheter de forfaits. Les comptes existants ne sont pas affectés.",
+      "requireCustomerApprovalNeedsAccount": "Activez d’abord « Exiger un compte pour réserver » : sans compte, il n’y a personne à approuver."
     },
     "staffing": {
       "sectionHelp": "Choisissez les professionnels de chaque service et configurez leur disponibilité.",

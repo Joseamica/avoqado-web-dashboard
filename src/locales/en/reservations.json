@@ -657,7 +657,12 @@
       "requirePhone": "Require phone",
       "requirePhoneTooltip": "The customer must enter a phone number when booking online.",
       "requireEmail": "Require email",
-      "requireEmailTooltip": "The customer must enter an email address when booking online."
+      "requireEmailTooltip": "The customer must enter an email address when booking online.",
+      "requireAccount": "Require an account to book",
+      "requireAccountTooltip": "The customer must sign in or register before booking online.",
+      "requireCustomerApproval": "Manually approve every new customer",
+      "requireCustomerApprovalTooltip": "Every new account waits until you approve it. Until then they cannot book or buy packages. Existing accounts are not affected.",
+      "requireCustomerApprovalNeedsAccount": "Turn on “Require an account to book” first: without an account there is nobody to approve."
     },
     "cancellation": {
       "allowCustomerCancel": "Allow customer cancellation",

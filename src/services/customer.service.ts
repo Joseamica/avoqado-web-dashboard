@@ -13,6 +13,8 @@ import type {
 	AssignCustomersRequest,
 	AssignCustomersResponse,
 	RemoveCustomersResponse,
+	CustomersAwaitingApprovalResponse,
+	CustomerApprovalDecisionResponse,
 } from '@/types/customer'
 
 // Customer query parameters
@@ -148,6 +150,40 @@ export const customerService = {
 	// Remove customers from group
 	async removeCustomersFromGroup(venueId: string, groupId: string, data: AssignCustomersRequest): Promise<RemoveCustomersResponse> {
 		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/customer-groups/${groupId}/remove`, data)
+		return response.data
+	},
+
+	// ---------------------------------------------------------------------------
+	// Aprobación de clientes (el negocio decide quién puede reservar en línea)
+	// ---------------------------------------------------------------------------
+
+	/** Bandeja "En espera": del más antiguo al más reciente, que es a quién hay que atender primero. */
+	async getCustomersAwaitingApproval(venueId: string, params: { page?: number; pageSize?: number } = {}): Promise<CustomersAwaitingApprovalResponse> {
+		const searchParams = new URLSearchParams()
+		if (params.page) searchParams.append('page', params.page.toString())
+		if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString())
+
+		const queryString = searchParams.toString()
+		const url = `/api/v1/dashboard/venues/${venueId}/customers/awaiting-approval${queryString ? `?${queryString}` : ''}`
+
+		const response = await api.get(url)
+		return response.data
+	},
+
+	/**
+	 * Aprobar o rechazar.
+	 *
+	 * 🔴 `expectedVersion` NO es opcional: es la versión que venía en la fila que el usuario
+	 * tiene en pantalla. Si alguien más decidió mientras tanto, el server responde 409 en vez
+	 * de pisar su decisión en silencio. Ese 409 hay que mostrarlo como "recarga y vuelve a
+	 * intentar", no como un error genérico.
+	 */
+	async decideCustomerApproval(
+		venueId: string,
+		customerId: string,
+		data: { decision: 'APPROVED' | 'REJECTED'; reason?: string; expectedVersion: number },
+	): Promise<CustomerApprovalDecisionResponse> {
+		const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/customers/${customerId}/approval`, data)
 		return response.data
 	},
 }
