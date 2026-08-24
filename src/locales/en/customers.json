@@ -251,7 +251,9 @@
       "description": "The reason you write is emailed to them. You can leave it empty if you prefer not to give one.",
       "placeholder": "Reason (optional)",
       "pending": "Rejecting…",
-      "descriptionNoEmail": "This person signed up over WhatsApp and has no email, so they will not be notified of this decision. Add a reason if you want it on record."
+      "descriptionNoEmail": "This person signed up over WhatsApp and has no email, so they will not be notified of this decision. Add a reason if you want it on record.",
+      "reasonLabel": "Reason (optional)",
+      "consequence": "{{name}} will no longer be able to book or buy packages online. Today this decision cannot be undone from the dashboard."
     },
     "toasts": {
       "approved": "Customer approved. They can book now.",

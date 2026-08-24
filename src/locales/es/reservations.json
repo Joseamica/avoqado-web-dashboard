@@ -662,7 +662,8 @@
       "requireAccountTooltip": "El cliente debe iniciar sesión o registrarse antes de reservar en línea.",
       "requireCustomerApproval": "Aprobar manualmente a cada cliente nuevo",
       "requireCustomerApprovalTooltip": "Cada cuenta nueva queda en espera hasta que tú la apruebes. Mientras tanto no puede reservar ni comprar paquetes. Las cuentas que ya existían no se ven afectadas.",
-      "requireCustomerApprovalNeedsAccount": "Activa primero “Requerir cuenta para reservar”: sin cuenta no hay a quién aprobar."
+      "requireCustomerApprovalNeedsAccount": "Activa primero “Requerir cuenta para reservar”: sin cuenta no hay a quién aprobar.",
+      "requireCustomerApprovalActiveHint": "Ya está activo: las cuentas nuevas quedan en espera. Las verás en Clientes › En espera de aprobación."
     },
     "cancellation": {
       "allowCustomerCancel": "Permitir cancelación por cliente",

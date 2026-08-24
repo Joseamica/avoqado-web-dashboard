@@ -251,7 +251,9 @@
       "description": "Le motif que vous écrivez lui sera envoyé par e-mail. Vous pouvez le laisser vide si vous préférez ne pas en donner.",
       "placeholder": "Motif (facultatif)",
       "pending": "Refus en cours…",
-      "descriptionNoEmail": "Cette personne s’est inscrite via WhatsApp et n’a pas d’e-mail : elle ne sera pas informée de cette décision. Ajoutez un motif si vous souhaitez le consigner."
+      "descriptionNoEmail": "Cette personne s’est inscrite via WhatsApp et n’a pas d’e-mail : elle ne sera pas informée de cette décision. Ajoutez un motif si vous souhaitez le consigner.",
+      "reasonLabel": "Motif (facultatif)",
+      "consequence": "{{name}} ne pourra plus réserver ni acheter de forfaits en ligne. Pour l’instant, cette décision ne peut pas être annulée depuis le tableau de bord."
     },
     "toasts": {
       "approved": "Client approuvé. Il peut désormais réserver.",

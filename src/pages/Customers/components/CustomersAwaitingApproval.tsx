@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock, UserCheck } from 'lucide-react'
+import { DateTime } from 'luxon'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -26,12 +27,19 @@ import type { CustomerAwaitingApproval } from '@/types/customer'
  * ordenar al revés sepulta a quien pidió en la mañana.
  */
 export function CustomersAwaitingApproval({ venueId }: { venueId: string }) {
-  const { t } = useTranslation('customers')
+  const { t, i18n } = useTranslation('customers')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { can } = useAccess()
   const { formatDate } = useVenueDateTime()
+
+  /**
+   * "hace 5 minutos" / "hace 3 días". Se pasa el idioma ACTIVO de la interfaz a propósito:
+   * Luxon, sin locale explícito, cae al del navegador — que es justo el defecto por el que
+   * esta fila mostraba "Aug 24, 2026" en una pantalla en español.
+   */
+  const waitingFor = (iso: string) => DateTime.fromISO(iso).setLocale(i18n.language).toRelative() ?? ''
 
   const [rejecting, setRejecting] = useState<CustomerAwaitingApproval | null>(null)
   const [reason, setReason] = useState('')
@@ -103,25 +111,50 @@ export function CustomersAwaitingApproval({ venueId }: { venueId: string }) {
             <div key={customer.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{displayName(customer)}</p>
-                <p className="truncate text-xs text-muted-foreground">{customer.email ?? customer.phone ?? '—'}</p>
+                {/* Correo Y teléfono, no el primero que exista: quien aprueba tiene que reconocer
+                    a la persona, y en un gimnasio o estética se identifica por teléfono. Con
+                    `email ?? phone` una fila con correo escondía el único dato reconocible. */}
+                <p className="truncate text-xs text-muted-foreground">
+                  {[customer.email, customer.phone].filter(Boolean).join(' · ') || '—'}
+                </p>
               </div>
 
               {customer.approvalRequestedAt ? (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  {formatDate(customer.approvalRequestedAt)}
+                /* Antigüedad, no fecha absoluta. Lo accionable en una fila de espera es cuánto
+                   lleva aguardando —"hace 5 min" contra "hace 3 días" cambia la urgencia—, no el
+                   día del calendario, que dentro del mismo día es idéntico para todos.
+                   De paso esquiva un defecto de plataforma: `formatDate` no fija idioma y cae al
+                   del navegador, así que en una pantalla toda en español salía "Aug 24, 2026".
+                   La fecha exacta sigue disponible en el `title`. */
+                <span
+                  className="flex items-center gap-1 text-xs text-muted-foreground"
+                  title={formatDate(customer.approvalRequestedAt)}
+                >
+                  <Clock className="h-3 w-3 shrink-0" />
+                  {waitingFor(customer.approvalRequestedAt)}
                 </span>
               ) : null}
 
-              <div className="flex shrink-0 gap-2 sm:ml-auto">
+              {/* Móvil: 44 px de alto y separación amplia. Medido antes del cambio, 32 px de alto
+                  y 8 px entre "Aprobar" y "Rechazar" — un destructivo pegado al primario, al
+                  alcance de un pulgar torpe, en la pantalla donde se decide si alguien puede
+                  comprar. En escritorio vuelven a ser compactos. */}
+              <div className="flex shrink-0 gap-3 sm:ml-auto sm:gap-2">
                 <Button
                   size="sm"
+                  className="h-11 flex-1 sm:h-8 sm:flex-none"
                   onClick={() => decideMutation.mutate({ customer, decision: 'APPROVED' })}
                   disabled={decideMutation.isPending}
                 >
                   {t('approval.actions.approve')}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setRejecting(customer)} disabled={decideMutation.isPending}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-11 flex-1 sm:h-8 sm:flex-none"
+                  onClick={() => setRejecting(customer)}
+                  disabled={decideMutation.isPending}
+                >
                   {t('approval.actions.reject')}
                 </Button>
               </div>
@@ -157,13 +190,30 @@ export function CustomersAwaitingApproval({ venueId }: { venueId: string }) {
               </DialogDescription>
             </DialogHeader>
 
-            <Textarea
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              placeholder={t('approval.reject.placeholder')}
-              maxLength={500}
-              rows={3}
-            />
+            {/* 🔴 Qué le pasa a la persona. El diálogo pedía confirmar un acto destructivo sin
+                decir qué destruye: sólo explicaba a dónde iba el motivo. Y lo que más pesa: el
+                backend SÍ admite volver a aprobar, pero la bandeja lista únicamente a los
+                PENDING — al rechazar, la persona desaparece y hoy no hay camino de regreso desde
+                el dashboard. Callarlo volvería definitivo un clic accidental, sin aviso. */}
+            <p className="rounded-md border border-input bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              {t('approval.reject.consequence', { name: displayName(rejecting) })}
+            </p>
+
+            {/* Rótulo VISIBLE, no sólo el placeholder: al escribir la primera letra el
+                placeholder se va y con él la única pista de que el motivo es opcional. */}
+            <div className="space-y-1.5">
+              <label htmlFor="approval-reject-reason" className="text-xs font-medium text-foreground">
+                {t('approval.reject.reasonLabel')}
+              </label>
+              <Textarea
+                id="approval-reject-reason"
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder={t('approval.reject.placeholder')}
+                maxLength={500}
+                rows={3}
+              />
+            </div>
 
             <DialogFooter>
               <Button variant="outline" disabled={decideMutation.isPending} onClick={() => { setRejecting(null); setReason('') }}>

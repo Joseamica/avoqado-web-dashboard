@@ -251,7 +251,9 @@
       "description": "El motivo que escribas se le enviará por correo. Puedes dejarlo vacío si prefieres no dar una razón.",
       "placeholder": "Motivo (opcional)",
       "pending": "Rechazando…",
-      "descriptionNoEmail": "Esta persona se registró por WhatsApp y no tiene correo, así que no recibirá aviso de esta decisión. Anota el motivo si quieres dejarlo registrado."
+      "descriptionNoEmail": "Esta persona se registró por WhatsApp y no tiene correo, así que no recibirá aviso de esta decisión. Anota el motivo si quieres dejarlo registrado.",
+      "reasonLabel": "Motivo (opcional)",
+      "consequence": "{{name}} dejará de poder reservar y comprar paquetes en línea. Hoy esta decisión no se puede deshacer desde el dashboard."
     },
     "toasts": {
       "approved": "Cliente aprobado. Ya puede reservar.",

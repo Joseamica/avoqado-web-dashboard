@@ -306,7 +306,11 @@ function SettingRow({
   return (
     <div className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
       <div className="flex min-w-0 items-center gap-1.5 sm:flex-1">
-        <p className="text-sm font-medium text-foreground">{label}</p>
+        {/* <span>, no <p>: `label` es un ReactNode y varias filas le pasan un <Badge>
+            ("Muy pronto"), que es un <div>. Un <div> dentro de un <p> es HTML inválido —
+            el navegador cierra el <p> solo y React lo reporta como error en consola
+            (visto el 2026-08-24 en la fila "Cargo por No Show"). */}
+        <span className="text-sm font-medium text-foreground">{label}</span>
         <ScopeBadge scope={scope} />
         {tooltip ? <InfoTooltip content={tooltip} /> : null}
       </div>
@@ -324,6 +328,7 @@ function SettingToggleRow({
   tourId,
   disabled = false,
   requirementHint,
+  activeHint,
 }: {
   label: ReactNode
   tooltip?: ReactNode
@@ -335,16 +340,24 @@ function SettingToggleRow({
   disabled?: boolean
   /** Qué hay que prender primero. Se muestra bajo la etiqueta cuando `disabled` es true. */
   requirementHint?: ReactNode
+  /**
+   * Consecuencia de tenerlo PRENDIDO, visible sin hover. El tooltip (i) no existe en celular
+   * —no hay puntero— y este es justo el ajuste que decide quién puede comprar: esconder su
+   * efecto detrás de un hover lo vuelve invisible para quien administra desde el teléfono.
+   */
+  activeHint?: ReactNode
 }) {
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1.5">
-          <p className={cn('text-sm font-medium', disabled ? 'text-muted-foreground' : 'text-foreground')}>{label}</p>
+          {/* Mismo motivo que en SettingRow: `label` puede traer un <Badge>. */}
+          <span className={cn('text-sm font-medium', disabled ? 'text-muted-foreground' : 'text-foreground')}>{label}</span>
           <ScopeBadge scope={scope} />
           {tooltip ? <InfoTooltip content={tooltip} /> : null}
         </div>
         {disabled && requirementHint ? <p className="mt-1 text-xs text-muted-foreground">{requirementHint}</p> : null}
+        {!disabled && checked && activeHint ? <p className="mt-1 text-xs text-muted-foreground">{activeHint}</p> : null}
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} data-tour={tourId} />
     </div>
@@ -1150,6 +1163,7 @@ export default function ReservationSettings() {
                   tourId="reservation-require-customer-approval"
                   disabled={!formValues.requireAccount}
                   requirementHint={t('settings.publicBooking.requireCustomerApprovalNeedsAccount')}
+                  activeHint={t('settings.publicBooking.requireCustomerApprovalActiveHint')}
                 />
               </div>
             </Card>

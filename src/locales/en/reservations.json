@@ -662,7 +662,8 @@
       "requireAccountTooltip": "The customer must sign in or register before booking online.",
       "requireCustomerApproval": "Manually approve every new customer",
       "requireCustomerApprovalTooltip": "Every new account waits until you approve it. Until then they cannot book or buy packages. Existing accounts are not affected.",
-      "requireCustomerApprovalNeedsAccount": "Turn on “Require an account to book” first: without an account there is nobody to approve."
+      "requireCustomerApprovalNeedsAccount": "Turn on “Require an account to book” first: without an account there is nobody to approve.",
+      "requireCustomerApprovalActiveHint": "Active: new accounts are put on hold. You will see them in Customers › Waiting for approval."
     },
     "cancellation": {
       "allowCustomerCancel": "Allow customer cancellation",
