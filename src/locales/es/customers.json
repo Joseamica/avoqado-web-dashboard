@@ -249,7 +249,7 @@
     "reject": {
       "title": "Rechazar a {{name}}",
       "description": "El motivo que escribas se le enviará por correo. Puedes dejarlo vacío si prefieres no dar una razón.",
-      "placeholder": "Motivo (opcional)",
+      "placeholder": "Ej. No pudimos verificar tus datos. Pásate al mostrador con una identificación.",
       "pending": "Rechazando…",
       "descriptionNoEmail": "Esta persona se registró por WhatsApp y no tiene correo, así que no recibirá aviso de esta decisión. Anota el motivo si quieres dejarlo registrado.",
       "reasonLabel": "Motivo (opcional)",

@@ -249,7 +249,7 @@
     "reject": {
       "title": "Reject {{name}}",
       "description": "The reason you write is emailed to them. You can leave it empty if you prefer not to give one.",
-      "placeholder": "Reason (optional)",
+      "placeholder": "e.g. We could not verify your details. Please stop by the front desk with an ID.",
       "pending": "Rejecting…",
       "descriptionNoEmail": "This person signed up over WhatsApp and has no email, so they will not be notified of this decision. Add a reason if you want it on record.",
       "reasonLabel": "Reason (optional)",

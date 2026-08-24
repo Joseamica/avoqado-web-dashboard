@@ -249,7 +249,7 @@
     "reject": {
       "title": "Refuser {{name}}",
       "description": "Le motif que vous écrivez lui sera envoyé par e-mail. Vous pouvez le laisser vide si vous préférez ne pas en donner.",
-      "placeholder": "Motif (facultatif)",
+      "placeholder": "Ex. Nous n’avons pas pu vérifier vos informations. Passez à l’accueil avec une pièce d’identité.",
       "pending": "Refus en cours…",
       "descriptionNoEmail": "Cette personne s’est inscrite via WhatsApp et n’a pas d’e-mail : elle ne sera pas informée de cette décision. Ajoutez un motif si vous souhaitez le consigner.",
       "reasonLabel": "Motif (facultatif)",
