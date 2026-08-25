@@ -3,9 +3,14 @@ import { Flame, Snowflake } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import type { OrgStockOverview } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
+import { InventoryByResponsibleTable } from '../components/InventoryByResponsibleTable'
+import type { InventoryByResponsible } from '@/services/stockDashboard.service'
 
 interface OrgResumenTabProps {
   data: OrgStockOverview
+  /** Tabla Ciudad › Supervisor › Promotor — el propósito de esta pantalla. */
+  byResponsible?: InventoryByResponsible
+  isLoadingByResponsible: boolean
 }
 
 const PIE_HEX_PALETTE = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#ec4899'] // matches CATEGORY_COLOR_PALETTE order
@@ -16,7 +21,7 @@ function hashIndex(str: string, mod: number): number {
   return Math.abs(h) % mod
 }
 
-export function OrgResumenTab({ data }: OrgResumenTabProps) {
+export function OrgResumenTab({ data, byResponsible, isLoadingByResponsible }: OrgResumenTabProps) {
   const { aggregatesByCategoria, aggregatesBySucursal } = data
 
   const donutData = aggregatesByCategoria.map(c => ({
@@ -42,6 +47,12 @@ export function OrgResumenTab({ data }: OrgResumenTabProps) {
 
   return (
     <>
+      {/* La tabla va primero: es el número con el que el supervisor cuenta en la
+          tienda. Las gráficas quedan debajo como contexto. */}
+      <div className="mb-6">
+        <InventoryByResponsibleTable data={byResponsible} isLoading={isLoadingByResponsible} />
+      </div>
+
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GlassCard className="p-6">
@@ -52,22 +63,22 @@ export function OrgResumenTab({ data }: OrgResumenTabProps) {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={donutData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                    {donutData.map((entry, idx) => (
-                      <Cell key={idx} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null
-                      return (
-                        <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
-                          <p className="font-semibold text-sm text-foreground">{payload[0].name}</p>
-                          <p className="text-sm text-muted-foreground">{Number(payload[0].value).toLocaleString('es-MX')} SIMs</p>
-                        </div>
-                      )
-                    }}
-                  />
-                </PieChart>
+                      {donutData.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null
+                        return (
+                          <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
+                            <p className="font-semibold text-sm text-foreground">{payload[0].name}</p>
+                            <p className="text-sm text-muted-foreground">{Number(payload[0].value).toLocaleString('es-MX')} SIMs</p>
+                          </div>
+                        )
+                      }}
+                    />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="flex flex-wrap gap-2 mt-3">

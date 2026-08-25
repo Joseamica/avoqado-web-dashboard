@@ -392,3 +392,65 @@ export const downloadOrgStockExport = async (orgId: string, params?: OrgStockOve
 
   return { blob: response.data, filename }
 }
+
+// ===========================================
+// INVENTARIO POR RESPONSABLE (Ciudad › Supervisor › Promotor)
+// ===========================================
+
+/** Las 7 columnas de la tabla. Espeja `ResponsibleCounts` del server. */
+export interface ResponsibleCounts {
+  assigned: number
+  receptionApproved: number
+  saleApproved: number
+  saleInAdminReview: number
+  saleInPromoterReview: number
+  saleRejected: number
+  inHandToday: number
+}
+
+export interface PromoterNode extends ResponsibleCounts {
+  promoterId: string
+  promoterName: string
+}
+
+export interface SupervisorNode extends ResponsibleCounts {
+  supervisorId: string | null
+  supervisorName: string
+  promoters: PromoterNode[]
+}
+
+export interface CityNode extends ResponsibleCounts {
+  city: string
+  supervisors: SupervisorNode[]
+}
+
+export interface InventoryByResponsible {
+  /** Fila "Total País": ciudades + el renglón de no asignables. */
+  total: ResponsibleCounts
+  cities: CityNode[]
+  /** Promotores dados de baja o sin sucursal. Se muestran SIEMPRE. */
+  unassigned: ResponsibleCounts & { label: string; promoters: PromoterNode[] }
+}
+
+export interface InventoryByResponsibleParams {
+  dateFrom?: string
+  dateTo?: string
+  /** Filtro "Sucursal Receptora". Sin él se ve TODO lo que el promotor trae en la mano. */
+  receivingVenueId?: string | null
+  categoryId?: string | null
+}
+
+export const getOrgInventoryByResponsible = async (
+  orgId: string,
+  params?: InventoryByResponsibleParams,
+): Promise<InventoryByResponsible> => {
+  const query = new URLSearchParams()
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params?.dateTo) query.set('dateTo', params.dateTo)
+  if (params?.receivingVenueId) query.set('receivingVenueId', params.receivingVenueId)
+  if (params?.categoryId) query.set('categoryId', params.categoryId)
+  const qs = query.toString()
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/by-responsible${qs ? `?${qs}` : ''}`)
+  return response.data.data
+}

@@ -20,6 +20,7 @@ import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useOrgStockControl } from './StockControl/hooks/useOrgStockControl'
+import { useInventoryByResponsible } from './StockControl/hooks/useInventoryByResponsible'
 import { ExportButton } from './StockControl/components/ExportButton'
 import { OrgResumenTab } from './StockControl/tabs/OrgResumenTab'
 import { OrgCargasTab } from './StockControl/tabs/OrgCargasTab'
@@ -114,7 +115,15 @@ export default function OrgStockControlPage() {
     [selectedRange],
   )
 
+  // Filtro "Sucursal Receptora" de la tabla por responsable. `null` = todas,
+  // que es lo que un supervisor necesita para cuadrar el conteo físico en tienda.
+  // PENDIENTE: el control del filtro y su valor por default (el almacén de
+  // entrada de la organización), que debe salir de la configuración del módulo
+  // y NUNCA del nombre o el slug del venue.
+  const byResponsibleParams = useMemo(() => ({ ...queryParams, receivingVenueId: null }), [queryParams])
+
   const { data, isLoading, isError, error, refetch } = useOrgStockControl(orgId, queryParams)
+  const { data: byResponsible, isLoading: isLoadingByResponsible } = useInventoryByResponsible(orgId, byResponsibleParams)
   const { data: simRegCount = 0 } = useSimRegistrationRequestsCount(orgId)
   const { data: stockApprovalCount = 0 } = useStockApprovalsCount(orgId)
   const pendingCount = simRegCount + stockApprovalCount
@@ -217,9 +226,7 @@ export default function OrgStockControlPage() {
 
       {orgId && canAssignToSupervisor && <AssignToSupervisorDialog open={assignOpen} onOpenChange={setAssignOpen} orgId={orgId} />}
 
-      {orgId && canReassignPromoter && (
-        <ReassignPromoterDialog open={reassignOpen} onOpenChange={setReassignOpen} orgId={orgId} />
-      )}
+      {orgId && canReassignPromoter && <ReassignPromoterDialog open={reassignOpen} onOpenChange={setReassignOpen} orgId={orgId} />}
 
       {canAssignToSupervisor && venues.length > 0 && <OrgBulkUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />}
 
@@ -288,9 +295,7 @@ export default function OrgStockControlPage() {
               >
                 {tab.label}
                 {tab.value === 'solicitudes' && pendingCount > 0 && (
-                  <span className="rounded-full bg-primary text-primary-foreground text-xs px-1.5 py-0.5 leading-none">
-                    {pendingCount}
-                  </span>
+                  <span className="rounded-full bg-primary text-primary-foreground text-xs px-1.5 py-0.5 leading-none">{pendingCount}</span>
                 )}
                 {activeTab === tab.value && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
               </button>
@@ -299,7 +304,7 @@ export default function OrgStockControlPage() {
         </div>
 
         <TabsContent value="resumen" className="space-y-6 mt-4">
-          <OrgResumenTab data={data} />
+          <OrgResumenTab data={data} byResponsible={byResponsible} isLoadingByResponsible={isLoadingByResponsible} />
         </TabsContent>
         <TabsContent value="cargas" className="space-y-6 mt-4">
           <OrgCargasTab data={data} />

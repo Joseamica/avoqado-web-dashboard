@@ -16,7 +16,7 @@ cd /Users/amieva/Documents/Programming/Avoqado
 ```
 
 Hace fila: un trabajo pesado a la vez en esta Mac, que corre con ~20 sesiones de IA encima y vive
-con el swap al límite. Hoy corre en **los dos lados y compara** (periodo de prueba hasta el 2026-09-01). Si dice `DIFIEREN` o `INCONCLUSO`, **ningún resultado vale**: investiga por qué y ajusta la regla.
+con el swap al límite. 🧪 Desde el 2026-08-24 este repo va **sólo al Alienware** (tiene CI en GitHub como red extra), con 1 de cada 10 corridas comparada contra la Mac por sorpresa — sigue siendo periodo de prueba hasta el 2026-09-01. Si dice `DIFIEREN` o `INCONCLUSO`, **ningún resultado vale**: investiga y ajusta la regla.
 
 Detalle completo: `Avoqado/CLAUDE.md`, sección "Verificación repartida".
 

@@ -149,6 +149,35 @@
       "low": "bajos",
       "noAlerts": "Sin alertas de stock",
       "request": "Solicitar"
+    },
+    "byResponsible": {
+      "title": "Inventario por responsable",
+      "subtitle": "Lo que cada promotor debe traer físicamente",
+      "totalCountry": "Total País",
+      "noSupervisor": "Sin supervisor asignado",
+      "unassignedHint": "Promotores dados de baja o sin sucursal. Se muestran para que su inventario no quede fuera del control.",
+      "inHandHint": "Este es el número que debes contar en la tienda",
+      "empty": "No hay inventario en manos de promotores con estos filtros.",
+      "promoterCount_one": "{{count}} promotor",
+      "promoterCount_other": "{{count}} promotores",
+      "columns": {
+        "responsible": "Responsable",
+        "assigned": "Asignados",
+        "receptionApproved": "Recepción aprobada",
+        "saleApproved": "Venta aprobada",
+        "saleInAdminReview": "Venta en revisión de Admin",
+        "saleInPromoterReview": "Venta en revisión por promotor",
+        "saleRejected": "Venta rechazada",
+        "inHandToday": "En mano HOY"
+      },
+      "filters": {
+        "receivingVenue": "Sucursal receptora",
+        "simType": "Tipo de SIM",
+        "all": "Todas",
+        "allTypes": "Todos",
+        "showingAll": "Mostrando todo el inventario en mano",
+        "filtered": "Filtrado por sucursal receptora"
+      }
     }
   },
   "sales": {
