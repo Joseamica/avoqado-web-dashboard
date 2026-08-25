@@ -177,6 +177,23 @@
         "allTypes": "All",
         "showingAll": "Showing all inventory in hand",
         "filtered": "Filtered by receiving store"
+      },
+      "export": {
+        "button": "Export dashboard",
+        "sheetTable": "Dashboard",
+        "sheetIccids": "SIM IDs in hand TODAY",
+        "empty": "No data for the selected filters",
+        "level": "Level",
+        "responsible": "Responsible",
+        "levelCountry": "Country",
+        "levelCity": "City",
+        "levelSupervisor": "Supervisor",
+        "levelPromoter": "Promoter",
+        "iccid": "SIM ID (ICCID)",
+        "promoter": "Promoter",
+        "supervisor": "Supervisor",
+        "type": "SIM type",
+        "receivingVenue": "Receiving store"
       }
     }
   },

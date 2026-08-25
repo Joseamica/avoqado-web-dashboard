@@ -187,6 +187,10 @@ export default function TeamId() {
 
   const canEdit = memberDetails.role !== StaffRole.SUPERADMIN
   const canRemove = memberDetails.role !== StaffRole.OWNER && memberDetails.role !== StaffRole.SUPERADMIN
+  // El borrado permanente ya no es exclusivo de la plataforma: el dueno del negocio
+  // tambien lo ejecuta. El backend aplica las mismas guardas (no borra a un
+  // propietario ni al ultimo administrador).
+  const canHardDelete = isSuperadmin || staffInfo?.role === StaffRole.OWNER
   const hasActivity = memberDetails.totalSales > 0 || memberDetails.totalOrders > 0
   const avgTicket = memberDetails.totalOrders > 0 ? memberDetails.totalSales / memberDetails.totalOrders : 0
 
@@ -265,12 +269,12 @@ export default function TeamId() {
               </Button>
             )}
           </PermissionGate>
-          {isSuperadmin && canRemove && (
+          {canHardDelete && canRemove && (
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
               onClick={() => setShowHardDeleteDialog(true)}
-              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0 cursor-pointer"
+              className="cursor-pointer"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {t('actions.hardDelete')}

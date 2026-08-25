@@ -151,7 +151,7 @@
     "removing": "Deleting...",
     "deactivating": "Deactivating...",
     "hardDeleteTitle": "Delete permanently?",
-    "hardDeleteDesc": "You are about to permanently delete {{firstName}} {{lastName}} and ALL their associated data: commissions, tips, sales, calculations, and historical records.",
+    "hardDeleteDesc": "You are about to permanently delete {{firstName}} {{lastName}}'s access to this venue and their commission data: payouts, calculations, overrides, and milestones. Their recorded sales and tips are kept.",
     "hardDeleteWarning": "This action is IRREVERSIBLE. Data CANNOT be recovered.",
     "hardDeleteConfirm": "Delete Permanently",
     "hardDeleting": "Deleting..."

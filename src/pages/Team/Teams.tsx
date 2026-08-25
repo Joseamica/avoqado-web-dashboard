@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
+import { ArrowUpDown, Clock, MoreHorizontal, Pencil, UserMinus, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -21,7 +21,7 @@ import { getVenueSeatStatus } from '@/services/features.service'
 import { TeamMember, StaffRole } from '@/types'
 import { filterSuperadminFromTeam, getRoleBadgeColor, canViewSuperadminInfo } from '@/utils/role-permissions'
 import { Currency } from '@/utils/currency'
-import { canModifyRole } from '@/lib/permissions/roleHierarchy'
+import { canModifyRole, canDeactivateTeamMember } from '@/lib/permissions/roleHierarchy'
 
 import {
   AlertDialog,
@@ -382,6 +382,11 @@ export default function Teams() {
     },
   })
 
+  // Misma regla que la pantalla de detalle: a un OWNER o SUPERADMIN no se le quita
+  // el acceso desde aqui. Sin esta guarda el menu ofrecia una accion que el backend
+  // rechaza, y el usuario descubria el limite hasta ver el error.
+  const canDeactivateMember = useCallback((member: TeamMember) => canDeactivateTeamMember(staffInfo?.role, member.role), [staffInfo?.role])
+
   const canToggleMember = useCallback(
     (member: TeamMember) => {
       if (!staffInfo?.role) return false
@@ -597,10 +602,15 @@ export default function Teams() {
               </PermissionGate>
               <DropdownMenuSeparator />
               <PermissionGate permission="teams:delete">
-                <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('actions.delete')}
-                </DropdownMenuItem>
+                {canDeactivateMember(row.original) && (
+                  <DropdownMenuItem
+                    onClick={() => setRemovingMember(row.original)}
+                    className="text-amber-600 focus:text-amber-700 dark:text-amber-500 dark:focus:text-amber-400"
+                  >
+                    <UserMinus className="h-4 w-4 mr-2" />
+                    {t('actions.deactivate')}
+                  </DropdownMenuItem>
+                )}
               </PermissionGate>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -616,6 +626,7 @@ export default function Teams() {
       getRoleBadgeColorWithCustom,
       getRoleBadgeStyle,
       canToggleMember,
+      canDeactivateMember,
       toggleMemberStatusMutation,
     ],
   )
@@ -1018,9 +1029,9 @@ export default function Teams() {
               <AlertDialogAction
                 onClick={() => removeTeamMemberMutation.mutate(removingMember)}
                 disabled={removeTeamMemberMutation.isPending}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-amber-600 hover:bg-amber-700"
               >
-                {removeTeamMemberMutation.isPending ? t('dialogs.removing') : t('dialogs.removeConfirm')}
+                {removeTeamMemberMutation.isPending ? t('dialogs.deactivating') : t('dialogs.deactivateConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

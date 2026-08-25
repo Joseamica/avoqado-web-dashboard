@@ -9,9 +9,9 @@
  * Resumen Ejecutivo · Cargas · Detalle SIMs · Por Sucursal · Por Categoría
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Box, CheckCircle2, Layers, Package, Store, Upload } from 'lucide-react'
+import { Package, Upload } from 'lucide-react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -21,12 +21,12 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useOrgStockControl } from './StockControl/hooks/useOrgStockControl'
 import { useInventoryByResponsible } from './StockControl/hooks/useInventoryByResponsible'
+import { InventoryResponsibleFilters } from './StockControl/components/InventoryResponsibleFilters'
+import { ExportDashboardButton } from './StockControl/components/ExportDashboardButton'
 import { ExportButton } from './StockControl/components/ExportButton'
 import { OrgResumenTab } from './StockControl/tabs/OrgResumenTab'
 import { OrgCargasTab } from './StockControl/tabs/OrgCargasTab'
 import { OrgDetalleSimsTab } from './StockControl/tabs/OrgDetalleSimsTab'
-import { OrgPorSucursalTab } from './StockControl/tabs/OrgPorSucursalTab'
-import { OrgPorCategoriaTab } from './StockControl/tabs/OrgPorCategoriaTab'
 import { OrgSolicitudesTab } from './StockControl/tabs/OrgSolicitudesTab'
 import { AssignToSupervisorDialog } from './StockControl/components/AssignToSupervisorDialog'
 import { OrgBulkUploadDialog } from './StockControl/components/OrgBulkUploadDialog'
@@ -40,8 +40,6 @@ const TABS = [
   { value: 'resumen', label: 'Resumen' },
   { value: 'cargas', label: 'Cargas' },
   { value: 'detalle', label: 'Detalle SIMs' },
-  { value: 'sucursal', label: 'Por Sucursal' },
-  { value: 'categoria', label: 'Por Categoría' },
   { value: 'solicitudes', label: 'Solicitudes' },
 ] as const
 
@@ -115,15 +113,28 @@ export default function OrgStockControlPage() {
     [selectedRange],
   )
 
-  // Filtro "Sucursal Receptora" de la tabla por responsable. `null` = todas,
-  // que es lo que un supervisor necesita para cuadrar el conteo físico en tienda.
-  // PENDIENTE: el control del filtro y su valor por default (el almacén de
-  // entrada de la organización), que debe salir de la configuración del módulo
-  // y NUNCA del nombre o el slug del venue.
-  const byResponsibleParams = useMemo(() => ({ ...queryParams, receivingVenueId: null }), [queryParams])
+  // Filtros de la tabla por responsable. `undefined` = todavía no se inicializa
+  // con el default que manda el server; `null` = el usuario eligió "todas".
+  // Distinguirlos importa: sin ese tercer estado, el efecto que aplica el default
+  // pisaría la elección del usuario en cada refetch.
+  const [receivingVenueId, setReceivingVenueId] = useState<string | null | undefined>(undefined)
+  const [categoryId, setCategoryId] = useState<string | null>(null)
+
+  const byResponsibleParams = useMemo(
+    () => ({ ...queryParams, receivingVenueId: receivingVenueId ?? null, categoryId }),
+    [queryParams, receivingVenueId, categoryId],
+  )
 
   const { data, isLoading, isError, error, refetch } = useOrgStockControl(orgId, queryParams)
   const { data: byResponsible, isLoading: isLoadingByResponsible } = useInventoryByResponsible(orgId, byResponsibleParams)
+
+  // El almacén de entrada con el que abre la pantalla lo decide el server desde
+  // la configuración del módulo. Se aplica UNA vez; a partir de ahí manda el
+  // usuario, incluso si elige "todas" (por eso `null` cuenta como elegido).
+  const defaultReceivingVenueId = byResponsible?.filters?.defaultReceivingVenueId ?? null
+  useEffect(() => {
+    if (receivingVenueId === undefined && byResponsible) setReceivingVenueId(defaultReceivingVenueId)
+  }, [byResponsible, defaultReceivingVenueId, receivingVenueId])
   const { data: simRegCount = 0 } = useSimRegistrationRequestsCount(orgId)
   const { data: stockApprovalCount = 0 } = useStockApprovalsCount(orgId)
   const pendingCount = simRegCount + stockApprovalCount
@@ -181,8 +192,6 @@ export default function OrgStockControlPage() {
     )
   }
 
-  const { summary } = data
-
   return (
     <div className="space-y-6">
       {/* Header — matches Supervisor/StockControl pattern */}
@@ -230,57 +239,6 @@ export default function OrgStockControlPage() {
 
       {canAssignToSupervisor && venues.length > 0 && <OrgBulkUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />}
 
-      {/* Summary Bar — matches StockControl.tsx pattern */}
-      <GlassCard className="p-4">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
-              <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total SIMs</p>
-              <p className="text-lg font-semibold">{summary.totalSims.toLocaleString('es-MX')}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
-              <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Disponibles</p>
-              <p className="text-lg font-semibold">{summary.available.toLocaleString('es-MX')}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-amber-500/20 to-amber-500/5">
-              <Box className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Vendidos</p>
-              <p className="text-lg font-semibold">{summary.sold.toLocaleString('es-MX')}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
-              <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Cargas</p>
-              <p className="text-lg font-semibold">{summary.totalCargas.toLocaleString('es-MX')}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-pink-500/20 to-pink-500/5">
-              <Store className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Sucursales</p>
-              <p className="text-lg font-semibold">{summary.sucursalesInvolucradas}</p>
-            </div>
-          </div>
-        </div>
-      </GlassCard>
-
       {/* Underline Tabs — matches SupervisorDashboard pattern */}
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)}>
         <div className="border-b border-border">
@@ -304,6 +262,23 @@ export default function OrgStockControlPage() {
         </div>
 
         <TabsContent value="resumen" className="space-y-6 mt-4">
+          <InventoryResponsibleFilters
+            filters={byResponsible?.filters}
+            receivingVenueId={receivingVenueId ?? null}
+            categoryId={categoryId}
+            onReceivingVenueChange={setReceivingVenueId}
+            onCategoryChange={setCategoryId}
+            disabled={isLoadingByResponsible}
+          />
+          <div className="flex justify-end">
+            <ExportDashboardButton
+              data={byResponsible}
+              items={data.items}
+              receivingVenueId={receivingVenueId ?? null}
+              categoryId={categoryId}
+              disabled={isLoadingByResponsible}
+            />
+          </div>
           <OrgResumenTab data={data} byResponsible={byResponsible} isLoadingByResponsible={isLoadingByResponsible} />
         </TabsContent>
         <TabsContent value="cargas" className="space-y-6 mt-4">
@@ -311,12 +286,6 @@ export default function OrgStockControlPage() {
         </TabsContent>
         <TabsContent value="detalle" className="space-y-6 mt-4">
           <OrgDetalleSimsTab data={data} />
-        </TabsContent>
-        <TabsContent value="sucursal" className="space-y-6 mt-4">
-          <OrgPorSucursalTab data={data} />
-        </TabsContent>
-        <TabsContent value="categoria" className="space-y-6 mt-4">
-          <OrgPorCategoriaTab data={data} />
         </TabsContent>
         <TabsContent value="solicitudes" className="space-y-6 mt-4">
           <OrgSolicitudesTab orgId={orgId!} />

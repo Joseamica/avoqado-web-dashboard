@@ -424,12 +424,26 @@ export interface CityNode extends ResponsibleCounts {
   supervisors: SupervisorNode[]
 }
 
+export interface FilterOption {
+  id: string
+  name: string
+  itemCount: number
+}
+
+export interface InventoryFilters {
+  receivingVenues: FilterOption[]
+  categories: FilterOption[]
+  /** Almacén de entrada configurado para la org. `null` = abrir mostrando todo. */
+  defaultReceivingVenueId: string | null
+}
+
 export interface InventoryByResponsible {
   /** Fila "Total País": ciudades + el renglón de no asignables. */
   total: ResponsibleCounts
   cities: CityNode[]
   /** Promotores dados de baja o sin sucursal. Se muestran SIEMPRE. */
   unassigned: ResponsibleCounts & { label: string; promoters: PromoterNode[] }
+  filters: InventoryFilters
 }
 
 export interface InventoryByResponsibleParams {

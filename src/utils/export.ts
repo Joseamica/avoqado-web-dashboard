@@ -48,11 +48,7 @@ export function exportToCSV(data: Record<string, any>[], filename: string): void
  * @param filename Name of the file (without extension)
  * @param sheetName Name of the worksheet
  */
-export async function exportToExcel(
-  data: Record<string, any>[],
-  filename: string,
-  sheetName: string = 'Data',
-): Promise<void> {
+export async function exportToExcel(data: Record<string, any>[], filename: string, sheetName: string = 'Data'): Promise<void> {
   if (!data || data.length === 0) {
     console.warn('No data to export')
     return
@@ -139,4 +135,64 @@ export function formatDateForExport(dateString: string): string {
  */
 export function formatCurrencyForExport(amount: number): string {
   return Number(amount).toFixed(2)
+}
+
+export interface ExcelSheet {
+  name: string
+  rows: Record<string, any>[]
+}
+
+/**
+ * Exporta VARIAS hojas en un mismo archivo.
+ *
+ * Nace del dashboard de inventario por responsable, que Isaac Mayoral pidió con
+ * dos hojas (25-ago-2026): la tabla tal cual y, aparte, los ICCID que cada
+ * promotor trae en la mano — esa segunda hoja es la que el supervisor imprime
+ * para contar en la tienda.
+ *
+ * Una hoja sin filas se crea igual, con una línea que lo explica: un archivo al
+ * que le falta una pestaña parece un error de exportación, y el supervisor no
+ * tiene forma de saber si es que no había nada o si falló.
+ */
+export async function exportSheetsToExcel(sheets: ExcelSheet[], filename: string, emptyLabel = 'Sin datos'): Promise<void> {
+  if (!sheets || sheets.length === 0) {
+    console.warn('No sheets to export')
+    return
+  }
+
+  const workbook = new ExcelJS.Workbook()
+
+  for (const sheet of sheets) {
+    // Excel rechaza nombres de hoja de más de 31 caracteres o con : \ / ? * [ ]
+    const safeName = sheet.name.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Hoja'
+    const worksheet = workbook.addWorksheet(safeName)
+
+    if (!sheet.rows || sheet.rows.length === 0) {
+      worksheet.addRow([emptyLabel])
+      worksheet.getRow(1).font = { bold: true }
+      worksheet.columns = [{ width: 40 }]
+      continue
+    }
+
+    const headers = Object.keys(sheet.rows[0])
+    worksheet.columns = headers.map(header => ({
+      header,
+      key: header,
+      width: Math.min(Math.max(header.length, ...sheet.rows.map(r => String(r[header] ?? '').length)) + 2, 50),
+    }))
+
+    worksheet.getRow(1).font = { bold: true }
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' }
+    for (const row of sheet.rows) worksheet.addRow(row)
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }]
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`
+  link.click()
+  URL.revokeObjectURL(url)
 }

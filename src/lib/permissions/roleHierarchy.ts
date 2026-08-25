@@ -97,6 +97,27 @@ export function canModifyRole(modifierRole: StaffRole, targetRole: StaffRole): b
 }
 
 /**
+ * Whether the actor may deactivate (revoke venue access from) a team member.
+ *
+ * Deactivating is NOT deleting: the person keeps their sales, tips and commission
+ * history and can be reactivated later — the same call Square makes, which has no
+ * permanent delete for team members at all.
+ *
+ * An OWNER or SUPERADMIN is never deactivated from the team screen, even though
+ * `canModifyRole` lets an OWNER edit another OWNER's permissions. Offering the
+ * action anyway produced a menu entry the backend always rejected.
+ *
+ * @param actorRole The role of the person clicking
+ * @param targetRole The role of the member being deactivated
+ * @returns true if the action should be offered
+ */
+export function canDeactivateTeamMember(actorRole: StaffRole | null | undefined, targetRole: StaffRole): boolean {
+  if (!actorRole) return false
+  if (targetRole === StaffRole.OWNER || targetRole === StaffRole.SUPERADMIN) return false
+  return canModifyRole(actorRole, targetRole)
+}
+
+/**
  * Check if a permission is critical (should not be removed from own role)
  *
  * @param permission Permission string (e.g., "settings:manage")

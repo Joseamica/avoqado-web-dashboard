@@ -166,6 +166,23 @@
         "allTypes": "Tous",
         "showingAll": "Affichage de tout l'inventaire en main",
         "filtered": "Filtré par magasin récepteur"
+      },
+      "export": {
+        "button": "Exporter le tableau",
+        "sheetTable": "Tableau",
+        "sheetIccids": "ID SIM en main AUJOURD'HUI",
+        "empty": "Aucune donnée pour ces filtres",
+        "level": "Niveau",
+        "responsible": "Responsable",
+        "levelCountry": "Pays",
+        "levelCity": "Ville",
+        "levelSupervisor": "Superviseur",
+        "levelPromoter": "Promoteur",
+        "iccid": "ID SIM (ICCID)",
+        "promoter": "Promoteur",
+        "supervisor": "Superviseur",
+        "type": "Type de SIM",
+        "receivingVenue": "Magasin récepteur"
       }
     }
   },

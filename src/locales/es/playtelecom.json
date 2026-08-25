@@ -177,6 +177,23 @@
         "allTypes": "Todos",
         "showingAll": "Mostrando todo el inventario en mano",
         "filtered": "Filtrado por sucursal receptora"
+      },
+      "export": {
+        "button": "Exportar dashboard",
+        "sheetTable": "Dashboard",
+        "sheetIccids": "ID SIMs en mano HOY",
+        "empty": "Sin datos para los filtros seleccionados",
+        "level": "Nivel",
+        "responsible": "Responsable",
+        "levelCountry": "País",
+        "levelCity": "Ciudad",
+        "levelSupervisor": "Supervisor",
+        "levelPromoter": "Promotor",
+        "iccid": "ID SIM (ICCID)",
+        "promoter": "Promotor",
+        "supervisor": "Supervisor",
+        "type": "Tipo de SIM",
+        "receivingVenue": "Sucursal receptora"
       }
     }
   },

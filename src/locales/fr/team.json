@@ -114,7 +114,8 @@
     "edit": "Modifier",
     "delete": "Supprimer",
     "resend": "Renvoyer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "deactivate": "Désactiver"
   },
   "cards": {
     "pendingInvitationsTitle": "Invitations en Attente",
@@ -127,7 +128,9 @@
     "removeDesc": "Êtes-vous sûr de vouloir supprimer {{firstName}} {{lastName}} de l'équipe ? Cette action ne peut pas être annulée et le membre perdra l'accès au tableau de bord.",
     "removeConfirm": "Supprimer",
     "removeCancel": "Annuler",
-    "removing": "Suppression..."
+    "removing": "Suppression...",
+    "deactivateConfirm": "Désactiver",
+    "deactivating": "Désactivation..."
   },
   "toasts": {
     "memberRemovedTitle": "Membre supprimé",

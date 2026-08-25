@@ -151,7 +151,7 @@
     "removing": "Eliminando...",
     "deactivating": "Desactivando...",
     "hardDeleteTitle": "¿Eliminar permanentemente?",
-    "hardDeleteDesc": "Estás a punto de eliminar permanentemente a {{firstName}} {{lastName}} y TODOS sus datos asociados: comisiones, propinas, ventas, cálculos y registros históricos.",
+    "hardDeleteDesc": "Estás a punto de eliminar permanentemente el acceso de {{firstName}} {{lastName}} a este negocio y sus datos de comisiones: pagos, cálculos, ajustes y metas alcanzadas. Sus ventas y propinas registradas se conservan.",
     "hardDeleteWarning": "Esta acción es IRREVERSIBLE. Los datos NO podrán ser recuperados.",
     "hardDeleteConfirm": "Eliminar Permanentemente",
     "hardDeleting": "Eliminando..."
