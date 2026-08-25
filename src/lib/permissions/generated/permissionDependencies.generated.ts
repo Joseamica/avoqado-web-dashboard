@@ -12,13 +12,13 @@
  * "viene incluido" es exactamente lo que el backend va a reponer.
  *
  * 🔴 POR QUÉ NO SE ESCRIBE A MANO: la copia anterior había derivado a 68 entradas contra
- * 182 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
+ * 185 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
  * `discounts:apply` y `coupons:redeem` — justo las que el editor de roles necesita para
  * avisar "este permiso viene incluido en aquél". Sin ellas la pantalla dejaba desmarcar algo
  * que el backend repone en silencio: mentía.
  *
- * 171 entradas · derivado de avoqado-server · huella b1c9593fe09d9cca.
- * (11 excluidas: vertical white-label de PlayTelecom.)
+ * 173 entradas · derivado de avoqado-server · huella 10d8a3d711416306.
+ * (12 excluidas: vertical white-label de PlayTelecom.)
  */
 
 export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
@@ -45,6 +45,7 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'cash-out:withdraw': ['cash-out:withdraw', 'cash-out:view_own'],
   'cfdi:configure': ['cfdi:configure', 'cfdi:view'],
   'cfdi:issue': ['cfdi:issue', 'cfdi:view'],
+  'class-sessions:read-assigned': ['class-sessions:read-assigned'],
   'commissions:approve': ['commissions:read', 'commissions:approve', 'teams:read'],
   'commissions:create': ['commissions:read', 'commissions:create'],
   'commissions:delete': ['commissions:read', 'commissions:delete'],
@@ -64,6 +65,7 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'creditPacks:redeem': ['creditPacks:redeem', 'creditPacks:read', 'customers:read'],
   'creditPacks:sell': ['creditPacks:sell', 'creditPacks:read', 'customers:read'],
   'creditPacks:update': ['creditPacks:read', 'creditPacks:update', 'creditPacks:redeem'],
+  'customers:approve': ['customers:approve', 'customers:read'],
   'delivery-channels:manage': ['delivery-channels:manage', 'delivery-channels:read', 'delivery-channels:snooze'],
   'delivery-channels:snooze': ['delivery-channels:snooze'],
   'discounts:apply': ['discounts:read', 'discounts:apply', 'orders:read', 'orders:update'],
@@ -195,4 +197,4 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'venues:update': ['venues:read', 'venues:update'],
 }
 
-export const PERMISSION_DEPENDENCIES_DIGEST = 'b1c9593fe09d9cca'
+export const PERMISSION_DEPENDENCIES_DIGEST = '10d8a3d711416306'

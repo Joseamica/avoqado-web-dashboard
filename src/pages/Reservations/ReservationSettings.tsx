@@ -454,6 +454,7 @@ const settingsSchema = z.object({
   maxAdvanceDays: z.coerce.number().min(1).max(365),
   minNoticeMin: z.coerce.number().min(0).max(10080),
   noShowGraceMin: z.coerce.number().min(0).max(120),
+  nightlyOutreachEnabled: z.boolean(),
   capacityMode: z.enum(['pacing', 'per_staff']),
   // Pacing
   pacingMaxPerSlot: nullableNumber(z.number().min(0)),
@@ -568,6 +569,7 @@ export default function ReservationSettings() {
       maxAdvanceDays: 60,
       minNoticeMin: 60,
       noShowGraceMin: 15,
+      nightlyOutreachEnabled: false,
       capacityMode: 'pacing',
       pacingMaxPerSlot: null,
       onlineCapacityPercent: 100,
@@ -622,6 +624,7 @@ export default function ReservationSettings() {
         maxAdvanceDays: settings.scheduling.maxAdvanceDays,
         minNoticeMin: settings.scheduling.minNoticeMin,
         noShowGraceMin: settings.scheduling.noShowGraceMin,
+        nightlyOutreachEnabled: settings.scheduling.nightlyOutreachEnabled ?? false,
         capacityMode: staffAwareSettings.capacityMode,
         pacingMaxPerSlot: settings.scheduling.pacingMaxPerSlot,
         onlineCapacityPercent: settings.scheduling.onlineCapacityPercent,
@@ -676,6 +679,7 @@ export default function ReservationSettings() {
           maxAdvanceDays: data.maxAdvanceDays,
           minNoticeMin: data.minNoticeMin,
           noShowGraceMin: data.noShowGraceMin,
+          nightlyOutreachEnabled: data.nightlyOutreachEnabled,
           ...staffAwarePatch.scheduling,
           pacingMaxPerSlot: data.pacingMaxPerSlot,
           onlineCapacityPercent: data.onlineCapacityPercent,
@@ -890,6 +894,17 @@ export default function ReservationSettings() {
                   checked={formValues.autoConfirm}
                   onCheckedChange={v => setValue('autoConfirm', v, { shouldDirty: true })}
                   tourId="reservation-auto-confirm"
+                />
+                {/*
+                  Fase 9 del kiosco. Apagado por defecto y con interruptor VISIBLE aquí,
+                  no sólo en la base: el mensaje sale con el nombre del negocio, así que
+                  prenderlo tiene que ser un gesto suyo, no un default nuestro.
+                */}
+                <SettingToggleRow
+                  label={t('settings.scheduling.nightlyOutreach')}
+                  tooltip={t('settings.scheduling.nightlyOutreachHelp')}
+                  checked={formValues.nightlyOutreachEnabled}
+                  onCheckedChange={v => setValue('nightlyOutreachEnabled', v, { shouldDirty: true })}
                 />
               </div>
             </Card>

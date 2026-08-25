@@ -171,6 +171,7 @@ export interface ReservationSettings {
     maxAdvanceDays: number
     minNoticeMin: number
     noShowGraceMin: number
+    nightlyOutreachEnabled?: boolean
     pacingMaxPerSlot: number | null
     onlineCapacityPercent: number
     /** Optional while older API versions are still in the rollout window. */

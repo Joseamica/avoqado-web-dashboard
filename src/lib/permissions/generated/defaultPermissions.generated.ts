@@ -20,11 +20,12 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella 3f49e33e2121159e.
- * ADMIN 98 · CASHIER 38 · HOST 16 · KITCHEN 9 · MANAGER 118 · OWNER 103 · SUPERADMIN 4 · VIEWER 16 · WAITER 41
+ * 9 roles · huella f0fc6009d93a32c1.
+ * ADMIN 99 · CASHIER 38 · HOST 17 · KITCHEN 9 · MANAGER 123 · OWNER 104 · SUPERADMIN 5 · VIEWER 16 · WAITER 42
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
+    'class-sessions:read-assigned',
     'home:*',
     'catalog-venue:read',
     'catalog-venue:request-override',
@@ -165,6 +166,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:connect_self',
   ],
   HOST: [
+    'class-sessions:read-assigned',
     'home:read',
     'menu:read',
     'orders:read',
@@ -194,6 +196,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:connect_self',
   ],
   MANAGER: [
+    'class-sessions:read-assigned',
     'home:read',
     'catalog-venue:read',
     'catalog-venue:request-override',
@@ -268,7 +271,11 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'teams:update',
     'teams:delete',
     'teams:invite',
-    'customers:*',
+    'customers:read',
+    'customers:create',
+    'customers:update',
+    'customers:delete',
+    'customers:settle-balance',
     'customer-groups:*',
     'loyalty:*',
     'discounts:*',
@@ -314,6 +321,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'delivery-channels:read',
   ],
   OWNER: [
+    'class-sessions:read-assigned',
     'home:*',
     'catalog-venue:read',
     'catalog-venue:request-override',
@@ -419,6 +427,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'delivery-channels:request',
   ],
   SUPERADMIN: [
+    'class-sessions:read-assigned',
     '*:*',
     'sale-verifications:reopen',
     'sale-verifications:edit',
@@ -443,6 +452,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'features:read',
   ],
   WAITER: [
+    'class-sessions:read-assigned',
     'home:read',
     'menu:read',
     'orders:read',
@@ -487,4 +497,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = '3f49e33e2121159e'
+export const DEFAULT_PERMISSIONS_DIGEST = 'f0fc6009d93a32c1'

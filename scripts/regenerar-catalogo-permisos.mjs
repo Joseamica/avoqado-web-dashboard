@@ -115,6 +115,7 @@ const CURACION = {
     ['REVIEWS', ['reviews'], 'Reviews'],
     ['TABLES', ['tables'], 'Table Management'],
     ['RESERVATIONS', ['reservations'], 'Reservations'],
+    ['CLASS_SESSIONS', ['class-sessions'], 'Clases asignadas'],
     ['CALENDAR', ['calendar'], 'Calendario'],
   ],
   'team-settings': [

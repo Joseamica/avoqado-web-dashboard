@@ -498,6 +498,8 @@
       "defaultDurationHelp": "Duración estándar de una reservación",
       "autoConfirm": "Confirmar automáticamente",
       "autoConfirmHelp": "Las reservaciones se confirman al crearlas",
+      "nightlyOutreach": "Aviso nocturno de renovación",
+      "nightlyOutreachHelp": "Manda un correo a quien está por quedarse sin créditos o con el paquete por vencer, con el enlace para renovar. Sólo a clientes que aceptaron recibir avisos.",
       "maxAdvanceDays": "Días máximos de anticipación",
       "maxAdvanceDaysHelp": "Qué tan lejos pueden reservar los clientes",
       "minNotice": "Aviso mínimo",

@@ -498,6 +498,8 @@
       "defaultDurationHelp": "Standard reservation duration",
       "autoConfirm": "Auto-confirm",
       "autoConfirmHelp": "Reservations are confirmed upon creation",
+      "nightlyOutreach": "Nightly renewal reminder",
+      "nightlyOutreachHelp": "Emails customers whose pack is running out or about to expire, with a link to renew. Only those who opted in to marketing.",
       "maxAdvanceDays": "Max advance days",
       "maxAdvanceDaysHelp": "How far in advance customers can book",
       "minNotice": "Minimum notice",

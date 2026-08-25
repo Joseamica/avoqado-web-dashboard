@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 66 categorías · 223 permisos · derivado de avoqado-server · huella 7aa963f8a95ed769.
+ * 67 categorías · 225 permisos · derivado de avoqado-server · huella 3bf9f5cf2fe870c8.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -189,6 +189,10 @@ export const PERMISSION_CATEGORIES = {
     label: 'Reservations',
     permissions: ['reservations:read', 'reservations:create', 'reservations:update', 'reservations:cancel'],
   },
+  CLASS_SESSIONS: {
+    label: 'Clases asignadas',
+    permissions: ['class-sessions:read-assigned'],
+  },
   CALENDAR: {
     label: 'Calendario',
     permissions: ['calendar:manage_venue', 'calendar:connect_self', 'calendar:disconnect_staff', 'calendar:view_status'],
@@ -261,7 +265,14 @@ export const PERMISSION_CATEGORIES = {
   },
   CUSTOMERS: {
     label: 'Customer Management',
-    permissions: ['customers:read', 'customers:create', 'customers:update', 'customers:delete', 'customers:settle-balance'],
+    permissions: [
+      'customers:read',
+      'customers:create',
+      'customers:update',
+      'customers:delete',
+      'customers:settle-balance',
+      'customers:approve',
+    ],
   },
   CUSTOMER_GROUPS: {
     label: 'Customer Groups',
@@ -413,7 +424,7 @@ export const SUPER_CATEGORY_KEYS = {
     'CATALOG_VENUE',
     'SERIALIZED_INVENTORY',
   ],
-  'customer-experience': ['REVIEWS', 'TABLES', 'RESERVATIONS', 'CALENDAR'],
+  'customer-experience': ['REVIEWS', 'TABLES', 'RESERVATIONS', 'CLASS_SESSIONS', 'CALENDAR'],
   'team-settings': [
     'TEAMS',
     'ROLE_CONFIG',
@@ -436,4 +447,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '7aa963f8a95ed769'
+export const CATALOG_DIGEST = '3bf9f5cf2fe870c8'
