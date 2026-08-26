@@ -120,6 +120,8 @@ const CURACION = {
   ],
   'team-settings': [
     ['TEAMS', ['teams'], 'Team Management'],
+    ['ATTENDANCE', ['attendance'], 'Asistencia'],
+    ['STAFF_DOCUMENTS', ['staff-documents'], 'Expediente del personal'],
     ['ROLE_CONFIG', ['role-config'], 'Role Configuration'],
     ['COMMISSIONS', ['commissions'], 'Commission Management'],
     ['GOALS', ['goals'], 'Org-Level Goals'],

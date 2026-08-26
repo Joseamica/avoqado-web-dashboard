@@ -51,5 +51,6 @@
     "rejectedDesc": "Se guardó el motivo del rechazo.",
     "errorTitle": "No se pudo guardar",
     "errorDesc": "Vuelve a intentarlo en un momento."
-  }
+  },
+  "truncated": "Mostrando {{shown}} de {{total}}"
 }

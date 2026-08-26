@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 67 categorías · 225 permisos · derivado de avoqado-server · huella 3bf9f5cf2fe870c8.
+ * 69 categorías · 229 permisos · derivado de avoqado-server · huella 3dfb729f1338fa85.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -200,6 +200,14 @@ export const PERMISSION_CATEGORIES = {
   TEAMS: {
     label: 'Team Management',
     permissions: ['teams:read', 'teams:create', 'teams:update', 'teams:delete', 'teams:invite'],
+  },
+  ATTENDANCE: {
+    label: 'Asistencia',
+    permissions: ['attendance:read', 'attendance:manage'],
+  },
+  STAFF_DOCUMENTS: {
+    label: 'Expediente del personal',
+    permissions: ['staff-documents:read', 'staff-documents:write'],
   },
   ROLE_CONFIG: {
     label: 'Role Configuration',
@@ -427,6 +435,8 @@ export const SUPER_CATEGORY_KEYS = {
   'customer-experience': ['REVIEWS', 'TABLES', 'RESERVATIONS', 'CLASS_SESSIONS', 'CALENDAR'],
   'team-settings': [
     'TEAMS',
+    'ATTENDANCE',
+    'STAFF_DOCUMENTS',
     'ROLE_CONFIG',
     'COMMISSIONS',
     'GOALS',
@@ -447,4 +457,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '3bf9f5cf2fe870c8'
+export const CATALOG_DIGEST = '3dfb729f1338fa85'

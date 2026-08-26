@@ -207,6 +207,7 @@ export const VirtualTerminal = lazyWithRetry(() => import('@/pages/VirtualTermin
 
 // Loyalty
 export const LoyaltySettings = lazyWithRetry(() => import('@/pages/Loyalty/LoyaltySettings'))
+export const WalletCardDesigner = lazyWithRetry(() => import('@/pages/Loyalty/WalletCardDesigner'))
 
 // Referrals
 export const ReferralsSettings = lazyWithRetry(() => import('@/pages/Referrals/ReferralsSettings'))

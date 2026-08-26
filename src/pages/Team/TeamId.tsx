@@ -29,13 +29,16 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { PermissionGate } from '@/components/PermissionGate'
 import { StaffDocuments } from './components/StaffDocuments'
 
+// Se prende cuando la subida vaya por el servidor a un prefijo privado (opción B, 26-ago).
+const STAFF_DOCUMENTS_ENABLED = true
+
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import TeamCommissionSection from './components/TeamCommissionSection'
 
 type TabValue = 'performance' | 'commissions'
 
 export default function TeamId() {
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueId, venueSlug, isWhiteLabelMode } = useCurrentVenue()
   const { memberId } = useParams<{ memberId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -538,10 +541,12 @@ export default function TeamId() {
       )}
 
       {/* Expediente. Vive tras `staff-documents:read`: un gerente ve al equipo pero NO esto. */}
-      {venueId && venueSlug && memberDetails.staffId && (
+      {/* En white-label NO: PT no usa expediente y el detalle de miembro es compartido.
+          Sube por el SERVIDOR a un prefijo privado; se abre con URL firmada que caduca. */}
+      {STAFF_DOCUMENTS_ENABLED && venueId && venueSlug && memberDetails.staffId && !isWhiteLabelMode && (
         <div className="mb-8">
           <PermissionGate permission="staff-documents:read">
-            <StaffDocuments venueId={venueId} venueSlug={venueSlug} staffId={memberDetails.staffId} />
+            <StaffDocuments venueId={venueId} staffId={memberDetails.staffId} />
           </PermissionGate>
         </div>
       )}

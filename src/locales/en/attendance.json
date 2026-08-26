@@ -51,5 +51,6 @@
     "rejectedDesc": "The reason was saved.",
     "errorTitle": "Could not save",
     "errorDesc": "Please try again in a moment."
-  }
+  },
+  "truncated": "Showing {{shown}} of {{total}}"
 }

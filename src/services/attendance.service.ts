@@ -73,10 +73,13 @@ function buildQuery(filters: TimeEntryFilters): string {
 }
 
 export const attendanceService = {
-  async getTimeEntries(venueId: string, filters: TimeEntryFilters = {}): Promise<TimeEntry[]> {
+  async getTimeEntries(venueId: string, filters: TimeEntryFilters = {}): Promise<{ entries: TimeEntry[]; total: number }> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/time-entries${buildQuery(filters)}`)
-    // El backend devuelve la lista tal cual; toleramos que un día venga paginada.
-    return Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+    // El motor devuelve `{ timeEntries, total, limit, offset }`. Antes se buscaba `.data`, que
+    // no existe, y la pantalla mostraba "Sin checadas" siempre (auditoría Codex, P1).
+    const d = response.data ?? {}
+    const entries: TimeEntry[] = Array.isArray(d) ? d : (d.timeEntries ?? d.data ?? [])
+    return { entries, total: typeof d.total === 'number' ? d.total : entries.length }
   },
 
   async getActiveStaff(venueId: string): Promise<TimeEntry[]> {

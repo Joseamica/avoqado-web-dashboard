@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import logoLight from '@/assets/logo/avoqado-logo-light.png'
 import logoDark from '@/assets/logo/avoqado-logo-dark.png'
-import CoverLogin from '@/assets/cover-login.png'
+import CoverLogin from '@/assets/cover-login.webp'
 import { UserAuthForm } from './components/UserAuthForm'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
@@ -85,11 +85,14 @@ const Login: React.FC = () => {
           .
         </div>
       </div>
+      {/* Portada vertical (3:4), la misma proporcion que el hueco: object-cover apenas recorta
+          y nunca amplia la imagen por encima de su resolucion nativa (1600x2133). */}
       <div className="bg-muted relative hidden lg:block">
         <img
           src={CoverLogin}
           alt={t('login.imageAlt')}
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-90"
+          decoding="async"
         />
       </div>
     </div>

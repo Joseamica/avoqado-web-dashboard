@@ -51,5 +51,6 @@
     "rejectedDesc": "Le motif a été enregistré.",
     "errorTitle": "Enregistrement impossible",
     "errorDesc": "Réessayez dans un instant."
-  }
+  },
+  "truncated": "{{shown}} sur {{total}} affichés"
 }

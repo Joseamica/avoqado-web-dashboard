@@ -120,5 +120,68 @@
 		"byStaff": "Por {{staffName}}"
 	},
 	"pointsLabel": "puntos",
-	"pointLabel": "punto"
+	"pointLabel": "punto",
+	"card": {
+		"title": "Tarjeta digital",
+		"subtitle": "Así se ve la tarjeta que tus clientes guardan en su celular. Es tuya: tu logo, tus colores.",
+		"info": "Tus clientes agregan esta tarjeta a la cartera de su teléfono. Cada vez que les selles una compra, el número sube solo — no tienen que abrir ninguna aplicación.",
+		"save": "Guardar cambios",
+		"poweredBy": "Con tecnología de Avoqado",
+		"brand": {
+			"title": "Tu marca",
+			"description": "El logo aparece arriba en la tarjeta; el icono, en la lista de tarjetas del teléfono.",
+			"logo": "Logo",
+			"icon": "Icono",
+			"noLogo": "Sin logo se usa el nombre de tu negocio",
+			"noIcon": "Sin icono se usa un cuadro de tu color",
+			"upload": "Subir imagen",
+			"logoHint": "PNG horizontal, idealmente 480 × 150 píxeles.",
+			"iconHint": "PNG cuadrado, idealmente 512 × 512 píxeles."
+		},
+		"colors": {
+			"title": "Colores",
+			"description": "Empieza con un tema y ajusta lo que quieras. Los cambios se ven al instante.",
+			"background": "Fondo de la tarjeta",
+			"text": "Texto",
+			"label": "Textos pequeños",
+			"strip": "Fondo de los sellos",
+			"stamp": "Color del sello"
+		},
+		"stamps": {
+			"title": "Los sellos",
+			"description": "Elige la que va con tu negocio: una taza para café, tijeras para estética, pesa para gym.",
+			"countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia en la pantalla de Lealtad."
+		},
+		"preview": {
+			"title": "Vista previa",
+			"live": "En vivo",
+			"stamps": "Sellos",
+			"reward": "Premio",
+			"sampleReward": "Un producto gratis",
+			"disclaimer": "Aproximación. Así se verá en el celular de tu cliente."
+		},
+		"toasts": {
+			"saved": "Tu tarjeta se actualizó",
+			"error": "No se pudo guardar",
+			"imageUploaded": "Imagen actualizada",
+			"imageError": "No se pudo subir la imagen"
+		},
+		"themes": {
+			"dark": "Oscuro",
+			"light": "Claro",
+			"carbon": "Carbón"
+		},
+		"shapes": {
+			"CIRCLE": "Círculo",
+			"STAR": "Estrella",
+			"HEART": "Corazón",
+			"SQUARE": "Cuadrado",
+			"CUP": "Taza",
+			"SCISSORS": "Tijeras",
+			"DUMBBELL": "Pesa",
+			"FLOWER": "Flor",
+			"BAG": "Bolsa"
+		},
+		"loading": "Cargando tu tarjeta"
+	}
 }

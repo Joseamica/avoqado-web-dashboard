@@ -122,5 +122,68 @@
 	"common": {
 		"points": "points",
 		"point": "point"
+	},
+	"card": {
+		"title": "Digital card",
+		"subtitle": "This is the card your customers keep on their phone. It's yours: your logo, your colours.",
+		"info": "Customers add this card to their phone's wallet. Every time you stamp a purchase the count goes up on its own — they never have to open an app.",
+		"save": "Save changes",
+		"poweredBy": "Powered by Avoqado",
+		"brand": {
+			"title": "Your brand",
+			"description": "The logo shows at the top of the card; the icon shows in the phone's card list.",
+			"logo": "Logo",
+			"icon": "Icon",
+			"noLogo": "With no logo we use your business name",
+			"noIcon": "With no icon we use a square in your colour",
+			"upload": "Upload image",
+			"logoHint": "Wide PNG, ideally 480 × 150 pixels.",
+			"iconHint": "Square PNG, ideally 512 × 512 pixels."
+		},
+		"colors": {
+			"title": "Colours",
+			"description": "Start from a theme and adjust whatever you like. Changes show instantly.",
+			"background": "Card background",
+			"text": "Text",
+			"label": "Small text",
+			"strip": "Stamp band background",
+			"stamp": "Stamp colour"
+		},
+		"stamps": {
+			"title": "The stamps",
+			"description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
+			"countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen."
+		},
+		"preview": {
+			"title": "Preview",
+			"live": "Live",
+			"stamps": "Stamps",
+			"reward": "Reward",
+			"sampleReward": "A free product",
+			"disclaimer": "Approximation. This is how it looks on your customer's phone."
+		},
+		"toasts": {
+			"saved": "Your card was updated",
+			"error": "Couldn't save",
+			"imageUploaded": "Image updated",
+			"imageError": "Couldn't upload the image"
+		},
+		"themes": {
+			"dark": "Dark",
+			"light": "Light",
+			"carbon": "Carbon"
+		},
+		"shapes": {
+			"CIRCLE": "Circle",
+			"STAR": "Star",
+			"HEART": "Heart",
+			"SQUARE": "Square",
+			"CUP": "Cup",
+			"SCISSORS": "Scissors",
+			"DUMBBELL": "Dumbbell",
+			"FLOWER": "Flower",
+			"BAG": "Bag"
+		},
+		"loading": "Loading your card"
 	}
 }

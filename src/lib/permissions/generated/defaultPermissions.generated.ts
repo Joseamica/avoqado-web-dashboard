@@ -20,12 +20,16 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella f0fc6009d93a32c1.
- * ADMIN 99 · CASHIER 38 · HOST 17 · KITCHEN 9 · MANAGER 123 · OWNER 104 · SUPERADMIN 5 · VIEWER 16 · WAITER 42
+ * 9 roles · huella afc4781e8dd0c3a1.
+ * ADMIN 103 · CASHIER 38 · HOST 17 · KITCHEN 9 · MANAGER 125 · OWNER 108 · SUPERADMIN 5 · VIEWER 16 · WAITER 42
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
     'class-sessions:read-assigned',
+    'attendance:read',
+    'attendance:manage',
+    'staff-documents:read',
+    'staff-documents:write',
     'home:*',
     'catalog-venue:read',
     'catalog-venue:request-override',
@@ -197,6 +201,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
   MANAGER: [
     'class-sessions:read-assigned',
+    'attendance:read',
+    'attendance:manage',
     'home:read',
     'catalog-venue:read',
     'catalog-venue:request-override',
@@ -322,6 +328,10 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
   OWNER: [
     'class-sessions:read-assigned',
+    'attendance:read',
+    'attendance:manage',
+    'staff-documents:read',
+    'staff-documents:write',
     'home:*',
     'catalog-venue:read',
     'catalog-venue:request-override',
@@ -497,4 +507,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'f0fc6009d93a32c1'
+export const DEFAULT_PERMISSIONS_DIGEST = 'afc4781e8dd0c3a1'

@@ -253,7 +253,9 @@
       "tooBigTitle": "El archivo pesa demasiado",
       "tooBigDesc": "El máximo son 20 MB.",
       "needLabelTitle": "Falta el nombre",
-      "needLabelDesc": "Ponle un nombre para saber qué documento es."
-    }
+      "needLabelDesc": "Ponle un nombre para saber qué documento es.",
+      "openFailed": "No se pudo abrir el documento."
+    },
+    "opening": "Abriendo..."
   }
 }

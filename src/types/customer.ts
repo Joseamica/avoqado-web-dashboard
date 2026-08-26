@@ -76,6 +76,22 @@ export interface LoyaltyConfig {
 	minPointsRedeem: number
 	pointsExpireDays: number | null
 	active: boolean
+
+	// ── Mecánica de SELLOS ──────────────────────────────────────────────────
+	// 🔴 Banderas INDEPENDIENTES de los puntos, no un modo exclusivo: un gimnasio
+	// puede querer puntos por gasto Y paquetes de clases a la vez.
+	stampsEnabled: boolean
+	/** Cuántos sellos pide una cartilla nueva. Al abrirse se congela en la cartilla. */
+	stampsRequired: number
+	/** Tope por cliente por día, contado en la zona horaria del negocio. 0 = sin tope. */
+	maxStampsPerDay: number
+	stampRewardType: 'FREE_PRODUCT' | 'FIXED_AMOUNT' | 'PERCENTAGE'
+	/** Pesos o porcentaje según el tipo. Null cuando el premio es un producto. */
+	stampRewardValue: number | null
+	stampRewardProductId: string | null
+	/** Lo que el cliente lee en su tarjeta. */
+	stampRewardLabel: string
+
 	createdAt: string
 	updatedAt: string
 }

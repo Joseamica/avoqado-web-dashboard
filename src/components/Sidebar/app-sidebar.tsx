@@ -501,7 +501,7 @@ export function AppSidebar({
     // ── Equipo ──
     const teamSubItems = [
       { title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }), url: 'team', permission: 'teams:read', keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'] },
-      { title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }), url: 'asistencia', permission: 'tpv-time-entries:read', keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'] },
+      { title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }), url: 'asistencia', permission: 'attendance:read', keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'] },
       ...(activeVenue?.settings?.enableShifts ? [
         { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', locked: !hasKYCAccess, keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
       ] : []),
@@ -538,6 +538,18 @@ export function AppSidebar({
           premiumLocked: !hasFeatureAccess('LOYALTY_PROGRAM'),
           gatedFeature: 'LOYALTY_PROGRAM',
           keywords: ['lealtad', 'puntos', 'fidelidad'],
+        })
+
+        // La credencial que el cliente guarda en su teléfono. Va como subapartado
+        // de Clientes y NO como entrada nueva del menú principal: es una parte del
+        // programa de lealtad, no un módulo aparte.
+        items.push({
+          title: t('sidebar:customersMenu.walletCard'),
+          url: 'loyalty/card',
+          permission: 'loyalty:read',
+          premiumLocked: !hasFeatureAccess('LOYALTY_PROGRAM'),
+          gatedFeature: 'LOYALTY_PROGRAM',
+          keywords: ['tarjeta', 'sellos', 'wallet', 'cartera', 'credencial', 'apple'],
         })
       }
 

@@ -265,7 +265,12 @@
       "tpv_devices": "TPV Devices",
       "tpv_kiosk": "Kiosk Mode",
       "tpv_messages": "TPV Messages",
-      "venue_crypto": "Crypto Payments"
+      "venue_crypto": "Crypto Payments",
+      "ATTENDANCE": "Attendance",
+      "STAFF_DOCUMENTS": "Staff documents",
+      "attendance": "Attendance",
+      "staff_documents": "Staff documents",
+      "class_sessions": "Assigned classes"
     },
     "categoryDescriptions": {
       "home": "Access the main dashboard with business metrics and summary.",
@@ -597,7 +602,13 @@
       "referral_export-csv": "Export referrals to CSV",
       "referral_fulfill-courtesy": "Fulfill a referral courtesy",
       "discounts_apply": "Apply discounts",
-      "coupons_redeem": "Redeem coupons"
+      "coupons_redeem": "Redeem coupons",
+      "attendance_read": "View staff attendance",
+      "attendance_manage": "Manage attendance schedules",
+      "staff-documents_read": "View staff documents",
+      "staff-documents_write": "Upload and remove staff documents",
+      "class-sessions_read-assigned": "View own assigned class",
+      "customers_approve": "Approve new customers"
     },
     "permissionDescriptions": {
       "tpv_command": "Enables the specific remote command options below.",

@@ -12,12 +12,12 @@
  * "viene incluido" es exactamente lo que el backend va a reponer.
  *
  * 🔴 POR QUÉ NO SE ESCRIBE A MANO: la copia anterior había derivado a 68 entradas contra
- * 185 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
+ * 189 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
  * `discounts:apply` y `coupons:redeem` — justo las que el editor de roles necesita para
  * avisar "este permiso viene incluido en aquél". Sin ellas la pantalla dejaba desmarcar algo
  * que el backend repone en silencio: mentía.
  *
- * 173 entradas · derivado de avoqado-server · huella 10d8a3d711416306.
+ * 177 entradas · derivado de avoqado-server · huella 2079cca54bbd76e6.
  * (12 excluidas: vertical white-label de PlayTelecom.)
  */
 
@@ -32,6 +32,8 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'area-tickets:configure': ['area-tickets:configure', 'area-tickets:issue', 'area-tickets:checkout', 'area-tickets:cancel', 'area-tickets:deliver', 'tpv:read', 'tpv-settings:read', 'tpv-settings:update'],
   'area-tickets:deliver': ['area-tickets:deliver', 'orders:read', 'payments:read'],
   'area-tickets:issue': ['area-tickets:issue', 'menu:read', 'products:read', 'inventory:read'],
+  'attendance:manage': ['attendance:manage', 'attendance:read', 'teams:read'],
+  'attendance:read': ['attendance:read', 'teams:read'],
   'billing:history:read': ['billing:history:read', 'billing:read'],
   'billing:payment-methods:manage': ['billing:payment-methods:manage', 'billing:payment-methods:read', 'billing:read', 'venues:manage', 'venues:read'],
   'billing:payment-methods:read': ['billing:payment-methods:read', 'billing:read', 'venues:read'],
@@ -137,6 +139,8 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'shifts:create': ['shifts:read', 'shifts:create', 'teams:read', 'tpv-shifts:create'],
   'shifts:read': ['shifts:read', 'teams:read', 'payments:read'],
   'shifts:update': ['shifts:read', 'shifts:update', 'teams:read'],
+  'staff-documents:read': ['staff-documents:read', 'teams:read'],
+  'staff-documents:write': ['staff-documents:write', 'staff-documents:read', 'teams:read'],
   'tables:manage-all': ['tables:manage-all', 'tables:read', 'tables:update', 'tables:pay-any'],
   'tables:pay-any': ['tables:pay-any', 'tables:read'],
   'tables:read': ['tables:read', 'orders:read'],
@@ -197,4 +201,4 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'venues:update': ['venues:read', 'venues:update'],
 }
 
-export const PERMISSION_DEPENDENCIES_DIGEST = '10d8a3d711416306'
+export const PERMISSION_DEPENDENCIES_DIGEST = '2079cca54bbd76e6'

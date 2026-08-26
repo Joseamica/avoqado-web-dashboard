@@ -15,7 +15,8 @@
     "all": "All Customers",
     "groups": "Customer Groups",
     "loyalty": "Loyalty Program",
-    "referrals": "Referral Program"
+    "referrals": "Referral Program",
+    "walletCard": "Digital card"
   },
   "promotionsMenu": {
     "title": "Promotions",

@@ -253,7 +253,9 @@
       "tooBigTitle": "File too large",
       "tooBigDesc": "The maximum is 20 MB.",
       "needLabelTitle": "Name missing",
-      "needLabelDesc": "Give it a name so you know what it is."
-    }
+      "needLabelDesc": "Give it a name so you know what it is.",
+      "openFailed": "The document could not be opened."
+    },
+    "opening": "Opening..."
   }
 }

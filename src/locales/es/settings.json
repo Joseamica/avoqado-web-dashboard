@@ -265,7 +265,12 @@
       "referral": "Programa de referidos",
       "tpv_devices": "Dispositivos TPV",
       "tpv_kiosk": "Modo kiosco",
-      "tpv_messages": "Mensajes TPV"
+      "tpv_messages": "Mensajes TPV",
+      "ATTENDANCE": "Asistencia",
+      "STAFF_DOCUMENTS": "Expediente del personal",
+      "attendance": "Asistencia",
+      "staff_documents": "Expediente del personal",
+      "class_sessions": "Clases asignadas"
     },
     "categoryDescriptions": {
       "home": "Acceso al panel principal con métricas y resumen del negocio.",
@@ -602,7 +607,13 @@
       "referral_export-csv": "Exportar referidos a CSV",
       "referral_fulfill-courtesy": "Entregar la cortesía de un referido",
       "discounts_apply": "Aplicar descuentos",
-      "coupons_redeem": "Canjear cupones"
+      "coupons_redeem": "Canjear cupones",
+      "attendance_read": "Ver asistencia del personal",
+      "attendance_manage": "Configurar horarios de asistencia",
+      "staff-documents_read": "Ver expediente del personal",
+      "staff-documents_write": "Subir y dar de baja documentos del expediente",
+      "class-sessions_read-assigned": "Ver su propia clase asignada",
+      "customers_approve": "Aprobar clientes nuevos"
     },
     "permissionDescriptions": {
       "tpv_command": "Habilita las opciones de comandos remotos específicos a continuación.",

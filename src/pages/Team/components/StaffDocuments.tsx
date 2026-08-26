@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
-import { AlertTriangle, FileText, Trash2, Upload } from 'lucide-react'
+import { AlertTriangle, ExternalLink, FileText, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -21,7 +20,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PermissionGate } from '@/components/PermissionGate'
-import { buildStoragePath, storage } from '@/firebase'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
 import { staffDocumentService, type StaffDocument, type StaffDocumentType } from '@/services/staffDocument.service'
@@ -39,11 +37,10 @@ const MAX_BYTES = 20 * 1024 * 1024
 
 interface Props {
   venueId: string
-  venueSlug: string
   staffId: string
 }
 
-export function StaffDocuments({ venueId, venueSlug, staffId }: Props) {
+export function StaffDocuments({ venueId, staffId }: Props) {
   const { t } = useTranslation(['team', 'common'])
   const { formatDate } = useVenueDateTime()
   const { toast } = useToast()
@@ -55,6 +52,24 @@ export function StaffDocuments({ venueId, venueSlug, staffId }: Props) {
   const [expiresAt, setExpiresAt] = useState('')
   const [uploading, setUploading] = useState(false)
   const [removing, setRemoving] = useState<StaffDocument | null>(null)
+  const [openingId, setOpeningId] = useState<string | null>(null)
+
+  // La URL se pide AL ABRIR y caduca en minutos: no se guarda en ningún lado.
+  async function openDocument(documentId: string) {
+    setOpeningId(documentId)
+    try {
+      const { url } = await staffDocumentService.getUrl(venueId, documentId)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (error: any) {
+      toast({
+        title: t('documents.toasts.errorTitle'),
+        description: error?.response?.data?.message || t('documents.toasts.openFailed'),
+        variant: 'destructive',
+      })
+    } finally {
+      setOpeningId(null)
+    }
+  }
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['staff-documents', venueId, staffId],
@@ -63,7 +78,8 @@ export function StaffDocuments({ venueId, venueSlug, staffId }: Props) {
   })
 
   const addMutation = useMutation({
-    mutationFn: (input: Parameters<typeof staffDocumentService.add>[2]) => staffDocumentService.add(venueId, staffId, input),
+    mutationFn: ({ input, file }: { input: Parameters<typeof staffDocumentService.add>[2]; file: File }) =>
+      staffDocumentService.add(venueId, staffId, input, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff-documents', venueId, staffId] })
       setLabel('')
@@ -104,23 +120,15 @@ export function StaffDocuments({ venueId, venueSlug, staffId }: Props) {
 
     setUploading(true)
     try {
-      const safeName = file.name.replace(/[^\w.-]/g, '_')
-      const path = buildStoragePath(`venues/${venueSlug}/staff/${staffId}/documents/${Date.now()}_${safeName}`)
-      const task = uploadBytesResumable(ref(storage, path), file, { contentType: file.type || 'application/octet-stream' })
-      await task
-      const fileUrl = await getDownloadURL(task.snapshot.ref)
-
+      // 🔴 El navegador NO toca Storage. El archivo va al servidor, que lo guarda en un
+      // prefijo privado. Antes se subía directo al mismo árbol público que los logos y las
+      // fotos de la PAX (auditoría Codex 26-ago, P1).
       await addMutation.mutateAsync({
-        type,
-        label: label.trim() || null,
-        fileName: file.name,
-        fileUrl,
-        mimeType: file.type || 'application/octet-stream',
-        sizeBytes: file.size,
-        expiresAt: expiresAt || null,
+        input: { type, label: label.trim() || null, expiresAt: expiresAt || null },
+        file,
       })
     } catch {
-      toast({ title: t('documents.toasts.errorTitle'), description: t('documents.toasts.uploadFailed'), variant: 'destructive' })
+      // onError de la mutación ya avisó con el mensaje del servidor.
     } finally {
       setUploading(false)
     }
@@ -188,7 +196,9 @@ export function StaffDocuments({ venueId, venueSlug, staffId }: Props) {
         ) : (
           <ul className="space-y-2">
             {documents.map(doc => {
-              const expired = !!doc.expiresAt && new Date(doc.expiresAt) < new Date()
+              // Se compara por DÍA (YYYY-MM-DD), no por instante: un vencimiento "hoy" no debe
+              // aparecer vencido durante el propio día (auditoría Codex, P2).
+              const expired = !!doc.expiresAt && doc.expiresAt.slice(0, 10) < new Date().toISOString().slice(0, 10)
               return (
                 <li key={doc.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3">
                   <div className="min-w-0">
@@ -206,10 +216,15 @@ export function StaffDocuments({ venueId, venueSlug, staffId }: Props) {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    <Button variant="outline" size="sm" className="cursor-pointer" asChild>
-                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                        {t('documents.open')}
-                      </a>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer"
+                      disabled={openingId === doc.id}
+                      onClick={() => openDocument(doc.id)}
+                    >
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                      {openingId === doc.id ? t('documents.opening') : t('documents.open')}
                     </Button>
                     <PermissionGate permission="staff-documents:write">
                       <Button

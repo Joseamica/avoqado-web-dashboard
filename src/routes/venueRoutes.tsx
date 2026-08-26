@@ -16,6 +16,7 @@ import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
+import { NotWhiteLabelRoute } from './NotWhiteLabelRoute'
 import LegacyRedirect from './LegacyRedirect'
 import SettingsIndexRedirect from './SettingsIndexRedirect'
 
@@ -53,6 +54,7 @@ import {
   InventorySummary,
   InventoryHistory,
   LoyaltySettings,
+  WalletCardDesigner,
   ReferralsSettings,
   MenuId,
   MenuMakerLayout,
@@ -520,11 +522,18 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Asistencia — revisar y aprobar checadas. Marcar entrada/salida NO vive aqui:
-    // eso pasa en la terminal y en la app, donde la foto y el GPS significan algo.
+    // Asistencia — revisar checadas. Marcar entrada/salida NO vive aqui: eso pasa en la
+    // terminal y en la app. 🔴 Bloqueada en white-label: PlayTelecom tiene su propia pantalla
+    // de asistencia y el sidebar ya la oculta, pero `createVenueRoutes()` se monta entero bajo
+    // /wl/venues/:slug, así que sin este guard era alcanzable por URL (auditoría Codex, P1).
     {
-      element: <PermissionProtectedRoute permission="tpv-time-entries:read" />,
-      children: [{ path: 'asistencia', element: <Attendance /> }],
+      element: <NotWhiteLabelRoute />,
+      children: [
+        {
+          element: <PermissionProtectedRoute permission="attendance:read" />,
+          children: [{ path: 'asistencia', element: <Attendance /> }],
+        },
+      ],
     },
 
     // Commission Management (requires commissions:read permission)
@@ -616,10 +625,16 @@ export function createVenueRoutes(): RouteObject[] {
     },
 
     // Loyalty Settings (requires loyalty:read permission)
+    // El diseñador de la credencial cuelga de aquí a propósito: hereda el mismo
+    // permiso y, en el backend, el mismo candado de plan PRO que el resto de
+    // `/loyalty/*` — sin declarar un segundo gate que se pueda desincronizar.
     {
       path: 'loyalty',
       element: <PermissionProtectedRoute permission="loyalty:read" />,
-      children: [{ index: true, element: <LoyaltySettings /> }],
+      children: [
+        { index: true, element: <LoyaltySettings /> },
+        { path: 'card', element: <WalletCardDesigner /> },
+      ],
     },
 
     // Referrals Program (requires referral:read permission)
