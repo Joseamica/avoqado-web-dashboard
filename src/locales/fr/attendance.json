@@ -1,6 +1,6 @@
 {
   "title": "Présences",
-  "subtitle": "Pointages du personnel. Ils sont enregistrés sur le terminal ou l'application du commerce ; ici vous les vérifiez et les approuvez.",
+  "subtitle": "Pointages du personnel. Ils sont enregistrés sur le terminal ou l'application du commerce ; ici vous les consultez.",
   "loading": "Chargement...",
   "unknownStaff": "Sans nom",
   "stillIn": "toujours présent",
@@ -80,5 +80,15 @@
       "title": "Rien à signaler sur cette période",
       "description": "Apparaissent ici les personnes avec un horaire défini qui sont arrivées en retard, absentes ou parties tôt. Sans horaire, personne n'est jugé."
     }
+  },
+  "disabled": {
+    "title": "Le suivi des présences est désactivé",
+    "description": "Le personnel ne peut pas pointer tant qu'il est désactivé. Ce qui a déjà été enregistré reste ici.",
+    "cta": "L'activer dans les réglages"
+  },
+  "loadError": {
+    "title": "Chargement impossible",
+    "description": "Un problème est survenu lors de la récupération de ces données. Cela ne signifie pas qu'il n'y a rien.",
+    "retry": "Réessayer"
   }
 }

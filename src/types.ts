@@ -1828,6 +1828,8 @@ export interface SessionVenue {
   settings?: {
     enableShifts: boolean
     hiddenSidebarItems: string[]
+    attendanceEnabled?: boolean // viaja en auth/status y login: el sidebar y la pantalla de asistencia lo necesitan
+    attendanceGraceMinutes?: number
     /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
     enforceTableOwnership?: boolean
   } | null

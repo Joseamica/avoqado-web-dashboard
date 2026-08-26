@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { PermissionGate } from '@/components/PermissionGate'
+import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { OperatingHoursEditor } from '@/pages/Reservations/components/OperatingHoursEditor'
 import { attendanceService, type WeeklySchedule, type WorkScheduleException } from '@/services/attendance.service'
@@ -42,11 +43,13 @@ const DEFAULT_WEEK: WeeklySchedule = {
 
 export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
   const { t } = useTranslation(['team', 'common'])
-  const { formatDate } = useVenueDateTime()
+  const { formatCalendarDate, venueTimezone } = useVenueDateTime()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { can } = useAccess()
+  const canManage = can('attendance:manage')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['work-schedule', venueId, staffVenueId],
     queryFn: () => attendanceService.getWorkSchedule(venueId, staffVenueId),
     enabled: !!venueId && !!staffVenueId,
@@ -56,6 +59,11 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
   const [weekly, setWeekly] = useState<WeeklySchedule>(DEFAULT_WEEK)
   const [exceptions, setExceptions] = useState<WorkScheduleException[]>([])
   const [dirty, setDirty] = useState(false)
+
+  // Con la carga fallida NO se edita: la pantalla mostraría los defaults 09–18 y un clic en
+  // "Guardar" pisaría el cuadrante real con uno inventado (auditoría Codex fase 2, P2-7). Y sin
+  // permiso de administrar, todo es lectura, no sólo el botón final (P3-2).
+  const editable = canManage && !isError && !isLoading
 
   useEffect(() => {
     if (!data) return
@@ -78,7 +86,11 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
       toast({ title: t('workSchedule.toasts.savedTitle'), description: t('workSchedule.toasts.savedDesc') })
     },
     onError: (error: any) => {
-      toast({ title: t('workSchedule.toasts.errorTitle'), description: error?.response?.data?.message || t('workSchedule.toasts.errorDesc'), variant: 'destructive' })
+      toast({
+        title: t('workSchedule.toasts.errorTitle'),
+        description: error?.response?.data?.message || t('workSchedule.toasts.errorDesc'),
+        variant: 'destructive',
+      })
     },
   })
 
@@ -108,6 +120,7 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
               <Switch
                 id="ws-toggle"
                 checked={hasSchedule}
+                disabled={!editable}
                 onCheckedChange={v => {
                   setHasSchedule(v)
                   setDirty(true)
@@ -118,20 +131,32 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
         </div>
 
         <p className="text-xs text-muted-foreground">{t('workSchedule.hint')}</p>
+        {!canManage && <p className="text-xs text-muted-foreground">{t('workSchedule.readOnly')}</p>}
 
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
+        ) : isError ? (
+          <div role="alert" className="rounded-lg border border-destructive/40 p-4 space-y-2">
+            <p className="text-sm font-medium">{t('workSchedule.loadErrorTitle')}</p>
+            <p className="text-xs text-muted-foreground">{t('workSchedule.loadErrorDesc')}</p>
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
+              {t('workSchedule.retry')}
+            </Button>
+          </div>
         ) : !hasSchedule ? (
           <p className="text-sm text-muted-foreground">{t('workSchedule.emptyState')}</p>
         ) : (
           <>
-            <OperatingHoursEditor
-              value={weekly}
-              onChange={next => {
-                setWeekly(next)
-                setDirty(true)
-              }}
-            />
+            {/* El editor no expone `disabled`: en sólo lectura se apaga el puntero entero. */}
+            <div aria-disabled={!editable} className={editable ? undefined : 'pointer-events-none opacity-60'}>
+              <OperatingHoursEditor
+                value={weekly}
+                onChange={next => {
+                  setWeekly(next)
+                  setDirty(true)
+                }}
+              />
+            </div>
 
             <div className="space-y-3 border-t border-border pt-4">
               <div className="flex items-center justify-between">
@@ -141,8 +166,11 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
                     variant="outline"
                     size="sm"
                     className="cursor-pointer"
+                    disabled={!editable}
                     onClick={() => {
-                      const today = new Date().toISOString().slice(0, 10)
+                      // "Hoy" en la zona del NEGOCIO: con `toISOString()` (UTC), en México a
+                      // partir de las 18:00 se precargaba mañana (auditoría Codex fase 2, P2-5).
+                      const today = new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date())
                       setExceptions(list => [...list, { startDate: today, endDate: today, kind: 'OFF', note: '' }])
                       setDirty(true)
                     }}
@@ -158,18 +186,37 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
               ) : (
                 <ul className="space-y-2">
                   {exceptions.map((ex, i) => (
-                    <li key={ex.id ?? `new-${i}`} className="grid gap-2 rounded-lg border border-input p-3 sm:grid-cols-[auto_auto_auto_1fr_auto] sm:items-end">
+                    <li
+                      key={ex.id ?? `new-${i}`}
+                      className="grid gap-2 rounded-lg border border-input p-3 sm:grid-cols-[auto_auto_auto_1fr_auto] sm:items-end"
+                    >
                       <div className="space-y-1">
                         <Label className="text-[11px]">{t('workSchedule.exceptions.from')}</Label>
-                        <Input type="date" className="h-9" value={ex.startDate} onChange={e => updateException(i, { startDate: e.target.value })} />
+                        <Input
+                          type="date"
+                          className="h-9"
+                          value={ex.startDate}
+                          disabled={!editable}
+                          onChange={e => updateException(i, { startDate: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[11px]">{t('workSchedule.exceptions.to')}</Label>
-                        <Input type="date" className="h-9" value={ex.endDate} onChange={e => updateException(i, { endDate: e.target.value })} />
+                        <Input
+                          type="date"
+                          className="h-9"
+                          value={ex.endDate}
+                          disabled={!editable}
+                          onChange={e => updateException(i, { endDate: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[11px]">{t('workSchedule.exceptions.kind')}</Label>
-                        <Select value={ex.kind} onValueChange={v => updateException(i, { kind: v as 'OFF' | 'HOURS' })}>
+                        <Select
+                          value={ex.kind}
+                          disabled={!editable}
+                          onValueChange={v => updateException(i, { kind: v as 'OFF' | 'HOURS' })}
+                        >
                           <SelectTrigger className="h-9 w-36">
                             <SelectValue />
                           </SelectTrigger>
@@ -184,17 +231,35 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
                           <div className="flex items-end gap-2">
                             <div className="space-y-1">
                               <Label className="text-[11px]">{t('workSchedule.exceptions.start')}</Label>
-                              <Input type="time" className="h-9" value={ex.startTime ?? ''} onChange={e => updateException(i, { startTime: e.target.value })} />
+                              <Input
+                                type="time"
+                                className="h-9"
+                                value={ex.startTime ?? ''}
+                                disabled={!editable}
+                                onChange={e => updateException(i, { startTime: e.target.value })}
+                              />
                             </div>
                             <div className="space-y-1">
                               <Label className="text-[11px]">{t('workSchedule.exceptions.end')}</Label>
-                              <Input type="time" className="h-9" value={ex.endTime ?? ''} onChange={e => updateException(i, { endTime: e.target.value })} />
+                              <Input
+                                type="time"
+                                className="h-9"
+                                value={ex.endTime ?? ''}
+                                disabled={!editable}
+                                onChange={e => updateException(i, { endTime: e.target.value })}
+                              />
                             </div>
                           </div>
                         ) : (
                           <>
                             <Label className="text-[11px]">{t('workSchedule.exceptions.note')}</Label>
-                            <Input className="h-9" placeholder={t('workSchedule.exceptions.notePlaceholder')} value={ex.note ?? ''} onChange={e => updateException(i, { note: e.target.value })} />
+                            <Input
+                              className="h-9"
+                              placeholder={t('workSchedule.exceptions.notePlaceholder')}
+                              value={ex.note ?? ''}
+                              disabled={!editable}
+                              onChange={e => updateException(i, { note: e.target.value })}
+                            />
                           </>
                         )}
                       </div>
@@ -202,6 +267,7 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
                         variant="ghost"
                         size="sm"
                         className="cursor-pointer text-destructive hover:text-destructive"
+                        disabled={!editable}
                         onClick={() => {
                           setExceptions(list => list.filter((_, j) => j !== i))
                           setDirty(true)
@@ -234,7 +300,7 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
               >
                 {t('common:cancel')}
               </Button>
-              <Button className="cursor-pointer" onClick={() => save.mutate()} disabled={save.isPending}>
+              <Button className="cursor-pointer" onClick={() => save.mutate()} disabled={save.isPending || !editable}>
                 {save.isPending ? t('workSchedule.saving') : t('workSchedule.save')}
               </Button>
             </div>
@@ -243,7 +309,7 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
 
         {data?.exceptions?.length ? (
           <p className="text-[11px] text-muted-foreground">
-            {t('workSchedule.lastException', { date: formatDate(data.exceptions[data.exceptions.length - 1].endDate) })}
+            {t('workSchedule.lastException', { date: formatCalendarDate(data.exceptions[data.exceptions.length - 1].endDate) })}
           </p>
         ) : null}
       </CardContent>

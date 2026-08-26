@@ -254,6 +254,10 @@
       "savedDesc": "La ponctualité est désormais mesurée selon cet horaire.",
       "errorTitle": "Enregistrement impossible",
       "errorDesc": "Vérifiez que les plages sont dans l'ordre et ne se chevauchent pas."
-    }
+    },
+    "loadErrorTitle": "Impossible de charger l'horaire",
+    "loadErrorDesc": "L'édition reste bloquée jusqu'au chargement, pour ne pas écraser le vrai horaire par un horaire vide.",
+    "retry": "Réessayer",
+    "readOnly": "Lecture seule : vous devez avoir la permission de gérer les présences."
   }
 }

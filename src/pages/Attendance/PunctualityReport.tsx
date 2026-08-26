@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Clock, MinusCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { attendanceService, type AttendanceReportRow, type AttendanceStatus } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -23,9 +24,9 @@ interface Props {
 
 export function PunctualityReport({ venueId, startDate, endDate }: Props) {
   const { t } = useTranslation('attendance')
-  const { formatDate, formatTime } = useVenueDateTime()
+  const { formatCalendarDate, formatTime } = useVenueDateTime()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['attendance', 'report', venueId, startDate, endDate],
     queryFn: () => attendanceService.getReport(venueId, startDate, endDate),
     enabled: !!venueId,
@@ -36,6 +37,10 @@ export function PunctualityReport({ venueId, startDate, endDate }: Props) {
   const absentCount = rows.filter(r => r.status === 'ABSENT').length
 
   if (isLoading) return <p className="text-sm text-muted-foreground">{t('loading')}</p>
+
+  // Un 500 NO es "todos llegaron a tiempo": antes `rows` vacío caía en el estado sin novedades
+  // y un gerente se quedaba tranquilo con un reporte roto (auditoría Codex fase 2, hallazgo 2).
+  if (isError) return <LoadError t={t} onRetry={() => refetch()} />
 
   if (rows.length === 0) {
     return (
@@ -81,12 +86,18 @@ export function PunctualityReport({ venueId, startDate, endDate }: Props) {
               {rows.map(row => (
                 <tr key={`${row.staffVenueId}-${row.date}`} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-medium">{row.name}</td>
-                  <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatDate(`${row.date}T12:00:00`)}</td>
+                  <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatCalendarDate(row.date)}</td>
                   <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                    {row.expectedStart ? `${row.expectedStart} – ${row.expectedEnd}` : <span className="text-muted-foreground/70">{t('report.noSchedule')}</span>}
+                    {row.expectedStart ? (
+                      `${row.expectedStart} – ${row.expectedEnd}`
+                    ) : (
+                      <span className="text-muted-foreground/70">{t('report.noSchedule')}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 tabular-nums">{row.clockInTime ? formatTime(row.clockInTime) : '—'}</td>
-                  <td className="px-4 py-3 tabular-nums">{row.clockOutTime ? formatTime(row.clockOutTime) : row.clockInTime ? t('stillIn') : '—'}</td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {row.clockOutTime ? formatTime(row.clockOutTime) : row.clockInTime ? t('stillIn') : '—'}
+                  </td>
                   <td className="px-4 py-3">
                     <StatusBadge row={row} t={t} />
                   </td>
@@ -100,13 +111,28 @@ export function PunctualityReport({ venueId, startDate, endDate }: Props) {
   )
 }
 
+export function LoadError({ t, onRetry }: { t: (k: string) => string; onRetry: () => void }) {
+  return (
+    <Card className="border-destructive/40" role="alert">
+      <CardContent className="p-8 text-center space-y-2">
+        <p className="text-sm font-medium">{t('loadError.title')}</p>
+        <p className="text-sm text-muted-foreground">{t('loadError.description')}</p>
+        <Button variant="outline" size="sm" className="cursor-pointer" onClick={onRetry}>
+          {t('loadError.retry')}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
 function StatusBadge({ row, t }: { row: AttendanceReportRow; t: (k: string, o?: Record<string, unknown>) => string }) {
   const s: AttendanceStatus = row.status
-  const early = row.earlyLeaveMinutes > 0 ? (
-    <Badge variant="outline" className="rounded-full gap-1 ml-1">
-      {t('report.earlyLeave', { minutes: row.earlyLeaveMinutes })}
-    </Badge>
-  ) : null
+  const early =
+    row.earlyLeaveMinutes > 0 ? (
+      <Badge variant="outline" className="rounded-full gap-1 ml-1">
+        {t('report.earlyLeave', { minutes: row.earlyLeaveMinutes })}
+      </Badge>
+    ) : null
 
   if (s === 'LATE')
     return (

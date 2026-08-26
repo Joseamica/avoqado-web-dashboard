@@ -153,9 +153,4 @@ export const attendanceService = {
     )
     return response.data
   },
-
-  async validateTimeEntry(venueId: string, timeEntryId: string, status: 'APPROVED' | 'REJECTED', note?: string): Promise<TimeEntry> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/time-entries/${timeEntryId}/validate`, { status, note })
-    return response.data
-  },
 }

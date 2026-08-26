@@ -1,6 +1,6 @@
 {
   "title": "Asistencia",
-  "subtitle": "Entradas y salidas del personal. Se registran desde la terminal o la app del negocio; aquí las revisas y apruebas.",
+  "subtitle": "Entradas y salidas del personal. Se registran desde la terminal o la app del negocio; aquí las revisas.",
   "loading": "Cargando...",
   "unknownStaff": "Sin nombre",
   "stillIn": "sigue dentro",
@@ -80,5 +80,15 @@
       "title": "Nada que reportar en este periodo",
       "description": "Aparece aquí quien tiene horario definido y llegó tarde, faltó o salió antes. Sin horario, no se juzga a nadie."
     }
+  },
+  "disabled": {
+    "title": "El control de asistencia está apagado",
+    "description": "El personal no puede checar entrada mientras esté apagado. Lo que ya se registró sigue aquí.",
+    "cta": "Prenderlo en Ajustes"
+  },
+  "loadError": {
+    "title": "No se pudo cargar",
+    "description": "Hubo un problema al traer esta información. No es que no haya nada.",
+    "retry": "Reintentar"
   }
 }

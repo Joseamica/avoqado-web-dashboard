@@ -287,6 +287,10 @@
       "savedDesc": "Punctuality is now measured against this schedule.",
       "errorTitle": "Could not save",
       "errorDesc": "Check that ranges are in order and do not overlap."
-    }
+    },
+    "loadErrorTitle": "Could not load the schedule",
+    "loadErrorDesc": "Editing stays locked until it loads, so the real schedule is not overwritten with an empty one.",
+    "retry": "Retry",
+    "readOnly": "Read-only: you need permission to manage attendance."
   }
 }

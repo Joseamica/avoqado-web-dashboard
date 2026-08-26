@@ -31,6 +31,12 @@ export interface VenueDateTimeUtils {
   formatTime: (date: string | Date | null | undefined) => string
   /** Format date only: "Oct 20, 2025" */
   formatDate: (date: string | Date | null | undefined) => string
+  /**
+   * Fecha de CALENDARIO ('YYYY-MM-DD', sin hora ni zona): cuadrantes, excepciones, días del
+   * reporte. NO pasa por la zona del venue — `formatDate('2026-08-27')` la leía como medianoche
+   * UTC y en México la pintaba como el 26 (auditoría Codex fase 2, P2-5).
+   */
+  formatCalendarDate: (isoDate: string | null | undefined) => string
   /** Format date for display: "2025-10-20" */
   formatDateISO: (date: string | Date | null | undefined) => string
   /** Current venue timezone (e.g., "America/Mexico_City") */
@@ -109,6 +115,12 @@ export function useVenueDateTime(): VenueDateTimeUtils {
     return dt.toLocaleString(DateTime.DATE_MED)
   }
 
+  const formatCalendarDate = (isoDate: string | null | undefined): string => {
+    if (!isoDate) return 'N/A'
+    const dt = DateTime.fromISO(isoDate, { zone: 'utc' })
+    return dt.isValid ? dt.toLocaleString(DateTime.DATE_MED) : 'N/A'
+  }
+
   /**
    * Format date in ISO format for display
    * @example "2025-10-20"
@@ -130,6 +142,7 @@ export function useVenueDateTime(): VenueDateTimeUtils {
     formatDateTime,
     formatTime,
     formatDate,
+    formatCalendarDate,
     formatDateISO,
     venueTimezone,
     venueTimezoneShort,

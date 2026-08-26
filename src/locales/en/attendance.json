@@ -1,6 +1,6 @@
 {
   "title": "Attendance",
-  "subtitle": "Staff clock-ins and clock-outs. They are recorded on the venue terminal or app; here you review and approve them.",
+  "subtitle": "Staff clock-ins and clock-outs. They are recorded on the venue terminal or app; here you review them.",
   "loading": "Loading...",
   "unknownStaff": "Unnamed",
   "stillIn": "still in",
@@ -80,5 +80,15 @@
       "title": "Nothing to report for this period",
       "description": "People with a schedule who were late, absent or left early show up here. Without a schedule nobody is judged."
     }
+  },
+  "disabled": {
+    "title": "Attendance tracking is off",
+    "description": "Staff cannot clock in while it is off. What was already recorded stays here.",
+    "cta": "Turn it on in Settings"
+  },
+  "loadError": {
+    "title": "Could not load",
+    "description": "Something went wrong fetching this data. It does not mean there is nothing to show.",
+    "retry": "Retry"
   }
 }

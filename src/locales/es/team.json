@@ -287,6 +287,10 @@
       "savedDesc": "A partir de ahora la puntualidad se mide contra este horario.",
       "errorTitle": "No se pudo guardar",
       "errorDesc": "Revisa que los rangos estén en orden y sin traslaparse."
-    }
+    },
+    "loadErrorTitle": "No se pudo cargar el horario",
+    "loadErrorDesc": "Para no pisar el horario real con uno vacío, la edición queda bloqueada hasta que cargue.",
+    "retry": "Reintentar",
+    "readOnly": "Sólo lectura: necesitas permiso para administrar asistencia."
   }
 }

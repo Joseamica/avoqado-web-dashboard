@@ -327,17 +327,22 @@ export default function BasicInfo() {
   // NO toca turnos de caja.
   const saveAttendance = useMutation({
     mutationFn: async (data: { attendanceEnabled?: boolean; attendanceGraceMinutes?: number }) => {
-      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
-      return data
+      // Se devuelve lo que el servidor GUARDÓ, no lo que se pidió: un venue sin fila de
+      // settings podía responder con otros valores (auditoría Codex fase 2, P2-1).
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
+      const saved = (response.data?.data ?? response.data) as { attendanceEnabled?: boolean; attendanceGraceMinutes?: number }
+      return { requested: data, saved }
     },
-    onSuccess: data => {
-      if (data.attendanceEnabled !== undefined) form.setValue('attendanceEnabled', data.attendanceEnabled, { shouldDirty: false })
-      if (data.attendanceGraceMinutes !== undefined) form.setValue('attendanceGraceMinutes', data.attendanceGraceMinutes, { shouldDirty: false })
+    onSuccess: ({ requested, saved }) => {
+      form.setValue('attendanceEnabled', saved.attendanceEnabled ?? requested.attendanceEnabled ?? true, { shouldDirty: false })
+      form.setValue('attendanceGraceMinutes', saved.attendanceGraceMinutes ?? requested.attendanceGraceMinutes ?? 10, {
+        shouldDirty: false,
+      })
       toast({
         title:
-          data.attendanceEnabled === undefined
+          requested.attendanceEnabled === undefined
             ? t('venue:attendance.toastGraceSaved')
-            : data.attendanceEnabled
+            : requested.attendanceEnabled
               ? t('venue:attendance.toastEnabled')
               : t('venue:attendance.toastDisabled'),
         description: t('venue:attendance.toastSavedDesc'),
@@ -346,6 +351,10 @@ export default function BasicInfo() {
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error?.response?.data?.message || t('venue:attendance.toastError'), variant: 'destructive' })
+      // El campo vuelve a lo que está guardado: dejar "999" en pantalla tras un 400 promete lo
+      // que el servidor rechazó (auditoría Codex fase 2, hallazgo 4).
+      form.setValue('attendanceEnabled', venue.settings?.attendanceEnabled ?? true, { shouldDirty: false })
+      form.setValue('attendanceGraceMinutes', venue.settings?.attendanceGraceMinutes ?? 10, { shouldDirty: false })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
     },
   })
@@ -546,9 +555,7 @@ export default function BasicInfo() {
     const onInvalid = (errors: FieldErrors<BasicInfoFormValues>) => {
       const firstFieldError = Object.values(errors)[0]
       const description =
-        typeof firstFieldError?.message === 'string'
-          ? firstFieldError.message
-          : 'Revisa los campos requeridos antes de guardar.'
+        typeof firstFieldError?.message === 'string' ? firstFieldError.message : 'Revisa los campos requeridos antes de guardar.'
       toast({
         title: 'No se pudo guardar',
         description,
@@ -798,11 +805,15 @@ export default function BasicInfo() {
                             }}
                           >
                             <FormControl>
-                              <SelectTrigger data-tour="venue-operational-role"><SelectValue /></SelectTrigger>
+                              <SelectTrigger data-tour="venue-operational-role">
+                                <SelectValue />
+                              </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {(['STORE', 'CEDIS', 'HYBRID'] as const).map(role => (
-                                <SelectItem key={role} value={role}>{t(`edit.operationalRoles.${role}`)}</SelectItem>
+                                <SelectItem key={role} value={role}>
+                                  {t(`edit.operationalRoles.${role}`)}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -818,11 +829,11 @@ export default function BasicInfo() {
                         <FormItem className="flex items-center justify-between gap-4 rounded-lg bg-muted/40 p-3">
                           <div className="space-y-1">
                             <FormLabel>{t('edit.labels.salesEnabled')}</FormLabel>
-                            <FormDescription>{
-                              form.watch('operationalRole') === 'CEDIS'
+                            <FormDescription>
+                              {form.watch('operationalRole') === 'CEDIS'
                                 ? t('edit.descriptions.cedisSalesDisabled')
-                                : t('edit.descriptions.salesEnabled')
-                            }</FormDescription>
+                                : t('edit.descriptions.salesEnabled')}
+                            </FormDescription>
                           </div>
                           <FormControl>
                             <Switch
@@ -1038,7 +1049,9 @@ export default function BasicInfo() {
                                   <div className="flex items-center justify-between">
                                     <div className="space-y-0.5">
                                       <p className="text-sm font-medium">Cierre por Hora Fija</p>
-                                      <p className="text-xs text-muted-foreground">Cierra todos los turnos abiertos a una hora específica.</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Cierra todos los turnos abiertos a una hora específica.
+                                      </p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {toggleAutoClockOut.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -1084,7 +1097,9 @@ export default function BasicInfo() {
                                       <p className="text-xs text-muted-foreground">Cierra turnos que excedan una cantidad de horas.</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      {toggleMaxShiftDuration.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                      {toggleMaxShiftDuration.isPending && (
+                                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                      )}
                                       <Switch
                                         checked={form.watch('maxShiftDurationEnabled') ?? false}
                                         onCheckedChange={checked => {
@@ -1201,8 +1216,8 @@ export default function BasicInfo() {
                             </span>
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Solo el mesero que abrió una mesa puede modificarla y cobrarla; los demás la ven en solo lectura. Los
-                            gerentes conservan acceso total. Aplica al Modo restaurante en el POS.
+                            Solo el mesero que abrió una mesa puede modificarla y cobrarla; los demás la ven en solo lectura. Los gerentes
+                            conservan acceso total. Aplica al Modo restaurante en el POS.
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1220,10 +1235,7 @@ export default function BasicInfo() {
                         no depende de que el venue use turnos. Core, sin candado de plan. */}
                     {venueId && (
                       <div className="mt-3">
-                        <ManagerPinOverrideSetting
-                          venueId={venueId}
-                          storedSetting={venue.settings?.managerPinOverrideEnabled ?? false}
-                        />
+                        <ManagerPinOverrideSetting venueId={venueId} storedSetting={venue.settings?.managerPinOverrideEnabled ?? false} />
                       </div>
                     )}
                   </div>

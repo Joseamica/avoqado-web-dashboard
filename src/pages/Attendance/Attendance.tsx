@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { Clock, Coffee, UserCheck } from 'lucide-react'
+import { Clock, Coffee, PowerOff, UserCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,7 +11,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { attendanceService, type TimeEntry } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { rangeToDates, type RangeKey } from './attendanceRange'
-import { PunctualityReport } from './PunctualityReport'
+import { LoadError, PunctualityReport } from './PunctualityReport'
 
 /**
  * Asistencia: sólo LECTURA. No hay «Aprobar»/«Rechazar» a propósito: Square no aprueba
@@ -21,7 +22,9 @@ import { PunctualityReport } from './PunctualityReport'
  */
 export default function Attendance() {
   const { t } = useTranslation('attendance')
-  const { venueId } = useCurrentVenue()
+  const { venue, venueId, fullBasePath } = useCurrentVenue()
+  // Apagado se VE y se EXPLICA — nunca desaparecer en silencio (regla del workspace; Codex hallazgo 1).
+  const attendanceOff = venue?.settings?.attendanceEnabled === false
   const { formatTime, formatDate, venueTimezone } = useVenueDateTime()
 
   const [range, setRange] = useState<RangeKey>('today')
@@ -29,20 +32,27 @@ export default function Attendance() {
   const [view, setView] = useState<'log' | 'punctuality'>('log')
 
   // "Hoy" en la zona del negocio, no en la del navegador de quien mira.
-  const todayIso = useMemo(
-    () => new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date()),
-    [venueTimezone],
-  )
+  const todayIso = useMemo(() => new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date()), [venueTimezone])
   const { startDate, endDate } = useMemo(() => rangeToDates(range, todayIso), [range, todayIso])
 
-  const { data: activeStaff = [], isLoading: loadingActive } = useQuery({
+  const {
+    data: activeStaff = [],
+    isLoading: loadingActive,
+    isError: errorActive,
+    refetch: refetchActive,
+  } = useQuery({
     queryKey: ['attendance', 'active', venueId],
     queryFn: () => attendanceService.getActiveStaff(venueId!),
     enabled: !!venueId,
     refetchInterval: 60_000,
   })
 
-  const { data: page, isLoading: loadingEntries } = useQuery({
+  const {
+    data: page,
+    isLoading: loadingEntries,
+    isError: errorEntries,
+    refetch: refetchEntries,
+  } = useQuery({
     queryKey: ['attendance', 'entries', venueId, startDate, endDate],
     queryFn: () => attendanceService.getTimeEntries(venueId!, { startDate, endDate, limit: 200 }),
     enabled: !!venueId,
@@ -51,9 +61,7 @@ export default function Attendance() {
   // Se piden 200; si hay más, se dice — una lista recortada en silencio miente.
   const truncated = (page?.total ?? 0) > entries.length
 
-
-  const staffName = (entry: TimeEntry) =>
-    entry.staff ? `${entry.staff.firstName} ${entry.staff.lastName}`.trim() : t('unknownStaff')
+  const staffName = (entry: TimeEntry) => (entry.staff ? `${entry.staff.firstName} ${entry.staff.lastName}`.trim() : t('unknownStaff'))
 
   function hoursLabel(entry: TimeEntry): string {
     if (entry.totalHours == null) return '—'
@@ -71,6 +79,23 @@ export default function Attendance() {
         <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </header>
 
+      {attendanceOff && (
+        <Card className="border-amber-500/40" role="status">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <PowerOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">{t('disabled.title')}</p>
+                <p className="text-sm text-muted-foreground">{t('disabled.description')}</p>
+              </div>
+            </div>
+            <Link to={`${fullBasePath}/settings/local/basic-info`} className="text-sm font-medium underline underline-offset-4 shrink-0">
+              {t('disabled.cta')}
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Quién está dentro ahora ───────────────────────── */}
       <Card className="border-input">
         <CardContent className="p-5 space-y-4">
@@ -84,6 +109,8 @@ export default function Attendance() {
 
           {loadingActive ? (
             <p className="text-sm text-muted-foreground">{t('loading')}</p>
+          ) : errorActive ? (
+            <LoadError t={t} onRetry={() => refetchActive()} />
           ) : activeStaff.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('onShift.empty')}</p>
           ) : (
@@ -152,6 +179,8 @@ export default function Attendance() {
         <PunctualityReport venueId={venueId!} startDate={startDate} endDate={endDate} />
       ) : loadingEntries ? (
         <p className="text-sm text-muted-foreground">{t('loading')}</p>
+      ) : errorEntries ? (
+        <LoadError t={t} onRetry={() => refetchEntries()} />
       ) : entries.length === 0 ? (
         <Card className="border-input">
           <CardContent className="p-8 text-center space-y-1">
@@ -183,13 +212,11 @@ export default function Attendance() {
                     </div>
                   </div>
                 </div>
-
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-
     </div>
   )
 }

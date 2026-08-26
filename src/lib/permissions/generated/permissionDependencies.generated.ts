@@ -17,7 +17,7 @@
  * avisar "este permiso viene incluido en aquél". Sin ellas la pantalla dejaba desmarcar algo
  * que el backend repone en silencio: mentía.
  *
- * 177 entradas · derivado de avoqado-server · huella 2079cca54bbd76e6.
+ * 177 entradas · derivado de avoqado-server · huella 95dcce5b5d55f824.
  * (12 excluidas: vertical white-label de PlayTelecom.)
  */
 
@@ -177,7 +177,7 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'tpv-tables:write': ['tpv-tables:write', 'tables:read', 'tables:update'],
   'tpv-terminal:settings': ['tpv-terminal:settings', 'tpv:read'],
   'tpv-time-entries:read': ['tpv-time-entries:read', 'teams:read'],
-  'tpv-time-entries:write': ['tpv-time-entries:write', 'tpv-time-entries:read', 'teams:read'],
+  'tpv-time-entries:write': ['tpv-time-entries:write', 'teams:read'],
   'tpv:command': ['tpv:read', 'tpv:command', 'orders:read'],
   'tpv:command:bulk': ['tpv:read', 'tpv:command', 'tpv:command:bulk'],
   'tpv:command:config': ['tpv:read', 'tpv:command', 'tpv:command:config'],
@@ -201,4 +201,4 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'venues:update': ['venues:read', 'venues:update'],
 }
 
-export const PERMISSION_DEPENDENCIES_DIGEST = '2079cca54bbd76e6'
+export const PERMISSION_DEPENDENCIES_DIGEST = '95dcce5b5d55f824'
