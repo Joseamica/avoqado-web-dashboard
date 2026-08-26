@@ -52,7 +52,6 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
     const start = new Date(end)
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
-
   }, [])
   const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
   // Reassign targets PROMOTER_HELD / PROMOTER_PENDING SIMs — filter accordingly
@@ -215,10 +214,7 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
             </div>
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {visibleRows.map(row => (
-                <div
-                  key={row.serialNumber}
-                  className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm"
-                >
+                <div key={row.serialNumber} className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
                   <span className="font-mono text-xs">{row.serialNumber}</span>
                   {row.status === 'ok' ? (
                     <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">

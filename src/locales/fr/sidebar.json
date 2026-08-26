@@ -24,7 +24,8 @@
   },
   "teamMenu": {
     "title": "Équipe",
-    "members": "Membres"
+    "members": "Membres",
+    "attendance": "Présences"
   },
   "settingsMenu": {
     "title": "Paramètres"

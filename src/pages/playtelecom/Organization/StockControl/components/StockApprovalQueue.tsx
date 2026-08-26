@@ -110,29 +110,16 @@ export function StockApprovalQueue({ orgId }: Props) {
   return (
     <div className="space-y-3">
       {/* Search */}
-      <Input
-        placeholder="Buscar por ICCID…"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="max-w-sm"
-      />
+      <Input placeholder="Buscar por ICCID…" value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />
 
       {/* Bulk toolbar */}
       {canApprove && items.length > 0 && (
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground select-none">
-            <Checkbox
-              checked={allSelected}
-              onCheckedChange={toggleAll}
-              aria-label="Seleccionar todos"
-            />
+            <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Seleccionar todos" />
             Seleccionar todos (visibles)
           </label>
-          <Button
-            size="sm"
-            onClick={handleApproveSelected}
-            disabled={selected.size === 0 || approve.isPending}
-          >
+          <Button size="sm" onClick={handleApproveSelected} disabled={selected.size === 0 || approve.isPending}>
             {approve.isPending ? 'Aprobando…' : `Aprobar seleccionados (${selected.size})`}
           </Button>
         </div>

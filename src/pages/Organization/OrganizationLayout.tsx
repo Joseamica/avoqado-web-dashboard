@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldAlert } from 'lucide-react'
 import OrgSidebar from './components/OrgSidebar'
 
-interface OrganizationLayoutProps {
+export interface OrganizationLayoutProps {
   catalogOnly?: boolean
 }
 

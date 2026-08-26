@@ -26,7 +26,8 @@
   },
   "teamMenu": {
     "title": "Team",
-    "members": "Members"
+    "members": "Members",
+    "attendance": "Attendance"
   },
   "settingsMenu": {
     "title": "Settings"

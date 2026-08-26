@@ -55,6 +55,9 @@ import inviteAcceptEs from '@/locales/es/inviteAccept.json'
 import teamEn from '@/locales/en/team.json'
 import teamEs from '@/locales/es/team.json'
 import teamFr from '@/locales/fr/team.json'
+import attendanceEn from '@/locales/en/attendance.json'
+import attendanceEs from '@/locales/es/attendance.json'
+import attendanceFr from '@/locales/fr/attendance.json'
 import homeEn from '@/locales/en/home.json'
 import homeEs from '@/locales/es/home.json'
 import homeFr from '@/locales/fr/home.json'
@@ -400,6 +403,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'team', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', attendanceEn],
+    ['es', attendanceEs],
+    ['fr', attendanceFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'attendance', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

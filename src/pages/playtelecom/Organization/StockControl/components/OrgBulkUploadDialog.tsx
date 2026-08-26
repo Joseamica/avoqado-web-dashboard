@@ -13,14 +13,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -74,10 +67,7 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
     enabled: Boolean(effectiveVenueId) && open,
   })
   const categories = useMemo(() => categoriesData?.categories ?? [], [categoriesData])
-  const orgCategories = useMemo(
-    () => categories.filter(c => (c as { source?: string }).source === 'organization'),
-    [categories],
-  )
+  const orgCategories = useMemo(() => categories.filter(c => (c as { source?: string }).source === 'organization'), [categories])
 
   // If the selected category is not in the current org-level list (happens
   // when the user switches origin venue and the old id no longer resolves),
@@ -145,8 +135,8 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Cargar Items (registro inicial)</DialogTitle>
           <DialogDescription>
-            Registra ICCIDs nuevos en el sistema. Los items se crean a nivel organización y quedan listos para asignarse a un Supervisor
-            en el paso siguiente.
+            Registra ICCIDs nuevos en el sistema. Los items se crean a nivel organización y quedan listos para asignarse a un Supervisor en
+            el paso siguiente.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,9 +165,7 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
                   value={categoryId}
                   onValueChange={setCategoryId}
                   options={orgCategories.map(c => ({ value: c.id, label: c.name }))}
-                  placeholder={
-                    orgCategories.length === 0 ? 'No hay categorías org-level configuradas' : 'Selecciona una categoría'
-                  }
+                  placeholder={orgCategories.length === 0 ? 'No hay categorías org-level configuradas' : 'Selecciona una categoría'}
                   searchPlaceholder="Buscar categoría…"
                   emptyMessage="Sin categorías org-level"
                   disabled={orgCategories.length === 0}
@@ -216,11 +204,7 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
                   }}
                   className="font-mono text-sm"
                 />
-                <p
-                  className={`mt-2 text-xs ${
-                    invalidCharFlash ? 'text-destructive' : 'text-muted-foreground'
-                  }`}
-                >
+                <p className={`mt-2 text-xs ${invalidCharFlash ? 'text-destructive' : 'text-muted-foreground'}`}>
                   {invalidCharFlash
                     ? '⚠ Símbolo eliminado — solo letras, números y separadores (línea, coma, tab)'
                     : 'Solo letras y números. Un ICCID por línea, coma o tab. Compatible con escáner.'}
@@ -267,9 +251,7 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
             {result.errors.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Errores:</p>
-                <div className="max-h-32 overflow-y-auto rounded border border-input p-2 text-xs">
-                  {result.errors.join(', ')}
-                </div>
+                <div className="max-h-32 overflow-y-auto rounded border border-input p-2 text-xs">{result.errors.join(', ')}</div>
               </div>
             )}
           </div>

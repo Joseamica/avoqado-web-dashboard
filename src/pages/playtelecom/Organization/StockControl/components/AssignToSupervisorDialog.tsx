@@ -18,11 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
-import {
-  assignSimsToPromoterDirect,
-  assignSimsToSupervisor,
-  type BulkResponse,
-} from '@/services/simCustody.service'
+import { assignSimsToPromoterDirect, assignSimsToSupervisor, type BulkResponse } from '@/services/simCustody.service'
 import { useOrgSupervisors, useOrgPromoters } from '@/hooks/use-org-staff-by-role'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -76,7 +72,6 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
     const start = new Date(end)
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
-     
   }, [])
   const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
   const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])
@@ -194,9 +189,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                     type="button"
                     onClick={() => setTarget('supervisor')}
                     className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                      target === 'supervisor'
-                        ? 'bg-foreground text-background'
-                        : 'text-muted-foreground hover:text-foreground'
+                      target === 'supervisor' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Supervisor
@@ -205,9 +198,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                     type="button"
                     onClick={() => setTarget('promoter-direct')}
                     className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                      target === 'promoter-direct'
-                        ? 'bg-foreground text-background'
-                        : 'text-muted-foreground hover:text-foreground'
+                      target === 'promoter-direct' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Promotor (directo)
@@ -267,10 +258,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   <SearchableSelect
                     value={searchCategoryFilter}
                     onValueChange={setSearchCategoryFilter}
-                    options={[
-                      { value: '', label: 'Todas' },
-                      ...categoriesInStock.map(c => ({ value: c.id, label: c.name })),
-                    ]}
+                    options={[{ value: '', label: 'Todas' }, ...categoriesInStock.map(c => ({ value: c.id, label: c.name }))]}
                     placeholder="Todas"
                     searchPlaceholder="Buscar categoría…"
                     emptyMessage="Sin categorías"
@@ -336,10 +324,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
             </div>
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {visibleRows.map(row => (
-                <div
-                  key={row.serialNumber}
-                  className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm"
-                >
+                <div key={row.serialNumber} className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
                   <span className="font-mono text-xs">{row.serialNumber}</span>
                   {row.status === 'ok' ? (
                     <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">

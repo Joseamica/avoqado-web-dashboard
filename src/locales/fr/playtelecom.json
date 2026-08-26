@@ -138,52 +138,6 @@
       "low": "bas",
       "noAlerts": "Pas d'alertes de stock",
       "request": "Demander"
-    },
-    "byResponsible": {
-      "title": "Inventaire par responsable",
-      "subtitle": "Ce que chaque promoteur doit avoir physiquement",
-      "totalCountry": "Total national",
-      "noSupervisor": "Aucun superviseur assigné",
-      "unassignedHint": "Promoteurs désactivés ou sans magasin. Affichés pour que leur inventaire ne soit pas exclu du contrôle.",
-      "inHandHint": "C'est le nombre à compter en magasin",
-      "empty": "Aucun inventaire détenu par des promoteurs avec ces filtres.",
-      "promoterCount_one": "{{count}} promoteur",
-      "promoterCount_other": "{{count}} promoteurs",
-      "columns": {
-        "responsible": "Responsable",
-        "assigned": "Assignés",
-        "receptionApproved": "Réception approuvée",
-        "saleApproved": "Vente approuvée",
-        "saleInAdminReview": "Vente en révision admin",
-        "saleInPromoterReview": "Vente en révision promoteur",
-        "saleRejected": "Vente rejetée",
-        "inHandToday": "En main AUJOURD'HUI"
-      },
-      "filters": {
-        "receivingVenue": "Magasin récepteur",
-        "simType": "Type de SIM",
-        "all": "Tous",
-        "allTypes": "Tous",
-        "showingAll": "Affichage de tout l'inventaire en main",
-        "filtered": "Filtré par magasin récepteur"
-      },
-      "export": {
-        "button": "Exporter le tableau",
-        "sheetTable": "Tableau",
-        "sheetIccids": "ID SIM en main AUJOURD'HUI",
-        "empty": "Aucune donnée pour ces filtres",
-        "level": "Niveau",
-        "responsible": "Responsable",
-        "levelCountry": "Pays",
-        "levelCity": "Ville",
-        "levelSupervisor": "Superviseur",
-        "levelPromoter": "Promoteur",
-        "iccid": "ID SIM (ICCID)",
-        "promoter": "Promoteur",
-        "supervisor": "Superviseur",
-        "type": "Type de SIM",
-        "receivingVenue": "Magasin récepteur"
-      }
     }
   },
   "sales": {

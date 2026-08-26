@@ -146,6 +146,7 @@ import {
   MerchantRoutingRules,
   TeamId,
   Teams,
+  Attendance,
   TerminalOrderDetail,
   Tpv,
   TpvId,
@@ -517,6 +518,13 @@ export function createVenueRoutes(): RouteObject[] {
         { index: true, element: <Teams /> },
         { path: ':memberId', element: <TeamId /> },
       ],
+    },
+
+    // Asistencia — revisar y aprobar checadas. Marcar entrada/salida NO vive aqui:
+    // eso pasa en la terminal y en la app, donde la foto y el GPS significan algo.
+    {
+      element: <PermissionProtectedRoute permission="tpv-time-entries:read" />,
+      children: [{ path: 'asistencia', element: <Attendance /> }],
     },
 
     // Commission Management (requires commissions:read permission)

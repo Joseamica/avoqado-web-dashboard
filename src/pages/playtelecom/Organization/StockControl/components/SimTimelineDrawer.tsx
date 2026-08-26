@@ -9,7 +9,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Loader2, PackageCheck, ArrowRight, CheckCircle2, XCircle, RotateCcw, DollarSign } from 'lucide-react'
-import { getSimCustodyEvents, type CustodyEvent, type CustodyEventStaff, type SimCustodyCollectionReason } from '@/services/simCustody.service'
+import {
+  getSimCustodyEvents,
+  type CustodyEvent,
+  type CustodyEventStaff,
+  type SimCustodyCollectionReason,
+} from '@/services/simCustody.service'
 import { useVenueDateTime } from '@/utils/datetime'
 
 interface Props {
@@ -25,10 +30,7 @@ const REASON_LABELS: Record<SimCustodyCollectionReason, string> = {
   SUPERVISOR_COLLECTION: 'Recolección de Supervisor',
 }
 
-const EVENT_META: Record<
-  string,
-  { label: string; Icon: typeof PackageCheck }
-> = {
+const EVENT_META: Record<string, { label: string; Icon: typeof PackageCheck }> = {
   ASSIGNED_TO_SUPERVISOR: { label: 'Asignado a Supervisor', Icon: ArrowRight },
   ASSIGNED_TO_PROMOTER: { label: 'Asignado a Promotor', Icon: ArrowRight },
   ACCEPTED_BY_PROMOTER: { label: 'Aceptado por Promotor', Icon: CheckCircle2 },
@@ -113,9 +115,7 @@ export function SimTimelineDrawer({ open, onOpenChange, orgId, serialNumber }: P
               Cargando historial…
             </div>
           )}
-          {error && (
-            <p className="text-sm text-red-600">No se pudo cargar el historial. Intenta de nuevo.</p>
-          )}
+          {error && <p className="text-sm text-red-600">No se pudo cargar el historial. Intenta de nuevo.</p>}
           {data && data.events.length === 0 && (
             <p className="text-sm text-muted-foreground">Este SIM no tiene eventos registrados todavía.</p>
           )}

@@ -149,52 +149,6 @@
       "low": "low",
       "noAlerts": "No stock alerts",
       "request": "Request"
-    },
-    "byResponsible": {
-      "title": "Inventory by responsible",
-      "subtitle": "What each promoter should be physically carrying",
-      "totalCountry": "Country total",
-      "noSupervisor": "No supervisor assigned",
-      "unassignedHint": "Deactivated promoters or promoters with no store. Shown so their inventory is not left out of the count.",
-      "inHandHint": "This is the number to count at the store",
-      "empty": "No inventory held by promoters with these filters.",
-      "promoterCount_one": "{{count}} promoter",
-      "promoterCount_other": "{{count}} promoters",
-      "columns": {
-        "responsible": "Responsible",
-        "assigned": "Assigned",
-        "receptionApproved": "Reception approved",
-        "saleApproved": "Sale approved",
-        "saleInAdminReview": "Sale under admin review",
-        "saleInPromoterReview": "Sale under promoter review",
-        "saleRejected": "Sale rejected",
-        "inHandToday": "In hand TODAY"
-      },
-      "filters": {
-        "receivingVenue": "Receiving store",
-        "simType": "SIM type",
-        "all": "All",
-        "allTypes": "All",
-        "showingAll": "Showing all inventory in hand",
-        "filtered": "Filtered by receiving store"
-      },
-      "export": {
-        "button": "Export dashboard",
-        "sheetTable": "Dashboard",
-        "sheetIccids": "SIM IDs in hand TODAY",
-        "empty": "No data for the selected filters",
-        "level": "Level",
-        "responsible": "Responsible",
-        "levelCountry": "Country",
-        "levelCity": "City",
-        "levelSupervisor": "Supervisor",
-        "levelPromoter": "Promoter",
-        "iccid": "SIM ID (ICCID)",
-        "promoter": "Promoter",
-        "supervisor": "Supervisor",
-        "type": "SIM type",
-        "receivingVenue": "Receiving store"
-      }
     }
   },
   "sales": {

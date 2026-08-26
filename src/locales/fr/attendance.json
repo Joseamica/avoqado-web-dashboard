@@ -1,0 +1,55 @@
+{
+  "title": "Présences",
+  "subtitle": "Pointages du personnel. Ils sont enregistrés sur le terminal ou l'application du commerce ; ici vous les vérifiez et les approuvez.",
+  "loading": "Chargement...",
+  "unknownStaff": "Sans nom",
+  "stillIn": "toujours présent",
+  "worked": "A travaillé {{value}}",
+  "hoursMinutes": "{{hours}} h {{minutes}} min",
+  "breakMinutes": "{{count}} min de pause",
+  "locationCaptured": "Position enregistrée",
+  "autoClosed": "Sortie automatique",
+  "photoAlt": "Photo d'arrivée de {{name}}",
+  "pendingReview": "{{count}} à vérifier",
+  "onShift": {
+    "title": "Présents maintenant",
+    "empty": "Personne n'a pointé.",
+    "since": "Depuis {{time}}"
+  },
+  "status": {
+    "clockedIn": "Au travail",
+    "onBreak": "En pause"
+  },
+  "ranges": {
+    "today": "Aujourd'hui",
+    "week": "7 jours",
+    "month": "30 jours"
+  },
+  "empty": {
+    "title": "Aucun pointage sur cette période",
+    "description": "Le personnel pointe depuis le terminal ou l'application du commerce."
+  },
+  "validation": {
+    "approved": "Approuvé",
+    "rejected": "Refusé"
+  },
+  "actions": {
+    "approve": "Approuver",
+    "reject": "Refuser"
+  },
+  "rejectDialog": {
+    "title": "Refuser ce pointage ?",
+    "description": "Indiquez pourquoi vous refusez le pointage de {{name}}. Le motif est conservé.",
+    "placeholder": "ex. la photo ne vient pas de cet établissement",
+    "cancel": "Annuler",
+    "confirm": "Refuser le pointage"
+  },
+  "toasts": {
+    "approvedTitle": "Pointage approuvé",
+    "approvedDesc": "Les heures sont validées.",
+    "rejectedTitle": "Pointage refusé",
+    "rejectedDesc": "Le motif a été enregistré.",
+    "errorTitle": "Enregistrement impossible",
+    "errorDesc": "Réessayez dans un instant."
+  }
+}

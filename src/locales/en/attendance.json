@@ -1,0 +1,55 @@
+{
+  "title": "Attendance",
+  "subtitle": "Staff clock-ins and clock-outs. They are recorded on the venue terminal or app; here you review and approve them.",
+  "loading": "Loading...",
+  "unknownStaff": "Unnamed",
+  "stillIn": "still in",
+  "worked": "Worked {{value}}",
+  "hoursMinutes": "{{hours}} h {{minutes}} min",
+  "breakMinutes": "{{count}} min on break",
+  "locationCaptured": "Location captured",
+  "autoClosed": "Auto clock-out",
+  "photoAlt": "Clock-in photo of {{name}}",
+  "pendingReview": "{{count}} to review",
+  "onShift": {
+    "title": "On shift now",
+    "empty": "Nobody has clocked in.",
+    "since": "Since {{time}}"
+  },
+  "status": {
+    "clockedIn": "Working",
+    "onBreak": "On break"
+  },
+  "ranges": {
+    "today": "Today",
+    "week": "7 days",
+    "month": "30 days"
+  },
+  "empty": {
+    "title": "No clock-ins in this period",
+    "description": "Staff clock in and out from the venue terminal or app."
+  },
+  "validation": {
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "actions": {
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "rejectDialog": {
+    "title": "Reject this clock-in?",
+    "description": "Say why you are rejecting {{name}}'s entry. The reason is saved.",
+    "placeholder": "e.g. the photo is not from this location",
+    "cancel": "Cancel",
+    "confirm": "Reject entry"
+  },
+  "toasts": {
+    "approvedTitle": "Entry approved",
+    "approvedDesc": "The hours are validated.",
+    "rejectedTitle": "Entry rejected",
+    "rejectedDesc": "The reason was saved.",
+    "errorTitle": "Could not save",
+    "errorDesc": "Please try again in a moment."
+  }
+}

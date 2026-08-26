@@ -13,10 +13,7 @@ interface ExportButtonProps {
   bulkGroups: OrgStockBulkGroup[]
 }
 
-const CUSTODY_LABELS: Record<
-  NonNullable<OrgStockOverviewItem['custodyState']>,
-  string
-> = {
+const CUSTODY_LABELS: Record<NonNullable<OrgStockOverviewItem['custodyState']>, string> = {
   ADMIN_HELD: 'En almacén',
   SUPERVISOR_HELD: 'Con Supervisor',
   PROMOTER_PENDING: 'Pendiente aceptar',
@@ -97,9 +94,7 @@ export function ExportButton({ orgId, params, items, bulkGroups }: ExportButtonP
       const from = params.dateFrom?.slice(0, 10)
       const to = params.dateTo?.slice(0, 10)
       const filename =
-        from && to
-          ? `control-stock-${orgId}-${from}-a-${to}`
-          : `control-stock-${orgId}-${new Date().toISOString().slice(0, 10)}`
+        from && to ? `control-stock-${orgId}-${from}-a-${to}` : `control-stock-${orgId}-${new Date().toISOString().slice(0, 10)}`
 
       await exportToExcel(rows, filename, 'Detalle SIMs')
       toast({ title: 'Excel descargado', description: `${filename}.xlsx` })

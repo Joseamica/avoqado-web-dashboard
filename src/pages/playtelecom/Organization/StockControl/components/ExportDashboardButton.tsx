@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
@@ -18,6 +17,11 @@ import type { InventoryByResponsible, OrgStockOverviewItem, ResponsibleCounts } 
  * de "en mano" (custodia del promotor). Si las dos hojas usaran criterios
  * distintos, el supervisor contaría contra una lista que no cuadra con el total
  * que ve en pantalla — que es exactamente el problema que este tablero resuelve.
+ *
+ * 🔴 Textos en español fijo, NO con `t()`, por decisión del founder (2026-08-25):
+ * el resto de esta pantalla está hardcodeado en español y traducir sólo esta
+ * parte dejaba la pantalla bilingüe. Ver el comentario largo en
+ * `InventoryByResponsibleTable.tsx`.
  */
 
 interface Props {
@@ -27,6 +31,16 @@ interface Props {
   receivingVenueId: string | null
   categoryId: string | null
   disabled?: boolean
+}
+
+const COL_LABEL: Record<keyof ResponsibleCounts, string> = {
+  assigned: 'Asignados',
+  receptionApproved: 'Recepción aprobada',
+  saleApproved: 'Venta aprobada',
+  saleInAdminReview: 'Venta en revisión de Admin',
+  saleInPromoterReview: 'Venta en revisión por promotor',
+  saleRejected: 'Venta rechazada',
+  inHandToday: 'En mano HOY',
 }
 
 const COUNT_KEYS: Array<keyof ResponsibleCounts> = [
@@ -40,35 +54,32 @@ const COUNT_KEYS: Array<keyof ResponsibleCounts> = [
 ]
 
 export function ExportDashboardButton({ data, items, receivingVenueId, categoryId, disabled }: Props) {
-  const { t } = useTranslation('playtelecom')
   const { toast } = useToast()
   const [busy, setBusy] = useState(false)
-  const base = 'stock.byResponsible'
-  const e = `${base}.export`
 
   async function handleExport() {
     if (!data) return
     setBusy(true)
     try {
-      const cols = (c: ResponsibleCounts) => Object.fromEntries(COUNT_KEYS.map(k => [t(`${base}.columns.${k}`), c[k]]))
+      const cols = (c: ResponsibleCounts) => Object.fromEntries(COUNT_KEYS.map(k => [COL_LABEL[k], c[k]]))
 
       const row = (level: string, responsible: string, counts: ResponsibleCounts) => ({
-        [t(`${e}.level`)]: level,
-        [t(`${e}.responsible`)]: responsible,
+        Nivel: level,
+        Responsable: responsible,
         ...cols(counts),
       })
 
-      const tableRows: Record<string, any>[] = [row(t(`${e}.levelCountry`), t(`${base}.totalCountry`), data.total)]
+      const tableRows: Record<string, any>[] = [row('País', 'Total País', data.total)]
       for (const city of data.cities) {
-        tableRows.push(row(t(`${e}.levelCity`), city.city, city))
+        tableRows.push(row('Ciudad', city.city, city))
         for (const sup of city.supervisors) {
-          tableRows.push(row(t(`${e}.levelSupervisor`), sup.supervisorName, sup))
-          for (const p of sup.promoters) tableRows.push(row(t(`${e}.levelPromoter`), p.promoterName, p))
+          tableRows.push(row('Supervisor', sup.supervisorName, sup))
+          for (const p of sup.promoters) tableRows.push(row('Promotor', p.promoterName, p))
         }
       }
       if (data.unassigned.promoters.length > 0) {
-        tableRows.push(row(t(`${e}.levelCity`), data.unassigned.label, data.unassigned))
-        for (const p of data.unassigned.promoters) tableRows.push(row(t(`${e}.levelPromoter`), p.promoterName, p))
+        tableRows.push(row('Ciudad', data.unassigned.label, data.unassigned))
+        for (const p of data.unassigned.promoters) tableRows.push(row('Promotor', p.promoterName, p))
       }
 
       // Mismos filtros que la tabla, y el mismo criterio de "en mano".
@@ -80,25 +91,25 @@ export function ExportDashboardButton({ data, items, receivingVenueId, categoryI
       )
 
       const iccidRows = inHand.map(i => ({
-        [t(`${e}.iccid`)]: i.serialNumber,
-        [t(`${e}.promoter`)]: i.assignedPromoterName ?? '—',
-        [t(`${e}.supervisor`)]: i.assignedSupervisorName ?? '—',
-        [t(`${e}.type`)]: i.categoryName ?? '—',
-        [t(`${e}.receivingVenue`)]: i.registeredFromVenueName ?? '—',
+        'ID SIM (ICCID)': i.serialNumber,
+        Promotor: i.assignedPromoterName ?? '—',
+        Supervisor: i.assignedSupervisorName ?? '—',
+        'Tipo de SIM': i.categoryName ?? '—',
+        'Sucursal receptora': i.registeredFromVenueName ?? '—',
       }))
 
       const stamp = new Date().toISOString().split('T')[0]
       await exportSheetsToExcel(
         [
-          { name: t(`${e}.sheetTable`), rows: tableRows },
-          { name: t(`${e}.sheetIccids`), rows: iccidRows },
+          { name: 'Dashboard', rows: tableRows },
+          { name: 'ID SIMs en mano HOY', rows: iccidRows },
         ],
         `inventario-por-responsable-${stamp}.xlsx`,
-        t(`${e}.empty`),
+        'Sin datos para los filtros seleccionados',
       )
     } catch (err) {
       toast({
-        title: t(`${e}.button`),
+        title: 'Exportar dashboard',
         description: err instanceof Error ? err.message : String(err),
         variant: 'destructive',
       })
@@ -110,7 +121,7 @@ export function ExportDashboardButton({ data, items, receivingVenueId, categoryI
   return (
     <Button variant="outline" onClick={handleExport} disabled={disabled || busy || !data} className="cursor-pointer">
       {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-      {t(`${e}.button`)}
+      Exportar dashboard
     </Button>
   )
 }

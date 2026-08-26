@@ -1,0 +1,55 @@
+{
+  "title": "Asistencia",
+  "subtitle": "Entradas y salidas del personal. Se registran desde la terminal o la app del negocio; aquí las revisas y apruebas.",
+  "loading": "Cargando...",
+  "unknownStaff": "Sin nombre",
+  "stillIn": "sigue dentro",
+  "worked": "Trabajó {{value}}",
+  "hoursMinutes": "{{hours}} h {{minutes}} min",
+  "breakMinutes": "{{count}} min de descanso",
+  "locationCaptured": "Con ubicación",
+  "autoClosed": "Salida automática",
+  "photoAlt": "Foto de entrada de {{name}}",
+  "pendingReview": "{{count}} por revisar",
+  "onShift": {
+    "title": "Dentro ahora",
+    "empty": "Nadie ha marcado entrada.",
+    "since": "Desde las {{time}}"
+  },
+  "status": {
+    "clockedIn": "Trabajando",
+    "onBreak": "En descanso"
+  },
+  "ranges": {
+    "today": "Hoy",
+    "week": "7 días",
+    "month": "30 días"
+  },
+  "empty": {
+    "title": "Sin checadas en este periodo",
+    "description": "El personal marca entrada y salida desde la terminal o la app del negocio."
+  },
+  "validation": {
+    "approved": "Aprobada",
+    "rejected": "Rechazada"
+  },
+  "actions": {
+    "approve": "Aprobar",
+    "reject": "Rechazar"
+  },
+  "rejectDialog": {
+    "title": "¿Rechazar esta checada?",
+    "description": "Escribe por qué rechazas la checada de {{name}}. El motivo queda guardado.",
+    "placeholder": "Ej. la foto no es de la sucursal",
+    "cancel": "Cancelar",
+    "confirm": "Rechazar checada"
+  },
+  "toasts": {
+    "approvedTitle": "Checada aprobada",
+    "approvedDesc": "Las horas quedaron validadas.",
+    "rejectedTitle": "Checada rechazada",
+    "rejectedDesc": "Se guardó el motivo del rechazo.",
+    "errorTitle": "No se pudo guardar",
+    "errorDesc": "Vuelve a intentarlo en un momento."
+  }
+}

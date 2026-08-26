@@ -97,9 +97,7 @@ export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumber
         <DialogHeader>
           <DialogTitle>Asignar a Promotor</DialogTitle>
           <DialogDescription>
-            {serialNumbers.length === 1
-              ? `ICCID ${serialNumbers[0]}`
-              : `${serialNumbers.length} SIMs serán asignados`}
+            {serialNumbers.length === 1 ? `ICCID ${serialNumbers[0]}` : `${serialNumbers.length} SIMs serán asignados`}
           </DialogDescription>
         </DialogHeader>
 

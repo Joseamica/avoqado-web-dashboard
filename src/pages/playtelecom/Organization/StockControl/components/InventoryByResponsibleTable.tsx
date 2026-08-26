@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +15,14 @@ import type { InventoryByResponsible, ResponsibleCounts } from '@/services/stock
  *
  * La jerarquía se lee por indentación y peso, no por color: tres colores de
  * fondo distintos leen como ruido y no sobreviven al modo oscuro.
+ *
+ * 🔴 Textos en español fijo, NO con `t()`, por decisión explícita del founder
+ * (2026-08-25). La regla del repo pide i18n, pero el resto de esta pantalla
+ * (`OrgStockControlPage`, tabs, gráficas) está hardcodeado en español: al
+ * traducir sólo esta tabla, con el dashboard en inglés quedaba media pantalla
+ * en cada idioma — peor que cualquiera de los dos extremos.
+ * Si algún día se migra la pantalla completa a i18n, este archivo se migra con
+ * ella; las claves vivían en `locales/<idioma>/playtelecom.json`, bajo `stock.byResponsible`.
  */
 
 type Level = 'total' | 'city' | 'supervisor' | 'promoter' | 'unassigned'
@@ -27,14 +34,14 @@ interface RowModel extends ResponsibleCounts {
   hint?: string
 }
 
-const NUMERIC_COLUMNS: Array<{ key: keyof ResponsibleCounts; i18n: string; emphasis?: boolean }> = [
-  { key: 'assigned', i18n: 'assigned' },
-  { key: 'receptionApproved', i18n: 'receptionApproved' },
-  { key: 'saleApproved', i18n: 'saleApproved' },
-  { key: 'saleInAdminReview', i18n: 'saleInAdminReview' },
-  { key: 'saleInPromoterReview', i18n: 'saleInPromoterReview' },
-  { key: 'saleRejected', i18n: 'saleRejected' },
-  { key: 'inHandToday', i18n: 'inHandToday', emphasis: true },
+const NUMERIC_COLUMNS: Array<{ key: keyof ResponsibleCounts; label: string; emphasis?: boolean }> = [
+  { key: 'assigned', label: 'Asignados' },
+  { key: 'receptionApproved', label: 'Recepción aprobada' },
+  { key: 'saleApproved', label: 'Venta aprobada' },
+  { key: 'saleInAdminReview', label: 'Venta en revisión de Admin' },
+  { key: 'saleInPromoterReview', label: 'Venta en revisión por promotor' },
+  { key: 'saleRejected', label: 'Venta rechazada' },
+  { key: 'inHandToday', label: 'En mano HOY', emphasis: true },
 ]
 
 const ROW_STYLES: Record<Level, string> = {
@@ -77,10 +84,7 @@ interface Props {
 }
 
 export function InventoryByResponsibleTable({ data, isLoading }: Props) {
-  const { t } = useTranslation('playtelecom')
-  const base = 'stock.byResponsible'
-
-  const rows = useMemo(() => (data ? flatten(data, t(`${base}.totalCountry`)) : []), [data, t])
+  const rows = useMemo(() => (data ? flatten(data, 'Total País') : []), [data])
   const unassignedPromoters = data?.unassigned.promoters ?? []
 
   if (isLoading) {
@@ -97,7 +101,7 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
   if (!data || (data.cities.length === 0 && unassignedPromoters.length === 0)) {
     return (
       <div className="rounded-xl border border-input bg-card p-10 text-center">
-        <p className="text-sm text-muted-foreground">{t(`${base}.empty`)}</p>
+        <p className="text-sm text-muted-foreground">No hay inventario en manos de promotores con estos filtros.</p>
       </div>
     )
   }
@@ -105,8 +109,8 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold">{t(`${base}.title`)}</h3>
-        <p className="text-sm text-muted-foreground">{t(`${base}.subtitle`)}</p>
+        <h3 className="text-lg font-semibold">Inventario por responsable</h3>
+        <p className="text-sm text-muted-foreground">Lo que cada promotor debe traer físicamente</p>
       </div>
 
       {/* Scroll propio: 8 columnas no caben en móvil y el body no debe desplazarse. */}
@@ -115,7 +119,7 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
           <thead>
             <tr className="border-b border-input bg-card">
               <th scope="col" className="py-3 pl-3 pr-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {t(`${base}.columns.responsible`)}
+                Responsable
               </th>
               {NUMERIC_COLUMNS.map(col => (
                 <th
@@ -126,7 +130,7 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
                     col.emphasis ? 'text-foreground' : 'text-muted-foreground',
                   )}
                 >
-                  {t(`${base}.columns.${col.i18n}`)}
+                  {col.label}
                 </th>
               ))}
             </tr>
@@ -156,7 +160,7 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
                   <td className={cn('py-2 pr-4 text-left', LABEL_INDENT.unassigned)}>
                     <span className="mr-2">{data.unassigned.label}</span>
                     <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
-                      {t(`${base}.promoterCount`, { count: unassignedPromoters.length })}
+                      {unassignedPromoters.length} {unassignedPromoters.length === 1 ? 'promotor' : 'promotores'}
                     </Badge>
                   </td>
                   {NUMERIC_COLUMNS.map(col => (
@@ -190,12 +194,12 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
       <div className="space-y-2 text-xs text-muted-foreground">
         <p className="flex items-start gap-2">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>{t(`${base}.inHandHint`)}</span>
+          <span>Este es el número que debes contar en la tienda</span>
         </p>
         {unassignedPromoters.length > 0 && (
           <p className="flex items-start gap-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>{t(`${base}.unassignedHint`)}</span>
+            <span>Promotores dados de baja o sin sucursal. Se muestran para que su inventario no quede fuera del control.</span>
           </p>
         )}
       </div>

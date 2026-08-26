@@ -77,7 +77,6 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
     const start = new Date(end)
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
-
   }, [])
   const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
   // Show non-sold items in the search combobox; include sold ones only when the
@@ -174,11 +173,7 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
                 value={categoryId}
                 onValueChange={setCategoryId}
                 options={orgCategories.map(c => ({ value: c.id, label: c.name }))}
-                placeholder={
-                  orgCategories.length === 0
-                    ? 'No hay categorías org-level disponibles'
-                    : 'Selecciona una categoría'
-                }
+                placeholder={orgCategories.length === 0 ? 'No hay categorías org-level disponibles' : 'Selecciona una categoría'}
                 searchPlaceholder="Buscar categoría…"
                 emptyMessage="Sin resultados"
                 disabled={orgCategories.length === 0}
@@ -186,9 +181,7 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
                 className="w-full"
               />
               {orgCategories.length === 0 && firstVenueId && (
-                <p className="text-xs text-amber-600">
-                  Configura categorías org-level en "Configurar Categorías" → "Org-level".
-                </p>
+                <p className="text-xs text-amber-600">Configura categorías org-level en "Configurar Categorías" → "Org-level".</p>
               )}
             </div>
 
@@ -266,10 +259,7 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
             </div>
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {visibleRows.map(row => (
-                <div
-                  key={row.serialNumber}
-                  className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm"
-                >
+                <div key={row.serialNumber} className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
                   <span className="font-mono text-xs">{row.serialNumber}</span>
                   {row.status === 'ok' ? (
                     <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">

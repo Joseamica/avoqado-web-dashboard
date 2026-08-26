@@ -155,12 +155,7 @@ export function SimMultiSelect({
           {value.slice(0, 8).map(sn => (
             <Badge key={sn} variant="outline" className="gap-1 font-mono text-xs bg-muted">
               ···{sn.slice(-6)}
-              <button
-                type="button"
-                aria-label={`Quitar ${sn}`}
-                onClick={() => toggle(sn)}
-                className="hover:text-red-600"
-              >
+              <button type="button" aria-label={`Quitar ${sn}`} onClick={() => toggle(sn)} className="hover:text-red-600">
                 <X className="h-3 w-3" />
               </button>
             </Badge>

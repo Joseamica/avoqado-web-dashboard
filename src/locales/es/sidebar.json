@@ -25,7 +25,8 @@
   },
   "teamMenu": {
     "title": "Equipo",
-    "members": "Miembros"
+    "members": "Miembros",
+    "attendance": "Asistencia"
   },
   "settingsMenu": {
     "title": "Configuración"

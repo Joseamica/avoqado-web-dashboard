@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { InventoryFilters } from '@/services/stockDashboard.service'
 
@@ -12,6 +11,11 @@ import type { InventoryFilters } from '@/services/stockDashboard.service'
  * 🔴 "Todas" nunca se quita de la lista. Con el filtro puesto el supervisor ve
  * sólo una parte del inventario, y necesita poder volver al total para cuadrar
  * el conteo físico contra lo que el promotor trae en la mano.
+ *
+ * 🔴 Textos en español fijo, NO con `t()`, por decisión del founder (2026-08-25):
+ * el resto de esta pantalla está hardcodeado en español y traducir sólo esta
+ * parte dejaba la pantalla bilingüe. Ver el comentario largo en
+ * `InventoryByResponsibleTable.tsx`.
  */
 const ALL = '__all__'
 
@@ -32,9 +36,6 @@ export function InventoryResponsibleFilters({
   onCategoryChange,
   disabled,
 }: Props) {
-  const { t } = useTranslation('playtelecom')
-  const base = 'stock.byResponsible.filters'
-
   const receivingVenues = filters?.receivingVenues ?? []
   const categories = filters?.categories ?? []
 
@@ -42,7 +43,7 @@ export function InventoryResponsibleFilters({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
       <div className="w-full sm:w-72">
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="filter-receiving-venue">
-          {t(`${base}.receivingVenue`)}
+          Sucursal receptora
         </label>
         <Select
           value={receivingVenueId ?? ALL}
@@ -50,10 +51,10 @@ export function InventoryResponsibleFilters({
           disabled={disabled || receivingVenues.length === 0}
         >
           <SelectTrigger id="filter-receiving-venue" className="h-10">
-            <SelectValue placeholder={t(`${base}.all`)} />
+            <SelectValue placeholder="Todas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>{t(`${base}.all`)}</SelectItem>
+            <SelectItem value={ALL}>Todas</SelectItem>
             {receivingVenues.map(v => (
               <SelectItem key={v.id} value={v.id}>
                 {v.name} ({v.itemCount.toLocaleString('es-MX')})
@@ -65,7 +66,7 @@ export function InventoryResponsibleFilters({
 
       <div className="w-full sm:w-64">
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="filter-category">
-          {t(`${base}.simType`)}
+          Tipo de SIM
         </label>
         <Select
           value={categoryId ?? ALL}
@@ -73,10 +74,10 @@ export function InventoryResponsibleFilters({
           disabled={disabled || categories.length === 0}
         >
           <SelectTrigger id="filter-category" className="h-10">
-            <SelectValue placeholder={t(`${base}.allTypes`)} />
+            <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>{t(`${base}.allTypes`)}</SelectItem>
+            <SelectItem value={ALL}>Todos</SelectItem>
             {categories.map(c => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name} ({c.itemCount.toLocaleString('es-MX')})
@@ -88,7 +89,9 @@ export function InventoryResponsibleFilters({
 
       {/* Que el usuario sepa si está viendo todo o una parte: sin esta línea, un
           filtro preseleccionado hace parecer que faltan SIMs. */}
-      <p className="pb-2.5 text-xs text-muted-foreground">{receivingVenueId ? t(`${base}.filtered`) : t(`${base}.showingAll`)}</p>
+      <p className="pb-2.5 text-xs text-muted-foreground">
+        {receivingVenueId ? 'Filtrado por sucursal receptora' : 'Mostrando todo el inventario en mano'}
+      </p>
     </div>
   )
 }

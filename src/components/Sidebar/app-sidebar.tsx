@@ -501,6 +501,7 @@ export function AppSidebar({
     // ── Equipo ──
     const teamSubItems = [
       { title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }), url: 'team', permission: 'teams:read', keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'] },
+      { title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }), url: 'asistencia', permission: 'tpv-time-entries:read', keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'] },
       ...(activeVenue?.settings?.enableShifts ? [
         { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', locked: !hasKYCAccess, keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
       ] : []),
@@ -512,6 +513,7 @@ export function AppSidebar({
       if (item.permission && !can(item.permission)) return false
       if (isWhiteLabelVenue) {
         if (item.url === 'team' && !canWL('AVOQADO_TEAM')) return false
+        if (item.url === 'asistencia') return false
         if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
         if (item.url === 'commissions' && !canWL('AVOQADO_COMMISSIONS')) return false
       }

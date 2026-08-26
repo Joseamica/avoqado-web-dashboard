@@ -49,9 +49,10 @@ export function CollectSimDialog({ open, onOpenChange, serialNumber, from, onCon
       queryClient.invalidateQueries({ queryKey: ['sim-custody-events'] })
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
-        ?? (err as Error)?.message
-        ?? 'No se pudo recolectar el SIM'
+      const msg =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ??
+        (err as Error)?.message ??
+        'No se pudo recolectar el SIM'
       toast({ title: msg, variant: 'destructive' })
     },
   })
