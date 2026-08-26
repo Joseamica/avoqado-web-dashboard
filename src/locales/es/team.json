@@ -209,5 +209,51 @@
       "accessDeniedTitle": "Acceso Denegado",
       "accessDeniedDesc": "No tienes permisos para ver este miembro del equipo."
     }
+  },
+  "documents": {
+    "title": "Expediente",
+    "privacyNote": "Documentos personales. Sólo el propietario y los administradores pueden verlos; un gerente no.",
+    "upload": "Subir documento",
+    "uploading": "Subiendo...",
+    "empty": "Todavía no hay documentos en este expediente.",
+    "open": "Abrir",
+    "expires": "Vence el {{date}}",
+    "expired": "Venció el {{date}}",
+    "fields": {
+      "type": "Tipo",
+      "label": "Nombre (opcional)",
+      "labelRequired": "Nombre (obligatorio)",
+      "labelPlaceholder": "Ej. Contrato 2026",
+      "expiresAt": "Vence (opcional)"
+    },
+    "types": {
+      "ID": "Identificación oficial",
+      "CURP": "CURP",
+      "SOCIAL_SECURITY": "Número de Seguro Social",
+      "RFC": "RFC",
+      "CONTRACT": "Contrato",
+      "CERTIFICATION": "Certificado",
+      "MEDICAL": "Documento médico",
+      "OTHER": "Otro"
+    },
+    "removeDialog": {
+      "title": "¿Dar de baja este documento?",
+      "description": "{{name}} dejará de verse en el expediente. El archivo se conserva por si el negocio necesita responder más adelante.",
+      "cancel": "Cancelar",
+      "confirm": "Dar de baja"
+    },
+    "toasts": {
+      "addedTitle": "Documento agregado",
+      "addedDesc": "Ya está en el expediente.",
+      "removedTitle": "Documento dado de baja",
+      "removedDesc": "Deja de verse, pero se conserva.",
+      "errorTitle": "No se pudo guardar",
+      "errorDesc": "Vuelve a intentarlo en un momento.",
+      "uploadFailed": "No se pudo subir el archivo.",
+      "tooBigTitle": "El archivo pesa demasiado",
+      "tooBigDesc": "El máximo son 20 MB.",
+      "needLabelTitle": "Falta el nombre",
+      "needLabelDesc": "Ponle un nombre para saber qué documento es."
+    }
   }
 }

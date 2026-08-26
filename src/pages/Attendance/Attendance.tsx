@@ -23,27 +23,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { PermissionGate } from '@/components/PermissionGate'
 import { attendanceService, type TimeEntry } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
-
-export type RangeKey = 'today' | 'week' | 'month'
-
-/**
- * Rango en fechas del NEGOCIO. Nunca el reloj del navegador: el turno lo manda el venue.
- *
- * La resta va sobre `Date.UTC`, no sobre `new Date('YYYY-MM-DDT00:00:00')`. Esa segunda
- * forma interpreta la fecha en la zona de QUIEN MIRA, y al volver a ISO se corre un dia
- * para cualquiera que no este en la zona del negocio — el dueno revisando desde otro huso
- * veria una semana que empieza un dia antes de la que ve su gerente.
- */
-const DAY_MS = 86_400_000
-
-export function rangeToDates(range: RangeKey, todayIso: string): { startDate: string; endDate: string } {
-  if (range === 'today') return { startDate: todayIso, endDate: todayIso }
-
-  const [year, month, day] = todayIso.split('-').map(Number)
-  const daysBack = range === 'week' ? 6 : 29
-  const start = new Date(Date.UTC(year, month - 1, day) - daysBack * DAY_MS).toISOString().slice(0, 10)
-  return { startDate: start, endDate: todayIso }
-}
+import { rangeToDates, type RangeKey } from './attendanceRange'
 
 export default function Attendance() {
   const { t } = useTranslation('attendance')

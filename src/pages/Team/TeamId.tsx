@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import { PermissionGate } from '@/components/PermissionGate'
+import { StaffDocuments } from './components/StaffDocuments'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import TeamCommissionSection from './components/TeamCommissionSection'
@@ -34,7 +35,7 @@ import TeamCommissionSection from './components/TeamCommissionSection'
 type TabValue = 'performance' | 'commissions'
 
 export default function TeamId() {
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const { memberId } = useParams<{ memberId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -534,6 +535,15 @@ export default function TeamId() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {/* Expediente. Vive tras `staff-documents:read`: un gerente ve al equipo pero NO esto. */}
+      {venueId && venueSlug && memberDetails.staffId && (
+        <div className="mb-8">
+          <PermissionGate permission="staff-documents:read">
+            <StaffDocuments venueId={venueId} venueSlug={venueSlug} staffId={memberDetails.staffId} />
+          </PermissionGate>
+        </div>
       )}
 
       {/* ─── Hard Delete Dialog ────────────────────────── */}

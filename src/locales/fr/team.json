@@ -176,5 +176,51 @@
       "accessDeniedTitle": "Accès Refusé",
       "accessDeniedDesc": "Vous n'avez pas la permission de voir ce membre de l'équipe."
     }
+  },
+  "documents": {
+    "title": "Dossier",
+    "privacyNote": "Documents personnels. Seuls le propriétaire et les administrateurs peuvent les voir ; pas un gérant.",
+    "upload": "Téléverser un document",
+    "uploading": "Envoi...",
+    "empty": "Aucun document au dossier.",
+    "open": "Ouvrir",
+    "expires": "Expire le {{date}}",
+    "expired": "Expiré le {{date}}",
+    "fields": {
+      "type": "Type",
+      "label": "Nom (facultatif)",
+      "labelRequired": "Nom (obligatoire)",
+      "labelPlaceholder": "ex. Contrat 2026",
+      "expiresAt": "Expire (facultatif)"
+    },
+    "types": {
+      "ID": "Pièce d'identité",
+      "CURP": "CURP",
+      "SOCIAL_SECURITY": "Numéro de sécurité sociale",
+      "RFC": "Numéro fiscal",
+      "CONTRACT": "Contrat",
+      "CERTIFICATION": "Certification",
+      "MEDICAL": "Document médical",
+      "OTHER": "Autre"
+    },
+    "removeDialog": {
+      "title": "Retirer ce document ?",
+      "description": "{{name}} n'apparaîtra plus au dossier. Le fichier est conservé si l'entreprise en a besoin plus tard.",
+      "cancel": "Annuler",
+      "confirm": "Retirer"
+    },
+    "toasts": {
+      "addedTitle": "Document ajouté",
+      "addedDesc": "Il est au dossier.",
+      "removedTitle": "Document retiré",
+      "removedDesc": "Il n'apparaît plus, mais est conservé.",
+      "errorTitle": "Enregistrement impossible",
+      "errorDesc": "Réessayez dans un instant.",
+      "uploadFailed": "Le fichier n'a pas pu être téléversé.",
+      "tooBigTitle": "Fichier trop volumineux",
+      "tooBigDesc": "Le maximum est de 20 Mo.",
+      "needLabelTitle": "Nom manquant",
+      "needLabelDesc": "Donnez-lui un nom pour savoir de quoi il s'agit."
+    }
   }
 }

@@ -263,5 +263,33 @@
       "title": "🎉 Vous savez commander !",
       "description": "Le cycle : <b>Créer</b> → envoyer au fournisseur → <b>Réceptionner</b> → les lots sont créés avec leur coût → vos recettes connaissent le vrai coût."
     }
+  },
+  "invoices": {
+    "title": "Factures du fournisseur",
+    "upload": "Téléverser la facture (XML)",
+    "uploading": "Envoi...",
+    "hint": "Téléversez le XML du CFDI. Il est comparé à votre commande ; le coût de votre stock ne change pas.",
+    "empty": "Aucune facture téléversée pour cette commande.",
+    "diffOver": "Le fournisseur a facturé {{amount}} de plus que la commande.",
+    "diffUnder": "Le fournisseur a facturé {{amount}} de moins que la commande.",
+    "unmatchedLines": "{{count}} ligne de la facture n'a pas pu être associée.",
+    "unmatchedItems": "lignes",
+    "uninvoicedItems": "{{count}} ligne de la commande ne figure pas sur cette facture.",
+    "supplierUnverified": "Émetteur non vérifié : ce fournisseur n'a pas de numéro fiscal enregistré.",
+    "status": {
+      "PENDING": "Non rapprochée",
+      "MATCHED": "Conforme",
+      "SUPPLIER_MISMATCH": "Autre fournisseur",
+      "AMOUNT_MISMATCH": "Montant différent",
+      "LINES_MISMATCH": "Lignes non associées"
+    },
+    "toasts": {
+      "matchedTitle": "Facture rapprochée",
+      "matchedDesc": "Elle correspond à votre commande.",
+      "mismatchTitle": "Facture téléversée, avec des écarts",
+      "mismatchDesc": "Vérifiez les écarts avant de la payer.",
+      "errorTitle": "Téléversement impossible",
+      "errorDesc": "Vérifiez que le fichier est bien le XML du CFDI."
+    }
   }
 }

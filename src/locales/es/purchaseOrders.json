@@ -337,5 +337,33 @@
       "title": "🎉 ¡Ya sabes pedir mercancía!",
       "description": "Recuerda el ciclo: <b>Crear orden</b> → enviar al proveedor → <b>Recibir</b> (botón en el detalle de la orden) → se crean los lotes con costo → tus recetas ya conocen el costo real.<br/><br/>Cada orden recibida queda en <b>Historial</b> para auditoría."
     }
+  },
+  "invoices": {
+    "title": "Facturas del proveedor",
+    "upload": "Subir factura (XML)",
+    "uploading": "Subiendo...",
+    "hint": "Sube el XML del CFDI. Se compara con lo que pediste; el costo de tu mercancía no cambia.",
+    "empty": "Todavía no has subido ninguna factura de esta orden.",
+    "diffOver": "El proveedor cobró {{amount}} de más que lo pedido.",
+    "diffUnder": "El proveedor cobró {{amount}} de menos que lo pedido.",
+    "unmatchedLines": "{{count}} renglón de la factura no se pudo asociar.",
+    "unmatchedItems": "renglones",
+    "uninvoicedItems": "{{count}} renglón de la orden no viene en esta factura.",
+    "supplierUnverified": "No se verificó el emisor: este proveedor no tiene RFC capturado.",
+    "status": {
+      "PENDING": "Sin conciliar",
+      "MATCHED": "Cuadra",
+      "SUPPLIER_MISMATCH": "Otro proveedor",
+      "AMOUNT_MISMATCH": "Importe distinto",
+      "LINES_MISMATCH": "Renglones sin casar"
+    },
+    "toasts": {
+      "matchedTitle": "Factura conciliada",
+      "matchedDesc": "Coincide con lo que pediste.",
+      "mismatchTitle": "Factura subida, con diferencias",
+      "mismatchDesc": "Revisa lo que no cuadra antes de pagarla.",
+      "errorTitle": "No se pudo subir",
+      "errorDesc": "Revisa que el archivo sea el XML del CFDI."
+    }
   }
 }

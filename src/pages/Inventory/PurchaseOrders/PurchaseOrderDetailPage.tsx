@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+
+import { InvoiceSection } from './components/InvoiceSection'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
@@ -983,6 +985,10 @@ export default function PurchaseOrderDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Facturas del proveedor sobre esta orden. Comprueban lo cobrado contra lo pedido;
+          nunca cambian el costo de la mercancía. */}
+      {venue?.id && poId && <InvoiceSection venueId={venue.id} purchaseOrderId={poId} />}
 
     </div>
   )

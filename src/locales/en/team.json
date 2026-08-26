@@ -209,5 +209,51 @@
       "accessDeniedTitle": "Access Denied",
       "accessDeniedDesc": "You do not have permission to view this team member."
     }
+  },
+  "documents": {
+    "title": "Documents",
+    "privacyNote": "Personal documents. Only the owner and admins can see them; a manager cannot.",
+    "upload": "Upload document",
+    "uploading": "Uploading...",
+    "empty": "No documents on file yet.",
+    "open": "Open",
+    "expires": "Expires on {{date}}",
+    "expired": "Expired on {{date}}",
+    "fields": {
+      "type": "Type",
+      "label": "Name (optional)",
+      "labelRequired": "Name (required)",
+      "labelPlaceholder": "e.g. 2026 contract",
+      "expiresAt": "Expires (optional)"
+    },
+    "types": {
+      "ID": "Government ID",
+      "CURP": "CURP",
+      "SOCIAL_SECURITY": "Social security number",
+      "RFC": "Tax ID",
+      "CONTRACT": "Contract",
+      "CERTIFICATION": "Certification",
+      "MEDICAL": "Medical document",
+      "OTHER": "Other"
+    },
+    "removeDialog": {
+      "title": "Remove this document?",
+      "description": "{{name}} will no longer appear on file. The file is kept in case the business needs it later.",
+      "cancel": "Cancel",
+      "confirm": "Remove"
+    },
+    "toasts": {
+      "addedTitle": "Document added",
+      "addedDesc": "It is now on file.",
+      "removedTitle": "Document removed",
+      "removedDesc": "It no longer appears, but is kept.",
+      "errorTitle": "Could not save",
+      "errorDesc": "Please try again in a moment.",
+      "uploadFailed": "The file could not be uploaded.",
+      "tooBigTitle": "File too large",
+      "tooBigDesc": "The maximum is 20 MB.",
+      "needLabelTitle": "Name missing",
+      "needLabelDesc": "Give it a name so you know what it is."
+    }
   }
 }

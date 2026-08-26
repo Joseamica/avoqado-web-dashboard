@@ -337,5 +337,33 @@
       "title": "🎉 You know how to order stock!",
       "description": "Remember the cycle: <b>Create order</b> → send to supplier → <b>Receive</b> (button on the order detail) → batches are created with cost → your recipes now know the real cost.<br/><br/>Every received order lands in <b>History</b> for audit."
     }
+  },
+  "invoices": {
+    "title": "Supplier invoices",
+    "upload": "Upload invoice (XML)",
+    "uploading": "Uploading...",
+    "hint": "Upload the CFDI XML. It is compared against what you ordered; your stock cost does not change.",
+    "empty": "No invoice uploaded for this order yet.",
+    "diffOver": "The supplier charged {{amount}} more than ordered.",
+    "diffUnder": "The supplier charged {{amount}} less than ordered.",
+    "unmatchedLines": "{{count}} invoice line could not be matched.",
+    "unmatchedItems": "lines",
+    "uninvoicedItems": "{{count}} order line is not on this invoice.",
+    "supplierUnverified": "Issuer not verified: this supplier has no tax ID on file.",
+    "status": {
+      "PENDING": "Not reconciled",
+      "MATCHED": "Matches",
+      "SUPPLIER_MISMATCH": "Different supplier",
+      "AMOUNT_MISMATCH": "Amount differs",
+      "LINES_MISMATCH": "Unmatched lines"
+    },
+    "toasts": {
+      "matchedTitle": "Invoice reconciled",
+      "matchedDesc": "It matches what you ordered.",
+      "mismatchTitle": "Invoice uploaded, with differences",
+      "mismatchDesc": "Review what does not match before paying it.",
+      "errorTitle": "Could not upload",
+      "errorDesc": "Check that the file is the CFDI XML."
+    }
   }
 }

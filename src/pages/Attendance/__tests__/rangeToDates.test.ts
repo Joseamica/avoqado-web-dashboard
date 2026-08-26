@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { rangeToDates } from '../Attendance'
+import { rangeToDates } from '../attendanceRange'
 
 /**
  * El rango del historial de asistencia se calcula a partir de "hoy" EN LA ZONA DEL
