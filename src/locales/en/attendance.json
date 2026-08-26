@@ -52,5 +52,33 @@
     "errorTitle": "Could not save",
     "errorDesc": "Please try again in a moment."
   },
-  "truncated": "Showing {{shown}} of {{total}}"
+  "truncated": "Showing {{shown}} of {{total}}",
+  "views": {
+    "log": "Clock-ins",
+    "punctuality": "Punctuality"
+  },
+  "report": {
+    "grace": "Grace: {{minutes}} min",
+    "lateCount": "{{count}} late",
+    "absentCount": "{{count}} absent",
+    "late": "{{minutes}} min late",
+    "absent": "Absent",
+    "onTime": "On time",
+    "pending": "Pending",
+    "dayOff": "Day off",
+    "noSchedule": "No schedule",
+    "earlyLeave": "left {{minutes}} min early",
+    "cols": {
+      "person": "Person",
+      "date": "Date",
+      "expected": "Expected",
+      "in": "In",
+      "out": "Out",
+      "status": "Status"
+    },
+    "empty": {
+      "title": "Nothing to report for this period",
+      "description": "People with a schedule who were late, absent or left early show up here. Without a schedule nobody is judged."
+    }
+  }
 }

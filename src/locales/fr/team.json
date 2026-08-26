@@ -224,5 +224,36 @@
       "openFailed": "Le document n'a pas pu être ouvert."
     },
     "opening": "Ouverture..."
+  },
+  "workSchedule": {
+    "title": "Horaire de travail",
+    "none": "Sans horaire",
+    "toggle": "A un horaire",
+    "hint": "Sert à savoir si la personne est arrivée à l'heure. Désactivé, aucun retard ni absence n'est compté.",
+    "emptyState": "Aucun horaire défini. La personne peut pointer ; sa ponctualité n'est simplement pas évaluée.",
+    "save": "Enregistrer l'horaire",
+    "saving": "Enregistrement...",
+    "lastException": "Dernière exception jusqu'au {{date}}",
+    "exceptions": {
+      "title": "Exceptions",
+      "add": "Ajouter",
+      "empty": "Aucune exception. Vacances, un jour avec un autre horaire, ou un jour supplémentaire.",
+      "from": "Du",
+      "to": "Au",
+      "kind": "Type",
+      "off": "Repos / vacances",
+      "hours": "Autre horaire",
+      "start": "Arrivée",
+      "end": "Départ",
+      "note": "Note",
+      "notePlaceholder": "ex. vacances",
+      "remove": "Retirer l'exception"
+    },
+    "toasts": {
+      "savedTitle": "Horaire enregistré",
+      "savedDesc": "La ponctualité est désormais mesurée selon cet horaire.",
+      "errorTitle": "Enregistrement impossible",
+      "errorDesc": "Vérifiez que les plages sont dans l'ordre et ne se chevauchent pas."
+    }
   }
 }

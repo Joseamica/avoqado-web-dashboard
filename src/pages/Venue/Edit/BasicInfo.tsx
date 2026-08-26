@@ -96,6 +96,9 @@ const basicInfoFormSchema = z.object({
   autoClockOutTime: z.string().nullable().optional(),
   maxShiftDurationEnabled: z.boolean().default(false).optional(),
   maxShiftDurationHours: z.number().min(1).max(24).default(12).optional(),
+  // Asistencia (fase 2). Independiente de enableShifts: caja y reloj son rieles distintos.
+  attendanceEnabled: z.boolean().default(true).optional(),
+  attendanceGraceMinutes: z.number().min(0).max(120).default(10).optional(),
 })
 
 type BasicInfoFormValues = z.infer<typeof basicInfoFormSchema>
@@ -180,6 +183,8 @@ export default function BasicInfo() {
       autoClockOutTime: null,
       maxShiftDurationEnabled: false,
       maxShiftDurationHours: 12,
+      attendanceEnabled: true,
+      attendanceGraceMinutes: 10,
     },
   })
 
@@ -203,6 +208,8 @@ export default function BasicInfo() {
         requireClockInPhoto: venue.settings?.requireClockInPhoto ?? false,
         enforceTableOwnership: venue.settings?.enforceTableOwnership ?? false,
         autoClockOutEnabled: venue.settings?.autoClockOutEnabled ?? false,
+        attendanceEnabled: venue.settings?.attendanceEnabled ?? true,
+        attendanceGraceMinutes: venue.settings?.attendanceGraceMinutes ?? 10,
         autoClockOutTime: venue.settings?.autoClockOutTime ?? null,
         maxShiftDurationEnabled: venue.settings?.maxShiftDurationEnabled ?? false,
         maxShiftDurationHours: venue.settings?.maxShiftDurationHours ?? 12,
@@ -312,6 +319,34 @@ export default function BasicInfo() {
       // Revert form state on error
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
       console.error('Error toggling shifts:', error)
+    },
+  })
+
+  // Asistencia: interruptor + tolerancia. Apagarlo hace que el SERVIDOR rechace checadas
+  // (Android/iOS/TPV muestran el mensaje sin recompilar) y esconde la sección del menú.
+  // NO toca turnos de caja.
+  const saveAttendance = useMutation({
+    mutationFn: async (data: { attendanceEnabled?: boolean; attendanceGraceMinutes?: number }) => {
+      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
+      return data
+    },
+    onSuccess: data => {
+      if (data.attendanceEnabled !== undefined) form.setValue('attendanceEnabled', data.attendanceEnabled, { shouldDirty: false })
+      if (data.attendanceGraceMinutes !== undefined) form.setValue('attendanceGraceMinutes', data.attendanceGraceMinutes, { shouldDirty: false })
+      toast({
+        title:
+          data.attendanceEnabled === undefined
+            ? t('venue:attendance.toastGraceSaved')
+            : data.attendanceEnabled
+              ? t('venue:attendance.toastEnabled')
+              : t('venue:attendance.toastDisabled'),
+        description: t('venue:attendance.toastSavedDesc'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error?.response?.data?.message || t('venue:attendance.toastError'), variant: 'destructive' })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
     },
   })
 
@@ -1090,6 +1125,66 @@ export default function BasicInfo() {
                                 </div>
                               </div>
                             </div>
+                          )}
+                        </div>
+                      )}
+                    />
+
+                    {/* ── Asistencia (fase 2) — riel separado de la caja ── */}
+                    <FormField
+                      control={form.control}
+                      name="attendanceEnabled"
+                      render={({ field }) => (
+                        <div className="rounded-xl border border-border/50 bg-card shadow-sm mt-4">
+                          <FormItem className="flex flex-row items-center justify-between p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base cursor-pointer">{t('venue:attendance.title')}</FormLabel>
+                              <FormDescription>{t('venue:attendance.description')}</FormDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {saveAttendance.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? true}
+                                  onCheckedChange={checked => saveAttendance.mutate({ attendanceEnabled: checked })}
+                                  disabled={!canEdit || saveAttendance.isPending}
+                                />
+                              </FormControl>
+                            </div>
+                          </FormItem>
+
+                          {(field.value ?? true) ? (
+                            <div className="px-4 pb-4">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-medium">{t('venue:attendance.graceTitle')}</p>
+                                  <p className="text-xs text-muted-foreground">{t('venue:attendance.graceDesc')}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={120}
+                                    className="h-9 w-20 text-right"
+                                    value={form.watch('attendanceGraceMinutes') ?? ''}
+                                    onChange={e => {
+                                      const raw = e.target.value
+                                      form.setValue('attendanceGraceMinutes', raw === '' ? undefined : Number(raw), { shouldDirty: true })
+                                    }}
+                                    onBlur={() => {
+                                      const v = form.getValues('attendanceGraceMinutes')
+                                      if (v !== undefined && v !== (venue.settings?.attendanceGraceMinutes ?? 10)) {
+                                        saveAttendance.mutate({ attendanceGraceMinutes: v })
+                                      }
+                                    }}
+                                    disabled={!canEdit || saveAttendance.isPending}
+                                  />
+                                  <span className="text-xs text-muted-foreground">min</span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="px-4 pb-4 text-xs text-muted-foreground">{t('venue:attendance.disabledHint')}</p>
                           )}
                         </div>
                       )}

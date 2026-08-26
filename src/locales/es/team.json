@@ -257,5 +257,36 @@
       "openFailed": "No se pudo abrir el documento."
     },
     "opening": "Abriendo..."
+  },
+  "workSchedule": {
+    "title": "Horario de trabajo",
+    "none": "Sin horario",
+    "toggle": "Tiene horario",
+    "hint": "Se usa para saber si llegó a tiempo. Si lo dejas apagado, a esta persona no se le cuentan retardos ni faltas.",
+    "emptyState": "Sin horario definido. Puede checar igual; sólo no se le juzga la puntualidad.",
+    "save": "Guardar horario",
+    "saving": "Guardando...",
+    "lastException": "Última excepción hasta el {{date}}",
+    "exceptions": {
+      "title": "Excepciones",
+      "add": "Agregar",
+      "empty": "Sin excepciones. Vacaciones, un día con otro horario, o un día extra.",
+      "from": "Desde",
+      "to": "Hasta",
+      "kind": "Tipo",
+      "off": "Descanso / vacaciones",
+      "hours": "Otro horario",
+      "start": "Entra",
+      "end": "Sale",
+      "note": "Nota",
+      "notePlaceholder": "Ej. vacaciones",
+      "remove": "Quitar excepción"
+    },
+    "toasts": {
+      "savedTitle": "Horario guardado",
+      "savedDesc": "A partir de ahora la puntualidad se mide contra este horario.",
+      "errorTitle": "No se pudo guardar",
+      "errorDesc": "Revisa que los rangos estén en orden y sin traslaparse."
+    }
   }
 }

@@ -52,5 +52,33 @@
     "errorTitle": "No se pudo guardar",
     "errorDesc": "Vuelve a intentarlo en un momento."
   },
-  "truncated": "Mostrando {{shown}} de {{total}}"
+  "truncated": "Mostrando {{shown}} de {{total}}",
+  "views": {
+    "log": "Checadas",
+    "punctuality": "Puntualidad"
+  },
+  "report": {
+    "grace": "Tolerancia: {{minutes}} min",
+    "lateCount": "{{count}} retardos",
+    "absentCount": "{{count}} faltas",
+    "late": "{{minutes}} min tarde",
+    "absent": "Falta",
+    "onTime": "A tiempo",
+    "pending": "Pendiente",
+    "dayOff": "Descanso",
+    "noSchedule": "Sin horario",
+    "earlyLeave": "salió {{minutes}} min antes",
+    "cols": {
+      "person": "Persona",
+      "date": "Fecha",
+      "expected": "Esperado",
+      "in": "Entrada",
+      "out": "Salida",
+      "status": "Estado"
+    },
+    "empty": {
+      "title": "Nada que reportar en este periodo",
+      "description": "Aparece aquí quien tiene horario definido y llegó tarde, faltó o salió antes. Sin horario, no se juzga a nadie."
+    }
+  }
 }

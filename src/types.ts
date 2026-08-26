@@ -660,6 +660,10 @@ export interface VenueSettings {
   // Auto Clock-Out (HR automation)
   autoClockOutEnabled: boolean
   autoClockOutTime: string | null
+  /** Interruptor del control de asistencia (fase 2). Apagado = el servidor rechaza checadas. */
+  attendanceEnabled?: boolean
+  /** Minutos de gracia antes de contar un retardo. */
+  attendanceGraceMinutes?: number
   maxShiftDurationEnabled: boolean
   maxShiftDurationHours: number
 

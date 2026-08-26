@@ -57,6 +57,49 @@ export interface TimeEntryFilters {
   offset?: number
 }
 
+export type AttendanceStatus = 'ON_TIME' | 'LATE' | 'ABSENT' | 'DAY_OFF' | 'NO_SCHEDULE' | 'PENDING'
+
+export interface AttendanceReportRow {
+  staffId: string
+  staffVenueId: string
+  name: string
+  date: string
+  expectedStart: string | null
+  expectedEnd: string | null
+  clockInTime: string | null
+  clockOutTime: string | null
+  status: AttendanceStatus
+  lateMinutes: number
+  earlyLeaveMinutes: number
+}
+
+export interface AttendanceReport {
+  rows: AttendanceReportRow[]
+  graceMinutes: number
+  timezone: string
+}
+
+export interface DaySchedule {
+  enabled: boolean
+  ranges: { open: string; close: string }[]
+}
+export type WeeklySchedule = Record<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday', DaySchedule>
+
+export interface WorkScheduleException {
+  id?: string
+  startDate: string
+  endDate: string
+  kind: 'OFF' | 'HOURS'
+  startTime?: string | null
+  endTime?: string | null
+  note?: string | null
+}
+
+export interface WorkSchedule {
+  weekly: WeeklySchedule | null
+  exceptions: WorkScheduleException[]
+}
+
 export interface StaffTimeSummary {
   totalHours: number
   totalBreakMinutes: number
@@ -85,6 +128,23 @@ export const attendanceService = {
   async getActiveStaff(venueId: string): Promise<TimeEntry[]> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/time-entries/active`)
     return Array.isArray(response.data) ? response.data : (response.data?.data ?? [])
+  },
+
+  /** Reporte de puntualidad: cuadrante contra checadas, en la zona del negocio. */
+  async getReport(venueId: string, startDate: string, endDate: string): Promise<AttendanceReport> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/attendance/report?startDate=${startDate}&endDate=${endDate}`)
+    return response.data
+  },
+
+  async getWorkSchedule(venueId: string, staffVenueId: string): Promise<WorkSchedule> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/work-schedule`)
+    return response.data
+  },
+
+  /** Reemplaza el cuadrante completo (semana + excepciones). */
+  async replaceWorkSchedule(venueId: string, staffVenueId: string, input: WorkSchedule): Promise<WorkSchedule> {
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/work-schedule`, input)
+    return response.data
   },
 
   async getStaffTimeSummary(venueId: string, staffId: string, startDate: string, endDate: string): Promise<StaffTimeSummary> {

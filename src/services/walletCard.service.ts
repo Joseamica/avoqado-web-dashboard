@@ -25,6 +25,8 @@ export interface WalletCardDesign {
   /** Null = se deriva del color del sello ganado. */
   stampEmptyColor: string | null
   stampShape: WalletStampShape
+  /** El sello propio del negocio. Cuando existe, manda sobre `stampShape`. */
+  stampImageUrl: string | null
 }
 
 export interface StripPreviewParams {
@@ -82,7 +84,7 @@ export const walletCardService = {
     return response.data
   },
 
-  async uploadImage(venueId: string, kind: 'logo' | 'icon', file: File): Promise<UploadImageResult> {
+  async uploadImage(venueId: string, kind: 'logo' | 'icon' | 'stamp', file: File): Promise<UploadImageResult> {
     const form = new FormData()
     form.append('image', file)
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/loyalty/card-design/image?kind=${kind}`, form)

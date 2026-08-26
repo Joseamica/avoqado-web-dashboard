@@ -203,7 +203,11 @@
       "permissionError": "You do not have permission to change this setting.",
       "saveError": "An error occurred while saving the setting."
     },
-    "operationalRoles": { "STORE": "Store", "CEDIS": "Distribution center", "HYBRID": "Hybrid" },
+    "operationalRoles": {
+      "STORE": "Store",
+      "CEDIS": "Distribution center",
+      "HYBRID": "Hybrid"
+    },
     "placeholders": {
       "name": "Enter venue name",
       "type": "Select venue type",
@@ -535,5 +539,17 @@
         "confirm": "Confirm"
       }
     }
+  },
+  "attendance": {
+    "title": "Attendance tracking",
+    "description": "Your staff clock in and out on the terminal or app. Here you review their hours and punctuality. Does not affect cash shifts.",
+    "graceTitle": "Lateness grace",
+    "graceDesc": "Minutes of grace before counting a late arrival.",
+    "disabledHint": "Off: the section leaves the menu and the terminal stops accepting clock-ins. Cash shifts are unaffected.",
+    "toastEnabled": "Attendance tracking enabled",
+    "toastDisabled": "Attendance tracking disabled",
+    "toastGraceSaved": "Grace saved",
+    "toastSavedDesc": "Settings saved.",
+    "toastError": "Could not save settings"
   }
 }

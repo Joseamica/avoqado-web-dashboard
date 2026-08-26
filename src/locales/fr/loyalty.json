@@ -152,7 +152,12 @@
 		"stamps": {
 			"title": "The stamps",
 			"description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
-			"countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen."
+			"countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen.",
+			"ownTitle": "Or upload your own stamp",
+			"ownHint": "A square PNG with a transparent background. Upload just one: the ones still missing are generated for you, fainter.",
+			"upload": "Upload stamp",
+			"replace": "Replace",
+			"remove": "Remove"
 		},
 		"preview": {
 			"title": "Preview",

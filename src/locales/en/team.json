@@ -257,5 +257,36 @@
       "openFailed": "The document could not be opened."
     },
     "opening": "Opening..."
+  },
+  "workSchedule": {
+    "title": "Work schedule",
+    "none": "No schedule",
+    "toggle": "Has schedule",
+    "hint": "Used to tell whether they arrived on time. Leave it off and no lateness or absences are counted for this person.",
+    "emptyState": "No schedule set. They can still clock in; punctuality just is not judged.",
+    "save": "Save schedule",
+    "saving": "Saving...",
+    "lastException": "Last exception until {{date}}",
+    "exceptions": {
+      "title": "Exceptions",
+      "add": "Add",
+      "empty": "No exceptions. Vacations, a day with different hours, or an extra day.",
+      "from": "From",
+      "to": "To",
+      "kind": "Type",
+      "off": "Day off / vacation",
+      "hours": "Different hours",
+      "start": "In",
+      "end": "Out",
+      "note": "Note",
+      "notePlaceholder": "e.g. vacation",
+      "remove": "Remove exception"
+    },
+    "toasts": {
+      "savedTitle": "Schedule saved",
+      "savedDesc": "Punctuality is now measured against this schedule.",
+      "errorTitle": "Could not save",
+      "errorDesc": "Check that ranges are in order and do not overlap."
+    }
   }
 }

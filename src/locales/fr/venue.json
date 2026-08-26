@@ -242,5 +242,17 @@
         "errorDesc": "Échec de la mise à jour de l'intégration PDV"
       }
     }
+  },
+  "attendance": {
+    "title": "Suivi des présences",
+    "description": "Votre personnel pointe sur le terminal ou l'application. Ici vous vérifiez leurs heures et leur ponctualité. N'affecte pas les tours de caisse.",
+    "graceTitle": "Tolérance de retard",
+    "graceDesc": "Minutes de tolérance avant de compter un retard.",
+    "disabledHint": "Désactivé : la section disparaît du menu et le terminal refuse les pointages. Les tours de caisse continuent.",
+    "toastEnabled": "Suivi des présences activé",
+    "toastDisabled": "Suivi des présences désactivé",
+    "toastGraceSaved": "Tolérance enregistrée",
+    "toastSavedDesc": "Configuration enregistrée.",
+    "toastError": "Impossible d'enregistrer la configuration"
   }
 }

@@ -118,8 +118,9 @@ export default function WalletCardDesigner() {
 
   const [borrador, setBorrador] = useState<WalletCardDesign | null>(null)
   const [avisos, setAvisos] = useState<string[]>([])
-  const [subiendo, setSubiendo] = useState<'logo' | 'icon' | null>(null)
+  const [subiendo, setSubiendo] = useState<'logo' | 'icon' | 'stamp' | null>(null)
   const logoInput = useRef<HTMLInputElement>(null)
+  const stampInput = useRef<HTMLInputElement>(null)
   const iconInput = useRef<HTMLInputElement>(null)
 
   const { data: guardado, isLoading } = useQuery({
@@ -152,7 +153,7 @@ export default function WalletCardDesigner() {
     },
   })
 
-  const subir = async (kind: 'logo' | 'icon', file: File) => {
+  const subir = async (kind: 'logo' | 'icon' | 'stamp', file: File) => {
     setSubiendo(kind)
     setAvisos([])
     try {
@@ -366,11 +367,17 @@ export default function WalletCardDesigner() {
             <GlassCard className="p-6">
               <SectionHeader icon={CreditCard} title={t('card.stamps.title')} description={t('card.stamps.description')} />
 
-              <div className="flex flex-wrap gap-2">
+              {/*
+                🔴 Cuando hay un sello propio, las formas se apagan de verdad (no sólo
+                se ven grises): la imagen manda sobre la forma en el servidor, así que
+                dejarlas activas prometería un cambio que no va a ocurrir.
+              */}
+              <div className={cn('flex flex-wrap gap-2 transition-opacity', borrador.stampImageUrl && 'pointer-events-none opacity-40')}>
                 {FORMAS.map(forma => (
                   <button
                     key={forma}
                     type="button"
+                    disabled={Boolean(borrador.stampImageUrl)}
                     onClick={() => set({ stampShape: forma })}
                     data-tour={`wallet-shape-${forma.toLowerCase()}`}
                     className={cn(
@@ -382,6 +389,57 @@ export default function WalletCardDesigner() {
                     {t(`card.shapes.${forma}`)}
                   </button>
                 ))}
+              </div>
+
+              {/* El sello propio */}
+              <div className="mt-5 border-t border-input pt-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{t('card.stamps.ownTitle')}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{t('card.stamps.ownHint')}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {borrador.stampImageUrl && (
+                      <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-input bg-muted/40 p-1.5">
+                        <img src={borrador.stampImageUrl} alt="" className="max-h-full max-w-full object-contain" />
+                      </div>
+                    )}
+                    <input
+                      ref={stampInput}
+                      type="file"
+                      accept="image/png"
+                      className="sr-only"
+                      onChange={e => e.target.files?.[0] && subir('stamp', e.target.files[0])}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 cursor-pointer lg:min-h-9"
+                      onClick={() => stampInput.current?.click()}
+                      disabled={subiendo !== null}
+                      data-tour="wallet-upload-stamp"
+                    >
+                      {subiendo === 'stamp' ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      {borrador.stampImageUrl ? t('card.stamps.replace') : t('card.stamps.upload')}
+                    </Button>
+                    {borrador.stampImageUrl && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 cursor-pointer text-muted-foreground lg:min-h-9"
+                        onClick={() => set({ stampImageUrl: null })}
+                        data-tour="wallet-remove-stamp"
+                      >
+                        {t('card.stamps.remove')}
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <p className="mt-4 text-xs text-muted-foreground">{t('card.stamps.countHint', { count: config?.stampsRequired ?? 10 })}</p>

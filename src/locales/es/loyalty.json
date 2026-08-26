@@ -150,7 +150,12 @@
 		"stamps": {
 			"title": "Los sellos",
 			"description": "Elige la que va con tu negocio: una taza para café, tijeras para estética, pesa para gym.",
-			"countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia en la pantalla de Lealtad."
+			"countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia en la pantalla de Lealtad.",
+			"ownTitle": "O sube tu propio sello",
+			"ownHint": "Un PNG cuadrado con fondo transparente. Sube uno solo: los que faltan se generan solos, más tenues.",
+			"upload": "Subir sello",
+			"replace": "Cambiar",
+			"remove": "Quitar"
 		},
 		"preview": {
 			"title": "Vista previa",

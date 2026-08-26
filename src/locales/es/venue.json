@@ -203,7 +203,11 @@
       "permissionError": "No tienes permiso para cambiar esta configuración.",
       "saveError": "Ocurrió un error al guardar la configuración."
     },
-    "operationalRoles": { "STORE": "Tienda", "CEDIS": "CEDIS", "HYBRID": "Híbrido" },
+    "operationalRoles": {
+      "STORE": "Tienda",
+      "CEDIS": "CEDIS",
+      "HYBRID": "Híbrido"
+    },
     "placeholders": {
       "name": "Ingresa el nombre del local",
       "type": "Selecciona el tipo de local",
@@ -565,5 +569,17 @@
     "selectOther": "Seleccionar otro establecimiento",
     "helpText": "¿Necesitas ayuda? Contáctanos a través de WhatsApp o email.",
     "logout": "Cerrar sesión"
+  },
+  "attendance": {
+    "title": "Control de asistencia",
+    "description": "Tu personal marca entrada y salida en la terminal o la app. Aquí revisas sus horas y su puntualidad. No afecta los turnos de caja.",
+    "graceTitle": "Tolerancia de retardo",
+    "graceDesc": "Minutos de gracia antes de contar un retardo.",
+    "disabledHint": "Apagado: la sección desaparece del menú y la terminal deja de aceptar checadas. Los turnos de caja siguen igual.",
+    "toastEnabled": "Control de asistencia activado",
+    "toastDisabled": "Control de asistencia desactivado",
+    "toastGraceSaved": "Tolerancia guardada",
+    "toastSavedDesc": "La configuración se guardó correctamente.",
+    "toastError": "Error al guardar la configuración"
   }
 }

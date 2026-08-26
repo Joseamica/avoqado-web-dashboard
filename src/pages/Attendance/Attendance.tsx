@@ -10,6 +10,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { attendanceService, type TimeEntry } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { rangeToDates, type RangeKey } from './attendanceRange'
+import { PunctualityReport } from './PunctualityReport'
 
 /**
  * Asistencia: sólo LECTURA. No hay «Aprobar»/«Rechazar» a propósito: Square no aprueba
@@ -24,6 +25,8 @@ export default function Attendance() {
   const { formatTime, formatDate, venueTimezone } = useVenueDateTime()
 
   const [range, setRange] = useState<RangeKey>('today')
+  // 'log' = quién checó y cuándo · 'punctuality' = contra el cuadrante (retardos, faltas)
+  const [view, setView] = useState<'log' | 'punctuality'>('log')
 
   // "Hoy" en la zona del negocio, no en la del navegador de quien mira.
   const todayIso = useMemo(
@@ -111,6 +114,17 @@ export default function Attendance() {
 
       {/* ── Historial ─────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={view} onValueChange={v => setView(v as 'log' | 'punctuality')}>
+          <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
+            <TabsTrigger value="log" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+              {t('views.log')}
+            </TabsTrigger>
+            <TabsTrigger value="punctuality" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+              {t('views.punctuality')}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <Tabs value={range} onValueChange={v => setRange(v as RangeKey)}>
           <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
             {(['today', 'week', 'month'] as RangeKey[]).map(key => (
@@ -134,7 +148,9 @@ export default function Attendance() {
         </div>
       </div>
 
-      {loadingEntries ? (
+      {view === 'punctuality' ? (
+        <PunctualityReport venueId={venueId!} startDate={startDate} endDate={endDate} />
+      ) : loadingEntries ? (
         <p className="text-sm text-muted-foreground">{t('loading')}</p>
       ) : entries.length === 0 ? (
         <Card className="border-input">

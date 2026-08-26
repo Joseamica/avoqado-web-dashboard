@@ -28,6 +28,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import { PermissionGate } from '@/components/PermissionGate'
 import { StaffDocuments } from './components/StaffDocuments'
+import { WorkScheduleSection } from './components/WorkScheduleSection'
 
 // Se prende cuando la subida vaya por el servidor a un prefijo privado (opción B, 26-ago).
 const STAFF_DOCUMENTS_ENABLED = true
@@ -38,7 +39,8 @@ import TeamCommissionSection from './components/TeamCommissionSection'
 type TabValue = 'performance' | 'commissions'
 
 export default function TeamId() {
-  const { venueId, venueSlug, isWhiteLabelMode } = useCurrentVenue()
+  const { venueId, venueSlug, isWhiteLabelMode, venue } = useCurrentVenue()
+  const attendanceOn = venue?.settings?.attendanceEnabled
   const { memberId } = useParams<{ memberId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -541,6 +543,16 @@ export default function TeamId() {
       )}
 
       {/* Expediente. Vive tras `staff-documents:read`: un gerente ve al equipo pero NO esto. */}
+      {/* Cuadrante laboral (fase 2). Opcional siempre; nunca en el alta. Oculto en WL y si el
+          negocio apagó asistencia. */}
+      {venueId && memberDetails.id && !isWhiteLabelMode && (attendanceOn ?? true) && (
+        <div className="mb-8">
+          <PermissionGate permission="attendance:read">
+            <WorkScheduleSection venueId={venueId} staffVenueId={memberDetails.id} />
+          </PermissionGate>
+        </div>
+      )}
+
       {/* En white-label NO: PT no usa expediente y el detalle de miembro es compartido.
           Sube por el SERVIDOR a un prefijo privado; se abre con URL firmada que caduca. */}
       {STAFF_DOCUMENTS_ENABLED && venueId && venueSlug && memberDetails.staffId && !isWhiteLabelMode && (

@@ -501,7 +501,9 @@ export function AppSidebar({
     // ── Equipo ──
     const teamSubItems = [
       { title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }), url: 'team', permission: 'teams:read', keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'] },
+      ...((activeVenue?.settings?.attendanceEnabled ?? true) ? [
       { title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }), url: 'asistencia', permission: 'attendance:read', keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'] },
+      ] : []),
       ...(activeVenue?.settings?.enableShifts ? [
         { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', locked: !hasKYCAccess, keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
       ] : []),
