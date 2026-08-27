@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { InvoiceSection } from './components/InvoiceSection'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import {
   purchaseOrderService,
   formatPrice,
@@ -53,6 +54,7 @@ export default function PurchaseOrderDetailPage() {
   const { t } = useTranslation(['purchaseOrders', 'common'])
   const { formatUnitWithQuantity } = useUnitTranslation()
   const { poId } = useParams<{ poId: string }>()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
   const navigate = useNavigate()
   const { venue, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -83,6 +85,15 @@ export default function PurchaseOrderDetailPage() {
   })
 
   const purchaseOrder = response?.data
+
+  // Sin esto la miga de pan pinta el cuid crudo del pedido
+  // ("Ordenes de compra > Cmtbubvds0001q00rjczxm7wv"), porque el segmento es un id y
+  // el fallback solo sabe humanizar el slug de la URL. Mismo patron que ya usan
+  // Pagos, Turnos, Equipo y Productos.
+  useEffect(() => {
+    if (purchaseOrder?.orderNumber && poId) setCustomSegment(poId, purchaseOrder.orderNumber)
+    return () => { if (poId) clearCustomSegment(poId) }
+  }, [purchaseOrder?.orderNumber, poId, setCustomSegment, clearCustomSegment])
 
   // Split items for display: show partial receives as two separate rows
   const displayItems = useMemo(() => {

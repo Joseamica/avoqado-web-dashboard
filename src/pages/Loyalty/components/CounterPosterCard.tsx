@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { QRCodeSVG } from 'qrcode.react'
-import { Printer, QrCode } from 'lucide-react'
+import { ArrowUp, Printer, QrCode } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -12,9 +12,13 @@ import { SectionHeader } from './SectionHeader'
 interface CounterPosterCardProps {
   venueSlug: string
   venueName: string
+  /** Del interruptor de arriba en esta misma pantalla, no de lo ya guardado. */
+  stampsEnabled: boolean
+  /** Lleva la vista hasta el interruptor y lo resalta. */
+  onGoToSwitch?: () => void
 }
 
-export function CounterPosterCard({ venueSlug, venueName }: CounterPosterCardProps) {
+export function CounterPosterCard({ venueSlug, venueName, stampsEnabled, onGoToSwitch }: CounterPosterCardProps) {
   const { t } = useTranslation('loyalty')
   const { toast } = useToast()
   const qrRef = useRef<HTMLDivElement>(null)
@@ -59,6 +63,30 @@ export function CounterPosterCard({ venueSlug, venueName }: CounterPosterCardPro
     <GlassCard className="p-6" data-testid="counter-poster-card">
       <SectionHeader icon={QrCode} title={t('card.poster.title')} description={t('card.poster.description')} />
 
+      {/* 🔴 NO se esconde cuando los sellos estan apagados: la regla del workspace es
+          que lo apagado se VE y se EXPLICA. Escondiendolo, quien esta configurando su
+          tarjeta ve el cartel aparecer y desaparecer sin entender por que — pasó
+          exactamente asi la primera vez que se probo esta pantalla. */}
+      {!stampsEnabled ? (
+        <div data-testid="counter-poster-disabled">
+          <p className="text-sm text-muted-foreground mb-3">{t('card.poster.needsStamps')}</p>
+          {/* 🔴 Un boton que LLEVA, no una instruccion que describe. "Prendelo aqui
+              arriba" fallo en la primera prueba real: en una pantalla de seis
+              secciones, "arriba" no es una direccion que nadie pueda seguir. */}
+          {onGoToSwitch && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGoToSwitch}
+              className="cursor-pointer"
+              data-testid="counter-poster-goto-switch"
+            >
+              <ArrowUp className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              {t('card.poster.goToSwitch')}
+            </Button>
+          )}
+        </div>
+      ) : (
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <div
           ref={qrRef}
@@ -96,6 +124,7 @@ export function CounterPosterCard({ venueSlug, venueName }: CounterPosterCardPro
           <p className="text-xs text-muted-foreground">{t('card.poster.hint')}</p>
         </div>
       </div>
+      )}
     </GlassCard>
   )
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, Image as ImageIcon, Palette, Upload, Loader2, Info, Gift } from 'lucide-react'
 
@@ -101,6 +101,19 @@ function ColorField({ label, value, onChange, tourKey }: { label: string; value:
 
 export default function WalletCardDesigner() {
   const { venueId, venue } = useCurrentVenue()
+
+  // 🔴 Llevar hasta el interruptor, no describir donde esta. El aviso del cartel decia
+  // "prendelo aqui arriba" y el founder no lo encontro: en una pantalla de seis
+  // secciones, "arriba" no es una direccion. El resalte dura dos segundos porque
+  // despues de bajar la pagina hay que decirle a la vista DONDE mirar, no solo llevarla.
+  const filaInterruptor = useRef<HTMLDivElement>(null)
+  const [resaltarInterruptor, setResaltarInterruptor] = useState(false)
+  const irAlInterruptor = useCallback(() => {
+    filaInterruptor.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setResaltarInterruptor(true)
+    const id = window.setTimeout(() => setResaltarInterruptor(false), 2000)
+    return () => window.clearTimeout(id)
+  }, [])
   const { t } = useTranslation('loyalty')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -274,7 +287,12 @@ export default function WalletCardDesigner() {
             <GlassCard className="p-6">
               <SectionHeader icon={Gift} title={t('card.program.title')} description={t('card.program.description')} />
 
-              <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+              <div
+                ref={filaInterruptor}
+                className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                  resaltarInterruptor ? 'border-foreground bg-muted' : 'border-border/60'
+                }`}
+              >
                 <div className="pr-4">
                   <Label className="text-sm">{t('card.program.enabled')}</Label>
                   <p className="mt-0.5 text-xs text-muted-foreground">{t('card.program.enabledHint')}</p>
@@ -635,11 +653,16 @@ export default function WalletCardDesigner() {
             </GlassCard>
 
             {/* El cartel del mostrador vive AQUI, junto al diseño: quien acaba de
-                configurar su tarjeta es quien la va a poner a circular. Sale solo
-                cuando los sellos estan prendidos — un cartel que manda a una tarjeta
-                apagada le hace perder el tiempo al cliente delante del cajero. */}
-            {programa.stampsEnabled && venue?.slug && (
-              <CounterPosterCard venueSlug={venue.slug} venueName={venue?.name ?? 'Mi negocio'} />
+                configurar su tarjeta es quien la va a poner a circular. Se dibuja
+                SIEMPRE — con los sellos apagados explica que hay que prenderlos, en
+                vez de desaparecer y dejar al dueño preguntandose donde quedo. */}
+            {venue?.slug && (
+              <CounterPosterCard
+                venueSlug={venue.slug}
+                venueName={venue?.name ?? 'Mi negocio'}
+                stampsEnabled={!!programa.stampsEnabled}
+                onGoToSwitch={irAlInterruptor}
+              />
             )}
           </div>
 

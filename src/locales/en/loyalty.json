@@ -230,7 +230,9 @@
       "hint": "Each person identifies with their own phone, so every customer gets THEIR card.",
       "headline": "Collect stamps at {{venue}}",
       "subheadline": "Scan with your phone camera and save your card.",
-      "footnote": "For now the card saves to iPhone. Ask us if you have Android."
+      "footnote": "For now the card saves to iPhone. Ask us if you have Android.",
+      "needsStamps": "Turn on your stamp program above and the printable poster will appear here.",
+      "goToSwitch": "Take me to the switch"
     }
   }
 }

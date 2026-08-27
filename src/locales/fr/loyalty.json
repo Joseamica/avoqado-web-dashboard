@@ -232,7 +232,9 @@
       "hint": "Chacun s'identifie avec son propre téléphone, donc chaque client reçoit SA carte.",
       "headline": "Collectionnez des tampons chez {{venue}}",
       "subheadline": "Scannez avec la caméra de votre téléphone et enregistrez votre carte.",
-      "footnote": "Pour l'instant la carte s'enregistre sur iPhone. Demandez-nous si vous avez Android."
+      "footnote": "Pour l'instant la carte s'enregistre sur iPhone. Demandez-nous si vous avez Android.",
+      "needsStamps": "Activez votre programme de tampons ci-dessus et l'affiche à imprimer apparaîtra ici.",
+      "goToSwitch": "Emmène-moi à l'interrupteur"
     }
   }
 }

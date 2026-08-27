@@ -230,7 +230,9 @@
       "hint": "Cada quien se identifica con su teléfono, así que cada cliente recibe SU tarjeta.",
       "headline": "Junta sellos en {{venue}}",
       "subheadline": "Escanea con la cámara de tu teléfono y guarda tu tarjeta.",
-      "footnote": "Por ahora la tarjeta se guarda en iPhone. Pregúntanos si tienes Android."
+      "footnote": "Por ahora la tarjeta se guarda en iPhone. Pregúntanos si tienes Android.",
+      "needsStamps": "Prende tu programa de sellos aquí arriba y aparecerá el cartel para imprimir.",
+      "goToSwitch": "Llévame al interruptor"
     }
   }
 }
