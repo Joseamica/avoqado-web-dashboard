@@ -56,3 +56,23 @@ require new hardcoded branches. Mirrors the same rule in
 `fullBasePath` (from `useCurrentVenue()`) or `useCurrentOrganization().basePath`, which
 already resolve to the correct WL vs non-WL prefix. See `critical-warnings.md` White-Label
 rule + the ESLint rule `no-hardcoded-venue-paths.js`.
+
+## 🔴 Aquí es donde aterrizan las peticiones manuales de Isaac
+
+**Instrucción del founder (2026-08-27):** el objetivo con PlayTelecom es que **Isaac deje de pedirnos
+cosas**. Cada vez que pide "crea estos venues", "mueve estas ventas" o "da de baja a esta persona",
+está diciendo que no puede hacerlo él — y eso es un hueco de autoservicio, no una tarea.
+
+La regla completa, con el disparador, los tres pasos obligatorios y la tabla de huecos ya detectados,
+vive en `avoqado-server/.claude/rules/playtelecom-vertical.md` § "Cada petición manual de Isaac es un
+hueco de producto". **Este repo es donde se construye la solución**, así que si llegaste aquí a hacer
+una pantalla para PT, léela antes.
+
+Dos cosas que aplican a cualquier pantalla de carga masiva que hagas para ellos:
+
+- **Une por número, nunca por nombre.** El número de empleado de Bait vive en `Staff.employeeCode` y
+  el ID de tienda en `Venue.name` entre paréntesis — `BAE RANCHO SAN PEDRO (2978)`. 12 de 25 personas
+  están en Avoqado con nombre corto y en los archivos del cliente con nombre largo.
+- **Vista previa antes de aplicar, siempre.** Estas cargas mueven ventas y comisiones: la pantalla
+  enseña qué cambiaría y sólo escribe tras confirmación explícita, igual que el conciliador de
+  estructura del server.

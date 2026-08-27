@@ -1,4 +1,8 @@
 {
+  "productTypes": {
+    "recommended": "Recommandé",
+    "recommendedHint": "Recommandé pour votre type d’activité"
+  },
   "nav": {
     "rawMaterials": "Matières Premières",
     "productStock": "Stock de Produits",

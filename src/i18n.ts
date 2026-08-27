@@ -770,4 +770,21 @@ i18n
   i18n.addResourceBundle(lng, 'delivery', bundle as Record<string, unknown>, true, true)
 })
 
+/**
+ * Mantiene <html lang> igual al idioma de la app.
+ *
+ * Estaba fijo en "en" dentro de index.html y nadie lo actualizaba, asi que un dashboard en
+ * espanol se anunciaba como ingles: los lectores de pantalla lo leian con voz inglesa, el
+ * navegador ofrecia traducir la pagina, y la particion silabica al cortar renglon era la
+ * equivocada.
+ */
+const sincronizarLangDelDocumento = (lng?: string) => {
+  if (typeof document === 'undefined') return
+  const idioma = (lng || i18n.language || 'es').split('-')[0]
+  if (document.documentElement.lang !== idioma) document.documentElement.lang = idioma
+}
+
+sincronizarLangDelDocumento()
+i18n.on('languageChanged', sincronizarLangDelDocumento)
+
 export default i18n

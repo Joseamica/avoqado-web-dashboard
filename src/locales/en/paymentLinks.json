@@ -5,11 +5,12 @@
   "emptyState": {
     "title": "No payment links yet",
     "description": "Create your first payment link to start collecting online payments via WhatsApp, QR code, or direct link.",
-    "noEcommerce": "To use payment links, your venue needs an e-commerce affiliation with Blumon. Contact support to activate it."
+    "noEcommerce": "To charge online you need a connected payment processor. You can connect Stripe yourself in a few minutes, or ask support for a Blumon e-commerce affiliation."
   },
   "requirements": {
     "merchantMissingTitle": "E-commerce setup required",
-    "createBlocked": "You won't be able to create payment links until this setup is complete."
+    "createBlocked": "You won't be able to create payment links until this setup is complete.",
+    "setupStripe": "Connect Stripe now"
   },
   "list": {
     "columns": {

@@ -188,6 +188,8 @@ const resolveVenueTitle = ({ sidebarT, commonT, menuT }: RouteTitleTranslators, 
     'payment-config': sidebarT('paymentConfig', { defaultValue: 'Payment Config' }),
     'merchant-accounts': sidebarT('merchantAccounts', { defaultValue: 'Merchant Accounts' }),
     'ecommerce-merchants': sidebarT('ecommerceChannels', { defaultValue: 'E-commerce Channels' }),
+    'payment-links': sidebarT('routes.paymentLinks', { defaultValue: 'Payment Links' }),
+    'wallet-card': sidebarT('customersMenu.walletCard', { defaultValue: 'Digital Card' }),
     'serialized-sales-demo': 'Serialized Sales Demo',
   }
 

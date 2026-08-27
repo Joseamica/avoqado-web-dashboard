@@ -4,25 +4,25 @@
     "next": "Siguiente",
     "back": "Atras",
     "accept": "Acepto y continuo",
-    "complete": "Completar configuracion",
+    "complete": "Completar configuración",
     "step": "Paso {{current}} de {{total}}",
     "progressSaved": "Tu progreso se guardo",
-    "progressSavedDesc": "Puedes continuar la configuracion cuando inicies sesion de nuevo"
+    "progressSavedDesc": "Puedes continuar la configuración cuando inicies sesión de nuevo"
   },
   "step1": {
     "title": "Crea tu cuenta",
-    "subtitle": "Ingresa tu correo y contrasena para comenzar",
+    "subtitle": "Ingresa tu correo y contraseña para comenzar",
     "emailLabel": "Correo electronico",
     "emailPlaceholder": "tucorreo@ejemplo.com",
     "emailRequired": "El correo electronico es requerido",
-    "passwordLabel": "Contrasena",
-    "passwordPlaceholder": "Minimo 8 caracteres",
-    "passwordRequired": "La contrasena es requerida",
-    "passwordMinLength": "La contrasena debe tener al menos 8 caracteres",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Mínimo 8 caracteres",
+    "passwordRequired": "La contraseña es requerida",
+    "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
     "passwordHint": "Usa 8 caracteres o mas con una combinacion de letras, numeros y simbolos",
     "createAccount": "Siguiente",
     "alreadyHaveAccount": "Ya tienes una cuenta?",
-    "signIn": "Inicia sesion"
+    "signIn": "Inicia sesión"
   },
   "step2": {
     "title": "Cuentanos sobre tu negocio",
@@ -30,13 +30,13 @@
     "businessNameLabel": "Nombre del negocio",
     "businessNamePlaceholder": "Ej: Tacos El Dorado",
     "businessNameRequired": "El nombre del negocio es requerido",
-    "phoneLabel": "Telefono del negocio",
+    "phoneLabel": "Teléfono del negocio",
     "phonePlaceholder": "+52 55 1234 5678",
-    "phoneRequired": "El telefono del negocio es obligatorio",
-    "addressLabel": "Direccion",
-    "addressPlaceholder": "Busca tu direccion",
-    "addressRequired": "La direccion del negocio es obligatoria",
-    "noPhysicalAddress": "Mi negocio no tiene una direccion fisica permanente"
+    "phoneRequired": "El teléfono del negocio es obligatorio",
+    "addressLabel": "Dirección",
+    "addressPlaceholder": "Busca tu dirección",
+    "addressRequired": "La dirección del negocio es obligatoria",
+    "noPhysicalAddress": "Mi negocio no tiene una dirección física permanente"
   },
   "step3": {
     "title": "Que tipo de negocio describe mejor a {{businessName}}?",
@@ -47,7 +47,7 @@
   },
   "step4": {
     "title": "Cuentanos de tu negocio",
-    "subtitle": "Cada negocio es unico. Queremos conocer el tuyo.",
+    "subtitle": "Cada negocio es único. Queremos conocer el tuyo.",
     "entityTypeLabel": "Que tipo de entidad es tu negocio?",
     "entityTypePlaceholder": "Selecciona el tipo de entidad",
     "commercialNameLabel": "Nombre comercial",
@@ -63,19 +63,19 @@
     "legalFirstNamePlaceholder": "Como aparece en tu INE",
     "legalLastNameLabel": "Apellido(s) legal",
     "legalLastNamePlaceholder": "Como aparece en tu INE",
-    "phoneLabel": "Telefono personal",
+    "phoneLabel": "Teléfono personal",
     "phonePlaceholder": "+52 55 1234 5678",
     "birthdateLabel": "Fecha de nacimiento",
     "birthdatePlaceholder": "DD/MM/AAAA",
     "rfcLabel": "RFC",
     "rfcPlaceholder": "XAXX010101000",
-    "rfcHint": "13 caracteres para persona fisica, 12 para persona moral",
+    "rfcHint": "13 caracteres para persona física, 12 para persona moral",
     "curpLabel": "CURP",
     "curpPlaceholder": "XEXX010101HNEXXXA4",
-    "curpHint": "18 caracteres alfanumericos",
-    "legalAddressLabel": "Direccion legal",
-    "legalAddressPlaceholder": "Busca tu direccion legal",
-    "securityNotice": "Tu informacion esta protegida con encriptacion de nivel bancario y nunca sera compartida con terceros sin tu consentimiento."
+    "curpHint": "18 caracteres alfanuméricos",
+    "legalAddressLabel": "Dirección legal",
+    "legalAddressPlaceholder": "Busca tu dirección legal",
+    "securityNotice": "Tu información esta protegida con encriptacion de nivel bancario y nunca sera compartida con terceros sin tu consentimiento."
   },
   "step6": {
     "title": "Terminos y condiciones",
@@ -105,7 +105,7 @@
     "accountTypePlaceholder": "Selecciona el tipo de cuenta",
     "accountTypeChecking": "Cuenta de cheques",
     "accountTypeSavings": "Cuenta de ahorro",
-    "securityNotice": "Tu informacion bancaria esta protegida con encriptacion de nivel bancario. Solo la usamos para depositar tus pagos.",
+    "securityNotice": "Tu información bancaria esta protegida con encriptacion de nivel bancario. Solo la usamos para depositar tus pagos.",
     "invalidClabe": "La CLABE debe tener exactamente 18 digitos"
   },
   "step8": {
@@ -206,12 +206,12 @@
     }
   },
   "entityType": {
-    "personaFisica": "Persona Fisica",
+    "personaFisica": "Persona Física",
     "personaFisicaDesc": "Individuo que realiza actividades economicas",
     "personaMoral": "Persona Moral",
     "personaMoralDesc": "Empresa o sociedad constituida legalmente",
     "subTypes": {
-      "actividadEmpresarial": "Persona Fisica con Actividad Empresarial",
+      "actividadEmpresarial": "Persona Física con Actividad Empresarial",
       "saDeCV": "S.A. de C.V.",
       "sDeRLDeCV": "S. de R.L. de C.V.",
       "sc": "S.C. (Sociedad Civil)",
@@ -221,9 +221,9 @@
     }
   },
   "completionBanner": {
-    "title": "Completa la configuracion de tu cuenta",
+    "title": "Completa la configuración de tu cuenta",
     "description": "Termina de configurar tu cuenta para empezar a recibir pagos",
-    "button": "Continuar configuracion"
+    "button": "Continuar configuración"
   },
   "plan": {
     "title": "Tu plan Avoqado",

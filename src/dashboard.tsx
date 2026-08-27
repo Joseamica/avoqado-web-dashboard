@@ -62,6 +62,77 @@ const routeKeyMap: Record<string, string> = {
   discounts: 'sidebar:promotionsMenu.discounts',
   coupons: 'sidebar:promotionsMenu.coupons',
   upsell: 'sidebar:promotionsMenu.upsell',
+  // Mismo descuido que el de promociones, repetido al montar la tarjeta digital:
+  // la miga de pan salia "Loyalty > Card" sobre un dashboard en espanol.
+  customers: 'sidebar:customersMenu.title',
+  loyalty: 'sidebar:customersMenu.loyalty',
+  card: 'sidebar:customersMenu.walletCard',
+  referrals: 'sidebar:customersMenu.referrals',
+  // Tercera vez que aparece el mismo descuido (promociones, luego la tarjeta digital), asi que
+  // esta pasada mapea el resto de las secciones navegables de una vez. Un segmento sin entrada
+  // aqui NO falla: cae al fallback de abajo, que humaniza el slug de la URL — y como los slugs
+  // estan en ingles, el usuario en espanol acababa leyendo "Modifier groups", "Purchase orders"
+  // o "Suppliers". `dashboard.breadcrumbs.test.ts` avisa si se agrega una ruta nueva sin pasar
+  // por aqui, para que no haya una cuarta ronda.
+  // Catalogo
+  menus: 'menu:menumaker.nav.menus',
+  services: 'menu:menumaker.nav.services',
+  'modifier-groups': 'menu:menumaker.nav.modifierGroups',
+  // Inventario y compras
+  inventory: 'sidebar:routes.inventory',
+  suppliers: 'sidebar:routes.suppliers',
+  vendors: 'sidebar:routes.suppliers',
+  'purchase-orders': 'sidebar:routes.purchaseOrders',
+  'raw-materials': 'sidebar:routes.rawMaterials',
+  ingredients: 'sidebar:routes.ingredients',
+  recipes: 'sidebar:routes.recipes',
+  modifiers: 'sidebar:routes.modifiers',
+  'stock-counts': 'sidebar:routes.stockCounts',
+  counts: 'sidebar:routes.stockCounts',
+  transfers: 'sidebar:routes.transfers',
+  transferencias: 'sidebar:routes.transfers',
+  // Operacion
+  reservations: 'sidebar:routes.reservations',
+  waitlist: 'sidebar:routes.waitlist',
+  reviews: 'sidebar:routes.reviews',
+  delivery: 'sidebar:routes.delivery',
+  ecommerce: 'sidebar:routes.ecommerce',
+  calendar: 'sidebar:routes.calendar',
+  history: 'sidebar:routes.history',
+  asistencia: 'sidebar:routes.attendance',
+  team: 'sidebar:routes.teams',
+  commissions: 'sidebar:routes.commissions',
+  // Dinero
+  refunds: 'sidebar:routes.refunds',
+  disputes: 'sidebar:routes.disputes',
+  subscriptions: 'sidebar:routes.subscriptions',
+  billing: 'sidebar:routes.billing',
+  bancos: 'sidebar:routes.banks',
+  contabilidad: 'sidebar:routes.accounting',
+  nomina: 'sidebar:routes.payroll',
+  'tender-types': 'sidebar:routes.tenderTypes',
+  'payment-methods': 'sidebar:routes.paymentMethods',
+  fiscal: 'sidebar:routes.fiscal',
+  cfdi: 'sidebar:routes.cfdi',
+  // Reportes
+  reports: 'sidebar:routes.reports',
+  reportes: 'sidebar:routes.reports',
+  // Ajustes
+  account: 'sidebar:routes.account',
+  profile: 'sidebar:routes.profile',
+  security: 'sidebar:routes.security',
+  preferences: 'sidebar:routes.preferences',
+  notifications: 'sidebar:routes.notifications',
+  documents: 'sidebar:routes.documents',
+  general: 'sidebar:routes.general',
+  branding: 'sidebar:routes.branding',
+  integrations: 'sidebar:routes.integrations',
+  'print-stations': 'sidebar:routes.printStations',
+  'role-permissions': 'sidebar:routes.rolePermissions',
+  'activity-log': 'sidebar:routes.activityLog',
+  // Acciones
+  create: 'sidebar:routes.create',
+  edit: 'sidebar:routes.edit',
 }
 
 function DashboardContent() {
@@ -281,8 +352,10 @@ function DashboardContent() {
       return t(routeKeyMap[lowerSegment])
     }
 
-    // Otherwise return the segment as is
-    return segment
+    // Segmento sin mapear: se humaniza aqui (guiones -> espacios, solo la
+    // primera letra en mayuscula). Antes lo hacia `capitalize` de CSS, que
+    // ademas destrozaba los nombres ya traducidos: "Ligas de pago" -> "Ligas De Pago".
+    return lowerSegment.replace(/[-_]+/g, ' ').replace(/^./, c => c.toUpperCase())
   }
 
   return (
@@ -312,10 +385,10 @@ function DashboardContent() {
                   return (
                     <BreadcrumbItem key={`${segment}-${index}`}>
                       {isLast ? (
-                        <BreadcrumbPage className="capitalize">{displayName}</BreadcrumbPage>
+                        <BreadcrumbPage>{displayName}</BreadcrumbPage>
                       ) : (
                         <>
-                          <BreadcrumbLink as={Link} to={linkPath} className="capitalize">
+                          <BreadcrumbLink as={Link} to={linkPath}>
                             {displayName}
                           </BreadcrumbLink>
                           <BreadcrumbSeparator />

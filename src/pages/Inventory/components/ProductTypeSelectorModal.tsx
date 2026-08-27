@@ -166,8 +166,15 @@ export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: Produ
                             {isSpanish ? type.labelEs : type.label}
                           </span>
                           {recommended && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
-                              <Star className="h-3 w-3 fill-current" />
+                            /* La estrella iba sola, sin texto ni etiqueta: nadie podia saber que
+                               significaba, y para un lector de pantalla no existia. El `gap-1` ya
+                               estaba puesto esperando el texto. */
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs"
+                              title={t('productTypes.recommendedHint', { defaultValue: 'Recomendado para tu giro de negocio' })}
+                            >
+                              <Star className="h-3 w-3 fill-current" aria-hidden="true" />
+                              {t('productTypes.recommended', { defaultValue: 'Recomendado' })}
                             </span>
                           )}
                         </div>

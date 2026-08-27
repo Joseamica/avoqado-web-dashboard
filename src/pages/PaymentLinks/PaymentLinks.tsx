@@ -116,12 +116,23 @@ export default function PaymentLinks() {
     isLoading: isLoadingEcommerceMerchants,
     isSuccess: isEcommerceCheckSuccess,
   } = useQuery({
-    queryKey: ['ecommerce-merchants', venueId, 'active-for-payment-links'],
-    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId, { limit: 1 }),
+    queryKey: ['ecommerce-merchants', venueId, 'chargeable-for-payment-links'],
+    // limit 20 (no 1): hay que MIRAR todos los canales para saber si alguno puede
+    // cobrar — con limit 1 un canal a medio activar tapaba a otro que si servia.
+    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId, { limit: 20 }),
     enabled: !!venueId,
   })
 
-  const isEcommerceExplicitlyMissing = isEcommerceCheckSuccess && ecommerceMerchants.length === 0
+  // 🔴 El backend no pide que EXISTA un canal, pide que pueda COBRAR
+  // (`isEcommerceMerchantChargeable`: chargesEnabled, o accessToken si es Blumon).
+  // Comprobar solo `length === 0` dejaba pasar el estado mas comun de Stripe Connect
+  // —cuenta creada, onboarding sin terminar, `chargesEnabled: false`— y el comerciante
+  // llenaba el formulario entero para estrellarse con un 400 al guardar.
+  // Blumon se exime aqui porque su credencial no viaja al navegador (ni debe).
+  const puedeCobrar = (m: (typeof ecommerceMerchants)[number]) =>
+    m.active !== false && (m.chargesEnabled === true || m.onboardingStatus === 'COMPLETED' || m.provider?.code === 'BLUMON')
+
+  const isEcommerceExplicitlyMissing = isEcommerceCheckSuccess && !ecommerceMerchants.some(puedeCobrar)
   const [setupWizardOpen, setSetupWizardOpen] = useState(false)
 
   // Single-use links stay status=ACTIVE in the DB even after being paid —
@@ -501,7 +512,7 @@ export default function PaymentLinks() {
             <PermissionGate permission="payment-link:create">
               <Button size="sm" variant="default" onClick={() => setSetupWizardOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Configurar Stripe ahora
+                {t('requirements.setupStripe')}
               </Button>
             </PermissionGate>
           </AlertDescription>

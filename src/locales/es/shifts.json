@@ -20,8 +20,8 @@
     "cash": "Efectivo",
     "CASH": "Efectivo",
     "CARD": "Tarjeta",
-    "CREDIT_CARD": "Tarjeta de Credito",
-    "DEBIT_CARD": "Tarjeta de Debito",
+    "CREDIT_CARD": "Tarjeta de Crédito",
+    "DEBIT_CARD": "Tarjeta de Débito",
     "DIGITAL_WALLET": "Billetera Digital",
     "BANK_TRANSFER": "Transferencia",
     "OTHER": "Otro"
@@ -38,7 +38,7 @@
     "copied": "Copiado!"
   },
   "detail": {
-    "loading": "Cargando informacion del turno...",
+    "loading": "Cargando información del turno...",
     "notFound": "Turno no encontrado",
     "backToShifts": "Volver a Turnos",
     "statusClosed": "Cerrado",
@@ -77,7 +77,7 @@
       "paymentMethodsDesc": "Desglose por tipo de pago",
       "financial": "Resumen Financiero",
       "financialDesc": "Desglose de ventas y propinas",
-      "shiftInfo": "Informacion del Turno",
+      "shiftInfo": "Información del Turno",
       "shiftInfoDesc": "Detalles y tiempos del turno",
       "staff": "Ventas por Empleado",
       "staffDesc": "Rendimiento del equipo durante el turno",
@@ -153,7 +153,7 @@
       "shiftInfo": "Info del Turno",
       "turnId": "ID de Turno",
       "payments": "Pagos",
-      "duration": "Duracion",
+      "duration": "Duración",
       "additionalInfo": "Info Adicional"
     },
     "footer": {

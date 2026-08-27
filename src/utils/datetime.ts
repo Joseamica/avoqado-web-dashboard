@@ -1,5 +1,7 @@
 import { useAuth } from '@/context/AuthContext'
 import { DateTime } from 'luxon'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 /**
  * Centralized timezone utility for Avoqado Dashboard
@@ -25,11 +27,11 @@ import { DateTime } from 'luxon'
  */
 
 export interface VenueDateTimeUtils {
-  /** Format full date and time: "Oct 20, 2025, 2:30 PM" */
+  /** Format full date and time: "20 oct 2025, 2:30 p.m." */
   formatDateTime: (date: string | Date | null | undefined) => string
   /** Format time only: "2:30 PM" */
   formatTime: (date: string | Date | null | undefined) => string
-  /** Format date only: "Oct 20, 2025" */
+  /** Format date only: "20 oct 2025" */
   formatDate: (date: string | Date | null | undefined) => string
   /**
    * Fecha de CALENDARIO ('YYYY-MM-DD', sin hora ni zona): cuadrantes, excepciones, días del
@@ -53,9 +55,17 @@ export interface VenueDateTimeUtils {
  */
 export function useVenueDateTime(): VenueDateTimeUtils {
   const { activeVenue } = useAuth()
+  const { i18n } = useTranslation()
 
   // Default to Mexico City if no venue selected (fallback)
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+
+  /**
+   * Idioma con el que se escriben los meses y el formato de hora. Va del IDIOMA DE LA APP,
+   * nunca del navegador: sin esto Luxon usaba el locale del sistema, y un dashboard en
+   * espanol le mostraba "May 20, 2026" a cualquiera con Chrome en ingles.
+   */
+  const locale = getIntlLocale(i18n.language)
 
   /**
    * Convert UTC timestamp to venue timezone
@@ -75,7 +85,7 @@ export function useVenueDateTime(): VenueDateTimeUtils {
       }
 
       // Convert to venue timezone
-      return dt.setZone(venueTimezone)
+      return dt.setZone(venueTimezone).setLocale(locale)
     } catch (error) {
       console.error('Error parsing date:', date, error)
       return null
@@ -84,7 +94,7 @@ export function useVenueDateTime(): VenueDateTimeUtils {
 
   /**
    * Format full date and time
-   * @example "Oct 20, 2025, 2:30 PM"
+   * @example "20 oct 2025, 2:30 p.m."
    */
   const formatDateTime = (date: string | Date | null | undefined): string => {
     const dt = toVenueTime(date)
@@ -106,7 +116,7 @@ export function useVenueDateTime(): VenueDateTimeUtils {
 
   /**
    * Format date only
-   * @example "Oct 20, 2025"
+   * @example "20 oct 2025"
    */
   const formatDate = (date: string | Date | null | undefined): string => {
     const dt = toVenueTime(date)
@@ -117,7 +127,7 @@ export function useVenueDateTime(): VenueDateTimeUtils {
 
   const formatCalendarDate = (isoDate: string | null | undefined): string => {
     if (!isoDate) return 'N/A'
-    const dt = DateTime.fromISO(isoDate, { zone: 'utc' })
+    const dt = DateTime.fromISO(isoDate, { zone: 'utc' }).setLocale(locale)
     return dt.isValid ? dt.toLocaleString(DateTime.DATE_MED) : 'N/A'
   }
 

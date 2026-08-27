@@ -1,4 +1,8 @@
 {
+  "productTypes": {
+    "recommended": "Recommended",
+    "recommendedHint": "Recommended for your business type"
+  },
   "title": "Inventory Management",
   "subtitle": "Manage raw materials, recipes, and stock levels",
   "save": "Save",

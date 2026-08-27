@@ -54,8 +54,8 @@
         "NONE": "Ninguno"
       },
       "logo": "Logo",
-      "address": "Direccion",
-      "addressPlaceholder": "Busca una direccion...",
+      "address": "Dirección",
+      "addressPlaceholder": "Busca una dirección...",
       "addressNoResults": "No se encontraron direcciones",
       "addressLoading": "Buscando..."
     },

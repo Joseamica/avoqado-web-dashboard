@@ -1,7 +1,7 @@
 {
   "dialog": {
     "title": "Corte de Caja",
-    "description": "Registra el cierre de efectivo y el metodo de deposito",
+    "description": "Registra el cierre de efectivo y el método de depósito",
     "expectedAmount": "Monto Esperado",
     "actualAmount": "Monto Contado",
     "actualAmountPlaceholder": "Ingresa el monto que contaste",
@@ -9,15 +9,15 @@
     "variancePositive": "Sobrante",
     "varianceNegative": "Faltante",
     "varianceWarning": "La diferencia es mayor al 5%. Por favor verifica el conteo.",
-    "depositMethod": "Metodo de Deposito",
+    "depositMethod": "Método de Depósito",
     "depositMethods": {
-      "BANK_DEPOSIT": "Deposito Bancario",
+      "BANK_DEPOSIT": "Depósito Bancario",
       "SAFE": "Caja de Seguridad",
       "OWNER_WITHDRAWAL": "Retiro del Dueño",
       "NEXT_SHIFT": "Fondo para Siguiente Turno"
     },
     "bankReference": "Referencia Bancaria",
-    "bankReferencePlaceholder": "Numero de ficha o referencia",
+    "bankReferencePlaceholder": "Número de ficha o referencia",
     "notes": "Notas",
     "notesPlaceholder": "Observaciones adicionales...",
     "submit": "Registrar Corte",

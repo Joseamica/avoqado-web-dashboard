@@ -1,4 +1,8 @@
 {
+  "productTypes": {
+    "recommended": "Recomendado",
+    "recommendedHint": "Recomendado para tu giro de negocio"
+  },
   "title": "Gestión de Inventario",
   "subtitle": "Administra materias primas, recetas y niveles de stock",
   "save": "Guardar",
