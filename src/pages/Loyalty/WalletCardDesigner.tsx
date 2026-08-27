@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CreditCard, Image as ImageIcon, Palette, Upload, Loader2, Info } from 'lucide-react'
+import { CreditCard, Image as ImageIcon, Palette, Upload, Loader2, Info, Gift } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -153,6 +154,63 @@ export default function WalletCardDesigner() {
     },
   })
 
+  // ── El programa de sellos ───────────────────────────────────────────────
+  // Vive AQUÍ, junto a la vista previa, y no en una pantalla aparte: cambiar "7
+  // sellos" y ver la cartilla encogerse en el acto es lo que hace entendible la
+  // decisión. Guarda en LoyaltyConfig (otra tabla que el diseño), así que es su
+  // propio botón — mezclarlos dejaría al negocio sin saber qué se guardó.
+  type TipoPremio = 'FREE_PRODUCT' | 'FIXED_AMOUNT' | 'PERCENTAGE'
+  const [programa, setPrograma] = useState<{
+    stampsEnabled: boolean
+    stampsRequired: number | undefined
+    stampRewardType: TipoPremio
+    stampRewardValue: number | undefined
+    stampRewardLabel: string
+  }>({
+    stampsEnabled: false,
+    stampsRequired: 10,
+    stampRewardType: 'FREE_PRODUCT',
+    stampRewardValue: undefined,
+    stampRewardLabel: '',
+  })
+
+  useEffect(() => {
+    if (!config) return
+    setPrograma({
+      stampsEnabled: !!config.stampsEnabled,
+      stampsRequired: config.stampsRequired ?? 10,
+      stampRewardType: (config.stampRewardType as TipoPremio) ?? 'FREE_PRODUCT',
+      stampRewardValue: config.stampRewardValue == null ? undefined : Number(config.stampRewardValue),
+      stampRewardLabel: config.stampRewardLabel ?? '',
+    })
+  }, [config])
+
+  const guardarPrograma = useMutation({
+    mutationFn: () =>
+      loyaltyService.updateConfig(venueId!, {
+        stampsEnabled: programa.stampsEnabled,
+        stampsRequired: programa.stampsRequired,
+        stampRewardType: programa.stampRewardType,
+        // El monto sólo viaja cuando el tipo lo usa: mandarlo con FREE_PRODUCT
+        // guardaría un número que nadie lee y confunde al leer la configuración.
+        ...(programa.stampRewardType === 'FREE_PRODUCT' ? {} : { stampRewardValue: programa.stampRewardValue }),
+        ...(programa.stampRewardLabel.trim() ? { stampRewardLabel: programa.stampRewardLabel.trim() } : {}),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loyalty-config', venueId] })
+      toast({ title: t('card.program.saved') })
+    },
+    onError: (error: any) => {
+      // El servidor es quien decide si el premio es coherente; su mensaje es más
+      // útil que uno genérico ("necesita un porcentaje mayor a 0").
+      toast({
+        variant: 'destructive',
+        title: t('card.toasts.error'),
+        description: error?.response?.data?.message,
+      })
+    },
+  })
+
   const subir = async (kind: 'logo' | 'icon' | 'stamp', file: File) => {
     setSubiendo(kind)
     setAvisos([])
@@ -225,6 +283,102 @@ export default function WalletCardDesigner() {
             producto declara "mobile-aware": muchos entran desde el teléfono.
           */}
           <div className="order-2 space-y-4 lg:order-1">
+            <GlassCard className="p-6">
+              <SectionHeader icon={Gift} title={t('card.program.title')} description={t('card.program.description')} />
+
+              <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                <div className="pr-4">
+                  <Label className="text-sm">{t('card.program.enabled')}</Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{t('card.program.enabledHint')}</p>
+                </div>
+                <Switch
+                  checked={programa.stampsEnabled}
+                  onCheckedChange={v => setPrograma(p => ({ ...p, stampsEnabled: v }))}
+                  aria-label={t('card.program.enabled')}
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm">{t('card.program.required')}</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={50}
+                    /* Vaciable a propósito: con `|| 10` no se puede borrar el 1 para escribir 12. */
+                    value={programa.stampsRequired ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      setPrograma(p => ({ ...p, stampsRequired: raw === '' ? undefined : parseInt(raw, 10) }))
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">{t('card.program.requiredHint')}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">{t('card.program.rewardLabel')}</Label>
+                  <Input
+                    maxLength={60}
+                    placeholder={t('card.program.rewardLabelPlaceholder')}
+                    value={programa.stampRewardLabel}
+                    onChange={e => setPrograma(p => ({ ...p, stampRewardLabel: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">{t('card.program.rewardLabelHint')}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <Label className="text-sm">{t('card.program.rewardType')}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(['FREE_PRODUCT', 'FIXED_AMOUNT', 'PERCENTAGE'] as const).map(tipo => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => setPrograma(p => ({ ...p, stampRewardType: tipo }))}
+                      className={cn(
+                        'cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors',
+                        programa.stampRewardType === tipo
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-input text-muted-foreground hover:bg-accent',
+                      )}
+                    >
+                      {t(`card.program.rewardTypes.${tipo}`)}
+                    </button>
+                  ))}
+                </div>
+                {programa.stampRewardType === 'FREE_PRODUCT' ? (
+                  <p className="text-xs text-muted-foreground">{t('card.program.freeProductHint')}</p>
+                ) : (
+                  <div className="pt-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={programa.stampRewardType === 'PERCENTAGE' ? 100 : undefined}
+                      value={programa.stampRewardValue ?? ''}
+                      onChange={e => {
+                        const raw = e.target.value
+                        setPrograma(p => ({ ...p, stampRewardValue: raw === '' ? undefined : parseFloat(raw) }))
+                      }}
+                      placeholder={programa.stampRewardType === 'PERCENTAGE' ? '15' : '50'}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {programa.stampRewardType === 'PERCENTAGE'
+                        ? t('card.program.percentageHint')
+                        : t('card.program.fixedAmountHint')}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <Button size="sm" onClick={() => guardarPrograma.mutate()} disabled={guardarPrograma.isPending}>
+                  {guardarPrograma.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {t('card.program.save')}
+                </Button>
+              </div>
+            </GlassCard>
+
+
             <GlassCard className="p-6">
               <SectionHeader icon={ImageIcon} title={t('card.brand.title')} description={t('card.brand.description')} />
 
@@ -461,9 +615,15 @@ export default function WalletCardDesigner() {
               venueName={venue?.name ?? 'Mi negocio'}
               // Un ejemplo a media cartilla: es donde se distingue un sello ganado
               // de uno que falta, que es lo que hay que poder juzgar aquí.
-              stampsEarned={Math.min(3, config?.stampsRequired ?? 10)}
-              stampsRequired={config?.stampsRequired ?? 10}
-              rewardLabel={config?.stampRewardLabel ?? t('card.preview.sampleReward')}
+              /*
+                🔴 La previa sigue el BORRADOR, no lo último guardado. Con `config` decía
+                "3 / 10" mientras el formulario ya decía 7: el dueño escribe un número y ve
+                otro, que es justo lo que esta sección existe para evitar. Sólo se vio
+                mirando la pantalla — compila igual de las dos formas.
+              */
+              stampsEarned={Math.min(3, programa.stampsRequired ?? config?.stampsRequired ?? 10)}
+              stampsRequired={programa.stampsRequired ?? config?.stampsRequired ?? 10}
+              rewardLabel={programa.stampRewardLabel.trim() || config?.stampRewardLabel || t('card.preview.sampleReward')}
             />
 
             <p className="mt-4 text-center text-[11px] text-muted-foreground">{t('card.poweredBy')}</p>

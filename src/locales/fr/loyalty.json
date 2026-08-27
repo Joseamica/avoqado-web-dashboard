@@ -1,203 +1,225 @@
 {
-	"title": "Programme de Fidélité",
-	"subtitle": "Configurez votre système de récompenses pour clients",
-	"settings": {
-		"title": "Paramètres de Fidélité",
-		"status": {
-			"label": "Statut du Programme",
-			"active": "Actif",
-			"inactive": "Inactif",
-			"description": "Activer ou désactiver le programme de fidélité pour votre établissement"
-		},
-		"earning": {
-			"title": "Règles d'Accumulation",
-			"description": "Configurez comment les clients gagnent des points de fidélité",
-			"pointsPerDollar": {
-				"label": "Points par Dollar Dépensé",
-				"description": "Nombre de points que les clients gagnent pour chaque dollar dépensé",
-				"suffix": "points/$1"
-			},
-			"pointsPerVisit": {
-				"label": "Points Bonus par Visite",
-				"description": "Points supplémentaires accordés pour chaque visite (0 pour désactiver)",
-				"suffix": "points/visite"
-			}
-		},
-		"redemption": {
-			"title": "Règles d'Échange",
-			"description": "Configurez comment les clients peuvent échanger leurs points",
-			"redemptionRate": {
-				"label": "Taux d'Échange",
-				"description": "Valeur en dollars de chaque point lors de l'échange",
-				"suffix": "par point",
-				"example": "{{points}} points = {{value}} de réduction"
-			},
-			"minPointsRedeem": {
-				"label": "Points Minimum pour Échanger",
-				"description": "Points minimum requis avant que les clients puissent échanger",
-				"suffix": "points"
-			}
-		},
-		"expiration": {
-			"title": "Expiration des Points",
-			"description": "Configurez quand les points non utilisés expirent",
-			"enabled": {
-				"label": "Activer l'Expiration",
-				"description": "Les points expireront après un nombre défini de jours"
-			},
-			"days": {
-				"label": "Jours Jusqu'à l'Expiration",
-				"description": "Nombre de jours avant l'expiration des points non utilisés",
-				"suffix": "jours",
-				"neverExpire": "Les points n'expirent jamais"
-			}
-		},
-		"save": "Enregistrer les Modifications",
-		"saving": "Enregistrement...",
-		"toasts": {
-			"updateSuccess": "Paramètres de fidélité mis à jour avec succès",
-			"updateError": "Échec de la mise à jour des paramètres de fidélité"
-		}
-	},
-	"dashboard": {
-		"title": "Aperçu de la Fidélité",
-		"stats": {
-			"totalPointsIssued": "Total des Points Émis",
-			"totalPointsRedeemed": "Total des Points Échangés",
-			"activeMembers": "Membres Actifs",
-			"redemptionRate": "Taux d'Échange"
-		},
-		"topEarners": {
-			"title": "Meilleurs Accumulateurs",
-			"emptyState": "Aucun client n'a encore gagné de points"
-		}
-	},
-	"redeem": {
-		"title": "Échanger des Points",
-		"availablePoints": "Points Disponibles",
-		"pointsValue": "Valeur de {{value}} en réductions",
-		"fields": {
-			"points": "Points à Échanger",
-			"discount": "Montant de la Réduction"
-		},
-		"placeholders": {
-			"points": "Entrez les points à échanger"
-		},
-		"validation": {
-			"pointsRequired": "Le montant de points est requis",
-			"minPoints": "Minimum {{min}} points requis",
-			"maxPoints": "Ne peut pas dépasser le solde disponible",
-			"insufficientPoints": "Points insuffisants"
-		},
-		"preview": {
-			"discount": "Réduction",
-			"newBalance": "Nouveau Solde"
-		},
-		"submit": "Échanger les Points",
-		"cancel": "Annuler",
-		"toasts": {
-			"success": "{{points}} points échangés avec succès pour {{discount}} de réduction",
-			"error": "Échec de l'échange des points"
-		}
-	},
-	"transactions": {
-		"title": "Historique des Transactions",
-		"emptyState": "Aucune transaction pour le moment",
-		"types": {
-			"EARN": "Gagnés",
-			"REDEEM": "Échangés",
-			"EXPIRE": "Expirés",
-			"ADJUST": "Ajustés"
-		},
-		"reasons": {
-			"purchase": "Achat",
-			"visit": "Bonus de visite",
-			"redemption": "Échange de réduction",
-			"expiration": "Expiration des points",
-			"adjustment": "Ajustement manuel"
-		},
-		"fromOrder": "De la commande #{{orderNumber}}",
-		"byStaff": "Par {{staffName}}"
-	},
-	"common": {
-		"points": "points",
-		"point": "point"
-	},
-	"card": {
-		"title": "Digital card",
-		"subtitle": "This is the card your customers keep on their phone. It's yours: your logo, your colours.",
-		"info": "Customers add this card to their phone's wallet. Every time you stamp a purchase the count goes up on its own — they never have to open an app.",
-		"save": "Save changes",
-		"poweredBy": "Powered by Avoqado",
-		"brand": {
-			"title": "Your brand",
-			"description": "The logo shows at the top of the card; the icon shows in the phone's card list.",
-			"logo": "Logo",
-			"icon": "Icon",
-			"noLogo": "With no logo we use your business name",
-			"noIcon": "With no icon we use a square in your colour",
-			"upload": "Upload image",
-			"logoHint": "Wide PNG, ideally 480 × 150 pixels.",
-			"iconHint": "Square PNG, ideally 512 × 512 pixels."
-		},
-		"colors": {
-			"title": "Colours",
-			"description": "Start from a theme and adjust whatever you like. Changes show instantly.",
-			"background": "Card background",
-			"text": "Text",
-			"label": "Small text",
-			"strip": "Stamp band background",
-			"stamp": "Stamp colour"
-		},
-		"stamps": {
-			"title": "The stamps",
-			"description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
-			"countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen.",
-			"ownTitle": "Or upload your own stamp",
-			"ownHint": "A square PNG with a transparent background. Upload just one: the ones still missing are generated for you, fainter.",
-			"upload": "Upload stamp",
-			"replace": "Replace",
-			"remove": "Remove"
-		},
-		"preview": {
-			"title": "Preview",
-			"live": "Live",
-			"stamps": "Stamps",
-			"reward": "Reward",
-			"sampleReward": "A free product",
-			"disclaimer": "Approximation. This is how it looks on your customer's phone."
-		},
-		"toasts": {
-			"saved": "Your card was updated",
-			"error": "Couldn't save",
-			"imageUploaded": "Image updated",
-			"imageError": "Couldn't upload the image"
-		},
-		"themes": {
-			"dark": "Dark",
-			"light": "Light",
-			"carbon": "Carbon"
-		},
-		"shapes": {
-			"CIRCLE": "Circle",
-			"STAR": "Star",
-			"HEART": "Heart",
-			"SQUARE": "Square",
-			"CUP": "Cup",
-			"SCISSORS": "Scissors",
-			"DUMBBELL": "Dumbbell",
-			"FLOWER": "Flower",
-			"BAG": "Bag"
-		},
-		"loading": "Loading your card",
-		"redeem": {
-			"title_one": "Reward to claim",
-			"title_other": "Rewards to claim",
-			"action": "Apply",
-			"done": "Reward applied",
-			"applied": "{{reward}} — the bill went down {{amount}}",
-			"failed": "Couldn't apply the reward",
-			"earnedOn": "Earned on {{date}}"
-		}
-	}
+  "title": "Programme de Fidélité",
+  "subtitle": "Configurez votre système de récompenses pour clients",
+  "settings": {
+    "title": "Paramètres de Fidélité",
+    "status": {
+      "label": "Statut du Programme",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "description": "Activer ou désactiver le programme de fidélité pour votre établissement"
+    },
+    "earning": {
+      "title": "Règles d'Accumulation",
+      "description": "Configurez comment les clients gagnent des points de fidélité",
+      "pointsPerDollar": {
+        "label": "Points par 1 $ dépensé",
+        "description": "Combien de points le client gagne pour chaque 1 $ d’achat",
+        "suffix": "points/$1"
+      },
+      "pointsPerVisit": {
+        "label": "Points Bonus par Visite",
+        "description": "Points supplémentaires accordés pour chaque visite (0 pour désactiver)",
+        "suffix": "points/visite"
+      }
+    },
+    "redemption": {
+      "title": "Règles d'Échange",
+      "description": "Configurez comment les clients peuvent échanger leurs points",
+      "redemptionRate": {
+        "label": "Taux d'Échange",
+        "description": "Combien vaut chaque point lors de l’échange",
+        "suffix": "par point",
+        "example": "{{points}} points = {{value}} de réduction"
+      },
+      "minPointsRedeem": {
+        "label": "Points Minimum pour Échanger",
+        "description": "Points minimum requis avant que les clients puissent échanger",
+        "suffix": "points"
+      }
+    },
+    "expiration": {
+      "title": "Expiration des Points",
+      "description": "Configurez quand les points non utilisés expirent",
+      "enabled": {
+        "label": "Activer l'Expiration",
+        "description": "Les points expireront après un nombre défini de jours"
+      },
+      "days": {
+        "label": "Jours Jusqu'à l'Expiration",
+        "description": "Nombre de jours avant l'expiration des points non utilisés",
+        "suffix": "jours",
+        "neverExpire": "Les points n'expirent jamais"
+      }
+    },
+    "save": "Enregistrer les Modifications",
+    "saving": "Enregistrement...",
+    "toasts": {
+      "updateSuccess": "Paramètres de fidélité mis à jour avec succès",
+      "updateError": "Échec de la mise à jour des paramètres de fidélité"
+    }
+  },
+  "dashboard": {
+    "title": "Aperçu de la Fidélité",
+    "stats": {
+      "totalPointsIssued": "Total des Points Émis",
+      "totalPointsRedeemed": "Total des Points Échangés",
+      "activeMembers": "Membres Actifs",
+      "redemptionRate": "Taux d'Échange"
+    },
+    "topEarners": {
+      "title": "Meilleurs Accumulateurs",
+      "emptyState": "Aucun client n'a encore gagné de points"
+    }
+  },
+  "redeem": {
+    "title": "Échanger des Points",
+    "availablePoints": "Points Disponibles",
+    "pointsValue": "Valeur de {{value}} en réductions",
+    "fields": {
+      "points": "Points à Échanger",
+      "discount": "Montant de la Réduction"
+    },
+    "placeholders": {
+      "points": "Entrez les points à échanger"
+    },
+    "validation": {
+      "pointsRequired": "Le montant de points est requis",
+      "minPoints": "Minimum {{min}} points requis",
+      "maxPoints": "Ne peut pas dépasser le solde disponible",
+      "insufficientPoints": "Points insuffisants"
+    },
+    "preview": {
+      "discount": "Réduction",
+      "newBalance": "Nouveau Solde"
+    },
+    "submit": "Échanger les Points",
+    "cancel": "Annuler",
+    "toasts": {
+      "success": "{{points}} points échangés avec succès pour {{discount}} de réduction",
+      "error": "Échec de l'échange des points"
+    }
+  },
+  "transactions": {
+    "title": "Historique des Transactions",
+    "emptyState": "Aucune transaction pour le moment",
+    "types": {
+      "EARN": "Gagnés",
+      "REDEEM": "Échangés",
+      "EXPIRE": "Expirés",
+      "ADJUST": "Ajustés"
+    },
+    "reasons": {
+      "purchase": "Achat",
+      "visit": "Bonus de visite",
+      "redemption": "Échange de réduction",
+      "expiration": "Expiration des points",
+      "adjustment": "Ajustement manuel"
+    },
+    "fromOrder": "De la commande #{{orderNumber}}",
+    "byStaff": "Par {{staffName}}"
+  },
+  "common": {
+    "points": "points",
+    "point": "point"
+  },
+  "card": {
+    "title": "Digital card",
+    "subtitle": "This is the card your customers keep on their phone. It's yours: your logo, your colours.",
+    "info": "Customers add this card to their phone's wallet. Every time you stamp a purchase the count goes up on its own — they never have to open an app.",
+    "save": "Save changes",
+    "poweredBy": "Powered by Avoqado",
+    "brand": {
+      "title": "Your brand",
+      "description": "The logo shows at the top of the card; the icon shows in the phone's card list.",
+      "logo": "Logo",
+      "icon": "Icon",
+      "noLogo": "With no logo we use your business name",
+      "noIcon": "With no icon we use a square in your colour",
+      "upload": "Upload image",
+      "logoHint": "Wide PNG, ideally 480 × 150 pixels.",
+      "iconHint": "Square PNG, ideally 512 × 512 pixels."
+    },
+    "colors": {
+      "title": "Colours",
+      "description": "Start from a theme and adjust whatever you like. Changes show instantly.",
+      "background": "Card background",
+      "text": "Text",
+      "label": "Small text",
+      "strip": "Stamp band background",
+      "stamp": "Stamp colour"
+    },
+    "stamps": {
+      "title": "The stamps",
+      "description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
+      "countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen.",
+      "ownTitle": "Or upload your own stamp",
+      "ownHint": "A square PNG with a transparent background. Upload just one: the ones still missing are generated for you, fainter.",
+      "upload": "Upload stamp",
+      "replace": "Replace",
+      "remove": "Remove"
+    },
+    "preview": {
+      "title": "Preview",
+      "live": "Live",
+      "stamps": "Stamps",
+      "reward": "Reward",
+      "sampleReward": "A free product",
+      "disclaimer": "Approximation. This is how it looks on your customer's phone."
+    },
+    "toasts": {
+      "saved": "Your card was updated",
+      "error": "Couldn't save",
+      "imageUploaded": "Image updated",
+      "imageError": "Couldn't upload the image"
+    },
+    "themes": {
+      "dark": "Dark",
+      "light": "Light",
+      "carbon": "Carbon"
+    },
+    "shapes": {
+      "CIRCLE": "Circle",
+      "STAR": "Star",
+      "HEART": "Heart",
+      "SQUARE": "Square",
+      "CUP": "Cup",
+      "SCISSORS": "Scissors",
+      "DUMBBELL": "Dumbbell",
+      "FLOWER": "Flower",
+      "BAG": "Bag"
+    },
+    "loading": "Loading your card",
+    "redeem": {
+      "title_one": "Reward to claim",
+      "title_other": "Rewards to claim",
+      "action": "Apply",
+      "done": "Reward applied",
+      "applied": "{{reward}} — the bill went down {{amount}}",
+      "failed": "Couldn't apply the reward",
+      "earnedOn": "Earned on {{date}}"
+    },
+    "program": {
+      "title": "Votre programme de tampons",
+      "description": "Combien d'achats remplissent une carte, et ce que le client gagne.",
+      "enabled": "Carte de tampons active",
+      "enabledHint": "Désactivée, les clients voient toujours leur carte mais n'accumulent plus de tampons.",
+      "required": "Tampons pour remplir une carte",
+      "requiredHint": "Entre 2 et 50. Chaque paiement ajoute un tampon.",
+      "rewardLabel": "Libellé de la récompense",
+      "rewardLabelPlaceholder": "Un café offert",
+      "rewardLabelHint": "C'est le texte que votre client voit sur sa carte.",
+      "rewardType": "Ce qu'il gagne",
+      "rewardTypes": {
+        "FREE_PRODUCT": "Un produit offert",
+        "FIXED_AMOUNT": "Un montant fixe",
+        "PERCENTAGE": "Un pourcentage"
+      },
+      "freeProductHint": "L'article le plus cher de l'addition est déduit, le client ne paie jamais de différence.",
+      "fixedAmountHint": "Combien est déduit de l'addition.",
+      "percentageHint": "Quel pourcentage est déduit de l'addition (1 à 100).",
+      "save": "Enregistrer le programme",
+      "saved": "Programme de tampons enregistré"
+    }
+  }
 }

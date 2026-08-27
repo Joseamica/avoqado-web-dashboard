@@ -261,6 +261,17 @@ export interface UpdateLoyaltyConfigRequest {
 	minPointsRedeem?: number
 	pointsExpireDays?: number | null
 	active?: boolean
+
+	// Programa de sellos. El servidor valida los rangos (cartilla de 2 a 50, premio
+	// coherente con su tipo, producto del mismo negocio) — aquí sólo se declaran para
+	// que el campo llegue: sin esto TypeScript los rechaza y la pantalla no compila.
+	stampsEnabled?: boolean
+	stampsRequired?: number
+	maxStampsPerDay?: number
+	stampRewardType?: 'FREE_PRODUCT' | 'FIXED_AMOUNT' | 'PERCENTAGE'
+	stampRewardValue?: number | null
+	stampRewardProductId?: string | null
+	stampRewardLabel?: string
 }
 
 export interface RedeemPointsRequest {

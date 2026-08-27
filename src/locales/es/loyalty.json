@@ -1,201 +1,223 @@
 {
-	"title": "Programa de Lealtad",
-	"subtitle": "Configura tu sistema de recompensas para clientes",
-	"settings": {
-		"title": "Configuración de Lealtad",
-		"status": {
-			"label": "Estado del Programa",
-			"active": "Activo",
-			"inactive": "Inactivo",
-			"description": "Habilita o deshabilita el programa de lealtad para tu establecimiento"
-		},
-		"earning": {
-			"title": "Reglas de Acumulación",
-			"description": "Configura cómo los clientes ganan puntos de lealtad",
-			"pointsPerDollar": {
-				"label": "Puntos por Dólar Gastado",
-				"description": "Número de puntos que los clientes ganan por cada dólar gastado",
-				"suffix": "puntos/$1"
-			},
-			"pointsPerVisit": {
-				"label": "Puntos Bonus por Visita",
-				"description": "Puntos extra otorgados por cada visita (0 para deshabilitar)",
-				"suffix": "puntos/visita"
-			}
-		},
-		"redemption": {
-			"title": "Reglas de Canje",
-			"description": "Configura cómo los clientes pueden canjear sus puntos",
-			"redemptionRate": {
-				"label": "Tasa de Canje",
-				"description": "Valor en dólares de cada punto al canjear",
-				"suffix": "por punto",
-				"example": "{{points}} puntos = {{value}} de descuento"
-			},
-			"minPointsRedeem": {
-				"label": "Mínimo de Puntos para Canjear",
-				"description": "Puntos mínimos requeridos antes de que los clientes puedan canjear",
-				"suffix": "puntos"
-			}
-		},
-		"expiration": {
-			"title": "Expiración de Puntos",
-			"description": "Configura cuándo expiran los puntos no utilizados",
-			"enabled": {
-				"label": "Habilitar Expiración",
-				"description": "Los puntos expirarán después de un número determinado de días"
-			},
-			"days": {
-				"label": "Días Hasta Expiración",
-				"description": "Número de días antes de que los puntos no utilizados expiren",
-				"suffix": "días",
-				"neverExpire": "Los puntos nunca expiran"
-			}
-		},
-		"save": "Guardar Cambios",
-		"saving": "Guardando...",
-		"toasts": {
-			"updateSuccess": "Configuración de lealtad actualizada exitosamente",
-			"updateError": "Error al actualizar la configuración de lealtad"
-		}
-	},
-	"dashboard": {
-		"title": "Resumen de Lealtad",
-		"stats": {
-			"totalPointsIssued": "Total de Puntos Emitidos",
-			"totalPointsRedeemed": "Total de Puntos Canjeados",
-			"activeMembers": "Miembros Activos",
-			"redemptionRate": "Tasa de Canje"
-		},
-		"topEarners": {
-			"title": "Mayores Acumuladores",
-			"emptyState": "Ningún cliente ha ganado puntos aún"
-		}
-	},
-	"redeem": {
-		"title": "Canjear Puntos",
-		"availablePoints": "Puntos Disponibles",
-		"pointsValue": "Equivale a {{value}} en descuentos",
-		"fields": {
-			"points": "Puntos a Canjear",
-			"discount": "Monto del Descuento"
-		},
-		"placeholders": {
-			"points": "Ingresa los puntos a canjear"
-		},
-		"validation": {
-			"pointsRequired": "La cantidad de puntos es requerida",
-			"minPoints": "Se requieren mínimo {{min}} puntos",
-			"maxPoints": "No puede exceder el saldo disponible",
-			"insufficientPoints": "Puntos insuficientes"
-		},
-		"preview": {
-			"discount": "Descuento",
-			"newBalance": "Nuevo Saldo"
-		},
-		"submit": "Canjear Puntos",
-		"cancel": "Cancelar",
-		"toasts": {
-			"success": "Se canjearon exitosamente {{points}} puntos por {{discount}} de descuento",
-			"error": "Error al canjear puntos"
-		}
-	},
-	"transactions": {
-		"title": "Historial de Transacciones",
-		"emptyState": "Sin transacciones aún",
-		"types": {
-			"EARN": "Ganados",
-			"REDEEM": "Canjeados",
-			"EXPIRE": "Expirados",
-			"ADJUST": "Ajustados"
-		},
-		"reasons": {
-			"purchase": "Compra",
-			"visit": "Bonus de visita",
-			"redemption": "Canje de descuento",
-			"expiration": "Expiración de puntos",
-			"adjustment": "Ajuste manual"
-		},
-		"fromOrder": "Del pedido #{{orderNumber}}",
-		"byStaff": "Por {{staffName}}"
-	},
-	"pointsLabel": "puntos",
-	"pointLabel": "punto",
-	"card": {
-		"title": "Tarjeta digital",
-		"subtitle": "Así se ve la tarjeta que tus clientes guardan en su celular. Es tuya: tu logo, tus colores.",
-		"info": "Tus clientes agregan esta tarjeta a la cartera de su teléfono. Cada vez que les selles una compra, el número sube solo — no tienen que abrir ninguna aplicación.",
-		"save": "Guardar cambios",
-		"poweredBy": "Con tecnología de Avoqado",
-		"brand": {
-			"title": "Tu marca",
-			"description": "El logo aparece arriba en la tarjeta; el icono, en la lista de tarjetas del teléfono.",
-			"logo": "Logo",
-			"icon": "Icono",
-			"noLogo": "Sin logo se usa el nombre de tu negocio",
-			"noIcon": "Sin icono se usa un cuadro de tu color",
-			"upload": "Subir imagen",
-			"logoHint": "PNG horizontal, idealmente 480 × 150 píxeles.",
-			"iconHint": "PNG cuadrado, idealmente 512 × 512 píxeles."
-		},
-		"colors": {
-			"title": "Colores",
-			"description": "Empieza con un tema y ajusta lo que quieras. Los cambios se ven al instante.",
-			"background": "Fondo de la tarjeta",
-			"text": "Texto",
-			"label": "Textos pequeños",
-			"strip": "Fondo de los sellos",
-			"stamp": "Color del sello"
-		},
-		"stamps": {
-			"title": "Los sellos",
-			"description": "Elige la que va con tu negocio: una taza para café, tijeras para estética, pesa para gym.",
-			"countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia en la pantalla de Lealtad.",
-			"ownTitle": "O sube tu propio sello",
-			"ownHint": "Un PNG cuadrado con fondo transparente. Sube uno solo: los que faltan se generan solos, más tenues.",
-			"upload": "Subir sello",
-			"replace": "Cambiar",
-			"remove": "Quitar"
-		},
-		"preview": {
-			"title": "Vista previa",
-			"live": "En vivo",
-			"stamps": "Sellos",
-			"reward": "Premio",
-			"sampleReward": "Un producto gratis",
-			"disclaimer": "Aproximación. Así se verá en el celular de tu cliente."
-		},
-		"toasts": {
-			"saved": "Tu tarjeta se actualizó",
-			"error": "No se pudo guardar",
-			"imageUploaded": "Imagen actualizada",
-			"imageError": "No se pudo subir la imagen"
-		},
-		"themes": {
-			"dark": "Oscuro",
-			"light": "Claro",
-			"carbon": "Carbón"
-		},
-		"shapes": {
-			"CIRCLE": "Círculo",
-			"STAR": "Estrella",
-			"HEART": "Corazón",
-			"SQUARE": "Cuadrado",
-			"CUP": "Taza",
-			"SCISSORS": "Tijeras",
-			"DUMBBELL": "Pesa",
-			"FLOWER": "Flor",
-			"BAG": "Bolsa"
-		},
-		"loading": "Cargando tu tarjeta",
-		"redeem": {
-			"title_one": "Premio por cobrar",
-			"title_other": "Premios por cobrar",
-			"action": "Aplicar",
-			"done": "Premio aplicado",
-			"applied": "{{reward}} — la cuenta bajó {{amount}}",
-			"failed": "No se pudo aplicar el premio",
-			"earnedOn": "Ganado el {{date}}"
-		}
-	}
+  "title": "Programa de Lealtad",
+  "subtitle": "Configura tu sistema de recompensas para clientes",
+  "settings": {
+    "title": "Configuración de Lealtad",
+    "status": {
+      "label": "Estado del Programa",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "description": "Habilita o deshabilita el programa de lealtad para tu establecimiento"
+    },
+    "earning": {
+      "title": "Reglas de Acumulación",
+      "description": "Configura cómo los clientes ganan puntos de lealtad",
+      "pointsPerDollar": {
+        "label": "Puntos por cada $1 gastado",
+        "description": "Cuántos puntos gana el cliente por cada $1 de compra",
+        "suffix": "puntos/$1"
+      },
+      "pointsPerVisit": {
+        "label": "Puntos Bonus por Visita",
+        "description": "Puntos extra otorgados por cada visita (0 para deshabilitar)",
+        "suffix": "puntos/visita"
+      }
+    },
+    "redemption": {
+      "title": "Reglas de Canje",
+      "description": "Configura cómo los clientes pueden canjear sus puntos",
+      "redemptionRate": {
+        "label": "Tasa de Canje",
+        "description": "Cuánto vale cada punto al canjearlo",
+        "suffix": "por punto",
+        "example": "{{points}} puntos = {{value}} de descuento"
+      },
+      "minPointsRedeem": {
+        "label": "Mínimo de Puntos para Canjear",
+        "description": "Puntos mínimos requeridos antes de que los clientes puedan canjear",
+        "suffix": "puntos"
+      }
+    },
+    "expiration": {
+      "title": "Expiración de Puntos",
+      "description": "Configura cuándo expiran los puntos no utilizados",
+      "enabled": {
+        "label": "Habilitar Expiración",
+        "description": "Los puntos expirarán después de un número determinado de días"
+      },
+      "days": {
+        "label": "Días Hasta Expiración",
+        "description": "Número de días antes de que los puntos no utilizados expiren",
+        "suffix": "días",
+        "neverExpire": "Los puntos nunca expiran"
+      }
+    },
+    "save": "Guardar Cambios",
+    "saving": "Guardando...",
+    "toasts": {
+      "updateSuccess": "Configuración de lealtad actualizada exitosamente",
+      "updateError": "Error al actualizar la configuración de lealtad"
+    }
+  },
+  "dashboard": {
+    "title": "Resumen de Lealtad",
+    "stats": {
+      "totalPointsIssued": "Total de Puntos Emitidos",
+      "totalPointsRedeemed": "Total de Puntos Canjeados",
+      "activeMembers": "Miembros Activos",
+      "redemptionRate": "Tasa de Canje"
+    },
+    "topEarners": {
+      "title": "Mayores Acumuladores",
+      "emptyState": "Ningún cliente ha ganado puntos aún"
+    }
+  },
+  "redeem": {
+    "title": "Canjear Puntos",
+    "availablePoints": "Puntos Disponibles",
+    "pointsValue": "Equivale a {{value}} en descuentos",
+    "fields": {
+      "points": "Puntos a Canjear",
+      "discount": "Monto del Descuento"
+    },
+    "placeholders": {
+      "points": "Ingresa los puntos a canjear"
+    },
+    "validation": {
+      "pointsRequired": "La cantidad de puntos es requerida",
+      "minPoints": "Se requieren mínimo {{min}} puntos",
+      "maxPoints": "No puede exceder el saldo disponible",
+      "insufficientPoints": "Puntos insuficientes"
+    },
+    "preview": {
+      "discount": "Descuento",
+      "newBalance": "Nuevo Saldo"
+    },
+    "submit": "Canjear Puntos",
+    "cancel": "Cancelar",
+    "toasts": {
+      "success": "Se canjearon exitosamente {{points}} puntos por {{discount}} de descuento",
+      "error": "Error al canjear puntos"
+    }
+  },
+  "transactions": {
+    "title": "Historial de Transacciones",
+    "emptyState": "Sin transacciones aún",
+    "types": {
+      "EARN": "Ganados",
+      "REDEEM": "Canjeados",
+      "EXPIRE": "Expirados",
+      "ADJUST": "Ajustados"
+    },
+    "reasons": {
+      "purchase": "Compra",
+      "visit": "Bonus de visita",
+      "redemption": "Canje de descuento",
+      "expiration": "Expiración de puntos",
+      "adjustment": "Ajuste manual"
+    },
+    "fromOrder": "Del pedido #{{orderNumber}}",
+    "byStaff": "Por {{staffName}}"
+  },
+  "pointsLabel": "puntos",
+  "pointLabel": "punto",
+  "card": {
+    "title": "Tarjeta digital",
+    "subtitle": "Así se ve la tarjeta que tus clientes guardan en su celular. Es tuya: tu logo, tus colores.",
+    "info": "Tus clientes agregan esta tarjeta a la cartera de su teléfono. Cada vez que les selles una compra, el número sube solo — no tienen que abrir ninguna aplicación.",
+    "save": "Guardar cambios",
+    "poweredBy": "Con tecnología de Avoqado",
+    "brand": {
+      "title": "Tu marca",
+      "description": "El logo aparece arriba en la tarjeta; el icono, en la lista de tarjetas del teléfono.",
+      "logo": "Logo",
+      "icon": "Icono",
+      "noLogo": "Sin logo se usa el nombre de tu negocio",
+      "noIcon": "Sin icono se usa un cuadro de tu color",
+      "upload": "Subir imagen",
+      "logoHint": "PNG horizontal, idealmente 480 × 150 píxeles.",
+      "iconHint": "PNG cuadrado, idealmente 512 × 512 píxeles."
+    },
+    "colors": {
+      "title": "Colores",
+      "description": "Empieza con un tema y ajusta lo que quieras. Los cambios se ven al instante.",
+      "background": "Fondo de la tarjeta",
+      "text": "Texto",
+      "label": "Textos pequeños",
+      "strip": "Fondo de los sellos",
+      "stamp": "Color del sello"
+    },
+    "stamps": {
+      "title": "Los sellos",
+      "description": "Elige la que va con tu negocio: una taza para café, tijeras para estética, pesa para gym.",
+      "countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia en la pantalla de Lealtad.",
+      "ownTitle": "O sube tu propio sello",
+      "ownHint": "Un PNG cuadrado con fondo transparente. Sube uno solo: los que faltan se generan solos, más tenues.",
+      "upload": "Subir sello",
+      "replace": "Cambiar",
+      "remove": "Quitar"
+    },
+    "preview": {
+      "title": "Vista previa",
+      "live": "En vivo",
+      "stamps": "Sellos",
+      "reward": "Premio",
+      "sampleReward": "Un producto gratis",
+      "disclaimer": "Aproximación. Así se verá en el celular de tu cliente."
+    },
+    "toasts": {
+      "saved": "Tu tarjeta se actualizó",
+      "error": "No se pudo guardar",
+      "imageUploaded": "Imagen actualizada",
+      "imageError": "No se pudo subir la imagen"
+    },
+    "themes": {
+      "dark": "Oscuro",
+      "light": "Claro",
+      "carbon": "Carbón"
+    },
+    "shapes": {
+      "CIRCLE": "Círculo",
+      "STAR": "Estrella",
+      "HEART": "Corazón",
+      "SQUARE": "Cuadrado",
+      "CUP": "Taza",
+      "SCISSORS": "Tijeras",
+      "DUMBBELL": "Pesa",
+      "FLOWER": "Flor",
+      "BAG": "Bolsa"
+    },
+    "loading": "Cargando tu tarjeta",
+    "redeem": {
+      "title_one": "Premio por cobrar",
+      "title_other": "Premios por cobrar",
+      "action": "Aplicar",
+      "done": "Premio aplicado",
+      "applied": "{{reward}} — la cuenta bajó {{amount}}",
+      "failed": "No se pudo aplicar el premio",
+      "earnedOn": "Ganado el {{date}}"
+    },
+    "program": {
+      "title": "Tu programa de sellos",
+      "description": "Cuántas compras junta el cliente y qué se gana al llenar la cartilla.",
+      "enabled": "Tarjeta de sellos activa",
+      "enabledHint": "Apagada, tus clientes siguen viendo su tarjeta pero no se acumulan sellos.",
+      "required": "Sellos para llenar la cartilla",
+      "requiredHint": "Entre 2 y 50. Cada cobro suma un sello.",
+      "rewardLabel": "Cómo se lee el premio",
+      "rewardLabelPlaceholder": "Un café gratis",
+      "rewardLabelHint": "Es el texto que ve el cliente en su tarjeta.",
+      "rewardType": "Qué se gana",
+      "rewardTypes": {
+        "FREE_PRODUCT": "Un producto gratis",
+        "FIXED_AMOUNT": "Un monto fijo",
+        "PERCENTAGE": "Un porcentaje"
+      },
+      "freeProductHint": "Se descuenta el artículo más caro de la cuenta, para que el cliente nunca pague diferencia.",
+      "fixedAmountHint": "Cuánto se descuenta de la cuenta, en pesos.",
+      "percentageHint": "Qué porcentaje se descuenta de la cuenta (de 1 a 100).",
+      "save": "Guardar programa",
+      "saved": "Programa de sellos guardado"
+    }
+  }
 }
