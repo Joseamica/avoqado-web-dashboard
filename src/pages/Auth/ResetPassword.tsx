@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 import logoLight from '@/assets/logo/avoqado-logo-light.png'
 import logoDark from '@/assets/logo/avoqado-logo-dark.png'
-import CoverLogin from '@/assets/cover-login.png'
+import CoverLogin from '@/assets/cover-login.webp'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 import { Button } from '@/components/ui/button'
