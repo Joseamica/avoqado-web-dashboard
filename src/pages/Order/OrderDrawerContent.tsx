@@ -13,6 +13,7 @@ import { OrderActionsSheet } from './components/OrderActionsSheet'
 import { ActivitySection } from './components/sections/ActivitySection'
 import { DetailsSection } from './components/sections/DetailsSection'
 import { ItemsSection } from './components/sections/ItemsSection'
+import { StampRewardsSection } from './components/StampRewardsSection'
 import { PaymentsSection } from './components/sections/PaymentsSection'
 
 interface Props {
@@ -57,12 +58,8 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
   if (!order) {
     return (
       <div className="p-8 text-center space-y-3">
-        <p className="text-muted-foreground">
-          {t('detail.notFound', { defaultValue: 'Orden no encontrada' })}
-        </p>
-        <Button onClick={onClose}>
-          {t('detail.backToOrders', { defaultValue: 'Volver a pedidos' })}
-        </Button>
+        <p className="text-muted-foreground">{t('detail.notFound', { defaultValue: 'Orden no encontrada' })}</p>
+        <Button onClick={onClose}>{t('detail.backToOrders', { defaultValue: 'Volver a pedidos' })}</Button>
       </div>
     )
   }
@@ -87,21 +84,12 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
   return (
     <div data-print-root className="flex flex-col h-full bg-background">
       {/* Sticky header */}
-      <div
-        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-border bg-background"
-        data-print-hide
-      >
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-border bg-background" data-print-hide>
         <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
           <X className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.print()}
-            className="rounded-full"
-            title={t('drawer.actions.print')}
-          >
+          <Button variant="ghost" size="icon" onClick={() => window.print()} className="rounded-full" title={t('drawer.actions.print')}>
             <Printer className="w-5 h-5" />
           </Button>
           <Button
@@ -119,17 +107,12 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
         {/* Title */}
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            {t('drawer.title', { number: formatOrderNumber(order.orderNumber) })}
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t('drawer.title', { number: formatOrderNumber(order.orderNumber) })}</h1>
           <div className="flex flex-wrap gap-2 mt-2">
             <Badge variant="outline" className={`${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}>
               {t(`detail.statuses.${order.status}`, { defaultValue: order.status })}
             </Badge>
-            <Badge
-              variant="outline"
-              className={`${paymentStatusCfg.bg} ${paymentStatusCfg.color} ${paymentStatusCfg.border}`}
-            >
+            <Badge variant="outline" className={`${paymentStatusCfg.bg} ${paymentStatusCfg.color} ${paymentStatusCfg.border}`}>
               {t(`detail.statuses.${order.paymentStatus}`, { defaultValue: order.paymentStatus })}
             </Badge>
             {isPayLaterOrder && (
@@ -158,16 +141,17 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
 
         <DetailsSection order={order} venueTimezone={venueTimezone} />
         <ItemsSection order={order} />
+        {/*
+          Va después de lo que se pidió y antes de lo que se pagó: es el momento en
+          que el cajero decide qué cobrar. La sección se oculta sola cuando no hay
+          nada que canjear.
+        */}
+        <StampRewardsSection order={order} />
         <PaymentsSection order={order} venueTimezone={venueTimezone} />
         <ActivitySection order={order} venueTimezone={venueTimezone} />
       </div>
 
-      <OrderActionsSheet
-        order={order}
-        open={actionsOpen}
-        onOpenChange={setActionsOpen}
-        fullBasePath={fullBasePath}
-      />
+      <OrderActionsSheet order={order} open={actionsOpen} onOpenChange={setActionsOpen} fullBasePath={fullBasePath} />
     </div>
   )
 }

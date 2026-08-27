@@ -187,6 +187,15 @@
 			"FLOWER": "Flor",
 			"BAG": "Bolsa"
 		},
-		"loading": "Cargando tu tarjeta"
+		"loading": "Cargando tu tarjeta",
+		"redeem": {
+			"title_one": "Premio por cobrar",
+			"title_other": "Premios por cobrar",
+			"action": "Aplicar",
+			"done": "Premio aplicado",
+			"applied": "{{reward}} — la cuenta bajó {{amount}}",
+			"failed": "No se pudo aplicar el premio",
+			"earnedOn": "Ganado el {{date}}"
+		}
 	}
 }

@@ -91,3 +91,38 @@ export const walletCardService = {
     return response.data
   },
 }
+
+// ==========================================
+// CARTILLA DE SELLOS — avance y canje del premio
+// ==========================================
+
+export interface StampRewardToClaim {
+  id: string
+  rewardLabel: string
+  rewardType: 'FREE_PRODUCT' | 'FIXED_AMOUNT' | 'PERCENTAGE'
+  rewardValue: number | null
+  expiresAt: string | null
+  createdAt: string
+}
+
+export interface StampCardStatus {
+  stampsEarned: number
+  /** 🔴 Viene de la CARTILLA, no de la configuración: quien va a la mitad conserva su meta. */
+  stampsRequired: number
+  rewardLabel: string
+  pendingRewards: number
+  rewardsToClaim: StampRewardToClaim[]
+}
+
+export const stampCardService = {
+  async getStatus(venueId: string, customerId: string): Promise<StampCardStatus> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/loyalty/customers/${customerId}/stamp-card`)
+    return response.data
+  },
+
+  /** 🔴 DINERO: baja lo que el cliente paga. El servidor protege contra el doble canje. */
+  async redeem(venueId: string, rewardId: string, orderId: string): Promise<{ discountAmount: number; rewardLabel: string }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/loyalty/stamp-rewards/${rewardId}/redeem`, { orderId })
+    return response.data
+  },
+}

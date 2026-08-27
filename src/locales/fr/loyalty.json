@@ -189,6 +189,15 @@
 			"FLOWER": "Flower",
 			"BAG": "Bag"
 		},
-		"loading": "Loading your card"
+		"loading": "Loading your card",
+		"redeem": {
+			"title_one": "Reward to claim",
+			"title_other": "Rewards to claim",
+			"action": "Apply",
+			"done": "Reward applied",
+			"applied": "{{reward}} — the bill went down {{amount}}",
+			"failed": "Couldn't apply the reward",
+			"earnedOn": "Earned on {{date}}"
+		}
 	}
 }
