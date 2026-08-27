@@ -258,6 +258,7 @@
     "loadErrorTitle": "Impossible de charger l'horaire",
     "loadErrorDesc": "L'édition reste bloquée jusqu'au chargement, pour ne pas écraser le vrai horaire par un horaire vide.",
     "retry": "Réessayer",
-    "readOnly": "Lecture seule : vous devez avoir la permission de gérer les présences."
+    "readOnly": "Lecture seule : vous devez avoir la permission de gérer les présences.",
+    "overnightHint": "Un horaire peut passer minuit (ex. 22:00–06:00) comme dernière plage du jour : il compte pour le jour où il COMMENCE."
   }
 }

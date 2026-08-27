@@ -291,6 +291,7 @@
     "loadErrorTitle": "No se pudo cargar el horario",
     "loadErrorDesc": "Para no pisar el horario real con uno vacío, la edición queda bloqueada hasta que cargue.",
     "retry": "Reintentar",
-    "readOnly": "Sólo lectura: necesitas permiso para administrar asistencia."
+    "readOnly": "Sólo lectura: necesitas permiso para administrar asistencia.",
+    "overnightHint": "Un turno puede cruzar la medianoche (ej. 22:00–06:00) como último rango del día: cuenta para el día en que EMPIEZA."
   }
 }

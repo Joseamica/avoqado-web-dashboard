@@ -148,6 +148,7 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
         ) : (
           <>
             {/* El editor no expone `disabled`: en sólo lectura se apaga el puntero entero. */}
+            <p className="text-[11px] text-muted-foreground">{t('workSchedule.overnightHint')}</p>
             <div aria-disabled={!editable} className={editable ? undefined : 'pointer-events-none opacity-60'}>
               <OperatingHoursEditor
                 value={weekly}

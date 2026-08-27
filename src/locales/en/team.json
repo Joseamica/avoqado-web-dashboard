@@ -291,6 +291,7 @@
     "loadErrorTitle": "Could not load the schedule",
     "loadErrorDesc": "Editing stays locked until it loads, so the real schedule is not overwritten with an empty one.",
     "retry": "Retry",
-    "readOnly": "Read-only: you need permission to manage attendance."
+    "readOnly": "Read-only: you need permission to manage attendance.",
+    "overnightHint": "A shift can cross midnight (e.g. 22:00–06:00) as the day's last range: it counts toward the day it STARTS."
   }
 }
