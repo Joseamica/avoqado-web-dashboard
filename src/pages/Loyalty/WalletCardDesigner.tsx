@@ -362,9 +362,7 @@ export default function WalletCardDesigner() {
                       placeholder={programa.stampRewardType === 'PERCENTAGE' ? '15' : '50'}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {programa.stampRewardType === 'PERCENTAGE'
-                        ? t('card.program.percentageHint')
-                        : t('card.program.fixedAmountHint')}
+                      {programa.stampRewardType === 'PERCENTAGE' ? t('card.program.percentageHint') : t('card.program.fixedAmountHint')}
                     </p>
                   </div>
                 )}
@@ -378,7 +376,6 @@ export default function WalletCardDesigner() {
               </div>
             </GlassCard>
 
-
             <GlassCard className="p-6">
               <SectionHeader icon={ImageIcon} title={t('card.brand.title')} description={t('card.brand.description')} />
 
@@ -387,7 +384,13 @@ export default function WalletCardDesigner() {
                   <Label className="text-sm">{t('card.brand.logo')}</Label>
                   <div className="flex h-[72px] items-center justify-center rounded-lg border border-dashed border-input bg-muted/40 p-2">
                     {borrador.logoUrl ? (
-                      <img src={borrador.logoUrl} alt="" className="max-h-full max-w-full object-contain" />
+                      // 🔴 La imagen subida lleva su propio botón de quitar. Sin él, un
+                      // negocio que se equivoca sólo puede tapar el error con otra
+                      // imagen, nunca volver al respaldo — y eso se reportó como "ya no
+                      // la puedo cambiar".
+                      <div className="group relative flex h-full w-full items-center justify-center">
+                        <img src={borrador.logoUrl} alt={t('card.brand.logo')} className="max-h-full max-w-full object-contain" />
+                      </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">{t('card.brand.noLogo')}</span>
                     )}
@@ -408,8 +411,29 @@ export default function WalletCardDesigner() {
                     data-tour="wallet-upload-logo"
                   >
                     {subiendo === 'logo' ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-2 h-3.5 w-3.5" />}
-                    {t('card.brand.upload')}
+                    {borrador.logoUrl ? t('card.brand.replace') : t('card.brand.upload')}
                   </Button>
+                  {/*
+                    🔴 "Quitar" con TEXTO, no un icono superpuesto sobre la imagen. Es el
+                    mismo patrón que el sello propio de más abajo: la pantalla no puede
+                    pedirle al usuario que aprenda dos formas de hacer lo mismo. Y un ✕
+                    encima de una imagen es ambiguo — no se sabe si borra o cierra algo.
+                    Nació de un bug reportado: "me equivoqué al subir esta foto y ya no la
+                    puedo cambiar".
+                  */}
+                  {borrador.logoUrl && (
+                    <PermissionGate permission="loyalty:update">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 w-full cursor-pointer text-muted-foreground lg:min-h-9"
+                        onClick={() => set({ logoUrl: null })}
+                        data-tour="wallet-remove-logo"
+                      >
+                        {t('card.brand.remove')}
+                      </Button>
+                    </PermissionGate>
+                  )}
                   <p className="text-[11px] text-muted-foreground">{t('card.brand.logoHint')}</p>
                 </div>
 
@@ -417,7 +441,9 @@ export default function WalletCardDesigner() {
                   <Label className="text-sm">{t('card.brand.icon')}</Label>
                   <div className="flex h-[72px] items-center justify-center rounded-lg border border-dashed border-input bg-muted/40 p-2">
                     {borrador.iconUrl ? (
-                      <img src={borrador.iconUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                      <div className="group relative flex h-full w-full items-center justify-center">
+                        <img src={borrador.iconUrl} alt={t('card.brand.icon')} className="h-12 w-12 rounded-lg object-cover" />
+                      </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">{t('card.brand.noIcon')}</span>
                     )}
@@ -438,8 +464,29 @@ export default function WalletCardDesigner() {
                     data-tour="wallet-upload-icon"
                   >
                     {subiendo === 'icon' ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-2 h-3.5 w-3.5" />}
-                    {t('card.brand.upload')}
+                    {borrador.iconUrl ? t('card.brand.replace') : t('card.brand.upload')}
                   </Button>
+                  {/*
+                    🔴 "Quitar" con TEXTO, no un icono superpuesto sobre la imagen. Es el
+                    mismo patrón que el sello propio de más abajo: la pantalla no puede
+                    pedirle al usuario que aprenda dos formas de hacer lo mismo. Y un ✕
+                    encima de una imagen es ambiguo — no se sabe si borra o cierra algo.
+                    Nació de un bug reportado: "me equivoqué al subir esta foto y ya no la
+                    puedo cambiar".
+                  */}
+                  {borrador.iconUrl && (
+                    <PermissionGate permission="loyalty:update">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 w-full cursor-pointer text-muted-foreground lg:min-h-9"
+                        onClick={() => set({ iconUrl: null })}
+                        data-tour="wallet-remove-icon"
+                      >
+                        {t('card.brand.remove')}
+                      </Button>
+                    </PermissionGate>
+                  )}
                   <p className="text-[11px] text-muted-foreground">{t('card.brand.iconHint')}</p>
                 </div>
               </div>

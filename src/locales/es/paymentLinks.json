@@ -203,7 +203,7 @@
     "imagePlaceholder": "Imagen del producto",
     "subtotal": "Subtotal",
     "totalCalculated": "El total se calcula en el proceso de pago",
-    "processPayment": "Ir a pagar",
+    "processPayment": "Continuar al pago",
     "orderSummary": "Resumen del pedido ({{count}} artículo)",
     "orderTotal": "Total del pedido",
     "pay": "Pagar",
