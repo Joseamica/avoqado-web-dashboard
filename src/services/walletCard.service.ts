@@ -126,3 +126,33 @@ export const stampCardService = {
     return response.data
   },
 }
+
+/**
+ * La liga publica que el iPhone abre para guardar la tarjeta en Wallet.
+ *
+ * 🔴 Se arma con `api.defaults.baseURL`, NO leyendo `import.meta.env.VITE_API_URL`:
+ * ese baseURL ya paso por `resolveApiBaseUrl()`, que en desarrollo cae a
+ * same-origin cuando el dashboard se abre desde un tunel. Leyendo la variable a
+ * pelo, la liga apuntaria a `localhost` y el telefono del cliente —que no es esta
+ * maquina— la abriria contra el vacio. Es justo el caso en el que se prueba esto.
+ *
+ * El slug va codificado: es texto que el negocio elige, no un id garantizado.
+ */
+export function buildWalletPassUrl(venueSlug: string, customerId: string, baseUrl?: string): string {
+  const base = (baseUrl ?? api.defaults.baseURL ?? '').replace(/\/+$/, '')
+  return `${base}/api/v1/public/venues/${encodeURIComponent(venueSlug)}/wallet/apple/${encodeURIComponent(customerId)}`
+}
+
+/**
+ * La liga del cartel del mostrador: el portal publico del negocio, abierto directo en
+ * la cuenta del cliente (`#cuenta`).
+ *
+ * 🔴 Apunta al PORTAL, nunca a la ruta del `.pkpass`. La diferencia es de seguridad,
+ * no de comodidad: la ruta del pase lleva el id del cliente dentro, asi que un QR
+ * impreso con ella entregaria SIEMPRE la misma tarjeta — la de quien lo imprimio.
+ * Mandando al portal, cada quien se identifica con su telefono y recibe LA SUYA.
+ */
+export function buildPosterUrl(venueSlug: string): string {
+  const host = (import.meta.env.VITE_BOOKING_URL as string | undefined) || 'https://book.avoqado.io'
+  return `${host.replace(/\/+$/, '')}/${encodeURIComponent(venueSlug)}#cuenta`
+}

@@ -52,6 +52,7 @@ import type { CreditPackPurchase } from '@/types/creditPack'
 
 import CustomerForm from './components/CustomerForm'
 import ReferralCard from './components/ReferralCard'
+import WalletPassCard from './components/WalletPassCard'
 
 export default function CustomerDetail() {
 	const { venueId, fullBasePath, venue } = useCurrentVenue()
@@ -434,6 +435,17 @@ export default function CustomerDetail() {
 						customer={customer}
 						venueId={venueId}
 						venueName={venue?.name || venue?.slug || ''}
+					/>
+
+					{/* Tarjeta digital — la liga que el cliente abre para guardarla en su
+					    Wallet. Vive AQUI, en la ficha, porque es donde el negocio ya tiene
+					    enfrente a la persona a la que se la va a mandar. */}
+					<WalletPassCard
+						customer={customer}
+						venueSlug={venue?.slug || ''}
+						venueName={venue?.name || venue?.slug || ''}
+						fullBasePath={fullBasePath}
+						stampsEnabled={loyaltyConfig?.stampsEnabled}
 					/>
 
 					{/* Tabs */}

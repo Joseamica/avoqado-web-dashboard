@@ -261,5 +261,20 @@
       "conflict": "Someone else already decided",
       "conflictHelp": "Another person approved or rejected this customer while you were reviewing. The list has been refreshed."
     }
+  },
+  "walletPass": {
+    "title": "Digital card",
+    "description": "Have them save it to their iPhone and their stamps add up on their own every time you charge them.",
+    "scanHint": "Have them point their iPhone camera at this code, or send them the link.",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "copyFailed": "Couldn't copy. Select the link manually.",
+    "sendWhatsapp": "Send via WhatsApp",
+    "whatsappMessage": "Hi {{name}}, here's your {{venue}} card. Open it from your iPhone to save it to your Wallet: {{url}}",
+    "iphoneOnly": "For now it only saves to iPhone. The Android version is on the way.",
+    "disabled": "Your stamp program is off, so there's no card to share yet.",
+    "turnOn": "Turn on stamps",
+    "disabledNoPermission": "Ask an administrator to turn on the stamp program.",
+    "linkLabel": "Card link"
   }
 }

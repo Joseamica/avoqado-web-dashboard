@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { walletCardService, type WalletCardDesign, type WalletStampShape } from '@/services/walletCard.service'
 import loyaltyService from '@/services/loyalty.service'
+import CounterPosterCard from './components/CounterPosterCard'
+import { SectionHeader } from './components/SectionHeader'
 import { WalletCardPreview } from './components/WalletCardPreview'
 import { cn } from '@/lib/utils'
 
@@ -55,20 +57,6 @@ const TEMAS: { id: string; colores: Partial<WalletCardDesign> }[] = [
  * pasar por "tijeras" y "mancuerna" antes de llegar a algo que le sirva.
  */
 const FORMAS: WalletStampShape[] = ['CIRCLE', 'STAR', 'HEART', 'SQUARE', 'CUP', 'SCISSORS', 'DUMBBELL', 'FLOWER', 'BAG']
-
-function SectionHeader({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
-  return (
-    <div className="mb-5 flex items-start gap-3">
-      <div className="rounded-xl bg-muted p-2">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  )
-}
 
 /** Selector de color: la muestra abre el selector del sistema, el campo acepta el hex. */
 function ColorField({ label, value, onChange, tourKey }: { label: string; value: string; onChange: (v: string) => void; tourKey: string }) {
@@ -645,6 +633,14 @@ export default function WalletCardDesigner() {
 
               <p className="mt-4 text-xs text-muted-foreground">{t('card.stamps.countHint', { count: config?.stampsRequired ?? 10 })}</p>
             </GlassCard>
+
+            {/* El cartel del mostrador vive AQUI, junto al diseño: quien acaba de
+                configurar su tarjeta es quien la va a poner a circular. Sale solo
+                cuando los sellos estan prendidos — un cartel que manda a una tarjeta
+                apagada le hace perder el tiempo al cliente delante del cajero. */}
+            {programa.stampsEnabled && venue?.slug && (
+              <CounterPosterCard venueSlug={venue.slug} venueName={venue?.name ?? 'Mi negocio'} />
+            )}
           </div>
 
           {/* ── Vista previa ──────────────────────────────────────────── */}

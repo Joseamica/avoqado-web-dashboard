@@ -1,225 +1,236 @@
 {
-	"title": "Loyalty Program",
-	"subtitle": "Configure your customer loyalty rewards system",
-	"settings": {
-		"title": "Loyalty Settings",
-		"status": {
-			"label": "Program Status",
-			"active": "Active",
-			"inactive": "Inactive",
-			"description": "Enable or disable the loyalty program for your venue"
-		},
-		"earning": {
-			"title": "Earning Rules",
-			"description": "Configure how customers earn loyalty points",
-			"pointsPerDollar": {
-				"label": "Points per $1 spent",
-				"description": "How many points the customer earns for each $1 of purchase",
-				"suffix": "points/$1"
-			},
-			"pointsPerVisit": {
-				"label": "Bonus Points per Visit",
-				"description": "Extra points awarded for each visit (0 to disable)",
-				"suffix": "points/visit"
-			}
-		},
-		"redemption": {
-			"title": "Redemption Rules",
-			"description": "Configure how customers can redeem their points",
-			"redemptionRate": {
-				"label": "Redemption Rate",
-				"description": "What each point is worth when redeemed",
-				"suffix": "per point",
-				"example": "{{points}} points = {{value}} discount"
-			},
-			"minPointsRedeem": {
-				"label": "Minimum Points to Redeem",
-				"description": "Minimum points required before customers can redeem",
-				"suffix": "points"
-			}
-		},
-		"expiration": {
-			"title": "Points Expiration",
-			"description": "Configure when unused points expire",
-			"enabled": {
-				"label": "Enable Expiration",
-				"description": "Points will expire after a set number of days"
-			},
-			"days": {
-				"label": "Days Until Expiration",
-				"description": "Number of days before unused points expire",
-				"suffix": "days",
-				"neverExpire": "Points never expire"
-			}
-		},
-		"save": "Save Changes",
-		"saving": "Saving...",
-		"toasts": {
-			"updateSuccess": "Loyalty settings updated successfully",
-			"updateError": "Failed to update loyalty settings"
-		}
-	},
-	"dashboard": {
-		"title": "Loyalty Overview",
-		"stats": {
-			"totalPointsIssued": "Total Points Issued",
-			"totalPointsRedeemed": "Total Points Redeemed",
-			"activeMembers": "Active Members",
-			"redemptionRate": "Redemption Rate"
-		},
-		"topEarners": {
-			"title": "Top Earners",
-			"emptyState": "No customers have earned points yet"
-		}
-	},
-	"redeem": {
-		"title": "Redeem Points",
-		"availablePoints": "Available Points",
-		"pointsValue": "Worth {{value}} in discounts",
-		"fields": {
-			"points": "Points to Redeem",
-			"discount": "Discount Amount"
-		},
-		"placeholders": {
-			"points": "Enter points to redeem"
-		},
-		"validation": {
-			"pointsRequired": "Points amount is required",
-			"minPoints": "Minimum {{min}} points required",
-			"maxPoints": "Cannot exceed available balance",
-			"insufficientPoints": "Insufficient points"
-		},
-		"preview": {
-			"discount": "Discount",
-			"newBalance": "New Balance"
-		},
-		"submit": "Redeem Points",
-		"cancel": "Cancel",
-		"toasts": {
-			"success": "Successfully redeemed {{points}} points for {{discount}} discount",
-			"error": "Failed to redeem points"
-		}
-	},
-	"transactions": {
-		"title": "Transaction History",
-		"emptyState": "No transactions yet",
-		"types": {
-			"EARN": "Earned",
-			"REDEEM": "Redeemed",
-			"EXPIRE": "Expired",
-			"ADJUST": "Adjusted"
-		},
-		"reasons": {
-			"purchase": "Purchase",
-			"visit": "Visit bonus",
-			"redemption": "Discount redemption",
-			"expiration": "Points expiration",
-			"adjustment": "Manual adjustment"
-		},
-		"fromOrder": "From order #{{orderNumber}}",
-		"byStaff": "By {{staffName}}"
-	},
-	"pointsLabel": "points",
-	"pointLabel": "point",
-	"card": {
-		"title": "Digital card",
-		"subtitle": "This is the card your customers keep on their phone. It's yours: your logo, your colours.",
-		"info": "Customers add this card to their phone's wallet. Every time you stamp a purchase the count goes up on its own — they never have to open an app.",
-		"save": "Save changes",
-		"poweredBy": "Powered by Avoqado",
-		"brand": {
-			"title": "Your brand",
-			"description": "The logo shows at the top of the card; the icon shows in the phone's card list.",
-			"logo": "Logo",
-			"icon": "Icon",
-			"noLogo": "With no logo we use your business name",
-			"noIcon": "With no icon we use a square in your colour",
-			"upload": "Upload image",
-			"logoHint": "Wide PNG, ideally 480 × 150 pixels.",
-			"iconHint": "Square PNG, ideally 512 × 512 pixels.",
-			"remove": "Remove image",
-			"replace": "Replace image"
-		},
-		"colors": {
-			"title": "Colours",
-			"description": "Start from a theme and adjust whatever you like. Changes show instantly.",
-			"background": "Card background",
-			"text": "Text",
-			"label": "Small text",
-			"strip": "Stamp band background",
-			"stamp": "Stamp colour"
-		},
-		"stamps": {
-			"title": "The stamps",
-			"description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
-			"countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen.",
-			"ownTitle": "Or upload your own stamp",
-			"ownHint": "A square PNG with a transparent background. Upload just one: the ones still missing are generated for you, fainter.",
-			"upload": "Upload stamp",
-			"replace": "Replace",
-			"remove": "Remove"
-		},
-		"preview": {
-			"title": "Preview",
-			"live": "Live",
-			"stamps": "Stamps",
-			"reward": "Reward",
-			"sampleReward": "A free product",
-			"disclaimer": "Approximation. This is how it looks on your customer's phone."
-		},
-		"toasts": {
-			"saved": "Your card was updated",
-			"error": "Couldn't save",
-			"imageUploaded": "Image updated",
-			"imageError": "Couldn't upload the image"
-		},
-		"themes": {
-			"dark": "Dark",
-			"light": "Light",
-			"carbon": "Carbon"
-		},
-		"shapes": {
-			"CIRCLE": "Circle",
-			"STAR": "Star",
-			"HEART": "Heart",
-			"SQUARE": "Square",
-			"CUP": "Cup",
-			"SCISSORS": "Scissors",
-			"DUMBBELL": "Dumbbell",
-			"FLOWER": "Flower",
-			"BAG": "Bag"
-		},
-		"loading": "Loading your card",
-		"redeem": {
-			"title_one": "Reward to claim",
-			"title_other": "Rewards to claim",
-			"action": "Apply",
-			"done": "Reward applied",
-			"applied": "{{reward}} — the bill went down {{amount}}",
-			"failed": "Couldn't apply the reward",
-			"earnedOn": "Earned on {{date}}"
-		},
-		"program": {
-			"title": "Your stamp program",
-			"description": "How many purchases fill a card, and what the customer wins.",
-			"enabled": "Stamp card active",
-			"enabledHint": "When off, customers still see their card but no stamps are earned.",
-			"required": "Stamps to fill a card",
-			"requiredHint": "Between 2 and 50. Each payment adds one stamp.",
-			"rewardLabel": "How the reward reads",
-			"rewardLabelPlaceholder": "A free coffee",
-			"rewardLabelHint": "This is the text your customer sees on the card.",
-			"rewardType": "What they win",
-			"rewardTypes": {
-				"FREE_PRODUCT": "A free product",
-				"FIXED_AMOUNT": "A fixed amount",
-				"PERCENTAGE": "A percentage"
-			},
-			"freeProductHint": "The priciest item on the check is discounted, so the customer never pays a difference.",
-			"fixedAmountHint": "How much is taken off the check.",
-			"percentageHint": "What percentage is taken off the check (1 to 100).",
-			"save": "Save program",
-			"saved": "Stamp program saved"
-		}
-	}
+  "title": "Loyalty Program",
+  "subtitle": "Configure your customer loyalty rewards system",
+  "settings": {
+    "title": "Loyalty Settings",
+    "status": {
+      "label": "Program Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "description": "Enable or disable the loyalty program for your venue"
+    },
+    "earning": {
+      "title": "Earning Rules",
+      "description": "Configure how customers earn loyalty points",
+      "pointsPerDollar": {
+        "label": "Points per $1 spent",
+        "description": "How many points the customer earns for each $1 of purchase",
+        "suffix": "points/$1"
+      },
+      "pointsPerVisit": {
+        "label": "Bonus Points per Visit",
+        "description": "Extra points awarded for each visit (0 to disable)",
+        "suffix": "points/visit"
+      }
+    },
+    "redemption": {
+      "title": "Redemption Rules",
+      "description": "Configure how customers can redeem their points",
+      "redemptionRate": {
+        "label": "Redemption Rate",
+        "description": "What each point is worth when redeemed",
+        "suffix": "per point",
+        "example": "{{points}} points = {{value}} discount"
+      },
+      "minPointsRedeem": {
+        "label": "Minimum Points to Redeem",
+        "description": "Minimum points required before customers can redeem",
+        "suffix": "points"
+      }
+    },
+    "expiration": {
+      "title": "Points Expiration",
+      "description": "Configure when unused points expire",
+      "enabled": {
+        "label": "Enable Expiration",
+        "description": "Points will expire after a set number of days"
+      },
+      "days": {
+        "label": "Days Until Expiration",
+        "description": "Number of days before unused points expire",
+        "suffix": "days",
+        "neverExpire": "Points never expire"
+      }
+    },
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "toasts": {
+      "updateSuccess": "Loyalty settings updated successfully",
+      "updateError": "Failed to update loyalty settings"
+    }
+  },
+  "dashboard": {
+    "title": "Loyalty Overview",
+    "stats": {
+      "totalPointsIssued": "Total Points Issued",
+      "totalPointsRedeemed": "Total Points Redeemed",
+      "activeMembers": "Active Members",
+      "redemptionRate": "Redemption Rate"
+    },
+    "topEarners": {
+      "title": "Top Earners",
+      "emptyState": "No customers have earned points yet"
+    }
+  },
+  "redeem": {
+    "title": "Redeem Points",
+    "availablePoints": "Available Points",
+    "pointsValue": "Worth {{value}} in discounts",
+    "fields": {
+      "points": "Points to Redeem",
+      "discount": "Discount Amount"
+    },
+    "placeholders": {
+      "points": "Enter points to redeem"
+    },
+    "validation": {
+      "pointsRequired": "Points amount is required",
+      "minPoints": "Minimum {{min}} points required",
+      "maxPoints": "Cannot exceed available balance",
+      "insufficientPoints": "Insufficient points"
+    },
+    "preview": {
+      "discount": "Discount",
+      "newBalance": "New Balance"
+    },
+    "submit": "Redeem Points",
+    "cancel": "Cancel",
+    "toasts": {
+      "success": "Successfully redeemed {{points}} points for {{discount}} discount",
+      "error": "Failed to redeem points"
+    }
+  },
+  "transactions": {
+    "title": "Transaction History",
+    "emptyState": "No transactions yet",
+    "types": {
+      "EARN": "Earned",
+      "REDEEM": "Redeemed",
+      "EXPIRE": "Expired",
+      "ADJUST": "Adjusted"
+    },
+    "reasons": {
+      "purchase": "Purchase",
+      "visit": "Visit bonus",
+      "redemption": "Discount redemption",
+      "expiration": "Points expiration",
+      "adjustment": "Manual adjustment"
+    },
+    "fromOrder": "From order #{{orderNumber}}",
+    "byStaff": "By {{staffName}}"
+  },
+  "pointsLabel": "points",
+  "pointLabel": "point",
+  "card": {
+    "title": "Digital card",
+    "subtitle": "This is the card your customers keep on their phone. It's yours: your logo, your colours.",
+    "info": "Customers add this card to their phone's wallet. Every time you stamp a purchase the count goes up on its own — they never have to open an app.",
+    "save": "Save changes",
+    "poweredBy": "Powered by Avoqado",
+    "brand": {
+      "title": "Your brand",
+      "description": "The logo shows at the top of the card; the icon shows in the phone's card list.",
+      "logo": "Logo",
+      "icon": "Icon",
+      "noLogo": "With no logo we use your business name",
+      "noIcon": "With no icon we use a square in your colour",
+      "upload": "Upload image",
+      "logoHint": "Wide PNG, ideally 480 × 150 pixels.",
+      "iconHint": "Square PNG, ideally 512 × 512 pixels.",
+      "remove": "Remove image",
+      "replace": "Replace image"
+    },
+    "colors": {
+      "title": "Colours",
+      "description": "Start from a theme and adjust whatever you like. Changes show instantly.",
+      "background": "Card background",
+      "text": "Text",
+      "label": "Small text",
+      "strip": "Stamp band background",
+      "stamp": "Stamp colour"
+    },
+    "stamps": {
+      "title": "The stamps",
+      "description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
+      "countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen.",
+      "ownTitle": "Or upload your own stamp",
+      "ownHint": "A square PNG with a transparent background. Upload just one: the ones still missing are generated for you, fainter.",
+      "upload": "Upload stamp",
+      "replace": "Replace",
+      "remove": "Remove"
+    },
+    "preview": {
+      "title": "Preview",
+      "live": "Live",
+      "stamps": "Stamps",
+      "reward": "Reward",
+      "sampleReward": "A free product",
+      "disclaimer": "Approximation. This is how it looks on your customer's phone."
+    },
+    "toasts": {
+      "saved": "Your card was updated",
+      "error": "Couldn't save",
+      "imageUploaded": "Image updated",
+      "imageError": "Couldn't upload the image"
+    },
+    "themes": {
+      "dark": "Dark",
+      "light": "Light",
+      "carbon": "Carbon"
+    },
+    "shapes": {
+      "CIRCLE": "Circle",
+      "STAR": "Star",
+      "HEART": "Heart",
+      "SQUARE": "Square",
+      "CUP": "Cup",
+      "SCISSORS": "Scissors",
+      "DUMBBELL": "Dumbbell",
+      "FLOWER": "Flower",
+      "BAG": "Bag"
+    },
+    "loading": "Loading your card",
+    "redeem": {
+      "title_one": "Reward to claim",
+      "title_other": "Rewards to claim",
+      "action": "Apply",
+      "done": "Reward applied",
+      "applied": "{{reward}} — the bill went down {{amount}}",
+      "failed": "Couldn't apply the reward",
+      "earnedOn": "Earned on {{date}}"
+    },
+    "program": {
+      "title": "Your stamp program",
+      "description": "How many purchases fill a card, and what the customer wins.",
+      "enabled": "Stamp card active",
+      "enabledHint": "When off, customers still see their card but no stamps are earned.",
+      "required": "Stamps to fill a card",
+      "requiredHint": "Between 2 and 50. Each payment adds one stamp.",
+      "rewardLabel": "How the reward reads",
+      "rewardLabelPlaceholder": "A free coffee",
+      "rewardLabelHint": "This is the text your customer sees on the card.",
+      "rewardType": "What they win",
+      "rewardTypes": {
+        "FREE_PRODUCT": "A free product",
+        "FIXED_AMOUNT": "A fixed amount",
+        "PERCENTAGE": "A percentage"
+      },
+      "freeProductHint": "The priciest item on the check is discounted, so the customer never pays a difference.",
+      "fixedAmountHint": "How much is taken off the check.",
+      "percentageHint": "What percentage is taken off the check (1 to 100).",
+      "save": "Save program",
+      "saved": "Stamp program saved"
+    },
+    "poster": {
+      "title": "Counter poster",
+      "description": "Print it and stick it by the register. Customers scan it and sign themselves up.",
+      "print": "Print poster",
+      "printBlocked": "Your browser blocked the print window. Copy the link and open it separately.",
+      "linkLabel": "Poster link",
+      "hint": "Each person identifies with their own phone, so every customer gets THEIR card.",
+      "headline": "Collect stamps at {{venue}}",
+      "subheadline": "Scan with your phone camera and save your card.",
+      "footnote": "For now the card saves to iPhone. Ask us if you have Android."
+    }
+  }
 }
