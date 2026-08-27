@@ -48,6 +48,7 @@ import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, X, Copy, FileText, Fil
 import { useToast } from '@/hooks/use-toast'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PurchaseOrderWizard } from './components/PurchaseOrderWizard'
+import { StandaloneInvoicesSection } from './components/StandaloneInvoicesSection'
 import { usePurchaseOrderTour } from '@/hooks/usePurchaseOrderTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { includesNormalized } from '@/lib/utils'
@@ -135,7 +136,7 @@ export default function PurchaseOrdersPage() {
 
     // General search filter (searches across multiple fields)
     if (debouncedSearchTerm) {
-      orders = orders.filter((po) => {
+      orders = orders.filter(po => {
         return (
           includesNormalized(po.orderNumber ?? '', debouncedSearchTerm) ||
           includesNormalized(po.supplier?.name ?? '', debouncedSearchTerm) ||
@@ -148,20 +149,18 @@ export default function PurchaseOrdersPage() {
 
     // Order number filter
     if (debouncedOrderNumber) {
-      orders = orders.filter((po) =>
-        includesNormalized(po.orderNumber ?? '', debouncedOrderNumber)
-      )
+      orders = orders.filter(po => includesNormalized(po.orderNumber ?? '', debouncedOrderNumber))
     }
 
     // Supplier filter
     if (selectedSuppliers.length > 0) {
-      orders = orders.filter((po) => selectedSuppliers.includes(po.supplier.id))
+      orders = orders.filter(po => selectedSuppliers.includes(po.supplier.id))
     }
 
     // Date filter
     if (dateFilter) {
       const now = new Date()
-      orders = orders.filter((po) => {
+      orders = orders.filter(po => {
         const orderDate = new Date(po.orderDate)
         switch (dateFilter.operator) {
           case 'last': {
@@ -214,12 +213,13 @@ export default function PurchaseOrdersPage() {
     // Delivery date filter
     if (deliveryDateFilter) {
       const now = new Date()
-      orders = orders.filter((po) => {
+      orders = orders.filter(po => {
         if (!po.expectedDeliveryDate) return false
         const deliveryDate = new Date(po.expectedDeliveryDate)
         switch (deliveryDateFilter.operator) {
           case 'last': {
-            const value = typeof deliveryDateFilter.value === 'number' ? deliveryDateFilter.value : parseInt(deliveryDateFilter.value as string) || 0
+            const value =
+              typeof deliveryDateFilter.value === 'number' ? deliveryDateFilter.value : parseInt(deliveryDateFilter.value as string) || 0
             const cutoffDate = new Date()
             switch (deliveryDateFilter.unit) {
               case 'hours':
@@ -267,7 +267,7 @@ export default function PurchaseOrdersPage() {
 
     // Total range filter
     if (totalRange) {
-      orders = orders.filter((po) => {
+      orders = orders.filter(po => {
         const total = parseFloat(po.total)
         const min = totalRange.min ? parseFloat(totalRange.min) : -Infinity
         const max = totalRange.max ? parseFloat(totalRange.max) : Infinity
@@ -277,7 +277,7 @@ export default function PurchaseOrdersPage() {
 
     // Items count range filter
     if (itemsRange) {
-      orders = orders.filter((po) => {
+      orders = orders.filter(po => {
         const itemCount = po.items.length
         const min = itemsRange.min ?? -Infinity
         const max = itemsRange.max ?? Infinity
@@ -286,7 +286,16 @@ export default function PurchaseOrdersPage() {
     }
 
     return orders
-  }, [purchaseOrders?.data, debouncedSearchTerm, debouncedOrderNumber, selectedSuppliers, dateFilter, deliveryDateFilter, totalRange, itemsRange])
+  }, [
+    purchaseOrders?.data,
+    debouncedSearchTerm,
+    debouncedOrderNumber,
+    selectedSuppliers,
+    dateFilter,
+    deliveryDateFilter,
+    totalRange,
+    itemsRange,
+  ])
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -303,59 +312,65 @@ export default function PurchaseOrdersPage() {
   })
 
   // Status filter options
-  const statusOptions = useMemo(() => [
-    { value: PurchaseOrderStatus.DRAFT, label: t('statuses.DRAFT') },
-    { value: PurchaseOrderStatus.PENDING_APPROVAL, label: t('statuses.PENDING_APPROVAL') },
-    { value: PurchaseOrderStatus.REJECTED, label: t('statuses.REJECTED') },
-    { value: PurchaseOrderStatus.APPROVED, label: t('statuses.APPROVED') },
-    { value: PurchaseOrderStatus.SENT, label: t('statuses.SENT') },
-    { value: PurchaseOrderStatus.CONFIRMED, label: t('statuses.CONFIRMED') },
-    { value: PurchaseOrderStatus.SHIPPED, label: t('statuses.SHIPPED') },
-    { value: PurchaseOrderStatus.PARTIAL, label: t('statuses.PARTIAL') },
-    { value: PurchaseOrderStatus.RECEIVED, label: t('statuses.RECEIVED') },
-    { value: PurchaseOrderStatus.CANCELLED, label: t('statuses.CANCELLED') },
-  ], [t])
-
-  // Supplier filter options
-  const supplierOptions = useMemo(() =>
-    (suppliers?.data || []).map(s => ({ value: s.id, label: s.name })),
-    [suppliers]
+  const statusOptions = useMemo(
+    () => [
+      { value: PurchaseOrderStatus.DRAFT, label: t('statuses.DRAFT') },
+      { value: PurchaseOrderStatus.PENDING_APPROVAL, label: t('statuses.PENDING_APPROVAL') },
+      { value: PurchaseOrderStatus.REJECTED, label: t('statuses.REJECTED') },
+      { value: PurchaseOrderStatus.APPROVED, label: t('statuses.APPROVED') },
+      { value: PurchaseOrderStatus.SENT, label: t('statuses.SENT') },
+      { value: PurchaseOrderStatus.CONFIRMED, label: t('statuses.CONFIRMED') },
+      { value: PurchaseOrderStatus.SHIPPED, label: t('statuses.SHIPPED') },
+      { value: PurchaseOrderStatus.PARTIAL, label: t('statuses.PARTIAL') },
+      { value: PurchaseOrderStatus.RECEIVED, label: t('statuses.RECEIVED') },
+      { value: PurchaseOrderStatus.CANCELLED, label: t('statuses.CANCELLED') },
+    ],
+    [t],
   )
 
+  // Supplier filter options
+  const supplierOptions = useMemo(() => (suppliers?.data || []).map(s => ({ value: s.id, label: s.name })), [suppliers])
+
   // Helper to get display label for date filters
-  const getDateFilterLabel = useCallback((filter: DateFilter | null) => {
-    if (!filter) return null
-    switch (filter.operator) {
-      case 'last': {
-        const unitLabels: Record<string, string> = {
-          hours: t('filters.dateUnits.hours', { defaultValue: 'horas' }),
-          days: t('filters.dateUnits.days', { defaultValue: 'días' }),
-          weeks: t('filters.dateUnits.weeks', { defaultValue: 'semanas' }),
-          months: t('filters.dateUnits.months', { defaultValue: 'meses' }),
+  const getDateFilterLabel = useCallback(
+    (filter: DateFilter | null) => {
+      if (!filter) return null
+      switch (filter.operator) {
+        case 'last': {
+          const unitLabels: Record<string, string> = {
+            hours: t('filters.dateUnits.hours', { defaultValue: 'horas' }),
+            days: t('filters.dateUnits.days', { defaultValue: 'días' }),
+            weeks: t('filters.dateUnits.weeks', { defaultValue: 'semanas' }),
+            months: t('filters.dateUnits.months', { defaultValue: 'meses' }),
+          }
+          return `${t('filters.dateLabels.last', { defaultValue: 'Últimos' })} ${filter.value} ${unitLabels[filter.unit || 'days']}`
         }
-        return `${t('filters.dateLabels.last', { defaultValue: 'Últimos' })} ${filter.value} ${unitLabels[filter.unit || 'days']}`
+        case 'before':
+          return `${t('filters.dateLabels.before', { defaultValue: 'Antes de' })} ${filter.value}`
+        case 'after':
+          return `${t('filters.dateLabels.after', { defaultValue: 'Después de' })} ${filter.value}`
+        case 'between':
+          return `${filter.value} - ${filter.value2}`
+        case 'on':
+          return `${t('filters.dateLabels.on', { defaultValue: 'En' })} ${filter.value}`
+        default:
+          return null
       }
-      case 'before':
-        return `${t('filters.dateLabels.before', { defaultValue: 'Antes de' })} ${filter.value}`
-      case 'after':
-        return `${t('filters.dateLabels.after', { defaultValue: 'Después de' })} ${filter.value}`
-      case 'between':
-        return `${filter.value} - ${filter.value2}`
-      case 'on':
-        return `${t('filters.dateLabels.on', { defaultValue: 'En' })} ${filter.value}`
-      default:
-        return null
-    }
-  }, [t])
+    },
+    [t],
+  )
 
   // Helper to get display label for multi-select filters
-  const getFilterDisplayLabel = useCallback((selectedValues: string[], options: { value: string; label: string }[]) => {
-    if (selectedValues.length === 0) return null
-    if (selectedValues.length === 1) {
-      return options.find(o => o.value === selectedValues[0])?.label || null
-    }
-    return `${selectedValues.length} ${t('filters.selected', { defaultValue: 'seleccionados' })}`
-  }, [t])
+  const getFilterDisplayLabel = useCallback(
+    (selectedValues: string[], options: { value: string; label: string }[]) => {
+      if (selectedValues.length === 0) return null
+      if (selectedValues.length === 1) {
+        return options.find(o => o.value === selectedValues[0])?.label || null
+      }
+      return `${selectedValues.length} ${t('filters.selected', { defaultValue: 'seleccionados' })}`
+    },
+    [t],
+  )
 
   // Handlers
   const handleDeleteClick = useCallback((po: PurchaseOrder) => {
@@ -373,7 +388,7 @@ export default function PurchaseOrdersPage() {
     (po: PurchaseOrder) => {
       navigate(`${fullBasePath}/inventory/purchase-orders/${po.id}`)
     },
-    [navigate, fullBasePath]
+    [navigate, fullBasePath],
   )
 
   const handleCreateClick = useCallback(() => {
@@ -409,54 +424,60 @@ export default function PurchaseOrdersPage() {
     }, 0)
   }, [])
 
-  const handleSaveAsPDF = useCallback(async (po: PurchaseOrder) => {
-    try {
-      const blob = await purchaseOrderService.generatePDF(venue!.id, po.id)
+  const handleSaveAsPDF = useCallback(
+    async (po: PurchaseOrder) => {
+      try {
+        const blob = await purchaseOrderService.generatePDF(venue!.id, po.id)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `orden-compra-${po.orderNumber}.pdf`
+        link.click()
+        URL.revokeObjectURL(url)
+        toast({ description: t('actions.pdfDownloaded', { defaultValue: 'PDF descargado' }) })
+      } catch (_error) {
+        toast({
+          description: t('actions.pdfError', { defaultValue: 'Error al generar PDF' }),
+          variant: 'destructive',
+        })
+      }
+    },
+    [t, toast, venue],
+  )
+
+  const handleSaveAsCSV = useCallback(
+    (po: PurchaseOrder) => {
+      const headers = ['Item', 'SKU', 'Quantity', 'Unit Price', 'Total']
+      const rows = po.items.map(item => [
+        // Sin protección, exportar una orden con mercancía de reventa tiraba
+        // TypeError y no se generaba ningún archivo.
+        nombreDelRenglon(item, 'N/A'),
+        objetivoDelRenglon(item)?.sku || 'N/A',
+        item.quantityOrdered,
+        item.unitPrice,
+        (Number(item.quantityOrdered) * Number(item.unitPrice)).toFixed(2),
+      ])
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(',')),
+        '',
+        `Subtotal,,,${po.subtotal}`,
+        `Tax,,,${po.taxAmount}`,
+        `Total,,,${po.total}`,
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `orden-compra-${po.orderNumber}.pdf`
+      link.download = `PO-${po.orderNumber}-${new Date().toISOString().split('T')[0]}.csv`
       link.click()
       URL.revokeObjectURL(url)
-      toast({ description: t('actions.pdfDownloaded', { defaultValue: 'PDF descargado' }) })
-    } catch (_error) {
-      toast({
-        description: t('actions.pdfError', { defaultValue: 'Error al generar PDF' }),
-        variant: 'destructive',
-      })
-    }
-  }, [t, toast, venue])
-
-  const handleSaveAsCSV = useCallback((po: PurchaseOrder) => {
-    const headers = ['Item', 'SKU', 'Quantity', 'Unit Price', 'Total']
-    const rows = po.items.map(item => [
-      // Sin protección, exportar una orden con mercancía de reventa tiraba
-      // TypeError y no se generaba ningún archivo.
-      nombreDelRenglon(item, 'N/A'),
-      objetivoDelRenglon(item)?.sku || 'N/A',
-      item.quantityOrdered,
-      item.unitPrice,
-      (Number(item.quantityOrdered) * Number(item.unitPrice)).toFixed(2),
-    ])
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(',')),
-      '',
-      `Subtotal,,,${po.subtotal}`,
-      `Tax,,,${po.taxAmount}`,
-      `Total,,,${po.total}`,
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `PO-${po.orderNumber}-${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-    toast({ description: t('actions.csvDownloaded', { defaultValue: 'CSV descargado' }) })
-  }, [t, toast])
+      toast({ description: t('actions.csvDownloaded', { defaultValue: 'CSV descargado' }) })
+    },
+    [t, toast],
+  )
 
   // Columns definition
   const columns = useMemo<ColumnDef<PurchaseOrder>[]>(
@@ -469,7 +490,9 @@ export default function PurchaseOrdersPage() {
           <div className="flex items-center font-medium">
             {row.original.orderNumber}
             {row.original.autoGenerated && (
-              <Badge variant="outline" className="ml-2 text-[10px]">{t('autoReorder.autoBadge', { ns: 'inventory' })}</Badge>
+              <Badge variant="outline" className="ml-2 text-[10px]">
+                {t('autoReorder.autoBadge', { ns: 'inventory' })}
+              </Badge>
             )}
           </div>
         ),
@@ -481,9 +504,7 @@ export default function PurchaseOrdersPage() {
         cell: ({ row }) => (
           <div>
             <div className="font-medium">{row.original.supplier.name}</div>
-            {row.original.supplier.contactName && (
-              <div className="text-sm text-muted-foreground">{row.original.supplier.contactName}</div>
-            )}
+            {row.original.supplier.contactName && <div className="text-sm text-muted-foreground">{row.original.supplier.contactName}</div>}
           </div>
         ),
       },
@@ -501,9 +522,7 @@ export default function PurchaseOrdersPage() {
         id: 'total',
         accessorKey: 'total',
         header: t('columns.total'),
-        cell: ({ row }) => (
-          <div className="font-medium">{formatPrice(row.original.total)}</div>
-        ),
+        cell: ({ row }) => <div className="font-medium">{formatPrice(row.original.total)}</div>,
       },
       {
         id: 'status',
@@ -522,11 +541,7 @@ export default function PurchaseOrdersPage() {
         id: 'orderDate',
         accessorKey: 'orderDate',
         header: t('columns.orderDate'),
-        cell: ({ row }) => (
-          <div className="text-sm">
-            {new Date(row.original.orderDate).toLocaleDateString()}
-          </div>
-        ),
+        cell: ({ row }) => <div className="text-sm">{new Date(row.original.orderDate).toLocaleDateString()}</div>,
       },
       {
         id: 'expectedDeliveryDate',
@@ -534,9 +549,7 @@ export default function PurchaseOrdersPage() {
         header: t('columns.expectedDeliveryDate'),
         cell: ({ row }) => (
           <div className="text-sm">
-            {row.original.expectedDeliveryDate
-              ? new Date(row.original.expectedDeliveryDate).toLocaleDateString()
-              : '—'}
+            {row.original.expectedDeliveryDate ? new Date(row.original.expectedDeliveryDate).toLocaleDateString() : '—'}
           </div>
         ),
       },
@@ -545,22 +558,23 @@ export default function PurchaseOrdersPage() {
         header: t('common:actions'),
         cell: ({ row }) => {
           const po = row.original
-          const canEdit = po.status === PurchaseOrderStatus.DRAFT ||
-                         po.status === PurchaseOrderStatus.CONFIRMED ||
-                         po.status === PurchaseOrderStatus.RECEIVED
+          const canEdit =
+            po.status === PurchaseOrderStatus.DRAFT ||
+            po.status === PurchaseOrderStatus.CONFIRMED ||
+            po.status === PurchaseOrderStatus.RECEIVED
           const canDelete = canEdit // Same conditions for delete
 
           return (
             <div className="flex items-center gap-2">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
                   <Button variant="ghost" size="icon">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       handleRowClick(po)
                     }}
@@ -569,7 +583,7 @@ export default function PurchaseOrdersPage() {
                     {t('actions.details', { defaultValue: 'Detalles' })}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       handleDuplicate(po)
                     }}
@@ -578,7 +592,7 @@ export default function PurchaseOrdersPage() {
                     {t('actions.duplicate')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       void handleSaveAsPDF(po)
                     }}
@@ -587,7 +601,7 @@ export default function PurchaseOrdersPage() {
                     {t('actions.saveAsPDF')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       handleSaveAsCSV(po)
                     }}
@@ -601,7 +615,7 @@ export default function PurchaseOrdersPage() {
                       <DropdownMenuSeparator />
                       {canEdit && (
                         <DropdownMenuItem
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation()
                             navigate(`${fullBasePath}/inventory/purchase-orders/${po.id}/edit`)
                           }}
@@ -612,7 +626,7 @@ export default function PurchaseOrdersPage() {
                       )}
                       {canDelete && (
                         <DropdownMenuItem
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation()
                             handleDeleteClick(po)
                           }}
@@ -631,17 +645,17 @@ export default function PurchaseOrdersPage() {
         },
       },
     ],
-    [t, isSuperAdmin, navigate, handleDeleteClick, handleRowClick, handleDuplicate, handleSaveAsPDF, handleSaveAsCSV, fullBasePath]
+    [t, isSuperAdmin, navigate, handleDeleteClick, handleRowClick, handleDuplicate, handleSaveAsPDF, handleSaveAsCSV, fullBasePath],
   )
 
   // Filter visible columns
   const visibleColumns = useMemo(() => {
-    return columns.filter((col) => !hiddenColumns.includes(col.id || ''))
+    return columns.filter(col => !hiddenColumns.includes(col.id || ''))
   }, [columns, hiddenColumns])
 
   // Available columns for customizer
   const availableColumns = useMemo(() => {
-    return columns.map((col) => ({
+    return columns.map(col => ({
       id: col.id || '',
       label: typeof col.header === 'string' ? col.header : col.id || '',
       visible: !hiddenColumns.includes(col.id || ''),
@@ -650,311 +664,295 @@ export default function PurchaseOrdersPage() {
 
   return (
     <FeatureGate feature="INVENTORY_TRACKING">
-    <div className="p-6 space-y-3">
-      {/* Discovery banner for first-time admins — dismissable */}
-      <TourDiscoveryBanner
-        storageKey="inventory-purchase-orders"
-        title={t('tourPurchaseOrder.discoveryBanner.title', {
-          defaultValue: '🎓 ¿Cómo pedir mercancía a un proveedor?',
-        })}
-        description={t('tourPurchaseOrder.discoveryBanner.description', {
-          defaultValue:
-            'Las órdenes de compra alimentan tu inventario y el costo real de cada receta. Te guiamos paso a paso.',
-        })}
-        ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
-        onStart={startPurchaseOrderTour}
-      />
+      <div className="p-6 space-y-3">
+        {/* Discovery banner for first-time admins — dismissable */}
+        <TourDiscoveryBanner
+          storageKey="inventory-purchase-orders"
+          title={t('tourPurchaseOrder.discoveryBanner.title', {
+            defaultValue: '🎓 ¿Cómo pedir mercancía a un proveedor?',
+          })}
+          description={t('tourPurchaseOrder.discoveryBanner.description', {
+            defaultValue: 'Las órdenes de compra alimentan tu inventario y el costo real de cada receta. Te guiamos paso a paso.',
+          })}
+          ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+          onStart={startPurchaseOrderTour}
+        />
 
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('subtitle')}</p>
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={startPurchaseOrderTour} className="gap-1.5">
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('tourPurchaseOrder.launchButton', { defaultValue: '¿Cómo crear una orden?' })}</span>
+            </Button>
+            <Button onClick={handleCreateClick} data-tour="po-new-btn">
+              <Plus className="mr-2 h-4 w-4" />
+              {t('create')}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={startPurchaseOrderTour} className="gap-1.5">
-            <HelpCircle className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {t('tourPurchaseOrder.launchButton', { defaultValue: '¿Cómo crear una orden?' })}
-            </span>
-          </Button>
-          <Button onClick={handleCreateClick} data-tour="po-new-btn">
-            <Plus className="mr-2 h-4 w-4" />
-            {t('create')}
-          </Button>
-        </div>
-      </div>
 
-      {/* Filters - All in one row */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Expandable Search */}
-        <div className="relative flex items-center">
-          {isSearchOpen ? (
-            <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t('search.placeholder')}
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Escape') {
-                      if (!searchTerm) setIsSearchOpen(false)
-                    }
+        {/* Filters - All in one row */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Expandable Search */}
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t('search.placeholder')}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        if (!searchTerm) setIsSearchOpen(false)
+                      }
+                    }}
+                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
+                    autoFocus
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setIsSearchOpen(false)
                   }}
-                  className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
-                  autoFocus
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
+            ) : (
               <Button
-                variant="ghost"
+                variant={searchTerm ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 rounded-full"
-                onClick={() => {
-                  setSearchTerm('')
-                  setIsSearchOpen(false)
-                }}
+                onClick={() => setIsSearchOpen(true)}
               >
-                <X className="h-4 w-4" />
+                <Search className="h-4 w-4" />
+                {searchTerm && <span className="sr-only">{t('filters.searchActive')}</span>}
               </Button>
+            )}
+            {/* Active search indicator dot */}
+            {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+          </div>
+
+          {/* Order Number Filter */}
+          <FilterPill
+            label={t('columns.orderNumber')}
+            activeValue={orderNumberFilter}
+            isActive={!!orderNumberFilter}
+            onClear={() => setOrderNumberFilter('')}
+          >
+            <div className="w-[280px] p-4">
+              <h4 className="font-medium text-sm mb-3">{t('columns.orderNumber')}</h4>
+              <Input
+                value={orderNumberFilter}
+                onChange={e => setOrderNumberFilter(e.target.value)}
+                placeholder={t('search.placeholder', { defaultValue: 'Buscar...' })}
+                autoFocus
+              />
             </div>
-          ) : (
+          </FilterPill>
+
+          {/* Supplier filter */}
+          <FilterPill
+            label={t('filters.supplier')}
+            activeValue={getFilterDisplayLabel(selectedSuppliers, supplierOptions)}
+            isActive={selectedSuppliers.length > 0}
+            onClear={() => setSelectedSuppliers([])}
+          >
+            <CheckboxFilterContent
+              title={t('filters.supplier')}
+              options={supplierOptions}
+              selectedValues={selectedSuppliers}
+              onApply={setSelectedSuppliers}
+            />
+          </FilterPill>
+
+          {/* Items Count Range Filter */}
+          <FilterPill
+            label={t('columns.items')}
+            activeValue={itemsRange ? `${itemsRange.min || '0'} - ${itemsRange.max || '∞'}` : undefined}
+            isActive={itemsRange !== null}
+            onClear={() => setItemsRange(null)}
+          >
+            <RangeFilterContent
+              title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.items').toLowerCase()}`}
+              currentRange={itemsRange ? { min: itemsRange.min?.toString() || '', max: itemsRange.max?.toString() || '' } : null}
+              onApply={range => {
+                if (!range) {
+                  setItemsRange(null)
+                } else {
+                  setItemsRange({
+                    min: range.min ? parseInt(range.min) : 0,
+                    max: range.max ? parseInt(range.max) : Infinity,
+                  })
+                }
+              }}
+              placeholder="0"
+            />
+          </FilterPill>
+
+          {/* Total Range Filter */}
+          <FilterPill
+            label={t('columns.total')}
+            activeValue={totalRange ? `$${totalRange.min || '0'} - $${totalRange.max || '∞'}` : undefined}
+            isActive={totalRange !== null}
+            onClear={() => setTotalRange(null)}
+          >
+            <RangeFilterContent
+              title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.total').toLowerCase()}`}
+              currentRange={totalRange}
+              onApply={setTotalRange}
+              prefix="$"
+              placeholder="0.00"
+            />
+          </FilterPill>
+
+          {/* Status filter */}
+          <FilterPill
+            label={t('filters.status')}
+            activeValue={getFilterDisplayLabel(selectedStatuses as string[], statusOptions)}
+            isActive={selectedStatuses.length > 0}
+            onClear={() => setSelectedStatuses([])}
+          >
+            <CheckboxFilterContent
+              title={t('filters.status')}
+              options={statusOptions}
+              selectedValues={selectedStatuses as string[]}
+              onApply={values => setSelectedStatuses(values as PurchaseOrderStatus[])}
+            />
+          </FilterPill>
+
+          {/* Date Filter Pill */}
+          <FilterPill
+            label={t('columns.orderDate')}
+            activeValue={getDateFilterLabel(dateFilter)}
+            isActive={dateFilter !== null}
+            onClear={() => setDateFilter(null)}
+          >
+            <DateFilterContent
+              title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.orderDate').toLowerCase()}`}
+              currentFilter={dateFilter}
+              onApply={setDateFilter}
+            />
+          </FilterPill>
+
+          {/* Expected Delivery Date Filter */}
+          <FilterPill
+            label={t('columns.expectedDeliveryDate')}
+            activeValue={getDateFilterLabel(deliveryDateFilter)}
+            isActive={deliveryDateFilter !== null}
+            onClear={() => setDeliveryDateFilter(null)}
+          >
+            <DateFilterContent
+              title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.expectedDeliveryDate').toLowerCase()}`}
+              currentFilter={deliveryDateFilter}
+              onApply={setDeliveryDateFilter}
+            />
+          </FilterPill>
+
+          {/* Clear all filters */}
+          {(orderNumberFilter ||
+            selectedStatuses.length > 0 ||
+            selectedSuppliers.length > 0 ||
+            searchTerm ||
+            dateFilter ||
+            deliveryDateFilter ||
+            totalRange ||
+            itemsRange) && (
             <Button
-              variant={searchTerm ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => setIsSearchOpen(true)}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOrderNumberFilter('')
+                setSelectedStatuses([])
+                setSelectedSuppliers([])
+                setSearchTerm('')
+                setIsSearchOpen(false)
+                setDateFilter(null)
+                setDeliveryDateFilter(null)
+                setTotalRange(null)
+                setItemsRange(null)
+              }}
             >
-              <Search className="h-4 w-4" />
-              {searchTerm && <span className="sr-only">{t('filters.searchActive')}</span>}
+              {t('filters.clearAll')}
             </Button>
           )}
-          {/* Active search indicator dot */}
-          {searchTerm && !isSearchOpen && (
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-          )}
+
+          <div className="flex-1" />
+
+          {/* Column customizer */}
+          <ColumnCustomizer
+            columns={availableColumns}
+            onApply={visibleColumnIds => {
+              const allColumnIds = columns.map(col => col.id || '')
+              const hidden = allColumnIds.filter(id => !visibleColumnIds.includes(id))
+              setHiddenColumns(hidden)
+            }}
+          />
         </div>
 
-        {/* Order Number Filter */}
-        <FilterPill
-          label={t('columns.orderNumber')}
-          activeValue={orderNumberFilter}
-          isActive={!!orderNumberFilter}
-          onClear={() => setOrderNumberFilter('')}
-        >
-          <div className="w-[280px] p-4">
-            <h4 className="font-medium text-sm mb-3">{t('columns.orderNumber')}</h4>
-            <Input
-              value={orderNumberFilter}
-              onChange={(e) => setOrderNumberFilter(e.target.value)}
-              placeholder={t('search.placeholder', { defaultValue: 'Buscar...' })}
-              autoFocus
-            />
-          </div>
-        </FilterPill>
+        {/* Table */}
+        <DataTable<PurchaseOrder>
+          columns={visibleColumns}
+          data={filteredPurchaseOrders}
+          rowCount={filteredPurchaseOrders.length}
+          isLoading={isLoading}
+          onRowClick={handleRowClick}
+        />
 
-        {/* Supplier filter */}
-        <FilterPill
-          label={t('filters.supplier')}
-          activeValue={getFilterDisplayLabel(selectedSuppliers, supplierOptions)}
-          isActive={selectedSuppliers.length > 0}
-          onClear={() => setSelectedSuppliers([])}
-        >
-          <CheckboxFilterContent
-            title={t('filters.supplier')}
-            options={supplierOptions}
-            selectedValues={selectedSuppliers}
-            onApply={setSelectedSuppliers}
-          />
-        </FilterPill>
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('delete.confirm.title')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('delete.confirm.description', { orderNumber: poToDelete?.orderNumber })}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground">
+                {t('delete.confirm.action')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-        {/* Items Count Range Filter */}
-        <FilterPill
-          label={t('columns.items')}
-          activeValue={
-            itemsRange
-              ? `${itemsRange.min || '0'} - ${itemsRange.max || '∞'}`
-              : undefined
-          }
-          isActive={itemsRange !== null}
-          onClear={() => setItemsRange(null)}
-        >
-          <RangeFilterContent
-            title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.items').toLowerCase()}`}
-            currentRange={
-              itemsRange
-                ? { min: itemsRange.min?.toString() || '', max: itemsRange.max?.toString() || '' }
-                : null
-            }
-            onApply={(range) => {
-              if (!range) {
-                setItemsRange(null)
-              } else {
-                setItemsRange({
-                  min: range.min ? parseInt(range.min) : 0,
-                  max: range.max ? parseInt(range.max) : Infinity,
-                })
-              }
-            }}
-            placeholder="0"
-          />
-        </FilterPill>
+        {/* Fase 2 de la factura: las que llegaron SIN orden. */}
+        <StandaloneInvoicesSection venueId={venue?.id ?? ''} />
 
-        {/* Total Range Filter */}
-        <FilterPill
-          label={t('columns.total')}
-          activeValue={
-            totalRange
-              ? `$${totalRange.min || '0'} - $${totalRange.max || '∞'}`
-              : undefined
-          }
-          isActive={totalRange !== null}
-          onClear={() => setTotalRange(null)}
-        >
-          <RangeFilterContent
-            title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.total').toLowerCase()}`}
-            currentRange={totalRange}
-            onApply={setTotalRange}
-            prefix="$"
-            placeholder="0.00"
-          />
-        </FilterPill>
-
-        {/* Status filter */}
-        <FilterPill
-          label={t('filters.status')}
-          activeValue={getFilterDisplayLabel(selectedStatuses as string[], statusOptions)}
-          isActive={selectedStatuses.length > 0}
-          onClear={() => setSelectedStatuses([])}
-        >
-          <CheckboxFilterContent
-            title={t('filters.status')}
-            options={statusOptions}
-            selectedValues={selectedStatuses as string[]}
-            onApply={(values) => setSelectedStatuses(values as PurchaseOrderStatus[])}
-          />
-        </FilterPill>
-
-        {/* Date Filter Pill */}
-        <FilterPill
-          label={t('columns.orderDate')}
-          activeValue={getDateFilterLabel(dateFilter)}
-          isActive={dateFilter !== null}
-          onClear={() => setDateFilter(null)}
-        >
-          <DateFilterContent
-            title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.orderDate').toLowerCase()}`}
-            currentFilter={dateFilter}
-            onApply={setDateFilter}
-          />
-        </FilterPill>
-
-        {/* Expected Delivery Date Filter */}
-        <FilterPill
-          label={t('columns.expectedDeliveryDate')}
-          activeValue={getDateFilterLabel(deliveryDateFilter)}
-          isActive={deliveryDateFilter !== null}
-          onClear={() => setDeliveryDateFilter(null)}
-        >
-          <DateFilterContent
-            title={`${t('filters.filterBy', { defaultValue: 'Filtrar por' })}: ${t('columns.expectedDeliveryDate').toLowerCase()}`}
-            currentFilter={deliveryDateFilter}
-            onApply={setDeliveryDateFilter}
-          />
-        </FilterPill>
-
-        {/* Clear all filters */}
-        {(orderNumberFilter ||
-          selectedStatuses.length > 0 ||
-          selectedSuppliers.length > 0 ||
-          searchTerm ||
-          dateFilter ||
-          deliveryDateFilter ||
-          totalRange ||
-          itemsRange) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setOrderNumberFilter('')
-              setSelectedStatuses([])
-              setSelectedSuppliers([])
-              setSearchTerm('')
-              setIsSearchOpen(false)
-              setDateFilter(null)
-              setDeliveryDateFilter(null)
-              setTotalRange(null)
-              setItemsRange(null)
-            }}
-          >
-            {t('filters.clearAll')}
-          </Button>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Column customizer */}
-        <ColumnCustomizer
-          columns={availableColumns}
-          onApply={(visibleColumnIds) => {
-            const allColumnIds = columns.map((col) => col.id || '')
-            const hidden = allColumnIds.filter((id) => !visibleColumnIds.includes(id))
-            setHiddenColumns(hidden)
+        {/* Purchase Order Wizard */}
+        <PurchaseOrderWizard
+          open={wizardOpen}
+          onClose={() => {
+            setWizardOpen(false)
+            setDuplicateFromOrder(null)
           }}
+          onSuccess={() => {
+            setWizardOpen(false)
+            setDuplicateFromOrder(null)
+            queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+          }}
+          duplicateFrom={duplicateFromOrder}
+          mode="create"
         />
       </div>
-
-      {/* Table */}
-      <DataTable<PurchaseOrder>
-        columns={visibleColumns}
-        data={filteredPurchaseOrders}
-        rowCount={filteredPurchaseOrders.length}
-        isLoading={isLoading}
-        onRowClick={handleRowClick}
-      />
-
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('delete.confirm.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('delete.confirm.description', { orderNumber: poToDelete?.orderNumber })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground">
-              {t('delete.confirm.action')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Purchase Order Wizard */}
-      <PurchaseOrderWizard
-        open={wizardOpen}
-        onClose={() => {
-          setWizardOpen(false)
-          setDuplicateFromOrder(null)
-        }}
-        onSuccess={() => {
-          setWizardOpen(false)
-          setDuplicateFromOrder(null)
-          queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-        }}
-        duplicateFrom={duplicateFromOrder}
-        mode="create"
-      />
-    </div>
     </FeatureGate>
   )
 }

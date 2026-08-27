@@ -281,7 +281,9 @@
       "MATCHED": "Conforme",
       "SUPPLIER_MISMATCH": "Autre fournisseur",
       "AMOUNT_MISMATCH": "Montant différent",
-      "LINES_MISMATCH": "Lignes non associées"
+      "LINES_MISMATCH": "Lignes non associées",
+      "PARTIAL": "Livraison partielle",
+      "NO_ORDER": "Sans commande"
     },
     "toasts": {
       "matchedTitle": "Facture rapprochée",
@@ -290,6 +292,29 @@
       "mismatchDesc": "Vérifiez les écarts avant de la payer.",
       "errorTitle": "Téléversement impossible",
       "errorDesc": "Vérifiez que le fichier est bien le XML du CFDI."
+    },
+    "partialProgress": "Livraison partielle : {{invoiced}} sur {{total}} de la commande facturés.",
+    "supplierUnknown": "L'émetteur n'est pas enregistré comme fournisseur ; la facture a été conservée quand même.",
+    "standalone": {
+      "title": "Factures sans commande",
+      "hint": "Le XML d'une facture arrivée seule. Les lignes déjà facturées par ce fournisseur sont reconnues ; les nouvelles, vous les confirmez une fois et le système apprend.",
+      "upload": "Téléverser une facture sans commande (XML)",
+      "empty": "Aucune facture sans commande."
+    },
+    "lines": {
+      "toggle": "{{count}} lignes",
+      "pending": "{{count}} à identifier",
+      "matched": "Rapprochée de la commande",
+      "identified": "Identifiée",
+      "unidentified": "À identifier",
+      "kind": "Type",
+      "raw": "Matière première",
+      "product": "Produit",
+      "target": "Qu'est-ce que c'est ?",
+      "targetPlaceholder": "Choisir…",
+      "confirm": "Confirmer",
+      "learnedTitle": "Ligne identifiée",
+      "learnedDesc": "La prochaine facture de ce fournisseur la reconnaîtra seule."
     }
   }
 }

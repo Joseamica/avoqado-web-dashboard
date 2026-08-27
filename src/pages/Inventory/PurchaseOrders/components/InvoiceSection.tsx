@@ -10,11 +10,9 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import {
-  purchaseOrderInvoiceService,
-  type InvoiceMatchStatus,
-  type PurchaseOrderInvoice,
-} from '@/services/purchaseOrderInvoice.service'
+import { InvoiceLines } from './InvoiceLines'
+import { useAccess } from '@/hooks/use-access'
+import { purchaseOrderInvoiceService, type InvoiceMatchStatus, type PurchaseOrderInvoice } from '@/services/purchaseOrderInvoice.service'
 
 /**
  * Facturas del proveedor sobre esta orden.
@@ -30,6 +28,9 @@ interface Props {
 
 const STATUS_TONE: Record<InvoiceMatchStatus, 'ok' | 'warn'> = {
   MATCHED: 'ok',
+  // Entrega parcial: no es un error — lo facturado aún no llega al total de la orden.
+  PARTIAL: 'ok',
+  NO_ORDER: 'ok',
   PENDING: 'warn',
   SUPPLIER_MISMATCH: 'warn',
   AMOUNT_MISMATCH: 'warn',
@@ -54,7 +55,7 @@ export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
     mutationFn: (xml: string) => purchaseOrderInvoiceService.attach(venueId, purchaseOrderId, xml),
     onSuccess: invoice => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order-invoices', venueId, purchaseOrderId] })
-      const cuadra = invoice.matchStatus === 'MATCHED'
+      const cuadra = invoice.matchStatus === 'MATCHED' || invoice.matchStatus === 'PARTIAL'
       toast({
         title: cuadra ? t('invoices.toasts.matchedTitle') : t('invoices.toasts.mismatchTitle'),
         description: cuadra ? t('invoices.toasts.matchedDesc') : t('invoices.toasts.mismatchDesc'),
@@ -104,20 +105,8 @@ export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
           </div>
 
           <PermissionGate permission="inventory:update">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xml,text/xml,application/xml"
-              className="hidden"
-              onChange={handleFile}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-              disabled={busy}
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <input ref={fileInputRef} type="file" accept=".xml,text/xml,application/xml" className="hidden" onChange={handleFile} />
+            <Button variant="outline" size="sm" className="cursor-pointer" disabled={busy} onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
               {busy ? t('invoices.uploading') : t('invoices.upload')}
             </Button>
@@ -133,7 +122,7 @@ export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
         ) : (
           <ul className="space-y-3">
             {invoices.map(invoice => (
-              <InvoiceRow key={invoice.id} invoice={invoice} formatDate={formatDate} t={t} />
+              <InvoiceRow key={invoice.id} venueId={venueId} invoice={invoice} formatDate={formatDate} t={t} />
             ))}
           </ul>
         )}
@@ -142,15 +131,18 @@ export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
   )
 }
 
-function InvoiceRow({
+export function InvoiceRow({
+  venueId,
   invoice,
   formatDate,
   t,
 }: {
+  venueId: string
   invoice: PurchaseOrderInvoice
   formatDate: (d: string) => string
   t: (key: string, opts?: Record<string, unknown>) => string
 }) {
+  const { can } = useAccess()
   const tone = STATUS_TONE[invoice.matchStatus] ?? 'warn'
   const notes = invoice.matchNotes
   const diff = notes?.totalDifferenceCents ?? 0
@@ -185,18 +177,26 @@ function InvoiceRow({
       </div>
 
       {/* Sólo se explica lo que NO cuadra: si todo está bien, la insignia ya lo dijo. */}
-      {diff !== 0 && (
-        <p className="text-xs text-destructive">
-          {t(diff > 0 ? 'invoices.diffOver' : 'invoices.diffUnder', { amount: Currency(Math.abs(diff) / 100) })}
+      {invoice.matchStatus === 'PARTIAL' && notes?.accumulatedInvoicedCents != null ? (
+        <p className="text-xs text-muted-foreground">
+          {t('invoices.partialProgress', {
+            invoiced: Currency(notes.accumulatedInvoicedCents / 100),
+            total: Currency((notes.orderTotalCents ?? 0) / 100),
+          })}
         </p>
+      ) : (
+        diff !== 0 &&
+        invoice.matchStatus !== 'NO_ORDER' && (
+          <p className="text-xs text-destructive">
+            {t(diff > 0 ? 'invoices.diffOver' : 'invoices.diffUnder', { amount: Currency(Math.abs(diff) / 100) })}
+          </p>
+        )
       )}
       {!!notes?.unmatchedConceptos && (
         <p className="text-xs text-muted-foreground">{t('invoices.unmatchedLines', { count: notes.unmatchedConceptos })}</p>
       )}
       {!!notes?.unmatchedOrderItemIds?.length && (
-        <p className="text-xs text-muted-foreground">
-          {t('invoices.uninvoicedItems', { count: notes.unmatchedOrderItemIds.length })}
-        </p>
+        <p className="text-xs text-muted-foreground">{t('invoices.uninvoicedItems', { count: notes.unmatchedOrderItemIds.length })}</p>
       )}
       {notes?.supplierUnverified && (
         <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
@@ -204,6 +204,10 @@ function InvoiceRow({
           {t('invoices.supplierUnverified')}
         </p>
       )}
+      {notes?.supplierUnknown && <p className="text-xs text-muted-foreground">{t('invoices.supplierUnknown')}</p>}
+
+      {/* Fase 2: los renglones, con identificación humana de lo que los códigos no reconocen. */}
+      <InvoiceLines venueId={venueId} invoice={invoice} editable={can('inventory:update')} />
     </li>
   )
 }

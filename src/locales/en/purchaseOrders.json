@@ -355,7 +355,9 @@
       "MATCHED": "Matches",
       "SUPPLIER_MISMATCH": "Different supplier",
       "AMOUNT_MISMATCH": "Amount differs",
-      "LINES_MISMATCH": "Unmatched lines"
+      "LINES_MISMATCH": "Unmatched lines",
+      "PARTIAL": "Partial delivery",
+      "NO_ORDER": "No order"
     },
     "toasts": {
       "matchedTitle": "Invoice reconciled",
@@ -364,6 +366,29 @@
       "mismatchDesc": "Review what does not match before paying it.",
       "errorTitle": "Could not upload",
       "errorDesc": "Check that the file is the CFDI XML."
+    },
+    "partialProgress": "Partial delivery: {{invoiced}} of {{total}} of the order invoiced.",
+    "supplierUnknown": "The issuer is not registered as a supplier; the invoice was stored anyway.",
+    "standalone": {
+      "title": "Invoices without an order",
+      "hint": "The XML of an invoice that arrived on its own. Lines this supplier has billed before are recognized; new ones you confirm once and the system learns.",
+      "upload": "Upload standalone invoice (XML)",
+      "empty": "No standalone invoices."
+    },
+    "lines": {
+      "toggle": "{{count}} lines",
+      "pending": "{{count}} to identify",
+      "matched": "Matched to the order",
+      "identified": "Identified",
+      "unidentified": "To identify",
+      "kind": "Type",
+      "raw": "Raw material",
+      "product": "Product",
+      "target": "What is it?",
+      "targetPlaceholder": "Pick…",
+      "confirm": "Confirm",
+      "learnedTitle": "Line identified",
+      "learnedDesc": "The next invoice from this supplier will recognize it on its own."
     }
   }
 }

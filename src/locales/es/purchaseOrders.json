@@ -355,7 +355,9 @@
       "MATCHED": "Cuadra",
       "SUPPLIER_MISMATCH": "Otro proveedor",
       "AMOUNT_MISMATCH": "Importe distinto",
-      "LINES_MISMATCH": "Renglones sin casar"
+      "LINES_MISMATCH": "Renglones sin casar",
+      "PARTIAL": "Entrega parcial",
+      "NO_ORDER": "Sin orden"
     },
     "toasts": {
       "matchedTitle": "Factura conciliada",
@@ -364,6 +366,29 @@
       "mismatchDesc": "Revisa lo que no cuadra antes de pagarla.",
       "errorTitle": "No se pudo subir",
       "errorDesc": "Revisa que el archivo sea el XML del CFDI."
+    },
+    "partialProgress": "Entrega parcial: facturado {{invoiced}} de {{total}} de la orden.",
+    "supplierUnknown": "El emisor no está dado de alta como proveedor; la factura se guardó igual.",
+    "standalone": {
+      "title": "Facturas sin orden",
+      "hint": "El XML de una factura que llegó sola. Se identifica lo que el proveedor ya te ha facturado antes; lo nuevo lo confirmas una vez y se aprende.",
+      "upload": "Subir factura sin orden (XML)",
+      "empty": "No hay facturas sin orden."
+    },
+    "lines": {
+      "toggle": "{{count}} renglones",
+      "pending": "{{count}} por identificar",
+      "matched": "Casado con la orden",
+      "identified": "Identificado",
+      "unidentified": "Por identificar",
+      "kind": "Tipo",
+      "raw": "Insumo",
+      "product": "Producto",
+      "target": "¿Qué es?",
+      "targetPlaceholder": "Elige…",
+      "confirm": "Confirmar",
+      "learnedTitle": "Renglón identificado",
+      "learnedDesc": "La próxima factura de este proveedor lo reconocerá sola."
     }
   }
 }
