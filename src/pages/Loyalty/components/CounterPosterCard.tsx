@@ -92,6 +92,7 @@ export function CounterPosterCard({ venueSlug, venueName, stampsEnabled, onGoToS
           ref={qrRef}
           className="shrink-0 self-center sm:self-start rounded-xl p-3"
           style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}
+          data-url={url ?? undefined}
         >
           <QRCodeSVG value={url} size={104} level="M" bgColor="#ffffff" fgColor="#000000" data-testid="counter-poster-qr" />
         </div>

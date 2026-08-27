@@ -171,5 +171,36 @@
     "shiftOpened": "Turno Abierto",
     "shiftClosed": "Turno Cerrado",
     "shiftClosedDescription": "Total de ventas: {{totalSales}}"
+  },
+  "drawer": {
+    "title": "Caja física",
+    "subtitle": "El cajón que abren y cierran tu POS y tu terminal: fondo, ventas en efectivo, entradas, salidas y el conteo al cerrar. Los turnos de arriba son las ventas por jornada; esto es el dinero físico.",
+    "now": "La caja de ahora",
+    "history": "Historial de cajas",
+    "loading": "Cargando…",
+    "error": "No se pudo cargar la caja.",
+    "retry": "Reintentar",
+    "noneOpen": "No hay ninguna caja abierta ahora.",
+    "empty": "Todavía no hay cajas registradas. Aparecen aquí en cuanto tu POS abra la primera.",
+    "openedBy": "Abierta por",
+    "device": "Aparato",
+    "starting": "Fondo inicial",
+    "cashSales": "Ventas en efectivo",
+    "payIns": "Entradas",
+    "payOuts": "Salidas",
+    "expected": "Esperado",
+    "stillOpen": "Sigue abierta",
+    "notCounted": "Sin conteo",
+    "balanced": "Cuadró",
+    "short": "Faltante",
+    "over": "Sobrante",
+    "page": "Página {{page}} de {{total}}",
+    "col": {
+      "opened": "Abierta",
+      "closed": "Cerrada",
+      "by": "Por",
+      "counted": "Contado",
+      "result": "Resultado"
+    }
   }
 }

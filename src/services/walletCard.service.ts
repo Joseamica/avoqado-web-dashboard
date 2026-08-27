@@ -144,15 +144,33 @@ export function buildWalletPassUrl(venueSlug: string, customerId: string, baseUr
 }
 
 /**
- * La liga del cartel del mostrador: el portal publico del negocio, abierto directo en
- * la cuenta del cliente (`#cuenta`).
+ * La liga del cartel del mostrador: la pagina publica de la tarjeta del negocio.
+ * Devuelve null cuando no se puede armar una liga en la que se pueda confiar.
+ *
+ * 🔴 Apunta a `/tarjeta`, NO al widget de reservas. Ese pide el catalogo de citas, que
+ * responde 400 cuando el negocio apago las reservaciones publicas — y son 69 de 73 los
+ * negocios activos que ni siquiera las tienen configuradas. Testarudo, un café, veia
+ * "Las reservaciones en linea estan deshabilitadas" al escanear su propio cartel.
  *
  * 🔴 Apunta al PORTAL, nunca a la ruta del `.pkpass`. La diferencia es de seguridad,
  * no de comodidad: la ruta del pase lleva el id del cliente dentro, asi que un QR
  * impreso con ella entregaria SIEMPRE la misma tarjeta — la de quien lo imprimio.
  * Mandando al portal, cada quien se identifica con su telefono y recibe LA SUYA.
+ *
+ * 🔴 Y en DESARROLLO sin `VITE_BOOKING_URL` devuelve null en vez de caer al sitio de
+ * produccion. Se descubrio escaneando: el cartel se generaba en el dashboard local
+ * apuntando a `book.avoqado.io`, donde el negocio de pruebas no existe. Lo grave no
+ * es el susto — es que un cartel impreso desde un entorno de pruebas mandaria
+ * clientes REALES a una pagina equivocada, y en papel eso no se puede corregir.
  */
-export function buildPosterUrl(venueSlug: string): string {
-  const host = (import.meta.env.VITE_BOOKING_URL as string | undefined) || 'https://book.avoqado.io'
-  return `${host.replace(/\/+$/, '')}/${encodeURIComponent(venueSlug)}#cuenta`
+export function buildPosterUrl(
+  venueSlug: string,
+  opts?: { bookingUrl?: string; isDev?: boolean },
+): string | null {
+  const bookingUrl =
+    opts && 'bookingUrl' in opts ? opts.bookingUrl : (import.meta.env.VITE_BOOKING_URL as string | undefined)
+  const isDev = opts && 'isDev' in opts ? !!opts.isDev : !!import.meta.env.DEV
+  if (!bookingUrl && isDev) return null
+  const host = (bookingUrl || 'https://book.avoqado.io').replace(/\/+$/, '')
+  return `${host}/${encodeURIComponent(venueSlug)}/tarjeta`
 }

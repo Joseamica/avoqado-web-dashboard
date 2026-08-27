@@ -171,5 +171,36 @@
     "shiftOpened": "Shift Ouvert",
     "shiftClosed": "Shift Ferme",
     "shiftClosedDescription": "Ventes totales: {{totalSales}}"
+  },
+  "drawer": {
+    "title": "Caisse physique",
+    "subtitle": "Le tiroir que votre POS et votre terminal ouvrent et ferment : fonds de caisse, ventes en espèces, entrées, sorties et comptage à la clôture. Les services ci-dessus sont les ventes par service ; ici, c’est l’argent physique.",
+    "now": "La caisse maintenant",
+    "history": "Historique des caisses",
+    "loading": "Chargement…",
+    "error": "Impossible de charger la caisse.",
+    "retry": "Réessayer",
+    "noneOpen": "Aucune caisse n’est ouverte pour le moment.",
+    "empty": "Aucune caisse enregistrée. Elles apparaîtront ici dès que votre POS ouvrira la première.",
+    "openedBy": "Ouverte par",
+    "device": "Appareil",
+    "starting": "Fonds de caisse",
+    "cashSales": "Ventes en espèces",
+    "payIns": "Entrées",
+    "payOuts": "Sorties",
+    "expected": "Attendu",
+    "stillOpen": "Toujours ouverte",
+    "notCounted": "Non comptée",
+    "balanced": "Équilibrée",
+    "short": "Manque",
+    "over": "Excédent",
+    "page": "Page {{page}} sur {{total}}",
+    "col": {
+      "opened": "Ouverte",
+      "closed": "Fermée",
+      "by": "Par",
+      "counted": "Comptée",
+      "result": "Résultat"
+    }
   }
 }

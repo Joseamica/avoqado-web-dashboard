@@ -521,7 +521,20 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                             )
                           })
                         : ingredients.map(line => {
-                            const lineCost = Number(line.costPerServing) * portionYield
+                            // `costPerServing` es un campo DERIVADO: llega null si a la receta
+                            // nunca se le recalculo el costo (pasa en los venues del demo), y
+                            // entonces cada ingrediente se pintaba en $0.00 aunque el costo total
+                            // de la receta fuera correcto — el dueno concluia que sus insumos no
+                            // cuestan nada. Cuando falta, se calcula igual que en modo `create`,
+                            // con datos que ya estan en pantalla.
+                            const servingCost = Number(line.costPerServing)
+                            // misma conversion de unidad que ya usa el renglon al pintarse
+                            const factorUnidad =
+                              line.unit !== line.rawMaterial?.unit && (line.unit === 'KILOGRAM' || line.unit === 'LITER') ? 1000 : 1
+                            const lineCost =
+                              Number.isFinite(servingCost) && servingCost > 0
+                                ? servingCost * portionYield
+                                : Number(line.rawMaterial?.costPerUnit ?? 0) * Number(line.quantity) * factorUnidad
                             const isEditing = editingLineId === line.id
                             return (
                               <div
@@ -690,7 +703,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                 </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                    {t('cancel')}
+                    {tCommon('cancel', { defaultValue: 'Cancelar' })}
                   </Button>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -723,7 +736,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
         title={t('recipes.delete')}
         description={`${tCommon('confirm')}? ${t('recipes.delete')} "${product.name}"`}
         confirmText={tCommon('delete')}
-        cancelText={t('cancel')}
+        cancelText={tCommon('cancel', { defaultValue: 'Cancelar' })}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />

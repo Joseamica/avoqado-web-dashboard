@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/services/walletCard.service', () => ({
-  buildPosterUrl: (slug: string) => `https://book.avoqado.io/${slug}#cuenta`,
+  buildPosterUrl: (slug: string) => `https://book.avoqado.io/${slug}/tarjeta`,
 }))
 
 const irAlSwitch = vi.fn()

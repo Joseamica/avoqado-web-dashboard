@@ -36,6 +36,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { ShiftReference } from '@/types/chat-references'
 import { includesNormalized } from '@/lib/utils'
+import { CashDrawerSection } from './components/CashDrawerSection'
 
 export default function Shifts() {
   const { t, i18n } = useTranslation('shifts')
@@ -588,6 +589,7 @@ export default function Shifts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+          <CashDrawerSection />
     </div>
   )
 }

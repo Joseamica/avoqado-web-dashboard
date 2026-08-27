@@ -171,5 +171,36 @@
     "shiftOpened": "Shift Opened",
     "shiftClosed": "Shift Closed",
     "shiftClosedDescription": "Total sales: {{totalSales}}"
+  },
+  "drawer": {
+    "title": "Physical cash drawer",
+    "subtitle": "The drawer your POS and terminal open and close: starting cash, cash sales, pay-ins, pay-outs and the count at close. The shifts above are sales per shift; this is the physical money.",
+    "now": "Drawer right now",
+    "history": "Drawer history",
+    "loading": "Loading…",
+    "error": "Could not load the drawer.",
+    "retry": "Retry",
+    "noneOpen": "No drawer is open right now.",
+    "empty": "No drawer sessions yet. They show up here as soon as your POS opens the first one.",
+    "openedBy": "Opened by",
+    "device": "Device",
+    "starting": "Starting cash",
+    "cashSales": "Cash sales",
+    "payIns": "Pay-ins",
+    "payOuts": "Pay-outs",
+    "expected": "Expected",
+    "stillOpen": "Still open",
+    "notCounted": "Not counted",
+    "balanced": "Balanced",
+    "short": "Short",
+    "over": "Over",
+    "page": "Page {{page}} of {{total}}",
+    "col": {
+      "opened": "Opened",
+      "closed": "Closed",
+      "by": "By",
+      "counted": "Counted",
+      "result": "Result"
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { AnnouncementModal } from '@/components/announcements/AnnouncementModal'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bell } from 'lucide-react'
@@ -22,9 +23,24 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { fullBasePath, venueSlug } = useCurrentVenue()
 
   const [isOpen, setIsOpen] = useState(false)
+  const [anuncioAbierto, setAnuncioAbierto] = useState<string | null>(null)
 
-  const handleNotificationClick = async (notificationId: string, actionUrl?: string) => {
+  const handleNotificationClick = async (
+    notificationId: string,
+    actionUrl?: string,
+    entityType?: string,
+    entityId?: string,
+  ) => {
     await markAsRead(notificationId)
+
+    // Un anuncio de plataforma NO navega: abre su detalle aquí mismo. No existe una ruta
+    // `/announcements/<id>` en este dashboard — esa vive en el superadmin, y navegar allá
+    // daba 404. Además `.claude/rules/ui-patterns.md` pide modal para vistas de detalle.
+    if (entityType === 'PlatformAnnouncement' && entityId) {
+      setAnuncioAbierto(entityId)
+      setIsOpen(false)
+      return
+    }
 
     if (actionUrl) {
       // Handle absolute URLs (http/https or paths starting with /) and relative URLs differently
@@ -44,6 +60,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   }
 
   return (
+    <>
     <DropdownMenu open={isOpen} onOpenChange={(open) => {
       setIsOpen(open)
       // Mark all as read when opening the dropdown
@@ -100,7 +117,14 @@ export function NotificationBell({ className }: NotificationBellProps) {
               <div 
                 key={notification.id} 
                 className={`p-3 hover:bg-accent cursor-pointer ${index < notifications.length - 1 ? 'border-b border-border' : ''}`}
-                onClick={() => handleNotificationClick(notification.id, notification.actionUrl)}
+                onClick={() =>
+                  handleNotificationClick(
+                    notification.id,
+                    notification.actionUrl,
+                    notification.entityType,
+                    notification.entityId,
+                  )
+                }
               >
                 <div className="flex items-start space-x-3">
                   <div
@@ -145,7 +169,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <AnnouncementModal
+      announcementId={anuncioAbierto}
+      open={Boolean(anuncioAbierto)}
+      onClose={() => setAnuncioAbierto(null)}
+    />
+    </>
   )
 }
-
-export default NotificationBell
