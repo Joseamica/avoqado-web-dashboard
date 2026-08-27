@@ -252,16 +252,37 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <Label className="text-[11px]">{t('workSchedule.exceptions.note')}</Label>
-                            <Input
-                              className="h-9"
-                              placeholder={t('workSchedule.exceptions.notePlaceholder')}
-                              value={ex.note ?? ''}
-                              disabled={!editable}
-                              onChange={e => updateException(i, { note: e.target.value })}
-                            />
-                          </>
+                          <div className="flex items-end gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[11px]">{t('workSchedule.exceptions.typeLabel')}</Label>
+                              <Select
+                                value={ex.type ?? 'REST'}
+                                disabled={!editable}
+                                onValueChange={v => updateException(i, { type: v === 'REST' ? null : v })}
+                              >
+                                <SelectTrigger className="h-9 w-40">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {['REST', 'VACATION', 'PAID_LEAVE', 'UNPAID_LEAVE', 'SICK_LEAVE', 'JUSTIFIED_ABSENCE'].map(k => (
+                                    <SelectItem key={k} value={k}>
+                                      {t(`workSchedule.absenceTypes.${k}`)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <Label className="text-[11px]">{t('workSchedule.exceptions.note')}</Label>
+                              <Input
+                                className="h-9"
+                                placeholder={t('workSchedule.exceptions.notePlaceholder')}
+                                value={ex.note ?? ''}
+                                disabled={!editable}
+                                onChange={e => updateException(i, { note: e.target.value })}
+                              />
+                            </div>
+                          </div>
                         )}
                       </div>
                       <Button

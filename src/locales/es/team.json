@@ -280,7 +280,8 @@
       "end": "Sale",
       "note": "Nota",
       "notePlaceholder": "Ej. vacaciones",
-      "remove": "Quitar excepción"
+      "remove": "Quitar excepción",
+      "typeLabel": "Tipo de ausencia"
     },
     "toasts": {
       "savedTitle": "Horario guardado",
@@ -292,6 +293,14 @@
     "loadErrorDesc": "Para no pisar el horario real con uno vacío, la edición queda bloqueada hasta que cargue.",
     "retry": "Reintentar",
     "readOnly": "Sólo lectura: necesitas permiso para administrar asistencia.",
-    "overnightHint": "Un turno puede cruzar la medianoche (ej. 22:00–06:00) como último rango del día: cuenta para el día en que EMPIEZA."
+    "overnightHint": "Un turno puede cruzar la medianoche (ej. 22:00–06:00) como último rango del día: cuenta para el día en que EMPIEZA.",
+    "absenceTypes": {
+      "REST": "Descanso",
+      "VACATION": "Vacaciones",
+      "PAID_LEAVE": "Permiso con goce",
+      "UNPAID_LEAVE": "Permiso sin goce",
+      "SICK_LEAVE": "Incapacidad",
+      "JUSTIFIED_ABSENCE": "Falta justificada"
+    }
   }
 }

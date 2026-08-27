@@ -11,6 +11,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { attendanceService, type TimeEntry } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { rangeToDates, type RangeKey } from './attendanceRange'
+import { PayrollReport } from './PayrollReport'
 import { LoadError, PunctualityReport } from './PunctualityReport'
 
 /**
@@ -29,7 +30,7 @@ export default function Attendance() {
 
   const [range, setRange] = useState<RangeKey>('today')
   // 'log' = quién checó y cuándo · 'punctuality' = contra el cuadrante (retardos, faltas)
-  const [view, setView] = useState<'log' | 'punctuality'>('log')
+  const [view, setView] = useState<'log' | 'punctuality' | 'payroll'>('log')
 
   // "Hoy" en la zona del negocio, no en la del navegador de quien mira.
   const todayIso = useMemo(() => new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date()), [venueTimezone])
@@ -141,13 +142,16 @@ export default function Attendance() {
 
       {/* ── Historial ─────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={view} onValueChange={v => setView(v as 'log' | 'punctuality')}>
+        <Tabs value={view} onValueChange={v => setView(v as 'log' | 'punctuality' | 'payroll')}>
           <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
             <TabsTrigger value="log" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
               {t('views.log')}
             </TabsTrigger>
             <TabsTrigger value="punctuality" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
               {t('views.punctuality')}
+            </TabsTrigger>
+            <TabsTrigger value="payroll" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+              {t('views.payroll')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -175,7 +179,9 @@ export default function Attendance() {
         </div>
       </div>
 
-      {view === 'punctuality' ? (
+      {view === 'payroll' ? (
+        <PayrollReport venueId={venueId!} startDate={startDate} endDate={endDate} />
+      ) : view === 'punctuality' ? (
         <PunctualityReport venueId={venueId!} startDate={startDate} endDate={endDate} />
       ) : loadingEntries ? (
         <p className="text-sm text-muted-foreground">{t('loading')}</p>

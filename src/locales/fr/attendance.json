@@ -55,7 +55,8 @@
   "truncated": "{{shown}} sur {{total}} affichés",
   "views": {
     "log": "Pointages",
-    "punctuality": "Ponctualité"
+    "punctuality": "Ponctualité",
+    "payroll": "Paie"
   },
   "report": {
     "grace": "Tolérance : {{minutes}} min",
@@ -90,5 +91,31 @@
     "title": "Chargement impossible",
     "description": "Un problème est survenu lors de la récupération de ces données. Cela ne signifie pas qu'il n'y a rien.",
     "retry": "Réessayer"
+  },
+  "payroll": {
+    "title": "Paie",
+    "subtitle": "Les chiffres de la période, prêts pour la paie. Vacances et congés ne sont pas des absences.",
+    "cols": {
+      "person": "Personne",
+      "scheduled": "Exigibles",
+      "worked": "Travaillés",
+      "late": "Retards",
+      "absent": "Absences",
+      "absences": "Congés",
+      "hours": "Heures",
+      "breaks": "Pauses (min)"
+    },
+    "lateCell": "{{days}} · {{minutes}} min",
+    "empty": "Aucune activité du personnel sur la période.",
+    "csv": "Exporter CSV",
+    "pending": "{{count}} à clore"
+  },
+  "absenceTypes": {
+    "REST": "Repos",
+    "VACATION": "Vacances",
+    "PAID_LEAVE": "Congé payé",
+    "UNPAID_LEAVE": "Congé sans solde",
+    "SICK_LEAVE": "Arrêt maladie",
+    "JUSTIFIED_ABSENCE": "Absence justifiée"
   }
 }

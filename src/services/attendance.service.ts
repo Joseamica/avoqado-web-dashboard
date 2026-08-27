@@ -93,6 +93,8 @@ export interface WorkScheduleException {
   startTime?: string | null
   endTime?: string | null
   note?: string | null
+  /** Fase 3: por qué no viene (sólo OFF). null = descanso simple. */
+  type?: string | null
 }
 
 export interface WorkSchedule {
@@ -115,6 +117,29 @@ function buildQuery(filters: TimeEntryFilters): string {
   return qs ? `?${qs}` : ''
 }
 
+export interface PayrollSummaryRow {
+  staffId: string
+  staffVenueId: string
+  name: string
+  scheduledDays: number
+  workedDays: number
+  onTimeDays: number
+  lateDays: number
+  lateMinutesTotal: number
+  absentDays: number
+  pendingDays: number
+  absences: Record<string, number>
+  hoursWorked: number
+  breakMinutes: number
+}
+
+export interface PayrollSummaryResponse {
+  rows: PayrollSummaryRow[]
+  timezone: string
+  startDate: string
+  endDate: string
+}
+
 export const attendanceService = {
   async getTimeEntries(venueId: string, filters: TimeEntryFilters = {}): Promise<{ entries: TimeEntry[]; total: number }> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/time-entries${buildQuery(filters)}`)
@@ -131,6 +156,11 @@ export const attendanceService = {
   },
 
   /** Reporte de puntualidad: cuadrante contra checadas, en la zona del negocio. */
+  async getPayrollSummary(venueId: string, startDate: string, endDate: string): Promise<PayrollSummaryResponse> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/attendance/payroll-summary`, { params: { startDate, endDate } })
+    return response.data
+  },
+
   async getReport(venueId: string, startDate: string, endDate: string): Promise<AttendanceReport> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/attendance/report?startDate=${startDate}&endDate=${endDate}`)
     return response.data

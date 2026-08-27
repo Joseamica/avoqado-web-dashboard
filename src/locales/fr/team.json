@@ -247,7 +247,8 @@
       "end": "Départ",
       "note": "Note",
       "notePlaceholder": "ex. vacances",
-      "remove": "Retirer l'exception"
+      "remove": "Retirer l'exception",
+      "typeLabel": "Type d'absence"
     },
     "toasts": {
       "savedTitle": "Horaire enregistré",
@@ -259,6 +260,14 @@
     "loadErrorDesc": "L'édition reste bloquée jusqu'au chargement, pour ne pas écraser le vrai horaire par un horaire vide.",
     "retry": "Réessayer",
     "readOnly": "Lecture seule : vous devez avoir la permission de gérer les présences.",
-    "overnightHint": "Un horaire peut passer minuit (ex. 22:00–06:00) comme dernière plage du jour : il compte pour le jour où il COMMENCE."
+    "overnightHint": "Un horaire peut passer minuit (ex. 22:00–06:00) comme dernière plage du jour : il compte pour le jour où il COMMENCE.",
+    "absenceTypes": {
+      "REST": "Repos",
+      "VACATION": "Vacances",
+      "PAID_LEAVE": "Congé payé",
+      "UNPAID_LEAVE": "Congé sans solde",
+      "SICK_LEAVE": "Arrêt maladie",
+      "JUSTIFIED_ABSENCE": "Absence justifiée"
+    }
   }
 }

@@ -55,7 +55,8 @@
   "truncated": "Showing {{shown}} of {{total}}",
   "views": {
     "log": "Clock-ins",
-    "punctuality": "Punctuality"
+    "punctuality": "Punctuality",
+    "payroll": "Payroll"
   },
   "report": {
     "grace": "Grace: {{minutes}} min",
@@ -90,5 +91,31 @@
     "title": "Could not load",
     "description": "Something went wrong fetching this data. It does not mean there is nothing to show.",
     "retry": "Retry"
+  },
+  "payroll": {
+    "title": "Payroll",
+    "subtitle": "Period numbers, payroll-ready. Vacation and leave are not absences.",
+    "cols": {
+      "person": "Person",
+      "scheduled": "Scheduled",
+      "worked": "Worked",
+      "late": "Late",
+      "absent": "Absent",
+      "absences": "Leaves",
+      "hours": "Hours",
+      "breaks": "Breaks (min)"
+    },
+    "lateCell": "{{days}} · {{minutes}} min",
+    "empty": "No staff activity in this period.",
+    "csv": "Export CSV",
+    "pending": "{{count}} still open"
+  },
+  "absenceTypes": {
+    "REST": "Rest day",
+    "VACATION": "Vacation",
+    "PAID_LEAVE": "Paid leave",
+    "UNPAID_LEAVE": "Unpaid leave",
+    "SICK_LEAVE": "Sick leave",
+    "JUSTIFIED_ABSENCE": "Justified absence"
   }
 }

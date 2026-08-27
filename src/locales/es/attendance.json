@@ -55,7 +55,8 @@
   "truncated": "Mostrando {{shown}} de {{total}}",
   "views": {
     "log": "Checadas",
-    "punctuality": "Puntualidad"
+    "punctuality": "Puntualidad",
+    "payroll": "Nómina"
   },
   "report": {
     "grace": "Tolerancia: {{minutes}} min",
@@ -90,5 +91,31 @@
     "title": "No se pudo cargar",
     "description": "Hubo un problema al traer esta información. No es que no haya nada.",
     "retry": "Reintentar"
+  },
+  "payroll": {
+    "title": "Nómina",
+    "subtitle": "Los números del periodo, listos para tu nómina. La vacación y el permiso no son falta.",
+    "cols": {
+      "person": "Persona",
+      "scheduled": "Exigibles",
+      "worked": "Trabajados",
+      "late": "Retardos",
+      "absent": "Faltas",
+      "absences": "Ausencias",
+      "hours": "Horas",
+      "breaks": "Descanso (min)"
+    },
+    "lateCell": "{{days}} · {{minutes}} min",
+    "empty": "Sin personal con actividad en el periodo.",
+    "csv": "Exportar CSV",
+    "pending": "{{count}} por cerrar"
+  },
+  "absenceTypes": {
+    "REST": "Descanso",
+    "VACATION": "Vacaciones",
+    "PAID_LEAVE": "Permiso con goce",
+    "UNPAID_LEAVE": "Permiso sin goce",
+    "SICK_LEAVE": "Incapacidad",
+    "JUSTIFIED_ABSENCE": "Falta justificada"
   }
 }
