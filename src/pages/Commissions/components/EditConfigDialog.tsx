@@ -54,6 +54,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       categoryIds: cfg.categoryIds ?? [],
       useGoalAsTier: cfg.useGoalAsTier ?? false,
       goalBonusRate: cfg.goalBonusRate ?? 0.06,
+      attendanceLinked: cfg.attendanceLinked ?? false,
+      attendanceLatePenaltyRate: cfg.attendanceLatePenaltyRate ?? 0.25,
       tiersEnabled: isTiered && !cfg.useGoalAsTier,
       tierPeriod: (cfg.tiers?.[0]?.tierPeriod as TierPeriod) || 'MONTHLY',
       tiers: cfg.tiers?.map(tier => ({
@@ -96,6 +98,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const [rateInput, setRateInput] = useState(() => (data.defaultRate * 100).toFixed(2))
   const [fixedAmountInput, setFixedAmountInput] = useState(() => String(data.fixedAmount))
   const [goalBonusRateInput, setGoalBonusRateInput] = useState(() => (data.goalBonusRate * 100).toFixed(2))
+  const [attendancePenaltyInput, setAttendancePenaltyInput] = useState(() => (data.attendanceLatePenaltyRate * 100).toFixed(0))
 
   // Check if rate editing is locked due to existing calculations
   const calculationsCount = config._count?.calculations || 0
@@ -109,6 +112,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       setRateInput((wizardData.defaultRate * 100).toFixed(2))
       setFixedAmountInput(String(wizardData.fixedAmount))
       setGoalBonusRateInput((wizardData.goalBonusRate * 100).toFixed(2))
+      setAttendancePenaltyInput((wizardData.attendanceLatePenaltyRate * 100).toFixed(0))
       setAdvancedOpen(wizardData.tiersEnabled || wizardData.roleRatesEnabled || wizardData.limitsEnabled || wizardData.overridesEnabled)
     }
   }, [open, config])
@@ -234,6 +238,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           categoryIds: data.filterByCategories ? data.categoryIds : [],
           useGoalAsTier: data.useGoalAsTier,
           goalBonusRate: data.useGoalAsTier ? data.goalBonusRate : null,
+          attendanceLinked: data.attendanceLinked,
+          attendanceLatePenaltyRate: data.attendanceLinked ? data.attendanceLatePenaltyRate : null,
           roleRates,
           effectiveFrom: toISODateTime(data.effectiveFrom),
           effectiveTo: toISODateTime(data.effectiveTo),
@@ -311,9 +317,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               disabled={isRateLocked}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors',
-                data.calcType === 'PERCENTAGE'
-                  ? 'bg-foreground text-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
+                data.calcType === 'PERCENTAGE' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground',
                 isRateLocked && 'cursor-not-allowed',
               )}
             >
@@ -326,9 +330,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               disabled={isRateLocked}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors',
-                data.calcType === 'FIXED'
-                  ? 'bg-foreground text-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
+                data.calcType === 'FIXED' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground',
                 isRateLocked && 'cursor-not-allowed',
               )}
             >
@@ -384,36 +386,25 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
 
         {/* ─── Base de cálculo ─── */}
         <div className="space-y-3 rounded-xl border border-border/50 p-4">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {t('wizard.step2.calculationBase')}
-          </h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t('wizard.step2.calculationBase')}</h3>
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="edit-includeTax" className="text-sm">
-                  {t('wizard.step2.includeTax')}{isMexico ? ' (IVA 16%)' : ''}
+                  {t('wizard.step2.includeTax')}
+                  {isMexico ? ' (IVA 16%)' : ''}
                 </Label>
                 {isMexico && !data.includeTax && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('wizard.step2.taxExcludedHint')}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('wizard.step2.taxExcludedHint')}</p>
                 )}
               </div>
-              <Switch
-                id="edit-includeTax"
-                checked={data.includeTax}
-                onCheckedChange={(checked) => updateData({ includeTax: checked })}
-              />
+              <Switch id="edit-includeTax" checked={data.includeTax} onCheckedChange={checked => updateData({ includeTax: checked })} />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-includeTips" className="text-sm">
                 {t('wizard.step2.includeTips')}
               </Label>
-              <Switch
-                id="edit-includeTips"
-                checked={data.includeTips}
-                onCheckedChange={(checked) => updateData({ includeTips: checked })}
-              />
+              <Switch id="edit-includeTips" checked={data.includeTips} onCheckedChange={checked => updateData({ includeTips: checked })} />
             </div>
             {/* Base de la comisión — misma semántica que el asistente: la etiqueta
                 muestra la base vigente, no "incluir descuentos". */}
@@ -424,29 +415,68 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
                   {data.includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet')}
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {data.includeDiscount
-                    ? t('wizard.step2.commissionBaseListHint')
-                    : t('wizard.step2.commissionBaseNetHint')}
+                  {data.includeDiscount ? t('wizard.step2.commissionBaseListHint') : t('wizard.step2.commissionBaseNetHint')}
                 </p>
               </div>
               <Switch
                 id="edit-includeDiscount"
                 checked={data.includeDiscount}
-                onCheckedChange={(checked) => updateData({ includeDiscount: checked })}
+                onCheckedChange={checked => updateData({ includeDiscount: checked })}
               />
             </div>
+            {/* Asistencia → comisiones (founder 2026-08-26): por esquema, nace apagada. Sólo
+                castiga RETARDO fuera de tolerancia; sin cuadrante o con el checador del venue
+                apagado no hace nada. El servidor exige el % al prenderla. */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Label htmlFor="edit-attendanceLinked" className="text-sm">
+                  {t('wizard.step2.attendanceLinked')}
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('wizard.step2.attendanceLinkedHint')}</p>
+              </div>
+              <Switch
+                id="edit-attendanceLinked"
+                checked={data.attendanceLinked}
+                onCheckedChange={checked => updateData({ attendanceLinked: checked })}
+              />
+            </div>
+            {data.attendanceLinked && (
+              <div className="flex items-center justify-between gap-4 pl-4">
+                <Label htmlFor="edit-attendancePenalty" className="text-sm text-muted-foreground">
+                  {t('wizard.step2.attendancePenalty')}
+                </Label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="edit-attendancePenalty"
+                    type="number"
+                    min={1}
+                    max={100}
+                    className="h-9 w-20 text-right"
+                    value={attendancePenaltyInput}
+                    onChange={e => {
+                      const raw = e.target.value
+                      setAttendancePenaltyInput(raw)
+                      const num = Number(raw)
+                      if (raw !== '' && Number.isFinite(num) && num >= 1 && num <= 100) {
+                        updateData({ attendanceLatePenaltyRate: num / 100 })
+                      }
+                    }}
+                    onBlur={() => setAttendancePenaltyInput((data.attendanceLatePenaltyRate * 100).toFixed(0))}
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* ─── Categorías ─── */}
         <div className="space-y-3 rounded-xl border border-border/50 p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              {t('wizard.step2.categories')}
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('wizard.step2.categories')}</h3>
             <Switch
               checked={data.filterByCategories}
-              onCheckedChange={(checked) => {
+              onCheckedChange={checked => {
                 updateData({ filterByCategories: checked })
                 if (!checked) updateData({ categoryIds: [] })
               }}
@@ -454,13 +484,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           </div>
           {data.filterByCategories && (
             <div className="pt-1">
-              <p className="text-xs text-muted-foreground mb-2">
-                {t('wizard.step2.onlySpecificCategories')}
-              </p>
-              <CategoryFilter
-                categoryIds={data.categoryIds}
-                onChange={(ids) => updateData({ categoryIds: ids })}
-              />
+              <p className="text-xs text-muted-foreground mb-2">{t('wizard.step2.onlySpecificCategories')}</p>
+              <CategoryFilter categoryIds={data.categoryIds} onChange={ids => updateData({ categoryIds: ids })} />
             </div>
           )}
         </div>
@@ -470,16 +495,12 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           <div className="space-y-3 rounded-xl border border-border/50 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  {t('wizard.step2.goalTier')}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {t('wizard.step2.goalTierDescription')}
-                </p>
+                <h3 className="text-sm font-medium text-muted-foreground">{t('wizard.step2.goalTier')}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('wizard.step2.goalTierDescription')}</p>
               </div>
               <Switch
                 checked={data.useGoalAsTier}
-                onCheckedChange={(checked) => {
+                onCheckedChange={checked => {
                   updateData({ useGoalAsTier: checked })
                   if (checked) updateData({ tiersEnabled: false })
                 }}
@@ -488,9 +509,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
             {data.useGoalAsTier && (
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div>
-                  <Label className="text-xs text-muted-foreground">
-                    {t('wizard.step2.baseRate')}
-                  </Label>
+                  <Label className="text-xs text-muted-foreground">{t('wizard.step2.baseRate')}</Label>
                   <div className="relative mt-1">
                     <Input
                       type="number"
@@ -498,7 +517,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
                       min="0"
                       max="100"
                       value={rateInput}
-                      onChange={(e) => handleRateChange(e.target.value)}
+                      onChange={e => handleRateChange(e.target.value)}
                       onBlur={handleRateBlur}
                       className="pr-8 text-center"
                     />
@@ -506,9 +525,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">
-                    {t('wizard.step2.bonusRate')}
-                  </Label>
+                  <Label className="text-xs text-muted-foreground">{t('wizard.step2.bonusRate')}</Label>
                   <div className="relative mt-1">
                     <Input
                       type="number"
@@ -516,7 +533,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
                       min="0"
                       max="100"
                       value={goalBonusRateInput}
-                      onChange={(e) => handleGoalBonusRateChange(e.target.value)}
+                      onChange={e => handleGoalBonusRateChange(e.target.value)}
                       onBlur={handleGoalBonusRateBlur}
                       className="pr-8 text-center"
                     />
