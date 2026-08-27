@@ -154,7 +154,11 @@
     "hardDeleteDesc": "Estás a punto de eliminar permanentemente el acceso de {{firstName}} {{lastName}} a este negocio y sus datos de comisiones: pagos, cálculos, ajustes y metas alcanzadas. Sus ventas y propinas registradas se conservan.",
     "hardDeleteWarning": "Esta acción es IRREVERSIBLE. Los datos NO podrán ser recuperados.",
     "hardDeleteConfirm": "Eliminar Permanentemente",
-    "hardDeleting": "Eliminando..."
+    "hardDeleting": "Eliminando...",
+    "removeImpactTitle": "Antes de continuar",
+    "removeImpactItems": "Trae {{count}} artículos de inventario serializado en custodia.",
+    "removeImpactVerifications": "Tiene {{count}} ventas pendientes de verificar.",
+    "removeImpactConsequence": "Al darla de baja, esos artículos quedarán a su nombre. Tendrás que reasignarlos a otra persona."
   },
   "toasts": {
     "memberActivatedTitle": "Miembro activado",

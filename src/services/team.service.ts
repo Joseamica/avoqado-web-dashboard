@@ -81,6 +81,12 @@ export interface UpdateTeamMemberRequest {
   pin?: string | null
 }
 
+export interface DeactivationImpact {
+  staffName: string
+  serializedItemsInCustody: number
+  pendingSaleVerifications: number
+}
+
 export interface PinConflict {
   venueId: string
   venueName: string
@@ -158,6 +164,13 @@ export const teamService = {
   async removeTeamMember(venueId: string, teamMemberId: string): Promise<{ message: string }> {
     const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/team/${teamMemberId}`)
     return response.data
+  },
+
+  // Preview the impact of deactivating a team member (read-only, does not deactivate).
+  // Warns about serialized inventory still in custody and pending sale verifications.
+  async getDeactivationImpact(venueId: string, teamMemberId: string): Promise<DeactivationImpact> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/team/${teamMemberId}/deactivation-impact`)
+    return response.data.data
   },
 
   // Hard delete team member (SUPERADMIN only - permanently deletes all data)

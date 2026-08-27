@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3,
-  UserMinus, Trash2, Eye, EyeOff, Download, KeyRound, Building2, TrendingUp,
+  UserMinus, Trash2, Eye, EyeOff, Download, KeyRound, Building2, TrendingUp, AlertTriangle,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -66,6 +66,19 @@ export default function TeamId() {
     queryFn: () => teamService.getTeamMember(venueId, memberId!),
     enabled: !!memberId,
   })
+
+  // Deactivation impact: only fetched while the remove dialog is open — it's a
+  // one-shot warning, not something the screen needs on every load. A failure here
+  // must never block the confirm button, so no error state is surfaced.
+  const { data: deactivationImpact } = useQuery({
+    queryKey: ['team-member-deactivation-impact', venueId, memberId],
+    queryFn: () => teamService.getDeactivationImpact(venueId, memberId!),
+    enabled: showRemoveDialog && !!memberId,
+    retry: false,
+  })
+  const impactItemsInCustody = deactivationImpact?.serializedItemsInCustody ?? 0
+  const impactPendingVerifications = deactivationImpact?.pendingSaleVerifications ?? 0
+  const hasDeactivationImpact = impactItemsInCustody > 0 || impactPendingVerifications > 0
 
   useEffect(() => {
     if (memberDetails && memberId) {
@@ -532,6 +545,21 @@ export default function TeamId() {
                 {t('dialogs.removeDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {hasDeactivationImpact && (
+              <div className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-muted p-3 text-sm">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning-foreground" />
+                <div className="space-y-1 text-warning-foreground">
+                  <p className="font-medium">{t('dialogs.removeImpactTitle')}</p>
+                  <ul className="list-disc space-y-0.5 pl-4">
+                    {impactItemsInCustody > 0 && <li>{t('dialogs.removeImpactItems', { count: impactItemsInCustody })}</li>}
+                    {impactPendingVerifications > 0 && (
+                      <li>{t('dialogs.removeImpactVerifications', { count: impactPendingVerifications })}</li>
+                    )}
+                  </ul>
+                  <p>{t('dialogs.removeImpactConsequence')}</p>
+                </div>
+              </div>
+            )}
             <AlertDialogFooter>
               <AlertDialogCancel>{t('dialogs.removeCancel')}</AlertDialogCancel>
               <AlertDialogAction onClick={() => { removeTeamMemberMutation.mutate(); setShowRemoveDialog(false) }} disabled={removeTeamMemberMutation.isPending} className="bg-amber-600 hover:bg-amber-700">

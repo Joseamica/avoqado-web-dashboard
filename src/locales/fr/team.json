@@ -130,7 +130,11 @@
     "removeCancel": "Annuler",
     "removing": "Suppression...",
     "deactivateConfirm": "Désactiver",
-    "deactivating": "Désactivation..."
+    "deactivating": "Désactivation...",
+    "removeImpactTitle": "Avant de continuer",
+    "removeImpactItems": "Détient {{count}} articles d'inventaire sérialisé en garde.",
+    "removeImpactVerifications": "A {{count}} ventes en attente de vérification.",
+    "removeImpactConsequence": "En le désactivant, ces articles resteront à son nom. Vous devrez les réassigner à quelqu'un d'autre."
   },
   "toasts": {
     "memberRemovedTitle": "Membre supprimé",

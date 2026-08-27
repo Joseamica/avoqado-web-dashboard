@@ -154,7 +154,11 @@
     "hardDeleteDesc": "You are about to permanently delete {{firstName}} {{lastName}}'s access to this venue and their commission data: payouts, calculations, overrides, and milestones. Their recorded sales and tips are kept.",
     "hardDeleteWarning": "This action is IRREVERSIBLE. Data CANNOT be recovered.",
     "hardDeleteConfirm": "Delete Permanently",
-    "hardDeleting": "Deleting..."
+    "hardDeleting": "Deleting...",
+    "removeImpactTitle": "Before you continue",
+    "removeImpactItems": "Currently holds {{count}} serialized inventory items in custody.",
+    "removeImpactVerifications": "Has {{count}} sale verifications still pending.",
+    "removeImpactConsequence": "Deactivating them will leave those items under their name. You'll need to reassign them to someone else."
   },
   "toasts": {
     "memberActivatedTitle": "Member activated",
