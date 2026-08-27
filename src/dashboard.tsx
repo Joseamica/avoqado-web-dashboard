@@ -130,6 +130,15 @@ const routeKeyMap: Record<string, string> = {
   'print-stations': 'sidebar:routes.printStations',
   'role-permissions': 'sidebar:routes.rolePermissions',
   'activity-log': 'sidebar:routes.activityLog',
+  // Inventario (el modulo mas grande: 24 rutas). "Stock overview" salia asi, en ingles,
+  // en la miga de pan de su pantalla principal.
+  'stock-overview': 'sidebar:routes.stockOverview',
+  'product-stock': 'sidebar:routes.productStock',
+  'auto-reorder': 'sidebar:routes.autoReorder',
+  profitability: 'sidebar:routes.profitability',
+  'inter-venue-transfers': 'sidebar:routes.interVenueTransfers',
+  'modifier-analytics': 'sidebar:routes.modifierAnalytics',
+  restocks: 'sidebar:routes.restocks',
   // Acciones
   create: 'sidebar:routes.create',
   edit: 'sidebar:routes.edit',

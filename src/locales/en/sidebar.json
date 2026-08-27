@@ -204,7 +204,14 @@
     "payroll": "Payroll",
     "account": "Account",
     "create": "Create",
-    "edit": "Edit"
+    "edit": "Edit",
+    "stockOverview": "Stock Overview",
+    "productStock": "Product Stock",
+    "autoReorder": "Auto-reorder",
+    "profitability": "Profitability",
+    "interVenueTransfers": "Inter-venue Transfers",
+    "modifierAnalytics": "Modifier Analytics",
+    "restocks": "Restocks"
   },
   "paymentLinksMenu": {
     "links": "Payment links",

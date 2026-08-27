@@ -202,7 +202,14 @@
     "payroll": "Nómina",
     "account": "Cuenta",
     "create": "Crear",
-    "edit": "Editar"
+    "edit": "Editar",
+    "stockOverview": "Resumen de existencias",
+    "productStock": "Stock de productos",
+    "autoReorder": "Re-orden automático",
+    "profitability": "Rentabilidad",
+    "interVenueTransfers": "Traslados entre sucursales",
+    "modifierAnalytics": "Análisis de modificadores",
+    "restocks": "Reabastecimientos"
   },
   "paymentLinksMenu": {
     "links": "Ligas de pago",

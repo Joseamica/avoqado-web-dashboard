@@ -155,7 +155,14 @@
     "edit": "Modifier",
     "notifications": "Notifications",
     "paymentLinks": "Liens de paiement",
-    "recipes": "Recettes"
+    "recipes": "Recettes",
+    "stockOverview": "Aperçu des stocks",
+    "productStock": "Stock des produits",
+    "autoReorder": "Réappro. automatique",
+    "profitability": "Rentabilité",
+    "interVenueTransfers": "Transferts inter-sites",
+    "modifierAnalytics": "Analyse des modificateurs",
+    "restocks": "Réapprovisionnements"
   },
   "reservationsMenu": {
     "overview": "Aperçu",
