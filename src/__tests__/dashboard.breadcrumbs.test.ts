@@ -42,14 +42,59 @@ function segmentosDeRutas(): Set<string> {
  * necesita entrar aqui, lo correcto es traducirlo.
  */
 const DEUDA_CONOCIDA = new Set([
-  '1', '2', '3', '4', '5', 'venues', 'wl', 'kyc-required', 'config', 'local', 'groups', 'google',
-  'activos-fijos', 'area-tickets', 'auto-reorder', 'available-balance', 'balanza', 'basic-info',
-  'beneficiarios', 'bundles', 'buzon', 'catalogo', 'chat', 'conciliacion', 'configuracion',
-  'contact-images', 'cuentas-por-pagar', 'dispersiones', 'external-settlements', 'home-charts',
-  'impuestos', 'ingresos', 'inter-venue-transfers', 'isr', 'libro-diario', 'modifier-analytics',
-  'movimientos', 'online-booking', 'pay-later-aging', 'preparacion', 'pricing', 'product-stock',
-  'profitability', 'restocks', 'resumen', 'routing-rules', 'sales-by-category', 'sales-by-item',
-  'sales-summary', 'spei', 'stock-overview', 'tokens', 'virtual-terminal',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  'venues',
+  'wl',
+  'kyc-required',
+  'config',
+  'local',
+  'groups',
+  'google',
+  'activos-fijos',
+  'area-tickets',
+  'auto-reorder',
+  'available-balance',
+  'balanza',
+  'basic-info',
+  'beneficiarios',
+  'bundles',
+  'buzon',
+  'catalogo',
+  'chat',
+  'conciliacion',
+  'configuracion',
+  'contact-images',
+  'cuentas-por-pagar',
+  'dispersiones',
+  'external-settlements',
+  'home-charts',
+  'impuestos',
+  'ingresos',
+  'inter-venue-transfers',
+  'isr',
+  'libro-diario',
+  'modifier-analytics',
+  'movimientos',
+  'online-booking',
+  'pay-later-aging',
+  'preparacion',
+  'pricing',
+  'product-stock',
+  'profitability',
+  'restocks',
+  'resumen',
+  'routing-rules',
+  'sales-by-category',
+  'sales-by-item',
+  'sales-summary',
+  'spei',
+  'stock-overview',
+  'tokens',
+  'virtual-terminal',
 ])
 
 describe('miga de pan · traduccion de las rutas', () => {
@@ -76,8 +121,16 @@ describe('miga de pan · traduccion de las rutas', () => {
     for (const idioma of ['es', 'en', 'fr']) {
       for (const { ns, clave } of refs) {
         const archivo = path.join(raiz, `src/locales/${idioma}/${ns}.json`)
-        if (!fs.existsSync(archivo)) { faltantes.push(`${idioma}/${ns}.json (no existe)`); continue }
-        const json = JSON.parse(fs.readFileSync(archivo, 'utf8').replace(/^﻿/, ''))
+        if (!fs.existsSync(archivo)) {
+          faltantes.push(`${idioma}/${ns}.json (no existe)`)
+          continue
+        }
+        // 🔴 `\uFEFF` como ESCAPE, no como carácter literal. Escrito literal el BOM es
+        // invisible en el editor —parece un espacio raro— y el linter lo rechaza con
+        // "Irregular whitespace not allowed", un error que no dice qué carácter es ni
+        // dónde empieza. Los .json de i18n llevan BOM y hay que quitarlo para poder
+        // parsearlos.
+        const json = JSON.parse(fs.readFileSync(archivo, 'utf8').replace(/^\uFEFF/, ''))
         const valor = clave.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json)
         if (typeof valor !== 'string' || !valor.trim()) faltantes.push(`${idioma}: ${ns}.${clave}`)
       }
