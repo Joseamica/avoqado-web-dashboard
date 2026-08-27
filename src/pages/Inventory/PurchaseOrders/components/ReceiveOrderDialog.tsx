@@ -20,22 +20,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { purchaseOrderService, nombreDelRenglon, unidadDelRenglon } from '@/services/purchaseOrder.service'
 import type { PurchaseOrder } from '@/services/purchaseOrder.service'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -122,16 +108,12 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
 
   // Set all quantities to maximum (receive all)
   const handleReceiveAll = () => {
-    setReceiveItems(prev =>
-      prev.map(item => ({ ...item, quantityToReceive: item.maxReceivable }))
-    )
+    setReceiveItems(prev => prev.map(item => ({ ...item, quantityToReceive: item.maxReceivable })))
   }
 
   // Set all quantities to zero (receive none)
   const handleReceiveNone = () => {
-    setReceiveItems(prev =>
-      prev.map(item => ({ ...item, quantityToReceive: 0 }))
-    )
+    setReceiveItems(prev => prev.map(item => ({ ...item, quantityToReceive: 0 })))
   }
 
   const handleSave = () => {
@@ -173,9 +155,7 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{t('actions.receiveOrder')}</DialogTitle>
-          <DialogDescription>
-            {t('actions.receiveOrderDescription', { orderNumber: purchaseOrder.orderNumber })}
-          </DialogDescription>
+          <DialogDescription>{t('actions.receiveOrderDescription', { orderNumber: purchaseOrder.orderNumber })}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -187,20 +167,10 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
 
           {/* Quick actions */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReceiveAll}
-              disabled={receiveMutation.isPending}
-            >
+            <Button variant="outline" size="sm" onClick={handleReceiveAll} disabled={receiveMutation.isPending}>
               {t('actions.receiveAll')}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReceiveNone}
-              disabled={receiveMutation.isPending}
-            >
+            <Button variant="outline" size="sm" onClick={handleReceiveNone} disabled={receiveMutation.isPending}>
               {t('actions.receiveNone')}
             </Button>
           </div>
@@ -219,9 +189,7 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
               <TableBody>
                 {receiveItems.map((item, index) => (
                   <TableRow key={item.purchaseOrderItemId}>
-                    <TableCell className="font-medium">
-                      {item.rawMaterialName}
-                    </TableCell>
+                    <TableCell className="font-medium">{item.rawMaterialName}</TableCell>
                     <TableCell className="text-right">
                       {item.quantityOrdered} {item.rawMaterialUnit}
                     </TableCell>
@@ -236,13 +204,11 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
                           min="0"
                           max={item.maxReceivable}
                           value={item.quantityToReceive}
-                          onChange={(e) => updateQuantity(index, parseFloat(e.target.value) || 0)}
+                          onChange={e => updateQuantity(index, parseFloat(e.target.value) || 0)}
                           className="w-24 text-right [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           disabled={receiveMutation.isPending}
                         />
-                        <span className="text-sm text-muted-foreground min-w-[40px]">
-                          {item.rawMaterialUnit}
-                        </span>
+                        <span className="text-sm text-muted-foreground min-w-[40px]">{item.rawMaterialUnit}</span>
                       </div>
                     </TableCell>
                   </TableRow>

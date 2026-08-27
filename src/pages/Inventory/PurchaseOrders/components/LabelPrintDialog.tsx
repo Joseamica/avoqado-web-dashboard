@@ -279,9 +279,7 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                       }`}
                     >
                       {t('labels.selectionMode.order')}
-                      {selectionMode === 'order' && (
-                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                      )}
+                      {selectionMode === 'order' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
                     </button>
                   </nav>
                 </div>
@@ -301,12 +299,8 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                           {/* Insumo de cocina o mercancía de reventa: mostrar
                               "Unknown" hacía que el usuario seleccionara renglones
                               sin nombre y el backend le tirara error al generar. */}
-                          <p className="font-medium text-sm truncate">
-                            {item.rawMaterial?.name || item.product?.name || 'Sin nombre'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            SKU: {item.rawMaterial?.sku || item.product?.sku || 'N/A'}
-                          </p>
+                          <p className="font-medium text-sm truncate">{item.rawMaterial?.name || item.product?.name || 'Sin nombre'}</p>
+                          <p className="text-xs text-muted-foreground">SKU: {item.rawMaterial?.sku || item.product?.sku || 'N/A'}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Input

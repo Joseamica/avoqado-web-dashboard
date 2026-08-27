@@ -73,19 +73,23 @@ const purchaseOrderSchema = z.object({
   supplierId: z.string().min(1, 'Selecciona un proveedor'),
   orderDate: z.string().min(1, 'Fecha de orden requerida'),
   expectedDeliveryDate: z.string().optional(),
-  shippingAddress: z.object({
-    type: z.enum(['venue', 'custom']),
-    address: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    zipCode: z.string().optional(),
-  }).optional(),
-  tax: z.object({
-    enabled: z.boolean(),
-    type: z.enum(['percentage', 'fixed']).optional(),
-    rate: z.number().min(0).max(1).optional(),
-    amount: z.number().min(0).optional(),
-  }).optional(),
+  shippingAddress: z
+    .object({
+      type: z.enum(['venue', 'custom']),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      zipCode: z.string().optional(),
+    })
+    .optional(),
+  tax: z
+    .object({
+      enabled: z.boolean(),
+      type: z.enum(['percentage', 'fixed']).optional(),
+      rate: z.number().min(0).max(1).optional(),
+      amount: z.number().min(0).optional(),
+    })
+    .optional(),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Agrega al menos un artículo'),
 })
@@ -146,62 +150,67 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(purchaseOrderSchema),
-    defaultValues: sourceData ? {
-      supplierId: sourceData.supplierId || '',
-      orderDate: new Date().toISOString().split('T')[0], // Always use today's date for new/duplicate orders
-      expectedDeliveryDate: sourceData.expectedDeliveryDate ? new Date(sourceData.expectedDeliveryDate).toISOString().split('T')[0] : '',
-      shippingAddress: {
-        type: sourceData.shippingAddressType === 'CUSTOM' ? 'custom' : 'venue',
-        address: sourceData.shippingAddress || '',
-        city: sourceData.shippingCity || '',
-        state: sourceData.shippingState || '',
-        zipCode: sourceData.shippingZipCode || '',
-      },
-      tax: {
-        enabled: (Number(sourceData.taxRate) || 0) > 0,
-        type: 'percentage',
-        rate: Number(sourceData.taxRate) || 0,
-        amount: 0,
-      },
-      notes: sourceData.notes || '',
-      items: sourceData.items?.map((item: any) => ({
-        rawMaterialId: item.rawMaterial?.id || item.rawMaterialId || undefined,
-        productId: item.product?.id || item.productId || undefined,
-        quantityOrdered: Number(item.quantityOrdered),
-        unit: item.rawMaterial?.unit || item.unit,
-        unitPrice: Number(item.unitPrice),
-        // sin esto, editar o duplicar una orden comprada en cajas la devolvería
-        // a unidad base y el costo del lote saldría inflado por el factor
-        presentationName: item.presentationName ?? undefined,
-      })) || [],
-    } : {
-      supplierId: '',
-      orderDate: new Date().toISOString().split('T')[0],
-      expectedDeliveryDate: '',
-      shippingAddress: {
-        type: 'venue',
-        address: '',
-        city: '',
-        state: '',
-        zipCode: '',
-      },
-      tax: {
-        enabled: false,
-        type: 'percentage',
-        rate: 0,
-        amount: 0,
-      },
-      notes: '',
-      items: [
-        {
-          rawMaterialId: '',
-          productId: undefined,
-          quantityOrdered: 0,
-          unit: Unit.KILOGRAM,
-          unitPrice: 0,
+    defaultValues: sourceData
+      ? {
+          supplierId: sourceData.supplierId || '',
+          orderDate: new Date().toISOString().split('T')[0], // Always use today's date for new/duplicate orders
+          expectedDeliveryDate: sourceData.expectedDeliveryDate
+            ? new Date(sourceData.expectedDeliveryDate).toISOString().split('T')[0]
+            : '',
+          shippingAddress: {
+            type: sourceData.shippingAddressType === 'CUSTOM' ? 'custom' : 'venue',
+            address: sourceData.shippingAddress || '',
+            city: sourceData.shippingCity || '',
+            state: sourceData.shippingState || '',
+            zipCode: sourceData.shippingZipCode || '',
+          },
+          tax: {
+            enabled: (Number(sourceData.taxRate) || 0) > 0,
+            type: 'percentage',
+            rate: Number(sourceData.taxRate) || 0,
+            amount: 0,
+          },
+          notes: sourceData.notes || '',
+          items:
+            sourceData.items?.map((item: any) => ({
+              rawMaterialId: item.rawMaterial?.id || item.rawMaterialId || undefined,
+              productId: item.product?.id || item.productId || undefined,
+              quantityOrdered: Number(item.quantityOrdered),
+              unit: item.rawMaterial?.unit || item.unit,
+              unitPrice: Number(item.unitPrice),
+              // sin esto, editar o duplicar una orden comprada en cajas la devolvería
+              // a unidad base y el costo del lote saldría inflado por el factor
+              presentationName: item.presentationName ?? undefined,
+            })) || [],
+        }
+      : {
+          supplierId: '',
+          orderDate: new Date().toISOString().split('T')[0],
+          expectedDeliveryDate: '',
+          shippingAddress: {
+            type: 'venue',
+            address: '',
+            city: '',
+            state: '',
+            zipCode: '',
+          },
+          tax: {
+            enabled: false,
+            type: 'percentage',
+            rate: 0,
+            amount: 0,
+          },
+          notes: '',
+          items: [
+            {
+              rawMaterialId: '',
+              productId: undefined,
+              quantityOrdered: 0,
+              unit: Unit.KILOGRAM,
+              unitPrice: 0,
+            },
+          ],
         },
-      ],
-    },
   })
 
   const { fields, append, remove } = useFieldArray({
@@ -218,7 +227,9 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       const formValues: PurchaseOrderFormValues = {
         supplierId: sourceData.supplierId || '',
         orderDate: isEditMode
-          ? (sourceData.orderDate ? new Date(sourceData.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+          ? sourceData.orderDate
+            ? new Date(sourceData.orderDate).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0], // Always use today's date for duplicate
         expectedDeliveryDate: sourceData.expectedDeliveryDate ? new Date(sourceData.expectedDeliveryDate).toISOString().split('T')[0] : '',
         shippingAddress: {
@@ -235,14 +246,15 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           amount: 0,
         },
         notes: sourceData.notes || '',
-        items: sourceData.items?.map((item: any) => ({
-          rawMaterialId: item.rawMaterial?.id || item.rawMaterialId || undefined,
-        productId: item.product?.id || item.productId || undefined,
-          quantityOrdered: Number(item.quantityOrdered),
-          unit: item.rawMaterial?.unit || item.unit,
-          unitPrice: Number(item.unitPrice),
-          presentationName: item.presentationName ?? undefined,
-        })) || [],
+        items:
+          sourceData.items?.map((item: any) => ({
+            rawMaterialId: item.rawMaterial?.id || item.rawMaterialId || undefined,
+            productId: item.product?.id || item.productId || undefined,
+            quantityOrdered: Number(item.quantityOrdered),
+            unit: item.rawMaterial?.unit || item.unit,
+            unitPrice: Number(item.unitPrice),
+            presentationName: item.presentationName ?? undefined,
+          })) || [],
       }
       // console.log('📋 Form values to reset:', formValues)
       form.reset(formValues)
@@ -270,7 +282,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         items: [
           {
             rawMaterialId: '',
-          productId: undefined,
+            productId: undefined,
             quantityOrdered: 0,
             unit: Unit.KILOGRAM,
             unitPrice: 0,
@@ -321,8 +333,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: CreatePurchaseOrderDto) =>
-      purchaseOrderService.createPurchaseOrder(venue!.id, data),
+    mutationFn: (data: CreatePurchaseOrderDto) => purchaseOrderService.createPurchaseOrder(venue!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
       toast({ description: t('messages.createSuccess') })
@@ -335,8 +346,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreatePurchaseOrderDto) =>
-      purchaseOrderService.updatePurchaseOrder(venue!.id, purchaseOrder.id, data),
+    mutationFn: (data: CreatePurchaseOrderDto) => purchaseOrderService.updatePurchaseOrder(venue!.id, purchaseOrder.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venue?.id, purchaseOrder.id] })
@@ -350,9 +360,8 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
   })
 
   const createSupplierMutation = useMutation({
-    mutationFn: (data: CreateSupplierDto) =>
-      supplierService.createSupplier(venue!.id, data),
-    onSuccess: (newSupplier) => {
+    mutationFn: (data: CreateSupplierDto) => supplierService.createSupplier(venue!.id, data),
+    onSuccess: newSupplier => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       toast({ description: t('wizard.supplierCreated') })
       form.setValue('supplierId', newSupplier.data.id)
@@ -373,7 +382,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
     const subtotal = formItems.reduce((sum, item) => {
       const qty = Number(item.quantityOrdered) || 0
       const price = Number(item.unitPrice) || 0
-      return sum + (qty * price)
+      return sum + qty * price
     }, 0)
 
     let taxAmount = 0
@@ -413,7 +422,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       // cantidad y precio > 0. Antes exigía `rawMaterialId`, así que descartaba en
       // SILENCIO toda la mercancía de tienda justo antes de enviar.
       const validItems = values.items.filter(
-        (item) => (item.rawMaterialId || item.productId) && Number(item.quantityOrdered) > 0 && Number(item.unitPrice) > 0
+        item => (item.rawMaterialId || item.productId) && Number(item.quantityOrdered) > 0 && Number(item.unitPrice) > 0,
       )
 
       if (validItems.length === 0) {
@@ -446,7 +455,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         shippingState: values.shippingAddress?.type === 'custom' ? values.shippingAddress.state : undefined,
         shippingZipCode: values.shippingAddress?.type === 'custom' ? values.shippingAddress.zipCode : undefined,
         // Only send valid items (filtered above)
-        items: validItems.map((item) => ({
+        items: validItems.map(item => ({
           // Exactamente uno de los dos, nunca ambos ni cadenas vacías: el backend
           // valida la exclusividad en Zod, en el servicio y con un CHECK en la base.
           rawMaterialId: item.rawMaterialId || undefined,
@@ -471,7 +480,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           // This skips APPROVED → SENT steps for quick workflow
           if (!saveAsDraft && createdOrder?.id) {
             await purchaseOrderService.updatePurchaseOrder(venue!.id, createdOrder.id, {
-              status: PurchaseOrderStatus.CONFIRMED
+              status: PurchaseOrderStatus.CONFIRMED,
             })
             queryClient.invalidateQueries({ queryKey: ['purchase-orders', venue!.id] })
             queryClient.invalidateQueries({ queryKey: ['purchase-order', venue!.id, createdOrder.id] })
@@ -483,18 +492,18 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         if (!saveAsDraft) {
           toast({
             description: t('actions.submitApprovalError'),
-            variant: 'destructive'
+            variant: 'destructive',
           })
         }
       }
     },
-    [form, createMutation, updateMutation, isEditMode, toast, t, venue, queryClient]
+    [form, createMutation, updateMutation, isEditMode, toast, t, venue, queryClient],
   )
 
   const handleAddItem = useCallback(() => {
     append({
       rawMaterialId: '',
-          productId: undefined,
+      productId: undefined,
       quantityOrdered: 0,
       unit: Unit.KILOGRAM,
       unitPrice: 0,
@@ -504,23 +513,19 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
   const formSupplierId = form.watch('supplierId')
 
   const selectedSupplier = useMemo(() => {
-    return suppliers?.data?.find((s) => s.id === formSupplierId)
+    return suppliers?.data?.find(s => s.id === formSupplierId)
   }, [formSupplierId, suppliers])
 
   // Filter suppliers based on search
   const filteredSuppliers = useMemo(() => {
     if (!supplierSearchValue) return suppliers?.data || []
-    return (
-      suppliers?.data?.filter((supplier) =>
-        includesNormalized(supplier.name ?? '', supplierSearchValue)
-      ) || []
-    )
+    return suppliers?.data?.filter(supplier => includesNormalized(supplier.name ?? '', supplierSearchValue)) || []
   }, [suppliers, supplierSearchValue])
 
   // Handle create new supplier inline
   const handleStartCreatingSupplier = useCallback(() => {
     setIsCreatingNewSupplier(true)
-    setNewSupplierData((prev) => ({ ...prev, name: supplierSearchValue }))
+    setNewSupplierData(prev => ({ ...prev, name: supplierSearchValue }))
     setSupplierComboboxOpen(false)
   }, [supplierSearchValue])
 
@@ -591,9 +596,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
             className="rounded-full"
             data-tour="po-wizard-submit"
           >
-            {(createMutation.isPending || updateMutation.isPending) && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEditMode ? t('actions.save') : t('wizard.submit')}
           </Button>
         </div>
@@ -602,7 +605,6 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       <div className="max-w-4xl mx-auto px-6 py-8">
         <Form {...form}>
           <form className="space-y-6">
-
             {/* Expanded New Supplier Form */}
             {isCreatingNewSupplier && (
               <Card>
@@ -631,9 +633,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                     <Input
                       id="supplier-name"
                       value={newSupplierData.name}
-                      onChange={(e) =>
-                        setNewSupplierData((prev) => ({ ...prev, name: e.target.value }))
-                      }
+                      onChange={e => setNewSupplierData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder={t('wizard.supplierNamePlaceholder')}
                     />
                   </div>
@@ -644,9 +644,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                     <Input
                       id="contact-name"
                       value={newSupplierData.contactName}
-                      onChange={(e) =>
-                        setNewSupplierData((prev) => ({ ...prev, contactName: e.target.value }))
-                      }
+                      onChange={e => setNewSupplierData(prev => ({ ...prev, contactName: e.target.value }))}
                       placeholder={t('wizard.contactNamePlaceholder')}
                     />
                   </div>
@@ -658,9 +656,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       id="supplier-email"
                       type="email"
                       value={newSupplierData.email}
-                      onChange={(e) =>
-                        setNewSupplierData((prev) => ({ ...prev, email: e.target.value }))
-                      }
+                      onChange={e => setNewSupplierData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder={t('wizard.emailPlaceholder')}
                     />
                   </div>
@@ -672,9 +668,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       id="supplier-phone"
                       type="tel"
                       value={newSupplierData.phone}
-                      onChange={(e) =>
-                        setNewSupplierData((prev) => ({ ...prev, phone: e.target.value }))
-                      }
+                      onChange={e => setNewSupplierData(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder={t('wizard.phonePlaceholder')}
                     />
                   </div>
@@ -685,9 +679,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                     <Input
                       id="supplier-address"
                       value={newSupplierData.address}
-                      onChange={(e) =>
-                        setNewSupplierData((prev) => ({ ...prev, address: e.target.value }))
-                      }
+                      onChange={e => setNewSupplierData(prev => ({ ...prev, address: e.target.value }))}
                       placeholder={t('wizard.addressPlaceholder')}
                     />
                   </div>
@@ -699,9 +691,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       <Input
                         id="supplier-city"
                         value={newSupplierData.city}
-                        onChange={(e) =>
-                          setNewSupplierData((prev) => ({ ...prev, city: e.target.value }))
-                        }
+                        onChange={e => setNewSupplierData(prev => ({ ...prev, city: e.target.value }))}
                         placeholder={t('wizard.cityPlaceholder')}
                       />
                     </div>
@@ -710,9 +700,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       <Input
                         id="supplier-state"
                         value={newSupplierData.state}
-                        onChange={(e) =>
-                          setNewSupplierData((prev) => ({ ...prev, state: e.target.value }))
-                        }
+                        onChange={e => setNewSupplierData(prev => ({ ...prev, state: e.target.value }))}
                         placeholder={t('wizard.statePlaceholder')}
                       />
                     </div>
@@ -721,9 +709,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       <Input
                         id="supplier-zip"
                         value={newSupplierData.zipCode}
-                        onChange={(e) =>
-                          setNewSupplierData((prev) => ({ ...prev, zipCode: e.target.value }))
-                        }
+                        onChange={e => setNewSupplierData(prev => ({ ...prev, zipCode: e.target.value }))}
                         placeholder={t('wizard.zipCodePlaceholder')}
                       />
                     </div>
@@ -735,9 +721,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                     <Textarea
                       id="supplier-notes"
                       value={newSupplierData.notes}
-                      onChange={(e) =>
-                        setNewSupplierData((prev) => ({ ...prev, notes: e.target.value }))
-                      }
+                      onChange={e => setNewSupplierData(prev => ({ ...prev, notes: e.target.value }))}
                       placeholder={t('wizard.supplierNotesPlaceholder')}
                       rows={2}
                     />
@@ -749,9 +733,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                     disabled={!newSupplierData.name?.trim() || createSupplierMutation.isPending}
                     className="w-full"
                   >
-                    {createSupplierMutation.isPending
-                      ? t('common:saving')
-                      : t('wizard.saveSupplier')}
+                    {createSupplierMutation.isPending ? t('common:saving') : t('wizard.saveSupplier')}
                   </Button>
                 </CardContent>
               </Card>
@@ -766,9 +748,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
               <div className="divide-y divide-border/50">
                 {/* Nombre de proveedor */}
                 <div className="grid grid-cols-[200px_1fr]" data-tour="po-wizard-supplier">
-                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
-                    Nombre de proveedor
-                  </div>
+                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">Nombre de proveedor</div>
                   <div className="px-4 py-3 bg-background">
                     <FormField
                       control={form.control}
@@ -778,10 +758,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                           <Popover open={supplierComboboxOpen} onOpenChange={setSupplierComboboxOpen} modal={true}>
                             <PopoverTrigger asChild>
                               {!selectedSupplier ? (
-                                <button
-                                  type="button"
-                                  className="text-muted-foreground hover:text-foreground text-sm text-left"
-                                >
+                                <button type="button" className="text-muted-foreground hover:text-foreground text-sm text-left">
                                   Seleccionar proveedor
                                 </button>
                               ) : (
@@ -791,7 +768,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={(e) => {
+                                    onClick={e => {
                                       e.stopPropagation()
                                       form.setValue('supplierId', '')
                                     }}
@@ -812,9 +789,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                 <CommandList>
                                   <CommandEmpty>
                                     <div className="py-6 text-center text-sm">
-                                      <p className="text-muted-foreground mb-3">
-                                        {t('wizard.noSuppliersFound')}
-                                      </p>
+                                      <p className="text-muted-foreground mb-3">{t('wizard.noSuppliersFound')}</p>
                                       <Button
                                         type="button"
                                         variant="outline"
@@ -828,7 +803,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                     </div>
                                   </CommandEmpty>
                                   <CommandGroup>
-                                    {filteredSuppliers.map((supplier) => (
+                                    {filteredSuppliers.map(supplier => (
                                       <CommandItem
                                         key={supplier.id}
                                         value={supplier.id}
@@ -839,12 +814,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                           setSupplierSearchValue('')
                                         }}
                                       >
-                                        <Check
-                                          className={cn(
-                                            'mr-2 h-4 w-4',
-                                            supplier.id === field.value ? 'opacity-100' : 'opacity-0'
-                                          )}
-                                        />
+                                        <Check className={cn('mr-2 h-4 w-4', supplier.id === field.value ? 'opacity-100' : 'opacity-0')} />
                                         <div className="flex-1">
                                           <p className="font-medium">{supplier.name}</p>
                                           {(supplier.email || supplier.phone) && (
@@ -870,9 +840,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
                 {/* Enviar a */}
                 <div className="grid grid-cols-[200px_1fr]">
-                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
-                    Enviar a
-                  </div>
+                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">Enviar a</div>
                   <div className="px-4 py-3 bg-background">
                     <div className="flex items-center justify-between">
                       <div className="text-sm">
@@ -883,8 +851,10 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                               {[
                                 form.watch('shippingAddress.city'),
                                 form.watch('shippingAddress.state'),
-                                form.watch('shippingAddress.zipCode')
-                              ].filter(Boolean).join(', ')}
+                                form.watch('shippingAddress.zipCode'),
+                              ]
+                                .filter(Boolean)
+                                .join(', ')}
                             </div>
                           </div>
                         ) : (
@@ -911,9 +881,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
                 {/* Fecha prevista */}
                 <div className="grid grid-cols-[200px_1fr]">
-                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
-                    Fecha prevista
-                  </div>
+                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">Fecha prevista</div>
                   <div className="px-4 py-3 bg-background">
                     <FormField
                       control={form.control}
@@ -929,12 +897,10 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                               }}
                               className={cn(
                                 'text-sm text-left',
-                                field.value ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                field.value ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
                               )}
                             >
-                              {field.value 
-                                ? field.value.split('-').reverse().join('/') 
-                                : 'Establecer fecha prevista'}
+                              {field.value ? field.value.split('-').reverse().join('/') : 'Establecer fecha prevista'}
                             </button>
                           </FormControl>
                           <input
@@ -942,7 +908,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                             type="date"
                             {...field}
                             value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value)}
+                            onChange={e => field.onChange(e.target.value)}
                             className="sr-only"
                           />
                           <FormMessage />
@@ -954,9 +920,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
                 {/* Notas */}
                 <div className="grid grid-cols-[200px_1fr]">
-                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
-                    Notas
-                  </div>
+                  <div className="bg-muted/30 px-4 py-3 font-medium text-sm">Notas</div>
                   <div className="px-4 py-3 bg-background">
                     <FormField
                       control={form.control}
@@ -964,12 +928,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Textarea
-                              placeholder="Añadir nota"
-                              {...field}
-                              rows={3}
-                              className="resize-none text-sm"
-                            />
+                            <Textarea placeholder="Añadir nota" {...field} rows={3} className="resize-none text-sm" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -981,13 +940,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
             </div>
 
             {/* Hidden orderDate field - maintains current date as default */}
-            <FormField
-              control={form.control}
-              name="orderDate"
-              render={({ field }) => (
-                <input type="hidden" {...field} />
-              )}
-            />
+            <FormField control={form.control} name="orderDate" render={({ field }) => <input type="hidden" {...field} />} />
 
             {/* Items Section */}
             <div className="space-y-4" data-tour="po-wizard-items">
@@ -1074,7 +1027,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                         inputMode="decimal"
                                         placeholder="0"
                                         value={field.value || ''}
-                                        onChange={(e) => {
+                                        onChange={e => {
                                           const value = e.target.value
                                           if (value === '') {
                                             field.onChange(0)
@@ -1118,7 +1071,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                       inputMode="decimal"
                                       placeholder="0.00"
                                       value={field.value || ''}
-                                      onChange={(e) => {
+                                      onChange={e => {
                                         const value = e.target.value
                                         if (value === '') {
                                           field.onChange(0)
@@ -1141,18 +1094,11 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                             />
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium">
-                              ${itemSubtotal.toFixed(2)}
-                            </span>
+                            <span className="font-medium">${itemSubtotal.toFixed(2)}</span>
                           </TableCell>
                           <TableCell>
                             {fields.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => remove(index)}
-                              >
+                              <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             )}
@@ -1203,9 +1149,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                           }}
                           className="text-muted-foreground hover:text-foreground cursor-pointer"
                         >
-                          {formTax?.type === 'percentage'
-                            ? `IVA (${(formTax?.rate || 0) * 100}%)`
-                            : 'Impuesto'}
+                          {formTax?.type === 'percentage' ? `IVA (${(formTax?.rate || 0) * 100}%)` : 'Impuesto'}
                         </button>
                         <span className="font-medium">${taxAmount.toFixed(2)}</span>
                       </div>
@@ -1228,9 +1172,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Añadir impuesto</DialogTitle>
-              <DialogDescription>
-                Configura el impuesto para este pedido
-              </DialogDescription>
+              <DialogDescription>Configura el impuesto para este pedido</DialogDescription>
             </DialogHeader>
 
             <div className="py-4">
@@ -1239,19 +1181,13 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                 <div className="divide-y divide-border/50">
                   {/* Nombre row */}
                   <div className="grid grid-cols-[200px_1fr]">
-                    <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
-                      Nombre
-                    </div>
-                    <div className="px-4 py-3 bg-background text-sm">
-                      Impuesto
-                    </div>
+                    <div className="bg-muted/30 px-4 py-3 font-medium text-sm">Nombre</div>
+                    <div className="px-4 py-3 bg-background text-sm">Impuesto</div>
                   </div>
 
                   {/* Importe row */}
                   <div className="grid grid-cols-[200px_1fr]">
-                    <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
-                      Importe
-                    </div>
+                    <div className="bg-muted/30 px-4 py-3 font-medium text-sm">Importe</div>
                     <div className="px-4 py-3 bg-background">
                       <div className="flex gap-2 items-center">
                         <Input
@@ -1260,10 +1196,12 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                           placeholder="0.00"
                           value={
                             taxType === 'percentage'
-                              ? form.watch('tax.rate') ? (form.watch('tax.rate')! * 100).toString() : ''
+                              ? form.watch('tax.rate')
+                                ? (form.watch('tax.rate')! * 100).toString()
+                                : ''
                               : form.watch('tax.amount')?.toString() || ''
                           }
-                          onChange={(e) => {
+                          onChange={e => {
                             const value = e.target.value
                             if (value === '') {
                               if (taxType === 'percentage') {
@@ -1296,9 +1234,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                             }}
                             className={cn(
                               'px-3 py-1.5 text-sm font-medium transition-colors',
-                              taxType === 'percentage'
-                                ? 'bg-foreground text-background'
-                                : 'bg-background hover:bg-muted'
+                              taxType === 'percentage' ? 'bg-foreground text-background' : 'bg-background hover:bg-muted',
                             )}
                           >
                             %
@@ -1313,9 +1249,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                             }}
                             className={cn(
                               'px-3 py-1.5 text-sm font-medium transition-colors',
-                              taxType === 'fixed'
-                                ? 'bg-foreground text-background'
-                                : 'bg-background hover:bg-muted'
+                              taxType === 'fixed' ? 'bg-foreground text-background' : 'bg-background hover:bg-muted',
                             )}
                           >
                             $
@@ -1349,9 +1283,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Dirección de envío</DialogTitle>
-              <DialogDescription>
-                Selecciona dónde deseas recibir este pedido
-              </DialogDescription>
+              <DialogDescription>Selecciona dónde deseas recibir este pedido</DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-4">
@@ -1365,19 +1297,17 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                   }}
                   className={cn(
                     'w-full text-left p-4 rounded-lg border-2 transition-all',
-                    shippingType === 'venue'
-                      ? 'border-foreground bg-muted/50'
-                      : 'border-border hover:border-border/80'
+                    shippingType === 'venue' ? 'border-foreground bg-muted/50' : 'border-border hover:border-border/80',
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={cn(
-                      'mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center',
-                      shippingType === 'venue' ? 'border-foreground' : 'border-border'
-                    )}>
-                      {shippingType === 'venue' && (
-                        <div className="w-2 h-2 rounded-full bg-foreground" />
+                    <div
+                      className={cn(
+                        'mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                        shippingType === 'venue' ? 'border-foreground' : 'border-border',
                       )}
+                    >
+                      {shippingType === 'venue' && <div className="w-2 h-2 rounded-full bg-foreground" />}
                     </div>
                     <div>
                       <p className="font-medium text-sm">Enviar a {venue?.name}</p>
@@ -1403,25 +1333,21 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                   }}
                   className={cn(
                     'w-full text-left p-4 rounded-lg border-2 transition-all',
-                    shippingType === 'custom'
-                      ? 'border-foreground bg-muted/50'
-                      : 'border-border hover:border-border/80'
+                    shippingType === 'custom' ? 'border-foreground bg-muted/50' : 'border-border hover:border-border/80',
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={cn(
-                      'mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center',
-                      shippingType === 'custom' ? 'border-foreground' : 'border-border'
-                    )}>
-                      {shippingType === 'custom' && (
-                        <div className="w-2 h-2 rounded-full bg-foreground" />
+                    <div
+                      className={cn(
+                        'mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                        shippingType === 'custom' ? 'border-foreground' : 'border-border',
                       )}
+                    >
+                      {shippingType === 'custom' && <div className="w-2 h-2 rounded-full bg-foreground" />}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">Otra dirección</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Enviar a una dirección diferente
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Enviar a una dirección diferente</p>
                     </div>
                   </div>
                 </button>
@@ -1431,46 +1357,54 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
               {shippingType === 'custom' && (
                 <div className="space-y-3 pt-2">
                   <div>
-                    <Label htmlFor="custom-address" className="text-sm">Dirección</Label>
+                    <Label htmlFor="custom-address" className="text-sm">
+                      Dirección
+                    </Label>
                     <Input
                       id="custom-address"
                       placeholder="Calle y número"
                       value={form.watch('shippingAddress.address') || ''}
-                      onChange={(e) => form.setValue('shippingAddress.address', e.target.value)}
+                      onChange={e => form.setValue('shippingAddress.address', e.target.value)}
                       className="mt-1.5"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="custom-city" className="text-sm">Ciudad</Label>
+                      <Label htmlFor="custom-city" className="text-sm">
+                        Ciudad
+                      </Label>
                       <Input
                         id="custom-city"
                         placeholder="Ciudad"
                         value={form.watch('shippingAddress.city') || ''}
-                        onChange={(e) => form.setValue('shippingAddress.city', e.target.value)}
+                        onChange={e => form.setValue('shippingAddress.city', e.target.value)}
                         className="mt-1.5"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="custom-state" className="text-sm">Estado</Label>
+                      <Label htmlFor="custom-state" className="text-sm">
+                        Estado
+                      </Label>
                       <Input
                         id="custom-state"
                         placeholder="Estado"
                         value={form.watch('shippingAddress.state') || ''}
-                        onChange={(e) => form.setValue('shippingAddress.state', e.target.value)}
+                        onChange={e => form.setValue('shippingAddress.state', e.target.value)}
                         className="mt-1.5"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="custom-zip" className="text-sm">Código Postal</Label>
+                    <Label htmlFor="custom-zip" className="text-sm">
+                      Código Postal
+                    </Label>
                     <Input
                       id="custom-zip"
                       placeholder="00000"
                       value={form.watch('shippingAddress.zipCode') || ''}
-                      onChange={(e) => form.setValue('shippingAddress.zipCode', e.target.value)}
+                      onChange={e => form.setValue('shippingAddress.zipCode', e.target.value)}
                       className="mt-1.5"
                     />
                   </div>
@@ -1479,24 +1413,15 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShippingDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setShippingDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button
-                type="button"
-                onClick={() => setShippingDialogOpen(false)}
-                className="rounded-full px-6"
-              >
+              <Button type="button" onClick={() => setShippingDialogOpen(false)} className="rounded-full px-6">
                 Guardar
               </Button>
             </div>
           </DialogContent>
         </Dialog>
-
       </div>
     </FullScreenModal>
   )
@@ -1519,12 +1444,10 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
 
   const filteredMaterials = useMemo(() => {
     if (!searchValue) return materials
-    return materials.filter((m) =>
-      includesNormalized(m.name ?? '', searchValue)
-    )
+    return materials.filter(m => includesNormalized(m.name ?? '', searchValue))
   }, [materials, searchValue])
 
-  const selectedMaterial = materials.find((m) => m.id === value)
+  const selectedMaterial = materials.find(m => m.id === value)
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
@@ -1534,10 +1457,7 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn(
-            'w-full justify-between',
-            !value && 'text-muted-foreground'
-          )}
+          className={cn('w-full justify-between', !value && 'text-muted-foreground')}
         >
           {selectedMaterial ? (
             <span className="flex items-center gap-2 truncate">
@@ -1554,16 +1474,12 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={t('wizard.searchMaterialPlaceholder')}
-            value={searchValue}
-            onValueChange={setSearchValue}
-          />
+          <CommandInput placeholder={t('wizard.searchMaterialPlaceholder')} value={searchValue} onValueChange={setSearchValue} />
           <CommandList>
             <CommandEmpty>{t('wizard.noMaterialsFound')}</CommandEmpty>
             <ScrollArea className="h-[300px]">
               <CommandGroup>
-                {filteredMaterials.map((material) => (
+                {filteredMaterials.map(material => (
                   <CommandItem
                     key={`${material.kind}:${material.id}`}
                     value={`${material.kind}:${material.id}`}
@@ -1573,12 +1489,7 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
                       setSearchValue('')
                     }}
                   >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        material.id === value ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
+                    <Check className={cn('mr-2 h-4 w-4', material.id === value ? 'opacity-100' : 'opacity-0')} />
                     <div className="flex-1">
                       <p className="font-medium">{material.name}</p>
                       {/* Un insumo de cocina y una mercancía de tienda pueden llamarse

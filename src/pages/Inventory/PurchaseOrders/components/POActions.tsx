@@ -65,16 +65,17 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.approveError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
 
   // Send mutation (APPROVED → SENT)
   const sendMutation = useMutation({
-    mutationFn: () => purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
-      status: PurchaseOrderStatus.SENT,
-    }),
+    mutationFn: () =>
+      purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
+        status: PurchaseOrderStatus.SENT,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -83,16 +84,17 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.sendError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
 
   // Confirm mutation (SENT → CONFIRMED)
   const confirmMutation = useMutation({
-    mutationFn: () => purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
-      status: PurchaseOrderStatus.CONFIRMED,
-    }),
+    mutationFn: () =>
+      purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
+        status: PurchaseOrderStatus.CONFIRMED,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -101,16 +103,17 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.confirmError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
 
   // Ship mutation (CONFIRMED → SHIPPED)
   const shipMutation = useMutation({
-    mutationFn: () => purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
-      status: PurchaseOrderStatus.SHIPPED,
-    }),
+    mutationFn: () =>
+      purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
+        status: PurchaseOrderStatus.SHIPPED,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -119,16 +122,17 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.shipError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
 
   // Undo Receive mutation (RECEIVED/PARTIAL → SHIPPED)
   const undoReceiveMutation = useMutation({
-    mutationFn: () => purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
-      status: PurchaseOrderStatus.SHIPPED,
-    }),
+    mutationFn: () =>
+      purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
+        status: PurchaseOrderStatus.SHIPPED,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -139,15 +143,14 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.undoReceiveError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
 
   // Cancel mutation
   const cancelMutation = useMutation({
-    mutationFn: (reason: string) =>
-      purchaseOrderService.cancelPurchaseOrder(venueId!, purchaseOrder.id, reason),
+    mutationFn: (reason: string) => purchaseOrderService.cancelPurchaseOrder(venueId!, purchaseOrder.id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -158,7 +161,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.cancelError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
@@ -183,7 +186,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.rejectError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
@@ -199,7 +202,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.deleteError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
@@ -219,7 +222,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onError: (error: any) => {
       toast({
         description: error.response?.data?.message || t('actions.submitApprovalError'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
     },
   })
@@ -319,11 +322,11 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     const subject = encodeURIComponent(`Purchase Order ${purchaseOrder.orderNumber}`)
     const body = encodeURIComponent(
       `Purchase Order Details:\n\n` +
-      `Order Number: ${purchaseOrder.orderNumber}\n` +
-      `Supplier: ${purchaseOrder.supplier.name}\n` +
-      `Total: ${purchaseOrder.total}\n` +
-      `Status: ${purchaseOrder.status}\n\n` +
-      `View full details at: ${window.location.href}`
+        `Order Number: ${purchaseOrder.orderNumber}\n` +
+        `Supplier: ${purchaseOrder.supplier.name}\n` +
+        `Total: ${purchaseOrder.total}\n` +
+        `Status: ${purchaseOrder.status}\n\n` +
+        `View full details at: ${window.location.href}`,
     )
     window.location.href = `mailto:?subject=${subject}&body=${body}`
   }
@@ -337,7 +340,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     if (!cancelReason.trim()) {
       toast({
         description: t('actions.cancelReasonRequired'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
       return
     }
@@ -348,7 +351,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     if (!rejectReason.trim()) {
       toast({
         description: t('actions.rejectReasonRequired'),
-        variant: 'destructive'
+        variant: 'destructive',
       })
       return
     }
@@ -397,29 +400,20 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
           {t('actions.printLabels')}
         </DropdownMenuItem>
         {/* Only show delete/cancel for non-final statuses */}
-        {purchaseOrder.status !== PurchaseOrderStatus.RECEIVED &&
-          purchaseOrder.status !== PurchaseOrderStatus.CANCELLED && (
-            <>
-              <DropdownMenuSeparator />
-              {purchaseOrder.status === PurchaseOrderStatus.DRAFT ? (
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  disabled={isLoading}
-                  className="text-destructive"
-                >
-                  {t('actions.delete')}
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={isLoading}
-                  className="text-destructive"
-                >
-                  {t('actions.cancelOrder')}
-                </DropdownMenuItem>
-              )}
-            </>
-          )}
+        {purchaseOrder.status !== PurchaseOrderStatus.RECEIVED && purchaseOrder.status !== PurchaseOrderStatus.CANCELLED && (
+          <>
+            <DropdownMenuSeparator />
+            {purchaseOrder.status === PurchaseOrderStatus.DRAFT ? (
+              <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} disabled={isLoading} className="text-destructive">
+                {t('actions.delete')}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => setShowCancelDialog(true)} disabled={isLoading} className="text-destructive">
+                {t('actions.cancelOrder')}
+              </DropdownMenuItem>
+            )}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -477,7 +471,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
                 <Textarea
                   id="reject-reason"
                   value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                  onChange={e => setRejectReason(e.target.value)}
                   placeholder={t('actions.rejectReasonPlaceholder')}
                   className="mt-2"
                   rows={3}
@@ -603,7 +597,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
             <Textarea
               id="cancel-reason"
               value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
+              onChange={e => setCancelReason(e.target.value)}
               placeholder={t('actions.cancelReasonPlaceholder')}
               className="mt-2"
               rows={3}
@@ -611,10 +605,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleCancelConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('actions.cancelOrder')}
             </AlertDialogAction>
@@ -644,9 +635,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('delete.confirm.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('delete.confirm.description', { orderNumber: purchaseOrder.orderNumber })}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('delete.confirm.description', { orderNumber: purchaseOrder.orderNumber })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
@@ -661,12 +650,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
         </AlertDialogContent>
       </AlertDialog>
 
-      <LabelPrintDialog
-        purchaseOrder={purchaseOrder}
-        venueId={venueId!}
-        open={labelDialogOpen}
-        onOpenChange={setLabelDialogOpen}
-      />
+      <LabelPrintDialog purchaseOrder={purchaseOrder} venueId={venueId!} open={labelDialogOpen} onOpenChange={setLabelDialogOpen} />
 
       {/* Edit Purchase Order Wizard */}
       <PurchaseOrderWizard
