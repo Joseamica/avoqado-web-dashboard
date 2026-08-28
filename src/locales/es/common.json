@@ -593,7 +593,16 @@
     "settings": "Configuración",
     "logout": "Cerrar sesión",
     "logoutSuccess": "Sesión cerrada",
-    "logoutSuccessDesc": "Has cerrado sesión correctamente"
+    "logoutSuccessDesc": "Has cerrado sesión correctamente",
+    "logoutAll": "Cerrar sesión en todos mis dispositivos",
+    "logoutAllTitle": "¿Cerrar sesión en todos tus dispositivos?",
+    "logoutAllDescription": "Saldrás de este navegador y también de cualquier terminal, tablet o celular donde tu cuenta esté abierta. Para volver a entrar necesitarás tu contraseña.",
+    "logoutAllConfirm": "Cerrar en todos",
+    "logoutAllCancel": "Cancelar",
+    "logoutAllSuccess": "Sesiones cerradas",
+    "logoutAllSuccessDesc": "Cerramos tu sesión en todos tus dispositivos",
+    "logoutAllFailed": "Saliste, pero sólo de aquí",
+    "logoutAllFailedDesc": "No pudimos cerrar las sesiones de tus otros dispositivos. Inténtalo de nuevo."
   },
   "dashboardShell": {
     "loadingVenue": "Cargando sucursal...",

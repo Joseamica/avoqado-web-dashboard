@@ -1,7 +1,17 @@
 'use client'
 
-import { Bell, ChevronsUpDown, LogOut, Settings } from 'lucide-react'
+import { Bell, ChevronsUpDown, LogOut, MonitorSmartphone, Settings } from 'lucide-react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -15,6 +25,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export function NavUser({
@@ -29,6 +40,9 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { logout } = useAuth()
   const { t } = useTranslation()
+  // Cerrar en TODOS los aparatos es irreversible desde aquí (hay que volver a
+  // entrar con contraseña en cada uno), así que pasa por confirmación.
+  const [confirmLogoutAll, setConfirmLogoutAll] = useState(false)
 
   const initials = (user?.name || user?.email || '?')
     .split(' ')
@@ -99,8 +113,27 @@ export function NavUser({
               <LogOut />
               {t('common:userMenu.logout')}
             </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onSelect={() => setConfirmLogoutAll(true)}>
+              <MonitorSmartphone />
+              {t('common:userMenu.logoutAll')}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <AlertDialog open={confirmLogoutAll} onOpenChange={setConfirmLogoutAll}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('common:userMenu.logoutAllTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('common:userMenu.logoutAllDescription')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common:userMenu.logoutAllCancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => logout(undefined, { allDevices: true })}>
+                {t('common:userMenu.logoutAllConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SidebarMenuItem>
     </SidebarMenu>
   )

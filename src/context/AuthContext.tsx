@@ -34,7 +34,8 @@ interface AuthContextType {
   signup: (data: SignupData) => Promise<void>
   loginWithGoogle: () => Promise<void>
   loginWithOneTap: (credential: string) => Promise<void>
-  logout: (returnTo?: string) => void // Optional returnTo for URL-based state (Stripe/GitHub pattern)
+  // `allDevices` cierra también las sesiones de los otros aparatos (ver authService.logout)
+  logout: (returnTo?: string, options?: { allDevices?: boolean }) => void
   switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
   authorizeVenue: (venueSlug: string) => boolean
   checkVenueAccess: (venueSlug: string) => boolean
@@ -725,8 +726,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 6. Navigate to login
   // 7. Server logout (background, non-blocking)
   const logout = useCallback(
-    async (returnTo?: string) => {
+    async (returnTo?: string, options?: { allDevices?: boolean }) => {
       console.log('[AUTH] 🚪 Step 0: Logout initiated', { returnTo, currentPath: location.pathname })
+
+      // "Cerrar sesión en TODOS mis dispositivos" va ANTES de desmontar nada, y
+      // se espera: es lo único que permite decir la verdad en el aviso. Si se
+      // dejara al paso 10 (en segundo plano, después del toast) prometeríamos
+      // que los otros aparatos quedaron fuera sin saber si el servidor pudo.
+      let revokedEverywhere = false
+      if (options?.allDevices) {
+        try {
+          const result = await authService.logout(true)
+          revokedEverywhere = result?.allDevices === true
+        } catch (error) {
+          console.warn('[AUTH] 🚪 Revoke-all failed; el cierre local sigue:', error)
+        }
+      }
 
       // FLASH FIX: Set flag to prevent LoadingScreen from showing during logout
       isLoggingOutRef.current = true
@@ -768,10 +783,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       navigate(loginUrl, { replace: true })
 
       // 6. Show logout success toast (user sees this on login page)
-      toast({
-        title: t('common:userMenu.logoutSuccess'),
-        description: t('common:userMenu.logoutSuccessDesc'),
-      })
+      toast(
+        revokedEverywhere
+          ? {
+              title: t('common:userMenu.logoutAllSuccess'),
+              description: t('common:userMenu.logoutAllSuccessDesc'),
+            }
+          : options?.allDevices
+            ? {
+                // Se pidió cerrar en todos lados y el servidor no pudo: aquí ya
+                // saliste, pero los otros aparatos siguen dentro. Decirlo.
+                title: t('common:userMenu.logoutAllFailed'),
+                description: t('common:userMenu.logoutAllFailedDesc'),
+                variant: 'destructive' as const,
+              }
+            : {
+                title: t('common:userMenu.logoutSuccess'),
+                description: t('common:userMenu.logoutSuccessDesc'),
+              },
+      )
       console.log('[AUTH] 🚪 Step 8: Toast shown')
 
       // 7. Clear cache AFTER navigation started (components are unmounting)

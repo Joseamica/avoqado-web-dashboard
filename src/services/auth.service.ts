@@ -57,8 +57,17 @@ export const login = async (credentials: { email: string; password: string; venu
   return response.data
 }
 
-export const logout = async () => {
-  const response = await api.post('/api/v1/dashboard/auth/logout')
+/**
+ * Cierra la sesión en el servidor.
+ *
+ * Con `allDevices` cierra TODAS las sesiones de la persona —dashboard, PAX,
+ * Android, iOS— y no sólo la de este navegador, que es lo que se necesita
+ * cuando el aparato ya no está en sus manos. El servidor contesta con lo que
+ * REALMENTE pasó (`allDevices`), no con lo que se pidió: si la escritura falló
+ * viene en `false` y la interfaz no debe prometer lo contrario.
+ */
+export const logout = async (allDevices = false): Promise<{ success?: boolean; allDevices?: boolean }> => {
+  const response = await api.post('/api/v1/dashboard/auth/logout', allDevices ? { allDevices: true } : {})
   return response.data
 }
 

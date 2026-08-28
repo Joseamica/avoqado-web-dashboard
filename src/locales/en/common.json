@@ -593,7 +593,16 @@
     "settings": "Settings",
     "logout": "Log out",
     "logoutSuccess": "Logged out",
-    "logoutSuccessDesc": "You have been logged out successfully"
+    "logoutSuccessDesc": "You have been logged out successfully",
+    "logoutAll": "Log out on all my devices",
+    "logoutAllTitle": "Log out on all your devices?",
+    "logoutAllDescription": "You will be signed out of this browser and of any terminal, tablet or phone where your account is open. You will need your password to get back in.",
+    "logoutAllConfirm": "Log out everywhere",
+    "logoutAllCancel": "Cancel",
+    "logoutAllSuccess": "Sessions closed",
+    "logoutAllSuccessDesc": "We signed you out on all your devices",
+    "logoutAllFailed": "You are out, but only here",
+    "logoutAllFailedDesc": "We could not close the sessions on your other devices. Please try again."
   },
   "dashboardShell": {
     "loadingVenue": "Loading venue...",
