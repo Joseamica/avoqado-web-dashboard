@@ -581,5 +581,13 @@
     "toastGraceSaved": "Tolerancia guardada",
     "toastSavedDesc": "La configuración se guardó correctamente.",
     "toastError": "Error al guardar la configuración"
+  },
+  "rotatingShifts": {
+    "title": "Turnos rotativos",
+    "description": "Para negocios donde los turnos rotan (abre, intermedio, cierre). Arma la semana en Asistencia → Turnos y publícala; lo publicado manda sobre la jornada fija.",
+    "enabledHint": "Prendido: la pestaña Turnos aparece en Asistencia. La jornada fija de cada persona sigue valiendo los días sin turno asignado.",
+    "disabledHint": "Apagado: las asignaciones se ignoran y todos se juzgan con su jornada fija. Necesita el control de asistencia prendido.",
+    "toastEnabled": "Turnos rotativos activados",
+    "toastDisabled": "Turnos rotativos desactivados"
   }
 }

@@ -140,6 +140,31 @@ export interface PayrollSummaryResponse {
   endDate: string
 }
 
+
+// ─── Turnos rotativos (fase 1 "como Sesame") ────────────────────────────────────────────
+export interface WorkShiftTemplate {
+  id: string
+  name: string
+  abbreviation: string
+  color: string
+  /** 'HH:mm' en hora del negocio. endTime <= startTime = cruza la medianoche. */
+  startTime: string
+  endTime: string
+  active: boolean
+  sortOrder: number
+}
+export type WorkShiftTemplateInput = Pick<WorkShiftTemplate, 'name' | 'abbreviation' | 'startTime' | 'endTime'> & { color?: string; sortOrder?: number }
+export interface WorkShiftAssignment {
+  id: string
+  staffVenueId: string
+  date: string
+  templateId: string | null
+  templateName: string
+  startTime: string
+  endTime: string
+  status: 'DRAFT' | 'PUBLISHED'
+}
+
 export const attendanceService = {
   async getTimeEntries(venueId: string, filters: TimeEntryFilters = {}): Promise<{ entries: TimeEntry[]; total: number }> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/time-entries${buildQuery(filters)}`)
@@ -182,5 +207,32 @@ export const attendanceService = {
       `/api/v1/dashboard/venues/${venueId}/time-entries/summary/${staffId}?startDate=${startDate}&endDate=${endDate}`,
     )
     return response.data
+  },
+  // ─── Turnos rotativos ───
+  async getWorkShiftTemplates(venueId: string, includeInactive = false): Promise<WorkShiftTemplate[]> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates`, { params: includeInactive ? { includeInactive: 'true' } : {} })
+    return response.data?.data ?? []
+  },
+  async createWorkShiftTemplate(venueId: string, input: WorkShiftTemplateInput): Promise<WorkShiftTemplate> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates`, input)
+    return response.data?.data
+  },
+  async updateWorkShiftTemplate(venueId: string, templateId: string, input: Partial<WorkShiftTemplateInput> & { active?: boolean }): Promise<WorkShiftTemplate> {
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates/${templateId}`, input)
+    return response.data?.data
+  },
+  async getWorkShiftAssignments(venueId: string, from: string, to: string): Promise<WorkShiftAssignment[]> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/work-shifts/assignments`, { params: { from, to } })
+    return response.data?.data ?? []
+  },
+  /** Guarda celdas persona×día como BORRADOR. `templateId: null` vacía la celda. */
+  async replaceWorkShiftAssignments(venueId: string, input: { from: string; to: string; items: Array<{ staffVenueId: string; date: string; templateId: string | null }> }): Promise<WorkShiftAssignment[]> {
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/work-shifts/assignments`, input)
+    return response.data?.data ?? []
+  },
+  /** Publicar = "esta semana va": desde aquí cuenta para asistencia y comisiones. */
+  async publishWorkShiftAssignments(venueId: string, input: { from: string; to: string }): Promise<{ published: number }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/work-shifts/assignments/publish`, input)
+    return response.data?.data ?? { published: 0 }
   },
 }

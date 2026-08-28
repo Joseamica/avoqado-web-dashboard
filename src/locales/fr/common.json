@@ -490,5 +490,11 @@
     "serverUnavailable": "Serveur non disponible",
     "serverUnavailableDescription": "Tentative de reconnexion...",
     "retry": "Réessayer"
-  }
+  },
+  "daysAgo_one": "il y a 1 jour",
+  "daysAgo_other": "il y a {{count}} jours",
+  "weeksAgo_one": "il y a 1 semaine",
+  "weeksAgo_other": "il y a {{count}} semaines",
+  "today": "Aujourd'hui",
+  "yesterday": "Hier"
 }

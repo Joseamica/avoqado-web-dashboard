@@ -8,7 +8,7 @@
  * Resolution order: VenueRoleConfig DB override > sector default > FOOD_SERVICE fallback
  */
 
-import type { BusinessCategory } from '@/types'
+import { getBusinessCategory, type BusinessCategory } from '@/types'
 
 // ==========================================
 // Term Keys
@@ -305,4 +305,50 @@ export function getSectorTerms(category: BusinessCategory, locale: string): Sect
   const normalizedLocale = (locale.startsWith('en') ? 'en' : 'es') as SupportedLocale
   const sectorData = SECTOR_TERMINOLOGY[category] || SECTOR_TERMINOLOGY.FOOD_SERVICE
   return sectorData[normalizedLocale] || sectorData.es
+}
+
+/**
+ * Deriva la categoría de negocio a partir del tipo del venue.
+ *
+ * Vive aquí y no en `use-terminology.ts` porque `use-role-config.ts` también la necesita,
+ * y ese hook NO puede importar de `use-terminology` (ése ya importa de él: sería un ciclo).
+ * Este archivo es configuración pura, sin hooks, así que lo pueden usar los dos.
+ */
+export function deriveBusinessCategory(venueType: string | undefined): BusinessCategory {
+  if (!venueType) return 'FOOD_SERVICE'
+  // Valores heredados de VenueType que no existen en BusinessType
+  if (venueType === 'HOTEL_RESTAURANT') return 'FOOD_SERVICE'
+  if (venueType === 'FITNESS_STUDIO') return 'SERVICES'
+  try {
+    return getBusinessCategory(venueType as never)
+  } catch {
+    return 'OTHER'
+  }
+}
+
+/**
+ * Nombres de rol por defecto para un giro.
+ *
+ * 🔴 Los cuatro roles de PISO (quien atiende, caja, cocina, recepción) cambian de nombre según
+ * el giro: en una estética el `WAITER` es una «Especialista», en una tienda un «Vendedor».
+ * Los administrativos (propietario, gerente…) NO cambian: se llaman igual en todos lados.
+ *
+ * Es el escalón de en medio de la cadena que documenta este archivo — override del venue >
+ * ESTO > FOOD_SERVICE. Antes faltaba, y todos los giros heredaban el vocabulario de
+ * restaurante.
+ */
+export function getSectorRoleDisplayNames(category: BusinessCategory, locale: string): Record<string, string> {
+  const t = getSectorTerms(category, locale)
+  const en = locale.startsWith('en')
+  return {
+    SUPERADMIN: en ? 'Super Administrator' : 'Super Administrador',
+    OWNER: en ? 'Owner' : 'Propietario',
+    ADMIN: en ? 'Administrator' : 'Administrador',
+    MANAGER: en ? 'Manager' : 'Gerente',
+    VIEWER: en ? 'Viewer' : 'Observador',
+    WAITER: t.waiter,
+    CASHIER: t.cashier,
+    KITCHEN: t.kitchen,
+    HOST: t.host,
+  }
 }

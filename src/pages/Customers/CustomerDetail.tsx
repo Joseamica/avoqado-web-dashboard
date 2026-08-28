@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
 	ArrowLeft,
@@ -57,6 +59,7 @@ import WalletPassCard from './components/WalletPassCard'
 export default function CustomerDetail() {
 	const { venueId, fullBasePath, venue } = useCurrentVenue()
 	const { customerId } = useParams<{ customerId: string }>()
+	const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 	const navigate = useNavigate()
 	const { toast } = useToast()
 	const queryClient = useQueryClient()
@@ -75,6 +78,17 @@ export default function CustomerDetail() {
 		queryFn: () => customerService.getCustomer(venueId, customerId!),
 		enabled: !!customerId,
 	})
+
+	// Sin esto la miga de pan muestra el id crudo del cliente
+	// («Clientes > Cmtcc21810088c9ttprrunfk1»): el fallback solo sabe humanizar el slug de la URL.
+	// Mismo patron que Pedidos, Turnos, Equipo, Productos, Ordenes de compra y Reservaciones.
+	useEffect(() => {
+		const nombre = [customer?.firstName, customer?.lastName].filter(Boolean).join(' ')
+		if (nombre && customerId) setCustomSegment(customerId, nombre)
+		return () => {
+			if (customerId) clearCustomSegment(customerId)
+		}
+	}, [customer?.firstName, customer?.lastName, customerId, setCustomSegment, clearCustomSegment])
 
 	// Fetch customer groups for edit form
 	const { data: groupsData } = useQuery({

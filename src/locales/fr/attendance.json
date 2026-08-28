@@ -56,7 +56,8 @@
   "views": {
     "log": "Pointages",
     "punctuality": "Ponctualité",
-    "payroll": "Paie"
+    "payroll": "Paie",
+    "shifts": "Équipes"
   },
   "report": {
     "grace": "Tolérance : {{minutes}} min",
@@ -117,5 +118,44 @@
     "UNPAID_LEAVE": "Congé sans solde",
     "SICK_LEAVE": "Arrêt maladie",
     "JUSTIFIED_ABSENCE": "Absence justifiée"
+  },
+  "shifts": {
+    "disabled": {
+      "title": "Les équipes tournantes sont désactivées",
+      "description": "Le personnel est évalué selon son horaire fixe. Si les équipes tournent (ouverture, milieu, fermeture), activez-les dans Paramètres.",
+      "cta": "Activer dans Paramètres"
+    },
+    "templates": {
+      "title": "Équipes",
+      "description": "Vos équipes : nom, abréviation, couleur et horaire. Modifier une équipe ne réécrit jamais les semaines déjà publiées.",
+      "new": "Nouvelle équipe",
+      "edit": "Modifier l’équipe",
+      "empty": "Aucune équipe pour l’instant. Créez la première (ex. « Ouverture 08:00–16:00 »).",
+      "name": "Nom",
+      "abbreviation": "Abrév.",
+      "start": "Début",
+      "end": "Fin",
+      "color": "Couleur",
+      "overnightHint": "Se termine le lendemain (équipe de nuit).",
+      "active": "Active",
+      "activeHint": "Désactivée, elle n’est plus proposée ; les affectations existantes sont conservées.",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "week": {
+      "prev": "Semaine précédente",
+      "next": "Semaine suivante",
+      "label": "{{from}} – {{to}}",
+      "hasDrafts": "Brouillon non publié",
+      "saveDraft": "Enregistrer le brouillon",
+      "publish": "Publier la semaine",
+      "noTeam": "Aucun personnel actif dans cet établissement.",
+      "person": "Personne",
+      "legend": "Bordure pointillée = brouillon. Une fois publiée, l’équipe affectée prime sur l’horaire fixe ; des vacances ou un jour de repos saisis sur la personne priment sur tout."
+    },
+    "toastError": "Impossible d’enregistrer",
+    "toastDraftSaved": "Brouillon enregistré",
+    "toastPublished": "Semaine publiée ({{count}} équipes)",
+    "toastTemplateSaved": "Équipe enregistrée"
   }
 }

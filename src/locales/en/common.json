@@ -610,5 +610,9 @@
     "accessDenied": "Access Denied",
     "processingChange": "Processing venue change...",
     "noPermission": "You do not have permission to access this venue."
-  }
+  },
+  "daysAgo_one": "1 day ago",
+  "daysAgo_other": "{{count}} days ago",
+  "weeksAgo_one": "1 week ago",
+  "weeksAgo_other": "{{count}} weeks ago"
 }

@@ -662,6 +662,7 @@ export interface VenueSettings {
   autoClockOutTime: string | null
   /** Interruptor del control de asistencia (fase 2). Apagado = el servidor rechaza checadas. */
   attendanceEnabled?: boolean
+  rotatingShiftsEnabled?: boolean
   /** Minutos de gracia antes de contar un retardo. */
   attendanceGraceMinutes?: number
   maxShiftDurationEnabled: boolean
@@ -1829,6 +1830,7 @@ export interface SessionVenue {
     enableShifts: boolean
     hiddenSidebarItems: string[]
     attendanceEnabled?: boolean // viaja en auth/status y login: el sidebar y la pantalla de asistencia lo necesitan
+    rotatingShiftsEnabled?: boolean // turnos rotativos (fase 1 "como Sesame"), viaja igual
     attendanceGraceMinutes?: number
     /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
     enforceTableOwnership?: boolean

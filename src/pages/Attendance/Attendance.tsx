@@ -13,6 +13,8 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { rangeToDates, type RangeKey } from './attendanceRange'
 import { PayrollReport } from './PayrollReport'
 import { LoadError, PunctualityReport } from './PunctualityReport'
+import { ShiftPlanner } from './ShiftPlanner'
+import { useAccess } from '@/hooks/use-access'
 
 /**
  * Asistencia: sólo LECTURA. No hay «Aprobar»/«Rechazar» a propósito: Square no aprueba
@@ -30,7 +32,10 @@ export default function Attendance() {
 
   const [range, setRange] = useState<RangeKey>('today')
   // 'log' = quién checó y cuándo · 'punctuality' = contra el cuadrante (retardos, faltas)
-  const [view, setView] = useState<'log' | 'punctuality' | 'payroll'>('log')
+  const [view, setView] = useState<'log' | 'punctuality' | 'payroll' | 'shifts'>('log')
+  const { can } = useAccess()
+  // Turnos rotativos (fase 1 "como Sesame"): interruptor por venue, apagado de fábrica.
+  const rotatingShifts = venue?.settings?.rotatingShiftsEnabled === true
 
   // "Hoy" en la zona del negocio, no en la del navegador de quien mira.
   const todayIso = useMemo(() => new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date()), [venueTimezone])
@@ -142,7 +147,7 @@ export default function Attendance() {
 
       {/* ── Historial ─────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={view} onValueChange={v => setView(v as 'log' | 'punctuality' | 'payroll')}>
+        <Tabs value={view} onValueChange={v => setView(v as 'log' | 'punctuality' | 'payroll' | 'shifts')}>
           <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
             <TabsTrigger value="log" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
               {t('views.log')}
@@ -152,6 +157,9 @@ export default function Attendance() {
             </TabsTrigger>
             <TabsTrigger value="payroll" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
               {t('views.payroll')}
+            </TabsTrigger>
+            <TabsTrigger value="shifts" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+              {t('views.shifts')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -179,7 +187,15 @@ export default function Attendance() {
         </div>
       </div>
 
-      {view === 'payroll' ? (
+      {view === 'shifts' ? (
+        <ShiftPlanner
+          venueId={venueId!}
+          todayIso={todayIso}
+          enabled={rotatingShifts}
+          canManage={can('attendance:manage')}
+          settingsPath={`${fullBasePath}/settings/local/basic-info`}
+        />
+      ) : view === 'payroll' ? (
         <PayrollReport venueId={venueId!} startDate={startDate} endDate={endDate} />
       ) : view === 'punctuality' ? (
         <PunctualityReport venueId={venueId!} startDate={startDate} endDate={endDate} />

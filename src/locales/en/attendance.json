@@ -56,7 +56,8 @@
   "views": {
     "log": "Clock-ins",
     "punctuality": "Punctuality",
-    "payroll": "Payroll"
+    "payroll": "Payroll",
+    "shifts": "Shifts"
   },
   "report": {
     "grace": "Grace: {{minutes}} min",
@@ -117,5 +118,44 @@
     "UNPAID_LEAVE": "Unpaid leave",
     "SICK_LEAVE": "Sick leave",
     "JUSTIFIED_ABSENCE": "Justified absence"
+  },
+  "shifts": {
+    "disabled": {
+      "title": "Rotating shifts are off",
+      "description": "Staff are judged by their fixed schedule. If shifts rotate in your business (open, mid, close), turn them on in Settings.",
+      "cta": "Turn on in Settings"
+    },
+    "templates": {
+      "title": "Shifts",
+      "description": "Your shifts: name, abbreviation, color and hours. Editing one never rewrites weeks already published.",
+      "new": "New shift",
+      "edit": "Edit shift",
+      "empty": "No shifts yet. Create the first one (e.g. “Open 08:00–16:00”).",
+      "name": "Name",
+      "abbreviation": "Abbr.",
+      "start": "Start",
+      "end": "End",
+      "color": "Color",
+      "overnightHint": "Ends the next day (overnight shift).",
+      "active": "Active",
+      "activeHint": "Off stops offering it; existing assignments are kept.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "week": {
+      "prev": "Previous week",
+      "next": "Next week",
+      "label": "{{from}} – {{to}}",
+      "hasDrafts": "Unpublished draft",
+      "saveDraft": "Save draft",
+      "publish": "Publish week",
+      "noTeam": "No active staff in this venue.",
+      "person": "Person",
+      "legend": "Dashed border = draft. Once published, the assigned shift overrides the fixed schedule; a vacation or day off captured on the person still wins over everything."
+    },
+    "toastError": "Could not save",
+    "toastDraftSaved": "Draft saved",
+    "toastPublished": "Week published ({{count}} shifts)",
+    "toastTemplateSaved": "Shift saved"
   }
 }

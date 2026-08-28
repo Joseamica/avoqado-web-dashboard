@@ -812,10 +812,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }, 100)
 
       // 8. Notify server in background (non-blocking)
-      console.log('[AUTH] 🚪 Step 10: Calling server logout...')
+      //
+      // 🔴 Se SALTA cuando ya se llamó arriba con `allDevices`: si no, cada
+      // "cerrar en todos mis dispositivos" manda DOS POST /auth/logout (visto en
+      // el log del backend, 2026-08-27). La segunda no hace daño —la cookie ya
+      // se limpió, así que ni siquiera audita— pero es una llamada de red de más
+      // en un flujo que el usuario está esperando.
+      if (options?.allDevices) {
+        console.log('[AUTH] 🚪 Step 10: omitido, el servidor ya recibió el logout con allDevices')
+      } else {
+        console.log('[AUTH] 🚪 Step 10: Calling server logout...')
+      }
       try {
-        await authService.logout()
-        console.log('[AUTH] 🚪 Step 10: Server logout success')
+        if (!options?.allDevices) {
+          await authService.logout()
+          console.log('[AUTH] 🚪 Step 10: Server logout success')
+        }
       } catch (error) {
         // Silently ignore - user is already logged out locally
         console.warn('[AUTH] 🚪 Step 10: Server logout failed (user already logged out locally):', error)

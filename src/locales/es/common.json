@@ -610,5 +610,9 @@
     "accessDenied": "Acceso Denegado",
     "processingChange": "Procesando cambio de sucursal...",
     "noPermission": "No tienes permisos para acceder a esta sucursal."
-  }
+  },
+  "daysAgo_one": "1 día atrás",
+  "daysAgo_other": "{{count}} días atrás",
+  "weeksAgo_one": "1 semana atrás",
+  "weeksAgo_other": "{{count}} semanas atrás"
 }

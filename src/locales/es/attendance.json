@@ -56,7 +56,8 @@
   "views": {
     "log": "Checadas",
     "punctuality": "Puntualidad",
-    "payroll": "Nómina"
+    "payroll": "Nómina",
+    "shifts": "Turnos"
   },
   "report": {
     "grace": "Tolerancia: {{minutes}} min",
@@ -117,5 +118,44 @@
     "UNPAID_LEAVE": "Permiso sin goce",
     "SICK_LEAVE": "Incapacidad",
     "JUSTIFIED_ABSENCE": "Falta justificada"
+  },
+  "shifts": {
+    "disabled": {
+      "title": "Los turnos rotativos están apagados",
+      "description": "Tu personal se juzga con su jornada fija. Si en tu negocio los turnos rotan (abre, intermedio, cierre), préndelos en Ajustes.",
+      "cta": "Prenderlos en Ajustes"
+    },
+    "templates": {
+      "title": "Turnos",
+      "description": "Los turnos de tu negocio: nombre, abreviatura, color y horario. Cambiar uno no reescribe las semanas ya publicadas.",
+      "new": "Nuevo turno",
+      "edit": "Editar turno",
+      "empty": "Todavía no hay turnos. Crea el primero (por ejemplo «Abre 08:00–16:00»).",
+      "name": "Nombre",
+      "abbreviation": "Abrev.",
+      "start": "Entrada",
+      "end": "Salida",
+      "color": "Color",
+      "overnightHint": "Termina al día siguiente (turno nocturno).",
+      "active": "Activo",
+      "activeHint": "Apagado deja de ofrecerse; lo ya asignado se conserva.",
+      "cancel": "Cancelar",
+      "save": "Guardar"
+    },
+    "week": {
+      "prev": "Semana anterior",
+      "next": "Semana siguiente",
+      "label": "{{from}} – {{to}}",
+      "hasDrafts": "Borrador sin publicar",
+      "saveDraft": "Guardar borrador",
+      "publish": "Publicar semana",
+      "noTeam": "No hay personal activo en este negocio.",
+      "person": "Persona",
+      "legend": "Borde punteado = borrador. Al publicar, el turno asignado gana sobre la jornada fija; unas vacaciones o un día libre capturado en la persona siguen ganando sobre todo."
+    },
+    "toastError": "No se pudo guardar",
+    "toastDraftSaved": "Borrador guardado",
+    "toastPublished": "Semana publicada ({{count}} turnos)",
+    "toastTemplateSaved": "Turno guardado"
   }
 }

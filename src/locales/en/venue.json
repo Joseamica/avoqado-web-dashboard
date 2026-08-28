@@ -551,5 +551,13 @@
     "toastGraceSaved": "Grace saved",
     "toastSavedDesc": "Settings saved.",
     "toastError": "Could not save settings"
+  },
+  "rotatingShifts": {
+    "title": "Rotating shifts",
+    "description": "For businesses where shifts rotate (open, mid, close). Build the week in Attendance → Shifts and publish it; published shifts override the fixed schedule.",
+    "enabledHint": "On: the Shifts tab appears in Attendance. Each person’s fixed schedule still applies on days without an assigned shift.",
+    "disabledHint": "Off: assignments are ignored and everyone is judged by their fixed schedule. Requires attendance to be on.",
+    "toastEnabled": "Rotating shifts enabled",
+    "toastDisabled": "Rotating shifts disabled"
   }
 }

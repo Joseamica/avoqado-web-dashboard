@@ -99,6 +99,8 @@ const basicInfoFormSchema = z.object({
   // Asistencia (fase 2). Independiente de enableShifts: caja y reloj son rieles distintos.
   attendanceEnabled: z.boolean().default(true).optional(),
   attendanceGraceMinutes: z.number().min(0).max(120).default(10).optional(),
+  // Turnos rotativos (fase 1 "como Sesame"). Apagado de fábrica; sólo cuenta si está prendido.
+  rotatingShiftsEnabled: z.boolean().default(false).optional(),
 })
 
 type BasicInfoFormValues = z.infer<typeof basicInfoFormSchema>
@@ -184,6 +186,7 @@ export default function BasicInfo() {
       maxShiftDurationEnabled: false,
       maxShiftDurationHours: 12,
       attendanceEnabled: true,
+      rotatingShiftsEnabled: false,
       attendanceGraceMinutes: 10,
     },
   })
@@ -210,6 +213,7 @@ export default function BasicInfo() {
         autoClockOutEnabled: venue.settings?.autoClockOutEnabled ?? false,
         attendanceEnabled: venue.settings?.attendanceEnabled ?? true,
         attendanceGraceMinutes: venue.settings?.attendanceGraceMinutes ?? 10,
+        rotatingShiftsEnabled: venue.settings?.rotatingShiftsEnabled ?? false,
         autoClockOutTime: venue.settings?.autoClockOutTime ?? null,
         maxShiftDurationEnabled: venue.settings?.maxShiftDurationEnabled ?? false,
         maxShiftDurationHours: venue.settings?.maxShiftDurationHours ?? 12,
@@ -326,21 +330,28 @@ export default function BasicInfo() {
   // (Android/iOS/TPV muestran el mensaje sin recompilar) y esconde la sección del menú.
   // NO toca turnos de caja.
   const saveAttendance = useMutation({
-    mutationFn: async (data: { attendanceEnabled?: boolean; attendanceGraceMinutes?: number }) => {
+    mutationFn: async (data: { attendanceEnabled?: boolean; attendanceGraceMinutes?: number; rotatingShiftsEnabled?: boolean }) => {
       // Se devuelve lo que el servidor GUARDÓ, no lo que se pidió: un venue sin fila de
       // settings podía responder con otros valores (auditoría Codex fase 2, P2-1).
       const response = await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
-      const saved = (response.data?.data ?? response.data) as { attendanceEnabled?: boolean; attendanceGraceMinutes?: number }
+      const saved = (response.data?.data ?? response.data) as { attendanceEnabled?: boolean; attendanceGraceMinutes?: number; rotatingShiftsEnabled?: boolean }
       return { requested: data, saved }
     },
     onSuccess: ({ requested, saved }) => {
       form.setValue('attendanceEnabled', saved.attendanceEnabled ?? requested.attendanceEnabled ?? true, { shouldDirty: false })
+      if (requested.rotatingShiftsEnabled !== undefined) {
+        form.setValue('rotatingShiftsEnabled', saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled, { shouldDirty: false })
+      }
       form.setValue('attendanceGraceMinutes', saved.attendanceGraceMinutes ?? requested.attendanceGraceMinutes ?? 10, {
         shouldDirty: false,
       })
       toast({
         title:
-          requested.attendanceEnabled === undefined
+          requested.rotatingShiftsEnabled !== undefined
+            ? requested.rotatingShiftsEnabled
+              ? t('venue:rotatingShifts.toastEnabled')
+              : t('venue:rotatingShifts.toastDisabled')
+            : requested.attendanceEnabled === undefined
             ? t('venue:attendance.toastGraceSaved')
             : requested.attendanceEnabled
               ? t('venue:attendance.toastEnabled')
@@ -1201,6 +1212,35 @@ export default function BasicInfo() {
                           ) : (
                             <p className="px-4 pb-4 text-xs text-muted-foreground">{t('venue:attendance.disabledHint')}</p>
                           )}
+                        </div>
+                      )}
+                    />
+
+                    {/* ── Turnos rotativos (fase 1 "como Sesame") — capa opcional sobre la jornada fija ── */}
+                    <FormField
+                      control={form.control}
+                      name="rotatingShiftsEnabled"
+                      render={({ field }) => (
+                        <div className="rounded-xl border border-border/50 bg-card shadow-sm mt-4">
+                          <FormItem className="flex flex-row items-center justify-between p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base cursor-pointer">{t('venue:rotatingShifts.title')}</FormLabel>
+                              <FormDescription>{t('venue:rotatingShifts.description')}</FormDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {saveAttendance.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? false}
+                                  onCheckedChange={checked => saveAttendance.mutate({ rotatingShiftsEnabled: checked })}
+                                  disabled={!canEdit || saveAttendance.isPending || !form.getValues('attendanceEnabled')}
+                                />
+                              </FormControl>
+                            </div>
+                          </FormItem>
+                          <p className="px-4 pb-4 text-xs text-muted-foreground">
+                            {(field.value ?? false) ? t('venue:rotatingShifts.enabledHint') : t('venue:rotatingShifts.disabledHint')}
+                          </p>
                         </div>
                       )}
                     />

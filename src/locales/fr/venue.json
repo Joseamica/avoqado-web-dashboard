@@ -254,5 +254,13 @@
     "toastGraceSaved": "Tolérance enregistrée",
     "toastSavedDesc": "Configuration enregistrée.",
     "toastError": "Impossible d'enregistrer la configuration"
+  },
+  "rotatingShifts": {
+    "title": "Équipes tournantes",
+    "description": "Pour les établissements où les équipes tournent (ouverture, milieu, fermeture). Composez la semaine dans Présence → Équipes et publiez-la ; le publié prime sur l’horaire fixe.",
+    "enabledHint": "Activé : l’onglet Équipes apparaît dans Présence. L’horaire fixe de chacun reste valable les jours sans équipe affectée.",
+    "disabledHint": "Désactivé : les affectations sont ignorées et chacun est évalué selon son horaire fixe. Nécessite le contrôle de présence activé.",
+    "toastEnabled": "Équipes tournantes activées",
+    "toastDisabled": "Équipes tournantes désactivées"
   }
 }

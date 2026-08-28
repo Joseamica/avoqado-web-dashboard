@@ -42,6 +42,7 @@ import customerService from '@/services/customer.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
+import { diasCivilesDesde } from '@/utils/relativeVisit'
 
 import CustomerForm from './components/CustomerForm'
 import { CustomersAwaitingApproval } from './components/CustomersAwaitingApproval'
@@ -52,7 +53,7 @@ export default function Customers() {
 	const queryClient = useQueryClient()
 	const { t, i18n } = useTranslation('customers')
 	const { t: tCommon } = useTranslation()
-	const { formatDate } = useVenueDateTime()
+	const { formatDate, venueTimezone } = useVenueDateTime()
 
 	// State
 	const [pagination, setPagination] = useState({
@@ -183,18 +184,20 @@ export default function Customers() {
 	const formatRelativeDate = useCallback(
 		(dateStr: string | null) => {
 			if (!dateStr) return t('detail.noLastVisit')
-			const date = new Date(dateStr)
-			const now = new Date()
-			const diffMs = now.getTime() - date.getTime()
-			const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+			// 🔴 Jornadas del NEGOCIO, no bloques de 24h del reloj del navegador: «ayer a las 11pm»
+			// tiene que leerse «Ayer» aunque hayan pasado 2 horas. Y el plural va por i18next
+			// (`_one`/`_other`): concatenar la palabra suelta producia «1 semanas atrás».
+			const diffDays = diasCivilesDesde(dateStr, venueTimezone)
+			if (diffDays === null) return t('detail.noLastVisit')
 
 			if (diffDays === 0) return t('list.columns.lastVisit') + ': ' + tCommon('today')
 			if (diffDays === 1) return t('list.columns.lastVisit') + ': ' + tCommon('yesterday')
-			if (diffDays < 7) return `${diffDays} ${tCommon('daysAgo')}`
-			if (diffDays < 30) return `${Math.floor(diffDays / 7)} ${tCommon('weeksAgo')}`
+			if (diffDays < 7) return tCommon('daysAgo', { count: diffDays })
+			if (diffDays < 30) return tCommon('weeksAgo', { count: Math.floor(diffDays / 7) })
 			return formatDate(dateStr)
 		},
-		[formatDate, t, tCommon]
+		[formatDate, t, tCommon, venueTimezone]
 	)
 
 	// Toggle server-side sorting

@@ -11,9 +11,10 @@ import {
   RoleConfig,
   RoleConfigInput,
   StaffRole,
-  DEFAULT_ROLE_DISPLAY_NAMES,
 } from '@/types'
 import { useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import { deriveBusinessCategory, getSectorRoleDisplayNames } from '@/config/sector-terminology'
 
 /**
  * Query key for role configs
@@ -37,8 +38,11 @@ export const roleConfigQueryKey = (venueId: string | null) => ['role-config', ve
  * ```
  */
 export function useRoleConfig() {
-  const { venueId } = useCurrentVenue()
+  // El venue sale de `useCurrentVenue`, NO de `activeVenue`: ese hook prioriza el slug de la
+  // URL justamente porque `activeVenue` se queda desfasado al cambiar de sucursal.
+  const { venue: currentVenue, venueId } = useCurrentVenue()
   const { user } = useAuth()
+  const { i18n } = useTranslation()
   const queryClient = useQueryClient()
 
   // Fallback: when venueId is null (org pages without venue slug in URL),
@@ -79,14 +83,29 @@ export function useRoleConfig() {
   })
 
   /**
+   * Nombres por defecto SEGUN EL GIRO del negocio.
+   *
+   * 🔴 Antes se pasaba `DEFAULT_ROLE_DISPLAY_NAMES` (lista fija con vocabulario de restaurante),
+   * asi que una estetica veia «Mesero» y una tienda tambien — aunque `sector-terminology.ts`
+   * ya tenia la palabra correcta para cada giro. Este es el escalon de en medio de la cadena
+   * que el propio archivo documenta: override del venue > GIRO > FOOD_SERVICE.
+   *
+   * `DEFAULT_ROLE_DISPLAY_NAMES` sigue existiendo para quien no tiene un venue activo.
+   */
+  const sectorRoleNames = useMemo(
+    () => getSectorRoleDisplayNames(deriveBusinessCategory(currentVenue?.type), i18n.language),
+    [currentVenue?.type, i18n.language]
+  )
+
+  /**
    * Get the display name for a role.
    * Uses custom config if available, falls back to default.
    */
   const getDisplayName = useCallback(
     (role: StaffRole | string): string => {
-      return getRoleDisplayNameFromConfig(role, configs, DEFAULT_ROLE_DISPLAY_NAMES)
+      return getRoleDisplayNameFromConfig(role, configs, sectorRoleNames)
     },
-    [configs]
+    [configs, sectorRoleNames]
   )
 
   /**
