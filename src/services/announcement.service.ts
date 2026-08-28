@@ -53,9 +53,16 @@ export async function getHomeAnnouncements(): Promise<HomeAnnouncements> {
   return data?.data ?? { banner: null, modal: null }
 }
 
+/**
+ * 🔴 El anuncio viene ENVUELTO: `data.announcement`, no `data`. Leerlo un nivel arriba
+ * devolvía `{ announcement: {...} }`, un objeto que pasa el `if (!anuncio)` del modal y
+ * pinta el encabezado vacío. Aquí se disimulaba porque el banner pasa el anuncio ya
+ * cargado (`precargado`); abierto desde la campana sí fallaba. Mismo defecto en las dos
+ * apps, donde dejaba la pantalla girando.
+ */
 export async function getAnnouncement(id: string): Promise<Announcement> {
   const { data } = await api.get(`/api/v1/dashboard/announcements/${id}`)
-  return data.data
+  return data.data.announcement
 }
 
 /** Registra que abrió el anuncio. No bloquea la UI si falla. */
