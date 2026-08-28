@@ -158,5 +158,8 @@
     "EMAIL": "Email",
     "SMS": "SMS",
     "PUSH": "Push"
-  }
+  },
+  "selectPage": "Select this page",
+  "deleteAll": "Empty inbox",
+  "confirmDeleteAll": "Delete ALL your notifications? This cannot be undone."
 }

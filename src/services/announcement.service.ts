@@ -63,6 +63,16 @@ export async function recordAnnouncementOpen(id: string): Promise<void> {
   await api.post(`/api/v1/dashboard/announcements/${id}/open`, {})
 }
 
+/**
+ * Cierra la ventana que interrumpe: a partir de aquí el anuncio vive sólo en la campana.
+ *
+ * 🔴 Es una marca propia y no `isRead`, porque la campana marca todo como leído nada más
+ * abrirla — asomarse al buzón apagaba una ventana que la persona nunca vio.
+ */
+export async function dismissAnnouncement(id: string): Promise<void> {
+  await api.post(`/api/v1/dashboard/announcements/${id}/dismiss`, {})
+}
+
 /** Registra que tocó el botón del anuncio. */
 export async function recordAnnouncementCta(id: string): Promise<void> {
   await api.post(`/api/v1/dashboard/announcements/${id}/cta`, {})

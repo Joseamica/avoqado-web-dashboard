@@ -154,5 +154,8 @@
     "EMAIL": "E-mail",
     "SMS": "SMS",
     "PUSH": "Push"
-  }
+  },
+  "selectPage": "Sélectionner cette page",
+  "deleteAll": "Vider la boîte",
+  "confirmDeleteAll": "Supprimer TOUTES vos notifications ? Action irréversible."
 }

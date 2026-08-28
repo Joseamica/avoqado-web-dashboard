@@ -158,5 +158,8 @@
     "EMAIL": "Correo",
     "SMS": "SMS",
     "PUSH": "Push"
-  }
+  },
+  "selectPage": "Seleccionar los de esta página",
+  "deleteAll": "Vaciar buzón",
+  "confirmDeleteAll": "¿Borrar TODAS tus notificaciones? Esto no se puede deshacer."
 }

@@ -4,22 +4,22 @@ import { ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CornerSparkles } from '@/components/effects/CornerSparkles'
 import { AnnouncementModal } from './AnnouncementModal'
-import { getHomeAnnouncements } from '@/services/announcement.service'
+import { dismissAnnouncement, getHomeAnnouncements } from '@/services/announcement.service'
 
 /**
  * El banner de novedades del inicio, y la ventana que interrumpe.
  *
- * Reemplaza a `McpAnnouncementBanner`, que era el mismo aviso escrito a mano en React:
- * para cambiarlo había que editar código y desplegar, el "no me lo enseñes" vivía en el
- * `localStorage` de cada navegador, y no había forma de saber cuántos lo vieron.
+ * Convive con `McpAnnouncementBanner`, que NO se migró a propósito: el del MCP abre una
+ * guía interactiva dentro del dashboard, y un anuncio de plataforma sólo sabe abrir
+ * contenido o un enlace. Migrarlo habría degradado esa invitación.
  *
- * Los dos salen de UNA sola llamada (`/announcements/home`), así que no pueden
- * desincronizarse. La ventana sólo aparece mientras su aviso siga sin leer: al cerrarla
- * queda leído, deja de interrumpir y el anuncio se queda en la campana.
+ * 🔴 Esto es SÓLO la tira del inicio. La ventana que interrumpe vive en
+ * `AnnouncementGate`, montado en el layout — si viviera aquí sólo saldría cuando la
+ * persona pasa por el Home, que es justo donde menos falta hace.
  */
 export function AnnouncementBanner() {
-  const [abiertoId, setAbiertoId] = useState<string | null>(null)
-  const [ventanaCerrada, setVentanaCerrada] = useState(false)
+  const [abierto, setAbierto] = useState(false)
+  const [descartado, setDescartado] = useState(false)
 
   const { data } = useQuery({
     queryKey: ['announcements', 'home'],
@@ -27,10 +27,7 @@ export function AnnouncementBanner() {
     staleTime: 60_000,
   })
 
-  const banner = data?.banner ?? null
-  const ventana = data?.modal ?? null
-  const abierto = abiertoId ?? (!ventanaCerrada && ventana ? ventana.id : null)
-  const precargado = abierto === ventana?.id ? ventana : abierto === banner?.id ? banner : null
+  const banner = descartado ? null : (data?.banner ?? null)
 
   return (
     <>
@@ -48,16 +45,21 @@ export function AnnouncementBanner() {
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-                <Button size="sm" onClick={() => setAbiertoId(banner.id)}>
+                <Button size="sm" onClick={() => setAbierto(true)}>
                   {banner.actionLabel || 'Ver más'}
                   <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setAbiertoId(banner.id)}
+                  onClick={() => {
+                    // 🔴 La X CIERRA. Antes abría el detalle: el mismo gesto que en toda
+                    // la app significa "quítamelo de enfrente" hacía justo lo contrario.
+                    setDescartado(true)
+                    dismissAnnouncement(banner.id).catch(() => {})
+                  }}
                   className="h-8 w-8 cursor-pointer"
-                  aria-label="Abrir anuncio"
+                  aria-label="Cerrar aviso"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -67,15 +69,14 @@ export function AnnouncementBanner() {
         </div>
       ) : null}
 
-      <AnnouncementModal
-        announcementId={abierto}
-        precargado={precargado}
-        open={Boolean(abierto)}
-        onClose={() => {
-          setAbiertoId(null)
-          setVentanaCerrada(true)
-        }}
-      />
+      {banner ? (
+        <AnnouncementModal
+          announcementId={banner.id}
+          precargado={banner}
+          open={abierto}
+          onClose={() => setAbierto(false)}
+        />
+      ) : null}
     </>
   )
 }

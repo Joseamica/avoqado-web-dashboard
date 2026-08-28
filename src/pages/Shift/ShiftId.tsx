@@ -63,6 +63,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CashReconciliationSummary } from './components/CashReconciliationSummary'
+import { ShiftCashDrawerCard } from './components/ShiftCashDrawerCard'
 
 // ========== TYPES & INTERFACES ==========
 interface SectionState {
@@ -1042,6 +1043,9 @@ export default function ShiftId() {
                   cashDifference={shift.cashDifference ?? null}
                 />
               )}
+
+              {/* Fase 5: el arqueo del cajón físico que cubrió este turno (aditivo: null ⇒ no se pinta) */}
+              <ShiftCashDrawerCard drawer={shift.cashDrawer ?? null} />
 
               {/* Financial Summary */}
               <Card

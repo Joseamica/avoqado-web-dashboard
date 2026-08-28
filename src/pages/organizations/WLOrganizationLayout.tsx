@@ -17,7 +17,7 @@ import { Separator } from '@radix-ui/react-separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
-import NotificationBell from '@/components/notifications/NotificationBell'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import {

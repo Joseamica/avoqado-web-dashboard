@@ -216,6 +216,17 @@ export async function markAllAsRead(): Promise<{ count: number }> {
 /**
  * Delete notification
  */
+/**
+ * Vacía el buzón completo.
+ *
+ * 🔴 "Seleccionar todo" sólo marcaba las 20 cargadas en pantalla: se borraban 20, la
+ * lista se rellenaba y parecía que nada pasaba. Esto borra de verdad todas.
+ */
+export async function deleteAllNotifications(): Promise<{ deleted: number }> {
+  const response = await api.delete('/api/v1/dashboard/notifications')
+  return response.data?.data ?? { deleted: 0 }
+}
+
 export async function deleteNotification(notificationId: string): Promise<void> {
   await api.delete(`/api/v1/dashboard/notifications/${notificationId}`)
 }

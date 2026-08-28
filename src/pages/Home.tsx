@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 
 import { KYCStatusBanner } from '@/components/KYCStatusBanner'
+import { McpAnnouncementBanner } from '@/components/home/McpAnnouncementBanner'
 import { AnnouncementBanner } from '@/components/announcements/AnnouncementBanner'
 import { HomeSetupChecklist } from '@/components/onboarding/HomeSetupChecklist'
 import { HomeDatePicker } from '@/components/home/HomeDatePicker'
@@ -387,6 +388,11 @@ export default function Home() {
       <div className="min-h-screen bg-background px-3 pb-4 pt-2 md:px-6 md:pb-6 md:pt-2">
         <KYCStatusBanner />
 
+        {/* El banner del MCP es su propio caso: su botón abre una GUÍA interactiva
+            dentro del dashboard, algo que un anuncio de plataforma todavía no sabe hacer
+            (los suyos abren contenido o un enlace). Por eso convive en vez de migrar.
+            Decisión del founder, 2026-08-27. */}
+        <McpAnnouncementBanner />
         <AnnouncementBanner />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-5">

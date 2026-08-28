@@ -18,7 +18,8 @@ import { isDemoVenueStatus } from './types/superadmin'
 import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
 import { Shield, ArrowLeft } from 'lucide-react'
-import NotificationBell from './components/notifications/NotificationBell'
+import { NotificationBell } from './components/notifications/NotificationBell'
+import { AnnouncementGate } from './components/announcements/AnnouncementGate'
 import LanguageSwitcher from './components/language-switcher'
 import { ImpersonationHeaderButton } from './components/impersonation/ImpersonationHeaderButton'
 import { ImpersonationBanner } from './components/impersonation/ImpersonationBanner'
@@ -452,6 +453,11 @@ function DashboardContent() {
             <Outlet />
           </div>
         </div>
+
+        {/* Anuncio de plataforma que Avoqado marcó para interrumpir. Vive AQUÍ, en el
+            layout, no dentro del Home: si viviera en el Home sólo lo vería quien pasa por
+            el inicio. Sale una vez, se cierra, y después queda en la campana. */}
+        <AnnouncementGate />
 
         {/* PaymentSetupAlert moved to the header (see above) — the floating
             bottom-right version was covering DataTable pagination. */}

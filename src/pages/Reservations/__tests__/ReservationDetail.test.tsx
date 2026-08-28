@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+
+import { BreadcrumbProvider } from '@/context/BreadcrumbContext'
 import type { Reservation, ReservationStatus } from '@/types/reservation'
 
 const mockNavigate = vi.fn()
@@ -113,9 +115,11 @@ function createTestReservation(status: ReservationStatus): Reservation {
 const renderDetail = () =>
   render(
     <MemoryRouter initialEntries={['/venues/test/reservations/res-test-1']}>
-      <Routes>
-        <Route path="/venues/:slug/reservations/:reservationId" element={<ReservationDetail />} />
-      </Routes>
+      <BreadcrumbProvider>
+        <Routes>
+          <Route path="/venues/:slug/reservations/:reservationId" element={<ReservationDetail />} />
+        </Routes>
+      </BreadcrumbProvider>
     </MemoryRouter>,
   )
 

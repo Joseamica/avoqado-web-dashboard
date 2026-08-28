@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Bell, Filter, Search, Check, CheckCheck, Trash2, Settings, RefreshCw } from 'lucide-react'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useNotifications } from '@/context/NotificationContext'
+import { deleteAllNotifications } from '@/services/notification.service'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   formatNotificationTime,
@@ -43,6 +44,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
     setFilters,
     refreshNotifications,
   } = useNotifications()
+  const [vaciando, setVaciando] = useState(false)
 
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -302,10 +304,38 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {/* Select All */}
-          <div className="flex items-center space-x-2 px-4">
-            <Checkbox checked={selectedNotifications.length === notifications.length} onCheckedChange={handleSelectAll} />
-            <label className="text-sm text-muted-foreground">{t('common:selectAll')}</label>
+          {/* Select All + vaciar de verdad */}
+          <div className="flex items-center justify-between gap-3 px-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={selectedNotifications.length === notifications.length}
+                onCheckedChange={handleSelectAll}
+              />
+              {/* 🔴 Dice "de esta página" a propósito: el checkbox marca SÓLO las que
+                  están cargadas (20), no todas. Antes decía "Seleccionar todo" y mentía —
+                  se borraban 20, la lista se rellenaba y parecía que nada pasaba. */}
+              <label className="text-sm text-muted-foreground">{t('selectPage')}</label>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              disabled={vaciando}
+              onClick={async () => {
+                if (!window.confirm(t('confirmDeleteAll'))) return
+                setVaciando(true)
+                try {
+                  await deleteAllNotifications()
+                  await refreshNotifications()
+                } finally {
+                  setVaciando(false)
+                }
+              }}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              {t('deleteAll')}
+            </Button>
           </div>
 
           {/* Grouped Notifications */}

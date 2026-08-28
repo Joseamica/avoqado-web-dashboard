@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Clock, LogIn, MapPin, Phone, Mail, User, Users, X, AlertTriangle, CalendarClock } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 
@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -38,6 +39,7 @@ export default function ReservationDetail() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatDate, formatTime } = useVenueDateTime()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   // Dialog states
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -55,6 +57,16 @@ export default function ReservationDetail() {
     queryFn: () => reservationService.getReservation(venueId, reservationId!),
     enabled: !!reservationId,
   })
+
+  // Sin esto la miga de pan muestra el id crudo de la reserva
+  // ("Reservaciones > Cmtcc2l1q0O09c9d2mc6uy4rt"): el fallback solo sabe humanizar el slug
+  // de la URL. Mismo patron que Ordenes de compra, Pagos, Turnos, Equipo y Productos.
+  useEffect(() => {
+    if (reservation?.confirmationCode && reservationId) setCustomSegment(reservationId, reservation.confirmationCode)
+    return () => {
+      if (reservationId) clearCustomSegment(reservationId)
+    }
+  }, [reservation?.confirmationCode, reservationId, setCustomSegment, clearCustomSegment])
 
   // Mutations
   const confirmMutation = useMutation({
