@@ -163,7 +163,15 @@
     "interVenueTransfers": "Transferts inter-sites",
     "modifierAnalytics": "Analyse des modificateurs",
     "restocks": "Réapprovisionnements",
-    "customerGroups": "Groupes de clients"
+    "customerGroups": "Groupes de clients",
+    "bundles": "Combos et forfaits",
+    "reportSalesSummary": "Résumé des ventes",
+    "reportSalesByItem": "Ventes par article",
+    "reportSalesByCategory": "Ventes par catégorie",
+    "reportPaymentMethods": "Moyens de paiement",
+    "reportRefunds": "Remboursements",
+    "reportHomeCharts": "Graphiques",
+    "reportPayLaterAging": "Comptes clients"
   },
   "reservationsMenu": {
     "overview": "Aperçu",

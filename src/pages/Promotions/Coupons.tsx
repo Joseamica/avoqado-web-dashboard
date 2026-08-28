@@ -387,10 +387,10 @@ export default function Coupons() {
 
             <Select value={activeFilter || 'all'} onValueChange={value => setActiveFilter(value === 'all' ? '' : value)}>
               <SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
-                <SelectValue placeholder={t('coupons.list.filters.allDiscounts')} />
+                <SelectValue placeholder={t('coupons.list.filters.allStatuses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('coupons.list.filters.allDiscounts')}</SelectItem>
+                <SelectItem value="all">{t('coupons.list.filters.allStatuses')}</SelectItem>
                 <SelectItem value="active">{t('coupons.list.filters.active')}</SelectItem>
                 <SelectItem value="inactive">{t('coupons.list.filters.inactive')}</SelectItem>
               </SelectContent>

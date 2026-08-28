@@ -80,6 +80,12 @@ const routeKeyMap: Record<string, string> = {
   services: 'menu:menumaker.nav.services',
   'modifier-groups': 'menu:menumaker.nav.modifierGroups',
   groups: 'sidebar:routes.customerGroups',
+  bundles: 'sidebar:routes.bundles',
+  'sales-summary': 'sidebar:routes.reportSalesSummary',
+  'sales-by-item': 'sidebar:routes.reportSalesByItem',
+  'sales-by-category': 'sidebar:routes.reportSalesByCategory',
+  'home-charts': 'sidebar:routes.reportHomeCharts',
+  'pay-later-aging': 'sidebar:routes.reportPayLaterAging',
   // Inventario y compras
   inventory: 'sidebar:routes.inventory',
   suppliers: 'sidebar:routes.suppliers',

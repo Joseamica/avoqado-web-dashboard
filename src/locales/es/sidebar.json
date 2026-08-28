@@ -210,7 +210,15 @@
     "interVenueTransfers": "Traslados entre sucursales",
     "modifierAnalytics": "Análisis de modificadores",
     "restocks": "Reabastecimientos",
-    "customerGroups": "Grupos de clientes"
+    "customerGroups": "Grupos de clientes",
+    "bundles": "Combos y paquetes",
+    "reportSalesSummary": "Resumen de ventas",
+    "reportSalesByItem": "Ventas por artículo",
+    "reportSalesByCategory": "Ventas por categoría",
+    "reportPaymentMethods": "Métodos de pago",
+    "reportRefunds": "Reembolsos",
+    "reportHomeCharts": "Gráficas",
+    "reportPayLaterAging": "Cuentas por cobrar"
   },
   "paymentLinksMenu": {
     "links": "Ligas de pago",

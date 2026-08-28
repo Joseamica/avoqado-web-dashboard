@@ -29,7 +29,8 @@
         "automatic": "Solo Automáticos",
         "manual": "Solo Manuales",
         "active": "Solo Activos",
-        "inactive": "Solo Inactivos"
+        "inactive": "Solo Inactivos",
+        "allStatuses": "Todos los Estados"
       }
     },
     "detail": {
@@ -362,7 +363,8 @@
         "allDiscounts": "Todos los Descuentos",
         "active": "Solo Activos",
         "inactive": "Solo Inactivos",
-        "createDiscount": "Crear Descuento"
+        "createDiscount": "Crear Descuento",
+        "allStatuses": "Todos los Estados"
       }
     },
     "detail": {
@@ -533,11 +535,27 @@
     "list": {
       "emptyState": "Sin promociones todavía",
       "emptyStateDesc": "Crea tu primer combo o 2x1. Se guarda como borrador y no aparece en el POS hasta que lo publiques.",
-      "name": "Promoción", "mode": "Tipo de precio", "modeFixed": "Precio fijo", "modePerUnit": "2x1 / NxM",
-      "price": "Precio", "status": "Estado", "filterAll": "Todas", "searchPlaceholder": "Buscar promoción…"
+      "name": "Promoción",
+      "mode": "Tipo de precio",
+      "modeFixed": "Precio fijo",
+      "modePerUnit": "2x1 / NxM",
+      "price": "Precio",
+      "status": "Estado",
+      "filterAll": "Todas",
+      "searchPlaceholder": "Buscar promoción…"
     },
-    "status": { "DRAFT": "Borrador", "PUBLISHED": "Publicada", "ARCHIVED": "Archivada" },
-    "actions": { "edit": "Editar", "publish": "Publicar", "archive": "Archivar", "unarchive": "Desarchivar", "delete": "Borrar borrador" },
+    "status": {
+      "DRAFT": "Borrador",
+      "PUBLISHED": "Publicada",
+      "ARCHIVED": "Archivada"
+    },
+    "actions": {
+      "edit": "Editar",
+      "publish": "Publicar",
+      "archive": "Archivar",
+      "unarchive": "Desarchivar",
+      "delete": "Borrar borrador"
+    },
     "toasts": {
       "published": "Promoción publicada: ya aparece en el POS",
       "publishFailed": "No se pudo publicar la promoción",
@@ -548,47 +566,69 @@
       "deleted": "Borrador eliminado",
       "deleteFailed": "No se pudo borrar"
     },
-    "publishErrors": { "title": "Así no se puede publicar", "ok": "Entendido" },
+    "publishErrors": {
+      "title": "Así no se puede publicar",
+      "ok": "Entendido"
+    },
     "delete": {
       "title": "¿Borrar \"{{name}}\"?",
       "description": "Sólo se borran borradores sin ventas. Esta acción no se puede deshacer.",
-      "cancel": "Cancelar", "confirm": "Borrar"
+      "cancel": "Cancelar",
+      "confirm": "Borrar"
     },
     "form": {
-      "createTitle": "Nueva promoción", "editTitle": "Editar promoción",
+      "createTitle": "Nueva promoción",
+      "editTitle": "Editar promoción",
       "subtitle": "Se guarda como borrador. Publicarla es un paso aparte.",
-      "save": "Guardar borrador", "saving": "Guardando…",
+      "save": "Guardar borrador",
+      "saving": "Guardando…",
       "savedNew": "Borrador guardado. Publícalo cuando esté listo.",
       "savedEdit": "Cambios guardados. Lo ya vendido no cambia.",
       "saveFailed": "No se pudo guardar",
-      "name": "Nombre", "namePlaceholder": "Combo del día",
+      "name": "Nombre",
+      "namePlaceholder": "Combo del día",
       "description": "Descripción (opcional)",
-      "image": "Foto (opcional)", "imageUpload": "Subir foto", "imageConfirm": "Usar recorte", "imageCancel": "Cancelar", "imageRemove": "Quitar foto",
+      "image": "Foto (opcional)",
+      "imageUpload": "Subir foto",
+      "imageConfirm": "Usar recorte",
+      "imageCancel": "Cancelar",
+      "imageRemove": "Quitar foto",
       "pricingMode": "¿Cómo se cobra?",
-      "modeFixed": "Precio fijo del paquete", "modePerUnit": "2x1 / paga menos unidades",
+      "modeFixed": "Precio fijo del paquete",
+      "modePerUnit": "2x1 / paga menos unidades",
       "modeFixedHelp": "El paquete cuesta lo que digas aquí, sin importar lo que sumen los productos.",
       "modePerUnitHelp": "Entran más unidades de las que se cobran: en un 2x1 entran 2 y se cobra 1.",
       "price": "Precio del paquete",
-      "groups": "Qué incluye", "addGroup": "Agregar parte",
+      "groups": "Qué incluye",
+      "addGroup": "Agregar parte",
       "groupsHelp": "Cada parte es algo que incluye la promoción. Si una parte tiene varias opciones, el cliente elige una.",
       "groupNamePlaceholder": "Ej. Elige tu plato",
-      "product": "Producto", "productPlaceholder": "Elegir producto…",
-      "quantity": "Entran", "chargedQuantity": "Se cobran", "priceDelta": "Sobreprecio",
+      "product": "Producto",
+      "productPlaceholder": "Elegir producto…",
+      "quantity": "Entran",
+      "chargedQuantity": "Se cobran",
+      "priceDelta": "Sobreprecio",
       "addOption": "Agregar opción",
       "perUnitRowHelp": "\"Entran\" es lo que se lleva el cliente; \"se cobran\" es lo que paga. 2x1 = entran 2, se cobra 1.",
       "fixedRowHelp": "El sobreprecio se suma al precio del paquete si el cliente elige esa opción.",
       "schedule": "Vigencia (opcional)",
       "scheduleHelp": "Sin vigencia, la promoción aplica siempre que esté publicada.",
-      "validFrom": "Desde", "validUntil": "Hasta", "timeFrom": "Hora inicio", "timeUntil": "Hora fin",
+      "validFrom": "Desde",
+      "validUntil": "Hasta",
+      "timeFrom": "Hora inicio",
+      "timeUntil": "Hora fin",
       "daysHelp": "Sin días marcados aplica todos los días."
     },
     "panel": {
       "title": "Dónde se ven en el POS",
       "description": "Elige cómo aparecen las promociones publicadas en cada pantalla. Ocultarlas aquí es una preferencia de diseño: puedes revertirlo cuando quieras.",
-      "cashier": "Pantalla del cajero", "customer": "Pantalla del cliente",
+      "cashier": "Pantalla del cajero",
+      "customer": "Pantalla del cliente",
       "cashierHelp": "Pestaña deja más espacio a la cuadrícula; panel lateral las tiene siempre a la vista.",
       "customerHelp": "Lo que ve el cliente mientras le cobran.",
-      "tab": "Pestaña", "sidePanel": "Panel lateral", "hidden": "Ocultas",
+      "tab": "Pestaña",
+      "sidePanel": "Panel lateral",
+      "hidden": "Ocultas",
       "saved": "Ajuste guardado",
       "saveError": "No se pudo guardar el ajuste. Intenta de nuevo."
     },
@@ -602,13 +642,20 @@
       "startGuide": "Iniciar guía"
     },
     "tour": {
-      "welcomeTitle": "Promociones", "welcomeDesc": "Aquí viven tus combos, paquetes y 2x1. Nada de lo que hagas aquí cobra distinto hasta que publiques.",
-      "createTitle": "Crear", "createDesc": "Todo empieza como borrador: puedes armarlo con calma.",
-      "modeTitle": "¿Cómo se cobra?", "modeDesc": "Precio fijo (\"todo por $99\") o 2x1 (entran 2, se cobra 1).",
-      "groupsTitle": "Qué incluye", "groupsDesc": "Cada parte del combo. Si una parte tiene varias opciones, el cliente elige.",
-      "saveTitle": "Guardar", "saveDesc": "Guarda el borrador. Aún no lo ve nadie.",
-      "publishTitle": "Publicar", "publishDesc": "Este es el interruptor real: al publicar, la promoción aparece en el POS. Si algo está mal armado te decimos TODO lo que falta, de una vez.",
-      "panelTitle": "Dónde se ve", "panelDesc": "Pestaña, panel lateral u oculta — por pantalla. Y listo: no hay que tocar las terminales."
+      "welcomeTitle": "Promociones",
+      "welcomeDesc": "Aquí viven tus combos, paquetes y 2x1. Nada de lo que hagas aquí cobra distinto hasta que publiques.",
+      "createTitle": "Crear",
+      "createDesc": "Todo empieza como borrador: puedes armarlo con calma.",
+      "modeTitle": "¿Cómo se cobra?",
+      "modeDesc": "Precio fijo (\"todo por $99\") o 2x1 (entran 2, se cobra 1).",
+      "groupsTitle": "Qué incluye",
+      "groupsDesc": "Cada parte del combo. Si una parte tiene varias opciones, el cliente elige.",
+      "saveTitle": "Guardar",
+      "saveDesc": "Guarda el borrador. Aún no lo ve nadie.",
+      "publishTitle": "Publicar",
+      "publishDesc": "Este es el interruptor real: al publicar, la promoción aparece en el POS. Si algo está mal armado te decimos TODO lo que falta, de una vez.",
+      "panelTitle": "Dónde se ve",
+      "panelDesc": "Pestaña, panel lateral u oculta — por pantalla. Y listo: no hay que tocar las terminales."
     }
   }
 }

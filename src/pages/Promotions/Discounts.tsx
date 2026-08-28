@@ -442,10 +442,10 @@ export default function Discounts() {
 
 						<Select value={activeFilter || 'all'} onValueChange={(value) => setActiveFilter(value === 'all' ? '' : value)}>
 							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
-								<SelectValue placeholder={t('discounts.list.filters.allTypes')} />
+								<SelectValue placeholder={t('discounts.list.filters.allStatuses')} />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">{t('discounts.list.filters.allTypes')}</SelectItem>
+								<SelectItem value="all">{t('discounts.list.filters.allStatuses')}</SelectItem>
 								<SelectItem value="active">{t('discounts.list.filters.active')}</SelectItem>
 								<SelectItem value="inactive">{t('discounts.list.filters.inactive')}</SelectItem>
 							</SelectContent>

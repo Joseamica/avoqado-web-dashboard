@@ -212,7 +212,15 @@
     "interVenueTransfers": "Inter-venue Transfers",
     "modifierAnalytics": "Modifier Analytics",
     "restocks": "Restocks",
-    "customerGroups": "Customer groups"
+    "customerGroups": "Customer groups",
+    "bundles": "Bundles and combos",
+    "reportSalesSummary": "Sales summary",
+    "reportSalesByItem": "Sales by item",
+    "reportSalesByCategory": "Sales by category",
+    "reportPaymentMethods": "Payment methods",
+    "reportRefunds": "Refunds",
+    "reportHomeCharts": "Charts",
+    "reportPayLaterAging": "Accounts receivable"
   },
   "paymentLinksMenu": {
     "links": "Payment links",
