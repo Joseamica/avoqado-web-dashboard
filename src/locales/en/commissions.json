@@ -232,7 +232,7 @@
     "CREATOR": "Who took the order",
     "CREATOR_DESC": "Who entered the order in the system",
     "SERVER": "Who attended",
-    "SERVER_DESC": "Who served the customer at the table",
+    "SERVER_DESC": "Who served the customer",
     "PROCESSOR": "Who charged",
     "PROCESSOR_DESC": "Who processed the payment at the terminal"
   },

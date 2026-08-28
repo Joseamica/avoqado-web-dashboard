@@ -163,6 +163,8 @@ export interface WorkShiftAssignment {
   startTime: string
   endTime: string
   status: 'DRAFT' | 'PUBLISHED'
+  /** Revisión: se manda de vuelta al publicar (CAS todo-o-nada). */
+  updatedAt: string
 }
 
 export const attendanceService = {
@@ -231,8 +233,8 @@ export const attendanceService = {
     return response.data?.data ?? []
   },
   /** Publicar = "esta semana va": desde aquí cuenta para asistencia y comisiones. */
-  async publishWorkShiftAssignments(venueId: string, input: { from: string; to: string }): Promise<{ published: number }> {
+  async publishWorkShiftAssignments(venueId: string, input: { from: string; to: string; drafts: Array<{ id: string; updatedAt: string }> }): Promise<{ published: number; cleared: number; skipped: number }> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/work-shifts/assignments/publish`, input)
-    return response.data?.data ?? { published: 0 }
+    return response.data?.data ?? { published: 0, cleared: 0, skipped: 0 }
   },
 }

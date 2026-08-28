@@ -74,9 +74,16 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
   const templates = useMemo(() => templatesQ.data ?? [], [templatesQ.data])
   const activeTemplates = useMemo(() => templates.filter(x => x.active), [templates])
   const members = useMemo(() => (teamQ.data?.data ?? []).filter(m => m.active), [teamQ.data])
+  // Por celda conviven una fila PUBLISHED y una DRAFT (Codex, 2ª auditoría): el borrador NO despublica.
   const byCell = useMemo(() => {
-    const map = new Map<string, WorkShiftAssignment>()
-    for (const a of assignmentsQ.data ?? []) map.set(cellKey(a.staffVenueId, a.date), a)
+    const map = new Map<string, { published?: WorkShiftAssignment; draft?: WorkShiftAssignment }>()
+    for (const a of assignmentsQ.data ?? []) {
+      const key = cellKey(a.staffVenueId, a.date)
+      const cell = map.get(key) ?? {}
+      if (a.status === 'DRAFT') cell.draft = a
+      else cell.published = a
+      map.set(key, cell)
+    }
     return map
   }, [assignmentsQ.data])
 
@@ -88,7 +95,7 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
     toast({ title: t('shifts.toastError'), description: error?.response?.data?.message ?? error?.message, variant: 'destructive' })
 
   const saveDraft = useMutation({
-    mutationFn: () =>
+    mutationFn: (): Promise<WorkShiftAssignment[]> =>
       attendanceService.replaceWorkShiftAssignments(venueId, {
         from: week.from,
         to: week.to,
@@ -106,14 +113,33 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
   })
   const publish = useMutation({
     mutationFn: async () => {
-      if (Object.keys(draft).length) await saveDraft.mutateAsync()
-      return attendanceService.publishWorkShiftAssignments(venueId, { from: week.from, to: week.to })
+      // Se publica SÓLO lo que esta pantalla REVISÓ (los ids de los borradores que tiene enfrente);
+      // un borrador que otro gerente guardó después no se publica a ciegas (Codex, 2ª auditoría).
+      // Sólo lo que ESTA pantalla revisó: los borradores que ya tenía cargados + las celdas que acaba de
+      // editar. Un borrador ajeno que venga en la respuesta del guardado no se publica (Codex 3ª). Cada uno
+      // viaja con su revisión (`updatedAt`): si alguien lo cambió por debajo, el server contesta 409.
+      const known = new Set((assignmentsQ.data ?? []).filter(a => a.status === 'DRAFT').map(a => a.id))
+      const editedKeys = new Set(Object.keys(draft))
+      const rows = Object.keys(draft).length ? await saveDraft.mutateAsync() : (assignmentsQ.data ?? [])
+      const drafts = rows
+        .filter(a => a.status === 'DRAFT' && (known.has(a.id) || editedKeys.has(cellKey(a.staffVenueId, a.date))))
+        .map(a => ({ id: a.id, updatedAt: a.updatedAt }))
+      return attendanceService.publishWorkShiftAssignments(venueId, { from: week.from, to: week.to, drafts })
     },
     onSuccess: r => {
       invalidate()
-      toast({ title: t('shifts.toastPublished', { count: r.published }) })
+      toast({ title: t('shifts.toastPublished', { count: r.published + r.cleared }) })
+      if (r.skipped > 0) toast({ title: t('shifts.toastSkipped', { count: r.skipped }), variant: 'destructive' })
     },
-    onError: fail,
+    onError: (error: any) => {
+      if (error?.response?.status === 409) {
+        // alguien cambió un borrador que tenías enfrente: se recarga y se enseña antes de volver a publicar
+        invalidate()
+        toast({ title: t('shifts.toastConflict'), description: error?.response?.data?.message, variant: 'destructive' })
+        return
+      }
+      fail(error)
+    },
   })
   const saveTemplate = useMutation({
     mutationFn: (input: Partial<WorkShiftTemplate>) =>
@@ -153,6 +179,11 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
   }
   const dirty = Object.keys(draft).length > 0
   const hasDrafts = (assignmentsQ.data ?? []).some(a => a.status === 'DRAFT')
+  // Cambiar de semana con cambios sin guardar los tiraba en silencio (Codex P2): se bloquea y se ofrece descartar.
+  const goWeek = (delta: number) => {
+    if (dirty) return
+    setWeek(w => shiftWeekOffset(w, delta))
+  }
 
   return (
     <div className="space-y-4">
@@ -203,17 +234,22 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
       {/* Cuadrante semanal */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-full" onClick={() => setWeek(w => shiftWeekOffset(w, -1))} aria-label={t('shifts.week.prev')}>
+          <Button variant="outline" size="icon" className="rounded-full" disabled={dirty} onClick={() => goWeek(-1)} aria-label={t('shifts.week.prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium tabular-nums">{t('shifts.week.label', { from: dayLabel(week.from), to: dayLabel(week.to) })}</span>
-          <Button variant="outline" size="icon" className="rounded-full" onClick={() => setWeek(w => shiftWeekOffset(w, 1))} aria-label={t('shifts.week.next')}>
+          <Button variant="outline" size="icon" className="rounded-full" disabled={dirty} onClick={() => goWeek(1)} aria-label={t('shifts.week.next')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           {hasDrafts && (
             <Badge variant="outline" className="rounded-full">
               {t('shifts.week.hasDrafts')}
             </Badge>
+          )}
+          {dirty && canManage && (
+            <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setDraft({})}>
+              {t('shifts.week.discard')}
+            </Button>
           )}
         </div>
         {canManage && (
@@ -255,10 +291,12 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
                   <td className="px-3 py-2 whitespace-nowrap">{`${m.firstName} ${m.lastName}`.trim()}</td>
                   {week.days.map(d => {
                     const key = cellKey(m.id, d)
-                    const saved = byCell.get(key)
-                    const value = key in draft ? (draft[key] ?? '') : (saved?.templateId ?? '')
+                    const cell = byCell.get(key)
+                    const saved = cell?.draft ?? cell?.published
+                    // El borrador manda en pantalla; lo publicado sigue mandando en asistencia hasta publicar.
+                    const value = key in draft ? (draft[key] ?? '') : cell?.draft ? (cell.draft.templateId ?? '') : (cell?.published?.templateId ?? '')
                     const tpl = activeTemplates.find(x => x.id === value)
-                    const isDraft = key in draft || saved?.status === 'DRAFT'
+                    const isDraft = key in draft || !!cell?.draft
                     return (
                       <td key={d} className="px-1 py-1 text-center">
                         <select

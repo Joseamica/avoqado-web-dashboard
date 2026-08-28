@@ -102,6 +102,7 @@ const CURACION = {
   ],
   operations: [
     ['SHIFTS', ['shifts'], 'Shifts'],
+    ['CASH_DRAWER', ['cash-drawer'], 'Cash drawer'],
     ['TPV', ['tpv'], 'TPV Management'],
     ['INVENTORY', ['inventory'], 'Inventory'],
     ['INVENTORY_TRANSFERS', ['inventory-transfers'], 'Inter-venue Transfers'],

@@ -79,6 +79,7 @@ const routeKeyMap: Record<string, string> = {
   menus: 'menu:menumaker.nav.menus',
   services: 'menu:menumaker.nav.services',
   'modifier-groups': 'menu:menumaker.nav.modifierGroups',
+  groups: 'sidebar:routes.customerGroups',
   // Inventario y compras
   inventory: 'sidebar:routes.inventory',
   suppliers: 'sidebar:routes.suppliers',

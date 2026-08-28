@@ -57,7 +57,7 @@
     "log": "Pointages",
     "punctuality": "Ponctualité",
     "payroll": "Paie",
-    "shifts": "Équipes"
+    "shifts": "Quarts de travail"
   },
   "report": {
     "grace": "Tolérance : {{minutes}} min",
@@ -121,16 +121,16 @@
   },
   "shifts": {
     "disabled": {
-      "title": "Les équipes tournantes sont désactivées",
+      "title": "Les quarts tournants sont désactivés",
       "description": "Le personnel est évalué selon son horaire fixe. Si les équipes tournent (ouverture, milieu, fermeture), activez-les dans Paramètres.",
       "cta": "Activer dans Paramètres"
     },
     "templates": {
-      "title": "Équipes",
+      "title": "Quarts de travail",
       "description": "Vos équipes : nom, abréviation, couleur et horaire. Modifier une équipe ne réécrit jamais les semaines déjà publiées.",
-      "new": "Nouvelle équipe",
-      "edit": "Modifier l’équipe",
-      "empty": "Aucune équipe pour l’instant. Créez la première (ex. « Ouverture 08:00–16:00 »).",
+      "new": "Nouveau quart",
+      "edit": "Modifier le quart",
+      "empty": "Aucun quart pour l’instant. Créez le premier (ex. « Ouverture 08:00–16:00 »).",
       "name": "Nom",
       "abbreviation": "Abrév.",
       "start": "Début",
@@ -151,11 +151,14 @@
       "publish": "Publier la semaine",
       "noTeam": "Aucun personnel actif dans cet établissement.",
       "person": "Personne",
-      "legend": "Bordure pointillée = brouillon. Une fois publiée, l’équipe affectée prime sur l’horaire fixe ; des vacances ou un jour de repos saisis sur la personne priment sur tout."
+      "legend": "Bordure pointillée = brouillon. Une fois publiée, l’équipe affectée prime sur l’horaire fixe ; des vacances ou un jour de repos saisis sur la personne priment sur tout.",
+      "discard": "Annuler les modifications"
     },
     "toastError": "Impossible d’enregistrer",
     "toastDraftSaved": "Brouillon enregistré",
-    "toastPublished": "Semaine publiée ({{count}} équipes)",
-    "toastTemplateSaved": "Équipe enregistrée"
+    "toastPublished": "Semaine publiée ({{count}} quarts)",
+    "toastTemplateSaved": "Quart enregistré",
+    "toastSkipped": "{{count}} brouillon(s) enregistré(s) par quelqu’un d’autre n’ont pas été publiés : vérifiez-les et publiez à nouveau",
+    "toastConflict": "Quelqu’un a modifié un brouillon de cette semaine pendant votre révision. Rechargé : vérifiez les cases et publiez à nouveau."
   }
 }

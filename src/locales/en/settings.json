@@ -608,7 +608,8 @@
       "staff-documents_read": "View staff documents",
       "staff-documents_write": "Upload and remove staff documents",
       "class-sessions_read-assigned": "View own assigned class",
-      "customers_approve": "Approve new customers"
+      "customers_approve": "Approve new customers",
+      "cash-drawer_view-expected": "See expected drawer cash (not a blind count)"
     },
     "permissionDescriptions": {
       "tpv_command": "Enables the specific remote command options below.",
@@ -629,7 +630,8 @@
       "teams_invite": "Sends an email invitation to join the venue's team.",
       "loyalty_redeem": "Allows redeeming accumulated points at checkout.",
       "shifts_close": "Generates the cash register cut with the shift's sales summary.",
-      "orders_merge": "Allows combining two open checks into one and closing the source check. This cannot be undone."
+      "orders_merge": "Allows combining two open checks into one and closing the source check. This cannot be undone.",
+      "cash-drawer_view-expected": "Sees during the day how much cash should be in the physical drawer. Without it the cashier counts blind and sees the result on close."
     },
     "resources": {
       "home": "Home",
@@ -677,7 +679,8 @@
       "venue-crypto": "Crypto Payments",
       "commissions": "Commissions",
       "goals": "Goals",
-      "billing": "Billing"
+      "billing": "Billing",
+      "cash-drawer": "Cash drawer"
     },
     "impliedByInline": "included in",
     "includedInBadge": "Included",

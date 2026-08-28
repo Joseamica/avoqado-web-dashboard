@@ -20,11 +20,12 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella afc4781e8dd0c3a1.
- * ADMIN 103 · CASHIER 38 · HOST 17 · KITCHEN 9 · MANAGER 125 · OWNER 108 · SUPERADMIN 5 · VIEWER 16 · WAITER 42
+ * 9 roles · huella 84ebda68ca26de7b.
+ * ADMIN 104 · CASHIER 38 · HOST 17 · KITCHEN 9 · MANAGER 126 · OWNER 109 · SUPERADMIN 5 · VIEWER 16 · WAITER 42
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
+    'cash-drawer:view-expected',
     'class-sessions:read-assigned',
     'attendance:read',
     'attendance:manage',
@@ -200,6 +201,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:connect_self',
   ],
   MANAGER: [
+    'cash-drawer:view-expected',
     'class-sessions:read-assigned',
     'attendance:read',
     'attendance:manage',
@@ -327,6 +329,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'delivery-channels:read',
   ],
   OWNER: [
+    'cash-drawer:view-expected',
     'class-sessions:read-assigned',
     'attendance:read',
     'attendance:manage',
@@ -507,4 +510,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'afc4781e8dd0c3a1'
+export const DEFAULT_PERMISSIONS_DIGEST = '84ebda68ca26de7b'

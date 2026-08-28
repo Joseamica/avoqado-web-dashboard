@@ -387,7 +387,7 @@ export default function Customers() {
 							<DialogContent className="max-w-md">
 								<DialogHeader>
 									<DialogTitle>{t('form.createTitle')}</DialogTitle>
-									<DialogDescription>{t('subtitle')}</DialogDescription>
+									<DialogDescription>{t('form.newCustomerDescription')}</DialogDescription>
 								</DialogHeader>
 								<CustomerForm
 									venueId={venueId}

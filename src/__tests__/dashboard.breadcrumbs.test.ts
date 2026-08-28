@@ -52,7 +52,6 @@ const DEUDA_CONOCIDA = new Set([
   'kyc-required',
   'config',
   'local',
-  'groups',
   'google',
   'activos-fijos',
   'area-tickets',

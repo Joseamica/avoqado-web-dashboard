@@ -110,13 +110,15 @@
       "emailRequired": "El email es requerido",
       "emailInvalid": "Por favor ingresa un email válido",
       "phoneRequired": "El teléfono es requerido",
-      "phoneInvalid": "El teléfono debe tener al menos 10 caracteres"
+      "phoneInvalid": "El teléfono debe tener al menos 10 caracteres",
+      "emailOrPhoneRequired": "Pon al menos un correo o un teléfono para poder contactarlo"
     },
     "buttons": {
       "create": "Crear Cliente",
       "save": "Guardar Cambios",
       "cancel": "Cancelar"
-    }
+    },
+    "newCustomerDescription": "Con su nombre y un correo o un teléfono basta."
   },
   "delete": {
     "title": "Eliminar Cliente",

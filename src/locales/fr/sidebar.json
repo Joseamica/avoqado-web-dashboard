@@ -162,7 +162,8 @@
     "profitability": "Rentabilité",
     "interVenueTransfers": "Transferts inter-sites",
     "modifierAnalytics": "Analyse des modificateurs",
-    "restocks": "Réapprovisionnements"
+    "restocks": "Réapprovisionnements",
+    "customerGroups": "Groupes de clients"
   },
   "reservationsMenu": {
     "overview": "Aperçu",

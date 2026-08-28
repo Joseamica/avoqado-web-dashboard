@@ -151,11 +151,14 @@
       "publish": "Publicar semana",
       "noTeam": "No hay personal activo en este negocio.",
       "person": "Persona",
-      "legend": "Borde punteado = borrador. Al publicar, el turno asignado gana sobre la jornada fija; unas vacaciones o un día libre capturado en la persona siguen ganando sobre todo."
+      "legend": "Borde punteado = borrador. Al publicar, el turno asignado gana sobre la jornada fija; unas vacaciones o un día libre capturado en la persona siguen ganando sobre todo.",
+      "discard": "Descartar cambios"
     },
     "toastError": "No se pudo guardar",
     "toastDraftSaved": "Borrador guardado",
     "toastPublished": "Semana publicada ({{count}} turnos)",
-    "toastTemplateSaved": "Turno guardado"
+    "toastTemplateSaved": "Turno guardado",
+    "toastSkipped": "{{count}} borrador(es) de otra persona quedaron sin publicar: revísalos y vuelve a publicar",
+    "toastConflict": "Alguien cambió un borrador de esta semana mientras la revisabas. Se recargó: revisa las celdas y vuelve a publicar."
   }
 }

@@ -1,12 +1,12 @@
 {
   "title": "Programa de Referidos",
-  "subtitle": "Configura tu programa de referidos por tiers (premio por traer nuevos clientes)",
+  "subtitle": "Configura tu programa de referidos por niveles (premio por traer nuevos clientes)",
   "activate": {
     "header": "Activar el programa de referidos",
-    "description": "Permite que tus clientes recomienden a otros y ganen descuentos al alcanzar tiers de referidos calificados.",
+    "description": "Permite que tus clientes recomienden a otros y ganen descuentos al alcanzar niveles de referidos que ya compraron.",
     "newCustomerDiscount": "Premio al referido (su primera compra)",
     "newCustomerDiscountHint": "% de descuento que recibe la nueva persona en su primera compra usando el código",
-    "tiers": "Tiers del referidor",
+    "tiers": "Niveles de quien recomienda",
     "tierLevel": "Nivel",
     "tierReferralsRequired": "Referidos requeridos",
     "tierRewardPercent": "Premio %",

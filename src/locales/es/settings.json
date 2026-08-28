@@ -613,7 +613,8 @@
       "staff-documents_read": "Ver expediente del personal",
       "staff-documents_write": "Subir y dar de baja documentos del expediente",
       "class-sessions_read-assigned": "Ver su propia clase asignada",
-      "customers_approve": "Aprobar clientes nuevos"
+      "customers_approve": "Aprobar clientes nuevos",
+      "cash-drawer_view-expected": "Ver el efectivo esperado del cajón (sin conteo ciego)"
     },
     "permissionDescriptions": {
       "tpv_command": "Habilita las opciones de comandos remotos específicos a continuación.",
@@ -634,7 +635,8 @@
       "teams_invite": "Envía un correo de invitación para unirse al equipo del venue.",
       "loyalty_redeem": "Permite canjear puntos acumulados al momento de cobrar.",
       "shifts_close": "Genera el corte de caja con el resumen de ventas del turno.",
-      "orders_merge": "Permite juntar dos cuentas abiertas en una sola y cerrar la de origen. No se puede deshacer."
+      "orders_merge": "Permite juntar dos cuentas abiertas en una sola y cerrar la de origen. No se puede deshacer.",
+      "cash-drawer_view-expected": "Durante el día ve cuánto debería haber en el cajón físico. Sin este permiso el cajero cuenta a ciegas y ve el resultado al cerrar."
     },
     "resources": {
       "home": "Inicio",
@@ -682,7 +684,8 @@
       "tpv-messages": "Mensajes TPV",
       "serialized-inventory": "Inventario Serializado",
       "commissions": "Comisiones",
-      "goals": "Metas"
+      "goals": "Metas",
+      "cash-drawer": "Cajón físico"
     },
     "impliedByInline": "incluido en",
     "includedInBadge": "Incluido",

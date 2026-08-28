@@ -209,7 +209,8 @@
     "profitability": "Rentabilidad",
     "interVenueTransfers": "Traslados entre sucursales",
     "modifierAnalytics": "Análisis de modificadores",
-    "restocks": "Reabastecimientos"
+    "restocks": "Reabastecimientos",
+    "customerGroups": "Grupos de clientes"
   },
   "paymentLinksMenu": {
     "links": "Ligas de pago",

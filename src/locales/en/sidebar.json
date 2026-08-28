@@ -211,7 +211,8 @@
     "profitability": "Profitability",
     "interVenueTransfers": "Inter-venue Transfers",
     "modifierAnalytics": "Modifier Analytics",
-    "restocks": "Restocks"
+    "restocks": "Restocks",
+    "customerGroups": "Customer groups"
   },
   "paymentLinksMenu": {
     "links": "Payment links",

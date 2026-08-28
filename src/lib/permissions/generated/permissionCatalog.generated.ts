@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 69 categorías · 229 permisos · derivado de avoqado-server · huella 3dfb729f1338fa85.
+ * 70 categorías · 230 permisos · derivado de avoqado-server · huella ddc32d6dbb2433bc.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -123,6 +123,10 @@ export const PERMISSION_CATEGORIES = {
   SHIFTS: {
     label: 'Shifts',
     permissions: ['shifts:read', 'shifts:create', 'shifts:update', 'shifts:delete', 'shifts:close'],
+  },
+  CASH_DRAWER: {
+    label: 'Cash drawer',
+    permissions: ['cash-drawer:view-expected'],
   },
   TPV: {
     label: 'TPV Management',
@@ -423,6 +427,7 @@ export const SUPER_CATEGORY_KEYS = {
   ],
   'operations': [
     'SHIFTS',
+    'CASH_DRAWER',
     'TPV',
     'INVENTORY',
     'INVENTORY_TRANSFERS',
@@ -457,4 +462,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '3dfb729f1338fa85'
+export const CATALOG_DIGEST = 'ddc32d6dbb2433bc'

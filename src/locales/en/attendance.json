@@ -151,11 +151,14 @@
       "publish": "Publish week",
       "noTeam": "No active staff in this venue.",
       "person": "Person",
-      "legend": "Dashed border = draft. Once published, the assigned shift overrides the fixed schedule; a vacation or day off captured on the person still wins over everything."
+      "legend": "Dashed border = draft. Once published, the assigned shift overrides the fixed schedule; a vacation or day off captured on the person still wins over everything.",
+      "discard": "Discard changes"
     },
     "toastError": "Could not save",
     "toastDraftSaved": "Draft saved",
     "toastPublished": "Week published ({{count}} shifts)",
-    "toastTemplateSaved": "Shift saved"
+    "toastTemplateSaved": "Shift saved",
+    "toastSkipped": "{{count}} draft(s) saved by someone else were not published: review them and publish again",
+    "toastConflict": "Someone changed a draft this week while you were reviewing it. Reloaded: check the cells and publish again."
   }
 }

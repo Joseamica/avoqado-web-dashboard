@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { createCustomerSchema } from './customerSchema'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -36,16 +37,6 @@ interface CustomerFormProps {
 	groups: CustomerGroup[]
 	onSuccess: () => void
 }
-
-// Create schema with translations
-const createCustomerSchema = (t: (key: string) => string) =>
-	z.object({
-		firstName: z.string().min(1, t('form.validation.firstNameRequired')),
-		lastName: z.string().min(1, t('form.validation.lastNameRequired')),
-		email: z.string().email(t('form.validation.emailInvalid')).min(1, t('form.validation.emailRequired')),
-		phone: z.string().min(10, t('form.validation.phoneInvalid')),
-		customerGroupId: z.string().optional(),
-	})
 
 type CustomerFormData = z.infer<ReturnType<typeof createCustomerSchema>>
 
@@ -200,7 +191,7 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			</div>
 
 			<div className="space-y-2">
-				<Label htmlFor="email">{t('form.fields.email')} *</Label>
+				<Label htmlFor="email">{t('form.fields.email')}</Label>
 				<Input
 					id="email"
 					type="email"
@@ -213,7 +204,7 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			</div>
 
 			<div className="space-y-2">
-				<Label htmlFor="phone">{t('form.fields.phone')} *</Label>
+				<Label htmlFor="phone">{t('form.fields.phone')}</Label>
 				<Input
 					id="phone"
 					type="tel"

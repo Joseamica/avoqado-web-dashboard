@@ -110,13 +110,15 @@
       "emailRequired": "Email is required",
       "emailInvalid": "Please enter a valid email",
       "phoneRequired": "Phone number is required",
-      "phoneInvalid": "Phone number must be at least 10 characters"
+      "phoneInvalid": "Phone number must be at least 10 characters",
+      "emailOrPhoneRequired": "Add at least an email or a phone number so you can reach them"
     },
     "buttons": {
       "create": "Create Customer",
       "save": "Save Changes",
       "cancel": "Cancel"
-    }
+    },
+    "newCustomerDescription": "A name plus an email or a phone number is enough."
   },
   "delete": {
     "title": "Delete Customer",
