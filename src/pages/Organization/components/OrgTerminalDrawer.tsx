@@ -16,7 +16,21 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowRightLeft, ArrowUpCircle, ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, UserPlus, Wrench, X, Zap } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  ArrowUpCircle,
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  LogOut,
+  RefreshCcw,
+  RefreshCw,
+  Unlock,
+  UserPlus,
+  Wrench,
+  X,
+  Zap,
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -33,6 +47,14 @@ interface OrgTerminalDrawerProps {
   onEdit?: (terminal: OrgTerminal) => void
   onGenerateActivationCode?: (terminal: OrgTerminal) => void
   onRemoteActivate?: (terminal: OrgTerminal) => void
+  /**
+   * Cerrar las sesiones abiertas EN ESTE APARATO.
+   *
+   * No es lo mismo que «cerrar sesión en todos mis dispositivos», que va por PERSONA y la sacaría
+   * también de su propio teléfono. Esto es para la tablet perdida, robada, o la que se llevó
+   * alguien que ya no trabaja aquí.
+   */
+  onRevokeSessions?: (terminal: OrgTerminal) => void
   /** Open the venue-migration wizard for this terminal (OWNER only). */
   onMigrate?: (terminal: OrgTerminal) => void
   /** Open the standalone "give a person access" dialog for this terminal's venue (OWNER only). */
@@ -52,6 +74,7 @@ export function OrgTerminalDrawer({
   onEdit,
   onGenerateActivationCode,
   onRemoteActivate,
+  onRevokeSessions,
   onMigrate,
   onGrantAccess,
   isLockUnlockBusy,
@@ -106,9 +129,11 @@ export function OrgTerminalDrawer({
   const info = terminal
     ? getTerminalStatusInfo({ status: terminal.status, lastHeartbeat: terminal.lastHeartbeat, isLocked: terminal.isLocked })
     : null
-  const statusLabel = info ? t(`terminals.status.${info.statusKey === 'pending' ? 'pending' : info.statusKey}` as const, {
-    defaultValue: info.statusKey,
-  }) : ''
+  const statusLabel = info
+    ? t(`terminals.status.${info.statusKey === 'pending' ? 'pending' : info.statusKey}` as const, {
+        defaultValue: info.statusKey,
+      })
+    : ''
 
   return (
     <Sheet open={open} onOpenChange={o => !o && onClose()}>
@@ -122,7 +147,12 @@ export function OrgTerminalDrawer({
                 <h2 className="text-base font-semibold truncate">{terminal.name}</h2>
                 <p className="text-xs text-muted-foreground truncate">
                   {terminal.venue.name}
-                  {terminal.serialNumber && <> · <span className="font-mono">{terminal.serialNumber}</span></>}
+                  {terminal.serialNumber && (
+                    <>
+                      {' '}
+                      · <span className="font-mono">{terminal.serialNumber}</span>
+                    </>
+                  )}
                 </p>
                 <div className="mt-1 flex items-center gap-1.5">
                   <span className="text-xs">{statusLabel}</span>
@@ -163,12 +193,24 @@ export function OrgTerminalDrawer({
               {t('terminals.actions.syncData', { defaultValue: 'Sincronizar' })}
             </Button>
             {terminal.isLocked ? (
-              <Button variant="outline" size="sm" className="h-8 gap-1.5" disabled={isLockUnlockBusy} onClick={() => onCommand(terminal, 'UNLOCK')}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                disabled={isLockUnlockBusy}
+                onClick={() => onCommand(terminal, 'UNLOCK')}
+              >
                 <Unlock className="h-3.5 w-3.5" />
                 {t('terminals.actions.unlock')}
               </Button>
             ) : (
-              <Button variant="outline" size="sm" className="h-8 gap-1.5" disabled={isLockUnlockBusy} onClick={() => onCommand(terminal, 'LOCK')}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                disabled={isLockUnlockBusy}
+                onClick={() => onCommand(terminal, 'LOCK')}
+              >
                 <Lock className="h-3.5 w-3.5" />
                 {t('terminals.actions.lock')}
               </Button>
@@ -195,6 +237,17 @@ export function OrgTerminalDrawer({
                 {t('terminals.actions.generateCode')}
               </Button>
             )}
+            {onRevokeSessions && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-destructive hover:text-destructive"
+                onClick={() => onRevokeSessions(terminal)}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                {t('terminals.actions.revokeSessions', { defaultValue: 'Cerrar sesiones' })}
+              </Button>
+            )}
           </div>
         )}
 
@@ -207,9 +260,7 @@ export function OrgTerminalDrawer({
             </div>
           )}
 
-          {!isLoading && !terminal && terminalId && (
-            <p className="text-sm text-muted-foreground">{t('terminals.drawer.notFound')}</p>
-          )}
+          {!isLoading && !terminal && terminalId && <p className="text-sm text-muted-foreground">{t('terminals.drawer.notFound')}</p>}
 
           {terminal && (
             <>
@@ -281,16 +332,12 @@ export function OrgTerminalDrawer({
 
               {/* Health */}
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t('terminals.drawer.health')}
-                </h3>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('terminals.drawer.health')}</h3>
                 {terminal.healthScore === null ? (
                   <p className="text-sm text-muted-foreground">{t('terminals.drawer.healthNoData')}</p>
                 ) : (
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl font-semibold ${healthColor(terminal.healthScore)}`}>
-                      {terminal.healthScore}%
-                    </span>
+                    <span className={`text-2xl font-semibold ${healthColor(terminal.healthScore)}`}>{terminal.healthScore}%</span>
                     <span className="text-xs text-muted-foreground">{t('terminals.drawer.healthScore')}</span>
                   </div>
                 )}
@@ -299,9 +346,7 @@ export function OrgTerminalDrawer({
               {/* Merchants */}
               <section>
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t('terminals.drawer.merchants')}
-                  </h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('terminals.drawer.merchants')}</h3>
                   {onEditMerchants && (
                     <Button variant="ghost" size="sm" className="h-7 text-xs cursor-pointer" onClick={() => onEditMerchants(terminal)}>
                       {t('terminals.drawer.merchantsEdit')}
@@ -361,7 +406,12 @@ export function OrgTerminalDrawer({
                         {t('terminals.actions.migrate', { defaultValue: 'Migrar a otra sucursal' })}
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="h-8 justify-start text-destructive hover:text-destructive" onClick={() => onCommand(terminal, 'FACTORY_RESET')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 justify-start text-destructive hover:text-destructive"
+                      onClick={() => onCommand(terminal, 'FACTORY_RESET')}
+                    >
                       {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
                     </Button>
                     {onDelete && (

@@ -389,6 +389,14 @@ export interface OrgTerminal {
   activatedAt: string | null
   activationCode: string | null
   activationCodeExpiry: string | null
+  /**
+   * Identificador que el aparato reporta (`X-Device-Id`), no el serial impreso.
+   *
+   * Es lo que ata la terminal a sus sesiones: una PAX se reconoce por serial, pero una tablet
+   * Android o un iPad sólo por esto. Null en terminales dadas de alta a mano que nunca
+   * reportaron — para ésas, cerrar sesiones no aplica y el botón no se ofrece.
+   */
+  deviceUid?: string | null
   venue: { id: string; name: string; slug: string }
   /** In-flight venue migration, or null/undefined when none is pending. */
   migration?: OrgTerminalMigrationInfo | null
@@ -412,15 +420,7 @@ export interface OrgTerminalsResponse {
   summary: OrgTerminalsSummary
 }
 
-export type OrgTerminalSortBy =
-  | 'name'
-  | 'lastHeartbeat'
-  | 'status'
-  | 'type'
-  | 'brand'
-  | 'createdAt'
-  | 'latestHealthScore'
-  | 'venue.name'
+export type OrgTerminalSortBy = 'name' | 'lastHeartbeat' | 'status' | 'type' | 'brand' | 'createdAt' | 'latestHealthScore' | 'venue.name'
 
 export interface OrgTerminalsFilters {
   page?: number
@@ -594,20 +594,24 @@ export async function deleteOrgTerminal(orgId: string, terminalId: string) {
   return response.data.data
 }
 
-export async function generateOrgTerminalActivationCode(
-  orgId: string,
-  terminalId: string,
-): Promise<OrgActivationCodeResponse> {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/generate-activation-code`,
-  )
+/**
+ * Cierra las sesiones abiertas en un aparato — «sacar esta tablet».
+ *
+ * Va por VENUE y no por organización porque una sesión pertenece a un negocio: el mismo aparato
+ * podría haber operado en dos sucursales, y sacarlo de una no debe cerrarle la otra.
+ */
+export async function revokeTerminalSessions(venueId: string, deviceUid: string): Promise<{ closed: number }> {
+  const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/tpvs/${encodeURIComponent(deviceUid)}/sessions`)
+  return response.data?.data ?? { closed: 0 }
+}
+
+export async function generateOrgTerminalActivationCode(orgId: string, terminalId: string): Promise<OrgActivationCodeResponse> {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/generate-activation-code`)
   return response.data.data
 }
 
 export async function sendOrgTerminalRemoteActivation(orgId: string, terminalId: string) {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/remote-activate`,
-  )
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/remote-activate`)
   return response.data.data
 }
 
@@ -649,10 +653,7 @@ export async function getOrgAppVersions(orgId: string, environment: OrgAppEnviro
 }
 
 export async function assignOrgTerminalMerchants(orgId: string, terminalId: string, merchantIds: string[]) {
-  const response = await api.put(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/merchants`,
-    { merchantIds },
-  )
+  const response = await api.put(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/merchants`, { merchantIds })
   return response.data.data
 }
 
@@ -771,10 +772,10 @@ export async function migratePreflightForOrg(
   toVenueId: string,
   migrateMerchant?: boolean,
 ): Promise<OrgMigrationPreflight> {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-preflight`,
-    { toVenueId, migrateMerchant },
-  )
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-preflight`, {
+    toVenueId,
+    migrateMerchant,
+  })
   return response.data.data
 }
 
@@ -796,29 +797,21 @@ export async function migrateExecuteForOrg(
   assignedMerchantIds?: string[],
   migrateMerchant?: boolean,
 ): Promise<OrgMigrateExecuteResult> {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-execute`,
-    {
-      toVenueId,
-      ...(assignedMerchantIds?.length ? { assignedMerchantIds } : {}),
-      migrateMerchant,
-    },
-  )
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-execute`, {
+    toVenueId,
+    ...(assignedMerchantIds?.length ? { assignedMerchantIds } : {}),
+    migrateMerchant,
+  })
   return response.data.data
 }
 
 /**
  * Poll the status of an in-progress terminal migration.
  */
-export async function migrateStatusForOrg(
-  orgId: string,
-  terminalId: string,
-  commandId: string,
-): Promise<OrgMigrateStatus> {
-  const response = await api.get(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-status`,
-    { params: { commandId } },
-  )
+export async function migrateStatusForOrg(orgId: string, terminalId: string, commandId: string): Promise<OrgMigrateStatus> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-status`, {
+    params: { commandId },
+  })
   return response.data.data
 }
 
@@ -829,13 +822,8 @@ export async function migrateStatusForOrg(
  * pulled the FACTORY RESET, the backend returns an error with a message —
  * surface it as a toast.
  */
-export async function migrateCancelForOrg(
-  orgId: string,
-  terminalId: string,
-): Promise<{ cancelled: boolean; restoredVenueId: string }> {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-cancel`,
-  )
+export async function migrateCancelForOrg(orgId: string, terminalId: string): Promise<{ cancelled: boolean; restoredVenueId: string }> {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-cancel`)
   return response.data.data
 }
 
@@ -850,14 +838,7 @@ export async function migrateCancelForOrg(
 // destination's NO_STAFF_PIN blocker passes) and as a standalone action.
 
 /** Assignable staff role on a venue. Excludes SUPERADMIN/OWNER (not offered as grants). */
-export type OrgAssignableStaffRole =
-  | 'ADMIN'
-  | 'MANAGER'
-  | 'CASHIER'
-  | 'WAITER'
-  | 'KITCHEN'
-  | 'HOST'
-  | 'VIEWER'
+export type OrgAssignableStaffRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAITER' | 'KITCHEN' | 'HOST' | 'VIEWER'
 
 /** Any staff role the backend may report (for current-role pre-selection). */
 export type OrgStaffRole = OrgAssignableStaffRole | 'OWNER' | 'SUPERADMIN'
@@ -902,10 +883,9 @@ export async function fetchOrgVenueAccessCandidates(
   venueId: string,
   sourceVenueId?: string,
 ): Promise<OrgVenueAccessCandidate[]> {
-  const response = await api.get(
-    `/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/staff-access/candidates`,
-    { params: sourceVenueId ? { sourceVenueId } : undefined },
-  )
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/staff-access/candidates`, {
+    params: sourceVenueId ? { sourceVenueId } : undefined,
+  })
   return response.data.data
 }
 
@@ -918,9 +898,6 @@ export async function grantOrgVenueAccess(
   venueId: string,
   grants: OrgVenueAccessGrant[],
 ): Promise<OrgVenueAccessGrantResult[]> {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/staff-access`,
-    { grants },
-  )
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/staff-access`, { grants })
   return response.data.data
 }

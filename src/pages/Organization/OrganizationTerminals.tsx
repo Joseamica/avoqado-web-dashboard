@@ -42,6 +42,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { OrgTerminalDialog } from './components/OrgTerminalDialog'
 import { OrgTerminalMerchantDialog } from './components/OrgTerminalMerchantDialog'
 import { OrgTerminalDrawer } from './components/OrgTerminalDrawer'
+import { revokeTerminalSessions } from '@/services/organizationDashboard.service'
 import OrgMigrateTerminalWizard from './components/OrgMigrateTerminalWizard'
 import OrgGrantAccessDialog from './components/OrgGrantAccessDialog'
 import { OrgTerminalsBulkBar } from './components/OrgTerminalsBulkBar'
@@ -130,8 +131,7 @@ export default function OrganizationTerminals() {
     statuses: statusFilter.length > 0 ? statusFilter : undefined,
     types: typeFilter.length > 0 ? typeFilter : undefined,
     venueIds: venueFilter.length > 0 ? venueFilter : undefined,
-    versionStatuses:
-      versionFilter.length > 0 ? (versionFilter as OrgTerminalsFilters['versionStatuses']) : undefined,
+    versionStatuses: versionFilter.length > 0 ? (versionFilter as OrgTerminalsFilters['versionStatuses']) : undefined,
     sortBy: sort.sortBy,
     sortOrder: sort.sortOrder,
   }
@@ -169,45 +169,63 @@ export default function OrganizationTerminals() {
   )
 
   const setSearchValue = (q: string) =>
-    updateParams(p => {
-      if (q) p.set('q', q)
-      else p.delete('q')
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        if (q) p.set('q', q)
+        else p.delete('q')
+      },
+      { resetPage: true },
+    )
 
   const setStatusValues = (values: string[]) =>
-    updateParams(p => {
-      if (values.length > 0) p.set('status', values.join(','))
-      else p.delete('status')
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        if (values.length > 0) p.set('status', values.join(','))
+        else p.delete('status')
+      },
+      { resetPage: true },
+    )
 
   const setTypeValues = (values: string[]) =>
-    updateParams(p => {
-      if (values.length > 0) p.set('type', values.join(','))
-      else p.delete('type')
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        if (values.length > 0) p.set('type', values.join(','))
+        else p.delete('type')
+      },
+      { resetPage: true },
+    )
 
   const setVenueValues = (values: string[]) =>
-    updateParams(p => {
-      if (values.length > 0) p.set('venue', values.join(','))
-      else p.delete('venue')
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        if (values.length > 0) p.set('venue', values.join(','))
+        else p.delete('venue')
+      },
+      { resetPage: true },
+    )
 
   const setVersionValues = (values: string[]) =>
-    updateParams(p => {
-      if (values.length > 0) p.set('version', values.join(','))
-      else p.delete('version')
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        if (values.length > 0) p.set('version', values.join(','))
+        else p.delete('version')
+      },
+      { resetPage: true },
+    )
 
   const setSort = (next: SortState) =>
-    updateParams(p => {
-      if (next.sortBy === DEFAULT_SORT.sortBy && next.sortOrder === DEFAULT_SORT.sortOrder) {
-        p.delete('sortBy')
-        p.delete('sortOrder')
-      } else {
-        p.set('sortBy', next.sortBy)
-        p.set('sortOrder', next.sortOrder)
-      }
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        if (next.sortBy === DEFAULT_SORT.sortBy && next.sortOrder === DEFAULT_SORT.sortOrder) {
+          p.delete('sortBy')
+          p.delete('sortOrder')
+        } else {
+          p.set('sortBy', next.sortBy)
+          p.set('sortOrder', next.sortOrder)
+        }
+      },
+      { resetPage: true },
+    )
 
   const setPage = (next: number) =>
     updateParams(p => {
@@ -221,20 +239,21 @@ export default function OrganizationTerminals() {
   }
 
   const handleClearAll = () => {
-    updateParams(p => {
-      p.delete('q')
-      p.delete('status')
-      p.delete('type')
-      p.delete('venue')
-      p.delete('version')
-    }, { resetPage: true })
+    updateParams(
+      p => {
+        p.delete('q')
+        p.delete('status')
+        p.delete('type')
+        p.delete('venue')
+        p.delete('version')
+      },
+      { resetPage: true },
+    )
   }
 
   // Drawer URL state (push for browser-back support)
-  const openDrawer = (terminal: OrgTerminal) =>
-    updateParams(p => p.set('terminal', terminal.id), { mode: 'push' })
-  const closeDrawer = () =>
-    updateParams(p => p.delete('terminal'), { mode: 'push' })
+  const openDrawer = (terminal: OrgTerminal) => updateParams(p => p.set('terminal', terminal.id), { mode: 'push' })
+  const closeDrawer = () => updateParams(p => p.delete('terminal'), { mode: 'push' })
 
   // Esc → close drawer (global keydown when drawer is open)
   useEffect(() => {
@@ -337,6 +356,25 @@ export default function OrganizationTerminals() {
     },
   })
 
+  const revokeSessionsMutation = useMutation({
+    mutationFn: ({ venueId, deviceUid }: { venueId: string; deviceUid: string }) => revokeTerminalSessions(venueId, deviceUid),
+    onSuccess: data => {
+      invalidateTerminals()
+      // Se dice CUÁNTAS se cerraron, incluido el cero: "no había nadie dentro" es información,
+      // y un mensaje de éxito sin número deja al dueño sin saber si funcionó.
+      toast({
+        title: t('terminals.toast.sessionsRevoked', { defaultValue: 'Sesiones cerradas' }),
+        description:
+          data.closed === 0
+            ? t('terminals.toast.sessionsRevokedNone', { defaultValue: 'Este aparato no tenía ninguna sesión abierta.' })
+            : t('terminals.toast.sessionsRevokedCount', {
+                count: data.closed,
+                defaultValue: 'Se cerraron {{count}} sesiones. Quien tenga el aparato tendrá que volver a entrar.',
+              }),
+      })
+    },
+  })
+
   const remoteActivationMutation = useMutation({
     mutationFn: (terminalId: string) => sendOrgTerminalRemoteActivation(orgId!, terminalId),
     onSuccess: () => {
@@ -400,18 +438,21 @@ export default function OrganizationTerminals() {
     }
   }
 
-  const confirmAction = (
-    title: string,
-    description: string,
-    action: () => void,
-    variant?: 'destructive' | 'default',
-  ) => {
+  const confirmAction = (title: string, description: string, action: () => void, variant?: 'destructive' | 'default') => {
     setConfirmDialog({ open: true, title, description, action, variant })
   }
 
   const handleCommandFromDrawer = (terminal: OrgTerminal, command: OrgTerminalCommand) => {
     const dangerous: OrgTerminalCommand[] = ['LOCK', 'FACTORY_RESET']
-    const confirmable: OrgTerminalCommand[] = ['LOCK', 'RESTART', 'CLEAR_CACHE', 'FACTORY_RESET', 'REMOTE_ACTIVATE', 'FORCE_UPDATE', 'SYNC_DATA']
+    const confirmable: OrgTerminalCommand[] = [
+      'LOCK',
+      'RESTART',
+      'CLEAR_CACHE',
+      'FACTORY_RESET',
+      'REMOTE_ACTIVATE',
+      'FORCE_UPDATE',
+      'SYNC_DATA',
+    ]
     if (confirmable.includes(command)) {
       confirmAction(
         t(`terminals.confirm.${command}.title` as const, { defaultValue: command }),
@@ -469,14 +510,11 @@ export default function OrganizationTerminals() {
 
   const isOrgEmpty = (summary?.total ?? 0) === 0
   const isFilterEmpty =
-    !isOrgEmpty && terminals.length === 0 &&
-    (debouncedSearch.length > 0 ||
-      statusFilter.length > 0 ||
-      typeFilter.length > 0 ||
-      venueFilter.length > 0 ||
-      versionFilter.length > 0)
+    !isOrgEmpty &&
+    terminals.length === 0 &&
+    (debouncedSearch.length > 0 || statusFilter.length > 0 || typeFilter.length > 0 || venueFilter.length > 0 || versionFilter.length > 0)
 
-  const fromCacheTerminal = drawerTerminalId ? terminals.find(t => t.id === drawerTerminalId) ?? null : null
+  const fromCacheTerminal = drawerTerminalId ? (terminals.find(t => t.id === drawerTerminalId) ?? null) : null
 
   return (
     <TooltipProvider>
@@ -626,6 +664,29 @@ export default function OrganizationTerminals() {
             }
             onGenerateActivationCode={terminal => activationCodeMutation.mutate(terminal.id)}
             onRemoteActivate={terminal => remoteActivationMutation.mutate(terminal.id)}
+            // La condición va DENTRO: una terminal dada de alta a mano que nunca se conectó no
+            // tiene `deviceUid` ni sesiones que cerrar, y ahí el botón avisa en vez de fallar.
+            onRevokeSessions={t2 => {
+              if (!t2.deviceUid) {
+                toast({
+                  title: t('terminals.toast.noDeviceUid', { defaultValue: 'Este aparato nunca se ha conectado' }),
+                  description: t('terminals.toast.noDeviceUidDesc', {
+                    defaultValue: 'No tiene sesiones que cerrar. Aparecerá aquí en cuanto alguien entre desde él.',
+                  }),
+                })
+                return
+              }
+              confirmAction(
+                t('terminals.confirm.revokeSessions.title', { defaultValue: 'Cerrar sesiones de este aparato' }),
+                t('terminals.confirm.revokeSessions.description', {
+                  name: t2.name,
+                  defaultValue:
+                    'Quien esté usando "{{name}}" saldrá al instante y tendrá que volver a entrar. No afecta a esa persona en otros aparatos.',
+                }),
+                () => revokeSessionsMutation.mutate({ venueId: t2.venue.id, deviceUid: t2.deviceUid! }),
+                'destructive',
+              )
+            }}
             onMigrate={openMigrateWizard}
             onGrantAccess={openGrantAccessDialog}
             isLockUnlockBusy={commandMutation.isPending}
@@ -664,12 +725,7 @@ export default function OrganizationTerminals() {
         {/* Standalone "give a person access" dialog (OWNER only) — grant role + PIN
             at the terminal's current venue, independent of a migration. */}
         {orgId && (
-          <OrgGrantAccessDialog
-            open={grantAccessOpen}
-            onOpenChange={setGrantAccessOpen}
-            orgId={orgId}
-            terminal={grantAccessTerminal}
-          />
+          <OrgGrantAccessDialog open={grantAccessOpen} onOpenChange={setGrantAccessOpen} orgId={orgId} terminal={grantAccessTerminal} />
         )}
 
         {/* Single-terminal command confirm */}
@@ -687,9 +743,7 @@ export default function OrganizationTerminals() {
                   setConfirmDialog(prev => ({ ...prev, open: false }))
                 }}
                 className={
-                  confirmDialog.variant === 'destructive'
-                    ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                    : ''
+                  confirmDialog.variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''
                 }
               >
                 {t('terminals.confirm.confirm')}
@@ -755,11 +809,7 @@ function EmptyOrgState({ onCreate }: { onCreate: () => void }) {
           <Plus className="h-4 w-4 mr-1.5" />
           {t('terminals.emptyOrg.cta')}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => window.open('https://docs.avoqado.io/terminals', '_blank', 'noopener,noreferrer')}
-        >
+        <Button variant="ghost" size="sm" onClick={() => window.open('https://docs.avoqado.io/terminals', '_blank', 'noopener,noreferrer')}>
           <BookOpen className="h-4 w-4 mr-1.5" />
           {t('terminals.emptyOrg.docs')}
         </Button>
