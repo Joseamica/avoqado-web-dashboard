@@ -1173,112 +1173,11 @@ export default function BasicInfo() {
                       )}
                     />
 
-                    {/* ── Asistencia (fase 2) — riel separado de la caja ── */}
-                    <FormField
-                      control={form.control}
-                      name="attendanceEnabled"
-                      render={({ field }) => (
-                        <div className="rounded-xl border border-border/50 bg-card shadow-sm mt-4">
-                          <FormItem className="flex flex-row items-center justify-between p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base cursor-pointer">{t('venue:attendance.title')}</FormLabel>
-                              <FormDescription>{t('venue:attendance.description')}</FormDescription>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {saveAttendance.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                              <FormControl>
-                                <Switch
-                                  checked={field.value ?? true}
-                                  onCheckedChange={checked => saveAttendance.mutate({ attendanceEnabled: checked })}
-                                  disabled={!canEdit || saveAttendance.isPending}
-                                />
-                              </FormControl>
-                            </div>
-                          </FormItem>
+                    {/* Los ajustes de ASISTENCIA (checador, tolerancia, aviso de retardo) y de
+                        TURNOS ROTATIVOS se movieron a Equipo → Asistencia: son ajustes de la
+                        gente, no del local. Es donde los pone Square (Staff & Payroll → Team).
+                        Decisión del founder, 28-ago. Ver `pages/Team/AsistenciaSettings.tsx`. */}
 
-                          {(field.value ?? true) ? (
-                            <div className="px-4 pb-4">
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="space-y-0.5">
-                                  <p className="text-sm font-medium">{t('venue:attendance.graceTitle')}</p>
-                                  <p className="text-xs text-muted-foreground">{t('venue:attendance.graceDesc')}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="number"
-                                    min={0}
-                                    max={120}
-                                    className="h-9 w-20 text-right"
-                                    value={form.watch('attendanceGraceMinutes') ?? ''}
-                                    onChange={e => {
-                                      const raw = e.target.value
-                                      form.setValue('attendanceGraceMinutes', raw === '' ? undefined : Number(raw), { shouldDirty: true })
-                                    }}
-                                    onBlur={() => {
-                                      const v = form.getValues('attendanceGraceMinutes')
-                                      if (v !== undefined && v !== (venue.settings?.attendanceGraceMinutes ?? 10)) {
-                                        saveAttendance.mutate({ attendanceGraceMinutes: v })
-                                      }
-                                    }}
-                                    disabled={!canEdit || saveAttendance.isPending}
-                                  />
-                                  <span className="text-xs text-muted-foreground">min</span>
-                                </div>
-                              </div>
-
-                              {/* Aviso EN VIVO de retardo. Va DENTRO de asistencia porque sin
-                                  checador no hay nada que avisar, y apagado de fábrica porque
-                                  manda correos: nadie empieza a recibirlos sin pedirlo. */}
-                              <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/50 pt-4">
-                                <div className="space-y-0.5">
-                                  <p className="text-sm font-medium">{t('venue:attendance.lateAlertTitle')}</p>
-                                  <p className="text-xs text-muted-foreground">{t('venue:attendance.lateAlertDesc')}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {saveAttendance.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                                  <Switch
-                                    checked={form.watch('attendanceLateAlertEnabled') ?? false}
-                                    onCheckedChange={checked => saveAttendance.mutate({ attendanceLateAlertEnabled: checked })}
-                                    disabled={!canEdit || saveAttendance.isPending}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="px-4 pb-4 text-xs text-muted-foreground">{t('venue:attendance.disabledHint')}</p>
-                          )}
-                        </div>
-                      )}
-                    />
-
-                    {/* ── Turnos rotativos (fase 1 "como Sesame") — capa opcional sobre la jornada fija ── */}
-                    <FormField
-                      control={form.control}
-                      name="rotatingShiftsEnabled"
-                      render={({ field }) => (
-                        <div className="rounded-xl border border-border/50 bg-card shadow-sm mt-4">
-                          <FormItem className="flex flex-row items-center justify-between p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base cursor-pointer">{t('venue:rotatingShifts.title')}</FormLabel>
-                              <FormDescription>{t('venue:rotatingShifts.description')}</FormDescription>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {saveAttendance.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                              <FormControl>
-                                <Switch
-                                  checked={field.value ?? false}
-                                  onCheckedChange={checked => saveAttendance.mutate({ rotatingShiftsEnabled: checked })}
-                                  disabled={!canEdit || saveAttendance.isPending || !form.getValues('attendanceEnabled')}
-                                />
-                              </FormControl>
-                            </div>
-                          </FormItem>
-                          <p className="px-4 pb-4 text-xs text-muted-foreground">
-                            {(field.value ?? false) ? t('venue:rotatingShifts.enabledHint') : t('venue:rotatingShifts.disabledHint')}
-                          </p>
-                        </div>
-                      )}
-                    />
 
                     {/* Propiedad de mesas (PRO — Modo restaurante iOS/Android) */}
                     <div className="mt-3 rounded-xl border border-border/50 bg-card shadow-sm">

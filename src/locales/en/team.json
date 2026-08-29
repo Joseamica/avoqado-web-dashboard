@@ -105,7 +105,8 @@
   },
   "tabs": {
     "members": "Members",
-    "invitations": "Pending Invitations"
+    "invitations": "Pending Invitations",
+    "attendance": "Attendance"
   },
   "columns": {
     "name": "Name",
@@ -138,7 +139,8 @@
   },
   "cards": {
     "pendingInvitationsTitle": "Pending Invitations",
-    "pendingInvitationsDesc": "These invitations are awaiting response. They expire automatically after 7 days."
+    "pendingInvitationsDesc": "These invitations are awaiting response. They expire automatically after 7 days.",
+    "attendanceDesc": "How your team's time clock works: who can clock in, how much grace there is, and who gets told about a late arrival."
   },
   "dialogs": {
     "editMemberTitle": "Edit Member",

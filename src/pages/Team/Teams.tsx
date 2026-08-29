@@ -1,3 +1,4 @@
+import api from '@/api'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, MoreHorizontal, Pencil, UserMinus, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
@@ -43,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import AsistenciaSettings from './AsistenciaSettings'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 
@@ -60,6 +62,14 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 // `data-tour="team-*"` y los textos de los steps en paralelo.
 export default function Teams() {
   const { venueId, fullBasePath } = useCurrentVenue()
+
+  // Misma llave que Ajustes → Editar negocio: comparten caché, y el invalidate de
+  // AsistenciaSettings refresca las dos pantallas.
+  const { data: venueData } = useQuery({
+    queryKey: ['get-venue-data', venueId],
+    queryFn: async () => (await api.get(`/api/v1/dashboard/venues/${venueId}`)).data,
+    enabled: !!venueId,
+  })
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const { can } = useAccess()
@@ -153,7 +163,7 @@ export default function Teams() {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [activeTeamTab, setActiveTeamTab] = useState<'members' | 'invitations'>('members')
+  const [activeTeamTab, setActiveTeamTab] = useState<'members' | 'invitations' | 'asistencia'>('members')
 
   const teamMembersQueryKey = ['team-members', venueId, pagination.pageIndex, pagination.pageSize] as const
 
@@ -845,6 +855,17 @@ export default function Teams() {
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
             </button>
+            <button
+              onClick={() => setActiveTeamTab('asistencia')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTeamTab === 'asistencia' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('tabs.attendance')}
+              {activeTeamTab === 'asistencia' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
           </nav>
         </div>
 
@@ -982,6 +1003,11 @@ export default function Teams() {
             searchPlaceholder={tCommon('search')}
             onSearch={handleInvitationSearch}
           />
+        </TabsContent>
+
+        <TabsContent value="asistencia" className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t('cards.attendanceDesc')}</p>
+          <AsistenciaSettings venueId={venueId} settings={venueData?.settings} canEdit={can('venues:update')} />
         </TabsContent>
       </Tabs>
 

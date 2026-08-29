@@ -131,6 +131,7 @@ export enum NotificationType {
 
   // Staff notifications
   SHIFT_REMINDER = 'SHIFT_REMINDER',
+  ATTENDANCE_LATE = 'ATTENDANCE_LATE',
   SHIFT_ENDED = 'SHIFT_ENDED',
   NEW_STAFF_JOINED = 'NEW_STAFF_JOINED',
 

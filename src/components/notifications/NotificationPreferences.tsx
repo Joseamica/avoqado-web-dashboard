@@ -114,7 +114,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
     orders: [NotificationType.NEW_ORDER, NotificationType.ORDER_UPDATED, NotificationType.ORDER_READY, NotificationType.ORDER_CANCELLED],
     payments: [NotificationType.PAYMENT_RECEIVED, NotificationType.PAYMENT_FAILED, NotificationType.REFUND_PROCESSED],
     reviews: [NotificationType.NEW_REVIEW, NotificationType.BAD_REVIEW, NotificationType.REVIEW_RESPONSE_NEEDED],
-    staff: [NotificationType.SHIFT_REMINDER, NotificationType.SHIFT_ENDED, NotificationType.NEW_STAFF_JOINED],
+    staff: [NotificationType.ATTENDANCE_LATE, NotificationType.SHIFT_REMINDER, NotificationType.SHIFT_ENDED, NotificationType.NEW_STAFF_JOINED],
     system: [
       NotificationType.POS_DISCONNECTED,
       NotificationType.POS_RECONNECTED,

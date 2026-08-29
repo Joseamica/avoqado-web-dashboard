@@ -133,6 +133,17 @@ export const notificationCategories: NotificationCategory[] = [
     description: 'Manage staff schedules, shifts, and team updates',
     types: [
       {
+        type: NotificationType.ATTENDANCE_LATE,
+        // Nace apagado a nivel NEGOCIO (`attendanceLateAlertEnabled`); esta preferencia es la
+        // segunda puerta, la de cada persona: "el negocio lo prendió, ¿yo lo quiero, y por dónde?".
+        // Correo por default porque el valor del aviso es enterarte cuando NO estás en el local.
+        defaultEnabled: true,
+        defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+        defaultPriority: NotificationPriority.NORMAL,
+        canDisable: true,
+        description: 'Avisar cuando alguien no ha checado y ya pasó su hora de entrada',
+      },
+      {
         type: NotificationType.SHIFT_REMINDER,
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.PUSH],

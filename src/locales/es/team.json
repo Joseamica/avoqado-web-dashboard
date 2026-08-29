@@ -105,7 +105,8 @@
   },
   "tabs": {
     "members": "Miembros",
-    "invitations": "Invitaciones Pendientes"
+    "invitations": "Invitaciones Pendientes",
+    "attendance": "Asistencia"
   },
   "columns": {
     "name": "Nombre",
@@ -138,7 +139,8 @@
   },
   "cards": {
     "pendingInvitationsTitle": "Invitaciones Pendientes",
-    "pendingInvitationsDesc": "Estas invitaciones están esperando respuesta. Expiran automáticamente después de 7 días."
+    "pendingInvitationsDesc": "Estas invitaciones están esperando respuesta. Expiran automáticamente después de 7 días.",
+    "attendanceDesc": "Cómo funciona el checador de tu equipo: quién puede checar, cuánta tolerancia hay y a quién se le avisa de un retardo."
   },
   "dialogs": {
     "editMemberTitle": "Editar Miembro",

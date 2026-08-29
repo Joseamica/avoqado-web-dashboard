@@ -92,7 +92,8 @@
   },
   "tabs": {
     "members": "Membres",
-    "invitations": "Invitations en Attente"
+    "invitations": "Invitations en Attente",
+    "attendance": "Présence"
   },
   "columns": {
     "name": "Nom",
@@ -119,7 +120,8 @@
   },
   "cards": {
     "pendingInvitationsTitle": "Invitations en Attente",
-    "pendingInvitationsDesc": "Ces invitations attendent une réponse. Elles expirent automatiquement après 7 jours."
+    "pendingInvitationsDesc": "Ces invitations attendent une réponse. Elles expirent automatiquement après 7 jours.",
+    "attendanceDesc": "Comment fonctionne la pointeuse de votre équipe : qui peut pointer, quelle tolérance et qui est prévenu d'un retard."
   },
   "dialogs": {
     "editMemberTitle": "Modifier le Membre",
