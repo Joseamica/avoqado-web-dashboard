@@ -665,6 +665,7 @@ export interface VenueSettings {
   rotatingShiftsEnabled?: boolean
   /** Minutos de gracia antes de contar un retardo. */
   attendanceGraceMinutes?: number
+  attendanceLateAlertEnabled?: boolean
   maxShiftDurationEnabled: boolean
   maxShiftDurationHours: number
 
@@ -1832,6 +1833,7 @@ export interface SessionVenue {
     attendanceEnabled?: boolean // viaja en auth/status y login: el sidebar y la pantalla de asistencia lo necesitan
     rotatingShiftsEnabled?: boolean // turnos rotativos (fase 1 "como Sesame"), viaja igual
     attendanceGraceMinutes?: number
+    attendanceLateAlertEnabled?: boolean
     /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
     enforceTableOwnership?: boolean
   } | null

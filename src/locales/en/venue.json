@@ -550,7 +550,9 @@
     "toastDisabled": "Attendance tracking disabled",
     "toastGraceSaved": "Grace saved",
     "toastSavedDesc": "Settings saved.",
-    "toastError": "Could not save settings"
+    "toastError": "Could not save settings",
+    "lateAlertTitle": "Alert me when someone is late",
+    "lateAlertDesc": "You get a dashboard notice and an email when someone hasn't clocked in past their start time plus the grace period. Only owner, admin and manager receive it."
   },
   "rotatingShifts": {
     "title": "Rotating shifts",

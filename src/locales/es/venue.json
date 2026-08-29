@@ -580,7 +580,9 @@
     "toastDisabled": "Control de asistencia desactivado",
     "toastGraceSaved": "Tolerancia guardada",
     "toastSavedDesc": "La configuración se guardó correctamente.",
-    "toastError": "Error al guardar la configuración"
+    "toastError": "Error al guardar la configuración",
+    "lateAlertTitle": "Avisarme si alguien llega tarde",
+    "lateAlertDesc": "Te llega al panel y por correo cuando alguien no ha checado y ya pasó su hora más la tolerancia. Sólo lo reciben dueño, administrador y gerente."
   },
   "rotatingShifts": {
     "title": "Turnos rotativos",

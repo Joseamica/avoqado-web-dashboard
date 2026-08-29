@@ -99,6 +99,7 @@ const basicInfoFormSchema = z.object({
   // Asistencia (fase 2). Independiente de enableShifts: caja y reloj son rieles distintos.
   attendanceEnabled: z.boolean().default(true).optional(),
   attendanceGraceMinutes: z.number().min(0).max(120).default(10).optional(),
+  attendanceLateAlertEnabled: z.boolean().default(false).optional(),
   // Turnos rotativos (fase 1 "como Sesame"). Apagado de fábrica; sólo cuenta si está prendido.
   rotatingShiftsEnabled: z.boolean().default(false).optional(),
 })
@@ -188,6 +189,7 @@ export default function BasicInfo() {
       attendanceEnabled: true,
       rotatingShiftsEnabled: false,
       attendanceGraceMinutes: 10,
+      attendanceLateAlertEnabled: false,
     },
   })
 
@@ -213,6 +215,7 @@ export default function BasicInfo() {
         autoClockOutEnabled: venue.settings?.autoClockOutEnabled ?? false,
         attendanceEnabled: venue.settings?.attendanceEnabled ?? true,
         attendanceGraceMinutes: venue.settings?.attendanceGraceMinutes ?? 10,
+        attendanceLateAlertEnabled: venue.settings?.attendanceLateAlertEnabled ?? false,
         rotatingShiftsEnabled: venue.settings?.rotatingShiftsEnabled ?? false,
         autoClockOutTime: venue.settings?.autoClockOutTime ?? null,
         maxShiftDurationEnabled: venue.settings?.maxShiftDurationEnabled ?? false,
@@ -330,15 +333,28 @@ export default function BasicInfo() {
   // (Android/iOS/TPV muestran el mensaje sin recompilar) y esconde la sección del menú.
   // NO toca turnos de caja.
   const saveAttendance = useMutation({
-    mutationFn: async (data: { attendanceEnabled?: boolean; attendanceGraceMinutes?: number; rotatingShiftsEnabled?: boolean }) => {
+    mutationFn: async (data: {
+      attendanceEnabled?: boolean
+      attendanceGraceMinutes?: number
+      rotatingShiftsEnabled?: boolean
+      attendanceLateAlertEnabled?: boolean
+    }) => {
       // Se devuelve lo que el servidor GUARDÓ, no lo que se pidió: un venue sin fila de
       // settings podía responder con otros valores (auditoría Codex fase 2, P2-1).
       const response = await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
-      const saved = (response.data?.data ?? response.data) as { attendanceEnabled?: boolean; attendanceGraceMinutes?: number; rotatingShiftsEnabled?: boolean }
+      const saved = (response.data?.data ?? response.data) as {
+        attendanceEnabled?: boolean
+        attendanceGraceMinutes?: number
+        rotatingShiftsEnabled?: boolean
+        attendanceLateAlertEnabled?: boolean
+      }
       return { requested: data, saved }
     },
     onSuccess: ({ requested, saved }) => {
       form.setValue('attendanceEnabled', saved.attendanceEnabled ?? requested.attendanceEnabled ?? true, { shouldDirty: false })
+      if (requested.attendanceLateAlertEnabled !== undefined) {
+        form.setValue('attendanceLateAlertEnabled', saved.attendanceLateAlertEnabled ?? requested.attendanceLateAlertEnabled, { shouldDirty: false })
+      }
       if (requested.rotatingShiftsEnabled !== undefined) {
         form.setValue('rotatingShiftsEnabled', saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled, { shouldDirty: false })
       }
@@ -366,6 +382,7 @@ export default function BasicInfo() {
       // que el servidor rechazó (auditoría Codex fase 2, hallazgo 4).
       form.setValue('attendanceEnabled', venue.settings?.attendanceEnabled ?? true, { shouldDirty: false })
       form.setValue('attendanceGraceMinutes', venue.settings?.attendanceGraceMinutes ?? 10, { shouldDirty: false })
+      form.setValue('attendanceLateAlertEnabled', venue.settings?.attendanceLateAlertEnabled ?? false, { shouldDirty: false })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
     },
   })
@@ -1206,6 +1223,24 @@ export default function BasicInfo() {
                                     disabled={!canEdit || saveAttendance.isPending}
                                   />
                                   <span className="text-xs text-muted-foreground">min</span>
+                                </div>
+                              </div>
+
+                              {/* Aviso EN VIVO de retardo. Va DENTRO de asistencia porque sin
+                                  checador no hay nada que avisar, y apagado de fábrica porque
+                                  manda correos: nadie empieza a recibirlos sin pedirlo. */}
+                              <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/50 pt-4">
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-medium">{t('venue:attendance.lateAlertTitle')}</p>
+                                  <p className="text-xs text-muted-foreground">{t('venue:attendance.lateAlertDesc')}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {saveAttendance.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                  <Switch
+                                    checked={form.watch('attendanceLateAlertEnabled') ?? false}
+                                    onCheckedChange={checked => saveAttendance.mutate({ attendanceLateAlertEnabled: checked })}
+                                    disabled={!canEdit || saveAttendance.isPending}
+                                  />
                                 </div>
                               </div>
                             </div>
