@@ -1,11 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { attendanceService, type PayrollSummaryRow } from '@/services/attendance.service'
+import { useAccess } from '@/hooks/use-access'
+import { OvertimeApprovalDialog } from './OvertimeApprovalDialog'
 import { LoadError } from './PunctualityReport'
 
 /**
@@ -22,8 +26,23 @@ interface Props {
 
 const ABSENCE_ORDER = ['VACATION', 'PAID_LEAVE', 'UNPAID_LEAVE', 'SICK_LEAVE', 'JUSTIFIED_ABSENCE'] as const
 
+/** 150 → "2h 30m". Los minutos crudos no se leen de un vistazo en una tabla de nómina. */
+function hm(minutos: number): string {
+  if (!minutos) return '—'
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  if (!h) return `${m}m`
+  return m ? `${h}h ${m}m` : `${h}h`
+}
+
 export function PayrollReport({ venueId, startDate, endDate }: Props) {
   const { t } = useTranslation('attendance')
+  const { can } = useAccess()
+  // Firmar lo que se paga NO es leer el reporte: quien sólo tiene `attendance:read` ve los
+  // números pero no puede autorizar. El servidor lo vuelve a exigir; esto sólo evita
+  // enseñar un botón que iba a rebotar delante del usuario.
+  const puedeAutorizar = can('attendance:manage')
+  const [revisando, setRevisando] = useState<PayrollSummaryRow | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['attendance', 'payroll', venueId, startDate, endDate],
@@ -58,6 +77,12 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
       ...ABSENCE_ORDER.map(absenceLabel),
       t('payroll.cols.hours'),
       t('payroll.cols.breaks'),
+      t('payroll.cols.overtime'),
+      t('payroll.cols.overtimeApproved'),
+      t('payroll.cols.overtimePending'),
+      t('payroll.cols.overtimeDouble'),
+      t('payroll.cols.overtimeTriple'),
+      t('payroll.cols.overtimeViolation'),
     ]
     const lines = rows.map(r =>
       [
@@ -70,6 +95,14 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
         ...ABSENCE_ORDER.map(k => r.absences[k] ?? 0),
         r.hoursWorked,
         r.breakMinutes,
+        // En MINUTOS crudos: el CSV se mete a un sistema de nómina que suma, no una persona
+        // que lee. En pantalla sí van como "2h 30m".
+        r.overtimeMinutes,
+        r.overtimeApprovedMinutes,
+        r.overtimePendingMinutes,
+        r.overtimeDoubleMinutes,
+        r.overtimeTripleMinutes,
+        r.hasOvertimeViolation ? t('payroll.overtime.yes') : '',
       ].join(','),
     )
     // BOM para que Excel en español abra los acentos bien.
@@ -80,6 +113,67 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
     link.download = `nomina-${startDate}-${endDate}.csv`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  const overtimeCell = (r: PayrollSummaryRow) => {
+    if (!r.overtimeMinutes) return <span className="text-muted-foreground">—</span>
+    // Una semana que el rango no cubre entera todavía puede mover el reparto doble/triple:
+    // se dice, en vez de enseñar un número que parece final y no lo es.
+    const parcial = r.overtimeWeeks.some(w => w.parcial)
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        <div className="text-right">
+          <div className="font-medium">{hm(r.overtimeMinutes)}</div>
+          {/* Lo PENDIENTE va primero y en ámbar: es lo único que pide una acción, y si no
+              saltara a la vista, exigir autorización se convertiría en no pagar en silencio. */}
+          {r.overtimePendingMinutes > 0 && (
+            <div className="text-[11px] font-medium text-amber-600">
+              {t('payroll.overtime.pending', { amount: hm(r.overtimePendingMinutes) })}
+            </div>
+          )}
+          {r.overtimeApprovedMinutes > 0 && (
+            <div className="text-[11px] text-muted-foreground">
+              {t('payroll.overtime.approved', { amount: hm(r.overtimeApprovedMinutes) })}
+            </div>
+          )}
+          {r.overtimeTripleMinutes > 0 && (
+            <div className="text-[11px] text-muted-foreground">
+              {t('payroll.overtime.split', {
+                double: hm(r.overtimeDoubleMinutes),
+                triple: hm(r.overtimeTripleMinutes),
+              })}
+            </div>
+          )}
+          {parcial && <div className="text-[11px] text-muted-foreground">{t('payroll.overtime.partial')}</div>}
+          {puedeAutorizar && (
+            <button
+              type="button"
+              className="mt-0.5 cursor-pointer text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setRevisando(r)}
+            >
+              {t('payroll.overtime.review')}
+            </button>
+          )}
+        </div>
+        {r.hasOvertimeViolation && (
+          // 🔴 El Provider va aquí a propósito: `Tooltip` es `Radix.Root` pelón y sin un
+          // Provider ancestro Radix REVIENTA en pantalla — y eso el typecheck no lo ve. El
+          // repo no tiene uno global; cada consumidor pone el suyo (PageTitleWithInfo,
+          // AddToAIButton). Anidarlos es seguro.
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertTriangle
+                  className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                  aria-label={t('payroll.overtime.violation')}
+                />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[260px]">{t('payroll.overtime.violationHelp')}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+    )
   }
 
   const absencesCell = (r: PayrollSummaryRow) => {
@@ -109,6 +203,7 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
                 <th className="px-4 py-3 font-medium text-right">{t('payroll.cols.absent')}</th>
                 <th className="px-4 py-3 font-medium">{t('payroll.cols.absences')}</th>
                 <th className="px-4 py-3 font-medium text-right">{t('payroll.cols.hours')}</th>
+                <th className="px-4 py-3 font-medium text-right">{t('payroll.cols.overtime')}</th>
               </tr>
             </thead>
             <tbody>
@@ -130,12 +225,23 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
                   <td className="px-4 py-3 text-right tabular-nums">{r.absentDays > 0 ? r.absentDays : '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{absencesCell(r)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.hoursWorked}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{overtimeCell(r)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </CardContent>
       </Card>
+
+      {puedeAutorizar && (
+        <OvertimeApprovalDialog
+          venueId={venueId}
+          startDate={startDate}
+          endDate={endDate}
+          persona={revisando}
+          onClose={() => setRevisando(null)}
+        />
+      )}
     </div>
   )
 }

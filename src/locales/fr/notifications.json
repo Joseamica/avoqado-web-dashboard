@@ -74,7 +74,8 @@
     "REVENUE_MILESTONE": "Jalon de Revenus",
     "ANNOUNCEMENT": "Annonce",
     "REMINDER": "Rappel",
-    "ALERT": "Alerte"
+    "ALERT": "Alerte",
+    "ATTENDANCE_LATE": "Retard de pointage"
   },
   "priorities": {
     "LOW": "Faible",
@@ -147,7 +148,8 @@
     "REVENUE_MILESTONE": "Célébration lorsque des jalons de revenus sont atteints",
     "ANNOUNCEMENT": "Annonces et nouvelles de la plateforme",
     "REMINDER": "Rappels personnalisés et notifications programmées",
-    "ALERT": "Alertes générales nécessitant votre attention"
+    "ALERT": "Alertes générales nécessitant votre attention",
+    "ATTENDANCE_LATE": "Alerter lorsqu'une personne n'a pas pointé après son heure d'entrée"
   },
   "channelNames": {
     "IN_APP": "Web",

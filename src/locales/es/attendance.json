@@ -104,12 +104,43 @@
       "absent": "Faltas",
       "absences": "Ausencias",
       "hours": "Horas",
-      "breaks": "Descanso (min)"
+      "breaks": "Descanso (min)",
+      "overtime": "Horas extra",
+      "overtimeDouble": "Extra dobles (min)",
+      "overtimeTriple": "Extra triples (min)",
+      "overtimeViolation": "Excede art. 66",
+      "overtimeApproved": "Extra autorizadas (min)",
+      "overtimePending": "Extra por autorizar (min)"
     },
     "lateCell": "{{days}} · {{minutes}} min",
     "empty": "Sin personal con actividad en el periodo.",
     "csv": "Exportar CSV",
-    "pending": "{{count}} por cerrar"
+    "pending": "{{count}} por cerrar",
+    "overtime": {
+      "split": "{{double}} dobles · {{triple}} triples",
+      "partial": "semana incompleta",
+      "violation": "Excede el límite legal",
+      "violationHelp": "Alguna semana rompe el artículo 66 de la Ley Federal del Trabajo: más de 3 horas extra en un día, o horas extra en más de 3 días. Se sigue pagando igual, pero es una infracción.",
+      "yes": "sí",
+      "pending": "{{amount}} por autorizar",
+      "approved": "{{amount}} autorizadas",
+      "review": "Revisar",
+      "approve": {
+        "title": "Horas extra de {{name}}",
+        "help": "Autoriza día por día. Puedes autorizar menos de lo que marcó el reloj, pero nunca más. Sólo lo autorizado se paga al doble o al triple.",
+        "measured": "El reloj marcó {{amount}}",
+        "current": "autorizadas {{amount}}",
+        "minutesLabel": "Minutos a autorizar",
+        "action": "Autorizar",
+        "change": "Cambiar",
+        "empty": "No hay horas extra en este periodo.",
+        "invalid": "Escribe un número entero de minutos.",
+        "tooMuch": "No puedes autorizar más de {{max}} minutos: es lo que marcó el reloj.",
+        "failed": "No se pudo autorizar. Intenta de nuevo.",
+        "denied": "no autorizadas",
+        "minutesUnit": "min"
+      }
+    }
   },
   "absenceTypes": {
     "REST": "Descanso",

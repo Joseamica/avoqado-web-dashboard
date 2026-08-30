@@ -75,7 +75,8 @@
     "DAILY_SALES_SUMMARY": "Resumen Diario de Ventas",
     "ANNOUNCEMENT": "Anuncio",
     "REMINDER": "Recordatorio",
-    "ALERT": "Alerta"
+    "ALERT": "Alerta",
+    "ATTENDANCE_LATE": "Retardo sin checar"
   },
   "priorities": {
     "LOW": "Baja",
@@ -151,7 +152,8 @@
     "DAILY_SALES_SUMMARY": "Correo nocturno con un resumen de las ventas del día",
     "ANNOUNCEMENT": "Anuncios y noticias de la plataforma",
     "REMINDER": "Recordatorios personalizados y notificaciones programadas",
-    "ALERT": "Alertas generales que requieren tu atención"
+    "ALERT": "Alertas generales que requieren tu atención",
+    "ATTENDANCE_LATE": "Avisar cuando alguien no ha checado y ya pasó su hora de entrada"
   },
   "channelNames": {
     "IN_APP": "Web",

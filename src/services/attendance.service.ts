@@ -71,6 +71,13 @@ export interface AttendanceReportRow {
   status: AttendanceStatus
   lateMinutes: number
   earlyLeaveMinutes: number
+  /** Minutos trabajados DESPUÉS de la salida del cuadrante, sin los descansos de esa ventana. */
+  overtimeMinutes: number
+  /**
+   * Minutos ya autorizados de ese día. `null` = NADIE lo ha revisado, que NO es lo mismo que
+   * 0 = revisado y negado. La pantalla necesita esa diferencia para saber qué falta por mirar.
+   */
+  overtimeApprovedMinutes: number | null
 }
 
 export interface AttendanceReport {
@@ -131,6 +138,37 @@ export interface PayrollSummaryRow {
   absences: Record<string, number>
   hoursWorked: number
   breakMinutes: number
+  /** Minutos extra MEDIDOS por el reloj (LFT art. 66-68). Llegar temprano no cuenta. */
+  overtimeMinutes: number
+  /** De lo medido, lo que alguien AUTORIZÓ. Es lo único que se paga. */
+  overtimeApprovedMinutes: number
+  /** Medido que NADIE ha revisado todavía. Es lo que hay que mirar. */
+  overtimePendingMinutes: number
+  /** Medido que se revisó y NO se autorizó. */
+  overtimeDeniedMinutes: number
+  /** Días cuya checada cambió DESPUÉS de autorizar: hay que volver a mirarlos. */
+  overtimeDaysToReview: string[]
+  /** De lo AUTORIZADO, lo que va al DOBLE: las primeras 9 h de CADA semana (art. 67). */
+  overtimeDoubleMinutes: number
+  /** De lo AUTORIZADO, lo que va al TRIPLE: lo que excede 9 h en una semana (art. 68). */
+  overtimeTripleMinutes: number
+  overtimeWeeks: OvertimeWeek[]
+  /** Alguna semana rompe el art. 66. Es infracción que hay que VER; no cambia lo que se paga. */
+  hasOvertimeViolation: boolean
+}
+
+/** El desglose por semana natural, que es donde vive el umbral de las 9 h. */
+export interface OvertimeWeek {
+  weekStart: string
+  weekEnd: string
+  minutosTotal: number
+  minutosDobles: number
+  minutosTriples: number
+  diasSobreTopeDiario: string[]
+  diasConExtra: number
+  excedeDiasPermitidos: boolean
+  /** El rango pedido no cubre la semana entera: su reparto doble/triple todavía puede moverse. */
+  parcial: boolean
 }
 
 export interface PayrollSummaryResponse {
@@ -185,6 +223,22 @@ export const attendanceService = {
   /** Reporte de puntualidad: cuadrante contra checadas, en la zona del negocio. */
   async getPayrollSummary(venueId: string, startDate: string, endDate: string): Promise<PayrollSummaryResponse> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/attendance/payroll-summary`, { params: { startDate, endDate } })
+    return response.data
+  },
+
+  /**
+   * Autoriza las horas extra de UN día. Se puede autorizar MENOS de lo medido (parcial) pero
+   * nunca más: el servidor recalcula lo trabajado y rechaza el exceso. 0 = revisado y negado.
+   */
+  async approveOvertime(
+    venueId: string,
+    staffVenueId: string,
+    body: { date: string; minutesApproved: number; note?: string },
+  ): Promise<{ staffVenueId: string; date: string; minutesApproved: number; minutesMeasured: number }> {
+    const response = await api.put(
+      `/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/overtime-approval`,
+      body,
+    )
     return response.data
   },
 

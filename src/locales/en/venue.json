@@ -552,7 +552,9 @@
     "toastSavedDesc": "Settings saved.",
     "toastError": "Could not save settings",
     "lateAlertTitle": "Alert me when someone is late",
-    "lateAlertDesc": "You get a dashboard notice and an email when someone hasn't clocked in past their start time plus the grace period. Only owner, admin and manager receive it."
+    "lateAlertDesc": "You get a dashboard notice and an email when someone hasn't clocked in past their start time plus the grace period. Only owner, admin and manager receive it.",
+    "lateAlertToastEnabled": "Late alert turned on",
+    "lateAlertToastDisabled": "Late alert turned off"
   },
   "rotatingShifts": {
     "title": "Rotating shifts",

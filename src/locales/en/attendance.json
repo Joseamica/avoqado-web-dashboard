@@ -104,12 +104,43 @@
       "absent": "Absent",
       "absences": "Leaves",
       "hours": "Hours",
-      "breaks": "Breaks (min)"
+      "breaks": "Breaks (min)",
+      "overtime": "Overtime",
+      "overtimeDouble": "Double-rate overtime (min)",
+      "overtimeTriple": "Triple-rate overtime (min)",
+      "overtimeViolation": "Exceeds art. 66",
+      "overtimeApproved": "Approved overtime (min)",
+      "overtimePending": "Overtime awaiting approval (min)"
     },
     "lateCell": "{{days}} · {{minutes}} min",
     "empty": "No staff activity in this period.",
     "csv": "Export CSV",
-    "pending": "{{count}} still open"
+    "pending": "{{count}} still open",
+    "overtime": {
+      "split": "{{double}} at double · {{triple}} at triple",
+      "partial": "incomplete week",
+      "violation": "Over the legal limit",
+      "violationHelp": "A week breaks article 66 of the Mexican Federal Labour Law: over 3 overtime hours in one day, or overtime on more than 3 days. Pay is unchanged, but it is a violation.",
+      "yes": "yes",
+      "pending": "{{amount}} awaiting approval",
+      "approved": "{{amount}} approved",
+      "review": "Review",
+      "approve": {
+        "title": "{{name}}'s overtime",
+        "help": "Approve day by day. You can approve less than the clock recorded, but never more. Only approved time is paid at double or triple rate.",
+        "measured": "Clock recorded {{amount}}",
+        "current": "{{amount}} approved",
+        "minutesLabel": "Minutes to approve",
+        "action": "Approve",
+        "change": "Change",
+        "empty": "No overtime in this period.",
+        "invalid": "Enter a whole number of minutes.",
+        "tooMuch": "You cannot approve more than {{max}} minutes: that is what the clock recorded.",
+        "failed": "Could not approve. Try again.",
+        "denied": "not approved",
+        "minutesUnit": "min"
+      }
+    }
   },
   "absenceTypes": {
     "REST": "Rest day",

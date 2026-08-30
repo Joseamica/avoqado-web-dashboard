@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import api from '@/api'
@@ -46,7 +46,35 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
   const [aviso, setAviso] = useState(settings?.attendanceLateAlertEnabled ?? false)
   const [turnosRotativos, setTurnosRotativos] = useState(settings?.rotatingShiftsEnabled ?? false)
 
+  /**
+   * 🔴 El estado local es una CAPA OPTIMISTA sobre los ajustes, no una copia que se saca una vez.
+   *
+   * P2 #1 de Codex (29-ago): `useState(settings?...)` sólo lee al montar. Con la red lenta, abrir
+   * la pestaña antes de que termine el GET dejaba los valores por DEFECTO (checador on, tolerancia
+   * 10) fijos para siempre — y bastaba enfocar y desenfocar ese 10 para **guardarlo encima de la
+   * tolerancia real**, que podía ser 20. Pérdida de dato silenciosa, no sólo un valor mal pintado.
+   * Cambiar de sucursal con la pestaña montada tenía el mismo problema: conservaba lo del venue
+   * anterior.
+   *
+   * No se sincroniza mientras hay un guardado EN VUELO: ahí el valor bueno es el que el usuario
+   * acaba de tocar, no el que todavía devuelve la caché.
+   */
+  const guardadoEnVuelo = useRef(false)
+  useEffect(() => {
+    if (guardadoEnVuelo.current) return
+    setChecador(settings?.attendanceEnabled ?? true)
+    setTolerancia(settings?.attendanceGraceMinutes ?? 10)
+    setAviso(settings?.attendanceLateAlertEnabled ?? false)
+    setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
+  }, [venueId, settings])
+
   const guardar = useMutation({
+    onMutate: () => {
+      guardadoEnVuelo.current = true
+    },
+    onSettled: () => {
+      guardadoEnVuelo.current = false
+    },
     mutationFn: async (data: AjustesDeAsistencia) => {
       // 🔴 Se devuelve lo que el servidor GUARDÓ, no lo que se pidió: un venue sin fila de
       // settings podía responder con otros valores (auditoría Codex fase 2, P2-1).
@@ -67,7 +95,11 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
             ? requested.rotatingShiftsEnabled
               ? t('venue:rotatingShifts.toastEnabled')
               : t('venue:rotatingShifts.toastDisabled')
-            : requested.attendanceEnabled === undefined
+            : requested.attendanceLateAlertEnabled !== undefined
+              ? requested.attendanceLateAlertEnabled
+                ? t('venue:attendance.lateAlertToastEnabled')
+                : t('venue:attendance.lateAlertToastDisabled')
+              : requested.attendanceEnabled === undefined
               ? t('venue:attendance.toastGraceSaved')
               : requested.attendanceEnabled
                 ? t('venue:attendance.toastEnabled')
@@ -100,6 +132,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
           <div className="flex items-center gap-2">
             {ocupado && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             <Switch
+              aria-label={t('venue:attendance.title')}
               checked={checador}
               onCheckedChange={checked => {
                 setChecador(checked)
@@ -120,6 +153,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
               </div>
               <div className="flex items-center gap-2">
                 <Input
+                  aria-label={t('venue:attendance.graceTitle')}
                   type="number"
                   min={0}
                   max={120}
@@ -127,7 +161,11 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                   value={tolerancia}
                   onChange={e => setTolerancia(e.target.value === '' ? '' : Number(e.target.value))}
                   onBlur={() => {
-                    if (tolerancia !== '' && tolerancia !== (settings?.attendanceGraceMinutes ?? 10)) {
+                    // 🔴 `settings` sin cargar (undefined) NO se compara contra el default: sin
+                    // esta guarda, enfocar y desenfocar el 10 provisional guardaba ese 10 encima
+                    // del valor real del negocio (P2 #1 de Codex).
+                    if (!settings) return
+                    if (tolerancia !== '' && tolerancia !== (settings.attendanceGraceMinutes ?? 10)) {
                       guardar.mutate({ attendanceGraceMinutes: tolerancia })
                     }
                   }}
@@ -147,6 +185,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
               <div className="flex items-center gap-2">
                 {ocupado && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 <Switch
+                  aria-label={t('venue:attendance.lateAlertTitle')}
                   checked={aviso}
                   onCheckedChange={checked => {
                     setAviso(checked)
@@ -172,6 +211,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
           <div className="flex items-center gap-2">
             {ocupado && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             <Switch
+              aria-label={t('venue:rotatingShifts.title')}
               checked={turnosRotativos}
               onCheckedChange={checked => {
                 setTurnosRotativos(checked)

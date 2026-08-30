@@ -255,7 +255,9 @@
     "toastSavedDesc": "Configuration enregistrée.",
     "toastError": "Impossible d'enregistrer la configuration",
     "lateAlertTitle": "M'alerter si quelqu'un est en retard",
-    "lateAlertDesc": "Vous recevez une notification et un e-mail lorsqu'une personne n'a pas pointé après son heure d'entrée plus la tolérance. Seuls le propriétaire, l'administrateur et le responsable la reçoivent."
+    "lateAlertDesc": "Vous recevez une notification et un e-mail lorsqu'une personne n'a pas pointé après son heure d'entrée plus la tolérance. Seuls le propriétaire, l'administrateur et le responsable la reçoivent.",
+    "lateAlertToastEnabled": "Alerte de retard activée",
+    "lateAlertToastDisabled": "Alerte de retard désactivée"
   },
   "rotatingShifts": {
     "title": "Équipes tournantes",

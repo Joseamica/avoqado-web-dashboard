@@ -104,12 +104,43 @@
       "absent": "Absences",
       "absences": "Congés",
       "hours": "Heures",
-      "breaks": "Pauses (min)"
+      "breaks": "Pauses (min)",
+      "overtime": "Heures supp.",
+      "overtimeDouble": "Heures supp. doubles (min)",
+      "overtimeTriple": "Heures supp. triples (min)",
+      "overtimeViolation": "Dépasse art. 66",
+      "overtimeApproved": "Heures supp. autorisées (min)",
+      "overtimePending": "Heures supp. à autoriser (min)"
     },
     "lateCell": "{{days}} · {{minutes}} min",
     "empty": "Aucune activité du personnel sur la période.",
     "csv": "Exporter CSV",
-    "pending": "{{count}} à clore"
+    "pending": "{{count}} à clore",
+    "overtime": {
+      "split": "{{double}} au double · {{triple}} au triple",
+      "partial": "semaine incomplète",
+      "violation": "Dépasse la limite légale",
+      "violationHelp": "Une semaine enfreint l'article 66 de la loi fédérale du travail mexicaine : plus de 3 heures supplémentaires en un jour, ou des heures supplémentaires sur plus de 3 jours. La paie ne change pas, mais c'est une infraction.",
+      "yes": "oui",
+      "pending": "{{amount}} à autoriser",
+      "approved": "{{amount}} autorisées",
+      "review": "Vérifier",
+      "approve": {
+        "title": "Heures supplémentaires de {{name}}",
+        "help": "Autorisez jour par jour. Vous pouvez autoriser moins que ce que la pointeuse a enregistré, jamais plus. Seul le temps autorisé est payé au double ou au triple.",
+        "measured": "La pointeuse a enregistré {{amount}}",
+        "current": "{{amount}} autorisées",
+        "minutesLabel": "Minutes à autoriser",
+        "action": "Autoriser",
+        "change": "Modifier",
+        "empty": "Aucune heure supplémentaire sur cette période.",
+        "invalid": "Saisissez un nombre entier de minutes.",
+        "tooMuch": "Vous ne pouvez pas autoriser plus de {{max}} minutes : c'est ce que la pointeuse a enregistré.",
+        "failed": "L'autorisation a échoué. Réessayez.",
+        "denied": "non autorisées",
+        "minutesUnit": "min"
+      }
+    }
   },
   "absenceTypes": {
     "REST": "Repos",

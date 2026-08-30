@@ -75,7 +75,8 @@
     "DAILY_SALES_SUMMARY": "Daily Sales Summary",
     "ANNOUNCEMENT": "Announcement",
     "REMINDER": "Reminder",
-    "ALERT": "Alert"
+    "ALERT": "Alert",
+    "ATTENDANCE_LATE": "Late clock-in"
   },
   "priorities": {
     "LOW": "Low",
@@ -151,7 +152,8 @@
     "DAILY_SALES_SUMMARY": "Nightly email with a summary of the day's sales",
     "ANNOUNCEMENT": "Platform-wide announcements and news",
     "REMINDER": "Custom reminders and scheduled notifications",
-    "ALERT": "General alerts requiring your attention"
+    "ALERT": "General alerts requiring your attention",
+    "ATTENDANCE_LATE": "Alert when someone hasn't clocked in past their start time"
   },
   "channelNames": {
     "IN_APP": "Web",
