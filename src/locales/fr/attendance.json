@@ -138,7 +138,8 @@
         "tooMuch": "Vous ne pouvez pas autoriser plus de {{max}} minutes : c'est ce que la pointeuse a enregistré.",
         "failed": "L'autorisation a échoué. Réessayez.",
         "denied": "non autorisées",
-        "minutesUnit": "min"
+        "minutesUnit": "min",
+        "conflict": "Quelqu'un d'autre a modifié cette autorisation pendant que vous la vérifiiez. Fermez et rouvrez pour voir la décision actuelle."
       }
     }
   },

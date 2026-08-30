@@ -78,6 +78,11 @@ export interface AttendanceReportRow {
    * 0 = revisado y negado. La pantalla necesita esa diferencia para saber qué falta por mirar.
    */
   overtimeApprovedMinutes: number | null
+  /**
+   * La revisión de esa autorización. Hay que devolverla al corregir, para que dos gerentes no
+   * se pisen sin enterarse. `null` cuando nadie la ha revisado.
+   */
+  overtimeApprovedUpdatedAt: string | null
 }
 
 export interface AttendanceReport {
@@ -233,7 +238,7 @@ export const attendanceService = {
   async approveOvertime(
     venueId: string,
     staffVenueId: string,
-    body: { date: string; minutesApproved: number; note?: string },
+    body: { date: string; minutesApproved: number; note?: string; expectedUpdatedAt?: string },
   ): Promise<{ staffVenueId: string; date: string; minutesApproved: number; minutesMeasured: number }> {
     const response = await api.put(
       `/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/overtime-approval`,

@@ -138,7 +138,8 @@
         "tooMuch": "No puedes autorizar más de {{max}} minutos: es lo que marcó el reloj.",
         "failed": "No se pudo autorizar. Intenta de nuevo.",
         "denied": "no autorizadas",
-        "minutesUnit": "min"
+        "minutesUnit": "min",
+        "conflict": "Alguien más cambió esta autorización mientras la revisabas. Cierra y vuelve a abrir para ver la decisión actual."
       }
     }
   },

@@ -138,7 +138,8 @@
         "tooMuch": "You cannot approve more than {{max}} minutes: that is what the clock recorded.",
         "failed": "Could not approve. Try again.",
         "denied": "not approved",
-        "minutesUnit": "min"
+        "minutesUnit": "min",
+        "conflict": "Someone else changed this approval while you were reviewing it. Close and reopen to see the current decision."
       }
     }
   },

@@ -63,8 +63,14 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const autorizar = useMutation({
-    mutationFn: ({ date, minutes }: { date: string; minutes: number }) =>
-      attendanceService.approveOvertime(venueId, persona!.staffVenueId, { date, minutesApproved: minutes }),
+    mutationFn: ({ date, minutes, revision }: { date: string; minutes: number; revision: string | null }) =>
+      attendanceService.approveOvertime(venueId, persona!.staffVenueId, {
+        date,
+        minutesApproved: minutes,
+        // 🔴 La revisión que se tenía ENFRENTE. Sin ella el servidor rechaza corregir una
+        // autorización que ya existe, para que dos gerentes no se pisen en silencio.
+        ...(revision ? { expectedUpdatedAt: revision } : {}),
+      }),
     onSuccess: () => {
       // El reporte y la nómina leen lo mismo: los dos tienen que refrescarse, o la tabla de
       // atrás seguiría mostrando el total viejo.
@@ -73,7 +79,7 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
     },
   })
 
-  function guardar(date: string, medidos: number) {
+  function guardar(date: string, medidos: number, revision: string | null) {
     const crudo = borrador[date]
     const minutes = crudo === undefined || crudo === '' ? medidos : Number(crudo)
     if (!Number.isInteger(minutes) || minutes < 0) {
@@ -87,7 +93,7 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
       return
     }
     setErrorDe(e => ({ ...e, [date]: '' }))
-    autorizar.mutate({ date, minutes })
+    autorizar.mutate({ date, minutes, revision })
   }
 
   return (
@@ -156,7 +162,7 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
                         size="sm"
                         className="cursor-pointer"
                         disabled={autorizar.isPending}
-                        onClick={() => guardar(dia.date, dia.overtimeMinutes)}
+                        onClick={() => guardar(dia.date, dia.overtimeMinutes, dia.overtimeApprovedUpdatedAt)}
                       >
                         {sinRevisar ? t('payroll.overtime.approve.action') : t('payroll.overtime.approve.change')}
                       </Button>
@@ -171,7 +177,11 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
 
         {autorizar.isError && (
           <p role="alert" className="text-sm text-destructive">
-            {t('payroll.overtime.approve.failed')}
+            {/* 🔴 Un 409 no es "falló, reintenta": es "alguien más lo cambió y tu pantalla está
+                vieja". Decir lo genérico invitaría a apretar otra vez y volver a perder. */}
+            {(autorizar.error as any)?.response?.status === 409
+              ? t('payroll.overtime.approve.conflict')
+              : t('payroll.overtime.approve.failed')}
           </p>
         )}
       </DialogContent>
