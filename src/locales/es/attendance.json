@@ -121,7 +121,7 @@
       "review": "Revisar",
       "approve": {
         "title": "Horas extra de {{name}}",
-        "help": "Autoriza día por día. Puedes autorizar menos de lo que marcó el reloj, pero nunca más. Sólo lo autorizado se paga al doble o al triple.",
+        "help": "Autoriza día por día. Puedes autorizar menos de lo que marcó el reloj, pero nunca más. Sólo lo autorizado entra al pago.",
         "measured": "El reloj marcó {{amount}}",
         "current": "autorizadas {{amount}}",
         "minutesLabel": "Minutos a autorizar",

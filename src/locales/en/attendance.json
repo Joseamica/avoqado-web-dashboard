@@ -121,7 +121,7 @@
       "review": "Review",
       "approve": {
         "title": "{{name}}'s overtime",
-        "help": "Approve day by day. You can approve less than the clock recorded, but never more. Only approved time is paid at double or triple rate.",
+        "help": "Approve day by day. You can approve less than the clock recorded, but never more. Only approved time goes to payroll.",
         "measured": "Clock recorded {{amount}}",
         "current": "{{amount}} approved",
         "minutesLabel": "Minutes to approve",

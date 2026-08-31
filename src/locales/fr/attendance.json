@@ -121,7 +121,7 @@
       "review": "Vérifier",
       "approve": {
         "title": "Heures supplémentaires de {{name}}",
-        "help": "Autorisez jour par jour. Vous pouvez autoriser moins que ce que la pointeuse a enregistré, jamais plus. Seul le temps autorisé est payé au double ou au triple.",
+        "help": "Autorisez jour par jour. Vous pouvez autoriser moins que ce que la pointeuse a enregistré, jamais plus. Seul le temps autorisé part en paie.",
         "measured": "La pointeuse a enregistré {{amount}}",
         "current": "{{amount}} autorisées",
         "minutesLabel": "Minutes à autoriser",

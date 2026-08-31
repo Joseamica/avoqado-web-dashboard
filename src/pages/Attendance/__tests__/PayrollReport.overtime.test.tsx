@@ -73,7 +73,7 @@ describe('PayrollReport — horas extra', () => {
   })
 
   it('pinta el total en horas y minutos, no en minutos crudos', async () => {
-    pintar([fila({ overtimeMinutes: 150, overtimeApprovedMinutes: 150, overtimeDoubleMinutes: 150 })])
+    pintar([fila({ overtimeMinutes: 150, overtimeApprovedMinutes: 150 })])
     // "2h 30m", nunca "150".
     expect(await screen.findByText('2h 30m')).toBeInTheDocument()
     expect(screen.queryByText('150')).toBeNull()
@@ -83,18 +83,6 @@ describe('PayrollReport — horas extra', () => {
     pintar([fila({ overtimeMinutes: 0 })])
     await screen.findByText('Ana Martínez')
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
-  })
-
-  it('sin triples no se enseña el desglose: sería ruido', async () => {
-    pintar([fila({ overtimeMinutes: 120, overtimeApprovedMinutes: 120, overtimeDoubleMinutes: 120, overtimeTripleMinutes: 0 })])
-    await screen.findByText('2h')
-    expect(screen.queryByText('payroll.overtime.split')).toBeNull()
-  })
-
-  it('sin infracción no hay advertencia', async () => {
-    pintar([fila({ overtimeMinutes: 120, overtimeApprovedMinutes: 120, overtimeDoubleMinutes: 120 })])
-    await screen.findByText('2h')
-    expect(screen.queryByLabelText('payroll.overtime.violation')).toBeNull()
   })
 
   it('🔴 una semana incompleta lo DICE, en vez de enseñar un número que parece final', async () => {
@@ -114,7 +102,7 @@ describe('PayrollReport — horas extra', () => {
   })
 
   it('lo ya autorizado también se ve', async () => {
-    pintar([fila({ overtimeMinutes: 120, overtimeApprovedMinutes: 120, overtimeDoubleMinutes: 120 })])
+    pintar([fila({ overtimeMinutes: 120, overtimeApprovedMinutes: 120 })])
     expect(await screen.findByText('payroll.overtime.approved')).toBeInTheDocument()
   })
 

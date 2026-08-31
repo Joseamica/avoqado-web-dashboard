@@ -150,7 +150,7 @@ export interface PayrollSummaryRow {
   absences: Record<string, number>
   hoursWorked: number
   breakMinutes: number
-  /** Minutos extra MEDIDOS por el reloj (LFT art. 66-68). Llegar temprano no cuenta. */
+  /** Minutos extra MEDIDOS por el reloj. Llegar temprano no cuenta. */
   overtimeMinutes: number
   /** De lo medido, lo que alguien AUTORIZÓ. Es lo único que se paga. */
   overtimeApprovedMinutes: number
@@ -160,21 +160,24 @@ export interface PayrollSummaryRow {
   overtimeDeniedMinutes: number
   /** Días cuya checada cambió DESPUÉS de autorizar: hay que volver a mirarlos. */
   overtimeDaysToReview: string[]
+  /** Lo AUTORIZADO, semana por semana: la base que la nómina necesita para calcular el pago. */
   overtimeWeeks: OvertimeWeek[]
-  /** Alguna semana rompe el art. 66. Es infracción que hay que VER; no cambia lo que se paga. */
 }
 
-/** El desglose por semana natural, que es donde vive el umbral de las 9 h. */
+/**
+ * El desglose por semana natural (lunes a domingo), que es la unidad en la que una nómina
+ * calcula el tiempo extraordinario.
+ *
+ * 🔴 Aquí NO viene el reparto en doble y triple ni ningún veredicto legal: se retiraron del
+ * servidor el 31-ago-2026 por decisión del founder — la ley la cumple el patrón, no el
+ * software. Si vuelves a necesitar esos campos, el sitio donde nacen es el sistema de nómina
+ * del negocio, no este tipo.
+ */
 export interface OvertimeWeek {
   weekStart: string
   weekEnd: string
   minutosTotal: number
-  minutosDobles: number
-  minutosTriples: number
-  diasSobreTopeDiario: string[]
-  diasConExtra: number
-  excedeDiasPermitidos: boolean
-  /** El rango pedido no cubre la semana entera: su reparto doble/triple todavía puede moverse. */
+  /** El rango pedido no cubre la semana entera: su total todavía puede crecer. */
   parcial: boolean
 }
 

@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { AlertTriangle, Download } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { attendanceService, type PayrollSummaryRow } from '@/services/attendance.service'
 import { useAccess } from '@/hooks/use-access'
 import { OvertimeApprovalDialog } from './OvertimeApprovalDialog'
@@ -111,8 +110,8 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
 
   const overtimeCell = (r: PayrollSummaryRow) => {
     if (!r.overtimeMinutes) return <span className="text-muted-foreground">—</span>
-    // Una semana que el rango no cubre entera todavía puede mover el reparto doble/triple:
-    // se dice, en vez de enseñar un número que parece final y no lo es.
+    // Una semana que el rango no cubre entera todavía puede crecer: se dice, en vez de enseñar
+    // un número que parece final y no lo es.
     const parcial = r.overtimeWeeks.some(w => w.parcial)
     return (
       <div className="flex items-center justify-end gap-1.5">
