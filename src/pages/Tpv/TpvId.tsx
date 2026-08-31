@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useSocket } from '@/context/SocketContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -152,6 +153,7 @@ function TpvIdContent() {
   const { venueId, venueSlug: _venueSlug, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const queryClient = useQueryClient()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
   const { toast } = useToast()
   const { user } = useAuth()
   const { can } = useAccess()
@@ -370,6 +372,16 @@ function TpvIdContent() {
   const assignedMerchantIds = terminalDetails?.assignedMerchantIds || []
   const assignedMerchantAccounts = merchantAccounts.filter((m: MerchantAccount) => assignedMerchantIds.includes(m.id))
   const availableMerchantAccounts = merchantAccounts.filter((m: MerchantAccount) => !assignedMerchantIds.includes(m.id))
+
+  useEffect(() => {
+    if (tpvId && tpv?.name) {
+      setCustomSegment(tpvId, tpv.name)
+    }
+
+    return () => {
+      if (tpvId) clearCustomSegment(tpvId)
+    }
+  }, [clearCustomSegment, setCustomSegment, tpv?.name, tpvId])
 
   // SUPERADMIN: Link merchant account to terminal
   const handleLinkMerchantAccount = async () => {

@@ -25,9 +25,11 @@ const PENDIENTES = [
   'inter-venue-transfers/:transferId',
   'menus/:menuId',
   'stock-counts/:countId',
-  'tpv/:tpvId',
   'transfers/:transferId',
 ]
+
+/** Alias que sólo redirigen a la ruta canónica: no montan una pantalla de detalle. */
+const ALIAS_LEGACY = ['tpv/:tpvId']
 
 function archivosTsx(dir: string): string[] {
   return readdirSync(dir).flatMap(n => {
@@ -40,6 +42,7 @@ function archivosTsx(dir: string): string[] {
 describe('las pantallas de detalle no enseñan el id crudo en la miga de pan', () => {
   const rutas = readFileSync(RUTAS, 'utf8')
   const conParametro = [...rutas.matchAll(/path: '([^']*:[a-zA-Z]+Id)'/g)].map(m => m[1])
+  const conPantallaDetalle = conParametro.filter(ruta => !ALIAS_LEGACY.includes(ruta))
 
   it('hay rutas de detalle que analizar (la prueba no se autoanula)', () => {
     expect(conParametro.length).toBeGreaterThan(10)
@@ -47,6 +50,13 @@ describe('las pantallas de detalle no enseñan el id crudo en la miga de pan', (
 
   it('la lista de pendientes sólo contiene rutas que existen de verdad', () => {
     for (const p of PENDIENTES) expect(conParametro, `«${p}» ya no existe: bórralo de PENDIENTES`).toContain(p)
+  })
+
+  it('el detalle canónico de dispositivo registra su nombre humano', () => {
+    const detalle = readFileSync(join(PAGES, 'Tpv/TpvId.tsx'), 'utf8')
+    expect(detalle).toContain("import { useBreadcrumb } from '@/context/BreadcrumbContext'")
+    expect(detalle).toMatch(/setCustomSegment\(tpvId, tpv\.name\)/)
+    expect(detalle).toMatch(/clearCustomSegment\(tpvId\)/)
   })
 
   it('las que NO están en la lista de pendientes ya ponen un nombre humano', () => {
@@ -57,6 +67,6 @@ describe('las pantallas de detalle no enseñan el id crudo en la miga de pan', (
 
   it('🔴 no se añadieron pantallas de detalle nuevas sin miga de pan', () => {
     // Si esto falla: o arreglaste una (baja el número) o añadiste una sin miga (arréglala).
-    expect(conParametro.length - PENDIENTES.length).toBe(9)
+    expect(conPantallaDetalle.length - PENDIENTES.length).toBe(10)
   })
 })
