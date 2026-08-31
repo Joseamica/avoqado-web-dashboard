@@ -1,8 +1,8 @@
 {
-  "title": "TPV Terminals",
-  "subtitle": "Manage your restaurant's point-of-sale devices",
+  "title": "Devices",
+  "subtitle": "POS devices appear automatically after sign-in; physical payment terminals are registered or ordered here.",
   "actions": {
-    "createNew": "New Device",
+    "createNew": "Register or order TPV",
     "maintenance": "Maintenance",
     "exit_maintenance": "Exit maintenance mode",
     "update_status": "Force status update",
@@ -21,6 +21,59 @@
     "globalConfig": "Global config",
     "customerDisplayInverted": "Invert screens"
   },
+  "displayMode": {
+    "title": "Screen orientation",
+    "description": "The confirmed physical state and the submitted request are shown separately.",
+    "physical": {
+      "label": "Physical state",
+      "standard": "Standard layout",
+      "inverted": "Screens inverted"
+    },
+    "requested": {
+      "label": "Requested change",
+      "requestedAt": "Requested",
+      "expiresAt": "Expires",
+      "notAvailable": "Not available"
+    },
+    "statuses": {
+      "PENDING": "Pending on device",
+      "APPLIED": "Applied",
+      "REJECTED": "Rejected by device",
+      "SUPERSEDED": "Replaced by another request",
+      "CANCELLED": "Cancelled",
+      "EXPIRED": "Expired"
+    },
+    "resultCodes": {
+      "DISPLAY_NOT_PRESENT": "The device reported that it has no customer display.",
+      "DISPLAY_NOT_INVERTIBLE": "The device reported that its screens cannot be inverted.",
+      "APPLY_FAILED": "The device could not apply the change.",
+      "LOCAL_OVERRIDE": "The change was replaced directly on the device.",
+      "CANCEL_TOO_LATE": "The physical change had already been applied before cancellation.",
+      "ACK_AFTER_EXPIRY": "The device confirmation arrived after the request expired.",
+      "DEVICE_RETIRED": "The device was retired before completing the change."
+    },
+    "explanations": {
+      "awaitingReport": "Waiting for the device capability report. The action will be available when it reconnects.",
+      "missingPermission": "You do not have permission to request or cancel this change.",
+      "actionUnavailable": "This device does not support remote screen-orientation requests."
+    },
+    "actions": {
+      "requestInverted": "Request inverted screens",
+      "requestStandard": "Request standard layout",
+      "retryInverted": "Retry inverted screens",
+      "retryStandard": "Retry standard layout",
+      "cancel": "Cancel request",
+      "submitting": "Submitting request…",
+      "cancelling": "Cancelling…"
+    },
+    "feedback": {
+      "requestCreated": "The server confirmed the request. The physical state will change when the device applies it.",
+      "cancelled": "The request was cancelled.",
+      "cancelTooLate": "Cancellation arrived too late: the physical change was already applied. You can request the opposite state.",
+      "createFailed": "The request could not be created. The physical state did not change; you can try again.",
+      "cancelFailed": "The request could not be cancelled. The physical state did not change; try again."
+    }
+  },
   "create": {
     "title": "Create New Terminal",
     "nameLabel": "Terminal Name",
@@ -38,7 +91,7 @@
     }
   },
   "search": {
-    "placeholder": "Search terminals..."
+    "placeholder": "Search devices..."
   },
   "filter": {
     "connection": "Connection",
@@ -93,7 +146,9 @@
     "pendingActivation": "Pending Activation",
     "lastSeen": "Last seen",
     "activated": "Activated",
-    "notActivated": "Not Activated"
+    "notActivated": "Not Activated",
+    "activationNotRequired": "Activation not required",
+    "capabilitiesUnavailable": "Waiting for device capabilities"
   },
   "commandLabels": {
     "SHUTDOWN": "Shutdown",
@@ -111,7 +166,9 @@
     "sendError": "Error sending command: {{error}}",
     "maintenancePayload": "Activated from dashboard",
     "remoteCommands": "Remote Commands",
-    "remoteCommandsDesc": "Send commands to control the terminal remotely",
+    "remoteCommandsDesc": "Send only the remote actions supported by this device",
+    "noSupportedActions": "This device does not support remote actions from Avoqado. Its local functions remain available.",
+    "unsupportedForDevice": "This action is not supported by this device",
     "offlineError": "Terminal Offline",
     "offlineErrorDesc": "This command requires the terminal to be online",
     "dangerousAction": "Dangerous Action",
@@ -274,13 +331,15 @@
     "quickCreateTooltip": "Create terminal directly (Superadmin only)"
   },
   "detail": {
-    "terminal": "Terminal",
+    "terminal": "Device",
     "id": "ID",
     "loading": "Loading terminal...",
     "notFound": "Terminal Not Found",
     "notFoundDesc": "The requested terminal could not be found with ID",
-    "goToTerminals": "Go to Terminals",
-    "noData": "No terminal data available",
+    "goToTerminals": "Go to Devices",
+    "noData": "No device data available",
+    "activationNotRequired": "Activation not required",
+    "selfRegistered": "Self-registered after sign-in",
     "terminalStatus": "Terminal Status",
     "connection": "Connection",
     "activationStatus": "Activation Status",
@@ -485,11 +544,13 @@
       "restart": "Restart",
       "restarting": "Restarting...",
       "offlineHint": "Terminal must be online to restart",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "unsupportedDevice": "Changes were saved. This device does not support remote restart from Avoqado."
     }
   },
   "activation": {
     "title": "Activate Terminal",
+    "notRequired": "This device does not require activation",
     "description": "Enter the physical serial number from the PAX device to activate this terminal.",
     "code": "Activation Code",
     "expiresIn": "Expires in {{days}} days",
@@ -725,7 +786,7 @@
     }
   },
   "tabs": {
-    "terminals": "Terminals",
+    "terminals": "Devices",
     "orders": "Orders"
   },
   "orders": {
@@ -823,7 +884,7 @@
     "title": "Delete terminal?",
     "description": "This will permanently delete the terminal \"{{name}}\". This action cannot be undone."
   },
-  "info": "Manage POS terminals, their status and remote actions.",
+  "info": "Manage your devices and the actions supported by each model.",
   "messages": {
     "deleted": "Terminal deleted",
     "deletedSuccess": "The terminal was deleted successfully."

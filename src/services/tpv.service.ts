@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { Terminal } from '@/types'
 import { SendCommandRequest, TpvCommand, TpvCommandPayload, TpvCommandPriority, TpvCommandType } from '@/types/tpv-commands'
 
 export type CapabilityState = 'SUPPORTED' | 'UNSUPPORTED' | 'UNKNOWN'
@@ -72,7 +73,31 @@ export interface TpvFilters {
   search?: string
 }
 
-export const getTpvs = async (venueId: string, pagination: { pageIndex: number; pageSize: number }, filters?: TpvFilters) => {
+export interface TpvListDevice extends Terminal {
+  activatedAt: string | null
+  capabilities?: EffectiveDeviceCapabilities
+  formFactor?: string | null
+  model?: string | null
+  brand?: string | null
+  osVersion?: string | null
+  version?: string | null
+  selfRegistered?: boolean
+  todayPaymentCount?: number
+  todayPaymentTotal?: number
+}
+
+export interface TpvListResponse {
+  data: TpvListDevice[]
+  /** Compatibility with the legacy message-target response shape. */
+  terminals?: TpvListDevice[]
+  meta?: { total?: number; page?: number; pageSize?: number; totalPages?: number }
+}
+
+export const getTpvs = async (
+  venueId: string,
+  pagination: { pageIndex: number; pageSize: number },
+  filters?: TpvFilters,
+): Promise<TpvListResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpvs`, {
     params: {
       page: pagination.pageIndex + 1,

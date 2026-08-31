@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -52,6 +52,7 @@ import {
   TpvCommandPayload,
   TpvCommandPriority,
   TpvCommandType,
+  UI_AVAILABLE_COMMANDS,
 } from '@/types/tpv-commands'
 
 // Icon mapping
@@ -100,12 +101,28 @@ interface RemoteCommandPanelProps {
   isOnline: boolean
   isLocked?: boolean
   isInMaintenance?: boolean
-  isActivated?: boolean // true if terminal has activatedAt set
+  activationPending: boolean
   isSuperadmin?: boolean // true if current user is SUPERADMIN
   isOwnerPlus?: boolean // true if current user is OWNER or SUPERADMIN
   venueId: string
   currentVersion?: string // Current TPV version (e.g., "1.3.1") for downgrade detection
   currentVersionCode?: number // Current TPV versionCode (e.g., 45) for downgrade detection
+  supportedRemoteCommands: TpvCommandType[]
+}
+
+interface RemoteCommandMutationVariables {
+  terminalId: string
+  venueId: string
+  command: TpvCommandType
+  payload?: TpvCommandPayload
+  priority?: TpvCommandPriority
+}
+
+interface RemoteActivationMutationVariables {
+  terminalId: string
+  venueId: string
+  activationPending: boolean
+  isSuperadmin: boolean
 }
 
 interface CommandGroup {
@@ -114,23 +131,32 @@ interface CommandGroup {
   commands: TpvCommandType[]
 }
 
-export function RemoteCommandPanel({
+export function RemoteCommandPanel(props: RemoteCommandPanelProps) {
+  return <RemoteCommandPanelContent key={`${props.venueId}:${props.terminalId}`} {...props} />
+}
+
+function RemoteCommandPanelContent({
   terminalId,
   terminalName,
   isOnline,
   isLocked = false,
   isInMaintenance = false,
-  isActivated = true,
+  activationPending,
   isSuperadmin = false,
   isOwnerPlus = false,
   venueId,
   currentVersion,
   currentVersionCode,
+  supportedRemoteCommands,
 }: RemoteCommandPanelProps) {
   const { t } = useTranslation(['tpv', 'common'])
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
+  const supportedCommandSet = useMemo(
+    () => new Set(supportedRemoteCommands.filter(command => UI_AVAILABLE_COMMANDS.includes(command))),
+    [supportedRemoteCommands],
+  )
 
   // Track pending commands by type (prevents double-clicks)
   const [pendingCommands, setPendingCommands] = useState<Set<TpvCommandType>>(new Set())
@@ -172,12 +198,13 @@ export function RemoteCommandPanel({
 
   // Cleanup timeouts on unmount
   useEffect(() => {
+    const heartbeatTimeouts = heartbeatTimeoutsRef.current
     return () => {
       if (lockToggleTimeoutRef.current) clearTimeout(lockToggleTimeoutRef.current)
       if (maintenanceToggleTimeoutRef.current) clearTimeout(maintenanceToggleTimeoutRef.current)
       // Clear all heartbeat fallback timeouts
-      heartbeatTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
-      heartbeatTimeoutsRef.current.clear()
+      heartbeatTimeouts.forEach(timeout => clearTimeout(timeout))
+      heartbeatTimeouts.clear()
     }
   }, [])
 
@@ -214,20 +241,33 @@ export function RemoteCommandPanel({
   const { data: appVersions, isLoading: isLoadingVersions } = useQuery({
     queryKey: ['app-updates'],
     queryFn: () => terminalAPI.getAppUpdates(),
-    enabled: isSuperadmin && installVersionDialog.open,
+    enabled: isSuperadmin && supportedCommandSet.has(TpvCommandType.INSTALL_VERSION) && installVersionDialog.open,
   })
 
   // Remote Activate mutation (SUPERADMIN only - uses dedicated endpoint)
   const remoteActivateMutation = useMutation({
-    mutationFn: () => terminalAPI.sendRemoteActivation(terminalId),
-    onSuccess: () => {
+    mutationFn: ({
+      terminalId: targetTerminalId,
+      activationPending: targetActivationPending,
+      isSuperadmin: targetIsSuperadmin,
+    }: RemoteActivationMutationVariables) => {
+      if (
+        !targetIsSuperadmin ||
+        !targetActivationPending ||
+        !supportedCommandSet.has(TpvCommandType.REMOTE_ACTIVATE)
+      ) {
+        throw new Error(t('commands.unsupportedForDevice'))
+      }
+      return terminalAPI.sendRemoteActivation(targetTerminalId)
+    },
+    onSuccess: (_, variables) => {
       toast({
         title: t('commands.remoteActivateSent'),
         description: t('commands.remoteActivateSentDesc'),
       })
       // Invalidate TPV data to refresh activation status
-      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, terminalId] })
-      queryClient.invalidateQueries({ queryKey: ['superadmin-terminal', terminalId] })
+      queryClient.invalidateQueries({ queryKey: ['tpv', variables.venueId, variables.terminalId] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-terminal', variables.terminalId] })
     },
     onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast({
@@ -240,18 +280,13 @@ export function RemoteCommandPanel({
 
   // Command mutation with pending state tracking
   const commandMutation = useMutation({
-    mutationFn: async ({
-      command,
-      payload,
-      priority,
-    }: {
-      command: TpvCommandType
-      payload?: TpvCommandPayload
-      priority?: TpvCommandPriority
-    }) => {
+    mutationFn: async ({ terminalId: targetTerminalId, command, payload, priority }: RemoteCommandMutationVariables) => {
+      if (!supportedCommandSet.has(command)) {
+        throw new Error(t('commands.unsupportedForDevice'))
+      }
       // Mark command as pending
       setPendingCommands((prev) => new Set(prev).add(command))
-      return sendTpvCommand(terminalId, command, payload, priority)
+      return sendTpvCommand(targetTerminalId, command, payload, priority)
     },
     onSuccess: (_, variables) => {
       toast({
@@ -279,7 +314,7 @@ export function RemoteCommandPanel({
       }
 
       // Invalidate TPV data to refresh status
-      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, terminalId] })
+      queryClient.invalidateQueries({ queryKey: ['tpv', variables.venueId, variables.terminalId] })
     },
     onError: (error: Error & { response?: { data?: { message?: string } } }, variables) => {
       toast({
@@ -314,7 +349,7 @@ export function RemoteCommandPanel({
         TpvCommandType.CLEAR_CACHE,
         TpvCommandType.FORCE_UPDATE,
         TpvCommandType.REQUEST_UPDATE,
-      ],
+      ].filter(command => supportedCommandSet.has(command)),
     },
     {
       title: t('commands.groups.dataManagement'),
@@ -324,7 +359,7 @@ export function RemoteCommandPanel({
         TpvCommandType.REFRESH_MENU,
         TpvCommandType.EXPORT_LOGS,
         ...(isOwnerPlus || isSuperadmin ? [TpvCommandType.FACTORY_RESET] : []),
-      ],
+      ].filter(command => supportedCommandSet.has(command)),
     },
   ]
 
@@ -338,6 +373,7 @@ export function RemoteCommandPanel({
 
       // Set pending state IMMEDIATELY for visual feedback (spinner + disabled)
       const commandToTrack = checked ? TpvCommandType.MAINTENANCE_MODE : TpvCommandType.EXIT_MAINTENANCE
+      if (!supportedCommandSet.has(commandToTrack)) return
       setPendingCommands((prev) => new Set(prev).add(commandToTrack))
 
       // Debounce the toggle action
@@ -354,13 +390,15 @@ export function RemoteCommandPanel({
         } else {
           // Exit maintenance - mutation will handle clearing pendingCommands in onSettled
           commandMutation.mutate({
+            terminalId,
+            venueId,
             command: TpvCommandType.EXIT_MAINTENANCE,
             priority: TpvCommandPriority.NORMAL,
           })
         }
       }, TOGGLE_DEBOUNCE_DELAY)
     },
-    [commandMutation],
+    [commandMutation, supportedCommandSet, terminalId, venueId],
   )
 
   // Handle toggle for lock (debounced to prevent rapid clicking issues)
@@ -373,6 +411,7 @@ export function RemoteCommandPanel({
 
       // Set pending state IMMEDIATELY for visual feedback (spinner + disabled)
       const commandToTrack = checked ? TpvCommandType.LOCK : TpvCommandType.UNLOCK
+      if (!supportedCommandSet.has(commandToTrack)) return
       setPendingCommands((prev) => new Set(prev).add(commandToTrack))
 
       // Debounce the toggle action
@@ -389,17 +428,20 @@ export function RemoteCommandPanel({
         } else {
           // Unlock - mutation will handle clearing pendingCommands in onSettled
           commandMutation.mutate({
+            terminalId,
+            venueId,
             command: TpvCommandType.UNLOCK,
             priority: TpvCommandPriority.HIGH,
           })
         }
       }, TOGGLE_DEBOUNCE_DELAY)
     },
-    [commandMutation],
+    [commandMutation, supportedCommandSet, terminalId, venueId],
   )
 
   // Handle command execution
   const executeCommand = (command: TpvCommandType, payload?: TpvCommandPayload) => {
+    if (!supportedCommandSet.has(command)) return
     const def = COMMAND_DEFINITIONS[command]
 
     // Check if terminal is online for commands that require it
@@ -419,14 +461,16 @@ export function RemoteCommandPanel({
     }
 
     // Execute immediately
-    commandMutation.mutate({ command, payload, priority: def.defaultPriority })
+    commandMutation.mutate({ terminalId, venueId, command, payload, priority: def.defaultPriority })
   }
 
   // Confirm and execute command
   const confirmCommand = () => {
-    if (confirmDialog.command) {
+    if (confirmDialog.command && supportedCommandSet.has(confirmDialog.command)) {
       const def = COMMAND_DEFINITIONS[confirmDialog.command]
       commandMutation.mutate({
+        terminalId,
+        venueId,
         command: confirmDialog.command,
         payload: confirmDialog.payload,
         priority: def.defaultPriority,
@@ -437,9 +481,12 @@ export function RemoteCommandPanel({
 
   // Handle lock with payload
   const handleLock = () => {
+    if (!supportedCommandSet.has(TpvCommandType.LOCK)) return
     // Mark as submitted to prevent onOpenChange from clearing pendingCommands
     lockSubmittedRef.current = true
     commandMutation.mutate({
+      terminalId,
+      venueId,
       command: TpvCommandType.LOCK,
       payload: {
         reason: lockDialog.reason || undefined,
@@ -452,9 +499,12 @@ export function RemoteCommandPanel({
 
   // Handle maintenance with payload
   const handleMaintenance = () => {
+    if (!supportedCommandSet.has(TpvCommandType.MAINTENANCE_MODE)) return
     // Mark as submitted to prevent onOpenChange from clearing pendingCommands
     maintenanceSubmittedRef.current = true
     commandMutation.mutate({
+      terminalId,
+      venueId,
       command: TpvCommandType.MAINTENANCE_MODE,
       payload: {
         reason: maintenanceDialog.reason || undefined,
@@ -508,6 +558,7 @@ export function RemoteCommandPanel({
 
   // Render a single command button
   const renderCommandButton = (command: TpvCommandType) => {
+    if (!supportedCommandSet.has(command)) return null
     const def = COMMAND_DEFINITIONS[command]
     const disabled = isCommandDisabled(command) || commandMutation.isPending
 
@@ -604,6 +655,17 @@ export function RemoteCommandPanel({
     )
   }
 
+  const lockTransition = isLocked ? TpvCommandType.UNLOCK : TpvCommandType.LOCK
+  const maintenanceTransition = isInMaintenance ? TpvCommandType.EXIT_MAINTENANCE : TpvCommandType.MAINTENANCE_MODE
+  const showLockToggle = supportedCommandSet.has(lockTransition)
+  const showMaintenanceToggle = supportedCommandSet.has(maintenanceTransition)
+  const showRemoteActivate =
+    isSuperadmin && activationPending && supportedCommandSet.has(TpvCommandType.REMOTE_ACTIVATE)
+  const showInstallVersion = isSuperadmin && supportedCommandSet.has(TpvCommandType.INSTALL_VERSION)
+  const showDeviceState = showLockToggle || showMaintenanceToggle || showRemoteActivate || showInstallVersion
+
+  if (supportedCommandSet.size === 0) return null
+
   return (
     <PermissionGate permission="tpv:command">
       <Card>
@@ -639,14 +701,14 @@ export function RemoteCommandPanel({
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Toggle Controls Section */}
-          <div className="space-y-3">
+          {showDeviceState && <div className="space-y-3">
             <div>
               <h4 className="text-sm font-medium text-foreground">{t('commands.groups.deviceState')}</h4>
               <p className="text-xs text-muted-foreground">{t('commands.groups.deviceStateDesc')}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Lock Toggle */}
-              {(() => {
+              {showLockToggle && (() => {
                 const isLockProcessing = pendingCommands.has(TpvCommandType.LOCK) || pendingCommands.has(TpvCommandType.UNLOCK) ||
                   awaitingHeartbeat.has(TpvCommandType.LOCK) || awaitingHeartbeat.has(TpvCommandType.UNLOCK)
                 return (
@@ -694,7 +756,7 @@ export function RemoteCommandPanel({
               })()}
 
               {/* Maintenance Toggle */}
-              {(() => {
+              {showMaintenanceToggle && (() => {
                 const isMaintenanceProcessing = pendingCommands.has(TpvCommandType.MAINTENANCE_MODE) || pendingCommands.has(TpvCommandType.EXIT_MAINTENANCE) ||
                   awaitingHeartbeat.has(TpvCommandType.MAINTENANCE_MODE) || awaitingHeartbeat.has(TpvCommandType.EXIT_MAINTENANCE)
                 return (
@@ -740,7 +802,7 @@ export function RemoteCommandPanel({
               })()}
 
               {/* Remote Activate Button - SUPERADMIN only, for pre-registered terminals */}
-              {isSuperadmin && !isActivated && (
+              {showRemoteActivate && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -779,7 +841,7 @@ export function RemoteCommandPanel({
               )}
 
               {/* Install Version Button - SUPERADMIN only, for rollback/upgrade */}
-              {isSuperadmin && (
+              {showInstallVersion && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -819,10 +881,10 @@ export function RemoteCommandPanel({
                 </TooltipProvider>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Other Command Groups */}
-          {commandGroups.map((group) => (
+          {commandGroups.filter(group => group.commands.length > 0).map((group) => (
             <div key={group.title} className="space-y-3">
               <div>
                 <h4 className="text-sm font-medium text-foreground">{group.title}</h4>
@@ -999,7 +1061,7 @@ export function RemoteCommandPanel({
             <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                remoteActivateMutation.mutate()
+                remoteActivateMutation.mutate({ terminalId, venueId, activationPending, isSuperadmin })
                 setRemoteActivateDialog({ open: false })
               }}
               className="bg-linear-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
@@ -1116,6 +1178,8 @@ export function RemoteCommandPanel({
               onClick={() => {
                 if (installVersionDialog.selectedVersionCode) {
                   commandMutation.mutate({
+                    terminalId,
+                    venueId,
                     command: TpvCommandType.INSTALL_VERSION,
                     payload: { versionCode: installVersionDialog.selectedVersionCode },
                     priority: TpvCommandPriority.HIGH,

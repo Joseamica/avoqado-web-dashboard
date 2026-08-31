@@ -1,8 +1,8 @@
 {
-  "title": "Terminales punto de venta",
-  "subtitle": "Gestiona los dispositivos TPV de tu restaurante",
+  "title": "Dispositivos",
+  "subtitle": "Los POS aparecen automáticamente al iniciar sesión; las TPV físicas se registran o solicitan aquí.",
   "actions": {
-    "createNew": "Nuevo dispositivo",
+    "createNew": "Registrar o pedir TPV",
     "maintenance": "Mantenimiento",
     "exit_maintenance": "Salir del modo mantenimiento",
     "update_status": "Forzar actualización de estado",
@@ -21,6 +21,59 @@
     "globalConfig": "Config. Global",
     "customerDisplayInverted": "Invertir pantallas"
   },
+  "displayMode": {
+    "title": "Orientación de pantallas",
+    "description": "El estado físico confirmado y la solicitud enviada se muestran por separado.",
+    "physical": {
+      "label": "Estado físico",
+      "standard": "Distribución normal",
+      "inverted": "Pantallas invertidas"
+    },
+    "requested": {
+      "label": "Cambio solicitado",
+      "requestedAt": "Solicitado",
+      "expiresAt": "Vence",
+      "notAvailable": "No disponible"
+    },
+    "statuses": {
+      "PENDING": "Pendiente en el dispositivo",
+      "APPLIED": "Aplicado",
+      "REJECTED": "Rechazado por el dispositivo",
+      "SUPERSEDED": "Reemplazado por otra solicitud",
+      "CANCELLED": "Cancelado",
+      "EXPIRED": "Vencido"
+    },
+    "resultCodes": {
+      "DISPLAY_NOT_PRESENT": "El dispositivo informó que no tiene pantalla para clientes.",
+      "DISPLAY_NOT_INVERTIBLE": "El dispositivo informó que sus pantallas no se pueden invertir.",
+      "APPLY_FAILED": "El dispositivo no pudo aplicar el cambio.",
+      "LOCAL_OVERRIDE": "El cambio fue reemplazado directamente desde el dispositivo.",
+      "CANCEL_TOO_LATE": "El cambio físico ya se había aplicado antes de cancelar.",
+      "ACK_AFTER_EXPIRY": "La confirmación del dispositivo llegó después del vencimiento.",
+      "DEVICE_RETIRED": "El dispositivo fue retirado antes de completar el cambio."
+    },
+    "explanations": {
+      "awaitingReport": "Esperando el reporte de capacidades del dispositivo. La acción estará disponible cuando vuelva a conectarse.",
+      "missingPermission": "No tienes permiso para solicitar o cancelar este cambio.",
+      "actionUnavailable": "Este dispositivo no admite solicitudes remotas de orientación de pantalla."
+    },
+    "actions": {
+      "requestInverted": "Solicitar pantallas invertidas",
+      "requestStandard": "Solicitar distribución normal",
+      "retryInverted": "Reintentar pantallas invertidas",
+      "retryStandard": "Reintentar distribución normal",
+      "cancel": "Cancelar solicitud",
+      "submitting": "Enviando solicitud…",
+      "cancelling": "Cancelando…"
+    },
+    "feedback": {
+      "requestCreated": "La solicitud fue confirmada por el servidor. El estado físico cambiará cuando el dispositivo la aplique.",
+      "cancelled": "La solicitud quedó cancelada.",
+      "cancelTooLate": "La cancelación llegó demasiado tarde: el cambio físico ya se había aplicado. Puedes solicitar el estado opuesto.",
+      "createFailed": "No se pudo crear la solicitud. El estado físico no cambió; puedes volver a intentarlo.",
+      "cancelFailed": "No se pudo cancelar la solicitud. El estado físico no cambió; vuelve a intentarlo."
+    }
+  },
   "create": {
     "title": "Crear Nuevo Terminal",
     "nameLabel": "Nombre del Terminal",
@@ -38,7 +91,7 @@
     }
   },
   "search": {
-    "placeholder": "Buscar terminales..."
+    "placeholder": "Buscar dispositivos..."
   },
   "filter": {
     "connection": "Conexión",
@@ -93,7 +146,9 @@
     "pendingActivation": "Pendiente de Activación",
     "lastSeen": "Visto por última vez",
     "activated": "Activado",
-    "notActivated": "Sin Activar"
+    "notActivated": "Sin Activar",
+    "activationNotRequired": "No requiere activación",
+    "capabilitiesUnavailable": "Esperando capacidades del dispositivo"
   },
   "commandLabels": {
     "SHUTDOWN": "Apagar",
@@ -111,7 +166,9 @@
     "sendError": "Error enviando comando: {{error}}",
     "maintenancePayload": "Activado desde dashboard",
     "remoteCommands": "Comandos Remotos",
-    "remoteCommandsDesc": "Envía comandos a este terminal para controlarlo remotamente",
+    "remoteCommandsDesc": "Envía solo las acciones remotas que admite este dispositivo",
+    "noSupportedActions": "Este dispositivo no admite acciones remotas desde Avoqado. Sus funciones locales siguen disponibles.",
+    "unsupportedForDevice": "Esta acción no es compatible con este dispositivo",
     "sendingCommand": "Enviando comando...",
     "confirmCommand": "Confirmar Comando",
     "confirmDescription": "¿Estás seguro de que deseas enviar el comando {{command}} a este terminal?",
@@ -287,13 +344,15 @@
     "quickCreateTooltip": "Crear terminal directamente (solo Superadmin)"
   },
   "detail": {
-    "terminal": "Terminal",
+    "terminal": "Dispositivo",
     "id": "ID",
     "loading": "Cargando terminal...",
     "notFound": "Terminal No Encontrado",
     "notFoundDesc": "No se pudo encontrar el terminal solicitado con ID",
-    "goToTerminals": "Ir a Terminales",
-    "noData": "No hay datos de terminal disponibles",
+    "goToTerminals": "Ir a Dispositivos",
+    "noData": "No hay datos del dispositivo disponibles",
+    "activationNotRequired": "No requiere activación",
+    "selfRegistered": "Auto-registrado al iniciar sesión",
     "terminalStatus": "Estado del Terminal",
     "connection": "Conexión",
     "activationStatus": "Estado de Activación",
@@ -506,11 +565,13 @@
       "restart": "Reiniciar",
       "restarting": "Reiniciando...",
       "offlineHint": "La terminal debe estar en línea para reiniciar",
-      "dismiss": "Descartar"
+      "dismiss": "Descartar",
+      "unsupportedDevice": "Los cambios se guardaron. Este dispositivo no admite reinicio remoto desde Avoqado."
     }
   },
   "activation": {
     "title": "Activar Terminal",
+    "notRequired": "Este dispositivo no requiere activación",
     "description": "Ingresa el número de serie físico del dispositivo PAX para activar este terminal.",
     "code": "Código de Activación",
     "expiresIn": "Expira en {{days}} días",
@@ -746,7 +807,7 @@
     }
   },
   "tabs": {
-    "terminals": "Terminales",
+    "terminals": "Dispositivos",
     "orders": "Pedidos"
   },
   "orders": {
@@ -844,7 +905,7 @@
     "title": "¿Eliminar terminal?",
     "description": "Esta acción eliminará permanentemente la terminal \"{{name}}\". Esta acción no se puede deshacer."
   },
-  "info": "Administra terminales TPV, su estado y acciones remotas.",
+  "info": "Administra tus dispositivos y las acciones que cada modelo admite.",
   "messages": {
     "deleted": "Terminal eliminada",
     "deletedSuccess": "La terminal ha sido eliminada correctamente."

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { getCommonSupportedRemoteCommands } from '@/pages/Tpv/deviceCapabilities'
 import {
   bulkCommandOrgTerminals,
   ORG_TERMINAL_BULK_COMMANDS,
@@ -20,8 +21,9 @@ import {
 } from '@/services/organizationDashboard.service'
 import { useMutation } from '@tanstack/react-query'
 import { Lock, Menu, RefreshCcw, RefreshCw, Unlock, Download, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TpvCommandType } from '@/types/tpv-commands'
 
 interface OrgTerminalsBulkBarProps {
   orgId: string
@@ -39,20 +41,42 @@ const ACTION_ICON: Record<OrgTerminalBulkCommand, React.ComponentType<{ classNam
   UNLOCK: Unlock,
 }
 
+function supportsBulkCommandForSelection(selected: OrgTerminal[], command: OrgTerminalBulkCommand): boolean {
+  if (selected.length === 0) return false
+  const common = getCommonSupportedRemoteCommands(selected.map(device => device.capabilities))
+  if (!common.includes(command as TpvCommandType)) return false
+  if (command === TpvCommandType.LOCK) return selected.every(device => !device.isLocked)
+  if (command === TpvCommandType.UNLOCK) return selected.every(device => device.isLocked)
+  return true
+}
+
 export function OrgTerminalsBulkBar({ orgId, selected, onClear, onComplete }: OrgTerminalsBulkBarProps) {
   const { t } = useTranslation('organization')
   const { toast } = useToast()
   const [pending, setPending] = useState<OrgTerminalBulkCommand | null>(null)
+  const supportedCommands = useMemo(
+    () => ORG_TERMINAL_BULK_COMMANDS.filter(command => supportsBulkCommandForSelection(selected, command)),
+    [selected],
+  )
+  const supportsPending = pending !== null && supportedCommands.includes(pending)
+
+  useEffect(() => {
+    if (pending && !supportedCommands.includes(pending)) setPending(null)
+  }, [pending, supportedCommands])
 
   const overCap = selected.length > ORG_TERMINAL_BULK_COMMAND_MAX
 
   const mutation = useMutation({
-    mutationFn: ({ command }: { command: OrgTerminalBulkCommand }) =>
-      bulkCommandOrgTerminals(
+    mutationFn: ({ command }: { command: OrgTerminalBulkCommand }) => {
+      if (!supportsBulkCommandForSelection(selected, command)) {
+        throw new Error(t('terminals.bulk.unsupportedSelection'))
+      }
+      return bulkCommandOrgTerminals(
         orgId,
         selected.map(s => s.id),
         command,
-      ),
+      )
+    },
     onSuccess: result => {
       if (result.failed === 0) {
         toast({ title: t('terminals.bulk.allSucceeded', { count: result.succeeded }) })
@@ -107,7 +131,7 @@ export function OrgTerminalsBulkBar({ orgId, selected, onClear, onComplete }: Or
           <div className="mx-1 h-5 w-px bg-border" />
 
           <div className="flex flex-wrap items-center gap-1">
-            {ORG_TERMINAL_BULK_COMMANDS.map(cmd => {
+            {supportedCommands.map(cmd => {
               const Icon = ACTION_ICON[cmd]
               return (
                 <Button
@@ -123,6 +147,9 @@ export function OrgTerminalsBulkBar({ orgId, selected, onClear, onComplete }: Or
                 </Button>
               )
             })}
+            {supportedCommands.length === 0 && (
+              <span className="px-2 text-xs text-muted-foreground">{t('terminals.bulk.noCommonActions')}</span>
+            )}
           </div>
 
           <Button
@@ -137,7 +164,7 @@ export function OrgTerminalsBulkBar({ orgId, selected, onClear, onComplete }: Or
         </div>
       </div>
 
-      <AlertDialog open={pending !== null} onOpenChange={open => !open && setPending(null)}>
+      <AlertDialog open={supportsPending} onOpenChange={open => !open && setPending(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -157,7 +184,7 @@ export function OrgTerminalsBulkBar({ orgId, selected, onClear, onComplete }: Or
             <AlertDialogCancel>{t('terminals.confirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (pending) mutation.mutate({ command: pending })
+                if (pending && supportedCommands.includes(pending)) mutation.mutate({ command: pending })
               }}
             >
               {pending && labelForCommand(pending)}

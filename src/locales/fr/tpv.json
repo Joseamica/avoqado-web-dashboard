@@ -1,8 +1,8 @@
 {
-  "title": "TPV Terminals",
-  "subtitle": "Manage your restaurant's point-of-sale devices",
+  "title": "Appareils",
+  "subtitle": "Les appareils POS apparaissent automatiquement après la connexion ; les terminaux de paiement physiques sont enregistrés ou commandés ici.",
   "actions": {
-    "createNew": "New Device",
+    "createNew": "Enregistrer ou commander un TPV",
     "maintenance": "Put in maintenance mode",
     "exit_maintenance": "Exit maintenance mode",
     "update_status": "Force status update",
@@ -12,6 +12,59 @@
     "update": "Update",
     "globalConfig": "Config. globale",
     "customerDisplayInverted": "Inverser les écrans"
+  },
+  "displayMode": {
+    "title": "Orientation des écrans",
+    "description": "L’état physique confirmé et la demande envoyée sont affichés séparément.",
+    "physical": {
+      "label": "État physique",
+      "standard": "Disposition normale",
+      "inverted": "Écrans inversés"
+    },
+    "requested": {
+      "label": "Changement demandé",
+      "requestedAt": "Demandé",
+      "expiresAt": "Expire",
+      "notAvailable": "Non disponible"
+    },
+    "statuses": {
+      "PENDING": "En attente sur l’appareil",
+      "APPLIED": "Appliqué",
+      "REJECTED": "Rejeté par l’appareil",
+      "SUPERSEDED": "Remplacé par une autre demande",
+      "CANCELLED": "Annulé",
+      "EXPIRED": "Expiré"
+    },
+    "resultCodes": {
+      "DISPLAY_NOT_PRESENT": "L’appareil a indiqué qu’il ne possède pas d’écran client.",
+      "DISPLAY_NOT_INVERTIBLE": "L’appareil a indiqué que ses écrans ne peuvent pas être inversés.",
+      "APPLY_FAILED": "L’appareil n’a pas pu appliquer le changement.",
+      "LOCAL_OVERRIDE": "Le changement a été remplacé directement sur l’appareil.",
+      "CANCEL_TOO_LATE": "Le changement physique avait déjà été appliqué avant l’annulation.",
+      "ACK_AFTER_EXPIRY": "La confirmation de l’appareil est arrivée après l’expiration.",
+      "DEVICE_RETIRED": "L’appareil a été retiré avant la fin du changement."
+    },
+    "explanations": {
+      "awaitingReport": "En attente du rapport de capacités de l’appareil. L’action sera disponible après sa reconnexion.",
+      "missingPermission": "Vous n’avez pas l’autorisation de demander ou d’annuler ce changement.",
+      "actionUnavailable": "Cet appareil ne prend pas en charge les demandes d’orientation d’écran à distance."
+    },
+    "actions": {
+      "requestInverted": "Demander l’inversion des écrans",
+      "requestStandard": "Demander la disposition normale",
+      "retryInverted": "Réessayer l’inversion des écrans",
+      "retryStandard": "Réessayer la disposition normale",
+      "cancel": "Annuler la demande",
+      "submitting": "Envoi de la demande…",
+      "cancelling": "Annulation…"
+    },
+    "feedback": {
+      "requestCreated": "Le serveur a confirmé la demande. L’état physique changera lorsque l’appareil l’appliquera.",
+      "cancelled": "La demande a été annulée.",
+      "cancelTooLate": "L’annulation est arrivée trop tard : le changement physique avait déjà été appliqué. Vous pouvez demander l’état opposé.",
+      "createFailed": "La demande n’a pas pu être créée. L’état physique n’a pas changé ; vous pouvez réessayer.",
+      "cancelFailed": "La demande n’a pas pu être annulée. L’état physique n’a pas changé ; réessayez."
+    }
   },
   "create": {
     "title": "Créer un Nouveau Terminal",
@@ -30,7 +83,7 @@
     }
   },
   "search": {
-    "placeholder": "Search terminals..."
+    "placeholder": "Rechercher des appareils..."
   },
   "table": {
     "columns": {
@@ -53,7 +106,9 @@
     "maintenance": "Maintenance",
     "retired": "Retired",
     "unknown": "Unknown",
-    "lastSeen": "Last seen"
+    "lastSeen": "Last seen",
+    "activationNotRequired": "Activation non requise",
+    "capabilitiesUnavailable": "En attente des capacités de l’appareil"
   },
   "commandLabels": {
     "SHUTDOWN": "Shutdown",
@@ -71,7 +126,9 @@
     "sendError": "Erreur lors de l'envoi de la commande: {{error}}",
     "maintenancePayload": "Activé depuis le tableau de bord",
     "remoteCommands": "Commandes à Distance",
-    "remoteCommandsDesc": "Envoyez des commandes à ce terminal pour le contrôler à distance",
+    "remoteCommandsDesc": "Envoyez uniquement les actions à distance prises en charge par cet appareil",
+    "noSupportedActions": "Cet appareil ne prend pas en charge les actions à distance depuis Avoqado. Ses fonctions locales restent disponibles.",
+    "unsupportedForDevice": "Cette action n’est pas prise en charge par cet appareil",
     "sendingCommand": "Envoi de la commande...",
     "confirmCommand": "Confirmer la Commande",
     "confirmDescription": "Êtes-vous sûr de vouloir envoyer la commande {{command}} à ce terminal?",
@@ -210,13 +267,15 @@
     "awaitingHeartbeat": "En attente de reconnexion du terminal"
   },
   "detail": {
-    "terminal": "Terminal",
+    "terminal": "Appareil",
     "id": "ID",
     "loading": "Loading terminal...",
     "notFound": "Terminal Not Found",
     "notFoundDesc": "The requested terminal could not be found with ID",
-    "goToTerminals": "Go to Terminals",
-    "noData": "No terminal data available",
+    "goToTerminals": "Aller aux appareils",
+    "noData": "Aucune donnée disponible pour cet appareil",
+    "activationNotRequired": "Activation non requise",
+    "selfRegistered": "Auto-enregistré après la connexion",
     "terminalStatus": "Terminal Status",
     "connection": "Connection",
     "inMaintenance": "In Maintenance",
@@ -299,6 +358,7 @@
   },
   "activation": {
     "title": "Activer le Terminal",
+    "notRequired": "Cet appareil ne nécessite pas d’activation",
     "description": "Entrez le numéro de série physique de l'appareil PAX pour activer ce terminal.",
     "code": "Code d'Activation",
     "expiresIn": "Expire dans {{days}} jours",
@@ -393,7 +453,15 @@
     "allowOfflineCardPaymentUnknownVersion": "Impossible de déterminer la version du terminal. Disponible à partir de la v2.5.0.",
     "securitySection": "Sécurité et Vérification",
     "securitySectionDesc": "Contrôle d'accès et validation des ventes",
-    "attendanceSectionDesc": "Configuration de la pointeuse"
+    "attendanceSectionDesc": "Configuration de la pointeuse",
+    "restartBanner": {
+      "message": "Des modifications ont été détectées sur le terminal {{serialNumber}}. Un redémarrage est nécessaire pour les appliquer.",
+      "restart": "Redémarrer",
+      "restarting": "Redémarrage...",
+      "offlineHint": "Le terminal doit être en ligne pour redémarrer",
+      "dismiss": "Ignorer",
+      "unsupportedDevice": "Les modifications ont été enregistrées. Cet appareil ne prend pas en charge le redémarrage à distance depuis Avoqado."
+    }
   },
   "filter": {
     "deviceKind": "Type",
@@ -414,7 +482,11 @@
     "title": "Supprimer le terminal ?",
     "description": "Cette action supprimera définitivement le terminal « {{name}} ». Elle est irréversible."
   },
-  "info": "Gérez les terminaux TPV, leur état et les actions à distance.",
+  "tabs": {
+    "terminals": "Appareils",
+    "orders": "Commandes"
+  },
+  "info": "Gérez vos appareils et les actions prises en charge par chaque modèle.",
   "messages": {
     "deleted": "Terminal supprimé",
     "deletedSuccess": "Le terminal a été supprimé."

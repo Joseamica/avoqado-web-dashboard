@@ -1,6 +1,6 @@
 import { useToast } from '@/hooks/use-toast'
 import { useTpvTour } from '@/hooks/useTpvTour'
-import { deleteTpv, getTpvs, sendTpvCommand as sendTpvCommandApi } from '@/services/tpv.service'
+import { deleteTpv, getTpvs, sendTpvCommand as sendTpvCommandApi, type TpvListDevice } from '@/services/tpv.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -55,13 +55,15 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI } from '@/services/superadmin-terminals.service'
-import { StaffRole, Terminal as TerminalType } from '@/types'
+import { StaffRole } from '@/types'
+import { TpvCommandType } from '@/types/tpv-commands'
 import { Currency } from '@/utils/currency'
 import { useTranslation } from 'react-i18next'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 import { TerminalOrdersTab } from './components/TerminalOrdersTab'
+import { canConfigurePayments, canSendCommand, getDeviceActionPolicy, isActivationPending } from './deviceCapabilities'
 
 // ⚠️ COHERENCIA con tours interactivos:
 // Esta página tiene un tour driver.js (`useTpvTour`) que enseña al usuario
@@ -202,9 +204,9 @@ export default function Tpvs() {
   const metrics = useMemo(() => {
     const terminals = data?.data || []
     const total = terminals.length
-    const online = terminals.filter((t: any) => isTerminalOnline(t.status, t.lastHeartbeat)).length
-    const pendingActivation = terminals.filter((t: any) => !t.activatedAt).length
-    const inMaintenance = terminals.filter((t: any) => t.status === 'MAINTENANCE').length
+    const online = terminals.filter(t => isTerminalOnline(t.status, t.lastHeartbeat)).length
+    const pendingActivation = terminals.filter(t => isActivationPending(t.capabilities, t.activatedAt)).length
+    const inMaintenance = terminals.filter(t => t.status === 'MAINTENANCE').length
 
     return { total, online, pendingActivation, inMaintenance }
   }, [data?.data])
@@ -229,7 +231,7 @@ export default function Tpvs() {
   const versionOptions = useMemo(() => {
     const terminals = data?.data || []
     const versions: string[] = []
-    terminals.forEach((t: any) => {
+    terminals.forEach(t => {
       if (t.version && !versions.includes(t.version)) versions.push(t.version)
     })
     return versions.sort().map(v => ({ value: v, label: `v${v}` }))
@@ -308,18 +310,23 @@ export default function Tpvs() {
     [tTpv],
   )
 
+  const hasPaymentCapableDevice = useMemo(
+    () => data?.data.some(device => canConfigurePayments(device.capabilities)) ?? false,
+    [data?.data],
+  )
+
   // SUPERADMIN: Fetch terminals with assignedMerchantIds
   const { data: superadminTerminals = [], refetch: refetchSuperadminTerminals } = useQuery({
     queryKey: ['superadmin-terminals', venueId],
     queryFn: () => terminalAPI.getAllTerminals({ venueId: venueId! }),
-    enabled: isSuperadmin && Boolean(venueId),
+    enabled: isSuperadmin && Boolean(venueId) && hasPaymentCapableDevice,
   })
 
   // SUPERADMIN: Fetch all merchant accounts (they are global, not per-venue)
   const { data: merchantAccounts = [] } = useQuery({
     queryKey: ['merchant-accounts'],
     queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
-    enabled: isSuperadmin,
+    enabled: isSuperadmin && hasPaymentCapableDevice,
   })
 
   // Create lookup map: terminalId -> assignedMerchantIds
@@ -342,6 +349,8 @@ export default function Tpvs() {
 
   // SUPERADMIN: Link merchant account to terminal
   const handleLinkMerchant = async (terminalId: string, merchantId: string) => {
+    const terminal = data?.data.find(device => device.id === terminalId)
+    if (!canConfigurePayments(terminal?.capabilities)) return
     setLinkingMerchant({ terminalId, merchantId })
     try {
       const currentIds = terminalMerchantMap.get(terminalId) || []
@@ -367,6 +376,8 @@ export default function Tpvs() {
 
   // SUPERADMIN: Unlink merchant account from terminal
   const handleUnlinkMerchant = async (terminalId: string, merchantId: string) => {
+    const terminal = data?.data.find(device => device.id === terminalId)
+    if (!canConfigurePayments(terminal?.capabilities)) return
     setUnlinkingMerchant({ terminalId, merchantId })
     try {
       const currentIds = terminalMerchantMap.get(terminalId) || []
@@ -391,7 +402,7 @@ export default function Tpvs() {
   }
 
   const commandMutation = useMutation({
-    mutationFn: ({ terminalId, command, payload }: { terminalId: string; command: string; payload?: any }) =>
+    mutationFn: ({ terminalId, command, payload }: { terminalId: string; command: TpvCommandType; payload?: any }) =>
       sendTpvCommandApi(terminalId, command, payload),
     onSuccess: (_data, variables) => {
       const commandLabel = t(`tpv.commandLabels.${variables.command}`, { defaultValue: variables.command })
@@ -406,9 +417,9 @@ export default function Tpvs() {
 
       // Optimistic update for state-changing commands — backend queues async (TPV ACK updates DB later)
       // Without this, the UI stays stale and user can accidentally re-send the same command
-      const statusCommandMap: Record<string, string> = {
-        MAINTENANCE_MODE: 'MAINTENANCE',
-        EXIT_MAINTENANCE: 'ACTIVE',
+      const statusCommandMap: Partial<Record<TpvCommandType, string>> = {
+        [TpvCommandType.MAINTENANCE_MODE]: 'MAINTENANCE',
+        [TpvCommandType.EXIT_MAINTENANCE]: 'ACTIVE',
       }
       const newStatus = statusCommandMap[variables.command]
       if (newStatus) {
@@ -440,13 +451,14 @@ export default function Tpvs() {
   })
 
   const sendTpvCommand = useCallback(
-    (terminalId: string, command: string) => {
+    (terminal: TpvListDevice, command: TpvCommandType) => {
+      if (!canSendCommand(terminal.capabilities, command)) return
       const payload =
-        command === 'MAINTENANCE_MODE'
+        command === TpvCommandType.MAINTENANCE_MODE
           ? { message: tTpv('commands.maintenancePayload', { defaultValue: 'Activado desde dashboard' }), duration: 0 }
           : undefined
 
-      commandMutation.mutate({ terminalId, command, payload })
+      commandMutation.mutate({ terminalId: terminal.id, command, payload })
     },
     [commandMutation, tTpv],
   )
@@ -473,14 +485,14 @@ export default function Tpvs() {
     },
   })
 
-  const columns: ColumnDef<TerminalType, unknown>[] = [
+  const columns: ColumnDef<TpvListDevice, unknown>[] = [
     {
       id: 'terminal',
       accessorKey: 'name',
       meta: { label: tTpv('table.columns.name', { defaultValue: 'Terminal' }) },
       header: tTpv('table.columns.name', { defaultValue: 'Terminal' }),
       cell: ({ row }) => {
-        const terminal = row.original as any
+        const terminal = row.original
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
 
         return (
@@ -521,7 +533,7 @@ export default function Tpvs() {
       header: tTpv('table.columns.deviceKind', { defaultValue: 'Tipo' }),
       meta: { label: tTpv('table.columns.deviceKind', { defaultValue: 'Tipo' }) },
       cell: ({ row }) => {
-        const terminal = row.original as any
+        const terminal = row.original
         return (
           <DeviceTypeCell
             formFactor={terminal.formFactor}
@@ -538,7 +550,7 @@ export default function Tpvs() {
       header: tTpv('table.columns.connection', { defaultValue: 'Conexión' }),
       meta: { label: tTpv('table.columns.connection', { defaultValue: 'Conexión' }) },
       cell: ({ row }) => {
-        const terminal = row.original as any
+        const terminal = row.original
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
 
         return (
@@ -554,7 +566,7 @@ export default function Tpvs() {
       header: tTpv('table.columns.lastConnection', { defaultValue: 'Última conexión' }),
       meta: { label: tTpv('table.columns.lastConnection', { defaultValue: 'Última conexión' }) },
       cell: ({ row }) => {
-        const terminal = row.original as any
+        const terminal = row.original
         const relativeTime = getRelativeTime(terminal.lastHeartbeat)
 
         return (
@@ -577,10 +589,18 @@ export default function Tpvs() {
       meta: { label: tTpv('table.columns.activation', { defaultValue: 'Activación' }) },
       header: tTpv('table.columns.activation', { defaultValue: 'Activación' }),
       cell: ({ row }) => {
-        const terminal = row.original as any
-        const isActivated = terminal.activatedAt != null
+        const terminal = row.original
+        const actionPolicy = getDeviceActionPolicy(terminal.capabilities, terminal.activatedAt)
 
-        if (isActivated) {
+        if (actionPolicy.activationState === 'capabilities-unavailable') {
+          return <span className="text-sm text-muted-foreground">{tTpv('status.capabilitiesUnavailable')}</span>
+        }
+
+        if (actionPolicy.activationState === 'not-required') {
+          return <span className="text-sm text-muted-foreground">{tTpv('status.activationNotRequired')}</span>
+        }
+
+        if (actionPolicy.activationState === 'activated') {
           return (
             <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
@@ -602,7 +622,7 @@ export default function Tpvs() {
       meta: { label: tTpv('table.columns.todaySales', { defaultValue: 'Ventas hoy' }) },
       header: tTpv('table.columns.todaySales', { defaultValue: 'Ventas hoy' }),
       cell: ({ row }) => {
-        const terminal = row.original as any
+        const terminal = row.original
         const count = terminal.todayPaymentCount || 0
         const total = terminal.todayPaymentTotal || 0
 
@@ -635,7 +655,10 @@ export default function Tpvs() {
               </div>
             ),
             cell: ({ row }: { row: any }) => {
-              const terminal = row.original as any
+              const terminal = row.original as TpvListDevice
+              if (!canConfigurePayments(terminal.capabilities)) {
+                return <span className="text-xs text-muted-foreground">—</span>
+              }
               const assignedIds = terminalMerchantMap.get(terminal.id) || []
               const assignedAccounts = merchantAccounts.filter((m: MerchantAccount) => assignedIds.includes(m.id))
               const availableAccounts = merchantAccounts.filter((m: MerchantAccount) => !assignedIds.includes(m.id))
@@ -782,15 +805,16 @@ export default function Tpvs() {
       id: 'actions',
       header: '',
       cell: ({ row }) => {
-        const terminal = row.original as any
+        const terminal = row.original
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
         const isInMaintenance = terminal.status === 'MAINTENANCE'
         const isOnline = statusStyle.isOnline
+        const actionPolicy = getDeviceActionPolicy(terminal.capabilities, terminal.activatedAt)
 
         return (
           <div className="flex items-center justify-end gap-1">
             {/* Show Activate button if terminal is pending activation */}
-            {terminal.status === 'PENDING_ACTIVATION' && (
+            {actionPolicy.activationPending && (
               <PermissionGate permission="tpv:update">
                 <Button
                   variant="default"
@@ -810,7 +834,7 @@ export default function Tpvs() {
 
             {/* Only show command buttons if user has permission */}
             <PermissionGate permission="tpv:command">
-              {isInMaintenance ? (
+              {isInMaintenance && canSendCommand(terminal.capabilities, TpvCommandType.EXIT_MAINTENANCE) ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -818,7 +842,7 @@ export default function Tpvs() {
                       size="icon"
                       onClick={e => {
                         e.stopPropagation()
-                        sendTpvCommand(terminal.id, 'EXIT_MAINTENANCE')
+                        sendTpvCommand(terminal, TpvCommandType.EXIT_MAINTENANCE)
                       }}
                       className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                     >
@@ -827,7 +851,7 @@ export default function Tpvs() {
                   </TooltipTrigger>
                   <TooltipContent>{tTpv('actions.exit_maintenance', { defaultValue: 'Salir mantenimiento' })}</TooltipContent>
                 </Tooltip>
-              ) : (
+              ) : !isInMaintenance && canSendCommand(terminal.capabilities, TpvCommandType.MAINTENANCE_MODE) ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -836,7 +860,7 @@ export default function Tpvs() {
                       disabled={!isOnline}
                       onClick={e => {
                         e.stopPropagation()
-                        sendTpvCommand(terminal.id, 'MAINTENANCE_MODE')
+                        sendTpvCommand(terminal, TpvCommandType.MAINTENANCE_MODE)
                       }}
                       className="h-7 w-7"
                     >
@@ -849,16 +873,16 @@ export default function Tpvs() {
                       : tTpv('actions.offline', { defaultValue: 'Desconectado' })}
                   </TooltipContent>
                 </Tooltip>
-              )}
+              ) : null}
 
-              <Tooltip>
+              {canSendCommand(terminal.capabilities, TpvCommandType.RESTART) && <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={e => {
                       e.stopPropagation()
-                      sendTpvCommand(terminal.id, 'RESTART')
+                      sendTpvCommand(terminal, TpvCommandType.RESTART)
                     }}
                     className="h-7 w-7"
                   >
@@ -870,11 +894,11 @@ export default function Tpvs() {
                     ? tTpv('commandLabels.RESTART', { defaultValue: 'Reiniciar' })
                     : tTpv('commandLabels.RESTART_QUEUED', { defaultValue: 'Reiniciar (al conectarse)' })}
                 </TooltipContent>
-              </Tooltip>
+              </Tooltip>}
             </PermissionGate>
 
             {/* Delete button - only for non-activated terminals */}
-            {!terminal.activatedAt && (
+            {actionPolicy.activationPending && (
               <PermissionGate permission="tpv:delete">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -908,14 +932,14 @@ export default function Tpvs() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <PageTitleWithInfo
-              title={tTpv('title', { defaultValue: 'Terminales Punto de Venta' })}
+              title={tTpv('title', { defaultValue: 'Dispositivos' })}
               className="text-2xl font-bold tracking-tight"
               tooltip={tTpv('info', {
-                defaultValue: 'Administra terminales TPV, su estado y acciones remotas.',
+                defaultValue: 'Administra tus dispositivos y las acciones que cada modelo admite.',
               })}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              {tTpv('subtitle', { defaultValue: 'Gestiona los dispositivos TPV de tu restaurante' })}
+              {tTpv('subtitle', { defaultValue: 'Los POS aparecen automáticamente al iniciar sesión; las TPV físicas se registran o solicitan aquí.' })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -958,7 +982,7 @@ export default function Tpvs() {
                 onClick={() => setWizardOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-1.5" />
-                <span>{tTpv('actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
+                <span>{tTpv('actions.createNew', { defaultValue: 'Registrar o pedir TPV' })}</span>
               </Button>
             </PermissionGate>
           </div>
@@ -971,7 +995,7 @@ export default function Tpvs() {
               value="terminals"
               className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background text-xs px-3 py-1"
             >
-              {tTpv('tabs.terminals', { defaultValue: 'Terminales' })}
+              {tTpv('tabs.terminals', { defaultValue: 'Dispositivos' })}
             </TabsTrigger>
             <TabsTrigger
               value="orders"
@@ -1035,7 +1059,7 @@ export default function Tpvs() {
                           <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                              placeholder={tTpv('search.placeholder', { defaultValue: 'Buscar terminales...' })}
+                              placeholder={tTpv('search.placeholder', { defaultValue: 'Buscar dispositivos...' })}
                               value={searchTerm}
                               onChange={e => setSearchTerm(e.target.value)}
                               onKeyDown={e => {

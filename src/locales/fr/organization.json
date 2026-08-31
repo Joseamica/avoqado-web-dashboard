@@ -197,5 +197,33 @@
       "page": "Page {{page}} sur {{totalPages}}",
       "system": "Système"
     }
+  },
+  "sidebar": {
+    "terminals": "Appareils"
+  },
+  "breadcrumb": {
+    "terminals": "Appareils"
+  },
+  "terminals": {
+    "title": "Appareils",
+    "subtitle": "Gérez les appareils de tous vos établissements selon leurs capacités",
+    "searchPlaceholder": "Rechercher par nom, série, marque, modèle ou établissement...",
+    "noResults": "Aucun appareil ne correspond à ces filtres",
+    "empty": "Aucun appareil enregistré",
+    "emptyOrg": {
+      "title": "Votre organisation ne possède encore aucun appareil",
+      "body": "Les appareils POS apparaissent automatiquement après la connexion. Vous pouvez aussi enregistrer ou commander un terminal de paiement physique.",
+      "cta": "Enregistrer ou commander un TPV",
+      "docs": "Fonctionnement des appareils"
+    },
+    "emptyResults": {
+      "title": "Aucun résultat",
+      "body": "Aucun appareil ne correspond aux filtres appliqués.",
+      "clear": "Effacer les filtres"
+    },
+    "bulk": {
+      "noCommonActions": "Les appareils sélectionnés ne partagent aucune action à distance.",
+      "unsupportedSelection": "Cette action n’est pas prise en charge par tous les appareils sélectionnés"
+    }
   }
 }

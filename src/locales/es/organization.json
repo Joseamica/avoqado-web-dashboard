@@ -211,7 +211,7 @@
     "team": "Equipo",
     "configuration": "Configuración",
     "settings": "Ajustes",
-    "terminals": "Terminales",
+    "terminals": "Dispositivos",
     "activityLog": "Registro de Actividad",
     "masterCatalog": "Catálogo maestro",
     "quickAccess": "Acceso Rápido",
@@ -240,7 +240,7 @@
     "team": "Equipo",
     "settings": "Ajustes",
     "analytics": "Analíticas",
-    "terminals": "Terminales",
+    "terminals": "Dispositivos",
     "activityLog": "Registro de Actividad"
   },
   "dashboard": {
@@ -347,13 +347,13 @@
     "updateError": "Error al actualizar la organización"
   },
   "terminals": {
-    "title": "Terminales",
-    "subtitle": "Gestión de terminales en todas las sucursales",
+    "title": "Dispositivos",
+    "subtitle": "Gestiona los dispositivos de todas tus sucursales según sus capacidades",
     "searchPlaceholder": "Buscar por nombre, serie, marca, modelo o sucursal...",
     "searchToggle": "Buscar",
-    "noResults": "No se encontraron terminales con esos filtros",
+    "noResults": "No se encontraron dispositivos con esos filtros",
     "noResultsForQuery": "Sin resultados para «{{q}}»",
-    "empty": "No hay terminales registradas",
+    "empty": "No hay dispositivos registrados",
     "refresh": "Recargar",
     "stats": {
       "total": "Total",
@@ -391,28 +391,30 @@
       "title": "Mostrar columnas"
     },
     "emptyOrg": {
-      "title": "Aún no hay terminales en tu organización",
-      "body": "Las terminales son tus dispositivos de cobro y de cocina. Conecta la primera para empezar a recibir pagos.",
-      "cta": "Crear terminal",
-      "docs": "Cómo funcionan las terminales"
+      "title": "Aún no hay dispositivos en tu organización",
+      "body": "Los POS aparecerán automáticamente al iniciar sesión. También puedes registrar o solicitar una TPV física.",
+      "cta": "Registrar o pedir TPV",
+      "docs": "Cómo funcionan los dispositivos"
     },
     "emptyResults": {
       "title": "Sin resultados",
-      "body": "Ningún terminal coincide con los filtros aplicados.",
+      "body": "Ningún dispositivo coincide con los filtros aplicados.",
       "clear": "Limpiar filtros"
     },
     "bulk": {
-      "selected_one": "{{count}} seleccionada",
-      "selected_other": "{{count}} seleccionadas",
+      "selected_one": "{{count}} seleccionado",
+      "selected_other": "{{count}} seleccionados",
       "clearSelection": "Limpiar selección",
       "max": "Máximo {{max}}",
-      "confirmTitle": "{{action}} {{count}} terminales",
-      "confirmDescription": "Se aplicará «{{action}}» a las siguientes terminales:",
+      "confirmTitle": "{{action}} {{count}} dispositivos",
+      "confirmDescription": "Se aplicará «{{action}}» a los siguientes dispositivos:",
       "moreTerminals_one": "y {{count}} más",
       "moreTerminals_other": "y {{count}} más",
-      "allSucceeded": "Comando enviado a {{count}} terminales",
+      "allSucceeded": "Comando enviado a {{count}} dispositivos",
       "partial": "{{succeeded}} de {{total}} exitosas. {{failed}} fallaron.",
-      "allFailed": "No se pudo enviar el comando a ninguna terminal",
+      "allFailed": "No se pudo enviar el comando a ningún dispositivo",
+      "noCommonActions": "Los dispositivos seleccionados no comparten acciones remotas.",
+      "unsupportedSelection": "Esta acción no es compatible con todos los dispositivos seleccionados",
       "rowError": "{{name}}: {{error}}",
       "action": {
         "RESTART": "Reiniciar",

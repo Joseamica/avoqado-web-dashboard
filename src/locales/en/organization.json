@@ -211,7 +211,7 @@
     "team": "Team",
     "configuration": "Configuration",
     "settings": "Settings",
-    "terminals": "Terminals",
+    "terminals": "Devices",
     "activityLog": "Activity Log",
     "masterCatalog": "Master catalog",
     "quickAccess": "Quick Access",
@@ -240,7 +240,7 @@
     "team": "Team",
     "settings": "Settings",
     "analytics": "Analytics",
-    "terminals": "Terminals",
+    "terminals": "Devices",
     "activityLog": "Activity Log"
   },
   "dashboard": {
@@ -347,13 +347,13 @@
     "updateError": "Failed to update organization"
   },
   "terminals": {
-    "title": "Terminals",
-    "subtitle": "Manage terminals across all venues",
+    "title": "Devices",
+    "subtitle": "Manage devices across all venues according to their capabilities",
     "searchPlaceholder": "Search by name, serial, brand, model, or venue...",
     "searchToggle": "Search",
-    "noResults": "No terminals match your filters",
+    "noResults": "No devices match your filters",
     "noResultsForQuery": "No results for \"{{q}}\"",
-    "empty": "No terminals registered",
+    "empty": "No devices registered",
     "refresh": "Refresh",
     "stats": {
       "total": "Total",
@@ -391,14 +391,14 @@
       "title": "Show columns"
     },
     "emptyOrg": {
-      "title": "No terminals in your organization yet",
-      "body": "Terminals are your payment and kitchen devices. Connect the first one to start accepting payments.",
-      "cta": "Create terminal",
-      "docs": "How terminals work"
+      "title": "No devices in your organization yet",
+      "body": "POS devices appear automatically after sign-in. You can also register or order a physical payment terminal.",
+      "cta": "Register or order TPV",
+      "docs": "How devices work"
     },
     "emptyResults": {
       "title": "No results",
-      "body": "No terminals match the applied filters.",
+      "body": "No devices match the applied filters.",
       "clear": "Clear filters"
     },
     "bulk": {
@@ -406,13 +406,15 @@
       "selected_other": "{{count}} selected",
       "clearSelection": "Clear selection",
       "max": "Max {{max}}",
-      "confirmTitle": "{{action}} {{count}} terminals",
-      "confirmDescription": "The action \"{{action}}\" will be applied to these terminals:",
+      "confirmTitle": "{{action}} {{count}} devices",
+      "confirmDescription": "The action \"{{action}}\" will be applied to these devices:",
       "moreTerminals_one": "and {{count}} more",
       "moreTerminals_other": "and {{count}} more",
-      "allSucceeded": "Command sent to {{count}} terminals",
+      "allSucceeded": "Command sent to {{count}} devices",
       "partial": "{{succeeded}} of {{total}} succeeded. {{failed}} failed.",
-      "allFailed": "Command could not be sent to any terminal",
+      "allFailed": "Command could not be sent to any device",
+      "noCommonActions": "The selected devices do not share any remote actions.",
+      "unsupportedSelection": "This action is not supported by every selected device",
       "rowError": "{{name}}: {{error}}",
       "action": {
         "RESTART": "Restart",

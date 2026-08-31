@@ -52,6 +52,7 @@ const routeKeyMap: Record<string, string> = {
   users: 'sidebar:routes.users',
   waiters: 'sidebar:routes.waiters',
   tpv: 'sidebar:routes.tpv',
+  devices: 'sidebar:routes.tpv',
   overview: 'sidebar:routes.overview',
   menumaker: 'sidebar:routes.menumaker',
   editvenue: 'sidebar:routes.editvenue',

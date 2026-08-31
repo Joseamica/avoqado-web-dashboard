@@ -27,13 +27,15 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI } from '@/services/superadmin-terminals.service'
-import { generateActivationCode } from '@/services/tpv.service'
+import { generateActivationCode, type DisplayModeRequest, type EffectiveDeviceCapabilities } from '@/services/tpv.service'
 import { StaffRole } from '@/types'
+import { type TpvCommandPayload, TpvCommandType } from '@/types/tpv-commands'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -53,7 +55,6 @@ import {
   Lock,
   LockOpen,
   MemoryStick,
-  MonitorSmartphone,
   PencilIcon,
   RotateCcw,
   SaveIcon,
@@ -74,8 +75,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as z from 'zod'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { CommandHistoryTable } from './components/CommandHistoryTable'
+import { DisplayModeRequestControl, getDisplayModeRefetchInterval } from './components/DisplayModeRequestControl'
 import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
+import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 
 // Valid tab values for URL hash
 const VALID_TABS = ['info', 'commands', 'messages', 'settings'] as const
@@ -90,6 +93,13 @@ type TpvFormValues = {
   model?: string
   status?: string
   config?: string
+}
+
+interface TpvCommandMutationVariables {
+  terminalId: string
+  venueId: string
+  command: TpvCommandType
+  payload?: TpvCommandPayload
 }
 
 interface TpvData {
@@ -112,7 +122,10 @@ interface TpvData {
   lockReason?: string | null // 🆕 Why terminal was locked
   lockedAt?: string | null // 🆕 When terminal was locked
   lockedBy?: string | null // 🆕 StaffId who locked
-  customerDisplayInverted?: boolean // 🆕 Dual-screen Sunmi: customer sees the large screen, cashier the small one
+  customerDisplayInverted: boolean
+  capabilities: EffectiveDeviceCapabilities
+  customerDisplayRequest?: DisplayModeRequest | null
+  selfRegistered?: boolean
   systemInfo?: {
     platform?: string
     memory?: {
@@ -126,6 +139,13 @@ interface TpvData {
 }
 
 export default function TpvId() {
+  const { tpvId } = useParams()
+  const { venueId } = useCurrentVenue()
+
+  return <TpvIdContent key={`${venueId ?? 'unknown-venue'}:${tpvId ?? 'unknown-device'}`} />
+}
+
+function TpvIdContent() {
   const { t, i18n } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
@@ -134,11 +154,13 @@ export default function TpvId() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
+  const { can } = useAccess()
+  const canUpdate = can('tpv:update')
   const { socket, joinVenueRoom, leaveVenueRoom } = useSocket()
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<TabValue>('info')
-  const [pendingCommand, setPendingCommand] = useState<string | null>(null)
+  const [pendingCommand, setPendingCommand] = useState<TpvCommandType | null>(null)
   const [merchantAccountToLink, setMerchantAccountToLink] = useState<string>('')
   const [isLinkingMerchant, setIsLinkingMerchant] = useState(false)
   const [isUnlinkingMerchant, setIsUnlinkingMerchant] = useState<string | null>(null)
@@ -306,8 +328,7 @@ export default function TpvId() {
 
   const navigate = useNavigate()
 
-  // Fetch the TPV data
-  // Toast/Square pattern: Socket.IO for real-time + polling fallback every 10s
+  // Fetch the device data. A pending durable display request polls until its canonical resolution.
   const {
     data: tpv,
     isLoading,
@@ -320,7 +341,7 @@ export default function TpvId() {
       return response.data
     },
     enabled: Boolean(venueId && tpvId),
-    refetchInterval: 60000, // 60s fallback polling (Socket.IO handles real-time via tpv_status_update)
+    refetchInterval: query => getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest),
     retry: (failureCount, error: any) => {
       // Don't retry if it's a 404 error
       if (error?.response?.status === 404) {
@@ -335,14 +356,14 @@ export default function TpvId() {
   const { data: terminalDetails, refetch: refetchTerminalDetails } = useQuery({
     queryKey: ['superadmin-terminal', tpvId],
     queryFn: () => terminalAPI.getTerminalById(tpvId!),
-    enabled: isSuperAdmin && Boolean(tpvId),
+    enabled: isSuperAdmin && Boolean(tpvId) && canConfigurePayments(tpv?.capabilities),
   })
 
   // SUPERADMIN: Fetch all merchant accounts (they are global, not per-venue)
   const { data: merchantAccounts = [] } = useQuery({
     queryKey: ['merchant-accounts'],
     queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
-    enabled: isSuperAdmin,
+    enabled: isSuperAdmin && canConfigurePayments(tpv?.capabilities),
   })
 
   // Get assigned merchant accounts (full objects)
@@ -352,7 +373,7 @@ export default function TpvId() {
 
   // SUPERADMIN: Link merchant account to terminal
   const handleLinkMerchantAccount = async () => {
-    if (!merchantAccountToLink || !tpvId) return
+    if (!merchantAccountToLink || !tpvId || !canConfigurePayments(tpv?.capabilities)) return
     setIsLinkingMerchant(true)
     try {
       const newMerchantIds = [...assignedMerchantIds, merchantAccountToLink]
@@ -378,7 +399,7 @@ export default function TpvId() {
 
   // SUPERADMIN: Unlink merchant account from terminal
   const handleUnlinkMerchantAccount = async (merchantId: string) => {
-    if (!tpvId) return
+    if (!tpvId || !canConfigurePayments(tpv?.capabilities)) return
     setIsUnlinkingMerchant(merchantId)
     try {
       const newMerchantIds = assignedMerchantIds.filter((id: string) => id !== merchantId)
@@ -445,40 +466,11 @@ export default function TpvId() {
     },
   })
 
-  // Mutation for toggling customer-display inversion (Sunmi dual-screen POS).
-  // Same endpoint/query-invalidation as updateTpvMutation, but fires immediately on toggle
-  // instead of going through the edit form — matches the Maintenance/Lock quick actions below.
-  const updateDisplayInvertedMutation = useMutation({
-    mutationFn: async (customerDisplayInverted: boolean) => {
-      if (!venueId || !tpvId) {
-        throw new Error(t('detail.errors.venueOrTpvUndefined'))
-      }
-      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, { customerDisplayInverted })
-      return response.data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
-      queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
-      toast({
-        title: t('detail.toast.updateSuccess'),
-        description: t('detail.toast.updateSuccessDesc'),
-      })
-    },
-    onError: error => {
-      toast({
-        title: t('common:error'),
-        description: t('detail.errors.updateFailed'),
-        variant: 'destructive',
-      })
-      console.error('Error updating customerDisplayInverted:', error)
-    },
-  })
-
   // Mutation for sending commands to TPV
   const commandMutation = useMutation({
-    mutationFn: async ({ command, payload }: { command: string; payload?: any }) => {
-      if (!tpvId) throw new Error(t('detail.errors.tpvIdUndefined'))
-      const response = await api.post(`/api/v1/dashboard/tpv/${tpvId}/command`, { command, payload })
+    mutationFn: async ({ terminalId: targetTerminalId, command, payload }: TpvCommandMutationVariables) => {
+      if (!canSendCommand(tpv?.capabilities, command)) throw new Error(t('commands.unsupportedForDevice'))
+      const response = await api.post(`/api/v1/dashboard/tpv/${targetTerminalId}/command`, { command, payload })
       return response.data
     },
     onSuccess: (_, variables) => {
@@ -487,7 +479,7 @@ export default function TpvId() {
         description: t('commands.sentSuccess', { command: t(`commandLabels.${variables.command}`, variables.command) }),
       })
       // Refresh the TPV data to show updated status
-      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
+      queryClient.invalidateQueries({ queryKey: ['tpv', variables.venueId, variables.terminalId] })
     },
     onError: (error: any) => {
       toast({
@@ -498,12 +490,13 @@ export default function TpvId() {
     },
   })
 
-  const sendTpvCommand = (command: string) => {
+  const sendTpvCommand = (command: TpvCommandType) => {
+    if (!tpvId || !venueId || !canSendCommand(tpv?.capabilities, command)) return
     setPendingCommand(command)
-    const payload = command === 'MAINTENANCE_MODE' ? { message: t('commands.maintenancePayload'), duration: 0 } : undefined
+    const payload = command === TpvCommandType.MAINTENANCE_MODE ? { message: t('commands.maintenancePayload'), duration: 0 } : undefined
 
     commandMutation.mutate(
-      { command, payload },
+      { terminalId: tpvId, venueId, command, payload },
       {
         onSettled: () => {
           setPendingCommand(null)
@@ -517,6 +510,9 @@ export default function TpvId() {
     mutationFn: async () => {
       if (!venueId || !tpvId) {
         throw new Error(t('detail.errors.venueOrTpvUndefined'))
+      }
+      if (!getDeviceActionPolicy(tpv?.capabilities, tpv?.activatedAt).activationPending) {
+        throw new Error(t('activation.notRequired'))
       }
       return generateActivationCode(venueId, tpvId)
     },
@@ -573,6 +569,7 @@ export default function TpvId() {
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
 
   const handleDeactivate = () => {
+    if (!getDeviceActionPolicy(tpv?.capabilities, tpv?.activatedAt).canDeactivate) return
     deactivateTpvMutation.mutate()
     setShowDeactivateDialog(false)
   }
@@ -675,6 +672,20 @@ export default function TpvId() {
   const terminalOnline = isOnline(tpv?.status, tpv?.lastHeartbeat)
   const isInMaintenance = tpv?.status === 'MAINTENANCE'
   const isInactive = tpv?.status === 'INACTIVE'
+  const actionPolicy = getDeviceActionPolicy(tpv.capabilities, tpv.activatedAt)
+  const maintenanceTransition = isInMaintenance ? TpvCommandType.EXIT_MAINTENANCE : TpvCommandType.MAINTENANCE_MODE
+  const lockTransition = tpv.isLocked ? TpvCommandType.UNLOCK : TpvCommandType.LOCK
+  const canRestart = canSendCommand(tpv.capabilities, TpvCommandType.RESTART)
+  const showDisplayModeControl =
+    tpv.capabilities.customerDisplay.presence !== 'UNSUPPORTED' &&
+    tpv.capabilities.customerDisplay.invertibility !== 'UNSUPPORTED'
+  const showQuickActions =
+    canSendCommand(tpv.capabilities, maintenanceTransition) ||
+    canSendCommand(tpv.capabilities, lockTransition) ||
+    showDisplayModeControl ||
+    isInactive ||
+    actionPolicy.activationPending ||
+    actionPolicy.canDeactivate
 
   return (
     <TooltipProvider>
@@ -708,13 +719,13 @@ export default function TpvId() {
                 {!isEditing && (
                   <div className="flex items-center space-x-2">
                     {/* Restart Button */}
-                    <PermissionGate permission="tpv:command">
+                    {canRestart && <PermissionGate permission="tpv:command">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => sendTpvCommand('RESTART')}
+                            onClick={() => sendTpvCommand(TpvCommandType.RESTART)}
                             disabled={!terminalOnline || commandMutation.isPending}
                           >
                             <RotateCcw className="w-4 h-4 mr-2" />
@@ -725,7 +736,7 @@ export default function TpvId() {
                           <p>{terminalOnline ? t('commands.descriptions.RESTART') : t('actions.offline')}</p>
                         </TooltipContent>
                       </Tooltip>
-                    </PermissionGate>
+                    </PermissionGate>}
 
                     {/* Edit Button */}
                     <PermissionGate permission="tpv:update">
@@ -847,12 +858,16 @@ export default function TpvId() {
                 <MetricCard
                   label={t('detail.registration', { defaultValue: 'Registro' })}
                   value={
-                    tpv?.activatedAt
-                      ? t('detail.registered', { defaultValue: 'Registrado' })
-                      : t('detail.pendingRegistration', { defaultValue: 'Pendiente' })
+                    canActivate(tpv.capabilities)
+                      ? tpv.activatedAt
+                        ? t('detail.registered', { defaultValue: 'Registrado' })
+                        : t('detail.pendingRegistration', { defaultValue: 'Pendiente' })
+                      : tpv.selfRegistered
+                        ? t('detail.selfRegistered')
+                        : t('detail.activationNotRequired')
                   }
                   icon={<Key className="w-4 h-4" />}
-                  accent={tpv?.activatedAt ? 'green' : 'yellow'}
+                  accent={canActivate(tpv.capabilities) ? (tpv.activatedAt ? 'green' : 'yellow') : 'blue'}
                 />
                 <MetricCard
                   label={t('detail.lastContact')}
@@ -1182,7 +1197,7 @@ export default function TpvId() {
                 {/* Right Column - Additional Info */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <GlassCard className="p-0">
+                  {showQuickActions && <GlassCard className="p-0">
                     <div className="p-4 border-b border-border/50">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
@@ -1193,14 +1208,14 @@ export default function TpvId() {
                     </div>
                     <div className="p-4 space-y-4">
                       {/* Maintenance Mode Toggle */}
-                      <PermissionGate permission="tpv:command">
+                      {canSendCommand(tpv.capabilities, maintenanceTransition) && <PermissionGate permission="tpv:command">
                         <div
                           className={`flex items-center justify-between p-3 rounded-lg ${
                             isInMaintenance ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-muted'
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE' ? (
+                            {pendingCommand === TpvCommandType.MAINTENANCE_MODE || pendingCommand === TpvCommandType.EXIT_MAINTENANCE ? (
                               <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
                             ) : (
                               <Wrench
@@ -1213,7 +1228,7 @@ export default function TpvId() {
                                   isInMaintenance ? 'text-orange-800 dark:text-orange-400' : 'text-foreground'
                                 }`}
                               >
-                                {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE'
+                                {pendingCommand === TpvCommandType.MAINTENANCE_MODE || pendingCommand === TpvCommandType.EXIT_MAINTENANCE
                                   ? t('common:loading')
                                   : t('actions.maintenance')}
                               </p>
@@ -1226,26 +1241,26 @@ export default function TpvId() {
                             checked={isInMaintenance}
                             onCheckedChange={checked => {
                               if (checked) {
-                                sendTpvCommand('MAINTENANCE_MODE')
+                                sendTpvCommand(TpvCommandType.MAINTENANCE_MODE)
                               } else {
-                                sendTpvCommand('EXIT_MAINTENANCE')
+                                sendTpvCommand(TpvCommandType.EXIT_MAINTENANCE)
                               }
                             }}
                             disabled={(!terminalOnline && !isInMaintenance) || commandMutation.isPending}
                             className="data-[state=checked]:bg-orange-500"
                           />
                         </div>
-                      </PermissionGate>
+                      </PermissionGate>}
 
                       {/* Lock Toggle */}
-                      <PermissionGate permission="tpv:command">
+                      {canSendCommand(tpv.capabilities, lockTransition) && <PermissionGate permission="tpv:command">
                         <div
                           className={`flex items-center justify-between p-3 rounded-lg ${
                             tpv?.isLocked ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted'
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK' ? (
+                            {pendingCommand === TpvCommandType.LOCK || pendingCommand === TpvCommandType.UNLOCK ? (
                               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                             ) : tpv?.isLocked ? (
                               <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -1254,7 +1269,7 @@ export default function TpvId() {
                             )}
                             <div>
                               <p className={`text-sm font-medium ${tpv?.isLocked ? 'text-red-800 dark:text-red-400' : 'text-foreground'}`}>
-                                {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK'
+                                {pendingCommand === TpvCommandType.LOCK || pendingCommand === TpvCommandType.UNLOCK
                                   ? t('common:loading')
                                   : tpv?.isLocked
                                     ? t('actions.locked')
@@ -1269,39 +1284,28 @@ export default function TpvId() {
                             checked={tpv?.isLocked ?? false}
                             onCheckedChange={checked => {
                               if (checked) {
-                                sendTpvCommand('LOCK')
+                                sendTpvCommand(TpvCommandType.LOCK)
                               } else {
-                                sendTpvCommand('UNLOCK')
+                                sendTpvCommand(TpvCommandType.UNLOCK)
                               }
                             }}
                             disabled={!terminalOnline || commandMutation.isPending}
                             className="data-[state=checked]:bg-red-500"
                           />
                         </div>
-                      </PermissionGate>
+                      </PermissionGate>}
 
-                      {/* Customer Display Inverted Toggle (Sunmi dual-screen POS) */}
-                      <PermissionGate permission="tpv:update">
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-                          <div className="flex items-center space-x-3">
-                            {updateDisplayInvertedMutation.isPending ? (
-                              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                            ) : (
-                              <MonitorSmartphone className="w-5 h-5 text-muted-foreground" />
-                            )}
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{t('actions.customerDisplayInverted')}</p>
-                              <p className="text-xs text-muted-foreground">{t('detail.tooltips.customerDisplayInverted')}</p>
-                            </div>
-                          </div>
-                          <Switch
-                            checked={tpv?.customerDisplayInverted ?? false}
-                            onCheckedChange={checked => updateDisplayInvertedMutation.mutate(checked)}
-                            disabled={updateDisplayInvertedMutation.isPending}
-                          />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground/70 pl-3 -mt-2">{t('detail.notes.customerDisplaySync')}</p>
-                      </PermissionGate>
+                      {venueId && tpvId && showDisplayModeControl && (
+                        <DisplayModeRequestControl
+                          key={`${venueId}:${tpvId}`}
+                          venueId={venueId}
+                          terminalId={tpvId}
+                          capabilities={tpv.capabilities}
+                          customerDisplayInverted={tpv.customerDisplayInverted}
+                          request={tpv.customerDisplayRequest}
+                          canUpdate={canUpdate}
+                        />
+                      )}
 
                       {/* Terminal status alert - only show if status is INACTIVE (different from disconnected) */}
                       {isInactive && (
@@ -1316,8 +1320,9 @@ export default function TpvId() {
                       )}
 
                       {/* Separator before secondary actions */}
-                      <div className="pt-4 space-y-3">
-                        <PermissionGate permission="tpv:update">
+                      {(actionPolicy.activationPending || (isSuperAdmin && actionPolicy.canDeactivate)) && (
+                        <div className="pt-4 space-y-3">
+                        {actionPolicy.activationPending && <PermissionGate permission="tpv:update">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1325,22 +1330,17 @@ export default function TpvId() {
                                   variant="outline"
                                   className="w-full justify-start"
                                   onClick={() => generateActivationCodeMutation.mutate()}
-                                  disabled={generateActivationCodeMutation.isPending || !!tpv?.activatedAt}
+                                  disabled={generateActivationCodeMutation.isPending}
                                 >
                                   <Key className="w-4 h-4 mr-2" />
                                   {generateActivationCodeMutation.isPending ? t('common:loading') : t('actions.generateCode')}
                                 </Button>
                               </TooltipTrigger>
-                              {tpv?.activatedAt && (
-                                <TooltipContent>
-                                  <p>{t('activation.alreadyActivatedTooltip')}</p>
-                                </TooltipContent>
-                              )}
                             </Tooltip>
                           </TooltipProvider>
-                        </PermissionGate>
+                        </PermissionGate>}
 
-                        {isSuperAdmin && tpv?.activatedAt && (
+                        {isSuperAdmin && actionPolicy.canDeactivate && (
                           <Button
                             variant="outline"
                             className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
@@ -1351,12 +1351,13 @@ export default function TpvId() {
                             {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
                           </Button>
                         )}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  </GlassCard>
+                  </GlassCard>}
 
                   {/* SUPERADMIN: Merchant Accounts Card */}
-                  {isSuperAdmin && (
+                  {isSuperAdmin && actionPolicy.canConfigurePayments && (
                     <GlassCard className="border-amber-200/50 dark:border-amber-800/30">
                       <div className="p-4 border-b border-border/50 bg-gradient-to-r from-amber-400/10 to-pink-500/10 rounded-t-2xl">
                         <div className="flex items-center gap-3">
@@ -1481,7 +1482,13 @@ export default function TpvId() {
                             <div>
                               <h3 className="font-medium text-sm">{t('detail.systemDetails')}</h3>
                               <p className="text-xs text-muted-foreground">
-                                {tpv?.activatedAt ? t('detail.activated') : t('detail.pendingActivation')}
+                                {canActivate(tpv.capabilities)
+                                  ? tpv.activatedAt
+                                    ? t('detail.activated')
+                                    : t('detail.pendingActivation')
+                                  : tpv.selfRegistered
+                                    ? t('detail.selfRegistered')
+                                    : t('detail.activationNotRequired')}
                               </p>
                             </div>
                           </div>
@@ -1519,7 +1526,7 @@ export default function TpvId() {
                               </span>
                             </div>
 
-                            <div
+                            {canActivate(tpv.capabilities) && <div
                               className={`flex items-center justify-between p-3 rounded-xl ${
                                 tpv?.activatedAt
                                   ? 'bg-green-500/10 border border-green-500/20'
@@ -1546,7 +1553,7 @@ export default function TpvId() {
                                       })
                                   : t('detail.pendingActivation')}
                               </span>
-                            </div>
+                            </div>}
                           </div>
                         </div>
                       </CollapsibleContent>
@@ -1558,22 +1565,31 @@ export default function TpvId() {
 
             {/* Commands Tab */}
             <TabsContent value="commands" className="space-y-6">
-              <PermissionGate permission="tpv:command">
-                <RemoteCommandPanel
-                  terminalId={tpvId!}
-                  terminalName={tpv?.name || t('detail.terminal')}
-                  isOnline={terminalOnline}
-                  isLocked={tpv?.isLocked ?? false}
-                  isInMaintenance={isInMaintenance}
-                  isActivated={!!tpv?.activatedAt}
-                  isSuperadmin={isSuperAdmin}
-                  isOwnerPlus={user?.role === StaffRole.OWNER || isSuperAdmin}
-                  venueId={venueId!}
-                  currentVersion={tpv?.version}
-                  currentVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
-                />
-                <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
-              </PermissionGate>
+              {actionPolicy.supportedRemoteCommands.length > 0 ? (
+                <PermissionGate permission="tpv:command">
+                  <RemoteCommandPanel
+                    key={`${venueId}:${tpvId}`}
+                    terminalId={tpvId!}
+                    terminalName={tpv?.name || t('detail.terminal')}
+                    isOnline={terminalOnline}
+                    isLocked={tpv?.isLocked ?? false}
+                    isInMaintenance={isInMaintenance}
+                    activationPending={actionPolicy.activationPending}
+                    isSuperadmin={isSuperAdmin}
+                    isOwnerPlus={user?.role === StaffRole.OWNER || isSuperAdmin}
+                    venueId={venueId!}
+                    currentVersion={tpv?.version}
+                    currentVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
+                    supportedRemoteCommands={actionPolicy.supportedRemoteCommands}
+                  />
+                  <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
+                </PermissionGate>
+              ) : (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>{t('commands.noSupportedActions')}</AlertDescription>
+                </Alert>
+              )}
             </TabsContent>
 
             {/* Messages Tab */}
@@ -1608,10 +1624,12 @@ export default function TpvId() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <RotateCcw className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
                   <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
-                    {t('tpvSettings.restartBanner.message', { serialNumber: tpv?.serialNumber || '' })}
+                    {canRestart
+                      ? t('tpvSettings.restartBanner.message', { serialNumber: tpv?.serialNumber || '' })
+                      : t('tpvSettings.restartBanner.unsupportedDevice')}
                   </p>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
-                    {!terminalOnline && (
+                    {canRestart && !terminalOnline && (
                       <span className="text-xs text-amber-600/70 dark:text-amber-400/70 mr-1">
                         {t('tpvSettings.restartBanner.offlineHint')}
                       </span>
@@ -1624,13 +1642,13 @@ export default function TpvId() {
                     >
                       {t('tpvSettings.restartBanner.dismiss')}
                     </Button>
-                    <Button
+                    {canRestart && <Button
                       size="sm"
                       className="bg-amber-600 hover:bg-amber-700 text-primary-foreground"
                       disabled={!terminalOnline || commandMutation.isPending}
                       onClick={() => {
                         commandMutation.mutate(
-                          { command: 'RESTART' },
+                          { terminalId: tpvId!, venueId: venueId!, command: TpvCommandType.RESTART },
                           {
                             onSuccess: () => {
                               setHasUnsyncedChanges(false)
@@ -1650,7 +1668,7 @@ export default function TpvId() {
                           {t('tpvSettings.restartBanner.restart')}
                         </>
                       )}
-                    </Button>
+                    </Button>}
                   </div>
                 </div>
               </div>

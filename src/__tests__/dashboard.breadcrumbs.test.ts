@@ -84,6 +84,11 @@ const DEUDA_CONOCIDA = new Set([
 ])
 
 describe('miga de pan · traduccion de las rutas', () => {
+  it('la ruta canonica /devices usa el nombre visible traducido de Dispositivos', () => {
+    const src = leer('src/dashboard.tsx')
+    expect(src).toMatch(/^ {2}devices:\s*'sidebar:routes\.tpv',/m)
+  })
+
   it('no hay rutas nuevas sin traducir', () => {
     const mapeados = segmentosMapeados()
     const nuevos = [...segmentosDeRutas()].filter(s => !mapeados.has(s) && !DEUDA_CONOCIDA.has(s)).sort()

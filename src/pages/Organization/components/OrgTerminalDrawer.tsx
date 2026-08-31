@@ -6,6 +6,7 @@ import { StatusPulse } from '@/components/ui/status-pulse'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import { getTerminalStatusInfo } from '@/lib/terminal-status'
+import { canSendCommand, getDeviceActionPolicy } from '@/pages/Tpv/deviceCapabilities'
 import {
   getOrgTerminalById,
   getOrgAppVersions,
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TpvCommandType } from '@/types/tpv-commands'
 
 interface OrgTerminalDrawerProps {
   orgId: string
@@ -93,6 +95,8 @@ export function OrgTerminalDrawer({
   })
 
   const terminal: OrgTerminal | null = fromCache ?? fetched ?? null
+  const actionPolicy = getDeviceActionPolicy(terminal?.capabilities, terminal?.activatedAt)
+  const supportsCommand = (command: TpvCommandType) => canSendCommand(terminal?.capabilities, command)
 
   // Infer the build environment from the terminal's version suffix
   // ("2.4.2-sandbox" → SANDBOX, otherwise PRODUCTION) so we list the right
@@ -105,7 +109,7 @@ export function OrgTerminalDrawer({
   const { data: appVersions } = useQuery({
     queryKey: ['org-app-versions', orgId, appEnvironment],
     queryFn: () => getOrgAppVersions(orgId, appEnvironment),
-    enabled: !!terminalId && !!onUpdateVersion,
+    enabled: !!terminalId && !!onUpdateVersion && supportsCommand(TpvCommandType.REQUEST_UPDATE),
   })
 
   const versions = useMemo(() => appVersions ?? [], [appVersions])
@@ -184,15 +188,19 @@ export function OrgTerminalDrawer({
                 {t('terminals.actions.edit')}
               </Button>
             )}
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCommand(terminal, 'RESTART')}>
-              <RefreshCw className="h-3.5 w-3.5" />
-              {t('terminals.actions.restart')}
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCommand(terminal, 'SYNC_DATA')}>
-              <RefreshCcw className="h-3.5 w-3.5" />
-              {t('terminals.actions.syncData', { defaultValue: 'Sincronizar' })}
-            </Button>
-            {terminal.isLocked ? (
+            {supportsCommand(TpvCommandType.RESTART) && (
+              <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCommand(terminal, 'RESTART')}>
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t('terminals.actions.restart')}
+              </Button>
+            )}
+            {supportsCommand(TpvCommandType.SYNC_DATA) && (
+              <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCommand(terminal, 'SYNC_DATA')}>
+                <RefreshCcw className="h-3.5 w-3.5" />
+                {t('terminals.actions.syncData', { defaultValue: 'Sincronizar' })}
+              </Button>
+            )}
+            {terminal.isLocked && supportsCommand(TpvCommandType.UNLOCK) ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -203,7 +211,7 @@ export function OrgTerminalDrawer({
                 <Unlock className="h-3.5 w-3.5" />
                 {t('terminals.actions.unlock')}
               </Button>
-            ) : (
+            ) : !terminal.isLocked && supportsCommand(TpvCommandType.LOCK) ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -214,25 +222,25 @@ export function OrgTerminalDrawer({
                 <Lock className="h-3.5 w-3.5" />
                 {t('terminals.actions.lock')}
               </Button>
-            )}
-            {terminal.status === 'MAINTENANCE' ? (
+            ) : null}
+            {terminal.status === 'MAINTENANCE' && supportsCommand(TpvCommandType.EXIT_MAINTENANCE) ? (
               <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCommand(terminal, 'EXIT_MAINTENANCE')}>
                 <Wrench className="h-3.5 w-3.5" />
                 {t('terminals.actions.exitMaintenance')}
               </Button>
-            ) : (
+            ) : terminal.status !== 'MAINTENANCE' && supportsCommand(TpvCommandType.MAINTENANCE_MODE) ? (
               <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCommand(terminal, 'MAINTENANCE_MODE')}>
                 <Wrench className="h-3.5 w-3.5" />
                 {t('terminals.actions.maintenance')}
               </Button>
-            )}
-            {!terminal.activatedAt && onRemoteActivate && (
+            ) : null}
+            {actionPolicy.activationPending && supportsCommand(TpvCommandType.REMOTE_ACTIVATE) && onRemoteActivate && (
               <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onRemoteActivate(terminal)}>
                 <Zap className="h-3.5 w-3.5" />
                 {t('terminals.actions.remoteActivate', { defaultValue: 'Activar' })}
               </Button>
             )}
-            {!terminal.activatedAt && onGenerateActivationCode && (
+            {actionPolicy.activationPending && onGenerateActivationCode && (
               <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onGenerateActivationCode(terminal)}>
                 {t('terminals.actions.generateCode')}
               </Button>
@@ -288,7 +296,7 @@ export function OrgTerminalDrawer({
               </section>
 
               {/* Update app version (OWNER pushes a build; operator authorizes on the TPV) */}
-              {onUpdateVersion && versions.length > 0 && (
+              {onUpdateVersion && supportsCommand(TpvCommandType.REQUEST_UPDATE) && versions.length > 0 && (
                 <section>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('terminals.drawer.updateApp', { defaultValue: 'Actualizar aplicación' })}
@@ -344,7 +352,7 @@ export function OrgTerminalDrawer({
               </section>
 
               {/* Merchants */}
-              <section>
+              {actionPolicy.canConfigurePayments && <section>
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('terminals.drawer.merchants')}</h3>
                   {onEditMerchants && (
@@ -364,7 +372,7 @@ export function OrgTerminalDrawer({
                     ))}
                   </div>
                 )}
-              </section>
+              </section>}
 
               {/* Danger zone */}
               <section>
@@ -406,14 +414,16 @@ export function OrgTerminalDrawer({
                         {t('terminals.actions.migrate', { defaultValue: 'Migrar a otra sucursal' })}
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 justify-start text-destructive hover:text-destructive"
-                      onClick={() => onCommand(terminal, 'FACTORY_RESET')}
-                    >
-                      {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
-                    </Button>
+                    {supportsCommand(TpvCommandType.FACTORY_RESET) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 justify-start text-destructive hover:text-destructive"
+                        onClick={() => onCommand(terminal, 'FACTORY_RESET')}
+                      >
+                        {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
+                      </Button>
+                    )}
                     {onDelete && (
                       <Button
                         variant="outline"

@@ -19,9 +19,13 @@ import {
   canAcceptTerminalPaymentRequests,
   canActivate,
   canConfigurePayments,
+  canDeactivate,
   canRequestDisplayInversion,
   canSendCommand,
+  getCommonSupportedRemoteCommands,
+  getDeviceActionPolicy,
   getCapabilityStateTranslationKey,
+  isActivationPending,
 } from '../deviceCapabilities'
 
 const mockedApi = api as unknown as {
@@ -147,11 +151,126 @@ describe('device capability helpers', () => {
   })
 
   it('keeps actor permissions outside technical helper inputs', () => {
-    expectTypeOf(canActivate).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities]>()
-    expectTypeOf(canConfigurePayments).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities]>()
-    expectTypeOf(canAcceptTerminalPaymentRequests).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities]>()
-    expectTypeOf(canRequestDisplayInversion).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities]>()
-    expectTypeOf(canSendCommand).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities, TpvCommandType]>()
+    expectTypeOf(canActivate).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities | null | undefined]>()
+    expectTypeOf(canConfigurePayments).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities | null | undefined]>()
+    expectTypeOf(canAcceptTerminalPaymentRequests).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities | null | undefined]>()
+    expectTypeOf(canRequestDisplayInversion).parameters.toEqualTypeOf<[EffectiveDeviceCapabilities | null | undefined]>()
+    expectTypeOf(canSendCommand).parameters.toEqualTypeOf<[
+      EffectiveDeviceCapabilities | null | undefined,
+      TpvCommandType,
+    ]>()
+  })
+
+  it('fails closed while a legacy device has no capability projection', () => {
+    expect(canActivate(undefined)).toBe(false)
+    expect(canConfigurePayments(undefined)).toBe(false)
+    expect(canRequestDisplayInversion(undefined)).toBe(false)
+    expect(canSendCommand(undefined, TpvCommandType.RESTART)).toBe(false)
+    expect(getDeviceActionPolicy(undefined, null)).toEqual({
+      activationState: 'capabilities-unavailable',
+      activationPending: false,
+      canDeactivate: false,
+      canConfigurePayments: false,
+      canRequestDisplayInversion: false,
+      supportedRemoteCommands: [],
+    })
+  })
+
+  it('derives the same capability action policy for detail and organization surfaces', () => {
+    const fixtures = {
+      provisionedTpv: {
+        ...baseCapabilities,
+        requiresActivation: true,
+        canManagePaymentConfiguration: true,
+        supportedRemoteCommands: [TpvCommandType.RESTART, TpvCommandType.MAINTENANCE_MODE],
+      },
+      d3: {
+        ...baseCapabilities,
+        customerDisplay: {
+          ...baseCapabilities.customerDisplay,
+          presence: 'SUPPORTED' as const,
+          invertibility: 'SUPPORTED' as const,
+          canRequestInversion: true,
+          stale: false,
+        },
+      },
+      t3Pro: {
+        ...baseCapabilities,
+        customerDisplay: {
+          ...baseCapabilities.customerDisplay,
+          presence: 'UNSUPPORTED' as const,
+          invertibility: 'UNSUPPORTED' as const,
+          stale: false,
+        },
+      },
+      phonePos: baseCapabilities,
+    }
+
+    expect(getDeviceActionPolicy(fixtures.provisionedTpv, null)).toEqual({
+      activationState: 'pending',
+      activationPending: true,
+      canDeactivate: false,
+      canConfigurePayments: true,
+      canRequestDisplayInversion: false,
+      supportedRemoteCommands: [TpvCommandType.RESTART, TpvCommandType.MAINTENANCE_MODE],
+    })
+    expect(getDeviceActionPolicy(fixtures.provisionedTpv, '2026-08-31T12:00:00.000Z')).toMatchObject({
+      activationState: 'activated',
+      activationPending: false,
+      canDeactivate: true,
+    })
+    expect(getDeviceActionPolicy(fixtures.d3, null)).toEqual({
+      activationState: 'not-required',
+      activationPending: false,
+      canDeactivate: false,
+      canConfigurePayments: false,
+      canRequestDisplayInversion: true,
+      supportedRemoteCommands: [],
+    })
+    expect(getDeviceActionPolicy(fixtures.t3Pro, null)).toEqual({
+      activationState: 'not-required',
+      activationPending: false,
+      canDeactivate: false,
+      canConfigurePayments: false,
+      canRequestDisplayInversion: false,
+      supportedRemoteCommands: [],
+    })
+    expect(getDeviceActionPolicy(fixtures.phonePos, null)).toEqual(getDeviceActionPolicy(fixtures.t3Pro, null))
+  })
+
+  it('keeps lifecycle state and capability separate', () => {
+    const provisioned = { ...baseCapabilities, requiresActivation: true }
+    expect(isActivationPending(provisioned, null)).toBe(true)
+    expect(isActivationPending(provisioned, '2026-08-31T12:00:00.000Z')).toBe(false)
+    expect(canDeactivate(provisioned, null)).toBe(false)
+    expect(canDeactivate(provisioned, '2026-08-31T12:00:00.000Z')).toBe(true)
+
+    expect(isActivationPending(baseCapabilities, null)).toBe(false)
+    expect(canDeactivate(baseCapabilities, '2026-08-31T12:00:00.000Z')).toBe(false)
+  })
+
+  it('distinguishes a missing capability projection from an explicit activation opt-out', () => {
+    expect(getDeviceActionPolicy(undefined, null).activationState).toBe('capabilities-unavailable')
+    expect(getDeviceActionPolicy(baseCapabilities, null).activationState).toBe('not-required')
+  })
+
+  it('intersects bulk commands across every selected device and excludes venue-internal commands', () => {
+    const first = {
+      ...baseCapabilities,
+      supportedRemoteCommands: [
+        TpvCommandType.RESTART,
+        TpvCommandType.SYNC_DATA,
+        TpvCommandType.FETCH_ANGELPAY_MERCHANTS,
+      ],
+    }
+    const second = {
+      ...baseCapabilities,
+      supportedRemoteCommands: [TpvCommandType.RESTART, TpvCommandType.LOCK],
+    }
+
+    expect(getCommonSupportedRemoteCommands([first, second])).toEqual([TpvCommandType.RESTART])
+    expect(getCommonSupportedRemoteCommands([first, undefined])).toEqual([])
+    expect(getCommonSupportedRemoteCommands([])).toEqual([])
   })
 })
 

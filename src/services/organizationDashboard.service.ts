@@ -4,6 +4,7 @@
  * for PlayTelecom/White-Label dashboard.
  */
 import api from '@/api'
+import type { DisplayModeRequest, EffectiveDeviceCapabilities } from '@/services/tpv.service'
 
 // ===========================================
 // TYPES
@@ -389,6 +390,11 @@ export interface OrgTerminal {
   activatedAt: string | null
   activationCode: string | null
   activationCodeExpiry: string | null
+  /** Canonical server-derived capability projection. Missing legacy data fails closed in UI. */
+  capabilities?: EffectiveDeviceCapabilities
+  customerDisplayInverted: boolean
+  customerDisplayRequest?: DisplayModeRequest | null
+  selfRegistered: boolean
   /**
    * Identificador que el aparato reporta (`X-Device-Id`), no el serial impreso.
    *
