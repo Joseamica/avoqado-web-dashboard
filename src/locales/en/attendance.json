@@ -139,7 +139,7 @@
         "failed": "Could not approve. Try again.",
         "denied": "not approved",
         "minutesUnit": "min",
-        "conflict": "Someone else changed this approval while you were reviewing it. Close and reopen to see the current decision."
+        "conflict": "Something changed while you were reviewing: someone else approved this day, or the time entries were edited. Close and reopen to see the current hours and decision."
       }
     }
   },

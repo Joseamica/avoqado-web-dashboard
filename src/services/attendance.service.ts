@@ -83,6 +83,13 @@ export interface AttendanceReportRow {
    * se pisen sin enterarse. `null` cuando nadie la ha revisado.
    */
   overtimeApprovedUpdatedAt: string | null
+  /**
+   * La huella de la JORNADA que produjo esos minutos: tramos trabajados, descansos, cuadrante
+   * y zona del negocio. Se devuelve al autorizar para que el servidor pueda comprobar que se
+   * está firmando lo que esta pantalla enseñaba — si alguien editó la checada mientras tanto,
+   * rechaza en vez de estampar la firma sobre horas que nadie revisó.
+   */
+  overtimeFingerprint: string | null
 }
 
 export interface AttendanceReport {
@@ -238,7 +245,13 @@ export const attendanceService = {
   async approveOvertime(
     venueId: string,
     staffVenueId: string,
-    body: { date: string; minutesApproved: number; note?: string; expectedUpdatedAt?: string },
+    body: {
+      date: string
+      minutesApproved: number
+      note?: string
+      expectedUpdatedAt?: string
+      expectedSourceFingerprint?: string
+    },
   ): Promise<{ staffVenueId: string; date: string; minutesApproved: number; minutesMeasured: number }> {
     const response = await api.put(
       `/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/overtime-approval`,

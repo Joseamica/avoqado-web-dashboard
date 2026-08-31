@@ -139,7 +139,7 @@
         "failed": "L'autorisation a échoué. Réessayez.",
         "denied": "non autorisées",
         "minutesUnit": "min",
-        "conflict": "Quelqu'un d'autre a modifié cette autorisation pendant que vous la vérifiiez. Fermez et rouvrez pour voir la décision actuelle."
+        "conflict": "Quelque chose a changé pendant votre examen : une autre personne a validé cette journée, ou les pointages ont été modifiés. Fermez et rouvrez pour voir les heures et la décision actuelles."
       }
     }
   },

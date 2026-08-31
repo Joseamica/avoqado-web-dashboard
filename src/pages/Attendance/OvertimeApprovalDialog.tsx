@@ -63,13 +63,28 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const autorizar = useMutation({
-    mutationFn: ({ date, minutes, revision }: { date: string; minutes: number; revision: string | null }) =>
+    mutationFn: ({
+      date,
+      minutes,
+      revision,
+      huella,
+    }: {
+      date: string
+      minutes: number
+      revision: string | null
+      huella: string | null
+    }) =>
       attendanceService.approveOvertime(venueId, persona!.staffVenueId, {
         date,
         minutesApproved: minutes,
         // 🔴 La revisión que se tenía ENFRENTE. Sin ella el servidor rechaza corregir una
         // autorización que ya existe, para que dos gerentes no se pisen en silencio.
         ...(revision ? { expectedUpdatedAt: revision } : {}),
+        // 🔴 Y la JORNADA que se tenía enfrente. Son dos carreras distintas: aquélla protege
+        // de otro gerente firmando a la vez; ésta, de que alguien edite la CHECADA entre que
+        // se abre este panel y se toca «Autorizar». Sin ella la firma se estampaba sobre las
+        // horas nuevas y nacía «vigente» sin que nadie las hubiera mirado.
+        ...(huella ? { expectedSourceFingerprint: huella } : {}),
       }),
     onSuccess: () => {
       // El reporte y la nómina leen lo mismo: los dos tienen que refrescarse, o la tabla de
@@ -79,7 +94,7 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
     },
   })
 
-  function guardar(date: string, medidos: number, revision: string | null) {
+  function guardar(date: string, medidos: number, revision: string | null, huella: string | null) {
     const crudo = borrador[date]
     const minutes = crudo === undefined || crudo === '' ? medidos : Number(crudo)
     if (!Number.isInteger(minutes) || minutes < 0) {
@@ -93,7 +108,7 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
       return
     }
     setErrorDe(e => ({ ...e, [date]: '' }))
-    autorizar.mutate({ date, minutes, revision })
+    autorizar.mutate({ date, minutes, revision, huella })
   }
 
   return (
@@ -162,7 +177,9 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
                         size="sm"
                         className="cursor-pointer"
                         disabled={autorizar.isPending}
-                        onClick={() => guardar(dia.date, dia.overtimeMinutes, dia.overtimeApprovedUpdatedAt)}
+                        onClick={() =>
+                          guardar(dia.date, dia.overtimeMinutes, dia.overtimeApprovedUpdatedAt, dia.overtimeFingerprint)
+                        }
                       >
                         {sinRevisar ? t('payroll.overtime.approve.action') : t('payroll.overtime.approve.change')}
                       </Button>

@@ -139,7 +139,7 @@
         "failed": "No se pudo autorizar. Intenta de nuevo.",
         "denied": "no autorizadas",
         "minutesUnit": "min",
-        "conflict": "Alguien más cambió esta autorización mientras la revisabas. Cierra y vuelve a abrir para ver la decisión actual."
+        "conflict": "Algo cambió mientras revisabas: otra persona autorizó este día, o se editaron las checadas. Cierra y vuelve a abrir para ver las horas y la decisión actuales."
       }
     }
   },
