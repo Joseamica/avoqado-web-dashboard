@@ -290,7 +290,7 @@ describe('capability-aware device actions', () => {
     expect(screen.queryByText('terminals.actions.generateCode')).not.toBeInTheDocument()
     expect(screen.queryByText('terminals.drawer.merchants')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('terminals.drawer.dangerZone'))
-    expect(screen.getByText('terminals.actions.delete')).toBeInTheDocument()
+    expect(screen.queryByText('terminals.actions.delete')).not.toBeInTheDocument()
     expect(screen.queryByText('terminals.actions.factoryReset')).not.toBeInTheDocument()
   })
 
@@ -312,6 +312,7 @@ describe('capability-aware device actions', () => {
         onEditMerchants={vi.fn()}
         onGenerateActivationCode={vi.fn()}
         onRemoteActivate={vi.fn()}
+        onDelete={vi.fn()}
       />,
     )
 
@@ -320,6 +321,7 @@ describe('capability-aware device actions', () => {
     expect(screen.getByText('terminals.drawer.merchants')).toBeInTheDocument()
     fireEvent.click(screen.getByText('terminals.drawer.dangerZone'))
     expect(screen.getByText('terminals.actions.factoryReset')).toBeInTheDocument()
+    expect(screen.getByText('terminals.actions.delete')).toBeInTheDocument()
     expect(screen.queryByText('terminals.actions.syncData')).not.toBeInTheDocument()
   })
 

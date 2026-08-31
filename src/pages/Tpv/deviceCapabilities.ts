@@ -50,6 +50,17 @@ export function canDeactivate(capabilities: DeviceCapabilitiesInput, activatedAt
   return canActivate(capabilities) && Boolean(activatedAt)
 }
 
+const POS_DEVICE_TYPES = new Set(['POS_ANDROID', 'POS_IOS', 'POS_DESKTOP'])
+
+/** Technical lifecycle gate only; actor permission remains the caller's responsibility. */
+export function canHardDeleteDevice(
+  capabilities: DeviceCapabilitiesInput,
+  selfRegistered: boolean | null | undefined,
+  type: string | null | undefined,
+): boolean {
+  return capabilities?.requiresActivation === true && selfRegistered !== true && !POS_DEVICE_TYPES.has(type ?? '')
+}
+
 export function getActivationLifecycleState(
   capabilities: DeviceCapabilitiesInput,
   activatedAt?: string | null,

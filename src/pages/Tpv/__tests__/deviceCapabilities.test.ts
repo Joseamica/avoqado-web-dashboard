@@ -20,6 +20,7 @@ import {
   canActivate,
   canConfigurePayments,
   canDeactivate,
+  canHardDeleteDevice,
   canRequestDisplayInversion,
   canSendCommand,
   getCommonSupportedRemoteCommands,
@@ -159,6 +160,16 @@ describe('device capability helpers', () => {
       EffectiveDeviceCapabilities | null | undefined,
       TpvCommandType,
     ]>()
+  })
+
+  it('allows hard-delete only for provisioned activation-based TPVs, independent of actor permission', () => {
+    const provisioned = { ...baseCapabilities, requiresActivation: true }
+
+    expect(canHardDeleteDevice(provisioned, false, 'TPV_ANDROID')).toBe(true)
+    expect(canHardDeleteDevice(baseCapabilities, false, 'POS_ANDROID')).toBe(false)
+    expect(canHardDeleteDevice(provisioned, true, 'TPV_ANDROID')).toBe(false)
+    expect(canHardDeleteDevice(provisioned, false, 'POS_IOS')).toBe(false)
+    expect(canHardDeleteDevice(undefined, false, 'TPV_ANDROID')).toBe(false)
   })
 
   it('fails closed while a legacy device has no capability projection', () => {

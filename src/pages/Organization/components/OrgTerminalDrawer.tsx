@@ -6,7 +6,7 @@ import { StatusPulse } from '@/components/ui/status-pulse'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import { getTerminalStatusInfo } from '@/lib/terminal-status'
-import { canSendCommand, getDeviceActionPolicy } from '@/pages/Tpv/deviceCapabilities'
+import { canHardDeleteDevice, canSendCommand, getDeviceActionPolicy } from '@/pages/Tpv/deviceCapabilities'
 import {
   getOrgTerminalById,
   getOrgAppVersions,
@@ -424,7 +424,7 @@ export function OrgTerminalDrawer({
                         {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
                       </Button>
                     )}
-                    {onDelete && (
+                    {onDelete && canHardDeleteDevice(terminal.capabilities, terminal.selfRegistered, terminal.type) && (
                       <Button
                         variant="outline"
                         size="sm"
