@@ -184,6 +184,9 @@ describe('device capability helpers', () => {
       canConfigurePayments: false,
       canRequestDisplayInversion: false,
       supportedRemoteCommands: [],
+      showRemoteCommands: false,
+      showTpvMessages: false,
+      showTpvSettings: false,
     })
   })
 
@@ -217,15 +220,18 @@ describe('device capability helpers', () => {
       phonePos: baseCapabilities,
     }
 
-    expect(getDeviceActionPolicy(fixtures.provisionedTpv, null)).toEqual({
+    expect(getDeviceActionPolicy(fixtures.provisionedTpv, null, 'TPV_ANDROID')).toEqual({
       activationState: 'pending',
       activationPending: true,
       canDeactivate: false,
       canConfigurePayments: true,
       canRequestDisplayInversion: false,
       supportedRemoteCommands: [TpvCommandType.RESTART, TpvCommandType.MAINTENANCE_MODE],
+      showRemoteCommands: true,
+      showTpvMessages: true,
+      showTpvSettings: true,
     })
-    expect(getDeviceActionPolicy(fixtures.provisionedTpv, '2026-08-31T12:00:00.000Z')).toMatchObject({
+    expect(getDeviceActionPolicy(fixtures.provisionedTpv, '2026-08-31T12:00:00.000Z', 'TPV_ANDROID')).toMatchObject({
       activationState: 'activated',
       activationPending: false,
       canDeactivate: true,
@@ -237,6 +243,9 @@ describe('device capability helpers', () => {
       canConfigurePayments: false,
       canRequestDisplayInversion: true,
       supportedRemoteCommands: [],
+      showRemoteCommands: false,
+      showTpvMessages: false,
+      showTpvSettings: false,
     })
     expect(getDeviceActionPolicy(fixtures.t3Pro, null)).toEqual({
       activationState: 'not-required',
@@ -245,8 +254,34 @@ describe('device capability helpers', () => {
       canConfigurePayments: false,
       canRequestDisplayInversion: false,
       supportedRemoteCommands: [],
+      showRemoteCommands: false,
+      showTpvMessages: false,
+      showTpvSettings: false,
     })
     expect(getDeviceActionPolicy(fixtures.phonePos, null)).toEqual(getDeviceActionPolicy(fixtures.t3Pro, null))
+  })
+
+  it('keeps avoqado-tpv management surfaces off POS iOS devices', () => {
+    expect(getDeviceActionPolicy(baseCapabilities, null, 'POS_IOS')).toMatchObject({
+      showRemoteCommands: false,
+      showTpvMessages: false,
+      showTpvSettings: false,
+    })
+
+    expect(
+      getDeviceActionPolicy(
+        {
+          ...baseCapabilities,
+          supportedRemoteCommands: [TpvCommandType.RESTART],
+        },
+        '2026-08-31T12:00:00.000Z',
+        'TPV_ANDROID',
+      ),
+    ).toMatchObject({
+      showRemoteCommands: true,
+      showTpvMessages: true,
+      showTpvSettings: true,
+    })
   })
 
   it('keeps lifecycle state and capability separate', () => {

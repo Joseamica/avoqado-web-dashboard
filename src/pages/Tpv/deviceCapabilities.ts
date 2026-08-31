@@ -11,6 +11,9 @@ export interface DeviceActionPolicy {
   canConfigurePayments: boolean
   canRequestDisplayInversion: boolean
   supportedRemoteCommands: TpvCommandType[]
+  showRemoteCommands: boolean
+  showTpvMessages: boolean
+  showTpvSettings: boolean
 }
 
 export type CapabilityStateTranslationKey =
@@ -86,14 +89,21 @@ export function getCommonSupportedRemoteCommands(capabilities: DeviceCapabilitie
 export function getDeviceActionPolicy(
   capabilities: DeviceCapabilitiesInput,
   activatedAt?: string | null,
+  type?: string | null,
 ): DeviceActionPolicy {
+  const supportedRemoteCommands = getSupportedRemoteCommands(capabilities)
+  const isAvoqadoTpv = type === 'TPV_ANDROID'
+
   return {
     activationState: getActivationLifecycleState(capabilities, activatedAt),
     activationPending: isActivationPending(capabilities, activatedAt),
     canDeactivate: canDeactivate(capabilities, activatedAt),
     canConfigurePayments: canConfigurePayments(capabilities),
     canRequestDisplayInversion: canRequestDisplayInversion(capabilities),
-    supportedRemoteCommands: getSupportedRemoteCommands(capabilities),
+    supportedRemoteCommands,
+    showRemoteCommands: supportedRemoteCommands.length > 0,
+    showTpvMessages: isAvoqadoTpv,
+    showTpvSettings: isAvoqadoTpv,
   }
 }
 

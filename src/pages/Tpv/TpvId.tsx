@@ -354,6 +354,20 @@ function TpvIdContent() {
     },
   })
 
+  const actionPolicy = getDeviceActionPolicy(tpv?.capabilities, tpv?.activatedAt, tpv?.type)
+
+  useEffect(() => {
+    if (!tpv) return
+
+    const activeTabIsSupported =
+      activeTab === 'info' ||
+      (activeTab === 'commands' && actionPolicy.showRemoteCommands) ||
+      (activeTab === 'messages' && actionPolicy.showTpvMessages) ||
+      (activeTab === 'settings' && actionPolicy.showTpvSettings)
+
+    if (!activeTabIsSupported) handleTabChange('info')
+  }, [actionPolicy.showRemoteCommands, actionPolicy.showTpvMessages, actionPolicy.showTpvSettings, activeTab, handleTabChange, tpv])
+
   // SUPERADMIN: Fetch terminal details with assignedMerchantIds
   const { data: terminalDetails, refetch: refetchTerminalDetails } = useQuery({
     queryKey: ['superadmin-terminal', tpvId],
@@ -684,7 +698,6 @@ function TpvIdContent() {
   const terminalOnline = isOnline(tpv?.status, tpv?.lastHeartbeat)
   const isInMaintenance = tpv?.status === 'MAINTENANCE'
   const isInactive = tpv?.status === 'INACTIVE'
-  const actionPolicy = getDeviceActionPolicy(tpv.capabilities, tpv.activatedAt)
   const maintenanceTransition = isInMaintenance ? TpvCommandType.EXIT_MAINTENANCE : TpvCommandType.MAINTENANCE_MODE
   const lockTransition = tpv.isLocked ? TpvCommandType.UNLOCK : TpvCommandType.LOCK
   const canRestart = canSendCommand(tpv.capabilities, TpvCommandType.RESTART)
@@ -807,46 +820,52 @@ function TpvIdContent() {
                   <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
                 )}
               </button>
-              <button
-                onClick={() => handleTabChange('commands')}
-                className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                  activeTab === 'commands' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Zap className="h-4 w-4" />
-                {t('commands.remoteCommands')}
-                {activeTab === 'commands' && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                )}
-              </button>
-              <PermissionGate permission="tpv-messages:read">
+              {actionPolicy.showRemoteCommands && (
                 <button
-                  onClick={() => handleTabChange('messages')}
+                  onClick={() => handleTabChange('commands')}
                   className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                    activeTab === 'messages' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    activeTab === 'commands' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <Activity className="h-4 w-4" />
-                  Mensajes
-                  {activeTab === 'messages' && (
+                  <Zap className="h-4 w-4" />
+                  {t('commands.remoteCommands')}
+                  {activeTab === 'commands' && (
                     <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
                   )}
                 </button>
-              </PermissionGate>
-              <PermissionGate permission="tpv:update">
-                <button
-                  onClick={() => handleTabChange('settings')}
-                  className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                    activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Settings className="h-4 w-4" />
-                  {t('tpvSettings.title')}
-                  {activeTab === 'settings' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                  )}
-                </button>
-              </PermissionGate>
+              )}
+              {actionPolicy.showTpvMessages && (
+                <PermissionGate permission="tpv-messages:read">
+                  <button
+                    onClick={() => handleTabChange('messages')}
+                    className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      activeTab === 'messages' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Activity className="h-4 w-4" />
+                    Mensajes
+                    {activeTab === 'messages' && (
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                    )}
+                  </button>
+                </PermissionGate>
+              )}
+              {actionPolicy.showTpvSettings && (
+                <PermissionGate permission="tpv:update">
+                  <button
+                    onClick={() => handleTabChange('settings')}
+                    className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Settings className="h-4 w-4" />
+                    {t('tpvSettings.title')}
+                    {activeTab === 'settings' && (
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                    )}
+                  </button>
+                </PermissionGate>
+              )}
             </div>
 
             {/* Info Tab */}
@@ -1576,8 +1595,9 @@ function TpvIdContent() {
             </TabsContent>
 
             {/* Commands Tab */}
-            <TabsContent value="commands" className="space-y-6">
-              {actionPolicy.supportedRemoteCommands.length > 0 ? (
+            {actionPolicy.showRemoteCommands && (
+              <TabsContent value="commands" className="space-y-6">
+                {actionPolicy.supportedRemoteCommands.length > 0 ? (
                 <PermissionGate permission="tpv:command">
                   <RemoteCommandPanel
                     key={`${venueId}:${tpvId}`}
@@ -1596,41 +1616,46 @@ function TpvIdContent() {
                   />
                   <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
                 </PermissionGate>
-              ) : (
+                ) : (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>{t('commands.noSupportedActions')}</AlertDescription>
                 </Alert>
-              )}
-            </TabsContent>
+                )}
+              </TabsContent>
+            )}
 
             {/* Messages Tab */}
-            <TabsContent value="messages" className="space-y-6">
-              <PermissionGate permission="tpv-messages:read">
-                <MessagesTab venueId={venueId!} />
-              </PermissionGate>
-            </TabsContent>
+            {actionPolicy.showTpvMessages && (
+              <TabsContent value="messages" className="space-y-6">
+                <PermissionGate permission="tpv-messages:read">
+                  <MessagesTab venueId={venueId!} />
+                </PermissionGate>
+              </TabsContent>
+            )}
 
             {/* Settings Tab */}
-            <TabsContent value="settings" className="space-y-6">
-              <PermissionGate permission="tpv-settings:read">
-                <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertDescription className="text-blue-800 dark:text-blue-200">{t('tpvSettings.infoAlert')}</AlertDescription>
-                </Alert>
-                <TpvSettingsForm
-                  tpvId={tpvId!}
-                  compact={true}
-                  onSettingChanged={() => setHasUnsyncedChanges(true)}
-                  terminalVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
-                  terminalVersionName={tpv?.version}
-                />
-              </PermissionGate>
-            </TabsContent>
+            {actionPolicy.showTpvSettings && (
+              <TabsContent value="settings" className="space-y-6">
+                <PermissionGate permission="tpv-settings:read">
+                  <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <AlertDescription className="text-blue-800 dark:text-blue-200">{t('tpvSettings.infoAlert')}</AlertDescription>
+                  </Alert>
+                  <TpvSettingsForm
+                    tpvId={tpvId!}
+                    compact={true}
+                    onSettingChanged={() => setHasUnsyncedChanges(true)}
+                    terminalVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
+                    terminalVersionName={tpv?.version}
+                  />
+                </PermissionGate>
+              </TabsContent>
+            )}
           </Tabs>
 
           {/* Floating restart banner after settings change */}
-          {hasUnsyncedChanges && (
+          {actionPolicy.showTpvSettings && hasUnsyncedChanges && (
             <div className="sticky bottom-4 z-10 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-300">
               <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/80 p-4 shadow-lg">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
