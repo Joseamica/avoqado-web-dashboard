@@ -35,6 +35,7 @@ export enum TpvCommandType {
   UPDATE_CONFIG = 'UPDATE_CONFIG',
   REFRESH_MENU = 'REFRESH_MENU',
   UPDATE_MERCHANT = 'UPDATE_MERCHANT',
+  FETCH_ANGELPAY_MERCHANTS = 'FETCH_ANGELPAY_MERCHANTS', // SUPERADMIN: re-authenticate AngelPay and report discovered merchants
 
   // Automation Commands (Server-side only)
   SCHEDULE = 'SCHEDULE',
@@ -176,11 +177,7 @@ export interface TpvCommand {
 // Command Category for UI Grouping
 // ============================================
 
-export type CommandCategory =
-  | 'device_state'
-  | 'app_lifecycle'
-  | 'data_management'
-  | 'configuration'
+export type CommandCategory = 'device_state' | 'app_lifecycle' | 'data_management' | 'configuration'
 
 export interface CommandDefinition {
   type: TpvCommandType
@@ -382,6 +379,16 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     defaultPriority: TpvCommandPriority.HIGH,
     hasPayload: true,
   },
+  [TpvCommandType.FETCH_ANGELPAY_MERCHANTS]: {
+    type: TpvCommandType.FETCH_ANGELPAY_MERCHANTS,
+    category: 'configuration',
+    icon: 'RefreshCw',
+    requiresOnline: true,
+    requiresConfirmation: false,
+    isDangerous: false,
+    defaultPriority: TpvCommandPriority.NORMAL,
+    hasPayload: true,
+  },
 
   // Automation Commands (Server-side only, not shown in UI)
   [TpvCommandType.SCHEDULE]: {
@@ -418,5 +425,8 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
 
 // Commands available in the UI (excludes server-side only commands)
 export const UI_AVAILABLE_COMMANDS = Object.values(TpvCommandType).filter(
-  (cmd) => ![TpvCommandType.SCHEDULE, TpvCommandType.TIME_RULE, TpvCommandType.GEOFENCE_TRIGGER].includes(cmd)
+  cmd =>
+    ![TpvCommandType.FETCH_ANGELPAY_MERCHANTS, TpvCommandType.SCHEDULE, TpvCommandType.TIME_RULE, TpvCommandType.GEOFENCE_TRIGGER].includes(
+      cmd,
+    ),
 )

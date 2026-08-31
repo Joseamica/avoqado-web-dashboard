@@ -1,6 +1,60 @@
 import api from '@/api'
 import { SendCommandRequest, TpvCommand, TpvCommandPayload, TpvCommandPriority, TpvCommandType } from '@/types/tpv-commands'
 
+export type CapabilityState = 'SUPPORTED' | 'UNSUPPORTED' | 'UNKNOWN'
+
+export interface EffectiveDeviceCapabilities {
+  requiresActivation: boolean
+  canManagePaymentConfiguration: boolean
+  canAcceptTerminalPaymentRequests: boolean
+  customerDisplay: {
+    presence: CapabilityState
+    invertibility: CapabilityState
+    canRequestInversion: boolean
+    observedAt: string | null
+    stale: boolean
+  }
+  supportedRemoteCommands: TpvCommandType[]
+}
+
+export type DisplayModeRequestStatus = 'PENDING' | 'APPLIED' | 'REJECTED' | 'SUPERSEDED' | 'CANCELLED' | 'EXPIRED'
+
+export type DisplayModeResultCode =
+  | 'DISPLAY_NOT_PRESENT'
+  | 'DISPLAY_NOT_INVERTIBLE'
+  | 'APPLY_FAILED'
+  | 'LOCAL_OVERRIDE'
+  | 'CANCEL_TOO_LATE'
+  | 'ACK_AFTER_EXPIRY'
+  | 'DEVICE_RETIRED'
+
+export interface DisplayModeRequest {
+  requestId: string
+  desiredInverted: boolean
+  status: DisplayModeRequestStatus
+  requestedAt: string
+  requestedBy: string
+  expiresAt: string
+  resolvedAt?: string
+  resultCode?: DisplayModeResultCode
+}
+
+export type DisplayModeMutationDisposition = 'IDEMPOTENT' | 'TOO_LATE' | 'NOT_DUE' | 'NOT_PENDING'
+
+export interface DisplayModeMutationData {
+  mutated: boolean
+  version: number
+  request: DisplayModeRequest | null
+  customerDisplayInverted: boolean
+  previousCustomerDisplayInverted?: boolean
+  disposition?: DisplayModeMutationDisposition
+  resultCode?: DisplayModeResultCode
+}
+
+export interface DisplayModeMutationResponse {
+  data: DisplayModeMutationData
+}
+
 // ============================================
 // TPV List & Details
 // ============================================
@@ -67,6 +121,30 @@ export const deleteTpv = async (venueId: string, tpvId: string) => {
  */
 export const generateActivationCode = async (venueId: string, terminalId: string) => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/tpv/${terminalId}/activation-code`)
+  return response.data
+}
+
+// ============================================
+// Display Mode Requests
+// ============================================
+
+export const createDisplayModeRequest = async (
+  venueId: string,
+  terminalId: string,
+  desiredInverted: boolean,
+): Promise<DisplayModeMutationResponse> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/terminals/${terminalId}/display-mode-request`, {
+    desiredInverted,
+  })
+  return response.data
+}
+
+export const cancelDisplayModeRequest = async (
+  venueId: string,
+  terminalId: string,
+  requestId: string,
+): Promise<DisplayModeMutationResponse> => {
+  const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/terminals/${terminalId}/display-mode-request/${requestId}`)
   return response.data
 }
 

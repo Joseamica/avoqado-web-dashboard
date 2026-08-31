@@ -489,18 +489,33 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // TPV Management (requires tpv:read permission + KYC verification)
+    // Device Management (requires tpv:read permission + KYC verification)
     {
       element: <PermissionProtectedRoute permission="tpv:read" />,
       children: [
         {
           element: <KYCProtectedRoute />,
           children: [
-            { path: 'tpv', element: <Tpv /> },
+            { path: 'devices', element: <Tpv /> },
             // Order detail comes BEFORE :tpvId so it matches first
-            // (otherwise `tpv/orders/:id` would be captured by `tpv/:tpvId`).
-            { path: 'tpv/orders/:id', element: <TerminalOrderDetail /> },
-            { path: 'tpv/:tpvId', element: <TpvId /> },
+            // (otherwise `devices/orders/:id` would be captured by `devices/:tpvId`).
+            { path: 'devices/orders/:id', element: <TerminalOrderDetail /> },
+            { path: 'devices/:tpvId', element: <TpvId /> },
+
+            // Legacy aliases preserve bookmarks while canonical navigation moves to /devices.
+            { path: 'tpv', element: <LegacyRedirect to="devices" preserveSearchAndHash /> },
+            {
+              path: 'tpv/orders/:id',
+              element: (
+                <LegacyRedirect to={({ fullBasePath, params }) => `${fullBasePath}/devices/orders/${params.id}`} preserveSearchAndHash />
+              ),
+            },
+            {
+              path: 'tpv/:tpvId',
+              element: (
+                <LegacyRedirect to={({ fullBasePath, params }) => `${fullBasePath}/devices/${params.tpvId}`} preserveSearchAndHash />
+              ),
+            },
           ],
         },
       ],

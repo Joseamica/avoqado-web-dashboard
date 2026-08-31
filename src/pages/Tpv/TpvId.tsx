@@ -597,7 +597,7 @@ export default function TpvId() {
     setIsEditing(false)
   }
 
-  const from = (location.state as any)?.from || `${fullBasePath}/tpv`
+  const from = (location.state as any)?.from || `${fullBasePath}/devices`
 
   if (isLoading) {
     return (
@@ -628,7 +628,7 @@ export default function TpvId() {
                 <ArrowLeft className="h-4 w-4" />
                 {t('common:goBack')}
               </Button>
-              <Button onClick={() => navigate(`${fullBasePath}/tpv`)} className="flex items-center gap-2">
+              <Button onClick={() => navigate(`${fullBasePath}/devices`)} className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 {t('detail.goToTerminals')}
               </Button>
@@ -663,7 +663,7 @@ export default function TpvId() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <p className="text-muted-foreground">{t('detail.noData')}</p>
-        <Button onClick={() => navigate(`${fullBasePath}/tpv`)}>
+        <Button onClick={() => navigate(`${fullBasePath}/devices`)}>
           <Home className="h-4 w-4 mr-2" />
           {t('detail.goToTerminals')}
         </Button>

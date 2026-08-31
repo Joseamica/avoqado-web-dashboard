@@ -68,7 +68,7 @@ export function TerminalPurchaseWizard({
   const navigate = useNavigate()
   const { venue, venueId: venueIdFromContext, fullBasePath } = useCurrentVenue()
   // Explicit prop wins (onboarding /setup has no venue in the URL); otherwise
-  // use the current-venue context (normal /venues/:slug/tpv usage).
+  // use the current-venue context (normal /venues/:slug/devices usage).
   const venueId = venueIdProp ?? venueIdFromContext
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
@@ -188,7 +188,7 @@ export function TerminalPurchaseWizard({
         return
       }
       onOpenChange(false)
-      navigate(`${fullBasePath}/tpv/orders/${result.orderId}`)
+      navigate(`${fullBasePath}/devices/orders/${result.orderId}`)
       onSuccess?.()
     },
     onError: (error: any) => {

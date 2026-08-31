@@ -774,7 +774,7 @@ export function AppSidebar({
     // TPV (direct link, no sub-sidebar)
     if (can('tpv:read') && canWL('AVOQADO_TPVS')) {
       mainItems.push({
-        title: t('sidebar:routes.tpv'), url: 'tpv', icon: Smartphone,
+        title: t('sidebar:routes.tpv'), url: 'devices', icon: Smartphone,
         locked: !hasKYCAccess,
         keywords: ['terminal', 'punto de venta', 'pos', 'dispositivo'],
       })

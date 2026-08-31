@@ -75,7 +75,7 @@ const CHECKLIST_CONFIG: ChecklistItemConfig[] = [
     descriptionKey: 'paymentSetup.checklist.terminalRegisteredDesc',
     actionLabelKey: 'paymentSetup.actions.registerTerminal',
     // Terminals are managed at venue level (TPV page)
-    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/tpv`,
+    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/devices`,
     isBlocking: true,
   },
   {
@@ -95,7 +95,7 @@ const CHECKLIST_CONFIG: ChecklistItemConfig[] = [
     descriptionKey: 'paymentSetup.checklist.terminalMerchantLinkedDesc',
     actionLabelKey: 'paymentSetup.actions.linkTerminal',
     // Link terminal in TPV page
-    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/tpv`,
+    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/devices`,
     isBlocking: true,
   },
   {

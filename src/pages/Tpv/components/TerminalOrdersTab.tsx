@@ -264,7 +264,7 @@ export function TerminalOrdersTab() {
                   <tr
                     key={o.id}
                     className="border-t border-input cursor-pointer hover:bg-muted/30"
-                    onClick={() => navigate(`${fullBasePath}/tpv/orders/${o.id}`)}
+                    onClick={() => navigate(`${fullBasePath}/devices/orders/${o.id}`)}
                   >
                     <td className="p-3 font-mono">{o.orderNumber}</td>
                     <td className="p-3">{formatDate(o.createdAt)}</td>

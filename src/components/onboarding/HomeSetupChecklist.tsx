@@ -63,7 +63,7 @@ const STEPS: StepConfig[] = [
     id: 'buy-tpv',
     titleKey: 'newHome.setup.steps.buyTpv.title',
     descriptionKey: 'newHome.setup.steps.buyTpv.description',
-    path: 'tpv?action=buy',
+    path: 'devices?action=buy',
     canSkip: true,
   },
   {
@@ -97,7 +97,7 @@ const STEPS: StepConfig[] = [
     id: 'tpv',
     titleKey: 'newHome.setup.steps.tpv.title',
     descriptionKey: 'newHome.setup.steps.tpv.description',
-    path: 'tpv',
+    path: 'devices',
     atomicTour: 'tpv-onboarding',
     canSkip: true,
   },

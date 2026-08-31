@@ -727,7 +727,7 @@ export default function Home() {
                 title={t('newHome.businessCenter.devices')}
                 subtitle={t('newHome.businessCenter.devicesSubCount', { count: tpvCount })}
                 isLoading={isTpvsLoading}
-                onClick={() => navigate(`${fullBasePath}/tpv`)}
+                onClick={() => navigate(`${fullBasePath}/devices`)}
               />
               <Card className="min-h-56 rounded-2xl border-input">
                 <CardContent className="pt-6">
