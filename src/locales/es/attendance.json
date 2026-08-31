@@ -107,9 +107,6 @@
       "hours": "Horas",
       "breaks": "Descanso (min)",
       "overtime": "Horas extra",
-      "overtimeDouble": "Extra dobles (min)",
-      "overtimeTriple": "Extra triples (min)",
-      "overtimeViolation": "Excede art. 66",
       "overtimeApproved": "Extra autorizadas (min)",
       "overtimePending": "Extra por autorizar (min)"
     },
@@ -118,11 +115,7 @@
     "csv": "Exportar CSV",
     "pending": "{{count}} por cerrar",
     "overtime": {
-      "split": "{{double}} dobles · {{triple}} triples",
       "partial": "semana incompleta",
-      "violation": "Excede el límite legal",
-      "violationHelp": "Alguna semana rompe el artículo 66 de la Ley Federal del Trabajo: más de 3 horas extra en un día, o horas extra en más de 3 días. Se sigue pagando igual, pero es una infracción.",
-      "yes": "sí",
       "pending": "{{amount}} por autorizar",
       "approved": "{{amount}} autorizadas",
       "review": "Revisar",

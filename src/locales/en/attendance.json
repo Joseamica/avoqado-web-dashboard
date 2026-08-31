@@ -107,9 +107,6 @@
       "hours": "Hours",
       "breaks": "Breaks (min)",
       "overtime": "Overtime",
-      "overtimeDouble": "Double-rate overtime (min)",
-      "overtimeTriple": "Triple-rate overtime (min)",
-      "overtimeViolation": "Exceeds art. 66",
       "overtimeApproved": "Approved overtime (min)",
       "overtimePending": "Overtime awaiting approval (min)"
     },
@@ -118,11 +115,7 @@
     "csv": "Export CSV",
     "pending": "{{count}} still open",
     "overtime": {
-      "split": "{{double}} at double · {{triple}} at triple",
       "partial": "incomplete week",
-      "violation": "Over the legal limit",
-      "violationHelp": "A week breaks article 66 of the Mexican Federal Labour Law: over 3 overtime hours in one day, or overtime on more than 3 days. Pay is unchanged, but it is a violation.",
-      "yes": "yes",
       "pending": "{{amount}} awaiting approval",
       "approved": "{{amount}} approved",
       "review": "Review",

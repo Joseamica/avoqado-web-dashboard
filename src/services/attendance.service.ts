@@ -160,13 +160,8 @@ export interface PayrollSummaryRow {
   overtimeDeniedMinutes: number
   /** Días cuya checada cambió DESPUÉS de autorizar: hay que volver a mirarlos. */
   overtimeDaysToReview: string[]
-  /** De lo AUTORIZADO, lo que va al DOBLE: las primeras 9 h de CADA semana (art. 67). */
-  overtimeDoubleMinutes: number
-  /** De lo AUTORIZADO, lo que va al TRIPLE: lo que excede 9 h en una semana (art. 68). */
-  overtimeTripleMinutes: number
   overtimeWeeks: OvertimeWeek[]
   /** Alguna semana rompe el art. 66. Es infracción que hay que VER; no cambia lo que se paga. */
-  hasOvertimeViolation: boolean
 }
 
 /** El desglose por semana natural, que es donde vive el umbral de las 9 h. */

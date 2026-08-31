@@ -71,10 +71,7 @@ function fila(over: Partial<any> = {}): any {
     overtimePendingMinutes: 0,
     overtimeDeniedMinutes: 0,
     overtimeDaysToReview: [],
-    overtimeDoubleMinutes: 0,
-    overtimeTripleMinutes: 0,
     overtimeWeeks: [],
-    hasOvertimeViolation: false,
     ...over,
   }
 }
@@ -88,7 +85,6 @@ const FILAS = [
     name: 'Ana Martínez',
     overtimeMinutes: 480,
     overtimePendingMinutes: 480,
-    hasOvertimeViolation: true,
     overtimeWeeks: [SEMANA],
   }),
   fila({
@@ -100,7 +96,6 @@ const FILAS = [
     overtimeMinutes: 240,
     overtimeApprovedMinutes: 180,
     overtimePendingMinutes: 60,
-    overtimeDoubleMinutes: 180,
     overtimeWeeks: [SEMANA],
   }),
   fila({
@@ -109,9 +104,6 @@ const FILAS = [
     hoursWorked: 46,
     overtimeMinutes: 720,
     overtimeApprovedMinutes: 720,
-    overtimeDoubleMinutes: 540,
-    overtimeTripleMinutes: 180,
-    hasOvertimeViolation: true,
     overtimeWeeks: [SEMANA],
   }),
   fila({

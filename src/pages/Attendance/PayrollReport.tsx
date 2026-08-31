@@ -80,9 +80,6 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
       t('payroll.cols.overtime'),
       t('payroll.cols.overtimeApproved'),
       t('payroll.cols.overtimePending'),
-      t('payroll.cols.overtimeDouble'),
-      t('payroll.cols.overtimeTriple'),
-      t('payroll.cols.overtimeViolation'),
     ]
     const lines = rows.map(r =>
       [
@@ -100,9 +97,6 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
         r.overtimeMinutes,
         r.overtimeApprovedMinutes,
         r.overtimePendingMinutes,
-        r.overtimeDoubleMinutes,
-        r.overtimeTripleMinutes,
-        r.hasOvertimeViolation ? t('payroll.overtime.yes') : '',
       ].join(','),
     )
     // BOM para que Excel en español abra los acentos bien.
@@ -136,14 +130,6 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
               {t('payroll.overtime.approved', { amount: hm(r.overtimeApprovedMinutes) })}
             </div>
           )}
-          {r.overtimeTripleMinutes > 0 && (
-            <div className="text-[11px] text-muted-foreground">
-              {t('payroll.overtime.split', {
-                double: hm(r.overtimeDoubleMinutes),
-                triple: hm(r.overtimeTripleMinutes),
-              })}
-            </div>
-          )}
           {parcial && <div className="text-[11px] text-muted-foreground">{t('payroll.overtime.partial')}</div>}
           {puedeAutorizar && (
             <button
@@ -155,23 +141,6 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
             </button>
           )}
         </div>
-        {r.hasOvertimeViolation && (
-          // 🔴 El Provider va aquí a propósito: `Tooltip` es `Radix.Root` pelón y sin un
-          // Provider ancestro Radix REVIENTA en pantalla — y eso el typecheck no lo ve. El
-          // repo no tiene uno global; cada consumidor pone el suyo (PageTitleWithInfo,
-          // AddToAIButton). Anidarlos es seguro.
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <AlertTriangle
-                  className="h-3.5 w-3.5 shrink-0 text-amber-600"
-                  aria-label={t('payroll.overtime.violation')}
-                />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-[260px]">{t('payroll.overtime.violationHelp')}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
       </div>
     )
   }

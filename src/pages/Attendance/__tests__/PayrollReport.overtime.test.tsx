@@ -46,10 +46,7 @@ function fila(over: Partial<any> = {}): any {
     overtimePendingMinutes: 0,
     overtimeDeniedMinutes: 0,
     overtimeDaysToReview: [],
-    overtimeDoubleMinutes: 0,
-    overtimeTripleMinutes: 0,
     overtimeWeeks: [],
-    hasOvertimeViolation: false,
     ...over,
   }
 }
@@ -88,36 +85,10 @@ describe('PayrollReport — horas extra', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
-  it('🔴 el desglose doble/triple aparece cuando HAY triples — es la diferencia entre 200% y 300%', async () => {
-    pintar([
-      fila({
-        overtimeMinutes: 720,
-        overtimeApprovedMinutes: 720,
-        overtimeDoubleMinutes: 540,
-        overtimeTripleMinutes: 180,
-      }),
-    ])
-    expect(await screen.findByText('12h')).toBeInTheDocument()
-    expect(screen.getByText('payroll.overtime.split')).toBeInTheDocument()
-  })
-
   it('sin triples no se enseña el desglose: sería ruido', async () => {
     pintar([fila({ overtimeMinutes: 120, overtimeApprovedMinutes: 120, overtimeDoubleMinutes: 120, overtimeTripleMinutes: 0 })])
     await screen.findByText('2h')
     expect(screen.queryByText('payroll.overtime.split')).toBeNull()
-  })
-
-  it('🔴 la advertencia del art. 66 se MONTA sin reventar (Tooltip de Radix necesita su Provider)', async () => {
-    pintar([
-      fila({
-        overtimeMinutes: 240,
-        overtimeApprovedMinutes: 240,
-        overtimeDoubleMinutes: 240,
-        hasOvertimeViolation: true,
-        overtimeWeeks: [{ weekStart: '2026-08-24', weekEnd: '2026-08-30', parcial: false } as any],
-      }),
-    ])
-    expect(await screen.findByLabelText('payroll.overtime.violation')).toBeInTheDocument()
   })
 
   it('sin infracción no hay advertencia', async () => {
@@ -131,8 +102,6 @@ describe('PayrollReport — horas extra', () => {
       fila({
         overtimeMinutes: 600,
         overtimeApprovedMinutes: 600,
-        overtimeDoubleMinutes: 540,
-        overtimeTripleMinutes: 60,
         overtimeWeeks: [{ weekStart: '2026-08-24', weekEnd: '2026-08-30', parcial: true } as any],
       }),
     ])

@@ -107,9 +107,6 @@
       "hours": "Heures",
       "breaks": "Pauses (min)",
       "overtime": "Heures supp.",
-      "overtimeDouble": "Heures supp. doubles (min)",
-      "overtimeTriple": "Heures supp. triples (min)",
-      "overtimeViolation": "Dépasse art. 66",
       "overtimeApproved": "Heures supp. autorisées (min)",
       "overtimePending": "Heures supp. à autoriser (min)"
     },
@@ -118,11 +115,7 @@
     "csv": "Exporter CSV",
     "pending": "{{count}} à clore",
     "overtime": {
-      "split": "{{double}} au double · {{triple}} au triple",
       "partial": "semaine incomplète",
-      "violation": "Dépasse la limite légale",
-      "violationHelp": "Une semaine enfreint l'article 66 de la loi fédérale du travail mexicaine : plus de 3 heures supplémentaires en un jour, ou des heures supplémentaires sur plus de 3 jours. La paie ne change pas, mais c'est une infraction.",
-      "yes": "oui",
       "pending": "{{amount}} à autoriser",
       "approved": "{{amount}} autorisées",
       "review": "Vérifier",
