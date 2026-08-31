@@ -61,7 +61,8 @@
   },
   "report": {
     "grace": "Tolerancia: {{minutes}} min",
-    "lateCount": "{{count}} retardos",
+    "lateCount_one": "{{count}} retardo",
+    "lateCount_other": "{{count}} retardos",
     "absentCount": "{{count}} faltas",
     "late": "{{minutes}} min tarde",
     "absent": "Falta",

@@ -61,7 +61,8 @@
   },
   "report": {
     "grace": "Grace: {{minutes}} min",
-    "lateCount": "{{count}} late",
+    "lateCount_one": "{{count}} late arrival",
+    "lateCount_other": "{{count}} late arrivals",
     "absentCount": "{{count}} absent",
     "late": "{{minutes}} min late",
     "absent": "Absent",
