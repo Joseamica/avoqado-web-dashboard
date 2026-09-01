@@ -29,7 +29,25 @@ window.addEventListener('vite:preloadError', () => {
 
 // Las consultas pesadas configuran staleTime/retry/focus localmente. Mantener
 // estos defaults evita cambiar de golpe la frescura del resto del dashboard.
-const queryClient = new QueryClient()
+// 🔴 Defaults ANTI-ESTAMPIDA (incidente del server 2026-09-01, auditado por Codex el
+// mismo día): el QueryClient pelón traía retry: 3 con backoff y staleTime: 0 — con el
+// server lento, cada pantalla (el menú monta 4-6 queries) disparaba 4 intentos por query
+// y refetch completo en cada montaje, AMPLIFICANDO la caída en vez de dejarla respirar.
+// - staleTime 30 s: navegar entre pantallas pinta la caché al instante (menos spinners);
+//   lo "vivo" no depende de esto — tiene sus refetchInterval y sus eventos de socket.
+// - retry 1: un fallo real avisa en segundos en vez de girar por 3 reintentos.
+// - refetchOnWindowFocus se queda en su default (true) A PROPÓSITO — hallazgo P2 de la
+//   auditoría: apagarlo quitaba la recuperación automática al volver a la pestaña tras
+//   un error (p.ej. BasicInfo pinta "venue no encontrado" sin botón de reintentar). Con
+//   staleTime 30 s el focus sólo refire lo rancio: una petición por dato, sin ráfaga.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+    },
+  },
+})
 const showLoaderPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('loaderPreview') === '1'
 
 const rootElement = document.getElementById('root')
