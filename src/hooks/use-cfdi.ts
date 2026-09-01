@@ -25,6 +25,27 @@ import cfdiService, {
 
 export const fiscalConfigQueryKey = (venueId: string | null) => ['fiscal-config', venueId]
 export const cfdisQueryKey = (venueId: string | null, filters: CfdiListFilters) => ['cfdis', venueId, filters]
+export const emisorProviderStatusQueryKey = (venueId: string | null, emisorId: string | null) => [
+  'emisor-provider-status',
+  venueId,
+  emisorId,
+]
+
+/**
+ * Onboarding status of an emisor at the PAC (Carta Manifiesto pendiente, etc.).
+ * Only queried for provisioned emisores — pass `enabled: false` otherwise.
+ */
+export function useEmisorProviderStatus(emisorId: string | null, options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+  const enabled = options?.enabled ?? true
+
+  return useQuery({
+    queryKey: emisorProviderStatusQueryKey(venueId, emisorId),
+    queryFn: () => cfdiService.getEmisorProviderStatus(venueId!, emisorId!),
+    enabled: !!venueId && !!emisorId && enabled,
+    staleTime: 60 * 1000,
+  })
+}
 
 /**
  * Emisores + merchant configs for the active venue.

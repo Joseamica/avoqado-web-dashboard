@@ -180,15 +180,15 @@ export async function getRouting(venueId: string): Promise<RoutingData> {
   return res.data.data
 }
 
-export async function updateRouting(venueId: string, body: UpdateRoutingInput): Promise<{ categoriesUpdated: number; productsUpdated: number }> {
+export async function updateRouting(
+  venueId: string,
+  body: UpdateRoutingInput,
+): Promise<{ categoriesUpdated: number; productsUpdated: number }> {
   const res = await api.put(`${base(venueId)}/routing`, body)
   return res.data.data
 }
 
-export async function previewRouting(
-  venueId: string,
-  body: { items: { productId: string; quantity: number }[] },
-): Promise<PreviewResult> {
+export async function previewRouting(venueId: string, body: { items: { productId: string; quantity: number }[] }): Promise<PreviewResult> {
   const res = await api.post(`${base(venueId)}/routing/preview`, body)
   return res.data.data
 }

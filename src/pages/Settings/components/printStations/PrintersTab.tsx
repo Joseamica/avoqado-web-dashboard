@@ -44,8 +44,7 @@ const NETWORK_ADDRESS_REGEX = /^[a-zA-Z0-9.-]+(:\d{1,5})?$/
 // BLUETOOTH: 6-octet MAC, ':' or '-' separators, case-insensitive.
 const BLUETOOTH_MAC_REGEX = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/
 
-const apiError = (e: any, fallback: string): string =>
-  e?.response?.data?.message ?? e?.response?.data?.error ?? fallback
+const apiError = (e: any, fallback: string): string => e?.response?.data?.message ?? e?.response?.data?.error ?? fallback
 
 export function PrintersTab({ venueId }: { venueId: string }) {
   const { t } = useTranslation('printStations')
@@ -260,11 +259,7 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
         </Button>
       }
     >
-      <form
-        id={FORM_ID}
-        onSubmit={handleSubmit(values => mutation.mutate(values))}
-        className="mx-auto max-w-xl space-y-6 p-4 md:p-6"
-      >
+      <form id={FORM_ID} onSubmit={handleSubmit(values => mutation.mutate(values))} className="mx-auto max-w-xl space-y-6 p-4 md:p-6">
         <div className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">
           <div className="space-y-2">
             <Label htmlFor="printer-name">{t('printers.fields.name')}</Label>
@@ -290,9 +285,7 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
                 <SelectItem value="POS_INTERNAL">{t('printers.connectionPosInternal')}</SelectItem>
               </SelectContent>
             </Select>
-            {connectionType === 'POS_INTERNAL' && (
-              <p className="text-xs text-muted-foreground">{t('printers.fields.posInternalHint')}</p>
-            )}
+            {connectionType === 'POS_INTERNAL' && <p className="text-xs text-muted-foreground">{t('printers.fields.posInternalHint')}</p>}
           </div>
 
           {/* La integrada del POS no lleva dirección, ancho ni calibración: el aparato
@@ -318,9 +311,7 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
                   {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetoothHint') : t('printers.fields.addressNetworkHint')}
                 </p>
                 {errors.address && (
-                  <p className="text-xs text-destructive">
-                    {t(`printers.validation.${errors.address.message ?? 'addressRequired'}`)}
-                  </p>
+                  <p className="text-xs text-destructive">{t(`printers.validation.${errors.address.message ?? 'addressRequired'}`)}</p>
                 )}
               </div>
 
