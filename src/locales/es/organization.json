@@ -677,6 +677,7 @@
     "title": "Registro de actividad",
     "subtitle": "Seguimiento de todas las acciones realizadas en tu organización",
     "subtitleVenue": "Quién hizo qué y cuándo en esta sucursal",
+    "timezoneNote": "Las horas se muestran en la zona horaria de {{timezone}} ({{abbr}}). Una sucursal en otro huso puede tener una hora local distinta.",
     "searchPlaceholder": "Buscar por acción, persona o dato…",
     "noResults": "No se encontró actividad con esos filtros",
     "empty": "No se ha registrado actividad aún",

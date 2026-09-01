@@ -243,6 +243,7 @@
     "title": "Journal d'activité",
     "subtitle": "Suivi de toutes les actions réalisées dans votre organisation",
     "subtitleVenue": "Qui a fait quoi et quand dans cet établissement",
+    "timezoneNote": "Les heures sont affichées dans le fuseau horaire {{timezone}} ({{abbr}}). Un établissement situé dans un autre fuseau peut avoir une heure locale différente.",
     "searchPlaceholder": "Rechercher par action, personne ou valeur…",
     "noResults": "Aucune activité ne correspond à ces filtres",
     "empty": "Aucune activité enregistrée pour l'instant",

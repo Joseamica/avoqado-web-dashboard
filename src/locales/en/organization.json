@@ -677,6 +677,7 @@
     "title": "Activity log",
     "subtitle": "Track all actions performed across your organization",
     "subtitleVenue": "Who did what and when at this venue",
+    "timezoneNote": "Times are shown in the {{timezone}} time zone ({{abbr}}). A venue in another time zone may have a different local time.",
     "searchPlaceholder": "Search by action, person or value…",
     "noResults": "No activity matches your filters",
     "empty": "No activity recorded yet",

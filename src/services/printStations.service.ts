@@ -8,7 +8,7 @@ const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/print-sta
 
 // ── Tipos (espejo del backend) ────────────────────────────────────────────────
 
-export type PrinterConnectionType = 'NETWORK' | 'BLUETOOTH' | 'USB_SPOOLER' | 'TERMINAL_INTERNAL'
+export type PrinterConnectionType = 'NETWORK' | 'BLUETOOTH' | 'USB_SPOOLER' | 'TERMINAL_INTERNAL' | 'POS_INTERNAL'
 
 export interface Printer {
   id: string
@@ -92,7 +92,9 @@ export interface CreatePrinterInput {
   leftMarginChars?: number
   charset?: string
 }
-export type UpdatePrinterInput = Partial<CreatePrinterInput> & { active?: boolean }
+// `address: null` limpia la dirección — es lo que manda el form al convertir una
+// impresora existente en POS_INTERNAL (la integrada no lleva dirección).
+export type UpdatePrinterInput = Partial<Omit<CreatePrinterInput, 'address'>> & { address?: string | null; active?: boolean }
 
 export interface CreateStationInput {
   name: string

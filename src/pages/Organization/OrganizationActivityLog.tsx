@@ -14,13 +14,13 @@ import {
   type OrgActivityLogResponse,
 } from '@/services/organizationDashboard.service'
 import { getOrganizationVenues } from '@/services/organization.service'
-import { getDateFnsLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 import { useQuery } from '@tanstack/react-query'
-import { format, type Locale } from 'date-fns'
 import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Info,
   LogIn,
   LogOut,
   Plus,
@@ -92,9 +92,12 @@ function formatActionFallback(action: string): string {
 // ── Component ──
 
 function OrganizationActivityLog() {
-  const { t, i18n } = useTranslation('organization')
+  const { t } = useTranslation('organization')
   const { orgId } = useParams<{ orgId: string }>()
-  const dateFnsLocale = getDateFnsLocale(i18n.language)
+  // 🔴 La zona del NEGOCIO, nunca la del navegador (regla crítica #4). Esta pantalla
+  // lista varias sucursales a la vez y el endpoint no devuelve la zona de cada una,
+  // así que TODO se pinta en una sola zona — y por eso la columna la declara.
+  const { venueTimezone, venueTimezoneShort } = useVenueDateTime()
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -226,13 +229,28 @@ function OrganizationActivityLog() {
                   <TableHead>{t('activityLog.columns.entity')}</TableHead>
                   <TableHead>{t('activityLog.columns.performedBy')}</TableHead>
                   <TableHead>{t('activityLog.columns.venue')}</TableHead>
-                  <TableHead>{t('activityLog.columns.date')}</TableHead>
+                  <TableHead>
+                    <span className="inline-flex items-center gap-1">
+                      {t('activityLog.columns.date')}
+                      <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} className="cursor-help" aria-label={t('activityLog.timezoneNote', { timezone: venueTimezone, abbr: venueTimezoneShort })}>
+                            <Info className="h-3 w-3 text-muted-foreground" aria-hidden />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">{t('activityLog.timezoneNote', { timezone: venueTimezone, abbr: venueTimezoneShort })}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </TableHead>
                   <TableHead>{t('activityLog.columns.details')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map(log => (
-                  <ActivityLogRow key={log.id} log={log} dateFnsLocale={dateFnsLocale} />
+                  <ActivityLogRow key={log.id} log={log} />
                 ))}
               </TableBody>
             </Table>
@@ -278,8 +296,9 @@ function OrganizationActivityLog() {
 
 // ── Row Component ──
 
-function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; dateFnsLocale: Locale }) {
+function ActivityLogRow({ log }: { log: OrgActivityLogEntry }) {
   const { t } = useTranslation('organization')
+  const { formatDateTime } = useVenueDateTime()
   const [expanded, setExpanded] = useState(false)
   const config = getActionConfig(log.action)
   const Icon = config.icon
@@ -352,7 +371,7 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm text-muted-foreground cursor-help">
-                {format(new Date(log.createdAt), 'dd MMM yyyy, HH:mm', { locale: dateFnsLocale })}
+                {formatDateTime(log.createdAt)}
               </span>
             </TooltipTrigger>
             <TooltipContent>

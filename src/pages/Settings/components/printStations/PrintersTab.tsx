@@ -30,10 +30,11 @@ import { createPrinter, deletePrinter, getPrinters, updatePrinter, type Printer 
 const FORM_ID = 'printer-form'
 const DEFAULT_CHARSET = 'CP858'
 
-// Only these two connection types are servable by the POS gateway today —
-// USB_SPOOLER (Windows desktop POS) and TERMINAL_INTERNAL (PAX internal printer)
-// are backend-rejected and must never be offered here.
-const CONNECTION_TYPES = ['NETWORK', 'BLUETOOTH'] as const
+// Servable connection types: NETWORK/BLUETOOTH (routed by the POS print gateway) and
+// POS_INTERNAL — the POS device's own built-in printer (Sunmi): the comanda prints on
+// the device that charged the sale, no IP involved. USB_SPOOLER (Windows desktop POS)
+// and TERMINAL_INTERNAL (PAX internal printer) are backend-rejected — never offer them.
+const CONNECTION_TYPES = ['NETWORK', 'BLUETOOTH', 'POS_INTERNAL'] as const
 type FormConnectionType = (typeof CONNECTION_TYPES)[number]
 
 // Mirrors the backend's address shape validation per connection type so the
@@ -103,7 +104,9 @@ export function PrintersTab({ venueId }: { venueId: string }) {
                 {printers!.map(printer => (
                   <TableRow key={printer.id}>
                     <TableCell className="font-medium">{printer.name}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{printer.address ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {printer.connectionType === 'POS_INTERNAL' ? t('printers.integratedAddress') : (printer.address ?? '—')}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{t('printers.widthValue', { mm: printer.paperWidthMm })}</TableCell>
                     <TableCell>
                       <Badge variant={printer.active ? 'default' : 'outline'}>
@@ -146,7 +149,9 @@ const printerSchema = z
   .object({
     name: z.string().trim().min(1),
     connectionType: z.enum(CONNECTION_TYPES),
-    address: z.string().trim().min(1, { message: 'addressRequired' }),
+    // POS_INTERNAL no lleva dirección (imprime el propio aparato que cobró), así que la
+    // obligatoriedad depende del tipo y vive en el superRefine — no en un min(1) global.
+    address: z.string().trim(),
     paperWidthMm: z.number(),
     // Tope 16: es el desperdicio máximo posible (48 columnas de un cabezal de
     // 80 mm menos las 32 de un rollo de 58 mm). Más que eso corre el ticket
@@ -157,7 +162,18 @@ const printerSchema = z
   })
   .superRefine((data, ctx) => {
     const address = data.address.trim()
-    if (!address) return // already caught by address.min(1)
+
+    if (data.connectionType === 'POS_INTERNAL') {
+      // Teclearle una IP a la integrada es exactamente el error que dejó a un café
+      // cobrando sin comandas de barra (la estación apuntaba al propio POS).
+      if (address) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['address'], message: 'addressForbiddenPosInternal' })
+      return
+    }
+
+    if (!address) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['address'], message: 'addressRequired' })
+      return
+    }
 
     if (data.connectionType === 'NETWORK' && !NETWORK_ADDRESS_REGEX.test(address)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['address'], message: 'addressInvalidNetwork' })
@@ -173,7 +189,8 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
   const { toast } = useToast()
   const qc = useQueryClient()
 
-  const initialConnectionType: FormConnectionType = printer?.connectionType === 'BLUETOOTH' ? 'BLUETOOTH' : 'NETWORK'
+  const initialConnectionType: FormConnectionType =
+    printer?.connectionType === 'BLUETOOTH' ? 'BLUETOOTH' : printer?.connectionType === 'POS_INTERNAL' ? 'POS_INTERNAL' : 'NETWORK'
 
   const {
     register,
@@ -206,16 +223,19 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
 
   const mutation = useMutation({
     mutationFn: (values: PrinterForm) => {
+      const esIntegrada = values.connectionType === 'POS_INTERNAL'
       const body = {
         name: values.name.trim(),
         connectionType: values.connectionType,
-        address: values.address.trim(),
+        // La integrada NO lleva dirección; al editar hacia POS_INTERNAL se manda null
+        // para limpiar la que la impresora tuviera antes.
+        ...(esIntegrada ? {} : { address: values.address.trim() }),
         paperWidthMm: values.paperWidthMm,
         leftMarginChars: values.leftMarginChars,
         charset: values.charset.trim(),
       }
       return printer
-        ? updatePrinter(venueId, printer.id, { ...body, active: values.active })
+        ? updatePrinter(venueId, printer.id, { ...body, ...(esIntegrada ? { address: null } : {}), active: values.active })
         : createPrinter(venueId, body)
     },
     onSuccess: () => {
@@ -267,70 +287,81 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
               <SelectContent>
                 <SelectItem value="NETWORK">{t('printers.connectionNetwork')}</SelectItem>
                 <SelectItem value="BLUETOOTH">{t('printers.connectionBluetooth')}</SelectItem>
+                <SelectItem value="POS_INTERNAL">{t('printers.connectionPosInternal')}</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="printer-address">
-              {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetooth') : t('printers.fields.addressNetwork')}
-            </Label>
-            <Input
-              id="printer-address"
-              className="h-12 font-mono text-base"
-              placeholder={
-                connectionType === 'BLUETOOTH'
-                  ? t('printers.fields.addressBluetoothPlaceholder')
-                  : t('printers.fields.addressNetworkPlaceholder')
-              }
-              {...register('address')}
-            />
-            <p className="text-xs text-muted-foreground">
-              {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetoothHint') : t('printers.fields.addressNetworkHint')}
-            </p>
-            {errors.address && (
-              <p className="text-xs text-destructive">
-                {t(`printers.validation.${errors.address.message ?? 'addressRequired'}`)}
-              </p>
+            {connectionType === 'POS_INTERNAL' && (
+              <p className="text-xs text-muted-foreground">{t('printers.fields.posInternalHint')}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t('printers.fields.paperWidth')}</Label>
-              <Select
-                value={String(paperWidthMm)}
-                onValueChange={v => setValue('paperWidthMm', parseInt(v, 10), { shouldDirty: true })}
-              >
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="58">{t('printers.widthValue', { mm: 58 })}</SelectItem>
-                  <SelectItem value="80">{t('printers.widthValue', { mm: 80 })}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="printer-charset">{t('printers.fields.charset')}</Label>
-              <Input id="printer-charset" className="h-12 text-base" {...register('charset')} />
-            </div>
-          </div>
+          {/* La integrada del POS no lleva dirección, ancho ni calibración: el aparato
+              conoce su propio cabezal. Pedir esos campos aquí invita justo al error que
+              originó este tipo (teclearle la IP del propio POS). */}
+          {connectionType !== 'POS_INTERNAL' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="printer-address">
+                  {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetooth') : t('printers.fields.addressNetwork')}
+                </Label>
+                <Input
+                  id="printer-address"
+                  className="h-12 font-mono text-base"
+                  placeholder={
+                    connectionType === 'BLUETOOTH'
+                      ? t('printers.fields.addressBluetoothPlaceholder')
+                      : t('printers.fields.addressNetworkPlaceholder')
+                  }
+                  {...register('address')}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetoothHint') : t('printers.fields.addressNetworkHint')}
+                </p>
+                {errors.address && (
+                  <p className="text-xs text-destructive">
+                    {t(`printers.validation.${errors.address.message ?? 'addressRequired'}`)}
+                  </p>
+                )}
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="printer-left-margin">{t('printers.fields.leftMargin')}</Label>
-            <Input
-              id="printer-left-margin"
-              type="number"
-              min={0}
-              max={16}
-              step={1}
-              className="h-12 text-base"
-              {...register('leftMarginChars', { valueAsNumber: true })}
-            />
-            <p className="text-xs text-muted-foreground">{t('printers.fields.leftMarginHint')}</p>
-            {errors.leftMarginChars && <p className="text-xs text-destructive">{t('printers.validation.leftMarginRange')}</p>}
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('printers.fields.paperWidth')}</Label>
+                  <Select
+                    value={String(paperWidthMm)}
+                    onValueChange={v => setValue('paperWidthMm', parseInt(v, 10), { shouldDirty: true })}
+                  >
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="58">{t('printers.widthValue', { mm: 58 })}</SelectItem>
+                      <SelectItem value="80">{t('printers.widthValue', { mm: 80 })}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="printer-charset">{t('printers.fields.charset')}</Label>
+                  <Input id="printer-charset" className="h-12 text-base" {...register('charset')} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="printer-left-margin">{t('printers.fields.leftMargin')}</Label>
+                <Input
+                  id="printer-left-margin"
+                  type="number"
+                  min={0}
+                  max={16}
+                  step={1}
+                  className="h-12 text-base"
+                  {...register('leftMarginChars', { valueAsNumber: true })}
+                />
+                <p className="text-xs text-muted-foreground">{t('printers.fields.leftMarginHint')}</p>
+                {errors.leftMarginChars && <p className="text-xs text-destructive">{t('printers.validation.leftMarginRange')}</p>}
+              </div>
+            </>
+          )}
 
           {printer && (
             <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-3">
