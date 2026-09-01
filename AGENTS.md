@@ -103,6 +103,15 @@ Un "listo" que esconde lo que no se corrió es un reporte falso.
 
 "No era importante" es una conclusión que se justifica en el reporte, no un default. Si dudas, córrelo.
 
+## 🔴 Datos acotados sin degradar la experiencia
+
+Todo componente nuevo que liste datos debe pedir agregados para tarjetas y páginas acotadas para
+filas, con búsqueda/filtros del lado servidor. Nunca descargues todo el tenant al montar ni ocultes
+registros por un límite silencioso: muestra total y paginación/`Cargar más`. Configura consultas
+pesadas localmente (`staleTime`, máximo un retry, sin refetch al enfocar) y habilítalas sólo cuando la
+vista sea visible. Las exportaciones completas empiezan por acción explícita y recorren páginas
+acotadas. Lee `.claude/rules/bounded-data-and-query-load.md` antes de crear componentes de datos.
+
 ## Frontend Developer
 
 **Scope**: Feature implementation, new pages, API integration, forms, data tables.
@@ -209,4 +218,3 @@ Regla completa en `~/.claude/CLAUDE.md` (aplica a todos sus proyectos) y en
 - **Las respuestas largas están bien** — le sirve que razones y no adivines.
 - 🔴 **SIEMPRE cierra con 2-3 líneas en lenguaje llano**: qué pasó, qué significa para él, y qué
   necesitas de él. Sin ese cierre, el contenido puede ser correcto y aun así no llegarle.
-
