@@ -124,7 +124,9 @@
     "newCustomerDescription": "Un nom et un e-mail ou un téléphone suffisent.",
     "consentNeedsNotice": "Pour demander ce consentement, votre entreprise a besoin d'un avis de confidentialité.",
     "consentNeedsNoticeLink": "Créer l'avis de confidentialité",
-    "consentNeedsNoticeNoPermission": "Demandez à un administrateur de créer l'avis de confidentialité."
+    "consentNeedsNoticeNoPermission": "Demandez à un administrateur de créer l'avis de confidentialité.",
+    "consentNoticeChecking": "Vérification de l'existence d'un avis de confidentialité…",
+    "consentNoticeUnknown": "Nous n'avons pas pu vérifier si votre entreprise a un avis de confidentialité. Demandez à un administrateur de revoir vos permissions."
   },
   "delete": {
     "title": "Supprimer le Client",
@@ -302,7 +304,7 @@
     "versionWarning": "Chaque enregistrement crée une nouvelle version. Les versions précédentes ne peuvent pas être modifiées.",
     "contentLabel": "Contenu de l'avis",
     "contentPlaceholder": "Écrivez l'avis de confidentialité complet…",
-    "contentHelp": "Le texte de la version enregistrée ne peut pas être récupéré — réécrivez l'avis complet, même s'il n'a pas changé.",
+    "contentHelp": "Voici le texte de votre version en vigueur — vous pouvez le modifier. L'enregistrement crée une nouvelle version ; la précédente n'est pas modifiée.",
     "save": "Enregistrer l'avis",
     "saving": "Enregistrement…",
     "saveSuccess": "Avis de confidentialité enregistré",

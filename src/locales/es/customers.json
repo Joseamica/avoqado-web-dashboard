@@ -124,7 +124,9 @@
     "newCustomerDescription": "Con su nombre y un correo o un teléfono basta.",
     "consentNeedsNotice": "Para pedir este consentimiento, tu negocio necesita un aviso de privacidad.",
     "consentNeedsNoticeLink": "Crear aviso de privacidad",
-    "consentNeedsNoticeNoPermission": "Pídele a un administrador que cree el aviso de privacidad."
+    "consentNeedsNoticeNoPermission": "Pídele a un administrador que cree el aviso de privacidad.",
+    "consentNoticeChecking": "Comprobando si tu negocio ya tiene un aviso de privacidad…",
+    "consentNoticeUnknown": "No pudimos comprobar si tu negocio tiene un aviso de privacidad. Pídele a un administrador que revise tus permisos."
   },
   "delete": {
     "title": "Eliminar Cliente",
@@ -302,7 +304,7 @@
     "versionWarning": "Cada vez que guardas se crea una versión nueva. Las versiones anteriores no se pueden editar.",
     "contentLabel": "Contenido del aviso",
     "contentPlaceholder": "Escribe el aviso de privacidad completo…",
-    "contentHelp": "No se puede recuperar el texto de la versión guardada — escribe el aviso completo, aunque no haya cambiado.",
+    "contentHelp": "Este es el texto de tu versión vigente — puedes editarlo. Al guardar se crea una versión nueva; la anterior no se modifica.",
     "save": "Guardar aviso",
     "saving": "Guardando…",
     "saveSuccess": "Aviso de privacidad guardado",

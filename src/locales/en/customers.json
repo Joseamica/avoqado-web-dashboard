@@ -124,7 +124,9 @@
     "newCustomerDescription": "A name plus an email or a phone number is enough.",
     "consentNeedsNotice": "To ask for this consent, your business needs a privacy notice.",
     "consentNeedsNoticeLink": "Create privacy notice",
-    "consentNeedsNoticeNoPermission": "Ask an administrator to create the privacy notice."
+    "consentNeedsNoticeNoPermission": "Ask an administrator to create the privacy notice.",
+    "consentNoticeChecking": "Checking whether your business already has a privacy notice…",
+    "consentNoticeUnknown": "We couldn't check whether your business has a privacy notice. Ask an administrator to review your permissions."
   },
   "delete": {
     "title": "Delete Customer",
@@ -302,7 +304,7 @@
     "versionWarning": "Every save creates a new version. Previous versions cannot be edited.",
     "contentLabel": "Notice content",
     "contentPlaceholder": "Write the full privacy notice…",
-    "contentHelp": "The saved version's text can't be recovered — write the full notice again, even if it hasn't changed.",
+    "contentHelp": "This is the text of your current version — you can edit it. Saving creates a new version; the previous one isn't changed.",
     "save": "Save notice",
     "saving": "Saving…",
     "saveSuccess": "Privacy notice saved",

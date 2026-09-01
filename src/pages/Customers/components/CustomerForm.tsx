@@ -61,12 +61,22 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 	// 🔴 MISMA llave que la que usa PrivacyNoticeModal para invalidar — si el checkbox
 	// mira una llave distinta, guardar el aviso nunca lo destraba (la trampa de caché
 	// ya documentada en el repo).
-	const { data: privacyNoticeData } = useQuery({
+	const {
+		data: privacyNoticeData,
+		isLoading: isPrivacyNoticeLoading,
+		isError: isPrivacyNoticeError,
+		error: privacyNoticeQueryError,
+	} = useQuery({
 		queryKey: ['privacy-notice', venueId],
 		queryFn: () => marketingService.getPrivacyNotice(venueId),
 		enabled: Boolean(venueId),
 	})
 	const hasPrivacyNotice = Boolean(privacyNoticeData?.notice)
+	// HOST/WAITER/CASHIER tienen `customers:create` pero podrían no tener `marketing:read`
+	// (override de rol personalizado) — un 403 aquí NO significa "no hay aviso", significa
+	// "no pudimos verificar". Tratarlo como "no hay aviso" es FALSO y culpa al negocio de
+	// algo que es un problema de permisos.
+	const isPrivacyNoticeForbidden = isPrivacyNoticeError && (privacyNoticeQueryError as any)?.response?.status === 403
 
 	const {
 		register,
@@ -325,7 +335,17 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 					>
 						{t('form.fields.marketingConsent')}
 					</Label>
-					{!hasPrivacyNotice && (
+					{/* Tres estados, no dos: mientras carga NO se afirma "no hay aviso" (era el
+					    parpadeo falso), y un 403 se explica como "no se pudo verificar", nunca
+					    como ausencia del aviso — son cosas distintas, y confundirlas culpa al
+					    negocio de un problema de permisos que no es suyo. */}
+					{!hasPrivacyNotice && isPrivacyNoticeLoading && (
+						<p className="text-xs text-muted-foreground">{t('form.consentNoticeChecking')}</p>
+					)}
+					{!hasPrivacyNotice && !isPrivacyNoticeLoading && isPrivacyNoticeForbidden && (
+						<p className="text-xs text-muted-foreground italic">{t('form.consentNoticeUnknown')}</p>
+					)}
+					{!hasPrivacyNotice && !isPrivacyNoticeLoading && !isPrivacyNoticeForbidden && (
 						<PermissionGate
 							permission="marketing:manage"
 							fallback={<p className="text-xs text-muted-foreground italic">{t('form.consentNeedsNoticeNoPermission')}</p>}
