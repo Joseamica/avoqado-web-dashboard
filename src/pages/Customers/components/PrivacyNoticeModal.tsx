@@ -24,12 +24,11 @@ const LANGUAGES: PrivacyNoticeLanguage[] = ['es', 'en', 'fr']
 /**
  * Editor del aviso de privacidad (fase 0 de campañas de correo a clientes).
  *
- * 🔴 El GET nunca trae el TEXTO de la versión vigente — sólo sus metadatos
- * (`id`, `contentHash`, `language`, `createdAt`). El servidor lo diseñó así a
- * propósito: `getCurrentPrivacyNotice` es un `select` sin `content`. Por eso este
- * editor no puede "precargar" el aviso guardado — se enseña CUÁNDO se guardó la
- * versión vigente y en qué idioma, y se pide el texto COMPLETO de nuevo. Cada
- * guardado crea una versión nueva; las anteriores no se pueden editar.
+ * El GET trae el TEXTO completo de la versión vigente (`content`) — este editor lo
+ * precarga en el textarea para que editar no signifique reescribir desde cero.
+ * 🔴 Eso NO cambia que cada guardado sea inmutable: el PUT SIEMPRE crea una versión
+ * nueva (`content` + su `language`), nunca edita la anterior — así que lo que se ve
+ * aquí es un punto de partida editable, no el registro que se va a modificar en sitio.
  */
 export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModalProps) {
 	const { t } = useTranslation('customers')
@@ -57,10 +56,13 @@ export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModa
 			return
 		}
 		if (initializedRef.current || isLoading) return
-		setContent('')
+		// Precarga el texto vigente — editar ya no significa reescribir desde cero.
+		// Guardar sigue creando una versión NUEVA (ver docstring arriba): esto sólo
+		// evita que el usuario tenga que copiar/pegar lo que ya existe.
+		setContent(notice?.content ?? '')
 		setLanguage((notice?.language as PrivacyNoticeLanguage) || 'es')
 		initializedRef.current = true
-	}, [open, isLoading, notice?.language])
+	}, [open, isLoading, notice?.language, notice?.content])
 
 	const saveMutation = useMutation({
 		mutationFn: () => marketingService.updatePrivacyNotice(venueId, { content: content.trim(), language }),

@@ -3,14 +3,16 @@ import api from '@/api'
 /**
  * Aviso de privacidad (fase 0 de campañas de correo a clientes).
  *
- * 🔴 Inmutable por versión: el GET sólo devuelve METADATOS de la versión vigente
- * (`id`, `contentHash`, `language`, `createdAt`) — el servidor NUNCA regresa el
- * texto guardado (`consent.service.ts` → `getCurrentPrivacyNotice`, seleccionado
- * a propósito sin `content`). El PUT crea SIEMPRE una versión nueva; las
- * anteriores no se pueden editar ni leer desde este servicio.
+ * 🔴 Inmutable por versión: el PUT SIEMPRE crea una versión nueva; las anteriores
+ * no se pueden editar ni leer desde este servicio. Pero el GET sí trae el texto
+ * COMPLETO de la versión vigente (`content`) — `consent.service.ts` →
+ * `getCurrentPrivacyNotice` lo selecciona a propósito, porque es contenido del
+ * PROPIO negocio (no dato personal de un tercero) y el editor lo necesita para
+ * precargar el textarea, no sólo sus metadatos.
  */
 export interface PrivacyNotice {
 	id: string
+	content: string
 	contentHash: string
 	language: string
 	createdAt: string
