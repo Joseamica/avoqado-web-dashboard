@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
@@ -39,6 +38,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
+import { formatEntityId, toDetailRows } from '@/pages/Venue/activity-log/formatActivity'
 
 // ── Action Display Config ──
 
@@ -284,7 +284,23 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
   const config = getActionConfig(log.action)
   const Icon = config.icon
 
-  const hasDetails = log.data && Object.keys(log.data).length > 0
+  const entityId = formatEntityId(log.entityId)
+  const entityLabel = log.entity ? t(`activityLog.entities.${log.entity}`, { defaultValue: log.entity }) : null
+
+  const detailRows = useMemo(
+    () =>
+      toDetailRows(
+        log.data,
+        key => {
+          const full = `activityLog.detailKeys.${key}`
+          const translated = t(full)
+          return translated === full ? null : translated
+        },
+        word => t(`activityLog.words.${word}`),
+      ),
+    [log.data, t],
+  )
+  const hasDetails = detailRows.length > 0
 
   return (
     <>
@@ -294,27 +310,29 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
             <div className={`p-1.5 rounded-md ${config.bgColor}`}>
               <Icon className={`h-3.5 w-3.5 ${config.color}`} />
             </div>
-            <Badge variant="outline" className="text-xs font-mono">
+            <span className="text-sm font-medium text-foreground">
               {t(`activityLog.actions.${log.action}`, { defaultValue: formatActionFallback(log.action) })}
-            </Badge>
+            </span>
           </div>
         </TableCell>
         <TableCell>
-          {log.entity ? (
-            <span className="text-sm">
-              {log.entity}
-              {log.entityId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground ml-1 cursor-help">
-                      #{log.entityId.slice(0, 8)}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-mono text-xs">{log.entityId}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+          {entityLabel || entityId ? (
+            <span className="text-sm text-muted-foreground">
+              {entityLabel}
+              {entityLabel && entityId && ' · '}
+              {entityId &&
+                (entityId.truncated ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help font-mono">{entityId.text}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-mono text-xs">{log.entityId}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="font-mono">{entityId.text}</span>
+                ))}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -360,9 +378,14 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
       {expanded && hasDetails && (
         <TableRow>
           <TableCell colSpan={6} className="bg-muted/50">
-            <pre className="text-xs font-mono p-2 rounded-md overflow-x-auto max-w-full">
-              {JSON.stringify(log.data, null, 2)}
-            </pre>
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-2 py-1 sm:grid-cols-2">
+              {detailRows.map(row => (
+                <div key={row.key} className="flex gap-2 text-xs">
+                  <dt className="flex-shrink-0 font-medium text-muted-foreground">{row.label}</dt>
+                  <dd className="min-w-0 flex-1 break-all text-foreground">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
           </TableCell>
         </TableRow>
       )}
