@@ -749,7 +749,9 @@
     "defaultColor": "Color predeterminado",
     "preview": "Vista Previa",
     "hideRole": "Ocultar este rol de los selectores",
-    "showRole": "Mostrar este rol en los selectores"
+    "showRole": "Mostrar este rol en los selectores",
+    "showAsSeller": "Aparece como vendedor en el punto de venta",
+    "showAsSellerDesc": "Apágalo para que este rol no salga en la lista de \"Vendedor\" al cobrar (por ejemplo, inversionistas)."
   },
   "areaTickets": {
     "title": "Vales por área y básculas",
