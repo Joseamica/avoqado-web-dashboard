@@ -27,6 +27,8 @@ window.addEventListener('vite:preloadError', () => {
   }
 })
 
+// Las consultas pesadas configuran staleTime/retry/focus localmente. Mantener
+// estos defaults evita cambiar de golpe la frescura del resto del dashboard.
 const queryClient = new QueryClient()
 const showLoaderPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('loaderPreview') === '1'
 

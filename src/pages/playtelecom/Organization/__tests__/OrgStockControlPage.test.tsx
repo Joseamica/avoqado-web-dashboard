@@ -67,10 +67,26 @@ const mockStockOverview = {
   aggregatesByCategoria: [],
 }
 
+const requestedQueryKeys: string[] = []
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: string[] }) => {
+    requestedQueryKeys.push(queryKey[0])
     if (queryKey[0] === 'org-stock-control') {
       return { data: mockStockOverview, isLoading: false, isError: false, error: null, refetch: vi.fn() }
+    }
+    if (queryKey[0] === 'org-stock-summary') {
+      return {
+        data: {
+          summary: mockStockOverview.summary,
+          aggregatesBySucursal: mockStockOverview.aggregatesBySucursal,
+          aggregatesByCategoria: mockStockOverview.aggregatesByCategoria,
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      }
     }
     return { data: 0, isLoading: false }
   },
@@ -90,8 +106,16 @@ function renderPage() {
 
 describe('OrgStockControlPage — Reasignar SIMs header button', () => {
   beforeEach(() => {
+    requestedQueryKeys.length = 0
     vi.mocked(useAuth).mockReturnValue({ user: { role: 'VIEWER' }, staffInfo: null } as any)
     vi.mocked(useAccess).mockReturnValue({ can: () => false } as any)
+  })
+
+  it('no consulta el overview legado que materializa todo el inventario', () => {
+    renderPage()
+
+    expect(requestedQueryKeys).toContain('org-stock-summary')
+    expect(requestedQueryKeys).not.toContain('org-stock-control')
   })
 
   it('renders "Reasignar SIMs" immediately before "Asignar SIMs" for an OWNER', () => {

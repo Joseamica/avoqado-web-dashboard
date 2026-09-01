@@ -93,6 +93,10 @@ export interface StockMovement {
 
 export interface StockMovementsResponse {
   movements: StockMovement[]
+  pagination?: {
+    page: number
+    hasMore: boolean
+  }
 }
 
 export interface ItemCategory {
@@ -199,7 +203,7 @@ export const bulkUploadItems = async (
  */
 export const getStockMovements = async (
   venueId: string,
-  params?: { limit?: number; dateFrom?: string; dateTo?: string; responsibleStaffId?: string },
+  params?: { limit?: number; page?: number; dateFrom?: string; dateTo?: string; responsibleStaffId?: string },
 ): Promise<StockMovementsResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/movements`, { params })
   return response.data.data
@@ -305,6 +309,18 @@ export interface OrgStockBulkGroup {
   returnedCount: number
 }
 
+export type OrgStockBulkGroupPageItem = Omit<OrgStockBulkGroup, 'serialNumbers'>
+
+export interface OrgStockBulkGroupsPage {
+  groups: OrgStockBulkGroupPageItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
 export interface OrgStockSucursalAggregate {
   venueId: string
   venueName: string
@@ -357,9 +373,80 @@ export interface OrgStockOverview {
   aggregatesByCategoria: OrgStockCategoriaAggregate[]
 }
 
+export interface OrgStockSummaryData {
+  summary: OrgStockSummary
+  aggregatesBySucursal: OrgStockSucursalAggregate[]
+  aggregatesByCategoria: OrgStockCategoriaAggregate[]
+}
+
+export interface OrgStockItemsPage {
+  items: OrgStockOverviewItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+export type OrgStockCustodyFilter = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos' | 'estancados'
+
+export interface OrgStockCustodyParams extends OrgStockOverviewParams {
+  venueId: string
+  page?: number
+  pageSize?: number
+  search?: string
+  filter?: OrgStockCustodyFilter
+}
+
+export interface OrgStockCustodyPage {
+  summary: {
+    total: number
+    almacen: number
+    pendientes: number
+    aceptados: number
+    rechazados: number
+    vendidos: number
+    estancados: number
+  }
+  promoterRanking: Array<{
+    id: string
+    name: string
+    pending: number
+    held: number
+    sold: number
+  }>
+  items: OrgStockOverviewItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
 export interface OrgStockOverviewParams {
   dateFrom?: string
   dateTo?: string
+}
+
+export interface OrgStockItemsParams extends OrgStockOverviewParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: OrgStockItemStatus
+  custodyState?: NonNullable<OrgStockOverviewItem['custodyState']>
+  custodyStates?: Array<NonNullable<OrgStockOverviewItem['custodyState']>>
+  categoryId?: string
+  registeredFromVenueId?: string
+}
+
+export interface OrgStockBulkGroupsParams extends OrgStockOverviewParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  categoryId?: string
+  registeredFromVenueId?: string
 }
 
 // ===========================================
@@ -373,6 +460,88 @@ export const getOrgStockOverview = async (orgId: string, params?: OrgStockOvervi
   const qs = query.toString()
 
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/overview${qs ? `?${qs}` : ''}`)
+  return response.data.data
+}
+
+export const getOrgStockSummary = async (orgId: string, params?: OrgStockOverviewParams): Promise<OrgStockSummaryData> => {
+  const query = new URLSearchParams()
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params?.dateTo) query.set('dateTo', params.dateTo)
+  const qs = query.toString()
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/summary${qs ? `?${qs}` : ''}`)
+  return response.data.data
+}
+
+export const getOrgStockItems = async (orgId: string, params: OrgStockItemsParams = {}): Promise<OrgStockItemsPage> => {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  if (params.search) query.set('search', params.search)
+  if (params.status) query.set('status', params.status)
+  if (params.custodyState) query.set('custodyState', params.custodyState)
+  if (params.custodyStates?.length) query.set('custodyStates', params.custodyStates.join(','))
+  if (params.categoryId) query.set('categoryId', params.categoryId)
+  if (params.registeredFromVenueId) query.set('registeredFromVenueId', params.registeredFromVenueId)
+  if (params.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params.dateTo) query.set('dateTo', params.dateTo)
+  const qs = query.toString()
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/items${qs ? `?${qs}` : ''}`)
+  return response.data.data
+}
+
+export const getOrgStockCustody = async (orgId: string, params: OrgStockCustodyParams): Promise<OrgStockCustodyPage> => {
+  const query = new URLSearchParams()
+  query.set('venueId', params.venueId)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  if (params.search) query.set('search', params.search)
+  if (params.filter) query.set('filter', params.filter)
+  if (params.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params.dateTo) query.set('dateTo', params.dateTo)
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/custody?${query}`)
+  return response.data.data
+}
+
+/**
+ * Explicit export helper: walks bounded 100-row pages only after the user asks
+ * for a complete file. Normal screen loads never call this function.
+ */
+export const getAllOrgStockItemsForExport = async (
+  orgId: string,
+  params: Omit<OrgStockItemsParams, 'page' | 'pageSize'> = {},
+): Promise<OrgStockOverviewItem[]> => {
+  const items: OrgStockOverviewItem[] = []
+  let page = 1
+  let totalPages = 1
+
+  do {
+    const result = await getOrgStockItems(orgId, { ...params, page, pageSize: 100 })
+    items.push(...result.items)
+    totalPages = result.pagination.totalPages
+    page += 1
+  } while (page <= totalPages)
+
+  return items
+}
+
+export const getOrgStockBulkGroups = async (
+  orgId: string,
+  params: OrgStockBulkGroupsParams = {},
+): Promise<OrgStockBulkGroupsPage> => {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  if (params.search) query.set('search', params.search)
+  if (params.categoryId) query.set('categoryId', params.categoryId)
+  if (params.registeredFromVenueId) query.set('registeredFromVenueId', params.registeredFromVenueId)
+  if (params.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params.dateTo) query.set('dateTo', params.dateTo)
+  const qs = query.toString()
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/bulk-groups${qs ? `?${qs}` : ''}`)
   return response.data.data
 }
 

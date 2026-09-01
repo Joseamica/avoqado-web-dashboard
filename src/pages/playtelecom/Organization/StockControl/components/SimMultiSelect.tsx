@@ -33,6 +33,9 @@ interface Props {
   onChange: (serialNumbers: string[]) => void
   placeholder?: string
   isLoading?: boolean
+  /** Controlled server-side search; keeps the input usable with zero initial rows. */
+  searchValue?: string
+  onSearchChange?: (value: string) => void
 }
 
 const DEFAULT_ALLOWED_STATES: SimCustodyState[] = ['ADMIN_HELD']
@@ -45,10 +48,17 @@ export function SimMultiSelect({
   onChange,
   placeholder,
   isLoading = false,
+  searchValue,
+  onSearchChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [search, setSearch] = useState('')
+  const [internalSearch, setInternalSearch] = useState('')
+  const search = searchValue ?? internalSearch
+  const setSearch = (value: string) => {
+    if (searchValue === undefined) setInternalSearch(value)
+    onSearchChange?.(value)
+  }
   const [isFocused, setIsFocused] = useState(false)
 
   // Filter to only items whose custody state is in allowedStates (caller-supplied
@@ -88,9 +98,10 @@ export function SimMultiSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isFocused])
 
-  const showDropdown = isFocused
+  const remoteSearch = Boolean(onSearchChange)
+  const showDropdown = isFocused && (assignable.length > 0 || remoteSearch)
   const effectivePlaceholder =
-    placeholder ?? (assignable.length === 0 ? 'No hay SIMs disponibles en almacén' : 'Buscar por últimos dígitos del ICCID…')
+    placeholder ?? (assignable.length === 0 && !remoteSearch ? 'No hay SIMs disponibles en almacén' : 'Buscar por últimos dígitos del ICCID…')
 
   return (
     <div ref={containerRef} className="relative">
@@ -105,16 +116,16 @@ export function SimMultiSelect({
           ref={inputRef}
           type="text"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
           onFocus={() => setIsFocused(true)}
           placeholder={effectivePlaceholder}
-          disabled={assignable.length === 0}
+          disabled={assignable.length === 0 && !remoteSearch}
           className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground font-mono disabled:cursor-not-allowed"
         />
         {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
 
-      {showDropdown && assignable.length > 0 && (
+      {showDropdown && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
           <div className="sticky top-0 border-b border-border bg-popover px-3 py-2 text-xs text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? 'disponible' : 'disponibles'} en almacén
