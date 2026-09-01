@@ -46,7 +46,10 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const DASHBOARD = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const SERVER = resolve(DASHBOARD, '..', 'avoqado-server')
+// AVQ_SERVER_DIR permite apuntar a OTRO checkout de avoqado-server (p.ej. un worktree como
+// `.claude/worktrees/campanas-f0-server`, que no vive en la ruta hermana por defecto). Sin la
+// variable, el comportamiento de siempre: el hermano `../avoqado-server`.
+const SERVER = process.env.AVQ_SERVER_DIR ? resolve(process.env.AVQ_SERVER_DIR) : resolve(DASHBOARD, '..', 'avoqado-server')
 const DESTINO = resolve(DASHBOARD, 'src/lib/permissions/generated/defaultPermissions.generated.ts')
 
 const check = process.argv.includes('--check')

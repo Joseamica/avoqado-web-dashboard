@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 70 categorías · 230 permisos · derivado de avoqado-server · huella ddc32d6dbb2433bc.
+ * 71 categorías · 233 permisos · derivado de avoqado-server · huella 2fa7b3760403a26b.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -332,6 +332,10 @@ export const PERMISSION_CATEGORIES = {
       'creditPacks:redeem',
     ],
   },
+  MARKETING: {
+    label: 'Marketing',
+    permissions: ['marketing:read', 'marketing:manage', 'marketing:send'],
+  },
   TPV_TERMINAL: {
     label: 'Terminal Configuration',
     permissions: ['tpv-terminal:settings'],
@@ -454,7 +458,7 @@ export const SUPER_CATEGORY_KEYS = {
     'CFDI',
     'VENUE_FISCAL_PROFILE',
   ],
-  'marketing-loyalty': ['CUSTOMERS', 'CUSTOMER_GROUPS', 'LOYALTY', 'REFERRAL', 'DISCOUNTS', 'COUPONS', 'CREDIT_PACKS'],
+  'marketing-loyalty': ['CUSTOMERS', 'CUSTOMER_GROUPS', 'LOYALTY', 'REFERRAL', 'DISCOUNTS', 'COUPONS', 'CREDIT_PACKS', 'MARKETING'],
   'terminal-operations': ['TPV_TERMINAL', 'TPV_DEVICES', 'TPV_SHIFTS', 'TPV_KIOSK', 'TPV_FACTORY_RESET'],
   'tpv-orders-payments': ['TPV_ORDERS', 'TPV_PAYMENTS'],
   'floor-management': ['TPV_TABLES', 'TPV_FLOOR_ELEMENTS'],
@@ -462,4 +466,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = 'ddc32d6dbb2433bc'
+export const CATALOG_DIGEST = '2fa7b3760403a26b'
