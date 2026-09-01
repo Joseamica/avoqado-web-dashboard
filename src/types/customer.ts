@@ -18,6 +18,10 @@ export interface Customer {
 	updatedAt: string
 	pendingOrderCount: number  // Count of pay-later orders
 	pendingBalance: number      // Total balance pending
+	// Campañas de correo (fase 0) — fecha civil 'YYYY-MM-DD' o null; consentimiento
+	// vive SÓLO vía ConsentEvent en el servidor, este campo es la lectura derivada.
+	birthDate?: string | null
+	marketingConsent?: boolean
 	// Referral program fields (Plan 1 backend additions)
 	referralCode?: string | null
 	referralCount?: number
@@ -228,6 +232,9 @@ export interface CreateCustomerRequest {
 	email: string
 	phone: string
 	customerGroupId?: string
+	/** Fecha civil 'YYYY-MM-DD'. Se OMITE (no se manda '') cuando el campo va vacío. */
+	birthDate?: string
+	marketingConsent?: boolean
 }
 
 export interface UpdateCustomerRequest {
@@ -236,6 +243,18 @@ export interface UpdateCustomerRequest {
 	email?: string
 	phone?: string
 	customerGroupId?: string | null
+	birthDate?: string
+	marketingConsent?: boolean
+}
+
+/**
+ * 🔴 El create/update puede devolver un `warning` cuando el cliente SÍ se creó/actualizó
+ * pero el consentimiento de marketing NO se pudo capturar (p.ej. el venue no tiene aviso
+ * de privacidad todavía). Nunca revierte la operación — sólo avisa. Ver Task 5 del server.
+ */
+export interface CustomerMutationResult extends Customer {
+	warning?: 'CONSENT_NOT_CAPTURED'
+	reason?: string
 }
 
 export interface CreateCustomerGroupRequest {

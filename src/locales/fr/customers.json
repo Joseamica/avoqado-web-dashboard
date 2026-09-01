@@ -95,7 +95,9 @@
       "lastName": "Nom",
       "email": "Email",
       "phone": "Téléphone",
-      "group": "Groupe de Client"
+      "group": "Groupe de Client",
+      "birthDate": "Date de naissance",
+      "marketingConsent": "Accepte de recevoir des e-mails marketing (anniversaire, promotions)"
     },
     "placeholders": {
       "firstName": "Entrez le prénom",
@@ -111,14 +113,18 @@
       "emailInvalid": "Veuillez entrer un email valide",
       "phoneRequired": "Le téléphone est requis",
       "phoneInvalid": "Le numéro de téléphone doit avoir au moins 10 caractères",
-      "emailOrPhoneRequired": "Ajoutez au moins un e-mail ou un téléphone pour pouvoir le contacter"
+      "emailOrPhoneRequired": "Ajoutez au moins un e-mail ou un téléphone pour pouvoir le contacter",
+      "birthDateInvalid": "La date doit être au format AAAA-MM-JJ"
     },
     "buttons": {
       "create": "Créer le Client",
       "save": "Enregistrer les Modifications",
       "cancel": "Annuler"
     },
-    "newCustomerDescription": "Un nom et un e-mail ou un téléphone suffisent."
+    "newCustomerDescription": "Un nom et un e-mail ou un téléphone suffisent.",
+    "consentNeedsNotice": "Pour demander ce consentement, votre entreprise a besoin d'un avis de confidentialité.",
+    "consentNeedsNoticeLink": "Créer l'avis de confidentialité",
+    "consentNeedsNoticeNoPermission": "Demandez à un administrateur de créer l'avis de confidentialité."
   },
   "delete": {
     "title": "Supprimer le Client",
@@ -216,7 +222,8 @@
     "groupCreateSuccess": "Groupe de clients créé avec succès",
     "groupUpdateSuccess": "Groupe de clients mis à jour avec succès",
     "groupDeleteSuccess": "Groupe de clients supprimé avec succès",
-    "error": "Une erreur s'est produite. Veuillez réessayer."
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "consentNotCaptured": "Le client a été enregistré, mais son consentement marketing n'a pas pu être capturé"
   },
   "actions": {
     "newCustomer": "Nouveau Client",
@@ -226,7 +233,8 @@
     "viewDetails": "Voir les Détails",
     "assignToGroup": "Assigner au Groupe",
     "removeFromGroup": "Retirer du Groupe",
-    "settleBalance": "Régler le Solde"
+    "settleBalance": "Régler le Solde",
+    "privacyNotice": "Avis de confidentialité"
   },
   "settleBalance": {
     "title": "Régler le Solde en Attente",
@@ -278,5 +286,26 @@
     "turnOn": "Activer les tampons",
     "disabledNoPermission": "Demandez à un administrateur d'activer le programme de tampons.",
     "linkLabel": "Lien de la carte"
+  },
+  "privacyNotice": {
+    "title": "Avis de confidentialité",
+    "description": "Le texte que vos clients voient avant d'accepter de recevoir des e-mails marketing (anniversaire, promotions).",
+    "loadingCurrent": "Vérification de la version en vigueur…",
+    "currentVersion": "Version en vigueur : créée le {{date}} · langue {{language}}",
+    "noVersion": "Votre entreprise n'a pas encore d'avis de confidentialité.",
+    "languageLabel": "Langue",
+    "languages": {
+      "es": "Espagnol",
+      "en": "Anglais",
+      "fr": "Français"
+    },
+    "versionWarning": "Chaque enregistrement crée une nouvelle version. Les versions précédentes ne peuvent pas être modifiées.",
+    "contentLabel": "Contenu de l'avis",
+    "contentPlaceholder": "Écrivez l'avis de confidentialité complet…",
+    "contentHelp": "Le texte de la version enregistrée ne peut pas être récupéré — réécrivez l'avis complet, même s'il n'a pas changé.",
+    "save": "Enregistrer l'avis",
+    "saving": "Enregistrement…",
+    "saveSuccess": "Avis de confidentialité enregistré",
+    "saveError": "Impossible d'enregistrer l'avis de confidentialité"
   }
 }

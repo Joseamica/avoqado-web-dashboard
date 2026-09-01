@@ -1,16 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { createCustomerSchema } from './customerSchema'
+import { PrivacyNoticeModal } from './PrivacyNoticeModal'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PermissionGate } from '@/components/PermissionGate'
 import {
 	Select,
 	SelectContent,
@@ -23,6 +26,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import customerService from '@/services/customer.service'
+import marketingService from '@/services/marketing.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
 
 // Predefined colors for groups
@@ -52,6 +56,17 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 	const [newGroupDescription, setNewGroupDescription] = useState('')
 	const [newGroupColor, setNewGroupColor] = useState(GROUP_COLORS[0])
 	const [newGroupActive, setNewGroupActive] = useState(true)
+	const [showPrivacyNoticeModal, setShowPrivacyNoticeModal] = useState(false)
+
+	// 🔴 MISMA llave que la que usa PrivacyNoticeModal para invalidar — si el checkbox
+	// mira una llave distinta, guardar el aviso nunca lo destraba (la trampa de caché
+	// ya documentada en el repo).
+	const { data: privacyNoticeData } = useQuery({
+		queryKey: ['privacy-notice', venueId],
+		queryFn: () => marketingService.getPrivacyNotice(venueId),
+		enabled: Boolean(venueId),
+	})
+	const hasPrivacyNotice = Boolean(privacyNoticeData?.notice)
 
 	const {
 		register,
@@ -69,10 +84,13 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			phone: customer?.phone || '',
 			// Check both customerGroupId and customerGroup.id (backend might return either)
 			customerGroupId: customer?.customerGroupId || customer?.customerGroup?.id || '',
+			birthDate: customer?.birthDate || '',
+			marketingConsent: customer?.marketingConsent ?? false,
 		},
 	})
 
 	const watchedGroupId = watch('customerGroupId')
+	const watchedMarketingConsent = watch('marketingConsent')
 
 	// Create group mutation
 	const createGroupMutation = useMutation({
@@ -104,6 +122,19 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 		},
 	})
 
+	// 🔴 Si el server no pudo capturar el consentimiento (p.ej. el aviso de privacidad
+	// se borró entre que se cargó el formulario y se envió), el cliente SE CREA/ACTUALIZA
+	// igual — nunca se falla en silencio, se avisa aparte.
+	const warnIfConsentNotCaptured = (result: { warning?: string; reason?: string }) => {
+		if (result.warning === 'CONSENT_NOT_CAPTURED') {
+			toast({
+				title: t('toasts.consentNotCaptured'),
+				description: result.reason,
+				variant: 'destructive',
+			})
+		}
+	}
+
 	// Create mutation
 	const createMutation = useMutation({
 		mutationFn: (data: CustomerFormData) =>
@@ -113,9 +144,14 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 				email: data.email,
 				phone: data.phone,
 				customerGroupId: data.customerGroupId || undefined,
+				// 🔴 String vacío NO se manda — el schema del servidor exige 'YYYY-MM-DD' o
+				// nada; omitir la llave es lo que deja el alta pasar sin fecha de nacimiento.
+				birthDate: data.birthDate || undefined,
+				marketingConsent: data.marketingConsent,
 			}),
-		onSuccess: () => {
+		onSuccess: result => {
 			toast({ title: t('toasts.createSuccess') })
+			warnIfConsentNotCaptured(result)
 			queryClient.invalidateQueries({ queryKey: ['customers', venueId] })
 			onSuccess()
 		},
@@ -137,9 +173,12 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 				email: data.email,
 				phone: data.phone,
 				customerGroupId: data.customerGroupId || null,
+				birthDate: data.birthDate || undefined,
+				marketingConsent: data.marketingConsent,
 			}),
-		onSuccess: () => {
+		onSuccess: result => {
 			toast({ title: t('toasts.updateSuccess') })
+			warnIfConsentNotCaptured(result)
 			queryClient.invalidateQueries({ queryKey: ['customers', venueId] })
 			onSuccess()
 		},
@@ -217,6 +256,16 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			</div>
 
 			<div className="space-y-2">
+				{/* 🔴 'YYYY-MM-DD' tal cual, sin pasar por Date en el cliente — la trampa de
+				    TZ del navegador está documentada en el repo. */}
+				<Label htmlFor="birthDate">{t('form.fields.birthDate')}</Label>
+				<Input id="birthDate" type="date" {...register('birthDate')} />
+				{errors.birthDate && (
+					<p className="text-sm text-destructive">{errors.birthDate.message}</p>
+				)}
+			</div>
+
+			<div className="space-y-2">
 				<Label htmlFor="customerGroupId">{t('form.fields.group')}</Label>
 				<Select
 					value={watchedGroupId || ''}
@@ -256,6 +305,44 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 						</div>
 					</SelectContent>
 				</Select>
+			</div>
+
+			{/* Consentimiento de marketing (fase 0 de campañas de correo).
+			    🔴 Apagado se VE y se EXPLICA: sin aviso de privacidad, el checkbox va
+			    deshabilitado con el porqué — nunca desaparece en silencio. */}
+			<div className="flex items-start gap-2 rounded-lg border border-input p-3">
+				<Checkbox
+					id="marketingConsent"
+					checked={watchedMarketingConsent}
+					onCheckedChange={checked => setValue('marketingConsent', checked === true)}
+					disabled={!hasPrivacyNotice}
+					className="mt-0.5"
+				/>
+				<div className="space-y-1">
+					<Label
+						htmlFor="marketingConsent"
+						className={!hasPrivacyNotice ? 'text-muted-foreground' : undefined}
+					>
+						{t('form.fields.marketingConsent')}
+					</Label>
+					{!hasPrivacyNotice && (
+						<PermissionGate
+							permission="marketing:manage"
+							fallback={<p className="text-xs text-muted-foreground italic">{t('form.consentNeedsNoticeNoPermission')}</p>}
+						>
+							<p className="text-xs text-muted-foreground">
+								{t('form.consentNeedsNotice')}{' '}
+								<button
+									type="button"
+									className="text-primary underline hover:no-underline"
+									onClick={() => setShowPrivacyNoticeModal(true)}
+								>
+									{t('form.consentNeedsNoticeLink')}
+								</button>
+							</p>
+						</PermissionGate>
+					)}
+				</div>
 			</div>
 
 			<div className="flex justify-end gap-3 pt-4">
@@ -354,6 +441,12 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 					</div>
 				</DialogContent>
 			</Dialog>
+
+			<PrivacyNoticeModal
+				venueId={venueId}
+				open={showPrivacyNoticeModal}
+				onClose={() => setShowPrivacyNoticeModal(false)}
+			/>
 		</form>
 	)
 }

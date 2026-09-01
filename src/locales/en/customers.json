@@ -95,7 +95,9 @@
       "lastName": "Last Name",
       "email": "Email",
       "phone": "Phone",
-      "group": "Customer Group"
+      "group": "Customer Group",
+      "birthDate": "Date of birth",
+      "marketingConsent": "Agrees to receive marketing emails (birthday, promotions)"
     },
     "placeholders": {
       "firstName": "Enter first name",
@@ -111,14 +113,18 @@
       "emailInvalid": "Please enter a valid email",
       "phoneRequired": "Phone number is required",
       "phoneInvalid": "Phone number must be at least 10 characters",
-      "emailOrPhoneRequired": "Add at least an email or a phone number so you can reach them"
+      "emailOrPhoneRequired": "Add at least an email or a phone number so you can reach them",
+      "birthDateInvalid": "The date must be in YYYY-MM-DD format"
     },
     "buttons": {
       "create": "Create Customer",
       "save": "Save Changes",
       "cancel": "Cancel"
     },
-    "newCustomerDescription": "A name plus an email or a phone number is enough."
+    "newCustomerDescription": "A name plus an email or a phone number is enough.",
+    "consentNeedsNotice": "To ask for this consent, your business needs a privacy notice.",
+    "consentNeedsNoticeLink": "Create privacy notice",
+    "consentNeedsNoticeNoPermission": "Ask an administrator to create the privacy notice."
   },
   "delete": {
     "title": "Delete Customer",
@@ -216,7 +222,8 @@
     "groupCreateSuccess": "Customer group created successfully",
     "groupUpdateSuccess": "Customer group updated successfully",
     "groupDeleteSuccess": "Customer group deleted successfully",
-    "error": "An error occurred. Please try again."
+    "error": "An error occurred. Please try again.",
+    "consentNotCaptured": "The customer was saved, but their marketing consent could not be recorded"
   },
   "actions": {
     "newCustomer": "New Customer",
@@ -226,7 +233,8 @@
     "viewDetails": "View Details",
     "assignToGroup": "Assign to Group",
     "removeFromGroup": "Remove from Group",
-    "settleBalance": "Settle Balance"
+    "settleBalance": "Settle Balance",
+    "privacyNotice": "Privacy notice"
   },
   "settleBalance": {
     "title": "Settle Pending Balance",
@@ -278,5 +286,26 @@
     "turnOn": "Turn on stamps",
     "disabledNoPermission": "Ask an administrator to turn on the stamp program.",
     "linkLabel": "Card link"
+  },
+  "privacyNotice": {
+    "title": "Privacy notice",
+    "description": "The text your customers see before agreeing to receive marketing emails (birthday, promotions).",
+    "loadingCurrent": "Checking the current version…",
+    "currentVersion": "Current version: created on {{date}} · language {{language}}",
+    "noVersion": "Your business doesn't have a privacy notice yet.",
+    "languageLabel": "Language",
+    "languages": {
+      "es": "Spanish",
+      "en": "English",
+      "fr": "French"
+    },
+    "versionWarning": "Every save creates a new version. Previous versions cannot be edited.",
+    "contentLabel": "Notice content",
+    "contentPlaceholder": "Write the full privacy notice…",
+    "contentHelp": "The saved version's text can't be recovered — write the full notice again, even if it hasn't changed.",
+    "save": "Save notice",
+    "saving": "Saving…",
+    "saveSuccess": "Privacy notice saved",
+    "saveError": "Couldn't save the privacy notice"
   }
 }

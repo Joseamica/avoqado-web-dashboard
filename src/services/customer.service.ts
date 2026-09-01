@@ -1,9 +1,9 @@
 import api from '@/api'
 import type {
-	Customer,
 	CustomerWithOrders,
 	CustomerGroup,
 	CustomerStats,
+	CustomerMutationResult,
 	PaginatedCustomersResponse,
 	PaginatedCustomerGroupsResponse,
 	CreateCustomerRequest,
@@ -73,13 +73,15 @@ export const customerService = {
 	},
 
 	// Create new customer
-	async createCustomer(venueId: string, data: CreateCustomerRequest): Promise<Customer> {
+	// 🔴 Devuelve CustomerMutationResult: el cliente SIEMPRE se crea, pero puede traer
+	// `warning: 'CONSENT_NOT_CAPTURED'` si se pidió marketingConsent sin aviso de privacidad.
+	async createCustomer(venueId: string, data: CreateCustomerRequest): Promise<CustomerMutationResult> {
 		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/customers`, data)
 		return response.data
 	},
 
-	// Update customer
-	async updateCustomer(venueId: string, customerId: string, data: UpdateCustomerRequest): Promise<Customer> {
+	// Update customer — mismo aviso que createCustomer.
+	async updateCustomer(venueId: string, customerId: string, data: UpdateCustomerRequest): Promise<CustomerMutationResult> {
 		const response = await api.put(`/api/v1/dashboard/venues/${venueId}/customers/${customerId}`, data)
 		return response.data
 	},
