@@ -67,6 +67,47 @@ describe('custodia — las mutaciones invalidan la clave que el panel realmente 
  * return por `isLoading`. Era PREEXISTENTE — no vino de bcbc9e7c— pero es el mismo síntoma
  * para el mismo supervisor, así que se cierra aquí.
  */
+/**
+ * Guarda de la CLASE, no del caso: toda clave de consulta que estrenó bcbc9e7c tiene que ser
+ * invalidada por alguien. Una clave que nadie refresca es una lista que se queda vieja
+ * después de escribir, y eso no falla ni avisa. Así se cazaron, ya desplegado el primer
+ * arreglo, dos más del mismo commit: `org-stock-bulk-groups` (subir una carga no la mostraba
+ * en la pestaña «Cargas») y `org-stock-items-search` (el buscador del propio diálogo seguía
+ * ofreciendo SIMs ya movidos cuando quedaba abierto tras un fallo parcial).
+ */
+describe('toda clave nueva del módulo la refresca alguien', () => {
+  const RAIZ = path.resolve(AREA, '..', '..')
+  const fuentes = (() => {
+    const out: string[] = []
+    const caminar = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name)
+        if (e.isDirectory()) {
+          if (e.name !== '__tests__' && e.name !== 'node_modules') caminar(p)
+        } else if (/\.tsx?$/.test(e.name) && !e.name.includes('.test.')) {
+          out.push(fs.readFileSync(p, 'utf8'))
+        }
+      }
+    }
+    caminar(RAIZ)
+    return out
+  })()
+
+  it.each([
+    ['org-stock-custody'],
+    ['org-stock-summary'],
+    ['org-stock-items'],
+    ['org-stock-items-search'],
+    ['org-stock-bulk-groups'],
+    ['org-inventory-by-responsible'],
+  ])("alguna mutación invalida '%s'", clave => {
+    const invalidada = fuentes.some(s =>
+      new RegExp(`invalidateQueries\\(\\{\\s*queryKey:\\s*\\[\\s*'${clave}'`).test(s),
+    )
+    expect(invalidada).toBe(true)
+  })
+})
+
 describe('hooks con búsqueda en la clave — todos conservan los datos previos', () => {
   it.each([
     ['Stock/hooks/useOrgStockCustody.ts', 'custodia del supervisor'],

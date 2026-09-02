@@ -150,6 +150,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
       queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
       queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
       queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items-search'] })
       queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
     },
     onError: err => toast({ title: err.message ?? 'No se pudo asignar', variant: 'destructive' }),
