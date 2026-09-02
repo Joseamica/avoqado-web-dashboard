@@ -101,6 +101,7 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
       queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
       queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
       queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items-search'] })
       queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
       if (r.summary.failed === 0) onDone?.()
     },
