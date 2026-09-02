@@ -102,6 +102,7 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
     onSuccess: r => {
       setResult(r)
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
       queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
       queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
       queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
