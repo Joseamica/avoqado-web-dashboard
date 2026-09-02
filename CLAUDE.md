@@ -59,11 +59,13 @@ React 18 + TypeScript + Vite | Tailwind CSS + Radix UI | TanStack Query | React 
 ```bash
 npm run dev          # Vite dev server at http://localhost:5173
 npm run build        # TypeScript + Vite production build
+npm run typecheck    # tsc -b (project references). NOT `npx tsc --noEmit`: the root tsconfig has files: [] and checks nothing
 npm run lint         # ESLint
 npm run preview      # Preview production build
 npm run check:unused # Detect unimported files
 npm run test:e2e     # Playwright E2E tests (needs dev server running or auto-starts)
 npm run test:e2e:ui  # Playwright visual UI runner
+npm run pre-commit   # lint + typecheck + full vitest suite
 ```
 
 Database: see `.env` for connection credentials (never commit credentials).

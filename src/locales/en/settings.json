@@ -207,6 +207,7 @@
       "orders": "Orders",
       "payments": "Payments",
       "shifts": "Shifts",
+      "cash_drawer": "Cash Drawer",
       "tpv": "TPV Management",
       "inventory": "Inventory",
       "reviews": "Reviews",

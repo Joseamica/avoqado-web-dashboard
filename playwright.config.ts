@@ -1,8 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// CI runs `vite preview` against the just-built bundle on port 4173 with
-// VITE_API_URL pointing at the deployed demo backend, so the spec exercises
-// real network paths. Locally, default to the dev server on :5173.
+// CI (ci-cd.yml, job test-and-build) serves the just-built bundle with
+// `vite preview` on :4173 and sets E2E_BASE_URL. The bundle's VITE_API_URL does
+// not matter there: every spec mocks `/api/v1/**` with page.route, and the one
+// spec that needs a live backend (reservation-settings-redesign) skips itself in
+// CI unless E2E_API_URL is provided. Locally, default to the dev server on :5173.
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:5173'
 const useExternalServer = !!process.env.E2E_BASE_URL
 

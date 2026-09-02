@@ -57,12 +57,23 @@ if (!existsSync(SERVER)) {
 
 
 // El servidor es la autoridad: se le pregunta a él, no a una copia.
+// La marca: el mismo motivo que en regenerar-catalogo-permisos.mjs — importar
+// `src/lib/permissions` arrastra el logger de winston, que escribe en stdout al
+// cargarse. Se lee sólo lo que va detrás de la marca; si no llega, se dice QUÉ llegó
+// en vez de reventar con un SyntaxError en la posición 4.
+const MARCA = '__AVQ_JSON__'
 const raw = execFileSync(
   'npx',
-  ['tsx', '-e', "import { PERMISSION_DEPENDENCIES as D } from './src/lib/permissions'; console.log(JSON.stringify(D))"],
+  ['tsx', '-e', `import { PERMISSION_DEPENDENCIES as D } from './src/lib/permissions'; console.log('${MARCA}' + JSON.stringify(D))`],
   { cwd: SERVER, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
 )
-const deps = JSON.parse(raw)
+const marca = raw.lastIndexOf(MARCA)
+if (marca === -1) {
+  console.error('✖ El servidor no imprimió las dependencias de permisos. Esto fue lo que llegó por stdout:')
+  console.error(raw.trim() || '(nada)')
+  process.exit(1)
+}
+const deps = JSON.parse(raw.slice(marca + MARCA.length).split('\n')[0].trim())
 
 const claves = Object.keys(deps).sort()
 if (claves.length === 0) {

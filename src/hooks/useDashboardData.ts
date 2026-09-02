@@ -138,20 +138,26 @@ export const useDashboardData = () => {
   }, [basicData?.payments])
 
   const paymentMethodsData = useMemo(() => basicData?.paymentMethodsData || [], [basicData?.paymentMethodsData])
+  const performanceByWeekday = useMemo(() => basicData?.performanceByWeekday, [basicData?.performanceByWeekday])
 
+  // 2026-09-01: el server ya manda `summary`/`reviewStats` sumados en Postgres sobre
+  // TODO el rango (con «este año» eran 24,631 filas viajando hasta aquí para sumarse).
+  // Si vienen, mandan; si el server es viejo y no los manda, se suma como siempre.
+  const summary = basicData?.summary
   const fiveStarReviews = useMemo(() => {
+    if (basicData?.reviewStats) return basicData.reviewStats.fiveStar
     return filteredReviews.filter((review: any) => review.stars === 5).length
-  }, [filteredReviews])
+  }, [basicData?.reviewStats, filteredReviews])
 
   // Calculate total amount from payments
   const amount = useMemo(() => {
     return filteredPayments.reduce((sum: number, payment: any) => sum + Number(payment.amount), 0)
   }, [filteredPayments])
 
-  const totalAmount = filteredPayments.length > 0 ? amount : 0
+  const totalAmount = summary ? summary.totalAmount : filteredPayments.length > 0 ? amount : 0
 
   // Calculate transaction metrics (for RETAIL and other sectors)
-  const totalTransactions = filteredPayments.length
+  const totalTransactions = summary ? summary.totalTransactions : filteredPayments.length
   const avgTicket = useMemo(() => {
     if (totalTransactions === 0) return 0
     return totalAmount / totalTransactions
@@ -159,6 +165,7 @@ export const useDashboardData = () => {
 
   // Calculate tip-related metrics
   const tipStats = useMemo(() => {
+    if (summary) return { totalTips: summary.totalTips, avgTipPercentage: (summary.avgTipPercentage || 0).toFixed(1) }
     if (!filteredPayments?.length) return { totalTips: 0, avgTipPercentage: 0 }
 
     const paymentsWithTips = filteredPayments.filter((payment: any) => payment.tips && payment.tips.length > 0)
@@ -183,13 +190,15 @@ export const useDashboardData = () => {
       totalTips,
       avgTipPercentage: (avgTipPercentage || 0).toFixed(1),
     }
-  }, [filteredPayments])
+  }, [summary, filteredPayments])
 
   // Process comparison data
   const compareReviews = useMemo(() => compareData?.reviews || [], [compareData?.reviews])
+  const compareSummary = compareData?.summary
   const compareFiveStarReviews = useMemo(() => {
+    if (compareData?.reviewStats) return compareData.reviewStats.fiveStar
     return compareReviews.filter((review: any) => review.stars === 5).length
-  }, [compareReviews])
+  }, [compareData?.reviewStats, compareReviews])
 
   // Filter out payments from cancelled orders in comparison data too
   const comparePayments = useMemo(() => {
@@ -201,16 +210,19 @@ export const useDashboardData = () => {
     })
   }, [compareData?.payments])
   const compareAmount = useMemo(() => {
+    if (compareSummary) return compareSummary.totalAmount
     return comparePayments.reduce((sum: number, payment: any) => sum + Number(payment.amount), 0)
-  }, [comparePayments])
+  }, [compareSummary, comparePayments])
 
-  const compareTotalTransactions = comparePayments.length
+  const compareTotalTransactions = compareSummary ? compareSummary.totalTransactions : comparePayments.length
+  const comparePerformanceByWeekday = useMemo(() => compareData?.performanceByWeekday, [compareData?.performanceByWeekday])
   const compareAvgTicket = useMemo(() => {
     if (compareTotalTransactions === 0) return 0
     return compareAmount / compareTotalTransactions
   }, [compareAmount, compareTotalTransactions])
 
   const compareTipStats = useMemo(() => {
+    if (compareSummary) return { totalTips: compareSummary.totalTips, avgTipPercentage: (compareSummary.avgTipPercentage || 0).toFixed(1) }
     if (!comparePayments?.length) return { totalTips: 0, avgTipPercentage: '0' }
 
     const paymentsWithTips = comparePayments.filter((payment: any) => payment.tips && payment.tips.length > 0)
@@ -235,7 +247,7 @@ export const useDashboardData = () => {
       totalTips,
       avgTipPercentage: (avgTipPercentage || 0).toFixed(1),
     }
-  }, [comparePayments])
+  }, [compareSummary, comparePayments])
 
   // Calculate comparison percentages
   const getComparisonPercentage = (currentValue: number, previousValue: number): number => {
@@ -321,14 +333,17 @@ export const useDashboardData = () => {
   }, [splh, compareAmount, compareData?.laborStats?.totalLaborHours])
 
   // Reservation stats (placeholder — will be populated when backend provides them)
-  const reservationStats = useMemo(() => ({
-    total: 0,
-    noShowRate: 0,
-    cancellationRate: 0,
-    totalChange: 0,
-    noShowRateChange: 0,
-    cancellationRateChange: 0,
-  }), [])
+  const reservationStats = useMemo(
+    () => ({
+      total: 0,
+      noShowRate: 0,
+      cancellationRate: 0,
+      totalChange: 0,
+      noShowRateChange: 0,
+      cancellationRateChange: 0,
+    }),
+    [],
+  )
 
   return {
     venueId,
@@ -357,6 +372,7 @@ export const useDashboardData = () => {
     fiveStarReviews,
     tipStats,
     paymentMethodsData,
+    performanceByWeekday,
     amountChangePercentage,
     reviewsChangePercentage,
     tipsChangePercentage,
@@ -367,6 +383,8 @@ export const useDashboardData = () => {
     compareFiveStarReviews,
     compareTipStats,
     comparePayments,
+    comparePerformanceByWeekday,
+    compareTotalTransactions,
     totalTransactions,
     avgTicket,
     transactionsChangePercentage,

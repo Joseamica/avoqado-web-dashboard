@@ -83,14 +83,14 @@ jobs:
       - name: 🌐 Run i18n validation
         run: npm run lint:i18n
 
+      # `npx tsc --noEmit` at the repo root type-checked ZERO files: the root
+      # tsconfig.json has `files: []` and only references the app/node projects,
+      # so that step was always green no matter what. `tsc -b` walks the project
+      # references (both have `noEmit: true`) and is the real check — the same
+      # one `npm run build` runs first. The script carries the 8 GB heap ceiling
+      # that project-wide type-checking needs on this codebase.
       - name: 🔍 TypeScript compilation check
-        run: npx tsc --noEmit
-        env:
-          # Same fix as the `build` script (package.json): tsc's default V8 heap
-          # ceiling (~2GB) is well under what ubuntu-latest actually has (16GB) —
-          # without this, project-wide type-checking on this codebase OOMs
-          # ("FATAL ERROR: Ineffective mark-compacts near heap limit").
-          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: npm run typecheck
 
       - name: 🔐 Run auth/routing regression suite
         timeout-minutes: 15
@@ -101,6 +101,32 @@ jobs:
         env:
           # CI validation build — not deployed. Each deploy job rebuilds with correct API URL.
           VITE_API_URL: 'https://api.avoqado.io'
+
+      - name: 🎭 Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # Runs the Playwright suite against the bundle just built, served by
+      # `vite preview` on :4173 (playwright.config.ts skips its own dev server when
+      # E2E_BASE_URL is set). Every `/api/v1/**` call is intercepted by page.route
+      # in the specs, so no test reaches a real backend. This is the gate that
+      # catches a stale spec after a product change (route renames, response shapes).
+      - name: 🎭 Playwright E2E (against the built bundle)
+        timeout-minutes: 30
+        run: |
+          npx vite preview --port 4173 --strictPort &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://localhost:4173 && break
+            sleep 1
+          done
+          E2E_BASE_URL=http://localhost:4173 npx playwright test --workers=2
+
+      - name: 📤 Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: playwright-report/
+          retention-days: 7
 
       - name: 📊 Get package version
         id: package-version
@@ -311,7 +337,7 @@ jobs:
               '- **Built at**: `' + buildTime + '`',
               '',
               '### ✅ Quality Checks',
-              '- ESLint, i18n, TypeScript, Build all passed!',
+              '- ESLint, i18n, TypeScript, Build and Playwright E2E all passed!',
               '',
               '🎯 **Ready for review!**'
             ].join('\n');

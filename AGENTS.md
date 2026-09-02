@@ -86,7 +86,8 @@ pgrep -fl "GradleDaemon|KotlinCompileDaemon|xcodebuild|jest|vitest|tsc" | head
 - Única excepción a "no mates procesos ajenos": si `pgrep` no muestra ningún build activo,
   `./gradlew --stop` libera daemons ociosos (4–6 GB cada uno, viven 2 h sin usarse) — dilo en el reporte.
   Los servidores de dev, emuladores y bases de datos NO se tocan.
-- Si el typecheck pelón (`npx tsc --noEmit`) revienta por memoria, usa el script del repo (`npm run build`).
+- El typecheck es `npm run typecheck` (`tsc -b` con heap de 8 GB). 🔴 `npx tsc --noEmit` pelón en este repo
+  **no revisa nada**: el `tsconfig.json` raíz tiene `files: []` y sale verde con cero archivos.
 
 **La carga nunca compra "no lo verifiqué" — compra "lo verifiqué en corto".** Si cambiaste código, se
 comprueba antes de decir que está listo. Lo que la máquina decide es el *tamaño*: typecheck solo del
