@@ -26,6 +26,17 @@ tenant-sized collection. Design the interaction for 10× and 100× today's large
   do not fetch. Avoid mounting duplicate consumers for the same heavy query.
 - Mutations invalidate only the affected keys. Do not trigger a refetch storm across unrelated
   organization and venue views.
+- 🔴 «Affected» means **every key that READS that data**, not only the one you had in mind. Moving a
+  list to a new key without updating each of its mutations leaves the screen stale for good:
+  invalidating a key nothing reads any more does not fail, warn, or log — it silently does nothing.
+  When you introduce a query key, `grep` the old one across the module and confirm some mutation
+  invalidates the new one. (Incident 2026-09-02: `org-stock-custody`, `org-stock-bulk-groups` and
+  `org-stock-items-search` were born unrefreshed in the same commit; a supervisor lost an hour
+  reassigning a SIM that had already moved.)
+- 🔴 If a server-side search or filter is part of the key, the query needs
+  `placeholderData: keepPreviousData`. Without it every keystroke mints a new key, `data` goes
+  undefined, and any `if (isLoading) return …` above the search box unmounts the input — on Android
+  that closes the keyboard mid-entry.
 
 ## Exports and compatibility
 
