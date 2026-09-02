@@ -61,6 +61,23 @@ describe('custodia — las mutaciones invalidan la clave que el panel realmente 
   })
 })
 
+/**
+ * Misma trampa, un tab más allá: `StockApprovalQueue` (pestaña «Solicitudes», 7,703 SIMs)
+ * también mete su búsqueda en la queryKey y también desmonta su propio <Input> con un early
+ * return por `isLoading`. Era PREEXISTENTE — no vino de bcbc9e7c— pero es el mismo síntoma
+ * para el mismo supervisor, así que se cierra aquí.
+ */
+describe('hooks con búsqueda en la clave — todos conservan los datos previos', () => {
+  it.each([
+    ['Stock/hooks/useOrgStockCustody.ts', 'custodia del supervisor'],
+    ['Organization/StockControl/hooks/useStockApprovals.ts', 'solicitudes por aprobar'],
+  ])('%s usa placeholderData (%s)', archivo => {
+    const fuente = leer(archivo)
+    expect(fuente).toContain('keepPreviousData')
+    expect(fuente).toContain('placeholderData')
+  })
+})
+
 describe('useOrgStockCustody — teclear no puede vaciar la lista', () => {
   const envoltura = (client: QueryClient) =>
     function Wrapper({ children }: { children: ReactNode }) {
