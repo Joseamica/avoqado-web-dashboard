@@ -17,6 +17,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -300,7 +301,12 @@ export default function Orders() {
   // TODOS los filtros — los del listado y los de monto (total/propina) que antes se aplicaban
   // aquí sobre 10,000 filas. `groups` = sólo los del listado (pestañas); `filteredGroups` =
   // también los de monto (tarjetas). La pestaña activa se aplica sobre los grupos.
-  const { data: ordersSummary } = useQuery({
+  const {
+    data: ordersSummary,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: [
       'orders-summary',
       venueId,
@@ -1025,11 +1031,16 @@ export default function Orders() {
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
-      <StatusFilterTabs tabs={orderStatusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
-
-      {/* Summary Cards */}
-      <SummaryCards cards={orderSummaryCards} isLoading={isLoading} className="mb-4" />
+      <SummaryQueryBoundary
+        isLoading={isSummaryLoading}
+        isError={isSummaryError}
+        message={t('summaryUnavailable')}
+        retryLabel={tCommon('retry')}
+        onRetry={() => void refetchSummary()}
+      >
+        <StatusFilterTabs tabs={orderStatusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
+        <SummaryCards cards={orderSummaryCards} className="mb-4" />
+      </SummaryQueryBoundary>
 
       {/* Pay-Later Alert Banner - Uses backend data for accurate counts */}
       {payLaterSummary && payLaterSummary.total_count > 0 && (

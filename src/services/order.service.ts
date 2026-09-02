@@ -17,6 +17,7 @@ export const getOrders = async (venueId: string, pagination: { pageIndex: number
     params: {
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
+      responseMode: 'paginated-v1',
       ...(filters?.statuses && filters.statuses.length > 0 && { statuses: filters.statuses.join(',') }),
       ...(filters?.types && filters.types.length > 0 && { types: filters.types.join(',') }),
       ...(filters?.tableIds && filters.tableIds.length > 0 && { tableIds: filters.tableIds.join(',') }),

@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
@@ -59,7 +60,7 @@ import { ManualPaymentDialog } from '@/components/ManualPaymentDialog/ManualPaym
 import { PaymentSourceBadge } from '@/components/PaymentSourceBadge'
 import { ChannelBadge } from '@/components/delivery/ChannelBadge'
 import { useAccess } from '@/hooks/use-access'
-import { getPaymentFilterOptions, getPaymentsSummary } from '@/services/payment.service'
+import { getPaymentFilterOptions, getPayments, getPaymentsSummary } from '@/services/payment.service'
 import { paymentCardsForTab, paymentRowMatchesTab, paymentTabCounts } from './paymentSummary'
 
 // processorData.isInternational may arrive as boolean or as the string "true"/"false"
@@ -209,19 +210,14 @@ export default function Payments() {
     ],
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
-        params: {
-          page: pageParam,
-          pageSize: PAGE_SIZE,
-          ...dateParams,
-          ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
-          ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
-          ...(sourceFilter.length > 0 && { sources: sourceFilter.join(',') }),
-          ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
-          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
-        },
+      return getPayments(venueId, pageParam as number, PAGE_SIZE, {
+        ...dateParams,
+        merchantAccountIds: merchantAccountFilter,
+        methods: methodFilter,
+        sources: sourceFilter,
+        staffIds: waiterFilter,
+        search: debouncedSearchTerm || undefined,
       })
-      return response.data as { data: PaymentType[]; meta?: { total?: number; totalPages?: number; page?: number } }
     },
     getNextPageParam: (lastPage, allPages) => {
       const loadedSoFar = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0)
@@ -352,7 +348,12 @@ export default function Payments() {
   // búsqueda) y los que antes se aplicaban aquí sobre 10,000 filas (subtotal, propina, total,
   // internacional, marca). `groups` trae sólo los del listado (pestañas); `filteredGroups`
   // también los del navegador (tarjetas). La pestaña activa se aplica sobre los grupos.
-  const { data: paymentsSummary } = useQuery({
+  const {
+    data: paymentsSummary,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: [
       'payments-summary',
       venueId,
@@ -1143,11 +1144,16 @@ export default function Payments() {
         )}
       </div>
 
-      {/* Status Filter Tabs */}
-      <StatusFilterTabs tabs={statusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
-
-      {/* Summary Cards */}
-      <SummaryCards cards={summaryCards} isLoading={isLoading} className="mb-4" />
+      <SummaryQueryBoundary
+        isLoading={isSummaryLoading}
+        isError={isSummaryError}
+        message={t('summaryUnavailable')}
+        retryLabel={tCommon('retry')}
+        onRetry={() => void refetchSummary()}
+      >
+        <StatusFilterTabs tabs={statusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
+        <SummaryCards cards={summaryCards} className="mb-4" />
+      </SummaryQueryBoundary>
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>

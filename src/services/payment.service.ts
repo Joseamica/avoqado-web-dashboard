@@ -1,6 +1,7 @@
 import api from '@/api'
 import type { AmountFilter } from '@/components/filters'
 import type { PaymentsSummaryData } from '@/pages/Payment/paymentSummary'
+import type { Payment } from '@/types'
 
 /**
  * Filtros del listado de pagos (los que viajan al servidor desde siempre).
@@ -33,6 +34,21 @@ export interface PaymentFilterOptions {
   sources: string[]
   waiters: Array<{ id: string; firstName: string; lastName: string }>
   cardBrands: string[]
+}
+
+export const getPayments = async (venueId: string, page: number, pageSize: number, filters: PaymentListFilters = {}) => {
+  const response = await api.get<{ data: Payment[]; meta?: { total?: number; totalPages?: number; page?: number } }>(
+    `/api/v1/dashboard/venues/${venueId}/payments`,
+    {
+      params: {
+        page,
+        pageSize,
+        responseMode: 'paginated-v1',
+        ...listFilterParams(filters),
+      },
+    },
+  )
+  return response.data
 }
 
 export function listFilterParams(filters: PaymentListFilters): Record<string, string> {

@@ -2,6 +2,7 @@
   "title": "Paiements",
   "searchPlaceholder": "Rechercher par serveur, total ou méthode...",
   "errorPrefix": "Échec du chargement des paiements",
+  "summaryUnavailable": "Impossible de charger les totaux. Le tableau reste disponible, mais nous n'afficherons pas de zéros potentiellement incorrects.",
   "demoTour": {
     "next": "Suivant →",
     "prev": "← Précédent",
