@@ -8,6 +8,74 @@
     "paymentMethods": "Moyens de Paiement",
     "tokens": "Tokens IA"
   },
+  "commercialBilling": {
+    "title": "Votre abonnement Avoqado",
+    "subtitle": "Ces produits, montants et états ont été confirmés par Avoqado pour cet établissement.",
+    "taxIncluded": "Total TVA comprise",
+    "contractStatus": {
+      "DRAFT": "En préparation",
+      "PENDING_PAYMENT": "Paiement en attente",
+      "ACTIVE": "Actif",
+      "PAUSED": "En pause",
+      "CANCELED": "Annulé",
+      "COMPLETED": "Terminé"
+    },
+    "collection": {
+      "CURRENT": { "title": "Votre abonnement est à jour", "description": "Aucun paiement n'est en attente pour la période actuelle." },
+      "PAYMENT_REQUIRED": { "title": "Un paiement est en attente", "description": "Consultez le solde et la référence ci-dessous." },
+      "PAYMENT_PENDING": {
+        "title": "Nous confirmons votre paiement",
+        "description": "Votre paiement est en cours. Ne lancez pas une autre opération."
+      },
+      "PAYMENT_UNDER_REVIEW": {
+        "title": "Nous vérifions votre justificatif",
+        "description": "La réception d'un document ne confirme pas le dépôt. Nous vous avertirons après rapprochement."
+      },
+      "PAYMENT_FAILED": {
+        "title": "La tentative de paiement a échoué",
+        "description": "Votre accès de base reste disponible. Attendez la récupération sécurisée avant un nouvel essai."
+      },
+      "PAST_DUE": {
+        "title": "Votre solde est échu",
+        "description": "Vérifiez le montant et la référence. Si vous avez payé, contactez le support."
+      },
+      "CANCELED": {
+        "title": "Cet abonnement est terminé",
+        "description": "Ses conditions et mouvements restent disponibles dans l'historique."
+      }
+    },
+    "products": {
+      "title": "Vos produits",
+      "promotionalCycles_one": "Prix promotionnel pendant {{count}} cycle",
+      "promotionalCycles_other": "Prix promotionnel pendant {{count}} cycles",
+      "then": "Puis {{amount}}"
+    },
+    "billingUnit": { "VENUE_MONTH": "Par établissement et par mois", "VENUE_YEAR": "Par établissement et par an" },
+    "quantity": "Quantité : {{count}}",
+    "breakdown": { "subtotal": "Sous-total du renouvellement", "tax": "TVA", "total": "Total du renouvellement" },
+    "balance": { "title": "Solde à confirmer", "outstanding": "Solde restant", "dueAt": "Date de paiement", "reference": "Référence" },
+    "renewal": { "total": "Prochain renouvellement", "next": "Date du prochain renouvellement" },
+    "actions": { "retry": "Réessayer", "viewReceipts": "Voir les mouvements" },
+    "unavailable": {
+      "title": "Impossible de confirmer votre abonnement",
+      "description": "Par sécurité, les actions de paiement restent bloquées jusqu'au rétablissement des données du Server."
+    },
+    "incompatible": {
+      "title": "Cet abonnement nécessite une mise à jour",
+      "description": "Aucun montant local n'est affiché lorsque la version reçue est incompatible. Transmettez ce code au support."
+    },
+    "receipts": {
+      "title": "Mouvements de l'abonnement",
+      "empty": {
+        "title": "Aucun mouvement rapproché",
+        "description": "Les paiements, remboursements et annulations apparaîtront après confirmation par Avoqado."
+      },
+      "entryType": { "PAYMENT": "Paiement confirmé", "REFUND": "Remboursement", "REVERSAL": "Annulation" },
+      "provider": { "STRIPE": "Carte", "MANUAL_SPEI": "SPEI", "AUTOMATIC_SPEI": "SPEI" },
+      "loadMore": "Charger plus de mouvements",
+      "loadingMore": "Chargement des mouvements…"
+    }
+  },
   "plan": {
     "features": {
       "delivery": "Livraison (Uber Eats, Rappi, DiDi)"

@@ -112,14 +112,16 @@ function reportsVenue() {
 }
 
 interface SalesSummaryMockState {
-  /** Most recent sales-summary request URL — used to assert query params. */
-  lastUrl: string | null
+  /** Most recent filtered request; background unfiltered refetches cannot overwrite it. */
+  lastFilteredUrl: string | null
 }
 
 /**
  * Wires up auth + the sales-summary endpoint. The route handler branches on the
  * `paymentMethod` query param: present → FILTERED fixture, else → UNFILTERED.
- * Returns a mutable state object whose `lastUrl` records the last request URL.
+ * Returns a mutable state object whose `lastFilteredUrl` records only filtered
+ * requests. The page can issue independent unfiltered summary requests in
+ * parallel, and those must not erase the evidence this test is asserting.
  *
  * Registered AFTER setupApiMocks so it wins LIFO matching. The merchant-account
  * and settlement-info endpoints are stubbed empty so the merchant pill never
@@ -129,7 +131,7 @@ async function setupSalesSummaryMocks(page: Page): Promise<SalesSummaryMockState
   const venue = reportsVenue()
   await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue] })
 
-  const state: SalesSummaryMockState = { lastUrl: null }
+  const state: SalesSummaryMockState = { lastFilteredUrl: null }
 
   // Merchant accounts + settlement info — empty arrays (deterministic).
   await page.route('**/api/v1/dashboard/venues/*/payment-config/merchant-accounts*', (route) =>
@@ -142,8 +144,8 @@ async function setupSalesSummaryMocks(page: Page): Promise<SalesSummaryMockState
   // Sales summary — branch on the paymentMethod query param.
   await page.route('**/api/v1/dashboard/reports/sales-summary*', (route) => {
     const url = route.request().url()
-    state.lastUrl = url
     const filtered = new URL(url).searchParams.has('paymentMethod')
+    if (filtered) state.lastFilteredUrl = url
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -276,8 +278,8 @@ test.describe('Sales Summary — payment filter', () => {
     expect(request.url()).toContain('paymentMethod=CARD')
     expect(request.url()).toContain('cardType=AMEX')
     // Recorder agrees.
-    expect(state.lastUrl).toContain('paymentMethod=CARD')
-    expect(state.lastUrl).toContain('cardType=AMEX')
+    expect(state.lastFilteredUrl).toContain('paymentMethod=CARD')
+    expect(state.lastFilteredUrl).toContain('cardType=AMEX')
 
     // Header shows the Filtered badge with the AMEX value (single interpolated
     // text node "Filtered: AMEX").

@@ -4,9 +4,15 @@ import { defineConfig, devices } from '@playwright/test'
 // `vite preview` on :4173 and sets E2E_BASE_URL. The bundle's VITE_API_URL does
 // not matter there: every spec mocks `/api/v1/**` with page.route, and the one
 // spec that needs a live backend (reservation-settings-redesign) skips itself in
-// CI unless E2E_API_URL is provided. Locally, default to the dev server on :5173.
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:5173'
+// CI unless E2E_API_URL is provided. Locally, default to :5173; isolated labs set
+// E2E_PORT so Playwright owns a strict, non-reused server instead of attaching
+// to a different session's dashboard.
+const localPort = process.env.E2E_PORT ?? '5173'
+const localURL = `http://127.0.0.1:${localPort}`
+const baseURL = process.env.E2E_BASE_URL ?? localURL
 const useExternalServer = !!process.env.E2E_BASE_URL
+const useIsolatedServer = !!process.env.E2E_PORT
+const useInstalledChrome = process.env.PLAYWRIGHT_USE_INSTALLED_CHROME === '1'
 
 export default defineConfig({
   testDir: './e2e/tests',
@@ -25,7 +31,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], ...(useInstalledChrome ? { channel: 'chrome' as const } : {}) },
     },
   ],
 
@@ -35,8 +41,8 @@ export default defineConfig({
   webServer: useExternalServer
     ? undefined
     : {
-        command: 'npm run dev',
-        url: 'http://localhost:5173',
-        reuseExistingServer: true,
+        command: `npm run dev -- --host 127.0.0.1 --port ${localPort} --strictPort`,
+        url: localURL,
+        reuseExistingServer: !useIsolatedServer,
       },
 })

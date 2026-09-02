@@ -48,8 +48,13 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useVenueDateTime } from '@/utils/datetime'
 import { CurrentPlanCard } from './components/CurrentPlanCard'
+import { CommercialSubscriptionsBoundary } from '@/features/commercial-billing/CommercialSubscriptions'
 
 export default function Subscriptions() {
+  return <CommercialSubscriptionsBoundary legacy={<LegacySubscriptions />} />
+}
+
+function LegacySubscriptions() {
   const { t, i18n } = useTranslation('billing')
   const { venueId, venue } = useCurrentVenue()
   const { staffInfo } = useAuth()

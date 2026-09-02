@@ -17,6 +17,7 @@ const API_URL = process.env.E2E_API_URL ?? 'http://localhost:3000'
 const SUPERADMIN_EMAIL = process.env.E2E_SUPERADMIN_EMAIL ?? 'superadmin@superadmin.com'
 const SUPERADMIN_PASSWORD = process.env.E2E_SUPERADMIN_PASSWORD ?? 'superadmin'
 const VENUE_SLUG = process.env.E2E_VENUE_SLUG ?? 'avoqado-full'
+const DASHBOARD_ORIGIN = process.env.E2E_DASHBOARD_ORIGIN ?? 'http://localhost:5173'
 
 // This file needs a live backend plus a seeded superadmin. CI has neither unless
 // someone wires E2E_API_URL (+ credentials) as GitHub variables, so there it skips
@@ -32,7 +33,7 @@ async function loginAsSuperadmin(page: Page) {
   // subsequent page navigation can use them.
   const response = await page.request.post(`${API_URL}/api/v1/dashboard/auth/login`, {
     data: { email: SUPERADMIN_EMAIL, password: SUPERADMIN_PASSWORD },
-    headers: { Origin: 'http://localhost:5173' },
+    headers: { Origin: DASHBOARD_ORIGIN },
   })
   expect(response.ok()).toBeTruthy()
   // AuthContext fast-path + force Spanish so our text assertions match.

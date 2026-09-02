@@ -9,6 +9,106 @@
     "paymentMethods": "Payment methods",
     "tokens": "AI Tokens"
   },
+  "commercialBilling": {
+    "title": "Your Avoqado subscription",
+    "subtitle": "These products, amounts, and statuses were confirmed by Avoqado for this location.",
+    "taxIncluded": "Total including VAT",
+    "contractStatus": {
+      "DRAFT": "Preparing",
+      "PENDING_PAYMENT": "Payment pending",
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "CANCELED": "Canceled",
+      "COMPLETED": "Completed"
+    },
+    "collection": {
+      "CURRENT": {
+        "title": "Your subscription is current",
+        "description": "There are no pending payments for the current period."
+      },
+      "PAYMENT_REQUIRED": {
+        "title": "A payment is pending",
+        "description": "Review the balance and reference shown below."
+      },
+      "PAYMENT_PENDING": {
+        "title": "We are confirming your payment",
+        "description": "Your payment is still processing. You do not need to start another operation."
+      },
+      "PAYMENT_UNDER_REVIEW": {
+        "title": "We are reviewing your proof of payment",
+        "description": "Receiving a document does not confirm the deposit. We will notify you after reconciliation."
+      },
+      "PAYMENT_FAILED": {
+        "title": "The payment attempt did not complete",
+        "description": "Your basic access remains available. Do not start another charge until Avoqado enables safe recovery."
+      },
+      "PAST_DUE": {
+        "title": "Your balance is past due",
+        "description": "Review the amount and reference. If you already paid, contact support so we can locate the deposit."
+      },
+      "CANCELED": {
+        "title": "This subscription has ended",
+        "description": "Its terms and transactions remain available in your history."
+      }
+    },
+    "products": {
+      "title": "What you purchased",
+      "promotionalCycles_one": "Promotional price for {{count}} cycle",
+      "promotionalCycles_other": "Promotional price for {{count}} cycles",
+      "then": "Then {{amount}}"
+    },
+    "billingUnit": {
+      "VENUE_MONTH": "Per location per month",
+      "VENUE_YEAR": "Per location per year"
+    },
+    "quantity": "Quantity: {{count}}",
+    "breakdown": {
+      "subtotal": "Renewal subtotal",
+      "tax": "VAT",
+      "total": "Renewal total"
+    },
+    "balance": {
+      "title": "Balance awaiting confirmation",
+      "outstanding": "Outstanding balance",
+      "dueAt": "Payment date",
+      "reference": "Reference"
+    },
+    "renewal": {
+      "total": "Next renewal",
+      "next": "Next renewal date"
+    },
+    "actions": {
+      "retry": "Retry",
+      "viewReceipts": "View transactions"
+    },
+    "unavailable": {
+      "title": "We could not confirm your subscription",
+      "description": "For safety, billing actions stay blocked until Server information is restored."
+    },
+    "incompatible": {
+      "title": "This subscription needs an update",
+      "description": "We do not show local amounts when the received version is incompatible. Share this code with support."
+    },
+    "receipts": {
+      "title": "Subscription transactions",
+      "empty": {
+        "title": "There are no reconciled transactions yet",
+        "description": "Payments, refunds, and reversals will appear here after Avoqado confirms them."
+      },
+      "entryType": {
+        "PAYMENT": "Confirmed payment",
+        "REFUND": "Refund",
+        "REVERSAL": "Reversal"
+      },
+      "provider": {
+        "STRIPE": "Card",
+        "MANUAL_SPEI": "SPEI",
+        "AUTOMATIC_SPEI": "SPEI"
+      },
+      "loadMore": "Load more transactions",
+      "loadingMore": "Loading transactions…"
+    }
+  },
   "plan": {
     "cancel": {
       "reason": {

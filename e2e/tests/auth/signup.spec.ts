@@ -11,14 +11,14 @@ import { test, expect, type Page } from '@playwright/test'
  * - DEV bypass:  signup → verify-email(000000) → refetch status → /setup
  * - Production:  signup → /auth/verify-email (OTP page)
  */
-// Dev server: `.env.local` sets VITE_SKIP_EMAIL_VERIFICATION=true, so signup lands
-// on /setup. A built bundle (CI serves `dist` via `vite preview` and sets
-// E2E_BASE_URL) has no bypass and follows the production path. Override with
-// E2E_SKIP_EMAIL_VERIFICATION=true|false when the target differs from that rule.
+// Email verification is the safe production default. Worktrees intentionally do
+// not inherit ignored `.env.local` files, so the test must not infer a bypass just
+// because Playwright owns a dev server. A lab that explicitly starts the bypass
+// can opt in with E2E_SKIP_EMAIL_VERIFICATION=true.
 const DEV_SKIPS_VERIFICATION =
   process.env.E2E_SKIP_EMAIL_VERIFICATION !== undefined
     ? process.env.E2E_SKIP_EMAIL_VERIFICATION === 'true'
-    : !process.env.E2E_BASE_URL
+    : false
 
 // ─── Helpers ────────────────────────────────────────────────────
 

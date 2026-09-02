@@ -14,6 +14,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { resolveAvoqadoServerRoot } from './resolve-avoqado-server-root.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -21,7 +22,8 @@ const __dirname = path.dirname(__filename)
 const VERBOSE = process.argv.includes('--verbose')
 
 const FRONTEND_SERVICES_DIR = path.resolve(__dirname, '../src/services')
-const BACKEND_DIR = path.resolve(__dirname, '../../avoqado-server/src')
+const DASHBOARD_DIR = path.resolve(__dirname, '..')
+const BACKEND_DIR = path.join(resolveAvoqadoServerRoot(DASHBOARD_DIR), 'src')
 const BACKEND_ROUTES_DIR = path.join(BACKEND_DIR, 'routes')
 const BACKEND_APP_FILE = path.join(BACKEND_DIR, 'app.ts')
 

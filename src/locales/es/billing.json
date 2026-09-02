@@ -9,6 +9,106 @@
     "paymentMethods": "Métodos de pago",
     "tokens": "Tokens IA"
   },
+  "commercialBilling": {
+    "title": "Tu suscripción Avoqado",
+    "subtitle": "Estos son los productos, importes y estados confirmados por Avoqado para este local.",
+    "taxIncluded": "Total con IVA",
+    "contractStatus": {
+      "DRAFT": "En preparación",
+      "PENDING_PAYMENT": "Pago pendiente",
+      "ACTIVE": "Activa",
+      "PAUSED": "Pausada",
+      "CANCELED": "Cancelada",
+      "COMPLETED": "Finalizada"
+    },
+    "collection": {
+      "CURRENT": {
+        "title": "Tu suscripción está al corriente",
+        "description": "No tienes pagos pendientes para el periodo actual."
+      },
+      "PAYMENT_REQUIRED": {
+        "title": "Hay un pago pendiente",
+        "description": "Consulta el saldo y la referencia que aparecen abajo."
+      },
+      "PAYMENT_PENDING": {
+        "title": "Estamos confirmando tu pago",
+        "description": "Tu pago sigue en proceso. No necesitas iniciar otra operación."
+      },
+      "PAYMENT_UNDER_REVIEW": {
+        "title": "Estamos revisando tu comprobante",
+        "description": "Recibir un comprobante no confirma todavía el depósito. Te avisaremos cuando la conciliación termine."
+      },
+      "PAYMENT_FAILED": {
+        "title": "El intento de pago no se completó",
+        "description": "Tu acceso básico sigue disponible. No inicies otro cobro hasta que Avoqado habilite la recuperación segura."
+      },
+      "PAST_DUE": {
+        "title": "Tu saldo está vencido",
+        "description": "Revisa el monto y la referencia. Si ya pagaste, contacta a soporte para localizar el depósito."
+      },
+      "CANCELED": {
+        "title": "Esta suscripción terminó",
+        "description": "El historial se conserva para que puedas revisar sus términos y movimientos."
+      }
+    },
+    "products": {
+      "title": "Lo que contrataste",
+      "promotionalCycles_one": "Precio promocional durante {{count}} ciclo",
+      "promotionalCycles_other": "Precio promocional durante {{count}} ciclos",
+      "then": "Después {{amount}}"
+    },
+    "billingUnit": {
+      "VENUE_MONTH": "Por local al mes",
+      "VENUE_YEAR": "Por local al año"
+    },
+    "quantity": "Cantidad: {{count}}",
+    "breakdown": {
+      "subtotal": "Subtotal de renovación",
+      "tax": "IVA",
+      "total": "Total de renovación"
+    },
+    "balance": {
+      "title": "Saldo por confirmar",
+      "outstanding": "Saldo pendiente",
+      "dueAt": "Fecha de pago",
+      "reference": "Referencia"
+    },
+    "renewal": {
+      "total": "Próxima renovación",
+      "next": "Próxima fecha de renovación"
+    },
+    "actions": {
+      "retry": "Reintentar consulta",
+      "viewReceipts": "Ver movimientos"
+    },
+    "unavailable": {
+      "title": "No pudimos confirmar tu suscripción",
+      "description": "Por seguridad, las acciones de cobro permanecen bloqueadas hasta recuperar la información del Server."
+    },
+    "incompatible": {
+      "title": "Esta suscripción necesita una actualización",
+      "description": "No mostramos importes locales porque la versión recibida no es compatible. Comparte este código con soporte."
+    },
+    "receipts": {
+      "title": "Movimientos de la suscripción",
+      "empty": {
+        "title": "Aún no hay movimientos conciliados",
+        "description": "Los pagos, reembolsos y reversiones aparecerán aquí cuando Avoqado los confirme."
+      },
+      "entryType": {
+        "PAYMENT": "Pago confirmado",
+        "REFUND": "Reembolso",
+        "REVERSAL": "Reversión"
+      },
+      "provider": {
+        "STRIPE": "Tarjeta",
+        "MANUAL_SPEI": "SPEI",
+        "AUTOMATIC_SPEI": "SPEI"
+      },
+      "loadMore": "Cargar más movimientos",
+      "loadingMore": "Cargando movimientos…"
+    }
+  },
   "plan": {
     "cancel": {
       "reason": {

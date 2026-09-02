@@ -44,10 +44,12 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseMarkedServerJson, resolveAvoqadoServerRoot } from './resolve-avoqado-server-root.mjs'
 
 const DASHBOARD = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const SERVER = resolve(DASHBOARD, '..', 'avoqado-server')
+const SERVER = resolveAvoqadoServerRoot(DASHBOARD)
 const DESTINO = resolve(DASHBOARD, 'src/lib/permissions/generated/defaultPermissions.generated.ts')
+const AUTHORITY_MARKER = '@@AVOQADO_DEFAULT_PERMISSIONS@@'
 
 const check = process.argv.includes('--check')
 
@@ -62,23 +64,12 @@ if (!existsSync(SERVER)) {
   process.exit(1)
 }
 
-// La marca: el mismo motivo que en regenerar-catalogo-permisos.mjs — importar
-// `src/lib/permissions` arrastra el logger de winston, que escribe en stdout al
-// cargarse. Se lee sólo lo que va detrás de la marca; si no llega, se dice QUÉ llegó
-// en vez de reventar con un SyntaxError en la posición 4.
-const MARCA = '__AVQ_JSON__'
 const raw = execFileSync(
   'npx',
-  ['tsx', '-e', `import { DEFAULT_PERMISSIONS as D } from './src/lib/permissions'; console.log('${MARCA}' + JSON.stringify(D))`],
+  ['tsx', '-e', `import { DEFAULT_PERMISSIONS as D } from './src/lib/permissions'; console.log('${AUTHORITY_MARKER}' + JSON.stringify(D))`],
   { cwd: SERVER, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
 )
-const marca = raw.lastIndexOf(MARCA)
-if (marca === -1) {
-  console.error('✖ El servidor no imprimió los permisos de fábrica. Esto fue lo que llegó por stdout:')
-  console.error(raw.trim() || '(nada)')
-  process.exit(1)
-}
-const porRol = JSON.parse(raw.slice(marca + MARCA.length).split('\n')[0].trim())
+const porRol = parseMarkedServerJson(raw, AUTHORITY_MARKER)
 
 const roles = Object.keys(porRol).sort()
 if (roles.length === 0) {
@@ -95,7 +86,9 @@ if (!(porRol.SUPERADMIN || []).includes('*:*')) {
 // ── Guardrail white-label ──────────────────────────────────────────────────────────
 // Mismo veto que los otros dos generadores: la vertical de PlayTelecom no se mezcla con el
 // producto genérico. Levantar el veto = borrar estas dos líneas, pero es una DECISIÓN.
-const RECURSOS_EXCLUIDOS = new Set(['sim-custody', 'tpv-sim-custody'])
+// Global commercial publication/reconciliation belongs to Superadmin, never a
+// tenant venue-role editor.
+const RECURSOS_EXCLUIDOS = new Set(['sim-custody', 'tpv-sim-custody', 'commercial'])
 const PERMISOS_EXCLUIDOS = new Set(['serialized-inventory:change-category'])
 const excluido = p => RECURSOS_EXCLUIDOS.has(p.split(':')[0]) || PERMISOS_EXCLUIDOS.has(p)
 

@@ -18,6 +18,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { includesNormalized } from '@/lib/utils'
+import { CommercialReceiptHistoryBoundary } from '@/features/commercial-billing/CommercialReceiptHistory'
 
 // Unified billing item type
 type BillingItem = {
@@ -35,6 +36,10 @@ type BillingItem = {
 }
 
 export default function History() {
+  return <CommercialReceiptHistoryBoundary legacy={<LegacyHistory />} />
+}
+
+function LegacyHistory() {
   const { t, i18n } = useTranslation('billing')
   const { venueId, venue } = useCurrentVenue()
   const { toast } = useToast()

@@ -124,6 +124,22 @@ export const supplierService = {
   },
 
   /**
+   * Get the pricing history offered by suppliers for one raw material.
+   */
+  getRawMaterialSupplierPricing: async (venueId: string, rawMaterialId: string) => {
+    const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/supplier-pricing`)
+    return data
+  },
+
+  /**
+   * Get ranked supplier recommendations for one raw material.
+   */
+  getSupplierRecommendations: async (venueId: string, rawMaterialId: string) => {
+    const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/supplier-recommendations`)
+    return data
+  },
+
+  /**
    * Get supplier performance metrics
    */
   getPerformance: async (venueId: string, supplierId: string) => {

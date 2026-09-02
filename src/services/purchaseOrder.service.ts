@@ -279,8 +279,8 @@ export const purchaseOrderService = {
   /**
    * Get a single purchase order by ID
    */
-  getPurchaseOrder: async (venueId: string, poId: string) => {
-    const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}`)
+  getPurchaseOrder: async (venueId: string, purchaseOrderId: string) => {
+    const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${purchaseOrderId}`)
     return data
   },
 
@@ -295,32 +295,32 @@ export const purchaseOrderService = {
   /**
    * Update an existing purchase order (only allowed in DRAFT status)
    */
-  updatePurchaseOrder: async (venueId: string, poId: string, dto: UpdatePurchaseOrderDto) => {
-    const { data } = await api.put(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}`, dto)
+  updatePurchaseOrder: async (venueId: string, purchaseOrderId: string, dto: UpdatePurchaseOrderDto) => {
+    const { data } = await api.put(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${purchaseOrderId}`, dto)
     return data
   },
 
   /**
    * Approve a purchase order (PENDING_APPROVAL → APPROVED)
    */
-  approvePurchaseOrder: async (venueId: string, poId: string) => {
-    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}/approve`)
+  approvePurchaseOrder: async (venueId: string, purchaseOrderId: string) => {
+    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${purchaseOrderId}/approve`)
     return data
   },
 
   /**
    * Receive a purchase order (SHIPPED → RECEIVED or PARTIAL)
    */
-  receivePurchaseOrder: async (venueId: string, poId: string, dto: ReceivePurchaseOrderDto) => {
-    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}/receive`, dto)
+  receivePurchaseOrder: async (venueId: string, purchaseOrderId: string, dto: ReceivePurchaseOrderDto) => {
+    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${purchaseOrderId}/receive`, dto)
     return data
   },
 
   /**
    * Cancel a purchase order
    */
-  cancelPurchaseOrder: async (venueId: string, poId: string, reason: string) => {
-    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}/cancel`, { reason })
+  cancelPurchaseOrder: async (venueId: string, purchaseOrderId: string, reason: string) => {
+    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${purchaseOrderId}/cancel`, { reason })
     return data
   },
 

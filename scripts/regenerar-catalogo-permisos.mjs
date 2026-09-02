@@ -46,10 +46,12 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseMarkedServerJson, resolveAvoqadoServerRoot } from './resolve-avoqado-server-root.mjs'
 
 const DASHBOARD = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const SERVER = resolve(DASHBOARD, '..', 'avoqado-server')
+const SERVER = resolveAvoqadoServerRoot(DASHBOARD)
 const DESTINO = resolve(DASHBOARD, 'src/lib/permissions/generated/permissionCatalog.generated.ts')
+const AUTHORITY_MARKER = '@@AVOQADO_PERMISSION_CATALOG@@'
 
 /**
  * 🔴 MÓDULO WHITE-LABEL — NO ENTRA AL CATÁLOGO GENÉRICO.
@@ -63,7 +65,10 @@ const DESTINO = resolve(DASHBOARD, 'src/lib/permissions/generated/permissionCata
  * Para levantar el veto basta borrar la entrada: el permiso vuelve a aparecer y
  * el script exigirá su categoría en `CURACION`.
  */
-const RECURSOS_EXCLUIDOS = new Set(['sim-custody', 'tpv-sim-custody'])
+// `commercial` is the global SaaS control plane. It is enforced by Server and
+// operated from Superadmin; exposing publish/reconcile in a venue role editor
+// would cross the tenant/platform authority boundary.
+const RECURSOS_EXCLUIDOS = new Set(['sim-custody', 'tpv-sim-custody', 'commercial'])
 const PERMISOS_EXCLUIDOS = new Set(['serialized-inventory:change-category'])
 
 /**
@@ -180,33 +185,16 @@ if (!existsSync(SERVER)) {
 }
 
 // El servidor es la autoridad: se le pregunta a él, no a una copia.
-// 🔴 EL JSON VIAJA DETRÁS DE UNA MARCA, Y NO ES PARANOIA: importar
-// `src/lib/permissions` arrastra el logger de winston (permissions → prismaClient →
-// queryResultGuard → config/logger), que imprime "Logger initialized…" en stdout en
-// cuanto se carga. Ese renglón se pegaba DELANTE del JSON y `JSON.parse` moría con
-// "Unexpected non-whitespace character after JSON at position 4" — el guion de la
-// fecha. Y pre-deploy lo traducía a "los permisos están desincronizados", que es
-// mentira: manda a regenerar lo que no está roto. Leer sólo lo que va DESPUÉS de la
-// marca deja esto inmune a cualquier ruido que otro cambio del servidor meta en esa
-// cadena de imports — que fue exactamente lo que pasó al añadir el guardia de
-// resultados gigantes a prismaClient.
-const MARCA = '__AVQ_JSON__'
 const raw = execFileSync(
   'npx',
   [
     'tsx',
     '-e',
-    `import { INDIVIDUAL_PERMISSIONS_BY_RESOURCE as C } from './src/lib/permissions'; console.log('${MARCA}' + JSON.stringify(C))`,
+    `import { INDIVIDUAL_PERMISSIONS_BY_RESOURCE as C } from './src/lib/permissions'; console.log('${AUTHORITY_MARKER}' + JSON.stringify(C))`,
   ],
   { cwd: SERVER, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
 )
-const marca = raw.lastIndexOf(MARCA)
-if (marca === -1) {
-  console.error('✖ El servidor no imprimió el catálogo de permisos. Esto fue lo que llegó por stdout:')
-  console.error(raw.trim() || '(nada)')
-  process.exit(2)
-}
-const porRecurso = JSON.parse(raw.slice(marca + MARCA.length).split('\n')[0].trim())
+const porRecurso = parseMarkedServerJson(raw, AUTHORITY_MARKER)
 
 // ── Validación: nada se cae por una rendija ────────────────────────────────
 const recursosServidor = Object.keys(porRecurso).filter(r => !RECURSOS_EXCLUIDOS.has(r))

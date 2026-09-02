@@ -138,6 +138,22 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
     }),
   )
 
+  // Commercial billing is authoritative when a venue has a commercial
+  // contract. Legacy E2E fixtures represent pre-migration venues, so they must
+  // say that explicitly; falling through to `{}` correctly fails closed and
+  // hides every legacy billing action. Tests for migrated venues register a
+  // later (higher-priority) READY response of their own.
+  await page.route('**/api/v1/dashboard/commercial/venues/*/billing/overview', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { schemaVersion: 1, state: 'NO_COMMERCIAL_CONTRACT' },
+      }),
+    }),
+  )
+
   // Venue feature grants (à-la-carte) — consumed by useVenueTier() alongside /plan.
   const venueFeatures = createMockVenueFeatureStatus({
     venueId: venuesWithRole[0]?.id,

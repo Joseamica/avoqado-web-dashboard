@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 import i18n from '@/i18n'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -41,9 +42,27 @@ import { ExternalRouteAreaCard } from '../ExternalRouteAreaCard'
 // esos `@default(...)`; repetirlos en el test haría una tercera copia y el test
 // pasaría feliz aunque las tres se hubieran desincronizado de la base de datos.
 // ---------------------------------------------------------------------------
-// Anclado al propio archivo de test (no a `process.cwd()`): sigue apuntando bien
-// aunque vitest se lance desde otro directorio. `__tests__` → … → workspace root.
-const SCHEMA_PATH = path.resolve(__dirname, '../../../../../../avoqado-server/prisma/schema.prisma')
+// Anclado al propio archivo de test (no a `process.cwd()`). En un worktree, Git's
+// common dir apunta al checkout canónico; en snapshots sin metadata el release
+// harness provides the exact paired Server through AVOQADO_SERVER_ROOT.
+const DASHBOARD_ROOT = path.resolve(__dirname, '../../../../..')
+
+function resolveServerRoot(): string {
+  const explicit = process.env.AVOQADO_SERVER_ROOT?.trim()
+  if (explicit) return path.resolve(DASHBOARD_ROOT, explicit)
+  try {
+    const commonDirectory = execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+      cwd: DASHBOARD_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    return path.resolve(path.dirname(path.dirname(commonDirectory)), 'avoqado-server')
+  } catch {
+    return path.resolve(DASHBOARD_ROOT, '..', 'avoqado-server')
+  }
+}
+
+const SCHEMA_PATH = path.join(resolveServerRoot(), 'prisma/schema.prisma')
 
 function prismaFulfillmentAreaDefaults(): Record<string, string> {
   if (!fs.existsSync(SCHEMA_PATH)) {
