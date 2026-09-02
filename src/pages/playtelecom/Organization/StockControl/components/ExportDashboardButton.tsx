@@ -3,7 +3,13 @@ import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { exportSheetsToExcel } from '@/utils/export'
-import type { InventoryByResponsible, OrgStockOverviewItem, ResponsibleCounts } from '@/services/stockDashboard.service'
+import {
+  getAllOrgStockItemsForExport,
+  type InventoryByResponsible,
+  type OrgStockOverviewItem,
+  type OrgStockOverviewParams,
+  type ResponsibleCounts,
+} from '@/services/stockDashboard.service'
 
 /**
  * Exporta la tabla por responsable a un Excel de DOS hojas, como lo pidió Isaac
@@ -26,7 +32,9 @@ import type { InventoryByResponsible, OrgStockOverviewItem, ResponsibleCounts } 
 
 interface Props {
   data?: InventoryByResponsible
-  /** Inventario completo del rango, para poder listar los ICCID. */
+  orgId: string
+  params: OrgStockOverviewParams
+  /** Optional compatibility input; new callers load exact rows only on click. */
   items?: OrgStockOverviewItem[]
   receivingVenueId: string | null
   categoryId: string | null
@@ -53,7 +61,7 @@ const COUNT_KEYS: Array<keyof ResponsibleCounts> = [
   'inHandToday',
 ]
 
-export function ExportDashboardButton({ data, items, receivingVenueId, categoryId, disabled }: Props) {
+export function ExportDashboardButton({ data, orgId, params, items, receivingVenueId, categoryId, disabled }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState(false)
 
@@ -82,8 +90,18 @@ export function ExportDashboardButton({ data, items, receivingVenueId, categoryI
         for (const p of data.unassigned.promoters) tableRows.push(row('Promotor', p.promoterName, p))
       }
 
-      // Mismos filtros que la tabla, y el mismo criterio de "en mano".
-      const inHand = (items ?? []).filter(
+      // Mismos filtros que la tabla, y el mismo criterio de "en mano". Si la
+      // pantalla ya no materializó todo el inventario (flujo nuevo), se recorren
+      // páginas acotadas sólo después de este clic.
+      const completeItems =
+        items ??
+        (await getAllOrgStockItemsForExport(orgId, {
+          ...params,
+          custodyState: 'PROMOTER_HELD',
+          categoryId: categoryId ?? undefined,
+          registeredFromVenueId: receivingVenueId ?? undefined,
+        }))
+      const inHand = completeItems.filter(
         i =>
           i.custodyState === 'PROMOTER_HELD' &&
           (!receivingVenueId || i.registeredFromVenueId === receivingVenueId) &&

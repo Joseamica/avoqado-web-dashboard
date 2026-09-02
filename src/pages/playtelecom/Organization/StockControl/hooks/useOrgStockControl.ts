@@ -10,8 +10,11 @@ export function useOrgStockControl(orgId: string | undefined, params: OrgStockOv
     // real status quickly (Isaac 2026-07-21: a SIM sold mid-bulk still showed "Disponible"
     // here because the list was cached fresh for 60s). Show cached instantly but always
     // refetch fresh on entering the page and on returning to the tab.
-    staleTime: 10_000,
+    // Legacy compatibility hook (venue custody panel only). Keep its full
+    // response from stampeding the API while that last consumer is migrated.
+    staleTime: 30_000,
+    retry: 1,
     refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   })
 }

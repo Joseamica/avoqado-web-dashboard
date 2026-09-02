@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
-import { useOrgStockControl } from './StockControl/hooks/useOrgStockControl'
+import { useOrgStockSummary } from './StockControl/hooks/useOrgStockSummary'
 import { useInventoryByResponsible } from './StockControl/hooks/useInventoryByResponsible'
 import { InventoryResponsibleFilters } from './StockControl/components/InventoryResponsibleFilters'
 import { ExportDashboardButton } from './StockControl/components/ExportDashboardButton'
@@ -125,8 +125,19 @@ export default function OrgStockControlPage() {
     [queryParams, receivingVenueId, categoryId],
   )
 
-  const { data, isLoading, isError, error, refetch } = useOrgStockControl(orgId, queryParams)
+  const { data, isLoading, isError, error, refetch } = useOrgStockSummary(orgId, queryParams)
   const { data: byResponsible, isLoading: isLoadingByResponsible } = useInventoryByResponsible(orgId, byResponsibleParams)
+  const categoryOptions = useMemo(
+    () => (data?.aggregatesByCategoria ?? []).map(category => ({ id: category.categoryId, name: category.categoryName })),
+    [data?.aggregatesByCategoria],
+  )
+  const venueOptions = useMemo(
+    () =>
+      (data?.aggregatesBySucursal ?? [])
+        .filter(venue => venue.venueId !== '__unassigned__')
+        .map(venue => ({ id: venue.venueId, name: venue.venueName })),
+    [data?.aggregatesBySucursal],
+  )
 
   // El almacén de entrada con el que abre la pantalla lo decide el server desde
   // la configuración del módulo. Se aplica UNA vez; a partir de ahí manda el
@@ -210,7 +221,7 @@ export default function OrgStockControlPage() {
             initialDateTo={selectedRange.to}
             onUpdate={handleDateRangeUpdate}
           />
-          <ExportButton orgId={orgId!} params={queryParams} items={data.items} bulkGroups={data.bulkGroups ?? []} />
+          <ExportButton orgId={orgId!} params={queryParams} />
           {/* If the user already reached /stock-control they're implicitly on a
               PlayTelecom-style org; keep this button gated by permissions +
               org venues only. */}
@@ -273,7 +284,8 @@ export default function OrgStockControlPage() {
           <div className="flex justify-end">
             <ExportDashboardButton
               data={byResponsible}
-              items={data.items}
+              orgId={orgId!}
+              params={queryParams}
               receivingVenueId={receivingVenueId ?? null}
               categoryId={categoryId}
               disabled={isLoadingByResponsible}
@@ -282,10 +294,10 @@ export default function OrgStockControlPage() {
           <OrgResumenTab data={data} byResponsible={byResponsible} isLoadingByResponsible={isLoadingByResponsible} />
         </TabsContent>
         <TabsContent value="cargas" className="space-y-6 mt-4">
-          <OrgCargasTab data={data} />
+          <OrgCargasTab orgId={orgId!} params={queryParams} categories={categoryOptions} venues={venueOptions} />
         </TabsContent>
         <TabsContent value="detalle" className="space-y-6 mt-4">
-          <OrgDetalleSimsTab data={data} />
+          <OrgDetalleSimsTab orgId={orgId!} params={queryParams} categories={categoryOptions} venues={venueOptions} />
         </TabsContent>
         <TabsContent value="solicitudes" className="space-y-6 mt-4">
           <OrgSolicitudesTab orgId={orgId!} />

@@ -20,9 +20,10 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { reassignSimsToSupervisor, type BulkResponse } from '@/services/simCustody.service'
 import { useOrgSupervisors } from '@/hooks/use-org-staff-by-role'
-import { useOrgStockControl } from '../hooks/useOrgStockControl'
+import { useOrgStockItemsSearch } from '../hooks/useOrgStockItemsSearch'
 import { SimMultiSelect } from './SimMultiSelect'
 import { SupervisorSelect } from './SupervisorSelect'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface Props {
   open: boolean
@@ -41,6 +42,8 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
   const [manualSerials, setManualSerials] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [searchSerials, setSearchSerials] = useState<string[]>(preselectedSerials ?? [])
+  const [itemSearch, setItemSearch] = useState('')
+  const debouncedItemSearch = useDebounce(itemSearch, 300)
   const [result, setResult] = useState<BulkResponse | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
 
@@ -58,11 +61,15 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
   }, [])
-  const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
+  const stockQuery = useOrgStockItemsSearch(
+    open ? orgId : undefined,
+    { ...stockParams, search: debouncedItemSearch || undefined, custodyState: 'SUPERVISOR_HELD' },
+    open,
+  )
   // Only SUPERVISOR_HELD SIMs can move — filter the picker to match the backend.
   const availableItems = useMemo(
-    () => (stockData?.items ?? []).filter(i => (i.custodyState ?? 'ADMIN_HELD') === 'SUPERVISOR_HELD'),
-    [stockData?.items],
+    () => (stockQuery.data?.items ?? []).filter(i => (i.custodyState ?? 'ADMIN_HELD') === 'SUPERVISOR_HELD'),
+    [stockQuery.data?.items],
   )
 
   const mutation = useMutation<BulkResponse, Error, void>({
@@ -91,6 +98,9 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
     onSuccess: r => {
       setResult(r)
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
       if (r.summary.failed === 0) onDone?.()
     },
     onError: err => toast({ title: err.message ?? 'No se pudo reasignar', variant: 'destructive' }),
@@ -102,6 +112,7 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
     setManualSerials('')
     setCsvFile(null)
     setSearchSerials(preselectedSerials ?? [])
+    setItemSearch('')
     setResult(null)
     setOnlyErrors(false)
   }
@@ -152,6 +163,9 @@ export function ReassignSupervisorDialog({ open, onOpenChange, orgId, venueId, p
                   allowedStates={['SUPERVISOR_HELD']}
                   value={searchSerials}
                   onChange={setSearchSerials}
+                  searchValue={itemSearch}
+                  onSearchChange={setItemSearch}
+                  isLoading={stockQuery.isFetching}
                   placeholder={availableItems.length === 0 ? 'No hay SIMs en bodega de un Supervisor' : undefined}
                 />
                 <p className="text-xs text-muted-foreground">

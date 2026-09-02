@@ -22,8 +22,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getCategoryStock, getStockMetrics, getStockMovements, getStockResponsibles, type Responsible, type StockMovement } from '@/services/stockDashboard.service'
-import { useQuery } from '@tanstack/react-query'
-import { Box, CheckCircle2, Download, FileSpreadsheet, FileText, Package, Plus, Search, Settings2, Upload } from 'lucide-react'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { Box, CheckCircle2, Download, FileSpreadsheet, FileText, Loader2, Package, Plus, Search, Settings2, Upload } from 'lucide-react'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
@@ -202,10 +202,22 @@ export function StockControl() {
     enabled: !!venueId,
   })
 
-  const { data: movementsData, isLoading: isLoadingMovements } = useQuery({
+  const {
+    data: movementsData,
+    isLoading: isLoadingMovements,
+    hasNextPage: hasMoreMovements,
+    isFetchingNextPage: isFetchingMoreMovements,
+    fetchNextPage: fetchMoreMovements,
+  } = useInfiniteQuery({
     queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo, responsibleStaffId],
-    queryFn: () => getStockMovements(venueId!, { limit: 500, ...dateRangeIsoParams, responsibleStaffId }),
+    queryFn: ({ pageParam }) =>
+      getStockMovements(venueId!, { limit: 100, page: Number(pageParam), ...dateRangeIsoParams, responsibleStaffId }),
+    initialPageParam: 1,
+    getNextPageParam: lastPage => (lastPage.pagination?.hasMore ? lastPage.pagination.page + 1 : undefined),
     enabled: !!venueId,
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
 
   const { data: responsibles } = useQuery({
@@ -216,7 +228,7 @@ export function StockControl() {
 
   const isLoading = isLoadingMetrics || isLoadingCategories || isLoadingMovements
   const categories = categoryData?.categories || []
-  const movements = movementsData?.movements || []
+  const movements = useMemo(() => movementsData?.pages.flatMap(page => page.movements) ?? [], [movementsData?.pages])
 
   // Totals
   const totals = useMemo(
@@ -751,6 +763,14 @@ ${dataRows}
                 </p>
               )}
             </div>
+            {hasMoreMovements && (
+              <div className="mt-4 flex justify-center">
+                <Button variant="outline" size="sm" disabled={isFetchingMoreMovements} onClick={() => void fetchMoreMovements()}>
+                  {isFetchingMoreMovements ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Cargar más movimientos
+                </Button>
+              </div>
+            )}
           </GlassCard>
         </TabsContent>
 
