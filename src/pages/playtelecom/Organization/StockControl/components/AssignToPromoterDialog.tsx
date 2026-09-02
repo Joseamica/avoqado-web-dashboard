@@ -80,7 +80,15 @@ export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumber
       }
       clearSelection()
       onOpenChange(false)
+      // 🔴 Hay que invalidar TODAS las claves que muestran custodia, no sólo la legacy:
+      // el panel del supervisor (VenueSimCustodyPanel) lee de `org-stock-custody`, y
+      // dejarla fuera hacía que el SIM siguiera apareciendo «Con Supervisor» tras una
+      // asignación exitosa — el supervisor lo reintentaba y el 2º intento sí fallaba.
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
     },
     onError: err => toast({ title: err.message ?? 'No se pudo asignar', variant: 'destructive' }),
   })
