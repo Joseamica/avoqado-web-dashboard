@@ -308,6 +308,7 @@
     "save": "Save notice",
     "saving": "Saving…",
     "saveSuccess": "Privacy notice saved",
-    "saveError": "Couldn't save the privacy notice"
+    "saveError": "Couldn't save the privacy notice",
+    "templateHint": "Your business doesn't have a privacy notice yet, so below is a draft written with your details. Review it, adjust anything you need and save it: until then you won't be able to ask your customers for permission to send them promotions."
   }
 }

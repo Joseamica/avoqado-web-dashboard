@@ -308,6 +308,7 @@
     "save": "Guardar aviso",
     "saving": "Guardando…",
     "saveSuccess": "Aviso de privacidad guardado",
-    "saveError": "No se pudo guardar el aviso de privacidad"
+    "saveError": "No se pudo guardar el aviso de privacidad",
+    "templateHint": "Tu negocio todavía no tiene aviso de privacidad, así que abajo dejamos una propuesta redactada con tus datos. Revísala, ajusta lo que haga falta y guárdala: hasta entonces no podrás pedirle a tus clientes permiso para enviarles promociones."
   }
 }
