@@ -15,8 +15,10 @@
     "taxIncluded": "Total including VAT",
     "nonPayment": {
       "deadline": "Deadline: {{date}}",
+      "expiredAt": "The deadline expired on {{date}}",
       "pendingSelection": "Your paid selection activates after we confirm payment. If it is not confirmed by this date, the request expires and your location stays on Free. Your configuration and data will not be deleted.",
-      "activeSubscription": "If we do not confirm payment by this date, paid features will be paused and your location will continue on Free. Your configuration and data will not be deleted and will be restored after payment is brought current."
+      "activeSubscription": "If we do not confirm payment by this date, paid features will be paused and your location will continue on Free. Your configuration and data will not be deleted and will be restored after payment is brought current.",
+      "pausedSubscription": "The deadline passed without a confirmed payment. Paid features are paused and your location is now continuing on Free. Your configuration and data are preserved and will be restored after payment is brought current."
     },
     "configurator": {
       "eyebrow": "Configure your subscription",

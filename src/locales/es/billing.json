@@ -15,8 +15,10 @@
     "taxIncluded": "Total con IVA",
     "nonPayment": {
       "deadline": "Fecha límite: {{date}}",
+      "expiredAt": "El plazo venció el {{date}}",
       "pendingSelection": "Tu selección pagada se activará cuando confirmemos el pago. Si no se confirma antes de esta fecha, la solicitud vencerá y tu local continuará en Free. Tu configuración y tus datos no se borrarán.",
-      "activeSubscription": "Si no confirmamos el pago antes de esta fecha, las funciones pagadas se pausarán y tu local continuará en Free. Tu configuración y tus datos no se borrarán; se restaurarán al regularizar el pago."
+      "activeSubscription": "Si no confirmamos el pago antes de esta fecha, las funciones pagadas se pausarán y tu local continuará en Free. Tu configuración y tus datos no se borrarán; se restaurarán al regularizar el pago.",
+      "pausedSubscription": "El plazo terminó sin un pago confirmado. Las funciones pagadas están pausadas y tu local ya continúa en Free. Tu configuración y tus datos se conservan; se restaurarán al regularizar el pago."
     },
     "configurator": {
       "eyebrow": "Configura tu suscripción",

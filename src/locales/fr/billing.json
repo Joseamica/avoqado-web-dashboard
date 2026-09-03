@@ -14,8 +14,10 @@
     "taxIncluded": "Total TVA comprise",
     "nonPayment": {
       "deadline": "Date limite : {{date}}",
+      "expiredAt": "Le délai a expiré le {{date}}",
       "pendingSelection": "Votre sélection payante sera activée après confirmation du paiement. Sans confirmation avant cette date, la demande expirera et l’établissement restera sur Free. Votre configuration et vos données ne seront pas supprimées.",
-      "activeSubscription": "Sans confirmation du paiement avant cette date, les fonctions payantes seront suspendues et l’établissement continuera sur Free. Votre configuration et vos données seront conservées et restaurées après régularisation."
+      "activeSubscription": "Sans confirmation du paiement avant cette date, les fonctions payantes seront suspendues et l’établissement continuera sur Free. Votre configuration et vos données seront conservées et restaurées après régularisation.",
+      "pausedSubscription": "Le délai s’est terminé sans paiement confirmé. Les fonctions payantes sont suspendues et l’établissement continue désormais sur Free. Votre configuration et vos données sont conservées et seront restaurées après régularisation."
     },
     "configurator": {
       "eyebrow": "Configurez votre abonnement",

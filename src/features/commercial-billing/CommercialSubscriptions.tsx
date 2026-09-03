@@ -65,13 +65,20 @@ function CommercialSubscriptions({ overview }: { overview: CommercialBillingRead
         <Alert data-tour="commercial-billing-non-payment-deadline">
           <CalendarClock />
           <AlertTitle>
-            {t('commercialBilling.nonPayment.deadline', { date: formatDate(unpaidDeadline.graceEndsAt) })}
+            {t(
+              overview.contract.status === 'PAUSED'
+                ? 'commercialBilling.nonPayment.expiredAt'
+                : 'commercialBilling.nonPayment.deadline',
+              { date: formatDate(unpaidDeadline.graceEndsAt) },
+            )}
           </AlertTitle>
           <AlertDescription>
             {t(
               overview.contract.status === 'PENDING_PAYMENT'
                 ? 'commercialBilling.nonPayment.pendingSelection'
-                : 'commercialBilling.nonPayment.activeSubscription',
+                : overview.contract.status === 'PAUSED'
+                  ? 'commercialBilling.nonPayment.pausedSubscription'
+                  : 'commercialBilling.nonPayment.activeSubscription',
             )}
           </AlertDescription>
         </Alert>

@@ -281,6 +281,26 @@ describe('commercial billing Dashboard surfaces', () => {
     expect(screen.getByText('commercialBilling.nonPayment.activeSubscription')).toBeInTheDocument()
   })
 
+  it('explains that an expired paused subscription is already operating on Free with its data preserved', () => {
+    const pendingOverview = readyOverview()
+    mockOverviewQuery.mockReturnValue({
+      data: {
+        ...pendingOverview,
+        contract: { ...pendingOverview.contract, status: 'PAUSED' as const },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy</div>} />)
+
+    expect(screen.getByText(/commercialBilling\.nonPayment\.expiredAt/)).toHaveTextContent(
+      'date:2026-09-06T18:00:00.000Z',
+    )
+    expect(screen.getByText('commercialBilling.nonPayment.pausedSubscription')).toBeInTheDocument()
+  })
+
   it('keeps legacy billing only when Server explicitly says there is no commercial contract', () => {
     mockOverviewQuery.mockReturnValue({
       data: { schemaVersion: 1, state: 'NO_COMMERCIAL_CONTRACT' },
