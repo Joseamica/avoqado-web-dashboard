@@ -95,4 +95,39 @@ describe('CustomerForm — checkbox de consentimiento y el aviso de privacidad',
 		expect(screen.queryByText('form.consentNoticeUnknown')).not.toBeInTheDocument()
 		expect(screen.queryByText('form.consentNoticeChecking')).not.toBeInTheDocument()
 	})
+	// 🔴 REGRESIÓN de un defecto REAL introducido por el servidor en la fase 1C-A: desde que
+	// `getCurrentPrivacyNotice` cae a una PLANTILLA cuando el venue no tiene versión propia
+	// (`consent.service.ts:58-71`), la respuesta trae SIEMPRE un objeto `notice` — con
+	// `content: null` y `esPlantilla: true`. El candado del formulario era
+	// `Boolean(privacyNoticeData?.notice)`, que a partir de ese cambio es SIEMPRE verdadero:
+	// la casilla de consentimiento quedó habilitada en negocios sin aviso publicado.
+	//
+	// No es cosmético. El servidor rechaza capturar consentimiento sin una fila real de
+	// `PrivacyNoticeVersion` (candado que se verificó con sabotaje en 1C-A), así que el dueño
+	// marcaba la casilla, guardaba, y recibía un error que no explica nada — y el único aviso
+	// visible de que le falta el aviso legal había desaparecido.
+	//
+	// El caso "200 sin aviso" de arriba NO cubre esto: mockea `{ notice: null }`, que es la
+	// respuesta VIEJA. Un test que sigue afirmando el contrato anterior deja de vigilar.
+	it('200 con PLANTILLA (sin aviso propio): el checkbox sigue deshabilitado y lo explica', async () => {
+		mockGetPrivacyNotice.mockResolvedValue({
+			notice: {
+				id: null,
+				content: null,
+				draftContent: 'Aviso de Privacidad\n\nCafé de Prueba, con domicilio en...',
+				contentHash: null,
+				language: 'es',
+				createdAt: null,
+				esPlantilla: true,
+			},
+		})
+		renderForm()
+
+		// 🔴 El ORDEN importa, y no es estilo: `toBeDisabled()` es cierto también MIENTRAS la
+		// query carga, así que esperar eso primero deja pasar el `waitFor` de inmediato y la
+		// prueba no llega a ver la respuesta — pasaría igual con el candado roto. Se espera
+		// primero el mensaje, que sólo se pinta cuando `isPrivacyNoticeLoading` ya es false.
+		await waitFor(() => expect(screen.getByText('form.consentNeedsNoticeNoPermission')).toBeInTheDocument())
+		expect(screen.getByRole('checkbox', { name: 'form.fields.marketingConsent' })).toBeDisabled()
+	})
 })
