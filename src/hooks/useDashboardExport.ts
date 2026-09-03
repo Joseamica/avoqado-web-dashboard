@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import { Currency } from '@/utils/currency'
 import { ComparisonPeriod } from './useDashboardData'
 import { useVenueDateTime } from '@/utils/datetime'
+import { DashboardProgressiveService } from '@/services/dashboard.progressive.service'
 
 interface UseDashboardExportProps {
   venueId: string
@@ -50,6 +51,23 @@ export const useDashboardExport = ({
   const { formatDate } = useVenueDateTime()
   const [exportLoading, setExportLoading] = useState(false)
 
+  const loadCompleteExportRows = useCallback(async () => {
+    const service = new DashboardProgressiveService(venueId)
+    try {
+      return await Promise.all([
+        service.getAllBasicMetricDetails('payments', selectedRange),
+        service.getAllBasicMetricDetails('reviews', selectedRange),
+      ])
+    } catch (error: any) {
+      // Safe rolling-deploy fallback: an older server has no details route, but
+      // also has no `meta` and therefore returned the complete legacy arrays.
+      if (error?.response?.status === 404 && !basicData?.meta) {
+        return [filteredPayments, filteredReviews]
+      }
+      throw error
+    }
+  }, [venueId, selectedRange, basicData?.meta, filteredPayments, filteredReviews])
+
   // Helper function to convert data to CSV
   const convertToCSV = (data: any[], headers: string[]): string => {
     const csvHeaders = headers.join(',')
@@ -71,8 +89,10 @@ export const useDashboardExport = ({
 
     setExportLoading(true)
     try {
+      const [completePayments, completeReviews] = await loadCompleteExportRows()
+
       // Prepare payment data for CSV
-      const paymentsForCSV = filteredPayments.map(payment => ({
+      const paymentsForCSV = completePayments.map(payment => ({
         id: payment.id,
         amount: payment.amount,
         method: payment.method,
@@ -85,7 +105,7 @@ export const useDashboardExport = ({
       }))
 
       // Prepare reviews data for CSV
-      const reviewsForCSV = filteredReviews.map(review => ({
+      const reviewsForCSV = completeReviews.map(review => ({
         id: review.id,
         stars: review.stars,
         comment: review.comment || '',
@@ -150,13 +170,15 @@ export const useDashboardExport = ({
     } finally {
       setExportLoading(false)
     }
-  }, [basicData, filteredPayments, filteredReviews, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, formatDate])
+  }, [basicData, loadCompleteExportRows, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, formatDate])
 
   const exportToJSON = useCallback(async () => {
     if (!basicData) return
 
     setExportLoading(true)
     try {
+      const [completePayments, completeReviews] = await loadCompleteExportRows()
+
       // Prepare comprehensive data for JSON export
       const exportData = {
         metadata: {
@@ -173,15 +195,15 @@ export const useDashboardExport = ({
           fiveStarReviews,
           totalTips: tipStats.totalTips,
           avgTipPercentage: parseFloat(String(tipStats.avgTipPercentage)),
-          totalPayments: filteredPayments.length,
-          totalReviews: filteredReviews.length,
+          totalPayments: completePayments.length,
+          totalReviews: completeReviews.length,
         },
-        payments: filteredPayments.map(payment => ({
+        payments: completePayments.map(payment => ({
           ...payment,
           tips: payment.tips?.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0) || 0,
           createdAt: new Date(payment.createdAt).toISOString(),
         })),
-        reviews: filteredReviews.map(review => ({
+        reviews: completeReviews.map(review => ({
           ...review,
           createdAt: new Date(review.createdAt).toISOString(),
         })),
@@ -224,8 +246,7 @@ export const useDashboardExport = ({
     }
   }, [
     basicData,
-    filteredPayments,
-    filteredReviews,
+    loadCompleteExportRows,
     paymentMethodsData,
     totalAmount,
     fiveStarReviews,

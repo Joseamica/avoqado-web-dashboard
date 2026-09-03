@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DateTime } from 'luxon'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Currency } from '@/utils/currency'
+import { resolveWeekdayBuckets } from './performanceChartData'
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
@@ -15,21 +15,11 @@ const formatAxisCurrency = (value: number): string => {
   return `$${value.toFixed(0)}`
 }
 
-const bucketByWeekday = (payments: any[], timezone: string): number[] => {
-  const buckets = new Array(7).fill(0)
-  for (const payment of payments) {
-    if (!payment?.createdAt) continue
-    const dt = DateTime.fromISO(String(payment.createdAt), { zone: 'utc' }).setZone(timezone)
-    if (!dt.isValid) continue
-    const idx = dt.weekday % 7 // luxon: 1=Mon..7=Sun → idx: Sun=0..Sat=6
-    buckets[idx] += Number(payment.amount || 0)
-  }
-  return buckets
-}
-
 interface PerformanceChartProps {
   currentPayments: any[]
   comparePayments: any[]
+  currentByWeekday?: number[]
+  compareByWeekday?: number[]
   venueTimezone: string
   currentLabel: string
   compareLabel: string
@@ -40,6 +30,8 @@ interface PerformanceChartProps {
 export function PerformanceChart({
   currentPayments,
   comparePayments,
+  currentByWeekday,
+  compareByWeekday,
   venueTimezone,
   currentLabel,
   compareLabel,
@@ -48,14 +40,14 @@ export function PerformanceChart({
   const { t } = useTranslation('home')
 
   const data = useMemo(() => {
-    const current = bucketByWeekday(currentPayments, venueTimezone)
-    const compare = bucketByWeekday(comparePayments, venueTimezone)
+    const current = resolveWeekdayBuckets(currentByWeekday, currentPayments, venueTimezone)
+    const compare = resolveWeekdayBuckets(compareByWeekday, comparePayments, venueTimezone)
     return WEEKDAY_KEYS.map((key, index) => ({
       weekday: t(`weekdays.${key}`),
       current: current[index],
       compare: compare[index],
     }))
-  }, [currentPayments, comparePayments, venueTimezone, t])
+  }, [currentPayments, comparePayments, currentByWeekday, compareByWeekday, venueTimezone, t])
 
   // Square pattern: cuando NO hay datos en ambos periodos, dejamos el chart
   // con sus ejes y la grilla pero superponemos un pill central diciéndole al

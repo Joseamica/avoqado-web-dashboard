@@ -11,7 +11,14 @@ import { test, expect, type Page } from '@playwright/test'
  * - DEV bypass:  signup → verify-email(000000) → refetch status → /setup
  * - Production:  signup → /auth/verify-email (OTP page)
  */
-const DEV_SKIPS_VERIFICATION = true // matches .env.local
+// Dev server: `.env.local` sets VITE_SKIP_EMAIL_VERIFICATION=true, so signup lands
+// on /setup. A built bundle (CI serves `dist` via `vite preview` and sets
+// E2E_BASE_URL) has no bypass and follows the production path. Override with
+// E2E_SKIP_EMAIL_VERIFICATION=true|false when the target differs from that rule.
+const DEV_SKIPS_VERIFICATION =
+  process.env.E2E_SKIP_EMAIL_VERIFICATION !== undefined
+    ? process.env.E2E_SKIP_EMAIL_VERIFICATION === 'true'
+    : !process.env.E2E_BASE_URL
 
 // ─── Helpers ────────────────────────────────────────────────────
 

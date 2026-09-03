@@ -14,12 +14,7 @@ import api from '@/api'
 
 /** Por qué NO se puede emitir la nota de crédito de un reembolso. */
 export type CreditNoteBlockReason =
-  | 'NOT_A_REFUND'
-  | 'REFUND_NOT_COMPLETED'
-  | 'NO_ORIGINAL_CFDI'
-  | 'ORIGINAL_CANCELLED'
-  | 'TIP_ONLY'
-  | 'EXCEEDS_REMAINING'
+  'NOT_A_REFUND' | 'REFUND_NOT_COMPLETED' | 'NO_ORIGINAL_CFDI' | 'ORIGINAL_CANCELLED' | 'TIP_ONLY' | 'EXCEEDS_REMAINING'
 
 export interface RefundCreditNote {
   id: string
@@ -56,6 +51,17 @@ export interface RefundCreditNoteStatus {
 export type CsdStatus = 'NONE' | 'ACTIVE' | 'EXPIRED' | 'REVOKED'
 
 export type GlobalPeriodicity = 'DIARIO' | 'SEMANAL' | 'QUINCENAL' | 'MENSUAL' | 'BIMESTRAL'
+
+/**
+ * Estado de onboarding del emisor en el PAC. `pendingSteps` trae los códigos
+ * que el PAC reporta como faltantes para timbrar en Live — el que el dashboard
+ * acciona es 'manifiesto' (la Carta Manifiesto se firma con la e.firma).
+ */
+export interface EmisorProviderStatus {
+  provisioned: boolean
+  isProductionReady: boolean
+  pendingSteps: string[]
+}
 
 export interface Emisor {
   id: string
@@ -319,6 +325,12 @@ export const cfdiService = {
   async uploadCsd(venueId: string, emisorId: string, data: UploadCsdRequest): Promise<Emisor> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/csd`, data)
     return response.data?.data ?? response.data
+  },
+
+  /** Onboarding status at the PAC (Carta Manifiesto pendiente, etc.). Read-only. */
+  async getEmisorProviderStatus(venueId: string, emisorId: string): Promise<EmisorProviderStatus> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/provider-status`)
+    return response.data?.status ?? response.data
   },
 
   async upsertMerchantConfig(venueId: string, data: UpsertMerchantConfigRequest): Promise<MerchantConfig> {

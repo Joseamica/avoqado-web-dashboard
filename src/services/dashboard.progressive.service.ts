@@ -2,9 +2,17 @@ import api from '@/api'
 
 // Types for chunked data loading
 export interface BasicMetricsData {
+  /** Listas de compatibilidad, ACOTADAS por el server (ver `meta`). Los KPIs salen de `summary`. */
   payments: any[]
   reviews: any[]
   paymentMethodsData: any[]
+  /** Sumado en Postgres sobre todo el rango (2026-09-01). Ausente sólo con un server viejo. */
+  summary?: { totalAmount: number; totalTransactions: number; totalTips: number; avgTipPercentage: number }
+  reviewStats?: { total: number; fiveStar: number }
+  /** Ventas completas por domingo..sábado; no se deriva de la muestra de filas. */
+  performanceByWeekday?: number[]
+  responseMode?: 'aggregated-v1'
+  meta?: { paymentsTruncated: boolean; paymentsTotal: number; reviewsTruncated: boolean; reviewsTotal: number }
   orderStats?: {
     totalOrders: number
     avgItemsPerOrder: number
@@ -45,19 +53,66 @@ export class DashboardProgressiveService {
       params: {
         fromDate: dateRange.from.toISOString(),
         toDate: dateRange.to.toISOString(),
+        responseMode: 'aggregated-v1',
       },
     })
     return response.data
   }
 
+  /**
+   * Recorre todas las páginas sólo para una acción explícita (CSV/JSON). La
+   * carga normal usa agregados y nunca llama a este método.
+   */
+  async getAllBasicMetricDetails(kind: 'payments' | 'reviews', dateRange: DateRange): Promise<any[]> {
+    const items: any[] = []
+    const seenCursors = new Set<string>()
+    let cursor: string | undefined
+
+    do {
+      const response = await api.get(`/api/v1/dashboard/venues/${this.venueId}/basic-metrics/details`, {
+        params: {
+          fromDate: dateRange.from.toISOString(),
+          toDate: dateRange.to.toISOString(),
+          kind,
+          limit: 500,
+          ...(cursor ? { cursor } : {}),
+        },
+      })
+      const page = response.data as { items?: any[]; nextCursor?: string | null }
+      items.push(...(page.items || []))
+
+      const nextCursor = page.nextCursor || undefined
+      if (nextCursor && seenCursors.has(nextCursor)) {
+        throw new Error(`Repeated cursor while exporting ${kind}`)
+      }
+      if (nextCursor) seenCursors.add(nextCursor)
+      cursor = nextCursor
+    } while (cursor)
+
+    return items
+  }
+
   // Get specific chart data
   async getChartData(
     chartType:
-      | 'best-selling-products' | 'tips-over-time' | 'sales-by-payment-method' | 'peak-hours' | 'weekly-trends'
-      | 'revenue-trends' | 'aov-trends' | 'order-frequency' | 'customer-satisfaction' | 'kitchen-performance'
-      | 'sales-by-weekday' | 'category-mix' | 'channel-mix' | 'sales-heatmap' | 'discount-analysis'
-      | 'reservation-overview' | 'staff-ranking',
-    dateRange: DateRange
+      | 'best-selling-products'
+      | 'tips-over-time'
+      | 'sales-by-payment-method'
+      | 'peak-hours'
+      | 'weekly-trends'
+      | 'revenue-trends'
+      | 'aov-trends'
+      | 'order-frequency'
+      | 'customer-satisfaction'
+      | 'kitchen-performance'
+      | 'sales-by-weekday'
+      | 'category-mix'
+      | 'channel-mix'
+      | 'sales-heatmap'
+      | 'discount-analysis'
+      | 'reservation-overview'
+      | 'staff-ranking',
+    dateRange: DateRange,
   ): Promise<ChartData> {
     const response = await api.get(`/api/v1/dashboard/venues/${this.venueId}/charts/${chartType}`, {
       params: {
@@ -70,9 +125,15 @@ export class DashboardProgressiveService {
 
   // Get extended metrics
   async getExtendedMetrics(
-    metricType: 'table-performance' | 'product-profitability' | 'staff-performance' | 'prep-times'
-      | 'staff-efficiency' | 'table-efficiency' | 'product-analytics',
-    dateRange: DateRange
+    metricType:
+      | 'table-performance'
+      | 'product-profitability'
+      | 'staff-performance'
+      | 'prep-times'
+      | 'staff-efficiency'
+      | 'table-efficiency'
+      | 'product-analytics',
+    dateRange: DateRange,
   ): Promise<ExtendedMetricsData> {
     const response = await api.get(`/api/v1/dashboard/venues/${this.venueId}/metrics/${metricType}`, {
       params: {

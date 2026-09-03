@@ -276,18 +276,22 @@
   },
   "walletPass": {
     "title": "Carte numérique",
-    "description": "Qu'il l'enregistre sur son iPhone et ses tampons s'ajoutent tout seuls à chaque encaissement.",
-    "scanHint": "Qu'il pointe la caméra de son iPhone vers ce code, ou envoyez-lui le lien.",
+    "description": "Proposez les deux : il l'enregistre sur son téléphone et ses tampons s'ajoutent tout seuls à chaque encaissement.",
+    "appleLabel": "iPhone",
+    "googleLabel": "Android",
+    "scanHint": "Qu'il pointe la caméra de son téléphone vers son code, ou envoyez-lui le lien.",
     "copyLink": "Copier le lien",
     "copied": "Lien copié",
     "copyFailed": "Copie impossible. Sélectionnez le lien manuellement.",
     "sendWhatsapp": "Envoyer par WhatsApp",
-    "whatsappMessage": "Bonjour {{name}}, voici votre carte {{venue}}. Ouvrez-la depuis votre iPhone pour l'enregistrer dans votre Wallet : {{url}}",
-    "iphoneOnly": "Pour l'instant, l'enregistrement ne fonctionne que sur iPhone. La version Android arrive.",
+    "whatsappMessageApple": "Bonjour {{name}}, voici votre carte {{venue}}. Ouvrez-la depuis votre iPhone pour l'enregistrer dans votre Wallet : {{url}}",
+    "whatsappMessageGoogle": "Bonjour {{name}}, voici votre carte {{venue}}. Ouvrez-la depuis votre Android pour l'enregistrer dans Google Wallet : {{url}}",
     "disabled": "Votre programme de tampons est désactivé, il n'y a donc pas encore de carte à partager.",
     "turnOn": "Activer les tampons",
     "disabledNoPermission": "Demandez à un administrateur d'activer le programme de tampons.",
-    "linkLabel": "Lien de la carte"
+    "linkLabel": "Lien de la carte {{platform}}",
+    "whatsappMessage": "Bonjour {{name}}, voici votre carte {{venue}}. Ouvrez-la depuis votre iPhone pour l'enregistrer dans votre Wallet : {{url}}",
+    "iphoneOnly": "Pour l'instant, l'enregistrement ne fonctionne que sur iPhone. La version Android arrive."
   },
   "privacyNotice": {
     "title": "Avis de confidentialité",

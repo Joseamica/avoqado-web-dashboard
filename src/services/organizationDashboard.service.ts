@@ -746,6 +746,27 @@ export interface OrgMigrationPreflight {
     reason?: 'CROSS_ORG' | 'ORIGIN_HAS_NO_MERCHANT' | 'DESTINATION_ALREADY_CONFIGURED'
     merchants: { id: string; displayName: string | null }[]
   }
+  /**
+   * The factory reset that is blocking this migration (present exactly when
+   * `MIGRATION_IN_PROGRESS` is among the blockers), described so the wizard can
+   * say when it was queued and offer the way out — cancel while the device hasn't
+   * received it, discard once it has been silent 24 h (Asana 1218069201250971).
+   * Optional for safety against a server that predates the field.
+   */
+  pendingWipe?: OrgPendingWipe | null
+}
+
+export interface OrgPendingWipe {
+  commandId: string
+  /** ISO timestamp */
+  queuedAt: string
+  status: string
+  origin: 'MIGRATION' | 'MANUAL'
+  toVenueId: string | null
+  cancellable: boolean
+  discardable: boolean
+  /** ISO timestamp — from when `discardable` becomes true */
+  discardableAt: string
 }
 
 export interface OrgMigrateExecuteResult {
@@ -830,6 +851,20 @@ export async function migrateStatusForOrg(orgId: string, terminalId: string, com
  */
 export async function migrateCancelForOrg(orgId: string, terminalId: string): Promise<{ cancelled: boolean; restoredVenueId: string }> {
   const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-cancel`)
+  return response.data.data
+}
+
+/**
+ * Discard a pending factory reset the device received but never executed, so the
+ * terminal can be migrated again. The backend only allows it once the device has
+ * been silent for 24 h since the wipe was queued (`pendingWipe.discardable`); before
+ * that — or while the wipe is still cancellable — it returns an error with a message.
+ */
+export async function migrateDiscardForOrg(
+  orgId: string,
+  terminalId: string,
+): Promise<{ discarded: number; commandIds: string[]; restoredVenueId: string }> {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-discard`)
   return response.data.data
 }
 

@@ -329,5 +329,17 @@
       "success": "Credit note issued",
       "successDetail": "{{folio}} · {{uuid}}"
     }
+  },
+  "manifiesto": {
+    "pending": "Carta Manifiesto pending",
+    "signed": "Carta Manifiesto signed",
+    "unknown": "Carta Manifiesto not verified",
+    "sign": "Sign Carta Manifiesto",
+    "modalTitle": "Sign Carta Manifiesto",
+    "efirmaNoticeTitle": "You need your SAT e.firma",
+    "efirmaNotice": "The letter is signed with the e.firma (.cer and .key files plus their password) of the invoicing RFC. It is not the CSD: it is the electronic signature of the person or company. Your certificates are not stored; they are only used to sign.",
+    "openInNewTab": "Open in a new tab",
+    "done": "I signed it",
+    "iframeTitle": "Carta Manifiesto signature"
   }
 }

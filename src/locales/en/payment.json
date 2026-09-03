@@ -2,6 +2,7 @@
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",
   "errorPrefix": "Failed to load payments",
+  "summaryUnavailable": "We couldn't load the totals. The table is still available, but we won't show zeros that may be incorrect.",
   "demoTour": {
     "next": "Next →",
     "prev": "← Back",

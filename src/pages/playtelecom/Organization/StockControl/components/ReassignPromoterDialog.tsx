@@ -20,8 +20,9 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { reassignSimsToPromoter, type BulkResponse } from '@/services/simCustody.service'
 import { useOrgPromoters } from '@/hooks/use-org-staff-by-role'
-import { useOrgStockControl } from '../hooks/useOrgStockControl'
+import { useOrgStockItemsSearch } from '../hooks/useOrgStockItemsSearch'
 import { SimMultiSelect } from './SimMultiSelect'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface Props {
   open: boolean
@@ -40,6 +41,8 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
   const [manualSerials, setManualSerials] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [searchSerials, setSearchSerials] = useState<string[]>(preselectedSerials ?? [])
+  const [itemSearch, setItemSearch] = useState('')
+  const debouncedItemSearch = useDebounce(itemSearch, 300)
   const [result, setResult] = useState<BulkResponse | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
 
@@ -53,16 +56,24 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
   }, [])
-  const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
+  const stockQuery = useOrgStockItemsSearch(
+    open ? orgId : undefined,
+    {
+      ...stockParams,
+      search: debouncedItemSearch || undefined,
+      custodyStates: ['PROMOTER_HELD', 'PROMOTER_PENDING'],
+    },
+    open,
+  )
   // Reassign targets PROMOTER_HELD / PROMOTER_PENDING SIMs — filter accordingly
   // so the search combobox only surfaces eligible items.
   const availableItems = useMemo(
     () =>
-      (stockData?.items ?? []).filter(i => {
+      (stockQuery.data?.items ?? []).filter(i => {
         const state = i.custodyState ?? 'ADMIN_HELD'
         return state === 'PROMOTER_HELD' || state === 'PROMOTER_PENDING'
       }),
-    [stockData?.items],
+    [stockQuery.data?.items],
   )
 
   const mutation = useMutation<BulkResponse, Error, void>({
@@ -91,6 +102,11 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
     onSuccess: r => {
       setResult(r)
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items-search'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
       if (r.summary.failed === 0) onDone?.()
     },
     onError: err => toast({ title: err.message ?? 'No se pudo reasignar', variant: 'destructive' }),
@@ -102,6 +118,7 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
     setManualSerials('')
     setCsvFile(null)
     setSearchSerials(preselectedSerials ?? [])
+    setItemSearch('')
     setResult(null)
     setOnlyErrors(false)
   }
@@ -163,6 +180,9 @@ export function ReassignPromoterDialog({ open, onOpenChange, orgId, venueId, pre
                   allowedStates={['PROMOTER_HELD', 'PROMOTER_PENDING']}
                   value={searchSerials}
                   onChange={setSearchSerials}
+                  searchValue={itemSearch}
+                  onSearchChange={setItemSearch}
+                  isLoading={stockQuery.isFetching}
                   placeholder={availableItems.length === 0 ? 'No hay SIMs en estado PROMOTER_HELD / PROMOTER_PENDING' : undefined}
                 />
                 <p className="text-xs text-muted-foreground">

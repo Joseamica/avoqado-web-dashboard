@@ -110,7 +110,13 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
     },
     onSuccess: r => {
       setResult(r)
+      // La pestaña «Cargas» lee de `org-stock-bulk-groups` desde bcbc9e7c: sin invalidarla,
+      // una carga recién subida no aparece hasta recargar la página a mano.
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-bulk-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
       queryClient.invalidateQueries({ queryKey: ['item-categories'] })
     },
     onError: err => toast({ title: err.message ?? 'No se pudo cargar', variant: 'destructive' }),

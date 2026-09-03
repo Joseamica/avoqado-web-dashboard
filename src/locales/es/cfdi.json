@@ -329,5 +329,17 @@
       "success": "Nota de crédito emitida",
       "successDetail": "{{folio}} · {{uuid}}"
     }
+  },
+  "manifiesto": {
+    "pending": "Carta Manifiesto pendiente",
+    "signed": "Carta Manifiesto firmada",
+    "unknown": "Carta Manifiesto sin verificar",
+    "sign": "Firmar Carta Manifiesto",
+    "modalTitle": "Firmar Carta Manifiesto",
+    "efirmaNoticeTitle": "Necesitas tu e.firma del SAT",
+    "efirmaNotice": "La carta se firma con la e.firma (archivos .cer y .key con su contraseña) del RFC que factura. No es el CSD: es la firma electrónica de la persona o empresa. Tus certificados no se almacenan; sólo se usan para firmar.",
+    "openInNewTab": "Abrir en una pestaña nueva",
+    "done": "Ya firmé",
+    "iframeTitle": "Firma de Carta Manifiesto"
   }
 }

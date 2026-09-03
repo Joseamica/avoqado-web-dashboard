@@ -17,6 +17,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { OrderDrawerContent } from './OrderDrawerContent'
+import { orderCardsForTab, orderRowMatchesTab, orderTabCounts } from './orderSummary'
 
 // Table interface for dropdowns
 interface Table {
@@ -285,25 +287,41 @@ export default function Orders() {
     staleTime: 60000, // Cache for 1 minute
   })
 
-  // Separate query to get all filter options (without filters applied)
+  // Opciones de las píldoras de filtro: valores DISTINTOS del venue, calculados en el servidor
+  // (antes: las 500 órdenes más recientes del listado, con las que se deducían aquí).
   const { data: filterOptionsData } = useQuery({
     queryKey: ['orders-filter-options', venueId],
-    queryFn: async () => {
-      const response = await orderService.getOrders(venueId, { pageIndex: 0, pageSize: 500 })
-      return response
-    },
+    queryFn: () => orderService.getOrderFilterOptions(venueId),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
 
-  // Aggregation query: fetches the FULL server-filtered set (not paginated) so
-  // the summary cards and tab counts reflect everything inside the date range /
-  // filters, not just the page currently visible in the table.
-  const { data: summaryOrders } = useQuery({
-    queryKey: ['orders-summary', venueId, statusFilter, typeFilter, tableFilter, waiterFilter, dateRange, debouncedSearchTerm],
-    queryFn: async () => {
-      const response = await orderService.getOrders(
+  // Resumen para las pestañas y las tarjetas (2026-09-01): el servidor agrega por estado con
+  // TODOS los filtros — los del listado y los de monto (total/propina) que antes se aplicaban
+  // aquí sobre 10,000 filas. `groups` = sólo los del listado (pestañas); `filteredGroups` =
+  // también los de monto (tarjetas). La pestaña activa se aplica sobre los grupos.
+  const {
+    data: ordersSummary,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    refetch: refetchSummary,
+  } = useQuery({
+    queryKey: [
+      'orders-summary',
+      venueId,
+      statusFilter,
+      typeFilter,
+      tableFilter,
+      waiterFilter,
+      dateRange,
+      debouncedSearchTerm,
+      totalFilter,
+      tipFilter,
+    ],
+    queryFn: () =>
+      orderService.getOrdersSummary(
         venueId,
-        { pageIndex: 0, pageSize: 10000 },
         {
           statuses: statusFilter.length > 0 ? statusFilter : undefined,
           types: typeFilter.length > 0 ? typeFilter : undefined,
@@ -313,68 +331,35 @@ export default function Orders() {
           startDate: dateRange.from.toISOString(),
           endDate: dateRange.to.toISOString(),
         },
-      )
-      return (response.data || []) as Order[]
-    },
+        { total: totalFilter, tip: tipFilter },
+      ),
     staleTime: 30 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
 
-  // Extract unique options for filters from unfiltered data
   const {
     statuses,
     typeOptions,
     tables,
     waiters: waiterOptions,
   } = useMemo(() => {
-    const allOrders = filterOptionsData?.data || []
-
-    // Unique statuses
-    const statusesSet = new Set(allOrders.map((o: Order) => o.status).filter(Boolean))
-
+    const orderTypesSet = new Set<string>(filterOptionsData?.types ?? [])
     // Order types + fast sales (FAST prefix = venta sin productos)
-    const orderTypesSet = new Set<string>()
-    let hasFastSales = false
-    allOrders.forEach((o: Order) => {
-      if (o.type) {
-        orderTypesSet.add(o.type)
-      }
-      if (o.orderNumber?.startsWith('FAST-')) {
-        hasFastSales = true
-      }
-    })
-
     const preferredOrderTypes = ['DINE_IN', 'TAKEOUT', 'DELIVERY', 'PICKUP']
     const orderedTypes = preferredOrderTypes.filter(type => orderTypesSet.has(type))
     const extraTypes = Array.from(orderTypesSet).filter(type => !preferredOrderTypes.includes(type))
     const typeOptions = [...orderedTypes, ...extraTypes]
-    if (hasFastSales) {
+    if (filterOptionsData?.hasFastSales) {
       typeOptions.push('FAST')
     }
-
-    // Unique tables
-    const tablesMap = new Map()
-    allOrders.forEach((o: Order) => {
-      if (o.table) {
-        tablesMap.set(o.table.id, o.table)
-      }
-    })
-
-    // Unique waiters (servedBy or createdBy)
-    const waitersMap = new Map()
-    allOrders.forEach((o: Order) => {
-      const waiter = o.servedBy || o.createdBy
-      if (waiter) {
-        waitersMap.set(waiter.id, waiter)
-      }
-    })
-
     return {
-      statuses: Array.from(statusesSet) as string[],
+      statuses: filterOptionsData?.statuses ?? [],
       typeOptions,
-      tables: Array.from(tablesMap.values()),
-      waiters: Array.from(waitersMap.values()),
+      tables: filterOptionsData?.tables ?? [],
+      waiters: filterOptionsData?.waiters ?? [],
     }
-  }, [filterOptionsData?.data])
+  }, [filterOptionsData])
 
   // Reset all filters
   const resetFilters = useCallback(() => {
@@ -422,6 +407,8 @@ export default function Orders() {
     console.log('Received dashboard update via socket:', socketData)
     // La lógica de refetch sigue siendo válida
     refetch()
+    // Las pestañas y tarjetas viven en su propia consulta: sin esto se quedan 30 s atrás de la tabla.
+    queryClient.invalidateQueries({ queryKey: ['orders-summary', venueId] })
   })
 
   // Delete mutation (SUPERADMIN only)
@@ -432,6 +419,8 @@ export default function Orders() {
         title: tCommon('superadmin.delete.success'),
       })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['orders-summary', venueId] })
       setDeleteDialogOpen(false)
       setOrderToDelete(null)
     },
@@ -472,6 +461,8 @@ export default function Orders() {
         title: tCommon('superadmin.edit.success'),
       })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['orders-summary', venueId] })
       setEditDialogOpen(false)
       setOrderToEdit(null)
     },
@@ -858,17 +849,9 @@ export default function Orders() {
   const sortedData = useMemo(() => {
     let orders: Order[] = ordersLoaded
 
-    // Status tab filter
+    // Status tab filter — la MISMA regla que usan los conteos de las pestañas (orderSummary.ts).
     if (activeStatusTab !== 'all') {
-      const tabStatusMap: Record<string, OrderStatus[]> = {
-        active: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY],
-        completed: [OrderStatus.COMPLETED],
-        cancelled: [OrderStatus.CANCELLED],
-      }
-      const allowedStatuses = tabStatusMap[activeStatusTab] || []
-      if (allowedStatuses.length > 0) {
-        orders = orders.filter((o: Order) => allowedStatuses.includes(o.status))
-      }
+      orders = orders.filter((o: Order) => orderRowMatchesTab(o, activeStatusTab))
     }
 
     // NOTE: status/type/table/waiter/search multi-select filters are applied server-side
@@ -959,18 +942,9 @@ export default function Orders() {
     // this memo's output.
   }, [ordersLoaded, activeStatusTab, sortField, sortOrder, totalFilter, tipFilter])
 
-  // Status tab counts (computed over ALL server-filtered orders, not just the
-  // paginated page, so "Activos 12" means 12 in the whole date range).
-  const statusTabCounts = useMemo(() => {
-    const allOrders = summaryOrders || []
-    const active = [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY]
-    return {
-      all: allOrders.length,
-      active: allOrders.filter((o: Order) => active.includes(o.status)).length,
-      completed: allOrders.filter((o: Order) => o.status === OrderStatus.COMPLETED).length,
-      cancelled: allOrders.filter((o: Order) => o.status === OrderStatus.CANCELLED).length,
-    }
-  }, [summaryOrders])
+  // Status tab counts — sobre TODAS las órdenes filtradas por el servidor (no sólo la página
+  // cargada): "Activos 12" significa 12 en todo el rango. Vienen agregadas.
+  const statusTabCounts = useMemo(() => orderTabCounts(ordersSummary?.groups), [ordersSummary])
 
   const orderStatusTabs = useMemo<StatusTab[]>(
     () => [
@@ -982,68 +956,16 @@ export default function Orders() {
     [t, statusTabCounts],
   )
 
-  // Summary cards — computed over ALL server-filtered orders (not just the
-  // current page) so "Total" reflects the whole date range. We still apply the
-  // status tab + client-side amount filters (total/tip) here so cards match
-  // whatever the table is currently narrowed to.
+  // Summary cards — sobre TODAS las órdenes filtradas (no sólo la página), con los filtros de
+  // monto ya aplicados por el servidor (`filteredGroups`) y la pestaña activa aplicada aquí.
   const orderSummaryCards = useMemo<SummaryCardItem[]>(() => {
-    let orders: Order[] = summaryOrders || []
-
-    if (activeStatusTab !== 'all') {
-      const tabStatusMap: Record<string, OrderStatus[]> = {
-        active: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY],
-        completed: [OrderStatus.COMPLETED],
-        cancelled: [OrderStatus.CANCELLED],
-      }
-      const allowed = tabStatusMap[activeStatusTab] || []
-      if (allowed.length > 0) orders = orders.filter((o: Order) => allowed.includes(o.status))
-    }
-
-    if (totalFilter) {
-      orders = orders.filter((o: Order) => {
-        const total = Number(o.total) || 0
-        switch (totalFilter.operator) {
-          case 'gt':
-            return total > (totalFilter.value || 0)
-          case 'lt':
-            return total < (totalFilter.value || 0)
-          case 'eq':
-            return total === (totalFilter.value || 0)
-          case 'between':
-            return total >= (totalFilter.value || 0) && total <= (totalFilter.value2 || 0)
-          default:
-            return true
-        }
-      })
-    }
-
-    if (tipFilter) {
-      orders = orders.filter((o: Order) => {
-        const tip = o.tipAmount || 0
-        switch (tipFilter.operator) {
-          case 'gt':
-            return tip > (tipFilter.value || 0)
-          case 'lt':
-            return tip < (tipFilter.value || 0)
-          case 'eq':
-            return tip === (tipFilter.value || 0)
-          case 'between':
-            return tip >= (tipFilter.value || 0) && tip <= (tipFilter.value2 || 0)
-          default:
-            return true
-        }
-      })
-    }
-
-    const count = orders.length
-    const total = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
-    const avgTicket = count > 0 ? total / count : 0
+    const { count, total, avgTicket } = orderCardsForTab(ordersSummary?.filteredGroups, activeStatusTab)
     return [
       { label: t('summaryCards.orders'), value: count, format: 'number' as const },
       { label: t('summaryCards.total'), value: total, format: 'currency' as const },
       { label: t('summaryCards.avgTicket'), value: avgTicket, format: 'currency' as const },
     ]
-  }, [summaryOrders, activeStatusTab, totalFilter, tipFilter, t])
+  }, [ordersSummary, activeStatusTab, t])
 
   // Columns offered in the ExportDialog. Server resolves each id to a value.
   const exportColumns = useMemo<ExportColumnOption[]>(
@@ -1109,11 +1031,16 @@ export default function Orders() {
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
-      <StatusFilterTabs tabs={orderStatusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
-
-      {/* Summary Cards */}
-      <SummaryCards cards={orderSummaryCards} isLoading={isLoading} className="mb-4" />
+      <SummaryQueryBoundary
+        isLoading={isSummaryLoading}
+        isError={isSummaryError}
+        message={t('summaryUnavailable')}
+        retryLabel={tCommon('retry')}
+        onRetry={() => void refetchSummary()}
+      >
+        <StatusFilterTabs tabs={orderStatusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
+        <SummaryCards cards={orderSummaryCards} className="mb-4" />
+      </SummaryQueryBoundary>
 
       {/* Pay-Later Alert Banner - Uses backend data for accurate counts */}
       {payLaterSummary && payLaterSummary.total_count > 0 && (

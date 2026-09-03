@@ -86,7 +86,8 @@
       "leftMargin": "Shift right (columns)",
       "leftMarginHint": "Leave this at 0 unless you fitted a narrow roll with adapters into a wider printer: the paper then doesn't start where the printer thinks it does, and receipts come out cut off on the left. Print the test page from the POS, read the first ruler number you can see, and enter it here.",
       "charset": "Charset",
-      "active": "Printer active"
+      "active": "Printer active",
+      "posInternalHint": "The ticket prints on the device that charged the sale (the point of sale’s built-in printer). It has no IP address and works even without internet."
     },
     "saved": "Printer saved",
     "deleted": "Printer deleted",
@@ -97,8 +98,11 @@
       "addressRequired": "Enter the printer's address.",
       "addressInvalidNetwork": "Address must be a valid host or host:port (e.g. 192.168.1.50:9100).",
       "addressInvalidBluetooth": "Address must be a valid 6-octet MAC, separated by ':' or '-' (e.g. AA:BB:CC:DD:EE:FF).",
-      "leftMarginRange": "The shift must be between 0 and 16 columns."
-    }
+      "leftMarginRange": "The shift must be between 0 and 16 columns.",
+      "addressForbiddenPosInternal": "The built-in printer takes no address: it prints on the device that charged the sale"
+    },
+    "connectionPosInternal": "POS built-in printer",
+    "integratedAddress": "POS built-in"
   },
   "gateway": {
     "intro": "The gateway is the device (a tablet) that stays on and controls the printers on the venue's network.",

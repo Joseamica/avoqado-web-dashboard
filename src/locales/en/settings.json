@@ -207,6 +207,7 @@
       "orders": "Orders",
       "payments": "Payments",
       "shifts": "Shifts",
+      "cash_drawer": "Cash Drawer",
       "tpv": "TPV Management",
       "inventory": "Inventory",
       "reviews": "Reviews",
@@ -717,7 +718,9 @@
     "defaultColor": "Default color",
     "preview": "Preview",
     "hideRole": "Hide this role from selectors",
-    "showRole": "Show this role in selectors"
+    "showRole": "Show this role in selectors",
+    "showAsSeller": "Appears as seller in the point of sale",
+    "showAsSellerDesc": "Turn it off so this role does not show in the \"Seller\" list at checkout (for example, investors)."
   },
   "areaTickets": {
     "title": "Area tickets and scales",

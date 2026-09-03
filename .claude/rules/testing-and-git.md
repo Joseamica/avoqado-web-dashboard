@@ -64,8 +64,55 @@ npm run test:e2e:debug  # Step-through debugger
 
 - Tests use `page.route()` to mock API responses — no running backend needed
 - Mock setup via `setupApiMocks(page, { userRole, venues, venueCount })` in `e2e/fixtures/api-mocks.ts`
-- When adding new features that touch UI flows, add E2E tests covering the happy path
 - Playwright routes use **LIFO matching** — register catch-all first, specific routes last
+
+### 🔴 Obligatorio: la prueba que faltaba el 2026-09-02
+
+«Añade E2E del happy path» era demasiado vago y por eso no atrapó nada. Un supervisor de
+PlayTelecom perdió una hora de operación con dos defectos que **compilaban, tenían el typecheck en
+verde y devolvían 200 en el servidor**. Estas tres pruebas son obligatorias y NO son negociables por
+ser «sólo UI»:
+
+**1. Escribir y VER el resultado.** Toda mutación que cambia una lista necesita una prueba que
+haga la acción y afirme que **la lista cambió sin recargar**. Es la única que caza una invalidación
+de caché mal dirigida, que es **silenciosa**: no hay error, no hay warning, el servidor contesta 200
+y la pantalla se queda vieja. El usuario cree que falló, reintenta, y el segundo intento sí falla.
+
+```ts
+await asignarSim(page, ICCID)
+await expect(page.getByText('1 SIM asignado')).toBeVisible()
+// 🔴 esto es la prueba, no el toast:
+await expect(fila(page, ICCID)).toContainText('Con Promotor')
+```
+
+**2. Teclear en un buscador conserva el foco.** Si la búsqueda va al servidor, entra en la
+`queryKey` y el componente corta con `if (isLoading) return`, cada tecla desmonta el `<Input>` y en
+Android se cierra el teclado.
+
+```ts
+await buscador.fill('0851')
+await expect(buscador).toBeFocused()
+await expect(buscador).toHaveValue('0851')
+```
+
+**3. Los estados que no son el happy path.** Vacío, sin resultados y error se distinguen entre sí y
+del cargando. Una lista vacía por un fallo de red que se ve igual que «no hay nada» es un reporte
+falso al usuario.
+
+**Cuándo aplica:** cualquier PR que toque un `queryKey`, un `invalidateQueries`, un buscador que
+llegue al servidor, o que mueva una lista de un endpoint a otro. Si el PR cambia de dónde lee una
+lista, la prueba 1 es la que autoriza el merge.
+
+**Cuándo NO aplica:** cambios de copy, estilos, y páginas de sólo lectura sin buscador de servidor.
+
+**Por qué E2E y no sólo vitest:** una prueba unitaria puede afirmar que las claves están bien
+cableadas hoy; Playwright afirma lo que el usuario vive («asigné y la lista no cambió») sin importar
+cómo esté cableado mañana. Las dos sirven; la que faltaba era ésta.
+
+⚠️ **Su límite, declarado:** las E2E de este repo usan respuestas fingidas. Prueban el navegador,
+no el servidor. No sustituyen verificar contra producción — y verificar en producción incluye
+**ejecutar una acción que escriba y teclear en los buscadores**, no sólo abrir pantallas y cuadrar
+totales. Ése fue exactamente el hueco ese día.
 
 ## Unused Code Detection
 

@@ -1,13 +1,13 @@
 import { GlassCard } from '@/components/ui/glass-card'
 import { Flame, Snowflake } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
-import type { OrgStockOverview } from '@/services/stockDashboard.service'
+import type { OrgStockSummaryData } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
 import { InventoryByResponsibleTable } from '../components/InventoryByResponsibleTable'
 import type { InventoryByResponsible } from '@/services/stockDashboard.service'
 
 interface OrgResumenTabProps {
-  data: OrgStockOverview
+  data: OrgStockSummaryData
   /** Tabla Ciudad › Supervisor › Promotor — el propósito de esta pantalla. */
   byResponsible?: InventoryByResponsible
   isLoadingByResponsible: boolean

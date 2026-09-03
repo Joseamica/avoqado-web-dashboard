@@ -18,6 +18,14 @@ const SUPERADMIN_EMAIL = process.env.E2E_SUPERADMIN_EMAIL ?? 'superadmin@superad
 const SUPERADMIN_PASSWORD = process.env.E2E_SUPERADMIN_PASSWORD ?? 'superadmin'
 const VENUE_SLUG = process.env.E2E_VENUE_SLUG ?? 'avoqado-full'
 
+// This file needs a live backend plus a seeded superadmin. CI has neither unless
+// someone wires E2E_API_URL (+ credentials) as GitHub variables, so there it skips
+// instead of turning the deploy gate red on a test that cannot run.
+test.skip(
+  () => !!process.env.CI && !process.env.E2E_API_URL,
+  'requires a real backend: set E2E_API_URL (+ E2E_SUPERADMIN_*) to enable in CI',
+)
+
 async function loginAsSuperadmin(page: Page) {
   // page.request shares the browser context's cookie jar, so the HttpOnly
   // accessToken/refreshToken cookies the backend sets land where the

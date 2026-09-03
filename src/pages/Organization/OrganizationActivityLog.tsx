@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
@@ -15,13 +14,13 @@ import {
   type OrgActivityLogResponse,
 } from '@/services/organizationDashboard.service'
 import { getOrganizationVenues } from '@/services/organization.service'
-import { getDateFnsLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 import { useQuery } from '@tanstack/react-query'
-import { format, type Locale } from 'date-fns'
 import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Info,
   LogIn,
   LogOut,
   Plus,
@@ -39,6 +38,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
+import { formatEntityId, toDetailRows } from '@/pages/Venue/activity-log/formatActivity'
 
 // ── Action Display Config ──
 
@@ -92,9 +92,12 @@ function formatActionFallback(action: string): string {
 // ── Component ──
 
 function OrganizationActivityLog() {
-  const { t, i18n } = useTranslation('organization')
+  const { t } = useTranslation('organization')
   const { orgId } = useParams<{ orgId: string }>()
-  const dateFnsLocale = getDateFnsLocale(i18n.language)
+  // 🔴 La zona del NEGOCIO, nunca la del navegador (regla crítica #4). Esta pantalla
+  // lista varias sucursales a la vez y el endpoint no devuelve la zona de cada una,
+  // así que TODO se pinta en una sola zona — y por eso la columna la declara.
+  const { venueTimezone, venueTimezoneShort } = useVenueDateTime()
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -226,13 +229,28 @@ function OrganizationActivityLog() {
                   <TableHead>{t('activityLog.columns.entity')}</TableHead>
                   <TableHead>{t('activityLog.columns.performedBy')}</TableHead>
                   <TableHead>{t('activityLog.columns.venue')}</TableHead>
-                  <TableHead>{t('activityLog.columns.date')}</TableHead>
+                  <TableHead>
+                    <span className="inline-flex items-center gap-1">
+                      {t('activityLog.columns.date')}
+                      <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} className="cursor-help" aria-label={t('activityLog.timezoneNote', { timezone: venueTimezone, abbr: venueTimezoneShort })}>
+                            <Info className="h-3 w-3 text-muted-foreground" aria-hidden />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">{t('activityLog.timezoneNote', { timezone: venueTimezone, abbr: venueTimezoneShort })}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </TableHead>
                   <TableHead>{t('activityLog.columns.details')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map(log => (
-                  <ActivityLogRow key={log.id} log={log} dateFnsLocale={dateFnsLocale} />
+                  <ActivityLogRow key={log.id} log={log} />
                 ))}
               </TableBody>
             </Table>
@@ -278,13 +296,30 @@ function OrganizationActivityLog() {
 
 // ── Row Component ──
 
-function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; dateFnsLocale: Locale }) {
+function ActivityLogRow({ log }: { log: OrgActivityLogEntry }) {
   const { t } = useTranslation('organization')
+  const { formatDateTime } = useVenueDateTime()
   const [expanded, setExpanded] = useState(false)
   const config = getActionConfig(log.action)
   const Icon = config.icon
 
-  const hasDetails = log.data && Object.keys(log.data).length > 0
+  const entityId = formatEntityId(log.entityId)
+  const entityLabel = log.entity ? t(`activityLog.entities.${log.entity}`, { defaultValue: log.entity }) : null
+
+  const detailRows = useMemo(
+    () =>
+      toDetailRows(
+        log.data,
+        key => {
+          const full = `activityLog.detailKeys.${key}`
+          const translated = t(full)
+          return translated === full ? null : translated
+        },
+        word => t(`activityLog.words.${word}`),
+      ),
+    [log.data, t],
+  )
+  const hasDetails = detailRows.length > 0
 
   return (
     <>
@@ -294,27 +329,29 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
             <div className={`p-1.5 rounded-md ${config.bgColor}`}>
               <Icon className={`h-3.5 w-3.5 ${config.color}`} />
             </div>
-            <Badge variant="outline" className="text-xs font-mono">
+            <span className="text-sm font-medium text-foreground">
               {t(`activityLog.actions.${log.action}`, { defaultValue: formatActionFallback(log.action) })}
-            </Badge>
+            </span>
           </div>
         </TableCell>
         <TableCell>
-          {log.entity ? (
-            <span className="text-sm">
-              {log.entity}
-              {log.entityId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground ml-1 cursor-help">
-                      #{log.entityId.slice(0, 8)}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-mono text-xs">{log.entityId}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+          {entityLabel || entityId ? (
+            <span className="text-sm text-muted-foreground">
+              {entityLabel}
+              {entityLabel && entityId && ' · '}
+              {entityId &&
+                (entityId.truncated ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help font-mono">{entityId.text}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-mono text-xs">{log.entityId}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="font-mono">{entityId.text}</span>
+                ))}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -334,7 +371,7 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm text-muted-foreground cursor-help">
-                {format(new Date(log.createdAt), 'dd MMM yyyy, HH:mm', { locale: dateFnsLocale })}
+                {formatDateTime(log.createdAt)}
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -360,9 +397,14 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
       {expanded && hasDetails && (
         <TableRow>
           <TableCell colSpan={6} className="bg-muted/50">
-            <pre className="text-xs font-mono p-2 rounded-md overflow-x-auto max-w-full">
-              {JSON.stringify(log.data, null, 2)}
-            </pre>
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-2 py-1 sm:grid-cols-2">
+              {detailRows.map(row => (
+                <div key={row.key} className="flex gap-2 text-xs">
+                  <dt className="flex-shrink-0 font-medium text-muted-foreground">{row.label}</dt>
+                  <dd className="min-w-0 flex-1 break-all text-foreground">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
           </TableCell>
         </TableRow>
       )}

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { Loader2, Search, History } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { OrgStockOverview, OrgStockOverviewItem } from '@/services/stockDashboard.service'
+import type { OrgStockOverviewItem, OrgStockOverviewParams } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
 import { STATUS_CONFIG } from '../lib/categoryConfig'
 import { CustodyStateBadge } from '../components/CustodyStateBadge'
@@ -19,10 +18,14 @@ import { ChangeCategoryDialog } from '../components/ChangeCategoryDialog'
 import { collectFromPromoter, collectFromSupervisor, type SimCustodyState } from '@/services/simCustody.service'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
-import { includesNormalized } from '@/lib/utils'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useOrgStockItems } from '../hooks/useOrgStockItems'
 
 interface OrgDetalleSimsTabProps {
-  data: OrgStockOverview
+  orgId: string
+  params: OrgStockOverviewParams
+  categories: Array<{ id: string; name: string }>
+  venues: Array<{ id: string; name: string }>
 }
 
 function fmtDateTime(iso: string | null) {
@@ -30,11 +33,11 @@ function fmtDateTime(iso: string | null) {
   return new Date(iso).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
-  const { orgId } = useParams<{ orgId: string }>()
+export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDetalleSimsTabProps) {
   const { can } = useAccess()
   const { user, staffInfo } = useAuth()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoriaFilter, setCategoriaFilter] = useState<string>('all')
   const [sucursalFilter, setSucursalFilter] = useState<string>('all')
@@ -65,51 +68,31 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
   const canChangeCategory = can('serialized-inventory:change-category') || isAdminOrAbove
   const currentStaffId = user?.id ?? null
 
-  const categorias = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const i of data.items) map.set(i.categoryId, i.categoryName)
-    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]))
-  }, [data.items])
-
-  const sucursales = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const i of data.items) {
-      if (i.registeredFromVenueId && i.registeredFromVenueName) {
-        map.set(i.registeredFromVenueId, i.registeredFromVenueName)
-      }
-    }
-    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]))
-  }, [data.items])
-
-  const filtered = useMemo(() => {
-    return data.items.filter(item => {
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false
-      if (categoriaFilter !== 'all' && item.categoryId !== categoriaFilter) return false
-      if (sucursalFilter !== 'all' && item.registeredFromVenueId !== sucursalFilter) return false
-      if (search.trim() && !includesNormalized(item.serialNumber ?? '', search)) return false
-      return true
-    })
-  }, [data.items, statusFilter, categoriaFilter, sucursalFilter, search])
+  const itemParams = useMemo(
+    () => ({
+      ...params,
+      pageSize: 50,
+      search: debouncedSearch || undefined,
+      status: statusFilter === 'all' ? undefined : (statusFilter as 'AVAILABLE' | 'SOLD' | 'RETURNED' | 'DAMAGED'),
+      categoryId: categoriaFilter === 'all' ? undefined : categoriaFilter,
+      registeredFromVenueId: sucursalFilter === 'all' ? undefined : sucursalFilter,
+    }),
+    [params, debouncedSearch, statusFilter, categoriaFilter, sucursalFilter],
+  )
+  const itemsQuery = useOrgStockItems(orgId, itemParams, true)
+  const filtered = useMemo(() => itemsQuery.data?.pages.flatMap(page => page.items) ?? [], [itemsQuery.data])
+  const total = itemsQuery.data?.pages[0]?.pagination.total ?? 0
 
   const isFiltered = search || statusFilter !== 'all' || categoriaFilter !== 'all' || sucursalFilter !== 'all'
 
-  // Infinite scroll: show BATCH_SIZE items initially, load more as user scrolls
-  const BATCH_SIZE = 50
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE)
   const sentinelRef = useRef<HTMLDivElement>(null)
-
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(BATCH_SIZE)
-  }, [filtered.length])
-
-  const visibleItems = filtered.slice(0, visibleCount)
-  const hasMore = visibleCount < filtered.length
+  const visibleItems = filtered
+  const hasMore = Boolean(itemsQuery.hasNextPage)
 
   // IntersectionObserver to load more when sentinel comes into view
   const loadMore = useCallback(() => {
-    setVisibleCount(prev => Math.min(prev + BATCH_SIZE, filtered.length))
-  }, [filtered.length])
+    if (!itemsQuery.isFetchingNextPage && itemsQuery.hasNextPage) void itemsQuery.fetchNextPage()
+  }, [itemsQuery])
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -178,31 +161,31 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
             <SelectItem value="DAMAGED">Dañado</SelectItem>
           </SelectContent>
         </Select>
-        {categorias.length > 1 && (
+        {categories.length > 1 && (
           <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
             <SelectTrigger className="w-full sm:w-[200px] h-9">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
-              {categorias.map(([id, name]) => (
-                <SelectItem key={id} value={id}>
-                  {name}
+              {categories.map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
-        {sucursales.length > 1 && (
+        {venues.length > 1 && (
           <Select value={sucursalFilter} onValueChange={setSucursalFilter}>
             <SelectTrigger className="w-full sm:w-[220px] h-9">
               <SelectValue placeholder="Sucursal" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las sucursales</SelectItem>
-              {sucursales.map(([id, name]) => (
-                <SelectItem key={id} value={id}>
-                  {name}
+              {venues.map(venue => (
+                <SelectItem key={venue.id} value={venue.id}>
+                  {venue.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -213,7 +196,7 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
       {/* Results count */}
       {isFiltered && (
         <p className="text-xs text-muted-foreground mb-3">
-          {filtered.length.toLocaleString('es-MX')} {filtered.length === 1 ? 'resultado' : 'resultados'}
+          {total.toLocaleString('es-MX')} {total === 1 ? 'resultado' : 'resultados'}
         </p>
       )}
 
@@ -260,15 +243,15 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
 
         {/* Infinite scroll sentinel + loading indicator */}
         <div ref={sentinelRef} className="h-1" />
-        {hasMore && (
+        {(hasMore || itemsQuery.isFetchingNextPage) && (
           <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" />
             Cargando más...
           </div>
         )}
-        {!hasMore && filtered.length > BATCH_SIZE && (
+        {!hasMore && total > 50 && (
           <p className="text-center text-xs text-muted-foreground py-3">
-            Mostrando {filtered.length.toLocaleString('es-MX')} de {filtered.length.toLocaleString('es-MX')} SIMs
+            Mostrando {filtered.length.toLocaleString('es-MX')} de {total.toLocaleString('es-MX')} SIMs
           </p>
         )}
       </div>
@@ -276,7 +259,7 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
       {/* Mobile card list */}
       <div className="md:hidden space-y-2">
         {filtered.length > 0 ? (
-          filtered.slice(0, 200).map(item => {
+          filtered.map(item => {
             const status = STATUS_CONFIG[item.status] ?? { label: item.status, className: 'bg-muted text-muted-foreground' }
             return (
               <div key={item.id} className="rounded-lg border border-border/50 p-3 space-y-2">
@@ -312,10 +295,11 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
         ) : (
           <p className="py-8 text-center text-muted-foreground text-sm">{isFiltered ? 'Sin resultados' : 'No hay SIMs en el período'}</p>
         )}
-        {filtered.length > 200 && (
-          <p className="py-4 text-center text-muted-foreground text-xs">
-            Mostrando 200 de {filtered.length.toLocaleString('es-MX')}. Filtra para refinar.
-          </p>
+        {hasMore && (
+          <Button variant="outline" size="sm" className="w-full" disabled={itemsQuery.isFetchingNextPage} onClick={loadMore}>
+            {itemsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Cargar más
+          </Button>
         )}
       </div>
 

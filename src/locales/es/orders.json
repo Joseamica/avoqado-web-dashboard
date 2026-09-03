@@ -2,6 +2,7 @@
   "title": "Ordenes",
   "searchPlaceholder": "Buscar",
   "errorPrefix": "Error al cargar órdenes",
+  "summaryUnavailable": "No pudimos cargar los totales. La tabla sigue disponible, pero no mostraremos ceros que puedan ser incorrectos.",
   "counter": "Mostrador",
   "columns": {
     "date": "Fecha",

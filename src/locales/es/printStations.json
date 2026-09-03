@@ -86,7 +86,8 @@
       "leftMargin": "Recorrer a la derecha (columnas)",
       "leftMarginHint": "Déjalo en 0 salvo que hayas puesto un rollo angosto con adaptadores en una impresora más ancha: ahí el papel no empieza donde la impresora cree y el ticket sale mocho de la izquierda. Imprime la página de prueba desde el POS, cuenta el primer número de la regla que alcances a ver y escríbelo aquí.",
       "charset": "Codificación",
-      "active": "Impresora activa"
+      "active": "Impresora activa",
+      "posInternalHint": "La comanda sale en el propio aparato que cobró (la impresora integrada del punto de venta). No lleva dirección IP y funciona aun sin red."
     },
     "saved": "Impresora guardada",
     "deleted": "Impresora eliminada",
@@ -97,8 +98,11 @@
       "addressRequired": "Escribe la dirección de la impresora.",
       "addressInvalidNetwork": "La dirección debe ser una IP o IP:puerto válida (ej. 192.168.1.50:9100).",
       "addressInvalidBluetooth": "La dirección debe ser una MAC válida de 6 pares, separados por ':' o '-' (ej. AA:BB:CC:DD:EE:FF).",
-      "leftMarginRange": "El corrimiento va de 0 a 16 columnas."
-    }
+      "leftMarginRange": "El corrimiento va de 0 a 16 columnas.",
+      "addressForbiddenPosInternal": "La impresora integrada no lleva dirección: imprime el propio aparato que cobró"
+    },
+    "connectionPosInternal": "Impresora integrada del POS",
+    "integratedAddress": "Integrada del POS"
   },
   "gateway": {
     "intro": "El gateway es el dispositivo (una tablet) que queda encendido y controla las impresoras en la red del local.",

@@ -45,7 +45,13 @@ export function CollectSimDialog({ open, onOpenChange, serialNumber, from, onCon
       toast({ title: 'SIM recolectado correctamente' })
       setReason('')
       onOpenChange(false)
+      // Recolectar cambia la custodia: refrescar también las claves paginadas, o el SIM
+      // recolectado sigue listado con su promotor. Ver AssignToPromoterDialog.
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
       queryClient.invalidateQueries({ queryKey: ['sim-custody-events'] })
     },
     onError: (err: unknown) => {
