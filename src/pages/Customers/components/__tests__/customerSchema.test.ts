@@ -45,3 +45,27 @@ describe('alta de cliente: correo o teléfono', () => {
     expect(schema.safeParse({ firstName: 'Valeria', lastName: '', email: '', phone: '5544102263' }).success).toBe(false)
   })
 })
+
+/**
+ * Cumpleaños (fase 0 de campañas de correo) y consentimiento de marketing.
+ *
+ * 🔴 `birthDate` es la fecha CIVIL que manda `<input type="date">`: 'YYYY-MM-DD' tal cual,
+ * sin pasar por `Date` en el cliente — evita la trampa de TZ del navegador
+ * (`new Date('1990-05-10')` cae en medianoche UTC, que en México ya es el día 9).
+ */
+describe('cumpleaños y consentimiento de marketing', () => {
+  it('acepta birthDate vacío o YYYY-MM-DD; rechaza otros formatos', () => {
+    expect(schema.safeParse({ ...base, email: 'a@b.mx', phone: '', birthDate: '', marketingConsent: false }).success).toBe(true)
+    expect(schema.safeParse({ ...base, email: 'a@b.mx', phone: '', birthDate: '1990-05-10', marketingConsent: true }).success).toBe(true)
+    expect(schema.safeParse({ ...base, email: 'a@b.mx', phone: '', birthDate: '10/05/1990', marketingConsent: false }).success).toBe(false)
+  })
+
+  it('omitir birthDate/marketingConsent no rompe el alta — quedan en sus valores por defecto', () => {
+    expect(schema.safeParse({ ...base, email: 'a@b.mx', phone: '' }).success).toBe(true)
+  })
+
+  it('un formato con hora u otro separador tampoco pasa', () => {
+    expect(schema.safeParse({ ...base, email: 'a@b.mx', phone: '', birthDate: '1990-05-10T00:00:00.000Z', marketingConsent: false }).success).toBe(false)
+    expect(schema.safeParse({ ...base, email: 'a@b.mx', phone: '', birthDate: '1990/05/10', marketingConsent: false }).success).toBe(false)
+  })
+})

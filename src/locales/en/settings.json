@@ -271,7 +271,9 @@
       "STAFF_DOCUMENTS": "Staff documents",
       "attendance": "Attendance",
       "staff_documents": "Staff documents",
-      "class_sessions": "Assigned classes"
+      "class_sessions": "Assigned classes",
+      "marketing": "Marketing",
+      "cash_drawer": "Cash Drawer"
     },
     "categoryDescriptions": {
       "home": "Access the main dashboard with business metrics and summary.",
@@ -610,7 +612,10 @@
       "staff-documents_write": "Upload and remove staff documents",
       "class-sessions_read-assigned": "View own assigned class",
       "customers_approve": "Approve new customers",
-      "cash-drawer_view-expected": "See expected drawer cash (not a blind count)"
+      "cash-drawer_view-expected": "See expected drawer cash (not a blind count)",
+      "marketing_read": "View the privacy notice",
+      "marketing_manage": "Edit the privacy notice",
+      "marketing_send": "Send email campaigns"
     },
     "permissionDescriptions": {
       "tpv_command": "Enables the specific remote command options below.",

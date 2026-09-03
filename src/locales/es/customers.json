@@ -95,7 +95,9 @@
       "lastName": "Apellido",
       "email": "Email",
       "phone": "Teléfono",
-      "group": "Grupo de Cliente"
+      "group": "Grupo de Cliente",
+      "birthDate": "Fecha de nacimiento",
+      "marketingConsent": "Acepta recibir correos de marketing (cumpleaños, promociones)"
     },
     "placeholders": {
       "firstName": "Ingresa el nombre",
@@ -111,14 +113,20 @@
       "emailInvalid": "Por favor ingresa un email válido",
       "phoneRequired": "El teléfono es requerido",
       "phoneInvalid": "El teléfono debe tener al menos 10 caracteres",
-      "emailOrPhoneRequired": "Pon al menos un correo o un teléfono para poder contactarlo"
+      "emailOrPhoneRequired": "Pon al menos un correo o un teléfono para poder contactarlo",
+      "birthDateInvalid": "La fecha debe tener el formato AAAA-MM-DD"
     },
     "buttons": {
       "create": "Crear Cliente",
       "save": "Guardar Cambios",
       "cancel": "Cancelar"
     },
-    "newCustomerDescription": "Con su nombre y un correo o un teléfono basta."
+    "newCustomerDescription": "Con su nombre y un correo o un teléfono basta.",
+    "consentNeedsNotice": "Para pedir este consentimiento, tu negocio necesita un aviso de privacidad.",
+    "consentNeedsNoticeLink": "Crear aviso de privacidad",
+    "consentNeedsNoticeNoPermission": "Pídele a un administrador que cree el aviso de privacidad.",
+    "consentNoticeChecking": "Comprobando si tu negocio ya tiene un aviso de privacidad…",
+    "consentNoticeUnknown": "No pudimos comprobar si tu negocio tiene un aviso de privacidad. Pídele a un administrador que revise tus permisos."
   },
   "delete": {
     "title": "Eliminar Cliente",
@@ -216,7 +224,8 @@
     "groupCreateSuccess": "Grupo de clientes creado exitosamente",
     "groupUpdateSuccess": "Grupo de clientes actualizado exitosamente",
     "groupDeleteSuccess": "Grupo de clientes eliminado exitosamente",
-    "error": "Ocurrió un error. Por favor intenta de nuevo."
+    "error": "Ocurrió un error. Por favor intenta de nuevo.",
+    "consentNotCaptured": "El cliente se guardó, pero no se pudo registrar su consentimiento de marketing"
   },
   "actions": {
     "newCustomer": "Nuevo Cliente",
@@ -226,7 +235,8 @@
     "viewDetails": "Ver Detalles",
     "assignToGroup": "Asignar a Grupo",
     "removeFromGroup": "Remover del Grupo",
-    "settleBalance": "Liquidar Saldo"
+    "settleBalance": "Liquidar Saldo",
+    "privacyNotice": "Aviso de privacidad"
   },
   "settleBalance": {
     "title": "Liquidar Saldo Pendiente",
@@ -279,6 +289,30 @@
     "disabled": "Tu programa de sellos está apagado, así que todavía no hay tarjeta que compartir.",
     "turnOn": "Prender los sellos",
     "disabledNoPermission": "Pídele a un administrador que prenda el programa de sellos.",
-    "linkLabel": "Liga de la tarjeta de {{platform}}"
+    "linkLabel": "Liga de la tarjeta de {{platform}}",
+    "whatsappMessage": "Hola {{name}}, aquí está tu tarjeta de {{venue}}. Ábrela desde tu iPhone para guardarla en tu Wallet: {{url}}",
+    "iphoneOnly": "Por ahora sólo se guarda en iPhone. La versión para Android viene en camino."
+  },
+  "privacyNotice": {
+    "title": "Aviso de privacidad",
+    "description": "El texto que tus clientes ven antes de aceptar recibir correos de marketing (cumpleaños, promociones).",
+    "loadingCurrent": "Consultando la versión vigente…",
+    "currentVersion": "Versión vigente: creada el {{date}} · idioma {{language}}",
+    "noVersion": "Tu negocio todavía no tiene un aviso de privacidad.",
+    "languageLabel": "Idioma",
+    "languages": {
+      "es": "Español",
+      "en": "Inglés",
+      "fr": "Francés"
+    },
+    "versionWarning": "Cada vez que guardas se crea una versión nueva. Las versiones anteriores no se pueden editar.",
+    "contentLabel": "Contenido del aviso",
+    "contentPlaceholder": "Escribe el aviso de privacidad completo…",
+    "contentHelp": "Este es el texto de tu versión vigente — puedes editarlo. Al guardar se crea una versión nueva; la anterior no se modifica.",
+    "save": "Guardar aviso",
+    "saving": "Guardando…",
+    "saveSuccess": "Aviso de privacidad guardado",
+    "saveError": "No se pudo guardar el aviso de privacidad",
+    "templateHint": "Tu negocio todavía no tiene aviso de privacidad, así que abajo dejamos una propuesta redactada con tus datos. Revísala, ajusta lo que haga falta y guárdala: hasta entonces no podrás pedirle a tus clientes permiso para enviarles promociones."
   }
 }

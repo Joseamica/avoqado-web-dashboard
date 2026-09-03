@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella 84ebda68ca26de7b.
- * ADMIN 104 · CASHIER 38 · HOST 17 · KITCHEN 9 · MANAGER 126 · OWNER 109 · SUPERADMIN 5 · VIEWER 16 · WAITER 42
+ * 9 roles · huella 4ecfeebd61a1764e.
+ * ADMIN 105 · CASHIER 39 · HOST 18 · KITCHEN 9 · MANAGER 127 · OWNER 110 · SUPERADMIN 5 · VIEWER 16 · WAITER 43
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -60,6 +60,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'marketing:*',
     'referral:read',
     'referral:configure',
     'referral:override-existing-customer',
@@ -148,6 +149,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reviews:read',
     'customers:read',
     'customers:create',
+    'marketing:read',
     'loyalty:read',
     'discounts:read',
     'upsells:read',
@@ -184,6 +186,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'estimates:create',
     'customers:read',
     'customers:create',
+    'marketing:read',
     'loyalty:read',
     'referral:read',
     'teams:read',
@@ -274,6 +277,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'inventory-transfers:receive',
     'reviews:read',
     'reviews:respond',
+    'marketing:read',
     'teams:read',
     'teams:create',
     'teams:update',
@@ -368,6 +372,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'marketing:*',
     'referral:read',
     'referral:configure',
     'referral:override-existing-customer',
@@ -484,6 +489,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reviews:read',
     'customers:read',
     'customers:create',
+    'marketing:read',
     'loyalty:read',
     'discounts:read',
     'upsells:read',
@@ -510,4 +516,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = '84ebda68ca26de7b'
+export const DEFAULT_PERMISSIONS_DIGEST = '4ecfeebd61a1764e'

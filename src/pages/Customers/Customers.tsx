@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Search, Shield, Trash2, X } from 'lucide-react'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -46,6 +46,7 @@ import { diasCivilesDesde } from '@/utils/relativeVisit'
 
 import CustomerForm from './components/CustomerForm'
 import { CustomersAwaitingApproval } from './components/CustomersAwaitingApproval'
+import { PrivacyNoticeModal } from './components/PrivacyNoticeModal'
 
 export default function Customers() {
 	const { venueId } = useCurrentVenue()
@@ -69,6 +70,7 @@ export default function Customers() {
 	const [settlingCustomer, setSettlingCustomer] = useState<Customer | null>(null)
 	const [settleNotes, setSettleNotes] = useState('')
 	const [showPendingOnly, setShowPendingOnly] = useState(false)
+	const [showPrivacyNoticeModal, setShowPrivacyNoticeModal] = useState(false)
 	const [searchTerm, setSearchTerm] = useState('')
 	const [isSearchOpen, setIsSearchOpen] = useState(false)
 	const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -375,32 +377,44 @@ export default function Customers() {
 					<p className="text-muted-foreground">{t('subtitle')}</p>
 				</div>
 
-				<PermissionGate permission="customers:create">
-					<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-						<DialogTrigger asChild>
-							<Button id="create-customer-button">
-								<Plus className="h-4 w-4 mr-2" />
-								{t('actions.newCustomer')}
-							</Button>
-						</DialogTrigger>
-						{showCreateDialog && (
-							<DialogContent className="max-w-md">
-								<DialogHeader>
-									<DialogTitle>{t('form.createTitle')}</DialogTitle>
-									<DialogDescription>{t('form.newCustomerDescription')}</DialogDescription>
-								</DialogHeader>
-								<CustomerForm
-									venueId={venueId}
-									groups={groupsData?.data || []}
-									onSuccess={() => {
-										setShowCreateDialog(false)
-										queryClient.invalidateQueries({ queryKey: ['customers', venueId] })
-									}}
-								/>
-							</DialogContent>
-						)}
-					</Dialog>
-				</PermissionGate>
+				<div className="flex items-center gap-2">
+					{/* Editor del aviso de privacidad — fase 0 de campañas de correo. Sólo
+					    quien puede editarlo lo ve aquí; el formulario de alta también trae un
+					    enlace, para cuando el checkbox de consentimiento está apagado. */}
+					<PermissionGate permission="marketing:manage">
+						<Button variant="outline" onClick={() => setShowPrivacyNoticeModal(true)}>
+							<Shield className="h-4 w-4 mr-2" />
+							{t('actions.privacyNotice')}
+						</Button>
+					</PermissionGate>
+
+					<PermissionGate permission="customers:create">
+						<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+							<DialogTrigger asChild>
+								<Button id="create-customer-button">
+									<Plus className="h-4 w-4 mr-2" />
+									{t('actions.newCustomer')}
+								</Button>
+							</DialogTrigger>
+							{showCreateDialog && (
+								<DialogContent className="max-w-md">
+									<DialogHeader>
+										<DialogTitle>{t('form.createTitle')}</DialogTitle>
+										<DialogDescription>{t('form.newCustomerDescription')}</DialogDescription>
+									</DialogHeader>
+									<CustomerForm
+										venueId={venueId}
+										groups={groupsData?.data || []}
+										onSuccess={() => {
+											setShowCreateDialog(false)
+											queryClient.invalidateQueries({ queryKey: ['customers', venueId] })
+										}}
+									/>
+								</DialogContent>
+							)}
+						</Dialog>
+					</PermissionGate>
+				</div>
 			</div>
 
 			{/* Fase 1 — quién está esperando a que el negocio lo apruebe. Se pinta solo si hay
@@ -641,6 +655,12 @@ export default function Customers() {
 					</DialogContent>
 				</Dialog>
 			)}
+
+			<PrivacyNoticeModal
+				venueId={venueId}
+				open={showPrivacyNoticeModal}
+				onClose={() => setShowPrivacyNoticeModal(false)}
+			/>
 		</div>
 	)
 }
