@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAuth } from '@/context/AuthContext'
-import { StaffRole } from '@/types'
+import { useAccess } from '@/hooks/use-access'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -48,8 +48,14 @@ export default function Shifts() {
   const _navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const { user, checkFeatureAccess } = useAuth()
-  const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
+  const { checkFeatureAccess } = useAuth()
+  // 🔴 PERMISO, no ROL. Este candado decía `user?.role === StaffRole.SUPERADMIN` mientras el
+  // servidor aceptaba `shifts:update` de un gerente: la columna estaba escondida para quien la
+  // API sí dejaba entrar por `curl`.
+  // Editar: gerente para arriba. Borrar: ADMIN/OWNER (decisión del founder, 3-sep-2026).
+  const { can } = useAccess()
+  const canEditShift = can('shifts:update')
+  const canDeleteShift = can('shifts:delete')
   const hasChatbot = checkFeatureAccess('CHATBOT')
 
   const [pagination, setPagination] = useState({
@@ -117,7 +123,7 @@ export default function Shifts() {
     onPaymentCompleted: handlePaymentCompleted,
   })
 
-  // Delete mutation (SUPERADMIN only)
+  // Borrar un turno: ADMIN/OWNER (por el comodín `shifts:*`). El gerente NO — founder, 3-sep-2026.
   const deleteShiftMutation = useMutation({
     mutationFn: (shiftId: string) => api.delete(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`),
     onSuccess: () => {
@@ -139,7 +145,7 @@ export default function Shifts() {
     },
   })
 
-  // Update mutation (SUPERADMIN only)
+  // Corregir un turno: gerente para arriba. El candado real es el del servidor; esto sólo pinta.
   const updateShiftMutation = useMutation({
     mutationFn: (data: { shiftId: string; totalSales: number; totalTips: number }) =>
       api.put(`/api/v1/dashboard/venues/${venueId}/shifts/${data.shiftId}`, {
@@ -419,33 +425,36 @@ export default function Shifts() {
         footer: props => props.column.id,
         sortingFn: 'alphanumeric',
       },
-      // Superadmin actions column
-      ...(isSuperAdmin
+      // Acciones sobre el turno: cada botón con SU permiso (editar ≠ borrar).
+      ...(canEditShift || canDeleteShift
         ? [
             {
               id: 'actions',
-              header: () => (
-                <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
-                  Superadmin
-                </span>
-              ),
+              // Decía «Superadmin» —hardcodeado, sin `t()`— y ya no es cierto: la ve el gerente.
+              header: () => <span className="text-xs font-medium text-muted-foreground">{tCommon('actions')}</span>,
               cell: ({ row }: { row: { original: any } }) => (
                 <div className="flex items-center justify-end">
-                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
-                    <Button
-                      size="icon"
-                      className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
-                      onClick={e => handleEditClick(e, row.original)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      className="h-7 w-7 bg-background hover:bg-destructive/10 text-destructive border-0"
-                      onClick={e => handleDeleteClick(e, row.original)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                  <div className="flex items-center gap-1">
+                    {canEditShift && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-foreground"
+                        onClick={e => handleEditClick(e, row.original)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {canDeleteShift && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                        onClick={e => handleDeleteClick(e, row.original)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ),
@@ -454,7 +463,7 @@ export default function Shifts() {
           ]
         : []),
     ],
-    [t, toShiftReference, formatTime, formatDate, venueTimezoneShort, isSuperAdmin, hasChatbot],
+    [t, tCommon, toShiftReference, formatTime, formatDate, venueTimezoneShort, canEditShift, canDeleteShift, hasChatbot],
   )
 
   // Search callback for DataTable
@@ -506,7 +515,7 @@ export default function Shifts() {
         setPagination={setPagination}
       />
 
-      {/* Delete confirmation dialog (SUPERADMIN only) */}
+      {/* Confirmación de borrado — ADMIN/OWNER */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -528,7 +537,7 @@ export default function Shifts() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit dialog (SUPERADMIN only) */}
+      {/* Corregir el turno — gerente para arriba */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

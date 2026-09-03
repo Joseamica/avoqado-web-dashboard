@@ -20,7 +20,7 @@ import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import api from '@/api'
-import { useAuth } from '@/context/AuthContext'
+import { useAccess } from '@/hooks/use-access'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
@@ -32,7 +32,6 @@ import {
   ShiftOrder,
   ShiftPayment,
   StaffBreakdown,
-  StaffRole,
   TopProduct,
 } from '@/types'
 import { Currency } from '@/utils/currency'
@@ -548,7 +547,7 @@ export default function ShiftId() {
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { t, i18n } = useTranslation('shifts')
   const { t: tCommon } = useTranslation('common')
-  const { user } = useAuth()
+  const { can } = useAccess()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   // State
@@ -566,7 +565,12 @@ export default function ShiftId() {
     totalTips: 0,
   })
 
-  const canEdit = user?.role === StaffRole.SUPERADMIN
+  // 🔴 PERMISO, no ROL. Decía `user?.role === StaffRole.SUPERADMIN` y el servidor nunca coincidió:
+  // `shifts:update` lo tiene el gerente desde hace tiempo (y ADMIN/OWNER por `shifts:*`). O sea que
+  // la pantalla escondía lo que la API sí aceptaba — invisible, pero alcanzable con `curl`.
+  // Editar: gerente para arriba. Borrar: ADMIN/OWNER (decisión del founder, 3-sep-2026).
+  const canEdit = can('shifts:update')
+  const canDelete = can('shifts:delete')
 
   // Fetch the shift data
   const { data: shift, isLoading } = useQuery({
@@ -846,31 +850,33 @@ export default function ShiftId() {
                         </Button>
                       </div>
                     )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {tCommon('superadmin.delete.description', { item: `Turno #${shift.turnId}` })}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteShiftMutation.mutate()}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            {deleteShiftMutation.isPending ? tCommon('deleting') : tCommon('delete')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </>
+                )}
+                {canDelete && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {tCommon('superadmin.delete.description', { item: `Turno #${shift.turnId}` })}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteShiftMutation.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deleteShiftMutation.isPending ? tCommon('deleting') : tCommon('delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </div>
