@@ -13,6 +13,11 @@
     "title": "Tu suscripción Avoqado",
     "subtitle": "Estos son los productos, importes y estados confirmados por Avoqado para este local.",
     "taxIncluded": "Total con IVA",
+    "nonPayment": {
+      "deadline": "Fecha límite: {{date}}",
+      "pendingSelection": "Tu selección pagada se activará cuando confirmemos el pago. Si no se confirma antes de esta fecha, la solicitud vencerá y tu local continuará en Free. Tu configuración y tus datos no se borrarán.",
+      "activeSubscription": "Si no confirmamos el pago antes de esta fecha, las funciones pagadas se pausarán y tu local continuará en Free. Tu configuración y tus datos no se borrarán; se restaurarán al regularizar el pago."
+    },
     "configurator": {
       "eyebrow": "Configura tu suscripción",
       "title": "Elige un paquete o arma tu Avoqado",

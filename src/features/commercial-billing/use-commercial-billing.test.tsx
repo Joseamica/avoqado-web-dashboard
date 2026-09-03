@@ -76,4 +76,20 @@ describe('useCommercialConfiguratorPreview', () => {
     await queryFn({ signal: controller.signal } as never)
     expect(mockedPreview).toHaveBeenCalledWith('venue-1', changed, controller.signal)
   })
+
+  it('keeps the last confirmed preview while a changed selection is priced', () => {
+    const selection: CommercialConfiguratorSelection = {
+      mode: 'CUSTOM',
+      billingUnit: 'VENUE_MONTH',
+      moduleCodes: [],
+    }
+
+    renderHook(() => useCommercialConfiguratorPreview('venue-1', selection, true))
+
+    const placeholderData = latestQueryOptions()?.placeholderData
+    expect(placeholderData).toBeTypeOf('function')
+    if (typeof placeholderData !== 'function') throw new Error('Expected configurator placeholderData')
+    const previousPreview = { source: 'server-confirmed-preview' }
+    expect(placeholderData(previousPreview as never, undefined as never)).toBe(previousPreview)
+  })
 })

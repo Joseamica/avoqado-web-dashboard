@@ -251,6 +251,36 @@ describe('commercial billing Dashboard surfaces', () => {
     expect(screen.queryByRole('button', { name: /pay|pagar|retry|reintentar/i })).not.toBeInTheDocument()
   })
 
+  it('shows the Server deadline and explains that an unpaid pending selection remains on Free without deleting data', () => {
+    mockOverviewQuery.mockReturnValue({
+      data: readyOverview(),
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+
+    expect(screen.getByText(/commercialBilling\.nonPayment\.deadline/)).toHaveTextContent(
+      'date:2026-09-06T18:00:00.000Z',
+    )
+    expect(screen.getByText('commercialBilling.nonPayment.pendingSelection')).toBeInTheDocument()
+  })
+
+  it('explains that an unpaid active subscription returns to Free without deleting data', () => {
+    const pendingOverview = readyOverview()
+    const overview = {
+      ...pendingOverview,
+      contract: { ...pendingOverview.contract, status: 'ACTIVE' as const },
+    }
+    mockOverviewQuery.mockReturnValue({ data: overview, isLoading: false, isError: false, refetch: vi.fn() })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+
+    expect(screen.getByText('commercialBilling.nonPayment.activeSubscription')).toBeInTheDocument()
+  })
+
   it('keeps legacy billing only when Server explicitly says there is no commercial contract', () => {
     mockOverviewQuery.mockReturnValue({
       data: { schemaVersion: 1, state: 'NO_COMMERCIAL_CONTRACT' },
@@ -512,6 +542,7 @@ describe('commercial billing Dashboard surfaces', () => {
     const summary = screen.getByTestId('commercial-configurator-summary')
     expect(within(summary).getByText('commercialBilling.configurator.updatingBadge')).toBeInTheDocument()
     expect(within(summary).queryByText('$2,239.96')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('commercial-configurator-recommendation-comparison')).not.toBeInTheDocument()
   })
 
   it('keeps the read-only subscription visible without showing a change action to users lacking manage permission', () => {

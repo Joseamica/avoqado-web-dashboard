@@ -13,6 +13,11 @@
     "title": "Your Avoqado subscription",
     "subtitle": "These products, amounts, and statuses were confirmed by Avoqado for this location.",
     "taxIncluded": "Total including VAT",
+    "nonPayment": {
+      "deadline": "Deadline: {{date}}",
+      "pendingSelection": "Your paid selection activates after we confirm payment. If it is not confirmed by this date, the request expires and your location stays on Free. Your configuration and data will not be deleted.",
+      "activeSubscription": "If we do not confirm payment by this date, paid features will be paused and your location will continue on Free. Your configuration and data will not be deleted and will be restored after payment is brought current."
+    },
     "configurator": {
       "eyebrow": "Configure your subscription",
       "title": "Choose a package or build your Avoqado",

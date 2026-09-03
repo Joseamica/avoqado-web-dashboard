@@ -12,6 +12,11 @@
     "title": "Votre abonnement Avoqado",
     "subtitle": "Ces produits, montants et états ont été confirmés par Avoqado pour cet établissement.",
     "taxIncluded": "Total TVA comprise",
+    "nonPayment": {
+      "deadline": "Date limite : {{date}}",
+      "pendingSelection": "Votre sélection payante sera activée après confirmation du paiement. Sans confirmation avant cette date, la demande expirera et l’établissement restera sur Free. Votre configuration et vos données ne seront pas supprimées.",
+      "activeSubscription": "Sans confirmation du paiement avant cette date, les fonctions payantes seront suspendues et l’établissement continuera sur Free. Votre configuration et vos données seront conservées et restaurées après régularisation."
+    },
     "configurator": {
       "eyebrow": "Configurez votre abonnement",
       "title": "Choisissez un forfait ou composez votre Avoqado",

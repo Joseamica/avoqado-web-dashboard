@@ -37,6 +37,10 @@ function CommercialSubscriptions({ overview }: { overview: CommercialBillingRead
   const { formatDate } = useVenueDateTime()
   const money = (value: string) => formatCommercialMinor(value, 'MXN', i18n.language)
   const [configuratorOpen, setConfiguratorOpen] = useState(false)
+  const unpaidDeadline = [...overview.obligations]
+    .filter(obligation => obligation.outstandingMinor !== '0')
+    .sort((left, right) => left.graceEndsAt.localeCompare(right.graceEndsAt))[0]
+  const explainsNonPayment = ['PENDING_PAYMENT', 'ACTIVE', 'PAUSED'].includes(overview.contract.status)
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-8" data-tour="commercial-billing-overview">
@@ -56,6 +60,22 @@ function CommercialSubscriptions({ overview }: { overview: CommercialBillingRead
       </div>
 
       <CollectionStatus overview={overview} />
+
+      {unpaidDeadline && explainsNonPayment && (
+        <Alert data-tour="commercial-billing-non-payment-deadline">
+          <CalendarClock />
+          <AlertTitle>
+            {t('commercialBilling.nonPayment.deadline', { date: formatDate(unpaidDeadline.graceEndsAt) })}
+          </AlertTitle>
+          <AlertDescription>
+            {t(
+              overview.contract.status === 'PENDING_PAYMENT'
+                ? 'commercialBilling.nonPayment.pendingSelection'
+                : 'commercialBilling.nonPayment.activeSubscription',
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

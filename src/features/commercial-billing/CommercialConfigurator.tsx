@@ -430,6 +430,7 @@ export function CommercialConfigurator({ overview }: { overview: CommercialBilli
   )
   const query = useCommercialConfiguratorPreview(venueId, selection, true)
   const data = query.data
+  const pricingPending = query.isFetching || query.isSelectionPending
 
   function toggleModule(code: string) {
     setModuleCodes(current => (current.includes(code) ? current.filter(item => item !== code) : [...current, code].sort()))
@@ -493,7 +494,7 @@ export function CommercialConfigurator({ overview }: { overview: CommercialBilli
           </div>
         ) : (
           <>
-            {data.preview.recommendation && mode === 'CUSTOM' && (
+            {data.preview.recommendation && mode === 'CUSTOM' && !pricingPending && (
               <div className="pt-5">
                 <Recommendation
                   recommendation={data.preview.recommendation}
@@ -516,7 +517,7 @@ export function CommercialConfigurator({ overview }: { overview: CommercialBilli
                   <CustomOptions data={data} selectedCodes={moduleCodes} onToggle={toggleModule} />
                 </TabsContent>
               </div>
-              <PricingSummary data={data} pending={query.isFetching || query.isSelectionPending} />
+              <PricingSummary data={data} pending={pricingPending} />
             </div>
           </>
         )}

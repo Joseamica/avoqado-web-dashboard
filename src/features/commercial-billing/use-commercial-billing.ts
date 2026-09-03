@@ -47,6 +47,7 @@ export function useCommercialConfiguratorPreview(
     queryKey: ['commercialBilling', 'configurator', venueId, debouncedSelection],
     queryFn: ({ signal }) => previewCommercialConfigurator(venueId!, debouncedSelection!, signal),
     enabled: Boolean(venueId) && enabled && debouncedSelection !== null,
+    placeholderData: previousData => previousData,
     staleTime: 0,
     gcTime: 60_000,
     retry: 0,
