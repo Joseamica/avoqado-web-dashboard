@@ -218,3 +218,31 @@ describe('dateFilterToRange', () => {
     expect(dateFilterToRange({ operator: 'on', value: null }, today)).toEqual({})
   })
 })
+
+/**
+ * 🔴 Una acción que el servidor emite y este catálogo no conoce NO falla: el respaldo de
+ * `labelForAction` (`VenueActivityLog.tsx`) la pinta como «Crypto payment without shift» —
+ * inglés sobre un dashboard en español. Es un defecto que este proyecto ya cazó antes, y sólo
+ * se ve mirando la pantalla.
+ *
+ * `CRYPTO_PAYMENT_WITHOUT_SHIFT` la emite `avoqado-server` (`b4bit.service.ts`) cuando un cobro
+ * cripto queda fuera de todo turno de caja, con `data: { amount, tip, total, processor, orderId }`
+ * — en PESOS, porque `formatDetailValue` los pinta verbatim.
+ */
+describe('catálogo i18n: el cobro cripto fuera de turno está registrado en los 3 idiomas', () => {
+  const catalogos = {
+    es: () => import('@/locales/es/organization.json'),
+    en: () => import('@/locales/en/organization.json'),
+    fr: () => import('@/locales/fr/organization.json'),
+  }
+
+  for (const [idioma, cargar] of Object.entries(catalogos)) {
+    it(`${idioma}: la acción y las llaves del detalle tienen etiqueta`, async () => {
+      const { activityLog } = ((await cargar()) as { default: any }).default
+      expect(activityLog.actions.CRYPTO_PAYMENT_WITHOUT_SHIFT).toBeTruthy()
+      for (const llave of ['amount', 'tip', 'total', 'processor', 'orderId']) {
+        expect(activityLog.detailKeys[llave]).toBeTruthy()
+      }
+    })
+  }
+})
