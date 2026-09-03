@@ -12,6 +12,68 @@
     "title": "Votre abonnement Avoqado",
     "subtitle": "Ces produits, montants et états ont été confirmés par Avoqado pour cet établissement.",
     "taxIncluded": "Total TVA comprise",
+    "configurator": {
+      "eyebrow": "Configurez votre abonnement",
+      "title": "Choisissez un forfait ou composez votre Avoqado",
+      "subtitle": "Ce sont deux façons de choisir le même abonnement. Avoqado confirme toujours le prix, la promotion et la taxe.",
+      "previewBadge": "Aperçu",
+      "updatingBadge": "Actualisation…",
+      "plusTax": "+ TVA",
+      "modes": { "packages": "Forfaits", "custom": "Composez votre Avoqado" },
+      "cadence": { "label": "Fréquence de facturation", "VENUE_MONTH": "Mensuel", "VENUE_YEAR": "Annuel" },
+      "packages": { "contact": "Contacter les ventes", "notAvailable": "Indisponible pour cette fréquence" },
+      "custom": { "baseIncluded": "Base requise pour ajouter des modules" },
+      "offer": {
+        "lineApplied": "Promotion appliquée",
+        "cycles_one": "Ce prix s'applique pendant {{count}} cycle",
+        "cycles_other": "Ce prix s'applique pendant {{count}} cycles",
+        "renewal": "Ensuite, renouvellement à {{amount}}, taxes comprises.",
+        "unavailableTitle": "La promotion précédente n'est plus disponible",
+        "unavailable": {
+          "OFFER_NOT_FOUND": "La version originale de l'offre est introuvable. Le tarif public est affiché et aucun paiement ne sera effectué.",
+          "OFFER_NOT_ACTIVE": "L'offre n'est plus active. Le tarif public est affiché et aucun paiement ne sera effectué.",
+          "CLAIM_WINDOW_NOT_STARTED": "L'offre ne peut pas encore être appliquée. Le tarif public est affiché et aucun paiement ne sera effectué.",
+          "CLAIM_WINDOW_ENDED": "La période pour souscrire à cette offre est terminée. Votre contrat actuel ne change pas ; cet aperçu utilise le tarif public.",
+          "OFFER_SUSPENDED": "Avoqado a temporairement suspendu cette offre. Votre contrat actuel ne change pas ; cet aperçu utilise le tarif public."
+        }
+      },
+      "summary": {
+        "title": "Votre nouvelle configuration",
+        "list": "Prix public",
+        "discount": "Remise",
+        "subtotal": "Sous-total",
+        "tax": "TVA",
+        "today": "Total aujourd'hui",
+        "renewal": "Renouvellement"
+      },
+      "recommendation": {
+        "CHEAPER_TODAY_AND_RENEWAL": {
+          "title": "{{packageName}} inclut les mêmes fonctions pour moins cher",
+          "description": "Économisez {{today}} aujourd'hui et {{renewal}} à chaque renouvellement."
+        },
+        "LOWER_RENEWAL": {
+          "title": "{{packageName}} coûte moins cher au renouvellement",
+          "description": "Votre sélection coûte {{todayAmount}} aujourd'hui ; {{packageName}} coûterait {{packageToday}} aujourd'hui. Au renouvellement, vous économiseriez {{renewal}} avec {{packageName}}."
+        },
+        "comparison": {
+          "todaySavings": "Économie aujourd'hui :",
+          "selection": "Votre sélection",
+          "savings": "Vous économisez",
+          "renewalBasis": "Comparaison au renouvellement, taxe comprise."
+        },
+        "choose": "Choisir {{packageName}}"
+      },
+      "actions": {
+        "open": "Changer de forfait ou de modules",
+        "close": "Fermer le configurateur",
+        "review": "Vérifier le changement",
+        "previewOnly": "Cet aperçu ne modifie pas votre abonnement et ne crée aucun paiement. La confirmation sera activée après validation du parcours de changement."
+      },
+      "error": {
+        "title": "Impossible de calculer cette configuration",
+        "description": "Nous n'affichons pas d'estimations locales. Demandez à nouveau le prix confirmé par Avoqado."
+      }
+    },
     "contractStatus": {
       "DRAFT": "En préparation",
       "PENDING_PAYMENT": "Paiement en attente",

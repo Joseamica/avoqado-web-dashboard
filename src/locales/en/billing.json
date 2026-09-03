@@ -13,6 +13,68 @@
     "title": "Your Avoqado subscription",
     "subtitle": "These products, amounts, and statuses were confirmed by Avoqado for this location.",
     "taxIncluded": "Total including VAT",
+    "configurator": {
+      "eyebrow": "Configure your subscription",
+      "title": "Choose a package or build your Avoqado",
+      "subtitle": "These are two ways to choose the same subscription. Avoqado always confirms the price, promotion, and tax.",
+      "previewBadge": "Preview",
+      "updatingBadge": "Updating…",
+      "plusTax": "+ VAT",
+      "modes": { "packages": "Packages", "custom": "Build your Avoqado" },
+      "cadence": { "label": "Billing frequency", "VENUE_MONTH": "Monthly", "VENUE_YEAR": "Annual" },
+      "packages": { "contact": "Contact sales", "notAvailable": "Not available for this frequency" },
+      "custom": { "baseIncluded": "Required base for adding modules" },
+      "offer": {
+        "lineApplied": "Promotion applied",
+        "cycles_one": "This price applies for {{count}} cycle",
+        "cycles_other": "This price applies for {{count}} cycles",
+        "renewal": "Afterwards it renews at {{amount}}, tax included.",
+        "unavailableTitle": "The previous promotion is no longer available",
+        "unavailable": {
+          "OFFER_NOT_FOUND": "We could not find the original offer version. We show list pricing and will not charge anything.",
+          "OFFER_NOT_ACTIVE": "The offer is no longer active. We show list pricing and will not charge anything.",
+          "CLAIM_WINDOW_NOT_STARTED": "The offer cannot be applied yet. We show list pricing and will not charge anything.",
+          "CLAIM_WINDOW_ENDED": "The window to purchase this offer ended. Your current contract does not change; this preview uses list pricing.",
+          "OFFER_SUSPENDED": "Avoqado temporarily suspended this offer. Your current contract does not change; this preview uses list pricing."
+        }
+      },
+      "summary": {
+        "title": "Your new configuration",
+        "list": "List price",
+        "discount": "Discount",
+        "subtotal": "Subtotal",
+        "tax": "VAT",
+        "today": "Total today",
+        "renewal": "Renewal"
+      },
+      "recommendation": {
+        "CHEAPER_TODAY_AND_RENEWAL": {
+          "title": "{{packageName}} includes the same features for less",
+          "description": "Save {{today}} today and {{renewal}} on every renewal."
+        },
+        "LOWER_RENEWAL": {
+          "title": "{{packageName}} costs less at renewal",
+          "description": "Your selection costs {{todayAmount}} today; {{packageName}} would cost {{packageToday}} today. At renewal, you would save {{renewal}} with {{packageName}}."
+        },
+        "comparison": {
+          "todaySavings": "Today's savings:",
+          "selection": "Your selection",
+          "savings": "You save",
+          "renewalBasis": "Renewal comparison, including tax."
+        },
+        "choose": "Choose {{packageName}}"
+      },
+      "actions": {
+        "open": "Change plan or modules",
+        "close": "Close configurator",
+        "review": "Review change",
+        "previewOnly": "This preview does not change your subscription or create a charge. Confirmation will be enabled after the change flow is validated."
+      },
+      "error": {
+        "title": "We could not price this configuration",
+        "description": "We do not show local estimates. Request the price confirmed by Avoqado again."
+      }
+    },
     "contractStatus": {
       "DRAFT": "Preparing",
       "PENDING_PAYMENT": "Payment pending",

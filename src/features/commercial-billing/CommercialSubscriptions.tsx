@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { ArrowRight, CalendarClock, CheckCircle2, Clock3, ReceiptText, TriangleAlert } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { ArrowRight, CalendarClock, CheckCircle2, Clock3, ReceiptText, Settings2, TriangleAlert, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -7,12 +7,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PermissionGate } from '@/components/PermissionGate'
 import { Separator } from '@/components/ui/separator'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import type { CommercialBillingReadyOverview } from './commercial-contract'
 import { CommercialBillingIncompatible, CommercialBillingSkeleton, CommercialBillingUnavailable } from './CommercialBillingStates'
+import { CommercialConfigurator } from './CommercialConfigurator'
 import { formatCommercialMinor } from './money'
 import { useCommercialBillingOverview } from './use-commercial-billing'
 
@@ -34,6 +36,7 @@ function CommercialSubscriptions({ overview }: { overview: CommercialBillingRead
   const { fullBasePath } = useCurrentVenue()
   const { formatDate } = useVenueDateTime()
   const money = (value: string) => formatCommercialMinor(value, 'MXN', i18n.language)
+  const [configuratorOpen, setConfiguratorOpen] = useState(false)
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-8" data-tour="commercial-billing-overview">
@@ -141,14 +144,38 @@ function CommercialSubscriptions({ overview }: { overview: CommercialBillingRead
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Button asChild variant="outline" className="cursor-pointer gap-2" data-tour="commercial-billing-view-receipts">
           <Link to={`${fullBasePath}/settings/billing/history`}>
             {t('commercialBilling.actions.viewReceipts')}
             <ArrowRight className="size-4" />
           </Link>
         </Button>
+        <PermissionGate permission="billing:subscriptions:manage">
+          <Button
+            type="button"
+            className="gap-2"
+            variant={configuratorOpen ? 'outline' : 'default'}
+            onClick={() => setConfiguratorOpen(value => !value)}
+            aria-expanded={configuratorOpen}
+            data-tour="commercial-billing-open-configurator"
+          >
+            {configuratorOpen ? <X className="size-4" /> : <Settings2 className="size-4" />}
+            {t(
+              configuratorOpen
+                ? 'commercialBilling.configurator.actions.close'
+                : 'commercialBilling.configurator.actions.open',
+            )}
+          </Button>
+        </PermissionGate>
       </div>
+
+      {configuratorOpen && (
+        <>
+          <Separator />
+          <CommercialConfigurator overview={overview} />
+        </>
+      )}
     </div>
   )
 }

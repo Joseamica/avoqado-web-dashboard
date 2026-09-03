@@ -3,8 +3,11 @@ import api from '@/api'
 import {
   parseCommercialBillingOverview,
   parseCommercialBillingReceiptPage,
+  parseCommercialConfiguratorPreview,
   type CommercialBillingOverview,
   type CommercialBillingReceiptPage,
+  type CommercialConfiguratorPreview,
+  type CommercialConfiguratorSelection,
 } from './commercial-contract'
 
 export async function getCommercialBillingOverview(venueId: string): Promise<CommercialBillingOverview> {
@@ -21,4 +24,17 @@ export async function getCommercialBillingReceipts(
     params: { ...(cursor ? { cursor } : {}), limit },
   })
   return parseCommercialBillingReceiptPage(response.data.data)
+}
+
+export async function previewCommercialConfigurator(
+  venueId: string,
+  selection: CommercialConfiguratorSelection,
+  signal?: AbortSignal,
+): Promise<CommercialConfiguratorPreview> {
+  const response = await api.post(
+    `/api/v1/dashboard/commercial/venues/${venueId}/billing/configurator/preview`,
+    { selection },
+    { signal },
+  )
+  return parseCommercialConfiguratorPreview(response.data.data)
 }

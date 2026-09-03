@@ -13,6 +13,68 @@
     "title": "Tu suscripción Avoqado",
     "subtitle": "Estos son los productos, importes y estados confirmados por Avoqado para este local.",
     "taxIncluded": "Total con IVA",
+    "configurator": {
+      "eyebrow": "Configura tu suscripción",
+      "title": "Elige un paquete o arma tu Avoqado",
+      "subtitle": "Son dos formas de elegir la misma suscripción. El precio, la promoción y el IVA siempre los confirma Avoqado.",
+      "previewBadge": "Vista previa",
+      "updatingBadge": "Actualizando…",
+      "plusTax": "+ IVA",
+      "modes": { "packages": "Paquetes", "custom": "Arma tu Avoqado" },
+      "cadence": { "label": "Frecuencia de cobro", "VENUE_MONTH": "Mensual", "VENUE_YEAR": "Anual" },
+      "packages": { "contact": "Contactar ventas", "notAvailable": "No disponible en esta frecuencia" },
+      "custom": { "baseIncluded": "Base necesaria para agregar módulos" },
+      "offer": {
+        "lineApplied": "Promoción aplicada",
+        "cycles_one": "Este precio aplica durante {{count}} ciclo",
+        "cycles_other": "Este precio aplica durante {{count}} ciclos",
+        "renewal": "Después se renueva en {{amount}}, IVA incluido.",
+        "unavailableTitle": "La promoción anterior ya no está disponible",
+        "unavailable": {
+          "OFFER_NOT_FOUND": "No encontramos la versión original de la oferta. Mostramos precio de lista y no realizaremos ningún cargo.",
+          "OFFER_NOT_ACTIVE": "La oferta dejó de estar activa. Mostramos precio de lista y no realizaremos ningún cargo.",
+          "CLAIM_WINDOW_NOT_STARTED": "La oferta todavía no puede aplicarse. Mostramos precio de lista y no realizaremos ningún cargo.",
+          "CLAIM_WINDOW_ENDED": "Terminó el periodo para contratar esta oferta. Tu contrato actual no cambia; esta vista usa precio de lista.",
+          "OFFER_SUSPENDED": "Avoqado suspendió temporalmente esta oferta. Tu contrato actual no cambia; esta vista usa precio de lista."
+        }
+      },
+      "summary": {
+        "title": "Tu nueva configuración",
+        "list": "Precio de lista",
+        "discount": "Descuento",
+        "subtotal": "Subtotal",
+        "tax": "IVA",
+        "today": "Total de hoy",
+        "renewal": "Renovación"
+      },
+      "recommendation": {
+        "CHEAPER_TODAY_AND_RENEWAL": {
+          "title": "{{packageName}} incluye lo mismo y cuesta menos",
+          "description": "Ahorras {{today}} hoy y {{renewal}} en cada renovación."
+        },
+        "LOWER_RENEWAL": {
+          "title": "{{packageName}} cuesta menos al renovar",
+          "description": "Tu selección cuesta {{todayAmount}} hoy; {{packageName}} costaría {{packageToday}} hoy. Al renovar, ahorrarías {{renewal}} con {{packageName}}."
+        },
+        "comparison": {
+          "todaySavings": "Ahorro de hoy:",
+          "selection": "Tu selección",
+          "savings": "Ahorras",
+          "renewalBasis": "Comparación por renovación, con IVA incluido."
+        },
+        "choose": "Elegir {{packageName}}"
+      },
+      "actions": {
+        "open": "Cambiar plan o módulos",
+        "close": "Cerrar configurador",
+        "review": "Revisar cambio",
+        "previewOnly": "Esta vista no modifica tu suscripción ni realiza cargos. La confirmación se habilitará después de validar el flujo de cambio."
+      },
+      "error": {
+        "title": "No pudimos calcular esta configuración",
+        "description": "No mostramos estimaciones locales. Vuelve a consultar el precio confirmado por Avoqado."
+      }
+    },
     "contractStatus": {
       "DRAFT": "En preparación",
       "PENDING_PAYMENT": "Pago pendiente",

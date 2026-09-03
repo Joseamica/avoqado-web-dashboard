@@ -1,16 +1,19 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 
 import { CommercialReceiptHistoryBoundary } from './CommercialReceiptHistory'
 import { CommercialSubscriptionsBoundary } from './CommercialSubscriptions'
 
+const { mockCan } = vi.hoisted(() => ({ mockCan: vi.fn(() => true) }))
 const mockOverviewQuery = vi.fn()
 const mockReceiptsQuery = vi.fn()
+const mockConfiguratorQuery = vi.fn()
 
 vi.mock('./use-commercial-billing', () => ({
   useCommercialBillingOverview: () => mockOverviewQuery(),
   useCommercialBillingReceipts: () => mockReceiptsQuery(),
+  useCommercialConfiguratorPreview: (...args: unknown[]) => mockConfiguratorQuery(...args),
 }))
 
 vi.mock('@/hooks/use-current-venue', () => ({
@@ -18,6 +21,10 @@ vi.mock('@/hooks/use-current-venue', () => ({
     venueId: 'venue-1',
     fullBasePath: '/venues/test',
   }),
+}))
+
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({ can: mockCan }),
 }))
 
 vi.mock('@/utils/datetime', () => ({
@@ -29,7 +36,8 @@ vi.mock('@/utils/datetime', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, values?: Record<string, unknown>) =>
+      values && Object.keys(values).length > 0 ? `${key}:${JSON.stringify(values)}` : key,
     i18n: { language: 'es-MX' },
   }),
 }))
@@ -119,9 +127,109 @@ function renderRoute(node: React.ReactNode) {
   return render(<MemoryRouter>{node}</MemoryRouter>)
 }
 
+function configuratorResult() {
+  const money = {
+    listSubtotalMinor: '213000',
+    discountMinor: '19900',
+    subtotalMinor: '193100',
+    taxMinor: '30896',
+    totalMinor: '223996',
+  }
+  const quote = {
+    lines: [
+      {
+        lineKey: 'PRODUCT:POS:POS_MONTHLY',
+        targetType: 'PRODUCT' as const,
+        targetCode: 'POS',
+        priceCode: 'POS_MONTHLY',
+        productKind: 'POS' as const,
+        name: 'Punto de venta',
+        billingUnit: 'VENUE_MONTH' as const,
+        listSubtotalMinor: '24900',
+        discountMinor: '19900',
+        subtotalMinor: '5000',
+        taxMinor: '800',
+        totalMinor: '5800',
+        promotionalCycles: 3,
+        renewalSubtotalMinor: '24900',
+        renewalTaxMinor: '3984',
+        renewalTotalMinor: '28884',
+        appliedDiscounts: [{ type: 'FIXED_PRICE' as const, cycles: 3, discountMinor: '19900' }],
+      },
+    ],
+    today: money,
+    renewal: { ...money, discountMinor: '0', subtotalMinor: '213000', taxMinor: '34080', totalMinor: '247080' },
+    entitlementCodes: ['POS_CORE'],
+  }
+  const price = (code: string, billingUnit: 'VENUE_MONTH' | 'VENUE_YEAR', amount: string) => ({
+    code,
+    billingUnit,
+    listUnitAmountMinor: amount,
+    taxRateBasisPoints: amount === '0' ? (0 as const) : (1600 as const),
+  })
+  const product = (
+    code: string,
+    name: string,
+    kind: 'PLAN' | 'POS' | 'MODULE',
+    prices: ReturnType<typeof price>[],
+    salesMode: 'SELF_SERVICE' | 'CONTACT' = 'SELF_SERVICE',
+  ) => ({ code, name, description: `${name} descripción`, kind, salesMode, capabilityCodes: ['POS_CORE'], prices })
+  return {
+    schemaVersion: 1 as const,
+    state: 'READY' as const,
+    pricing: { state: 'BOUND_OFFER_APPLIED' as const, offerVersionId: 'offer-1', offerCode: 'POS_50' },
+    preview: {
+      schemaVersion: 1 as const,
+      catalogPublicationId: 'catalog-1',
+      offer: { offerVersionId: 'offer-1', offerCode: 'POS_50' },
+      selection: { mode: 'CUSTOM' as const, billingUnit: 'VENUE_MONTH' as const, moduleCodes: [] },
+      options: {
+        packages: [
+          product('FREE', 'Free', 'PLAN', [price('FREE_MONTHLY', 'VENUE_MONTH', '0')]),
+          product('PRO', 'Pro', 'PLAN', [price('PRO_MONTHLY', 'VENUE_MONTH', '99900'), price('PRO_ANNUAL', 'VENUE_YEAR', '999000')]),
+          product('PREMIUM', 'Premium', 'PLAN', [
+            price('PREMIUM_MONTHLY', 'VENUE_MONTH', '169900'),
+            price('PREMIUM_ANNUAL', 'VENUE_YEAR', '1699000'),
+          ]),
+          product('ENTERPRISE', 'Enterprise', 'PLAN', [], 'CONTACT'),
+        ],
+        customBase: product('POS', 'Punto de venta', 'POS', [price('POS_MONTHLY', 'VENUE_MONTH', '24900')]),
+        modules: [
+          product('CFDI_MODULE', 'Facturación CFDI 4.0', 'MODULE', [price('CFDI_MONTHLY', 'VENUE_MONTH', '17900')]),
+          product('KITCHEN_DISPLAY_MODULE', 'Pantalla de cocina', 'MODULE', [
+            price('KITCHEN_DISPLAY_MONTHLY', 'VENUE_MONTH', '17900'),
+          ]),
+        ],
+      },
+      quote,
+      recommendation: {
+        reason: 'CHEAPER_TODAY_AND_RENEWAL' as const,
+        selection: { mode: 'PACKAGE' as const, packageCode: 'PREMIUM', billingUnit: 'VENUE_MONTH' as const },
+        quote: {
+          ...quote,
+          lines: [{ ...quote.lines[0], targetCode: 'PREMIUM', productKind: 'PLAN' as const, name: 'Premium' }],
+          today: { ...money, totalMinor: '197084' },
+          renewal: { ...money, totalMinor: '197084' },
+        },
+        savingsTodayMinor: '26912',
+        savingsRenewalMinor: '49996',
+      },
+    },
+  }
+}
+
 describe('commercial billing Dashboard surfaces', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCan.mockReturnValue(true)
+    mockConfiguratorQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isSelectionPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
   })
 
   it('shows Server-authoritative plan, tax, outstanding balance and review state without a payment mutation', () => {
@@ -256,5 +364,163 @@ describe('commercial billing Dashboard surfaces', () => {
     expect(screen.getByText('commercialBilling.incompatible.title')).toBeInTheDocument()
     expect(screen.getByText('COMMERCIAL_BILLING_SCHEMA_UNSUPPORTED')).toBeInTheDocument()
     expect(screen.queryByText('legacy history')).not.toBeInTheDocument()
+  })
+
+  it('opens one unified configurator with mutually exclusive package and custom modes', () => {
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+    mockConfiguratorQuery.mockReturnValue({ data: configuratorResult(), isLoading: false, isFetching: false, isError: false, refetch: vi.fn() })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+    fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
+
+    expect(screen.getByRole('tab', { name: 'commercialBilling.configurator.modes.packages' })).toBeInTheDocument()
+    const customTab = screen.getByRole('tab', { name: 'commercialBilling.configurator.modes.custom' })
+    expect(customTab).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Facturación CFDI 4.0')).toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'commercialBilling.configurator.modes.packages' }), { button: 0 })
+    expect(screen.getByText('Premium')).toBeInTheDocument()
+    const packageCall = mockConfiguratorQuery.mock.calls[mockConfiguratorQuery.mock.calls.length - 1]
+    expect(packageCall?.[1]).toMatchObject({ mode: 'PACKAGE' })
+  })
+
+  it('selects module rows without client-side money and renders the exact Server discount and renewal', () => {
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+    mockConfiguratorQuery.mockReturnValue({ data: configuratorResult(), isLoading: false, isFetching: false, isError: false, refetch: vi.fn() })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+    fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Facturación CFDI 4.0/ }))
+
+    const moduleCall = mockConfiguratorQuery.mock.calls[mockConfiguratorQuery.mock.calls.length - 1]
+    expect(moduleCall?.[1]).toEqual({
+      mode: 'CUSTOM',
+      billingUnit: 'VENUE_MONTH',
+      moduleCodes: ['CFDI_MODULE'],
+    })
+    expect(screen.getByText('−$199.00')).toBeInTheDocument()
+    expect(screen.getByText('$2,239.96')).toBeInTheDocument()
+    expect(screen.getByText(/commercialBilling\.configurator\.offer\.renewal/)).toHaveTextContent('$2,470.80')
+  })
+
+  it('shows a Server-issued equivalent-package recommendation and switches to it with one action', () => {
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+    mockConfiguratorQuery.mockReturnValue({ data: configuratorResult(), isLoading: false, isFetching: false, isError: false, refetch: vi.fn() })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+    fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
+
+    const comparison = screen.getByTestId('commercial-configurator-recommendation-comparison')
+    expect(within(comparison).getByText('commercialBilling.configurator.recommendation.comparison.selection')).toBeInTheDocument()
+    expect(within(comparison).getByText('$2,470.80')).toBeInTheDocument()
+    expect(within(comparison).getByText('Premium')).toBeInTheDocument()
+    expect(within(comparison).getByText('$1,970.84')).toBeInTheDocument()
+    expect(within(comparison).getByText('commercialBilling.configurator.recommendation.comparison.savings')).toBeInTheDocument()
+    expect(within(comparison).getByText('$499.96')).toBeInTheDocument()
+    expect(screen.getByText('$269.12')).toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'commercialBilling.configurator.recommendation.choose:{"packageName":"Premium"}',
+      }),
+    )
+    const recommendationCall = mockConfiguratorQuery.mock.calls[mockConfiguratorQuery.mock.calls.length - 1]
+    expect(recommendationCall?.[1]).toEqual({
+      mode: 'PACKAGE',
+      packageCode: 'PREMIUM',
+      billingUnit: 'VENUE_MONTH',
+    })
+  })
+
+  it('states both current totals when a package only becomes cheaper at renewal', () => {
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+    const current = configuratorResult()
+    const lowerRenewal = {
+      ...current,
+      preview: {
+        ...current.preview,
+        recommendation: {
+          ...current.preview.recommendation!,
+          reason: 'LOWER_RENEWAL' as const,
+          quote: {
+            ...current.preview.recommendation!.quote,
+            today: { ...current.preview.recommendation!.quote.today, totalMinor: '240000' },
+          },
+        },
+      },
+    }
+    mockConfiguratorQuery.mockReturnValue({
+      data: lowerRenewal,
+      isLoading: false,
+      isFetching: false,
+      isSelectionPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+    fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
+
+    expect(screen.getByText(/commercialBilling\.configurator\.recommendation\.LOWER_RENEWAL\.description/)).toHaveTextContent(
+      '"todayAmount":"$2,239.96"',
+    )
+    expect(screen.getByText(/commercialBilling\.configurator\.recommendation\.LOWER_RENEWAL\.description/)).toHaveTextContent(
+      '"packageToday":"$2,400.00"',
+    )
+  })
+
+  it('shows an explicit campaign warning when the bound promotion is unavailable', () => {
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+    const current = configuratorResult()
+    mockConfiguratorQuery.mockReturnValue({
+      data: {
+        ...current,
+        pricing: {
+          state: 'BOUND_OFFER_UNAVAILABLE' as const,
+          offerVersionId: 'offer-1',
+          offerCode: 'POS_50',
+          reason: 'OFFER_SUSPENDED' as const,
+        },
+        preview: { ...current.preview, offer: null },
+      },
+      isLoading: false,
+      isFetching: false,
+      isSelectionPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+    fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
+
+    expect(screen.getByText('commercialBilling.configurator.offer.unavailableTitle')).toBeInTheDocument()
+    expect(screen.getByText('commercialBilling.configurator.offer.unavailable.OFFER_SUSPENDED')).toBeInTheDocument()
+  })
+
+  it('does not expose stale money while a new selection is still being priced', () => {
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+    mockConfiguratorQuery.mockReturnValue({
+      data: configuratorResult(),
+      isLoading: false,
+      isFetching: false,
+      isSelectionPending: true,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+    fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
+
+    const summary = screen.getByTestId('commercial-configurator-summary')
+    expect(within(summary).getByText('commercialBilling.configurator.updatingBadge')).toBeInTheDocument()
+    expect(within(summary).queryByText('$2,239.96')).not.toBeInTheDocument()
+  })
+
+  it('keeps the read-only subscription visible without showing a change action to users lacking manage permission', () => {
+    mockCan.mockReturnValue(false)
+    mockOverviewQuery.mockReturnValue({ data: readyOverview(), isLoading: false, isError: false, refetch: vi.fn() })
+
+    renderRoute(<CommercialSubscriptionsBoundary legacy={<div>legacy billing</div>} />)
+
+    expect(screen.getByText('commercialBilling.title')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'commercialBilling.configurator.actions.open' })).not.toBeInTheDocument()
   })
 })

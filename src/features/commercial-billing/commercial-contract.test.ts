@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseCommercialBillingOverview, parseCommercialBillingReceiptPage } from './commercial-contract'
+import {
+  parseCommercialBillingOverview,
+  parseCommercialBillingReceiptPage,
+  parseCommercialConfiguratorPreview,
+} from './commercial-contract'
 import { formatCommercialMinor } from './money'
 
 const hugeMinor = '900719925474099301'
@@ -139,5 +143,81 @@ describe('commercial billing contract boundary', () => {
         items: readyOverview().recentReceipts,
       }),
     ).toThrow('COMMERCIAL_BILLING_CONTRACT_INCOMPATIBLE')
+  })
+
+  it('accepts only the strict Server-authoritative configurator price and recommendation', () => {
+    const breakdown = {
+      listSubtotalMinor: '213000',
+      discountMinor: '19900',
+      subtotalMinor: '193100',
+      taxMinor: '30896',
+      totalMinor: '223996',
+    }
+    const option = {
+      code: 'PREMIUM',
+      name: 'Premium',
+      description: 'Todo en un paquete.',
+      kind: 'PLAN',
+      salesMode: 'SELF_SERVICE',
+      capabilityCodes: ['POS_CORE'],
+      prices: [{ code: 'PREMIUM_MONTHLY', billingUnit: 'VENUE_MONTH', listUnitAmountMinor: '169900', taxRateBasisPoints: 1600 }],
+    }
+    const quote = {
+      lines: [
+        {
+          lineKey: 'PRODUCT:POS:POS_MONTHLY',
+          targetType: 'PRODUCT',
+          targetCode: 'POS',
+          priceCode: 'POS_MONTHLY',
+          productKind: 'POS',
+          name: 'Punto de venta',
+          billingUnit: 'VENUE_MONTH',
+          listSubtotalMinor: '24900',
+          discountMinor: '19900',
+          subtotalMinor: '5000',
+          taxMinor: '800',
+          totalMinor: '5800',
+          promotionalCycles: 3,
+          renewalSubtotalMinor: '24900',
+          renewalTaxMinor: '3984',
+          renewalTotalMinor: '28884',
+          appliedDiscounts: [{ type: 'FIXED_PRICE', cycles: 3, discountMinor: '19900' }],
+        },
+      ],
+      today: breakdown,
+      renewal: { ...breakdown, discountMinor: '0', subtotalMinor: '213000', taxMinor: '34080', totalMinor: '247080' },
+      entitlementCodes: ['POS_CORE'],
+    }
+    const value = {
+      schemaVersion: 1,
+      state: 'READY',
+      pricing: { state: 'BOUND_OFFER_APPLIED', offerVersionId: 'offer-1', offerCode: 'POS_50' },
+      preview: {
+        schemaVersion: 1,
+        catalogPublicationId: 'catalog-1',
+        offer: { offerVersionId: 'offer-1', offerCode: 'POS_50' },
+        selection: { mode: 'CUSTOM', billingUnit: 'VENUE_MONTH', moduleCodes: ['CFDI_MODULE'] },
+        options: {
+          packages: [option],
+          customBase: { ...option, code: 'POS', name: 'Punto de venta', kind: 'POS' },
+          modules: [{ ...option, code: 'CFDI_MODULE', name: 'Facturación CFDI 4.0', kind: 'MODULE' }],
+        },
+        quote,
+        recommendation: {
+          reason: 'LOWER_RENEWAL',
+          selection: { mode: 'PACKAGE', packageCode: 'PREMIUM', billingUnit: 'VENUE_MONTH' },
+          quote,
+          savingsTodayMinor: '0',
+          savingsRenewalMinor: '49996',
+        },
+      },
+    }
+
+    const parsed = parseCommercialConfiguratorPreview(value)
+    expect(parsed.preview.quote.lines[0]?.appliedDiscounts[0]?.discountMinor).toBe('19900')
+    expect(parsed.preview.recommendation?.savingsRenewalMinor).toBe('49996')
+    expect(() => parseCommercialConfiguratorPreview({ ...value, totalMinor: 1 })).toThrow(
+      'COMMERCIAL_CONFIGURATOR_CONTRACT_INCOMPATIBLE',
+    )
   })
 })
