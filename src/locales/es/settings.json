@@ -271,7 +271,9 @@
       "STAFF_DOCUMENTS": "Expediente del personal",
       "attendance": "Asistencia",
       "staff_documents": "Expediente del personal",
-      "class_sessions": "Clases asignadas"
+      "class_sessions": "Clases asignadas",
+      "marketing": "Marketing",
+      "cash_drawer": "Cajón de efectivo"
     },
     "categoryDescriptions": {
       "home": "Acceso al panel principal con métricas y resumen del negocio.",
@@ -615,7 +617,10 @@
       "staff-documents_write": "Subir y dar de baja documentos del expediente",
       "class-sessions_read-assigned": "Ver su propia clase asignada",
       "customers_approve": "Aprobar clientes nuevos",
-      "cash-drawer_view-expected": "Ver el efectivo esperado del cajón (sin conteo ciego)"
+      "cash-drawer_view-expected": "Ver el efectivo esperado del cajón (sin conteo ciego)",
+      "marketing_read": "Ver el aviso de privacidad",
+      "marketing_manage": "Editar el aviso de privacidad",
+      "marketing_send": "Enviar campañas de correo"
     },
     "permissionDescriptions": {
       "tpv_command": "Habilita las opciones de comandos remotos específicos a continuación.",
