@@ -127,8 +127,15 @@ export const stampCardService = {
   },
 }
 
+/** Las dos billeteras que el servidor sabe emitir. Espejo del par de rutas
+ * `/wallet/apple/:customerId` y `/wallet/google/:customerId` — un valor distinto
+ * a estos dos no falla al compilar (es un literal), asi que si el servidor algun
+ * dia agrega una tercera hay que agregarla aqui a mano. */
+export type WalletPassPlatform = 'apple' | 'google'
+
 /**
- * La liga publica que el iPhone abre para guardar la tarjeta en Wallet.
+ * La liga publica que el telefono del cliente abre para guardar la tarjeta en
+ * su Wallet — Apple Wallet o Google Wallet segun `platform`.
  *
  * 🔴 Se arma con `api.defaults.baseURL`, NO leyendo `import.meta.env.VITE_API_URL`:
  * ese baseURL ya paso por `resolveApiBaseUrl()`, que en desarrollo cae a
@@ -138,9 +145,14 @@ export const stampCardService = {
  *
  * El slug va codificado: es texto que el negocio elige, no un id garantizado.
  */
-export function buildWalletPassUrl(venueSlug: string, customerId: string, baseUrl?: string): string {
+export function buildWalletPassUrl(
+  venueSlug: string,
+  customerId: string,
+  platform: WalletPassPlatform,
+  baseUrl?: string,
+): string {
   const base = (baseUrl ?? api.defaults.baseURL ?? '').replace(/\/+$/, '')
-  return `${base}/api/v1/public/venues/${encodeURIComponent(venueSlug)}/wallet/apple/${encodeURIComponent(customerId)}`
+  return `${base}/api/v1/public/venues/${encodeURIComponent(venueSlug)}/wallet/${platform}/${encodeURIComponent(customerId)}`
 }
 
 /**

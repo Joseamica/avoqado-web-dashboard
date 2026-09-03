@@ -19,11 +19,17 @@ vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: () => true, canAny: () => true, canAll: () => true }),
 }))
 
+// 🔴 El mock interpola `platform` de verdad: si el componente algún día
+// olvida pasarlo (o pasa siempre 'apple'), las dos ligas resultantes serían
+// iguales y las pruebas de "no se cruzan las plataformas" de abajo lo cazan.
 vi.mock('@/services/walletCard.service', () => ({
-  buildWalletPassUrl: (slug: string, id: string) => `https://api.test/api/v1/public/venues/${slug}/wallet/apple/${id}`,
+  buildWalletPassUrl: (slug: string, id: string, platform: string) =>
+    `https://api.test/api/v1/public/venues/${slug}/wallet/${platform}/${id}`,
 }))
 
 const cliente = { id: 'cus_1', firstName: 'Ana', lastName: 'Pérez' }
+const APPLE_URL = 'https://api.test/api/v1/public/venues/cafe-centro/wallet/apple/cus_1'
+const GOOGLE_URL = 'https://api.test/api/v1/public/venues/cafe-centro/wallet/google/cus_1'
 
 function pintar(stampsEnabled: boolean | undefined) {
   return render(
@@ -61,48 +67,91 @@ describe('WalletPassCard', () => {
       'href',
       '/venues/cafe-centro/loyalty/card',
     )
-    expect(screen.queryByTestId('wallet-pass-qr')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wallet-pass-qr-apple')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wallet-pass-qr-google')).not.toBeInTheDocument()
   })
 
-  it('con los sellos prendidos muestra el QR y las dos formas de mandarla', () => {
+  it('con los sellos prendidos muestra LAS DOS tarjetas, cada una con su QR', () => {
+    // 🔴 Aqui no se adivina el telefono: quien mira la pantalla es el barista, y
+    // el telefono es el del cliente que tiene enfrente. Las dos van SIEMPRE, sin
+    // seleccionar ninguna por default.
     pintar(true)
-    expect(screen.getByTestId('wallet-pass-qr')).toBeInTheDocument()
-    expect(screen.getByTestId('wallet-pass-copy-btn')).toBeInTheDocument()
-    expect(screen.getByTestId('wallet-pass-whatsapp-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('wallet-pass-qr-apple')).toBeInTheDocument()
+    expect(screen.getByTestId('wallet-pass-qr-google')).toBeInTheDocument()
+    expect(screen.getByTestId('wallet-pass-copy-btn-apple')).toBeInTheDocument()
+    expect(screen.getByTestId('wallet-pass-copy-btn-google')).toBeInTheDocument()
+    expect(screen.getByTestId('wallet-pass-whatsapp-btn-apple')).toBeInTheDocument()
+    expect(screen.getByTestId('wallet-pass-whatsapp-btn-google')).toBeInTheDocument()
   })
 
-  it('el mensaje de WhatsApp lleva nombre, negocio y liga', () => {
+  it('las etiquetas iPhone y Android estan visibles, y ya NO hay disculpa de "solo iPhone"', () => {
     pintar(true)
-    const href = decodeURIComponent(screen.getByTestId('wallet-pass-whatsapp-btn').getAttribute('href') || '')
-    expect(href).toContain('name=Ana Pérez')
-    expect(href).toContain('venue=Café Centro')
-    expect(href).toContain('https://api.test/api/v1/public/venues/cafe-centro/wallet/apple/cus_1')
+    expect(screen.getByText('walletPass.appleLabel')).toBeInTheDocument()
+    expect(screen.getByText('walletPass.googleLabel')).toBeInTheDocument()
+    expect(screen.queryByText('walletPass.iphoneOnly')).not.toBeInTheDocument()
   })
 
-  it('la liga NO se enseña mientras el copiado funcione', async () => {
+  it('el mensaje de WhatsApp de iPhone lleva la liga de Apple, no la de Android', () => {
+    pintar(true)
+    const href = decodeURIComponent(screen.getByTestId('wallet-pass-whatsapp-btn-apple').getAttribute('href') || '')
+    expect(href).toContain('walletPass.whatsappMessageApple')
+    expect(href).toContain(`name=Ana Pérez`)
+    expect(href).toContain(`venue=Café Centro`)
+    expect(href).toContain(`url=${APPLE_URL}`)
+    expect(href).not.toContain(GOOGLE_URL)
+  })
+
+  it('el mensaje de WhatsApp de Android lleva la liga de Google, no la de Apple', () => {
+    pintar(true)
+    const href = decodeURIComponent(screen.getByTestId('wallet-pass-whatsapp-btn-google').getAttribute('href') || '')
+    expect(href).toContain('walletPass.whatsappMessageGoogle')
+    expect(href).toContain(`url=${GOOGLE_URL}`)
+    expect(href).not.toContain(APPLE_URL)
+  })
+
+  it('copiar en la tarjeta de iPhone copia la liga de Apple, nunca la de Android', async () => {
+    // 🔴 Si el boton de Apple llamara al handler con el id de plataforma
+    // equivocado, esta prueba fallaria: aqui SI importa cual liga viaja al
+    // portapapeles, porque son dos telefonos distintos delante del barista.
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    pintar(true)
+    fireEvent.click(screen.getByTestId('wallet-pass-copy-btn-apple'))
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith({ title: 'walletPass.copied' }))
+    expect(writeText).toHaveBeenCalledWith(APPLE_URL)
+    expect(writeText).not.toHaveBeenCalledWith(GOOGLE_URL)
+  })
+
+  it('copiar en la tarjeta de Android copia la liga de Google, nunca la de Apple', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    pintar(true)
+    fireEvent.click(screen.getByTestId('wallet-pass-copy-btn-google'))
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith({ title: 'walletPass.copied' }))
+    expect(writeText).toHaveBeenCalledWith(GOOGLE_URL)
+    expect(writeText).not.toHaveBeenCalledWith(APPLE_URL)
+  })
+
+  it('la liga NO se enseña mientras el copiado funcione, en ninguna de las dos tarjetas', async () => {
     Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
     pintar(true)
-    fireEvent.click(screen.getByTestId('wallet-pass-copy-btn'))
+    fireEvent.click(screen.getByTestId('wallet-pass-copy-btn-apple'))
     await waitFor(() => expect(toastMock).toHaveBeenCalledWith({ title: 'walletPass.copied' }))
-    expect(screen.queryByTestId('wallet-pass-url')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wallet-pass-url-apple')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wallet-pass-url-google')).not.toBeInTheDocument()
   })
 
-  it('si el portapapeles falla, REVELA la liga en vez de pedir lo imposible', async () => {
-    // 🔴 Se descubrio tocando el boton, no en ninguna prueba: el aviso decia
-    // "selecciona la liga a mano" y la liga no estaba en ningun lado de la
-    // pantalla. Sin esto, un portapapeles bloqueado deja al negocio sin salida.
+  it('si el portapapeles falla al copiar Android, revela SOLO la liga de Android', async () => {
+    // 🔴 Se descubrio tocando el boton, no en ninguna prueba (en la version de
+    // iPhone): el aviso decia "selecciona la liga a mano" y la liga no estaba
+    // en ningun lado. Ahora hay dos tarjetas — la que falla es la que se revela,
+    // la otra se queda como estaba.
     Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('bloqueado')) } })
     pintar(true)
-    fireEvent.click(screen.getByTestId('wallet-pass-copy-btn'))
-    const campo = await screen.findByTestId('wallet-pass-url')
-    expect(campo).toHaveValue('https://api.test/api/v1/public/venues/cafe-centro/wallet/apple/cus_1')
+    fireEvent.click(screen.getByTestId('wallet-pass-copy-btn-google'))
+    const campo = await screen.findByTestId('wallet-pass-url-google')
+    expect(campo).toHaveValue(GOOGLE_URL)
     expect(campo).toHaveAttribute('readonly')
-  })
-
-  it('advierte que por ahora solo es iPhone', () => {
-    // Sin este aviso el negocio le manda la liga a alguien con Android, no le
-    // abre nada, y el que queda mal es el negocio.
-    pintar(true)
-    expect(screen.getByText('walletPass.iphoneOnly')).toBeInTheDocument()
+    expect(screen.queryByTestId('wallet-pass-url-apple')).not.toBeInTheDocument()
   })
 })

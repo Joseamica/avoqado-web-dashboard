@@ -7,33 +7,51 @@ import { buildWalletPassUrl, buildPosterUrl } from '../walletCard.service'
  * negocio cree que el telefono del cliente esta fallando.
  */
 describe('buildWalletPassUrl', () => {
-  it('arma la ruta publica del pase', () => {
-    expect(buildWalletPassUrl('cafe-centro', 'cus_123', 'https://api.avoqado.io')).toBe(
+  it('arma la ruta publica del pase de Apple', () => {
+    expect(buildWalletPassUrl('cafe-centro', 'cus_123', 'apple', 'https://api.avoqado.io')).toBe(
       'https://api.avoqado.io/api/v1/public/venues/cafe-centro/wallet/apple/cus_123',
     )
   })
 
-  it('no duplica la diagonal cuando la base ya trae una', () => {
-    expect(buildWalletPassUrl('cafe', 'c1', 'https://api.avoqado.io/')).toBe(
-      'https://api.avoqado.io/api/v1/public/venues/cafe/wallet/apple/c1',
+  it('arma la ruta publica del pase de Google, no la de Apple', () => {
+    // 🔴 Esta es la prueba que protege a Tarea 13: si `platform` se ignorara (o
+    // quedara pegado a 'apple' por default), esta ruta seria identica a la de
+    // arriba y el boton de Android abriria la tarjeta de iPhone.
+    expect(buildWalletPassUrl('cafe-centro', 'cus_123', 'google', 'https://api.avoqado.io')).toBe(
+      'https://api.avoqado.io/api/v1/public/venues/cafe-centro/wallet/google/cus_123',
     )
   })
 
-  it('codifica un slug con caracteres que romperian la ruta', () => {
-    // El slug lo escribe el negocio: un espacio o un acento partirian la URL en dos
-    // y el servidor respondaria 404 sobre un venue que si existe.
-    const url = buildWalletPassUrl('café del sur', 'c1', 'https://api.avoqado.io')
-    expect(url).toContain('/venues/caf%C3%A9%20del%20sur/wallet/')
-    expect(url).not.toContain(' ')
+  it('no duplica la diagonal cuando la base ya trae una', () => {
+    expect(buildWalletPassUrl('cafe', 'c1', 'apple', 'https://api.avoqado.io/')).toBe(
+      'https://api.avoqado.io/api/v1/public/venues/cafe/wallet/apple/c1',
+    )
+    expect(buildWalletPassUrl('cafe', 'c1', 'google', 'https://api.avoqado.io/')).toBe(
+      'https://api.avoqado.io/api/v1/public/venues/cafe/wallet/google/c1',
+    )
   })
 
-  it('codifica el id del cliente', () => {
-    expect(buildWalletPassUrl('cafe', 'a/b', 'https://api.avoqado.io')).toContain('/wallet/apple/a%2Fb')
+  it('codifica un slug con caracteres que romperian la ruta, en las dos plataformas', () => {
+    // El slug lo escribe el negocio: un espacio o un acento partirian la URL en dos
+    // y el servidor respondaria 404 sobre un venue que si existe.
+    const apple = buildWalletPassUrl('café del sur', 'c1', 'apple', 'https://api.avoqado.io')
+    expect(apple).toContain('/venues/caf%C3%A9%20del%20sur/wallet/')
+    expect(apple).not.toContain(' ')
+
+    const google = buildWalletPassUrl('café del sur', 'c1', 'google', 'https://api.avoqado.io')
+    expect(google).toContain('/venues/caf%C3%A9%20del%20sur/wallet/')
+    expect(google).not.toContain(' ')
+  })
+
+  it('codifica el id del cliente, en las dos plataformas', () => {
+    expect(buildWalletPassUrl('cafe', 'a/b', 'apple', 'https://api.avoqado.io')).toContain('/wallet/apple/a%2Fb')
+    expect(buildWalletPassUrl('cafe', 'a/b', 'google', 'https://api.avoqado.io')).toContain('/wallet/google/a%2Fb')
   })
 
   it('no revienta cuando todavia no hay base resuelta', () => {
     // Peor caso: devuelve una ruta relativa valida, no la cadena "undefined/api/...".
-    expect(buildWalletPassUrl('cafe', 'c1', '')).toBe('/api/v1/public/venues/cafe/wallet/apple/c1')
+    expect(buildWalletPassUrl('cafe', 'c1', 'apple', '')).toBe('/api/v1/public/venues/cafe/wallet/apple/c1')
+    expect(buildWalletPassUrl('cafe', 'c1', 'google', '')).toBe('/api/v1/public/venues/cafe/wallet/google/c1')
   })
 })
 
