@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import marketingService, { type PrivacyNoticeLanguage } from '@/services/marketing.service'
+import { tieneAvisoPublicado } from '@/lib/privacy-notice'
 import { useVenueDateTime } from '@/utils/datetime'
 
 interface PrivacyNoticeModalProps {
@@ -59,7 +60,13 @@ export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModa
 		// Precarga el texto vigente — editar ya no significa reescribir desde cero.
 		// Guardar sigue creando una versión NUEVA (ver docstring arriba): esto sólo
 		// evita que el usuario tenga que copiar/pegar lo que ya existe.
-		setContent(notice?.content ?? '')
+		//
+		// 🔴 Y si el negocio NO tiene aviso propio, se precarga la PROPUESTA que el servidor
+		// arma con sus datos (`draftContent`). Sin esto el editor abre en blanco frente a un
+		// texto legal que el dueño no sabe redactar — y sin aviso publicado el servidor
+		// RECHAZA capturar consentimiento, así que la hoja vacía detiene la feature entera.
+		// Es una propuesta por revisar, no un aviso ya suyo: el aviso de abajo lo dice.
+		setContent(notice?.content ?? notice?.draftContent ?? '')
 		setLanguage((notice?.language as PrivacyNoticeLanguage) || 'es')
 		initializedRef.current = true
 	}, [open, isLoading, notice?.language, notice?.content])
@@ -103,7 +110,7 @@ export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModa
 				<div className="rounded-2xl border border-border/50 bg-card p-4 text-sm" data-testid="privacy-notice-current-version">
 					{isLoading ? (
 						<span className="text-muted-foreground">{t('privacyNotice.loadingCurrent')}</span>
-					) : notice ? (
+					) : tieneAvisoPublicado(notice) && notice?.createdAt ? (
 						<span>
 							{t('privacyNotice.currentVersion', {
 								date: formatDate(notice.createdAt),
@@ -114,6 +121,13 @@ export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModa
 						<span className="text-muted-foreground">{t('privacyNotice.noVersion')}</span>
 					)}
 				</div>
+
+				{notice?.esPlantilla && (
+					<Alert data-testid="privacy-notice-template-hint">
+						<Info className="h-4 w-4" aria-hidden="true" />
+						<AlertDescription>{t('privacyNotice.templateHint')}</AlertDescription>
+					</Alert>
+				)}
 
 				<Alert>
 					<Info className="h-4 w-4" aria-hidden="true" />

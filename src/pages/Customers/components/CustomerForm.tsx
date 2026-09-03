@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import customerService from '@/services/customer.service'
 import marketingService from '@/services/marketing.service'
+import { tieneAvisoPublicado } from '@/lib/privacy-notice'
 import type { Customer, CustomerGroup } from '@/types/customer'
 
 // Predefined colors for groups
@@ -71,7 +72,12 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 		queryFn: () => marketingService.getPrivacyNotice(venueId),
 		enabled: Boolean(venueId),
 	})
-	const hasPrivacyNotice = Boolean(privacyNoticeData?.notice)
+	// 🔴 NO es `Boolean(notice)`: desde la fase 1C-A el servidor devuelve SIEMPRE un objeto
+	// `notice` — cuando el negocio no tiene aviso propio, manda una PLANTILLA de precarga con
+	// `content: null` y `esPlantilla: true`. Con `Boolean(notice)` este candado quedó siempre
+	// abierto y la casilla de consentimiento se habilitaba sin aviso publicado, que es
+	// exactamente lo que el servidor rechaza al guardar. Un solo sitio decide esto.
+	const hasPrivacyNotice = tieneAvisoPublicado(privacyNoticeData?.notice)
 	// HOST/WAITER/CASHIER tienen `customers:create` pero podrían no tener `marketing:read`
 	// (override de rol personalizado) — un 403 aquí NO significa "no hay aviso", significa
 	// "no pudimos verificar". Tratarlo como "no hay aviso" es FALSO y culpa al negocio de

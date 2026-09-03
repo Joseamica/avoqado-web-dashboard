@@ -312,6 +312,7 @@
     "save": "Enregistrer l'avis",
     "saving": "Enregistrement…",
     "saveSuccess": "Avis de confidentialité enregistré",
-    "saveError": "Impossible d'enregistrer l'avis de confidentialité"
+    "saveError": "Impossible d'enregistrer l'avis de confidentialité",
+    "templateHint": "Votre établissement n'a pas encore d'avis de confidentialité ; vous trouverez ci-dessous une proposition rédigée avec vos données. Relisez-la, ajustez ce qui doit l'être et enregistrez-la : jusque-là, vous ne pourrez pas demander à vos clients l'autorisation de leur envoyer des promotions."
   }
 }
