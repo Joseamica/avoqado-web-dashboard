@@ -314,5 +314,81 @@
     "saveSuccess": "Aviso de privacidad guardado",
     "saveError": "No se pudo guardar el aviso de privacidad",
     "templateHint": "Tu negocio todavía no tiene aviso de privacidad, así que abajo dejamos una propuesta redactada con tus datos. Revísala, ajusta lo que haga falta y guárdala: hasta entonces no podrás pedirle a tus clientes permiso para enviarles promociones."
+  },
+  "campaigns": {
+    "title": "Campañas de correo",
+    "subtitle": "Escríbele a tus clientes: promociones, novedades y avisos.",
+    "new": "Nueva campaña",
+    "newTitle": "Nueva campaña",
+    "editTitle": "Editar campaña",
+    "saveDraft": "Guardar borrador",
+    "saving": "Guardando…",
+    "saved": "Campaña guardada",
+    "saveError": "No se pudo guardar la campaña",
+    "send": "Enviar",
+    "sendError": "No se pudo enviar la campaña",
+    "sent": "Campaña enviada a {{count}} clientes",
+    "content": "Contenido del correo",
+    "failedCount": "{{count}} con error",
+    "columns": {
+      "name": "Campaña",
+      "status": "Estado",
+      "audience": "A quién",
+      "delivery": "Entregados",
+      "createdAt": "Creada"
+    },
+    "status": {
+      "DRAFT": "Borrador",
+      "SCHEDULED": "Programada",
+      "ENQUEUED": "En cola",
+      "SENDING": "Enviando",
+      "SENT": "Enviada",
+      "CANCELLED": "Cancelada",
+      "BLOCKED": "Bloqueada",
+      "EXPIRED": "Vencida"
+    },
+    "audience": {
+      "ALL_CONSENTED": "Todos los que dieron permiso",
+      "GROUP": "Un grupo de clientes",
+      "TAGS": "Por etiquetas"
+    },
+    "empty": {
+      "title": "Todavía no has creado ninguna campaña",
+      "body": "Una campaña es un correo que le llega a los clientes que te dieron permiso de escribirles. Empieza por una promoción o una novedad."
+    },
+    "fields": {
+      "name": "Nombre de la campaña",
+      "namePlaceholder": "Promoción de fin de semana",
+      "nameHelp": "Sólo lo ves tú, para reconocerla en la lista.",
+      "subject": "Asunto del correo",
+      "subjectPlaceholder": "20% de descuento este fin de semana",
+      "subjectHelp": "Es lo primero que ve el cliente en su bandeja.",
+      "audience": "A quién le llega",
+      "audienceHelp": "Sólo se le escribe a quien dio su permiso expreso."
+    },
+    "blocks": {
+      "heading": "Título",
+      "paragraph": "Texto",
+      "image": "Imagen",
+      "button": "Botón",
+      "divider": "Separador",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "remove": "Quitar",
+      "altPlaceholder": "Describe la imagen (para quien no puede verla)",
+      "labelPlaceholder": "Texto del botón",
+      "urlPlaceholder": "https://…"
+    },
+    "sendDialog": {
+      "title": "Enviar la campaña",
+      "description": "Esto no se puede deshacer: el correo sale de inmediato.",
+      "counting": "Contando a cuántos clientes le va a llegar…",
+      "countError": "No se pudo contar a los destinatarios",
+      "recipients": "clientes recibirán este correo",
+      "noRecipients": "Ningún cliente te ha dado permiso todavía para enviarle promociones. Pídeselo al registrarlo o pon la casilla en tu formulario de clientes.",
+      "cancel": "Cancelar",
+      "confirm": "Enviar a {{count}} clientes",
+      "sending": "Enviando…"
+    }
   }
 }

@@ -314,5 +314,81 @@
     "saveSuccess": "Privacy notice saved",
     "saveError": "Couldn't save the privacy notice",
     "templateHint": "Your business doesn't have a privacy notice yet, so below is a draft written with your details. Review it, adjust anything you need and save it: until then you won't be able to ask your customers for permission to send them promotions."
+  },
+  "campaigns": {
+    "title": "Email campaigns",
+    "subtitle": "Write to your customers: promotions, news and announcements.",
+    "new": "New campaign",
+    "newTitle": "New campaign",
+    "editTitle": "Edit campaign",
+    "saveDraft": "Save draft",
+    "saving": "Saving…",
+    "saved": "Campaign saved",
+    "saveError": "Couldn't save the campaign",
+    "send": "Send",
+    "sendError": "Couldn't send the campaign",
+    "sent": "Campaign sent to {{count}} customers",
+    "content": "Email content",
+    "failedCount": "{{count}} failed",
+    "columns": {
+      "name": "Campaign",
+      "status": "Status",
+      "audience": "Audience",
+      "delivery": "Delivered",
+      "createdAt": "Created"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "ENQUEUED": "Queued",
+      "SENDING": "Sending",
+      "SENT": "Sent",
+      "CANCELLED": "Cancelled",
+      "BLOCKED": "Blocked",
+      "EXPIRED": "Expired"
+    },
+    "audience": {
+      "ALL_CONSENTED": "Everyone who opted in",
+      "GROUP": "A customer group",
+      "TAGS": "By tags"
+    },
+    "empty": {
+      "title": "You haven't created any campaigns yet",
+      "body": "A campaign is an email that reaches the customers who gave you permission to write to them. Start with a promotion or an announcement."
+    },
+    "fields": {
+      "name": "Campaign name",
+      "namePlaceholder": "Weekend promotion",
+      "nameHelp": "Only you see this — it helps you find it in the list.",
+      "subject": "Email subject",
+      "subjectPlaceholder": "20% off this weekend",
+      "subjectHelp": "It's the first thing the customer sees in their inbox.",
+      "audience": "Who receives it",
+      "audienceHelp": "Only customers who gave explicit permission."
+    },
+    "blocks": {
+      "heading": "Heading",
+      "paragraph": "Text",
+      "image": "Image",
+      "button": "Button",
+      "divider": "Divider",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove",
+      "altPlaceholder": "Describe the image (for people who cannot see it)",
+      "labelPlaceholder": "Button text",
+      "urlPlaceholder": "https://…"
+    },
+    "sendDialog": {
+      "title": "Send the campaign",
+      "description": "This can't be undone: the email goes out right away.",
+      "counting": "Counting how many customers will receive it…",
+      "countError": "Couldn't count the recipients",
+      "recipients": "customers will receive this email",
+      "noRecipients": "No customer has given you permission to send promotions yet. Ask when you register them, or add the checkbox to your customer form.",
+      "cancel": "Cancel",
+      "confirm": "Send to {{count}} customers",
+      "sending": "Sending…"
+    }
   }
 }
