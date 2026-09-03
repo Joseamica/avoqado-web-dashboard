@@ -41,6 +41,7 @@ import {
   CreateMenu,
   CreateModifierGroup,
   CustomerDetail,
+  Campaigns,
   CustomerGroups,
   Customers,
   DiscountDetail,
@@ -575,6 +576,16 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'groups', element: <CustomerGroups /> },
         { path: ':customerId', element: <CustomerDetail /> },
       ],
+    },
+
+    // Campañas de correo a clientes (PRO). 🔴 NO cuelga de `customers`: ese padre exige
+    // `customers:read`, que tienen roles de piso, y aquí el permiso es `marketing:manage`
+    // — el mismo que el servidor exige para listar. La pantalla además se pinta dentro de
+    // <FeatureGate feature="CUSTOMER_CAMPAIGNS">, que es el candado del PLAN.
+    {
+      path: 'campaigns',
+      element: <PermissionProtectedRoute permission="marketing:manage" />,
+      children: [{ index: true, element: <Campaigns /> }],
     },
 
     // Reservation Management (core feature — permission-gated only)

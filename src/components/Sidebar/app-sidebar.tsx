@@ -555,6 +555,21 @@ export function AppSidebar({
         })
       }
 
+      // Campañas de correo del negocio a SUS clientes (PRO) — TEASER VISIBLE, igual que
+      // lealtad: la entrada se ve con la insignia del plan y la pantalla pinta el
+      // <FeatureGate>. 🔴 El permiso es `marketing:manage`, NO `:read` — `:read` lo tienen
+      // roles de piso (cajero, mesero) y con él verían todos los borradores y el conteo de
+      // audiencia de cada campaña. Y como en el resto de este archivo: nunca
+      // `checkFeatureAccess` aquí, que no puede gatear por tier.
+      items.push({
+        title: t('sidebar:customersMenu.campaigns', { defaultValue: 'Campañas de correo' }),
+        url: 'campaigns',
+        permission: 'marketing:manage',
+        premiumLocked: !hasFeatureAccess('CUSTOMER_CAMPAIGNS'),
+        gatedFeature: 'CUSTOMER_CAMPAIGNS',
+        keywords: ['campanas', 'campañas', 'correo', 'email', 'promociones', 'newsletter', 'cumpleanos', 'cumpleaños'],
+      })
+
       // Referral program — same gating posture as loyalty (per-venue toggle + per-org WL feature).
       // Backend permission 'referral:read' filters the menu out for staff that can't see it.
       items.push({

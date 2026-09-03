@@ -70,6 +70,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Upsell "¿Algo más?" en la pantalla del cliente y la franja del cajero.
       // El MOTOR es PRO; sólo la generación por IA es Premium (ver UPSELL_AI abajo).
       'UPSELL',
+      // Campañas de correo del negocio a SUS clientes (promos, cumpleaños). No confundir
+      // con el Marketing de superadmin, que es Avoqado → los venues.
+      'CUSTOMER_CAMPAIGNS',
     ],
   },
   {

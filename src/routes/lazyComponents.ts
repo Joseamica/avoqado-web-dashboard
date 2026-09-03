@@ -179,6 +179,7 @@ export const BillingTokens = lazyWithRetry(() => import('@/pages/Settings/Billin
 export const Customers = lazyWithRetry(() => import('@/pages/Customers/Customers'))
 export const CustomerDetail = lazyWithRetry(() => import('@/pages/Customers/CustomerDetail'))
 export const CustomerGroups = lazyWithRetry(() => import('@/pages/Customers/CustomerGroups'))
+export const Campaigns = lazyWithRetry(() => import('@/pages/Customers/Campaigns'))
 
 // Public Booking
 export const PublicBookingPage = lazyWithRetry(() => import('@/pages/Booking/PublicBookingPage'))
