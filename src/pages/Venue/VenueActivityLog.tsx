@@ -1,15 +1,13 @@
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { GlassCard } from '@/components/ui/glass-card'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FeatureGate } from '@/components/billing/FeatureGate'
-import { useDebounce } from '@/hooks/useDebounce'
+import { DateFilterContent, FilterPill, FilterPillBar, SingleSelectFilterContent, type DateFilter } from '@/components/filters'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useDebounce } from '@/hooks/useDebounce'
+import { cn } from '@/lib/utils'
+import { teamService } from '@/services/team.service'
 import {
   getVenueActivityLog,
   getVenueActivityLogActions,
@@ -17,123 +15,121 @@ import {
   type VenueActivityLogFilters,
   type VenueActivityLogResponse,
 } from '@/services/venueActivity.service'
-import { teamService } from '@/services/team.service'
+import { useVenueDateTime } from '@/utils/datetime'
 import { useQuery } from '@tanstack/react-query'
 import {
+  AlertTriangle,
+  Ban,
+  Banknote,
+  Boxes,
+  CalendarClock,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleCheck,
   FileText,
   LogIn,
+  Pencil,
   Plus,
+  Printer,
   ScrollText,
   Search,
-  Settings,
   Shield,
+  ShoppingCart,
   Smartphone,
   Store,
   Trash2,
-  UserCheck,
-  UserX,
-  Zap,
+  User,
+  Tag,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { actionTone, dateFilterToRange, formatEntityId, groupByDay, toDetailRows, type ActionTone } from './activity-log/formatActivity'
 
-// ── Sensitive-key redaction (defense-in-depth) ──
+// ── Presentación de la acción ─────────────────────────────────────────────────
 
-const SENSITIVE_KEY_RE = /pass(word)?|secret|token|api[-_]?key|authorization|auth|cvv|clabe|\bpan\b|card[-_]?number|account[-_]?number|private[-_]?key/i
-
-function redactSensitive(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(redactSensitive)
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) =>
-        SENSITIVE_KEY_RE.test(k) ? [k, '••• redacted'] : [k, redactSensitive(v)],
-      ),
-    )
-  }
-  return value
+/** Colores por tono. Cada uno lleva su variante dark explícita. */
+const TONE_STYLES: Record<ActionTone, { icon: string; dot: string }> = {
+  destructive: { icon: 'text-red-600 dark:text-red-400', dot: 'bg-red-500' },
+  attention: { icon: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
+  positive: { icon: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  neutral: { icon: 'text-muted-foreground', dot: 'bg-muted-foreground/40' },
 }
 
-// ── Action Display Config ──
+/**
+ * Icono por FAMILIA de acción, no por código exacto.
+ * El servidor emite más de 500 códigos: un mapa uno a uno se queda atrás y la
+ * acción nueva sale sin icono. Se evalúa en orden — gana la primera que casa.
+ */
+const ICON_RULES: Array<[RegExp, React.ElementType]> = [
+  [/PERMISSION|ROLE|KYC|OVERRIDE/, Shield],
+  [/LOGIN|LOGOUT|SESSION|INVIT|PIN_/, LogIn],
+  [/PAYMENT|REFUND|CASH|SETTLEMENT|COMMISSION|PAYOUT|MERCHANT|CFDI|LEDGER|JOURNAL|EXPENSE|PAYROLL|CREDIT|RATE_|REVENUE|FINANCIAL|TOKENS/, Banknote],
+  [/STOCK|INVENTORY|RAW_MATERIAL|RECIPE|BATCH|TRANSFER|SERIALIZED|SIM_/, Boxes],
+  [/PURCHASE_ORDER|SUPPLIER|PURCHASE_INVOICE/, ShoppingCart],
+  [/MENU|PRODUCT|MODIFIER|CATEGORY|CATALOG|PROMOTION|DISCOUNT|COUPON|UPSELL/, Tag],
+  [/TERMINAL|TPV|DEVICE|DISPLAY_MODE|SCALE/, Smartphone],
+  [/PRINT/, Printer],
+  [/STAFF|TEAM|EMPLOYEE|USER_|CUSTOMER|WAITLIST/, User],
+  [/SHIFT|SCHEDULE|OVERTIME|TIME_ENTRY|ATTENDANCE|RESERVATION|CLASS_SESSION/, CalendarClock],
+  [/VENUE|ORGANIZATION|ORG_|SETTINGS|CONFIG|FEATURE|PLAN_|ZONE|TABLE|FLOOR/, Store],
+  [/DENIED|REJECTED|FAILED|BLOCKED|LOCKED/, Ban],
+  [/DELETED|REMOVED|CANCELLED|VOIDED/, Trash2],
+  [/CREATED|ADDED|ISSUED|GENERATED/, Plus],
+  [/APPROVED|CONFIRMED|COMPLETED|RESOLVED/, CircleCheck],
+  [/UPDATED|CHANGED|_SET$|REORDERED|EDIT/, Pencil],
+]
 
-interface ActionConfig {
-  icon: React.ElementType
-  color: string
-  bgColor: string
+function iconFor(action: string): React.ElementType {
+  // Lo negado manda sobre el sustantivo: PERMISSION_DENIED debe leerse como un
+  // bloqueo, no como "algo de permisos".
+  if (/DENIED|REJECTED|FAILED|LOCKED|INSUFFICIENT/.test(action)) return Ban
+  for (const [re, Icon] of ICON_RULES) if (re.test(action)) return Icon
+  return FileText
 }
 
-const ACTION_CONFIG: Record<string, ActionConfig> = {
-  TERMINAL_CREATED: { icon: Plus, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  TERMINAL_UPDATED: { icon: Settings, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  TERMINAL_DELETED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  COMMAND_SENT: { icon: Zap, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-  ACTIVATION_CODE_GENERATED: { icon: Smartphone, color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-  MERCHANTS_ASSIGNED: { icon: Smartphone, color: 'text-indigo-600 dark:text-indigo-400', bgColor: 'bg-indigo-100 dark:bg-indigo-900/30' },
-  ROLE_CHANGED: { icon: Shield, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-  USER_ACTIVATED: { icon: UserCheck, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  USER_DEACTIVATED: { icon: UserX, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  MASTER_LOGIN_SUCCESS: { icon: LogIn, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-  MASTER_LOGIN_FAILED: { icon: LogIn, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  VENUE_CREATED: { icon: Store, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  VENUE_UPDATED: { icon: Store, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  VENUE_DELETED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  VENUE_ASSIGNED: { icon: Plus, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  VENUE_REMOVED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  SETTINGS_UPDATED: { icon: Settings, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  PASSWORD_RESET: { icon: Shield, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-}
+// ── Pantalla ──────────────────────────────────────────────────────────────────
 
-const DEFAULT_ACTION_CONFIG: ActionConfig = {
-  icon: FileText,
-  color: 'text-muted-foreground',
-  bgColor: 'bg-muted',
-}
-
-function getActionConfig(action: string): ActionConfig {
-  return ACTION_CONFIG[action] || DEFAULT_ACTION_CONFIG
-}
-
-function formatActionFallback(action: string): string {
-  return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
-
-// ── Component ──
+const PAGE_SIZE = 25
 
 function VenueActivityLog() {
   const { t } = useTranslation('organization')
   const { venueId } = useCurrentVenue()
+  const { venueTimezone } = useVenueDateTime()
 
-  // Filters
   const [searchTerm, setSearchTerm] = useState('')
-  const [actionFilter, setActionFilter] = useState('all')
-  const [staffFilter, setStaffFilter] = useState('all')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [actionFilter, setActionFilter] = useState<string | null>(null)
+  const [staffFilter, setStaffFilter] = useState<string | null>(null)
+  const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)
   const [page, setPage] = useState(1)
-  const pageSize = 25
 
   const debouncedSearch = useDebounce(searchTerm, 300)
 
-  // Build filters
+  const dateRange = useMemo(() => dateFilterToRange(dateFilter), [dateFilter])
+
   const filters: VenueActivityLogFilters = useMemo(
     () => ({
       page,
-      pageSize,
-      ...(actionFilter !== 'all' && { action: actionFilter }),
-      ...(staffFilter !== 'all' && { staffId: staffFilter }),
-      ...(startDate && { startDate }),
-      ...(endDate && { endDate }),
+      pageSize: PAGE_SIZE,
+      ...(actionFilter && { action: actionFilter }),
+      ...(staffFilter && { staffId: staffFilter }),
+      ...dateRange,
       ...(debouncedSearch && { search: debouncedSearch }),
     }),
-    [page, pageSize, actionFilter, staffFilter, startDate, endDate, debouncedSearch],
+    [page, actionFilter, staffFilter, dateRange, debouncedSearch],
   )
 
-  // Data fetching
-  const { data, isLoading } = useQuery<VenueActivityLogResponse>({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useQuery<VenueActivityLogResponse>({
     queryKey: ['venue-activity-log', venueId, filters],
     queryFn: () => getVenueActivityLog(venueId!, filters),
     enabled: !!venueId,
+    placeholderData: previous => previous,
   })
 
   const { data: availableActions } = useQuery<string[]>({
@@ -142,7 +138,6 @@ function VenueActivityLog() {
     enabled: !!venueId,
   })
 
-  // Staff list for the "performed by" filter (first page is enough for the dropdown).
   const { data: teamData } = useQuery({
     queryKey: ['venue-activity-log-staff', venueId],
     queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
@@ -152,168 +147,191 @@ function VenueActivityLog() {
   const staffOptions = useMemo(
     () =>
       (teamData?.data ?? []).map(m => ({
-        id: m.staffId,
-        name: `${m.firstName} ${m.lastName}`.trim(),
+        value: m.staffId,
+        label: `${m.firstName} ${m.lastName}`.trim(),
       })),
     [teamData?.data],
   )
 
+  const actionOptions = useMemo(
+    () =>
+      (availableActions ?? [])
+        .map(action => ({ value: action, label: labelForAction(action, t) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [availableActions, t],
+  )
+
   const logs = useMemo(() => data?.logs ?? [], [data?.logs])
-  const paginationData = data?.pagination
+  const pagination = data?.pagination
 
-  const hasActiveFilters =
-    !!debouncedSearch || actionFilter !== 'all' || staffFilter !== 'all' || !!startDate || !!endDate
+  // El día se corta en la zona del NEGOCIO, nunca en la del navegador.
+  const dayKeyOf = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    return (iso: string) => {
+      const d = new Date(iso)
+      return Number.isNaN(d.getTime()) ? iso : fmt.format(d)
+    }
+  }, [venueTimezone])
 
-  // Reset page when filters change
-  const handleFilterChange = (setter: (val: string) => void) => (value: string) => {
+  const groups = useMemo(() => groupByDay(logs, dayKeyOf), [logs, dayKeyOf])
+
+  const activeFilterCount =
+    (debouncedSearch ? 1 : 0) + (actionFilter ? 1 : 0) + (staffFilter ? 1 : 0) + (dateFilter ? 1 : 0)
+
+  const resetPage = <T,>(setter: (v: T) => void) => (value: T) => {
     setter(value)
     setPage(1)
   }
 
-  // Loading skeleton
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <Skeleton className="h-10 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl" />
-      </div>
-    )
+  const clearAll = () => {
+    setSearchTerm('')
+    setActionFilter(null)
+    setStaffFilter(null)
+    setDateFilter(null)
+    setPage(1)
   }
 
   return (
     <FeatureGate feature="VENUE_AUDIT_LOG" requiredTier="PRO">
-      <TooltipProvider>
-        <div className="space-y-6">
-          {/* Header */}
+      <TooltipProvider delayDuration={200}>
+        <div className="space-y-5">
+          {/* Encabezado */}
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{t('activityLog.title')}</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{t('activityLog.subtitleVenue')}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('activityLog.title')}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t('activityLog.subtitleVenue')}</p>
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* Barra de filtros — mismo orden en que se leen las columnas */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+            <div className="relative flex-shrink-0">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={t('activityLog.searchPlaceholder')}
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9"
+                onChange={e => {
+                  setSearchTerm(e.target.value)
+                  setPage(1)
+                }}
+                className="h-7 w-[220px] rounded-full pl-8 text-xs"
               />
             </div>
-            <Select value={staffFilter} onValueChange={handleFilterChange(setStaffFilter)}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder={t('activityLog.filters.allStaff')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('activityLog.filters.allStaff')}</SelectItem>
-                {staffOptions.map(s => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={actionFilter} onValueChange={handleFilterChange(setActionFilter)}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder={t('activityLog.filters.allActions')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('activityLog.filters.allActions')}</SelectItem>
-                {availableActions?.map(action => (
-                  <SelectItem key={action} value={action}>
-                    {t(`activityLog.actions.${action}`, { defaultValue: formatActionFallback(action) })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {t('activityLog.filters.dateFrom')}
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={e => {
-                    setStartDate(e.target.value)
-                    setPage(1)
-                  }}
-                  className="w-full sm:w-[150px]"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {t('activityLog.filters.dateTo')}
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={e => {
-                    setEndDate(e.target.value)
-                    setPage(1)
-                  }}
-                  className="w-full sm:w-[150px]"
-                />
-              </label>
-            </div>
+
+            <FilterPillBar
+              onReset={activeFilterCount > 0 ? clearAll : undefined}
+              resetLabel={t('activityLog.filters.clear')}
+            >
+            <FilterPill
+              label={t('activityLog.filters.action')}
+              activeLabel={actionFilter ? labelForAction(actionFilter, t) : null}
+              onClear={() => resetPage(setActionFilter)(null)}
+            >
+              <SingleSelectFilterContent
+                title={t('activityLog.filters.action')}
+                options={actionOptions}
+                selectedValue={actionFilter}
+                onSelect={resetPage(setActionFilter)}
+                searchable
+                searchPlaceholder={t('activityLog.filters.searchActions')}
+              />
+            </FilterPill>
+
+            <FilterPill
+              label={t('activityLog.filters.staff')}
+              activeLabel={staffOptions.find(s => s.value === staffFilter)?.label ?? null}
+              onClear={() => resetPage(setStaffFilter)(null)}
+            >
+              <SingleSelectFilterContent
+                title={t('activityLog.filters.staff')}
+                options={staffOptions}
+                selectedValue={staffFilter}
+                onSelect={resetPage(setStaffFilter)}
+                searchable
+              />
+            </FilterPill>
+
+            <FilterPill
+              label={t('activityLog.filters.date')}
+              isActive={!!dateFilter}
+              onClear={() => resetPage(setDateFilter)(null)}
+            >
+              <DateFilterContent
+                title={t('activityLog.filters.date')}
+                value={dateFilter}
+                onApply={resetPage(setDateFilter)}
+                timezone={venueTimezone}
+              />
+            </FilterPill>
+            </FilterPillBar>
           </div>
 
-          {/* Table */}
-          <GlassCard className="overflow-hidden">
-            {logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <ScrollText className="h-12 w-12 mb-4 opacity-40" />
-                <p className="text-lg font-medium">
-                  {hasActiveFilters ? t('activityLog.noResults') : t('activityLog.empty')}
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('activityLog.columns.action')}</TableHead>
-                    <TableHead>{t('activityLog.columns.entity')}</TableHead>
-                    <TableHead>{t('activityLog.columns.performedBy')}</TableHead>
-                    <TableHead>{t('activityLog.columns.date')}</TableHead>
-                    <TableHead>{t('activityLog.columns.details')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map(log => (
-                    <ActivityLogRow key={log.id} log={log} />
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </GlassCard>
+          {/* Contenido */}
+          {isLoading ? (
+            <ActivitySkeleton />
+          ) : isError ? (
+            <EmptyState
+              icon={AlertTriangle}
+              title={t('activityLog.error.title')}
+              action={
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  {t('activityLog.error.retry')}
+                </Button>
+              }
+            />
+          ) : logs.length === 0 ? (
+            <EmptyState
+              icon={ScrollText}
+              title={activeFilterCount > 0 ? t('activityLog.noResults') : t('activityLog.empty')}
+              action={
+                activeFilterCount > 0 ? (
+                  <Button variant="outline" size="sm" onClick={clearAll}>
+                    {t('activityLog.filters.clear')}
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className={cn('overflow-hidden rounded-xl border border-input', isFetching && 'opacity-60 transition-opacity')}>
+              {groups.map(group => (
+                <section key={group.day}>
+                  <DayHeading day={group.day} timezone={venueTimezone} />
+                  <ul className="divide-y divide-border/60">
+                    {group.logs.map(log => (
+                      <ActivityRow key={log.id} log={log} />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
 
-          {/* Pagination */}
-          {paginationData && paginationData.totalPages > 1 && (
+          {/* Paginación */}
+          {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t('activityLog.pagination.showing', {
-                  from: (page - 1) * pageSize + 1,
-                  to: Math.min(page * pageSize, paginationData.total),
-                  total: paginationData.total,
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: Math.min(page * PAGE_SIZE, pagination.total),
+                  total: pagination.total,
                 })}
               </p>
               <div className="flex gap-1">
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label={t('activityLog.pagination.previous')}
                   className="h-8 w-8"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  disabled={page === 1 || isFetching}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label={t('activityLog.pagination.next')}
                   className="h-8 w-8"
-                  onClick={() => setPage(p => Math.min(paginationData.totalPages, p + 1))}
-                  disabled={page === paginationData.totalPages}
+                  onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page === pagination.totalPages || isFetching}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -326,88 +344,190 @@ function VenueActivityLog() {
   )
 }
 
-// ── Row Component ──
+// ── Piezas ────────────────────────────────────────────────────────────────────
 
-function ActivityLogRow({ log }: { log: VenueActivityLogEntry }) {
+function labelForAction(action: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  return t(`activityLog.actions.${action}`, {
+    // El fallback deja de gritar en MAYÚSCULAS: "PERMISSION DENIED" → "Permission denied".
+    defaultValue: action.replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase()),
+  })
+}
+
+function DayHeading({ day, timezone }: { day: string; timezone: string }) {
   const { t } = useTranslation('organization')
-  const { formatDateTime } = useVenueDateTime()
-  const [expanded, setExpanded] = useState(false)
-  const config = getActionConfig(log.action)
-  const Icon = config.icon
+  // 🔴 `formatCalendarDate` y NO `formatDate`: `day` es una fecha CIVIL
+  // ("2026-08-27"), y formatDate la lee como medianoche UTC — en México pinta
+  // el 26. Es la trampa que ya costó un defecto en el reporte de asistencia.
+  const { formatCalendarDate } = useVenueDateTime()
 
-  const hasDetails = log.data && Object.keys(log.data).length > 0
+  // "Hoy" y "Ayer" también se calculan en la zona del negocio: a las 11 p.m. de
+  // México, el navegador de alguien en Madrid ya está en el día siguiente.
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' })
+  const today = fmt.format(new Date())
+  const yesterday = fmt.format(new Date(Date.now() - 86_400_000))
+
+  const label = day === today ? t('activityLog.today') : day === yesterday ? t('activityLog.yesterday') : formatCalendarDate(day)
 
   return (
-    <>
-      <TableRow>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-md ${config.bgColor}`}>
-              <Icon className={`h-3.5 w-3.5 ${config.color}`} />
-            </div>
-            <Badge variant="outline" className="text-xs font-mono">
-              {t(`activityLog.actions.${log.action}`, { defaultValue: formatActionFallback(log.action) })}
-            </Badge>
-          </div>
-        </TableCell>
-        <TableCell>
-          {log.entity ? (
-            <span className="text-sm">
-              {log.entity}
-              {log.entityId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground ml-1 cursor-help">#{log.entityId.slice(0, 8)}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-mono text-xs">{log.entityId}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+    <div className="sticky top-0 z-10 border-b border-input bg-muted/70 px-4 py-2 backdrop-blur-sm">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+function ActivityRow({ log }: { log: VenueActivityLogEntry }) {
+  const { t } = useTranslation('organization')
+  const { formatDateTime, formatTime } = useVenueDateTime()
+  const [expanded, setExpanded] = useState(false)
+
+  const tone = actionTone(log.action)
+  const Icon = iconFor(log.action)
+  const styles = TONE_STYLES[tone]
+  const entityId = formatEntityId(log.entityId)
+  const entityLabel = log.entity ? t(`activityLog.entities.${log.entity}`, { defaultValue: log.entity }) : null
+
+  const who = log.staff ? `${log.staff.firstName} ${log.staff.lastName}`.trim() : null
+
+  const detailRows = useMemo(
+    () =>
+      toDetailRows(
+        log.data,
+        key => {
+          const full = `activityLog.detailKeys.${key}`
+          const translated = t(full)
+          return translated === full ? null : translated
+        },
+        word => t(`activityLog.words.${word}`),
+      ),
+    [log.data, t],
+  )
+  const hasDetails = detailRows.length > 0
+
+  return (
+    <li className="bg-card">
+      <button
+        type="button"
+        onClick={() => hasDetails && setExpanded(v => !v)}
+        aria-expanded={hasDetails ? expanded : undefined}
+        disabled={!hasDetails}
+        className={cn(
+          'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+          hasDetails ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default',
+        )}
+      >
+        <Icon className={cn('h-4 w-4 flex-shrink-0', styles.icon)} aria-hidden />
+
+        {/* Qué pasó */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-foreground">{labelForAction(log.action, t)}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {/* En móvil la columna «Quién» no cabe: el nombre viaja aquí para
+                que la fila nunca se quede sin decir quién lo hizo. */}
+            <span className="sm:hidden">
+              {who ?? t('activityLog.system')}
+              {(entityLabel || entityId) && ' · '}
             </span>
+            {entityLabel}
+            {entityLabel && entityId && ' · '}
+              {entityId &&
+                (entityId.truncated ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help font-mono">{entityId.text}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-mono text-xs">{log.entityId}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="font-mono">{entityId.text}</span>
+                ))}
+          </p>
+        </div>
+
+        {/* Quién */}
+        <div className="hidden w-40 flex-shrink-0 sm:block">
+          {who ? (
+            <span className="block truncate text-sm text-foreground">{who}</span>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help text-sm italic text-muted-foreground">{t('activityLog.system')}</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{t('activityLog.systemHint')}</p>
+              </TooltipContent>
+            </Tooltip>
           )}
-        </TableCell>
-        <TableCell>
-          {log.staff ? (
-            <span className="text-sm">
-              {log.staff.firstName} {log.staff.lastName}
+        </div>
+
+        {/* Cuándo */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="w-16 flex-shrink-0 cursor-help text-right text-xs tabular-nums text-muted-foreground">
+              {formatTime(log.createdAt)}
             </span>
-          ) : (
-            <span className="text-muted-foreground text-sm italic">{t('activityLog.system')}</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">{formatDateTime(log.createdAt)}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Afordancia de expandir — sólo cuando hay algo que abrir */}
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform',
+            !hasDetails && 'invisible',
+            expanded && 'rotate-180',
           )}
-        </TableCell>
-        <TableCell>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-sm text-muted-foreground cursor-help">{formatDateTime(log.createdAt)}</span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">{new Date(log.createdAt).toISOString()}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TableCell>
-        <TableCell>
-          {hasDetails ? (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setExpanded(!expanded)}>
-              {expanded ? t('activityLog.hideDetails') : t('activityLog.showDetails')}
-            </Button>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </TableCell>
-      </TableRow>
+          aria-hidden
+        />
+      </button>
+
       {expanded && hasDetails && (
-        <TableRow>
-          <TableCell colSpan={5} className="bg-muted/50">
-            <pre className="text-xs font-mono p-2 rounded-md overflow-x-auto max-w-full">
-              {JSON.stringify(redactSensitive(log.data), null, 2)}
-            </pre>
-          </TableCell>
-        </TableRow>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-border/60 bg-muted/40 px-4 py-3 sm:grid-cols-2">
+          {detailRows.map(row => (
+            <div key={row.key} className="flex gap-2 text-xs">
+              <dt className="min-w-0 flex-shrink-0 font-medium text-muted-foreground">{row.label}</dt>
+              <dd className="min-w-0 flex-1 break-all text-foreground">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
-    </>
+    </li>
+  )
+}
+
+function EmptyState({ icon: Icon, title, action }: { icon: React.ElementType; title: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-input bg-card py-16 text-muted-foreground">
+      <Icon className="mb-4 h-10 w-10 opacity-40" aria-hidden />
+      <p className="text-sm font-medium">{title}</p>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  )
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-input">
+      <div className="border-b border-input bg-muted/70 px-4 py-2">
+        <Skeleton className="h-3 w-16" />
+      </div>
+      <div className="divide-y divide-border/60">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <Skeleton className="h-4 w-4 rounded" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-3.5 w-48" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+            <Skeleton className="hidden h-3.5 w-32 sm:block" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

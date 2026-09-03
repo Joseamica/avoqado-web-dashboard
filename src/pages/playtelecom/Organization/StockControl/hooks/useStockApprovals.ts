@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import api from '@/api'
 
@@ -17,6 +17,12 @@ interface StockApprovalsPage {
 
 export function useStockApprovals(orgId: string | undefined, search?: string) {
   return useInfiniteQuery({
+    // 🔴 `search` entra en la clave, así que cada dígito estrena consulta. Sin
+    // `placeholderData` la lista se vacía, StockApprovalQueue entra en su early return
+    // por `isLoading` y desmonta su propio <Input> — en Android eso cierra el teclado.
+    // Mismo defecto que tumbó la custodia el 2026-09-02; ver
+    // Stock/__tests__/custodiaSeRefresca.regression.test.tsx.
+    placeholderData: keepPreviousData,
     queryKey: ['stock-approvals', orgId, search],
     queryFn: async ({ pageParam }) => {
       const { data } = await api.get(`/api/v1/dashboard/organizations/${orgId}/pending-stock-approvals`, {

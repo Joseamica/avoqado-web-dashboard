@@ -182,10 +182,7 @@ export default function Home() {
     [activeCompareOption, formatCompareLabel],
   )
 
-  const compareAmount = useMemo(
-    () => dashboardData.comparePayments.reduce((acc: number, payment: any) => acc + Number(payment.amount || 0), 0),
-    [dashboardData.comparePayments],
-  )
+  const compareAmount = dashboardData.compareAmount
 
   // "Liquidación de hoy": neto que cae HOY en la cuenta bancaria del venue.
   // Usa el mismo endpoint que /available-balance (settlement-calendar) para
@@ -258,15 +255,8 @@ export default function Home() {
       return sum + cardsTotal
     }, 0)
   }, [settlementCalendar, todayIso, venueTimezone])
-  const compareTransactions = dashboardData.comparePayments.length
-  const compareTips = useMemo(
-    () =>
-      dashboardData.comparePayments.reduce(
-        (sumTips: number, payment: any) => sumTips + (payment.tips || []).reduce((s: number, tip: any) => s + Number(tip.amount || 0), 0),
-        0,
-      ),
-    [dashboardData.comparePayments],
-  )
+  const compareTransactions = dashboardData.compareTotalTransactions
+  const compareTips = Number(dashboardData.compareTipStats.totalTips || 0)
 
   // Square-style labels for the chart legend.
   //  - Día único (rango = un solo día): "Hoy" / "Ayer" o "ccc, d LLL yyyy"
@@ -618,6 +608,8 @@ export default function Home() {
                       <PerformanceChart
                         currentPayments={dashboardData.filteredPayments}
                         comparePayments={dashboardData.comparePayments}
+                        currentByWeekday={dashboardData.performanceByWeekday}
+                        compareByWeekday={dashboardData.comparePerformanceByWeekday}
                         venueTimezone={venueTimezone}
                         currentLabel={currentPeriodLabel}
                         compareLabel={compareDateLabel}

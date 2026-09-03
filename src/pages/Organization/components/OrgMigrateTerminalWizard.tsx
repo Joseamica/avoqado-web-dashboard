@@ -4,14 +4,18 @@ import { ArrowRightLeft, CheckCircle2, Loader2, AlertTriangle, Search } from 'lu
 import { useTranslation } from 'react-i18next'
 
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
@@ -19,12 +23,14 @@ import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
 import { getOrganizationVenues } from '@/services/organization.service'
 import OrgStaffAccessStep from './OrgStaffAccessStep'
+import PendingWipePanel from './PendingWipePanel'
 import {
   getOrgMerchantAccounts,
   migratePreflightForOrg,
   migrateExecuteForOrg,
   migrateStatusForOrg,
   migrateCancelForOrg,
+  migrateDiscardForOrg,
   type OrgTerminal,
   type OrgTerminalMigrationInfo,
   type OrgMigrationPreflight,
@@ -63,6 +69,9 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
   const [selectedMerchantIds, setSelectedMerchantIds] = useState<string[]>([])
   const [merchantSearch, setMerchantSearch] = useState('')
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
+  // Confirmations for the two ways out of a MIGRATION_IN_PROGRESS blocker (preflight step).
+  const [pendingWipeCancelOpen, setPendingWipeCancelOpen] = useState(false)
+  const [pendingWipeDiscardOpen, setPendingWipeDiscardOpen] = useState(false)
   // Merchant-carry checkbox: unblocks NO_PAYMENT_CONFIG by carrying the origin's
   // merchant to the destination venue. Toggling it re-runs preflight (below).
   const [migrateMerchant, setMigrateMerchant] = useState(false)
@@ -76,9 +85,10 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
     enabled: open && !!orgId,
   })
   const venueItems = useMemo<SearchComboboxItem[]>(
-    () => venues
-      .filter(v => v.id !== terminal?.venue?.id && (!search || includesNormalized(v.name ?? '', search)))
-      .map(v => ({ id: v.id, label: v.name, description: v.slug })),
+    () =>
+      venues
+        .filter(v => v.id !== terminal?.venue?.id && (!search || includesNormalized(v.name ?? '', search)))
+        .map(v => ({ id: v.id, label: v.name, description: v.slug })),
     [venues, search, terminal],
   )
 
@@ -98,12 +108,24 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
   }, [orgMerchants, merchantSearch])
 
   const reset = () => {
-    setStep('pickVenue'); setSearch(''); setToVenueId(''); setPreflight(null); setCommandId(null)
+    setStep('pickVenue')
+    setSearch('')
+    setToVenueId('')
+    setPreflight(null)
+    setCommandId(null)
     setProgressSticky({ delivered: false, rebound: false, online: false })
-    setMerchantMode('default'); setSelectedMerchantIds([]); setMerchantSearch(''); setCancelConfirmOpen(false)
+    setMerchantMode('default')
+    setSelectedMerchantIds([])
+    setMerchantSearch('')
+    setCancelConfirmOpen(false)
+    setPendingWipeCancelOpen(false)
+    setPendingWipeDiscardOpen(false)
     setMigrateMerchant(false)
   }
-  const close = () => { onOpenChange(false); setTimeout(reset, 200) }
+  const close = () => {
+    onOpenChange(false)
+    setTimeout(reset, 200)
+  }
 
   // Resume: when opened with an in-flight migration, jump straight to progress.
   useEffect(() => {
@@ -121,19 +143,27 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
 
   const preflightMutation = useMutation({
     mutationFn: () => migratePreflightForOrg(orgId, terminal!.id, toVenueId, migrateMerchant),
-    onSuccess: r => { setPreflight(r); setStep('preflight') },
+    onSuccess: r => {
+      setPreflight(r)
+      setStep('preflight')
+    },
     onError: (e: any) =>
-      toast({ title: t('terminals.migrate.preflightError'), description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
+      toast({
+        title: t('terminals.migrate.preflightError'),
+        description: e?.response?.data?.message || e?.message,
+        variant: 'destructive',
+      }),
   })
 
   const executeMutation = useMutation({
-    mutationFn: () => migrateExecuteForOrg(
-      orgId,
-      terminal!.id,
-      toVenueId,
-      merchantMode === 'specific' && selectedMerchantIds.length ? selectedMerchantIds : undefined,
-      migrateMerchant,
-    ),
+    mutationFn: () =>
+      migrateExecuteForOrg(
+        orgId,
+        terminal!.id,
+        toVenueId,
+        merchantMode === 'specific' && selectedMerchantIds.length ? selectedMerchantIds : undefined,
+        migrateMerchant,
+      ),
     onSuccess: r => {
       setCommandId(r.commandId)
       setStep('progress')
@@ -152,7 +182,10 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
   // and only fire once preflight has already run once (destination + staff step done).
   const firstRender = useRef(true)
   useEffect(() => {
-    if (firstRender.current) { firstRender.current = false; return }
+    if (firstRender.current) {
+      firstRender.current = false
+      return
+    }
     if (step === 'preflight' && toVenueId) preflightMutation.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [migrateMerchant])
@@ -169,6 +202,41 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
       setCancelConfirmOpen(false)
       // Backend returns a message (e.g. too late — TPV already wiped). Surface it.
       toast({ title: t('terminals.migrate.cancelError'), description: e?.response?.data?.message || e?.message, variant: 'destructive' })
+    },
+  })
+
+  // The two ways out of a MIGRATION_IN_PROGRESS blocker, from the PREFLIGHT step
+  // (Asana 1218069201250971). Unlike the progress-step cancel above, the wizard stays
+  // open and re-runs preflight: the whole point is to go on with THIS migration.
+  const pendingWipeCancelMutation = useMutation({
+    mutationFn: () => migrateCancelForOrg(orgId, terminal!.id),
+    onSuccess: () => {
+      toast({ title: t('terminals.migrate.pendingWipe.cancelledToast') })
+      queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
+      setPendingWipeCancelOpen(false)
+      preflightMutation.mutate()
+    },
+    onError: (e: any) => {
+      setPendingWipeCancelOpen(false)
+      toast({ title: t('terminals.migrate.cancelError'), description: e?.response?.data?.message || e?.message, variant: 'destructive' })
+    },
+  })
+  const pendingWipeDiscardMutation = useMutation({
+    mutationFn: () => migrateDiscardForOrg(orgId, terminal!.id),
+    onSuccess: () => {
+      toast({ title: t('terminals.migrate.pendingWipe.discardedToast') })
+      queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
+      setPendingWipeDiscardOpen(false)
+      preflightMutation.mutate()
+    },
+    onError: (e: any) => {
+      setPendingWipeDiscardOpen(false)
+      // The backend explains WHY (still cancellable / younger than 24 h / nothing pending).
+      toast({
+        title: t('terminals.migrate.pendingWipe.discardError'),
+        description: e?.response?.data?.message || e?.message,
+        variant: 'destructive',
+      })
     },
   })
 
@@ -217,18 +285,12 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                 onChange={setSearch}
                 onSelect={item => setToVenueId(item.id)}
               />
-              {toVenueId && (
-                <p className="text-xs">{t('terminals.migrate.destinationSelected', { name: destinationName })}</p>
-              )}
+              {toVenueId && <p className="text-xs">{t('terminals.migrate.destinationSelected', { name: destinationName })}</p>}
               <DialogFooter>
                 <Button variant="outline" className="cursor-pointer" onClick={close}>
                   {t('terminals.migrate.confirmCancel')}
                 </Button>
-                <Button
-                  className="cursor-pointer"
-                  disabled={!toVenueId}
-                  onClick={() => setStep('staff')}
-                >
+                <Button className="cursor-pointer" disabled={!toVenueId} onClick={() => setStep('staff')}>
                   {t('terminals.migrate.continue')}
                 </Button>
               </DialogFooter>
@@ -253,9 +315,26 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                   <p className="text-sm font-medium text-destructive flex items-center gap-1">
                     <AlertTriangle className="w-4 h-4" /> {t('terminals.migrate.cannotMigrate')}
                   </p>
-                  <ul className="text-sm list-disc pl-5 space-y-1">
-                    {preflight.blockers.map(b => <li key={b.code}>{b.message}</li>)}
-                  </ul>
+                  {/* MIGRATION_IN_PROGRESS gets its own panel (date + origin + the way out)
+                      instead of a bare bullet that dead-ends the operator. */}
+                  {preflight.blockers.filter(b => !(b.code === 'MIGRATION_IN_PROGRESS' && preflight.pendingWipe)).length > 0 && (
+                    <ul className="text-sm list-disc pl-5 space-y-1">
+                      {preflight.blockers
+                        .filter(b => !(b.code === 'MIGRATION_IN_PROGRESS' && preflight.pendingWipe))
+                        .map(b => (
+                          <li key={b.code}>{b.message}</li>
+                        ))}
+                    </ul>
+                  )}
+                  {preflight.pendingWipe && (
+                    <PendingWipePanel
+                      pendingWipe={preflight.pendingWipe}
+                      venueName={venues.find(v => v.id === preflight.pendingWipe?.toVenueId)?.name ?? null}
+                      busy={pendingWipeCancelMutation.isPending || pendingWipeDiscardMutation.isPending}
+                      onCancel={() => setPendingWipeCancelOpen(true)}
+                      onDiscard={() => setPendingWipeDiscardOpen(true)}
+                    />
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-green-600 flex items-center gap-1">
@@ -304,7 +383,10 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                       type="radio"
                       name="org-merchant-mode"
                       checked={merchantMode === 'default'}
-                      onChange={() => { setMerchantMode('default'); setSelectedMerchantIds([]) }}
+                      onChange={() => {
+                        setMerchantMode('default')
+                        setSelectedMerchantIds([])
+                      }}
                       className="w-4 h-4"
                     />
                     <span>{t('terminals.migrate.merchantDefault')}</span>
@@ -334,9 +416,7 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                           </div>
                           <div className="border border-input rounded-md p-3 space-y-2 max-h-40 overflow-y-auto bg-background">
                             {filteredMerchants.length === 0 ? (
-                              <p className="text-xs text-muted-foreground text-center py-2">
-                                {t('terminals.migrate.merchantNoResults')}
-                              </p>
+                              <p className="text-xs text-muted-foreground text-center py-2">{t('terminals.migrate.merchantNoResults')}</p>
                             ) : (
                               filteredMerchants.map(m => (
                                 <label key={m.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded">
@@ -377,65 +457,83 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
             </div>
           )}
 
-          {step === 'progress' && (() => {
-            const timedOut = !migStatus?.confirmed && (migStatus?.elapsedMs ?? 0) > POLL_TIMEOUT_MS
-            return (
-              <div className="space-y-3 py-2">
-                <p className="text-sm text-amber-600 flex items-start gap-1">
-                  <AlertTriangle className="w-4 h-4 mt-0.5" /> {t('terminals.migrate.doNotUse')}
-                </p>
-                <ProgressRow done={progressSticky.delivered} label={t('terminals.migrate.stepDelivered')} pending={t('terminals.migrate.stepDeliveredPending')} />
-                <ProgressRow done={progressSticky.rebound} label={t('terminals.migrate.stepRebound')} pending={t('terminals.migrate.stepReboundPending')} />
-                <ProgressRow done={progressSticky.online} label={t('terminals.migrate.stepOnline')} pending={t('terminals.migrate.stepOnlinePending')} />
-                {timedOut && (
-                  <div className="space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
-                    <p className="text-sm font-medium text-amber-600 flex items-start gap-1">
-                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {t('terminals.migrate.timeoutTitle')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{t('terminals.migrate.timeoutBody')}</p>
-                  </div>
-                )}
-                <DialogFooter className="gap-2 sm:gap-2">
-                  {migStatus?.confirmed ? (
-                    <Button
-                      className="cursor-pointer"
-                      onClick={() => {
-                        toast({ title: t('terminals.migrate.completeToast'), description: t('terminals.migrate.completeToastBody') })
-                        close()
-                      }}
-                    >
-                      {t('terminals.migrate.finish')}
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        className="cursor-pointer"
-                        disabled={cancelMutation.isPending}
-                        onClick={() => setCancelConfirmOpen(true)}
-                      >
-                        {cancelMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        {t('terminals.migrate.cancelMigration')}
-                      </Button>
-                      {timedOut ? (
-                        <Button variant="outline" className="cursor-pointer" onClick={close}>
-                          {t('terminals.migrate.leavePending')}
-                        </Button>
-                      ) : (
-                        <Button variant="outline" disabled>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('terminals.migrate.waitingTerminal')}
-                        </Button>
-                      )}
-                    </>
+          {step === 'progress' &&
+            (() => {
+              const timedOut = !migStatus?.confirmed && (migStatus?.elapsedMs ?? 0) > POLL_TIMEOUT_MS
+              return (
+                <div className="space-y-3 py-2">
+                  <p className="text-sm text-amber-600 flex items-start gap-1">
+                    <AlertTriangle className="w-4 h-4 mt-0.5" /> {t('terminals.migrate.doNotUse')}
+                  </p>
+                  <ProgressRow
+                    done={progressSticky.delivered}
+                    label={t('terminals.migrate.stepDelivered')}
+                    pending={t('terminals.migrate.stepDeliveredPending')}
+                  />
+                  <ProgressRow
+                    done={progressSticky.rebound}
+                    label={t('terminals.migrate.stepRebound')}
+                    pending={t('terminals.migrate.stepReboundPending')}
+                  />
+                  <ProgressRow
+                    done={progressSticky.online}
+                    label={t('terminals.migrate.stepOnline')}
+                    pending={t('terminals.migrate.stepOnlinePending')}
+                  />
+                  {timedOut && (
+                    <div className="space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                      <p className="text-sm font-medium text-amber-600 flex items-start gap-1">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {t('terminals.migrate.timeoutTitle')}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t('terminals.migrate.timeoutBody')}</p>
+                    </div>
                   )}
-                </DialogFooter>
-              </div>
-            )
-          })()}
+                  <DialogFooter className="gap-2 sm:gap-2">
+                    {migStatus?.confirmed ? (
+                      <Button
+                        className="cursor-pointer"
+                        onClick={() => {
+                          toast({ title: t('terminals.migrate.completeToast'), description: t('terminals.migrate.completeToastBody') })
+                          close()
+                        }}
+                      >
+                        {t('terminals.migrate.finish')}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="cursor-pointer"
+                          disabled={cancelMutation.isPending}
+                          onClick={() => setCancelConfirmOpen(true)}
+                        >
+                          {cancelMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          {t('terminals.migrate.cancelMigration')}
+                        </Button>
+                        {timedOut ? (
+                          <Button variant="outline" className="cursor-pointer" onClick={close}>
+                            {t('terminals.migrate.leavePending')}
+                          </Button>
+                        ) : (
+                          <Button variant="outline" disabled>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('terminals.migrate.waitingTerminal')}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </DialogFooter>
+                </div>
+              )
+            })()}
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={step === 'confirm'} onOpenChange={v => { if (!v && !executeMutation.isPending) setStep('preflight') }}>
+      <AlertDialog
+        open={step === 'confirm'}
+        onOpenChange={v => {
+          if (!v && !executeMutation.isPending) setStep('preflight')
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('terminals.migrate.confirmTitle')}</AlertDialogTitle>
@@ -447,7 +545,10 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
             <AlertDialogCancel disabled={executeMutation.isPending}>{t('terminals.migrate.confirmCancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={e => { e.preventDefault(); executeMutation.mutate() }}
+              onClick={e => {
+                e.preventDefault()
+                executeMutation.mutate()
+              }}
               disabled={executeMutation.isPending}
             >
               {executeMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -457,7 +558,12 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={cancelConfirmOpen} onOpenChange={v => { if (!v && !cancelMutation.isPending) setCancelConfirmOpen(false) }}>
+      <AlertDialog
+        open={cancelConfirmOpen}
+        onOpenChange={v => {
+          if (!v && !cancelMutation.isPending) setCancelConfirmOpen(false)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('terminals.migrate.cancelConfirmTitle')}</AlertDialogTitle>
@@ -466,11 +572,83 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
           <AlertDialogFooter>
             <AlertDialogCancel disabled={cancelMutation.isPending}>{t('terminals.migrate.cancelConfirmKeep')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={e => { e.preventDefault(); cancelMutation.mutate() }}
+              onClick={e => {
+                e.preventDefault()
+                cancelMutation.mutate()
+              }}
               disabled={cancelMutation.isPending}
             >
               {cancelMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {t('terminals.migrate.cancelConfirmYes')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Way out #1: the pending wipe never reached the terminal — cancel it and go on. */}
+      <AlertDialog
+        open={pendingWipeCancelOpen}
+        onOpenChange={v => {
+          if (!v && !pendingWipeCancelMutation.isPending) setPendingWipeCancelOpen(false)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('terminals.migrate.pendingWipe.cancelConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {preflight?.pendingWipe?.origin === 'MIGRATION'
+                ? t('terminals.migrate.pendingWipe.cancelConfirmMigration')
+                : t('terminals.migrate.pendingWipe.cancelConfirmManual')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pendingWipeCancelMutation.isPending}>
+              {t('terminals.migrate.pendingWipe.cancelConfirmKeep')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={e => {
+                e.preventDefault()
+                pendingWipeCancelMutation.mutate()
+              }}
+              disabled={pendingWipeCancelMutation.isPending}
+            >
+              {pendingWipeCancelMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {t('terminals.migrate.pendingWipe.cancelConfirmYes')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Way out #2: the terminal received the wipe but has been silent ≥ 24 h — discard it. */}
+      <AlertDialog
+        open={pendingWipeDiscardOpen}
+        onOpenChange={v => {
+          if (!v && !pendingWipeDiscardMutation.isPending) setPendingWipeDiscardOpen(false)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('terminals.migrate.pendingWipe.discardConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {preflight?.pendingWipe?.origin === 'MIGRATION'
+                ? t('terminals.migrate.pendingWipe.discardConfirmMigration')
+                : t('terminals.migrate.pendingWipe.discardConfirmBody')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pendingWipeDiscardMutation.isPending}>
+              {t('terminals.migrate.pendingWipe.discardConfirmKeep')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={e => {
+                e.preventDefault()
+                pendingWipeDiscardMutation.mutate()
+              }}
+              disabled={pendingWipeDiscardMutation.isPending}
+            >
+              {pendingWipeDiscardMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {t('terminals.migrate.pendingWipe.discardConfirmYes')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -482,7 +660,11 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
 function ProgressRow({ done, label, pending }: { done?: boolean; label: string; pending: string }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      {done ? <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> : <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
+      {done ? (
+        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+      ) : (
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+      )}
       <span className={done ? '' : 'text-muted-foreground'}>{done ? label : pending}</span>
     </div>
   )

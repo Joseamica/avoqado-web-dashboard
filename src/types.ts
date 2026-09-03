@@ -2014,6 +2014,11 @@ export interface RoleConfig {
   color: string | null
   isActive: boolean
   sortOrder: number
+  /**
+   * ¿Este rol aparece en el selector de "Vendedor" del POS? Default true
+   * (todos salen). Opcional por rollout: un server sin el campo ⇒ true.
+   */
+  showAsSeller?: boolean
 }
 
 /**
@@ -2028,6 +2033,8 @@ export interface RoleConfigInput {
   color?: string | null
   isActive?: boolean
   sortOrder?: number
+  /** ¿Aparece en el selector de "Vendedor" del POS? Ausente = no se toca. */
+  showAsSeller?: boolean
 }
 
 /**

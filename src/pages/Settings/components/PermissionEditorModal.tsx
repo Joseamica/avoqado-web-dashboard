@@ -62,6 +62,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   const [roleDisplayName, setRoleDisplayName] = useState('')
   const [roleDescription, setRoleDescription] = useState('')
   const [roleColor, setRoleColor] = useState<string | null>(null)
+  const [roleShowAsSeller, setRoleShowAsSeller] = useState(true)
   const [hasConfigChanges, setHasConfigChanges] = useState(false)
   const [appearanceOpen, setAppearanceOpen] = useState(false)
 
@@ -146,6 +147,8 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       setRoleDisplayName(config?.displayName || DEFAULT_ROLE_DISPLAY_NAMES[role])
       setRoleDescription(config?.description || '')
       setRoleColor(config?.color || null)
+      // Default PRENDIDO: todos salen como vendedor mientras no se apague.
+      setRoleShowAsSeller(config?.showAsSeller ?? true)
     }
   }, [open, role, roleConfigs])
 
@@ -305,8 +308,11 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     const origName = config?.displayName || DEFAULT_ROLE_DISPLAY_NAMES[role]
     const origDesc = config?.description || ''
     const origColor = config?.color || null
-    setHasConfigChanges(roleDisplayName !== origName || roleDescription !== origDesc || roleColor !== origColor)
-  }, [open, roleDisplayName, roleDescription, roleColor, roleConfigs, role])
+    const origShowAsSeller = config?.showAsSeller ?? true
+    setHasConfigChanges(
+      roleDisplayName !== origName || roleDescription !== origDesc || roleColor !== origColor || roleShowAsSeller !== origShowAsSeller,
+    )
+  }, [open, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, roleConfigs, role])
 
   const handleSave = useCallback(async () => {
     // Save role config changes if any (display name, description, color)
@@ -316,6 +322,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
           role,
           displayName: roleDisplayName || DEFAULT_ROLE_DISPLAY_NAMES[role],
           isActive: true,
+          showAsSeller: roleShowAsSeller,
         }
         if (roleDescription) configUpdate.description = roleDescription
         if (roleColor) configUpdate.color = roleColor
@@ -365,7 +372,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       setHasConfigChanges(false)
       onClose()
     }
-  }, [defaultEfectivos, modifiedPermissions, allPermissions, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, updateConfigsAsync, toast, tCommon, t, onClose])
+  }, [defaultEfectivos, modifiedPermissions, allPermissions, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
 
   const handleClose = useCallback(() => {
     if (hasChanges || hasConfigChanges) {
@@ -545,6 +552,24 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                       />
                     ))}
                   </div>
+                </div>
+
+                {/* Aparece como vendedor en el POS (founder, 2026-09-01):
+                    default PRENDIDO — se apaga para roles que no venden, como
+                    un VIEWER renombrado a "Investor". */}
+                <div className="rounded-lg border border-input p-3 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <Label htmlFor="role-show-as-seller" className="text-sm">
+                      {t('roleDisplayNames.showAsSeller', 'Aparece como vendedor en el punto de venta')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {t(
+                        'roleDisplayNames.showAsSellerDesc',
+                        'Apágalo para que este rol no salga en la lista de "Vendedor" al cobrar (por ejemplo, inversionistas).',
+                      )}
+                    </p>
+                  </div>
+                  <Switch id="role-show-as-seller" checked={roleShowAsSeller} onCheckedChange={setRoleShowAsSeller} />
                 </div>
               </div>
             </CollapsibleContent>

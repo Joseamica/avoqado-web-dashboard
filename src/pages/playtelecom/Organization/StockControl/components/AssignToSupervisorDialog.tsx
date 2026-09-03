@@ -24,9 +24,10 @@ import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
-import { useOrgStockControl } from '../hooks/useOrgStockControl'
+import { useOrgStockItemsSearch } from '../hooks/useOrgStockItemsSearch'
 import { SimMultiSelect } from './SimMultiSelect'
 import { SupervisorSelect } from './SupervisorSelect'
+import { useDebounce } from '@/hooks/useDebounce'
 
 type AssignTarget = 'supervisor' | 'promoter-direct'
 
@@ -60,12 +61,14 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   const [manualSerials, setManualSerials] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [searchSerials, setSearchSerials] = useState<string[]>([])
+  const [itemSearch, setItemSearch] = useState('')
+  const debouncedItemSearch = useDebounce(itemSearch, 300)
   const [result, setResult] = useState<BulkResponse | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
 
   // Load org SIMs for the search combobox. Freeze the date window ONCE per
   // dialog mount — `new Date()` on every render causes the query key to shift
-  // each ms and triggers an infinite refetch loop against /stock-control/overview.
+  // each ms and triggers an infinite refetch loop against the paginated items endpoint.
   // We also gate on `open` so the query only runs while the dialog is visible.
   const stockParams = useMemo(() => {
     const end = new Date()
@@ -73,8 +76,17 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
   }, [])
-  const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
-  const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])
+  const stockQuery = useOrgStockItemsSearch(
+    open ? orgId : undefined,
+    {
+      ...stockParams,
+      search: debouncedItemSearch || undefined,
+      categoryId: searchCategoryFilter || undefined,
+      custodyState: 'ADMIN_HELD',
+    },
+    open,
+  )
+  const availableItems = useMemo(() => stockQuery.data?.items ?? [], [stockQuery.data?.items])
 
   // Both lookups go through org-staff-accessible endpoints, NOT the OWNER-only
   // `/team`: `sim-custody:assign-to-supervisor` is granted to ADMIN as well, and
@@ -92,14 +104,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   // Derive categories present in ADMIN_HELD stock so the filter only surfaces
   // options that actually have SIMs available — avoids a dropdown full of
   // never-used categories.
-  const categoriesInStock = useMemo(() => {
-    const ids = new Set<string>()
-    for (const item of availableItems) {
-      const state = item.custodyState ?? 'ADMIN_HELD'
-      if (state === 'ADMIN_HELD') ids.add(item.categoryId)
-    }
-    return categories.filter(c => ids.has(c.id))
-  }, [availableItems, categories])
+  const categoriesInStock = categories
 
   const mutation = useMutation<BulkResponse, Error, void>({
     mutationFn: async () => {
@@ -142,6 +147,11 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
     onSuccess: r => {
       setResult(r)
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items-search'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
     },
     onError: err => toast({ title: err.message ?? 'No se pudo asignar', variant: 'destructive' }),
   })
@@ -154,6 +164,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
     setManualSerials('')
     setCsvFile(null)
     setSearchSerials([])
+    setItemSearch('')
     setResult(null)
     setOnlyErrors(false)
   }
@@ -271,6 +282,9 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   categoryId={searchCategoryFilter || undefined}
                   value={searchSerials}
                   onChange={setSearchSerials}
+                  searchValue={itemSearch}
+                  onSearchChange={setItemSearch}
+                  isLoading={stockQuery.isFetching}
                 />
                 <p className="text-xs text-muted-foreground">
                   Solo se muestran SIMs en almacén (estado <code>ADMIN_HELD</code>). Cada SIM conserva su categoría original.

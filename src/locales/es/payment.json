@@ -2,6 +2,7 @@
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",
   "errorPrefix": "Error al cargar pagos",
+  "summaryUnavailable": "No pudimos cargar los totales. La tabla sigue disponible, pero no mostraremos ceros que puedan ser incorrectos.",
   "demoTour": {
     "next": "Siguiente →",
     "prev": "← Anterior",

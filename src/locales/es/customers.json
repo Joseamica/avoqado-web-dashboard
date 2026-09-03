@@ -276,18 +276,22 @@
   },
   "walletPass": {
     "title": "Tarjeta digital",
-    "description": "Que la guarde en su iPhone y sus sellos se le suman solos cada vez que le cobras.",
-    "scanHint": "Que apunte la cámara de su iPhone a este código, o mándale la liga.",
+    "description": "Ofrécele las dos: la guarda en su teléfono y sus sellos se le suman solos cada vez que le cobras.",
+    "appleLabel": "iPhone",
+    "googleLabel": "Android",
+    "scanHint": "Que apunte la cámara al código de su teléfono, o mándale la liga.",
     "copyLink": "Copiar liga",
     "copied": "Liga copiada",
     "copyFailed": "No se pudo copiar. Selecciona la liga a mano.",
     "sendWhatsapp": "Enviar por WhatsApp",
-    "whatsappMessage": "Hola {{name}}, aquí está tu tarjeta de {{venue}}. Ábrela desde tu iPhone para guardarla en tu Wallet: {{url}}",
-    "iphoneOnly": "Por ahora sólo se guarda en iPhone. La versión para Android viene en camino.",
+    "whatsappMessageApple": "Hola {{name}}, aquí está tu tarjeta de {{venue}}. Ábrela desde tu iPhone para guardarla en tu Wallet: {{url}}",
+    "whatsappMessageGoogle": "Hola {{name}}, aquí está tu tarjeta de {{venue}}. Ábrela desde tu Android para guardarla en Google Wallet: {{url}}",
     "disabled": "Tu programa de sellos está apagado, así que todavía no hay tarjeta que compartir.",
     "turnOn": "Prender los sellos",
     "disabledNoPermission": "Pídele a un administrador que prenda el programa de sellos.",
-    "linkLabel": "Liga de la tarjeta"
+    "linkLabel": "Liga de la tarjeta de {{platform}}",
+    "whatsappMessage": "Hola {{name}}, aquí está tu tarjeta de {{venue}}. Ábrela desde tu iPhone para guardarla en tu Wallet: {{url}}",
+    "iphoneOnly": "Por ahora sólo se guarda en iPhone. La versión para Android viene en camino."
   },
   "privacyNotice": {
     "title": "Aviso de privacidad",

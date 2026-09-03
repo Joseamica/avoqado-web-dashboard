@@ -3,7 +3,14 @@
 import api from '@/api'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
-import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, FilterPillBar, type AmountFilter } from '@/components/filters'
+import {
+  AmountFilterContent,
+  CheckboxFilterContent,
+  ColumnCustomizer,
+  FilterPill,
+  FilterPillBar,
+  type AmountFilter,
+} from '@/components/filters'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
@@ -26,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
@@ -52,9 +60,8 @@ import { ManualPaymentDialog } from '@/components/ManualPaymentDialog/ManualPaym
 import { PaymentSourceBadge } from '@/components/PaymentSourceBadge'
 import { ChannelBadge } from '@/components/delivery/ChannelBadge'
 import { useAccess } from '@/hooks/use-access'
-
-const isRefundPayment = (payment: PaymentType) =>
-  payment.type === PaymentRecordType.REFUND || payment.status === PaymentStatus.REFUNDED
+import { getPaymentFilterOptions, getPayments, getPaymentsSummary } from '@/services/payment.service'
+import { paymentCardsForTab, paymentRowMatchesTab, paymentTabCounts } from './paymentSummary'
 
 // processorData.isInternational may arrive as boolean or as the string "true"/"false"
 // depending on the provider/legacy row. Normalize to a strict boolean.
@@ -190,15 +197,7 @@ export default function Payments() {
   // Infinite query: page 1 → 2 → 3 ... each backend page returns PAGE_SIZE rows.
   // Amount filters (subtotal/tip/total) and status tab remain client-side because the
   // backend does not support them yet.
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: [
       'payments-infinite',
       venueId,
@@ -211,19 +210,14 @@ export default function Payments() {
     ],
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
-        params: {
-          page: pageParam,
-          pageSize: PAGE_SIZE,
-          ...dateParams,
-          ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
-          ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
-          ...(sourceFilter.length > 0 && { sources: sourceFilter.join(',') }),
-          ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
-          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
-        },
+      return getPayments(venueId, pageParam as number, PAGE_SIZE, {
+        ...dateParams,
+        merchantAccountIds: merchantAccountFilter,
+        methods: methodFilter,
+        sources: sourceFilter,
+        staffIds: waiterFilter,
+        search: debouncedSearchTerm || undefined,
       })
-      return response.data as { data: PaymentType[]; meta?: { total?: number; totalPages?: number; page?: number } }
     },
     getNextPageParam: (lastPage, allPages) => {
       const loadedSoFar = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0)
@@ -249,6 +243,8 @@ export default function Payments() {
   useSocketEvents(venueId, socketData => {
     console.log('Received payment update via socket:', socketData)
     refetch()
+    // Las pestañas y tarjetas viven en su propia consulta: sin esto se quedan 30 s atrás de la tabla.
+    queryClient.invalidateQueries({ queryKey: ['payments-summary', venueId] })
   })
 
   // Delete mutation (SUPERADMIN only)
@@ -259,6 +255,8 @@ export default function Payments() {
         title: tCommon('superadmin.delete.success'),
       })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['payments-infinite', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['payments-summary', venueId] })
       setDeleteDialogOpen(false)
       setPaymentToDelete(null)
     },
@@ -285,6 +283,8 @@ export default function Payments() {
         title: tCommon('superadmin.edit.success'),
       })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['payments-infinite', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['payments-summary', venueId] })
       setEditDialogOpen(false)
       setPaymentToEdit(null)
     },
@@ -333,25 +333,27 @@ export default function Payments() {
     }
   }
 
-  // Separate query to get all filter options (without filters applied)
+  // Opciones de las píldoras de filtro: valores DISTINTOS del venue, calculados en el servidor
+  // (antes: las 500 filas más recientes del listado, con las que se deducían aquí).
   const { data: filterOptionsData } = useQuery({
     queryKey: ['payments-filter-options', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
-        params: {
-          page: 1,
-          pageSize: 500, // Get enough data to extract all unique options
-        },
-      })
-      return response.data
-    },
+    queryFn: () => getPaymentFilterOptions(venueId),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
 
-  // Aggregation query: fetches the FULL server-filtered set (not paginated) so
-  // the summary cards and tab counts reflect everything inside the date range /
-  // filters, not just the page currently visible in the table.
-  const { data: summaryPayments } = useQuery({
+  // Resumen para las pestañas y las tarjetas (2026-09-01): el servidor agrega por estado×tipo
+  // con TODOS los filtros — los del listado (fechas, cuentas, métodos, orígenes, personal,
+  // búsqueda) y los que antes se aplicaban aquí sobre 10,000 filas (subtotal, propina, total,
+  // internacional, marca). `groups` trae sólo los del listado (pestañas); `filteredGroups`
+  // también los del navegador (tarjetas). La pestaña activa se aplica sobre los grupos.
+  const {
+    data: paymentsSummary,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: [
       'payments-summary',
       venueId,
@@ -361,68 +363,42 @@ export default function Payments() {
       sourceFilter,
       waiterFilter,
       debouncedSearchTerm,
+      subtotalFilter,
+      tipFilter,
+      totalFilter,
+      internationalFilter,
+      cardBrandFilter,
     ],
-    queryFn: async () => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
-        params: {
-          page: 1,
-          pageSize: 10000,
+    queryFn: () =>
+      getPaymentsSummary(
+        venueId,
+        {
           ...dateParams,
-          ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
-          ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
-          ...(sourceFilter.length > 0 && { sources: sourceFilter.join(',') }),
-          ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
-          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+          merchantAccountIds: merchantAccountFilter,
+          methods: methodFilter,
+          sources: sourceFilter,
+          staffIds: waiterFilter,
+          search: debouncedSearchTerm || undefined,
         },
-      })
-      return (response.data?.data || []) as PaymentType[]
-    },
+        { subtotal: subtotalFilter, tip: tipFilter, total: totalFilter, international: internationalFilter, cardBrands: cardBrandFilter },
+      ),
     staleTime: 30 * 1000,
+    // Consulta pesada (agrega todo el rango): un solo reintento y sin refetch por foco —
+    // el socket y las mutaciones ya la invalidan cuando algo cambia.
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
 
-  // Extract unique options for filters from unfiltered data
-  const { merchantAccounts, methods, sources, waiters, cardBrands } = useMemo(() => {
-    const allPayments = filterOptionsData?.data || []
-
-    // Unique merchant accounts
-    const merchantAccountsMap = new Map()
-    allPayments.forEach((p: PaymentType) => {
-      if (p.merchantAccount) {
-        merchantAccountsMap.set(p.merchantAccount.id, p.merchantAccount)
-      }
-    })
-
-    // Unique methods
-    const methodsSet = new Set(allPayments.map((p: PaymentType) => p.method).filter(Boolean))
-
-    // Unique sources
-    const sourcesSet = new Set(allPayments.map((p: PaymentType) => p.source).filter(Boolean))
-
-    // Unique waiters
-    const waitersMap = new Map()
-    allPayments.forEach((p: PaymentType) => {
-      if (p.processedBy) {
-        waitersMap.set(p.processedBy.id, p.processedBy)
-      }
-    })
-
-    // Unique card brands. Falls back to processorData.cardBrand when the
-    // top-level column is empty (some legacy/imported payments).
-    const cardBrandsSet = new Set<string>()
-    allPayments.forEach((p: PaymentType) => {
-      const brand = (p.cardBrand || (p as any)?.processorData?.cardBrand || '').toString().toUpperCase()
-      if (brand) cardBrandsSet.add(brand)
-    })
-
-    return {
-      merchantAccounts: Array.from(merchantAccountsMap.values()),
-      methods: Array.from(methodsSet),
-      sources: Array.from(sourcesSet),
-      waiters: Array.from(waitersMap.values()),
-      cardBrands: Array.from(cardBrandsSet).sort(),
-    }
-  }, [filterOptionsData?.data])
-
+  const { merchantAccounts, methods, sources, waiters, cardBrands } = useMemo(
+    () => ({
+      merchantAccounts: filterOptionsData?.merchantAccounts ?? [],
+      methods: filterOptionsData?.methods ?? [],
+      sources: filterOptionsData?.sources ?? [],
+      waiters: filterOptionsData?.waiters ?? [],
+      cardBrands: filterOptionsData?.cardBrands ?? [],
+    }),
+    [filterOptionsData],
+  )
 
   // Reset all filters
   const resetFilters = useCallback(() => {
@@ -469,20 +445,10 @@ export default function Payments() {
   const filteredPayments = useMemo(() => {
     let payments: PaymentType[] = paymentsLoaded
 
-    // Status tab filter
+    // Status tab filter — la MISMA regla que usan los conteos de las pestañas (paymentSummary.ts),
+    // para que la tabla y la pestaña nunca se contradigan.
     if (activeStatusTab !== 'all') {
-      if (activeStatusTab === 'refunded') {
-        payments = payments.filter(isRefundPayment)
-      } else {
-        const statusMap: Record<string, string[]> = {
-          completed: [PaymentStatus.PAID],
-          pending: [PaymentStatus.PENDING, PaymentStatus.PARTIAL],
-        }
-        const allowedStatuses = statusMap[activeStatusTab] || []
-        if (allowedStatuses.length > 0) {
-          payments = payments.filter((p: PaymentType) => allowedStatuses.includes(p.status))
-        }
-      }
+      payments = payments.filter((p: PaymentType) => paymentRowMatchesTab(p, activeStatusTab))
     }
 
     // NOTE: merchant/method/source/waiter/search filters are applied server-side (query params).
@@ -568,17 +534,9 @@ export default function Payments() {
     // international filter, card brand filter, and status tab still affect this memo's output.
   }, [paymentsLoaded, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, cardBrandFilter])
 
-  // Status tab counts (computed over ALL server-filtered payments, not just
-  // the paginated page, so "Completados 450" means 450 in the whole date range).
-  const statusTabCounts = useMemo(() => {
-    const allPayments = summaryPayments || []
-    return {
-      all: allPayments.length,
-      completed: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.PAID).length,
-      pending: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.PARTIAL).length,
-      refunded: allPayments.filter(isRefundPayment).length,
-    }
-  }, [summaryPayments])
+  // Status tab counts — sobre TODOS los pagos filtrados por el servidor (no sólo la página
+  // cargada): "Completados 450" significa 450 en todo el rango. Vienen agregados.
+  const statusTabCounts = useMemo(() => paymentTabCounts(paymentsSummary?.groups), [paymentsSummary])
 
   const statusTabs = useMemo<StatusTab[]>(
     () => [
@@ -590,103 +548,18 @@ export default function Payments() {
     [t, statusTabCounts],
   )
 
-  // Summary cards — computed over ALL server-filtered payments (not just the
-  // current page) so "Total Collected" reflects the whole date range. We still
-  // apply the status tab + client-side amount filters here so cards match
-  // whatever the table is currently narrowed to.
-  // Refunds carry a negative `amount`, so summing without `Math.abs` naturally
-  // nets them out of both "Total Collected" and "Net Sales" — which is what
-  // someone looking at a refund-filtered window expects to see.
+  // Summary cards — sobre TODOS los pagos filtrados (no sólo la página), con los filtros del
+  // navegador ya aplicados por el servidor (`filteredGroups`) y la pestaña activa aplicada aquí.
+  // Los reembolsos llevan monto NEGATIVO, así que se restan solos de "Total cobrado" y de
+  // "Ventas netas" — lo que espera quien mira una ventana filtrada por reembolsos.
   const summaryCards = useMemo<SummaryCardItem[]>(() => {
-    let payments: PaymentType[] = summaryPayments || []
-
-    if (activeStatusTab !== 'all') {
-      if (activeStatusTab === 'refunded') {
-        payments = payments.filter(isRefundPayment)
-      } else {
-        const statusMap: Record<string, string[]> = {
-          completed: [PaymentStatus.PAID],
-          pending: [PaymentStatus.PENDING, PaymentStatus.PARTIAL],
-        }
-        const allowed = statusMap[activeStatusTab] || []
-        if (allowed.length > 0) payments = payments.filter((p: PaymentType) => allowed.includes(p.status))
-      }
-    }
-
-    if (subtotalFilter) {
-      payments = payments.filter((p: PaymentType) => {
-        const subtotal = Number(p.amount) || 0
-        switch (subtotalFilter.operator) {
-          case 'gt':
-            return subtotal > (subtotalFilter.value || 0)
-          case 'lt':
-            return subtotal < (subtotalFilter.value || 0)
-          case 'eq':
-            return subtotal === (subtotalFilter.value || 0)
-          case 'between':
-            return subtotal >= (subtotalFilter.value || 0) && subtotal <= (subtotalFilter.value2 || 0)
-          default:
-            return true
-        }
-      })
-    }
-    if (tipFilter) {
-      payments = payments.filter((p: PaymentType) => {
-        const tip = Number(p.tipAmount) || 0
-        switch (tipFilter.operator) {
-          case 'gt':
-            return tip > (tipFilter.value || 0)
-          case 'lt':
-            return tip < (tipFilter.value || 0)
-          case 'eq':
-            return tip === (tipFilter.value || 0)
-          case 'between':
-            return tip >= (tipFilter.value || 0) && tip <= (tipFilter.value2 || 0)
-          default:
-            return true
-        }
-      })
-    }
-    if (totalFilter) {
-      payments = payments.filter((p: PaymentType) => {
-        const total = (Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
-        switch (totalFilter.operator) {
-          case 'gt':
-            return total > (totalFilter.value || 0)
-          case 'lt':
-            return total < (totalFilter.value || 0)
-          case 'eq':
-            return total === (totalFilter.value || 0)
-          case 'between':
-            return total >= (totalFilter.value || 0) && total <= (totalFilter.value2 || 0)
-          default:
-            return true
-        }
-      })
-    }
-    if (internationalFilter.length > 0) {
-      const wantYes = internationalFilter.includes('yes')
-      const wantNo = internationalFilter.includes('no')
-      if (!(wantYes && wantNo)) {
-        payments = payments.filter((p: PaymentType) => {
-          const intl = isInternationalPayment(p)
-          return wantYes ? intl : !intl
-        })
-      }
-    }
-    if (cardBrandFilter.length > 0) {
-      payments = payments.filter((p: PaymentType) => cardBrandFilter.includes(getPaymentCardBrand(p)))
-    }
-
-    const count = payments.length
-    const totalCollected = payments.reduce((sum, p) => sum + (Number(p.amount) || 0) + (Number(p.tipAmount) || 0), 0)
-    const netSales = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+    const { count, totalCollected, netSales } = paymentCardsForTab(paymentsSummary?.filteredGroups, activeStatusTab)
     return [
       { label: t('summaryCards.transactions'), value: count, format: 'number' as const },
       { label: t('summaryCards.totalCollected'), value: totalCollected, format: 'currency' as const },
       { label: t('summaryCards.netSales'), value: netSales, format: 'currency' as const },
     ]
-  }, [summaryPayments, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, cardBrandFilter, t])
+  }, [paymentsSummary, activeStatusTab, t])
 
   // Get unique payment IDs from filtered payments to fetch their commissions
   const paymentIds = useMemo(() => {
@@ -789,8 +662,7 @@ export default function Payments() {
           const payment = row.original
           const merchant = payment.merchantAccount
           const ecommerce = (payment as any).ecommerceMerchant as
-            | { id: string; channelName: string; provider?: { name?: string; code?: string } }
-            | undefined
+            { id: string; channelName: string; provider?: { name?: string; code?: string } } | undefined
 
           if (!merchant && !ecommerce) {
             return <span className="text-sm text-muted-foreground dark:text-foreground">-</span>
@@ -800,9 +672,7 @@ export default function Payments() {
             return (
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
-                {merchant.bankName && (
-                  <span className="text-xs text-muted-foreground dark:text-foreground">{merchant.bankName}</span>
-                )}
+                {merchant.bankName && <span className="text-xs text-muted-foreground dark:text-foreground">{merchant.bankName}</span>}
               </div>
             )
           }
@@ -836,11 +706,7 @@ export default function Payments() {
           const payment = row.original as any
           return (
             <div className="flex items-center gap-1.5">
-              <PaymentSourceBadge
-                source={payment.source}
-                externalSource={payment.externalSource}
-                orderSource={payment.order?.source}
-              />
+              <PaymentSourceBadge source={payment.source} externalSource={payment.externalSource} orderSource={payment.order?.source} />
               <ChannelBadge source={payment.order?.source ?? payment.source} />
             </div>
           )
@@ -1278,11 +1144,16 @@ export default function Payments() {
         )}
       </div>
 
-      {/* Status Filter Tabs */}
-      <StatusFilterTabs tabs={statusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
-
-      {/* Summary Cards */}
-      <SummaryCards cards={summaryCards} isLoading={isLoading} className="mb-4" />
+      <SummaryQueryBoundary
+        isLoading={isSummaryLoading}
+        isError={isSummaryError}
+        message={t('summaryUnavailable')}
+        retryLabel={tCommon('retry')}
+        onRetry={() => void refetchSummary()}
+      >
+        <StatusFilterTabs tabs={statusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
+        <SummaryCards cards={summaryCards} className="mb-4" />
+      </SummaryQueryBoundary>
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
@@ -1292,350 +1163,347 @@ export default function Payments() {
 
       {/* Data Table — wrapper kept only for the tour anchor (live-demo venta-tpv tour, useDemoTour) */}
       <div data-tour="payments-table">
-      <DataTable
-        data={filteredPayments}
-        rowCount={totalPayments}
-        columns={filteredColumns}
-        isLoading={isLoading}
-        tableId="payments:main"
-        enableSearch={false}
-        showColumnCustomizer={false}
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
-        pagination={pagination}
-        setPagination={setPagination}
-        hidePagination
-        tableTabLeft={
-          <>
-            {/* Expandable Search Icon */}
-            <div className="relative flex items-center">
-              {isSearchOpen ? (
-                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder={t('filters.searchPlaceholder')}
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Escape') {
-                          if (!searchTerm) setIsSearchOpen(false)
-                        }
+        <DataTable
+          data={filteredPayments}
+          rowCount={totalPayments}
+          columns={filteredColumns}
+          isLoading={isLoading}
+          tableId="payments:main"
+          enableSearch={false}
+          showColumnCustomizer={false}
+          clickableRow={row => ({
+            to: row.id,
+            state: { from: location.pathname },
+          })}
+          pagination={pagination}
+          setPagination={setPagination}
+          hidePagination
+          tableTabLeft={
+            <>
+              {/* Expandable Search Icon */}
+              <div className="relative flex items-center">
+                {isSearchOpen ? (
+                  <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder={t('filters.searchPlaceholder')}
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') {
+                            if (!searchTerm) setIsSearchOpen(false)
+                          }
+                        }}
+                        className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                        autoFocus
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full"
+                      onClick={() => {
+                        setSearchTerm('')
+                        setIsSearchOpen(false)
                       }}
-                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
-                      autoFocus
-                    />
-                    {searchTerm && (
-                      <button
-                        onClick={() => setSearchTerm('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
+                ) : (
                   <Button
-                    variant="ghost"
+                    variant={searchTerm ? 'secondary' : 'ghost'}
                     size="icon"
                     className="h-7 w-7 rounded-full"
-                    onClick={() => {
-                      setSearchTerm('')
-                      setIsSearchOpen(false)
-                    }}
+                    onClick={() => setIsSearchOpen(true)}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <Search className="h-3.5 w-3.5" />
+                    {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  variant={searchTerm ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-7 w-7 rounded-full"
-                  onClick={() => setIsSearchOpen(true)}
+                )}
+                {/* Active search indicator dot */}
+                {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+              </div>
+
+              {/* Date Range Picker */}
+              <DateRangePicker
+                initialDateFrom={dateRange.from}
+                initialDateTo={dateRange.to}
+                showCompare={false}
+                align="start"
+                onUpdate={({ range }) => {
+                  setDateRange({
+                    from: range.from,
+                    to: range.to ?? range.from,
+                  })
+                }}
+              />
+
+              <FilterPillBar onReset={resetFilters} resetLabel={t('filters.reset', { defaultValue: 'Borrar filtros' })}>
+                {/* Merchant Account Filter Pill */}
+                <FilterPill
+                  label={t('columns.merchantAccount')}
+                  activeValue={getFilterDisplayLabel(
+                    merchantAccountFilter,
+                    merchantAccounts.map(account => ({
+                      value: account.id,
+                      label: account.displayName || account.externalMerchantId,
+                    })),
+                  )}
+                  isActive={merchantAccountFilter.length > 0}
+                  onClear={() => setMerchantAccountFilter([])}
                 >
-                  <Search className="h-3.5 w-3.5" />
-                  {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
-                </Button>
-              )}
-              {/* Active search indicator dot */}
-              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-            </div>
+                  <CheckboxFilterContent
+                    title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
+                    options={merchantAccounts.map(account => ({
+                      value: account.id,
+                      label: account.displayName || account.externalMerchantId,
+                    }))}
+                    selectedValues={merchantAccountFilter}
+                    onApply={setMerchantAccountFilter}
+                    searchable={merchantAccounts.length > 5}
+                    searchPlaceholder={t('filters.searchMerchant', { defaultValue: 'Buscar cuenta...' })}
+                  />
+                </FilterPill>
 
-            {/* Date Range Picker */}
-            <DateRangePicker
-              initialDateFrom={dateRange.from}
-              initialDateTo={dateRange.to}
-              showCompare={false}
-              align="start"
-              onUpdate={({ range }) => {
-                setDateRange({
-                  from: range.from,
-                  to: range.to ?? range.from,
-                })
-              }}
-            />
+                {/* Method Filter Pill */}
+                <FilterPill
+                  label={t('columns.method')}
+                  activeValue={getFilterDisplayLabel(
+                    methodFilter,
+                    methods.map((method: string) => ({
+                      value: method,
+                      label:
+                        method === 'CASH'
+                          ? t('methods.cash')
+                          : method === 'CREDIT_CARD'
+                            ? t('methods.creditCard')
+                            : method === 'DEBIT_CARD'
+                              ? t('methods.debitCard')
+                              : t('methods.card'),
+                    })),
+                  )}
+                  isActive={methodFilter.length > 0}
+                  onClear={() => setMethodFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
+                    options={methods.map((method: string) => ({
+                      value: method,
+                      label:
+                        method === 'CASH'
+                          ? t('methods.cash')
+                          : method === 'CREDIT_CARD'
+                            ? t('methods.creditCard')
+                            : method === 'DEBIT_CARD'
+                              ? t('methods.debitCard')
+                              : t('methods.card'),
+                    }))}
+                    selectedValues={methodFilter}
+                    onApply={setMethodFilter}
+                  />
+                </FilterPill>
 
-            <FilterPillBar onReset={resetFilters} resetLabel={t('filters.reset', { defaultValue: 'Borrar filtros' })}>
-              {/* Merchant Account Filter Pill */}
-              <FilterPill
-                label={t('columns.merchantAccount')}
-                activeValue={getFilterDisplayLabel(
-                  merchantAccountFilter,
-                  merchantAccounts.map(account => ({
-                    value: account.id,
-                    label: account.displayName || account.externalMerchantId,
-                  })),
-                )}
-                isActive={merchantAccountFilter.length > 0}
-                onClear={() => setMerchantAccountFilter([])}
-              >
-                <CheckboxFilterContent
-                  title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
-                  options={merchantAccounts.map(account => ({
-                    value: account.id,
-                    label: account.displayName || account.externalMerchantId,
-                  }))}
-                  selectedValues={merchantAccountFilter}
-                  onApply={setMerchantAccountFilter}
-                  searchable={merchantAccounts.length > 5}
-                  searchPlaceholder={t('filters.searchMerchant', { defaultValue: 'Buscar cuenta...' })}
-                />
-              </FilterPill>
+                {/* Card Brand Filter Pill */}
+                <FilterPill
+                  label={t('columns.cardBrand', { defaultValue: 'Marca' })}
+                  activeValue={getFilterDisplayLabel(
+                    cardBrandFilter,
+                    cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) })),
+                  )}
+                  isActive={cardBrandFilter.length > 0}
+                  onClear={() => setCardBrandFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
+                    options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
+                    selectedValues={cardBrandFilter}
+                    onApply={setCardBrandFilter}
+                    searchable={cardBrands.length > 5}
+                    searchPlaceholder={t('filters.searchBrand', { defaultValue: 'Buscar marca...' })}
+                  />
+                </FilterPill>
 
-              {/* Method Filter Pill */}
-              <FilterPill
-                label={t('columns.method')}
-                activeValue={getFilterDisplayLabel(
-                  methodFilter,
-                  methods.map((method: string) => ({
-                    value: method,
-                    label:
-                      method === 'CASH'
-                        ? t('methods.cash')
-                        : method === 'CREDIT_CARD'
-                          ? t('methods.creditCard')
-                          : method === 'DEBIT_CARD'
-                            ? t('methods.debitCard')
-                            : t('methods.card'),
-                  })),
-                )}
-                isActive={methodFilter.length > 0}
-                onClear={() => setMethodFilter([])}
-              >
-                <CheckboxFilterContent
-                  title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
-                  options={methods.map((method: string) => ({
-                    value: method,
-                    label:
-                      method === 'CASH'
-                        ? t('methods.cash')
-                        : method === 'CREDIT_CARD'
-                          ? t('methods.creditCard')
-                          : method === 'DEBIT_CARD'
-                            ? t('methods.debitCard')
-                            : t('methods.card'),
-                  }))}
-                  selectedValues={methodFilter}
-                  onApply={setMethodFilter}
-                />
-              </FilterPill>
+                {/* Source Filter Pill */}
+                <FilterPill
+                  label={t('columns.source')}
+                  activeValue={getFilterDisplayLabel(
+                    sourceFilter,
+                    sources.map((source: string) => ({
+                      value: source,
+                      label: t(`sources.${source}` as any),
+                    })),
+                  )}
+                  isActive={sourceFilter.length > 0}
+                  onClear={() => setSourceFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
+                    options={sources.map((source: string) => ({
+                      value: source,
+                      label: t(`sources.${source}` as any),
+                    }))}
+                    selectedValues={sourceFilter}
+                    onApply={setSourceFilter}
+                  />
+                </FilterPill>
 
-              {/* Card Brand Filter Pill */}
-              <FilterPill
-                label={t('columns.cardBrand', { defaultValue: 'Marca' })}
-                activeValue={getFilterDisplayLabel(
-                  cardBrandFilter,
-                  cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) })),
-                )}
-                isActive={cardBrandFilter.length > 0}
-                onClear={() => setCardBrandFilter([])}
-              >
-                <CheckboxFilterContent
-                  title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
-                  options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
-                  selectedValues={cardBrandFilter}
-                  onApply={setCardBrandFilter}
-                  searchable={cardBrands.length > 5}
-                  searchPlaceholder={t('filters.searchBrand', { defaultValue: 'Buscar marca...' })}
-                />
-              </FilterPill>
-
-              {/* Source Filter Pill */}
-              <FilterPill
-                label={t('columns.source')}
-                activeValue={getFilterDisplayLabel(
-                  sourceFilter,
-                  sources.map((source: string) => ({
-                    value: source,
-                    label: t(`sources.${source}` as any),
-                  })),
-                )}
-                isActive={sourceFilter.length > 0}
-                onClear={() => setSourceFilter([])}
-              >
-                <CheckboxFilterContent
-                  title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
-                  options={sources.map((source: string) => ({
-                    value: source,
-                    label: t(`sources.${source}` as any),
-                  }))}
-                  selectedValues={sourceFilter}
-                  onApply={setSourceFilter}
-                />
-              </FilterPill>
-
-              {/* International Filter Pill */}
-              <FilterPill
-                label={t('columns.international', { defaultValue: 'Internacional' })}
-                activeValue={getFilterDisplayLabel(
-                  internationalFilter,
-                  [
+                {/* International Filter Pill */}
+                <FilterPill
+                  label={t('columns.international', { defaultValue: 'Internacional' })}
+                  activeValue={getFilterDisplayLabel(internationalFilter, [
                     { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
                     { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
-                  ],
-                )}
-                isActive={internationalFilter.length > 0}
-                onClear={() => setInternationalFilter([])}
-              >
-                <CheckboxFilterContent
-                  title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
-                  options={[
-                    { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
-                    { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
-                  ]}
-                  selectedValues={internationalFilter}
-                  onApply={setInternationalFilter}
-                />
-              </FilterPill>
+                  ])}
+                  isActive={internationalFilter.length > 0}
+                  onClear={() => setInternationalFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
+                    options={[
+                      { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
+                      { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
+                    ]}
+                    selectedValues={internationalFilter}
+                    onApply={setInternationalFilter}
+                  />
+                </FilterPill>
 
-              {/* Waiter Filter Pill */}
-              <FilterPill
-                label={t('columns.waiter')}
-                activeValue={getFilterDisplayLabel(
-                  waiterFilter,
-                  waiters.map((waiter: any) => ({
-                    value: waiter.id,
-                    label: `${waiter.firstName} ${waiter.lastName}`.trim(),
-                  })),
-                )}
-                isActive={waiterFilter.length > 0}
-                onClear={() => setWaiterFilter([])}
-              >
-                <CheckboxFilterContent
-                  title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
-                  options={waiters.map((waiter: any) => ({
-                    value: waiter.id,
-                    label: `${waiter.firstName} ${waiter.lastName}`.trim(),
-                  }))}
-                  selectedValues={waiterFilter}
-                  onApply={setWaiterFilter}
-                  searchable={waiters.length > 5}
-                  searchPlaceholder={t('filters.searchWaiter', { defaultValue: 'Buscar personal...' })}
-                />
-              </FilterPill>
+                {/* Waiter Filter Pill */}
+                <FilterPill
+                  label={t('columns.waiter')}
+                  activeValue={getFilterDisplayLabel(
+                    waiterFilter,
+                    waiters.map((waiter: any) => ({
+                      value: waiter.id,
+                      label: `${waiter.firstName} ${waiter.lastName}`.trim(),
+                    })),
+                  )}
+                  isActive={waiterFilter.length > 0}
+                  onClear={() => setWaiterFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
+                    options={waiters.map((waiter: any) => ({
+                      value: waiter.id,
+                      label: `${waiter.firstName} ${waiter.lastName}`.trim(),
+                    }))}
+                    selectedValues={waiterFilter}
+                    onApply={setWaiterFilter}
+                    searchable={waiters.length > 5}
+                    searchPlaceholder={t('filters.searchWaiter', { defaultValue: 'Buscar personal...' })}
+                  />
+                </FilterPill>
 
-              {/* Subtotal Filter Pill */}
-              <FilterPill
-                label={t('columns.subtotal')}
-                activeValue={getAmountFilterLabel(subtotalFilter)}
-                isActive={subtotalFilter !== null}
-                onClear={() => setSubtotalFilter(null)}
-              >
-                <AmountFilterContent
-                  title={`Filtrar por: ${t('columns.subtotal').toLowerCase()}`}
-                  currentFilter={subtotalFilter}
-                  onApply={setSubtotalFilter}
-                />
-              </FilterPill>
+                {/* Subtotal Filter Pill */}
+                <FilterPill
+                  label={t('columns.subtotal')}
+                  activeValue={getAmountFilterLabel(subtotalFilter)}
+                  isActive={subtotalFilter !== null}
+                  onClear={() => setSubtotalFilter(null)}
+                >
+                  <AmountFilterContent
+                    title={`Filtrar por: ${t('columns.subtotal').toLowerCase()}`}
+                    currentFilter={subtotalFilter}
+                    onApply={setSubtotalFilter}
+                  />
+                </FilterPill>
 
-              {/* Tip Filter Pill */}
-              <FilterPill
-                label={t('columns.tip')}
-                activeValue={getAmountFilterLabel(tipFilter)}
-                isActive={tipFilter !== null}
-                onClear={() => setTipFilter(null)}
-              >
-                <AmountFilterContent
-                  title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
-                  currentFilter={tipFilter}
-                  onApply={setTipFilter}
-                />
-              </FilterPill>
+                {/* Tip Filter Pill */}
+                <FilterPill
+                  label={t('columns.tip')}
+                  activeValue={getAmountFilterLabel(tipFilter)}
+                  isActive={tipFilter !== null}
+                  onClear={() => setTipFilter(null)}
+                >
+                  <AmountFilterContent
+                    title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
+                    currentFilter={tipFilter}
+                    onApply={setTipFilter}
+                  />
+                </FilterPill>
 
-              {/* Total Filter Pill */}
-              <FilterPill
-                label={t('columns.total')}
-                activeValue={getAmountFilterLabel(totalFilter)}
-                isActive={totalFilter !== null}
-                onClear={() => setTotalFilter(null)}
+                {/* Total Filter Pill */}
+                <FilterPill
+                  label={t('columns.total')}
+                  activeValue={getAmountFilterLabel(totalFilter)}
+                  isActive={totalFilter !== null}
+                  onClear={() => setTotalFilter(null)}
+                >
+                  <AmountFilterContent
+                    title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
+                    currentFilter={totalFilter}
+                    onApply={setTotalFilter}
+                  />
+                </FilterPill>
+              </FilterPillBar>
+            </>
+          }
+          tableTab={
+            <>
+              <ColumnCustomizer
+                columns={[
+                  // Order matches the actual table column order (see `columns` useMemo above).
+                  { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
+                  { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
+                  { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
+                  {
+                    id: 'international',
+                    label: t('columns.international', { defaultValue: 'Internacional' }),
+                    visible: visibleColumns.includes('international'),
+                  },
+                  { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
+                  { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
+                  { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
+                  { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
+                  { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },
+                ]}
+                onApply={setVisibleColumns}
+                triggerVariant="ghost"
+                triggerClassName="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              />
+              <span className="h-4 w-px bg-border" aria-hidden />
+              <button
+                type="button"
+                onClick={() => setExportOpen(true)}
+                data-tour="payments-export-btn"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
               >
-                <AmountFilterContent
-                  title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
-                  currentFilter={totalFilter}
-                  onApply={setTotalFilter}
-                />
-              </FilterPill>
-            </FilterPillBar>
-          </>
-        }
-        tableTab={
-          <>
-            <ColumnCustomizer
-              columns={[
-                // Order matches the actual table column order (see `columns` useMemo above).
-                { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
-                { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
-                { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
-                {
-                  id: 'international',
-                  label: t('columns.international', { defaultValue: 'Internacional' }),
-                  visible: visibleColumns.includes('international'),
-                },
-                { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
-                { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
-                { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
-                { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
-                { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },
-              ]}
-              onApply={setVisibleColumns}
-              triggerVariant="ghost"
-              triggerClassName="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                <Download className="h-3.5 w-3.5" />
+                {t('export.button')}
+              </button>
+            </>
+          }
+          footer={
+            <InfiniteScrollFooter
+              loadedCount={filteredPayments.length}
+              totalCount={totalPayments || undefined}
+              hasMore={!!hasNextPage}
+              isFetching={isFetchingNextPage}
+              onLoadMore={() => fetchNextPage()}
+              softCap={SOFT_CAP}
+              hardCap={HARD_CAP}
+              hidden={isLoading || filteredPayments.length === 0}
             />
-            <span className="h-4 w-px bg-border" aria-hidden />
-            <button
-              type="button"
-              onClick={() => setExportOpen(true)}
-              data-tour="payments-export-btn"
-              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('export.button')}
-            </button>
-          </>
-        }
-        footer={
-          <InfiniteScrollFooter
-            loadedCount={filteredPayments.length}
-            totalCount={totalPayments || undefined}
-            hasMore={!!hasNextPage}
-            isFetching={isFetchingNextPage}
-            onLoadMore={() => fetchNextPage()}
-            softCap={SOFT_CAP}
-            hardCap={HARD_CAP}
-            hidden={isLoading || filteredPayments.length === 0}
-          />
-        }
-        getRowClassName={row =>
-          row.type === PaymentRecordType.REFUND
-            ? '!bg-red-50/50 dark:!bg-red-950/20 hover:!bg-red-100/50 dark:hover:!bg-red-950/30'
-            : undefined
-        }
-        enableRowSelection
-        onRowSelectionChange={setSelectedPayments}
-        clearSelectionTrigger={clearSelectionTrigger}
-      />
+          }
+          getRowClassName={row =>
+            row.type === PaymentRecordType.REFUND
+              ? '!bg-red-50/50 dark:!bg-red-950/20 hover:!bg-red-100/50 dark:hover:!bg-red-950/30'
+              : undefined
+          }
+          enableRowSelection
+          onRowSelectionChange={setSelectedPayments}
+          clearSelectionTrigger={clearSelectionTrigger}
+        />
       </div>
 
       <SelectionSummaryBar
@@ -1811,11 +1679,7 @@ export default function Payments() {
 
       {/* Single-step manual payment dialog — includes an embedded order
           selector, so the admin picks the order inside the same form. */}
-      <ManualPaymentDialog
-        open={manualPaymentOpen}
-        onClose={() => setManualPaymentOpen(false)}
-        venueId={venueId}
-      />
+      <ManualPaymentDialog open={manualPaymentOpen} onClose={() => setManualPaymentOpen(false)} venueId={venueId} />
 
       {/* Advanced export dialog — date range, columns, format. Backend streams the file. */}
       <ExportDialog

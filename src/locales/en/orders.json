@@ -2,6 +2,7 @@
   "title": "Orders",
   "searchPlaceholder": "Search by order number, table or waiter...",
   "errorPrefix": "Failed to load orders",
+  "summaryUnavailable": "We couldn't load the totals. The table is still available, but we won't show zeros that may be incorrect.",
   "counter": "Counter",
   "columns": {
     "date": "Date",

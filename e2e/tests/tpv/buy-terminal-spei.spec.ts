@@ -152,7 +152,7 @@ test.describe('Buy TPV — SPEI flow', () => {
       })
     })
 
-    await page.goto(`/venues/${VENUE_SLUG}/tpv`)
+    await page.goto(`/venues/${VENUE_SLUG}/devices`)
     await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
 
     // Open the wizard
@@ -181,8 +181,10 @@ test.describe('Buy TPV — SPEI flow', () => {
     await termsCheckbox.click()
     await page.locator('[data-tour="tpv-wizard-next"]').click()
 
-    // Should land on the order detail page (no Stripe redirect).
-    await expect(page).toHaveURL(new RegExp(`/tpv/orders/${ORDER_ID}`), { timeout: 10_000 })
+    // Should land on the order detail page (no Stripe redirect). The canonical
+    // route is `/devices/orders/:id` since the TPV → devices rename; `/tpv/...`
+    // only survives as a LegacyRedirect (see routes/venueRoutes.tsx).
+    await expect(page).toHaveURL(new RegExp(`/devices/orders/${ORDER_ID}`), { timeout: 10_000 })
 
     // Bank details visible
     await expect(page.getByText('699180600007741022')).toBeVisible({ timeout: 10_000 })
@@ -225,7 +227,7 @@ test.describe('Buy TPV — SPEI flow', () => {
       },
     )
 
-    await page.goto(`/venues/${VENUE_SLUG}/tpv/orders/${ORDER_ID}`)
+    await page.goto(`/venues/${VENUE_SLUG}/devices/orders/${ORDER_ID}`)
 
     // Dropzone visible (means we're in AWAITING_PROOF state).
     await expect(

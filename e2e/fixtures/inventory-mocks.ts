@@ -142,9 +142,20 @@ export async function setupInventoryMocks(
     (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   )
 
+  // Real envelope: the service unwraps `response.data.data` and, since the page
+  // became an infinite query, `getNextPageParam` reads `lastPage.pagination`.
+  // A bare `[]` here makes the page `undefined` and crashes the ErrorBoundary.
   await page.route(
     (url) => isApiPath(url, '/stock/movements'),
-    (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { movements: [], pagination: { page: 1, hasMore: false } },
+        }),
+      }),
   )
 
   await page.route(

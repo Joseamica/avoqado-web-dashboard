@@ -9,6 +9,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { apiErrorDescription } from '@/utils/apiError'
 import { useCurrentVenue } from './use-current-venue'
 import { useToast } from './use-toast'
 import cfdiService, {
@@ -24,6 +25,27 @@ import cfdiService, {
 
 export const fiscalConfigQueryKey = (venueId: string | null) => ['fiscal-config', venueId]
 export const cfdisQueryKey = (venueId: string | null, filters: CfdiListFilters) => ['cfdis', venueId, filters]
+export const emisorProviderStatusQueryKey = (venueId: string | null, emisorId: string | null) => [
+  'emisor-provider-status',
+  venueId,
+  emisorId,
+]
+
+/**
+ * Onboarding status of an emisor at the PAC (Carta Manifiesto pendiente, etc.).
+ * Only queried for provisioned emisores — pass `enabled: false` otherwise.
+ */
+export function useEmisorProviderStatus(emisorId: string | null, options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+  const enabled = options?.enabled ?? true
+
+  return useQuery({
+    queryKey: emisorProviderStatusQueryKey(venueId, emisorId),
+    queryFn: () => cfdiService.getEmisorProviderStatus(venueId!, emisorId!),
+    enabled: !!venueId && !!emisorId && enabled,
+    staleTime: 60 * 1000,
+  })
+}
 
 /**
  * Emisores + merchant configs for the active venue.
@@ -59,7 +81,7 @@ export function useUpsertEmisor() {
       toast({ title: t('toast.emisorSaved') })
     },
     onError: (err: any) => {
-      toast({ title: t('toast.emisorSaveError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({ title: t('toast.emisorSaveError'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }
@@ -78,7 +100,7 @@ export function useProvisionEmisor() {
       toast({ title: t('toast.provisioned') })
     },
     onError: (err: any) => {
-      toast({ title: t('toast.provisionError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({ title: t('toast.provisionError'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }
@@ -91,14 +113,13 @@ export function useUploadCsd() {
   const { t } = useTranslation('cfdi')
 
   return useMutation({
-    mutationFn: ({ emisorId, data }: { emisorId: string; data: UploadCsdRequest }) =>
-      cfdiService.uploadCsd(venueId!, emisorId, data),
+    mutationFn: ({ emisorId, data }: { emisorId: string; data: UploadCsdRequest }) => cfdiService.uploadCsd(venueId!, emisorId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: fiscalConfigQueryKey(venueId) })
       toast({ title: t('toast.csdUploaded') })
     },
     onError: (err: any) => {
-      toast({ title: t('toast.csdError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({ title: t('toast.csdError'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }
@@ -117,7 +138,7 @@ export function useUpsertMerchantConfig() {
       toast({ title: t('toast.merchantSaved') })
     },
     onError: (err: any) => {
-      toast({ title: t('toast.merchantSaveError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({ title: t('toast.merchantSaveError'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }
@@ -259,14 +280,13 @@ export function useCancelCfdi() {
   const { t } = useTranslation('cfdi')
 
   return useMutation({
-    mutationFn: ({ cfdiId, data }: { cfdiId: string; data: CancelCfdiRequest }) =>
-      cfdiService.cancelCfdi(venueId!, cfdiId, data),
+    mutationFn: ({ cfdiId, data }: { cfdiId: string; data: CancelCfdiRequest }) => cfdiService.cancelCfdi(venueId!, cfdiId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
       toast({ title: t('toast.cancelRequested') })
     },
     onError: (err: any) => {
-      toast({ title: t('toast.cancelError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({ title: t('toast.cancelError'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }

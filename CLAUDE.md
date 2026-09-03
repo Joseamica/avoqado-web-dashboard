@@ -59,11 +59,13 @@ React 18 + TypeScript + Vite | Tailwind CSS + Radix UI | TanStack Query | React 
 ```bash
 npm run dev          # Vite dev server at http://localhost:5173
 npm run build        # TypeScript + Vite production build
+npm run typecheck    # tsc -b (project references). NOT `npx tsc --noEmit`: the root tsconfig has files: [] and checks nothing
 npm run lint         # ESLint
 npm run preview      # Preview production build
 npm run check:unused # Detect unimported files
 npm run test:e2e     # Playwright E2E tests (needs dev server running or auto-starts)
 npm run test:e2e:ui  # Playwright visual UI runner
+npm run pre-commit   # lint + typecheck + full vitest suite
 ```
 
 Database: see `.env` for connection credentials (never commit credentials).
@@ -109,6 +111,9 @@ src/
     target it reliably. Never target by class or generated id. Existing hooks: `useProductCreationTour`, `useRecipeCreationTour` (under
     `src/hooks/`). Create a new hook per long flow, reuse the `waitForElement` + `exists` + `onNextClick` pattern for flow-aware
     auto-advance. Full pattern + i18n keys live in `docs/guides/onboarding-tours.md`.
+17. **Bounded data without hidden records**: New list components use aggregate endpoints for cards and server pagination/search for rows.
+    Never download the full tenant dataset on mount and never silently truncate it; show totals plus pagination/`Cargar más`. Heavy-query
+    retry/refetch settings are local, not global. → `.claude/rules/bounded-data-and-query-load.md`
 
 ## API Integration
 
@@ -165,6 +170,8 @@ See: `docs/architecture/permissions.md`
 [white-label](docs/features/WHITE_LABEL_DASHBOARD.md)
 
 **Verticals**: [PlayTelecom (org vs venue white-label scopes)](.claude/rules/playtelecom-vertical.md)
+
+**Capacity**: [bounded data and query load](.claude/rules/bounded-data-and-query-load.md)
 
 **Guides**: [UI patterns](docs/guides/ui-patterns.md) | [performance](docs/guides/performance.md) |
 [design system](docs/guides/DESIGN_SYSTEM_GUIDE.md) | [timezone](docs/guides/TIMEZONE_GUIDE.md) |

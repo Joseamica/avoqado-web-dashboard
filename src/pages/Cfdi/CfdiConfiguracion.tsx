@@ -28,6 +28,7 @@ import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import type { CsdStatus, Emisor, GlobalCfdiResult, GlobalPeriod, MerchantConfig } from '@/services/cfdi.service'
 import { EmisorFormModal } from './components/EmisorFormModal'
+import { ManifiestoSection } from './components/ManifiestoSection'
 import { UploadCsdModal } from './components/UploadCsdModal'
 
 function csdBadgeVariant(status: CsdStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -43,12 +44,7 @@ function csdBadgeVariant(status: CsdStatus): 'default' | 'secondary' | 'destruct
 }
 
 function merchantLabel(config: MerchantConfig): string {
-  return (
-    config.merchantAccount?.displayName ||
-    config.merchantAccount?.alias ||
-    config.ecommerceMerchant?.channelName ||
-    config.id
-  )
+  return config.merchantAccount?.displayName || config.merchantAccount?.alias || config.ecommerceMerchant?.channelName || config.id
 }
 
 /** Human label for the period a stamped global CFDI covers, e.g. "06/2026". */
@@ -243,17 +239,46 @@ function GlobalInvoiceSection({ emisores }: { emisores: Emisor[] }) {
  */
 const SAMPLE_EMISORES: Emisor[] = [
   {
-    id: 'sample-emisor-1', venueId: 'sample', rfc: 'ABC120101XYZ', legalName: 'Mi Negocio SA de CV',
-    regimenFiscal: '601', lugarExpedicion: '06000', provider: 'facturapi', providerOrgId: 'org_sample',
-    csdStatus: 'ACTIVE', csdExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
-    csdLastCheckedAt: new Date().toISOString(), serie: 'A', defaultUsoCfdi: 'G03', globalPeriodicity: 'MENSUAL',
-    invoiceCashSales: false, includeCashInAccounting: false, isnRate: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'sample-emisor-1',
+    venueId: 'sample',
+    rfc: 'ABC120101XYZ',
+    legalName: 'Mi Negocio SA de CV',
+    regimenFiscal: '601',
+    lugarExpedicion: '06000',
+    provider: 'facturapi',
+    providerOrgId: 'org_sample',
+    csdStatus: 'ACTIVE',
+    csdExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
+    csdLastCheckedAt: new Date().toISOString(),
+    serie: 'A',
+    defaultUsoCfdi: 'G03',
+    globalPeriodicity: 'MENSUAL',
+    invoiceCashSales: false,
+    includeCashInAccounting: false,
+    isnRate: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'sample-emisor-2', venueId: 'sample', rfc: 'XYZ980505QW7', legalName: 'Sucursal Centro SA de CV',
-    regimenFiscal: '626', lugarExpedicion: '64000', provider: 'facturapi', providerOrgId: null,
-    csdStatus: 'NONE', csdExpiresAt: null, csdLastCheckedAt: null, serie: 'B', defaultUsoCfdi: 'G03',
-    globalPeriodicity: 'SEMANAL', invoiceCashSales: false, includeCashInAccounting: false, isnRate: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'sample-emisor-2',
+    venueId: 'sample',
+    rfc: 'XYZ980505QW7',
+    legalName: 'Sucursal Centro SA de CV',
+    regimenFiscal: '626',
+    lugarExpedicion: '64000',
+    provider: 'facturapi',
+    providerOrgId: null,
+    csdStatus: 'NONE',
+    csdExpiresAt: null,
+    csdLastCheckedAt: null,
+    serie: 'B',
+    defaultUsoCfdi: 'G03',
+    globalPeriodicity: 'SEMANAL',
+    invoiceCashSales: false,
+    includeCashInAccounting: false,
+    isnRate: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ]
 
@@ -265,8 +290,7 @@ const SAMPLE_EMISORES: Emisor[] = [
  * ones to build the "add" dropdown.
  */
 type UnconfiguredMerchant =
-  | { kind: 'merchantAccount'; id: string; label: string }
-  | { kind: 'ecommerceMerchant'; id: string; label: string }
+  { kind: 'merchantAccount'; id: string; label: string } | { kind: 'ecommerceMerchant'; id: string; label: string }
 
 /**
  * "Agregar comercio" — lets the user attach a fiscal config to a merchant that
@@ -339,10 +363,7 @@ function AddMerchantConfig({
   const [selectedKey, setSelectedKey] = useState<string>('')
   const [selectedEmisorId, setSelectedEmisorId] = useState<string>('')
 
-  const selectedMerchant = useMemo(
-    () => unconfigured.find(m => `${m.kind}:${m.id}` === selectedKey) ?? null,
-    [unconfigured, selectedKey],
-  )
+  const selectedMerchant = useMemo(() => unconfigured.find(m => `${m.kind}:${m.id}` === selectedKey) ?? null, [unconfigured, selectedKey])
 
   const canAdd = !!selectedMerchant && !!selectedEmisorId && !isAdding
 
@@ -440,8 +461,8 @@ export default function CfdiConfiguracion() {
   const [confirmGlobal, setConfirmGlobal] = useState<MerchantConfig | null>(null)
 
   // When locked, feed sample cards so the teaser looks real behind the blur.
-  const emisores = useMemo(() => (hasCfdi ? data?.emisores ?? [] : SAMPLE_EMISORES), [data, hasCfdi])
-  const merchantConfigs = useMemo(() => (hasCfdi ? data?.merchantConfigs ?? [] : []), [data, hasCfdi])
+  const emisores = useMemo(() => (hasCfdi ? (data?.emisores ?? []) : SAMPLE_EMISORES), [data, hasCfdi])
+  const merchantConfigs = useMemo(() => (hasCfdi ? (data?.merchantConfigs ?? []) : []), [data, hasCfdi])
 
   const saveMerchant = (config: MerchantConfig, patch: Partial<MerchantConfig>) => {
     const next = { ...config, ...patch }
@@ -502,187 +523,184 @@ export default function CfdiConfiguracion() {
           </div>
         )}
 
-      <div className="space-y-10">
-        {/* ── Emisores ─────────────────────────────────────── */}
-        <section className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">{t('emisores.title')}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">{t('emisores.description')}</p>
+        <div className="space-y-10">
+          {/* ── Emisores ─────────────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">{t('emisores.title')}</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">{t('emisores.description')}</p>
+              </div>
+              <Button onClick={() => setEmisorModal({ open: true, emisor: null })}>
+                <Plus className="mr-2 h-4 w-4" />
+                {t('emisores.new')}
+              </Button>
             </div>
-            <Button onClick={() => setEmisorModal({ open: true, emisor: null })}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('emisores.new')}
-            </Button>
-          </div>
 
-          {emisores.length === 0 ? (
-            <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
-              {t('emisores.empty')}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {emisores.map(emisor => (
-                <div key={emisor.id} className="rounded-xl border border-input bg-card p-5 space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{emisor.legalName}</p>
-                      <p className="text-sm text-muted-foreground">{emisor.rfc}</p>
+            {emisores.length === 0 ? (
+              <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
+                {t('emisores.empty')}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {emisores.map(emisor => (
+                  <div key={emisor.id} className="rounded-xl border border-input bg-card p-5 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold truncate">{emisor.legalName}</p>
+                        <p className="text-sm text-muted-foreground">{emisor.rfc}</p>
+                      </div>
+                      {emisor.providerOrgId && (
+                        <Badge variant="secondary" className="shrink-0">
+                          <ShieldCheck className="h-3 w-3" />
+                          {t('emisores.connectedToPac')}
+                        </Badge>
+                      )}
                     </div>
-                    {emisor.providerOrgId && (
-                      <Badge variant="secondary" className="shrink-0">
-                        <ShieldCheck className="h-3 w-3" />
-                        {t('emisores.connectedToPac')}
-                      </Badge>
-                    )}
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant={csdBadgeVariant(emisor.csdStatus)}>{t(`emisores.csd.${emisor.csdStatus}`)}</Badge>
-                    {emisor.csdStatus !== 'NONE' && emisor.csdExpiresAt && (
-                      <span>{t('emisores.csd.expiresAt', { date: formatDate(emisor.csdExpiresAt) })}</span>
-                    )}
-                    {emisor.serie && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant={csdBadgeVariant(emisor.csdStatus)}>{t(`emisores.csd.${emisor.csdStatus}`)}</Badge>
+                      {emisor.csdStatus !== 'NONE' && emisor.csdExpiresAt && (
+                        <span>{t('emisores.csd.expiresAt', { date: formatDate(emisor.csdExpiresAt) })}</span>
+                      )}
+                      {emisor.serie && (
+                        <span>
+                          {t('emisores.serie')}: {emisor.serie}
+                        </span>
+                      )}
                       <span>
-                        {t('emisores.serie')}: {emisor.serie}
+                        {t('emisores.periodicity')}: {t(`periodicity.${emisor.globalPeriodicity}`)}
                       </span>
-                    )}
-                    <span>
-                      {t('emisores.periodicity')}: {t(`periodicity.${emisor.globalPeriodicity}`)}
-                    </span>
-                  </div>
+                    </div>
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button variant="outline" size="sm" onClick={() => setEmisorModal({ open: true, emisor })}>
-                      {t('emisores.edit')}
-                    </Button>
-                    {!emisor.providerOrgId && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setProvisioningId(emisor.id)
-                          provisionMutation.mutate(emisor.id, { onSettled: () => setProvisioningId(null) })
-                        }}
-                        disabled={provisioningId === emisor.id}
-                      >
-                        {provisioningId === emisor.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {t('emisores.connectPac')}
+                    <ManifiestoSection emisor={emisor} />
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button variant="outline" size="sm" onClick={() => setEmisorModal({ open: true, emisor })}>
+                        {t('emisores.edit')}
                       </Button>
-                    )}
-                    <Button variant="outline" size="sm" onClick={() => setCsdModal({ open: true, emisor })}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      {t('emisores.uploadCsd')}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <hr className="border-border" />
-
-        {/* ── Comercios ────────────────────────────────────── */}
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">{t('merchants.title')}</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">{t('merchants.description')}</p>
-          </div>
-
-          {merchantConfigs.length === 0 ? (
-            <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
-              {t('merchants.empty')}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {merchantConfigs.map(config => (
-                <div key={config.id} className="rounded-xl border border-input bg-card p-5">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <p className="font-medium truncate">{merchantLabel(config)}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{t('merchants.emisor')}</span>
-                      <Select
-                        value={config.fiscalEmisorId}
-                        onValueChange={value => saveMerchant(config, { fiscalEmisorId: value })}
-                      >
-                        <SelectTrigger className="h-8 w-[180px] text-xs">
-                          <SelectValue placeholder={t('merchants.selectEmisor')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {emisores.map(emisor => (
-                            <SelectItem key={emisor.id} value={emisor.id}>
-                              {emisor.legalName} ({emisor.rfc})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {!emisor.providerOrgId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setProvisioningId(emisor.id)
+                            provisionMutation.mutate(emisor.id, { onSettled: () => setProvisioningId(null) })
+                          }}
+                          disabled={provisioningId === emisor.id}
+                        >
+                          {provisioningId === emisor.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {t('emisores.connectPac')}
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => setCsdModal({ open: true, emisor })}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        {t('emisores.uploadCsd')}
+                      </Button>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </section>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
-                      <span className="text-sm">{t('merchants.facturacionEnabled')}</span>
-                      <Switch
-                        checked={config.facturacionEnabled}
-                        onCheckedChange={on => saveMerchant(config, { facturacionEnabled: on })}
-                        className="cursor-pointer"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
-                      <span className="text-sm">{t('merchants.autofacturaEnabled')}</span>
-                      <Switch
-                        checked={config.autofacturaEnabled}
-                        onCheckedChange={on => saveMerchant(config, { autofacturaEnabled: on })}
-                        className="cursor-pointer"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
-                      <span className="text-sm">{t('merchants.includeInGlobal')}</span>
-                      <Switch
-                        checked={config.includeInGlobal}
-                        // Enabling is a fiscal decision → confirm first. Disabling is safe → immediate.
-                        onCheckedChange={on =>
-                          on ? setConfirmGlobal(config) : saveMerchant(config, { includeInGlobal: false })
-                        }
-                        className="cursor-pointer"
-                      />
-                    </label>
-                    <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
-                      <span className="text-sm">{t('merchants.includeInAccounting')}</span>
-                      <Switch
-                        checked={config.includeInAccounting}
-                        onCheckedChange={on => saveMerchant(config, { includeInAccounting: on })}
-                        className="cursor-pointer"
-                      />
-                    </label>
-                  </div>
+          <hr className="border-border" />
 
-                  {/* Explica qué hace cada switch — sobre todo el global (duplica ingresos) y contabilidad. */}
-                  <p className="text-xs text-muted-foreground">{t('merchants.globalHelp')}</p>
-                </div>
-              ))}
+          {/* ── Comercios ────────────────────────────────────── */}
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">{t('merchants.title')}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t('merchants.description')}</p>
             </div>
-          )}
 
-          {/* Add a config to a merchant that has none yet. Skipped behind the
+            {merchantConfigs.length === 0 ? (
+              <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
+                {t('merchants.empty')}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {merchantConfigs.map(config => (
+                  <div key={config.id} className="rounded-xl border border-input bg-card p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="font-medium truncate">{merchantLabel(config)}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{t('merchants.emisor')}</span>
+                        <Select value={config.fiscalEmisorId} onValueChange={value => saveMerchant(config, { fiscalEmisorId: value })}>
+                          <SelectTrigger className="h-8 w-[180px] text-xs">
+                            <SelectValue placeholder={t('merchants.selectEmisor')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {emisores.map(emisor => (
+                              <SelectItem key={emisor.id} value={emisor.id}>
+                                {emisor.legalName} ({emisor.rfc})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
+                        <span className="text-sm">{t('merchants.facturacionEnabled')}</span>
+                        <Switch
+                          checked={config.facturacionEnabled}
+                          onCheckedChange={on => saveMerchant(config, { facturacionEnabled: on })}
+                          className="cursor-pointer"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
+                        <span className="text-sm">{t('merchants.autofacturaEnabled')}</span>
+                        <Switch
+                          checked={config.autofacturaEnabled}
+                          onCheckedChange={on => saveMerchant(config, { autofacturaEnabled: on })}
+                          className="cursor-pointer"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
+                        <span className="text-sm">{t('merchants.includeInGlobal')}</span>
+                        <Switch
+                          checked={config.includeInGlobal}
+                          // Enabling is a fiscal decision → confirm first. Disabling is safe → immediate.
+                          onCheckedChange={on => (on ? setConfirmGlobal(config) : saveMerchant(config, { includeInGlobal: false }))}
+                          className="cursor-pointer"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
+                        <span className="text-sm">{t('merchants.includeInAccounting')}</span>
+                        <Switch
+                          checked={config.includeInAccounting}
+                          onCheckedChange={on => saveMerchant(config, { includeInAccounting: on })}
+                          className="cursor-pointer"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Explica qué hace cada switch — sobre todo el global (duplica ingresos) y contabilidad. */}
+                    <p className="text-xs text-muted-foreground">{t('merchants.globalHelp')}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add a config to a merchant that has none yet. Skipped behind the
               teaser blur (no venueId / no feature) so we never hit the API. */}
-          {hasCfdi && venueId && (
-            <AddMerchantConfig
-              venueId={venueId}
-              emisores={emisores}
-              merchantConfigs={merchantConfigs}
-              onAdd={addMerchantConfig}
-              isAdding={upsertMerchant.isPending}
-            />
-          )}
-        </section>
+            {hasCfdi && venueId && (
+              <AddMerchantConfig
+                venueId={venueId}
+                emisores={emisores}
+                merchantConfigs={merchantConfigs}
+                onAdd={addMerchantConfig}
+                isAdding={upsertMerchant.isPending}
+              />
+            )}
+          </section>
 
-        <hr className="border-border" />
+          <hr className="border-border" />
 
-        {/* ── Factura global (Flow C) ──────────────────────── */}
-        <GlobalInvoiceSection emisores={emisores} />
-      </div>
+          {/* ── Factura global (Flow C) ──────────────────────── */}
+          <GlobalInvoiceSection emisores={emisores} />
+        </div>
 
         {hasCfdi && (
           <>
@@ -691,11 +709,7 @@ export default function CfdiConfiguracion() {
               emisor={emisorModal.emisor}
               onClose={() => setEmisorModal({ open: false, emisor: null })}
             />
-            <UploadCsdModal
-              open={csdModal.open}
-              emisor={csdModal.emisor}
-              onClose={() => setCsdModal({ open: false, emisor: null })}
-            />
+            <UploadCsdModal open={csdModal.open} emisor={csdModal.emisor} onClose={() => setCsdModal({ open: false, emisor: null })} />
           </>
         )}
 

@@ -10,28 +10,22 @@
  *   - Collect from a Promoter (rejected, damaged staff, etc.)
  *   - Inspect timeline of any SIM
  *
- * Data source: reuses `useOrgStockControl(orgId)` — the same overview the
- * admin dashboard consumes. We filter client-side by
- * `item.assignedSupervisorId === currentStaffId`. Backend allows Supervisors
- * to read this endpoint (Asana "Supervisor puede ver SIMs de otros
- * Supervisores"); we narrow to own SIMs for operational focus.
+ * Data source: bounded custody pages. Exact counters and ranking are computed
+ * in the database; the browser only hydrates the rows the user is viewing.
  */
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowRight, Loader2, Package, Search, Users } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/glass-card'
-import { useAuth } from '@/context/AuthContext'
-import { useOrgStockControl } from '../../Organization/StockControl/hooks/useOrgStockControl'
+import { useOrgStockCustody } from '../hooks/useOrgStockCustody'
 import { CustodyStateBadge } from '../../Organization/StockControl/components/CustodyStateBadge'
 import { SimTimelineDrawer } from '../../Organization/StockControl/components/SimTimelineDrawer'
 import { CollectSimDialog, type CollectFrom } from '../../Organization/StockControl/components/CollectSimDialog'
 import { AssignToPromoterDialog } from '../../Organization/StockControl/components/AssignToPromoterDialog'
-import { includesNormalized } from '@/lib/utils'
 import { collectFromPromoter, type SimCustodyState } from '@/services/simCustody.service'
 import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
-import { StaffRole } from '@/types'
 
 interface Props {
   orgId: string
@@ -50,14 +44,9 @@ interface Props {
 // A SIM is "stuck" when it's been with a promoter (pending or accepted, not
 // sold) for more than N days. Helps surface inventory that isn't moving.
 const STUCK_DAYS_THRESHOLD = 7
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
 type FilterKey = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos' | 'estancados'
 
 export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
-  const { user } = useAuth()
-  const currentStaffId = user?.id ?? null
-
   // Memoize ISO string params — using the date refs directly would re-emit on
   // every render of the parent, thrashing react-query. Comparing by ms keeps
   // the query stable as long as the caller passes the same range instance or
@@ -76,95 +65,6 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
     start.setFullYear(start.getFullYear() - 1)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
   }, [fromMs, toMs])
-  const { data, isLoading, error } = useOrgStockControl(orgId, stockParams)
-
-  // Venues where the logged-in user is an encargado (MANAGER/ADMIN/OWNER).
-  // Custodia por tienda must cover ALL their stores at once: a supervisor like
-  // René manages 19 sucursales — forcing them to switch the active venue to
-  // find a SIM produced "Sin resultados" false-negatives (Asana follow-up
-  // 2026-06-12). The currently-viewed venue is always included so SUPERADMIN
-  // (whose user.venues may not list it) keeps the previous behavior.
-  const encargadoVenueIds = useMemo(() => {
-    const ids = new Set<string>()
-    for (const v of user?.venues ?? []) {
-      if (v.role === StaffRole.MANAGER || v.role === StaffRole.ADMIN || v.role === StaffRole.OWNER) ids.add(v.id)
-    }
-    if (venueId) ids.add(venueId)
-    return ids
-  }, [user?.venues, venueId])
-
-  // Narrow to SIMs this supervisor is responsible for. Two paths in:
-  //   1. SIMs the supervisor assigned themselves (assignedSupervisorId === me).
-  //   2. Custodia por tienda (Asana 1215516257822074, opción A): SIMs que un
-  //      promotor dio de alta él mismo en una sucursal donde el usuario es
-  //      encargado (caja Walmart) no tienen assignedSupervisorId — eran
-  //      invisibles e irrecolectables. Se muestran mientras estén en la cadena
-  //      del promotor (assignedPromoterId presente; incluye vendidas para los
-  //      conteos). El backend valida la autoridad real al recolectar.
-  const mySims = useMemo<OrgStockOverviewItem[]>(() => {
-    if (!data?.items || !currentStaffId) return []
-    return data.items.filter(
-      item =>
-        item.assignedSupervisorId === currentStaffId ||
-        (item.registeredFromVenueId != null && encargadoVenueIds.has(item.registeredFromVenueId) && item.assignedPromoterId != null),
-    )
-  }, [data?.items, currentStaffId, encargadoVenueIds])
-
-  // ============================================================
-  // Summary counters
-  // ============================================================
-  const summary = useMemo(() => {
-    const acc = { total: 0, almacen: 0, pendientes: 0, aceptados: 0, rechazados: 0, vendidos: 0 }
-    for (const s of mySims) {
-      acc.total++
-      const st = s.custodyState ?? 'ADMIN_HELD'
-      if (s.status === 'SOLD') acc.vendidos++
-      else if (st === 'SUPERVISOR_HELD') acc.almacen++
-      else if (st === 'PROMOTER_PENDING') acc.pendientes++
-      else if (st === 'PROMOTER_HELD') acc.aceptados++
-      else if (st === 'PROMOTER_REJECTED') acc.rechazados++
-    }
-    return acc
-  }, [mySims])
-
-  // ============================================================
-  // Alerts: rejected (need recollection) + stuck (>7 days)
-  // ============================================================
-  const alerts = useMemo(() => {
-    const rejected = mySims.filter(s => s.custodyState === 'PROMOTER_REJECTED')
-    const stuckCutoff = Date.now() - STUCK_DAYS_THRESHOLD * MS_PER_DAY
-    const stuck = mySims.filter(s => {
-      if (s.status === 'SOLD') return false
-      if (s.custodyState !== 'PROMOTER_PENDING' && s.custodyState !== 'PROMOTER_HELD') return false
-      // Use promoterAcceptedAt when held, assigned timestamp otherwise.
-      const ts = s.promoterAcceptedAt ?? s.createdAt
-      if (!ts) return false
-      return new Date(ts).getTime() < stuckCutoff
-    })
-    return { rejected, stuck }
-  }, [mySims])
-
-  // ============================================================
-  // Promoter ranking — every Promotor this Supervisor has touched in the
-  // window. Customers reported the previous "top 5" cap hid teammates whenever
-  // someone had >5 active Promotores or whenever a Promotor with only sold
-  // SIMs sorted below the cutoff (see field report 2026-05-04). Show the full
-  // list and let the operator scan; the parent card scrolls if needed.
-  // ============================================================
-  const promoterRanking = useMemo(() => {
-    const byPromoter = new Map<string, { id: string; name: string; pending: number; held: number; sold: number }>()
-    for (const s of mySims) {
-      if (!s.assignedPromoterId || !s.assignedPromoterName) continue
-      const key = s.assignedPromoterId
-      const entry = byPromoter.get(key) ?? { id: key, name: s.assignedPromoterName, pending: 0, held: 0, sold: 0 }
-      if (s.status === 'SOLD') entry.sold++
-      else if (s.custodyState === 'PROMOTER_PENDING') entry.pending++
-      else if (s.custodyState === 'PROMOTER_HELD') entry.held++
-      byPromoter.set(key, entry)
-    }
-    return Array.from(byPromoter.values()).sort((a, b) => b.pending + b.held + b.sold - (a.pending + a.held + a.sold))
-  }, [mySims])
-
   // ============================================================
   // UI state: filter + search + dialogs
   // ============================================================
@@ -174,23 +74,27 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   const [collectState, setCollectState] = useState<{ serialNumber: string; from: CollectFrom; contextLabel?: string } | null>(null)
   const [assignSerials, setAssignSerials] = useState<string[] | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-
-  const stuckIds = useMemo(() => new Set(alerts.stuck.map(s => s.id)), [alerts.stuck])
-
-  const filtered = useMemo(() => {
-    const q = search.trim()
-    return mySims.filter(s => {
-      const st = s.custodyState ?? 'ADMIN_HELD'
-      if (filter === 'almacen' && st !== 'SUPERVISOR_HELD') return false
-      if (filter === 'pendientes' && st !== 'PROMOTER_PENDING') return false
-      if (filter === 'aceptados' && st !== 'PROMOTER_HELD') return false
-      if (filter === 'rechazados' && st !== 'PROMOTER_REJECTED') return false
-      if (filter === 'vendidos' && s.status !== 'SOLD') return false
-      if (filter === 'estancados' && !stuckIds.has(s.id)) return false
-      if (q && !includesNormalized(s.serialNumber ?? '', q)) return false
-      return true
-    })
-  }, [mySims, filter, search, stuckIds])
+  const deferredSearch = useDeferredValue(search.trim())
+  const { data, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } = useOrgStockCustody(orgId, {
+    venueId,
+    ...stockParams,
+    pageSize: 50,
+    search: deferredSearch || undefined,
+    filter,
+  })
+  const firstPage = data?.pages[0]
+  const mySims = useMemo<OrgStockOverviewItem[]>(() => data?.pages.flatMap(page => page.items) ?? [], [data?.pages])
+  const summary = firstPage?.summary ?? {
+    total: 0,
+    almacen: 0,
+    pendientes: 0,
+    aceptados: 0,
+    rechazados: 0,
+    vendidos: 0,
+    estancados: 0,
+  }
+  const promoterRanking = firstPage?.promoterRanking ?? []
+  const totalMatches = firstPage?.pagination.total ?? 0
 
   const assignableSelection = useMemo(
     () =>
@@ -254,29 +158,29 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
       </div>
 
       {/* Alerts */}
-      {(alerts.rejected.length > 0 || alerts.stuck.length > 0) && (
+      {(summary.rechazados > 0 || summary.estancados > 0) && (
         <GlassCard className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <h3 className="text-sm font-semibold">Alertas</h3>
           </div>
           <div className="space-y-2 text-sm">
-            {alerts.rejected.length > 0 && (
+            {summary.rechazados > 0 && (
               <div className="flex items-center justify-between rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-3 py-2">
                 <span>
-                  <span className="font-semibold">{alerts.rejected.length}</span>{' '}
-                  {alerts.rejected.length === 1 ? 'SIM rechazado' : 'SIMs rechazados'} — requiere recolección
+                  <span className="font-semibold">{summary.rechazados}</span>{' '}
+                  {summary.rechazados === 1 ? 'SIM rechazado' : 'SIMs rechazados'} — requiere recolección
                 </span>
                 <Button size="sm" variant="outline" onClick={() => setFilter('rechazados')}>
                   Ver <ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               </div>
             )}
-            {alerts.stuck.length > 0 && (
+            {summary.estancados > 0 && (
               <div className="flex items-center justify-between rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 px-3 py-2">
                 <span>
-                  <span className="font-semibold">{alerts.stuck.length}</span>{' '}
-                  {alerts.stuck.length === 1 ? 'SIM estancado' : 'SIMs estancados'} (&gt;{STUCK_DAYS_THRESHOLD} días sin movimiento)
+                  <span className="font-semibold">{summary.estancados}</span>{' '}
+                  {summary.estancados === 1 ? 'SIM estancado' : 'SIMs estancados'} (&gt;{STUCK_DAYS_THRESHOLD} días sin movimiento)
                 </span>
                 <Button size="sm" variant="outline" onClick={() => setFilter('estancados')}>
                   Revisar <ArrowRight className="ml-1 h-3 w-3" />
@@ -358,7 +262,10 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
               <button
                 key={key}
                 type="button"
-                onClick={() => setFilter(key)}
+                onClick={() => {
+                  setFilter(key)
+                  clearSelection()
+                }}
                 className={`rounded-full px-3 py-1 text-xs transition-colors ${
                   filter === key ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
                 }`}
@@ -381,16 +288,16 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {mySims.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                      {mySims.length === 0
+                      {summary.total === 0
                         ? 'Aún no tienes SIMs asignados. Pide al Admin que te asigne un lote.'
                         : 'Sin resultados con esos filtros.'}
                     </td>
                   </tr>
                 ) : (
-                  filtered.map(item => (
+                  mySims.map(item => (
                     <SupervisorSimRow
                       key={item.id}
                       item={item}
@@ -410,6 +317,17 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              Mostrando {mySims.length} de {totalMatches}
+            </span>
+            {hasNextPage && (
+              <Button size="sm" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+                {isFetchingNextPage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Cargar más
+              </Button>
+            )}
           </div>
         </GlassCard>
       </div>

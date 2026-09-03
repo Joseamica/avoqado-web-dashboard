@@ -27,8 +27,9 @@ import { toast } from '@/hooks/use-toast'
 import { changeSimsCategory, type BulkResponse } from '@/services/simCustody.service'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
-import { useOrgStockControl } from '../hooks/useOrgStockControl'
+import { useOrgStockItemsSearch } from '../hooks/useOrgStockItemsSearch'
 import { SimMultiSelect } from './SimMultiSelect'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface Props {
   open: boolean
@@ -50,6 +51,8 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
   const [manualSerials, setManualSerials] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [searchSerials, setSearchSerials] = useState<string[]>(preselectedSerials ?? [])
+  const [itemSearch, setItemSearch] = useState('')
+  const debouncedItemSearch = useDebounce(itemSearch, 300)
   const [result, setResult] = useState<BulkResponse | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
   // Correction path: when on, sold SIMs become eligible (only their category
@@ -78,12 +81,22 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
   }, [])
-  const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
+  const stockQuery = useOrgStockItemsSearch(
+    open ? orgId : undefined,
+    {
+      ...stockParams,
+      search: debouncedItemSearch || undefined,
+      custodyStates: allowSold
+        ? undefined
+        : ['ADMIN_HELD', 'SUPERVISOR_HELD', 'PROMOTER_PENDING', 'PROMOTER_HELD', 'PROMOTER_REJECTED'],
+    },
+    open,
+  )
   // Show non-sold items in the search combobox; include sold ones only when the
   // correction toggle (allowSold) is on.
   const availableItems = useMemo(
-    () => (stockData?.items ?? []).filter(i => allowSold || i.status !== 'SOLD'),
-    [stockData?.items, allowSold],
+    () => (stockQuery.data?.items ?? []).filter(i => allowSold || i.status !== 'SOLD'),
+    [stockQuery.data?.items, allowSold],
   )
 
   const mutation = useMutation<BulkResponse, Error, void>({
@@ -112,6 +125,11 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
     onSuccess: r => {
       setResult(r)
       queryClient.invalidateQueries({ queryKey: ['org-stock-control'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-custody'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['org-stock-items-search'] })
+      queryClient.invalidateQueries({ queryKey: ['org-inventory-by-responsible'] })
       if (r.summary.failed === 0) onDone?.()
     },
     onError: err => toast({ title: err.message ?? 'No se pudo cambiar la categoría', variant: 'destructive' }),
@@ -123,6 +141,7 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
     setManualSerials('')
     setCsvFile(null)
     setSearchSerials(preselectedSerials ?? [])
+    setItemSearch('')
     setResult(null)
     setOnlyErrors(false)
     setAllowSold(false)
@@ -208,6 +227,9 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
                   }
                   value={searchSerials}
                   onChange={setSearchSerials}
+                  searchValue={itemSearch}
+                  onSearchChange={setItemSearch}
+                  isLoading={stockQuery.isFetching}
                   placeholder={availableItems.length === 0 ? 'No hay SIMs disponibles' : undefined}
                 />
                 <p className="text-xs text-muted-foreground">
