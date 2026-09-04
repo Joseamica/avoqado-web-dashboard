@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   actionTone,
   dateFilterToRange,
+  formatActionFallback,
   formatDetailValue,
   formatEntityId,
   groupByDay,
@@ -219,17 +220,7 @@ describe('dateFilterToRange', () => {
   })
 })
 
-/**
- * 🔴 Una acción que el servidor emite y este catálogo no conoce NO falla: el respaldo de
- * `labelForAction` (`VenueActivityLog.tsx`) la pinta como «Crypto payment without shift» —
- * inglés sobre un dashboard en español. Es un defecto que este proyecto ya cazó antes, y sólo
- * se ve mirando la pantalla.
- *
- * `CRYPTO_PAYMENT_WITHOUT_SHIFT` la emite `avoqado-server` (`b4bit.service.ts`) cuando un cobro
- * cripto queda fuera de todo turno de caja, con `data: { amount, tip, total, processor, orderId }`
- * — en PESOS, porque `formatDetailValue` los pinta verbatim.
- */
-describe('catálogo i18n: el cobro cripto fuera de turno está registrado en los 3 idiomas', () => {
+describe('catálogo i18n: dinero sin turno está registrado en los 3 idiomas', () => {
   const catalogos = {
     es: () => import('@/locales/es/organization.json'),
     en: () => import('@/locales/en/organization.json'),
@@ -237,12 +228,26 @@ describe('catálogo i18n: el cobro cripto fuera de turno está registrado en los
   }
 
   for (const [idioma, cargar] of Object.entries(catalogos)) {
-    it(`${idioma}: la acción y las llaves del detalle tienen etiqueta`, async () => {
+    it(`${idioma}: muestra la acción canónica, la histórica y el payload en pesos`, async () => {
       const { activityLog } = ((await cargar()) as { default: any }).default
+      expect(activityLog.actions.PAYMENT_WITHOUT_SHIFT).toBeTruthy()
       expect(activityLog.actions.CRYPTO_PAYMENT_WITHOUT_SHIFT).toBeTruthy()
-      for (const llave of ['amount', 'tip', 'total', 'processor', 'orderId']) {
+      for (const llave of [
+        'amountPesos',
+        'tipPesos',
+        'totalPesos',
+        'reason',
+        'candidateShiftId',
+        'observedShiftStatus',
+        'processor',
+        'orderId',
+      ]) {
         expect(activityLog.detailKeys[llave]).toBeTruthy()
       }
     })
   }
+
+  it('la acción histórica PAYMENT_PENDING_POST_CLOSE_RECONCILIATION sigue legible por fallback', () => {
+    expect(formatActionFallback('PAYMENT_PENDING_POST_CLOSE_RECONCILIATION')).toBe('Payment pending post close reconciliation')
+  })
 })

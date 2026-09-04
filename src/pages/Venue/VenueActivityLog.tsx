@@ -44,7 +44,15 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { actionTone, dateFilterToRange, formatEntityId, groupByDay, toDetailRows, type ActionTone } from './activity-log/formatActivity'
+import {
+  actionTone,
+  dateFilterToRange,
+  formatActionFallback,
+  formatEntityId,
+  groupByDay,
+  toDetailRows,
+  type ActionTone,
+} from './activity-log/formatActivity'
 
 // ── Presentación de la acción ─────────────────────────────────────────────────
 
@@ -349,7 +357,7 @@ function VenueActivityLog() {
 function labelForAction(action: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   return t(`activityLog.actions.${action}`, {
     // El fallback deja de gritar en MAYÚSCULAS: "PERMISSION DENIED" → "Permission denied".
-    defaultValue: action.replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase()),
+    defaultValue: formatActionFallback(action),
   })
 }
 

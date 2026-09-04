@@ -149,6 +149,11 @@ export function actionTone(action: string): ActionTone {
   return 'neutral'
 }
 
+/** Fallback legible para acciones históricas o nuevas sin llave i18n. */
+export function formatActionFallback(action: string): string {
+  return action.replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase())
+}
+
 // ── Filtro de fecha (pill de Stripe) → rango que entiende el servidor ─────────
 
 export interface DateFilterLike {
