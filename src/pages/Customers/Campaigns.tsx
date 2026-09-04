@@ -13,6 +13,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import marketingService, { type CampaignListItem, type CampaignStatus } from '@/services/marketing.service'
 
+import { BirthdayAutomationCard } from './components/BirthdayAutomationCard'
 import { CampaignEditorModal } from './components/CampaignEditorModal'
 
 /**
@@ -134,6 +135,10 @@ export default function Campaigns() {
 						</Button>
 					</PermissionGate>
 				</div>
+
+				{/* La felicitación automática va ARRIBA de la lista: es la campaña que corre sola,
+				    y el dueño la busca aquí, no en otra pantalla. */}
+				<BirthdayAutomationCard venueId={venueId} />
 
 				<DataTable
 					data={data?.items ?? []}

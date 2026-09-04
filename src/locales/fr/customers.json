@@ -390,5 +390,30 @@
       "confirm": "Envoyer à {{count}} clients",
       "sending": "Envoi…"
     }
+  },
+  "birthday": {
+    "title": "Message d'anniversaire",
+    "notConfigured": "Non configuré",
+    "on": "Activé",
+    "paused": "En pause",
+    "onDescription": "Envoyé automatiquement, {{count}} jours avant l'anniversaire de chaque client.",
+    "offDescription": "Un e-mail envoyé automatiquement avant l'anniversaire de chaque client.",
+    "configure": "Configurer",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "savedOn": "Message d'anniversaire activé",
+    "savedOff": "Message d'anniversaire enregistré et mis en pause",
+    "saveError": "Impossible d'enregistrer le message d'anniversaire",
+    "content": "Contenu de l'e-mail",
+    "daysBefore": "Jours d'avance",
+    "daysBeforeHelp": "Combien de jours avant l'anniversaire il doit arriver. 0 = le jour même.",
+    "howItWorks": "Chaque jour, nous regardons qui fête son anniversaire et envoyons cet e-mail, uniquement aux clients qui ont donné leur accord. S'il devait arriver en retard, il n'est pas envoyé : souhaiter après l'anniversaire est pire que de ne rien souhaiter.",
+    "turnOn": "Activer le message",
+    "turnOnHelp": "Tant qu'il est activé, l'e-mail part tout seul. Vous pouvez le mettre en pause à tout moment.",
+    "turnOnNoPermission": "Demandez à un administrateur de l'activer : l'activation autorise l'envoi d'e-mails.",
+    "defaults": {
+      "subject": "Joyeux anniversaire !",
+      "body": "Nous vous souhaitons un très joyeux anniversaire. Merci de faire partie de notre histoire — au plaisir de vous revoir bientôt pour fêter cela."
+    }
   }
 }

@@ -390,5 +390,30 @@
       "confirm": "Send to {{count}} customers",
       "sending": "Sending…"
     }
+  },
+  "birthday": {
+    "title": "Birthday greeting",
+    "notConfigured": "Not set up",
+    "on": "On",
+    "paused": "Paused",
+    "onDescription": "Sends on its own, {{count}} days before each customer’s birthday.",
+    "offDescription": "An email that goes out on its own, before each customer’s birthday.",
+    "configure": "Set up",
+    "edit": "Edit",
+    "save": "Save",
+    "savedOn": "Birthday greeting turned on",
+    "savedOff": "Birthday greeting saved and paused",
+    "saveError": "Couldn't save the birthday greeting",
+    "content": "Email content",
+    "daysBefore": "Days in advance",
+    "daysBeforeHelp": "How many days before the birthday it should arrive. 0 = on the day.",
+    "howItWorks": "Every day we check whose birthday is coming and send this email, only to customers who opted in. If it would arrive late it isn't sent: greeting someone after their birthday is worse than not greeting them.",
+    "turnOn": "Turn the greeting on",
+    "turnOnHelp": "While it is on, the email goes out on its own. You can pause it any time.",
+    "turnOnNoPermission": "Ask an administrator to turn it on: turning it on authorizes sending emails.",
+    "defaults": {
+      "subject": "Happy birthday!",
+      "body": "We want to wish you a very happy birthday. Thank you for being part of our story — we hope to see you soon to celebrate."
+    }
   }
 }

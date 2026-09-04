@@ -121,6 +121,35 @@ export interface CampaignPreview {
 	expiraEn: string
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Felicitación automática de cumpleaños (fase 2)
+// ────────────────────────────────────────────────────────────────────────────
+
+export type BirthdayAutomationStatus = 'ACTIVE' | 'PAUSED'
+
+export interface BirthdayAutomation {
+	id: string
+	status: BirthdayAutomationStatus
+	subject: string
+	contentBlocks: CampaignBlock[] | null
+	daysBefore: number
+	/**
+	 * Última fecha civil que el barrido evaluó, en la zona del negocio. `null` = todavía no
+	 * ha corrido ninguna vez.
+	 */
+	lastEvaluatedLocalDate: string | null
+	createdAt: string
+	updatedAt: string
+}
+
+export interface UpsertBirthdayAutomationRequest {
+	subject: string
+	bloques: CampaignBlock[]
+	daysBefore: number
+	/** 🔴 `true` exige `marketing:send` en el servidor: encender es autorizar envíos. */
+	activa: boolean
+}
+
 export const marketingService = {
 	// Permiso: marketing:read
 	async getPrivacyNotice(venueId: string): Promise<PrivacyNoticeResponse> {
@@ -179,6 +208,27 @@ export const marketingService = {
 		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/campaigns/${id}/publish`, { token })
 		return response.data
 	},
+
+	// ── Felicitación de cumpleaños ────────────────────────────────────────────
+	//
+	// ⚠️ Estas DOS sí llevan el envoltorio `{ data: … }` (`res.json({ data: { automation } })`),
+	// al revés que las de campañas de arriba. No es un descuido: son controladores distintos
+	// escritos en fases distintas. Leerlo mal devuelve `undefined` sin un solo error.
+
+	// Permiso: marketing:manage. `automation` es `null` si nunca se ha configurado — y eso
+	// NO es lo mismo que «configurada y pausada».
+	async getBirthdayAutomation(venueId: string): Promise<{ automation: BirthdayAutomation | null }> {
+		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/birthday-automation`)
+		return response.data.data
+	},
+
+	// 🔴 Permiso: `marketing:manage` para editar, pero `marketing:send` si `activa` es true —
+	// el servidor lo decide leyendo el cuerpo. Encender es autorizar envíos recurrentes.
+	async saveBirthdayAutomation(venueId: string, data: UpsertBirthdayAutomationRequest): Promise<unknown> {
+		const response = await api.put(`/api/v1/dashboard/venues/${venueId}/birthday-automation`, data)
+		return response.data.data
+	},
+
 }
 
 export default marketingService
