@@ -140,6 +140,9 @@ export default function Campaigns() {
 				    y el dueño la busca aquí, no en otra pantalla. */}
 				<BirthdayAutomationCard venueId={venueId} />
 
+				{/* 🔴 O la tabla, o el mensaje de vacío — nunca los dos. Con la tabla vacía se
+				    veían DOS avisos encimados: su «Sin resultados» y el nuestro. */}
+				{!isLoading && (data?.total ?? 0) === 0 ? null : (
 				<DataTable
 					data={data?.items ?? []}
 					columns={columns}
@@ -150,6 +153,7 @@ export default function Campaigns() {
 					rowCount={data?.total ?? 0}
 					onRowClick={(row: CampaignListItem) => setEditando({ id: row.id })}
 				/>
+				)}
 
 				{!isLoading && (data?.total ?? 0) === 0 && (
 					<div className="mt-8 flex flex-col items-center text-center text-muted-foreground">

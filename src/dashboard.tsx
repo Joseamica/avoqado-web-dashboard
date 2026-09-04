@@ -70,6 +70,7 @@ const routeKeyMap: Record<string, string> = {
   loyalty: 'sidebar:customersMenu.loyalty',
   card: 'sidebar:customersMenu.walletCard',
   referrals: 'sidebar:customersMenu.referrals',
+  campaigns: 'sidebar:customersMenu.campaigns',
   // Tercera vez que aparece el mismo descuido (promociones, luego la tarjeta digital), asi que
   // esta pasada mapea el resto de las secciones navegables de una vez. Un segmento sin entrada
   // aqui NO falla: cae al fallback de abajo, que humaniza el slug de la URL — y como los slugs
