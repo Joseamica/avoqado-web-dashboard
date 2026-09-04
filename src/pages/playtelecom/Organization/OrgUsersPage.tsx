@@ -180,12 +180,19 @@ export default function OrgUsersPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ staffId, active }: { staffId: string; active: boolean }) => updateOrgTeamMemberStatus(orgId!, staffId, active),
-    onSuccess: (_data, variables) => {
-      toast({
-        title: variables.active
-          ? t('playtelecom:users.userActivated', { defaultValue: 'Usuario activado' })
-          : t('playtelecom:users.userDeactivated', { defaultValue: 'Usuario desactivado' }),
-      })
+    onSuccess: (data, variables) => {
+      // 🔴 El backend responde 200 aunque encender las tiendas NO alcance (cuenta apagada a
+      // nivel plataforma). Un "Usuario activado" a secas ahí es un éxito falso: se muestra
+      // su advertencia, y en rojo, porque el usuario sigue sin poder entrar a la terminal.
+      if (data?.warning) {
+        toast({ title: data.warning, variant: 'destructive' })
+      } else {
+        toast({
+          title: variables.active
+            ? t('playtelecom:users.userActivated', { defaultValue: 'Usuario activado' })
+            : t('playtelecom:users.userDeactivated', { defaultValue: 'Usuario desactivado' }),
+        })
+      }
       queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
       queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'activity'] })
     },
@@ -198,7 +205,11 @@ export default function OrgUsersPage() {
   const syncVenuesMutation = useMutation({
     mutationFn: ({ staffId, venueIds }: { staffId: string; venueIds: string[] }) => syncOrgTeamMemberVenues(orgId!, staffId, venueIds),
     onSuccess: data => {
-      if (data.added > 0 || data.removed > 0) {
+      // Una tienda recién asignada nace SIN PIN, y sin PIN no se puede entrar a su terminal.
+      // El backend dice cuáles quedaron así; callarlo deja una membresía muda.
+      if (data.warning) {
+        toast({ title: data.warning, variant: 'destructive' })
+      } else if (data.added > 0 || data.removed > 0) {
         toast({ title: t('playtelecom:users.venuesUpdated', { defaultValue: 'Tiendas actualizadas' }) })
       }
       queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
@@ -212,8 +223,15 @@ export default function OrgUsersPage() {
 
   const updatePinMutation = useMutation({
     mutationFn: ({ staffId, pin }: { staffId: string; pin: string }) => updateOrgTeamMemberPin(orgId!, staffId, pin),
-    onSuccess: () => {
-      toast({ title: t('playtelecom:users.pinUpdated', { defaultValue: 'PIN actualizado' }) })
+    onSuccess: data => {
+      // 🔴 El PIN sólo se escribe en las tiendas YA asignadas: sin ninguna, esto tocó CERO
+      // filas y el 200 se veía idéntico al éxito. Ése fue el silencio que dejó a un operador
+      // cambiando el PIN dos veces sin que llegara a la tienda de la terminal.
+      if (data?.warning) {
+        toast({ title: data.warning, variant: 'destructive' })
+      } else {
+        toast({ title: t('playtelecom:users.pinUpdated', { defaultValue: 'PIN actualizado' }) })
+      }
       queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
     },
     onError: (error: any) => {
@@ -285,7 +303,12 @@ export default function OrgUsersPage() {
         const activeVenues = member.venues.filter(v => v.active)
         // Use the first venue's role as the primary display role
         const primaryRole = member.venues[0]?.role || 'VIEWER'
-        const isActive = activeVenues.length > 0 && activeVenues.some(v => v.active)
+        // 🔴 La CUENTA manda. Tener una tienda asignada no basta: con `accountActive:false`
+        // la terminal contesta «Pin Incorrecto» pase lo que pase, y este badge en verde fue
+        // exactamente lo que mandó a perseguir el PIN durante dos días (Asana 1218125347443126).
+        // `!== false` y no `=== true`: un backend anterior al campo no debe volverse "inactivo".
+        const cuentaViva = member.accountActive !== false
+        const isActive = cuentaViva && activeVenues.length > 0
         // Get first venue's pin if available
         const pin = member.venues[0]?.pin
 
@@ -506,6 +529,8 @@ export default function OrgUsersPage() {
 
   const selectedUserStatus = useMemo(() => {
     if (!selectedMember) return 'inactive'
+    // Misma regla que la tabla: cuenta viva Y al menos una tienda asignada.
+    if (selectedMember.accountActive === false) return 'inactive'
     return selectedMember.venues.some(v => v.active) ? 'active' : 'inactive'
   }, [selectedMember])
 

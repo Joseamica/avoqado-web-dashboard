@@ -207,6 +207,14 @@ export interface OrgTeamMember {
   // white-label orgs (e.g. PlayTelecom internal employee numbers).
   employeeCode?: string | null
   createdAt: string
+  // 🔴 El estado de la CUENTA, distinto de tener membresías activas. Iniciar sesión en
+  // una terminal exige las dos cosas: con la cuenta apagada la TPV responde «Pin
+  // Incorrecto» aunque el PIN sea correcto y la sucursal esté asignada. Derivar el
+  // estado sólo de `venues[].active` pintaba "Activo" en verde sobre una cuenta muerta
+  // (Asana 1218125347443126: dos días persiguiendo el PIN equivocado).
+  // Opcional para no romper una respuesta de un backend anterior al campo.
+  accountActive?: boolean
+  status?: 'ACTIVE' | 'INACTIVE'
   venues: Array<{
     staffVenueId: string
     id: string
@@ -231,17 +239,40 @@ export const updateOrgTeamMemberRole = async (orgId: string, staffId: string, ro
   await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/role`, { role })
 }
 
-export const updateOrgTeamMemberStatus = async (orgId: string, staffId: string, active: boolean): Promise<void> => {
-  await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/status`, { active })
+// 🔴 Estas tres mutaciones responden 200 en casos donde el usuario AÚN no puede entrar a
+// la terminal (cuenta apagada, PIN aplicado en cero sucursales, sucursal asignada sin PIN).
+// El backend ya lo dice en `warning`; devolverlo es lo que permite enseñarlo en vez de
+// dejar al operador con un "listo" que no lo es.
+export const updateOrgTeamMemberStatus = async (
+  orgId: string,
+  staffId: string,
+  active: boolean,
+): Promise<{ warning?: string | null; accountActive?: boolean | null }> => {
+  const response = await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/status`, { active })
+  return response.data?.data ?? {}
 }
 
-export const syncOrgTeamMemberVenues = async (orgId: string, staffId: string, venueIds: string[]): Promise<{ added: number; removed: number }> => {
+export const syncOrgTeamMemberVenues = async (
+  orgId: string,
+  staffId: string,
+  venueIds: string[],
+): Promise<{
+  added: number
+  removed: number
+  addedWithoutPin?: Array<{ venueId: string; venueName: string }>
+  warning?: string | null
+}> => {
   const response = await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/venues`, { venueIds })
   return response.data.data
 }
 
-export const updateOrgTeamMemberPin = async (orgId: string, staffId: string, pin: string): Promise<void> => {
-  await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/pin`, { pin })
+export const updateOrgTeamMemberPin = async (
+  orgId: string,
+  staffId: string,
+  pin: string,
+): Promise<{ venuesUpdated?: number; warning?: string | null }> => {
+  const response = await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/pin`, { pin })
+  return response.data?.data ?? {}
 }
 
 export const updateOrgTeamMemberEmployeeCode = async (
