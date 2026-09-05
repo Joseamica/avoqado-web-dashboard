@@ -35,7 +35,7 @@
         "lineApplied": "Promotion applied",
         "cycles_one": "This price applies for {{count}} cycle",
         "cycles_other": "This price applies for {{count}} cycles",
-        "renewal": "Afterwards it renews at {{amount}}, tax included.",
+        "renewal": "After all promotions end: {{amount}} per renewal, tax included. Check each product for its discount duration.",
         "unavailableTitle": "The previous promotion is no longer available",
         "unavailable": {
           "OFFER_NOT_FOUND": "We could not find the original offer version. We show list pricing and will not charge anything.",
@@ -76,6 +76,20 @@
         "close": "Close configurator",
         "review": "Review change",
         "previewOnly": "This preview does not change your subscription or create a charge. Confirmation will be enabled after the change flow is validated."
+      },
+      "review": {
+        "title": "Review your configuration",
+        "description": "This is a new selection, not your current subscription. We check the offer again when you open this screen; this does not reserve a price or create a charge.",
+        "loading": "Checking the current price and campaign…",
+        "campaign": "Applied campaign",
+        "lineList": "List price: {{amount}} + tax",
+        "lineDiscount": "Discount: −{{amount}} before tax",
+        "lineTotal": "With this offer: {{amount}}, tax included",
+        "lineRenewal": "Regular price: {{amount}}, tax included",
+        "regularRenewal": "Regular total after all promotions end: {{amount}}, tax included. Each product shows its discount duration.",
+        "noCharge": "Your subscription and outstanding balance stay unchanged. Purchasing is still disabled in this preview until the change confirmation flow is validated and approved.",
+        "edit": "Back to editing",
+        "confirm": "Purchasing unavailable"
       },
       "error": {
         "title": "We could not price this configuration",

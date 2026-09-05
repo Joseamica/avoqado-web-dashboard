@@ -34,7 +34,7 @@
         "lineApplied": "Promotion appliquée",
         "cycles_one": "Ce prix s'applique pendant {{count}} cycle",
         "cycles_other": "Ce prix s'applique pendant {{count}} cycles",
-        "renewal": "Ensuite, renouvellement à {{amount}}, taxes comprises.",
+        "renewal": "Après toutes les promotions : {{amount}} par renouvellement, TVA incluse. Consultez la durée sur chaque produit.",
         "unavailableTitle": "La promotion précédente n'est plus disponible",
         "unavailable": {
           "OFFER_NOT_FOUND": "La version originale de l'offre est introuvable. Le tarif public est affiché et aucun paiement ne sera effectué.",
@@ -75,6 +75,20 @@
         "close": "Fermer le configurateur",
         "review": "Vérifier le changement",
         "previewOnly": "Cet aperçu ne modifie pas votre abonnement et ne crée aucun paiement. La confirmation sera activée après validation du parcours de changement."
+      },
+      "review": {
+        "title": "Vérifiez votre configuration",
+        "description": "Il s'agit d'une nouvelle sélection, pas de votre abonnement actuel. L'offre est vérifiée à l'ouverture ; aucun prix n'est réservé et aucun paiement n'est créé.",
+        "loading": "Vérification du prix et de la campagne en cours…",
+        "campaign": "Campagne appliquée",
+        "lineList": "Prix catalogue : {{amount}} + TVA",
+        "lineDiscount": "Réduction : −{{amount}} hors TVA",
+        "lineTotal": "Avec cette offre : {{amount}}, TVA incluse",
+        "lineRenewal": "Prix normal : {{amount}}, TVA incluse",
+        "regularRenewal": "Total normal après toutes les promotions : {{amount}}, TVA incluse. La durée de chaque réduction figure sur son produit.",
+        "noCharge": "Votre abonnement et votre solde restent inchangés. L'achat reste désactivé dans cet aperçu jusqu'à validation et approbation de la confirmation du changement.",
+        "edit": "Modifier la sélection",
+        "confirm": "Achat indisponible"
       },
       "error": {
         "title": "Impossible de calculer cette configuration",

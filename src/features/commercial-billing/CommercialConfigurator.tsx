@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Boxes, Check, ChevronRight, LockKeyhole, PackageCheck, Sparkles, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,8 +22,17 @@ import type {
 } from './commercial-contract'
 import { formatCommercialMinor } from './money'
 import { useCommercialConfiguratorPreview } from './use-commercial-billing'
+import { CommercialConfigurationReview, type ConfigurationReviewState } from './CommercialConfigurationReview'
 
 type ConfiguratorMode = CommercialConfiguratorSelection['mode']
+
+function sameSelection(left: CommercialConfiguratorSelection, right: CommercialConfiguratorPreview['preview']['selection']): boolean {
+  if (left.mode === 'PACKAGE' && right.mode === 'PACKAGE') {
+    return left.packageCode === right.packageCode && left.billingUnit === right.billingUnit
+  }
+  return left.mode === 'CUSTOM' && right.mode === 'CUSTOM' && left.billingUnit === right.billingUnit && Array.isArray(right.moduleCodes) &&
+    JSON.stringify([...left.moduleCodes].sort()) === JSON.stringify([...right.moduleCodes].sort())
+}
 
 function initialMode(overview: CommercialBillingReadyOverview): ConfiguratorMode {
   return overview.contract.lines.length === 1 && overview.contract.lines[0]?.productKind === 'PLAN' ? 'PACKAGE' : 'CUSTOM'
@@ -215,11 +224,11 @@ function CustomOptions({
   )
 }
 
-function PricingSummary({ data, pending }: { data: CommercialConfiguratorPreview; pending: boolean }) {
+function PricingSummary({ data, pending, onReview }: { data: CommercialConfiguratorPreview; pending: boolean; onReview: () => void }) {
   const { t, i18n } = useTranslation('billing')
   const money = (value: string) => formatCommercialMinor(value, 'MXN', i18n.language)
   const quote = data.preview.quote
-  const promotionalCycles = quote.lines.find(line => line.promotionalCycles !== null)?.promotionalCycles ?? null
+  const hasPromotion = quote.lines.some(line => line.promotionalCycles !== null)
   return (
     <div
       className="space-y-3 lg:sticky lg:top-4"
@@ -267,6 +276,11 @@ function PricingSummary({ data, pending }: { data: CommercialConfiguratorPreview
                       {t('commercialBilling.configurator.offer.lineApplied')}
                     </p>
                   )}
+                  {line.promotionalCycles !== null && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('commercialBilling.configurator.offer.cycles', { count: line.promotionalCycles })}
+                    </p>
+                  )}
                 </div>
                 <p className="tabular-nums text-foreground">{money(line.totalMinor)}</p>
               </div>
@@ -297,23 +311,20 @@ function PricingSummary({ data, pending }: { data: CommercialConfiguratorPreview
               <dd className="tabular-nums">{money(quote.today.totalMinor)}</dd>
             </div>
               </dl>
-              {promotionalCycles && (
+              {hasPromotion && (
             <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5 text-sm">
-              <p className="font-medium text-foreground">
-                {t('commercialBilling.configurator.offer.cycles', { count: promotionalCycles })}
-              </p>
               <p className="mt-1 text-muted-foreground">
                 {t('commercialBilling.configurator.offer.renewal', { amount: money(quote.renewal.totalMinor) })}
               </p>
             </div>
               )}
-              {!promotionalCycles && (
+              {!hasPromotion && (
             <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-3 py-2.5 text-sm">
               <span className="text-muted-foreground">{t('commercialBilling.configurator.summary.renewal')}</span>
               <span className="font-medium tabular-nums text-foreground">{money(quote.renewal.totalMinor)}</span>
             </div>
               )}
-              <Button type="button" className="w-full" disabled data-tour="commercial-billing-review-change">
+              <Button type="button" className="w-full" onClick={onReview} data-tour="commercial-billing-review-change">
                 {t('commercialBilling.configurator.actions.review')}
               </Button>
               <p className="text-center text-xs leading-5 text-muted-foreground">
@@ -431,6 +442,28 @@ export function CommercialConfigurator({ overview }: { overview: CommercialBilli
   const query = useCommercialConfiguratorPreview(venueId, selection, true)
   const data = query.data
   const pricingPending = query.isFetching || query.isSelectionPending
+  const [review, setReview] = useState<ConfigurationReviewState | null>(null)
+  const reviewRequest = useRef(0)
+
+  async function openReview() {
+    if (pricingPending) return
+    const request = ++reviewRequest.current
+    setReview({ status: 'LOADING' })
+    try {
+      const result = await query.refetch()
+      if (request !== reviewRequest.current) return
+      setReview(result.isSuccess && result.data && sameSelection(selection, result.data.preview.selection)
+        ? { status: 'READY', data: result.data }
+        : { status: 'ERROR' })
+    } catch {
+      if (request === reviewRequest.current) setReview({ status: 'ERROR' })
+    }
+  }
+
+  function closeReview() {
+    reviewRequest.current += 1
+    setReview(null)
+  }
 
   function toggleModule(code: string) {
     setModuleCodes(current => (current.includes(code) ? current.filter(item => item !== code) : [...current, code].sort()))
@@ -494,7 +527,7 @@ export function CommercialConfigurator({ overview }: { overview: CommercialBilli
           </div>
         ) : (
           <>
-            {data.preview.recommendation && mode === 'CUSTOM' && !pricingPending && (
+            {data.preview.recommendation && mode === 'CUSTOM' && !pricingPending && !query.isError && (
               <div className="pt-5">
                 <Recommendation
                   recommendation={data.preview.recommendation}
@@ -517,11 +550,22 @@ export function CommercialConfigurator({ overview }: { overview: CommercialBilli
                   <CustomOptions data={data} selectedCodes={moduleCodes} onToggle={toggleModule} />
                 </TabsContent>
               </div>
-              <PricingSummary data={data} pending={pricingPending} />
+              {query.isError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>{t('commercialBilling.configurator.error.title')}</AlertTitle>
+                  <AlertDescription>
+                    {t('commercialBilling.configurator.error.description')}
+                    <Button type="button" variant="outline" onClick={() => void query.refetch()}>{t('commercialBilling.actions.retry')}</Button>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <PricingSummary data={data} pending={pricingPending} onReview={() => void openReview()} />
+              )}
             </div>
           </>
         )}
       </Tabs>
+      {review && <CommercialConfigurationReview state={review} onClose={closeReview} onRetry={() => void openReview()} />}
     </section>
   )
 }

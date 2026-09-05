@@ -198,10 +198,10 @@ function CommercialSubscriptions({ overview }: { overview: CommercialBillingRead
       </div>
 
       {configuratorOpen && (
-        <>
+        <PermissionGate permission="billing:subscriptions:manage">
           <Separator />
           <CommercialConfigurator overview={overview} />
-        </>
+        </PermissionGate>
       )}
     </div>
   )
@@ -215,5 +215,5 @@ export function CommercialSubscriptionsBoundary({ legacy }: { legacy: ReactNode 
   if (query.isError || !query.data) return <CommercialBillingUnavailable onRetry={() => void query.refetch()} />
   if (query.data.state === 'NO_COMMERCIAL_CONTRACT') return <>{legacy}</>
   if (query.data.state === 'INCOMPATIBLE') return <CommercialBillingIncompatible supportCode={query.data.supportCode} />
-  return <CommercialSubscriptions overview={query.data} />
+  return <CommercialSubscriptions key={`${venueId}:${query.data.contract.id}`} overview={query.data} />
 }

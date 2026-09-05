@@ -5,6 +5,10 @@ import { createMockVenue, StaffRole } from '../../fixtures/mock-data'
 
 test.setTimeout(45_000)
 
+test.beforeEach(async ({ page }) => {
+  await page.routeWebSocket('**/socket.io/**', socket => socket.close())
+})
+
 const venue = createMockVenue({
   id: 'venue-commercial',
   slug: 'venue-commercial',
@@ -142,3 +146,94 @@ test('keeps the exact Server amount from subscription overview through receipt h
   await expect(receipts).toBeVisible()
   await expect(receipts.getByText('$288.84')).toBeVisible()
 })
+
+for (const appearance of ['desktop-light', 'mobile-dark'] as const) {
+  test(`reviews a refreshed modular offer without charges or lost selections (${appearance})`, async ({ page }, testInfo) => {
+    await page.setViewportSize(appearance === 'mobile-dark' ? { width: 390, height: 844 } : { width: 1440, height: 1000 })
+    await page.addInitScript(() => {
+      localStorage.setItem('lang', 'es')
+      const style = document.createElement('style')
+      style.textContent = '.tsqd-parent-container { display: none !important; }'
+      if (document.head) document.head.appendChild(style)
+      else document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style))
+    })
+    await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [{ ...venue, permissions: [...venue.permissions!, 'billing:subscriptions:manage'] }] })
+    await page.route('**/api/v1/dashboard/commercial/venues/*/billing/overview', route =>
+      route.fulfill({ json: { success: true, data: overview } }),
+    )
+    const mutations: string[] = []
+    let previewRequests = 0
+    let reviewing = false
+    page.on('request', request => {
+      if (reviewing && request.url().includes('/api/v1/') && !['GET', 'OPTIONS', 'HEAD'].includes(request.method()) && !request.url().endsWith('/configurator/preview')) {
+        mutations.push(`${request.method()} ${request.url()}`)
+      }
+    })
+    await page.route('**/api/v1/dashboard/commercial/venues/*/billing/configurator/preview', async route => {
+      previewRequests += 1
+      const { selection } = route.request().postDataJSON()
+      const includesCfdi = selection.moduleCodes?.includes('CFDI_MODULE')
+      const pos = {
+        lineKey: 'PRODUCT:POS:POS_MONTHLY', targetType: 'PRODUCT', targetCode: 'POS', priceCode: 'POS_MONTHLY',
+        productKind: 'POS', name: 'Punto de venta', billingUnit: 'VENUE_MONTH',
+        listSubtotalMinor: '24900', discountMinor: '19900', subtotalMinor: '5000', taxMinor: '800', totalMinor: '5800',
+        promotionalCycles: 3, renewalSubtotalMinor: '24900', renewalTaxMinor: '3984', renewalTotalMinor: '28884',
+        appliedDiscounts: [{ type: 'FIXED_PRICE', cycles: 3, discountMinor: '19900' }],
+      }
+      const cfdi = {
+        ...pos, lineKey: 'PRODUCT:CFDI_MODULE:CFDI_MONTHLY', targetCode: 'CFDI_MODULE', priceCode: 'CFDI_MONTHLY',
+        productKind: 'MODULE', name: 'Facturación CFDI 4.0', listSubtotalMinor: '17900', discountMinor: '0',
+        subtotalMinor: '17900', taxMinor: '2864', totalMinor: '20764', promotionalCycles: null,
+        renewalSubtotalMinor: '17900', renewalTaxMinor: '2864', renewalTotalMinor: '20764', appliedDiscounts: [],
+      }
+      await route.fulfill({ json: { success: true, data: {
+        schemaVersion: 1, state: 'READY',
+        pricing: { state: 'BOUND_OFFER_APPLIED', offerVersionId: 'offer-pos50-v1', offerCode: 'POS_50' },
+        preview: {
+          schemaVersion: 1, catalogPublicationId: 'catalog-1', selection,
+          offer: { offerVersionId: 'offer-pos50-v1', offerCode: 'POS_50' },
+          options: {
+            packages: [],
+            customBase: { code: 'POS', name: 'Punto de venta', description: 'Ventas y caja', kind: 'POS', salesMode: 'SELF_SERVICE', capabilityCodes: ['POS_CORE'], prices: [{ code: 'POS_MONTHLY', billingUnit: 'VENUE_MONTH', listUnitAmountMinor: '24900', taxRateBasisPoints: 1600 }] },
+            modules: [{ code: 'CFDI_MODULE', name: 'Facturación CFDI 4.0', description: 'Facturas para tus clientes', kind: 'MODULE', salesMode: 'SELF_SERVICE', capabilityCodes: ['CFDI'], prices: [{ code: 'CFDI_MONTHLY', billingUnit: 'VENUE_MONTH', listUnitAmountMinor: '17900', taxRateBasisPoints: 1600 }] }],
+          },
+          quote: {
+            lines: includesCfdi ? [pos, cfdi] : [pos],
+            today: includesCfdi
+              ? { listSubtotalMinor: '42800', discountMinor: '19900', subtotalMinor: '22900', taxMinor: '3664', totalMinor: '26564' }
+              : { listSubtotalMinor: '24900', discountMinor: '19900', subtotalMinor: '5000', taxMinor: '800', totalMinor: '5800' },
+            renewal: includesCfdi
+              ? { listSubtotalMinor: '42800', discountMinor: '0', subtotalMinor: '42800', taxMinor: '6848', totalMinor: '49648' }
+              : { listSubtotalMinor: '24900', discountMinor: '0', subtotalMinor: '24900', taxMinor: '3984', totalMinor: '28884' },
+            entitlementCodes: includesCfdi ? ['POS_CORE', 'CFDI'] : ['POS_CORE'],
+          },
+          recommendation: null,
+        },
+      } } })
+    })
+
+    await page.goto('/venues/venue-commercial/settings/billing/subscriptions')
+    await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), appearance === 'mobile-dark')
+    await page.locator('[data-tour="commercial-billing-open-configurator"]').click()
+    const cfdi = page.getByRole('checkbox', { name: /Facturación CFDI/ })
+    await cfdi.check()
+    const summary = page.getByTestId('commercial-configurator-summary')
+    await expect(summary.locator('dd').filter({ hasText: /265,64/ })).toBeVisible()
+    const requestsBeforeReview = previewRequests
+    reviewing = true
+    await page.locator('[data-tour="commercial-billing-review-change"]').click()
+    const review = page.getByRole('dialog')
+    await expect(review.getByText('POS_50', { exact: true })).toBeVisible()
+    await expect(review.locator('dd').filter({ hasText: /265,64/ })).toBeVisible()
+    await expect(review.locator('dd').filter({ hasText: /36,64/ })).toBeVisible()
+    await expect(review.getByText(/496,48/)).toBeVisible()
+    await expect(review.locator('[data-tour="commercial-billing-review-confirm"]')).toBeDisabled()
+    expect(previewRequests).toBe(requestsBeforeReview + 1)
+    expect(await review.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    expect(await review.locator('[data-fsm-content]').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`review-${appearance}.png`), animations: 'disabled' })
+    await review.locator('[data-tour="commercial-billing-review-edit"]').click()
+    await expect(cfdi).toBeChecked()
+    expect(mutations).toEqual([])
+  })
+}

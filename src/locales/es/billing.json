@@ -35,7 +35,7 @@
         "lineApplied": "Promoción aplicada",
         "cycles_one": "Este precio aplica durante {{count}} ciclo",
         "cycles_other": "Este precio aplica durante {{count}} ciclos",
-        "renewal": "Después se renueva en {{amount}}, IVA incluido.",
+        "renewal": "Al terminar todas las promociones: {{amount}} por renovación, IVA incluido. Consulta la duración en cada producto.",
         "unavailableTitle": "La promoción anterior ya no está disponible",
         "unavailable": {
           "OFFER_NOT_FOUND": "No encontramos la versión original de la oferta. Mostramos precio de lista y no realizaremos ningún cargo.",
@@ -76,6 +76,20 @@
         "close": "Cerrar configurador",
         "review": "Revisar cambio",
         "previewOnly": "Esta vista no modifica tu suscripción ni realiza cargos. La confirmación se habilitará después de validar el flujo de cambio."
+      },
+      "review": {
+        "title": "Revisa tu configuración",
+        "description": "Esta es una nueva selección, no tu suscripción actual. Consultamos de nuevo la oferta al abrir esta pantalla; no reservamos este precio ni realizamos cargos.",
+        "loading": "Consultando el precio y la campaña vigentes…",
+        "campaign": "Campaña aplicada",
+        "lineList": "Precio de lista: {{amount}} + IVA",
+        "lineDiscount": "Descuento: −{{amount}} antes de IVA",
+        "lineTotal": "Con esta oferta: {{amount}}, IVA incluido",
+        "lineRenewal": "Precio regular: {{amount}}, IVA incluido",
+        "regularRenewal": "Total regular al terminar todas las promociones: {{amount}}, IVA incluido. La duración de cada descuento aparece en su producto.",
+        "noCharge": "Tu suscripción y tu saldo pendiente no cambian. Contratar todavía está deshabilitado en esta vista previa: falta validar y aprobar la confirmación del cambio.",
+        "edit": "Volver a editar",
+        "confirm": "Contratación no disponible"
       },
       "error": {
         "title": "No pudimos calcular esta configuración",
