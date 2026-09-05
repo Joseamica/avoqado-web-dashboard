@@ -85,8 +85,10 @@
         "lineList": "Precio de lista: {{amount}} + IVA",
         "lineDiscount": "Descuento: −{{amount}} antes de IVA",
         "lineTotal": "Con esta oferta: {{amount}}, IVA incluido",
+        "lineTotalWithoutPromotion": "Total: {{amount}}, IVA incluido",
         "lineRenewal": "Precio regular: {{amount}}, IVA incluido",
         "regularRenewal": "Total regular al terminar todas las promociones: {{amount}}, IVA incluido. La duración de cada descuento aparece en su producto.",
+        "renewalWithoutPromotion": "Total por renovación: {{amount}}, IVA incluido.",
         "noCharge": "Tu suscripción y tu saldo pendiente no cambian. Contratar todavía está deshabilitado en esta vista previa: falta validar y aprobar la confirmación del cambio.",
         "edit": "Volver a editar",
         "confirm": "Contratación no disponible"

@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom'
 
 import { CommercialReceiptHistoryBoundary } from './CommercialReceiptHistory'
 import { CommercialSubscriptionsBoundary } from './CommercialSubscriptions'
+import { CommercialConfigurationReview } from './CommercialConfigurationReview'
+import type { CommercialConfiguratorPreview } from './commercial-contract'
 
 const { mockCan } = vi.hoisted(() => ({ mockCan: vi.fn(() => true) }))
 const mockOverviewQuery = vi.fn()
@@ -691,7 +693,7 @@ describe('commercial billing Dashboard surfaces', () => {
     expect(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' })).toBeInTheDocument()
   })
 
-  it.each(['matching', 'wrong-cadence', 'wrong-package'] as const)('validates the Server echo for annual packages: %s', async scenario => {
+  it.each(['matching', 'matching-bound-offer', 'wrong-cadence', 'wrong-package'] as const)('validates the Server echo for annual packages: %s', async scenario => {
     const current = readyOverview()
     const annualOverview = {
       ...current,
@@ -704,10 +706,10 @@ describe('commercial billing Dashboard surfaces', () => {
     const base = configuratorResult()
     const annual = {
       ...base,
-      pricing: { state: 'LIST_PRICE' },
+      pricing: scenario === 'matching-bound-offer' ? base.pricing : { state: 'LIST_PRICE' },
       preview: {
         ...base.preview,
-        offer: null,
+        offer: scenario === 'matching-bound-offer' ? base.preview.offer : null,
         recommendation: null,
         selection: { mode: 'PACKAGE', packageCode: 'PREMIUM', billingUnit: 'VENUE_YEAR' },
         quote: {
@@ -735,14 +737,61 @@ describe('commercial billing Dashboard surfaces', () => {
     fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.open' }))
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'commercialBilling.configurator.actions.review' })))
     const dialog = screen.getByRole('dialog')
-    if (scenario === 'matching') {
+    if (scenario === 'matching' || scenario === 'matching-bound-offer') {
       expect(within(dialog).getByText('Premium')).toBeInTheDocument()
       expect(within(dialog).getByText('$19,708.40')).toBeInTheDocument()
       expect(within(dialog).getByText('commercialBilling.billingUnit.VENUE_YEAR')).toBeInTheDocument()
+      // An acquisition campaign may remain bound while none of its rules apply to Premium.
+      expect(within(dialog).queryByText('commercialBilling.configurator.review.campaign')).not.toBeInTheDocument()
+      expect(within(dialog).queryByText('POS_50')).not.toBeInTheDocument()
+      expect(within(dialog).queryByText(/review.lineTotal:/)).not.toBeInTheDocument()
+      expect(within(dialog).getByText(/review.lineTotalWithoutPromotion:/)).toHaveTextContent('$19,708.40')
+      expect(within(dialog).queryByText('commercialBilling.configurator.summary.discount')).not.toBeInTheDocument()
+      expect(within(dialog).queryByText(/review.regularRenewal:/)).not.toBeInTheDocument()
+      expect(within(dialog).getByText(/review.renewalWithoutPromotion:/)).toHaveTextContent('$19,708.40')
     } else {
       expect(within(dialog).getByText('commercialBilling.configurator.error.title')).toBeInTheDocument()
       expect(within(dialog).queryByText('$19,708.40')).not.toBeInTheDocument()
     }
+  })
+
+  it('labels only the discounted product as promotional in a mixed configuration', () => {
+    const data: CommercialConfiguratorPreview = configuratorResult()
+    data.preview.quote.lines.push({
+      ...data.preview.quote.lines[0], lineKey: 'cfdi', targetCode: 'CFDI_MODULE', priceCode: 'CFDI_MONTHLY',
+      productKind: 'MODULE', name: 'Facturación CFDI 4.0',
+      listSubtotalMinor: '17900', discountMinor: '0', subtotalMinor: '17900', taxMinor: '2864', totalMinor: '20764',
+      promotionalCycles: null, appliedDiscounts: [], renewalSubtotalMinor: '17900', renewalTaxMinor: '2864', renewalTotalMinor: '20764',
+    })
+    data.preview.quote.today = { listSubtotalMinor: '42800', discountMinor: '19900', subtotalMinor: '22900', taxMinor: '3664', totalMinor: '26564' }
+    data.preview.quote.renewal = { listSubtotalMinor: '42800', discountMinor: '0', subtotalMinor: '42800', taxMinor: '6848', totalMinor: '49648' }
+    render(<CommercialConfigurationReview state={{ status: 'READY', data }} onClose={vi.fn()} onRetry={vi.fn()} />)
+    const dialog = screen.getByRole('dialog')
+    const rows = within(dialog).getAllByRole('listitem')
+    expect(within(rows[0]).getByText(/review.lineTotal:/)).toHaveTextContent('$58.00')
+    expect(within(rows[1]).queryByText(/review.lineTotal:/)).not.toBeInTheDocument()
+    expect(within(rows[1]).getByText(/review.lineTotalWithoutPromotion:/)).toHaveTextContent('$207.64')
+    expect(within(dialog).getByText('POS_50')).toBeInTheDocument()
+    expect(within(dialog).getByText(/review.regularRenewal:/)).toHaveTextContent('$496.48')
+    expect(within(dialog).getByText('−$199.00')).toBeInTheDocument()
+  })
+
+  it.each(['24900', '0'])('preserves a Server-confirmed free period even when its discount is %s', amount => {
+    const data: CommercialConfiguratorPreview = configuratorResult()
+    const quote = data.preview.quote
+    quote.lines = [{
+      ...quote.lines[0], listSubtotalMinor: amount, discountMinor: amount, subtotalMinor: '0', taxMinor: '0', totalMinor: '0',
+      promotionalCycles: 1, appliedDiscounts: [{ type: 'FREE_PERIOD', cycles: 1, discountMinor: amount }],
+      renewalSubtotalMinor: amount, renewalTaxMinor: amount === '0' ? '0' : '3984', renewalTotalMinor: amount === '0' ? '0' : '28884',
+    }]
+    quote.today = { listSubtotalMinor: amount, discountMinor: amount, subtotalMinor: '0', taxMinor: '0', totalMinor: '0' }
+    quote.renewal = { listSubtotalMinor: amount, discountMinor: '0', subtotalMinor: amount, taxMinor: quote.lines[0].renewalTaxMinor, totalMinor: quote.lines[0].renewalTotalMinor }
+    render(<CommercialConfigurationReview state={{ status: 'READY', data }} onClose={vi.fn()} onRetry={vi.fn()} />)
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('POS_50')).toBeInTheDocument()
+    expect(within(dialog).getByText(/offer.cycles/)).toHaveTextContent('"count":1')
+    expect(within(dialog).getByText(/review.lineTotal:/)).toHaveTextContent('$0.00')
+    expect(within(dialog).getByRole('button', { name: 'commercialBilling.configurator.review.confirm' })).toBeDisabled()
   })
 
   it.each([false, true])('ignores a dismissed review response (reopened: %s)', async reopened => {

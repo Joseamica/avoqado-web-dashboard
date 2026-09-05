@@ -84,8 +84,10 @@
         "lineList": "Prix catalogue : {{amount}} + TVA",
         "lineDiscount": "Réduction : −{{amount}} hors TVA",
         "lineTotal": "Avec cette offre : {{amount}}, TVA incluse",
+        "lineTotalWithoutPromotion": "Total : {{amount}}, TVA incluse",
         "lineRenewal": "Prix normal : {{amount}}, TVA incluse",
         "regularRenewal": "Total normal après toutes les promotions : {{amount}}, TVA incluse. La durée de chaque réduction figure sur son produit.",
+        "renewalWithoutPromotion": "Total par renouvellement : {{amount}}, TVA incluse.",
         "noCharge": "Votre abonnement et votre solde restent inchangés. L'achat reste désactivé dans cet aperçu jusqu'à validation et approbation de la confirmation du changement.",
         "edit": "Modifier la sélection",
         "confirm": "Achat indisponible"

@@ -186,6 +186,13 @@ for (const appearance of ['desktop-light', 'mobile-dark'] as const) {
         subtotalMinor: '17900', taxMinor: '2864', totalMinor: '20764', promotionalCycles: null,
         renewalSubtotalMinor: '17900', renewalTaxMinor: '2864', renewalTotalMinor: '20764', appliedDiscounts: [],
       }
+      const premiumAnnual = {
+        ...cfdi, lineKey: 'PRODUCT:PREMIUM:PREMIUM_ANNUAL', targetCode: 'PREMIUM', priceCode: 'PREMIUM_ANNUAL',
+        productKind: 'PLAN', name: 'Premium', billingUnit: 'VENUE_YEAR',
+        listSubtotalMinor: '1699000', subtotalMinor: '1699000', taxMinor: '271840', totalMinor: '1970840',
+        renewalSubtotalMinor: '1699000', renewalTaxMinor: '271840', renewalTotalMinor: '1970840',
+      }
+      const annualTotal = { listSubtotalMinor: '1699000', discountMinor: '0', subtotalMinor: '1699000', taxMinor: '271840', totalMinor: '1970840' }
       await route.fulfill({ json: { success: true, data: {
         schemaVersion: 1, state: 'READY',
         pricing: { state: 'BOUND_OFFER_APPLIED', offerVersionId: 'offer-pos50-v1', offerCode: 'POS_50' },
@@ -193,16 +200,16 @@ for (const appearance of ['desktop-light', 'mobile-dark'] as const) {
           schemaVersion: 1, catalogPublicationId: 'catalog-1', selection,
           offer: { offerVersionId: 'offer-pos50-v1', offerCode: 'POS_50' },
           options: {
-            packages: [],
+            packages: [{ code: 'PREMIUM', name: 'Premium', description: 'Paquete completo', kind: 'PLAN', salesMode: 'SELF_SERVICE', capabilityCodes: ['POS_CORE', 'CFDI'], prices: [{ code: 'PREMIUM_ANNUAL', billingUnit: 'VENUE_YEAR', listUnitAmountMinor: '1699000', taxRateBasisPoints: 1600 }] }],
             customBase: { code: 'POS', name: 'Punto de venta', description: 'Ventas y caja', kind: 'POS', salesMode: 'SELF_SERVICE', capabilityCodes: ['POS_CORE'], prices: [{ code: 'POS_MONTHLY', billingUnit: 'VENUE_MONTH', listUnitAmountMinor: '24900', taxRateBasisPoints: 1600 }] },
             modules: [{ code: 'CFDI_MODULE', name: 'Facturación CFDI 4.0', description: 'Facturas para tus clientes', kind: 'MODULE', salesMode: 'SELF_SERVICE', capabilityCodes: ['CFDI'], prices: [{ code: 'CFDI_MONTHLY', billingUnit: 'VENUE_MONTH', listUnitAmountMinor: '17900', taxRateBasisPoints: 1600 }] }],
           },
           quote: {
-            lines: includesCfdi ? [pos, cfdi] : [pos],
-            today: includesCfdi
+            lines: selection.mode === 'PACKAGE' ? [premiumAnnual] : includesCfdi ? [pos, cfdi] : [pos],
+            today: selection.mode === 'PACKAGE' ? annualTotal : includesCfdi
               ? { listSubtotalMinor: '42800', discountMinor: '19900', subtotalMinor: '22900', taxMinor: '3664', totalMinor: '26564' }
               : { listSubtotalMinor: '24900', discountMinor: '19900', subtotalMinor: '5000', taxMinor: '800', totalMinor: '5800' },
-            renewal: includesCfdi
+            renewal: selection.mode === 'PACKAGE' ? annualTotal : includesCfdi
               ? { listSubtotalMinor: '42800', discountMinor: '0', subtotalMinor: '42800', taxMinor: '6848', totalMinor: '49648' }
               : { listSubtotalMinor: '24900', discountMinor: '0', subtotalMinor: '24900', taxMinor: '3984', totalMinor: '28884' },
             entitlementCodes: includesCfdi ? ['POS_CORE', 'CFDI'] : ['POS_CORE'],
@@ -227,6 +234,10 @@ for (const appearance of ['desktop-light', 'mobile-dark'] as const) {
     await expect(review.locator('dd').filter({ hasText: /265,64/ })).toBeVisible()
     await expect(review.locator('dd').filter({ hasText: /36,64/ })).toBeVisible()
     await expect(review.getByText(/496,48/)).toBeVisible()
+    const reviewLines = review.locator('[data-tour="commercial-billing-review-line"]')
+    await expect(reviewLines.filter({ hasText: 'Punto de venta' }).getByText(/Con esta oferta:/)).toBeVisible()
+    await expect(reviewLines.filter({ hasText: 'Facturación CFDI' }).getByText(/^Total:.*207,64/)).toBeVisible()
+    await expect(reviewLines.filter({ hasText: 'Facturación CFDI' }).getByText(/Con esta oferta:/)).toHaveCount(0)
     await expect(review.locator('[data-tour="commercial-billing-review-confirm"]')).toBeDisabled()
     expect(previewRequests).toBe(requestsBeforeReview + 1)
     expect(await review.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
@@ -234,6 +245,19 @@ for (const appearance of ['desktop-light', 'mobile-dark'] as const) {
     await page.screenshot({ path: testInfo.outputPath(`review-${appearance}.png`), animations: 'disabled' })
     await review.locator('[data-tour="commercial-billing-review-edit"]').click()
     await expect(cfdi).toBeChecked()
+    await page.getByRole('tab', { name: 'Paquetes', exact: true }).click()
+    await page.getByRole('button', { name: 'Anual', exact: true }).click()
+    await page.getByRole('button', { name: /^Premium/ }).click()
+    await expect(summary.locator('dd').filter({ hasText: /19\.708,40/ })).toBeVisible()
+    await page.locator('[data-tour="commercial-billing-review-change"]').click()
+    await expect(review.getByText('Premium', { exact: true })).toBeVisible()
+    await expect(review.getByText(/^Total:.*19\.708,40/)).toBeVisible()
+    await expect(review.getByText(/^Total por renovación:.*19\.708,40/)).toBeVisible()
+    await expect(review.getByText(/Campaña aplicada|Con esta oferta:|al terminar todas las promociones|POS_50/)).toHaveCount(0)
+    await expect(review.getByText('Descuento', { exact: true })).toHaveCount(0)
+    await expect(review.locator('[data-tour="commercial-billing-review-confirm"]')).toBeDisabled()
+    expect(await review.locator('[data-fsm-content]').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`review-premium-${appearance}.png`), animations: 'disabled' })
     expect(mutations).toEqual([])
   })
 }

@@ -28,6 +28,9 @@ export function CommercialConfigurationReview({
   const money = (value: string) => formatCommercialMinor(value, 'MXN', i18n.language)
   const data = state.status === 'READY' ? state.data : null
   const quote = data?.preview.quote
+  // A bound acquisition offer is not proof that a rule applies to this selection.
+  // Keep Server-confirmed promotional periods even when today's discount is zero.
+  const hasPromotion = quote?.lines.some(line => line.discountMinor !== '0' || line.promotionalCycles !== null) ?? false
 
   return (
     <FullScreenModal open onClose={onClose} title={t('commercialBilling.configurator.review.title')} contentClassName="bg-muted/30">
@@ -56,7 +59,7 @@ export function CommercialConfigurationReview({
             <Card className="border-input shadow-none">
               <CardHeader className="gap-2">
                 <CardTitle className="text-base">{t('commercialBilling.configurator.summary.title')}</CardTitle>
-                {data.pricing.state === 'BOUND_OFFER_APPLIED' && (
+                {data.pricing.state === 'BOUND_OFFER_APPLIED' && hasPromotion && (
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     {t('commercialBilling.configurator.review.campaign')}
                     <Badge variant="outline" className="max-w-full break-all whitespace-normal">{data.pricing.offerCode}</Badge>
@@ -73,7 +76,12 @@ export function CommercialConfigurationReview({
                       {line.discountMinor !== '0' && (
                         <p className="text-sm tabular-nums">{t('commercialBilling.configurator.review.lineDiscount', { amount: money(line.discountMinor) })}</p>
                       )}
-                      <p className="text-sm tabular-nums">{t('commercialBilling.configurator.review.lineTotal', { amount: money(line.totalMinor) })}</p>
+                      <p className="text-sm tabular-nums">{t(
+                        line.discountMinor !== '0' || line.promotionalCycles !== null
+                          ? 'commercialBilling.configurator.review.lineTotal'
+                          : 'commercialBilling.configurator.review.lineTotalWithoutPromotion',
+                        { amount: money(line.totalMinor) },
+                      )}</p>
                       {line.promotionalCycles !== null && (
                         <Badge variant="secondary">{t('commercialBilling.configurator.offer.cycles', { count: line.promotionalCycles })}</Badge>
                       )}
@@ -84,13 +92,18 @@ export function CommercialConfigurationReview({
                 <Separator />
                 <dl className="space-y-3 text-sm">
                   {(['listSubtotalMinor', 'discountMinor', 'subtotalMinor', 'taxMinor', 'totalMinor'] as const).map((key, index) => (
-                    <div key={key} className="flex items-baseline justify-between gap-4">
+                    key === 'discountMinor' && quote.today.discountMinor === '0' ? null : <div key={key} className="flex items-baseline justify-between gap-4">
                       <dt>{t(`commercialBilling.configurator.summary.${['list', 'discount', 'subtotal', 'tax', 'today'][index]}`)}</dt>
                       <dd className="shrink-0 font-medium tabular-nums">{key === 'discountMinor' && '−'}{money(quote.today[key])}</dd>
                     </div>
                   ))}
                 </dl>
-                <p className="rounded-lg bg-muted p-3 text-sm">{t('commercialBilling.configurator.review.regularRenewal', { amount: money(quote.renewal.totalMinor) })}</p>
+                <p className="rounded-lg bg-muted p-3 text-sm">{t(
+                  hasPromotion
+                    ? 'commercialBilling.configurator.review.regularRenewal'
+                    : 'commercialBilling.configurator.review.renewalWithoutPromotion',
+                  { amount: money(quote.renewal.totalMinor) },
+                )}</p>
               </CardContent>
             </Card>
           </>

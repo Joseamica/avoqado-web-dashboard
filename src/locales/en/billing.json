@@ -85,8 +85,10 @@
         "lineList": "List price: {{amount}} + tax",
         "lineDiscount": "Discount: −{{amount}} before tax",
         "lineTotal": "With this offer: {{amount}}, tax included",
+        "lineTotalWithoutPromotion": "Total: {{amount}}, tax included",
         "lineRenewal": "Regular price: {{amount}}, tax included",
         "regularRenewal": "Regular total after all promotions end: {{amount}}, tax included. Each product shows its discount duration.",
+        "renewalWithoutPromotion": "Total per renewal: {{amount}}, tax included.",
         "noCharge": "Your subscription and outstanding balance stay unchanged. Purchasing is still disabled in this preview until the change confirmation flow is validated and approved.",
         "edit": "Back to editing",
         "confirm": "Purchasing unavailable"
