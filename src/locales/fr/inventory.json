@@ -72,7 +72,10 @@
       "modifiers": "modificateurs"
     },
     "messages": {
-      "ingredientAdded": "Ingrédient ajouté avec succès"
+      "ingredientAdded": "Ingrédient ajouté avec succès",
+      "ingredientAddFailed": "Impossible d'ajouter l'ingrédient",
+      "selectIngredientFirst": "Sélectionne d'abord un ingrédient",
+      "ingredientAddFailedFallback": "Vérifie ta connexion et réessaie."
     }
   },
   "rawMaterials": {

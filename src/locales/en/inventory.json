@@ -318,7 +318,10 @@
       "ingredientRemoved": "Ingredient removed successfully",
       "noRecipe": "This product doesn't have a recipe yet",
       "noRecipeShort": "No recipe",
-      "productsWithoutRecipes": "{{count}} products without recipes"
+      "productsWithoutRecipes": "{{count}} products without recipes",
+      "ingredientAddFailed": "Could not add the ingredient",
+      "selectIngredientFirst": "Select an ingredient first",
+      "ingredientAddFailedFallback": "Check your connection and try again."
     },
     "preview": {
       "title": "Preview",
