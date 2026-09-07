@@ -13,6 +13,10 @@ function json(data: unknown) {
 const FAILED_ROW = {
   id: 'sv-stuck-1',
   paymentId: 'pay-1',
+  // Fila CON su SaleVerification: es lo que habilita Editar / Rechazar. Sin este campo
+  // la guarda `row.hasVerification` de SalesDetail lo lee como `undefined` y esconde
+  // las acciones — la pantalla queda muda y el test se cae buscando el botón.
+  hasVerification: true,
   status: 'FAILED',
   isPortabilidad: false,
   saleType: 'LINEA_NUEVA',
