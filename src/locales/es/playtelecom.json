@@ -606,7 +606,9 @@
     "rejectedCount": "{{count}} rechazada",
     "rejectedCount_plural": "{{count}} rechazadas",
     "rejectedSummary": "de ellas, {{count}} rechazada",
-    "rejectedSummary_plural": "de ellas, {{count}} rechazadas"
+    "rejectedSummary_plural": "de ellas, {{count}} rechazadas",
+    "unknownHeadersTitle": "Hay columnas de tu archivo que no estoy leyendo",
+    "unknownHeadersHint": "Si alguna de ellas debía afectar la venta (por ejemplo el estatus), revisa que su nombre coincida con el de la plantilla antes de confirmar."
   },
   "common": {
     "active": "Activo",

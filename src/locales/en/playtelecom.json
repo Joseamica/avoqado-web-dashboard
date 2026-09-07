@@ -606,7 +606,9 @@
     "rejectedCount": "{{count}} rejected",
     "rejectedCount_plural": "{{count}} rejected",
     "rejectedSummary": "{{count}} of them rejected",
-    "rejectedSummary_plural": "{{count}} of them rejected"
+    "rejectedSummary_plural": "{{count}} of them rejected",
+    "unknownHeadersTitle": "Some columns in your file are not being read",
+    "unknownHeadersHint": "If any of them was meant to affect the sale (the status, for example), check that its name matches the template before confirming."
   },
   "common": {
     "active": "Active",

@@ -115,7 +115,7 @@ describe('ManualSalesUpload', () => {
     mockCan.mockReturnValue(true)
     mockToast.mockReset()
 
-    mockParseSalesFile.mockResolvedValue(SAMPLE_ROWS)
+    mockParseSalesFile.mockResolvedValue({ rows: SAMPLE_ROWS, unknownHeaders: [] })
     mockPreviewManualSales.mockResolvedValue(PREVIEW_RESULT)
   })
 
@@ -243,7 +243,7 @@ describe('ManualSalesUpload — ventas rechazadas', () => {
     mockCan.mockReturnValue(true)
     mockToast.mockReset()
 
-    mockParseSalesFile.mockResolvedValue(SAMPLE_ROWS)
+    mockParseSalesFile.mockResolvedValue({ rows: SAMPLE_ROWS, unknownHeaders: [] })
     mockPreviewManualSales.mockResolvedValue({
       crear: [
         { index: 0, iccid: '8952140063000001234', storeName: 'BAE Pavón', saleStatus: 'REJECTED' },
@@ -297,5 +297,40 @@ describe('ManualSalesUpload — ventas rechazadas', () => {
     expect(screen.getByText('8952140063000001234')).toBeInTheDocument()
     expect(screen.queryByText('Rechazada')).not.toBeInTheDocument()
     expect(screen.queryByText('1 rechazada')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * Incidente 2026-09-06: una columna llamada `Status` se ignoró en silencio y una
+ * venta rechazada entró como buena. La pantalla ahora tiene que DECIR qué columnas
+ * no leyó, antes de que el operador confirme.
+ */
+describe('ManualSalesUpload — columnas no leídas', () => {
+  beforeEach(() => {
+    mockParseSalesFile.mockReset()
+    mockPreviewManualSales.mockReset()
+    mockCan.mockReset()
+    mockCan.mockReturnValue(true)
+    mockToast.mockReset()
+    mockPreviewManualSales.mockResolvedValue(PREVIEW_RESULT)
+  })
+
+  it('lista las columnas que el archivo trae y el parser no reconoció', async () => {
+    mockParseSalesFile.mockResolvedValue({ rows: SAMPLE_ROWS, unknownHeaders: ['Status', 'Mes'] })
+
+    render(<ManualSalesUpload />)
+    await uploadSampleFile()
+
+    expect(screen.getByText('Hay columnas de tu archivo que no estoy leyendo')).toBeInTheDocument()
+    expect(screen.getByText('Status · Mes')).toBeInTheDocument()
+  })
+
+  it('sin columnas de sobra no muestra el aviso (no es ruido permanente)', async () => {
+    mockParseSalesFile.mockResolvedValue({ rows: SAMPLE_ROWS, unknownHeaders: [] })
+
+    render(<ManualSalesUpload />)
+    await uploadSampleFile()
+
+    expect(screen.queryByText('Hay columnas de tu archivo que no estoy leyendo')).not.toBeInTheDocument()
   })
 })

@@ -76,6 +76,10 @@ export default function ManualSalesUpload() {
   const { orgId } = useCurrentOrganization()
 
   const [rows, setRows] = useState<ManualSaleRow[]>([])
+  // Columnas que el archivo trae y el parser NO leyó. Se muestran ANTES de confirmar:
+  // una columna que el operador cree que se aplica y no se aplica degrada en silencio
+  // al valor por defecto — y el default aquí es "venta aprobada", o sea dinero.
+  const [unknownHeaders, setUnknownHeaders] = useState<string[]>([])
   const [preview, setPreview] = useState<BulkManualSalesResult | null>(null)
   const [isApplying, setIsApplying] = useState(false)
   const [result, setResult] = useState<BulkManualSalesResult | null>(null)
@@ -83,11 +87,14 @@ export default function ManualSalesUpload() {
   const handleUpload = async (file: File) => {
     setResult(null)
     setPreview(null)
+    setUnknownHeaders([])
 
     let parsedRows: ManualSaleRow[] = []
     try {
-      parsedRows = await parseSalesFile(file)
+      const parsed = await parseSalesFile(file)
+      parsedRows = parsed.rows
       setRows(parsedRows)
+      setUnknownHeaders(parsed.unknownHeaders)
 
       if (!orgId) {
         return {
@@ -212,6 +219,26 @@ export default function ManualSalesUpload() {
             'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo.',
         })}
       />
+
+      {unknownHeaders.length > 0 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-700 dark:text-amber-400">
+                {t('manualSales.unknownHeadersTitle', { defaultValue: 'Hay columnas de tu archivo que no estoy leyendo' })}
+              </p>
+              <p className="mt-1 text-amber-700/90 dark:text-amber-400/90">{unknownHeaders.join(' · ')}</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t('manualSales.unknownHeadersHint', {
+                  defaultValue:
+                    'Si alguna de ellas debía afectar la venta (por ejemplo el estatus), revisa que su nombre coincida con el de la plantilla antes de confirmar.',
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {preview && (
         <GlassCard className="p-5">
