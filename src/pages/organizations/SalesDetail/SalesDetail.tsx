@@ -34,6 +34,7 @@ import {
   ZoomOut,
   Smartphone,
   Pencil,
+  AlertTriangle,
 } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -795,7 +796,7 @@ export default function SalesDetail() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        {canEdit && (
+                        {canEdit && row.hasVerification && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -808,7 +809,9 @@ export default function SalesDetail() {
                             Editar
                           </Button>
                         )}
-                        {row.status === 'PENDING' ? (
+                        {!row.hasVerification ? (
+                          <SinEvidencia paymentId={row.paymentId} />
+                        ) : row.status === 'PENDING' ? (
                           <>
                             <Button
                               size="sm"
@@ -1175,7 +1178,7 @@ function SaleCard({
 
       {/* Actions */}
       <div className="pt-2 border-t border-border/30 space-y-2">
-        {onEdit && (
+        {onEdit && row.hasVerification && (
           <Button
             size="sm"
             variant="outline"
@@ -1187,7 +1190,9 @@ function SaleCard({
             Editar venta
           </Button>
         )}
-        {row.status === 'PENDING' ? (
+        {!row.hasVerification ? (
+          <SinEvidencia paymentId={row.paymentId} />
+        ) : row.status === 'PENDING' ? (
           <div className="grid grid-cols-3 gap-2">
             <Button
               size="sm"
@@ -1235,6 +1240,32 @@ function SaleCard({
         )}
       </div>
     </GlassCard>
+  )
+}
+
+/**
+ * Renglón cuyo cobro se registró SIN su `SaleVerification` — sin SIM ID, sin promotor
+ * y sin fotos. No se puede aprobar, rechazar, revisar ni editar: el id que lleva el
+ * renglón es el del PAGO, no el de una verificación, así que el servidor responde 404
+ * «Sale verification not found» en las cuatro acciones (Asana 1218158516825558).
+ *
+ * 🔴 `status` no sirve para detectarlo: el backend le fabrica un 'PENDING' idéntico al
+ * de una verificación realmente pendiente. Por eso la guarda mira `hasVerification`,
+ * igual que la pantalla venue-scoped (`SalesReport.tsx`), de donde se perdió al
+ * reescribir esta vista.
+ *
+ * Se dice lo que pasó en vez de esconder el renglón: desaparecer en silencio le
+ * quitaría al back-office la única señal de que esa venta existe y está incompleta.
+ */
+function SinEvidencia({ paymentId }: { paymentId: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300"
+      title={`Este cobro se registró sin su verificación de venta, así que no tiene SIM ni promotor y no se puede aprobar ni rechazar. Repórtalo a soporte con el ID del pago: ${paymentId}`}
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+      Sin evidencia
+    </span>
   )
 }
 

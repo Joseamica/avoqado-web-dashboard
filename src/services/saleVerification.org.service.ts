@@ -81,8 +81,20 @@ export interface OrgSaleTerminal {
 }
 
 export interface OrgSaleRow {
+  /**
+   * 🔴 Es el id de la verificación cuando existe, y el del PAGO cuando no. Sólo el
+   * primero sirve para aprobar/rechazar/revisar/editar: mandar el segundo devuelve
+   * 404 «Sale verification not found». Antes de usarlo en una mutación, comprueba
+   * `hasVerification` (Asana 1218158516825558).
+   */
   id: string
   paymentId: string
+  /**
+   * False cuando el cobro se registró sin su `SaleVerification` (sin SIM ni promotor).
+   * `status` NO sirve para detectarlo: el backend le fabrica un 'PENDING' idéntico al
+   * de una verificación realmente pendiente.
+   */
+  hasVerification: boolean
   status: SaleVerificationStatus
   isPortabilidad: boolean
   saleType: SaleType
