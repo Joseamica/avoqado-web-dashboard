@@ -15,6 +15,15 @@ tenant-sized collection. Design the interaction for 10× and 100× today's large
   active filters across pages. Distinguish loading, empty dataset, no matches, and request failure.
 - Deduplicate by stable item/event id when merging infinite pages, and reset to page one when the
   scope, search, filter, or ordering changes.
+- 🔴 Once a list is server-paginated it is no longer the set — it is only what matches the current
+  search and filter. Every decision that walks it («what did I tick?», «how many are there?»,
+  «is it in here?») changes meaning **without changing code**, so neither the compiler nor the tests
+  catch it. What the user already picked must be stored WHEN they pick it, with the row you had in
+  hand; never re-derived from the visible list. (Incident 2026-09-07: `VenueSimCustodyPanel` resolved
+  its selection with `mySims.find(...)`. Typing the second ICCID ending pushed the previously ticked
+  SIMs out of the page and out of the selection — a PlayTelecom supervisor ended up assigning one at
+  a time, 20 requests where one bulk call used to do. Guard:
+  `src/pages/playtelecom/Stock/__tests__/seleccionAsignable.test.ts`.)
 
 ## Query behavior
 

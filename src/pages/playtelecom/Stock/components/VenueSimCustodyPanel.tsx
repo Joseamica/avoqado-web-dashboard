@@ -14,12 +14,13 @@
  * in the database; the browser only hydrates the rows the user is viewing.
  */
 import { useDeferredValue, useMemo, useState } from 'react'
-import { AlertTriangle, ArrowRight, Loader2, Package, Search, Users } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Loader2, Package, Search, Users, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useOrgStockCustody } from '../hooks/useOrgStockCustody'
+import { seleccionAsignable, type SimMarcada } from '../seleccionAsignable'
 import { CustodyStateBadge } from '../../Organization/StockControl/components/CustodyStateBadge'
 import { SimTimelineDrawer } from '../../Organization/StockControl/components/SimTimelineDrawer'
 import { CollectSimDialog, type CollectFrom } from '../../Organization/StockControl/components/CollectSimDialog'
@@ -73,7 +74,7 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   const [timelineSerial, setTimelineSerial] = useState<string | null>(null)
   const [collectState, setCollectState] = useState<{ serialNumber: string; from: CollectFrom; contextLabel?: string } | null>(null)
   const [assignSerials, setAssignSerials] = useState<string[] | null>(null)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selected, setSelected] = useState<Map<string, SimMarcada>>(new Map())
   const deferredSearch = useDeferredValue(search.trim())
   const { data, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } = useOrgStockCustody(orgId, {
     venueId,
@@ -96,24 +97,34 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   const promoterRanking = firstPage?.promoterRanking ?? []
   const totalMatches = firstPage?.pagination.total ?? 0
 
-  const assignableSelection = useMemo(
-    () =>
-      Array.from(selected).filter(sn => {
-        const found = mySims.find(s => s.serialNumber === sn)
-        return found && (found.custodyState ?? 'ADMIN_HELD') === 'SUPERVISOR_HELD'
-      }),
-    [selected, mySims],
-  )
+  // 🔴 Se resuelve contra lo que el supervisor MARCÓ, nunca recorriendo `mySims`: desde que
+  // la búsqueda es del servidor, esa lista sólo trae lo que coincide con lo tecleado ahora, y
+  // buscar ahí hacía desaparecer las SIMs marcadas antes. Ver `seleccionAsignable.ts`.
+  const assignableSelection = useMemo(() => seleccionAsignable(selected, mySims), [selected, mySims])
+  const marcadasNoAsignables = selected.size - assignableSelection.length
 
-  const toggleRow = (sn: string) =>
+  const toggleRow = (item: OrgStockOverviewItem) =>
     setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(sn)) next.delete(sn)
-      else next.add(sn)
+      const next = new Map(prev)
+      if (next.has(item.serialNumber)) next.delete(item.serialNumber)
+      // El estado se guarda AL MARCAR: la fila está enfrente y el servidor acaba de mandarla
+      // para pintarla, así que ya lo tenemos en la mano. Cero consultas extra.
+      else
+        next.set(item.serialNumber, {
+          serialNumber: item.serialNumber,
+          custodyState: (item.custodyState ?? 'ADMIN_HELD') as SimCustodyState,
+        })
       return next
     })
 
-  const clearSelection = () => setSelected(new Set())
+  const quitarDeLaSeleccion = (serialNumber: string) =>
+    setSelected(prev => {
+      const next = new Map(prev)
+      next.delete(serialNumber)
+      return next
+    })
+
+  const clearSelection = () => setSelected(new Map())
 
   // ============================================================
   // Render
@@ -248,6 +259,48 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
             </div>
           </div>
 
+          {/* 🔴 Lo marcado se VE aunque la búsqueda de ahora ya no lo muestre. Sin esto el
+              arreglo funciona pero el supervisor arma su paquete de 20 a ciegas: teclea la
+              siguiente terminación y la tabla deja de enseñarle lo que ya llevaba. Mismo
+              patrón de fichas que `SimMultiSelect`, que esta gente ya usa en el otro diálogo. */}
+          {selected.size > 0 && (
+            <div className="mb-3 rounded-md border border-input bg-muted/40 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="mr-1 text-xs text-muted-foreground">
+                  {selected.size} {selected.size === 1 ? 'seleccionado' : 'seleccionados'}:
+                </span>
+                {Array.from(selected.keys())
+                  .slice(0, 8)
+                  .map(sn => (
+                    <Badge key={sn} variant="outline" className="gap-1 bg-background font-mono text-xs">
+                      ···{sn.slice(-6)}
+                      <button
+                        type="button"
+                        aria-label={`Quitar ${sn}`}
+                        onClick={() => quitarDeLaSeleccion(sn)}
+                        className="cursor-pointer hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                {selected.size > 8 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{selected.size - 8} más
+                  </Badge>
+                )}
+              </div>
+              {/* El contador del botón no puede mentir en silencio: si algo que marcaste ya se
+                  movió, se dice en vez de simplemente no contarlo. */}
+              {marcadasNoAsignables > 0 && (
+                <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-500">
+                  {marcadasNoAsignables} de {selected.size} ya {marcadasNoAsignables === 1 ? 'se movió' : 'se movieron'} y no se{' '}
+                  {marcadasNoAsignables === 1 ? 'va' : 'van'} a asignar.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -302,7 +355,7 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
                       key={item.id}
                       item={item}
                       checked={selected.has(item.serialNumber)}
-                      onToggle={() => toggleRow(item.serialNumber)}
+                      onToggle={() => toggleRow(item)}
                       onTimeline={() => setTimelineSerial(item.serialNumber)}
                       onCollect={() =>
                         setCollectState({
