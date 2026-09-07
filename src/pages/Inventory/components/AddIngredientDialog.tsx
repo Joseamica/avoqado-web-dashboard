@@ -167,9 +167,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     if (!rawMaterials) return []
 
     // Filter by category
-    const filtered = categoryFilter.length === 0
-      ? rawMaterials
-      : rawMaterials.filter(m => categoryFilter.includes(m.category))
+    const filtered = categoryFilter.length === 0 ? rawMaterials : rawMaterials.filter(m => categoryFilter.includes(m.category))
 
     // Sort
     const sortedMaterials = [...filtered].sort((a, b) => {
@@ -266,9 +264,12 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
       setSelectedRawMaterial(null)
     },
     onError: (error: any) => {
+      // WHY: the server message is the ONLY thing that says which ingredient
+      // blocks the save (RECIPE_COST_INPUT_INVALID names it), so it is shown
+      // verbatim; the local fallback is only for a request that never arrived.
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to add ingredient',
+        title: t('recipes.messages.ingredientAddFailed'),
+        description: error.response?.data?.message || t('recipes.messages.ingredientAddFailedFallback'),
         variant: 'destructive',
       })
     },
@@ -277,8 +278,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
   const onSubmit = (data: AddIngredientForm) => {
     if (!selectedRawMaterial) {
       toast({
-        title: 'Error',
-        description: 'Please select a raw material',
+        title: t('recipes.messages.selectIngredientFirst'),
         variant: 'destructive',
       })
       return
@@ -494,13 +494,13 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
               <div className="flex-1 space-y-5">
                 {/* Selected Ingredient Card */}
                 <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5">
-                  <div className="text-2xl">
-                    {getCategoryEmoji(selectedRawMaterial.category)}
-                  </div>
+                  <div className="text-2xl">{getCategoryEmoji(selectedRawMaterial.category)}</div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{selectedRawMaterial.name}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      <span>{Currency(Number(selectedRawMaterial.costPerUnit))} / {formatUnit(selectedRawMaterial.unit)}</span>
+                      <span>
+                        {Currency(Number(selectedRawMaterial.costPerUnit))} / {formatUnit(selectedRawMaterial.unit)}
+                      </span>
                       {selectedRawMaterial.category && (
                         <>
                           <span>·</span>
@@ -511,7 +511,13 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                       )}
                     </div>
                   </div>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 cursor-pointer" onClick={handleClearSelection}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 cursor-pointer"
+                    onClick={handleClearSelection}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -535,7 +541,8 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
-                      {t('recipes.preview.currentStock', 'Stock actual')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)}
+                      {t('recipes.preview.currentStock', 'Stock actual')}: {Number(selectedRawMaterial.currentStock).toFixed(2)}{' '}
+                      {formatUnit(selectedRawMaterial.unit)}
                       {quantity > 0 && Number(selectedRawMaterial.currentStock) < quantity && (
                         <span className="text-amber-600 dark:text-amber-400 font-medium ml-1.5">
                           — {t('recipes.preview.lowStock', 'Stock bajo')}
@@ -569,7 +576,12 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   <Label htmlFor="substituteNotes" className="text-sm">
                     {t('recipes.ingredients.substituteNotes')}
                   </Label>
-                  <Textarea id="substituteNotes" rows={2} {...register('substituteNotes')} placeholder={t('recipes.ingredients.substituteNotesPlaceholder', 'Ej: Se puede reemplazar por...')} />
+                  <Textarea
+                    id="substituteNotes"
+                    rows={2}
+                    {...register('substituteNotes')}
+                    placeholder={t('recipes.ingredients.substituteNotesPlaceholder', 'Ej: Se puede reemplazar por...')}
+                  />
                 </div>
 
                 {/* Variable Ingredient — Collapsible */}
@@ -587,9 +599,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   <CollapsibleContent className="pt-3 space-y-3">
                     <div className="flex items-center justify-between p-3 rounded-lg border border-input">
                       <div className="space-y-0.5">
-                        <p className="text-sm font-medium">
-                          {t('recipes.ingredients.variableIngredient', 'Ingrediente Variable')}
-                        </p>
+                        <p className="text-sm font-medium">{t('recipes.ingredients.variableIngredient', 'Ingrediente Variable')}</p>
                         <p className="text-xs text-muted-foreground">
                           {t('recipes.ingredients.variableIngredientDesc', 'Permite a los clientes sustituir este ingrediente')}
                         </p>
@@ -600,7 +610,10 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                     {isVariable && (
                       <div className="space-y-2">
                         <Label className="text-xs">{t('recipes.ingredients.linkedModifierGroup', 'Grupo de Modificadores')}</Label>
-                        <Select value={linkedModifierGroupId || ''} onValueChange={value => setValue('linkedModifierGroupId', value || null)}>
+                        <Select
+                          value={linkedModifierGroupId || ''}
+                          onValueChange={value => setValue('linkedModifierGroupId', value || null)}
+                        >
                           <SelectTrigger className="h-9">
                             <SelectValue placeholder={t('recipes.ingredients.selectModifierGroup', 'Seleccionar grupo...')} />
                           </SelectTrigger>
