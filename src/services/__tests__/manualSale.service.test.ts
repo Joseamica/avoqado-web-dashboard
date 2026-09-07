@@ -97,7 +97,7 @@ describe('parseSalesFile', () => {
   it('maps the blank-row + Spanish-header sheet to typed ManualSaleRow[]', async () => {
     const file = await buildSampleWorkbookFile()
 
-    const rows = await parseSalesFile(file)
+    const { rows } = await parseSalesFile(file)
 
     expect(rows).toHaveLength(2)
 
@@ -143,7 +143,7 @@ describe('parseSalesFile', () => {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
 
-    const rows = await parseSalesFile(file)
+    const { rows } = await parseSalesFile(file)
 
     expect(rows[0].saleDate).toBe('2026-05-22')
   })
@@ -151,7 +151,7 @@ describe('parseSalesFile', () => {
   it('ignores extra columns (Estado, Mes, Estado Avoqado, Sucursal Avoqado)', async () => {
     const file = await buildSampleWorkbookFile()
 
-    const rows = await parseSalesFile(file)
+    const { rows } = await parseSalesFile(file)
 
     for (const row of rows) {
       expect(row).not.toHaveProperty('Estado')
@@ -275,7 +275,7 @@ async function buildWorkbookWithStatus(): Promise<File> {
 
 describe('parseSalesFile — columna de estatus', () => {
   it('mapea "Estatus de Venta" y "Motivo de Rechazo"', async () => {
-    const rows = await parseSalesFile(await buildWorkbookWithStatus())
+    const { rows } = await parseSalesFile(await buildWorkbookWithStatus())
 
     expect(rows).toHaveLength(2)
     expect(rows[0].saleStatus).toBe('Rechazada')
@@ -285,7 +285,7 @@ describe('parseSalesFile — columna de estatus', () => {
   })
 
   it('sigue ignorando "Estado" y "Estado Avoqado" — el estado no es el estatus', async () => {
-    const rows = await parseSalesFile(await buildWorkbookWithStatus())
+    const { rows } = await parseSalesFile(await buildWorkbookWithStatus())
 
     // Si "Estado" se colara al mismo campo, la primera fila diría "San Luis Potosí"
     // y el backend rechazaría el archivo entero por estatus inválido.
@@ -294,9 +294,89 @@ describe('parseSalesFile — columna de estatus', () => {
   })
 
   it('un archivo SIN la columna deja el estatus vacío (los archivos viejos siguen sirviendo)', async () => {
-    const rows = await parseSalesFile(await buildSampleWorkbookFile())
+    const { rows } = await parseSalesFile(await buildSampleWorkbookFile())
 
     expect(rows[0].saleStatus).toBeUndefined()
     expect(rows[0].rejectionNote).toBeUndefined()
+  })
+})
+
+/**
+ * Incidente 2026-09-06 (Isaac, Asana 1217555947497817): subió una carga con la
+ * columna nombrada `Status`. El mapa sólo conocía "Estatus de Venta", así que la
+ * columna se ignoró EN SILENCIO y la venta —que él marcó como rechazada— entró
+ * como venta buena, facturable a Walmart.
+ *
+ * Dos defensas, y la segunda es la que importa: (1) reconocer el encabezado sin
+ * importar mayúsculas, acentos ni la palabra "de Venta"; (2) DEVOLVER las columnas
+ * que no se leyeron, para que la pantalla pueda decirlo antes de confirmar. La (1)
+ * arregla este caso; la (2) arregla la familia entera.
+ */
+async function buildWorkbookWithHeader(statusHeader: string): Promise<File> {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('Ventas')
+  sheet.addRow([])
+  sheet.addRow(['ID SIM', 'Nombre de la Tienda', 'Fecha', 'Tipo de Venta', 'Forma de Pago', 'Monto de Venta', statusHeader])
+  sheet.addRow(['8952140064479469125F', 'BAE EL PORTAL (2838)', '2026-09-05', 'Línea nueva', 'Efectivo', 100, 'Rechazada'])
+  const buffer = await workbook.xlsx.writeBuffer()
+  return new File([buffer as ArrayBuffer], 'carga.xlsx', {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+}
+
+describe('parseSalesFile — el encabezado de estatus se reconoce aunque cambie de forma', () => {
+  it.each(['Status', 'STATUS', 'status', 'Estatus', 'Estatus de Venta', 'estatus de venta', 'ESTATUS DE VENTA', 'Status de Venta'])(
+    'reconoce "%s" como la columna de estatus',
+    async header => {
+      const { rows, unknownHeaders } = await parseSalesFile(await buildWorkbookWithHeader(header))
+
+      expect(rows[0].saleStatus).toBe('Rechazada')
+      expect(unknownHeaders).not.toContain(header)
+    },
+  )
+
+  it('el ICCID de Isaac con su encabezado real ya NO entra como venta buena', async () => {
+    const { rows } = await parseSalesFile(await buildWorkbookWithHeader('Status'))
+
+    // Antes del arreglo esto era `undefined`, que el backend interpreta como "Aprobada".
+    expect(rows[0].saleStatus).toBe('Rechazada')
+    expect(rows[0].iccid).toBe('8952140064479469125F')
+  })
+
+  // REGRESIÓN CRÍTICA: "Estado" es la entidad federativa en el archivo real.
+  // Si se colara al mismo campo, cada fila traería "Querétaro" como estatus.
+  it('"Estado" y "Estado Avoqado" siguen SIN ser el estatus', async () => {
+    const { rows, unknownHeaders } = await parseSalesFile(await buildSampleWorkbookFile())
+
+    expect(rows[0].saleStatus).toBeUndefined()
+    expect(unknownHeaders).toEqual(expect.arrayContaining(['Estado', 'Estado Avoqado']))
+  })
+})
+
+describe('parseSalesFile — avisa de las columnas que no leyó', () => {
+  it('devuelve las columnas extra del archivo real, para poder mostrarlas', async () => {
+    const { unknownHeaders } = await parseSalesFile(await buildSampleWorkbookFile())
+
+    expect(unknownHeaders).toEqual(expect.arrayContaining(['Estado', 'Mes', 'Estado Avoqado', 'Sucursal Avoqado']))
+  })
+
+  it('un archivo sin columnas de sobra no reporta nada', async () => {
+    const { unknownHeaders } = await parseSalesFile(await buildWorkbookWithHeader('Estatus de Venta'))
+
+    expect(unknownHeaders).toEqual([])
+  })
+
+  it('no repite un encabezado desconocido que aparezca dos veces', async () => {
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet('Ventas')
+    sheet.addRow(['ID SIM', 'Nombre de la Tienda', 'Fecha', 'Tipo de Venta', 'Forma de Pago', 'Monto de Venta', 'Notas', 'Notas'])
+    sheet.addRow(['ICCID-1', 'Tienda', '2026-09-05', 'Línea nueva', 'Efectivo', 10, 'a', 'b'])
+    const buffer = await workbook.xlsx.writeBuffer()
+    const file = new File([buffer as ArrayBuffer], 'dup.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    const { unknownHeaders } = await parseSalesFile(file)
+    expect(unknownHeaders).toEqual(['Notas'])
   })
 })

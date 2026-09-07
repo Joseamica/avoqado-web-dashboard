@@ -86,8 +86,46 @@ const HEADER_TO_FIELD: Record<string, keyof ManualSaleRow> = {
   'Estatus de la Venta': 'saleStatus',
   'Status de Venta': 'saleStatus',
   Estatus: 'saleStatus',
+  // 🔴 El encabezado que el operador realmente escribió (incidente 2026-09-06):
+  // su columna se llamaba `Status` a secas, no coincidió, se ignoró en silencio y
+  // una venta que él marcó RECHAZADA entró como venta buena facturable a Walmart.
+  Status: 'saleStatus',
   'Motivo de Rechazo': 'rejectionNote',
   'Motivo del Rechazo': 'rejectionNote',
+}
+
+/**
+ * Normaliza un encabezado para compararlo: sin acentos, sin mayúsculas y sin
+ * espacios de más. Así "Status", "STATUS" y "estatus de venta" llegan al mismo
+ * sitio. NO afecta a "Estado" — ése simplemente no está en el mapa, y debe seguir
+ * fuera: en el archivo real es la entidad federativa.
+ */
+function normalizeHeader(raw: string): string {
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+/** El mismo mapa de arriba, indexado por su forma normalizada (se construye una vez). */
+const NORMALIZED_HEADER_TO_FIELD: Record<string, keyof ManualSaleRow> = Object.fromEntries(
+  Object.entries(HEADER_TO_FIELD).map(([header, field]) => [normalizeHeader(header), field]),
+)
+
+/**
+ * Lo que devuelve `parseSalesFile`: las filas, y —igual de importante— los
+ * encabezados que el archivo traía y el parser NO supo leer.
+ *
+ * Devolver los desconocidos es la defensa que faltaba: una columna que el operador
+ * cree que se está leyendo, y no se lee, degrada en silencio hacia el valor por
+ * defecto. Cuando ese valor por defecto es "venta aprobada", el silencio cuesta
+ * dinero. La pantalla los muestra antes de confirmar la carga.
+ */
+export interface ParsedSalesFile {
+  rows: ManualSaleRow[]
+  unknownHeaders: string[]
 }
 
 /** Fields that must always come out of the parser as strings, never numbers. */
@@ -201,7 +239,7 @@ function readCellValue(cellValue: ExcelJS.CellValue): unknown {
  * (Estado, Mes, Estado Avoqado, Sucursal Avoqado, ...) are ignored — only the
  * headers present in `HEADER_TO_FIELD` are mapped.
  */
-export async function parseSalesFile(file: File): Promise<ManualSaleRow[]> {
+export async function parseSalesFile(file: File): Promise<ParsedSalesFile> {
   const buffer = await readFileAsArrayBuffer(file)
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(buffer)
@@ -216,22 +254,30 @@ export async function parseSalesFile(file: File): Promise<ManualSaleRow[]> {
   // rows) without hardcoding "row 2".
   let headerRowNumber: number | null = null
   let columnToField: Map<number, keyof ManualSaleRow> | null = null
+  let unknownHeaders: string[] = []
 
   for (let rowNumber = 1; rowNumber <= sheet.rowCount; rowNumber++) {
     const row = sheet.getRow(rowNumber)
     const candidateMap = new Map<number, keyof ManualSaleRow>()
+    const candidateUnknown: string[] = []
 
     row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
       const headerText = String(readCellValue(cell.value) ?? '').trim()
-      const field = HEADER_TO_FIELD[headerText]
+      if (!headerText) return
+
+      const field = NORMALIZED_HEADER_TO_FIELD[normalizeHeader(headerText)]
       if (field) {
         candidateMap.set(colNumber, field)
+      } else if (!candidateUnknown.includes(headerText)) {
+        candidateUnknown.push(headerText)
       }
     })
 
     if (candidateMap.size > 0) {
       headerRowNumber = rowNumber
       columnToField = candidateMap
+      // Sólo las de LA fila de encabezados: las filas en blanco previas no cuentan.
+      unknownHeaders = candidateUnknown
       break
     }
   }
@@ -272,7 +318,7 @@ export async function parseSalesFile(file: File): Promise<ManualSaleRow[]> {
     rows.push(parsedRow as ManualSaleRow)
   }
 
-  return rows
+  return { rows, unknownHeaders }
 }
 
 /**
