@@ -52,15 +52,58 @@ function rotateSize(width: number, height: number, rotation: number): { width: n
 }
 
 /**
+ * Tamano final de la imagen que se sube, respetando la proporcion.
+ *
+ * `croppedAreaPixels` de react-easy-crop viene en pixeles del ARCHIVO ORIGINAL
+ * (ver `computeCroppedArea` en la libreria: escala por `mediaNaturalBBoxSize`),
+ * no en pixeles de pantalla. Una foto de celular de 4032x3024 produce un recorte
+ * de ~4032 px de ancho aunque el usuario nunca haya hecho zoom.
+ *
+ * Por eso un maximo NO puede ser un rechazo: se reduce la salida. Es lo que hace
+ * el mercado — Square acepta hasta 15 MB y encoge la imagen sola, y sus 2000x2000
+ * son el MINIMO recomendado, no un tope.
+ *
+ * Sin limites (o con limites <= 0) devuelve el tamano original: los llamadores
+ * que no pasan `options` a `getCroppedImg` conservan el comportamiento anterior.
+ */
+export function fitWithinBounds(
+  width: number,
+  height: number,
+  maxWidth?: number,
+  maxHeight?: number,
+): { width: number; height: number } {
+  const w = Math.max(1, Math.round(width))
+  const h = Math.max(1, Math.round(height))
+  const limitW = maxWidth && maxWidth > 0 ? maxWidth : Number.POSITIVE_INFINITY
+  const limitH = maxHeight && maxHeight > 0 ? maxHeight : Number.POSITIVE_INFINITY
+
+  const ratio = Math.min(limitW / w, limitH / h, 1)
+  if (ratio >= 1) return { width: w, height: h }
+
+  return { width: Math.max(1, Math.round(w * ratio)), height: Math.max(1, Math.round(h * ratio)) }
+}
+
+/**
  * Original getCroppedImg without rotation support (for backward compatibility)
  */
-export const getCroppedImg = async (imageSrc: string, croppedAreaPixels: any): Promise<string> => {
+export const getCroppedImg = async (
+  imageSrc: string,
+  croppedAreaPixels: any,
+  options?: { maxWidth?: number; maxHeight?: number },
+): Promise<string> => {
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
 
-  canvas.width = croppedAreaPixels.width
-  canvas.height = croppedAreaPixels.height
+  // El recorte puede ser mucho mas grande que lo que queremos guardar: se escala aqui,
+  // nunca se rechaza.
+  const output = fitWithinBounds(croppedAreaPixels.width, croppedAreaPixels.height, options?.maxWidth, options?.maxHeight)
+
+  canvas.width = output.width
+  canvas.height = output.height
+
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
 
   // Fill with white background before drawing — JPEG doesn't support transparency,
   // so transparent PNG pixels would become black without this
@@ -75,8 +118,8 @@ export const getCroppedImg = async (imageSrc: string, croppedAreaPixels: any): P
     croppedAreaPixels.height,
     0,
     0,
-    croppedAreaPixels.width,
-    croppedAreaPixels.height,
+    output.width,
+    output.height,
   )
 
   return new Promise((resolve, reject) => {

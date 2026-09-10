@@ -496,5 +496,12 @@
   "weeksAgo_one": "il y a 1 semaine",
   "weeksAgo_other": "il y a {{count}} semaines",
   "today": "Aujourd'hui",
-  "yesterday": "Hier"
+  "yesterday": "Hier",
+  "imageUploader": {
+    "tooSmallTitle": "L'image est trop petite",
+    "tooSmall": "Le recadrage doit faire au moins {{minWidth}}x{{minHeight}} pixels. Utilisez une photo plus grande ou dézoomez.",
+    "uploadFailedTitle": "Impossible d'envoyer l'image",
+    "uploadFailed": "Réessayez. Si le problème persiste, contactez le support.",
+    "storageUnavailable": "Le service d'images n'est pas disponible pour le moment. Contactez le support."
+  }
 }

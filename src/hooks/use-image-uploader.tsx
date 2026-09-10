@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
 import { storage } from '@/firebase'
 import { getCroppedImg } from '@/utils/cropImage'
@@ -22,10 +23,14 @@ export function useImageUploader(
   },
 ) {
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   // Extraemos los valores, con defaults si no se pasan
   const minWidth = config?.minWidth ?? 150
   const minHeight = config?.minHeight ?? 150
+  // Tope de SALIDA, no de entrada: una foto mas grande se reduce, nunca se rechaza.
+  // 2000 es el minimo que Square recomienda para una foto de producto, asi que es
+  // el piso de calidad razonable para guardar.
   const maxWidth = config?.maxWidth ?? 2000
   const maxHeight = config?.maxHeight ?? 2000
 
@@ -60,38 +65,33 @@ export function useImageUploader(
     // Check if storage is available
     if (!storage) {
       toast({
-        title: 'Error',
-        description: 'Firebase Storage is not available. Please contact support.',
+        title: t('imageUploader.uploadFailedTitle'),
+        description: t('imageUploader.storageUnavailable'),
         variant: 'destructive',
       })
       console.error('Firebase Storage is not available')
       return
     }
 
-    // Verificamos el tamaño mínimo
+    // Verificamos el tamaño mínimo. Los pixeles que no existen no se pueden inventar,
+    // asi que este si es un rechazo legitimo.
     if (croppedAreaPixels.width < minWidth || croppedAreaPixels.height < minHeight) {
       toast({
-        title: 'Error',
-        description: `El recorte es menor al mínimo permitido: ${minWidth}x${minHeight}`,
+        title: t('imageUploader.tooSmallTitle'),
+        description: t('imageUploader.tooSmall', { minWidth, minHeight }),
         variant: 'destructive',
       })
-      console.error(`El recorte es menor al mínimo permitido: ${minWidth}x${minHeight}`)
+      console.error(`El recorte es menor al minimo permitido: ${minWidth}x${minHeight}`)
       return
     }
 
-    // Verificamos el tamaño máximo
-    if (croppedAreaPixels.width > maxWidth || croppedAreaPixels.height > maxHeight) {
-      toast({
-        title: 'Error',
-        description: `El recorte excede el máximo permitido: ${maxWidth}x${maxHeight}`,
-        variant: 'destructive',
-      })
-      console.error(`El recorte excede el máximo permitido: ${maxWidth}x${maxHeight}`)
-      return
-    }
+    // NO hay rechazo por tamaño maximo. `croppedAreaPixels` viene en pixeles del ARCHIVO
+    // ORIGINAL, asi que cualquier foto de celular (4032x3024) lo excedia sin que el usuario
+    // hubiera hecho nada mal: el resultado era que no se podia subir NINGUNA foto normal.
+    // El tope se aplica encogiendo la salida en getCroppedImg.
 
     try {
-      const croppedImage = await getCroppedImg(imageForCrop, croppedAreaPixels)
+      const croppedImage = await getCroppedImg(imageForCrop, croppedAreaPixels, { maxWidth, maxHeight })
       const blob = await fetch(croppedImage).then(res => res.blob())
 
       // Creamos un nombre de archivo único
@@ -108,8 +108,15 @@ export function useImageUploader(
           console.log(`Upload is ${progress}% done`)
         },
         error => {
+          // Sin este aviso el usuario tocaba Confirmar y no pasaba nada: el recorte seguia
+          // en pantalla y no habia forma de saber que la subida habia fallado.
           console.error('Error uploading file:', error)
           setUploading(false)
+          toast({
+            title: t('imageUploader.uploadFailedTitle'),
+            description: t('imageUploader.uploadFailed'),
+            variant: 'destructive',
+          })
         },
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
@@ -121,6 +128,12 @@ export function useImageUploader(
       )
     } catch (error) {
       console.error('Error processing crop:', error)
+      setUploading(false)
+      toast({
+        title: t('imageUploader.uploadFailedTitle'),
+        description: t('imageUploader.uploadFailed'),
+        variant: 'destructive',
+      })
     }
   }
 

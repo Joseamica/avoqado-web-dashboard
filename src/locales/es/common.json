@@ -614,5 +614,12 @@
   "daysAgo_one": "1 día atrás",
   "daysAgo_other": "{{count}} días atrás",
   "weeksAgo_one": "1 semana atrás",
-  "weeksAgo_other": "{{count}} semanas atrás"
+  "weeksAgo_other": "{{count}} semanas atrás",
+  "imageUploader": {
+    "tooSmallTitle": "La imagen es muy pequeña",
+    "tooSmall": "El recorte debe ser de al menos {{minWidth}}x{{minHeight}} píxeles. Usa una foto más grande o aleja el zoom.",
+    "uploadFailedTitle": "No se pudo subir la imagen",
+    "uploadFailed": "Vuelve a intentarlo. Si sigue fallando, contacta a soporte.",
+    "storageUnavailable": "El servicio de imágenes no está disponible ahora mismo. Contacta a soporte."
+  }
 }

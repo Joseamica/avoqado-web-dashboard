@@ -614,5 +614,12 @@
   "daysAgo_one": "1 day ago",
   "daysAgo_other": "{{count}} days ago",
   "weeksAgo_one": "1 week ago",
-  "weeksAgo_other": "{{count}} weeks ago"
+  "weeksAgo_other": "{{count}} weeks ago",
+  "imageUploader": {
+    "tooSmallTitle": "The image is too small",
+    "tooSmall": "The crop must be at least {{minWidth}}x{{minHeight}} pixels. Use a larger photo or zoom out.",
+    "uploadFailedTitle": "Couldn't upload the image",
+    "uploadFailed": "Try again. If it keeps failing, contact support.",
+    "storageUnavailable": "The image service isn't available right now. Contact support."
+  }
 }
