@@ -80,6 +80,7 @@ export type AtomicTourName =
   | 'reservations-onboarding'
   | 'reservation-settings-onboarding'
   | 'promotion'
+  | 'receipt-layout'
 
 /**
  * Call from launcher code (checklist, welcome tour) to queue an atomic tour.

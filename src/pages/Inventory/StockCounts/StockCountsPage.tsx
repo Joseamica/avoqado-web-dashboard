@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ClipboardList, Info, Search, Smartphone, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { AlertTriangle, ClipboardList, Info, Search, Smartphone, X } from 'lucide-react'
 
 import DataTable from '@/components/data-table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -25,6 +26,10 @@ import {
   type StockCountType,
 } from '@/services/stockCount.service'
 import { includesNormalized } from '@/lib/utils'
+import { colorDeDiferencia, diferenciasComoTexto, etiquetaDeUnidad, formatearDiferencia } from './resumen'
+
+/** Tope del servidor: 100. 50 llena la pantalla sin traer de más. */
+const PAGE_SIZE = 50
 
 /**
  * Stock Count History — READ-ONLY audit view.
@@ -34,6 +39,8 @@ import { includesNormalized } from '@/lib/utils'
  */
 export default function StockCountsPage() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation('inventory')
+  const locale = i18n.language
   const { venue, venueId, fullBasePath } = useCurrentVenue()
 
   // Filters
@@ -44,20 +51,33 @@ export default function StockCountsPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)
   const debouncedSearch = useDebounce(searchTerm, 300)
 
-  // Fetch stock counts (server handles status/type/date filters; we apply
-  // client-side search on top since the payload per venue is small).
-  const { data, isLoading } = useQuery({
+  // Paginación del SERVIDOR (tope 100 impuesto allá): cada «Cargar más» añade una
+  // página. El buscador y el filtro de fecha siguen siendo locales, sobre las
+  // filas ya cargadas (declarado: con 2-10 conteos por negocio hoy, no hay
+  // caso que lo justifique aún).
+  const query = useInfiniteQuery({
     queryKey: ['stock-counts', venueId, statusFilter, typeFilter],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       stockCountService.list(venueId!, {
         status: statusFilter.length === 1 ? statusFilter[0] : undefined,
         type: typeFilter.length === 1 ? typeFilter[0] : undefined,
-        pageSize: 200,
+        page: pageParam,
+        pageSize: PAGE_SIZE,
       }),
+    initialPageParam: 1,
+    getNextPageParam: last => (last.pagination.page < last.pagination.totalPages ? last.pagination.page + 1 : undefined),
     enabled: !!venueId,
   })
+  const isLoading = query.isLoading
+  const counts = useMemo<StockCountRow[]>(() => query.data?.pages.flatMap(p => p.data) ?? [], [query.data])
+  const total = query.data?.pages[0]?.pagination.total ?? 0
 
-  const counts = useMemo<StockCountRow[]>(() => data?.data ?? [], [data])
+  // 🔴 La página la manda el servidor, así que la tabla NO debe volver a rebanar las
+  // filas: `DataTable` pagina por dentro a 20 y, con `hidePagination`, de la 21 en
+  // adelante no habría un solo control para alcanzarlas — desaparecerían en silencio
+  // mientras el pie dice «Mostrando 50 de 51». Pasar `pagination` + `setPagination`
+  // enciende `manualPagination`, que es lo que apaga ese rebanado.
+  const [tablePagination, setTablePagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE })
 
   // Client-side filters (date + search + multi-value status/type)
   const filteredCounts = useMemo(() => {
@@ -85,10 +105,7 @@ export default function StockCountsPage() {
         const created = new Date(c.createdAt)
         switch (dateFilter.operator) {
           case 'last': {
-            const value =
-              typeof dateFilter.value === 'number'
-                ? dateFilter.value
-                : parseInt((dateFilter.value as string) || '0', 10)
+            const value = typeof dateFilter.value === 'number' ? dateFilter.value : parseInt((dateFilter.value as string) || '0', 10)
             const cutoff = new Date()
             switch (dateFilter.unit) {
               case 'hours':
@@ -146,6 +163,7 @@ export default function StockCountsPage() {
     () => [
       { value: 'IN_PROGRESS', label: 'En progreso' },
       { value: 'COMPLETED', label: 'Completado' },
+      { value: 'CANCELLED', label: 'Cancelado' },
     ],
     [],
   )
@@ -182,14 +200,11 @@ export default function StockCountsPage() {
     }
   }, [])
 
-  const getMultiSelectLabel = useCallback(
-    (values: string[], options: { value: string; label: string }[]) => {
-      if (values.length === 0) return null
-      if (values.length === 1) return options.find(o => o.value === values[0])?.label ?? null
-      return `${values.length} seleccionados`
-    },
-    [],
-  )
+  const getMultiSelectLabel = useCallback((values: string[], options: { value: string; label: string }[]) => {
+    if (values.length === 0) return null
+    if (values.length === 1) return options.find(o => o.value === values[0])?.label ?? null
+    return `${values.length} seleccionados`
+  }, [])
 
   // Columns — memoized
   const columns = useMemo<ColumnDef<StockCountRow>[]>(
@@ -198,11 +213,7 @@ export default function StockCountsPage() {
         id: 'createdAt',
         accessorKey: 'createdAt',
         header: 'Fecha',
-        cell: ({ row }) => (
-          <div className="text-sm">
-            {format(new Date(row.original.createdAt), 'dd MMM yyyy, HH:mm', { locale: es })}
-          </div>
-        ),
+        cell: ({ row }) => <div className="text-sm">{format(new Date(row.original.createdAt), 'dd MMM yyyy, HH:mm', { locale: es })}</div>,
       },
       {
         id: 'type',
@@ -237,38 +248,56 @@ export default function StockCountsPage() {
         id: 'createdBy',
         accessorKey: 'createdBy',
         header: 'Creado por',
+        cell: ({ row }) => <div className="text-sm text-muted-foreground">{row.original.createdBy ?? '—'}</div>,
+      },
+      {
+        id: 'counted',
+        accessorFn: row => row.summary?.countedCount ?? 0,
+        header: t('stockCounts.counted'),
         cell: ({ row }) => (
-          <div className="text-sm text-muted-foreground">{row.original.createdBy ?? '—'}</div>
+          <div className="text-sm text-muted-foreground">
+            {t('stockCounts.countedOf', {
+              counted: row.original.summary?.countedCount ?? 0,
+              // El servidor viejo no manda `summary` pero sí `itemCount`: el total sigue siendo cierto.
+              total: row.original.summary?.itemCount ?? row.original.itemCount,
+            })}
+          </div>
         ),
       },
       {
-        id: 'totalDifference',
-        accessorKey: 'totalDifference',
-        header: 'Diferencia total',
+        // 🔴 Una sola cifra mezclaría gramos con piezas. La diferencia va POR UNIDAD,
+        // y sin nada contado se DICE «Sin contar» — nunca un número que nadie capturó
+        // (la captura de Mindform: 137 líneas, 0 contadas, «−6968054.084» en pantalla).
+        //
+        // 🔴 Y el `?.` de aquí y de la columna de arriba no es paranoia: `summary` lo
+        // ESTRENA el servidor de este mismo cambio. Dashboard y servidor despliegan en
+        // minutos, pero nada garantiza el orden — si el dashboard sale primero, una fila
+        // sin `summary` reventaría la LISTA ENTERA en vez de degradar una columna. El
+        // tipo se queda obligatorio a propósito: la respuesta futura sí lo trae siempre.
+        id: 'difference',
+        accessorFn: row => (row.summary?.differenceByUnit ?? []).map(d => d.difference).join(','),
+        header: t('stockCounts.difference'),
         cell: ({ row }) => {
-          const diff = row.original.totalDifference
-          if (diff === 0) {
-            return <div className="text-sm text-muted-foreground">0</div>
+          const s = row.original.summary
+          if (!s || s.countedCount === 0) {
+            return <div className="text-sm text-muted-foreground">{t('stockCounts.notCounted')}</div>
           }
-          const positive = diff > 0
           return (
-            <div
-              className={`text-sm font-medium ${
-                positive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
-              }`}
-            >
-              {positive ? '+' : ''}
-              {diff}
+            <div className="flex flex-wrap gap-x-2 text-sm" title={diferenciasComoTexto(s, t, locale)}>
+              {s.differenceByUnit.map(d => (
+                <span key={d.unit} className={colorDeDiferencia(d.difference)}>
+                  {formatearDiferencia(d.difference, locale)} {etiquetaDeUnidad(t, d.unit)}
+                </span>
+              ))}
             </div>
           )
         },
       },
     ],
-    [],
+    [t, locale],
   )
 
-  const hasFilters =
-    !!debouncedSearch || statusFilter.length > 0 || typeFilter.length > 0 || dateFilter !== null
+  const hasFilters = !!debouncedSearch || statusFilter.length > 0 || typeFilter.length > 0 || dateFilter !== null
 
   const clearAll = () => {
     setSearchTerm('')
@@ -281,7 +310,13 @@ export default function StockCountsPage() {
   // Loading / empty guards
   if (!venue) return null
 
-  const sourceIsEmpty = !isLoading && counts.length === 0
+  // 🔴 Un fallo de red NO es «aún no hay conteos». Con la lista vacía por un 500 el
+  // estado vacío le afirmaba al dueño que su equipo nunca ha contado nada — el reporte
+  // falso que prohíbe `testing-and-git.md` §3. Se dice que falló y se ofrece reintentar.
+  // Cuando YA hay filas cargadas y falla una página siguiente, la tabla se queda (esas
+  // filas existen) y «Cargar más» es el reintento.
+  const loadFailed = query.isError && counts.length === 0
+  const sourceIsEmpty = !isLoading && !loadFailed && counts.length === 0
 
   return (
     <div className="p-6 space-y-3">
@@ -289,9 +324,7 @@ export default function StockCountsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Conteos de inventario</h1>
-          <p className="text-muted-foreground">
-            Historial de auditoría de los conteos realizados en tus ubicaciones.
-          </p>
+          <p className="text-muted-foreground">Historial de auditoría de los conteos realizados en tus ubicaciones.</p>
         </div>
       </div>
 
@@ -299,13 +332,12 @@ export default function StockCountsPage() {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Los conteos de inventario se crean desde la app móvil de Avoqado. Desde aquí puedes
-          revisar el historial para auditoría.
+          Los conteos de inventario se crean desde la app móvil de Avoqado. Desde aquí puedes revisar el historial para auditoría.
         </AlertDescription>
       </Alert>
 
       {/* Filters row */}
-      {!sourceIsEmpty && (
+      {!sourceIsEmpty && !loadFailed && (
         <div className="flex flex-wrap items-center gap-3">
           {/* Expandable search */}
           <div className="relative flex items-center">
@@ -404,16 +436,29 @@ export default function StockCountsPage() {
         </div>
       )}
 
-      {/* Table or empty state */}
-      {sourceIsEmpty ? (
+      {/* Error / empty state / table */}
+      {loadFailed ? (
+        <div
+          role="alert"
+          className="flex flex-col items-center justify-center rounded-lg border border-dashed border-destructive/40 bg-muted/30 py-16 px-6 text-center"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <h3 className="mt-4 text-lg font-semibold text-destructive">{t('stockCounts.loadError')}</h3>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
+            {t('stockCounts.retry')}
+          </Button>
+        </div>
+      ) : sourceIsEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 px-6 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <ClipboardList className="h-6 w-6 text-muted-foreground" />
           </div>
           <h3 className="mt-4 text-lg font-semibold">Aún no hay conteos</h3>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">
-            Los conteos de inventario se realizan desde la app móvil de Avoqado. Cuando tu equipo
-            haga un conteo, aparecerá aquí para que puedas auditarlo.
+            Los conteos de inventario se realizan desde la app móvil de Avoqado. Cuando tu equipo haga un conteo, aparecerá aquí para que
+            puedas auditarlo.
           </p>
           <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
             <Smartphone className="h-4 w-4" />
@@ -427,6 +472,19 @@ export default function StockCountsPage() {
           rowCount={filteredCounts.length}
           isLoading={isLoading}
           onRowClick={handleRowClick}
+          pagination={tablePagination}
+          setPagination={setTablePagination}
+          hidePagination
+          footer={
+            <div className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground">
+              <span>{t('stockCounts.showing', { shown: counts.length, total })}</span>
+              {query.hasNextPage && (
+                <Button variant="outline" size="sm" onClick={() => query.fetchNextPage()} disabled={query.isFetchingNextPage}>
+                  {t('stockCounts.loadMore')}
+                </Button>
+              )}
+            </div>
+          }
         />
       )}
     </div>

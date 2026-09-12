@@ -102,6 +102,7 @@ import {
   DeliveryPage,
   RolePermissions,
   PrintStations,
+  ReceiptLayout,
   TenderTypes,
   AreaTickets,
   ExternalSettlements,
@@ -860,6 +861,13 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'print-stations',
           element: <PermissionProtectedRoute permission="printers:read" />,
           children: [{ index: true, element: <PrintStations /> }],
+        },
+        // Este local — diseño del ticket en papel (core/GRATIS, sin FeatureGate ni interruptor:
+        // el único candado es el permiso. Los tres intérpretes lo consumen desde el servidor).
+        {
+          path: 'receipt-layout',
+          element: <PermissionProtectedRoute permission="receipt-layout:read" />,
+          children: [{ index: true, element: <ReceiptLayout /> }],
         },
         // Este local — tipos de pago personalizados (VenueTenderType, core/FREE; el POS
         // los consumirá en la slice B — mientras tanto la pantalla lo dice con un badge)

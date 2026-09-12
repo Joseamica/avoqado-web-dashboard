@@ -1,0 +1,284 @@
+{
+  "page": {
+    "title": "Conception du ticket",
+    "description": "Décidez ce qui s'imprime sur le ticket de vos clients et dans quel ordre. Ce que vous voyez ici est ce que vos appareils imprimeront.",
+    "thisIsWhatPrints": "Voici le ticket imprimé aujourd'hui",
+    "sourceCustom": "Votre propre conception",
+    "sourceDefault": "Conception d'Avoqado",
+    "editedOn": "Modifié le {{date}}",
+    "neverEdited": "Jamais modifié : c'est la conception de départ d'Avoqado.",
+    "design": "Concevoir",
+    "view": "Voir la conception",
+    "templates": "Modèles",
+    "reset": "Réinitialiser",
+    "resetTitle": "Revenir à la conception d'Avoqado ?",
+    "resetBody": "Votre conception est supprimée et le ticket revient à celui d'origine d'Avoqado. C'est irréversible, mais vous pouvez le reconcevoir quand vous voulez.",
+    "resetConfirm": "Oui, réinitialiser",
+    "cancel": "Annuler",
+    "readOnly": "Vous pouvez voir la conception mais pas la modifier. Demandez l'autorisation à un administrateur de votre établissement.",
+    "loadErrorTitle": "Impossible de charger votre conception",
+    "loadErrorBody": "C'est un problème de connexion au serveur, pas un problème de votre ticket.",
+    "retry": "Réessayer"
+  },
+  "paper": {
+    "aria": "Aperçu du ticket, {{width}} colonnes",
+    "empty": "Rien à imprimer pour l'instant. Ajoutez des blocs pour voir votre ticket ici."
+  },
+  "preview": {
+    "errorTitle": "Impossible de dessiner l'aperçu",
+    "errorBody": "Vérifiez les avertissements à gauche : il manque peut-être un bloc obligatoire.",
+    "dropped_one": "{{count}} bloc a été ignoré car il ne peut pas être imprimé : son type n'existe pas ou ses données sont invalides.",
+    "dropped_other": "{{count}} blocs ont été ignorés car ils ne peuvent pas être imprimés : leur type n'existe pas ou leurs données sont invalides."
+  },
+  "readiness": {
+    "noEmisorTitle": "Votre ticket s'imprimera sans numéro fiscal ni raison sociale",
+    "noEmisorBody": "La loi exige ces informations sur le justificatif. Configurez votre émetteur pour qu'elles apparaissent.",
+    "goToFiscal": "Aller à la facturation"
+  },
+  "devices": {
+    "title_one": "{{count}} appareil imprime encore l'ancien ticket",
+    "title_other": "{{count}} appareils impriment encore l'ancien ticket",
+    "body": "Ils utiliseront votre nouvelle conception dès la mise à jour de leur application. En attendant, ils impriment comme avant.",
+    "unknownVersion": "version inconnue",
+    "platform": {
+      "TPV_ANDROID": "Terminal",
+      "TPV_IOS": "Terminal iOS",
+      "POS_ANDROID": "Caisse Android",
+      "POS_IOS": "Caisse iPad ou iPhone",
+      "POS_DESKTOP": "Caisse Windows"
+    }
+  },
+  "designer": {
+    "title": "Conception du ticket",
+    "blocksTitle": "Blocs",
+    "paperTab": "Papier",
+    "addBlock": "Ajouter un bloc",
+    "nothingToAdd": "Vous avez déjà utilisé tous les blocs disponibles.",
+    "paperWidth": "Largeur du papier",
+    "mm": "{{mm}} mm",
+    "sample": "Vente d'exemple",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "askYourAdmin": "Lecture seule. Demandez l'autorisation à un administrateur.",
+    "discardTitle": "Abandonner vos modifications ?",
+    "discardBody": "Vous avez modifié la conception sans l'enregistrer. Si vous fermez maintenant, votre travail est perdu.",
+    "keepEditing": "Continuer à modifier",
+    "discard": "Abandonner",
+    "removeQrTitle": "Retirer le code QR ?",
+    "removeQrBody": "Si vous le retirez, vos clients ne pourront plus se facturer eux-mêmes ni noter leur visite depuis le ticket.",
+    "keepQr": "Le garder",
+    "removeQr": "Le retirer",
+    "conflictTitle": "Votre conception n’est plus la dernière enregistrée",
+    "conflictByName": "{{name}} a enregistré une autre version pendant que vous modifiiez. Rechargez-la pour voir ses changements ; les vôtres sont perdus au rechargement.",
+    "conflictAnonymous": "Quelqu’un a enregistré une autre version pendant que vous modifiiez. Rechargez-la pour voir ses changements ; les vôtres sont perdus au rechargement.",
+    "reloadSaved": "Recharger la version enregistrée"
+  },
+  "templates": {
+    "title": "Modèles de ticket",
+    "description": "Choisissez-en un pour le voir sur le papier. Rien n'est enregistré avant que vous ne l'enregistriez.",
+    "blockCount_one": "{{count}} bloc",
+    "blockCount_other": "{{count}} blocs",
+    "error": "Impossible de récupérer les modèles. Réessayez dans un instant."
+  },
+  "locks": {
+    "legal": "La loi l'exige",
+    "operativo": "Votre exploitation en a besoin",
+    "plataforma": "Il appartient à Avoqado"
+  },
+  "actions": {
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "remove": "Retirer"
+  },
+  "summary": {
+    "size": {
+      "S": "Petit",
+      "M": "Moyen",
+      "L": "Grand"
+    },
+    "align": {
+      "left": "À gauche",
+      "center": "Centré",
+      "right": "À droite"
+    },
+    "emphasis": {
+      "normal": "Normal",
+      "bold": "Gras",
+      "double": "Taille double"
+    },
+    "style": {
+      "line": "Ligne",
+      "double": "Ligne double",
+      "blank": "Ligne vide"
+    },
+    "lines_one": "{{count}} ligne",
+    "lines_other": "{{count}} lignes",
+    "off": {
+      "showOrderType": "sans le type de vente",
+      "showModifiers": "sans les suppléments",
+      "showNotes": "sans les notes",
+      "showSubtotal": "sans le sous-total",
+      "showTax": "sans la taxe",
+      "showDiscount": "sans les remises",
+      "showTip": "sans le pourboire",
+      "showChange": "sans la monnaie",
+      "showCardLastFour": "sans les 4 derniers chiffres",
+      "showTransactionId": "sans la référence interne",
+      "showAppVersion": "sans la version de l'application"
+    },
+    "allOn": "Tout visible"
+  },
+  "editor": {
+    "size": "Taille",
+    "align": "Alignement",
+    "emphasis": "Emphase",
+    "style": "Style",
+    "caption": "Texte sous le code",
+    "lines": "Lignes",
+    "linesCount": "{{count}} sur {{max}}",
+    "addLine": "+ Ajouter une ligne",
+    "noOptions": "Ce bloc n'a rien à configurer : il s'imprime tel quel.",
+    "unknownBlock": "Ce bloc a été ajouté par une version plus récente du concepteur. Vous pouvez le déplacer, mais pas le modifier ici.",
+    "tooLong": "Le papier n'imprime que {{max}} caractères par ligne. Le reste sera coupé.",
+    "notPrintable": {
+      "control": "Ce caractère est une commande d'imprimante, pas du texte. Supprimez-le.",
+      "bidi": "Ce caractère inverse le sens du texte et le papier ne le gère pas. Supprimez-le.",
+      "zeroWidth": "Il y a un caractère invisible dans le texte. Supprimez-le et retapez-le.",
+      "nonLatin1": "Le papier ne peut pas imprimer « {{char}} ». Remplacez-le par des lettres ou des chiffres."
+    },
+    "alwaysTotal": "Le TOTAL s'imprime toujours : la loi exige que le client le voie.",
+    "alwaysAuth": "L'autorisation et la référence s'impriment toujours : c'est la preuve du paiement par carte.",
+    "showOrderType": "Afficher le type de vente",
+    "showModifiers": "Afficher les suppléments",
+    "showNotes": "Afficher les notes",
+    "showSubtotal": "Afficher le sous-total",
+    "showTax": "Afficher la taxe",
+    "showDiscount": "Afficher les remises",
+    "showTip": "Afficher le pourboire",
+    "showChange": "Afficher le montant reçu et la monnaie",
+    "showCardLastFour": "Afficher les 4 derniers chiffres de la carte",
+    "showTransactionId": "Afficher la référence interne",
+    "showAppVersion": "Afficher la version de l'application"
+  },
+  "samples": {
+    "retail": "Commerce",
+    "restaurant": "Restaurant",
+    "appointments": "Rendez-vous"
+  },
+  "blocks": {
+    "unknown": "Bloc inconnu",
+    "logo": {
+      "label": "Logo",
+      "desc": "L'image de votre établissement, en haut du ticket."
+    },
+    "businessName": {
+      "label": "Nom de l'établissement",
+      "desc": "Le nom sous lequel vos clients vous connaissent."
+    },
+    "fiscal": {
+      "label": "Données fiscales",
+      "desc": "Raison sociale et numéro fiscal. La loi les exige sur le justificatif."
+    },
+    "address": {
+      "label": "Adresse",
+      "desc": "Où se trouve votre établissement."
+    },
+    "phone": {
+      "label": "Téléphone",
+      "desc": "Le numéro auquel on peut vous appeler."
+    },
+    "text": {
+      "label": "Texte libre",
+      "desc": "Ce que vous voulez dire à votre client : un remerciement, vos horaires, votre politique de retour."
+    },
+    "orderInfo": {
+      "label": "Commande et date",
+      "desc": "Référence, date et heure de la vente. La loi les exige."
+    },
+    "staff": {
+      "label": "Qui a servi",
+      "desc": "Le nom de la personne qui a fait la vente."
+    },
+    "items": {
+      "label": "Articles",
+      "desc": "Ce que votre client a acheté, avec quantité et prix. La loi l'exige."
+    },
+    "totals": {
+      "label": "Totaux",
+      "desc": "Sous-total, taxe, remises, pourboire et total."
+    },
+    "payment": {
+      "label": "Paiement",
+      "desc": "Comment il a payé, et la preuve si c'était par carte."
+    },
+    "amountInWords": {
+      "label": "Total en lettres",
+      "desc": "Le total écrit en mots, comme sur un reçu papier."
+    },
+    "areaDelivery": {
+      "label": "Bon de retrait",
+      "desc": "Le bon que votre client remet au bar ou en cuisine pour récupérer sa commande."
+    },
+    "qr": {
+      "label": "Code QR",
+      "desc": "Avec lui, votre client se facture seul et note sa visite."
+    },
+    "fiscalNotice": {
+      "label": "Mention fiscale",
+      "desc": "La mention du justificatif simplifié."
+    },
+    "reference": {
+      "label": "Références",
+      "desc": "Références internes, pour quand quelqu’un conteste une vente."
+    },
+    "separator": {
+      "label": "Séparateur",
+      "desc": "Une ligne ou un espace pour organiser le ticket."
+    },
+    "signature": {
+      "label": "Powered by Avoqado",
+      "desc": "La signature d'Avoqado. Elle va toujours à la fin du ticket."
+    }
+  },
+  "tour": {
+    "next": "Suivant →",
+    "prev": "← Précédent",
+    "done": "Terminé !",
+    "progress": "Étape {{current}} sur {{total}}",
+    "welcome": {
+      "title": "🧾 Le ticket de votre établissement",
+      "description": "Ici vous décidez ce qui s’imprime quand vous encaissez : votre logo, votre nom, un remerciement à la fin.<br/><br/>Ce que vous construisez ici sera imprimé par <b>tous vos appareils</b>, sans en toucher un seul."
+    },
+    "open": {
+      "title": "Ouvrez le concepteur",
+      "description": "Vous verrez deux choses à la fois : la <b>liste de ce que contient votre ticket</b> à gauche, et <b>le vrai ticket</b> à droite."
+    },
+    "list": {
+      "title": "La liste : ce que contient votre ticket",
+      "description": "Chaque ligne est un élément du ticket, et ils s’impriment <b>dans cet ordre</b>.<br/><br/>Les flèches déplacent un élément. La ✕ le retire. Le papier à droite se met à jour aussitôt : vous n’enregistrez jamais à l’aveugle."
+    },
+    "locks": {
+      "title": "🔒 Pourquoi certains éléments ne peuvent pas être retirés",
+      "description": "Certains portent un cadenas : ils <b>peuvent être déplacés, mais pas retirés</b>. La lettre dit pourquoi, et il y a trois raisons différentes :<br/><br/>• <b>L</b> — la loi l’exige (votre numéro fiscal, les articles, le total)<br/>• <b>O</b> — votre exploitation en a besoin (le paiement, le bon de retrait)<br/>• <b>P</b> — il appartient à Avoqado<br/><br/>Survolez-le et il vous l’explique."
+    },
+    "paper": {
+      "title": "Le papier, à taille réelle",
+      "description": "Ce n’est <b>pas une esquisse</b> : c’est le même ticket qui sortira de votre imprimante, avec la même largeur et les mêmes retours à la ligne.<br/><br/>Si un texte ne rentre pas, vous le verrez coupé ici — avant d’en imprimer mille."
+    },
+    "width": {
+      "title": "Les deux largeurs de papier",
+      "description": "Le papier de 80 mm contient 48 caractères par ligne ; celui de 58 mm, seulement 32.<br/><br/>Si vous utilisez les deux tailles, <b>vérifiez les deux</b> : un texte qui rentre sur le large est coupé sur l’étroit."
+    },
+    "save": {
+      "title": "Enregistrer",
+      "description": "Une fois enregistré, vos appareils récupèrent la nouvelle conception tout seuls.<br/><br/>Si quelqu’un d’autre de votre équipe l’a modifiée pendant que vous éditiez, nous vous donnons son nom au lieu d’écraser son travail.<br/><br/>Et si le résultat ne vous plaît pas, « Réinitialiser » vous ramène au ticket d’Avoqado."
+    }
+  },
+  "errors": {
+    "staleTitle": "Quelqu’un d’autre a enregistré cette conception",
+    "staleByName": "{{name}} l’a enregistrée pendant que vous la modifiiez. Rechargez pour voir ses changements avant d’enregistrer les vôtres.",
+    "staleAnonymous": "Quelqu’un l’a enregistrée pendant que vous la modifiiez. Rechargez pour voir ses changements avant d’enregistrer les vôtres.",
+    "saveFailed": "Impossible d’enregistrer la conception",
+    "retry": "Réessayez dans un instant."
+  }
+}

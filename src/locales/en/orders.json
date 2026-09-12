@@ -1,6 +1,7 @@
 {
   "title": "Orders",
   "searchPlaceholder": "Search by order number, table or waiter...",
+  "cancelBlockedByTerminalCharge": "There is a card-terminal charge in progress for this order. Wait for its result or cancel it on the terminal before cancelling or deleting the order.",
   "errorPrefix": "Failed to load orders",
   "summaryUnavailable": "We couldn't load the totals. The table is still available, but we won't show zeros that may be incorrect.",
   "counter": "Counter",

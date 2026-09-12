@@ -1424,6 +1424,8 @@
       "STOCK_BATCH_EXPIRED": "Lote caducado",
       "STOCK_BATCH_QUARANTINED": "Lote de stock en cuarentena",
       "STOCK_BATCH_RELEASED": "Lote liberado de cuarentena",
+      "STOCK_COUNT_CANCELLED": "Conteo de inventario cancelado",
+      "STOCK_COUNT_CANCELLED_MCP": "Conteo de inventario cancelado (vía asistente IA)",
       "STOCK_COUNT_CONFIRMED": "Conteo de inventario confirmado",
       "STOCK_COUNT_CREATED": "Conteo de inventario iniciado",
       "STOCK_WENT_NEGATIVE": "Existencias en negativo",

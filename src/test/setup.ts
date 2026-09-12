@@ -16,18 +16,28 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
 // Mock window.matchMedia
+//
+// Función real, NO `vi.fn().mockImplementation(...)`, por el MISMO motivo que el
+// ResizeObserver de abajo: la config tiene `mockReset: true`, que borra la implementación
+// de cualquier vi.fn() antes de cada test. Con el mock reseteado, `window.matchMedia(...)`
+// devolvía `undefined` y todo componente que use `useIsMobile` (o el Sidebar) tronaba con
+// "Cannot read properties of undefined (reading 'addEventListener')".
+//
+// El defecto ya se había sufrido: `SalesDetail.sinEvidencia.test.tsx` lo parchea a mano en
+// su propio `beforeEach`, con un comentario explicando la causa. Ese parche sigue siendo
+// inocuo (redefine lo mismo), pero ya no es necesario.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
 })
 
 // Mock ResizeObserver

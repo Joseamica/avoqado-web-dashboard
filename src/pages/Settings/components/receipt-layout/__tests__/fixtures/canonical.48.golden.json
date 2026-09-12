@@ -1,0 +1,289 @@
+{
+  "case": "canonical",
+  "width": 48,
+  "lines": [
+    {
+      "kind": "image",
+      "ref": "logo",
+      "widthPct": 60
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "text",
+      "text": "Testarudo Cafe",
+      "align": "center",
+      "bold": false,
+      "double": true
+    },
+    {
+      "kind": "text",
+      "text": "TESTARUDO CAFE S.A.P.I. DE C.V.",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "RFC: TCA2501231A6",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Lugar de expedición: CP 06600",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Nápoles 47, Cuauhtémoc, Ciudad de México CP",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "06600",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Tel: 55 1234 5678",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Orden #:                                    1042",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Fecha:                          02/09/2026 12:05",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Tipo:                                  En tienda",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Atendió:                                     Ana",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "CantArtículo                              Precio",
+      "align": "left",
+      "bold": true,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "2   Galleta de avena                      $90.00",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "  + Sin azúcar",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "  Nota: Para llevar",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "1   Café americano                        $30.00",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Subtotal:                                $120.00",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "IVA incluido:                             $16.55",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "TOTAL:           $120.00",
+      "align": "left",
+      "bold": true,
+      "double": true
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "text",
+      "text": "Pago:                                   Efectivo",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Recibido:                                $150.00",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Cambio:                                   $30.00",
+      "align": "left",
+      "bold": true,
+      "double": false
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Escanea para tu recibo y factura",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "qr",
+      "data": "https://r.avoqado.io/x/abc"
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "text",
+      "text": "Este comprobante no es un CFDI",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "------------------------------------------------",
+      "align": "left",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "Gracias por su compra",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "text",
+      "text": "ID: pay_0001",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "image",
+      "ref": "avoqadoMark",
+      "widthPct": 15
+    },
+    {
+      "kind": "feed",
+      "lines": 1
+    },
+    {
+      "kind": "text",
+      "text": "Powered by Avoqado",
+      "align": "center",
+      "bold": false,
+      "double": false
+    },
+    {
+      "kind": "cut"
+    }
+  ]
+}

@@ -1424,6 +1424,8 @@
       "STOCK_BATCH_EXPIRED": "Batch expired",
       "STOCK_BATCH_QUARANTINED": "Stock batch quarantined",
       "STOCK_BATCH_RELEASED": "Batch released from quarantine",
+      "STOCK_COUNT_CANCELLED": "Stock count cancelled",
+      "STOCK_COUNT_CANCELLED_MCP": "Stock count cancelled (via AI assistant)",
       "STOCK_COUNT_CONFIRMED": "Stock count confirmed",
       "STOCK_COUNT_CREATED": "Stock count started",
       "STOCK_WENT_NEGATIVE": "Stock went negative",

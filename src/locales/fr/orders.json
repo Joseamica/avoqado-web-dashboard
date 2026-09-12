@@ -1,6 +1,7 @@
 {
   "title": "Orders",
   "searchPlaceholder": "Search by order number, customer or waiter...",
+  "cancelBlockedByTerminalCharge": "Un encaissement est en cours sur le terminal pour cette commande. Attendez son résultat ou annulez-le depuis le terminal avant d'annuler ou de supprimer la commande.",
   "errorPrefix": "Failed to load orders",
   "summaryUnavailable": "Impossible de charger les totaux. Le tableau reste disponible, mais nous n'afficherons pas de zéros potentiellement incorrects.",
   "counter": "Counter",

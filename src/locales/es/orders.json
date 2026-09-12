@@ -1,6 +1,7 @@
 {
   "title": "Ordenes",
   "searchPlaceholder": "Buscar",
+  "cancelBlockedByTerminalCharge": "Hay un cobro en curso en la terminal para esta orden. Espera su resultado o cancélalo desde la terminal antes de cancelar o eliminar la orden.",
   "errorPrefix": "Error al cargar órdenes",
   "summaryUnavailable": "No pudimos cargar los totales. La tabla sigue disponible, pero no mostraremos ceros que puedan ser incorrectos.",
   "counter": "Mostrador",

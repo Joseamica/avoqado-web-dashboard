@@ -1468,5 +1468,28 @@
     "errorDuplicate": "\"{{name}}\" está repetida",
     "errorNameChars": "\"{{name}}\" tiene caracteres no permitidos; usa sólo letras, números y . , ' / ( ) -",
     "errorFactor": "La equivalencia de \"{{name}}\" debe ser mayor que cero"
+  },
+  "stockCounts": {
+    "countedOf": "{{counted}} de {{total}} contados",
+    "counted": "Contados",
+    "notCounted": "Sin contar",
+    "nothingCountedYet": "Nadie ha capturado cantidades todavía. Las diferencias aparecen conforme se cuenta.",
+    "matched": "Coinciden",
+    "mismatched": "Con diferencia",
+    "difference": "Diferencia",
+    "ofCounted": "de lo contado",
+    "cancelledOn": "Cancelado el {{date}}",
+    "showing": "Mostrando {{shown}} de {{total}}",
+    "loadMore": "Cargar más",
+    "loadError": "No se pudieron cargar los conteos.",
+    "retry": "Reintentar",
+    "cancel": {
+      "button": "Cancelar conteo",
+      "title": "¿Cancelar este conteo?",
+      "description": "Quedará como cancelado y no ajustará el inventario. Lo capturado se conserva sólo para consulta. No se puede deshacer.",
+      "confirm": "Sí, cancelar conteo",
+      "success": "Conteo cancelado",
+      "error": "No se pudo cancelar el conteo"
+    }
   }
 }

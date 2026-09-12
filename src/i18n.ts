@@ -163,6 +163,9 @@ import cfdiEn from '@/locales/en/cfdi.json'
 import cfdiEs from '@/locales/es/cfdi.json'
 import printStationsEn from '@/locales/en/printStations.json'
 import printStationsEs from '@/locales/es/printStations.json'
+import receiptLayoutEn from '@/locales/en/receiptLayout.json'
+import receiptLayoutEs from '@/locales/es/receiptLayout.json'
+import receiptLayoutFr from '@/locales/fr/receiptLayout.json'
 import tenderTypesEn from '@/locales/en/tenderTypes.json'
 import tenderTypesEs from '@/locales/es/tenderTypes.json'
 import deliveryEn from '@/locales/en/delivery.json'
@@ -751,6 +754,16 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'printStations', bundle as Record<string, unknown>, true, true)
+})
+// Diseño del ticket — los TRES idiomas (regla del workspace: nada de cadenas sueltas).
+;(
+  [
+    ['en', receiptLayoutEn],
+    ['es', receiptLayoutEs],
+    ['fr', receiptLayoutFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'receiptLayout', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

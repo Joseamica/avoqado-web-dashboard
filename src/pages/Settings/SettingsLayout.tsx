@@ -7,6 +7,7 @@ import {
   Link2,
   Lock,
   Printer,
+  Receipt,
   ScrollText,
   Shield,
   SlidersHorizontal,
@@ -91,6 +92,9 @@ export default function SettingsLayout() {
           : []),
         ...(can('printers:read')
           ? [{ to: 'print-stations', label: t('hub.items.printStations'), icon: Printer, dataTour: 'settings-nav-print-stations' }]
+          : []),
+        ...(can('receipt-layout:read')
+          ? [{ to: 'receipt-layout', label: t('hub.items.receiptLayout'), icon: Receipt, dataTour: 'settings-nav-receipt-layout' }]
           : []),
         ...(can('tender-types:read')
           ? [{ to: 'tender-types', label: t('hub.items.tenderTypes'), icon: Wallet, dataTour: 'settings-nav-tender-types' }]

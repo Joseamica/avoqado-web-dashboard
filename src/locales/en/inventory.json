@@ -1468,5 +1468,28 @@
     "errorDuplicate": "\"{{name}}\" is duplicated",
     "errorNameChars": "\"{{name}}\" has invalid characters; use only letters, numbers and . , ' / ( ) -",
     "errorFactor": "The equivalence of \"{{name}}\" must be greater than zero"
+  },
+  "stockCounts": {
+    "countedOf": "{{counted}} of {{total}} counted",
+    "counted": "Counted",
+    "notCounted": "Not counted",
+    "nothingCountedYet": "No quantities captured yet. Differences appear as items get counted.",
+    "matched": "Match",
+    "mismatched": "Differ",
+    "difference": "Difference",
+    "ofCounted": "of counted lines",
+    "cancelledOn": "Cancelled on {{date}}",
+    "showing": "Showing {{shown}} of {{total}}",
+    "loadMore": "Load more",
+    "loadError": "Could not load the stock counts.",
+    "retry": "Retry",
+    "cancel": {
+      "button": "Cancel count",
+      "title": "Cancel this count?",
+      "description": "It will be marked as cancelled and will not adjust inventory. Captured quantities are kept for reference only. This cannot be undone.",
+      "confirm": "Yes, cancel count",
+      "success": "Count cancelled",
+      "error": "Could not cancel the count"
+    }
   }
 }

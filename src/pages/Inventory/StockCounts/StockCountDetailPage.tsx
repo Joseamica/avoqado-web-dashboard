@@ -1,34 +1,48 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, Search, X } from 'lucide-react'
+import { ArrowLeft, Ban, Search, X } from 'lucide-react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import {
-  getStockCountStatusBadge,
-  getStockCountTypeLabel,
-  stockCountService,
-} from '@/services/stockCount.service'
+import { useToast } from '@/hooks/use-toast'
+import { getStockCountStatusBadge, getStockCountTypeLabel, stockCountService } from '@/services/stockCount.service'
 import { includesNormalized } from '@/lib/utils'
+import { colorDeDiferencia, etiquetaDeUnidad, formatearCantidad, formatearDiferencia } from './resumen'
 
 /**
- * Stock Count Detail — READ-ONLY.
- * Shows the header info and a searchable table of counted items.
+ * El motivo que el SERVIDOR construyó, si la respuesta lo trae (patrón del repo:
+ * `Teams.tsx`, `ShiftPlanner.tsx`). Devuelve `undefined` —no una cadena vacía— cuando
+ * no hay nada que decir, para que el toast no pinte una descripción en blanco.
+ */
+function mensajeDelServidor(error: unknown): string | undefined {
+  const data = (error as { response?: { data?: { message?: unknown; error?: unknown } } })?.response?.data
+  const texto = data?.message ?? data?.error
+  return typeof texto === 'string' && texto.trim() !== '' ? texto : undefined
+}
+
+/**
+ * Stock Count Detail — lectura, más «cancelar el borrador».
+ * Lo que enseña sale del `summary` del SERVIDOR: sólo cuenta lo que alguien contó.
  */
 export default function StockCountDetailPage() {
   const navigate = useNavigate()
@@ -36,6 +50,12 @@ export default function StockCountDetailPage() {
   const { venue, venueId, fullBasePath } = useCurrentVenue()
 
   const [search, setSearch] = useState('')
+  const { t, i18n } = useTranslation('inventory')
+  const locale = i18n.language
+  const { can } = useAccess()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['stock-count', venueId, countId],
@@ -56,16 +76,32 @@ export default function StockCountDetailPage() {
     )
   }, [count, search])
 
-  const summary = useMemo(() => {
-    if (!count) return { total: 0, matched: 0, mismatched: 0, totalDiff: 0 }
-    const mismatched = count.items.filter(i => i.difference !== 0).length
-    return {
-      total: count.items.length,
-      matched: count.items.length - mismatched,
-      mismatched,
-      totalDiff: count.items.reduce((sum, i) => sum + i.difference, 0),
-    }
-  }, [count])
+  // El resumen lo calcula el servidor con la regla única: sólo líneas contadas.
+  // Aquí no se resta nada — sumar `difference` de líneas sin contar reportaba la
+  // bodega entera como faltante (Mindform, 2026-09-07).
+  const summary = count?.summary
+
+  const cancelMutation = useMutation({
+    mutationFn: () => stockCountService.cancel(venueId!, countId!),
+    onSuccess: () => toast({ title: t('stockCounts.cancel.success') }),
+    // 🔴 El servidor distingue TRES motivos de 409 —«ya estaba cancelado», «se está
+    // aplicando al inventario; espera a que termine», «un conteo completado no se puede
+    // cancelar: ya ajustó el inventario»— y cada uno pide algo distinto del gerente.
+    // Tragárselos para decir siempre «No se pudo cancelar el conteo» lo deja sin saber
+    // qué pasó. El título traducido se conserva; el motivo va como descripción.
+    onError: error => toast({ title: t('stockCounts.cancel.error'), description: mensajeDelServidor(error), variant: 'destructive' }),
+    // 🔴 Se relee SIEMPRE, no sólo al ganar: un 409 significa que el estado real cambió
+    // por debajo (un cajero confirmó desde el POS con el detalle abierto). Sin esta
+    // relectura la pantalla se queda «En progreso» con su botón y el gerente reintenta
+    // en bucle contra algo que el servidor ya rechazó.
+    onSettled: () => {
+      setCancelOpen(false)
+      // La misma llave con la que se leyó, y el prefijo de la lista (sin los filtros).
+      void queryClient.invalidateQueries({ queryKey: ['stock-count', venueId, countId] })
+      void queryClient.invalidateQueries({ queryKey: ['stock-counts', venueId] })
+    },
+  })
+  const puedeCancelar = count?.status === 'IN_PROGRESS' && can('inventory:update')
 
   if (!venue) return null
 
@@ -73,17 +109,19 @@ export default function StockCountDetailPage() {
     <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(`${fullBasePath}/inventory/stock-counts`)}
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate(`${fullBasePath}/inventory/stock-counts`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Detalle del conteo</h1>
           <p className="text-sm text-muted-foreground">Vista de auditoría (solo lectura).</p>
         </div>
+        {puedeCancelar && (
+          <Button variant="outline" className="ml-auto" onClick={() => setCancelOpen(true)} data-tour="stock-count-cancel-btn">
+            <Ban className="mr-2 h-4 w-4" />
+            {t('stockCounts.cancel.button')}
+          </Button>
+        )}
       </div>
 
       {isLoading && (
@@ -96,9 +134,7 @@ export default function StockCountDetailPage() {
       {isError && (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-destructive">
-              No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.
-            </p>
+            <p className="text-sm text-destructive">No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.</p>
           </CardContent>
         </Card>
       )}
@@ -111,9 +147,7 @@ export default function StockCountDetailPage() {
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">Fecha</div>
-                  <div className="mt-1 text-sm font-medium">
-                    {format(new Date(count.createdAt), 'dd MMM yyyy, HH:mm', { locale: es })}
-                  </div>
+                  <div className="mt-1 text-sm font-medium">{format(new Date(count.createdAt), 'dd MMM yyyy, HH:mm', { locale: es })}</div>
                 </div>
                 <div>
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">Tipo</div>
@@ -134,12 +168,15 @@ export default function StockCountDetailPage() {
                         </Badge>
                       )
                     })()}
+                    {count.status === 'CANCELLED' && count.cancelledAt && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {t('stockCounts.cancelledOn', { date: format(new Date(count.cancelledAt), 'dd MMM yyyy, HH:mm', { locale: es }) })}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Creado por
-                  </div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Creado por</div>
                   <div className="mt-1 text-sm font-medium">{count.createdBy ?? '—'}</div>
                 </div>
               </div>
@@ -151,44 +188,44 @@ export default function StockCountDetailPage() {
                 </div>
               )}
 
-              {/* Summary */}
-              <div className="mt-4 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Artículos</div>
-                  <div className="mt-1 text-lg font-semibold">{summary.total}</div>
+              {/* Summary — sólo lo contado cuenta */}
+              {summary && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">{t('stockCounts.counted')}</div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {t('stockCounts.countedOf', { counted: summary.countedCount, total: summary.itemCount })}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">{t('stockCounts.matched')}</div>
+                      <div className="mt-1 text-lg font-semibold text-muted-foreground">
+                        {summary.countedCount === 0 ? '—' : summary.matchedCount}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">{t('stockCounts.mismatched')}</div>
+                      <div className="mt-1 text-lg font-semibold">{summary.countedCount === 0 ? '—' : summary.mismatchedCount}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">{t('stockCounts.difference')}</div>
+                      {summary.countedCount === 0 ? (
+                        <div className="mt-1 text-lg font-semibold text-muted-foreground">{t('stockCounts.notCounted')}</div>
+                      ) : (
+                        <div className="mt-1 flex flex-wrap gap-x-3 text-lg font-semibold">
+                          {summary.differenceByUnit.map(d => (
+                            <span key={d.unit} className={colorDeDiferencia(d.difference)}>
+                              {`${formatearDiferencia(d.difference, locale)} ${etiquetaDeUnidad(t, d.unit)}`}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {summary.countedCount === 0 && <p className="mt-3 text-sm text-muted-foreground">{t('stockCounts.nothingCountedYet')}</p>}
                 </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Coinciden
-                  </div>
-                  <div className="mt-1 text-lg font-semibold text-muted-foreground">
-                    {summary.matched}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Con diferencia
-                  </div>
-                  <div className="mt-1 text-lg font-semibold">{summary.mismatched}</div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Diferencia total
-                  </div>
-                  <div
-                    className={`mt-1 text-lg font-semibold ${
-                      summary.totalDiff === 0
-                        ? 'text-muted-foreground'
-                        : summary.totalDiff > 0
-                        ? 'text-green-700 dark:text-green-400'
-                        : 'text-red-700 dark:text-red-400'
-                    }`}
-                  >
-                    {summary.totalDiff > 0 ? '+' : ''}
-                    {summary.totalDiff}
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -236,24 +273,18 @@ export default function StockCountDetailPage() {
                       </TableRow>
                     ) : (
                       filteredItems.map(item => {
-                        const diff = item.difference
-                        const diffClass =
-                          diff === 0
-                            ? 'text-muted-foreground'
-                            : diff > 0
-                            ? 'text-green-700 dark:text-green-400 font-medium'
-                            : 'text-red-700 dark:text-red-400 font-medium'
+                        const unidad = item.unit ? ` ${etiquetaDeUnidad(t, item.unit)}` : ''
+                        const contada = item.countedAt !== null
                         return (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.productName}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {item.sku ?? '—'}
+                            <TableCell className="text-muted-foreground">{item.sku ?? '—'}</TableCell>
+                            <TableCell className="text-right">{`${formatearCantidad(item.expected, locale)}${unidad}`}</TableCell>
+                            <TableCell className={`text-right ${contada ? '' : 'text-muted-foreground'}`}>
+                              {contada ? `${formatearCantidad(item.counted, locale)}${unidad}` : t('stockCounts.notCounted')}
                             </TableCell>
-                            <TableCell className="text-right">{item.expected}</TableCell>
-                            <TableCell className="text-right">{item.counted}</TableCell>
-                            <TableCell className={`text-right ${diffClass}`}>
-                              {diff > 0 ? '+' : ''}
-                              {diff}
+                            <TableCell className={`text-right ${contada ? colorDeDiferencia(item.difference) : 'text-muted-foreground'}`}>
+                              {contada ? `${formatearDiferencia(item.difference, locale)}${unidad}` : t('stockCounts.notCounted')}
                             </TableCell>
                           </TableRow>
                         )
@@ -266,6 +297,21 @@ export default function StockCountDetailPage() {
           </Card>
         </>
       )}
+
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('stockCounts.cancel.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('stockCounts.cancel.description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelMutation.isPending}>{t('common:cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>
+              {t('stockCounts.cancel.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

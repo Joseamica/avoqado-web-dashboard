@@ -221,7 +221,8 @@
     "reportPaymentMethods": "Payment methods",
     "reportRefunds": "Refunds",
     "reportHomeCharts": "Charts",
-    "reportPayLaterAging": "Accounts receivable"
+    "reportPayLaterAging": "Accounts receivable",
+    "receiptLayout": "Receipt design"
   },
   "paymentLinksMenu": {
     "links": "Payment links",

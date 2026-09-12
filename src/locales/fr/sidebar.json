@@ -172,7 +172,8 @@
     "reportPaymentMethods": "Moyens de paiement",
     "reportRefunds": "Remboursements",
     "reportHomeCharts": "Graphiques",
-    "reportPayLaterAging": "Comptes clients"
+    "reportPayLaterAging": "Comptes clients",
+    "receiptLayout": "Conception du ticket"
   },
   "reservationsMenu": {
     "overview": "Aperçu",

@@ -61,6 +61,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { OrderDrawerContent } from './OrderDrawerContent'
 import { orderCardsForTab, orderRowMatchesTab, orderTabCounts } from './orderSummary'
+import { describeOrderMutationError } from './orderMutationError'
 
 // Table interface for dropdowns
 interface Table {
@@ -427,7 +428,7 @@ export default function Orders() {
     onError: (error: Error) => {
       toast({
         title: tCommon('superadmin.delete.error'),
-        description: error.message,
+        description: describeOrderMutationError(error, t),
         variant: 'destructive',
       })
     },
@@ -469,7 +470,7 @@ export default function Orders() {
     onError: (error: Error) => {
       toast({
         title: tCommon('superadmin.edit.error'),
-        description: error.message,
+        description: describeOrderMutationError(error, t),
         variant: 'destructive',
       })
     },

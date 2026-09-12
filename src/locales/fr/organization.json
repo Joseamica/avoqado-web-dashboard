@@ -963,6 +963,8 @@
       "STOCK_BATCH_EXPIRED": "Lot expiré",
       "STOCK_BATCH_QUARANTINED": "Lot de stock mis en quarantaine",
       "STOCK_BATCH_RELEASED": "Lot libéré de quarantaine",
+      "STOCK_COUNT_CANCELLED": "Comptage d'inventaire annulé",
+      "STOCK_COUNT_CANCELLED_MCP": "Comptage d'inventaire annulé (via l'assistant IA)",
       "STOCK_COUNT_CONFIRMED": "Inventaire physique confirmé",
       "STOCK_COUNT_CREATED": "Inventaire physique lancé",
       "STOCK_WENT_NEGATIVE": "Stock devenu négatif",

@@ -22,7 +22,8 @@
       "paymentConfig": "Config. de pagos",
       "ecommerceChannels": "Comercios e-commerce",
       "merchantAccounts": "Cuentas merchant",
-      "tenderTypes": "Tipos de pago"
+      "tenderTypes": "Tipos de pago",
+      "receiptLayout": "Diseño del ticket"
     }
   },
   "preferences": {

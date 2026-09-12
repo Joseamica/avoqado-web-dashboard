@@ -1,0 +1,284 @@
+{
+  "page": {
+    "title": "Receipt design",
+    "description": "Decide what gets printed on your customers' receipt and in what order. What you see here is what your devices will print.",
+    "thisIsWhatPrints": "This is the receipt printing today",
+    "sourceCustom": "Your own design",
+    "sourceDefault": "Avoqado's design",
+    "editedOn": "Edited on {{date}}",
+    "neverEdited": "Never edited: this is the design Avoqado starts with.",
+    "design": "Design",
+    "view": "View design",
+    "templates": "Templates",
+    "reset": "Reset",
+    "resetTitle": "Back to Avoqado's design?",
+    "resetBody": "Your own design is deleted and the receipt goes back to the one Avoqado ships. It can't be undone, but you can design it again whenever you want.",
+    "resetConfirm": "Yes, reset",
+    "cancel": "Cancel",
+    "readOnly": "You can see the design but not change it. Ask an administrator of your business for permission to edit it.",
+    "loadErrorTitle": "We couldn't load your design",
+    "loadErrorBody": "This was a connection problem with the server, not a problem with your receipt.",
+    "retry": "Try again"
+  },
+  "paper": {
+    "aria": "Receipt preview, {{width}} columns",
+    "empty": "Nothing to print yet. Add blocks to see your receipt here."
+  },
+  "preview": {
+    "errorTitle": "We couldn't draw the preview",
+    "errorBody": "Check the warnings on the left: the receipt may be missing a required block.",
+    "dropped_one": "{{count}} block was skipped because it can't be printed: its type doesn't exist or its data is invalid.",
+    "dropped_other": "{{count}} blocks were skipped because they can't be printed: their type doesn't exist or their data is invalid."
+  },
+  "readiness": {
+    "noEmisorTitle": "Your receipt will print without a tax ID or legal name",
+    "noEmisorBody": "The law requires that information on the receipt. Set up your tax issuer so it shows up.",
+    "goToFiscal": "Go to Invoicing"
+  },
+  "devices": {
+    "title_one": "{{count}} device is still printing the previous receipt",
+    "title_other": "{{count}} devices are still printing the previous receipt",
+    "body": "They'll use your new design once they update their app. Until then, they print as before.",
+    "unknownVersion": "unknown version",
+    "platform": {
+      "TPV_ANDROID": "Terminal",
+      "TPV_IOS": "iOS terminal",
+      "POS_ANDROID": "Android POS",
+      "POS_IOS": "iPad or iPhone POS",
+      "POS_DESKTOP": "Windows POS"
+    }
+  },
+  "designer": {
+    "title": "Receipt design",
+    "blocksTitle": "Blocks",
+    "paperTab": "Paper",
+    "addBlock": "Add block",
+    "nothingToAdd": "You've already used every available block.",
+    "paperWidth": "Paper width",
+    "mm": "{{mm}} mm",
+    "sample": "Sample sale",
+    "save": "Save",
+    "saving": "Saving…",
+    "askYourAdmin": "View only. Ask an administrator for permission.",
+    "discardTitle": "Discard your changes?",
+    "discardBody": "You changed the design and haven't saved it yet. If you close now, your work is lost.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard",
+    "removeQrTitle": "Remove the QR code?",
+    "removeQrBody": "If you remove it, your customers won't be able to invoice themselves or rate their visit from the receipt.",
+    "keepQr": "Keep it",
+    "removeQr": "Remove it",
+    "conflictTitle": "Your design is no longer the latest saved one",
+    "conflictByName": "{{name}} saved another version while you were editing. Reload it to see their changes; yours are lost when you reload.",
+    "conflictAnonymous": "Someone saved another version while you were editing. Reload it to see their changes; yours are lost when you reload.",
+    "reloadSaved": "Reload saved design"
+  },
+  "templates": {
+    "title": "Receipt templates",
+    "description": "Pick one to see it on the paper. Nothing is saved until you save it.",
+    "blockCount_one": "{{count}} block",
+    "blockCount_other": "{{count}} blocks",
+    "error": "We couldn't fetch the templates. Try again in a moment."
+  },
+  "locks": {
+    "legal": "The law requires it",
+    "operativo": "Your operation needs it",
+    "plataforma": "It belongs to Avoqado"
+  },
+  "actions": {
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "remove": "Remove"
+  },
+  "summary": {
+    "size": {
+      "S": "Small",
+      "M": "Medium",
+      "L": "Large"
+    },
+    "align": {
+      "left": "Left",
+      "center": "Centered",
+      "right": "Right"
+    },
+    "emphasis": {
+      "normal": "Normal",
+      "bold": "Bold",
+      "double": "Double size"
+    },
+    "style": {
+      "line": "Line",
+      "double": "Double line",
+      "blank": "Blank line"
+    },
+    "lines_one": "{{count}} line",
+    "lines_other": "{{count}} lines",
+    "off": {
+      "showOrderType": "no sale type",
+      "showModifiers": "no modifiers",
+      "showNotes": "no notes",
+      "showSubtotal": "no subtotal",
+      "showTax": "no tax",
+      "showDiscount": "no discounts",
+      "showTip": "no tip",
+      "showChange": "no change due",
+      "showCardLastFour": "no card last 4",
+      "showTransactionId": "no internal reference",
+      "showAppVersion": "no app version"
+    },
+    "allOn": "Everything visible"
+  },
+  "editor": {
+    "size": "Size",
+    "align": "Alignment",
+    "emphasis": "Emphasis",
+    "style": "Style",
+    "caption": "Text under the code",
+    "lines": "Lines",
+    "linesCount": "{{count}} of {{max}}",
+    "addLine": "+ Add line",
+    "noOptions": "This block has nothing to configure: it prints as is.",
+    "unknownBlock": "This block was added by a newer version of the designer. You can move it, but not edit it here.",
+    "tooLong": "The paper only prints {{max}} characters per line. Anything past that gets cut off.",
+    "notPrintable": {
+      "control": "That character is a printer command, not text. Delete it.",
+      "bidi": "That character flips the direction of the text and the paper can't handle it. Delete it.",
+      "zeroWidth": "There's an invisible character in the text. Delete it and type it again.",
+      "nonLatin1": "The paper can’t print “{{char}}”. Replace it with letters or numbers."
+    },
+    "alwaysTotal": "The TOTAL always prints: the law requires the customer to see it.",
+    "alwaysAuth": "The authorization and reference always print: they're the proof of a card payment.",
+    "showOrderType": "Show the sale type",
+    "showModifiers": "Show modifiers",
+    "showNotes": "Show notes",
+    "showSubtotal": "Show the subtotal",
+    "showTax": "Show the tax",
+    "showDiscount": "Show discounts",
+    "showTip": "Show the tip",
+    "showChange": "Show amount received and change",
+    "showCardLastFour": "Show the card's last 4",
+    "showTransactionId": "Show the internal reference",
+    "showAppVersion": "Show the app version"
+  },
+  "samples": {
+    "retail": "Retail",
+    "restaurant": "Restaurant",
+    "appointments": "Appointments"
+  },
+  "blocks": {
+    "unknown": "Unknown block",
+    "logo": {
+      "label": "Logo",
+      "desc": "Your business's image, at the top of the receipt."
+    },
+    "businessName": {
+      "label": "Business name",
+      "desc": "The name your customers know you by."
+    },
+    "fiscal": {
+      "label": "Tax details",
+      "desc": "Legal name and tax ID. The law requires them on the receipt."
+    },
+    "address": {
+      "label": "Address",
+      "desc": "Where your business is."
+    },
+    "phone": {
+      "label": "Phone",
+      "desc": "The number customers can call."
+    },
+    "text": {
+      "label": "Free text",
+      "desc": "Whatever you want to tell your customer: a thank-you, your hours, your return policy."
+    },
+    "orderInfo": {
+      "label": "Order and date",
+      "desc": "Reference, date and time of the sale. The law requires them."
+    },
+    "staff": {
+      "label": "Who served",
+      "desc": "The name of whoever made the sale."
+    },
+    "items": {
+      "label": "Items",
+      "desc": "What your customer bought, with quantity and price. The law requires it."
+    },
+    "totals": {
+      "label": "Totals",
+      "desc": "Subtotal, tax, discounts, tip and the total."
+    },
+    "payment": {
+      "label": "Payment",
+      "desc": "How they paid, and the proof if it was by card."
+    },
+    "amountInWords": {
+      "label": "Total in words",
+      "desc": "The total written out, like on a paper receipt."
+    },
+    "areaDelivery": {
+      "label": "Pickup stub",
+      "desc": "The stub your customer hands over at the bar or kitchen to pick up their order."
+    },
+    "qr": {
+      "label": "QR code",
+      "desc": "With it your customer invoices themselves and rates their visit."
+    },
+    "fiscalNotice": {
+      "label": "Tax notice",
+      "desc": "The simplified-receipt legend."
+    },
+    "reference": {
+      "label": "References",
+      "desc": "Internal references, for when someone disputes a sale."
+    },
+    "separator": {
+      "label": "Separator",
+      "desc": "A line or a space to organize the receipt."
+    },
+    "signature": {
+      "label": "Powered by Avoqado",
+      "desc": "Avoqado's signature. It always goes at the end of the receipt."
+    }
+  },
+  "tour": {
+    "next": "Next →",
+    "prev": "← Back",
+    "done": "Done!",
+    "progress": "Step {{current}} of {{total}}",
+    "welcome": {
+      "title": "🧾 Your business’s receipt",
+      "description": "Here you decide what prints when you charge someone: your logo, your name, a thank-you at the end.<br/><br/>Whatever you build here gets printed by <b>all your devices</b>, without touching a single one."
+    },
+    "open": {
+      "title": "Open the designer",
+      "description": "You’ll see two things at once: the <b>list of what your receipt includes</b> on the left, and <b>the actual receipt</b> on the right."
+    },
+    "list": {
+      "title": "The list: what your receipt includes",
+      "description": "Each row is a piece of the receipt, and they print <b>in this order</b>.<br/><br/>The arrows move a piece up and down. The ✕ removes it. The paper on the right updates instantly, so you never save blind."
+    },
+    "locks": {
+      "title": "🔒 Why some pieces can’t be removed",
+      "description": "Some carry a lock: they <b>can be moved, but not removed</b>. The letter says why, and there are three different reasons:<br/><br/>• <b>L</b> — the law requires it (your tax ID, the items, the total)<br/>• <b>O</b> — your operation needs it (the payment, the pickup stub)<br/>• <b>P</b> — it belongs to Avoqado<br/><br/>Hover over it and it tells you."
+    },
+    "paper": {
+      "title": "The paper, at real size",
+      "description": "This is <b>not a rough sketch</b>: it’s the same receipt that will come out of your printer, with the same width and the same line breaks.<br/><br/>If a text doesn’t fit, you’ll see it cut off here — before printing a thousand."
+    },
+    "width": {
+      "title": "The two paper widths",
+      "description": "80 mm paper fits 48 characters per line; 58 mm fits only 32.<br/><br/>If you use both sizes, <b>check both</b>: a text that fits the wide one gets cut on the narrow one."
+    },
+    "save": {
+      "title": "Save",
+      "description": "Once you save, your devices pick up the new design on their own.<br/><br/>If someone else on your team changed it while you were editing, we tell you their name instead of overwriting their work.<br/><br/>And if you don’t like the result, “Reset” takes you back to Avoqado’s receipt."
+    }
+  },
+  "errors": {
+    "staleTitle": "Someone else saved this design",
+    "staleByName": "{{name}} saved it while you were editing. Reload to see their changes before saving yours.",
+    "staleAnonymous": "Someone else saved it while you were editing. Reload to see their changes before saving yours.",
+    "saveFailed": "Couldn't save the design",
+    "retry": "Try again in a moment."
+  }
+}

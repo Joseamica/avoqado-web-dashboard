@@ -138,6 +138,7 @@ const routeKeyMap: Record<string, string> = {
   branding: 'sidebar:routes.branding',
   integrations: 'sidebar:routes.integrations',
   'print-stations': 'sidebar:routes.printStations',
+  'receipt-layout': 'sidebar:routes.receiptLayout',
   'role-permissions': 'sidebar:routes.rolePermissions',
   'activity-log': 'sidebar:routes.activityLog',
   // Inventario (el modulo mas grande: 24 rutas). "Stock overview" salia asi, en ingles,

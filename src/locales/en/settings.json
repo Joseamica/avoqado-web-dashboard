@@ -22,7 +22,8 @@
       "paymentConfig": "Payment config",
       "ecommerceChannels": "E-commerce merchants",
       "merchantAccounts": "Merchant accounts",
-      "tenderTypes": "Payment types"
+      "tenderTypes": "Payment types",
+      "receiptLayout": "Receipt design"
     }
   },
   "preferences": {

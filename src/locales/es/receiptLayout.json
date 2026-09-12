@@ -1,0 +1,284 @@
+{
+  "page": {
+    "title": "Diseño del ticket",
+    "description": "Decide qué sale impreso en el ticket de tus clientes y en qué orden. Lo que ves aquí es lo que van a imprimir tus aparatos.",
+    "thisIsWhatPrints": "Éste es el ticket que sale hoy",
+    "sourceCustom": "Diseño propio",
+    "sourceDefault": "Diseño de Avoqado",
+    "editedOn": "Editado el {{date}}",
+    "neverEdited": "Nunca se ha editado: es el diseño con el que Avoqado arranca.",
+    "design": "Diseñar",
+    "view": "Ver el diseño",
+    "templates": "Plantillas",
+    "reset": "Restablecer",
+    "resetTitle": "¿Volver al diseño de Avoqado?",
+    "resetBody": "Tu diseño propio se borra y el ticket vuelve al que Avoqado trae de fábrica. No se puede deshacer, pero puedes volver a diseñarlo cuando quieras.",
+    "resetConfirm": "Sí, restablecer",
+    "cancel": "Cancelar",
+    "readOnly": "Puedes ver el diseño pero no cambiarlo. Pídele a un administrador de tu negocio el permiso para editarlo.",
+    "loadErrorTitle": "No pudimos cargar tu diseño",
+    "loadErrorBody": "Fue un problema de conexión con el servidor, no un problema de tu ticket.",
+    "retry": "Intentar de nuevo"
+  },
+  "paper": {
+    "aria": "Vista previa del ticket, {{width}} columnas",
+    "empty": "Todavía no hay nada que imprimir. Agrega bloques para ver tu ticket aquí."
+  },
+  "preview": {
+    "errorTitle": "No pudimos dibujar la vista previa",
+    "errorBody": "Revisa los avisos de la izquierda: puede que al ticket le falte un bloque obligatorio.",
+    "dropped_one": "Se ignoró {{count}} bloque que no se puede imprimir: su tipo no existe o trae datos inválidos.",
+    "dropped_other": "Se ignoraron {{count}} bloques que no se pueden imprimir: su tipo no existe o traen datos inválidos."
+  },
+  "readiness": {
+    "noEmisorTitle": "Tu ticket saldrá sin RFC ni razón social",
+    "noEmisorBody": "La ley pide esos datos en el comprobante. Configura tu emisor para que aparezcan.",
+    "goToFiscal": "Ir a Facturación"
+  },
+  "devices": {
+    "title_one": "{{count}} aparato sigue imprimiendo el ticket anterior",
+    "title_other": "{{count}} aparatos siguen imprimiendo el ticket anterior",
+    "body": "Van a usar tu diseño nuevo cuando actualicen su app. Mientras tanto, imprimen como antes.",
+    "unknownVersion": "versión desconocida",
+    "platform": {
+      "TPV_ANDROID": "Terminal",
+      "TPV_IOS": "Terminal iOS",
+      "POS_ANDROID": "POS Android",
+      "POS_IOS": "POS iPad o iPhone",
+      "POS_DESKTOP": "POS Windows"
+    }
+  },
+  "designer": {
+    "title": "Diseño del ticket",
+    "blocksTitle": "Bloques",
+    "paperTab": "Papel",
+    "addBlock": "Agregar bloque",
+    "nothingToAdd": "Ya usaste todos los bloques disponibles.",
+    "paperWidth": "Ancho del papel",
+    "mm": "{{mm}} mm",
+    "sample": "Venta de ejemplo",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "askYourAdmin": "Sólo puedes ver. Pídele el permiso a un administrador.",
+    "discardTitle": "¿Descartar tus cambios?",
+    "discardBody": "Cambiaste el diseño y todavía no lo guardas. Si cierras ahora, se pierde lo que hiciste.",
+    "keepEditing": "Seguir editando",
+    "discard": "Descartar",
+    "removeQrTitle": "¿Quitar el código QR?",
+    "removeQrBody": "Si lo quitas, tus clientes ya no van a poder facturar solos ni calificar su visita desde el ticket.",
+    "keepQr": "Dejarlo",
+    "removeQr": "Quitarlo",
+    "conflictTitle": "Tu diseño ya no es el último guardado",
+    "conflictByName": "{{name}} guardó otra versión mientras editabas. Recárgala para ver sus cambios; los tuyos se pierden al recargar.",
+    "conflictAnonymous": "Alguien guardó otra versión mientras editabas. Recárgala para ver sus cambios; los tuyos se pierden al recargar.",
+    "reloadSaved": "Recargar lo guardado"
+  },
+  "templates": {
+    "title": "Plantillas de ticket",
+    "description": "Elige una para verla en el papel. No se guarda hasta que tú lo guardes.",
+    "blockCount_one": "{{count}} bloque",
+    "blockCount_other": "{{count}} bloques",
+    "error": "No pudimos traer las plantillas. Intenta de nuevo en un momento."
+  },
+  "locks": {
+    "legal": "Lo exige la ley",
+    "operativo": "Lo necesita la operación",
+    "plataforma": "Es de Avoqado"
+  },
+  "actions": {
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "remove": "Quitar"
+  },
+  "summary": {
+    "size": {
+      "S": "Chico",
+      "M": "Mediano",
+      "L": "Grande"
+    },
+    "align": {
+      "left": "A la izquierda",
+      "center": "Centrado",
+      "right": "A la derecha"
+    },
+    "emphasis": {
+      "normal": "Normal",
+      "bold": "Negritas",
+      "double": "Doble tamaño"
+    },
+    "style": {
+      "line": "Línea",
+      "double": "Línea doble",
+      "blank": "Renglón en blanco"
+    },
+    "lines_one": "{{count}} renglón",
+    "lines_other": "{{count}} renglones",
+    "off": {
+      "showOrderType": "sin el tipo de venta",
+      "showModifiers": "sin modificadores",
+      "showNotes": "sin notas",
+      "showSubtotal": "sin subtotal",
+      "showTax": "sin impuesto",
+      "showDiscount": "sin descuentos",
+      "showTip": "sin propina",
+      "showChange": "sin el cambio",
+      "showCardLastFour": "sin los últimos 4 de la tarjeta",
+      "showTransactionId": "sin el folio interno",
+      "showAppVersion": "sin la versión de la app"
+    },
+    "allOn": "Todo visible"
+  },
+  "editor": {
+    "size": "Tamaño",
+    "align": "Alineación",
+    "emphasis": "Énfasis",
+    "style": "Estilo",
+    "caption": "Texto debajo del código",
+    "lines": "Renglones",
+    "linesCount": "{{count}} de {{max}}",
+    "addLine": "+ Agregar renglón",
+    "noOptions": "Este bloque no tiene nada que configurar: sale tal cual.",
+    "unknownBlock": "Este bloque lo agregó una versión más nueva del diseñador. Puedes moverlo, pero no editarlo desde aquí.",
+    "tooLong": "El papel sólo imprime {{max}} caracteres por renglón. Lo de más se va a cortar.",
+    "notPrintable": {
+      "control": "Ese carácter es un comando de impresora, no texto. Bórralo.",
+      "bidi": "Ese carácter cambia el sentido del texto y el papel no lo entiende. Bórralo.",
+      "zeroWidth": "Hay un carácter invisible en el texto. Bórralo y vuelve a escribirlo.",
+      "nonLatin1": "El papel no puede imprimir «{{char}}». Cámbialo por letras o números."
+    },
+    "alwaysTotal": "El TOTAL siempre se imprime: es lo que la ley pide que el cliente vea.",
+    "alwaysAuth": "La autorización y la referencia del cobro siempre se imprimen: son el comprobante del pago con tarjeta.",
+    "showOrderType": "Mostrar el tipo de venta",
+    "showModifiers": "Mostrar los modificadores",
+    "showNotes": "Mostrar las notas",
+    "showSubtotal": "Mostrar el subtotal",
+    "showTax": "Mostrar el impuesto",
+    "showDiscount": "Mostrar los descuentos",
+    "showTip": "Mostrar la propina",
+    "showChange": "Mostrar recibido y cambio",
+    "showCardLastFour": "Mostrar los últimos 4 de la tarjeta",
+    "showTransactionId": "Mostrar el folio interno",
+    "showAppVersion": "Mostrar la versión de la app"
+  },
+  "samples": {
+    "retail": "Tienda",
+    "restaurant": "Restaurante",
+    "appointments": "Citas"
+  },
+  "blocks": {
+    "unknown": "Bloque desconocido",
+    "logo": {
+      "label": "Logo",
+      "desc": "La imagen de tu negocio, arriba del ticket."
+    },
+    "businessName": {
+      "label": "Nombre del negocio",
+      "desc": "El nombre con el que te conocen tus clientes."
+    },
+    "fiscal": {
+      "label": "Datos fiscales",
+      "desc": "Razón social y RFC. La ley los pide en el comprobante."
+    },
+    "address": {
+      "label": "Dirección",
+      "desc": "Dónde está tu negocio."
+    },
+    "phone": {
+      "label": "Teléfono",
+      "desc": "El teléfono al que te pueden llamar."
+    },
+    "text": {
+      "label": "Texto libre",
+      "desc": "Lo que tú quieras decirle a tu cliente: un agradecimiento, tus horarios, tu política de devoluciones."
+    },
+    "orderInfo": {
+      "label": "Orden y fecha",
+      "desc": "Folio, fecha y hora de la venta. La ley los pide."
+    },
+    "staff": {
+      "label": "Quién atendió",
+      "desc": "El nombre de quien hizo la venta."
+    },
+    "items": {
+      "label": "Artículos",
+      "desc": "Qué compró tu cliente, con cantidad y precio. La ley lo pide."
+    },
+    "totals": {
+      "label": "Totales",
+      "desc": "Subtotal, impuesto, descuentos, propina y el total."
+    },
+    "payment": {
+      "label": "Pago",
+      "desc": "Cómo pagó, y el comprobante si fue con tarjeta."
+    },
+    "amountInWords": {
+      "label": "Total con letra",
+      "desc": "El total escrito con palabras, como en un recibo."
+    },
+    "areaDelivery": {
+      "label": "Vale por área",
+      "desc": "El vale que tu cliente entrega en barra o cocina para recoger lo suyo."
+    },
+    "qr": {
+      "label": "Código QR",
+      "desc": "Con él tu cliente factura solo y califica su visita."
+    },
+    "fiscalNotice": {
+      "label": "Aviso fiscal",
+      "desc": "La leyenda del comprobante simplificado."
+    },
+    "reference": {
+      "label": "Referencias",
+      "desc": "Folios internos, para cuando alguien reclama una venta."
+    },
+    "separator": {
+      "label": "Separador",
+      "desc": "Una línea o un espacio para ordenar el ticket."
+    },
+    "signature": {
+      "label": "Powered by Avoqado",
+      "desc": "La firma de Avoqado. Siempre va al final del ticket."
+    }
+  },
+  "tour": {
+    "next": "Siguiente →",
+    "prev": "← Anterior",
+    "done": "¡Listo!",
+    "progress": "Paso {{current}} de {{total}}",
+    "welcome": {
+      "title": "🧾 El ticket de tu negocio",
+      "description": "Aquí decides qué sale impreso cuando le cobras a alguien: tu logo, tu nombre, un agradecimiento al final.<br/><br/>Lo que arme aquí lo van a imprimir <b>todos tus aparatos</b>, sin que tengas que tocar ninguno."
+    },
+    "open": {
+      "title": "Abre el diseñador",
+      "description": "Vas a ver dos cosas al mismo tiempo: la <b>lista de lo que lleva tu ticket</b> a la izquierda, y <b>el ticket de verdad</b> a la derecha."
+    },
+    "list": {
+      "title": "La lista: lo que lleva tu ticket",
+      "description": "Cada renglón es una pieza del ticket, y salen impresas <b>en este orden</b>.<br/><br/>Con las flechas subes y bajas una pieza. Con la ✕ la quitas. Y el papel de la derecha cambia al momento, así que nunca guardas a ciegas."
+    },
+    "locks": {
+      "title": "🔒 Por qué hay piezas que no puedes quitar",
+      "description": "Algunas traen candado: <b>se pueden mover, pero no quitar</b>. La letra dice por qué, y son tres razones distintas:<br/><br/>• <b>L</b> — lo exige la ley (tu RFC, los artículos, el total)<br/>• <b>O</b> — lo necesita tu operación (el pago, el vale de barra)<br/>• <b>P</b> — es de Avoqado<br/><br/>Pasa el cursor por encima y te lo dice."
+    },
+    "paper": {
+      "title": "El papel, a tamaño real",
+      "description": "Esto <b>no es un dibujo aproximado</b>: es el mismo ticket que va a salir de tu impresora, con el mismo ancho y los mismos cortes de renglón.<br/><br/>Si un texto no cabe, aquí lo vas a ver cortado — antes de imprimir mil."
+    },
+    "width": {
+      "title": "Los dos anchos de papel",
+      "description": "El papel de 80 mm caben 48 letras por renglón; el de 58 mm, sólo 32.<br/><br/>Si usas los dos tamaños en tu negocio, <b>revisa los dos</b>: un texto que cabe en el grande se corta en el chico."
+    },
+    "save": {
+      "title": "Guardar",
+      "description": "Al guardar, tus aparatos recogen el diseño nuevo solos.<br/><br/>Si alguien más de tu equipo lo cambió mientras tú editabas, te lo decimos con su nombre en vez de pisar su trabajo.<br/><br/>Y si algo no te gustó, «Restablecer» te devuelve al ticket de Avoqado."
+    }
+  },
+  "errors": {
+    "staleTitle": "Alguien más guardó este diseño",
+    "staleByName": "{{name}} lo guardó mientras lo editabas. Recarga para ver sus cambios antes de guardar los tuyos.",
+    "staleAnonymous": "Alguien más lo guardó mientras lo editabas. Recarga para ver sus cambios antes de guardar los tuyos.",
+    "saveFailed": "No se pudo guardar el diseño",
+    "retry": "Intenta de nuevo en un momento."
+  }
+}

@@ -219,7 +219,8 @@
     "reportPaymentMethods": "Métodos de pago",
     "reportRefunds": "Reembolsos",
     "reportHomeCharts": "Gráficas",
-    "reportPayLaterAging": "Cuentas por cobrar"
+    "reportPayLaterAging": "Cuentas por cobrar",
+    "receiptLayout": "Diseño del ticket"
   },
   "paymentLinksMenu": {
     "links": "Ligas de pago",

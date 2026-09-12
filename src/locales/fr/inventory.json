@@ -308,5 +308,28 @@
     "errorDuplicate": "\"{{name}}\" est en double",
     "errorNameChars": "\"{{name}}\" contient des caractères non autorisés ; utilisez uniquement lettres, chiffres et . , ' / ( ) -",
     "errorFactor": "L'équivalence de \"{{name}}\" doit être supérieure à zéro"
+  },
+  "stockCounts": {
+    "countedOf": "{{counted}} sur {{total}} comptés",
+    "counted": "Comptés",
+    "notCounted": "Non compté",
+    "nothingCountedYet": "Aucune quantité saisie pour l'instant. Les écarts apparaissent au fil du comptage.",
+    "matched": "Concordent",
+    "mismatched": "Avec écart",
+    "difference": "Écart",
+    "ofCounted": "des lignes comptées",
+    "cancelledOn": "Annulé le {{date}}",
+    "showing": "{{shown}} sur {{total}} affichés",
+    "loadMore": "Charger plus",
+    "loadError": "Impossible de charger les comptages.",
+    "retry": "Réessayer",
+    "cancel": {
+      "button": "Annuler le comptage",
+      "title": "Annuler ce comptage ?",
+      "description": "Il sera marqué comme annulé et n'ajustera pas l'inventaire. Les quantités saisies sont conservées à titre de consultation. Irréversible.",
+      "confirm": "Oui, annuler le comptage",
+      "success": "Comptage annulé",
+      "error": "Impossible d'annuler le comptage"
+    }
   }
 }

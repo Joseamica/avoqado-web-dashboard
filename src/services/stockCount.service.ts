@@ -6,7 +6,16 @@ import api from '@/api'
 // ============================================================================
 
 export type StockCountType = 'CYCLE' | 'FULL'
-export type StockCountStatus = 'IN_PROGRESS' | 'COMPLETED'
+export type StockCountStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+
+/** Qué se contó DE VERDAD. Sólo líneas con countedAt; diferencia por unidad. */
+export interface StockCountSummary {
+  itemCount: number
+  countedCount: number
+  matchedCount: number
+  mismatchedCount: number
+  differenceByUnit: Array<{ unit: string; difference: number }>
+}
 
 /** Row returned by the list endpoint (no items) */
 export interface StockCountRow {
@@ -15,9 +24,12 @@ export interface StockCountRow {
   status: StockCountStatus
   note: string | null
   createdAt: string
+  completedAt: string | null
+  cancelledAt: string | null
   createdBy: string | null
   itemCount: number
-  /** Sum of (counted - expected) across all items */
+  summary: StockCountSummary
+  /** @deprecated mezcla unidades; usa `summary` */
   totalDifference: number
 }
 
@@ -28,20 +40,17 @@ export interface StockCountItem {
   sku: string | null
   gtin: string | null
   imageUrl: string | null
+  /** null en productos (piezas); la unidad del insumo en ingredientes */
+  unit: string | null
   expected: number
   counted: number
   difference: number
+  /** null = todavía no se ha contado. `counted` y `difference` no son datos sin esto. */
+  countedAt: string | null
 }
 
 /** Full stock count with items (detail endpoint) */
-export interface StockCountDetail {
-  id: string
-  type: StockCountType
-  status: StockCountStatus
-  note: string | null
-  createdAt: string
-  createdBy: string | null
-  itemCount: number
+export interface StockCountDetail extends StockCountRow {
   items: StockCountItem[]
 }
 
@@ -92,6 +101,17 @@ export const stockCountService = {
     )
     return data
   },
+
+  /**
+   * Cancela un borrador («dejarlo ir»). Sólo IN_PROGRESS; nunca toca el inventario.
+   */
+  cancel: async (
+    venueId: string,
+    countId: string,
+  ): Promise<{ success: boolean; data: { id: string; status: 'CANCELLED'; cancelledAt: string } }> => {
+    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/stock-counts/${countId}/cancel`)
+    return data
+  },
 }
 
 // ============================================================================
@@ -116,6 +136,8 @@ export function getStockCountStatusBadge(status: StockCountStatus): {
         className: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200',
         label: 'Completado',
       }
+    case 'CANCELLED':
+      return { variant: 'outline', className: 'text-muted-foreground', label: 'Cancelado' }
     default:
       return { variant: 'secondary', className: '', label: status }
   }
