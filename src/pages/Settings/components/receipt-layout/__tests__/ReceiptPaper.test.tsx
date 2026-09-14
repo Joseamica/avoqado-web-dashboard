@@ -62,8 +62,8 @@ describe('ReceiptPaper', () => {
     render(
       <ReceiptPaper
         lines={[
-          { kind: 'image', ref: 'logo', widthPct: 60 },
-          { kind: 'image', ref: 'avoqadoMark', widthPct: 15 },
+          { kind: 'image', ref: 'logo', widthPct: 60, align: 'center' },
+          { kind: 'image', ref: 'avoqadoMark', widthPct: 15, align: 'center' },
         ]}
         width={48}
       />,
@@ -92,5 +92,22 @@ describe('ReceiptPaper', () => {
     )
     expect(container.querySelector('[data-line="qr"]')).toBeInTheDocument()
     expect(container.querySelector('[data-line="barcode"]')).toBeInTheDocument()
+  })
+
+  it('🔴 el logo se pinta donde el negocio lo puso: la alineación sale del SERVIDOR', () => {
+    const { container } = render(
+      <ReceiptPaper
+        lines={[
+          { kind: 'image', ref: 'logo', widthPct: 40, align: 'right' },
+          { kind: 'image', ref: 'logo', widthPct: 40, align: 'left' },
+          { kind: 'image', ref: 'avoqadoMark', widthPct: 15, align: 'center' },
+        ]}
+        width={48}
+      />,
+    )
+    const [derecha, izquierda, marca] = Array.from(container.querySelectorAll('[data-line="image"]')) as HTMLElement[]
+    expect(derecha.className).toContain('justify-end')
+    expect(izquierda.className).toContain('justify-start')
+    expect(marca.className).toContain('justify-center')
   })
 })

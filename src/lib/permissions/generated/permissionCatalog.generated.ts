@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 71 categorías · 233 permisos · derivado de avoqado-server · huella 2fa7b3760403a26b.
+ * 72 categorías · 235 permisos · derivado de avoqado-server · huella 166cda01cc6ed7e3.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -164,6 +164,10 @@ export const PERMISSION_CATEGORIES = {
   PRINTERS: {
     label: 'Impresoras',
     permissions: ['printers:read', 'printers:manage'],
+  },
+  RECEIPT_LAYOUT: {
+    label: 'Diseño del ticket',
+    permissions: ['receipt-layout:read', 'receipt-layout:manage'],
   },
   SCALES: {
     label: 'Básculas',
@@ -436,6 +440,7 @@ export const SUPER_CATEGORY_KEYS = {
     'INVENTORY',
     'INVENTORY_TRANSFERS',
     'PRINTERS',
+    'RECEIPT_LAYOUT',
     'SCALES',
     'DELIVERY_CHANNELS',
     'CATALOG_VENUE',
@@ -466,4 +471,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '2fa7b3760403a26b'
+export const CATALOG_DIGEST = '166cda01cc6ed7e3'

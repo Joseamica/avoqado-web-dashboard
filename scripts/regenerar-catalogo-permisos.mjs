@@ -110,6 +110,7 @@ const CURACION = {
     ['INVENTORY', ['inventory'], 'Inventory'],
     ['INVENTORY_TRANSFERS', ['inventory-transfers'], 'Inter-venue Transfers'],
     ['PRINTERS', ['printers'], 'Impresoras'],
+    ['RECEIPT_LAYOUT', ['receipt-layout'], 'Diseño del ticket'],
     ['SCALES', ['scale'], 'Básculas'],
     ['DELIVERY_CHANNELS', ['delivery-channels'], 'Canales de entrega'],
     ['CATALOG_VENUE', ['catalog-venue'], 'Catálogo del negocio'],

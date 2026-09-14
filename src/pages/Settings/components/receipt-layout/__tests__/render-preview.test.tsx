@@ -67,7 +67,7 @@ const t = (text: string, align: 'left' | 'center' | 'right' = 'left', bold = fal
 
 /** El ticket canónico de Testarudo, tal como lo produce el intérprete a 48 columnas. */
 const LINEAS: LogicalLine[] = [
-  { kind: 'image', ref: 'logo', widthPct: 60 },
+  { kind: 'image', ref: 'logo', widthPct: 60, align: 'center' },
   t('Testarudo Cafe', 'center', false, true),
   t('TESTARUDO CAFE S.A.P.I. DE C.V.', 'center'),
   t('RFC: TCA2501231A6', 'center'),
@@ -97,7 +97,7 @@ const LINEAS: LogicalLine[] = [
   t('Escanea para tu recibo y factura', 'center'),
   t('Gracias por su compra, esperamos verle de nuevo.', 'center'),
   { kind: 'feed', lines: 1 },
-  { kind: 'image', ref: 'avoqadoMark', widthPct: 15 },
+  { kind: 'image', ref: 'avoqadoMark', widthPct: 15, align: 'center' },
   t('Powered by Avoqado', 'center'),
   { kind: 'cut' },
 ]

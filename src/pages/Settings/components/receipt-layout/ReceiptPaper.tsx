@@ -101,9 +101,10 @@ function renderLine(line: LogicalLine, width: 48 | 32): ReactNode {
       )
     }
 
-    case 'image':
+    case 'image': {
+      const justify = line.align === 'left' ? 'justify-start' : line.align === 'right' ? 'justify-end' : 'justify-center'
       return line.ref === 'logo' ? (
-        <div data-line="image" className="my-1.5 flex justify-center">
+        <div data-line="image" className={cn('my-1.5 flex', justify)}>
           <div
             data-testid="paper-logo-placeholder"
             className="flex items-center justify-center rounded border border-dashed border-muted-foreground/40 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
@@ -113,12 +114,13 @@ function renderLine(line: LogicalLine, width: 48 | 32): ReactNode {
           </div>
         </div>
       ) : (
-        <div data-line="image" className="my-1 flex justify-center">
+        <div data-line="image" className={cn('my-1 flex', justify)}>
           <span data-testid="paper-avoqado-mark" className="text-[11px] font-semibold tracking-tight text-muted-foreground">
             ✦ avoqado
           </span>
         </div>
       )
+    }
 
     case 'qr':
       return (

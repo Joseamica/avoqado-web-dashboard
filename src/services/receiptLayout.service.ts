@@ -15,7 +15,7 @@ export type ReceiptBlock = { type: string } & Record<string, unknown>
 /** Lo que el intérprete del servidor produce. Discriminada por `kind`: el papel la pinta tal cual. */
 export type LogicalLine =
   | { kind: 'text'; text: string; align: 'left' | 'center' | 'right'; bold: boolean; double: boolean }
-  | { kind: 'image'; ref: 'logo' | 'avoqadoMark'; widthPct: number }
+  | { kind: 'image'; ref: 'logo' | 'avoqadoMark'; widthPct: number; align: 'left' | 'center' | 'right' }
   | { kind: 'qr'; data: string }
   | { kind: 'barcode'; data: string }
   | { kind: 'feed'; lines: number }
