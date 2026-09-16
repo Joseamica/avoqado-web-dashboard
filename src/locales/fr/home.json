@@ -234,8 +234,8 @@
               "description": "Métriques du jour : ventes nettes, transactions, pourboires et comparaisons."
             },
             "chatbot": {
-              "title": "Demandez à Avoqado AI",
-              "description": "Posez des questions en langage naturel. L'IA connaît vos données."
+              "title": "Connectez votre IA à Avoqado",
+              "description": "Touchez ici pour voir comment connecter Claude, ChatGPT ou une autre IA à Avoqado. Ensuite, interrogez votre commerce en langage naturel : ventes, produits, clients."
             }
           }
         },
@@ -353,12 +353,6 @@
       }
     },
     "chatbot": {
-      "title": "Comment communiquer avec Avoqado AI ?",
-      "desc": "Votre assistant AI reste disponible depuis le bouton latéral.",
-      "pinned": "Épingles",
-      "placeholder": "Demander à Avoqado AI",
-      "send": "Envoyer",
-      "suggestionsLabel": "Suggestions",
       "placeholders": [
         "Combien ai-je vendu hier ?",
         "Comment vont mes ventes ce mois-ci ?",
@@ -376,10 +370,7 @@
         "Comment inviter un nouveau serveur ?",
         "Combien dois-je en bons de commande ?"
       ],
-      "q1": "Comment contacter Avoqado ?",
-      "q2": "Quand est-ce que je reçois le plus de nouveaux clients ?",
-      "q3": "Comment ajouter quelqu'un à mon équipe ?",
-      "q4": "Configurer les notifications par e-mail"
+      "connectCta": "Connecter votre IA"
     },
     "trend": {
       "noCompare": "Aucune donnée de la période précédente à comparer"
@@ -473,5 +464,12 @@
       "devicesSubCount_one": "{{count}} appareil",
       "devicesSubCount_other": "{{count}} appareils"
     }
+  },
+  "mcpAnnouncement": {
+    "title": "Nouveau : connectez Avoqado à votre IA",
+    "body": "Utilisez Claude, ChatGPT ou une autre IA pour interroger votre commerce en langage naturel — « comment vont mes ventes ? », « annule la réservation de 20 h ».",
+    "cta": "Voir comment",
+    "dismiss": "Fermer",
+    "dialogTitle": "Connectez votre IA à Avoqado"
   }
 }

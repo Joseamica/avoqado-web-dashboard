@@ -32,7 +32,15 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 // 🔴 `t` REAL contra el español: si una clave faltara, saldría cruda en la vista previa —
 // que es justo uno de los defectos que se quieren ver.
 function traducir(clave: string, vars?: Record<string, unknown>): string {
-  const valor = clave.split('.').reduce<any>((o, k) => (o == null ? o : o[k]), es as any)
+  const leer = (k: string) => k.split('.').reduce<any>((o, p) => (o == null ? o : o[p]), es as any)
+  // 🔴 Una clave con plural NO existe a secas: vive como `_one` / `_other`. Sin esto la vista
+  // previa pintaba «devices.title» crudo — justo el defecto que este generador existe para cazar.
+  const valor =
+    typeof leer(clave) === 'string'
+      ? leer(clave)
+      : vars?.count !== undefined
+        ? leer(`${clave}_${vars.count === 1 ? 'one' : 'other'}`)
+        : undefined
   if (typeof valor !== 'string') return clave
   return valor.replace(/\{\{(\w+)\}\}/g, (_m, v) => String(vars?.[v] ?? `{{${v}}}`))
 }
@@ -120,7 +128,14 @@ describe('vista previa del diseñador de tickets', () => {
           // Con los dos avisos PUESTOS: es el estado que más elementos apila y donde
           // algo se pisa si se va a pisar.
           readiness={{ fiscalEmisor: false, logo: true }}
-          devices={{ supporting: 1, notSupporting: [{ name: 'Sunmi D3 Mostrador', platform: 'POS_ANDROID', appVersion: '2.17.1' }] }}
+          // Una tablet por actualizar Y una terminal: son DOS avisos distintos y hay que verlos juntos.
+          devices={{
+            supporting: 1,
+            notSupporting: [
+              { name: 'Sunmi D3 Mostrador', platform: 'POS_ANDROID', appVersion: '2.17.1' },
+              { name: 'Terminal Barra', platform: 'TPV_ANDROID', brand: 'NEXGO', appVersion: '2.9.2' },
+            ],
+          }}
           canManage
           fiscalHref="/venues/testarudo/facturacion"
         />

@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Receipt design",
-    "description": "Decide what gets printed on your customers' receipt and in what order. What you see here is what your devices will print.",
+    "description": "Decide what gets printed on your customers’ receipt and in what order. It prints on your Android and iPad POS; on payment terminals it is coming soon.",
     "thisIsWhatPrints": "This is the receipt printing today",
     "sourceCustom": "Your own design",
     "sourceDefault": "Avoqado's design",
@@ -19,6 +19,15 @@
     "loadErrorTitle": "We couldn't load your design",
     "loadErrorBody": "This was a connection problem with the server, not a problem with your receipt.",
     "retry": "Try again"
+  },
+  "where": {
+    "title": "Where your design prints",
+    "pos": "Android and iPad POS",
+    "available": "Available",
+    "posBody": "Each POS starts printing your design once it updates its app. Until then it prints the previous receipt.",
+    "terminals": "Payment terminals (PAX and Nexgo)",
+    "comingSoon": "Coming soon",
+    "terminalsBody": "Not yet. They print with a different engine and their version of the design comes later; for now they print their usual receipt. Nothing to set up."
   },
   "paper": {
     "aria": "Receipt preview, {{width}} columns",
@@ -46,7 +55,11 @@
       "POS_ANDROID": "Android POS",
       "POS_IOS": "iPad or iPhone POS",
       "POS_DESKTOP": "Windows POS"
-    }
+    },
+    "terminalsTitle_one": "{{count}} payment terminal cannot print your design yet",
+    "terminalsTitle_other": "{{count}} payment terminals cannot print your design yet",
+    "terminalsBody": "It is not a pending update: the design does not reach terminals yet. They keep printing their usual receipt.",
+    "comingSoon": "Coming soon"
   },
   "designer": {
     "title": "Receipt design",

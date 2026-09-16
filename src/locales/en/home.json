@@ -242,8 +242,8 @@
               "description": "Daily metrics: net sales, transactions, tips, and comparisons. The pulse of your business."
             },
             "chatbot": {
-              "title": "Ask Avoqado AI",
-              "description": "Ask in plain English about your operation: sales, products, customers. The AI knows your data and answers instantly."
+              "title": "Connect your AI to Avoqado",
+              "description": "Tap here to see how to connect Claude, ChatGPT or another AI to Avoqado. Then ask your business in plain language: sales, products, customers."
             }
           }
         },
@@ -361,12 +361,6 @@
       }
     },
     "chatbot": {
-      "title": "How do I communicate with Avoqado AI?",
-      "desc": "Your AI assistant remains available from the sidebar button.",
-      "pinned": "Pins",
-      "placeholder": "Ask Avoqado AI",
-      "send": "Send",
-      "suggestionsLabel": "Suggestions",
       "placeholders": [
         "How much did I sell yesterday?",
         "How are my sales going this month?",
@@ -384,10 +378,7 @@
         "How do I invite a new server?",
         "How much do I owe in purchase orders?"
       ],
-      "q1": "How do I contact Avoqado?",
-      "q2": "When do I get the most new customers?",
-      "q3": "How do I add someone to my team?",
-      "q4": "Set up email notifications"
+      "connectCta": "Connect your AI"
     },
     "trend": {
       "noCompare": "No data from the previous period to compare"

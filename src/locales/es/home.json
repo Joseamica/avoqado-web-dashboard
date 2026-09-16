@@ -242,8 +242,8 @@
               "description": "Aquí ves tus métricas del día: ventas netas, transacciones, propinas y comparativas con periodos anteriores. Es el pulso de tu negocio."
             },
             "chatbot": {
-              "title": "Pregunta a Avoqado AI",
-              "description": "Haz preguntas en lenguaje natural sobre tu operación: ventas, productos, clientes. La IA conoce tus datos y te responde al instante."
+              "title": "Conecta tu IA a Avoqado",
+              "description": "Toca aquí para ver cómo conectar Claude, ChatGPT u otra IA a Avoqado. Después le preguntas a tu negocio en lenguaje natural: ventas, productos, clientes."
             }
           }
         },
@@ -361,12 +361,6 @@
       }
     },
     "chatbot": {
-      "title": "¿Cómo me comunico con Avoqado AI?",
-      "desc": "Tu asistente AI sigue disponible desde el botón lateral.",
-      "pinned": "Chinchetas",
-      "placeholder": "Pregunta a Avoqado AI",
-      "send": "Enviar",
-      "suggestionsLabel": "Sugerencias",
       "placeholders": [
         "¿Cuánto vendí ayer?",
         "¿Cómo van mis ventas del mes pasado?",
@@ -384,10 +378,7 @@
         "¿Cómo invito a un nuevo mesero?",
         "¿Cuánto debo en órdenes de compra?"
       ],
-      "q1": "¿Cómo me comunico con Avoqado?",
-      "q2": "¿Cuándo recibo más clientes nuevos?",
-      "q3": "¿Cómo agrego a alguien a mi equipo?",
-      "q4": "Configurar las notificaciones por correo electrónico"
+      "connectCta": "Conectar tu IA"
     },
     "trend": {
       "noCompare": "Sin datos del periodo anterior para comparar"

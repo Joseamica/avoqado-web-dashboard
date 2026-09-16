@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
+import { McpConnectDialog } from '@/components/mcp/McpConnectDialog'
 import { CornerSparkles } from '@/components/effects/CornerSparkles'
 
 const STORAGE_KEY = 'avoqado-mcp-announcement-dismissed'
@@ -11,8 +10,9 @@ const STORAGE_KEY = 'avoqado-mcp-announcement-dismissed'
 /**
  * "What's new" banner on Home: invites the operator to connect their AI
  * (Claude / ChatGPT) to Avoqado. Plain language on purpose — customers don't
- * know "MCP". The CTA opens an in-place dialog explaining how to connect
- * (no navigation). Dismissible, persisted in localStorage so it shows once.
+ * know "MCP". The CTA opens the shared `McpConnectDialog` (no navigation) —
+ * the same guide the `McpConnectCard` below opens. Dismissible, persisted in
+ * localStorage so it shows once; the card stays as the permanent entry point.
  */
 export function McpAnnouncementBanner() {
   const { t } = useTranslation('home')
@@ -63,18 +63,7 @@ export function McpAnnouncementBanner() {
         </CornerSparkles>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto overflow-x-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-foreground" />
-              {t('mcpAnnouncement.dialogTitle')}
-            </DialogTitle>
-            <DialogDescription className="sr-only">{t('mcpAnnouncement.body')}</DialogDescription>
-          </DialogHeader>
-          <McpConnectGuide />
-        </DialogContent>
-      </Dialog>
+      <McpConnectDialog open={open} onOpenChange={setOpen} />
     </>
   )
 }

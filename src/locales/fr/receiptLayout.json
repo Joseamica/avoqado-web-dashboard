@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Conception du ticket",
-    "description": "Décidez ce qui s'imprime sur le ticket de vos clients et dans quel ordre. Ce que vous voyez ici est ce que vos appareils imprimeront.",
+    "description": "Décidez ce qui s’imprime sur le ticket de vos clients et dans quel ordre. Il s’imprime sur vos POS Android et iPad ; sur les terminaux de paiement, c’est pour bientôt.",
     "thisIsWhatPrints": "Voici le ticket imprimé aujourd'hui",
     "sourceCustom": "Votre propre conception",
     "sourceDefault": "Conception d'Avoqado",
@@ -19,6 +19,15 @@
     "loadErrorTitle": "Impossible de charger votre conception",
     "loadErrorBody": "C'est un problème de connexion au serveur, pas un problème de votre ticket.",
     "retry": "Réessayer"
+  },
+  "where": {
+    "title": "Où s’imprime votre design",
+    "pos": "POS Android et iPad",
+    "available": "Disponible",
+    "posBody": "Chaque POS imprime votre design dès qu’il met son application à jour. En attendant, il imprime le ticket précédent.",
+    "terminals": "Terminaux de paiement (PAX et Nexgo)",
+    "comingSoon": "Bientôt",
+    "terminalsBody": "Pas encore. Ils impriment avec un autre moteur et leur version du design arrivera plus tard ; pour l’instant ils impriment leur ticket habituel. Rien à configurer."
   },
   "paper": {
     "aria": "Aperçu du ticket, {{width}} colonnes",
@@ -46,7 +55,11 @@
       "POS_ANDROID": "Caisse Android",
       "POS_IOS": "Caisse iPad ou iPhone",
       "POS_DESKTOP": "Caisse Windows"
-    }
+    },
+    "terminalsTitle_one": "{{count}} terminal de paiement ne peut pas encore imprimer votre design",
+    "terminalsTitle_other": "{{count}} terminaux de paiement ne peuvent pas encore imprimer votre design",
+    "terminalsBody": "Ce n’est pas une mise à jour en attente : le design n’arrive pas encore aux terminaux. Ils continuent d’imprimer leur ticket habituel.",
+    "comingSoon": "Bientôt"
   },
   "designer": {
     "title": "Conception du ticket",

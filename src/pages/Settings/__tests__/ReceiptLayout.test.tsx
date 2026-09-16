@@ -163,11 +163,69 @@ describe('ReceiptLayout (sección de Ajustes)', () => {
     pintar()
     const avisos = await screen.findByTestId('receipt-layout-banners')
     expect(avisos).toHaveTextContent('readiness.noEmisorTitle')
-    // «TPV_ANDROID» a secas no dice cuál de las dos terminales falta actualizar.
+    // «TPV_ANDROID» a secas no dice cuál de las dos terminales es: la MARCA sí.
     expect(avisos).toHaveTextContent('Terminal 2')
-    expect(avisos).toHaveTextContent('devices.platform.TPV_ANDROID')
     expect(avisos).toHaveTextContent('NEXGO')
+    // El enum del servidor NUNCA se pinta crudo en pantalla.
     expect(screen.queryByText('TPV_ANDROID')).toBeNull()
+  })
+
+  /**
+   * 🔴 El aviso de «actualiza tu app» sólo puede contar aparatos a los que actualizar SÍ les sirve.
+   * Una terminal de cobro no imprime el diseño por más que actualice: su intérprete no existe
+   * todavía (dos motores distintos, PAX/Neptune y Nexgo/AngelPay). Contarlas ahí le pedía al dueño
+   * una acción inútil y lo dejaba esperando un ticket que su terminal no puede sacar.
+   */
+  it('🔴 una terminal NO se cuenta como aparato por actualizar: va en su propio aviso con Proximamente', async () => {
+    get.mockResolvedValue({
+      ...guardado,
+      devices: {
+        supporting: 1,
+        notSupporting: [
+          { name: 'Caja', platform: 'POS_ANDROID', brand: null, appVersion: '2.18.1' },
+          { name: 'Terminal 2', platform: 'TPV_ANDROID', brand: 'NEXGO', appVersion: '2.9.2' },
+        ],
+      },
+    })
+    pintar()
+
+    // Dos aparatos pendientes, pero el conteo del aviso de actualizar dice UNO.
+    const porActualizar = await screen.findByTestId('receipt-layout-devices')
+    expect(porActualizar).toHaveTextContent('devices.title:1')
+    expect(porActualizar).toHaveTextContent('Caja')
+    expect(porActualizar).not.toHaveTextContent('Terminal 2')
+
+    const terminales = screen.getByTestId('receipt-layout-terminals')
+    expect(terminales).toHaveTextContent('devices.terminalsTitle:1')
+    expect(terminales).toHaveTextContent('devices.comingSoon')
+    expect(terminales).toHaveTextContent('Terminal 2')
+    // Sin versión a propósito: ponerla invitaría a actualizar, que aquí no cambia nada.
+    expect(terminales).not.toHaveTextContent('2.9.2')
+  })
+
+  it('🔴 si SÓLO faltan terminales, el aviso de actualizar no aparece', async () => {
+    get.mockResolvedValue({
+      ...guardado,
+      devices: { supporting: 0, notSupporting: [{ name: 'PAX 1', platform: 'TPV_ANDROID', brand: 'PAX', appVersion: null }] },
+    })
+    pintar()
+    await screen.findByTestId('receipt-layout-terminals')
+    expect(screen.queryByTestId('receipt-layout-devices')).toBeNull()
+  })
+
+  /**
+   * 🔴 Dónde se imprime se dice SIEMPRE, no sólo cuando hay aparatos pendientes: con el negocio al
+   * día (`notSupporting: []`) los avisos desaparecen enteros, y el dueño se quedaba sin saber que
+   * su terminal no imprime el diseño.
+   */
+  it('🔴 la sección dice dónde se imprime aunque no haya ningún aparato pendiente', async () => {
+    pintar()
+    const donde = await screen.findByTestId('receipt-layout-where')
+    expect(donde).toHaveTextContent('where.pos')
+    expect(donde).toHaveTextContent('where.available')
+    expect(donde).toHaveTextContent('where.terminals')
+    expect(donde).toHaveTextContent('where.comingSoon')
+    expect(screen.queryByTestId('receipt-layout-banners')).toBeNull()
   })
 
   // 🔴 WARN: la vista previa se encendía con los bloques VIVOS pero mandaba los del debounce, que al

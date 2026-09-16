@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Receipt, RotateCcw, Sparkles } from 'lucide-react'
+import { CreditCard, Receipt, RotateCcw, Smartphone, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -144,6 +145,39 @@ export default function ReceiptLayoutPage() {
                   </>
                 )}
               </div>
+            </div>
+
+            {/* 🔴 DÓNDE se imprime, dicho de frente y siempre — no sólo cuando hay aparatos
+                pendientes. El dueño diseña su ticket y tiene que saber en qué aparatos va a
+                salir: hoy en el POS (Android e iPad) y todavía NO en las terminales de cobro,
+                que imprimen con otro motor y lo tendrán después. Prometerle que «tus aparatos»
+                lo imprimen, a secas, es prometer de más. */}
+            <div className="mt-4 border-t border-border/50 pt-4" data-testid="receipt-layout-where">
+              <p className="text-xs font-medium">{t('where.title')}</p>
+              <ul className="mt-2 space-y-2">
+                <li>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Smartphone aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="font-medium">{t('where.pos')}</span>
+                    <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-wide">
+                      {t('where.available')}
+                    </Badge>
+                  </div>
+                  {/* «Disponible» a secas se leería como «ya está saliendo en mi tablet»: el diseño
+                      llega al aparato cuando ESE aparato actualiza su app. */}
+                  <p className="mt-0.5 pl-5 text-xs text-muted-foreground">{t('where.posBody')}</p>
+                </li>
+                <li>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <CreditCard aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="font-medium">{t('where.terminals')}</span>
+                    <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-wide">
+                      {t('where.comingSoon')}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 pl-5 text-xs text-muted-foreground">{t('where.terminalsBody')}</p>
+                </li>
+              </ul>
             </div>
 
             {!canManage && (

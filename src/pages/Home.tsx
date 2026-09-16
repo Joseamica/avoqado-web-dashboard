@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentType, type FormEvent, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { DateTime } from 'luxon'
 import {
-  ArrowUp,
   BarChart3,
   Boxes,
   CreditCard,
@@ -19,6 +18,7 @@ import {
 
 import { KYCStatusBanner } from '@/components/KYCStatusBanner'
 import { McpAnnouncementBanner } from '@/components/home/McpAnnouncementBanner'
+import { McpConnectCard } from '@/components/home/McpConnectCard'
 import { AnnouncementBanner } from '@/components/announcements/AnnouncementBanner'
 import { HomeSetupChecklist } from '@/components/onboarding/HomeSetupChecklist'
 import { HomeDatePicker } from '@/components/home/HomeDatePicker'
@@ -96,43 +96,6 @@ export default function Home() {
     [navigate, location.pathname],
   )
   const [compareOptionId, setCompareOptionId] = useState<string>('day')
-  const [chatInput, setChatInput] = useState('')
-  const [chatFocused, setChatFocused] = useState(false)
-  const [placeholderIndex, setPlaceholderIndex] = useState(0)
-  const [tourActive, setTourActive] = useState(() => typeof document !== 'undefined' && document.body.classList.contains('tour-active'))
-
-  // Sigue el flag `tour-active` que los hooks de driver.js setean en <body>
-  // mientras hay un tour corriendo. Lo usamos para congelar la rotación de
-  // placeholders, porque el re-mount del span con `animate-in` provoca que
-  // el overlay del tour redibuje y se vea como un flash en toda la pantalla.
-  useEffect(() => {
-    const update = () => setTourActive(document.body.classList.contains('tour-active'))
-    update()
-    const observer = new MutationObserver(update)
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
-
-  // Pool de placeholders rotativos para el input del chatbot. Se obtiene del
-  // bundle de i18n con `returnObjects: true` y caemos a un default sano si la
-  // clave no es un array (p. ej. durante hot reload).
-  const placeholderPool = useMemo<string[]>(() => {
-    const raw = t('newHome.chatbot.placeholders', { returnObjects: true })
-    return Array.isArray(raw) && raw.length > 0 ? (raw as string[]) : [t('newHome.chatbot.placeholder')]
-  }, [t])
-
-  // Rotación cada 3.5s mientras el usuario NO esté escribiendo / focused.
-  // Cuando el input recupera foco o tiene texto, congelamos para no
-  // distraer al usuario.
-  useEffect(() => {
-    if (chatFocused || chatInput.length > 0 || placeholderPool.length <= 1 || tourActive) return
-    const interval = window.setInterval(() => {
-      setPlaceholderIndex(prev => (prev + 1) % placeholderPool.length)
-    }, 3500)
-    return () => window.clearInterval(interval)
-  }, [chatFocused, chatInput, placeholderPool.length, tourActive])
-
-  const currentPlaceholder = placeholderPool[placeholderIndex % placeholderPool.length]
 
   const compareOptions = useMemo(
     () => buildCompareOptions(selectedRange, venueTimezone, localeCode),
@@ -340,39 +303,6 @@ export default function Home() {
     [dashboardData, compareAmount, compareTransactions, compareTips, t],
   )
 
-  const suggestions = useMemo(
-    () => [t('newHome.chatbot.q1'), t('newHome.chatbot.q2'), t('newHome.chatbot.q3'), t('newHome.chatbot.q4')],
-    [t],
-  )
-
-  const sendToChatbot = useCallback((message: string) => {
-    const trimmed = message.trim()
-    if (!trimmed) return
-    window.dispatchEvent(new CustomEvent('chatbot:openWithMessage', { detail: { message: trimmed } }))
-    setChatInput('')
-    setChatFocused(false)
-  }, [])
-
-  const handleChatSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      sendToChatbot(chatInput)
-    },
-    [chatInput, sendToChatbot],
-  )
-
-  const handleChatKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault()
-        sendToChatbot(chatInput)
-      }
-    },
-    [chatInput, sendToChatbot],
-  )
-
-  const showSuggestions = chatFocused && chatInput.trim().length === 0
-
   return (
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen bg-background px-3 pb-4 pt-2 md:px-6 md:pb-6 md:pt-2">
@@ -409,83 +339,16 @@ export default function Home() {
                 porque es un onboarding step prominente, no un widget lateral. */}
             <HomeSetupChecklist />
 
-            {/* Fila 1: Chatbot (col-9) + Liquidación de hoy (col-3).
+            {/* Fila 1: "Conecta tu IA" (col-9) + Liquidación de hoy (col-3).
                 Al ser celdas hermanas de la misma grid se igualan en height
                 automáticamente (align-items: stretch por default). Esto
-                replica el patrón de Square: dos tarjetas chiquitas a la par. */}
+                replica el patrón de Square: dos tarjetas chiquitas a la par.
+                La tarjeta era el chatbot legacy — su burbuja está apagada desde
+                junio de 2026 y el input mandaba una señal que nadie escuchaba;
+                ahora abre la guía Claude / Codex (decisión del founder, 15-sep). */}
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-              {/* Wrapper del chatbot: relative para que la Card se pueda
-                  volver `absolute` cuando se expande (mostrando suggestions)
-                  sin empujar el contenido de abajo (Performance). El wrapper
-                  conserva la altura "collapsed" del card, así Liquidación
-                  al lado mantiene su match de height. */}
-              <div className={cn('relative', hasAvailableBalance ? 'xl:col-span-9' : 'xl:col-span-12')}>
-                <Card
-                  className={cn(
-                    'rounded-2xl border-input transition-shadow',
-                    showSuggestions ? 'absolute inset-x-0 top-0 z-30 shadow-2xl' : 'h-full',
-                  )}
-                  data-tour="home-chatbot-overview"
-                >
-                  <CardContent className="relative p-0">
-                    <form onSubmit={handleChatSubmit} className="flex items-center gap-3 px-5 py-5">
-                      {/* Wrapper relativo para superponer el placeholder
-                        animado encima del input. El input mantiene su
-                        placeholder vacío y nosotros pintamos el texto
-                        rotativo en una capa absoluta con transición fade. */}
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={event => setChatInput(event.target.value)}
-                          onFocus={() => setChatFocused(true)}
-                          onBlur={() => window.setTimeout(() => setChatFocused(false), 150)}
-                          onKeyDown={handleChatKeyDown}
-                          placeholder={chatFocused ? t('newHome.chatbot.placeholder') : ' '}
-                          aria-label={t('newHome.chatbot.placeholder')}
-                          className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground/80 outline-none"
-                          data-tour="home-chatbot-input"
-                        />
-                        {!chatFocused && chatInput.length === 0 && (
-                          <div
-                            key={currentPlaceholder}
-                            aria-hidden="true"
-                            className="pointer-events-none absolute inset-0 flex items-center text-base text-muted-foreground/80 animate-in fade-in slide-in-from-bottom-1 duration-500"
-                          >
-                            <span className="truncate">{currentPlaceholder}</span>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        type="submit"
-                        size="icon"
-                        disabled={!chatInput.trim()}
-                        aria-label={t('newHome.chatbot.send')}
-                        className="h-9 w-9 shrink-0 cursor-pointer rounded-full"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                    </form>
-
-                    {showSuggestions && (
-                      <div className="border-t border-border">
-                        {suggestions.map((suggestion, index) => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            onMouseDown={event => event.preventDefault()}
-                            onClick={() => sendToChatbot(suggestion)}
-                            className={`block w-full cursor-pointer px-5 py-4 text-left text-base font-semibold text-foreground transition-colors hover:bg-muted/60 ${
-                              index < suggestions.length - 1 ? 'border-b border-border' : ''
-                            }`}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+              <div className={hasAvailableBalance ? 'xl:col-span-9' : 'xl:col-span-12'}>
+                <McpConnectCard />
               </div>
 
               {/* Liquidación de hoy — celda hermana del chatbot. PRO (Available Balance):

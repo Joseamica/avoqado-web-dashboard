@@ -1,17 +1,18 @@
-# SPA fallback for React Router
-
-/\* /index.html 200
-
-# Force HTTPS redirect for production
-
-http://dashboard.avoqado.io/_ https://dashboard.avoqado.io/:splat 301! http://dashboard.avoqado.io/_ https://dashboard.avoqado.io/:splat
-301!
-
-# Force HTTPS redirect for staging
-
-http://staging.dashboard.avoqado.io/* https://staging.dashboard.avoqado.io/:splat 301!
-
-# Default Pages redirect to production
-
-http://avoqado-web-dashboard.pages.dev/_ https://dashboard.avoqado.io/:splat 301! http://_.avoqado-web-dashboard.pages.dev/\*
-https://dashboard.avoqado.io/:splat 301!
+# Cloudflare Pages `_redirects` — SIN reglas activas, a propósito.
+#
+# Este archivo NO puede redirigir dominios: Cloudflare Pages no soporta reglas por
+# hostname aquí ("Domain-level redirects" está en su lista de no soportado:
+# https://developers.cloudflare.com/pages/configuration/redirects/). Las reglas que
+# vivían en este archivo (apex pages.dev -> dashboard.avoqado.io, http -> https)
+# nunca surtieron efecto; además Prettier las destrozó el 2026-05-01 (32f7cfba) al
+# formatearlas como Markdown. Por eso está en .prettierignore: no lo formatees.
+#
+# Dónde vive cada cosa de verdad:
+# - SPA fallback (/* -> index.html 200): lo hace Pages solo porque no hay 404.html.
+# - http -> https: "Always Use HTTPS" de la zona avoqado.io (verificado: 301).
+# - https://avoqado-web-dashboard-4wx.pages.dev/* -> https://dashboard.avoqado.io/*:
+#   Bulk Redirect a nivel de CUENTA en el panel de Cloudflare (Rules -> Bulk Redirects),
+#   301, con "Subpath matching" + "Preserve path suffix" + "Preserve query string" y
+#   SIN "Include subdomains" (los previews <rama>.avoqado-web-dashboard-4wx.pages.dev
+#   deben seguir sirviendo su build; el servidor los admite en corsOptions.ts).
+#   Receta oficial: https://developers.cloudflare.com/pages/how-to/redirect-to-custom-domain/

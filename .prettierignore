@@ -1,0 +1,4 @@
+# Archivos de Cloudflare Pages con sintaxis propia. Prettier formateó `_redirects` como
+# Markdown el 2026-05-01 (32f7cfba) y rompió todas sus reglas (`/*` -> `/\*`, líneas pegadas).
+public/_redirects
+public/_headers
