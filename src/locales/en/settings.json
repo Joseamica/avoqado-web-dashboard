@@ -552,6 +552,7 @@
       "manual-sales_create": "Record manual sales",
       "payments_routing-read": "View payment routing",
       "payments_routing-manage": "Manage payment routing",
+      "payments_resolve-no-instrument": "Confirm at the terminal that no card was presented",
       "payment_create-manual": "Record a manual payment",
       "payment-link_read": "View payment links",
       "payment-link_create": "Create payment links",

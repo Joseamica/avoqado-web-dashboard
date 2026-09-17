@@ -557,6 +557,7 @@
       "manual-sales_create": "Registrar ventas manuales",
       "payments_routing-read": "Ver ruteo de pagos",
       "payments_routing-manage": "Configurar ruteo de pagos",
+      "payments_resolve-no-instrument": "Confirmar en la terminal que no se presentó tarjeta",
       "payment_create-manual": "Registrar un pago manual",
       "payment-link_read": "Ver links de pago",
       "payment-link_create": "Crear links de pago",
