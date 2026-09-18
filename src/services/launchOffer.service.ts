@@ -7,7 +7,13 @@
  * 🔴 Nunca inventa una oferta: si el servidor no la entrega, devuelve null y el alta sigue SIN
  * campaña. Un anuncio caducado no puede bloquear un registro.
  */
-import api from '@/api'
+// 🔴 `publicApi` (withCredentials: false), NUNCA el cliente `api` por defecto.
+// Medido el 18-sep en el navegador: el router público responde `Access-Control-Allow-Origin: *`
+// y el navegador RECHAZA `*` cuando la petición lleva credenciales. Con `api` la llamada muere
+// en CORS, el `catch` de abajo la convierte en `null`, y el alta sigue SIN oferta y SIN
+// atribución — en silencio. curl da 200 y las pruebas del servidor pasan: sólo se ve en un
+// navegador real. Misma trampa ya documentada en `pages/Payment/AutofacturaPanel.tsx`.
+import { publicApi } from '@/api'
 import type { LaunchOfferState } from '@/pages/Setup/launchOffer.types'
 
 export const LANDING_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -19,7 +25,7 @@ export const launchOfferService = {
     const limpio = slug.trim().toLowerCase()
     if (!LANDING_SLUG_RE.test(limpio) || limpio.length > 60) return null
     try {
-      const response = await api.get(`/api/v1/public/launch-offers/${encodeURIComponent(limpio)}`)
+      const response = await publicApi.get(`/api/v1/public/launch-offers/${encodeURIComponent(limpio)}`)
       return (response.data?.data ?? null) as LaunchOfferState | null
     } catch {
       return null
