@@ -19,6 +19,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import type { SetupData } from './types'
 import { track, startSessionReplay, stopSessionReplay } from '@/lib/posthog'
+import { backendStepFor, buildLongSetupStepIds, resumeIndexFromCurrentStep, type SetupStepId } from './stepRegistry'
+import ShortSetupWizard from './ShortSetupWizard'
 
 import { BusinessInfoStep } from './steps/BusinessInfoStep'
 import { BusinessTypeStep } from './steps/BusinessTypeStep'
@@ -54,30 +56,31 @@ const TPV_PURCHASE_ENABLED = import.meta.env.VITE_ENABLE_ONBOARDING_TPV_PURCHASE
 // Spec: ../../../avoqado-server/docs/superpowers/specs/2026-06-02-venue-base-subscription-design.md
 const VENUE_BASE_SUBSCRIPTION_ENABLED = import.meta.env.VITE_ENABLE_VENUE_BASE_SUBSCRIPTION === 'true'
 
-const BASE_SETUP_STEPS = [
-  { id: 'businessInfo', component: BusinessInfoStep },
-  { id: 'businessType', component: BusinessTypeStep },
-  { id: 'entityType', component: EntityTypeStep },
-  { id: 'identity', component: IdentityStep },
-  { id: 'terms', component: TermsStep },
-  { id: 'bankAccount', component: BankAccountStep },
-] as const
+// El ORDEN y el paso del servidor de cada pantalla viven en `stepRegistry`, no aquí: el cálculo
+// posicional `currentStep + 2` guardaba el plan en step9 (compra de terminal) cuando un
+// interruptor apagaba un paso intermedio. Aquí solo se asocia cada id con su componente.
+const STEP_COMPONENTS: Record<string, any> = {
+  businessInfo: BusinessInfoStep,
+  businessType: BusinessTypeStep,
+  entityType: EntityTypeStep,
+  identity: IdentityStep,
+  terms: TermsStep,
+  bankAccount: BankAccountStep,
+  paymentProviders: PaymentProvidersStep,
+  buyTpv: BuyTpvStep,
+  plan: PlanStep,
+}
 
-const SETUP_STEPS = (() => {
-  const steps: Array<{ id: string; component: any }> = [...BASE_SETUP_STEPS]
-  if (PAYMENT_PROVIDERS_ENABLED) {
-    steps.push({ id: 'paymentProviders', component: PaymentProvidersStep })
-  }
-  if (TPV_PURCHASE_ENABLED) {
-    steps.push({ id: 'buyTpv', component: BuyTpvStep })
-  }
-  // Plan MUST be the LAST entry: handleNext on the final step triggers completion,
-  // and the plan is the mandatory activation gate.
-  if (VENUE_BASE_SUBSCRIPTION_ENABLED) {
-    steps.push({ id: 'plan', component: PlanStep })
-  }
-  return steps
-})()
+const SETUP_STEP_IDS: SetupStepId[] = buildLongSetupStepIds({
+  paymentProviders: PAYMENT_PROVIDERS_ENABLED,
+  buyTpv: TPV_PURCHASE_ENABLED,
+  plan: VENUE_BASE_SUBSCRIPTION_ENABLED,
+})
+
+const SETUP_STEPS: Array<{ id: SetupStepId; component: any }> = SETUP_STEP_IDS.map(id => ({
+  id,
+  component: STEP_COMPONENTS[id],
+}))
 
 const getStepIndexFromHash = (hash: string): number | null => {
   const match = hash.match(/^#step-(\d+)$/)
@@ -143,12 +146,9 @@ export default function SetupWizard() {
 
     const progress = progressData?.progress
 
-    // Backend currentStep is 1-indexed and includes step 1 (signup).
-    // Wizard is 0-indexed starting at businessInfo, so wizard.idx = backend.currentStep - 2.
-    let backendMaxStep = 0
-    if (progress?.currentStep && progress.currentStep >= 2) {
-      backendMaxStep = Math.max(0, Math.min(progress.currentStep - 2, SETUP_STEPS.length - 1))
-    }
+    // Reanudación por el MAPA de pasos, no por aritmética de posiciones: se cuentan las
+    // pantallas cuyo paso de backend ya quedó atrás (`resumeIndexFromCurrentStep`).
+    const backendMaxStep = resumeIndexFromCurrentStep(SETUP_STEP_IDS, progress?.currentStep)
 
     // Restore form data — backend stores it nested by step key, so flatten first.
     if (progress?.v2SetupData) {
@@ -323,8 +323,8 @@ export default function SetupWizard() {
       if (orgId) {
         setIsSaving(true)
         try {
-          // Backend step numbers: 1=signup, 2=businessInfo, 3=businessType, etc.
-          const backendStep = currentStep + 2
+          // El paso del servidor sale del MAPA (§4.1), nunca de la posición en pantalla.
+          const backendStep = backendStepFor(SETUP_STEPS[currentStep].id)
 
           if (SETUP_STEPS[currentStep].id === 'terms') {
             // Terms step uses a separate endpoint
@@ -429,6 +429,13 @@ export default function SetupWizard() {
       console.error('[SetupWizard] Failed to complete setup:', error)
       setIsSaving(false)
     }
+  }
+
+  // 🔴 El asistente CORTO se monta si el SERVIDOR lo dice. La bandera viaja en `GET progress`
+  // (`featureFlags.shortOnboarding`) y no en una variable de build: encenderla en Render no puede
+  // depender de volver a desplegar el dashboard. Ausente ⇒ asistente largo, que es el de siempre.
+  if ((progressData as { featureFlags?: { shortOnboarding?: boolean } } | undefined)?.featureFlags?.shortOnboarding === true && orgId) {
+    return <ShortSetupWizard organizationId={orgId} />
   }
 
   if (isLoading || !isInitialized) {

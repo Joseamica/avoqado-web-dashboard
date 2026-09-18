@@ -5,7 +5,8 @@
     "back": "Retour",
     "accept": "Accepter et continuer",
     "complete": "Terminer la configuration",
-    "step": "Etape {{current}} sur {{total}}"
+    "step": "Etape {{current}} sur {{total}}",
+    "saveError": "Enregistrement impossible. Vérifiez votre connexion et réessayez."
   },
   "step1": {
     "title": "Creez votre compte",
@@ -170,6 +171,117 @@
     "freeNote": "Commencez gratuitement, sans carte. Vous pouvez ameliorer votre plan a tout moment depuis Facturation.",
     "freeContinue": "Continuer avec le plan Gratuit",
     "loading": "Chargement…",
-    "finishLaterWarning": "Votre compte ne sera pas active tant que vous n'aurez pas complete votre plan. Mettre en pause quand meme ?"
+    "finishLaterWarning": "Votre compte ne sera pas active tant que vous n'aurez pas complete votre plan. Mettre en pause quand meme ?",
+    "cardError": "Impossible d’enregistrer la carte",
+    "promoLineFromQuote": "Payez aujourd’hui : {{count}} mois à {{intro}}, puis {{list}} par mois. TVA incluse.",
+    "setupIntentError": "Nous n’avons pas pu préparer le paiement",
+    "setupIntentErrorBody": "Nous n’avons pas pu préparer le paiement par carte. Réessayez, ou continuez avec le forfait Gratuit et changez plus tard.",
+    "retry": "Réessayer",
+    "chargeError": "Nous n’avons pas pu traiter le paiement. Réessayez."
+  },
+  "consent": {
+    "title": "Avant de commencer",
+    "subtitle": "Nous avons besoin de votre confirmation pour créer votre établissement sur Avoqado.",
+    "continue": "Continuer",
+    "checkbox": "J’accepte les <terms>Conditions générales</terms> et l’<privacy>Avis de confidentialité</privacy>",
+    "termsTitle": "Conditions générales",
+    "privacyTitle": "Avis de confidentialité",
+    "required": "Acceptez les Conditions et l’Avis de confidentialité pour continuer"
+  },
+  "basics": {
+    "title": "Votre établissement",
+    "subtitle": "C’est assez pour commencer. Le reste peut attendre.",
+    "nameLabel": "Nom de l’établissement",
+    "nameRequired": "Saisissez le nom de votre établissement",
+    "phoneLabel": "Téléphone (facultatif)",
+    "phoneInvalid": "Le téléphone doit contenir au moins 8 chiffres",
+    "continue": "Continuer"
+  },
+  "offer": {
+    "title": "Avoqado {{plan}}",
+    "planLine": "Forfait {{plan}} · TVA incluse",
+    "pricePerMonth": "{{price}} par mois",
+    "firstMonths": "{{count}} premiers mois",
+    "afterwards": "Ensuite",
+    "perMonth": "{{price}}/mois",
+    "ivaIncluded": "TVA incluse dans le prix promotionnel",
+    "todayYouPay": "Vous payez aujourd’hui",
+    "legal": "En payant, vous autorisez Avoqado à débiter {{promo}} par mois pendant {{count}} mois, puis {{renewal}} par mois sur cette carte jusqu’à annulation. Annulez quand vous voulez depuis Facturation.",
+    "payAndEnter": "Payer {{price}} et continuer",
+    "seeOtherPlans": "Voir les autres forfaits",
+    "otherPlansNote": "L’offre à {{promo}} ne s’applique pas aux autres forfaits.",
+    "confirming": "Confirmation de votre paiement…",
+    "pending": "Votre paiement est en cours de confirmation ; revenez dans quelques minutes.",
+    "declined": "Votre banque a refusé le paiement. Essayez une autre carte.",
+    "genericError": "Nous n’avons pas pu traiter le paiement. Réessayez.",
+    "alreadyActivated": "Le forfait {{tier}} est déjà actif pour cet établissement.",
+    "activeWithoutOffer": "Votre forfait {{tier}} est déjà actif avec l’essai gratuit : l’offre ne peut pas s’y ajouter. Rien ne vous a été facturé.",
+    "alreadyActiveTitle": "Votre forfait est déjà actif",
+    "enter": "Accéder à Avoqado",
+    "changePlanNote": "Pour changer de forfait, allez dans Facturation.",
+    "unavailable": "L’offre n’est plus disponible.",
+    "changed": "L’offre a changé. Vérifiez le nouveau prix avant de continuer.",
+    "claimedUnavailable": "L’offre {{code}} n’est plus disponible."
+  },
+  "done": {
+    "title": "Tout est prêt",
+    "subtitle": "Votre établissement est sur Avoqado. Entrez et commencez à vendre.",
+    "subtitleNamed": "{{business}} est sur Avoqado. Entrez et commencez à vendre.",
+    "enter": "Accéder à Avoqado",
+    "completeError": "Nous n’avons pas pu terminer votre inscription. Réessayez dans un instant."
+  },
+  "step8": {
+    "title": "Activez les paiements en ligne (facultatif)",
+    "titleConnected": "Un compte est prêt !",
+    "subtitle": "Connectez Mercado Pago ou Stripe pour accepter les paiements par lien et en ligne.",
+    "connect": "Connecter",
+    "connected": "Connecté",
+    "skip": "Passer pour l’instant →",
+    "finish": "Terminer l’inscription →",
+    "tryItPrompt": "Vous voulez essayer un vrai lien de paiement ?",
+    "generateTestLink": "Générer un lien de test",
+    "amountLabel": "$",
+    "send": "Envoyer",
+    "sending": "Génération…",
+    "copy": "Copier le lien",
+    "waSent": "Lien envoyé par WhatsApp",
+    "waFailed": "Envoi WhatsApp impossible.",
+    "waFallback": "Le lien reste disponible ici.",
+    "stripe": {
+      "todo": "Connexion Stripe bientôt disponible"
+    }
+  },
+  "step9": {
+    "title": "Achetez votre terminal de paiement (facultatif)",
+    "subtitle": "Encaissez en personne avec un terminal physique. Carte SIM 4G incluse, sans coût supplémentaire.",
+    "catalogHeading": "Modèles disponibles",
+    "plusIVA": "+ TVA",
+    "openWizard": "Voir le catalogue et acheter →",
+    "venueNotReady": "Terminez les étapes précédentes pour activer l’achat.",
+    "skip": "Passer pour l’instant →",
+    "orderCreated": "Commande",
+    "product": "Produit :",
+    "total": "Total :",
+    "includeTax": "(TVA incluse)",
+    "shippingTo": "Livrer à :",
+    "retry": "Réessayer",
+    "finish": "Terminer l’inscription →",
+    "state": {
+      "label": "Statut :",
+      "awaitingSpei": "En attente du justificatif SPEI",
+      "speiReceived": "Justificatif reçu — en cours de vérification",
+      "paid": "Paiement confirmé",
+      "shipped": "Votre terminal est en route",
+      "delivered": "Livré",
+      "rejected": "Commande annulée"
+    },
+    "help": {
+      "awaitingSpei": "Téléversez votre justificatif depuis TPV → Commandes quand vous serez prêt.",
+      "speiReceived": "Nous vous écrirons dès validation.",
+      "paid": "Nous assignerons votre terminal dans les prochaines heures.",
+      "shipped": "Nous avons envoyé les détails de livraison par e-mail.",
+      "delivered": "Commencez à encaisser depuis TPV → Équipement.",
+      "rejected": "Vous pouvez réessayer ou passer cette étape."
+    }
   }
 }

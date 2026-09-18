@@ -195,19 +195,14 @@ export function useInventoryWelcomeTourOrchestrator() {
   const { t } = useTranslation('inventory')
   const navigate = useNavigate()
   const location = useLocation()
-  const { fullBasePath, venue, isWhiteLabelMode } = useCurrentVenue()
+  const { fullBasePath, isWhiteLabelMode } = useCurrentVenue()
 
-  // The inventory onboarding experience is gated behind KYC verification —
-  // most steps navigate to `/inventory/*` routes which are blocked by
-  // `KYCProtectedRoute`. Running the tour for a pending/rejected venue
-  // would trap the admin in a redirect loop to `/kyc-required`. SUPERADMIN
-  // bypasses route guards so we let them through for testing.
+  // ⚠️ Esta rama existía porque los pasos del tour navegan a `/inventory/*`, que estaba tras
+  // `KYCProtectedRoute` y mandaba a `/kyc-required`. Desde §4.4 esas rutas son libres, así que el
+  // bucle de redirección ya no puede ocurrir y el tour corre desde el primer día.
   //
-  // White-label venues don't see Avoqado-branded onboarding — they ship
-  // with their own branding and flow.
-  const isTourAllowed =
-    !isWhiteLabelMode &&
-    (venue?.kycStatus === 'VERIFIED' || venue?.role === 'SUPERADMIN' || !venue)
+  // Se conserva la excepción de white-label: esos dashboards no muestran onboarding de Avoqado.
+  const isTourAllowed = !isWhiteLabelMode
   const driverRef = useRef<Driver | null>(null)
   const suppressDestroyCleanupRef = useRef(false)
   /**

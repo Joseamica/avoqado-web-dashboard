@@ -24,7 +24,7 @@
   },
   "banner": {
     "missing": {
-      "message": "Completa la verificación KYC para acceder a funciones operativas (pedidos, pagos, analíticas)",
+      "message": "Para cobrar con tarjeta, en línea y ver tu saldo, activa tus cobros",
       "action": "Comenzar Ahora"
     },
     "pending": {

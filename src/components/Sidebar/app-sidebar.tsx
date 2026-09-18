@@ -367,7 +367,6 @@ export function AppSidebar({
         title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }),
         url: 'payments',
         permission: 'payments:read',
-        locked: !hasKYCAccess,
         keywords: ['cobros', 'pagos', 'dinero'],
       },
       {
@@ -381,7 +380,6 @@ export function AppSidebar({
         title: t('sidebar:salesMenu.orders', { defaultValue: 'Pedidos' }),
         url: 'orders',
         permission: 'orders:read',
-        locked: !hasKYCAccess,
         keywords: ['ordenes', 'comandas', 'tickets'],
       },
       {
@@ -505,12 +503,12 @@ export function AppSidebar({
       { title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }), url: 'asistencia', permission: 'attendance:read', keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'] },
       ] : []),
       ...(activeVenue?.settings?.enableShifts ? [
-        { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', locked: !hasKYCAccess, keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
+        { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
       ] : []),
       // Commissions — VISIBLE TEASER (Premium feature). Normal venues always see it with a 👑 badge
       // (the commissions pages themselves show the <FeatureGate> paywall); white-label venues keep the
       // per-partner AVOQADO_COMMISSIONS toggle below. Never use checkFeatureAccess here — it can't tier-gate.
-      { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', locked: !hasKYCAccess, premiumLocked: !hasFeatureAccess('COMMISSIONS'), gatedFeature: 'COMMISSIONS', keywords: ['propinas', 'bonos', 'metas', 'goals'] },
+      { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', premiumLocked: !hasFeatureAccess('COMMISSIONS'), gatedFeature: 'COMMISSIONS', keywords: ['propinas', 'bonos', 'metas', 'goals'] },
     ].filter(item => {
       if (item.permission && !can(item.permission)) return false
       if (isWhiteLabelVenue) {
@@ -746,7 +744,6 @@ export function AppSidebar({
       const hasInventoryFeature = hasFeatureAccess('INVENTORY_TRACKING')
       mainItems.push({
         title: t('sidebar:routes.inventory'), url: '#inventory', icon: Package, subSidebar: 'inventory',
-        locked: !hasKYCAccess,
         premiumLocked: !hasInventoryFeature,
         gatedFeature: 'INVENTORY_TRACKING',
         keywords: ['almacen', 'bodega', 'stock'],
@@ -757,7 +754,6 @@ export function AppSidebar({
     if (salesSubItems.length > 0) {
       mainItems.push({
         title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }), url: '#sales', icon: ShoppingCart, subSidebar: 'sales',
-        locked: !hasKYCAccess,
         keywords: ['pedidos', 'cobros', 'pagos', 'ventas', 'transacciones'],
       })
     }
@@ -790,7 +786,6 @@ export function AppSidebar({
     if (can('tpv:read') && canWL('AVOQADO_TPVS')) {
       mainItems.push({
         title: t('sidebar:routes.tpv'), url: 'devices', icon: Smartphone,
-        locked: !hasKYCAccess,
         keywords: ['terminal', 'punto de venta', 'pos', 'dispositivo'],
       })
     }

@@ -66,7 +66,10 @@ function KYCMissingBanner() {
         <Button
           size="sm"
           className="shrink-0 bg-orange-600 hover:bg-orange-700 text-orange-50"
-          onClick={() => navigate(`/venues/${activeVenue.slug}/settings/local/documents`)}
+          // §4.4: el punto de entrada de «falta el KYC» es el checklist de Activar cobros, que
+          // pide los datos fiscales y la cuenta de depósitos ANTES de los documentos. Mandar
+          // directo a documentos dejaba a la gente subiendo archivos sin haber capturado nada.
+          onClick={() => navigate(`/venues/${activeVenue.slug}/activar-cobros`)}
         >
           {t('banner.missing.action')}
         </Button>

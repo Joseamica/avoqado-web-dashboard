@@ -19,7 +19,8 @@
     "locked": "Locked",
     "unlocked": "Unlocked",
     "globalConfig": "Global config",
-    "customerDisplayInverted": "Invert screens"
+    "customerDisplayInverted": "Invert screens",
+    "buyBlockedByKyc": "Activate payments to order a terminal: without it, it could not take card payments."
   },
   "displayMode": {
     "title": "Screen orientation",

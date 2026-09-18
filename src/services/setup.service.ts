@@ -5,6 +5,7 @@
  */
 
 import api from '@/api'
+import type { ActivatePlanBody } from '@/pages/Setup/launchOffer.types'
 
 export interface TermsAcceptance {
   termsAccepted: boolean
@@ -41,4 +42,23 @@ export const setupService = {
 
   /** Get a customer-scoped Stripe SetupIntent client_secret for the plan step. */
   planSetupIntent: (venueId: string) => api.post(`/api/v1/onboarding/venues/${venueId}/plan-setup-intent`),
+
+  /**
+   * Cobra el plan ANTES de terminar el alta (§3.6). Es la AUTORIDAD del cobro: `PUT step/10` es
+   * solo un respaldo, y 🔴 solo se escribe DESPUÉS de un 200 de aquí — escribirlo tras un rechazo
+   * dejaría `v2SetupData.plan` listo para que el camino legacy cobrara a precio de lista.
+   *
+   * El dinero que se manda (`offer.expectedFirstChargeCents`) es evidencia de lo que la persona
+   * VIO y consintió; el servidor lo compara con su propia cotización y rechaza si no coincide.
+   * Nunca se calcula en el navegador.
+   */
+  activatePlan: (orgId: string, body: ActivatePlanBody) =>
+    api.post(`/api/v1/onboarding/organizations/${orgId}/v2/activate-plan`, body),
+
+  /**
+   * Asocia una campaña al alta en curso (§3.5). Cubre a quien ya tenía cuenta y llega por un
+   * anuncio, y el respaldo del `sessionStorage` cuando el alta nació sin el código.
+   */
+  attachLaunchCampaign: (orgId: string, body: { slug?: string; code?: string; utm?: Record<string, string> }) =>
+    api.put(`/api/v1/onboarding/organizations/${orgId}/v2/launch-campaign`, body),
 }

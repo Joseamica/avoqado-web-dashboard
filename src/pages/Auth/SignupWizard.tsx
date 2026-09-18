@@ -1,10 +1,18 @@
 /**
  * SignupWizard — Step 1 of the Square-style onboarding
  *
- * Collects only email + password. firstName, lastName, organizationName
- * are collected later in the setup wizard.
+ * Collects email + password + the legal consent checkbox. firstName, lastName and
+ * organizationName are collected later in the setup wizard.
+ *
+ * 🔴 Dos cosas viajan con el alta y ninguna puede romperla (§3.5 del spec de campañas ligeras):
+ *  - `legalVersion`: la VERSIÓN de los documentos que la persona marcó. Antes se mandaba la fecha
+ *    del día, así que nadie podía saber qué texto aceptó cada quien.
+ *  - la atribución del anuncio (`?oferta=` + UTMs), que se resuelve a un CÓDIGO de campaña contra
+ *    la API pública. Si no resuelve —oferta caducada, sin red, valor basura— el registro sigue
+ *    exactamente igual, sin campaña.
  */
 
+import { useEffect, useState } from 'react'
 import { useForm, type SubmitHandler } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -19,6 +27,10 @@ import { useAuth } from '@/context/AuthContext'
 import { authService } from '@/services/auth.service'
 import { cn } from '@/lib/utils'
 import { trackSignup } from '@/lib/gtag'
+import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
+import { LEGAL_DOCS_VERSION } from '@/config/legal'
+import { capturarAtribucion, leerAtribucion } from '@/lib/acquisition'
+import { resolveLaunchCampaignCode } from '@/services/launchOffer.service'
 
 interface SignupFormInputs {
   email: string
@@ -37,7 +49,39 @@ export default function SignupWizard() {
     formState: { errors },
   } = useForm<SignupFormInputs>()
 
+  const [consentAccepted, setConsentAccepted] = useState(false)
+  const [consentError, setConsentError] = useState('')
+
+  // El anuncio manda a `/signup?oferta=…&utm_*`. Se guarda al llegar porque el alta cruza la
+  // verificación de correo: la persona se va a su bandeja y vuelve por una URL limpia.
+  useEffect(() => {
+    capturarAtribucion()
+  }, [])
+
   const onSubmit: SubmitHandler<SignupFormInputs> = async (formData) => {
+    // El servidor exige el consentimiento para TERMINAR el alta. Dejarlo pasar aquí no ahorra un
+    // paso: mueve el rechazo al final, cuando la persona ya capturó todo.
+    if (!consentAccepted) {
+      setConsentError(
+        t('consent.required', { defaultValue: 'Acepta los Términos y el Aviso de Privacidad para continuar' }),
+      )
+      return
+    }
+    setConsentError('')
+
+    // Atribución del anuncio. Todo este bloque es «mejor esfuerzo»: cualquier fallo deja el alta
+    // sin campaña, nunca sin alta.
+    const atribucion = leerAtribucion()
+    let launchCampaignCode: string | undefined
+    if (atribucion?.offerParam) {
+      try {
+        launchCampaignCode = (await resolveLaunchCampaignCode(atribucion.offerParam)) ?? undefined
+      } catch {
+        launchCampaignCode = undefined
+      }
+    }
+    const utm = atribucion && Object.keys(atribucion.utm).length > 0 ? atribucion.utm : undefined
+
     try {
       // V2 signup: only email + password, empty names/org (backend defaults)
       await signup({
@@ -47,11 +91,14 @@ export default function SignupWizard() {
         lastName: '',
         organizationName: '',
         wizardVersion: 2,
+        legalVersion: LEGAL_DOCS_VERSION,
+        ...(launchCampaignCode ? { launchCampaignCode } : {}),
+        ...(utm ? { utm } : {}),
       })
 
       // Account created → GA4 sign_up event so ad-driven signups attribute in
       // Google Ads (mark sign_up as a conversion in GA4 → imported via the link).
-      trackSignup('email')
+      trackSignup('email', launchCampaignCode)
 
       // DEV: Skip email verification with bypass code
       const skipVerification =
@@ -135,6 +182,20 @@ export default function SignupWizard() {
               <p className="text-xs text-destructive">{errors.password.message}</p>
             )}
             <p className="text-xs text-muted-foreground">{t('step1.passwordHint')}</p>
+          </div>
+
+          {/* Consentimiento legal — sin scroll forzado, con el texto a un clic (§4.1) */}
+          <div className="flex flex-col gap-2">
+            <LegalConsentCheckbox
+              id="signupConsent"
+              checked={consentAccepted}
+              disabled={isLoading}
+              onCheckedChange={valor => {
+                setConsentAccepted(valor)
+                if (valor) setConsentError('')
+              }}
+            />
+            {consentError && <p className="text-xs text-destructive">{consentError}</p>}
           </div>
         </div>
 

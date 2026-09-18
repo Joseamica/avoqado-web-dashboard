@@ -73,6 +73,7 @@ import {
   Notifications,
   Orders,
   PayLaterAging,
+  PaymentActivation,
   PaymentLinkBranding,
   PaymentLinks,
   Ecommerce,
@@ -213,17 +214,14 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Shifts Management (requires shifts:read permission + KYC verification)
+    // Turnos de caja — SIN candado de KYC (§4.4): el corte registra el efectivo del cajón, no
+    // mueve dinero de un procesador. Bloquearlo dejaba a un negocio sin poder cerrar su caja por
+    // un trámite bancario que no toca ese dinero.
     {
       element: <PermissionProtectedRoute permission="shifts:read" />,
       children: [
-        {
-          element: <KYCProtectedRoute />,
-          children: [
-            { path: 'shifts', element: <Shifts /> },
-            { path: 'shifts/:shiftId', element: <ShiftId /> },
-          ],
-        },
+        { path: 'shifts', element: <Shifts /> },
+        { path: 'shifts/:shiftId', element: <ShiftId /> },
       ],
     },
 
@@ -234,14 +232,16 @@ export function createVenueRoutes(): RouteObject[] {
     {
       element: <PermissionProtectedRoute permission="payments:read" />,
       children: [
+        // LECTURA de transacciones — libre (§4.4, D6). Sin KYC no existe cuenta procesadora (la
+        // crea la aprobación del KYC), así que aquí no hay cobros con tarjeta que reembolsar; un
+        // reembolso en efectivo no usa procesador.
+        { path: 'payments', element: <Payments /> },
+        { path: 'payments/:paymentId', element: <Payments /> },
+        // 🔴 Reglas de cuentas de cobro: DECIDEN a qué cuenta procesadora va el dinero, así que
+        // conservan el candado. Self-gates además con <FeatureGate feature="MERCHANT_ROUTING_RULES"> (PREMIUM).
         {
           element: <KYCProtectedRoute />,
-          children: [
-            { path: 'payments', element: <Payments /> },
-            // Reglas de cuentas de cobro — self-gates con <FeatureGate feature="MERCHANT_ROUTING_RULES"> (PREMIUM)
-            { path: 'payments/routing-rules', element: <MerchantRoutingRules /> },
-            { path: 'payments/:paymentId', element: <Payments /> },
-          ],
+          children: [{ path: 'payments/routing-rules', element: <MerchantRoutingRules /> }],
         },
       ],
     },
@@ -253,13 +253,9 @@ export function createVenueRoutes(): RouteObject[] {
     {
       element: <PermissionProtectedRoute permission="orders:read" />,
       children: [
-        {
-          element: <KYCProtectedRoute />,
-          children: [
-            { path: 'orders', element: <Orders /> },
-            { path: 'orders/:orderId', element: <Orders /> },
-          ],
-        },
+        // Operación diaria — sin candado de KYC (§4.4).
+        { path: 'orders', element: <Orders /> },
+        { path: 'orders/:orderId', element: <Orders /> },
       ],
     },
 
@@ -269,46 +265,36 @@ export function createVenueRoutes(): RouteObject[] {
     // No estaba enlazada en ningún lado. Los reportes REALES viven en /reports y /command-center.
 
     // Reports
+    // Reportes — solo LECTURA, sin candado de KYC (§4.4).
     {
       path: 'reports/pay-later-aging',
       element: <PermissionProtectedRoute permission="tpv-reports:pay-later-aging" />,
-      children: [
-        {
-          element: <KYCProtectedRoute />,
-          children: [{ index: true, element: <PayLaterAging /> }],
-        },
-      ],
+      children: [{ index: true, element: <PayLaterAging /> }],
     },
     {
       path: 'reports/sales-summary',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <SalesSummary /> }],
     },
     {
       path: 'reports/sales-by-item',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <SalesByItem /> }],
     },
     {
       path: 'reports/sales-by-category',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <SalesByCategory /> }],
     },
     {
       path: 'reports/payment-methods',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <PaymentMethods /> }],
     },
     {
       path: 'reports/refunds',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <Refunds /> }],
     },
     // Promociones: el COMBO como renglón. Complemento de reports/sales-by-item,
     // que muestra los componentes marcados "dentro de «Combo X»".
     {
       path: 'reports/promotions',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <PromotionSales /> }],
     },
     // Bancos — hub de banca en vivo (PRO, teaser visible). Permiso financialConnections:manage;
@@ -461,7 +447,6 @@ export function createVenueRoutes(): RouteObject[] {
     },
     {
       path: 'reports/home-charts',
-      element: <KYCProtectedRoute />,
       children: [{ index: true, element: <HomeDashboardCharts /> }],
     },
 
@@ -491,12 +476,13 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Device Management (requires tpv:read permission + KYC verification)
+    // Aparatos — listado y detalle son LECTURA y quedan libres (§4.4). 🔴 La COMPRA de terminal
+    // conserva su candado (D5) y vive DENTRO de la pantalla: una terminal sin cuenta procesadora
+    // no puede cobrar, así que venderla antes es venderle al cliente un aparato que no le sirve.
     {
       element: <PermissionProtectedRoute permission="tpv:read" />,
       children: [
         {
-          element: <KYCProtectedRoute />,
           children: [
             { path: 'devices', element: <Tpv /> },
             // Order detail comes BEFORE :tpvId so it matches first
@@ -521,6 +507,15 @@ export function createVenueRoutes(): RouteObject[] {
           ],
         },
       ],
+    },
+
+    // «Activar cobros» — lo que el alta corta dejó de pedir (§4.2). ADMIN+, como el resto de la
+    // configuración del local. NO va tras `KYCProtectedRoute`: es justamente la pantalla que
+    // existe para SALIR de ese estado, y meterla detrás del candado sería un callejón.
+    {
+      path: 'activar-cobros',
+      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+      children: [{ index: true, element: <PaymentActivation /> }],
     },
 
     // Reviews (requires reviews:read permission)
@@ -557,14 +552,10 @@ export function createVenueRoutes(): RouteObject[] {
     {
       path: 'commissions',
       element: <PermissionProtectedRoute permission="commissions:read" />,
+      // Comisiones CALCULA, no paga: sin candado de KYC (§4.4).
       children: [
-        {
-          element: <KYCProtectedRoute />,
-          children: [
-            { index: true, element: <CommissionsPage /> },
-            { path: 'config/:configId', element: <CommissionConfigDetailPage /> },
-          ],
-        },
+        { index: true, element: <CommissionsPage /> },
+        { path: 'config/:configId', element: <CommissionConfigDetailPage /> },
       ],
     },
 
@@ -901,9 +892,9 @@ export function createVenueRoutes(): RouteObject[] {
     {
       path: 'inventory',
       element: <PermissionProtectedRoute permission="inventory:read" />,
+      // Inventario es OPERACIÓN: sin candado de KYC (§4.4).
       children: [
         {
-          element: <KYCProtectedRoute />,
           children: [
             {
               element: <InventoryLayout />,

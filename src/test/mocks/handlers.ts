@@ -1244,4 +1244,114 @@ export const handlers = [
       },
     })
   }),
+
+  // --------------------------------------------------------------------------
+  // Campañas ligeras de lanzamiento (§3.3, §3.5, §3.6) y «Activar cobros» (§4.2).
+  //
+  // 🔴 Los montos son los del EJEMPLO del contrato, en centavos con IVA incluido. Existen para
+  // que una prueba pueda ejercitar la pantalla sin el servidor, no para que nadie los copie al
+  // código: el dashboard nunca escribe un precio.
+  // --------------------------------------------------------------------------
+  http.get(`${BASE_URL}/api/v1/public/launch-offers/:slug`, ({ params }) => {
+    const slug = params.slug as string
+    if (slug === 'pausada') {
+      return HttpResponse.json({ success: true, data: { code: 'PAUSADA', slug, available: false, unavailableReason: 'PAUSED' } })
+    }
+    if (slug !== 'pos-22') {
+      return HttpResponse.json({ message: 'No encontramos esa oferta', code: 'LAUNCH_OFFER_NOT_FOUND' }, { status: 404 })
+    }
+    return HttpResponse.json({
+      success: true,
+      data: {
+        code: 'POS22',
+        slug: 'pos-22',
+        offerVersion: 1,
+        vertical: 'ALL',
+        planTier: 'PRO',
+        planName: 'Pro',
+        available: true,
+        currency: 'MXN',
+        ivaIncluded: true,
+        requiresCard: true,
+        promo: { monthlyCents: 2200, months: 3, subtotalCents: 1897, ivaCents: 303, periodTotalCents: 6600 },
+        renewal: { monthlyCents: 115884, subtotalCents: 99900, ivaCents: 15984 },
+        firstChargeCents: 2200,
+        validUntil: '2026-10-31T06:00:00.000Z',
+        limited: true,
+        copy: { headline: 'Tu punto de venta al mes', subheadline: null, bullets: [] },
+      },
+    })
+  }),
+
+  http.post(`${BASE_URL}/api/v1/onboarding/organizations/:organizationId/v2/activate-plan`, async ({ request }) => {
+    const body = (await request.json()) as { tier: string; interval: string; offer: { kind: string; code?: string; offerVersion?: number } }
+    return HttpResponse.json({
+      success: true,
+      data: {
+        status: 'ACTIVE',
+        alreadyActive: false,
+        tier: body.tier,
+        interval: body.interval,
+        firstChargeCents: body.offer.kind === 'LAUNCH' ? 2200 : 69484,
+        nextChargeAt: '2026-10-17T00:00:00.000Z',
+        ...(body.offer.kind === 'LAUNCH'
+          ? { launchOffer: { code: body.offer.code, offerVersion: body.offer.offerVersion, months: 3, renewalMonthlyCents: 115884 } }
+          : {}),
+      },
+    })
+  }),
+
+  http.put(`${BASE_URL}/api/v1/onboarding/organizations/:organizationId/v2/launch-campaign`, () =>
+    HttpResponse.json({
+      success: true,
+      data: {
+        launchOffer: {
+          code: 'POS22',
+          slug: 'pos-22',
+          offerVersion: 1,
+          vertical: 'ALL',
+          planTier: 'PRO',
+          planName: 'Pro',
+          available: true,
+          currency: 'MXN',
+          ivaIncluded: true,
+          requiresCard: true,
+          promo: { monthlyCents: 2200, months: 3, subtotalCents: 1897, ivaCents: 303, periodTotalCents: 6600 },
+          renewal: { monthlyCents: 115884, subtotalCents: 99900, ivaCents: 15984 },
+          firstChargeCents: 2200,
+          validUntil: '2026-10-31T06:00:00.000Z',
+          limited: true,
+          copy: { headline: null, subheadline: null, bullets: [] },
+        },
+      },
+    }),
+  ),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/venues/:venueId/payment-activation`, () =>
+    HttpResponse.json({
+      success: true,
+      data: {
+        kycStatus: 'NOT_SUBMITTED',
+        entityType: null,
+        profile: {
+          entityType: null,
+          legalName: null,
+          rfcMasked: null,
+          curpPresent: false,
+          legalAddressPresent: false,
+          venueAddressPresent: false,
+          clabeLast4: null,
+          bankName: null,
+          complete: false,
+        },
+        documents: { required: ['INE', 'PROOF_OF_ADDRESS'], uploaded: [] },
+        terminalsCount: 0,
+        onlinePaymentsConnected: false,
+      },
+    }),
+  ),
+
+  http.put(`${BASE_URL}/api/v1/dashboard/venues/:venueId/payment-activation/profile`, () =>
+    HttpResponse.json({ success: true, data: { updated: true } }),
+  ),
 ]

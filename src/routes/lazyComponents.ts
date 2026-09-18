@@ -31,6 +31,8 @@ export const ReceiptViewer = lazyWithRetry(() => import('@/pages/Payment/Receipt
 
 export const CreateTpv = lazyWithRetry(() => import('@/pages/Tpv/createTpv'))
 export const Tpv = lazyWithRetry(() => import('@/pages/Tpv/Tpvs'))
+/** «Activar cobros» (§4.2): datos fiscales, dirección del local y cuenta para depósitos. */
+export const PaymentActivation = lazyWithRetry(() => import('@/pages/PaymentActivation/PaymentActivationPage'))
 export const TpvId = lazyWithRetry(() => import('@/pages/Tpv/TpvId'))
 export const TerminalOrderDetail = lazyWithRetry(() => import('@/pages/Tpv/TerminalOrderDetail'))
 export const ProfileSettings = lazyWithRetry(() => import('@/pages/Account/ProfileSettings'))

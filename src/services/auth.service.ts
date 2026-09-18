@@ -121,6 +121,12 @@ export interface SignupDto {
   lastName?: string
   organizationName?: string
   wizardVersion?: number
+  /** Versión de los documentos legales que la persona marcó (§4.1). Su presencia ES el consentimiento. */
+  legalVersion?: string
+  /** Código de la campaña del anuncio. Uno inválido lo descarta el servidor en silencio (§3.5). */
+  launchCampaignCode?: string
+  /** UTMs y click ids, con la misma lista permitida que la landing. */
+  utm?: Record<string, string>
 }
 
 export interface SignupResponse {

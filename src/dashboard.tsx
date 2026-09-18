@@ -56,6 +56,7 @@ const routeKeyMap: Record<string, string> = {
   overview: 'sidebar:routes.overview',
   menumaker: 'sidebar:routes.menumaker',
   editvenue: 'sidebar:routes.editvenue',
+  'activar-cobros': 'sidebar:routes.paymentActivation',
   'credit-packs': 'sidebar:routes.creditPacks',
   'payment-links': 'sidebar:routes.paymentLinks',
   // Toda el área de promociones venía saliendo en inglés en la miga de pan

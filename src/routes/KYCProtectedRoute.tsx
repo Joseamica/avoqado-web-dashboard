@@ -1,7 +1,9 @@
 /**
  * KYCProtectedRoute - Route guard for operational features
  *
- * Wraps routes that require KYC verification (Orders, Payments, TPV, Shifts, Analytics, Inventory).
+ * Desde §4.4 envuelve SOLO lo que mueve dinero de un procesador: reglas de cuentas de cobro,
+ * saldo disponible y la compra de terminal. Órdenes, turnos, reportes, inventario, transacciones
+ * y el listado de aparatos quedaron libres por decisión del founder.
  * Redirects to KYCSetupRequired page if venue's KYC status is not VERIFIED.
  *
  * RULES:
@@ -41,8 +43,11 @@ export function KYCProtectedRoute() {
   // bounced every deep link to kyc-required (and from there to home) before it
   // could ever know the venue's real KYC status. It only looked intermittent
   // because a warm tab sometimes resolved the venue before the route rendered.
-  // Rendering the outlet is safe: the backend still enforces KYC on every call,
-  // which is the same reasoning PermissionProtectedRoute already uses.
+  // Renderizar el outlet es seguro porque este guard es una decisión de PRODUCTO, no la única
+  // defensa. ⚠️ Corrección de lo que decía antes: el servidor NO revisa el KYC por endpoint
+  // (`git grep kycStatus -- src/middlewares src/routes` en avoqado-server solo encuentra un
+  // comentario de OpenAPI). Lo que sí protege el dinero de verdad son los permisos y que sin KYC
+  // aprobado no existe cuenta procesadora, así que no hay a dónde mandar un cobro.
   if (isLoading) {
     return <Outlet />
   }

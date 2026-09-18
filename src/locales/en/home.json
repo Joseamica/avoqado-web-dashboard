@@ -472,5 +472,40 @@
       "devicesSubCount_one": "{{count}} device",
       "devicesSubCount_other": "{{count}} devices"
     }
+  },
+  "paymentActivation": {
+    "title": "Activate payments",
+    "subtitle": "To take card payments and receive your money we need these details. It takes less than 10 minutes.",
+    "progress": "{{done}} of {{total}} done",
+    "toggle": "Show or hide",
+    "items": {
+      "profile": "Tax details, address and deposit account",
+      "documents": "Upload your documents",
+      "online": "Online payments (optional)",
+      "terminal": "Buy your terminal (optional)"
+    },
+    "review": "Review",
+    "start": "Start",
+    "terminalBlocked": "Available once you submit your documents: a terminal without active payments cannot charge.",
+    "pageSubtitle": "With these details we can open your payments account and deposit what you sell.",
+    "sections": {
+      "business": "Your business",
+      "businessDesc": "Entity type and the address of the venue.",
+      "identity": "Who is responsible",
+      "identityDesc": "Tax ID, CURP and address of the signer.",
+      "bank": "Where we deposit",
+      "bankDesc": "The CLABE of the account where your money lands."
+    },
+    "addressLabel": "Venue address",
+    "addressPlaceholder": "Street, number, neighborhood",
+    "addressRequired": "Enter the full address of your venue",
+    "cityLabel": "City",
+    "stateLabel": "State",
+    "zipLabel": "ZIP code",
+    "currentClabe": "Saved account: ••••{{last4}} {{bank}}",
+    "saved": "Saved",
+    "saveError": "We could not save. Check the details and try again.",
+    "saving": "Saving…",
+    "back": "Back"
   }
 }

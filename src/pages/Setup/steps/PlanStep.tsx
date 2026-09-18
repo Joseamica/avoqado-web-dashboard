@@ -16,13 +16,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadStripe } from '@stripe/stripe-js'
-import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import { Elements } from '@stripe/react-stripe-js'
 import { AlertCircle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanPicker } from '@/components/billing/PlanPicker'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 import { setupService } from '@/services/setup.service'
 import { useToast } from '@/hooks/use-toast'
+import { PlanCardForm } from './PlanCardForm'
+import { formatMXN } from '../offer/formatMXN'
+import type { PlanQuote } from '../launchOffer.types'
 import type { StepProps } from '../types'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
@@ -30,12 +33,28 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as 
 interface PlanStepProps extends StepProps {
   venueId: string
   organizationId: string
+  /**
+   * Alta CORTA: cobra antes de continuar (§4.5). Se llama con la tarjeta ya guardada y ANTES de
+   * `onNext`; si revienta, no se avanza. En el asistente LARGO no se pasa, así que el paso se
+   * comporta exactamente como hoy: guarda `v2SetupData.plan` y el cobro ocurre al finalizar.
+   */
+  activateBeforeContinue?: (args: {
+    tier: 'PRO' | 'PREMIUM'
+    interval: 'monthly' | 'annual'
+    payNow: boolean
+    paymentMethodId: string
+  }) => Promise<void>
+  /**
+   * Precios del SERVIDOR, con IVA. Presentes ⇒ las líneas promocionales se pintan con ellos en vez
+   * del texto fijo de la tarjeta de planes. Ausentes ⇒ el texto de siempre.
+   */
+  quote?: PlanQuote | null
 }
 
 /** Tiers the wizard can persist. ENTERPRISE routes to contact-sales and is never stored. */
 type SelectableTier = 'FREE' | 'PRO' | 'PREMIUM'
 
-export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
+export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote }: PlanStepProps) {
   const { t } = useTranslation('setup')
   const { t: tBilling } = useTranslation('billing')
   const [selectedTier, setSelectedTier] = useState<SelectableTier>(data.plan?.tier ?? 'PRO')
@@ -49,8 +68,21 @@ export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
   const { toast } = useToast()
   const checkoutPanelRef = useRef<HTMLDivElement | null>(null)
 
+  const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string)
   const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
   const tierName = tBilling(`plan.tiers.${getTierDef(selectedTier).key}.name`)
+
+  // Línea promocional: si el servidor mandó su cotización, se pinta con SUS montos (con IVA, que
+  // es como se cobra en México). Sin cotización queda el texto de siempre.
+  const introPro = quote?.tiers?.PRO?.intro ?? null
+  const promoLine = introPro
+    ? t('plan.promoLineFromQuote', {
+        defaultValue: 'Paga hoy: {{count}} meses a {{intro}}, luego {{list}} al mes. IVA incluido.',
+        count: introPro.months,
+        intro: formatMXN(introPro.monthlyCents),
+        list: formatMXN(quote?.tiers?.PRO?.monthlyCents ?? Number.NaN),
+      })
+    : t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' })
 
   useEffect(() => {
     if (!venueId) {
@@ -113,7 +145,7 @@ export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
           selectionMode="choice"
           interval={interval}
           onIntervalChange={setInterval}
-          promoNotes={interval === 'monthly' ? { PRO: t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' }) } : undefined}
+          promoNotes={interval === 'monthly' ? { PRO: promoLine } : undefined}
           onSelectTier={handleSelectTier}
         />
       </div>
@@ -122,9 +154,7 @@ export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
         <div>
           <p className="text-sm font-semibold">{t('plan.selectedPlan', { plan: tierName, defaultValue: 'Plan seleccionado: {{plan}}' })}</p>
           {isPaidTier && selectedTier === 'PRO' && interval === 'monthly' && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' })}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">{promoLine}</p>
           )}
         </div>
 
@@ -173,11 +203,16 @@ export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
         ) : (
           <Elements stripe={stripePromise} options={options}>
             <PlanCardForm
-              tier={selectedTier}
-              interval={interval}
-              onConfirmed={(paymentMethodId, payNow) =>
+              payNowLabel={payNowLabel(selectedTier, interval)}
+              trialLabel={t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
+              onConfirmed={async (paymentMethodId, payNow) => {
+                // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
+                // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.
+                if (activateBeforeContinue) {
+                  await activateBeforeContinue({ tier: selectedTier, interval, payNow, paymentMethodId })
+                }
                 onNext({ plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() } })
-              }
+              }}
             />
           </Elements>
         )}
@@ -186,61 +221,12 @@ export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
   )
 }
 
-function PlanCardForm({
-  tier,
-  interval,
-  onConfirmed,
-}: {
-  tier: 'PRO' | 'PREMIUM'
-  interval: 'monthly' | 'annual'
-  onConfirmed: (paymentMethodId: string, payNow: boolean) => void
-}) {
-  const stripe = useStripe()
-  const elements = useElements()
-  const { t } = useTranslation('setup')
-  const { toast } = useToast()
-  const [submitting, setSubmitting] = useState(false)
-
-  const confirm = async (payNow: boolean) => {
-    if (!stripe || !elements) return
-    setSubmitting(true)
-    try {
-      const { error, setupIntent } = await stripe.confirmSetup({ elements, redirect: 'if_required' })
-      if (error || !setupIntent?.payment_method) {
-        toast({ title: error?.message || 'No se pudo guardar la tarjeta', variant: 'destructive' })
-        return
-      }
-      onConfirmed(String(setupIntent.payment_method), payNow)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // The $599×3 intro promo only exists for PRO monthly — Premium and annual pay full price today.
-  const payNowLabel =
+/** El $599×3 solo existe para PRO mensual: Premium y anual pagan precio completo hoy. */
+function payNowLabelFactory(t: (k: string, o?: Record<string, unknown>) => string) {
+  return (tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual') =>
     interval === 'annual'
       ? t('plan.payNowAnnual', { defaultValue: 'Pagar hoy (anual)' })
       : tier === 'PRO'
-        ? t('plan.payNowMonthly', { defaultValue: 'Pagar hoy y ahorrar (3 meses a $599)' })
+        ? t('plan.payNowMonthly', { defaultValue: 'Pagar hoy y ahorrar' })
         : t('plan.payNow', { defaultValue: 'Pagar hoy' })
-
-  return (
-    <div className="flex flex-col gap-4">
-      <PaymentElement />
-      <div className="flex flex-col gap-3">
-        <Button data-tour="setup-plan-start-trial" disabled={submitting} onClick={() => confirm(false)} className="rounded-full">
-          {t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
-        </Button>
-        <Button
-          data-tour="setup-plan-pay-now"
-          disabled={submitting}
-          variant="outline"
-          onClick={() => confirm(true)}
-          className="rounded-full"
-        >
-          {payNowLabel}
-        </Button>
-      </div>
-    </div>
-  )
 }
