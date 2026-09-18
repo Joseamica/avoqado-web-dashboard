@@ -291,7 +291,12 @@
     "changePlanNote": "Para cambiar de plan, entra a Facturación.",
     "unavailable": "La oferta ya no está disponible.",
     "changed": "La oferta cambió. Revisa el precio nuevo antes de continuar.",
-    "claimedUnavailable": "La oferta {{code}} ya no está disponible."
+    "claimedUnavailable": "La oferta {{code}} ya no está disponible.",
+    "declineInsufficientFunds": "Tu tarjeta no tiene fondos suficientes. Prueba con otra.",
+    "declineExpiredCard": "Tu tarjeta está vencida. Prueba con otra.",
+    "declineIncorrectCvc": "El código de seguridad no coincide. Revísalo o usa otra tarjeta.",
+    "declineVelocity": "Tu banco bloqueó el cargo por demasiados intentos seguidos. Espera un poco o usa otra tarjeta.",
+    "declineProcessing": "Hubo un problema al procesar tu tarjeta. Intenta de nuevo o usa otra."
   },
   "done": {
     "title": "Todo listo",

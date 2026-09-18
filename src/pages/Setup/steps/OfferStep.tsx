@@ -25,6 +25,7 @@ import { track } from '@/lib/posthog'
 import { trackPurchase } from '@/lib/gtag'
 import { formatMXN } from '../offer/formatMXN'
 import { FalloDeCobro } from '../offer/falloDeCobro'
+import { textoDeRechazo } from '../offer/mensajeDeRechazo'
 import { expectedStandardFirstChargeCents } from '../offer/standardQuote'
 import { BACKEND_STEP_BY_ID } from '../stepRegistry'
 import { isOfferAvailable, type ActivatePlanBody, type ActivatePlanResult, type LaunchOfferState, type PlanQuote } from '../launchOffer.types'
@@ -198,8 +199,11 @@ export function OfferStep({
         const { status, code, message, details } = leerError(error)
 
         if (status === 402) {
-          const delBanco = (details as { message?: string } | undefined)?.message
-          const mensaje = delBanco || message || t('offer.declined', { defaultValue: 'Tu banco rechazó el cargo. Prueba con otra tarjeta.' })
+          // 🔴 NUNCA el `message` de Stripe: viene en inglés y esta pantalla está en español
+          // («Your card was declined.» en medio del resumen en español, medido el 18-sep).
+          const declineCode = (details as { declineCode?: string | null } | undefined)?.declineCode
+          const texto = textoDeRechazo(declineCode)
+          const mensaje = t(texto.clave, { defaultValue: texto.porDefecto })
           setDesenlace({ tipo: 'rechazo', mensaje })
           // Tarjeta nueva ⇒ SetupIntent nuevo.
           setRetryToken(n => n + 1)

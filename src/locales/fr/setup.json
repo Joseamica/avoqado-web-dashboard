@@ -221,7 +221,12 @@
     "changePlanNote": "Pour changer de forfait, allez dans Facturation.",
     "unavailable": "L’offre n’est plus disponible.",
     "changed": "L’offre a changé. Vérifiez le nouveau prix avant de continuer.",
-    "claimedUnavailable": "L’offre {{code}} n’est plus disponible."
+    "claimedUnavailable": "L’offre {{code}} n’est plus disponible.",
+    "declineInsufficientFunds": "Votre carte n'a pas assez de fonds. Essayez-en une autre.",
+    "declineExpiredCard": "Votre carte a expiré. Essayez-en une autre.",
+    "declineIncorrectCvc": "Le code de sécurité ne correspond pas. Vérifiez-le ou utilisez une autre carte.",
+    "declineVelocity": "Votre banque a bloqué le débit après trop de tentatives. Patientez ou utilisez une autre carte.",
+    "declineProcessing": "Un problème est survenu lors du traitement de votre carte. Réessayez ou utilisez-en une autre."
   },
   "done": {
     "title": "Tout est prêt",

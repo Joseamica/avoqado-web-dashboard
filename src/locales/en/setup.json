@@ -291,7 +291,12 @@
     "changePlanNote": "To change plans, go to Billing.",
     "unavailable": "The offer is no longer available.",
     "changed": "The offer changed. Check the new price before continuing.",
-    "claimedUnavailable": "The {{code}} offer is no longer available."
+    "claimedUnavailable": "The {{code}} offer is no longer available.",
+    "declineInsufficientFunds": "Your card doesn't have enough funds. Try another one.",
+    "declineExpiredCard": "Your card has expired. Try another one.",
+    "declineIncorrectCvc": "The security code doesn't match. Check it or use another card.",
+    "declineVelocity": "Your bank blocked the charge after too many attempts. Wait a bit or use another card.",
+    "declineProcessing": "There was a problem processing your card. Try again or use another one."
   },
   "done": {
     "title": "All set",

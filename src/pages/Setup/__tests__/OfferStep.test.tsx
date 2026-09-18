@@ -370,4 +370,38 @@ describe('OfferStep — sin números en el código', () => {
     // un solo intento: ningún reintento arregla una configuración rota
     expect(activatePlan).toHaveBeenCalledTimes(1)
   })
+
+  /**
+   * 🔴 Medido en vivo el 18-sep con la tarjeta de prueba que el banco rechaza: la pantalla, toda
+   * en español, mostró «Your card was declined.» — el `message` crudo de Stripe ganaba sobre el
+   * texto propio, que existía y nunca se veía.
+   */
+  it('🔴 un rechazo del banco se dice en ESPAÑOL, nunca con el texto en ingles de Stripe', async () => {
+    activatePlan.mockRejectedValue(
+      errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'insufficient_funds', message: 'Your card has insufficient funds.' } }),
+    )
+
+    const user = userEvent.setup()
+    pintar()
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+
+    expect(await screen.findByText(/fondos suficientes/i)).toBeInTheDocument()
+    expect(screen.queryByText(/insufficient funds/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/declined/i)).not.toBeInTheDocument()
+  })
+
+  it('un rechazo sin codigo conocido usa el generico en espanol, no el ingles', async () => {
+    activatePlan.mockRejectedValue(
+      errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'do_not_honor', message: 'Your card was declined.' } }),
+    )
+
+    const user = userEvent.setup()
+    pintar()
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+
+    expect(await screen.findByText(/Tu banco rechaz/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Your card was declined/i)).not.toBeInTheDocument()
+  })
 })
