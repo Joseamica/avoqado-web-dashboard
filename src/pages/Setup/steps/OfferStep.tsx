@@ -234,7 +234,14 @@ export function OfferStep({
           return { ok: false, mensaje }
         }
 
-        if (status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS') {
+        // 🔴 Un 503 NO siempre es ambigüedad de cobro. `PLAN_NOT_CONFIGURED` ocurre ANTES de que
+        // el servidor toque Stripe: no hay nada que confirmar, ningún reintento lo arregla, y
+        // prometer una confirmación que nunca llegará es mentirle a quien está pagando. Cae al
+        // camino de abajo, que muestra el mensaje del servidor («no se te cobró nada»).
+        const ambiguoDeCobro =
+          code !== 'PLAN_NOT_CONFIGURED' &&
+          (status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
+        if (ambiguoDeCobro) {
           if (reintentos.current >= MAX_REINTENTOS) {
             reintentos.current = 0
             setDesenlace({ tipo: 'sin-confirmar' })

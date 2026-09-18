@@ -348,4 +348,26 @@ describe('OfferStep — sin números en el código', () => {
     expect(fuente).not.toMatch(/\b69484\b/)
     expect(fuente).not.toMatch(/\b115884\b/)
   })
+
+  /**
+   * 🔴 Medido en vivo el 18-sep: con la Feature del plan sin sembrar, el cobro murió ANTES de
+   * tocar Stripe y la pantalla dijo «Tu pago se está confirmando». El front atrapaba CUALQUIER
+   * 503 como ambigüedad de cobro, así que prometía una confirmación que nunca iba a llegar y
+   * reintentaba tres veces algo que ningún reintento puede arreglar.
+   */
+  it('🔴 un 503 de CONFIGURACIÓN no es un pago ambiguo: dice el motivo real y NO reintenta', async () => {
+    activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_NOT_CONFIGURED'))
+
+    const user = userEvent.setup()
+    pintar()
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+
+    // el mensaje del servidor («no se te cobró nada») llega tal cual
+    expect(await screen.findByText(/mensaje-PLAN_NOT_CONFIGURED/)).toBeInTheDocument()
+    // y NUNCA promete una confirmación que no existe
+    expect(screen.queryByText(/se está confirmando|Confirmando tu pago/i)).not.toBeInTheDocument()
+    // un solo intento: ningún reintento arregla una configuración rota
+    expect(activatePlan).toHaveBeenCalledTimes(1)
+  })
 })

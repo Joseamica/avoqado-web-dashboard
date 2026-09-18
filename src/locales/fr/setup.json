@@ -211,7 +211,7 @@
     "seeOtherPlans": "Voir les autres forfaits",
     "otherPlansNote": "L’offre à {{promo}} ne s’applique pas aux autres forfaits.",
     "confirming": "Confirmation de votre paiement…",
-    "pending": "Votre paiement est en cours de confirmation ; revenez dans quelques minutes.",
+    "pending": "Nous confirmons votre paiement auprès de la banque. Nous vous écrirons dès que ce sera réglé ; vous ne serez pas débité deux fois.",
     "declined": "Votre banque a refusé le paiement. Essayez une autre carte.",
     "genericError": "Nous n’avons pas pu traiter le paiement. Réessayez.",
     "alreadyActivated": "Le forfait {{tier}} est déjà actif pour cet établissement.",

@@ -281,7 +281,7 @@
     "seeOtherPlans": "See other plans",
     "otherPlansNote": "The {{promo}} offer does not apply to other plans.",
     "confirming": "Confirming your payment…",
-    "pending": "Your payment is being confirmed; come back in a few minutes.",
+    "pending": "We're confirming your payment with the bank. We'll email you as soon as it clears; you won't be charged twice.",
     "declined": "Your bank declined the charge. Try another card.",
     "genericError": "We could not process the payment. Try again.",
     "alreadyActivated": "You already have the {{tier}} plan active in this business.",

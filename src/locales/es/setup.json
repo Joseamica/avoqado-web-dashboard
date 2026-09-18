@@ -281,7 +281,7 @@
     "seeOtherPlans": "Ver otros planes",
     "otherPlansNote": "La oferta de {{promo}} no aplica a otros planes.",
     "confirming": "Confirmando tu pago…",
-    "pending": "Tu pago se está confirmando; vuelve en unos minutos.",
+    "pending": "Estamos confirmando tu pago con el banco. Te avisamos por correo en cuanto quede; no se te cobrará dos veces.",
     "declined": "Tu banco rechazó el cargo. Prueba con otra tarjeta.",
     "genericError": "No pudimos procesar el pago. Intenta de nuevo.",
     "alreadyActivated": "Ya tienes el plan {{tier}} activo en este negocio.",
