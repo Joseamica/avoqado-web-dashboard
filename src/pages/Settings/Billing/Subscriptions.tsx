@@ -1,4 +1,5 @@
 import api from '@/api'
+import { planDePagoConcedido } from './planConcedido'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -88,7 +89,7 @@ export default function Subscriptions() {
     enabled: !!venueId && canViewBilling,
   })
   // Backend uses 'GRATIS' for the free tier; the catalog TierId uses 'FREE'.
-  const currentTier: TierId = planState?.planTier === 'GRATIS' ? 'FREE' : (planState?.planTier as TierId) ?? 'FREE'
+  const currentTier: TierId = planState?.planTier === 'GRATIS' ? 'FREE' : ((planState?.planTier as TierId) ?? 'FREE')
 
   const [upgradeTier, setUpgradeTier] = useState<TierId | null>(null)
 
@@ -157,19 +158,34 @@ export default function Subscriptions() {
     checkoutHandledRef.current = true
 
     if (checkoutParam === 'success') {
-      toast({ title: t('plan.checkoutSuccess') })
-      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
+      // 🔴 Volver de Stripe significa que el PAGO se completó, no que el plan se haya concedido:
+      // el servidor sólo lo concede si la suscripción está vigente. Afirmar «tu plan está activo»
+      // sin comprobarlo le decía al negocio que todo salió bien mientras seguía sin acceso
+      // (auditoría de Codex, 19-sep). Primero se acusa el pago; el veredicto llega tras refrescar.
+      toast({ title: t('plan.checkoutReceived') })
+      void Promise.all([
+        queryClient.refetchQueries({ queryKey: ['venuePlan', venueId] }),
+        queryClient.refetchQueries({ queryKey: ['venueFeatures', venueId] }),
+      ]).then(() => {
+        // `state`, no `planTier`: `planTier` dice 'PRO' aunque la fila esté inactiva.
+        const plan = queryClient.getQueryData<{ state?: string }>(['venuePlan', venueId])
+        toast({
+          title: planDePagoConcedido(plan?.state) ? t('plan.checkoutSuccess') : t('plan.checkoutPending'),
+        })
+      })
     } else if (checkoutParam === 'cancel') {
       toast({ title: t('plan.checkoutCanceled') })
     }
 
     // Strip the param from the URL without a navigation push
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev)
-      next.delete('checkout')
-      return next
-    }, { replace: true })
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev)
+        next.delete('checkout')
+        return next
+      },
+      { replace: true },
+    )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch payment methods (used by the superadmin trial flow to detect a saved card)
