@@ -1514,5 +1514,57 @@
       "reason": "Motivo",
       "unrecordedLabel": "Sin existencia"
     }
+  },
+  "wasteReports": {
+    "navTitle": "Mermas",
+    "title": "Mermas",
+    "subtitle": "Todo lo que tu equipo registró como merma: qué, cuánto, por qué y cuánto costó.",
+    "info": "«Registrado» es lo que se declaró. «Sin existencia» es la parte que no se pudo descontar porque no había. El costo sale del lote que se descontó; lo que no tiene costo conocido dice «Sin valorar».",
+    "searchPlaceholder": "Buscar por artículo o SKU",
+    "dateFilter": "Fecha",
+    "dateFilterTitle": "Filtrar por fecha",
+    "dateLabels": {
+      "last": "Últimos {{value}} {{unit}}",
+      "before": "Antes del {{date}}",
+      "after": "Después del {{date}}",
+      "between": "{{from}} – {{to}}",
+      "on": "El {{date}}",
+      "units": {
+        "hours": "horas",
+        "days": "días",
+        "weeks": "semanas",
+        "months": "meses"
+      }
+    },
+    "clearFilters": "Limpiar filtros",
+    "columns": {
+      "date": "Fecha",
+      "item": "Artículo",
+      "reason": "Motivo",
+      "quantity": "Registrado",
+      "cost": "Costo",
+      "reportedBy": "Registró",
+      "source": "Desde"
+    },
+    "deducted": "{{quantity}} descontados",
+    "unrecorded": "{{quantity}} sin existencia",
+    "unknownItem": "Artículo eliminado",
+    "cost": {
+      "partial": "Parcial: una parte no tiene costo conocido",
+      "unvalued": "Sin valorar",
+      "none": "Sin costo (no había existencia)"
+    },
+    "sources": {
+      "POS": "Punto de venta",
+      "DASHBOARD": "Panel web",
+      "MCP": "Asistente de IA"
+    },
+    "showing": "Mostrando {{shown}} de {{total}}",
+    "loadMore": "Cargar más",
+    "loadError": "No pudimos cargar las mermas.",
+    "retry": "Reintentar",
+    "emptyTitle": "Aún no hay mermas registradas",
+    "emptyBody": "Registra una merma desde Inventario → Ingredientes («Registrar merma») o desde Resumen de existencias. Aparecerá aquí con su motivo y su costo.",
+    "noResults": "Ninguna merma coincide con los filtros."
   }
 }

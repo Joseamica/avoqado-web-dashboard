@@ -1514,5 +1514,57 @@
       "reason": "Reason",
       "unrecordedLabel": "Not in stock"
     }
+  },
+  "wasteReports": {
+    "navTitle": "Waste",
+    "title": "Waste",
+    "subtitle": "Everything your team logged as waste: what, how much, why and what it cost.",
+    "info": "\"Logged\" is what was declared. \"Not in stock\" is the part that couldn't be deducted because there was none. The cost comes from the batch that was deducted; anything without a known cost shows \"Not valued\".",
+    "searchPlaceholder": "Search by item or SKU",
+    "dateFilter": "Date",
+    "dateFilterTitle": "Filter by date",
+    "dateLabels": {
+      "last": "Last {{value}} {{unit}}",
+      "before": "Before {{date}}",
+      "after": "After {{date}}",
+      "between": "{{from}} – {{to}}",
+      "on": "On {{date}}",
+      "units": {
+        "hours": "hours",
+        "days": "days",
+        "weeks": "weeks",
+        "months": "months"
+      }
+    },
+    "clearFilters": "Clear filters",
+    "columns": {
+      "date": "Date",
+      "item": "Item",
+      "reason": "Reason",
+      "quantity": "Logged",
+      "cost": "Cost",
+      "reportedBy": "Logged by",
+      "source": "From"
+    },
+    "deducted": "{{quantity}} deducted",
+    "unrecorded": "{{quantity}} not in stock",
+    "unknownItem": "Deleted item",
+    "cost": {
+      "partial": "Partial: part of it has no known cost",
+      "unvalued": "Not valued",
+      "none": "No cost (there was no stock)"
+    },
+    "sources": {
+      "POS": "Point of sale",
+      "DASHBOARD": "Web dashboard",
+      "MCP": "AI assistant"
+    },
+    "showing": "Showing {{shown}} of {{total}}",
+    "loadMore": "Load more",
+    "loadError": "We couldn't load the waste records.",
+    "retry": "Retry",
+    "emptyTitle": "No waste logged yet",
+    "emptyBody": "Log waste from Inventory → Ingredients (\"Log waste\") or from Stock overview. It will show up here with its reason and cost.",
+    "noResults": "No waste matches the filters."
   }
 }

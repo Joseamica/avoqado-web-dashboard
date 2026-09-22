@@ -338,6 +338,12 @@ export function AppSidebar({
     const inventorySubItems = [
       { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read', keywords: ['stock', 'materia prima', 'almacen'] },
       { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
+      {
+        title: t('inventory:wasteReports.navTitle', { defaultValue: 'Mermas' }),
+        url: 'inventory/waste',
+        permission: 'inventory:read',
+        keywords: ['merma', 'desperdicio', 'perdida', 'caducado', 'robo'],
+      },
       { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
       { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
       {

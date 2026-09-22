@@ -54,6 +54,7 @@ import {
   InventoryLayout,
   InventorySummary,
   InventoryHistory,
+  InventoryWastePage,
   LoyaltySettings,
   WalletCardDesigner,
   ReferralsSettings,
@@ -912,6 +913,7 @@ export function createVenueRoutes(): RouteObject[] {
                 { path: 'stock-overview', element: <InventorySummary /> },
                 { path: 'raw-materials', element: <RawMaterials /> },
                 { path: 'history', element: <InventoryHistory /> },
+                { path: 'waste', element: <InventoryWastePage /> },
                 // Stock counts — READ-ONLY audit view. Counts are created in the mobile POS apps.
                 { path: 'stock-counts', element: <StockCountsPage /> },
                 { path: 'stock-counts/:countId', element: <StockCountDetailPage /> },
