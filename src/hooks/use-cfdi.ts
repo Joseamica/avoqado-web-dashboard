@@ -308,6 +308,24 @@ export function useEmitRefundCreditNote() {
   })
 }
 
+/**
+ * Sustituir una factura equivocada. Devuelve el resultado COMPLETO al caller (no sólo un toast)
+ * porque lo que importa —si la original quedó cancelada o sigue vigente— cambia el texto que ve
+ * el negocio, y darlo por hecho sería mentirle.
+ */
+export function useReplaceCfdi() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ cfdiId }: { cfdiId: string }) => cfdiService.replaceCfdi(venueId!, cfdiId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
+    },
+    // Sin toast ni manejo de error aquí: el diálogo los pinta con el detalle del desenlace.
+  })
+}
+
 /** Cancel an issued CFDI with a SAT motivo (01-04). */
 export function useCancelCfdi() {
   const { venueId } = useCurrentVenue()

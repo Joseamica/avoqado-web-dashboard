@@ -4,7 +4,8 @@
     "description": "Comprobantes fiscales (CFDI) emitidos por esta sucursal.",
     "empty": "Aún no hay facturas emitidas.",
     "emptyHint": "Las facturas aparecerán aquí cuando se emitan a tus clientes.",
-    "loadError": "No se pudieron cargar las facturas."
+    "loadError": "No se pudieron cargar las facturas.",
+    "replacedByBadge": "Sustituida por {{folio}}"
   },
   "columns": {
     "folio": "Serie-Folio",
@@ -13,7 +14,8 @@
     "flow": "Flujo",
     "status": "Estatus",
     "date": "Fecha",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "replacedBy": "Sustituida por"
   },
   "flow": {
     "STAFF_B": "Personal",
@@ -39,7 +41,8 @@
   "actions": {
     "downloadXml": "Descargar XML",
     "downloadPdf": "Descargar PDF",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "replace": "Corregir importe (sustituir)"
   },
   "cancelDialog": {
     "title": "Cancelar factura",
@@ -305,7 +308,8 @@
       "NOT_PROVISIONED": "Primero conecta el emisor al PAC."
     },
     "logoError": "No se pudo subir el logo",
-    "downloadError": "No se pudo descargar el archivo"
+    "downloadError": "No se pudo descargar el archivo",
+    "replaceError": "No se pudo sustituir la factura"
   },
   "creditNote": {
     "title": "Nota de crédito (CFDI de Egreso)",
@@ -351,5 +355,24 @@
     "openInNewTab": "Abrir en una pestaña nueva",
     "done": "Ya firmé",
     "iframeTitle": "Firma de Carta Manifiesto"
+  },
+  "replaceDialog": {
+    "title": "Corregir el importe de esta factura",
+    "description": "Se emite una factura NUEVA con el importe correcto de la cuenta, relacionada a ésta, y se pide al SAT cancelar la actual. El importe lo calcula el servidor desde la cuenta: no se puede teclear.",
+    "current": "Factura actual",
+    "warningTitle": "Lo que va a pasar",
+    "step1": "1. Se timbra la factura corregida (queda relacionada a la actual).",
+    "step2": "2. Se pide cancelar la actual con motivo 01, apuntando a la nueva.",
+    "step3": "3. La cancelación puede tardar: el SAT a veces necesita que el cliente la acepte.",
+    "confirm": "Corregir y sustituir",
+    "cancel": "Mejor no",
+    "doneTitle": "Factura corregida emitida",
+    "newInvoice": "Factura nueva",
+    "cancelledOk": "La factura anterior quedó cancelada.",
+    "cancelPending": "La factura anterior TODAVÍA está vigente: la cancelación quedó en trámite ante el SAT. Revísala más tarde; la nueva ya es válida.",
+    "cancelRejected": "El SAT no aceptó cancelar la factura anterior, así que SIGUE VIGENTE. La nueva ya está timbrada — contacta a soporte para resolver la cancelación.",
+    "rejectedTitle": "No se sustituyó nada",
+    "rejectedIntro": "No se timbró ninguna factura. Por esto:",
+    "close": "Cerrar"
   }
 }
