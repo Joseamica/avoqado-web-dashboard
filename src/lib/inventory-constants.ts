@@ -142,6 +142,13 @@ export const MOVEMENT_TYPE_OPTIONS = [
   { value: 'RETURN', label: 'Return', description: 'Returned to supplier' },
 ] as const
 
+/**
+ * Tipos de movimiento que el servidor acepta para un PRODUCTO (enum `MovementType`). `SALE` no se
+ * ofrece: lo escriben las ventas. LOSS es la merma de productos.
+ */
+export const PRODUCT_MOVEMENT_TYPE_OPTIONS = ['ADJUSTMENT', 'PURCHASE', 'LOSS', 'TRANSFER', 'COUNT'] as const
+export type ProductMovementTypeOption = (typeof PRODUCT_MOVEMENT_TYPE_OPTIONS)[number]
+
 // ============================================================================
 // RAW MATERIAL CATEGORIES
 // ============================================================================

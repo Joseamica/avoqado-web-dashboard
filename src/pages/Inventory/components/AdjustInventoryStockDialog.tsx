@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -11,19 +11,26 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
-import { Loader2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-constants'
+import { PRODUCT_MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-constants'
+import { previewAfterWaste, type SelectableWasteReasonCode } from '@/lib/inventoryWaste'
 import type { Product } from '@/types'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useRecentMovements } from '@/hooks/useRecentMovements'
 import { RecentMovementsSection } from '@/components/inventory/RecentMovementsSection'
+import { WasteReasonSelect } from './WasteReasonSelect'
+import { useWasteSubmission } from './useWasteSubmission'
 
 interface AdjustInventoryStockDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   product: Product | null
 }
+
+type AdjustFormValues = AdjustInventoryStockDto & { wasteReason: SelectableWasteReasonCode | '' }
+
+const EMPTY_FORM: AdjustFormValues = { type: 'ADJUSTMENT', quantity: undefined, reason: '', reference: '', wasteReason: '' }
 
 export function AdjustInventoryStockDialog({ open, onOpenChange, product }: AdjustInventoryStockDialogProps) {
   const { t } = useTranslation('inventory')
@@ -34,13 +41,28 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   const { formatUnitWithQuantity } = useUnitTranslation()
   const [showLargeAdjustmentConfirm, setShowLargeAdjustmentConfirm] = useState(false)
 
-  // Fetch recent movements
-  const { movements, isLoading: isLoadingMovements, hasRecentMovements } = useRecentMovements({
+  const {
+    movements,
+    isLoading: isLoadingMovements,
+    hasRecentMovements,
+  } = useRecentMovements({
     venueId,
     productId: product?.id ?? null,
     enabled: open,
     limit: 5,
   })
+
+  const unitKey = (product?.unit || 'UNIT').toUpperCase()
+  const target = useMemo(() => (product ? { kind: 'product' as const, id: product.id, unit: unitKey } : null), [product, unitKey])
+  // La MERMA (LOSS) va por su propio envío: folio estable, sin bloqueo por existencia (D4).
+  const waste = useWasteSubmission({
+    venueId,
+    target,
+    type: 'LOSS',
+    send: payload => productInventoryApi.adjustStock(venueId, product!.id, payload),
+    onSuccess: () => onOpenChange(false),
+  })
+  const { restart } = waste
 
   const {
     register,
@@ -49,32 +71,22 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
     setValue,
     watch,
     formState: { errors },
-  } = useForm<AdjustInventoryStockDto>({
-    defaultValues: {
-      type: 'ADJUSTMENT',
-      quantity: undefined,
-      reason: '',
-      reference: '',
-    },
-  })
+  } = useForm<AdjustFormValues>({ defaultValues: EMPTY_FORM })
 
   const adjustmentType = watch('type')
   const quantity = watch('quantity')
+  const wasteReason = watch('wasteReason')
+  const isLoss = adjustmentType === 'LOSS'
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      reset({
-        type: 'ADJUSTMENT',
-        quantity: undefined,
-        reason: '',
-        reference: '',
-      })
+      reset(EMPTY_FORM)
       setShowLargeAdjustmentConfirm(false)
+      restart()
     }
-  }, [open, reset])
+  }, [open, reset, restart])
 
-  // Adjust stock mutation
+  // Todo lo que NO es merma sigue exactamente como antes.
   const adjustStockMutation = useMutation({
     mutationFn: (data: AdjustInventoryStockDto) => productInventoryApi.adjustStock(venueId, product!.id, data),
     onSuccess: () => {
@@ -85,7 +97,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
         variant: 'default',
       })
       onOpenChange(false)
-      reset()
+      reset(EMPTY_FORM)
     },
     onError: (error: any) => {
       toast({
@@ -96,25 +108,36 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
     },
   })
 
-  const onSubmit = (data: AdjustInventoryStockDto) => {
-    // Check for large adjustment confirmation
-    const isLargeAdjustment = currentStock > 0 && Math.abs(quantity || 0) > (currentStock * 0.5)
-
-    if (isLargeAdjustment && !showLargeAdjustmentConfirm) {
+  const onSubmit = (values: AdjustFormValues) => {
+    const isLargeAdjustmentNow = currentStock > 0 && Math.abs(quantity || 0) > currentStock * 0.5
+    if (isLargeAdjustmentNow && !showLargeAdjustmentConfirm) {
       setShowLargeAdjustmentConfirm(true)
       return
     }
-
+    if (values.type === 'LOSS') {
+      if (!values.wasteReason) return
+      waste.submit({
+        quantity: values.quantity,
+        reasonCode: values.wasteReason,
+        note: values.reason ?? '',
+        reference: values.reference ?? '',
+      })
+      return
+    }
+    const { wasteReason: _wasteReason, ...data } = values
     adjustStockMutation.mutate(data)
   }
 
   if (!product || !product.inventory) return null
 
-  const unitKey = (product.unit || 'UNIT').toUpperCase()
   const currentStock = Number(product.inventory.currentStock)
-  const newStock = currentStock + (quantity || 0)
-  const isNegativeStock = newStock < 0
-  const isLargeAdjustment = currentStock > 0 && Math.abs(quantity || 0) > (currentStock * 0.5)
+  const lossPreview = previewAfterWaste(currentStock, Math.abs(quantity || 0))
+  const newStock = isLoss ? lossPreview.newStock : currentStock + (quantity || 0)
+  // Un AJUSTE bajo cero sigue bloqueado (el servidor lo rechaza); la MERMA no (D4).
+  const isNegativeStock = !isLoss && newStock < 0
+  const isLargeAdjustment = currentStock > 0 && Math.abs(quantity || 0) > currentStock * 0.5
+  const isPending = adjustStockMutation.isPending || waste.isPending
+  const available = Math.max(0, currentStock)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,7 +149,6 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
           </DialogDescription>
         </DialogHeader>
 
-        {/* Recent Stock Movements */}
         <RecentMovementsSection
           movements={movements}
           isLoading={isLoadingMovements}
@@ -135,7 +157,6 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
         />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Current Stock Display */}
           <div className="p-4 rounded-lg bg-muted border border-border">
             <div className="flex items-center justify-between">
               <div>
@@ -153,26 +174,42 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             </div>
           </div>
 
-          {/* Adjustment Type */}
           <div className="space-y-2">
-            <Label htmlFor="type">{t('rawMaterials.movements.type')} *</Label>
-            <Select value={adjustmentType} onValueChange={value => setValue('type', value as any)}>
-              <SelectTrigger>
+            <Label htmlFor="adjustmentType">{t('rawMaterials.movements.type')} *</Label>
+            <Select
+              name="adjustmentType"
+              value={adjustmentType}
+              onValueChange={value => {
+                setValue('type', value as AdjustInventoryStockDto['type'])
+                setShowLargeAdjustmentConfirm(false)
+              }}
+            >
+              <SelectTrigger id="adjustmentType" data-tour="product-adjust-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MOVEMENT_TYPE_OPTIONS.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {t(`rawMaterials.movements.types.${type.value}`)}
+                {PRODUCT_MOVEMENT_TYPE_OPTIONS.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {t(`rawMaterials.movements.types.${type}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Quantity */}
+          {isLoss && (
+            <div className="space-y-2">
+              <Label htmlFor="productWasteReason">{t('waste.reason')} *</Label>
+              <WasteReasonSelect
+                id="productWasteReason"
+                value={wasteReason}
+                onChange={code => setValue('wasteReason', code, { shouldValidate: true })}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="quantity">{t('rawMaterials.movements.quantity')} *</Label>
+            <Label htmlFor="quantity">{isLoss ? t('waste.quantityWasted') : t('rawMaterials.movements.quantity')} *</Label>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -190,10 +227,11 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
                 type="number"
                 step="0.01"
                 placeholder="0"
+                data-tour="product-adjust-quantity"
                 {...register('quantity', {
                   required: true,
                   valueAsNumber: true,
-                  onChange: () => setShowLargeAdjustmentConfirm(false)
+                  onChange: () => setShowLargeAdjustmentConfirm(false),
                 })}
                 className="flex-1 text-center"
               />
@@ -210,13 +248,13 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {quantity > 0 ? tCommon('add') : quantity < 0 ? tCommon('subtract') : ''}{' '}
-              {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(quantity || 0, unitKey)}
+              {isLoss
+                ? `${tCommon('subtract')} ${Math.abs(quantity || 0).toFixed(2)} ${formatUnitWithQuantity(Math.abs(quantity || 0), unitKey)}`
+                : `${quantity > 0 ? tCommon('add') : quantity < 0 ? tCommon('subtract') : ''} ${Math.abs(quantity || 0).toFixed(2)} ${formatUnitWithQuantity(quantity || 0, unitKey)}`}
             </p>
             {errors.quantity && <p className="text-xs text-destructive">{t('validation.required')}</p>}
           </div>
 
-          {/* Warning for negative stock */}
           {isNegativeStock && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -224,29 +262,49 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
                 {t('validation.cannotReduceBelowZero', {
                   amount: currentStock.toFixed(2),
                   unit: formatUnitWithQuantity(currentStock, unitKey),
-                  minimum: (-currentStock).toFixed(2)
+                  minimum: (-currentStock).toFixed(2),
                 })}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Large Adjustment Warning */}
+          {isLoss && lossPreview.unrecorded > 0 && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                {t('waste.unrecordedWarning', {
+                  available: `${available} ${formatUnitWithQuantity(available, unitKey)}`,
+                  unrecorded: `${lossPreview.unrecorded} ${formatUnitWithQuantity(lossPreview.unrecorded, unitKey)}`,
+                })}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isLoss && waste.ambiguous && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{t('waste.ambiguousHint')}</AlertDescription>
+            </Alert>
+          )}
+
           {isLargeAdjustment && !isNegativeStock && (
             <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/50">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
               <AlertDescription className="text-orange-800 dark:text-orange-200">
                 {showLargeAdjustmentConfirm ? (
                   <>
-                    <strong>{t('validation.confirmLargeAdjustment')}</strong> {t('validation.confirmLargeAdjustmentMessage', {
+                    <strong>{t('validation.confirmLargeAdjustment')}</strong>{' '}
+                    {t('validation.confirmLargeAdjustmentMessage', {
                       amount: Math.abs(quantity || 0).toFixed(2),
                       unit: formatUnitWithQuantity(quantity || 0, unitKey),
-                      percentage: (Math.abs(quantity || 0) / currentStock * 100).toFixed(0)
+                      percentage: ((Math.abs(quantity || 0) / currentStock) * 100).toFixed(0),
                     })}
                   </>
                 ) : (
                   <>
-                    <strong>{t('validation.warning')}</strong> {t('validation.largeAdjustmentWarning', {
-                      percentage: (Math.abs(quantity || 0) / currentStock * 100).toFixed(0)
+                    <strong>{t('validation.warning')}</strong>{' '}
+                    {t('validation.largeAdjustmentWarning', {
+                      percentage: ((Math.abs(quantity || 0) / currentStock) * 100).toFixed(0),
                     })}
                   </>
                 )}
@@ -254,29 +312,32 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             </Alert>
           )}
 
-          {/* Reason */}
           <div className="space-y-2">
-            <Label htmlFor="reason">{t('rawMaterials.movements.reason')}</Label>
-            <Textarea id="reason" rows={2} {...register('reason')} placeholder={t('rawMaterials.movements.reason')} />
+            <Label htmlFor="reason">{isLoss ? t('waste.notes') : t('rawMaterials.movements.reason')}</Label>
+            <Textarea
+              id="reason"
+              rows={2}
+              {...register('reason')}
+              placeholder={isLoss ? t('waste.notesPlaceholder') : t('rawMaterials.movements.reason')}
+            />
           </div>
 
-          {/* Reference */}
           <div className="space-y-2">
             <Label htmlFor="reference">{t('rawMaterials.movements.reference')}</Label>
             <Input id="reference" {...register('reference')} placeholder={t('rawMaterials.movements.reference')} />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={adjustStockMutation.isPending}>
-              {t('cancel')}
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+              {tCommon('cancel')}
             </Button>
-            <Button type="submit" disabled={adjustStockMutation.isPending || isNegativeStock}>
-              {adjustStockMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isPending || isNegativeStock || (isLoss && !wasteReason)}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {showLargeAdjustmentConfirm && isLargeAdjustment && !isNegativeStock
                 ? tCommon('confirmAndSave')
-                : adjustStockMutation.isPending
-                ? tCommon('saving')
-                : t('save')}
+                : isPending
+                  ? tCommon('saving')
+                  : t('save')}
             </Button>
           </DialogFooter>
         </form>

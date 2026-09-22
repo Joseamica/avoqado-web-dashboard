@@ -153,6 +153,7 @@
         "USAGE": "Usage",
         "ADJUSTMENT": "Adjustment",
         "SPOILAGE": "Spoilage",
+        "LOSS": "Waste",
         "TRANSFER": "Transfer",
         "RETURN": "Return",
         "COUNT": "Stock Count"
