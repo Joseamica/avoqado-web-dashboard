@@ -1567,6 +1567,7 @@
     "emptyTitle": "No waste logged yet",
     "emptyBody": "Log waste from Inventory → Ingredients (\"Log waste\") or from Stock overview. It will show up here with its reason and cost.",
     "noResults": "No waste matches the filters.",
-    "occurredAt": "Happened on {{date}}"
+    "occurredAt": "Happened on {{date}}",
+    "refresh": "Refresh"
   }
 }

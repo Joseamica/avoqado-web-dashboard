@@ -95,12 +95,20 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
     },
     onError: (error: unknown) => {
       /**
-       * Sólo un ÉXITO confirmado resuelve la duda. Un rechazo CLARO posterior —403 de permiso o de
-       * plan, 409, 422— no prueba que la petición ANTERIOR no se haya aplicado: si borrara el aviso,
-       * `restart` estrenaría folio al reabrir y la siguiente captura idéntica descontaría por
-       * segunda vez. Por eso aquí sólo se MARCA, nunca se limpia.
+       * Un rechazo CLARO —403 de permiso o de plan, 422— no prueba que la petición ANTERIOR no se
+       * haya aplicado: si borrara el aviso, `restart` estrenaría folio al reabrir y la siguiente
+       * captura idéntica descontaría por segunda vez. Por eso, por norma, aquí sólo se MARCA.
+       *
+       * La ÚNICA excepción es `WASTE_VOIDED`: el servidor afirma que ese folio quedó anulado, así
+       * que sí prueba que la merma no se aplicó. Es un desenlace conocido, y conservar la duda
+       * dejaría el folio atrapado — el texto manda «cierra y regístralo de nuevo», y al reabrir
+       * volvería el mismo 409 para siempre.
        */
       if (isAmbiguousWasteFailure(error)) markAmbiguous(sent.current?.target.id ?? null)
+      else if (wasteErrorKey(error) === 'waste.errors.voided') {
+        keyState.current = initialWasteKeyState()
+        markAmbiguous(null)
+      }
       const key = wasteErrorKey(error)
       const serverMessage = (error as { response?: { data?: { message?: unknown } } } | null)?.response?.data?.message
       toast({

@@ -1567,6 +1567,7 @@
     "emptyTitle": "Aún no hay mermas registradas",
     "emptyBody": "Registra una merma desde Inventario → Ingredientes («Registrar merma») o desde Resumen de existencias. Aparecerá aquí con su motivo y su costo.",
     "noResults": "Ninguna merma coincide con los filtros.",
-    "occurredAt": "Ocurrió el {{date}}"
+    "occurredAt": "Ocurrió el {{date}}",
+    "refresh": "Actualizar"
   }
 }

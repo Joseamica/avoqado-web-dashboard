@@ -391,4 +391,30 @@ describe('WasteLogDialog', () => {
       onlineManager.setOnline(true)
     }
   })
+
+  // Ronda 2 de Codex, P2: `WASTE_VOIDED` es un estado TERMINAL — el servidor dice que ese folio
+  // quedó anulado, así que PRUEBA que la merma no se aplicó. Es el único rechazo que resuelve la
+  // duda: si se conservara el folio, el texto diría «cierra y regístralo de nuevo» y al reabrir
+  // volvería el mismo 409 para siempre.
+  it('un 409 WASTE_VOIDED sí cierra la duda: al reabrir se puede registrar con un folio nuevo', async () => {
+    adjustStock
+      .mockRejectedValueOnce({ message: 'Network Error' })
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'WASTE_VOIDED', message: 'anulado' } } })
+      .mockResolvedValueOnce(ok({ reportId: 'r9', declared: '3', deducted: '3', unrecorded: '0' }))
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '3' })
+    await user.click(boton())
+    expect(await screen.findByText(es.waste.ambiguousHint)).toBeInTheDocument()
+
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.queryByText(es.waste.ambiguousHint)).toBeNull())
+
+    reabrir()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '3' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(3))
+    expect(folio(2)).not.toBe(folio(0))
+  })
 })

@@ -347,10 +347,19 @@ function InventoryWasteList() {
           footer={
             <div className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground">
               <span>{t('wasteReports.showing', { shown: reports.length, total })}</span>
-              {query.hasNextPage && (
+              {query.hasNextPage ? (
                 <Button variant="outline" size="sm" onClick={() => query.fetchNextPage()} disabled={query.isFetchingNextPage}>
                   {t('wasteReports.loadMore')}
                 </Button>
+              ) : (
+                // Se acabaron las páginas pero faltan filas: una merma que entró mientras se leía
+                // desplazó la lista y quedó ARRIBA, fuera de alcance. Pedir otra página no la trae;
+                // volver a empezar, sí. Sin esto, esos registros no se podrían ver nunca.
+                reports.length < total && (
+                  <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching}>
+                    {t('wasteReports.refresh')}
+                  </Button>
+                )
               )}
             </div>
           }

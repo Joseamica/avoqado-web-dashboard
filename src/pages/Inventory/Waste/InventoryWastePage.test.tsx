@@ -207,4 +207,33 @@ describe('InventoryWastePage', () => {
     expect(r.getByText(es.wasteReports.cost.none)).toBeInTheDocument()
     expect(es.wasteReports.cost.none).not.toMatch(/sin costo/i)
   })
+
+  // Ronda 2 de Codex, P2: al deduplicar, una merma que entra entre página y página deja el conteo
+  // corto (51 de 52) y el servidor ya no ofrece más páginas — la fila nueva, que está al PRINCIPIO,
+  // queda fuera de alcance. La regla de datos acotados exige que se pueda llegar a todos los
+  // registros: cuando falten filas y no haya más páginas, la pantalla ofrece ACTUALIZAR.
+  it('si quedan filas fuera de alcance ofrece actualizar, y actualizar las trae', async () => {
+    const primeras = Array.from({ length: 50 }, (_, i) => reporte({ id: `a${i}`, rawMaterial: { name: `Insumo ${i}`, sku: `S${i}` } }))
+    let entroUnaNueva = false
+    list.mockImplementation((_venueId: string, q: { page: number }) => {
+      if (q.page === 1) {
+        return Promise.resolve(
+          entroUnaNueva
+            ? pagina([reporte({ id: 'z', rawMaterial: { name: 'El 52', sku: 'Z' } }), ...primeras.slice(0, 49)], 1, 52)
+            : pagina(primeras, 1, 51),
+        )
+      }
+      entroUnaNueva = true
+      return Promise.resolve(pagina([reporte({ id: 'a49', rawMaterial: { name: 'Insumo 49', sku: 'S49' } })], 2, 52))
+    })
+    const user = userEvent.setup()
+    renderPage()
+    expect(await screen.findByText('Mostrando 50 de 51')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cargar más' }))
+    // 50 únicas de 52 y el servidor ya no ofrece más páginas: sin este botón no habría forma de ver la nueva.
+    expect(await screen.findByText('Mostrando 50 de 52')).toBeInTheDocument()
+    const actualizar = await screen.findByRole('button', { name: es.wasteReports.refresh })
+    await user.click(actualizar)
+    expect(await screen.findByText('El 52')).toBeInTheDocument()
+  })
 })
