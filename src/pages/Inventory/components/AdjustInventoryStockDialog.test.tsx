@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
@@ -49,13 +49,21 @@ const producto = (currentStock: number) =>
 
 function renderDialog(stock: number) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  const utils = render(
+  const product = producto(stock)
+  const ui = (open: boolean) => (
     <QueryClientProvider client={qc}>
-      <AdjustInventoryStockDialog open onOpenChange={() => {}} product={producto(stock)} />
-    </QueryClientProvider>,
+      <AdjustInventoryStockDialog open={open} onOpenChange={() => {}} product={product} />
+    </QueryClientProvider>
   )
+  const utils = render(ui(true))
   // El Dialog de Radix se monta en un portal (document.body), fuera de `container`.
-  return { guardar: () => utils.baseElement.querySelector('button[type="submit"]') as HTMLButtonElement }
+  const guardar = () => utils.baseElement.querySelector('button[type="submit"]') as HTMLButtonElement
+  // Como en ProductStock.tsx: el diálogo NO se desmonta al cerrarse; sólo cambia `open`.
+  const reabrir = () => {
+    utils.rerender(ui(false))
+    utils.rerender(ui(true))
+  }
+  return { guardar, reabrir, formulario: () => guardar().closest('form') as HTMLFormElement }
 }
 const cantidad = (value: string) => fireEvent.change(screen.getByRole('spinbutton'), { target: { value } })
 
@@ -149,5 +157,57 @@ describe('AdjustInventoryStockDialog', () => {
     await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
     await new Promise(r => setTimeout(r, 50))
     expect(adjustStock).toHaveBeenCalledTimes(1)
+  })
+
+  // Ronda 1, hallazgo 1: una merma de 0 no es merma. `-Math.abs(0)` viaja como 0, el servidor no la
+  // manda al libro de merma (exige cantidad NEGATIVA) sino al ajuste viejo: escribe un LOSS de 0 sin
+  // folio (cada reintento suma otra fila) y la pantalla diría «Merma registrada» sin haber registrado nada.
+  it('LOSS con cantidad 0 no se puede guardar, y dice por qué', async () => {
+    const user = userEvent.setup()
+    const { guardar } = renderDialog(10)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'adjustmentType' }), 'LOSS')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'productWasteReason' }), 'DROPPED')
+    cantidad('0')
+    expect(guardar()).toBeDisabled()
+    expect(screen.getByText(es.waste.quantityMinimum)).toBeInTheDocument()
+  })
+
+  it('LOSS con cantidad 0 no manda nada aunque el formulario se envíe', async () => {
+    adjustStock.mockResolvedValue({ data: { message: 'ok', data: { currentStock: 10, minimumStock: 0, reservedStock: 0 } } })
+    const user = userEvent.setup()
+    const { formulario } = renderDialog(10)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'adjustmentType' }), 'LOSS')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'productWasteReason' }), 'DROPPED')
+    cantidad('0')
+    // Enviar el formulario directo (no por el botón, que ya está deshabilitado): así se prueba el candado
+    // de `onSubmit`, que es lo que queda si alguien vuelve a habilitar el botón.
+    await act(async () => {
+      fireEvent.submit(formulario())
+      await new Promise(r => setTimeout(r, 50))
+    })
+    expect(adjustStock).not.toHaveBeenCalled()
+  })
+
+  it('un AJUSTE con cantidad 0 se sigue pudiendo guardar, como hoy', () => {
+    const { guardar } = renderDialog(10)
+    cantidad('0')
+    expect(guardar()).toBeEnabled()
+    expect(screen.queryByText(es.waste.quantityMinimum)).not.toBeInTheDocument()
+  })
+
+  // Ronda 1, hallazgo 2: al reabrir, el formulario vuelve a «Ajuste». Si el aviso sólo se viera con
+  // «Merma» elegida, la persona podría capturar un ajuste −4 sin enterarse de que la merma pudo entrar.
+  it('fallo ambiguo en una merma → cerrar → reabrir: el aviso sigue a la vista aunque el tipo vuelva a Ajuste', async () => {
+    adjustStock.mockRejectedValueOnce({ message: 'Network Error' })
+    const user = userEvent.setup()
+    const { guardar, reabrir } = renderDialog(10)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'adjustmentType' }), 'LOSS')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'productWasteReason' }), 'DROPPED')
+    cantidad('1')
+    await user.click(guardar())
+    expect(await screen.findByText(es.waste.ambiguousHint)).toBeInTheDocument()
+    reabrir()
+    expect((screen.getByRole('combobox', { name: 'adjustmentType' }) as HTMLSelectElement).value).toBe('ADJUSTMENT')
+    expect(screen.getByText(es.waste.ambiguousHint)).toBeInTheDocument()
   })
 })

@@ -32,6 +32,13 @@ type AdjustFormValues = AdjustInventoryStockDto & { wasteReason: SelectableWaste
 
 const EMPTY_FORM: AdjustFormValues = { type: 'ADJUSTMENT', quantity: undefined, reason: '', reference: '', wasteReason: '' }
 
+/**
+ * ¿Hay algo que registrar como merma? Una merma de 0 (o vacía, que llega como NaN) no es merma: el
+ * servidor sólo manda al libro de merma una cantidad NEGATIVA, así que 0 caería al ajuste viejo sin
+ * folio y la pantalla diría «Merma registrada» sin haber registrado nada. Sólo aplica a LOSS.
+ */
+const hasWasteQuantity = (quantity: number | undefined) => Math.abs(quantity || 0) > 0
+
 export function AdjustInventoryStockDialog({ open, onOpenChange, product }: AdjustInventoryStockDialogProps) {
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
@@ -115,7 +122,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
       return
     }
     if (values.type === 'LOSS') {
-      if (!values.wasteReason) return
+      if (!values.wasteReason || !hasWasteQuantity(values.quantity)) return
       waste.submit({
         quantity: values.quantity,
         reasonCode: values.wasteReason,
@@ -138,6 +145,9 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   const isLargeAdjustment = currentStock > 0 && Math.abs(quantity || 0) > currentStock * 0.5
   const isPending = adjustStockMutation.isPending || waste.isPending
   const available = Math.max(0, currentStock)
+  // Merma sin cantidad: el botón no se habilita. Si la persona ESCRIBIÓ 0, se le dice por qué.
+  const lossWithoutQuantity = isLoss && !hasWasteQuantity(quantity)
+  const lossQuantityIsZero = isLoss && quantity === 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -253,6 +263,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
                 : `${quantity > 0 ? tCommon('add') : quantity < 0 ? tCommon('subtract') : ''} ${Math.abs(quantity || 0).toFixed(2)} ${formatUnitWithQuantity(quantity || 0, unitKey)}`}
             </p>
             {errors.quantity && <p className="text-xs text-destructive">{t('validation.required')}</p>}
+            {lossQuantityIsZero && <p className="text-xs text-destructive">{t('waste.quantityMinimum')}</p>}
           </div>
 
           {isNegativeStock && (
@@ -280,7 +291,9 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             </Alert>
           )}
 
-          {isLoss && waste.ambiguous && (
+          {/* Con CUALQUIER tipo elegido: al reabrir, el formulario vuelve a «Ajuste», y la persona tiene
+              que saber que la merma anterior pudo haber entrado antes de capturar otra cosa. */}
+          {waste.ambiguous && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{t('waste.ambiguousHint')}</AlertDescription>
@@ -331,7 +344,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {tCommon('cancel')}
             </Button>
-            <Button type="submit" disabled={isPending || isNegativeStock || (isLoss && !wasteReason)}>
+            <Button type="submit" disabled={isPending || isNegativeStock || (isLoss && !wasteReason) || lossWithoutQuantity}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {showLargeAdjustmentConfirm && isLargeAdjustment && !isNegativeStock
                 ? tCommon('confirmAndSave')
