@@ -52,8 +52,11 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
   const { formatUnitWithQuantity } = useUnitTranslation()
   const keyState = useRef<WasteKeyState>(initialWasteKeyState())
   const inFlight = useRef(false)
-  /** Artículo del envío en vuelo (el `target` puede cambiar antes de que llegue la respuesta). */
-  const sentItem = useRef<string | null>(null)
+  /**
+   * Negocio y artículo del ÚLTIMO envío: el diálogo puede cambiar de artículo antes de que llegue la
+   * respuesta, y la respuesta habla del enviado (refrescar, unidad del aviso, a quién se le marca la duda).
+   */
+  const sent = useRef<{ venueId: string; target: WasteTarget } | null>(null)
   /** Artículo cuyo último envío quedó SIN CONFIRMAR (red o 5xx), o null. `restart` lo lee. */
   const ambiguousItem = useRef<string | null>(null)
   const [ambiguousFor, setAmbiguousFor] = useState<string | null>(null)
@@ -67,7 +70,8 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
     onSuccess: response => {
       // Registrada de verdad: este folio ya no puede volver a viajar con otra merma.
       keyState.current = initialWasteKeyState()
-      if (venueId && target) invalidateWasteQueries(queryClient, venueId, target)
+      const sentTarget = sent.current?.target ?? null
+      if (sent.current) invalidateWasteQueries(queryClient, sent.current.venueId, sent.current.target)
       const waste = readWasteSummary(response.data)
       const unrecorded = waste ? Number(waste.unrecorded) : 0
       toast({
@@ -76,7 +80,7 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
           waste && unrecorded > 0
             ? t('waste.loggedWithUnrecorded', {
                 quantity: formatWasteQuantity(waste.unrecorded, getIntlLocale(i18n.language)),
-                unit: formatUnitWithQuantity(unrecorded, target?.unit ?? ''),
+                unit: formatUnitWithQuantity(unrecorded, sentTarget?.unit ?? ''),
               })
             : t('waste.loggedDesc'),
       })
@@ -84,7 +88,7 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
       onSuccess()
     },
     onError: (error: unknown) => {
-      markAmbiguous(isAmbiguousWasteFailure(error) ? sentItem.current : null)
+      markAmbiguous(isAmbiguousWasteFailure(error) ? (sent.current?.target.id ?? null) : null)
       const key = wasteErrorKey(error)
       const serverMessage = (error as { response?: { data?: { message?: unknown } } } | null)?.response?.data?.message
       toast({
@@ -104,21 +108,22 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
       if (!venueId || !target || inFlight.current) return
       keyState.current = keyForSubmission(keyState.current, wasteFingerprint(target.id, input))
       inFlight.current = true
-      sentItem.current = target.id
+      sent.current = { venueId, target }
       mutate(buildWasteAdjustment(type, input, keyState.current.key))
     },
     [venueId, target, type, mutate],
   )
 
   /**
-   * Al abrir el formulario otra vez. Si el último envío quedó SIN CONFIRMAR, se conservan el folio,
-   * su huella y el aviso: el servidor pudo haberla registrado, y volver a capturar lo mismo tiene que
-   * ser el reintento que el aviso promete, no una segunda merma. Lo distinto sigue estrenando folio
-   * (`keyForSubmission` compara la huella, que incluye el artículo). En cualquier otro caso: folio nuevo.
+   * Al abrir el formulario otra vez. Si hay un envío EN VUELO o el último quedó SIN CONFIRMAR, no se
+   * toca nada — folio, huella, aviso ni el candado de envío: el servidor pudo haberla registrado (o
+   * estar registrándola), y volver a capturar lo mismo tiene que ser el reintento que el aviso
+   * promete, no una segunda merma. El desenlace lo deciden `onSuccess` / `onError` / `onSettled`.
+   * Lo distinto sigue estrenando folio (`keyForSubmission` compara la huella, que incluye el
+   * artículo). En cualquier otro caso: folio nuevo y sin aviso.
    */
   const restart = useCallback(() => {
-    inFlight.current = false
-    if (ambiguousItem.current !== null) return
+    if (inFlight.current || ambiguousItem.current !== null) return
     keyState.current = initialWasteKeyState()
     markAmbiguous(null)
   }, [markAmbiguous])

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
@@ -53,10 +53,25 @@ function renderDialog() {
     rerender(ui(false, rawMaterial))
     rerender(ui(true, rawMaterial))
   }
-  return { onOpenChange, reabrir }
+  return { onOpenChange, reabrir, qc }
 }
 
 const folio = (i: number) => adjustStock.mock.calls[i][2].idempotencyKey
+
+/** Una respuesta que la prueba resuelve o rechaza cuando quiere: la red «colgada» de axios sin timeout. */
+function respuestaColgada() {
+  let resolver: (value: unknown) => void = () => {}
+  let rechazar: (reason: unknown) => void = () => {}
+  const promesa = new Promise((res, rej) => {
+    resolver = res
+    rechazar = rej
+  })
+  return {
+    promesa,
+    resolver: (value: unknown) => act(async () => resolver(value)),
+    rechazar: (reason: unknown) => act(async () => rechazar(reason)),
+  }
+}
 
 // La cantidad entra con `fireEvent.change`: teclear «1.5» letra por letra en un <input type="number">
 // pasa por «1.», que jsdom sanea a vacío. Motivo y nota sí van con userEvent.
@@ -231,6 +246,67 @@ describe('WasteLogDialog', () => {
     await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
     expect(adjustStock.mock.calls[1][1]).toBe('rm2')
     expect(folio(1)).not.toBe(folio(0))
+  })
+
+  // Hallazgo 3: cerrar el diálogo (Escape o la X) con la petición EN VUELO y reabrirlo no puede
+  // estrenar folio. Mientras no hay desenlace, el folio del envío es el único que puede viajar con lo mismo.
+  it('reabrir con la petición en vuelo → falla por red → capturar lo mismo reusa el folio ENVIADO', async () => {
+    const red = respuestaColgada()
+    adjustStock.mockImplementationOnce(() => red.promesa).mockResolvedValueOnce(ok())
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    reabrir()
+    await red.rechazar({ message: 'Network Error' })
+    expect(await screen.findByText(es.waste.ambiguousHint)).toBeInTheDocument()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await waitFor(() => expect(boton()).toBeEnabled())
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(folio(1)).toBe(folio(0))
+  })
+
+  it('en vuelo → abrir OTRO artículo → falla por red → volver al primero: el folio enviado se conserva', async () => {
+    const red = respuestaColgada()
+    adjustStock.mockImplementationOnce(() => red.promesa).mockResolvedValueOnce(ok())
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    reabrir(leche)
+    await red.rechazar({ message: 'Network Error' })
+    // El aviso es del aguacate: en la leche no aparece.
+    expect(screen.queryByText(es.waste.ambiguousHint)).not.toBeInTheDocument()
+    reabrir(aguacate)
+    expect(screen.getByText(es.waste.ambiguousHint)).toBeInTheDocument()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await waitFor(() => expect(boton()).toBeEnabled())
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(adjustStock.mock.calls[1][1]).toBe('rm1')
+    expect(folio(1)).toBe(folio(0))
+  })
+
+  // Hallazgo 4: el éxito refresca y describe el artículo ENVIADO, no el que está abierto al llegar la respuesta.
+  it('un éxito que llega con OTRO artículo abierto refresca y describe el artículo enviado', async () => {
+    const red = respuestaColgada()
+    adjustStock.mockImplementationOnce(() => red.promesa)
+    const user = userEvent.setup()
+    const { reabrir, qc } = renderDialog()
+    const invalidate = vi.spyOn(qc, 'invalidateQueries')
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '5' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    reabrir(leche)
+    await red.resolver(ok({ reportId: 'r1', declared: '5', deducted: '2', unrecorded: '3' }))
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Merma registrada', description: expect.stringContaining('3 kilogram') })),
+    )
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['stockMovements', 'v1', 'rm1'] })
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['stockMovements', 'v1', 'rm2'] })
   })
 
   it('un 409 WASTE_VOIDED se explica con su texto, no con el genérico', async () => {
