@@ -984,7 +984,8 @@
       "retryable": "Someone else was changing this item at the same time. Please try again.",
       "tooLarge": "The quantity or its cost is too large to be recorded.",
       "ambiguous": "We couldn't confirm whether the waste was recorded."
-    }
+    },
+    "unrecordedPreviewShort": "{{quantity}} will be recorded as \"not in stock\""
   },
   "common": {
     "actions": "Actions",
@@ -1552,7 +1553,7 @@
     "cost": {
       "partial": "Partial: part of it has no known cost",
       "unvalued": "Not valued",
-      "none": "No cost (there was no stock)"
+      "none": "Not valued: nothing was deducted"
     },
     "sources": {
       "POS": "Point of sale",
@@ -1565,6 +1566,7 @@
     "retry": "Retry",
     "emptyTitle": "No waste logged yet",
     "emptyBody": "Log waste from Inventory → Ingredients (\"Log waste\") or from Stock overview. It will show up here with its reason and cost.",
-    "noResults": "No waste matches the filters."
+    "noResults": "No waste matches the filters.",
+    "occurredAt": "Happened on {{date}}"
   }
 }

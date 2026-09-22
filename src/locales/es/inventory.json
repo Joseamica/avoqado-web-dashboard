@@ -984,7 +984,8 @@
       "retryable": "Alguien más estaba moviendo este artículo al mismo tiempo. Intenta de nuevo.",
       "tooLarge": "La cantidad o su costo es demasiado grande para registrarse.",
       "ambiguous": "No pudimos confirmar si la merma se registró."
-    }
+    },
+    "unrecordedPreviewShort": "{{quantity}} quedarán registrados como «sin existencia»"
   },
   "common": {
     "actions": "Acciones",
@@ -1552,7 +1553,7 @@
     "cost": {
       "partial": "Parcial: una parte no tiene costo conocido",
       "unvalued": "Sin valorar",
-      "none": "Sin costo (no había existencia)"
+      "none": "Sin valorar: no se descontó nada"
     },
     "sources": {
       "POS": "Punto de venta",
@@ -1565,6 +1566,7 @@
     "retry": "Reintentar",
     "emptyTitle": "Aún no hay mermas registradas",
     "emptyBody": "Registra una merma desde Inventario → Ingredientes («Registrar merma») o desde Resumen de existencias. Aparecerá aquí con su motivo y su costo.",
-    "noResults": "Ninguna merma coincide con los filtros."
+    "noResults": "Ninguna merma coincide con los filtros.",
+    "occurredAt": "Ocurrió el {{date}}"
   }
 }

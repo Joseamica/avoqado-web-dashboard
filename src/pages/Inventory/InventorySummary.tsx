@@ -910,8 +910,10 @@ function StockEditPopover({
             </div>
           )}
 
+          {/* Es una vista PREVIA: todavía no se guardó nada. El texto va en futuro — el del
+              resultado («quedaron registrados») sólo se usa cuando el servidor ya respondió. */}
           {isLossAction && lossPreview.unrecorded > 0 && (
-            <p className="text-xs text-muted-foreground">{t('waste.unrecordedShort', { quantity: lossPreview.unrecorded })}</p>
+            <p className="text-xs text-muted-foreground">{t('waste.unrecordedPreviewShort', { quantity: lossPreview.unrecorded })}</p>
           )}
 
           {/* Only show cost/supplier fields for RECEIVE and RETURN */}

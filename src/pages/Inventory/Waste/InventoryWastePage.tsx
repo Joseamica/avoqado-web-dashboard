@@ -43,7 +43,7 @@ function InventoryWasteList() {
   const { t, i18n } = useTranslation('inventory')
   const locale = getIntlLocale(i18n.language)
   const { venue, venueId } = useCurrentVenue()
-  const { formatDateTime, venueTimezone } = useVenueDateTime()
+  const { formatDate, formatDateTime, venueTimezone } = useVenueDateTime()
   const { formatUnitWithQuantity } = useUnitTranslation()
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -60,9 +60,32 @@ function InventoryWasteList() {
     initialPageParam: 1,
     getNextPageParam: last => (last.page * last.pageSize < last.total ? last.page + 1 : undefined),
     enabled: !!venueId,
+    // Lista pesada (`bounded-data-and-query-load.md`): sin esto, volver a la pestaña vuelve a pedir
+    // TODAS las páginas cargadas, cada una con su conteo. Aquí no hace falta tiempo real: son
+    // declaraciones de merma ya registradas.
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
-  const reports = useMemo<WasteReport[]>(() => query.data?.pages.flatMap(p => p.items) ?? [], [query.data])
-  const total = query.data?.pages[0]?.total ?? 0
+  /**
+   * El servidor pagina por DESPLAZAMIENTO: si entra una merma entre una página y la siguiente, la
+   * siguiente repite una fila ya vista. Se deduplica por folio (la misma regla) y el total es el
+   * ÚLTIMO que dijo el servidor, no el de la primera página, que ya está vieja.
+   */
+  const reports = useMemo<WasteReport[]>(() => {
+    const vistos = new Set<string>()
+    const filas: WasteReport[] = []
+    for (const p of query.data?.pages ?? []) {
+      for (const r of p.items) {
+        if (vistos.has(r.id)) continue
+        vistos.add(r.id)
+        filas.push(r)
+      }
+    }
+    return filas
+  }, [query.data])
+  const paginas = query.data?.pages
+  const total = paginas && paginas.length > 0 ? paginas[paginas.length - 1].total : 0
 
   // Paginación manual: la página la manda el servidor; DataTable NO debe volver a rebanar las filas
   // (mismo motivo que en StockCountsPage: sin esto, de la 21 en adelante no habría forma de verlas).
@@ -76,7 +99,18 @@ function InventoryWasteList() {
         id: 'createdAt',
         accessorKey: 'createdAt',
         header: t('wasteReports.columns.date'),
-        cell: ({ row }) => <div className="text-sm">{formatDateTime(row.original.createdAt)}</div>,
+        cell: ({ row }) => {
+          // La fecha que CUENTA es la de llegada al servidor (spec L6). La del aparato se muestra
+          // sólo cuando cae en otro día: es lo que distingue «se tiró el 21» de «entró el 22».
+          const ocurrio = row.original.clientOccurredAt
+          const otroDia = ocurrio ? formatDate(ocurrio) !== formatDate(row.original.createdAt) : false
+          return (
+            <div className="text-sm">
+              {formatDateTime(row.original.createdAt)}
+              {otroDia && <p className="text-xs text-muted-foreground">{t('wasteReports.occurredAt', { date: formatDate(ocurrio as string) })}</p>}
+            </div>
+          )
+        },
       },
       {
         id: 'item',
@@ -168,7 +202,7 @@ function InventoryWasteList() {
         ),
       },
     ],
-    [t, locale, formatDateTime, formatUnitWithQuantity],
+    [t, locale, formatDate, formatDateTime, formatUnitWithQuantity],
   )
 
   const dateLabel = useCallback(

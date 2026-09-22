@@ -65,8 +65,14 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
     setAmbiguousFor(itemId)
   }, [])
 
+  /**
+   * El envío lleva SU PROPIO `send`, el del artículo que se capturó. `send` es una closure sobre el
+   * artículo abierto, y `mutationFn` se resuelve con las opciones MÁS RECIENTES: si la mutación
+   * queda pausada (sin conexión) y el diálogo se reabre con otro artículo, al reanudar el POST
+   * saldría para el artículo equivocado con el payload del original.
+   */
   const mutation = useMutation({
-    mutationFn: (payload: WasteAdjustment<T>) => send(payload),
+    mutationFn: ({ payload, send: enviar }: { payload: WasteAdjustment<T>; send: UseWasteSubmissionOptions<T>['send'] }) => enviar(payload),
     onSuccess: response => {
       // Registrada de verdad: este folio ya no puede volver a viajar con otra merma.
       keyState.current = initialWasteKeyState()
@@ -88,7 +94,13 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
       onSuccess()
     },
     onError: (error: unknown) => {
-      markAmbiguous(isAmbiguousWasteFailure(error) ? (sent.current?.target.id ?? null) : null)
+      /**
+       * Sólo un ÉXITO confirmado resuelve la duda. Un rechazo CLARO posterior —403 de permiso o de
+       * plan, 409, 422— no prueba que la petición ANTERIOR no se haya aplicado: si borrara el aviso,
+       * `restart` estrenaría folio al reabrir y la siguiente captura idéntica descontaría por
+       * segunda vez. Por eso aquí sólo se MARCA, nunca se limpia.
+       */
+      if (isAmbiguousWasteFailure(error)) markAmbiguous(sent.current?.target.id ?? null)
       const key = wasteErrorKey(error)
       const serverMessage = (error as { response?: { data?: { message?: unknown } } } | null)?.response?.data?.message
       toast({
@@ -109,9 +121,9 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
       keyState.current = keyForSubmission(keyState.current, wasteFingerprint(target.id, input))
       inFlight.current = true
       sent.current = { venueId, target }
-      mutate(buildWasteAdjustment(type, input, keyState.current.key))
+      mutate({ payload: buildWasteAdjustment(type, input, keyState.current.key), send })
     },
-    [venueId, target, type, mutate],
+    [venueId, target, type, send, mutate],
   )
 
   /**

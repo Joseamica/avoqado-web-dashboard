@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import es from '@/locales/es/inventory.json'
 import type { RawMaterial } from '@/services/inventory.service'
@@ -335,5 +335,60 @@ describe('WasteLogDialog', () => {
     })
     expect(adjustStock).not.toHaveBeenCalled()
     expect(screen.getByText(es.waste.quantityMinimum)).toBeInTheDocument()
+  })
+
+  // Auditoría de Codex, P1-1: un fallo CLARO posterior no prueba que la petición ANTERIOR no se haya
+  // aplicado. Si se borra la duda, `restart` estrena folio al reabrir y la siguiente captura idéntica
+  // descuenta por segunda vez. Sólo un ÉXITO confirmado resuelve la duda.
+  it('un rechazo claro DESPUÉS de una duda no borra la duda: el folio sigue siendo el mismo', async () => {
+    adjustStock
+      .mockRejectedValueOnce({ message: 'Network Error' })
+      .mockRejectedValueOnce({ response: { status: 403, data: { message: 'sin permiso' } } })
+      .mockResolvedValueOnce(ok({ reportId: 'r1', declared: '3', deducted: '3', unrecorded: '0' }))
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '3' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText(es.waste.ambiguousHint)).toBeInTheDocument()
+
+    // Reintento idéntico: ahora falla con un 403 (permiso o plan que cambió).
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(screen.getByText(es.waste.ambiguousHint)).toBeInTheDocument()
+
+    // Cerrar, reabrir y volver a capturar LO MISMO tiene que ser el reintento que el aviso promete.
+    reabrir()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '3' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(3))
+    expect(folio(2)).toBe(folio(0))
+  })
+
+  // Auditoría de Codex, P1-2: si TanStack pausa el envío (sin conexión) y entre tanto el diálogo
+  // cambia de artículo, al reanudar `mutationFn` no puede usar el `send` del artículo NUEVO: el
+  // POST saldría para el artículo equivocado con el payload del original.
+  it('un envío que se reanuda tras cambiar de artículo sigue yendo al artículo ENVIADO', async () => {
+    adjustStock.mockResolvedValue(ok({ reportId: 'r1', declared: '2', deducted: '2', unrecorded: '0' }))
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    // Sin conexión: TanStack PAUSA la mutación y no llama a `mutationFn` hasta que vuelva la red.
+    onlineManager.setOnline(false)
+    try {
+      await capturar(user, { motivo: 'EXPIRED', cantidad: '2' })
+      await user.click(boton())
+      expect(adjustStock).not.toHaveBeenCalled()
+      // Mientras está pausada, el diálogo se reabre con OTRO artículo (leche, rm2).
+      reabrir(leche)
+      await act(async () => {
+        onlineManager.setOnline(true)
+        await new Promise(r => setTimeout(r, 80))
+      })
+      await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+      // El POST tiene que salir con el artículo que se capturó (aguacate, rm1), no con el abierto.
+      expect(adjustStock.mock.calls[0][1]).toBe('rm1')
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 })
