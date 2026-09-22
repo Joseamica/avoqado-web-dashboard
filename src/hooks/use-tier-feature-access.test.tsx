@@ -9,7 +9,7 @@ vi.mock('@/hooks/use-access', () => ({ useAccess: () => mockUseAccess() }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => mockUseCurrentVenue() }))
 vi.mock('@tanstack/react-query', () => ({ useQuery: (options: unknown) => mockUseQuery(options) }))
 
-import { useTierFeatureAccess } from './use-tier-feature-access'
+import { planTierQueryKey, useTierFeatureAccess } from './use-tier-feature-access'
 
 describe('useTierFeatureAccess entitlement resolution', () => {
   beforeEach(() => {
@@ -27,7 +27,7 @@ describe('useTierFeatureAccess entitlement resolution', () => {
 
   it('keeps existing fail-open access but does not mark an unresolved tier request as resolved', () => {
     mockUseQuery.mockImplementation((options: { queryKey: string[] }) => {
-      if (options.queryKey[0] === 'venuePlanTier') {
+      if (options.queryKey[2] === 'planTier') {
         return { data: undefined, isLoading: false, isSuccess: false }
       }
       return { data: { activeFeatures: [] }, isLoading: false, isSuccess: true }
@@ -41,7 +41,7 @@ describe('useTierFeatureAccess entitlement resolution', () => {
 
   it('reports a positive resolved denial for a normal FREE venue', () => {
     mockUseQuery.mockImplementation((options: { queryKey: string[] }) => {
-      if (options.queryKey[0] === 'venuePlanTier') {
+      if (options.queryKey[2] === 'planTier') {
         return { data: { tier: 'FREE', exempt: false }, isLoading: false, isSuccess: true }
       }
       return { data: { activeFeatures: [] }, isLoading: false, isSuccess: true }
@@ -65,5 +65,22 @@ describe('useTierFeatureAccess entitlement resolution', () => {
 
     expect(result.current.hasAccess).toBe(true)
     expect(result.current.isResolved).toBe(true)
+  })
+  it('🔴 R4-8: con grantedFeatureCodes, una concesión vieja en la caché de /features NO gana', () => {
+    mockUseQuery.mockImplementation((options: { queryKey: string[] }) => {
+      if (options.queryKey[2] === 'planTier') {
+        return { data: { tier: 'FREE', exempt: false, grantedFeatureCodes: [] }, isLoading: false, isSuccess: true }
+      }
+      // Caché de antes: la suelta de CFDI seguía activa. La consulta está deshabilitada, pero sus datos quedan.
+      return { data: { activeFeatures: [{ feature: { code: 'CFDI' }, grantedByBasePlan: false }] }, isLoading: false, isSuccess: true }
+    })
+
+    const { result } = renderHook(() => useTierFeatureAccess('CFDI'))
+
+    expect(result.current.hasAccess).toBe(false)
+  })
+
+  it('🔴 R4-8: la clave del plan-tier cuelga de venueFeatures (invalidar compras o bajas la refresca)', () => {
+    expect(planTierQueryKey('v1').slice(0, 2)).toEqual(['venueFeatures', 'v1'])
   })
 })

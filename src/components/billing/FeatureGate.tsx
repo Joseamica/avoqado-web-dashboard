@@ -74,7 +74,22 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
                   <p className="text-sm font-medium">{t('featureGate.planPrice', { tier: tierName, price: fmtMxn(def.priceMonthly) })}</p>
                 )}
                 {precioSuelto != null && (
-                  <p className="text-xs text-muted-foreground">{t('featureGate.alonePrice', { price: fmtMxn(precioSuelto) })}</p>
+                  <p className="text-xs text-muted-foreground">
+                    <span>{t('featureGate.alonePrice', { price: fmtMxn(precioSuelto) })}</span>
+                    {/* 🔴 La compra suelta está CERRADA por ahora (founder, 21-sep, opción A): se contrata con
+                        nuestro equipo. Sólo quien puede contratar ve el enlace; a los demás, «pídesela al dueño». */}
+                    {canPurchase && (
+                      <>
+                        {' · '}
+                        <a
+                          className="underline underline-offset-2 hover:text-foreground"
+                          href={`mailto:hola@avoqado.io?subject=${encodeURIComponent(t('featureGate.aloneContactSubject', { feature }))}`}
+                        >
+                          {t('featureGate.aloneContact')}
+                        </a>
+                      </>
+                    )}
+                  </p>
                 )}
               </div>
               {/* Ver precios (`read`) no es poder comprar (`manage`): sin el segundo, a quién pedírselo. */}

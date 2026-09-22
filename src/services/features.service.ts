@@ -170,6 +170,12 @@ export interface VenuePlanTierInfo {
   grandfathered: boolean
   /** grandfathered OR demo (LIVE_DEMO / TRIAL) → exempt from ALL tier gating. */
   exempt: boolean
+  /**
+   * Códigos de las funciones SUELTAS vigentes del negocio (sólo códigos: ni precios ni Stripe).
+   * Opcional porque un servidor anterior no lo manda. Existe para que un empleado sin permiso de
+   * facturación no vea «contrátala» sobre algo ya pagado (Codex, 21-sep, #10).
+   */
+  grantedFeatureCodes?: string[]
 }
 
 /** Get the venue's plan-tier gating signal (readable by every role). */

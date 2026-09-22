@@ -303,6 +303,9 @@
     "actions": {
       "skip": "Passer Pour l'Instant",
       "skipDescription": "Vous pouvez activer les fonctionnalités plus tard depuis le tableau de bord"
+    },
+    "closed": {
+      "body": "Les fonctionnalités supplémentaires (inventaire, fidélité, commandes en ligne…) s’activent avec notre équipe. Une fois terminé, écrivez-nous à hola@avoqado.io."
     }
   },
   "kycDocuments": {

@@ -2,6 +2,14 @@
 import type { LucideIcon } from 'lucide-react'
 import { Sparkles, Star, Crown, Building2 } from 'lucide-react'
 
+/**
+ * 🔴 Venta de funciones SUELTAS cerrada (founder, 21-sep-2026, opción A: «hasta que quede todo bien
+ * hecho»). Espejo de `ventaSueltaAbierta()` del servidor, que es quien de verdad la cierra (responde 409
+ * `ALA_CARTE_SALES_CLOSED`). Aquí sólo decide qué se OFRECE: se ve el precio y se contrata escribiéndonos.
+ * Reabrir es cambiarlo en los dos repos con el rediseño de la compra.
+ */
+export const VENTA_SUELTA_ABIERTA = false
+
 export type TierId = 'FREE' | 'PRO' | 'PREMIUM' | 'ENTERPRISE'
 export const TIER_ORDER: TierId[] = ['FREE', 'PRO', 'PREMIUM', 'ENTERPRISE']
 

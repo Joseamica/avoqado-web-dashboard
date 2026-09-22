@@ -335,6 +335,9 @@
     "actions": {
       "skip": "Skip for Now",
       "skipDescription": "You can enable features later from the dashboard"
+    },
+    "closed": {
+      "body": "Add-on features (inventory, loyalty, online ordering…) are set up with our team. When you finish, write to hola@avoqado.io and we will turn them on."
     }
   },
   "kycDocuments": {

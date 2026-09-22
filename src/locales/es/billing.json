@@ -154,7 +154,9 @@
     "seeAll": "Ver todos los planes",
     "planPrice": "El plan {{tier}} cuesta {{price}}/mes + IVA",
     "alonePrice": "O contrátala sola por {{price}}/mes",
-    "askOwner": "Pídesela al dueño de la cuenta para activarla."
+    "askOwner": "Pídesela al dueño de la cuenta para activarla.",
+    "aloneContact": "escríbenos para contratarla",
+    "aloneContactSubject": "Quiero contratar la función {{feature}}"
   },
   "activeSubscriptions": {
     "title": "Suscripciones Activas",

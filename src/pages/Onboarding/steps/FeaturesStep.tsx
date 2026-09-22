@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { NavigationButtons } from '../components/NavigationButtons'
 import { PaymentRequiredDialog } from '../components/PaymentRequiredDialog'
 import { Info } from 'lucide-react'
+import { VENTA_SUELTA_ABIERTA } from '@/config/plan-catalog'
 
 export interface FeaturesStepData {
   features: string[]
@@ -79,6 +80,21 @@ export function FeaturesStep({ onNext, onPrevious, isFirstStep, onSave, initialV
     // User chose to continue without features
     onSave({ features: [] })
     onNext()
+  }
+
+  // 🔴 Venta suelta CERRADA (founder, 21-sep): el paso se queda —el avance guardado depende del orden
+  // de los pasos— pero ya no vende. Explica cómo contratarlas y sigue sin funciones, aunque traiga
+  // alguna elegida de antes.
+  if (!VENTA_SUELTA_ABIERTA) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">{t('features.title')}</h2>
+          <p className="mt-2 text-muted-foreground">{t('features.closed.body')}</p>
+        </div>
+        <NavigationButtons onPrevious={onPrevious} onContinue={handleContinueWithoutFeatures} isFirstStep={isFirstStep} />
+      </div>
+    )
   }
 
   return (

@@ -327,6 +327,34 @@ describe('FeatureGate', () => {
     expect(screen.queryByText(/featureGate\.alonePrice/)).not.toBeInTheDocument()
   })
 
+  // -------------------------------------------------------------------------
+  // Venta suelta CERRADA (founder, 21-sep, opción A): se ve el precio, se contrata escribiéndonos
+  // -------------------------------------------------------------------------
+  it('🔴 junto al precio suelto, quien puede contratar ve «escríbenos» (la compra suelta es por soporte)', () => {
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 89, stripePriceId: 'price_cfdi' }] },
+      isLoading: false,
+    })
+
+    renderGate()
+
+    const enlace = screen.getByRole('link', { name: 'featureGate.aloneContact' })
+    expect(enlace.getAttribute('href')).toMatch(/^mailto:hola@avoqado\.io/)
+  })
+
+  it('quien sólo puede LEER facturación ve el precio suelto pero NO el «escríbenos»', () => {
+    mockCan.mockImplementation((permiso: string) => permiso === 'billing:subscriptions:read')
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 89, stripePriceId: 'price_cfdi' }] },
+      isLoading: false,
+    })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.alonePrice:$89')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'featureGate.aloneContact' })).not.toBeInTheDocument()
+  })
+
   it('🔴 quien sólo puede LEER facturación ve los precios pero NO el botón de contratar', async () => {
     // El backend le negaría la compra: mostrarle el botón es prometerle algo que no puede hacer.
     mockCan.mockImplementation((permiso: string) => permiso === 'billing:subscriptions:read')
@@ -340,5 +368,32 @@ describe('FeatureGate', () => {
     expect(screen.getByText('featureGate.planPrice:Premium:$1,699')).toBeInTheDocument()
     expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
     expect(screen.getByText('featureGate.askOwner')).toBeInTheDocument()
+  })
+
+  // -------------------------------------------------------------------------
+  // Hallazgo #10 (Codex, 21-sep): el empleado veía «contrátala» sobre algo ya pagado
+  // -------------------------------------------------------------------------
+  it('🔴 un MANAGER sin permiso de facturación NO ve paywall sobre una función que el negocio pagó suelta', () => {
+    // Sus compras sueltas sólo viajaban en /features (billing:subscriptions:read ⇒ 403 para él) y el
+    // candado caía al tier FREE. Ahora llegan en /plan-tier, que lee todo rol.
+    mockCan.mockReturnValue(false)
+    mockUseAccess.mockReturnValue({ can: mockCan, canFeature: mockCanFeature, role: 'MANAGER', isWhiteLabelEnabled: false })
+    mockUseQuery.mockReturnValue({ data: { ...makePlanState('GRATIS'), grantedFeatureCodes: ['CFDI'] }, isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText(/featureGate\.tierTag/)).not.toBeInTheDocument()
+  })
+
+  it('con los códigos en /plan-tier, el candado ya NO pide /features (a un empleado le daba 403 en cada pantalla)', () => {
+    mockCan.mockReturnValue(false)
+    mockUseQuery.mockReturnValue({ data: { ...makePlanState('GRATIS'), grantedFeatureCodes: [] }, isLoading: false })
+
+    renderGate()
+
+    const llamadasAFeatures = mockUseQuery.mock.calls.filter(([opts]) => opts?.queryKey?.[0] === 'venueFeatures' && opts.queryKey[2] !== 'planTier')
+    expect(llamadasAFeatures.length).toBeGreaterThan(0)
+    expect(llamadasAFeatures.every(([opts]) => opts.enabled === false)).toBe(true)
   })
 })

@@ -335,6 +335,9 @@
     "actions": {
       "skip": "Saltar por Ahora",
       "skipDescription": "Puedes activar funciones más tarde desde el panel"
+    },
+    "closed": {
+      "body": "Las funciones adicionales (inventario, lealtad, pedidos en línea…) se contratan con nuestro equipo. Cuando termines, escríbenos a hola@avoqado.io y te las activamos."
     }
   },
   "kycDocuments": {

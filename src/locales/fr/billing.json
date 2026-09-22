@@ -385,6 +385,8 @@
     "tierTag": "Inclus dans {{tier}}",
     "body": "Cette fonction fait partie du plan {{tier}}. Passez au niveau supérieur pour l'utiliser.",
     "upgrade": "Passer à {{tier}}",
-    "seeAll": "Voir tous les plans"
+    "seeAll": "Voir tous les plans",
+    "aloneContact": "écrivez-nous pour l’ajouter",
+    "aloneContactSubject": "Je souhaite ajouter la fonctionnalité {{feature}}"
   }
 }

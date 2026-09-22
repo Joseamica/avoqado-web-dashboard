@@ -154,7 +154,9 @@
     "seeAll": "See all plans",
     "planPrice": "The {{tier}} plan is {{price}}/mo + VAT",
     "alonePrice": "Or get just this one for {{price}}/mo",
-    "askOwner": "Ask the account owner to turn it on."
+    "askOwner": "Ask the account owner to turn it on.",
+    "aloneContact": "write to us to add it",
+    "aloneContactSubject": "I want to add the {{feature}} feature"
   },
   "activeSubscriptions": {
     "title": "Active Subscriptions",

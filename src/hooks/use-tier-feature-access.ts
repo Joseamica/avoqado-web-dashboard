@@ -37,6 +37,14 @@ export interface TierFeatureAccess {
  * for every non-white-label venue, so they can't gate normal venues by tier — and a pure tier check
  * would wrongly paywall grandfathered à-la-carte grants. This hook handles both.
  */
+/**
+ * 🔴 La clave del plan-tier cuelga de `['venueFeatures', venueId]` A PROPÓSITO (Codex, 21-sep, R4-8).
+ * TanStack invalida por PREFIJO: así las 16 pantallas que ya invalidan `venueFeatures` tras comprar,
+ * cancelar o cambiar de plan refrescan también el plan-tier, sin tocar cada una. Con una clave propia
+ * (`venuePlanTier`) el paywall seguía mostrando lo de antes hasta 5 min después de una compra o baja.
+ */
+export const planTierQueryKey = (venueId: string | undefined) => ['venueFeatures', venueId, 'planTier'] as const
+
 export function useVenueTier(): {
   venueTier: TierId
   hasFeatureAccess: (feature: string) => boolean
@@ -58,7 +66,7 @@ export function useVenueTier(): {
   // (`billing:subscriptions:read`, returns price + Stripe ids), so sub-ADMIN staff
   // (MANAGER/CASHIER/WAITER/…) couldn't read grandfathered/tier and were wrongly paywalled.
   const { data: planTierInfo, isLoading: planLoading, isSuccess: planResolved } = useQuery({
-    queryKey: ['venuePlanTier', venueId],
+    queryKey: planTierQueryKey(venueId),
     queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: gateEnabled,
     staleTime: 5 * 60 * 1000,
@@ -68,19 +76,31 @@ export function useVenueTier(): {
   // plan tier — matches the backend's "explicit grant wins" rule. NOTE: this endpoint is still
   // ADMIN/OWNER-only, so for sub-ADMIN roles it 403s and grantedCodes is empty — they rely on the
   // tier/exempt signal above (à-la-carte-only grants are rare and being folded into tiers).
+  //
+  // 🔴 (Codex, 21-sep, #10) Si `/plan-tier` ya trae `grantedFeatureCodes` —que leen TODOS los
+  // roles— este pedido sobra: para un empleado sin facturación sólo producía un 403 en cada
+  // pantalla y lo dejaba en tier FREE sobre algo ya pagado. Queda como respaldo para un servidor
+  // anterior que todavía no manda el campo.
+  const servidorTraeConcesiones = planTierInfo?.grantedFeatureCodes !== undefined
   const { data: featureStatus, isLoading: featLoading } = useQuery({
     queryKey: ['venueFeatures', venueId],
     queryFn: () => getVenueFeatures(venueId!),
-    enabled: gateEnabled,
+    enabled: gateEnabled && planTierInfo !== undefined && !servidorTraeConcesiones,
     staleTime: 5 * 60 * 1000,
   })
 
   // Only REAL own grants (à-la-carte / grandfathered) count here — NOT base-plan-granted synthetic
   // features. Those are handled by the tier check below; counting them would bypass tiering (and the
   // backend's basePlanGranted list isn't tier-aware yet, so it wrongly includes Premium-only codes).
+  // 🔴 Cuando el servidor manda `grantedFeatureCodes`, ÉSA es la respuesta y nada más (Codex, 21-sep,
+  // R4-8). Deshabilitar la otra consulta NO vacía su caché: unirlas dejaba ganar una concesión vieja
+  // (una suelta ya cancelada) sobre la denegación fresca de `/plan-tier`.
   const grantedCodes = useMemo(
-    () => new Set((featureStatus?.activeFeatures ?? []).filter(f => !f.grantedByBasePlan).map(f => f.feature.code)),
-    [featureStatus],
+    () =>
+      servidorTraeConcesiones
+        ? new Set(planTierInfo?.grantedFeatureCodes ?? [])
+        : new Set((featureStatus?.activeFeatures ?? []).filter(f => !f.grantedByBasePlan).map(f => f.feature.code)),
+    [servidorTraeConcesiones, planTierInfo, featureStatus],
   )
 
   const venueTier: TierId = planTierInfo?.tier ?? 'FREE'
@@ -121,14 +141,14 @@ export function useVenueTier(): {
  * because they bypass gates), this always reflects the venue's actual subscription tier.
  * Sources from the all-roles GET /plan-tier endpoint (features:read), NOT GET /plan
  * (billing:subscriptions:read — ADMIN/OWNER only) — otherwise the switcher tier badges 403 and
- * vanish for sub-ADMIN staff (MANAGER/CASHIER/…). Shares the `['venuePlanTier', venueId]` query
+ * vanish for sub-ADMIN staff (MANAGER/CASHIER/…). Shares the `planTierQueryKey(venueId)` query
  * cache, so the active venue's badge reuses the gate's fetch.
  *
  * @param enabled gate the network call (e.g. only fetch list rows while the switcher popover is open).
  */
 export function useVenuePlanTier(venueId: string | undefined, enabled = true): { tier: TierId | null; isLoading: boolean } {
   const { data, isLoading } = useQuery({
-    queryKey: ['venuePlanTier', venueId],
+    queryKey: planTierQueryKey(venueId),
     queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: enabled && !!venueId,
     staleTime: 5 * 60 * 1000,
