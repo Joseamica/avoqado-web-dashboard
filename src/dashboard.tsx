@@ -98,6 +98,7 @@ const routeKeyMap: Record<string, string> = {
   recipes: 'sidebar:routes.recipes',
   modifiers: 'sidebar:routes.modifiers',
   'stock-counts': 'sidebar:routes.stockCounts',
+  waste: 'sidebar:routes.waste',
   counts: 'sidebar:routes.stockCounts',
   transfers: 'sidebar:routes.transfers',
   transferencias: 'sidebar:routes.transfers',
