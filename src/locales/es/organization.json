@@ -1156,6 +1156,8 @@
       "INVENTORY_STOCK_ADJUSTED": "Existencias ajustadas",
       "INVENTORY_TRANSFER_CREATED": "Traspaso de inventario creado",
       "INVENTORY_TRANSFER_STATUS_UPDATED": "Estado del traspaso actualizado",
+      "INVENTORY_WASTE_LOGGED": "Merma registrada",
+      "INVENTORY_WASTE_VOIDED": "Registro de merma anulado",
       "INVITATION_ACCEPTED": "Invitación aceptada",
       "ITEM_CATEGORY_CREATED": "Categoría de artículo creada",
       "ITEM_CATEGORY_DELETED": "Categoría de artículo eliminada",

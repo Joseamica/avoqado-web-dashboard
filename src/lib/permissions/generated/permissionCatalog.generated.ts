@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 72 categorías · 236 permisos · derivado de avoqado-server · huella 5a8e046fda87c846.
+ * 72 categorías · 238 permisos · derivado de avoqado-server · huella 5342ab90c72af3f1.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -91,6 +91,7 @@ export const PERMISSION_CATEGORIES = {
       'payments:routing-read',
       'payments:routing-manage',
       'payments:resolve-no-instrument',
+      'payments:reconcile-uncharged',
       'payment:create-manual',
     ],
   },
@@ -150,7 +151,15 @@ export const PERMISSION_CATEGORIES = {
   },
   INVENTORY: {
     label: 'Inventory',
-    permissions: ['inventory:read', 'inventory:create', 'inventory:update', 'inventory:delete', 'inventory:adjust', 'inventory:org-manage'],
+    permissions: [
+      'inventory:read',
+      'inventory:create',
+      'inventory:update',
+      'inventory:delete',
+      'inventory:adjust',
+      'inventory:log-waste',
+      'inventory:org-manage',
+    ],
   },
   INVENTORY_TRANSFERS: {
     label: 'Inter-venue Transfers',
@@ -472,4 +481,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '5a8e046fda87c846'
+export const CATALOG_DIGEST = '5342ab90c72af3f1'

@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella db4334c53baafd01.
- * ADMIN 107 · CASHIER 39 · HOST 18 · KITCHEN 9 · MANAGER 127 · OWNER 112 · SUPERADMIN 5 · VIEWER 16 · WAITER 43
+ * 9 roles · huella 44337936e744029c.
+ * ADMIN 108 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 129 · OWNER 113 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -47,6 +47,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'receipt-layout:*',
     'payments:*',
     'payments:resolve-no-instrument',
+    'payments:reconcile-uncharged',
     'tender-types:*',
     'area-tickets:*',
     'scale:*',
@@ -134,6 +135,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'delivery-channels:request',
   ],
   CASHIER: [
+    'inventory:log-waste',
     'home:read',
     'menu:read',
     'orders:read',
@@ -142,6 +144,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'payments:read',
     'payments:create',
     'payments:refund',
+    'payments:reconcile-uncharged',
     'area-tickets:checkout',
     'estimates:create',
     'shifts:read',
@@ -206,6 +209,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:connect_self',
   ],
   MANAGER: [
+    'inventory:log-waste',
     'cash-drawer:view-expected',
     'class-sessions:read-assigned',
     'attendance:read',
@@ -248,6 +252,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'payments:create',
     'payments:refund',
     'payments:resolve-no-instrument',
+    'payments:reconcile-uncharged',
     'payment-link:read',
     'payment-link:create',
     'payment-link:update',
@@ -361,6 +366,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'estimates:create',
     'payments:*',
     'payments:resolve-no-instrument',
+    'payments:reconcile-uncharged',
     'tender-types:*',
     'area-tickets:*',
     'scale:*',
@@ -474,6 +480,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'features:read',
   ],
   WAITER: [
+    'inventory:log-waste',
     'class-sessions:read-assigned',
     'home:read',
     'menu:read',
@@ -520,4 +527,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'db4334c53baafd01'
+export const DEFAULT_PERMISSIONS_DIGEST = '44337936e744029c'

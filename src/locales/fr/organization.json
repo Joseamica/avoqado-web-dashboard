@@ -695,6 +695,8 @@
       "INVENTORY_STOCK_ADJUSTED": "Stock ajusté",
       "INVENTORY_TRANSFER_CREATED": "Transfert de stock créé",
       "INVENTORY_TRANSFER_STATUS_UPDATED": "Statut du transfert mis à jour",
+      "INVENTORY_WASTE_LOGGED": "Perte enregistrée",
+      "INVENTORY_WASTE_VOIDED": "Enregistrement de perte annulé",
       "INVITATION_ACCEPTED": "Invitation acceptée",
       "ITEM_CATEGORY_CREATED": "Catégorie d'articles créée",
       "ITEM_CATEGORY_DELETED": "Catégorie d'articles supprimée",
