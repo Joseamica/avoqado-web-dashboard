@@ -319,4 +319,21 @@ describe('WasteLogDialog', () => {
       expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: es.waste.errors.voided, variant: 'destructive' })),
     )
   })
+
+  // La CUARTA puerta de merma con captura de cantidad. Aquí el 0 lo frena la validación `min` de
+  // react-hook-form (las otras tres lo frenan en el botón y en `onSubmit`), y hasta ahora ninguna
+  // prueba lo cuidaba: quitar ese `min` devolvía el defecto sin que nada cayera. Una merma de 0 no
+  // es merma — `-Math.abs(0)` viaja como 0, el servidor la manda al ajuste VIEJO (movimiento de 0
+  // sin folio, otra fila por cada reintento) y la pantalla diría «Merma registrada».
+  it('una merma de cantidad 0 no se manda, y dice por qué', async () => {
+    const user = userEvent.setup()
+    renderDialog()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '0' })
+    await user.click(boton())
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 50))
+    })
+    expect(adjustStock).not.toHaveBeenCalled()
+    expect(screen.getByText(es.waste.quantityMinimum)).toBeInTheDocument()
+  })
 })
