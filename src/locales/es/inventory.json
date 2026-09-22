@@ -968,7 +968,18 @@
       "OTHER": {
         "label": "Otro",
         "description": "Otra razón (especificar en notas)"
+      },
+      "UNSPECIFIED": {
+        "label": "Sin especificar",
+        "description": "Registro anterior sin motivo"
       }
+    },
+    "errors": {
+      "voided": "Este registro de merma se anuló antes y ya no se puede enviar. Cierra la ventana y regístralo de nuevo.",
+      "keyReused": "Ya existe un registro con este folio y datos distintos. Cierra la ventana y regístralo de nuevo.",
+      "retryable": "Alguien más estaba moviendo este artículo al mismo tiempo. Intenta de nuevo.",
+      "tooLarge": "La cantidad o su costo es demasiado grande para registrarse.",
+      "ambiguous": "No pudimos confirmar si la merma se registró."
     }
   },
   "common": {

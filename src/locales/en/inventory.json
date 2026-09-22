@@ -968,7 +968,18 @@
       "OTHER": {
         "label": "Other",
         "description": "Other reason (specify in notes)"
+      },
+      "UNSPECIFIED": {
+        "label": "Unspecified",
+        "description": "Older record without a reason"
       }
+    },
+    "errors": {
+      "voided": "This waste record was voided earlier and can no longer be sent. Close the window and log it again.",
+      "keyReused": "A record with this reference and different details already exists. Close the window and log it again.",
+      "retryable": "Someone else was changing this item at the same time. Please try again.",
+      "tooLarge": "The quantity or its cost is too large to be recorded.",
+      "ambiguous": "We couldn't confirm whether the waste was recorded."
     }
   },
   "common": {

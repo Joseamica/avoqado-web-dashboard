@@ -9,6 +9,8 @@ export const inventoryKeys = {
   rawMaterialMovements: (venueId: string, rawMaterialId: string) =>
     ['stockMovements', venueId, rawMaterialId] as const,
   confirmedStock: (venueId: string) => ['purchase-orders-confirmed-stock', venueId] as const,
+  history: (venueId: string) => ['inventory-history', venueId] as const,
+  wasteReports: (venueId: string) => ['waste-reports', venueId] as const,
 }
 
 type StockTarget = { kind: 'product' | 'ingredient'; id: string }
@@ -26,4 +28,11 @@ export function invalidateStockOverviewQueries(
     qc.invalidateQueries({ queryKey: inventoryKeys.rawMaterialMovements(venueId, target.id) })
     qc.invalidateQueries({ queryKey: inventoryKeys.confirmedStock(venueId) })
   }
+}
+
+/** Después de registrar una merma: lo mismo que un ajuste + el Historial y la lista de mermas. */
+export function invalidateWasteQueries(qc: QueryClient, venueId: string, target: StockTarget) {
+  invalidateStockOverviewQueries(qc, venueId, target)
+  qc.invalidateQueries({ queryKey: inventoryKeys.history(venueId) })
+  qc.invalidateQueries({ queryKey: inventoryKeys.wasteReports(venueId) })
 }

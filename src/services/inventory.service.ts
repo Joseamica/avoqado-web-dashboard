@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { WasteReasonCode, WasteSummary } from '@/lib/inventoryWaste'
 
 // ===========================================
 // RAW MATERIALS API
@@ -73,6 +74,10 @@ export interface AdjustStockDto {
   type: 'PURCHASE' | 'USAGE' | 'ADJUSTMENT' | 'SPOILAGE' | 'TRANSFER' | 'RETURN' | 'COUNT'
   reason?: string
   reference?: string
+  /** Sólo merma (SPOILAGE negativo): código del motivo. Sin él el servidor guarda UNSPECIFIED. */
+  reasonCode?: WasteReasonCode
+  /** Sólo merma: folio (UUID) que hace idempotente el envío. */
+  idempotencyKey?: string
 }
 
 export const rawMaterialsApi = {
@@ -99,7 +104,10 @@ export const rawMaterialsApi = {
   delete: (venueId: string, rawMaterialId: string) => api.delete(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}`),
 
   adjustStock: (venueId: string, rawMaterialId: string, data: AdjustStockDto) =>
-    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/adjust-stock`, data),
+    api.post<{ success: boolean; message: string; data: RawMaterial; waste?: WasteSummary }>(
+      `/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/adjust-stock`,
+      data,
+    ),
 
   getMovements: (venueId: string, rawMaterialId: string, filters?: { startDate?: string; endDate?: string; limit?: number }) =>
     api.get(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/movements`, { params: filters }),
@@ -668,12 +676,16 @@ export interface ProductInventoryStatus {
 }
 
 export interface AdjustInventoryStockDto {
-  type: 'PURCHASE' | 'USAGE' | 'ADJUSTMENT' | 'SPOILAGE' | 'TRANSFER' | 'RETURN' | 'COUNT'
+  type: 'PURCHASE' | 'SALE' | 'ADJUSTMENT' | 'LOSS' | 'TRANSFER' | 'COUNT'
   quantity: number // Positive for additions, negative for reductions
   reason?: string
   reference?: string
   unitCost?: number // Cost per unit for this movement (for PURCHASE)
   supplier?: string // Supplier name for this movement (for PURCHASE)
+  /** Sólo merma (LOSS negativo): código del motivo. */
+  reasonCode?: WasteReasonCode
+  /** Sólo merma: folio (UUID). */
+  idempotencyKey?: string
 }
 
 export interface InventoryMovement {
@@ -707,7 +719,12 @@ export const productInventoryApi = {
 
   // Adjust stock for QUANTITY product
   adjustStock: (venueId: string, productId: string, data: AdjustInventoryStockDto) =>
-    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/adjust-stock`, data),
+    api.post<{
+      message: string
+      data: { currentStock: number; minimumStock: number; reservedStock: number }
+      correlationId?: string
+      waste?: WasteSummary
+    }>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/adjust-stock`, data),
 
   // Get movements for QUANTITY product
   getMovements: (venueId: string, productId: string) =>
@@ -724,8 +741,14 @@ export interface GlobalInventoryMovement extends InventoryMovement {
   category: 'PRODUCT' | 'INGREDIENT'
   unit: string
   cost: number
-  totalCost: number
+  /** Con signo (negativo = salió valor). En una merma CON folio, `null` = «sin valorar». */
+  totalCost: number | null
   supplierName?: string
+  /** Folio de merma; null si el movimiento no pertenece a una merma registrada con folio. */
+  wasteReportId?: string | null
+  wasteReasonCode?: string | null
+  /** «Sin existencia» del folio: SÓLO en su primer movimiento (en los hermanos, null). */
+  wasteUnrecorded?: number | null
 }
 
 export const inventoryHistoryApi = {
