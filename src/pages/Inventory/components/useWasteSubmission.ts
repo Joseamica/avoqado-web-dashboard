@@ -37,8 +37,11 @@ interface UseWasteSubmissionOptions<T extends 'SPOILAGE' | 'LOSS'> {
  * Envío de una merma desde un diálogo del dashboard. Concentra lo que los tres diálogos comparten:
  *  - el FOLIO: mismo contenido ⇒ mismo folio (el servidor reconoce el reintento, también el que
  *    `src/api.ts` hace solo ante un error de red); contenido distinto ⇒ folio nuevo;
+ *  - un éxito CONFIRMADO gasta el folio aquí mismo, sin depender de que el diálogo llame `restart`:
+ *    otra merma real idéntica (otro kilo de lo mismo al día siguiente) nunca pasa por reintento;
  *  - un solo envío en vuelo (un doble clic no manda dos);
- *  - el aviso honesto cuando no se sabe si se registró (`ambiguous`);
+ *  - el aviso honesto cuando no se sabe si se registró (`ambiguous`), que sobrevive a cerrar y
+ *    reabrir el diálogo del MISMO artículo junto con su folio;
  *  - refrescar existencias, Historial y la lista de mermas.
  */
 export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, target, type, send, onSuccess }: UseWasteSubmissionOptions<T>) {
@@ -49,11 +52,21 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
   const { formatUnitWithQuantity } = useUnitTranslation()
   const keyState = useRef<WasteKeyState>(initialWasteKeyState())
   const inFlight = useRef(false)
-  const [ambiguous, setAmbiguous] = useState(false)
+  /** Artículo del envío en vuelo (el `target` puede cambiar antes de que llegue la respuesta). */
+  const sentItem = useRef<string | null>(null)
+  /** Artículo cuyo último envío quedó SIN CONFIRMAR (red o 5xx), o null. `restart` lo lee. */
+  const ambiguousItem = useRef<string | null>(null)
+  const [ambiguousFor, setAmbiguousFor] = useState<string | null>(null)
+  const markAmbiguous = useCallback((itemId: string | null) => {
+    ambiguousItem.current = itemId
+    setAmbiguousFor(itemId)
+  }, [])
 
   const mutation = useMutation({
     mutationFn: (payload: WasteAdjustment<T>) => send(payload),
     onSuccess: response => {
+      // Registrada de verdad: este folio ya no puede volver a viajar con otra merma.
+      keyState.current = initialWasteKeyState()
       if (venueId && target) invalidateWasteQueries(queryClient, venueId, target)
       const waste = readWasteSummary(response.data)
       const unrecorded = waste ? Number(waste.unrecorded) : 0
@@ -67,11 +80,11 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
               })
             : t('waste.loggedDesc'),
       })
-      setAmbiguous(false)
+      markAmbiguous(null)
       onSuccess()
     },
     onError: (error: unknown) => {
-      setAmbiguous(isAmbiguousWasteFailure(error))
+      markAmbiguous(isAmbiguousWasteFailure(error) ? sentItem.current : null)
       const key = wasteErrorKey(error)
       const serverMessage = (error as { response?: { data?: { message?: unknown } } } | null)?.response?.data?.message
       toast({
@@ -91,17 +104,27 @@ export function useWasteSubmission<T extends 'SPOILAGE' | 'LOSS'>({ venueId, tar
       if (!venueId || !target || inFlight.current) return
       keyState.current = keyForSubmission(keyState.current, wasteFingerprint(target.id, input))
       inFlight.current = true
+      sentItem.current = target.id
       mutate(buildWasteAdjustment(type, input, keyState.current.key))
     },
     [venueId, target, type, mutate],
   )
 
-  /** Al abrir el formulario otra vez: folio nuevo y sin aviso pendiente. */
+  /**
+   * Al abrir el formulario otra vez. Si el último envío quedó SIN CONFIRMAR, se conservan el folio,
+   * su huella y el aviso: el servidor pudo haberla registrado, y volver a capturar lo mismo tiene que
+   * ser el reintento que el aviso promete, no una segunda merma. Lo distinto sigue estrenando folio
+   * (`keyForSubmission` compara la huella, que incluye el artículo). En cualquier otro caso: folio nuevo.
+   */
   const restart = useCallback(() => {
-    keyState.current = initialWasteKeyState()
     inFlight.current = false
-    setAmbiguous(false)
-  }, [])
+    if (ambiguousItem.current !== null) return
+    keyState.current = initialWasteKeyState()
+    markAmbiguous(null)
+  }, [markAmbiguous])
+
+  // El aviso habla del artículo que quedó sin confirmar: abrir OTRO artículo no lo muestra.
+  const ambiguous = ambiguousFor !== null && ambiguousFor === target?.id
 
   return { submit, restart, isPending: mutation.isPending, ambiguous }
 }

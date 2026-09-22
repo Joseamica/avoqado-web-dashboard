@@ -37,16 +37,26 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const aguacate = { id: 'rm1', name: 'Aguacate', sku: 'AGU-1', currentStock: 2, unit: 'KILOGRAM' } as unknown as RawMaterial
 const ok = (waste?: object) => ({ data: { success: true, message: 'Stock adjusted successfully', data: {}, ...(waste ? { waste } : {}) } })
 
+const leche = { id: 'rm2', name: 'Leche', sku: 'LEC-1', currentStock: 10, unit: 'LITER' } as unknown as RawMaterial
+
 function renderDialog() {
   const onOpenChange = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(
+  const ui = (open: boolean, rawMaterial: RawMaterial) => (
     <QueryClientProvider client={qc}>
-      <WasteLogDialog open onOpenChange={onOpenChange} rawMaterial={aguacate} />
-    </QueryClientProvider>,
+      <WasteLogDialog open={open} onOpenChange={onOpenChange} rawMaterial={rawMaterial} />
+    </QueryClientProvider>
   )
-  return { onOpenChange }
+  const { rerender } = render(ui(true, aguacate))
+  // Como en RawMaterials.tsx: el diálogo NO se desmonta al cerrarse; sólo cambia `open`.
+  const reabrir = (rawMaterial: RawMaterial = aguacate) => {
+    rerender(ui(false, rawMaterial))
+    rerender(ui(true, rawMaterial))
+  }
+  return { onOpenChange, reabrir }
 }
+
+const folio = (i: number) => adjustStock.mock.calls[i][2].idempotencyKey
 
 // La cantidad entra con `fireEvent.change`: teclear «1.5» letra por letra en un <input type="number">
 // pasa por «1.», que jsdom sanea a vacío. Motivo y nota sí van con userEvent.
@@ -146,6 +156,81 @@ describe('WasteLogDialog', () => {
     await waitFor(() =>
       expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Merma registrada', description: expect.stringContaining('3 kilogram') })),
     )
+  })
+
+  // Hallazgo 1 de la revisión: un éxito CONFIRMADO gasta el folio en el hook, no en la disciplina de
+  // cada diálogo. Si no, otra merma real idéntica (otro kilo de aguacate al día siguiente) reusaría el
+  // folio y el servidor la tomaría por reintento: no descontaría nada, en silencio.
+  it('tras un éxito el folio se gasta: otra merma idéntica estrena folio aunque nadie llame restart', async () => {
+    adjustStock.mockResolvedValue(ok())
+    const user = userEvent.setup()
+    renderDialog()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Merma registrada' })))
+    // La prueba NO cierra el diálogo (no hay `restart`): es el consumidor que se olvida de llamarlo.
+    await waitFor(() => expect(boton()).toBeEnabled())
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(adjustStock.mock.calls[1][2]).toMatchObject({ quantity: -1, reasonCode: 'EXPIRED' })
+    expect(folio(1)).not.toBe(folio(0))
+  })
+
+  it('éxito → cerrar → reabrir → capturar lo mismo estrena folio', async () => {
+    adjustStock.mockResolvedValue(ok())
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Merma registrada' })))
+    reabrir()
+    await capturar(user, { motivo: 'EXPIRED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(folio(1)).not.toBe(folio(0))
+  })
+
+  // Hallazgo 2: el aviso ambiguo promete que reintentar lo mismo no registra dos veces. Cerrar y
+  // reabrir no puede romper esa promesa.
+  it('fallo ambiguo → cerrar → reabrir → capturar lo mismo reusa el folio del intento fallido', async () => {
+    adjustStock.mockRejectedValueOnce({ message: 'Network Error' }).mockResolvedValueOnce(ok())
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await screen.findByText(es.waste.ambiguousHint)
+    reabrir()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(folio(1)).toBe(folio(0))
+  })
+
+  it('fallo ambiguo → cerrar → reabrir: el aviso sigue a la vista', async () => {
+    adjustStock.mockRejectedValueOnce({ message: 'Network Error' })
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await screen.findByText(es.waste.ambiguousHint)
+    reabrir()
+    expect(screen.getByText(es.waste.ambiguousHint)).toBeInTheDocument()
+  })
+
+  it('fallo ambiguo con un artículo → abrir OTRO artículo: sin aviso y con folio propio', async () => {
+    adjustStock.mockRejectedValueOnce({ message: 'Network Error' }).mockResolvedValueOnce(ok())
+    const user = userEvent.setup()
+    const { reabrir } = renderDialog()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await screen.findByText(es.waste.ambiguousHint)
+    reabrir(leche)
+    expect(screen.queryByText(es.waste.ambiguousHint)).not.toBeInTheDocument()
+    await capturar(user, { motivo: 'DROPPED', cantidad: '1' })
+    await user.click(boton())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    expect(adjustStock.mock.calls[1][1]).toBe('rm2')
+    expect(folio(1)).not.toBe(folio(0))
   })
 
   it('un 409 WASTE_VOIDED se explica con su texto, no con el genérico', async () => {
