@@ -6,6 +6,8 @@ import {
   BarChart3,
   Boxes,
   CreditCard,
+  ExternalLink,
+  HandCoins,
   Info,
   Package,
   Plus,
@@ -32,6 +34,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
+import { useAccess } from '@/hooks/use-access'
+import { getRoleHierarchyLevel, ROLE_HIERARCHY } from '@/lib/permissions/roleHierarchy'
+import { HAYCASH_ONBOARDING_URL, openPartner } from '@/config/partners'
+import { StaffRole } from '@/types'
 import { PerformanceChart } from '@/components/home/PerformanceChart'
 import { Currency } from '@/utils/currency'
 import { buildCompareOptions, detectRangeKind, type CompareOption } from '@/utils/dashboard-comparison'
@@ -56,6 +62,10 @@ export default function Home() {
   // Gate the query + the widget so free venues don't fire a now-403 request or see a dead card.
   const { hasFeatureAccess } = useVenueTier()
   const hasAvailableBalance = hasFeatureAccess('ADVANCED_REPORTS')
+  // El financiamiento es decisión del dueño: la tarjeta de HayCash se muestra a ADMIN+,
+  // el mismo umbral que protege la sección de Integraciones donde también vive.
+  const { role } = useAccess()
+  const isAdmin = role != null && getRoleHierarchyLevel(role) >= ROLE_HIERARCHY[StaffRole.ADMIN]
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -521,6 +531,24 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* HayCash — socio comercial (adelanto de ventas). Mismo enlace que la
+                    tarjeta de Integraciones; abre el alta del socio en pestaña nueva. */}
+                {isAdmin && (
+                  <Card className="rounded-2xl border-input" data-tour="home-haycash-card">
+                    <CardContent className="space-y-3 p-5">
+                      <div className="flex items-center gap-2">
+                        <HandCoins className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">{t('newHome.side.haycash.title')}</p>
+                      </div>
+                      <p className="text-sm">{t('newHome.side.haycash.description')}</p>
+                      <Button className="w-full cursor-pointer" onClick={() => openPartner(HAYCASH_ONBOARDING_URL)}>
+                        {t('newHome.side.haycash.cta')}
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card className="rounded-2xl border-input">
                   <CardContent className="space-y-2 p-5">

@@ -446,7 +446,12 @@
         "reports": "Reportes de ventas"
       },
       "context": "Contexto",
-      "contextDescription": "Datos para {{date}} y comparación seleccionada."
+      "contextDescription": "Datos para {{date}} y comparación seleccionada.",
+      "haycash": {
+        "title": "Financiamiento",
+        "description": "HayCash, socio de Avoqado, te adelanta capital y lo pagas con un porcentaje de tus ventas con tarjeta.",
+        "cta": "Solicitar adelanto"
+      }
     },
     "businessCenter": {
       "title": "Explora y configura funciones para hacer crecer tu negocio",

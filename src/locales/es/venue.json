@@ -432,6 +432,12 @@
         "crypto": {
           "title": "Pagos con cripto",
           "description": "Acepta pagos en criptomonedas con B4Bit."
+        },
+        "partner": "Socio",
+        "haycash": {
+          "title": "HayCash · Adelanto de ventas",
+          "description": "Capital para tu negocio en 48 horas que pagas con un porcentaje de tus ventas con tarjeta, sin pagos fijos. HayCash es socio comercial de Avoqado.",
+          "cta": "Solicitar adelanto"
         }
       },
       "errorLoading": "No se pudo cargar la información del local",

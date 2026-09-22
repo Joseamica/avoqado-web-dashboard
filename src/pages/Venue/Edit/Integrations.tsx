@@ -5,7 +5,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink } from 'lucide-react'
+import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, HandCoins, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -33,6 +33,7 @@ import { StaffRole } from '@/types'
 import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
 import { IntegrationCard } from './components/IntegrationCard'
 import { PermissionGate } from '@/components/PermissionGate'
+import { HAYCASH_ONBOARDING_URL, openPartner } from '@/config/partners'
 import { financialConnectionAPI } from '@/services/financialConnection.service'
 import { getVenueChatStatus } from '@/services/venueChat.service'
 import VenueChat from './VenueChat'
@@ -203,6 +204,20 @@ export default function VenueIntegrations() {
           actionVariant={ecommerceConnected ? 'outline' : 'default'}
           onAction={() => setEcommerceOpen(true)}
           dataTour="integration-card-ecommerce"
+        />
+
+        {/* HayCash — socio comercial (adelanto de ventas). No se "conecta": el CTA abre
+            su alta con la atribución de Avoqado en una pestaña nueva. Sin punto de
+            estado porque no sabemos si el negocio ya tiene un adelanto. */}
+        <IntegrationCard
+          icon={HandCoins}
+          title={t('edit.integrations.catalog.haycash.title')}
+          description={t('edit.integrations.catalog.haycash.description')}
+          badge={t('edit.integrations.catalog.partner')}
+          actionLabel={t('edit.integrations.catalog.haycash.cta')}
+          actionVariant="default"
+          onAction={() => openPartner(HAYCASH_ONBOARDING_URL)}
+          dataTour="integration-card-haycash"
         />
 
         {/* Cuentas de banco — OWNER (financialConnections:manage). La gestión vive ahora en el hub

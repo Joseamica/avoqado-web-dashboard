@@ -432,6 +432,12 @@
         "crypto": {
           "title": "Crypto payments",
           "description": "Accept cryptocurrency payments with B4Bit."
+        },
+        "partner": "Partner",
+        "haycash": {
+          "title": "HayCash · Sales advance",
+          "description": "Capital for your business in 48 hours, repaid with a percentage of your card sales — no fixed payments. HayCash is an Avoqado commercial partner.",
+          "cta": "Request an advance"
         }
       },
       "errorLoading": "Failed to load venue information",

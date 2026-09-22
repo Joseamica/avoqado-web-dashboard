@@ -438,7 +438,12 @@
         "reports": "Rapports de ventes"
       },
       "context": "Contexte",
-      "contextDescription": "Données pour {{date}} avec la comparaison sélectionnée."
+      "contextDescription": "Données pour {{date}} avec la comparaison sélectionnée.",
+      "haycash": {
+        "title": "Financement",
+        "description": "HayCash, partenaire d’Avoqado, vous avance du capital que vous remboursez avec un pourcentage de vos ventes par carte.",
+        "cta": "Demander une avance"
+      }
     },
     "businessCenter": {
       "title": "Explorez et configurez des fonctions pour développer votre activité",

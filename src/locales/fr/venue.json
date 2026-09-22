@@ -197,6 +197,12 @@
         "crypto": {
           "title": "Paiements crypto",
           "description": "Acceptez les paiements en cryptomonnaie avec B4Bit."
+        },
+        "partner": "Partenaire",
+        "haycash": {
+          "title": "HayCash · Avance sur ventes",
+          "description": "Du capital pour votre commerce en 48 heures, remboursé avec un pourcentage de vos ventes par carte, sans mensualités fixes. HayCash est un partenaire commercial d’Avoqado.",
+          "cta": "Demander une avance"
         }
       },
       "error": "Erreur",

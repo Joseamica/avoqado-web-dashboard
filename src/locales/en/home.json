@@ -446,7 +446,12 @@
         "reports": "Sales reports"
       },
       "context": "Context",
-      "contextDescription": "Data for {{date}} with the selected comparison."
+      "contextDescription": "Data for {{date}} with the selected comparison.",
+      "haycash": {
+        "title": "Financing",
+        "description": "HayCash, an Avoqado partner, advances you capital that you repay with a percentage of your card sales.",
+        "cta": "Request an advance"
+      }
     },
     "businessCenter": {
       "title": "Explore and configure features to grow your business",
