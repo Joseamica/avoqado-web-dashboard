@@ -10,6 +10,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { apiErrorDescription } from '@/utils/apiError'
+import { triggerDownload } from '@/utils/export'
 import { useCurrentVenue } from './use-current-venue'
 import { useToast } from './use-toast'
 import cfdiService, {
@@ -101,6 +102,41 @@ export function useProvisionEmisor() {
     },
     onError: (err: any) => {
       toast({ title: t('toast.provisionError'), description: apiErrorDescription(err), variant: 'destructive' })
+    },
+  })
+}
+
+/** Sube el logo del venue a la org del PAC (lo que imprime en el PDF de cada factura). */
+export function useSyncEmisorLogo() {
+  const { venueId } = useCurrentVenue()
+  const { toast } = useToast()
+  const { t } = useTranslation('cfdi')
+
+  return useMutation({
+    mutationFn: (emisorId: string) => cfdiService.syncEmisorLogo(venueId!, emisorId),
+    onSuccess: result => {
+      if (result.synced === true) toast({ title: t('toast.logoSynced'), description: t('toast.logoSyncedDetail') })
+      else toast({ title: t(`toast.logo.${result.reason}`), variant: 'destructive' })
+    },
+    onError: (err: any) => {
+      toast({ title: t('toast.logoError'), description: apiErrorDescription(err), variant: 'destructive' })
+    },
+  })
+}
+
+/** Descarga el PDF/XML de un CFDI como archivo (Descargas), no en una pestaña. */
+export function useDownloadCfdiFile() {
+  const { venueId } = useCurrentVenue()
+  const { toast } = useToast()
+  const { t } = useTranslation('cfdi')
+
+  return useMutation({
+    mutationFn: async ({ cfdiId, type }: { cfdiId: string; type: 'pdf' | 'xml' }) => {
+      const { blob, filename } = await cfdiService.downloadCfdiFile(venueId!, cfdiId, type)
+      triggerDownload(blob, filename)
+    },
+    onError: (err: any) => {
+      toast({ title: t('toast.downloadError'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }

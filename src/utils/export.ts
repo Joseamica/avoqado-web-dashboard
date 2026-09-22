@@ -3,7 +3,7 @@
 import ExcelJS from 'exceljs'
 import Papa from 'papaparse'
 
-function triggerDownload(blob: Blob, filename: string): void {
+export function triggerDownload(blob: Blob, filename: string): void {
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
 

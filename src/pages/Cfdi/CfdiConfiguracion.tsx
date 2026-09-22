@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { useFiscalConfig, useProvisionEmisor, useTriggerGlobalCfdi, useUpsertMerchantConfig } from '@/hooks/use-cfdi'
+import { useFiscalConfig, useProvisionEmisor, useSyncEmisorLogo, useTriggerGlobalCfdi, useUpsertMerchantConfig } from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
@@ -449,6 +449,7 @@ export default function CfdiConfiguracion() {
 
   const { data, isLoading, isError } = useFiscalConfig({ enabled: hasCfdi })
   const provisionMutation = useProvisionEmisor()
+  const logoMutation = useSyncEmisorLogo()
   const upsertMerchant = useUpsertMerchantConfig()
 
   const [emisorModal, setEmisorModal] = useState<{ open: boolean; emisor: Emisor | null }>({ open: false, emisor: null })
@@ -597,6 +598,18 @@ export default function CfdiConfiguracion() {
                         <Upload className="mr-2 h-4 w-4" />
                         {t('emisores.uploadCsd')}
                       </Button>
+                      {emisor.providerOrgId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => logoMutation.mutate(emisor.id)}
+                          disabled={logoMutation.isPending}
+                          title={t('emisores.syncLogoHint')}
+                        >
+                          {logoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {t('emisores.syncLogo')}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

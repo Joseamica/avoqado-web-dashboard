@@ -23,7 +23,7 @@ import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
-import { useCfdis } from '@/hooks/use-cfdi'
+import { useCfdis, useDownloadCfdiFile } from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
@@ -128,6 +128,7 @@ export default function CfdiList() {
   }, [statusFilter, flowFilter, debouncedReceptorRfc, dateRange])
 
   const { data, isLoading, isError } = useCfdis(filters, { enabled: hasCfdi })
+  const download = useDownloadCfdiFile()
   // When locked, feed the table sample rows so the teaser looks real behind the blur.
   const cfdis = hasCfdi ? data?.cfdis ?? [] : SAMPLE_CFDIS
   const total = hasCfdi ? data?.total ?? 0 : SAMPLE_CFDIS.length
@@ -204,14 +205,14 @@ export default function CfdiList() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
                     disabled={!cfdi.xmlUrl}
-                    onClick={() => cfdi.xmlUrl && window.open(cfdi.xmlUrl, '_blank', 'noopener,noreferrer')}
+                    onClick={() => cfdi.xmlUrl && download.mutate({ cfdiId: cfdi.id, type: 'xml' })}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     {t('actions.downloadXml')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={!cfdi.pdfUrl}
-                    onClick={() => cfdi.pdfUrl && window.open(cfdi.pdfUrl, '_blank', 'noopener,noreferrer')}
+                    onClick={() => cfdi.pdfUrl && download.mutate({ cfdiId: cfdi.id, type: 'pdf' })}
                   >
                     <FileText className="mr-2 h-4 w-4" />
                     {t('actions.downloadPdf')}
@@ -235,7 +236,7 @@ export default function CfdiList() {
         },
       },
     ],
-    [t, formatDate, canConfigure],
+    [t, formatDate, canConfigure, download],
   )
 
   return (

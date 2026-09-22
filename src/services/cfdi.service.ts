@@ -327,6 +327,23 @@ export const cfdiService = {
     return response.data?.data ?? response.data
   },
 
+  /** Sube el logo del negocio a la org del PAC: es lo que imprime en el PDF de cada factura. Idempotente. */
+  async syncEmisorLogo(venueId: string, emisorId: string): Promise<{ synced: true } | { synced: false; reason: 'NO_LOGO' | 'NOT_PROVISIONED' }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/logo`)
+    return response.data
+  },
+
+  /**
+   * PDF/XML como ADJUNTO vía el API (con sesión): el servidor manda `Content-Disposition: attachment`
+   * y el nombre `serie-folio.pdf`, así el navegador lo guarda en Descargas en vez de abrirlo.
+   */
+  async downloadCfdiFile(venueId: string, cfdiId: string, type: 'pdf' | 'xml'): Promise<{ blob: Blob; filename: string }> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/cfdi/${cfdiId}/file`, { params: { type }, responseType: 'blob' })
+    const disposition: string = response.headers?.['content-disposition'] ?? ''
+    const match = /filename="([^"]+)"/.exec(disposition)
+    return { blob: response.data as Blob, filename: match?.[1] ?? `${cfdiId}.${type}` }
+  },
+
   /** Onboarding status at the PAC (Carta Manifiesto pendiente, etc.). Read-only. */
   async getEmisorProviderStatus(venueId: string, emisorId: string): Promise<EmisorProviderStatus> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/provider-status`)

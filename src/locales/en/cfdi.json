@@ -159,7 +159,9 @@
       "EXPIRED": "CSD expired",
       "REVOKED": "CSD revoked",
       "expiresAt": "Expires {{date}}"
-    }
+    },
+    "syncLogo": "Put my logo on invoices",
+    "syncLogoHint": "Uses your business logo (Settings → Business). It is uploaded to the PAC and printed on every new invoice PDF."
   },
   "emisorForm": {
     "title": "Issuer details",
@@ -295,7 +297,15 @@
     "merchantSaved": "Merchant configuration saved.",
     "merchantSaveError": "Could not save the merchant configuration.",
     "cancelRequested": "Cancellation requested.",
-    "cancelError": "Could not cancel the invoice."
+    "cancelError": "Could not cancel the invoice.",
+    "logoSynced": "Logo updated on your invoices",
+    "logoSyncedDetail": "New invoices now carry your logo.",
+    "logo": {
+      "NO_LOGO": "Your business has no logo yet: upload it in Settings → Business and try again.",
+      "NOT_PROVISIONED": "Connect the emisor to the PAC first."
+    },
+    "logoError": "Could not upload the logo",
+    "downloadError": "Could not download the file"
   },
   "creditNote": {
     "title": "Credit note (CFDI de Egreso)",

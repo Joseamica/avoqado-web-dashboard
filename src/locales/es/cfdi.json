@@ -159,7 +159,9 @@
       "EXPIRED": "CSD vencido",
       "REVOKED": "CSD revocado",
       "expiresAt": "Vence {{date}}"
-    }
+    },
+    "syncLogo": "Poner mi logo en las facturas",
+    "syncLogoHint": "Usa el logo de tu negocio (Ajustes → Negocio). Se sube al PAC y sale en el PDF de cada factura nueva."
   },
   "emisorForm": {
     "title": "Datos del emisor",
@@ -295,7 +297,15 @@
     "merchantSaved": "Configuración de comercio guardada.",
     "merchantSaveError": "No se pudo guardar la configuración del comercio.",
     "cancelRequested": "Cancelación solicitada.",
-    "cancelError": "No se pudo cancelar la factura."
+    "cancelError": "No se pudo cancelar la factura.",
+    "logoSynced": "Logo actualizado en tus facturas",
+    "logoSyncedDetail": "Las facturas nuevas ya salen con tu logo.",
+    "logo": {
+      "NO_LOGO": "Tu negocio no tiene logo todavía: súbelo en Ajustes → Negocio y vuelve a intentar.",
+      "NOT_PROVISIONED": "Primero conecta el emisor al PAC."
+    },
+    "logoError": "No se pudo subir el logo",
+    "downloadError": "No se pudo descargar el archivo"
   },
   "creditNote": {
     "title": "Nota de crédito (CFDI de Egreso)",
