@@ -9,13 +9,21 @@ import type { PlanState } from '@/services/features.service'
 // i18n stub: renders keys as "key:interpolated-value" so assertions are stable
 // ---------------------------------------------------------------------------
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o?.tier ? `${k}:${o.tier}` : k) }),
+  useTranslation: () => ({
+    t: (k: string, o?: Record<string, unknown>) => {
+      const partes = [k]
+      if (o?.tier) partes.push(String(o.tier))
+      if (o?.price) partes.push(String(o.price))
+      return partes.join(':')
+    },
+  }),
 }))
 
 // ---------------------------------------------------------------------------
 // useAccess mock — default values overridden per-test
 // ---------------------------------------------------------------------------
 const mockCanFeature = vi.fn()
+const mockCan = vi.fn()
 const mockUseAccess = vi.fn()
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => mockUseAccess() }))
 
@@ -110,7 +118,9 @@ describe('FeatureGate', () => {
 
     // Default useAccess: non-superadmin, non-white-label OWNER
     mockCanFeature.mockReturnValue(false)
+    mockCan.mockReturnValue(true) // OWNER: puede ver facturación
     mockUseAccess.mockReturnValue({
+      can: mockCan,
       canFeature: mockCanFeature,
       role: 'OWNER',
       isWhiteLabelEnabled: false,
@@ -185,7 +195,8 @@ describe('FeatureGate', () => {
     // the signal to an all-roles endpoint (so a MANAGER reads it normally — see the grandfathered &
     // FREE-tier tests, which now hold for every role). This test guards the remaining safety net:
     // if the plan-tier request EVER settles with no data (network error), the UX gate must fail OPEN.
-    mockUseAccess.mockReturnValue({ canFeature: mockCanFeature, role: 'MANAGER', isWhiteLabelEnabled: false })
+    mockCan.mockReturnValue(false) // un MANAGER no tiene billing:subscriptions:read
+    mockUseAccess.mockReturnValue({ can: mockCan, canFeature: mockCanFeature, role: 'MANAGER', isWhiteLabelEnabled: false })
     mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
 
     renderGate()
@@ -198,6 +209,7 @@ describe('FeatureGate', () => {
     // useQuery should be disabled (enabled: false), but we stub it to return nothing
     mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
     mockUseAccess.mockReturnValue({
+      can: mockCan,
       canFeature: mockCanFeature,
       role: 'SUPERADMIN',
       isWhiteLabelEnabled: false,
@@ -212,6 +224,7 @@ describe('FeatureGate', () => {
   it('white-label venue with canFeature true → renders children', () => {
     mockCanFeature.mockReturnValue(true)
     mockUseAccess.mockReturnValue({
+      can: mockCan,
       canFeature: mockCanFeature,
       role: 'OWNER',
       isWhiteLabelEnabled: true,
@@ -228,6 +241,7 @@ describe('FeatureGate', () => {
   it('white-label venue with canFeature false → shows paywall', () => {
     mockCanFeature.mockReturnValue(false)
     mockUseAccess.mockReturnValue({
+      can: mockCan,
       canFeature: mockCanFeature,
       role: 'OWNER',
       isWhiteLabelEnabled: true,
@@ -254,5 +268,77 @@ describe('FeatureGate', () => {
     renderGate()
 
     expect(screen.getByText('featureGate.upgrade:Premium')).toBeInTheDocument()
+  })
+  // -------------------------------------------------------------------------
+  // El precio en el cartel (founder, 21-sep): «que no esconda la pestaña, que
+  // salga que es una funcionalidad pro/premium o que cuesta $x».
+  // -------------------------------------------------------------------------
+  it('con permiso de facturación → el cartel dice el precio del plan Y el de la función suelta', () => {
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 89, stripePriceId: 'price_cfdi' }] },
+      isLoading: false,
+    })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.planPrice:Premium:$1,699')).toBeInTheDocument()
+    expect(screen.getByText('featureGate.alonePrice:$89')).toBeInTheDocument()
+    expect(screen.getByText('featureGate.upgrade:Premium')).toBeInTheDocument()
+  })
+
+  it('SIN permiso de facturación → sigue viéndose el cartel, pero sin precios ni botón', () => {
+    mockCan.mockReturnValue(false)
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 89, stripePriceId: 'price_cfdi' }] },
+      isLoading: false,
+    })
+
+    renderGate()
+
+    // La pantalla NUNCA se esconde: se sigue explicando de qué plan es.
+    expect(screen.getByText('featureGate.tierTag:Premium')).toBeInTheDocument()
+    expect(screen.getByText('featureGate.askOwner')).toBeInTheDocument()
+    // Pero ni el precio (dato de facturación) ni un botón que lo mandaría a un 403.
+    expect(screen.queryByText(/featureGate\.planPrice/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/featureGate\.alonePrice/)).not.toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('respuesta sin availableFeatures → no truena; sólo el precio del plan', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.planPrice:Premium:$1,699')).toBeInTheDocument()
+    expect(screen.queryByText(/featureGate\.alonePrice/)).not.toBeInTheDocument()
+  })
+  // -------------------------------------------------------------------------
+  // Auditoría de Codex del 21-sep sobre el cartel
+  // -------------------------------------------------------------------------
+  it('🔴 una función SIN precio de Stripe no se anuncia como «contrátala sola por $0»', async () => {
+    // El seed de CFDI crea `monthlyPrice: 0` sin `stripePriceId`: no se puede contratar suelta.
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 0, stripePriceId: null }] },
+      isLoading: false,
+    })
+
+    renderGate()
+
+    expect(screen.queryByText(/featureGate\.alonePrice/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 quien sólo puede LEER facturación ve los precios pero NO el botón de contratar', async () => {
+    // El backend le negaría la compra: mostrarle el botón es prometerle algo que no puede hacer.
+    mockCan.mockImplementation((permiso: string) => permiso === 'billing:subscriptions:read')
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 89, stripePriceId: 'price_cfdi' }] },
+      isLoading: false,
+    })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.planPrice:Premium:$1,699')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+    expect(screen.getByText('featureGate.askOwner')).toBeInTheDocument()
   })
 })

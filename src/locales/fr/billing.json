@@ -377,5 +377,14 @@
       "trialGrantedDesc": "Un essai de {{days}} jours a été accordé",
       "trialError": "Échec de l'accord de l'essai"
     }
+  },
+  "featureGate": {
+    "planPrice": "Le plan {{tier}} coûte {{price}}/mois + TVA",
+    "alonePrice": "Ou prenez-la seule pour {{price}}/mois",
+    "askOwner": "Demandez au propriétaire du compte de l'activer.",
+    "tierTag": "Inclus dans {{tier}}",
+    "body": "Cette fonction fait partie du plan {{tier}}. Passez au niveau supérieur pour l'utiliser.",
+    "upgrade": "Passer à {{tier}}",
+    "seeAll": "Voir tous les plans"
   }
 }

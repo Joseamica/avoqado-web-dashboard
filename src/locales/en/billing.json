@@ -151,7 +151,10 @@
     "tierTag": "Included in {{tier}}",
     "body": "This feature is part of the {{tier}} plan. Upgrade to start using it.",
     "upgrade": "Upgrade to {{tier}}",
-    "seeAll": "See all plans"
+    "seeAll": "See all plans",
+    "planPrice": "The {{tier}} plan is {{price}}/mo + VAT",
+    "alonePrice": "Or get just this one for {{price}}/mo",
+    "askOwner": "Ask the account owner to turn it on."
   },
   "activeSubscriptions": {
     "title": "Active Subscriptions",

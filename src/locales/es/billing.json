@@ -151,7 +151,10 @@
     "tierTag": "Incluido en {{tier}}",
     "body": "Esta función es parte del plan {{tier}}. Mejora para empezar a usarla en tu local.",
     "upgrade": "Mejora a {{tier}}",
-    "seeAll": "Ver todos los planes"
+    "seeAll": "Ver todos los planes",
+    "planPrice": "El plan {{tier}} cuesta {{price}}/mes + IVA",
+    "alonePrice": "O contrátala sola por {{price}}/mes",
+    "askOwner": "Pídesela al dueño de la cuenta para activarla."
   },
   "activeSubscriptions": {
     "title": "Suscripciones Activas",

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { useFeaturePrice } from '@/hooks/use-feature-price'
 import { Button } from '@/components/ui/button'
 import { getTierDef, type TierId } from '@/config/plan-catalog'
 import { cn } from '@/lib/utils'
@@ -14,6 +15,13 @@ interface FeatureGateProps {
   requiredTier?: TierId
   children: React.ReactNode
 }
+
+/**
+ * Los PLANES se muestran «$999/mes + IVA» (`plan.plusIva`) porque su precio de catálogo es base.
+ * 🔴 Las funciones sueltas NO: `syncFeaturesToStripe` cobra `monthlyPrice` tal cual, sin IVA encima,
+ * así que su texto no lleva «+ IVA» (Codex, 21-sep).
+ */
+const fmtMxn = (n: number) => `$${n.toLocaleString('es-MX')}`
 
 const ACCENT: Record<string, string> = {
   free: 'text-muted-foreground',
@@ -28,6 +36,8 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
   const navigate = useNavigate()
   // Tier-aware access (gates normal venues by plan tier — unlike canFeature which is white-label-only).
   const { hasAccess, requiredTier: tierId } = useTierFeatureAccess(feature, requiredTier)
+  // Sólo se pide el precio cuando el cartel se va a dibujar (`!hasAccess`).
+  const { price: precioSuelto, canSeePrices, canPurchase } = useFeaturePrice(feature, { enabled: !hasAccess })
 
   if (hasAccess) return <>{children}</>
 
@@ -52,13 +62,34 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
           <p className={cn('text-[11px] font-bold uppercase tracking-wide', ACCENT[def.accent])}>
             {t('featureGate.tierTag', { tier: tierName })}
           </p>
-          <p className="mx-auto mb-5 mt-3 max-w-[30ch] text-sm text-muted-foreground">
+          <p className="mx-auto mb-3 mt-3 max-w-[30ch] text-sm text-muted-foreground">
             {t('featureGate.body', { tier: tierName })}
           </p>
-          <Button className="cursor-pointer gap-2" onClick={() => navigate(`${fullBasePath}/settings/billing/subscriptions`)}>
-            <Icon className="h-4 w-4" />
-            {t('featureGate.upgrade', { tier: tierName })}
-          </Button>
+          {/* 🔴 Los precios y el botón sólo para quien puede contratar. A los demás se les dice a
+              quién pedírselo — nunca se esconde la pantalla ni se les manda a un 403. */}
+          {canSeePrices ? (
+            <>
+              <div className="mb-5 space-y-1">
+                {def.priceMonthly != null && (
+                  <p className="text-sm font-medium">{t('featureGate.planPrice', { tier: tierName, price: fmtMxn(def.priceMonthly) })}</p>
+                )}
+                {precioSuelto != null && (
+                  <p className="text-xs text-muted-foreground">{t('featureGate.alonePrice', { price: fmtMxn(precioSuelto) })}</p>
+                )}
+              </div>
+              {/* Ver precios (`read`) no es poder comprar (`manage`): sin el segundo, a quién pedírselo. */}
+              {canPurchase ? (
+                <Button className="cursor-pointer gap-2" onClick={() => navigate(`${fullBasePath}/settings/billing/subscriptions`)}>
+                  <Icon className="h-4 w-4" />
+                  {t('featureGate.upgrade', { tier: tierName })}
+                </Button>
+              ) : (
+                <p className="mb-1 text-xs text-muted-foreground">{t('featureGate.askOwner')}</p>
+              )}
+            </>
+          ) : (
+            <p className="mb-1 mt-4 text-xs text-muted-foreground">{t('featureGate.askOwner')}</p>
+          )}
         </div>
       </div>
     </div>
