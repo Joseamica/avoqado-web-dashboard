@@ -23,6 +23,8 @@ import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterConten
 import { ColumnCustomizer } from '@/components/filters/ColumnCustomizer'
 import { AmountFilterContent, DateFilterContent, type AmountFilter, type DateFilter } from '@/components/filters'
 import { Currency } from '@/utils/currency'
+import { isFolioWaste, wasteCostDisplay, wasteUnrecordedOf } from './historyWaste'
+import { wasteReasonLabelKey } from '@/lib/inventoryWaste'
 
 /**
  * Translate common inventory adjustment reasons from English to Spanish
@@ -283,19 +285,27 @@ export default function InventoryHistory() {
         }
       }
 
-      // Total cost filter - only applies to PURCHASE/RECEIVED/COUNT movements
+      // Filtro «Coste total»: compras/recepciones/conteos como siempre. Una MERMA con folio compara la
+      // magnitud de su costo real (del lote); sin costo conocido no entra: no se le inventa uno.
       if (totalCostFilter) {
-        const movementType = (movement.type || '').toUpperCase()
-        const showCostTypes = ['PURCHASE', 'RECEIVED', 'COUNT']
-        if (!showCostTypes.includes(movementType)) {
-          return false // Exclude movements that don't show cost
+        let totalCost: number
+        const wasteCost = wasteCostDisplay(movement)
+        if (wasteCost) {
+          if (wasteCost.kind !== 'amount') return false
+          totalCost = Math.abs(wasteCost.amount)
+        } else {
+          const movementType = (movement.type || '').toUpperCase()
+          const showCostTypes = ['PURCHASE', 'RECEIVED', 'COUNT']
+          if (!showCostTypes.includes(movementType)) {
+            return false // Exclude movements that don't show cost
+          }
+          const unitCost = movement.unitCost || movement.cost || 0
+          if (!unitCost) {
+            return false
+          }
+          const qty = movement.quantity ? Math.abs(movement.quantity) : Math.abs(movement.newStock - movement.previousStock)
+          totalCost = movement.totalCost || qty * unitCost || 0
         }
-        const unitCost = movement.unitCost || movement.cost || 0
-        if (!unitCost) {
-          return false
-        }
-        const qty = movement.quantity ? Math.abs(movement.quantity) : Math.abs(movement.newStock - movement.previousStock)
-        const totalCost = movement.totalCost || qty * unitCost || 0
         switch (totalCostFilter.operator) {
           case 'gt':
             if (totalCost <= (totalCostFilter.value || 0)) return false
@@ -437,6 +447,19 @@ export default function InventoryHistory() {
         header: t('history.totalCost', { defaultValue: 'Coste total' }),
         cell: ({ row }) => {
           const movement = row.original as any
+          // Merma con folio: costo real del lote o «Sin valorar» (nunca el costo actual inventado).
+          const wasteCost = wasteCostDisplay(movement)
+          if (wasteCost) {
+            if (wasteCost.kind === 'unvalued') {
+              return <span className="text-muted-foreground">{t('history.waste.unvalued')}</span>
+            }
+            const salidaMerma = wasteCost.amount < 0
+            return (
+              <span className={salidaMerma ? 'font-medium text-destructive' : 'font-medium'}>
+                {salidaMerma ? `−${Currency(Math.abs(wasteCost.amount))}` : Currency(wasteCost.amount)}
+              </span>
+            )
+          }
           const movementType = (movement.type || '').toUpperCase()
 
           // Only show cost for:
@@ -484,23 +507,28 @@ export default function InventoryHistory() {
           if (type === 'PURCHASE') {
             // Purchases always add to stock
             isPositive = true
-          } else if (type === 'LOSS' || type === 'USAGE') {
-            // Losses and usage always reduce stock
+          } else if (type === 'LOSS' || type === 'USAGE' || type === 'SPOILAGE') {
+            // Losses, usage and waste always reduce stock
             isPositive = false
           } else {
             // For COUNT and ADJUSTMENT, check actual stock change
             isPositive = row.original.newStock > row.original.previousStock
           }
 
+          // Una merma con folio se nombra por su CÓDIGO (el texto del kardex viene en español del servidor).
+          const wasteLabelKey = isFolioWaste(row.original) ? wasteReasonLabelKey(row.original.wasteReasonCode) : null
           // Priority: Use specific reason from backend, fallback to type-based label
           let reasonLabel = row.original.reason
-          if (!reasonLabel) {
+          if (wasteLabelKey) {
+            reasonLabel = t(wasteLabelKey).toLowerCase()
+          } else if (!reasonLabel) {
             // Only apply generic labels if no specific reason was provided
             reasonLabel = movementTypeLabel(type).toLowerCase()
           } else {
             // Translate the reason to Spanish
             reasonLabel = translateReason(reasonLabel, qty)
           }
+          const unrecorded = wasteUnrecordedOf(row.original)
 
           return (
             <div className="flex items-center gap-2">
@@ -508,6 +536,9 @@ export default function InventoryHistory() {
               <span className="text-muted-foreground">
                 {qty} {reasonLabel}
               </span>
+              {unrecorded !== null && (
+                <span className="text-xs text-muted-foreground">{t('history.waste.unrecorded', { quantity: Number(unrecorded.toFixed(3)) })}</span>
+              )}
             </div>
           )
         },
@@ -812,6 +843,37 @@ export default function InventoryHistory() {
                       })()}
                     </span>
                   </div>
+                )}
+
+                {/* Merma con folio: motivo por código, costo real y «sin existencia» */}
+                {isFolioWaste(selectedMovement) && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">{t('history.waste.reason')}</span>
+                      <span className="text-sm text-foreground">
+                        {(() => {
+                          const key = wasteReasonLabelKey(selectedMovement.wasteReasonCode)
+                          return key ? t(key) : selectedMovement.wasteReasonCode || '-'
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">{t('history.totalCost', { defaultValue: 'Coste total' })}</span>
+                      <span className="text-sm text-foreground">
+                        {(() => {
+                          const cost = wasteCostDisplay(selectedMovement)
+                          if (!cost || cost.kind === 'unvalued') return t('history.waste.unvalued')
+                          return cost.amount < 0 ? `−${Currency(Math.abs(cost.amount))}` : Currency(cost.amount)
+                        })()}
+                      </span>
+                    </div>
+                    {wasteUnrecordedOf(selectedMovement) !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">{t('history.waste.unrecordedLabel')}</span>
+                        <span className="text-sm text-foreground">{wasteUnrecordedOf(selectedMovement)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Proveedor - if available */}

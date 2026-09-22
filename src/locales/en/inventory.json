@@ -1506,5 +1506,13 @@
       "success": "Count cancelled",
       "error": "Could not cancel the count"
     }
+  },
+  "history": {
+    "waste": {
+      "unvalued": "Not valued",
+      "unrecorded": "+{{quantity}} not in stock",
+      "reason": "Reason",
+      "unrecordedLabel": "Not in stock"
+    }
   }
 }
