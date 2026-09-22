@@ -210,4 +210,23 @@ describe('AdjustInventoryStockDialog', () => {
     expect((screen.getByRole('combobox', { name: 'adjustmentType' }) as HTMLSelectElement).value).toBe('ADJUSTMENT')
     expect(screen.getByText(es.waste.ambiguousHint)).toBeInTheDocument()
   })
+
+  // El único caso donde el candado de «bajo cero» se ejercita en una merma: la existencia YA es
+  // negativa. Con D4 la merma se registra igual (el servidor no toca una existencia negativa y todo
+  // queda «sin existencia»); un AJUSTE que la hunde más sigue bloqueado. Sin esta prueba, quitar el
+  // `!isLoss` de `isNegativeStock` no tumbaba nada: con existencia >= 0 la vista previa nunca es negativa.
+  it('D4: con la existencia en NEGATIVO la merma se puede guardar; un ajuste no', async () => {
+    adjustStock.mockResolvedValue({ data: { message: 'ok', data: { currentStock: -2, minimumStock: 0, reservedStock: 0 } } })
+    const user = userEvent.setup()
+    const { guardar } = renderDialog(-2)
+    cantidad('-1')
+    expect(guardar()).toBeDisabled()
+    cantidad('3')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'adjustmentType' }), 'LOSS')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'productWasteReason' }), 'EXPIRED')
+    expect(guardar()).toBeEnabled()
+    await user.click(guardar())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    expect(adjustStock.mock.calls[0][2]).toMatchObject({ type: 'LOSS', quantity: -3, reasonCode: 'EXPIRED' })
+  })
 })

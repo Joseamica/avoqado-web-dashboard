@@ -15,7 +15,7 @@ import { AdjustStockDialog } from './components/AdjustStockDialog'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getProducts } from '@/services/menu.service'
-import { productInventoryApi as inventoryApi, rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
+import { productInventoryApi as inventoryApi, rawMaterialsApi, type AdjustInventoryStockDto, type RawMaterial } from '@/services/inventory.service'
 import { supplierService, type Supplier } from '@/services/supplier.service'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -32,7 +32,10 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { includesNormalized } from '@/lib/utils'
-import { inventoryKeys, invalidateStockOverviewQueries } from '@/lib/queryKeys/inventory'
+import { inventoryKeys, invalidateStockOverviewQueries, invalidateWasteQueries } from '@/lib/queryKeys/inventory'
+import { formatWasteQuantity, previewAfterWaste, readWasteSummary } from '@/lib/inventoryWaste'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import { buildSummaryAdjustment, isSummaryAmountValid, isSummaryLossAction, type SummaryStockAction } from './summaryAdjustment'
 import {
   isProductRow,
   productToStockOverviewRow,
@@ -43,7 +46,7 @@ import {
 
 export default function InventorySummary() {
   const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
-  const { t: tInventory } = useTranslation('inventory')
+  const { t: tInventory, i18n } = useTranslation('inventory')
   const navigate = useNavigate()
   const { venueId, fullBasePath } = useCurrentVenue()
   const { toast } = useToast()
@@ -92,59 +95,22 @@ export default function InventorySummary() {
 
   // Stock Adjustment Mutation
   const adjustStockMutation = useMutation({
-    mutationFn: async ({
-      productId,
-      type,
-      quantity,
-      reason,
-      unitCost,
-      supplier,
-    }: {
-      productId: string
-      type: string
-      quantity: number
-      reason?: string
-      unitCost?: number
-      supplier?: string
-    }) => {
-      // Map frontend actions to backend enum types
-      // Backend expects: 'PURCHASE' | 'SALE' | 'ADJUSTMENT' | 'LOSS' | 'TRANSFER' | 'COUNT'
-      let apiType = type
-      let finalQuantity = quantity
-
-      if (type === 'RECEIVE' || type === 'RETURN') {
-        apiType = 'PURCHASE' // Adds stock
-        finalQuantity = Math.abs(quantity) // Ensure positive
-      }
-
-      if (type === 'DAMAGE' || type === 'THEFT') {
-        apiType = 'LOSS' // Removes stock
-        finalQuantity = -Math.abs(quantity) // Ensure negative
-      }
-
-      const reasonMap: Record<string, string> = {
-        RECEIVE: 'Stock Received',
-        COUNT: 'Physical Count',
-        DAMAGE: 'Damaged Goods',
-        THEFT: 'Theft / Stolen',
-        LOSS: 'Lost Inventory',
-        RETURN: 'Customer Return',
-      }
-
-      return await inventoryApi.adjustStock(venueId!, productId, {
-        type: apiType as any,
-        quantity: finalQuantity,
-        reason: reasonMap[reason || type] || 'Manual Adjustment',
-        unitCost,
-        supplier,
+    // El cuerpo se arma ANTES de mutar (en el `onSave` de la fila): un reintento reusa el mismo folio.
+    mutationFn: async ({ productId, payload }: { productId: string; payload: AdjustInventoryStockDto }) =>
+      await inventoryApi.adjustStock(venueId!, productId, payload),
+    onSuccess: (response, variables) => {
+      const waste = readWasteSummary(response.data)
+      const unrecorded = waste ? Number(waste.unrecorded) : 0
+      toast({
+        title: 'Stock actualizado correctamente',
+        ...(waste && unrecorded > 0
+          ? { description: tInventory('waste.unrecordedShort', { quantity: formatWasteQuantity(waste.unrecorded, getIntlLocale(i18n.language)) }) }
+          : {}),
       })
-    },
-    onSuccess: (_data, variables) => {
-      toast({ title: 'Stock actualizado correctamente' })
-      invalidateStockOverviewQueries(queryClient, venueId!, {
-        kind: 'product',
-        id: variables.productId,
-      })
+      const target = { kind: 'product' as const, id: variables.productId }
+      // Una merma también mueve el Historial y la lista de «Mermas».
+      if (variables.payload.type === 'LOSS') invalidateWasteQueries(queryClient, venueId!, target)
+      else invalidateStockOverviewQueries(queryClient, venueId!, target)
     },
     onError: () => {
       toast({ title: 'Error al actualizar stock', description: 'Inténtalo de nuevo', variant: 'destructive' })
@@ -388,8 +354,8 @@ export default function InventorySummary() {
                   productId={product.id}
                   currentStock={item.stock}
                   defaultUnitCost={item.cost ?? undefined}
-                  onSave={(type, quantity, reason, unitCost, supplier) =>
-                    adjustStockMutation.mutate({ productId: product.id, type, quantity, reason, unitCost, supplier })
+                  onSave={(action, quantity, unitCost, supplier) =>
+                    adjustStockMutation.mutate({ productId: product.id, payload: buildSummaryAdjustment(action, quantity, { unitCost, supplier }) })
                   }
                 />
               </PermissionGate>
@@ -775,11 +741,12 @@ function StockEditPopover({
   productId: string
   currentStock: number
   defaultUnitCost?: number
-  onSave: (type: any, qty: number, reason?: string, unitCost?: number, supplier?: string) => void
+  onSave: (action: SummaryStockAction, qty: number, unitCost?: number, supplier?: string) => void
 }) {
+  const { t } = useTranslation('inventory')
   const { venueId } = useCurrentVenue()
   const [open, setOpen] = useState(false)
-  const [action, setAction] = useState<'RECEIVE' | 'COUNT' | 'LOSS' | 'DAMAGE' | 'THEFT' | 'RETURN'>('RECEIVE')
+  const [action, setAction] = useState<SummaryStockAction>('RECEIVE')
   const [amount, setAmount] = useState<string>('')
   const [unitCost, setUnitCost] = useState(defaultUnitCost?.toString() || '')
   const [supplierId, setSupplierId] = useState('')
@@ -826,9 +793,11 @@ function StockEditPopover({
   if (['RECEIVE', 'RETURN'].includes(action)) {
     newTotal += numAmount
   }
-  // Subtract logic
-  if (['LOSS', 'DAMAGE', 'THEFT'].includes(action)) {
-    newTotal -= numAmount
+  // Subtract logic — merma (D4): nunca baja de 0 y una existencia negativa no se toca.
+  const isLossAction = isSummaryLossAction(action)
+  const lossPreview = previewAfterWaste(currentStock, numAmount)
+  if (isLossAction) {
+    newTotal = lossPreview.newStock
   }
   // Set logic
   if (action === 'COUNT') {
@@ -840,14 +809,14 @@ function StockEditPopover({
   const parsedUnitCost = unitCost ? parseFloat(unitCost) : undefined
 
   // For COUNT: allow 0 or any positive value. For others: require positive value
-  const isValidAmount = action === 'COUNT'
-    ? amount !== '' && !isNaN(numAmount) && numAmount >= 0
-    : amount !== '' && numAmount > 0
+  const isValidAmount = isSummaryAmountValid(action, amount)
   const canSave = isValidAmount && (!requiresCost || parsedUnitCost !== undefined)
 
   const handleSave = () => {
     const qty = parseFloat(amount)
     if (isNaN(qty)) return
+    // El mismo candado que apaga el botón, también aquí: una merma de 0 no puede salir.
+    if (!isValidAmount) return
     if (requiresCost && !parsedUnitCost) return
 
     // Get supplier name from selected ID
@@ -858,7 +827,7 @@ function StockEditPopover({
     // For other actions: send the quantity as-is (already represents delta)
     const finalQty = action === 'COUNT' ? qty - currentStock : qty
 
-    onSave(action, finalQty, action, parsedUnitCost, supplierName)
+    onSave(action, finalQty, parsedUnitCost, supplierName)
     handleOpenChange(false)
   }
 
@@ -939,6 +908,10 @@ function StockEditPopover({
               <span className="font-medium">Nuevo total</span>
               <span className="font-bold">{newTotal}</span>
             </div>
+          )}
+
+          {isLossAction && lossPreview.unrecorded > 0 && (
+            <p className="text-xs text-muted-foreground">{t('waste.unrecordedShort', { quantity: lossPreview.unrecorded })}</p>
           )}
 
           {/* Only show cost/supplier fields for RECEIVE and RETURN */}
