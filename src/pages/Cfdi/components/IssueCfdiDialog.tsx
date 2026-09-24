@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useIssueCfdi } from '@/hooks/use-cfdi'
 import { EMPTY_RECEPTOR, receptorSchema, type ReceptorFormValues } from './receptor-catalog'
 import { ReceptorFields } from './receptor-fields'
+import { avisoDeErrorAlFacturar } from './issueCfdiErrors'
 
 interface IssueCfdiDialogProps {
   open: boolean
@@ -99,13 +100,7 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
           // 409 — la venta ya tiene factura vigente, la cancelación anterior sigue en trámite, o hay otra
           // emisión en curso. El texto del servidor dice cuál factura y qué hacer; el título, cuál caso es.
           if (status === 409) {
-            const title =
-              data.code === 'CFDI_ALREADY_ISSUED'
-                ? t('issueDialog.errors.alreadyIssued')
-                : data.code === 'CFDI_CANCEL_PENDING'
-                  ? t('issueDialog.errors.cancelPending')
-                  : t('issueDialog.errors.conflict')
-            toast({ title, description: data.error || '', variant: 'destructive' })
+            toast({ ...avisoDeErrorAlFacturar(409, data, t), variant: 'destructive' })
             return
           }
 
@@ -117,7 +112,7 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
 
           // 404 — order not found / no fiscal emisor configured.
           if (status === 404) {
-            toast({ title: t('issueDialog.errors.notFound'), description: data.error || '', variant: 'destructive' })
+            toast({ ...avisoDeErrorAlFacturar(404, data, t), variant: 'destructive' })
             return
           }
 

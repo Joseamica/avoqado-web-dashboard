@@ -104,6 +104,7 @@
       "cancelPending": "The cancellation of the previous invoice is still pending.",
       "forbidden": "Activate the Pro Plan or invoicing is unavailable.",
       "notFound": "Could not determine who issues this sale's invoice.",
+      "orderNotFound": "This sale does not belong to this business.",
       "generic": "Could not issue the invoice."
     },
     "regimenFiscalSelect": "Select your tax regime",

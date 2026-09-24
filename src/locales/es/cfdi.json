@@ -104,6 +104,7 @@
       "cancelPending": "La cancelación de la factura anterior sigue en trámite.",
       "forbidden": "Activa el Plan Pro o la facturación no está disponible.",
       "notFound": "No se pudo determinar quién factura esta venta.",
+      "orderNotFound": "Esta venta no es de este negocio.",
       "generic": "No se pudo emitir la factura."
     },
     "regimenFiscalSelect": "Selecciona tu régimen",
