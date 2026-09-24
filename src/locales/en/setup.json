@@ -23,7 +23,9 @@
     "passwordHint": "Use 8 or more characters with a mix of letters, numbers and symbols",
     "createAccount": "Next",
     "alreadyHaveAccount": "Already have an account?",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "orContinueWith": "or",
+    "continueWithGoogle": "Continue with Google"
   },
   "step2": {
     "title": "Tell us about your business",

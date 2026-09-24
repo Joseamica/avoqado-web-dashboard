@@ -21,7 +21,9 @@
     "passwordHint": "Utilisez 8 caracteres ou plus avec un melange de lettres, chiffres et symboles",
     "createAccount": "Suivant",
     "alreadyHaveAccount": "Vous avez deja un compte?",
-    "signIn": "Connectez-vous"
+    "signIn": "Connectez-vous",
+    "orContinueWith": "ou",
+    "continueWithGoogle": "Continuer avec Google"
   },
   "step2": {
     "title": "Parlez-nous de votre entreprise",

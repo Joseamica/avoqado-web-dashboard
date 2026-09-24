@@ -13,17 +13,19 @@
   "step1": {
     "title": "Crea tu cuenta",
     "subtitle": "Ingresa tu correo y contraseña para comenzar",
-    "emailLabel": "Correo electronico",
+    "emailLabel": "Correo electrónico",
     "emailPlaceholder": "tucorreo@ejemplo.com",
-    "emailRequired": "El correo electronico es requerido",
+    "emailRequired": "El correo electrónico es requerido",
     "passwordLabel": "Contraseña",
     "passwordPlaceholder": "Mínimo 8 caracteres",
     "passwordRequired": "La contraseña es requerida",
     "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
-    "passwordHint": "Usa 8 caracteres o mas con una combinacion de letras, numeros y simbolos",
+    "passwordHint": "Usa 8 caracteres o más con una combinación de letras, números y símbolos",
     "createAccount": "Siguiente",
-    "alreadyHaveAccount": "Ya tienes una cuenta?",
-    "signIn": "Inicia sesión"
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "signIn": "Inicia sesión",
+    "orContinueWith": "o",
+    "continueWithGoogle": "Continuar con Google"
   },
   "step2": {
     "title": "Cuentanos sobre tu negocio",

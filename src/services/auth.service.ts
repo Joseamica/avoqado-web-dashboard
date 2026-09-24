@@ -1,5 +1,6 @@
 import api from '@/api'
 import { StaffRole, User, Venue } from '@/types'
+import type { GoogleSignupIntent } from '@/lib/googleSignupIntent'
 
 export interface LoginDto {
   email: string
@@ -87,8 +88,13 @@ export const getGoogleAuthUrl = async (): Promise<{ authUrl: string }> => {
   return response.data
 }
 
-export const googleOAuthCallback = async (code: string): Promise<AuthResponse> => {
-  const response = await api.post('/api/v1/dashboard/auth/google/callback', { code })
+/**
+ * `signup` SÓLO viaja cuando la persona venía de «Continuar con Google» en `/signup`: es lo que le
+ * dice al servidor «crea mi negocio» (con la campaña del anuncio, los UTM y el consentimiento) en
+ * vez de «inicia mi sesión». Sin él, un correo sin cuenta recibe el 403 de siempre.
+ */
+export const googleOAuthCallback = async (code: string, signup?: GoogleSignupIntent): Promise<AuthResponse> => {
+  const response = await api.post('/api/v1/dashboard/auth/google/callback', { code, ...(signup ? { signup } : {}) })
   return response.data
 }
 

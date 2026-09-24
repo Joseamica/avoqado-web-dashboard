@@ -31,6 +31,7 @@ import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
 import { LEGAL_DOCS_VERSION } from '@/config/legal'
 import { capturarAtribucion, leerAtribucion } from '@/lib/acquisition'
 import { resolveLaunchCampaignCode } from '@/services/launchOffer.service'
+import { GOOGLE_SIGNUP_INTENT_KEY, guardarIntentoDeAltaGoogle } from '@/lib/googleSignupIntent'
 
 interface SignupFormInputs {
   email: string
@@ -41,7 +42,8 @@ export default function SignupWizard() {
   const { t } = useTranslation('setup')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { signup, isLoading } = useAuth()
+  const { signup, loginWithGoogle, isLoading } = useAuth()
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
   const {
     register,
@@ -58,19 +60,9 @@ export default function SignupWizard() {
     capturarAtribucion()
   }, [])
 
-  const onSubmit: SubmitHandler<SignupFormInputs> = async (formData) => {
-    // El servidor exige el consentimiento para TERMINAR el alta. Dejarlo pasar aquí no ahorra un
-    // paso: mueve el rechazo al final, cuando la persona ya capturó todo.
-    if (!consentAccepted) {
-      setConsentError(
-        t('consent.required', { defaultValue: 'Acepta los Términos y el Aviso de Privacidad para continuar' }),
-      )
-      return
-    }
-    setConsentError('')
-
-    // Atribución del anuncio. Todo este bloque es «mejor esfuerzo»: cualquier fallo deja el alta
-    // sin campaña, nunca sin alta.
+  // Atribución del anuncio. Todo este bloque es «mejor esfuerzo»: cualquier fallo deja el alta
+  // sin campaña, nunca sin alta. La usan las DOS puertas (correo y Google).
+  const resolverAtribucion = async () => {
     const atribucion = leerAtribucion()
     let launchCampaignCode: string | undefined
     if (atribucion?.offerParam) {
@@ -81,6 +73,54 @@ export default function SignupWizard() {
       }
     }
     const utm = atribucion && Object.keys(atribucion.utm).length > 0 ? atribucion.utm : undefined
+    return { launchCampaignCode, utm }
+  }
+
+  const pedirConsentimiento = () =>
+    setConsentError(t('consent.required', { defaultValue: 'Acepta los Términos y el Aviso de Privacidad para continuar' }))
+
+  /**
+   * «Continuar con Google»: la MISMA casilla, la MISMA campaña. Lo que se sabe aquí se guarda ANTES
+   * de salir a Google, porque al volver sólo llega un `code` — sin esto, quien llegó de un anuncio
+   * perdía su oferta y pagaba precio de lista.
+   */
+  const onGoogle = async () => {
+    if (!consentAccepted) {
+      pedirConsentimiento()
+      return
+    }
+    setConsentError('')
+    setIsGoogleLoading(true)
+    const { launchCampaignCode, utm } = await resolverAtribucion()
+    guardarIntentoDeAltaGoogle({
+      legalVersion: LEGAL_DOCS_VERSION,
+      ...(launchCampaignCode ? { launchCampaignCode } : {}),
+      ...(utm ? { utm } : {}),
+    })
+    try {
+      await loginWithGoogle()
+    } catch {
+      // No se pudo salir a Google (el aviso lo pinta AuthContext): el intento no se queda colgado,
+      // o convertiría en alta un inicio de sesión posterior desde /login.
+      try {
+        window.sessionStorage.removeItem(GOOGLE_SIGNUP_INTENT_KEY)
+      } catch {
+        /* sin almacenamiento no hay nada que limpiar */
+      }
+      setIsGoogleLoading(false)
+    }
+  }
+
+  const onSubmit: SubmitHandler<SignupFormInputs> = async (formData) => {
+    // El servidor exige el consentimiento para TERMINAR el alta. Dejarlo pasar aquí no ahorra un
+    // paso: mueve el rechazo al final, cuando la persona ya capturó todo.
+    if (!consentAccepted) {
+      pedirConsentimiento()
+      return
+    }
+    setConsentError('')
+
+    const { launchCampaignCode, utm } = await resolverAtribucion()
 
     try {
       // V2 signup: only email + password, empty names/org (backend defaults)
@@ -203,6 +243,33 @@ export default function SignupWizard() {
         <Button type="submit" className="w-full rounded-full h-12 text-base" size="lg" disabled={isLoading}>
           {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
           {t('step1.createAccount')}
+        </Button>
+
+        {/* Alta con Google — misma casilla de consentimiento y misma campaña que el alta por correo */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-background px-4 text-muted-foreground">
+              {t('step1.orContinueWith', { defaultValue: 'o' })}
+            </span>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full rounded-full h-12 text-base"
+          size="lg"
+          disabled={isLoading || isGoogleLoading}
+          onClick={onGoogle}
+        >
+          {isGoogleLoading ? (
+            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Icons.google className="mr-2 h-4 w-4" aria-hidden="true" />
+          )}
+          {t('step1.continueWithGoogle', { defaultValue: 'Continuar con Google' })}
         </Button>
 
         {/* Sign-in link */}
