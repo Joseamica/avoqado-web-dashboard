@@ -181,6 +181,17 @@ async function gotoSignup(page: Page) {
   await closeTanStackDevTools(page)
 }
 
+/**
+ * El alta exige el consentimiento legal: `SignupWizard.onSubmit` corta ANTES del POST
+ * si el checkbox no está marcado. Sin esto, una prueba que cree estar ejercitando la
+ * respuesta del servidor en realidad nunca la pide.
+ */
+async function aceptarConsentimiento(page: Page) {
+  // Por `data-tour` y no por id: el wizard le pasa `id="signupConsent"`, así que el
+  // default del componente (`legal-consent`) no existe en esta pantalla.
+  await page.locator('[data-tour="legal-consent"]').click()
+}
+
 // ─── Tests: Signup Page (/signup) ────────────────────────────────
 
 test.describe('Signup Page', () => {
@@ -223,6 +234,7 @@ test.describe('Signup Page', () => {
 
     await page.fill('#email', 'test@example.com')
     await page.fill('#password', 'SecurePass123!')
+    await aceptarConsentimiento(page)
     await page.locator('button[type="submit"]').click()
 
     if (DEV_SKIPS_VERIFICATION) {
@@ -260,6 +272,7 @@ test.describe('Signup Page', () => {
 
     await page.fill('#email', 'new@test.com')
     await page.fill('#password', 'MyPassword123')
+    await aceptarConsentimiento(page)
     await page.locator('button[type="submit"]').click()
 
     // Wait for navigation away from signup (either /setup or /auth/verify-email)
@@ -280,6 +293,7 @@ test.describe('Signup Page', () => {
 
     await page.fill('#email', 'existing@example.com')
     await page.fill('#password', 'SecurePass123!')
+    await aceptarConsentimiento(page)
     await page.locator('button[type="submit"]').click()
 
     // Should show error toast and stay on signup page
@@ -293,6 +307,7 @@ test.describe('Signup Page', () => {
 
     await page.fill('#email', 'test@example.com')
     await page.fill('#password', 'SecurePass123!')
+    await aceptarConsentimiento(page)
     await page.locator('button[type="submit"]').click()
 
     // Should stay on signup page (no navigation)
