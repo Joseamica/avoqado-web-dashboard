@@ -39,6 +39,9 @@ const TIER_VENUE = createMockVenue({
     'reports:read',
     'settings:read', 'settings:update',
     'reservations:read', 'reservations:create', 'reservations:update', 'reservations:delete',
+    // Este venue monta un OWNER: sin `billing:subscriptions:manage` el CTA de
+    // contratar no existe y la prueba de abajo pide justamente ese botón.
+    'billing:subscriptions:read', 'billing:subscriptions:manage',
   ],
   modules: [
     { module: { id: 'mod-team', code: 'TEAM', name: 'Team Management' }, enabled: true },

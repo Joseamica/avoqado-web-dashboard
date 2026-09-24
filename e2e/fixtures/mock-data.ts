@@ -99,6 +99,10 @@ export function createMockVenue(overrides: Partial<MockSessionVenue> = {}): Mock
       'payments:read',
       'reports:read',
       'settings:read', 'settings:update',
+      // El rol por defecto de este mock es OWNER, y un OWNER real SÍ los tiene
+      // (permissions.ts del servidor, StaffRole.OWNER). Sin `manage`, el paywall
+      // de FeatureGate pinta «pídeselo al dueño» en vez del botón de contratar.
+      'billing:subscriptions:read', 'billing:subscriptions:manage',
     ],
     kycStatus: 'VERIFIED',
     organizationId: DEFAULT_ORG.id,
