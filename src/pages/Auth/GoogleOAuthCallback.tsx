@@ -6,7 +6,7 @@ import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import * as authService from '@/services/auth.service'
 import { clearInviteToken, resolvePostLoginRedirect } from '@/lib/pendingInvitation'
-import { tomarIntentoDeAltaGoogle } from '@/lib/googleSignupIntent'
+import { tomarIntentoDeAltaGoogle, tomarTurnoParaCanjear } from '@/lib/googleSignupIntent'
 import { trackSignup } from '@/lib/gtag'
 
 const GoogleOAuthCallback: React.FC = () => {
@@ -15,8 +15,10 @@ const GoogleOAuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-
   useEffect(() => {
+    // 🔴 UNA vez por code (ver `tomarTurnoParaCanjear`): el code de Google es de un solo uso y esta
+    // pantalla se ejecuta varias veces (StrictMode, re-render, re-montaje del enrutador).
+    if (!tomarTurnoParaCanjear(searchParams.toString())) return
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const error = searchParams.get('error')

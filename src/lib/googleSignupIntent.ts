@@ -73,3 +73,25 @@ export function tomarIntentoDeAltaGoogle(ahora: number = Date.now()): GoogleSign
     return null
   }
 }
+
+/**
+ * 🔴 El `code` que Google devuelve es de UN solo uso, y la pantalla de regreso puede ejecutarse más de
+ * una vez: StrictMode repite el efecto y el enrutador la REMONTA mientras carga la sesión (medido en
+ * navegador real el 24-sep: 4 llamadas con el mismo code; la primera llevaba el alta y las demás no, y con
+ * un code real la segunda falla y pinta el error encima del alta buena). Un candado dentro del componente
+ * no basta —cada montaje trae el suyo—, así que vive aquí, por code, a nivel de módulo.
+ *
+ * Devuelve `true` sólo la PRIMERA vez que se pide canjear ese code en esta pestaña.
+ */
+const canjesDeEstaPestana = new Set<string>()
+
+export function tomarTurnoParaCanjear(llave: string): boolean {
+  if (canjesDeEstaPestana.has(llave)) return false
+  canjesDeEstaPestana.add(llave)
+  return true
+}
+
+/** Sólo para pruebas: cada prueba arranca con una pestaña «nueva». */
+export function reiniciarCanjesParaPruebas(): void {
+  canjesDeEstaPestana.clear()
+}

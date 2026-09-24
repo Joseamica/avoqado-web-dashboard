@@ -5,6 +5,7 @@
  * legal) — sin él la persona pierde su oferta —, registra la conversión con método `google` y la
  * lleva al asistente. Sin intento, el callback es el de siempre.
  */
+import { StrictMode } from 'react'
 import { render, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -22,7 +23,7 @@ vi.mock('@/lib/gtag', () => ({ trackSignup: (...a: unknown[]) => trackSignup(...
 vi.mock('@/services/auth.service', () => ({ googleOAuthCallback: (...a: unknown[]) => googleOAuthCallback(...a) }))
 
 import GoogleOAuthCallback from '../GoogleOAuthCallback'
-import { guardarIntentoDeAltaGoogle, GOOGLE_SIGNUP_INTENT_KEY } from '@/lib/googleSignupIntent'
+import { guardarIntentoDeAltaGoogle, GOOGLE_SIGNUP_INTENT_KEY, reiniciarCanjesParaPruebas } from '@/lib/googleSignupIntent'
 
 let datos: Map<string, string>
 beforeEach(() => {
@@ -40,6 +41,7 @@ beforeEach(() => {
   googleOAuthCallback.mockReset()
   trackSignup.mockReset()
   params = new URLSearchParams('code=c-1')
+  reiniciarCanjesParaPruebas()
 })
 
 describe('GoogleOAuthCallback — alta', () => {
@@ -89,5 +91,48 @@ describe('GoogleOAuthCallback — alta', () => {
     render(<GoogleOAuthCallback />)
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/signup', { replace: true }))
     expect(googleOAuthCallback).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * 🔴 Encontrado en navegador real (24-sep): la pantalla llamaba al callback CUATRO veces con el mismo
+ * code — StrictMode repite el efecto y además se re-ejecutaba al cambiar `t`/`toast`. La primera llevaba
+ * el alta; las demás, sólo el code (el intento ya se había consumido) ⇒ en producción el code de Google,
+ * que es de UN solo uso, fallaba en la segunda y disparaba el error encima del alta buena.
+ */
+describe('GoogleOAuthCallback — se procesa UNA vez', () => {
+  it('🔴 montada como en la app (StrictMode), llama al servidor una sola vez y con el alta', async () => {
+    guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true })
+    render(
+      <StrictMode>
+        <GoogleOAuthCallback />
+      </StrictMode>,
+    )
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/setup', { replace: true }))
+    await new Promise(r => setTimeout(r, 50))
+    expect(googleOAuthCallback).toHaveBeenCalledTimes(1)
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', { legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
+  })
+
+  it('🔴 si la pantalla se MONTA dos veces (el enrutador la remonta al cargar la sesión), el code se canjea una vez', async () => {
+    params = new URLSearchParams('code=c-remontada')
+    guardarIntentoDeAltaGoogle({ legalVersion: 'v1' })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true })
+    const primera = render(<GoogleOAuthCallback />)
+    primera.unmount()
+    render(<GoogleOAuthCallback />)
+    await new Promise(r => setTimeout(r, 50))
+    expect(googleOAuthCallback).toHaveBeenCalledTimes(1)
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-remontada', { legalVersion: 'v1' })
+  })
+
+  it('un re-render con otra función de traducción no vuelve a canjear el code', async () => {
+    googleOAuthCallback.mockResolvedValue({ isNewUser: false })
+    const { rerender } = render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalled())
+    rerender(<GoogleOAuthCallback />)
+    await new Promise(r => setTimeout(r, 50))
+    expect(googleOAuthCallback).toHaveBeenCalledTimes(1)
   })
 })
