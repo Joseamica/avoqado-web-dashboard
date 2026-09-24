@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { Download, FileText, MoreHorizontal, Search, X, XCircle } from 'lucide-react'
+import { Download, FileText, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
 
 import DataTable from '@/components/data-table'
 import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
@@ -27,6 +27,7 @@ import { useCfdis, useDownloadCfdiFile } from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
+import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
 
 const FLOW_OPTIONS: CfdiFlow[] = ['STAFF_B', 'AUTOFACTURA_A', 'GLOBAL_C']
 const STATUS_OPTIONS = ['DRAFT', 'PENDING', 'STAMPED', 'CANCELLED', 'ERROR']
@@ -106,6 +107,7 @@ export default function CfdiList() {
   const canConfigure = can('cfdi:configure')
 
   const [cancelTarget, setCancelTarget] = useState<Cfdi | null>(null)
+  const [replaceTarget, setReplaceTarget] = useState<Cfdi | null>(null)
 
   const filters = useMemo(
     () => ({
@@ -145,11 +147,26 @@ export default function CfdiList() {
       {
         id: 'folio',
         header: t('columns.folio'),
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {[row.original.serie, row.original.folio].filter(Boolean).join('-') || '—'}
-          </span>
-        ),
+        cell: ({ row }) => {
+          // 🔴 Una factura sustituida sigue STAMPED hasta que el SAT confirme su cancelación. Sin
+          // decirlo aquí, la lista enseñaría dos facturas vivas por la misma venta sin explicar
+          // que una corrige a la otra.
+          const sustituta = row.original.replacedBy?.[0]
+          return (
+            <div className="flex flex-col">
+              <span className="font-medium">
+                {[row.original.serie, row.original.folio].filter(Boolean).join('-') || '—'}
+              </span>
+              {sustituta && (
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  {t('list.replacedByBadge', {
+                    folio: [sustituta.serie, sustituta.folio].filter(Boolean).join('-') || sustituta.uuid || '—',
+                  })}
+                </span>
+              )}
+            </div>
+          )
+        },
       },
       {
         id: 'receptor',
@@ -193,6 +210,15 @@ export default function CfdiList() {
         cell: ({ row }) => {
           const cfdi = row.original
           const canCancel = canConfigure && cfdi.status === 'STAMPED' && !cfdi.cancelStatus
+          // Sustituir sólo tiene sentido en una factura de VENTA vigente, ligada a una cuenta y que
+          // no se haya corregido ya: el servidor reconstruye el documento desde esa cuenta.
+          const canReplace =
+            canConfigure &&
+            cfdi.status === 'STAMPED' &&
+            !cfdi.cancelStatus &&
+            !cfdi.isGlobal &&
+            !!cfdi.orderId &&
+            !(cfdi.replacedBy && cfdi.replacedBy.length > 0)
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -217,9 +243,18 @@ export default function CfdiList() {
                     <FileText className="mr-2 h-4 w-4" />
                     {t('actions.downloadPdf')}
                   </DropdownMenuItem>
-                  {canCancel && (
+                  {canReplace && (
                     <>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setReplaceTarget(cfdi)}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        {t('actions.replace')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {canCancel && (
+                    <>
+                      {!canReplace && <DropdownMenuSeparator />}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
                         onClick={() => setCancelTarget(cfdi)}
@@ -359,6 +394,7 @@ export default function CfdiList() {
         />
 
         {hasCfdi && <CancelCfdiDialog cfdi={cancelTarget} onOpenChange={open => !open && setCancelTarget(null)} />}
+        {hasCfdi && <ReplaceCfdiDialog cfdi={replaceTarget} onOpenChange={open => !open && setReplaceTarget(null)} />}
       </div>
     </FeatureGate>
   )

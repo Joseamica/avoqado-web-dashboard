@@ -176,6 +176,14 @@ export interface Cfdi {
   xmlUrl: string | null
   pdfUrl: string | null
   globalPeriod: unknown
+  /** Si ESTA factura corrige a otra, el id de la corregida. */
+  replacesCfdiId?: string | null
+  /**
+   * Las facturas que corrigen a ÉSTA. 🔴 Una factura sustituida sigue `STAMPED` hasta que el SAT
+   * confirme su cancelación: sin este campo la lista enseñaría dos facturas vivas por la misma venta
+   * sin decir que una sustituye a la otra.
+   */
+  replacedBy?: Array<{ id: string; uuid: string | null; serie: string | null; folio: string | null; status: string; totalCents?: number }>
 }
 
 export interface CfdiListFilters {
@@ -278,6 +286,30 @@ export interface CancelCfdiResponse {
   cancelStatus: string
   cancelledAt: string
   cfdiId: string
+}
+
+/**
+ * Respuesta de sustituir una factura equivocada.
+ *
+ * 🔴 `cancelPendiente` es el campo que la pantalla DEBE mostrar: el SAT puede dejar la cancelación
+ * de la original en trámite (espera la aceptación del receptor) o rechazarla, y en ambos casos la
+ * original SIGUE VIGENTE. Decir «listo, cancelada» sin mirar esto sería mentirle al negocio.
+ */
+export interface ReplaceCfdiResponse {
+  status: 'REPLACED' | 'VALIDATION_FAILED' | 'STAMP_FAILED'
+  sustituta: {
+    id: string
+    uuid: string | null
+    serie: string | null
+    folio: string | null
+    totalCents: number | null
+    xmlUrl: string | null
+    pdfUrl: string | null
+  } | null
+  original: { id: string; uuid: string | null }
+  cancelStatus: 'REQUESTED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | null
+  cancelPendiente: boolean
+  reasons?: string[]
 }
 
 // ─── SAT catalog search (product/category fiscal keys) ──────────────────────
@@ -405,6 +437,19 @@ export const cfdiService = {
 
   async cancelCfdi(venueId: string, cfdiId: string, data: CancelCfdiRequest): Promise<CancelCfdiResponse> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/cfdi/${cfdiId}/cancel`, data)
+    return response.data?.data ?? response.data
+  },
+
+  /**
+   * Sustituye una factura cuyo importe salió mal: el servidor reconstruye el documento CORRECTO
+   * desde la cuenta, lo timbra relacionado a la original (TipoRelacion 04) y pide cancelar la
+   * original con motivo 01. No lleva body — el importe lo pone el servidor, nunca la pantalla.
+   *
+   * 422 = no se timbró nada (el documento corregido no cuadra o la cuenta no se puede reconstruir);
+   * el cuerpo trae `reasons` para enseñárselas a quien factura.
+   */
+  async replaceCfdi(venueId: string, cfdiId: string): Promise<ReplaceCfdiResponse> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/cfdi/${cfdiId}/replace`)
     return response.data?.data ?? response.data
   },
 

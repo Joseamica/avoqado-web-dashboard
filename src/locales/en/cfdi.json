@@ -4,7 +4,8 @@
     "description": "Fiscal receipts (CFDI) issued by this venue.",
     "empty": "No invoices issued yet.",
     "emptyHint": "Invoices will appear here once they are issued to your customers.",
-    "loadError": "Could not load invoices."
+    "loadError": "Could not load invoices.",
+    "replacedByBadge": "Replaced by {{folio}}"
   },
   "columns": {
     "folio": "Series-Folio",
@@ -13,7 +14,8 @@
     "flow": "Flow",
     "status": "Status",
     "date": "Date",
-    "actions": "Actions"
+    "actions": "Actions",
+    "replacedBy": "Replaced by"
   },
   "flow": {
     "STAFF_B": "Staff",
@@ -39,7 +41,8 @@
   "actions": {
     "downloadXml": "Download XML",
     "downloadPdf": "Download PDF",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "replace": "Correct amount (replace)"
   },
   "cancelDialog": {
     "title": "Cancel invoice",
@@ -305,7 +308,8 @@
       "NOT_PROVISIONED": "Connect the emisor to the PAC first."
     },
     "logoError": "Could not upload the logo",
-    "downloadError": "Could not download the file"
+    "downloadError": "Could not download the file",
+    "replaceError": "Could not replace the invoice"
   },
   "creditNote": {
     "title": "Credit note (CFDI de Egreso)",
@@ -351,5 +355,24 @@
     "openInNewTab": "Open in a new tab",
     "done": "I signed it",
     "iframeTitle": "Carta Manifiesto signature"
+  },
+  "replaceDialog": {
+    "title": "Correct this invoice amount",
+    "description": "A NEW invoice is stamped with the correct amount from the bill, related to this one, and the SAT is asked to cancel the current one. The server computes the amount from the bill — it cannot be typed in.",
+    "current": "Current invoice",
+    "warningTitle": "What will happen",
+    "step1": "1. The corrected invoice is stamped (related to the current one).",
+    "step2": "2. Cancellation of the current one is requested with motive 01, pointing at the new one.",
+    "step3": "3. Cancellation can take time: the SAT sometimes needs the customer to accept it.",
+    "confirm": "Correct and replace",
+    "cancel": "Never mind",
+    "doneTitle": "Corrected invoice issued",
+    "newInvoice": "New invoice",
+    "cancelledOk": "The previous invoice was cancelled.",
+    "cancelPending": "The previous invoice is STILL valid: its cancellation is pending at the SAT. Check back later; the new one is already valid.",
+    "cancelRejected": "The SAT did not accept cancelling the previous invoice, so it IS STILL VALID. The new one is stamped — contact support to resolve the cancellation.",
+    "rejectedTitle": "Nothing was replaced",
+    "rejectedIntro": "No invoice was stamped. Here is why:",
+    "close": "Close"
   }
 }
