@@ -103,7 +103,7 @@
       "alreadyIssued": "This sale already has an invoice — no new one was issued.",
       "cancelPending": "The cancellation of the previous invoice is still pending.",
       "forbidden": "Activate the Pro Plan or invoicing is unavailable.",
-      "notFound": "Order not found or no fiscal issuer configured.",
+      "notFound": "Could not determine who issues this sale's invoice.",
       "generic": "Could not issue the invoice."
     },
     "regimenFiscalSelect": "Select your tax regime",

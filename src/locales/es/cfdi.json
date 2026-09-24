@@ -103,7 +103,7 @@
       "alreadyIssued": "Esta venta ya tiene factura — no se emitió una nueva.",
       "cancelPending": "La cancelación de la factura anterior sigue en trámite.",
       "forbidden": "Activa el Plan Pro o la facturación no está disponible.",
-      "notFound": "Orden no encontrada o sin emisor fiscal configurado.",
+      "notFound": "No se pudo determinar quién factura esta venta.",
       "generic": "No se pudo emitir la factura."
     },
     "regimenFiscalSelect": "Selecciona tu régimen",
