@@ -19,7 +19,8 @@
     "locked": "Bloqueado",
     "unlocked": "Desbloqueado",
     "globalConfig": "Config. Global",
-    "customerDisplayInverted": "Invertir pantallas"
+    "customerDisplayInverted": "Invertir pantallas",
+    "buyBlockedByKyc": "Activa tus cobros para pedir una terminal: sin eso no podría cobrar con tarjeta."
   },
   "displayMode": {
     "title": "Orientación de pantallas",

@@ -7,7 +7,8 @@
     "complete": "Complete setup",
     "step": "Step {{current}} of {{total}}",
     "progressSaved": "Your progress was saved",
-    "progressSavedDesc": "You can continue the setup next time you log in"
+    "progressSavedDesc": "You can continue the setup next time you log in",
+    "saveError": "We could not save. Check your connection and try again."
   },
   "step1": {
     "title": "Create your account",
@@ -243,6 +244,65 @@
     "finishLaterWarning": "Your account won't activate until you complete your plan. Pause anyway?",
     "setupIntentError": "We couldn't set up the payment",
     "setupIntentErrorBody": "We couldn't set up card payment. Try again, or continue on the Free plan and upgrade later.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "cardError": "We could not save the card",
+    "promoLineFromQuote": "Pay today: {{count}} months at {{intro}}, then {{list}} per month. VAT included.",
+    "chargeError": "We could not process the payment. Try again."
+  },
+  "consent": {
+    "title": "Before we start",
+    "subtitle": "We need your confirmation to create your business on Avoqado.",
+    "continue": "Continue",
+    "checkbox": "I accept the <terms>Terms and Conditions</terms> and the <privacy>Privacy Notice</privacy>",
+    "termsTitle": "Terms and Conditions",
+    "privacyTitle": "Privacy Notice",
+    "required": "Accept the Terms and the Privacy Notice to continue"
+  },
+  "basics": {
+    "title": "Your business",
+    "subtitle": "This is enough to get started. The rest can wait.",
+    "nameLabel": "Business name",
+    "nameRequired": "Enter your business name",
+    "phoneLabel": "Phone (optional)",
+    "phoneInvalid": "The phone number needs at least 8 digits",
+    "continue": "Continue"
+  },
+  "offer": {
+    "title": "Avoqado {{plan}}",
+    "planLine": "{{plan}} plan · VAT included",
+    "pricePerMonth": "{{price}} per month",
+    "firstMonths": "First {{count}} months",
+    "afterwards": "Afterwards",
+    "perMonth": "{{price}}/month",
+    "ivaIncluded": "VAT included in the promotional price",
+    "todayYouPay": "Today you pay",
+    "legal": "By paying you authorize Avoqado to charge {{promo}} per month for {{count}} months and then {{renewal}} per month to this card until you cancel. Cancel any time from Billing.",
+    "payAndEnter": "Pay {{price}} and continue",
+    "seeOtherPlans": "See other plans",
+    "otherPlansNote": "The {{promo}} offer does not apply to other plans.",
+    "confirming": "Confirming your payment…",
+    "pending": "We're confirming your payment with the bank. We'll email you as soon as it clears; you won't be charged twice.",
+    "declined": "Your bank declined the charge. Try another card.",
+    "genericError": "We could not process the payment. Try again.",
+    "alreadyActivated": "You already have the {{tier}} plan active in this business.",
+    "activeWithoutOffer": "Your {{tier}} plan is already active with the free trial, so the offer cannot be applied on top. We did not charge you anything now.",
+    "alreadyActiveTitle": "Your plan is already active",
+    "enter": "Go to Avoqado",
+    "changePlanNote": "To change plans, go to Billing.",
+    "unavailable": "The offer is no longer available.",
+    "changed": "The offer changed. Check the new price before continuing.",
+    "claimedUnavailable": "The {{code}} offer is no longer available.",
+    "declineInsufficientFunds": "Your card doesn't have enough funds. Try another one.",
+    "declineExpiredCard": "Your card has expired. Try another one.",
+    "declineIncorrectCvc": "The security code doesn't match. Check it or use another card.",
+    "declineVelocity": "Your bank blocked the charge after too many attempts. Wait a bit or use another card.",
+    "declineProcessing": "There was a problem processing your card. Try again or use another one."
+  },
+  "done": {
+    "title": "All set",
+    "subtitle": "Your business is on Avoqado. Go in and start selling.",
+    "subtitleNamed": "{{business}} is on Avoqado. Go in and start selling.",
+    "enter": "Go to Avoqado",
+    "completeError": "We could not finish your setup. Try again in a moment."
   }
 }

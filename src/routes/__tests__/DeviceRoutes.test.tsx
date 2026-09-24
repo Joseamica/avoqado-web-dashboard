@@ -141,7 +141,15 @@ describe('canonical device routes', () => {
     expect(screen.getByText('Access Denied')).toBeInTheDocument()
   })
 
-  it.each(['/venues/cafe/devices', '/venues/cafe/tpv'])('does not let %s bypass blocked KYC', async path => {
+  // 🔴 CAMBIO DELIBERADO (§4.4 del spec de campañas ligeras, decisión del founder): el LISTADO de
+  // aparatos y su detalle son LECTURA y dejan de estar tras el candado de KYC. Lo que conserva el
+  // candado es la COMPRA de terminal (D5), que vive DENTRO de la pantalla —botón deshabilitado con
+  // su explicación— y por eso no se puede comprobar desde el árbol de rutas: la cubren
+  // `src/routes/__tests__/kycRouteGating.test.tsx` y el test de `PaymentActivationCard`.
+  //
+  // Antes esta prueba exigía lo contrario. Se conserva, invertida, para que quede escrito que el
+  // cambio fue una decisión y no un descuido.
+  it.each(['/venues/cafe/devices', '/venues/cafe/tpv'])('deja ver %s aunque el KYC no esté verificado', async path => {
     mockedUseAuth.mockReturnValue({
       activeVenue: { slug: 'cafe', status: 'LIVE', kycStatus: 'NOT_SUBMITTED' },
       getVenueBySlug: (slug: string) => ({ slug, status: 'LIVE', kycStatus: 'NOT_SUBMITTED' }),
@@ -153,8 +161,8 @@ describe('canonical device routes', () => {
 
     renderVenueRoute(path)
 
-    await waitFor(() => expect(screen.getByText('kyc-blocked')).toBeInTheDocument())
-    expect(screen.queryByTestId('device-page')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('device-page')).toBeInTheDocument())
+    expect(screen.queryByText('kyc-blocked')).not.toBeInTheDocument()
   })
 
   it('keeps unrelated static redirects compatible without preserving query or hash', async () => {

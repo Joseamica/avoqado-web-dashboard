@@ -24,7 +24,7 @@
   },
   "banner": {
     "missing": {
-      "message": "Complete KYC verification to access operational features (orders, payments, analytics)",
+      "message": "To take card and online payments and see your balance, activate payments",
       "action": "Start Now"
     },
     "pending": {

@@ -23,6 +23,7 @@ import { McpAnnouncementBanner } from '@/components/home/McpAnnouncementBanner'
 import { McpConnectCard } from '@/components/home/McpConnectCard'
 import { AnnouncementBanner } from '@/components/announcements/AnnouncementBanner'
 import { HomeSetupChecklist } from '@/components/onboarding/HomeSetupChecklist'
+import { PaymentActivationCard } from '@/components/onboarding/PaymentActivationCard'
 import { HomeDatePicker } from '@/components/home/HomeDatePicker'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -345,6 +346,11 @@ export default function Home() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            {/* Activar cobros va ARRIBA del checklist: sin esto el negocio no puede cobrar con
+                tarjeta ni recibir su dinero, así que es lo primero que tiene que ver. No se
+                descarta (§4.2); el checklist de abajo sí. */}
+            <PaymentActivationCard />
+
             {/* Setup checklist a ancho completo — ocupa toda la viewport
                 porque es un onboarding step prominente, no un widget lateral. */}
             <HomeSetupChecklist />

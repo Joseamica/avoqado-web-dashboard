@@ -477,5 +477,40 @@
       "devicesSubCount_one": "{{count}} dispositivo",
       "devicesSubCount_other": "{{count}} dispositivos"
     }
+  },
+  "paymentActivation": {
+    "title": "Activa tus cobros",
+    "subtitle": "Para cobrar con tarjeta y recibir tu dinero necesitamos estos datos. Tardas menos de 10 minutos.",
+    "progress": "{{done}} de {{total}} listos",
+    "toggle": "Mostrar u ocultar",
+    "items": {
+      "profile": "Datos fiscales, dirección y cuenta para depósitos",
+      "documents": "Sube tus documentos",
+      "online": "Cobros en línea (opcional)",
+      "terminal": "Compra tu terminal (opcional)"
+    },
+    "review": "Revisar",
+    "start": "Empezar",
+    "terminalBlocked": "Disponible cuando envíes tus documentos: una terminal sin cobros activos no puede cobrar.",
+    "pageSubtitle": "Con estos datos podemos abrirte la cuenta de cobros y depositarte lo que vendas.",
+    "sections": {
+      "business": "Tu negocio",
+      "businessDesc": "Tipo de persona y dirección del local.",
+      "identity": "Quién es el responsable",
+      "identityDesc": "RFC, CURP y domicilio de quien firma.",
+      "bank": "Dónde te depositamos",
+      "bankDesc": "La CLABE de la cuenta a la que llega tu dinero."
+    },
+    "addressLabel": "Dirección del local",
+    "addressPlaceholder": "Calle, número, colonia",
+    "addressRequired": "Escribe la dirección completa de tu local",
+    "cityLabel": "Ciudad",
+    "stateLabel": "Estado",
+    "zipLabel": "Código postal",
+    "currentClabe": "Cuenta guardada: ••••{{last4}} {{bank}}",
+    "saved": "Guardado",
+    "saveError": "No pudimos guardar. Revisa los datos e intenta otra vez.",
+    "saving": "Guardando…",
+    "back": "Volver"
   }
 }

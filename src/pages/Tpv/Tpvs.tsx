@@ -52,6 +52,7 @@ import { StatusPulse } from '@/components/ui/status-pulse'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { canMoveMoney } from '@/lib/kyc-utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI } from '@/services/superadmin-terminals.service'
@@ -118,15 +119,22 @@ export default function Tpvs() {
   // Deeplink: HomeSetupChecklist's "Compra tu primer TPV" step navigates here
   // with `?action=buy` to auto-open the purchase wizard. Clean the param after
   // opening so a refresh doesn't re-trigger the wizard mid-flow.
+  // 🔴 La COMPRA conserva el candado de KYC (D5, §4.4) aunque el listado ya sea libre: una terminal
+  // sin cuenta procesadora no puede cobrar —la crea la aprobación del KYC—, así que venderla antes
+  // es venderle al cliente un aparato que todavía no le sirve. El candado se VE y se EXPLICA: el
+  // botón queda deshabilitado con su motivo, nunca desaparece.
+  const puedeComprarTerminal = canMoveMoney(venue ?? null)
+
   useEffect(() => {
     if (searchParams.get('action') === 'buy') {
-      setWizardOpen(true)
+      // El deeplink respeta el mismo candado que el botón: si no, bastaría con la URL para saltarlo.
+      if (puedeComprarTerminal) setWizardOpen(true)
       const next = new URLSearchParams(searchParams)
       next.delete('action')
       setSearchParams(next, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to URL changes
-  }, [searchParams])
+  }, [searchParams, puedeComprarTerminal])
   const [superadminDialogOpen, setSuperadminDialogOpen] = useState(false)
   const [activationModalOpen, setActivationModalOpen] = useState(false)
   const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
@@ -974,16 +982,32 @@ export default function Tpvs() {
 
             {/* Regular "Create" button - purchase wizard flow */}
             <PermissionGate permission="tpv:create">
-              <Button
-                data-tour="tpv-new-btn"
-                size="sm"
-                variant={isSuperadmin ? 'outline' : 'default'}
-                className="h-9"
-                onClick={() => setWizardOpen(true)}
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                <span>{tTpv('actions.createNew', { defaultValue: 'Registrar o pedir TPV' })}</span>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* El span sostiene el tooltip cuando el botón está deshabilitado: un botón
+                      apagado no dispara eventos de ratón. */}
+                  <span className="inline-flex">
+                    <Button
+                      data-tour="tpv-new-btn"
+                      size="sm"
+                      variant={isSuperadmin ? 'outline' : 'default'}
+                      className="h-9"
+                      disabled={!puedeComprarTerminal}
+                      onClick={() => setWizardOpen(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-1.5" />
+                      <span>{tTpv('actions.createNew', { defaultValue: 'Registrar o pedir TPV' })}</span>
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!puedeComprarTerminal && (
+                  <TooltipContent>
+                    {tTpv('actions.buyBlockedByKyc', {
+                      defaultValue: 'Activa tus cobros para pedir una terminal: sin eso no podría cobrar con tarjeta.',
+                    })}
+                  </TooltipContent>
+                )}
+              </Tooltip>
             </PermissionGate>
           </div>
         </div>

@@ -1,16 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Check, Compass } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
-import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
-import { getTpvs } from '@/services/tpv.service'
-import { tpvOrderService } from '@/services/tpvOrder.service'
 import {
   requestAtomicTour,
   setAtomicTourReturnPath,
@@ -18,7 +14,10 @@ import {
 } from '@/hooks/useAtomicTourListener'
 import { cn } from '@/lib/utils'
 
-type StepId = 'buy-tpv' | 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations' | 'payments'
+// ⚠️ `buy-tpv` y `payments` se MUDARON a `PaymentActivationCard` (§4.2): los dos dependen del KYC
+// y vivían aquí, en un checklist que se puede descartar. El estado ya guardado de esas dos llaves
+// simplemente se ignora.
+type StepId = 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations'
 
 interface StepState {
   done: boolean
@@ -56,16 +55,6 @@ interface StepConfig {
 }
 
 const STEPS: StepConfig[] = [
-  {
-    // "Compra tu primer TPV" — solo se renderiza cuando el venue no tiene
-    // ningún Terminal asignado. Lleva al wizard de compra de TPV con un
-    // query param que lo auto-abre.
-    id: 'buy-tpv',
-    titleKey: 'newHome.setup.steps.buyTpv.title',
-    descriptionKey: 'newHome.setup.steps.buyTpv.description',
-    path: 'devices?action=buy',
-    canSkip: true,
-  },
   {
     id: 'catalog',
     titleKey: 'newHome.setup.steps.catalog.title',
@@ -109,17 +98,6 @@ const STEPS: StepConfig[] = [
     atomicTour: 'reservations-onboarding',
     canSkip: true,
   },
-  {
-    // "Activa pagos online" — auto-completed when the venue has at least one
-    // ecommerce merchant with onboardingStatus=COMPLETED. The user is navigated
-    // to settings/integrations where they configure Stripe via EcommerceMerchantWizard.
-    // No atomic tour involved.
-    id: 'payments',
-    titleKey: 'newHome.setup.steps.payments.title',
-    descriptionKey: 'newHome.setup.steps.payments.description',
-    path: 'settings/integrations',
-    canSkip: true,
-  },
 ]
 
 function normalize(raw: unknown): ChecklistState {
@@ -133,7 +111,7 @@ function normalize(raw: unknown): ChecklistState {
 
 export function HomeSetupChecklist() {
   const { t } = useTranslation('home')
-  const { fullBasePath, venueId } = useCurrentVenue()
+  const { fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { start: startPlatformTour } = usePlatformWelcomeTour()
 
@@ -144,44 +122,10 @@ export function HomeSetupChecklist() {
   // sobrevive a clear del checklist y se respeta la primera vez del usuario.
   const { value: platformTourCompleted } = useOnboardingKey<boolean>('platform-welcome-completed', false)
 
-  // Auto-mark "payments" step when the venue has at least one ecommerce
-  // merchant fully onboarded with Stripe (chargesEnabled=true). This step
-  // doesn't have an atomic tour, so we watch the data signal directly.
-  const { data: ecommerceMerchants = [] } = useQuery({
-    queryKey: ['ecommerce-merchants', venueId, 'home-checklist'],
-    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId!),
-    enabled: !!venueId,
-  })
-  const hasActivePaymentChannel = useMemo(
-    () => ecommerceMerchants.some(m => m.chargesEnabled || m.onboardingStatus === 'COMPLETED'),
-    [ecommerceMerchants],
-  )
-
-  // "Compra tu primer TPV" — solo se renderiza cuando el venue no tiene
-  // terminales asignados. Una vez que crea su primer pedido, el step se
-  // auto-marca como done y desaparece del checklist.
-  const { data: tpvList } = useQuery({
-    queryKey: ['tpvs', venueId, 'home-checklist'],
-    queryFn: () => getTpvs(venueId!, { pageIndex: 0, pageSize: 1 }),
-    enabled: !!venueId,
-  })
-  const { data: tpvOrders = [] } = useQuery({
-    queryKey: ['tpv-orders', venueId, 'home-checklist'],
-    queryFn: () => tpvOrderService.listForVenue(venueId!),
-    enabled: !!venueId,
-  })
-  const terminalCount = (tpvList as { total?: number; items?: unknown[] } | undefined)?.total
-    ?? (tpvList as { items?: unknown[] } | undefined)?.items?.length
-    ?? 0
-  const hasAnyOrder = tpvOrders.length > 0
-  const showBuyTpvStep = terminalCount === 0 && !hasAnyOrder
-
-  // Visible steps: drop the buy-tpv step entirely when the venue already
-  // has a terminal or an active order in flight. The rest are always shown.
-  const visibleSteps = useMemo(
-    () => STEPS.filter(s => s.id !== 'buy-tpv' || showBuyTpvStep),
-    [showBuyTpvStep],
-  )
+  // ⚠️ Las señales de «pagos en línea» y «compra tu TPV» se fueron con sus pasos a
+  // `PaymentActivationCard` (§4.2). Aquí ya no se consultan: eran tres peticiones por carga del
+  // Home para marcar dos casillas que ahora vive otra tarjeta.
+  const visibleSteps = STEPS
 
   const doneCount = useMemo(
     () => visibleSteps.filter(s => state.steps[s.id]?.done).length,
@@ -201,26 +145,6 @@ export function HomeSetupChecklist() {
       },
     })
   }
-
-  // Auto-mark the payments step once the data shows a working Stripe channel.
-  useEffect(() => {
-    if (!isLoaded) return
-    if (!hasActivePaymentChannel) return
-    if (state.steps.payments?.done) return
-    markDone('payments')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, hasActivePaymentChannel, state.steps.payments?.done])
-
-  // Auto-mark buy-tpv once the venue has at least one TerminalOrder or
-  // physical terminal — the step exists to nudge first-timers and disappears
-  // the moment they take action (even before the order is paid).
-  useEffect(() => {
-    if (!isLoaded) return
-    if (showBuyTpvStep) return
-    if (state.steps['buy-tpv']?.done) return
-    markDone('buy-tpv')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, showBuyTpvStep, state.steps['buy-tpv']?.done])
 
   const handleStart = (step: StepConfig) => {
     // Marcamos el step como inProgress para que el badge "En curso"

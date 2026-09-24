@@ -11,7 +11,8 @@
     "maintenanceMode": "Maintenance",
     "update": "Update",
     "globalConfig": "Config. globale",
-    "customerDisplayInverted": "Inverser les écrans"
+    "customerDisplayInverted": "Inverser les écrans",
+    "buyBlockedByKyc": "Activez vos encaissements pour commander un terminal : sans cela, il ne pourrait pas encaisser par carte."
   },
   "displayMode": {
     "title": "Orientation des écrans",

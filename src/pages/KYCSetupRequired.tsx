@@ -45,14 +45,17 @@ export function KYCSetupRequired() {
           <p className="text-muted-foreground">{t('setupRequired.subtitle')}</p>
         </div>
 
-        {/* MISSING: No KYC submitted yet */}
-        {(!status || status === null) && (
+        {/* FALTA: nunca se envió. 🔴 `NOT_SUBMITTED` también entra aquí: antes solo se pintaba con
+            `!status`, así que el caso MÁS común —un local recién creado— veía la página sin un solo
+            aviso ni botón, o sea un callejón. */}
+        {(!status || status === 'NOT_SUBMITTED') && (
           <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
             <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertTitle className="text-blue-900 dark:text-blue-100">{t('setupRequired.missing.title')}</AlertTitle>
             <AlertDescription className="text-blue-800 dark:text-blue-200">
               <p>{t('setupRequired.missing.description')}</p>
-              <Button className="mt-4" onClick={() => navigate(`/venues/${activeVenue.slug}/onboarding`)}>
+              {/* 🔴 Antes llevaba a `/venues/:slug/onboarding`, una ruta que NO existe. */}
+              <Button className="mt-4" onClick={() => navigate(`/venues/${activeVenue.slug}/activar-cobros`)}>
                 {t('setupRequired.missing.action')}
               </Button>
             </AlertDescription>

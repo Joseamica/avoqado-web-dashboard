@@ -24,7 +24,7 @@
   },
   "banner": {
     "missing": {
-      "message": "Complétez la vérification KYC pour accéder aux fonctionnalités opérationnelles (commandes, paiements, analyses)",
+      "message": "Pour encaisser par carte et en ligne et voir votre solde, activez vos paiements",
       "action": "Commencer Maintenant"
     },
     "pending": {

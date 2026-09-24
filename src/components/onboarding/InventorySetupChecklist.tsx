@@ -138,17 +138,13 @@ type ChecklistVariant = 'floating' | 'header'
 
 export function InventorySetupChecklist({ variant = 'floating' }: { variant?: ChecklistVariant } = {}) {
   const { t } = useTranslation('inventory')
-  const { fullBasePath, venue, isWhiteLabelMode } = useCurrentVenue()
-  // Hide the setup widget if the venue hasn't cleared KYC — 3 of the 5
-  // steps navigate to `/inventory/*` which is blocked by `KYCProtectedRoute`,
-  // so showing the checklist would just frustrate the admin with dead-end
-  // clicks. Once KYC is verified, the widget re-appears with their progress.
+  const { fullBasePath, isWhiteLabelMode } = useCurrentVenue()
+  // ⚠️ Antes se escondía sin KYC verificado porque `/inventory/*` estaba tras `KYCProtectedRoute`.
+  // Desde §4.4 el inventario es OPERACIÓN y ya no lo bloquea nadie, así que esconder la guía solo
+  // le quitaba el arranque al negocio que más lo necesita: el que acaba de darse de alta.
   //
-  // White-label venues also skip — they have their own branded flow and
-  // shouldn't see Avoqado's setup guide.
-  const isHidden =
-    isWhiteLabelMode ||
-    (!!venue && venue.kycStatus !== 'VERIFIED' && venue.role !== 'SUPERADMIN')
+  // Se conserva la excepción de white-label: esos dashboards traen su propio arranque de marca.
+  const isHidden = isWhiteLabelMode
   const navigate = useNavigate()
 
   const { value: rawState, isLoaded, setValue } = useOnboardingKey<ChecklistState>(

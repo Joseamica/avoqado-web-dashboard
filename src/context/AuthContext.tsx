@@ -23,6 +23,10 @@ type SignupData = {
   lastName?: string
   organizationName?: string
   wizardVersion?: number
+  /** Versión legal aceptada + atribución del anuncio (§3.5). Opcionales: el alta no depende de ellas. */
+  legalVersion?: string
+  launchCampaignCode?: string
+  utm?: Record<string, string>
 }
 
 interface AuthContextType {

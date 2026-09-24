@@ -50,6 +50,16 @@ export function canAccessOperationalFeatures(venue: SessionVenue | Venue | null)
 }
 
 /**
+ * Alias con el nombre HONESTO de lo que este predicado decide desde §4.4: no gobierna «las
+ * funciones operativas» —órdenes, turnos, reportes e inventario ya no dependen de él— sino las
+ * superficies donde se MUEVE dinero de un procesador: reglas de cuentas de cobro, saldo
+ * disponible y la compra de terminal.
+ *
+ * Se conserva el nombre viejo porque lo usan decenas de sitios; lo nuevo que se escriba usa éste.
+ */
+export const canMoveMoney = canAccessOperationalFeatures
+
+/**
  * Get a user-friendly reason why operational features are blocked
  *
  * @param venue - The venue to check

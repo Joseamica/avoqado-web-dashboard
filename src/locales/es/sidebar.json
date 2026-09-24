@@ -221,7 +221,8 @@
     "reportRefunds": "Reembolsos",
     "reportHomeCharts": "Gráficas",
     "reportPayLaterAging": "Cuentas por cobrar",
-    "receiptLayout": "Diseño del ticket"
+    "receiptLayout": "Diseño del ticket",
+    "paymentActivation": "Activar cobros"
   },
   "paymentLinksMenu": {
     "links": "Ligas de pago",

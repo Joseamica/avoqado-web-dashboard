@@ -11,7 +11,10 @@
   "plan": {
     "features": {
       "delivery": "Livraison (Uber Eats, Rappi, DiDi)"
-    }
+    },
+    "checkoutSuccess": "Bienvenue sur Pro ! Votre plan est actif.",
+    "checkoutReceived": "Paiement reçu. Nous activons votre plan…",
+    "checkoutPending": "Votre paiement a été enregistré. L'activation peut prendre quelques minutes ; nous vous préviendrons par e-mail."
   },
   "activeSubscriptions": {
     "title": "Abonnements Actifs",

@@ -7,7 +7,8 @@
     "complete": "Completar configuración",
     "step": "Paso {{current}} de {{total}}",
     "progressSaved": "Tu progreso se guardo",
-    "progressSavedDesc": "Puedes continuar la configuración cuando inicies sesión de nuevo"
+    "progressSavedDesc": "Puedes continuar la configuración cuando inicies sesión de nuevo",
+    "saveError": "No pudimos guardar. Revisa tu conexión e intenta otra vez."
   },
   "step1": {
     "title": "Crea tu cuenta",
@@ -243,6 +244,65 @@
     "finishLaterWarning": "Tu cuenta no se activará hasta que completes tu plan. ¿Pausar de todos modos?",
     "setupIntentError": "No pudimos preparar el pago",
     "setupIntentErrorBody": "No pudimos preparar el pago con tarjeta. Vuelve a intentarlo o continúa con el plan Gratis y mejóralo después.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "cardError": "No se pudo guardar la tarjeta",
+    "promoLineFromQuote": "Paga hoy: {{count}} meses a {{intro}}, luego {{list}} al mes. IVA incluido.",
+    "chargeError": "No pudimos procesar el pago. Intenta de nuevo."
+  },
+  "consent": {
+    "title": "Antes de empezar",
+    "subtitle": "Necesitamos tu confirmación para crear tu negocio en Avoqado.",
+    "continue": "Continuar",
+    "checkbox": "Acepto los <terms>Términos y Condiciones</terms> y el <privacy>Aviso de Privacidad</privacy>",
+    "termsTitle": "Términos y Condiciones",
+    "privacyTitle": "Aviso de Privacidad",
+    "required": "Acepta los Términos y el Aviso de Privacidad para continuar"
+  },
+  "basics": {
+    "title": "Tu negocio",
+    "subtitle": "Con esto ya puedes empezar. Lo demás se completa después.",
+    "nameLabel": "Nombre del negocio",
+    "nameRequired": "Escribe el nombre de tu negocio",
+    "phoneLabel": "Teléfono (opcional)",
+    "phoneInvalid": "El teléfono necesita al menos 8 dígitos",
+    "continue": "Continuar"
+  },
+  "offer": {
+    "title": "Avoqado {{plan}}",
+    "planLine": "Plan {{plan}} · IVA incluido",
+    "pricePerMonth": "{{price}} al mes",
+    "firstMonths": "Primeros {{count}} meses",
+    "afterwards": "Después",
+    "perMonth": "{{price}}/mes",
+    "ivaIncluded": "IVA incluido en el precio promocional",
+    "todayYouPay": "Hoy pagas",
+    "legal": "Al pagar autorizas a Avoqado a cobrar {{promo}} al mes durante {{count}} meses y después {{renewal}} al mes a esta tarjeta hasta que canceles. Cancela cuando quieras desde Facturación.",
+    "payAndEnter": "Pagar {{price}} y entrar",
+    "seeOtherPlans": "Ver otros planes",
+    "otherPlansNote": "La oferta de {{promo}} no aplica a otros planes.",
+    "confirming": "Confirmando tu pago…",
+    "pending": "Estamos confirmando tu pago con el banco. Te avisamos por correo en cuanto quede; no se te cobrará dos veces.",
+    "declined": "Tu banco rechazó el cargo. Prueba con otra tarjeta.",
+    "genericError": "No pudimos procesar el pago. Intenta de nuevo.",
+    "alreadyActivated": "Ya tienes el plan {{tier}} activo en este negocio.",
+    "activeWithoutOffer": "Tu plan {{tier}} ya está activo con los días de prueba, así que la oferta no se puede aplicar encima. No te cobramos nada ahora.",
+    "alreadyActiveTitle": "Tu plan ya está activo",
+    "enter": "Entrar a Avoqado",
+    "changePlanNote": "Para cambiar de plan, entra a Facturación.",
+    "unavailable": "La oferta ya no está disponible.",
+    "changed": "La oferta cambió. Revisa el precio nuevo antes de continuar.",
+    "claimedUnavailable": "La oferta {{code}} ya no está disponible.",
+    "declineInsufficientFunds": "Tu tarjeta no tiene fondos suficientes. Prueba con otra.",
+    "declineExpiredCard": "Tu tarjeta está vencida. Prueba con otra.",
+    "declineIncorrectCvc": "El código de seguridad no coincide. Revísalo o usa otra tarjeta.",
+    "declineVelocity": "Tu banco bloqueó el cargo por demasiados intentos seguidos. Espera un poco o usa otra tarjeta.",
+    "declineProcessing": "Hubo un problema al procesar tu tarjeta. Intenta de nuevo o usa otra."
+  },
+  "done": {
+    "title": "Todo listo",
+    "subtitle": "Tu negocio ya está en Avoqado. Entra y empieza a vender.",
+    "subtitleNamed": "{{business}} ya está en Avoqado. Entra y empieza a vender.",
+    "enter": "Entrar a Avoqado",
+    "completeError": "No pudimos terminar tu alta. Intenta de nuevo en un momento."
   }
 }

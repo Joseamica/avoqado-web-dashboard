@@ -476,5 +476,40 @@
     "cta": "Voir comment",
     "dismiss": "Fermer",
     "dialogTitle": "Connectez votre IA à Avoqado"
+  },
+  "paymentActivation": {
+    "title": "Activez vos encaissements",
+    "subtitle": "Pour encaisser par carte et recevoir votre argent, il nous faut ces informations. Moins de 10 minutes.",
+    "progress": "{{done}} sur {{total}} terminés",
+    "toggle": "Afficher ou masquer",
+    "items": {
+      "profile": "Informations fiscales, adresse et compte de dépôt",
+      "documents": "Téléversez vos documents",
+      "online": "Paiements en ligne (facultatif)",
+      "terminal": "Achetez votre terminal (facultatif)"
+    },
+    "review": "Revoir",
+    "start": "Commencer",
+    "terminalBlocked": "Disponible une fois vos documents envoyés : un terminal sans encaissements actifs ne peut rien encaisser.",
+    "pageSubtitle": "Avec ces informations, nous pouvons ouvrir votre compte d’encaissement et vous verser vos ventes.",
+    "sections": {
+      "business": "Votre établissement",
+      "businessDesc": "Type d’entité et adresse de l’établissement.",
+      "identity": "Qui est le responsable",
+      "identityDesc": "Numéro fiscal, CURP et adresse du signataire.",
+      "bank": "Où nous versons votre argent",
+      "bankDesc": "Le CLABE du compte qui reçoit votre argent."
+    },
+    "addressLabel": "Adresse de l’établissement",
+    "addressPlaceholder": "Rue, numéro, quartier",
+    "addressRequired": "Saisissez l’adresse complète de votre établissement",
+    "cityLabel": "Ville",
+    "stateLabel": "État",
+    "zipLabel": "Code postal",
+    "currentClabe": "Compte enregistré : ••••{{last4}} {{bank}}",
+    "saved": "Enregistré",
+    "saveError": "Enregistrement impossible. Vérifiez les informations et réessayez.",
+    "saving": "Enregistrement…",
+    "back": "Retour"
   }
 }

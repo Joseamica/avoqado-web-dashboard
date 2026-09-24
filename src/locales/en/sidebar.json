@@ -223,7 +223,8 @@
     "reportRefunds": "Refunds",
     "reportHomeCharts": "Charts",
     "reportPayLaterAging": "Accounts receivable",
-    "receiptLayout": "Receipt design"
+    "receiptLayout": "Receipt design",
+    "paymentActivation": "Activate payments"
   },
   "paymentLinksMenu": {
     "links": "Payment links",
