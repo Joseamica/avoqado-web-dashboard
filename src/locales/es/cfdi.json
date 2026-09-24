@@ -27,7 +27,18 @@
     "PENDING": "Pendiente",
     "STAMPED": "Timbrada",
     "CANCELLED": "Cancelada",
-    "ERROR": "Error"
+    "ERROR": "Error",
+    "CANCEL_PENDING": "Cancelación en trámite",
+    "VALIDATING": "Validando",
+    "STAMPING": "Timbrando",
+    "VALIDATION_FAILED": "Datos con error",
+    "STAMP_FAILED": "Rechazada por el SAT"
+  },
+  "statusGroup": {
+    "STAMPED": "Timbrada",
+    "CANCELLED": "Cancelada",
+    "IN_PROGRESS": "En proceso",
+    "FAILED": "Con error"
   },
   "filters": {
     "status": "Estatus",
@@ -89,6 +100,8 @@
       "validation": "No se pudo facturar. Corrige lo siguiente:",
       "pacRejected": "El PAC rechazó el timbrado.",
       "conflict": "Esta cuenta ya tiene una factura o está en proceso.",
+      "alreadyIssued": "Esta venta ya tiene factura — no se emitió una nueva.",
+      "cancelPending": "La cancelación de la factura anterior sigue en trámite.",
       "forbidden": "Activa el Plan Pro o la facturación no está disponible.",
       "notFound": "Orden no encontrada o sin emisor fiscal configurado.",
       "generic": "No se pudo emitir la factura."

@@ -27,7 +27,18 @@
     "PENDING": "Pending",
     "STAMPED": "Stamped",
     "CANCELLED": "Cancelled",
-    "ERROR": "Error"
+    "ERROR": "Error",
+    "CANCEL_PENDING": "Cancellation pending",
+    "VALIDATING": "Validating",
+    "STAMPING": "Stamping",
+    "VALIDATION_FAILED": "Invalid data",
+    "STAMP_FAILED": "Rejected by the SAT"
+  },
+  "statusGroup": {
+    "STAMPED": "Stamped",
+    "CANCELLED": "Cancelled",
+    "IN_PROGRESS": "In progress",
+    "FAILED": "With errors"
   },
   "filters": {
     "status": "Status",
@@ -89,6 +100,8 @@
       "validation": "Could not invoice. Fix the following:",
       "pacRejected": "The PAC rejected the stamp.",
       "conflict": "This bill already has an invoice or one is in progress.",
+      "alreadyIssued": "This sale already has an invoice — no new one was issued.",
+      "cancelPending": "The cancellation of the previous invoice is still pending.",
       "forbidden": "Activate the Pro Plan or invoicing is unavailable.",
       "notFound": "Order not found or no fiscal issuer configured.",
       "generic": "Could not issue the invoice."

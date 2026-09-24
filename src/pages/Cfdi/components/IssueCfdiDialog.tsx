@@ -96,9 +96,16 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
             return
           }
 
-          // 409 — already in process / business rule.
+          // 409 — la venta ya tiene factura vigente, la cancelación anterior sigue en trámite, o hay otra
+          // emisión en curso. El texto del servidor dice cuál factura y qué hacer; el título, cuál caso es.
           if (status === 409) {
-            toast({ title: t('issueDialog.errors.conflict'), description: data.error || '', variant: 'destructive' })
+            const title =
+              data.code === 'CFDI_ALREADY_ISSUED'
+                ? t('issueDialog.errors.alreadyIssued')
+                : data.code === 'CFDI_CANCEL_PENDING'
+                  ? t('issueDialog.errors.cancelPending')
+                  : t('issueDialog.errors.conflict')
+            toast({ title, description: data.error || '', variant: 'destructive' })
             return
           }
 

@@ -28,9 +28,9 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
 import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
+import { STATUS_GROUPS, estatusDelServidor, insigniaDeEstatus, mesEnCurso } from './cfdiListFilters'
 
 const FLOW_OPTIONS: CfdiFlow[] = ['STAFF_B', 'AUTOFACTURA_A', 'GLOBAL_C']
-const STATUS_OPTIONS = ['DRAFT', 'PENDING', 'STAMPED', 'CANCELLED', 'ERROR']
 
 /**
  * Placeholder rows shown BEHIND the teaser blur when the venue lacks the CFDI
@@ -39,44 +39,94 @@ const STATUS_OPTIONS = ['DRAFT', 'PENDING', 'STAMPED', 'CANCELLED', 'ERROR']
  */
 const SAMPLE_CFDIS: Cfdi[] = [
   {
-    id: 'sample-1', type: 'I', status: 'STAMPED', flow: 'STAFF_B', isGlobal: false, orderId: null,
-    receptorRfc: 'XAXX010101000', receptorNombre: 'Cliente Mostrador', serie: 'A', folio: '1042', uuid: null,
-    subtotalCents: 45000, taxCents: 7200, totalCents: 52200, stampedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(), cancelStatus: null, xmlUrl: null, pdfUrl: null, globalPeriod: null,
+    id: 'sample-1',
+    type: 'I',
+    status: 'STAMPED',
+    flow: 'STAFF_B',
+    isGlobal: false,
+    orderId: null,
+    receptorRfc: 'XAXX010101000',
+    receptorNombre: 'Cliente Mostrador',
+    serie: 'A',
+    folio: '1042',
+    uuid: null,
+    subtotalCents: 45000,
+    taxCents: 7200,
+    totalCents: 52200,
+    stampedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    cancelStatus: null,
+    xmlUrl: null,
+    pdfUrl: null,
+    globalPeriod: null,
   },
   {
-    id: 'sample-2', type: 'I', status: 'STAMPED', flow: 'AUTOFACTURA_A', isGlobal: false, orderId: null,
-    receptorRfc: 'GODE561231GR8', receptorNombre: 'Distribuidora del Norte SA de CV', serie: 'A', folio: '1041', uuid: null,
-    subtotalCents: 128000, taxCents: 20480, totalCents: 148480, stampedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(), cancelStatus: null, xmlUrl: null, pdfUrl: null, globalPeriod: null,
+    id: 'sample-2',
+    type: 'I',
+    status: 'STAMPED',
+    flow: 'AUTOFACTURA_A',
+    isGlobal: false,
+    orderId: null,
+    receptorRfc: 'GODE561231GR8',
+    receptorNombre: 'Distribuidora del Norte SA de CV',
+    serie: 'A',
+    folio: '1041',
+    uuid: null,
+    subtotalCents: 128000,
+    taxCents: 20480,
+    totalCents: 148480,
+    stampedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    cancelStatus: null,
+    xmlUrl: null,
+    pdfUrl: null,
+    globalPeriod: null,
   },
   {
-    id: 'sample-3', type: 'I', status: 'STAMPED', flow: 'GLOBAL_C', isGlobal: true, orderId: null,
-    receptorRfc: 'XAXX010101000', receptorNombre: 'Público en General', serie: 'G', folio: '0087', uuid: null,
-    subtotalCents: 310000, taxCents: 49600, totalCents: 359600, stampedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(), cancelStatus: null, xmlUrl: null, pdfUrl: null, globalPeriod: null,
+    id: 'sample-3',
+    type: 'I',
+    status: 'STAMPED',
+    flow: 'GLOBAL_C',
+    isGlobal: true,
+    orderId: null,
+    receptorRfc: 'XAXX010101000',
+    receptorNombre: 'Público en General',
+    serie: 'G',
+    folio: '0087',
+    uuid: null,
+    subtotalCents: 310000,
+    taxCents: 49600,
+    totalCents: 359600,
+    stampedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    cancelStatus: null,
+    xmlUrl: null,
+    pdfUrl: null,
+    globalPeriod: null,
   },
   {
-    id: 'sample-4', type: 'I', status: 'PENDING', flow: 'STAFF_B', isGlobal: false, orderId: null,
-    receptorRfc: 'MABO751210I27', receptorNombre: 'María Bonilla', serie: 'A', folio: '1040', uuid: null,
-    subtotalCents: 86000, taxCents: 13760, totalCents: 99760, stampedAt: null,
-    createdAt: new Date().toISOString(), cancelStatus: null, xmlUrl: null, pdfUrl: null, globalPeriod: null,
+    id: 'sample-4',
+    type: 'I',
+    status: 'PENDING',
+    flow: 'STAFF_B',
+    isGlobal: false,
+    orderId: null,
+    receptorRfc: 'MABO751210I27',
+    receptorNombre: 'María Bonilla',
+    serie: 'A',
+    folio: '1040',
+    uuid: null,
+    subtotalCents: 86000,
+    taxCents: 13760,
+    totalCents: 99760,
+    stampedAt: null,
+    createdAt: new Date().toISOString(),
+    cancelStatus: null,
+    xmlUrl: null,
+    pdfUrl: null,
+    globalPeriod: null,
   },
 ]
-
-function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'STAMPED':
-      return 'default'
-    case 'CANCELLED':
-    case 'ERROR':
-      return 'destructive'
-    case 'PENDING':
-      return 'secondary'
-    default:
-      return 'outline'
-  }
-}
 
 export default function CfdiList() {
   const { t } = useTranslation('cfdi')
@@ -89,7 +139,7 @@ export default function CfdiList() {
   // the VENUE-timezone calendar day. Using `toISOString()` would format in UTC,
   // which for a Mexico evening rolls `to` forward to the next calendar day.
   const toIsoDay = (date: Date | undefined): string | undefined =>
-    date ? DateTime.fromJSDate(date).setZone(tz).toISODate() ?? undefined : undefined
+    date ? (DateTime.fromJSDate(date).setZone(tz).toISODate() ?? undefined) : undefined
 
   // CFDI is a paid feature shown as a VISIBLE teaser. When the venue hasn't
   // subscribed we keep the page discoverable but render sample rows behind a
@@ -102,7 +152,10 @@ export default function CfdiList() {
   const [receptorRfc, setReceptorRfc] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const debouncedReceptorRfc = useDebounce(receptorRfc, 300)
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({})
+  // 🔴 Un solo estado para lo que el selector PINTA y lo que la lista FILTRA. Antes el selector mostraba
+  // «hoy» por su cuenta mientras la lista arrancaba sin filtro: se leía «24 sep» y salían facturas del 21.
+  // Arranca en el mes en curso, como Facturapi.
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>(() => mesEnCurso(tz))
 
   const canConfigure = can('cfdi:configure')
 
@@ -113,8 +166,9 @@ export default function CfdiList() {
     () => ({
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
-      ...(statusFilter.length === 1 && { status: statusFilter[0] }),
-      ...(flowFilter.length === 1 && { flow: flowFilter[0] as CfdiFlow }),
+      // Varios a la vez: el servidor los acepta todos (antes sólo se mandaba si había exactamente uno).
+      ...(statusFilter.length > 0 && { status: estatusDelServidor(statusFilter) }),
+      ...(flowFilter.length > 0 && { flow: flowFilter as CfdiFlow[] }),
       ...(debouncedReceptorRfc.trim() && { receptorRfc: debouncedReceptorRfc.trim() }),
       ...(toIsoDay(dateRange.from) && { from: toIsoDay(dateRange.from) }),
       ...(toIsoDay(dateRange.to) && { to: toIsoDay(dateRange.to) }),
@@ -132,14 +186,14 @@ export default function CfdiList() {
   const { data, isLoading, isError } = useCfdis(filters, { enabled: hasCfdi })
   const download = useDownloadCfdiFile()
   // When locked, feed the table sample rows so the teaser looks real behind the blur.
-  const cfdis = hasCfdi ? data?.cfdis ?? [] : SAMPLE_CFDIS
-  const total = hasCfdi ? data?.total ?? 0 : SAMPLE_CFDIS.length
+  const cfdis = hasCfdi ? (data?.cfdis ?? []) : SAMPLE_CFDIS
+  const total = hasCfdi ? (data?.total ?? 0) : SAMPLE_CFDIS.length
 
   const resetFilters = () => {
     setStatusFilter([])
     setFlowFilter([])
     setReceptorRfc('')
-    setDateRange({})
+    setDateRange(mesEnCurso(tz))
   }
 
   const columns = useMemo<ColumnDef<Cfdi, any>[]>(
@@ -154,9 +208,7 @@ export default function CfdiList() {
           const sustituta = row.original.replacedBy?.[0]
           return (
             <div className="flex flex-col">
-              <span className="font-medium">
-                {[row.original.serie, row.original.folio].filter(Boolean).join('-') || '—'}
-              </span>
+              <span className="font-medium">{[row.original.serie, row.original.folio].filter(Boolean).join('-') || '—'}</span>
               {sustituta && (
                 <span className="text-xs text-amber-600 dark:text-amber-400">
                   {t('list.replacedByBadge', {
@@ -186,23 +238,20 @@ export default function CfdiList() {
       {
         id: 'flow',
         header: t('columns.flow'),
-        cell: ({ row }) => (
-          <Badge variant="outline">{t(`flow.${row.original.flow}`, { defaultValue: row.original.flow })}</Badge>
-        ),
+        cell: ({ row }) => <Badge variant="outline">{t(`flow.${row.original.flow}`, { defaultValue: row.original.flow })}</Badge>,
       },
       {
         id: 'status',
         header: t('columns.status'),
-        cell: ({ row }) => (
-          <Badge variant={statusBadgeVariant(row.original.status)}>{t(`statusLabel.${row.original.status}`, { defaultValue: row.original.status })}</Badge>
-        ),
+        cell: ({ row }) => {
+          const { clave, variante } = insigniaDeEstatus(row.original)
+          return <Badge variant={variante}>{t(`statusLabel.${clave}`, { defaultValue: clave })}</Badge>
+        },
       },
       {
         id: 'date',
         header: t('columns.date'),
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDate(row.original.stampedAt ?? row.original.createdAt)}</span>
-        ),
+        cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.original.stampedAt ?? row.original.createdAt)}</span>,
       },
       {
         id: 'actions',
@@ -255,10 +304,7 @@ export default function CfdiList() {
                   {canCancel && (
                     <>
                       {!canReplace && <DropdownMenuSeparator />}
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setCancelTarget(cfdi)}
-                      >
+                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setCancelTarget(cfdi)}>
                         <XCircle className="mr-2 h-4 w-4" />
                         {t('actions.cancel')}
                       </DropdownMenuItem>
@@ -354,6 +400,8 @@ export default function CfdiList() {
               <DateRangePicker
                 showCompare={false}
                 align="start"
+                initialDateFrom={dateRange.from}
+                initialDateTo={dateRange.to}
                 onUpdate={({ range }) => setDateRange({ from: range.from, to: range.to ?? range.from })}
               />
 
@@ -366,11 +414,9 @@ export default function CfdiList() {
                 >
                   <CheckboxFilterContent
                     title={t('filters.filterBy', { field: t('filters.status') })}
-                    options={STATUS_OPTIONS.map(s => ({ value: s, label: t(`statusLabel.${s}`, { defaultValue: s }) }))}
+                    options={STATUS_GROUPS.map(g => ({ value: g, label: t(`statusGroup.${g}`, { defaultValue: g }) }))}
                     selectedValues={statusFilter}
-                    // Backend supports a SINGLE status; enforce single-select so the
-                    // UI can't express an unsupported (and silently-dropped) 2+ state.
-                    onApply={vals => setStatusFilter(vals.slice(-1))}
+                    onApply={vals => setStatusFilter(vals)}
                   />
                 </FilterPill>
 
@@ -384,8 +430,7 @@ export default function CfdiList() {
                     title={t('filters.filterBy', { field: t('filters.flow') })}
                     options={FLOW_OPTIONS.map(f => ({ value: f, label: t(`flow.${f}`, { defaultValue: f }) }))}
                     selectedValues={flowFilter}
-                    // Backend supports a SINGLE flow; enforce single-select (see status above).
-                    onApply={vals => setFlowFilter(vals.slice(-1))}
+                    onApply={vals => setFlowFilter(vals)}
                   />
                 </FilterPill>
               </FilterPillBar>

@@ -187,8 +187,9 @@ export interface Cfdi {
 }
 
 export interface CfdiListFilters {
-  status?: string
-  flow?: CfdiFlow
+  /** Uno o varios estatus del servidor (viajan separados por coma). */
+  status?: string | string[]
+  flow?: CfdiFlow | CfdiFlow[]
   isGlobal?: boolean
   receptorRfc?: string
   from?: string
@@ -360,7 +361,10 @@ export const cfdiService = {
   },
 
   /** Sube el logo del negocio a la org del PAC: es lo que imprime en el PDF de cada factura. Idempotente. */
-  async syncEmisorLogo(venueId: string, emisorId: string): Promise<{ synced: true } | { synced: false; reason: 'NO_LOGO' | 'NOT_PROVISIONED' }> {
+  async syncEmisorLogo(
+    venueId: string,
+    emisorId: string,
+  ): Promise<{ synced: true } | { synced: false; reason: 'NO_LOGO' | 'NOT_PROVISIONED' }> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/logo`)
     return response.data
   },
@@ -410,8 +414,10 @@ export const cfdiService = {
   async getCfdis(venueId: string, filters: CfdiListFilters = {}): Promise<CfdiListResponse> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/cfdi`, {
       params: {
-        ...(filters.status && { status: filters.status }),
-        ...(filters.flow && { flow: filters.flow }),
+        // Varios valores van separados por coma: el servidor los acepta así, y no depende de cómo cada
+        // cliente HTTP serialice un arreglo en la URL.
+        ...(filters.status && filters.status.length > 0 && { status: [filters.status].flat().join(',') }),
+        ...(filters.flow && filters.flow.length > 0 && { flow: [filters.flow].flat().join(',') }),
         ...(filters.isGlobal !== undefined && { isGlobal: filters.isGlobal }),
         ...(filters.receptorRfc && { receptorRfc: filters.receptorRfc }),
         ...(filters.from && { from: filters.from }),
