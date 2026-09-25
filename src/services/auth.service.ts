@@ -206,6 +206,12 @@ export const resetPassword = async (token: string, newPassword: string): Promise
   return response.data
 }
 
+/** Confirma el cambio de correo con el enlace que llegó al correo NUEVO (ruta pública). */
+export const confirmEmailChange = async (token: string): Promise<{ success: boolean; message: string; email: string }> => {
+  const response = await api.post('/api/v1/dashboard/auth/confirm-email-change', { token })
+  return response.data
+}
+
 // Email Verification
 export interface VerifyEmailDto {
   email: string

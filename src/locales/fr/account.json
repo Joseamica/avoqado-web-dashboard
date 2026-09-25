@@ -36,6 +36,10 @@
     },
     "error": {
       "description": "Échec de la mise à jour du profil"
+    },
+    "emailPending": {
+      "title": "Vérifiez votre nouvelle boîte mail",
+      "description": "Nous avons envoyé un lien à {{email}}. Votre e-mail change lorsque vous l’ouvrez ; en attendant, vous vous connectez avec l’actuel."
     }
   }
 }

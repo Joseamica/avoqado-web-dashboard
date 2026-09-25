@@ -36,6 +36,10 @@
     },
     "error": {
       "description": "Error al actualizar el perfil"
+    },
+    "emailPending": {
+      "title": "Revisa tu correo nuevo",
+      "description": "Te enviamos un enlace a {{email}}. Tu correo cambia cuando lo abras; mientras, sigues entrando con el de siempre."
     }
   }
 }

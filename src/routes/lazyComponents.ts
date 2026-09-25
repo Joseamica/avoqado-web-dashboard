@@ -9,6 +9,7 @@ export const SignupWizard = lazyWithRetry(() => import('@/pages/Auth/SignupWizar
 export const SetupWizard = lazyWithRetry(() => import('@/pages/Setup/SetupWizard'))
 export const ForgotPassword = lazyWithRetry(() => import('@/pages/Auth/ForgotPassword'))
 export const ResetPassword = lazyWithRetry(() => import('@/pages/Auth/ResetPassword'))
+export const ConfirmEmailChange = lazyWithRetry(() => import('@/pages/Auth/ConfirmEmailChange'))
 export const EmailVerification = lazyWithRetry(() => import('@/pages/Auth/EmailVerification'))
 export const GoogleOAuthCallback = lazyWithRetry(() => import('@/pages/Auth/GoogleOAuthCallback'))
 export const OnboardingWizard = lazyWithRetry(() => import('@/pages/Onboarding/OnboardingWizard'))

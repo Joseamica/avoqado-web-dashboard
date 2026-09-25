@@ -33,9 +33,8 @@ export default function ProfileSettings() {
     queryFn: () => googleCalendarService.listConnections(),
   })
   const personalGoogleCalendarConnection =
-    gcalConnectionsData?.connections?.find(
-      c => c.scope === 'STAFF_PERSONAL' && c.staffId === user?.id && c.status !== 'DISCONNECTED',
-    ) ?? null
+    gcalConnectionsData?.connections?.find(c => c.scope === 'STAFF_PERSONAL' && c.staffId === user?.id && c.status !== 'DISCONNECTED') ??
+    null
 
   const profileForm = useForm({
     defaultValues: {
@@ -58,8 +57,17 @@ export default function ProfileSettings() {
       const response = await api.patch(`/api/v1/dashboard/${venueId}/account`, payload)
       return response.data
     },
-    onSuccess: () => {
-      toast({ title: t('toast.success.title'), description: t('toast.success.description') })
+    onSuccess: (data: { emailChangePending?: string | null }) => {
+      if (data?.emailChangePending) {
+        // El correo NO cambió todavía: cambia al abrir el enlace que le llegó al correo nuevo.
+        toast({
+          title: t('toast.emailPending.title'),
+          description: t('toast.emailPending.description', { email: data.emailChangePending }),
+        })
+        profileForm.setValue('email', user?.email || '')
+      } else {
+        toast({ title: t('toast.success.title'), description: t('toast.success.description') })
+      }
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: ['status'] })
     },

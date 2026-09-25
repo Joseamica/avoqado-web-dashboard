@@ -74,6 +74,7 @@ import {
   ReceiptViewer,
   SettlementReport,
   ResetPassword,
+  ConfirmEmailChange,
   RevenueDashboard,
   SerializedSalesDemo,
   SettlementConfigurations,
@@ -152,6 +153,11 @@ const router = createBrowserRouter(
         {
           path: '/auth/reset-password/:token',
           element: <ResetPassword />,
+        },
+        {
+          // El correo de una cuenta cambia SÓLO aquí, al abrir el enlace que llegó al correo nuevo.
+          path: '/auth/confirm-email-change',
+          element: <ConfirmEmailChange />,
         },
         {
           path: '/auth/verify-email',

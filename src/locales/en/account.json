@@ -36,6 +36,10 @@
     },
     "error": {
       "description": "Failed to update profile"
+    },
+    "emailPending": {
+      "title": "Check your new inbox",
+      "description": "We sent a link to {{email}}. Your email changes when you open it; until then you keep signing in with your current one."
     }
   }
 }
