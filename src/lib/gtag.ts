@@ -18,6 +18,20 @@ function gtag(...args: unknown[]): void {
 }
 
 /**
+ * Píxel de ChatGPT Ads (OpenAI), cargado en index.html. Mismo patrón que `gtag`: si un bloqueador
+ * de anuncios lo tumba, o no existe (local), no hace nada.
+ */
+function oaiq(...args: unknown[]): void {
+  if (typeof window === 'undefined') return
+  const w = window as unknown as { oaiq?: (...a: unknown[]) => void }
+  try {
+    w.oaiq?.(...args)
+  } catch {
+    /* medir nunca rompe la app */
+  }
+}
+
+/**
  * Fire the GA4 `sign_up` event when an account is created. Mark `sign_up` as a
  * conversion in GA4 → it imports into Google Ads via the linked account, so
  * ad-driven signups attribute without a separate native Ads conversion action.
@@ -32,6 +46,10 @@ export function trackSignup(method = 'email', launchOfferCode?: string): void {
   // sign_up is the ONE event that must land in marketing so it keeps importing
   // into Google Ads as a conversion.
   gtag('event', 'sign_up', { send_to: 'G-F6JCDF9K3P', method, ...(launchOfferCode ? { launch_offer_code: launchOfferCode } : {}) })
+  // ChatGPT Ads. Va AQUÍ y no en las pantallas porque esta función ya es el embudo único de las
+  // dos puertas del alta — correo y Google —, así que una sola línea cubre ambas y no pueden
+  // divergir con el tiempo. Se llama DESPUÉS de crear la cuenta: un correo que ya existe no llega.
+  oaiq('measure', 'registration_completed', { type: 'customer_action' })
 }
 
 /**

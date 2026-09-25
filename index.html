@@ -39,6 +39,26 @@
         document.head.appendChild(s)
       })()
     </script>
+    <!-- Píxel de ChatGPT Ads (OpenAI). El dashboard es destino de anuncio igual que la
+         landing: sin esto, un alta que llegó de ChatGPT existe para Google y no para ChatGPT.
+         🔴 SÓLO en producción (lista blanca, no «todo menos local» como el gtag): develop se
+         publica en demo.dashboard.avoqado.io, donde el equipo hace altas de PRUEBA, y cada una
+         mandaría un registration_completed falso a la campaña — nadie llega a demo desde un
+         anuncio. Un dominio nuevo queda apagado por default en vez de ensuciar la conversión.
+         El stub es SÍNCRONO y encola, así que un `measure` disparado antes de que cargue el SDK
+         no se pierde. El único evento que se le manda es `registration_completed`, desde
+         trackSignup() (src/lib/gtag.ts), el embudo común del alta por correo y por Google. -->
+    <script>
+      ;(function () {
+        if (window.location.hostname !== 'dashboard.avoqado.io') return
+        window.oaiq = window.oaiq || function () { (window.oaiq.q = window.oaiq.q || []).push(arguments) }
+        window.oaiq('init', { pixelId: 'CKPpCFauLQSBNmoD6g1hBw' })
+        var s = document.createElement('script')
+        s.async = true
+        s.src = 'https://bzrcdn.openai.com/sdk/oaiq.min.js'
+        document.head.appendChild(s)
+      })()
+    </script>
     <!-- Geist (variable) + Geist Mono for Sidebar; Inter (variable) for content -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
