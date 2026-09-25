@@ -47,6 +47,18 @@ export function guardarIntentoDeAltaGoogle(intento: GoogleSignupIntent, ahora: n
   }
 }
 
+/**
+ * Borra un intento de alta sin leerlo. Lo llama el LOGIN con Google: un intento abandonado (se fue a
+ * /signup y volvió atrás) no puede viajar en un inicio de sesión normal (Codex ronda 7, P3).
+ */
+export function descartarIntentoDeAltaGoogle(): void {
+  try {
+    almacen()?.removeItem(GOOGLE_SIGNUP_INTENT_KEY)
+  } catch {
+    /* sin almacenamiento no hay intento que descartar */
+  }
+}
+
 /** Lee y BORRA el intento. Devuelve `null` si no hay, si caducó o si está corrupto. */
 export function tomarIntentoDeAltaGoogle(ahora: number = Date.now()): GoogleSignupIntent | null {
   const s = almacen()

@@ -22,6 +22,7 @@ import { EmailMismatchWarning } from './Auth/components/EmailMismatchWarning'
 import { DirectAcceptInvitation } from './Auth/components/DirectAcceptInvitation'
 import api from '@/api'
 import { authService } from '@/services/auth.service'
+import { descartarIntentoDeAltaGoogle } from '@/lib/googleSignupIntent'
 
 // Schema will be created inside the component to access t() function
 const createAcceptInvitationSchema = (t: any, requirePin = false) =>
@@ -338,6 +339,8 @@ export default function InviteAccept() {
     try {
       setIsGoogleLoading(true)
       stashInviteToken(token)
+      // Aceptar una invitación no es un alta: un intento de alta abandonado no puede viajar aquí (Codex ronda 7, P3).
+      descartarIntentoDeAltaGoogle()
       await loginWithGoogle()
     } catch {
       setIsGoogleLoading(false)

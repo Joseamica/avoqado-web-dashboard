@@ -73,6 +73,9 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   // Dos fases en el MISMO paso: primero se elige el plan, luego se paga en una pantalla propia (como
   // la caja de una tienda). Antes la tarjeta quedaba debajo de la cuadrícula de planes, fuera de vista.
   const [fase, setFase] = useState<'elegir' | 'pagar'>('elegir')
+  // 🔴 Mientras se guarda la tarjeta y se cobra NO se puede volver a elegir plan: hacerlo desmontaba
+  // el candado del formulario y el alta avanzaba como Free y después como Pro (Codex ronda 7, P1).
+  const [cobrando, setCobrando] = useState(false)
   const inicioRef = useRef<HTMLDivElement | null>(null)
 
   const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote)
@@ -148,6 +151,7 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
     precioRecurrente != null ? t('plan.ivaIncluded', { defaultValue: 'IVA incluido' }) : t('plan.plusIva', { defaultValue: '+ IVA' })
 
   const irA = (siguiente: 'elegir' | 'pagar') => {
+    if (cobrando) return
     setFase(siguiente)
     requestAnimationFrame(() => inicioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
@@ -325,6 +329,7 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
           <Button
             variant="ghost"
             data-tour="setup-plan-change"
+            disabled={cobrando}
             className="-ml-3 w-fit gap-2 rounded-full text-muted-foreground hover:text-foreground"
             onClick={() => irA('elegir')}
           >
@@ -373,6 +378,7 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
                 }
                 trialHint={trialHint}
                 payNowHint={payNowHint}
+                onBusyChange={setCobrando}
                 onConfirmed={async (paymentMethodId, payNow) => {
                   // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
                   // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.

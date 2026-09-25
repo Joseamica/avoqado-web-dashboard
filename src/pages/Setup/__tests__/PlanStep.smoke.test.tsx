@@ -195,4 +195,24 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
     const barra = screen.getByRole('button', { name: /^Continuar$/ }).closest('.fixed')
     expect(barra).not.toBeNull()
   })
+
+  it('🔴 mientras se cobra, «Cambiar plan» está bloqueado: no se puede avanzar como Free con un cobro de Pro en vuelo (Codex ronda 7, P1)', async () => {
+    let terminarElCobro: () => void = () => {}
+    activateBeforeContinue.mockImplementation(() => new Promise<void>(r => (terminarElCobro = r)))
+    const onNext = vi.fn()
+    render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />)
+    const user = await alPago()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+    await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+    await waitFor(() => expect(activateBeforeContinue).toHaveBeenCalled())
+
+    const cambiar = screen.getByRole('button', { name: /Cambiar plan/i })
+    expect(cambiar).toBeDisabled()
+    await user.click(cambiar)
+    expect(screen.queryByTestId('plan-picker')).not.toBeInTheDocument()
+
+    terminarElCobro()
+    await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1))
+    expect(onNext.mock.calls[0][0].plan).toMatchObject({ tier: 'PRO', payNow: true })
+  })
 })

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
+import { descartarIntentoDeAltaGoogle } from '@/lib/googleSignupIntent'
 import { LoginDto } from '@/services/auth.service'
 
 // Usando la interfaz LoginDto del servicio de autenticación
@@ -91,6 +92,9 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   }
 
   const handleGoogleLogin = async () => {
+    // Esto es INICIAR sesión: un intento de alta que haya quedado de otra pestaña o de un «atrás» no
+    // puede viajar con él (el callback lo leería como alta y mostraría «Ya tenías una cuenta…»).
+    descartarIntentoDeAltaGoogle()
     try {
       setIsGoogleLoading(true)
       await loginWithGoogle()
@@ -109,7 +113,9 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       aria-busy={isLoading}
     >
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 id="login-title" className="text-2xl font-bold">{t('login.title')}</h1>
+        <h1 id="login-title" className="text-2xl font-bold">
+          {t('login.title')}
+        </h1>
         <p className="text-muted-foreground text-sm text-balance">{t('login.subtitle')}</p>
         {isDemoEnvironment && (
           <div className="mt-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
@@ -152,11 +158,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         <div className="grid gap-3">
           <div className="flex items-center">
             <Label htmlFor="password">{t('login.passwordLabel')}</Label>
-            <Link
-              to="/auth/forgot-password"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
-              tabIndex={-1}
-            >
+            <Link to="/auth/forgot-password" className="ml-auto text-sm underline-offset-4 hover:underline" tabIndex={-1}>
               {t('login.forgotPassword')}
             </Link>
           </div>
@@ -209,7 +211,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
           <Checkbox
             id="rememberMe"
             checked={rememberMe}
-            onCheckedChange={(checked) => {
+            onCheckedChange={checked => {
               setRememberMe(checked as boolean)
               localStorage.setItem('rememberMe', String(checked))
             }}
@@ -222,12 +224,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             {t('login.rememberMe')}
           </Label>
         </div>
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-          aria-disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading} aria-disabled={isLoading}>
           {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" aria-hidden="true" />}
           {isLoading ? t('login.signingIn', { defaultValue: 'Iniciando sesión...' }) : t('login.signInButton')}
         </Button>

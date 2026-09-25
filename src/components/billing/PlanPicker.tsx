@@ -127,12 +127,8 @@ export function PlanPicker({
 
       {/* Cards */}
       <div
-        className={cn(
-          'grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4',
-          // Al ELEGIR, cada tarjeta mide lo que su contenido: estirarlas a la de Pro dejaba media
-          // tarjeta vacía en Free y Enterprise sólo para empujar un botón que ya sobraba.
-          selectionMode === 'choice' && 'items-start',
-        )}
+        // Todas las tarjetas miden lo mismo de alto (founder, 25-sep): una fila pareja se compara mejor.
+        className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4"
         {...(selectionMode === 'choice' ? { role: 'radiogroup', 'aria-label': t('plan.chooseAria') } : {})}
       >
         {tiers.map(tier => (
@@ -250,7 +246,9 @@ function PlanCard({
       <div className="text-lg font-bold">{tierName}</div>
       <p className="min-h-[34px] text-sm text-muted-foreground">{t(`plan.tiers.${tier.key}.pitch`)}</p>
 
-      <div className="flex items-baseline gap-1.5">
+      {/* El precio y «/mes · IVA incluido» pueden partirse en dos renglones: en tarjetas angostas no
+          caben juntos y el sufijo se salía del cuadro. El sufijo es UNA pieza (no se corta a la mitad). */}
+      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
         {monthlyEquiv === null ? (
           <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
         ) : (
@@ -260,10 +258,10 @@ function PlanCard({
                 ? fmtCents(interval === 'monthly' ? precioConIva.monthlyCents : Math.round(precioConIva.annualCents / 12))
                 : fmt(monthlyEquiv)}
             </span>
-            <span className="text-xs text-muted-foreground">{t('plan.perMonth')}</span>
-            {monthlyEquiv > 0 && (
-              <span className="text-[11px] text-muted-foreground">{precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</span>
-            )}
+            <span className="whitespace-nowrap text-xs text-muted-foreground">
+              {t('plan.perMonth')}
+              {monthlyEquiv > 0 && <> · {precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</>}
+            </span>
           </>
         )}
       </div>

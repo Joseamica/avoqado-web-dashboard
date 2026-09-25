@@ -131,8 +131,9 @@ describe('PlanPicker', () => {
     render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} preciosConIva={PRECIOS} />)
     expect(screen.getByText('$1,158.84')).toBeInTheDocument()
     expect(screen.getByText('$1,970.84')).toBeInTheDocument()
-    expect(screen.getAllByText('plan.ivaIncluded')).toHaveLength(2)
-    expect(screen.queryByText('plan.plusIva')).not.toBeInTheDocument()
+    // «/mes · IVA incluido» es UNA pieza (no se parte ni se sale de la tarjeta angosta).
+    expect(screen.getAllByText('plan.perMonth · plan.ivaIncluded')).toHaveLength(2)
+    expect(screen.queryByText(/plan\.plusIva/)).not.toBeInTheDocument()
     expect(screen.queryByText('$999')).not.toBeInTheDocument()
   })
 
@@ -145,6 +146,6 @@ describe('PlanPicker', () => {
   it('sin precios del servidor (Facturación) sigue igual: «$999» y «+ IVA» (regresión)', () => {
     render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
     expect(screen.getByText('$999')).toBeInTheDocument()
-    expect(screen.getAllByText('plan.plusIva').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('plan.perMonth · plan.plusIva').length).toBeGreaterThan(0)
   })
 })

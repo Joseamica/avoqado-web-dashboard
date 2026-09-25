@@ -6,7 +6,7 @@
  * 🔴 No cobra. Guarda la tarjeta con `confirmSetup` y entrega el `payment_method` a quien lo
  * llamó. Quien cobra es el SERVIDOR, con `activate-plan`.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { Check, Loader2, Lock } from 'lucide-react'
@@ -34,6 +34,11 @@ interface PlanCardFormProps {
   /** Mensaje bajo el formulario: rechazo del banco, tarjeta inválida… */
   errorMessage?: string | null
   dataTourPrefix?: string
+  /**
+   * Avisa cuando empieza y termina de trabajar (guardar la tarjeta + cobrar). Quien la monta bloquea
+   * con esto su propia navegación: cambiar de plan con un cobro en vuelo avanzaba el alta dos veces.
+   */
+  onBusyChange?: (ocupado: boolean) => void
 }
 
 export function PlanCardForm({
@@ -47,6 +52,7 @@ export function PlanCardForm({
   busy,
   errorMessage,
   dataTourPrefix = 'setup-plan',
+  onBusyChange,
 }: PlanCardFormProps) {
   const stripe = useStripe()
   const elements = useElements()
@@ -87,6 +93,9 @@ export function PlanCardForm({
   }
 
   const bloqueado = submitting || !!busy
+  useEffect(() => {
+    onBusyChange?.(bloqueado)
+  }, [bloqueado, onBusyChange])
 
   const opciones = trialLabel
     ? ([
