@@ -34,6 +34,7 @@
     "noPrinter": "Sin impresora",
     "defaultBadge": "Por defecto",
     "packingBadge": "Empaque",
+    "kitchenDisplayBadge": "Pantalla de cocina",
     "statusActive": "Activa",
     "statusInactive": "Inactiva",
     "fields": {

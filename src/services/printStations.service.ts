@@ -35,6 +35,8 @@ export interface PrintStation {
   isDefault: boolean
   /** ¿Aquí se empaca? Recibe el ticket consolidado del pedido de reparto. UNA por negocio. */
   isPacking: boolean
+  /** «Se atiende con pantalla de cocina». Sin ninguna activa, las ventas no crean comanda KDS. Etapa 1: sólo SUPERADMIN la cambia. */
+  hasKitchenDisplay: boolean
   active: boolean
   displayOrder: number
   printer?: { id: string; name: string; active: boolean; lastStatus: string | null } | null
@@ -131,6 +133,11 @@ export async function createPrintStation(venueId: string, body: CreateStationInp
 
 export async function updatePrintStation(venueId: string, stationId: string, body: UpdateStationInput): Promise<PrintStation> {
   const res = await api.put(`${base(venueId)}/${stationId}`, body)
+  return res.data.data
+}
+
+export async function setPrintStationKitchenDisplay(venueId: string, stationId: string, enabled: boolean): Promise<PrintStation> {
+  const res = await api.put(`${base(venueId)}/${stationId}/kitchen-display`, { enabled })
   return res.data.data
 }
 

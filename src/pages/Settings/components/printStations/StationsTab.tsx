@@ -34,12 +34,12 @@ import {
   updatePrintStation,
   type PrintStation,
 } from '@/services/printStations.service'
+import { KitchenDisplaySuperadminPanel } from './KitchenDisplaySuperadminPanel'
 
 const NONE = '__none__'
 const FORM_ID = 'print-station-form'
 
-const apiError = (e: any, fallback: string): string =>
-  e?.response?.data?.message ?? e?.response?.data?.error ?? fallback
+const apiError = (e: any, fallback: string): string => e?.response?.data?.message ?? e?.response?.data?.error ?? fallback
 
 export function StationsTab({ venueId }: { venueId: string }) {
   const { t } = useTranslation('printStations')
@@ -103,11 +103,10 @@ export function StationsTab({ venueId }: { venueId: string }) {
                         <span className="font-medium">{station.name}</span>
                         {station.isDefault && <Badge variant="secondary">{t('stations.defaultBadge')}</Badge>}
                         {station.isPacking && <Badge variant="outline">{t('stations.packingBadge')}</Badge>}
+                        {station.hasKitchenDisplay && <Badge variant="outline">{t('stations.kitchenDisplayBadge')}</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {station.printer?.name ?? t('stations.noPrinter')}
-                    </TableCell>
+                    <TableCell className="text-muted-foreground">{station.printer?.name ?? t('stations.noPrinter')}</TableCell>
                     <TableCell className="text-muted-foreground">{station.copies}</TableCell>
                     <TableCell>
                       <Badge variant={station.active ? 'default' : 'outline'}>
@@ -137,9 +136,9 @@ export function StationsTab({ venueId }: { venueId: string }) {
         </Card>
       )}
 
-      {isFormOpen && (
-        <StationFormModal venueId={venueId} station={editing} onClose={() => setFormOpen(false)} />
-      )}
+      {!!stations?.length && <KitchenDisplaySuperadminPanel venueId={venueId} stations={stations} />}
+
+      {isFormOpen && <StationFormModal venueId={venueId} station={editing} onClose={() => setFormOpen(false)} />}
 
       <DeleteStationDialog venueId={venueId} station={toDelete} onClose={() => setToDelete(null)} />
     </div>
@@ -158,15 +157,7 @@ const stationSchema = z.object({
 })
 type StationForm = z.infer<typeof stationSchema>
 
-function StationFormModal({
-  venueId,
-  station,
-  onClose,
-}: {
-  venueId: string
-  station: PrintStation | null
-  onClose: () => void
-}) {
+function StationFormModal({ venueId, station, onClose }: { venueId: string; station: PrintStation | null; onClose: () => void }) {
   const { t } = useTranslation('printStations')
   const { toast } = useToast()
   const qc = useQueryClient()
@@ -210,9 +201,7 @@ function StationFormModal({
         isDefault: values.isDefault,
         isPacking: values.isPacking,
       }
-      return station
-        ? updatePrintStation(venueId, station.id, { ...body, active: values.active })
-        : createPrintStation(venueId, body)
+      return station ? updatePrintStation(venueId, station.id, { ...body, active: values.active }) : createPrintStation(venueId, body)
     },
     onSuccess: () => {
       toast({ title: t('stations.saved') })
@@ -236,11 +225,7 @@ function StationFormModal({
         </Button>
       }
     >
-      <form
-        id={FORM_ID}
-        onSubmit={handleSubmit(values => mutation.mutate(values))}
-        className="mx-auto max-w-xl space-y-6 p-4 md:p-6"
-      >
+      <form id={FORM_ID} onSubmit={handleSubmit(values => mutation.mutate(values))} className="mx-auto max-w-xl space-y-6 p-4 md:p-6">
         <div className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">
           <div className="space-y-2">
             <Label htmlFor="station-name">{t('stations.fields.name')}</Label>
@@ -256,10 +241,7 @@ function StationFormModal({
 
           <div className="space-y-2">
             <Label>{t('stations.fields.printer')}</Label>
-            <Select
-              value={printerId ?? NONE}
-              onValueChange={v => setValue('printerId', v === NONE ? null : v, { shouldDirty: true })}
-            >
+            <Select value={printerId ?? NONE} onValueChange={v => setValue('printerId', v === NONE ? null : v, { shouldDirty: true })}>
               <SelectTrigger className="h-12 text-base">
                 <SelectValue />
               </SelectTrigger>
@@ -327,15 +309,7 @@ function StationFormModal({
 
 // ── Delete dialog ──────────────────────────────────────────────────────────────
 
-function DeleteStationDialog({
-  venueId,
-  station,
-  onClose,
-}: {
-  venueId: string
-  station: PrintStation | null
-  onClose: () => void
-}) {
+function DeleteStationDialog({ venueId, station, onClose }: { venueId: string; station: PrintStation | null; onClose: () => void }) {
   const { t } = useTranslation('printStations')
   const { toast } = useToast()
   const qc = useQueryClient()

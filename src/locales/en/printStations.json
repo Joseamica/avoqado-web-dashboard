@@ -34,6 +34,7 @@
     "noPrinter": "No printer",
     "defaultBadge": "Default",
     "packingBadge": "Packing",
+    "kitchenDisplayBadge": "Kitchen display",
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "fields": {
