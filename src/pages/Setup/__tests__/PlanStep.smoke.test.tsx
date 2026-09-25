@@ -36,6 +36,13 @@ vi.mock('react-i18next', () => ({
 
 import { PlanStep } from '../steps/PlanStep'
 
+/** Fase 1 → fase 2: la tarjeta vive en su propia pantalla, después de elegir el plan. */
+async function alPago(user = userEvent.setup()) {
+  await user.click(screen.getByRole('button', { name: /^Continuar$/ }))
+  await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+  return user
+}
+
 beforeEach(() => {
   planSetupIntent.mockReset().mockResolvedValue({ data: { data: { clientSecret: 'seti' } } })
   confirmSetup.mockReset().mockResolvedValue({ setupIntent: { payment_method: 'pm_1' } })
@@ -47,10 +54,11 @@ describe('asistente LARGO (sin props nuevas)', () => {
     const onNext = vi.fn()
     render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" />)
 
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /30 días gratis/i })).toBeInTheDocument()
+    const user = await alPago()
+    expect(screen.getByRole('radio', { name: /30 días gratis/i })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: /Pagar hoy/i })).toBeInTheDocument()
 
-    await userEvent.setup().click(screen.getByRole('button', { name: /30 días gratis/i }))
+    await user.click(screen.getByRole('button', { name: /30 días gratis/i }))
     await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1))
     expect(onNext.mock.calls[0][0].plan).toMatchObject({ tier: 'PRO', paymentMethodId: 'pm_1', payNow: false })
   })
@@ -66,8 +74,9 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
   it('cobra ANTES de avanzar', async () => {
     const onNext = vi.fn()
     render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />)
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    await userEvent.setup().click(screen.getByRole('button', { name: /Pagar hoy/i }))
+    const user = await alPago()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+    await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
 
     await waitFor(() =>
       expect(activateBeforeContinue).toHaveBeenCalledWith({
@@ -84,8 +93,9 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
     const onNext = vi.fn()
     activateBeforeContinue.mockRejectedValue(new Error('402'))
     render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />)
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    await userEvent.setup().click(screen.getByRole('button', { name: /Pagar hoy/i }))
+    const user = await alPago()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+    await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
 
     await waitFor(() => expect(activateBeforeContinue).toHaveBeenCalled())
     expect(onNext).not.toHaveBeenCalled()
@@ -115,6 +125,7 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
         }}
       />,
     )
+    await alPago()
     expect(await screen.findByText(/Paga hoy: 3 meses a \$694\.84, luego \$1,158\.84 al mes/)).toBeInTheDocument()
   })
 
@@ -140,9 +151,48 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
         }}
       />,
     )
+    await alPago()
     const aviso = await screen.findByText(/Hoy no pagas nada/)
     expect(aviso.textContent).toMatch(/se cobran \$1,158\.84 al mes a esta tarjeta/)
     expect(aviso.textContent).not.toMatch(/694/)
     expect(aviso.textContent).toMatch(/Cancela antes/)
+  })
+
+  it('elegir el plan NO muestra la tarjeta; «Continuar» lleva al pago y «Cambiar plan» regresa sin perder la elección', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" />)
+    expect(screen.queryByTestId('payment-element')).not.toBeInTheDocument()
+    expect(screen.getByTestId('plan-picker')).toBeInTheDocument()
+
+    const user = await alPago()
+    expect(screen.queryByTestId('plan-picker')).not.toBeInTheDocument()
+    expect(screen.getByText('Confirma tu plan')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Cambiar plan/i }))
+    expect(screen.getByTestId('plan-picker')).toBeInTheDocument()
+    expect(screen.getByText(/Plan seleccionado/)).toBeInTheDocument()
+  })
+
+  it('el botón dice lo que va a pasar según la opción elegida', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" />)
+    const user = await alPago()
+    expect(screen.getByRole('button', { name: /Empezar 30 días gratis/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+    expect(screen.queryByRole('button', { name: /Empezar 30 días gratis/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Pagar hoy/i })).toBeInTheDocument()
+  })
+
+  it('🔴 el resumen del pago dice lo que incluye el plan (lo que agrega sobre el de abajo)', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" />)
+    await alPago()
+    const resumen = screen.getByTestId('plan-summary-features')
+    expect(resumen.textContent).toMatch(/Todo lo de Free, más/)
+    expect(resumen.textContent).toMatch(/plan\.compare\.rows\.loyalty/)
+    expect(resumen.textContent).not.toMatch(/plan\.compare\.rows\.cfdi/)
+  })
+
+  it('«Continuar» vive en una barra FIJA a la pantalla, no al final de la página', () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" />)
+    const barra = screen.getByRole('button', { name: /^Continuar$/ }).closest('.fixed')
+    expect(barra).not.toBeNull()
   })
 })

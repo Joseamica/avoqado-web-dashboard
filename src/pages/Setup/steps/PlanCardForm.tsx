@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import { Loader2, Lock } from 'lucide-react'
+import { Check, Loader2, Lock } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,6 +25,9 @@ interface PlanCardFormProps {
   trialHint?: string | null
   /** Qué se cobra hoy, bajo el botón de pagar. */
   payNowHint?: string | null
+  /** Títulos cortos de las dos opciones (sólo con prueba gratis). */
+  trialOptionTitle?: string
+  payNowOptionTitle?: string
   onConfirmed: (paymentMethodId: string, payNow: boolean) => void | Promise<void>
   /** Bloquea los botones mientras el llamador habla con el servidor. */
   busy?: boolean
@@ -38,6 +41,8 @@ export function PlanCardForm({
   trialLabel,
   trialHint,
   payNowHint,
+  trialOptionTitle,
+  payNowOptionTitle,
   onConfirmed,
   busy,
   errorMessage,
@@ -48,15 +53,15 @@ export function PlanCardForm({
   const { t } = useTranslation('setup')
   const [submitting, setSubmitting] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
-  // Cuál de los dos botones está trabajando, para que el giro salga en el que se tocó.
-  const [enCurso, setEnCurso] = useState<'trial' | 'pay' | null>(null)
   // El iframe de Stripe tarda en pintar; mientras tanto se ve la silueta del formulario, no un hueco.
   const [listo, setListo] = useState(false)
+  // Con prueba gratis hay DOS caminos: se elige uno y un solo botón lo ejecuta. Arranca en la prueba
+  // (hoy no se cobra nada), que era el botón principal.
+  const [eleccion, setEleccion] = useState<'trial' | 'pay'>(trialLabel ? 'trial' : 'pay')
 
   const confirm = async (payNow: boolean) => {
     if (!stripe || !elements) return
     setSubmitting(true)
-    setEnCurso(payNow ? 'pay' : 'trial')
     setCardError(null)
     try {
       const { error, setupIntent } = await stripe.confirmSetup({ elements, redirect: 'if_required' })
@@ -78,15 +83,68 @@ export function PlanCardForm({
       }
     } finally {
       setSubmitting(false)
-      setEnCurso(null)
     }
   }
 
   const bloqueado = submitting || !!busy
-  const girando = (cual: 'trial' | 'pay') => (enCurso === cual || (!!busy && !enCurso && cual === 'pay')) && bloqueado
+
+  const opciones = trialLabel
+    ? ([
+        { id: 'trial', titulo: trialOptionTitle ?? trialLabel, detalle: trialHint },
+        { id: 'pay', titulo: payNowOptionTitle ?? payNowLabel, detalle: payNowHint },
+      ] as const)
+    : null
+  const pagaHoy = eleccion === 'pay'
+  const etiqueta = pagaHoy ? payNowLabel : (trialLabel ?? payNowLabel)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
+      {opciones && (
+        <div
+          role="radiogroup"
+          aria-label={t('plan.howToStart', { defaultValue: '¿Cómo quieres empezar?' })}
+          className="flex flex-col gap-3"
+        >
+          <p className="text-sm font-medium">{t('plan.howToStart', { defaultValue: '¿Cómo quieres empezar?' })}</p>
+          {opciones.map(o => {
+            const activa = eleccion === o.id
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={activa}
+                data-tour={`${dataTourPrefix}-option-${o.id}`}
+                disabled={bloqueado}
+                onClick={() => setEleccion(o.id)}
+                className={cn(
+                  'flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-[border-color,background-color,box-shadow] duration-150 ease-out',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  'disabled:cursor-not-allowed disabled:opacity-60',
+                  activa
+                    ? 'border-foreground bg-muted/40 shadow-[0_0_0_1px_var(--foreground)]'
+                    : 'border-input hover:border-ring hover:bg-muted/20',
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors duration-150',
+                    activa ? 'border-foreground bg-foreground text-background' : 'border-input',
+                  )}
+                >
+                  {activa && <Check className="h-3 w-3" strokeWidth={3} />}
+                </span>
+                <span className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold">{o.titulo}</span>
+                  {o.detalle && <span className="text-xs leading-relaxed text-muted-foreground">{o.detalle}</span>}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <div className="relative min-h-[220px]">
         {!listo && (
           <div className="absolute inset-0 flex flex-col gap-4" aria-hidden="true">
@@ -117,36 +175,18 @@ export function PlanCardForm({
         </p>
       )}
 
-      <div className="flex flex-col gap-4">
-        {trialLabel ? (
-          <div className="flex flex-col gap-1.5">
-            <Button
-              data-tour={`${dataTourPrefix}-start-trial`}
-              disabled={bloqueado}
-              aria-busy={girando('trial')}
-              onClick={() => confirm(false)}
-              className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
-            >
-              {girando('trial') && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-              {trialLabel}
-            </Button>
-            {trialHint && <p className="px-2 text-center text-xs text-muted-foreground">{trialHint}</p>}
-          </div>
-        ) : null}
-        <div className="flex flex-col gap-1.5">
-          <Button
-            data-tour={`${dataTourPrefix}-pay-now`}
-            disabled={bloqueado}
-            aria-busy={girando('pay')}
-            variant={trialLabel ? 'outline' : 'default'}
-            onClick={() => confirm(true)}
-            className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
-          >
-            {girando('pay') && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-            {payNowLabel}
-          </Button>
-          {payNowHint && <p className="px-2 text-center text-xs text-muted-foreground">{payNowHint}</p>}
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Button
+          data-tour={pagaHoy ? `${dataTourPrefix}-pay-now` : `${dataTourPrefix}-start-trial`}
+          disabled={bloqueado}
+          aria-busy={bloqueado}
+          onClick={() => confirm(pagaHoy)}
+          className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
+        >
+          {bloqueado && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+          {etiqueta}
+        </Button>
+        {!opciones && payNowHint && <p className="px-2 text-center text-xs text-muted-foreground">{payNowHint}</p>}
       </div>
     </div>
   )

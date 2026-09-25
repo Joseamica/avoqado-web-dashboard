@@ -17,7 +17,8 @@ let params = new URLSearchParams('code=c-1')
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useSearchParams: () => [params] }))
 vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ refetchQueries: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+const toast = vi.fn()
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 vi.mock('@/components/spinner', () => ({ LoadingScreen: () => <div /> }))
 vi.mock('@/lib/gtag', () => ({ trackSignup: (...a: unknown[]) => trackSignup(...a) }))
 vi.mock('@/services/auth.service', () => ({ googleOAuthCallback: (...a: unknown[]) => googleOAuthCallback(...a) }))
@@ -40,6 +41,7 @@ beforeEach(() => {
   navigate.mockReset()
   googleOAuthCallback.mockReset()
   trackSignup.mockReset()
+  toast.mockReset()
   params = new URLSearchParams('code=c-1')
   reiniciarCanjesParaPruebas()
 })
@@ -153,5 +155,39 @@ describe('GoogleOAuthCallback — se procesa UNA vez', () => {
     rerender(<GoogleOAuthCallback />)
     await new Promise(r => setTimeout(r, 50))
     expect(googleOAuthCallback).toHaveBeenCalledTimes(1)
+  })
+
+  describe('la cuenta YA existía (decisión del founder, 25-sep): entra a su cuenta y se le DICE', () => {
+    const avisoDeCuentaExistente = () => toast.mock.calls.map(c => c[0]).find(a => a?.title === 'auth.google.existingAccountTitle')
+
+    it('🔴 con intento de alta y cuenta vieja: entra, no cuenta conversión y ve el aviso con a quién escribir', async () => {
+      guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
+      googleOAuthCallback.mockResolvedValue({ isNewUser: false, businessCreated: false })
+      render(<GoogleOAuthCallback />)
+
+      await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
+      expect(trackSignup).not.toHaveBeenCalled()
+      const aviso = avisoDeCuentaExistente()
+      expect(aviso).toBeDefined()
+      expect(aviso.description).toBe('auth.google.existingAccountBody')
+      // Se queda en pantalla el tiempo de leerlo y trae el botón para escribirnos.
+      expect(aviso.duration).toBeGreaterThanOrEqual(15000)
+      expect(aviso.action).toBeDefined()
+    })
+
+    it('un inicio de sesión normal (sin intento) no muestra el aviso', async () => {
+      googleOAuthCallback.mockResolvedValue({ isNewUser: false })
+      render(<GoogleOAuthCallback />)
+      await waitFor(() => expect(navigate).toHaveBeenCalled())
+      expect(avisoDeCuentaExistente()).toBeUndefined()
+    })
+
+    it('una cuenta que nace de una invitación tampoco (no existía antes)', async () => {
+      guardarIntentoDeAltaGoogle({ legalVersion: 'v1' })
+      googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: false })
+      render(<GoogleOAuthCallback />)
+      await waitFor(() => expect(navigate).toHaveBeenCalled())
+      expect(avisoDeCuentaExistente()).toBeUndefined()
+    })
   })
 })

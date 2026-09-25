@@ -10,11 +10,77 @@
   },
   "plan": {
     "features": {
-      "delivery": "Livraison (Uber Eats, Rappi, DiDi)"
+      "delivery": "Livraison (Uber Eats, Rappi, DiDi)",
+      "proReports": "Rapports, historique et journal d'activité",
+      "proCustomers": "Des clients qui reviennent : fidélité, parrainage, promotions et e-mail",
+      "proSellMore": "Vendez plus : réservations, commande en ligne et suggestions",
+      "proCashBank": "Caisse et banque en ordre : comptage, rapprochement et solde",
+      "proTablesSeats": "Service à table et utilisateurs illimités",
+      "premiumInventory": "Inventaire FIFO, recettes, coûts et réapprovisionnement auto",
+      "premiumTeam": "Votre équipe : commissions et pointage",
+      "premiumOffline": "Vos appareils se coordonnent sans internet",
+      "premiumMultiSupport": "Vue multi-établissements et support prioritaire"
     },
     "checkoutSuccess": "Bienvenue sur Pro ! Votre plan est actif.",
     "checkoutReceived": "Paiement reçu. Nous activons votre plan…",
-    "checkoutPending": "Votre paiement a été enregistré. L'activation peut prendre quelques minutes ; nous vous préviendrons par e-mail."
+    "checkoutPending": "Votre paiement a été enregistré. L'activation peut prendre quelques minutes ; nous vous préviendrons par e-mail.",
+    "compare": {
+      "show": "Voir tout ce que comprend chaque plan",
+      "hide": "Masquer la comparaison",
+      "title": "Comparaison des plans",
+      "included": "Inclus",
+      "notIncluded": "Non inclus",
+      "categories": {
+        "sell": "Encaisser et vendre",
+        "customers": "Clients",
+        "inventory": "Inventaire",
+        "money": "Argent et rapports",
+        "team": "Votre équipe",
+        "ai": "Assistant et connexion"
+      },
+      "rows": {
+        "pos": "Paiement par carte (terminal)",
+        "menuOrders": "Menu et commandes",
+        "tables": "Service à table",
+        "reservations": "Réservations et rendez-vous",
+        "onlineOrdering": "Commande en ligne",
+        "upsell": "Suggestions à l'encaissement",
+        "upsellAi": "Suggestions rédigées par IA",
+        "delivery": "Livraison (Uber Eats, Rappi, DiDi)",
+        "merchantRules": "Règles d'encaissement par commerçant",
+        "loyalty": "Programme de fidélité",
+        "referrals": "Parrainage",
+        "promotions": "Promotions",
+        "campaigns": "Campagnes e-mail à vos clients",
+        "googleReviews": "Avis Google",
+        "inventoryBasic": "Inventaire de base",
+        "inventoryFifo": "Inventaire FIFO, recettes et coûts",
+        "autoReorder": "Réapprovisionnement automatique",
+        "serialized": "Inventaire par numéro de série",
+        "scale": "Balance connectée",
+        "dailyReports": "Rapports du jour",
+        "reportsHistory": "Rapports et historique complet",
+        "cashCount": "Comptage de caisse par service",
+        "bankReconciliation": "Rapprochement bancaire",
+        "balance": "Solde disponible et centre bancaire",
+        "exportTransactions": "Export des transactions",
+        "cfdi": "Facturation CFDI",
+        "seats": "Utilisateurs",
+        "auditLog": "Journal d'activité",
+        "commissions": "Commissions",
+        "attendance": "Pointage",
+        "chatbot": "Chatbot",
+        "aiAssistant": "Assistant IA et MCP",
+        "offline": "Appareils synchronisés sans internet"
+      },
+      "values": {
+        "upTo2": "Jusqu'à 2",
+        "unlimited": "Illimités"
+      },
+      "allPlansInclude": "Tous les plans incluent : {{list}}.",
+      "plusFree": "Tout ce qui est dans Free, plus :",
+      "plusPro": "Tout ce qui est dans Pro, plus :"
+    }
   },
   "activeSubscriptions": {
     "title": "Abonnements Actifs",

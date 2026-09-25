@@ -131,6 +131,17 @@ function paletaDelDocumento(oscuro: boolean): PaletaDeTarjeta {
   }
 }
 
+/**
+ * Idioma del iframe de Stripe. Sin esto usa el del NAVEGADOR: un dueño con Chrome en inglés veía
+ * «Card number» y «Country» en medio del alta en español. Español de Latinoamérica para México.
+ */
+export function localeDeTarjeta(idioma?: string): StripeElementsOptions['locale'] {
+  if (!idioma) return 'es-419'
+  if (idioma.startsWith('en')) return 'en'
+  if (idioma.startsWith('fr')) return 'fr'
+  return 'es-419'
+}
+
 const esOscuro = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
 
 /**

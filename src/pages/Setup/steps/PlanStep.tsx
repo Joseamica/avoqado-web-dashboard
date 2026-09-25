@@ -17,14 +17,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
-import { AlertCircle, RotateCw } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Check, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanPicker } from '@/components/billing/PlanPicker'
+import { PlanComparison } from '@/components/billing/PlanComparison'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
+import { novedadesDelPlan, valorDeCelda } from '@/config/plan-comparison'
 import { setupService } from '@/services/setup.service'
 import { useToast } from '@/hooks/use-toast'
 import { PlanCardForm } from './PlanCardForm'
-import { FUENTES_DE_TARJETA, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
+import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { formatMXN } from '../offer/formatMXN'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import type { PlanQuote } from '../launchOffer.types'
@@ -68,7 +70,10 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   const [intentStatus, setIntentStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retryToken, setRetryToken] = useState(0)
   const { toast } = useToast()
-  const checkoutPanelRef = useRef<HTMLDivElement | null>(null)
+  // Dos fases en el MISMO paso: primero se elige el plan, luego se paga en una pantalla propia (como
+  // la caja de una tienda). Antes la tarjeta quedaba debajo de la cuadrícula de planes, fuera de vista.
+  const [fase, setFase] = useState<'elegir' | 'pagar'>('elegir')
+  const inicioRef = useRef<HTMLDivElement | null>(null)
 
   const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote)
   // Las tarjetas pintan los montos del servidor, con IVA, como el resto de esta pantalla. Sin
@@ -121,15 +126,31 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
             'Hoy no pagas nada. Al terminar los {{count}} días se cobra el precio del plan a esta tarjeta. Cancela antes desde Facturación y no se te cobra.',
           count: trialDays,
         })
-  const conIntroHoy = selectedTier === 'PRO' && interval === 'monthly' && !!introPro
-  const payNowHint =
-    precioRecurrente != null && !conIntroHoy
+  const conIntroHoy = selectedTier === 'PRO' && interval === 'monthly'
+  const payNowHint = conIntroHoy
+    ? promoLine
+    : precioRecurrente != null
       ? t('plan.payNowHint', {
           defaultValue: 'Hoy se cobran {{price}} {{period}}. IVA incluido.',
           price: formatMXN(precioRecurrente),
           period: periodo,
         })
       : null
+
+  // El precio que se ve en la barra y en el resumen: el del servidor con IVA si llegó; si no, el del
+  // catálogo con «+ IVA», que es lo que había.
+  const tierDef = getTierDef(selectedTier)
+  const precioVisible =
+    precioRecurrente != null
+      ? `${formatMXN(precioRecurrente)} ${periodo}`
+      : `$${(interval === 'annual' ? tierDef.priceAnnual : tierDef.priceMonthly)?.toLocaleString('es-MX')} ${periodo}`
+  const notaIva =
+    precioRecurrente != null ? t('plan.ivaIncluded', { defaultValue: 'IVA incluido' }) : t('plan.plusIva', { defaultValue: '+ IVA' })
+
+  const irA = (siguiente: 'elegir' | 'pagar') => {
+    setFase(siguiente)
+    requestAnimationFrame(() => inicioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   useEffect(() => {
     if (!venueId) {
@@ -160,9 +181,13 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   // El iframe de Stripe no hereda nuestro CSS: el tema y la tipografía se le pasan aquí, y se
   // actualizan solos si la persona cambia de tema con la pantalla abierta.
   const apariencia = useAparienciaDeTarjeta()
+  const idiomaDeTarjeta = useTranslation().i18n?.language
   const options = useMemo(
-    () => (clientSecret ? { clientSecret, appearance: apariencia, fonts: FUENTES_DE_TARJETA } : undefined),
-    [clientSecret, apariencia],
+    () =>
+      clientSecret
+        ? { clientSecret, appearance: apariencia, fonts: FUENTES_DE_TARJETA, locale: localeDeTarjeta(idiomaDeTarjeta) }
+        : undefined,
+    [clientSecret, apariencia, idiomaDeTarjeta],
   )
 
   const handleSelectTier = useCallback((tier: TierId) => {
@@ -171,108 +196,195 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
       window.open(salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'), '_blank', 'noopener,noreferrer')
       return
     }
+    // La siguiente acción (Continuar) vive en la barra fija de abajo: siempre a la vista, sin saltos.
     setSelectedTier(tier)
-    // Picking a plan on a wide pricing grid leaves the actual next action (card form or
-    // "Continuar") below the fold — bring it into view so the choice visibly leads somewhere.
-    requestAnimationFrame(() => checkoutPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
   }, [])
 
+  const continuarGratis = () => onNext({ plan: { tier: 'FREE', acceptedAt: new Date().toISOString() } })
+
+  if (fase === 'elegir' || !isPaidTier) {
+    return (
+      <div ref={inicioRef} className="flex flex-col gap-8 pb-36">
+        <div>
+          <h1 className="text-2xl font-semibold sm:text-3xl">{t('plan.title', { defaultValue: 'Tu plan Avoqado' })}</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            {t('plan.subtitle', { defaultValue: 'Elige el plan que mejor se adapte a tu negocio. Puedes cambiarlo cuando quieras.' })}
+          </p>
+        </div>
+
+        {/* Reuse the billing PlanPicker — same cards + monthly/annual toggle as the billing
+            portal and ConversionWizard. `currentTier` is bound to the in-wizard selection so
+            the chosen tier reads as "selected". Interval is controlled so a toggle flip is
+            persisted even without re-clicking a tier CTA. */}
+        <div data-tour="setup-plan-picker">
+          <PlanPicker
+            currentTier={selectedTier}
+            // Wizard semantics: `currentTier` is the pick, not a plan the venue owns. Without
+            // this the pre-selected PRO card rendered a disabled "Tu plan actual".
+            selectionMode="choice"
+            interval={interval}
+            onIntervalChange={setInterval}
+            promoNotes={interval === 'monthly' ? { PRO: promoLine } : undefined}
+            preciosConIva={preciosConIva}
+            onSelectTier={handleSelectTier}
+          />
+        </div>
+
+        {/* Las tarjetas dicen TEMAS; el detalle completo, por categoría, vive aquí (cerrado por default). */}
+        <PlanComparison selectedTier={selectedTier} />
+
+        {/* Barra FIJA a la pantalla (no `sticky`: el contenedor del asistente la dejaba fuera de vista).
+            El plan elegido y «Continuar» siempre visibles, aunque la cuadrícula o la tabla sean largas. */}
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-4 pb-4 sm:pb-6">
+          <div className="pointer-events-auto mx-auto flex w-full max-w-[720px] flex-col gap-3 rounded-2xl border border-input bg-card p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                {t('plan.selectedPlan', { plan: tierName, defaultValue: 'Plan seleccionado: {{plan}}' })}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isPaidTier
+                  ? `${precioVisible} · ${notaIva}`
+                  : t('plan.freeNote', {
+                      defaultValue: 'Empieza gratis sin tarjeta. Puedes mejorar tu plan cuando quieras desde Facturación.',
+                    })}
+              </p>
+            </div>
+            {isPaidTier ? (
+              <Button data-tour="setup-plan-continue" className="h-11 shrink-0 rounded-full px-8" onClick={() => irA('pagar')}>
+                {t('plan.continue', { defaultValue: 'Continuar' })}
+              </Button>
+            ) : (
+              <Button data-tour="setup-plan-free-continue" className="h-11 shrink-0 rounded-full px-8" onClick={continuarGratis}>
+                {t('plan.freeContinue', { defaultValue: 'Continuar con el plan Gratis' })}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-8">
+    <div ref={inicioRef} className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t('plan.title', { defaultValue: 'Tu plan Avoqado' })}</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">{t('plan.checkoutTitle', { defaultValue: 'Confirma tu plan' })}</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          {t('plan.subtitle', { defaultValue: 'Elige el plan que mejor se adapte a tu negocio. Puedes cambiarlo cuando quieras.' })}
+          {t('plan.checkoutSubtitle', { defaultValue: 'Elige cómo empezar y agrega tu tarjeta.' })}
         </p>
       </div>
 
-      {/* Reuse the billing PlanPicker — same cards + monthly/annual toggle as the billing
-          portal and ConversionWizard. `currentTier` is bound to the in-wizard selection so
-          the chosen tier reads as "selected". Interval is controlled so a toggle flip is
-          persisted even without re-clicking a tier CTA. */}
-      <div data-tour="setup-plan-picker">
-        <PlanPicker
-          currentTier={selectedTier}
-          // Wizard semantics: `currentTier` is the pick, not a plan the venue owns. Without
-          // this the pre-selected PRO card rendered a disabled "Tu plan actual".
-          selectionMode="choice"
-          interval={interval}
-          onIntervalChange={setInterval}
-          promoNotes={interval === 'monthly' ? { PRO: promoLine } : undefined}
-          preciosConIva={preciosConIva}
-          onSelectTier={handleSelectTier}
-        />
-      </div>
-
-      <div ref={checkoutPanelRef} className="mx-auto flex w-full max-w-[640px] flex-col gap-4 rounded-2xl border border-input p-5">
-        <div>
-          <p className="text-sm font-semibold">{t('plan.selectedPlan', { plan: tierName, defaultValue: 'Plan seleccionado: {{plan}}' })}</p>
-          {isPaidTier && selectedTier === 'PRO' && interval === 'monthly' && (
-            <p className="text-xs text-muted-foreground mt-1">{promoLine}</p>
-          )}
-        </div>
-
-        {!isPaidTier ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              {t('plan.freeNote', { defaultValue: 'Empieza gratis sin tarjeta. Puedes mejorar tu plan cuando quieras desde Facturación.' })}
+      <div className="grid gap-8 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)] md:items-start">
+        {/* Resumen: lo que se está comprando, siempre a la vista mientras se paga. */}
+        <aside className="flex flex-col gap-5 rounded-2xl bg-muted/40 p-6 md:sticky md:top-6">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t('plan.yourPlan', { defaultValue: 'Tu plan' })}
             </p>
-            <Button
-              data-tour="setup-plan-free-continue"
-              className="rounded-full"
-              onClick={() => onNext({ plan: { tier: 'FREE', acceptedAt: new Date().toISOString() } })}
-            >
-              {t('plan.freeContinue', { defaultValue: 'Continuar con el plan Gratis' })}
-            </Button>
-          </>
-        ) : intentStatus === 'error' || !options ? (
-          intentStatus === 'error' ? (
-            // Never strand the user on a spinner: say what failed and give them a way out.
-            <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-2 text-sm text-destructive">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  {t('plan.setupIntentErrorBody', {
-                    defaultValue:
-                      'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo o continúa con el plan Gratis y mejóralo después.',
-                  })}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" className="rounded-full gap-2" onClick={() => setRetryToken(n => n + 1)}>
-                  <RotateCw className="h-4 w-4" />
-                  {t('plan.retry', { defaultValue: 'Reintentar' })}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="rounded-full"
-                  onClick={() => onNext({ plan: { tier: 'FREE', acceptedAt: new Date().toISOString() } })}
-                >
-                  {t('plan.freeContinue', { defaultValue: 'Continuar con el plan Gratis' })}
-                </Button>
-              </div>
+            <p className="mt-1 text-2xl font-semibold">{tierName}</p>
+          </div>
+          <div>
+            <p className="text-3xl font-semibold tabular-nums">{precioVisible}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {notaIva} ·{' '}
+              {interval === 'annual'
+                ? t('plan.billedAnnually', { defaultValue: 'Se cobra una vez al año' })
+                : t('plan.billedMonthly', { defaultValue: 'Se cobra cada mes' })}
+            </p>
+          </div>
+          {(selectedTier === 'PRO' || selectedTier === 'PREMIUM') && (
+            <div data-testid="plan-summary-features" className="flex flex-col gap-3 border-t border-input pt-5">
+              <p className="text-sm font-medium">
+                {selectedTier === 'PRO'
+                  ? tBilling('plan.compare.plusFree', { defaultValue: 'Todo lo de Free, más:' })
+                  : tBilling('plan.compare.plusPro', { defaultValue: 'Todo lo de Pro, más:' })}
+              </p>
+              {/* Lo que este plan agrega sobre el de abajo, una línea por categoría: completo, pero corto. */}
+              <ul className="flex flex-col gap-2.5">
+                {novedadesDelPlan(selectedTier).map(grupo => (
+                  <li key={grupo.categoria} className="flex gap-2.5 text-sm">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />
+                    <span>
+                      <span className="font-medium">{tBilling(`plan.compare.categories.${grupo.categoria}`)}:</span>{' '}
+                      <span className="text-muted-foreground">
+                        {grupo.filas
+                          .map(f => {
+                            const valor = valorDeCelda(f, selectedTier)
+                            const nombre = tBilling(`plan.compare.rows.${f.key}`)
+                            return typeof valor === 'string'
+                              ? `${nombre} ${tBilling(`plan.compare.values.${valor}`).toLowerCase()}`
+                              : nombre
+                          })
+                          .join(' · ')}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
+          )}
+          <Button
+            variant="ghost"
+            data-tour="setup-plan-change"
+            className="-ml-3 w-fit gap-2 rounded-full text-muted-foreground hover:text-foreground"
+            onClick={() => irA('elegir')}
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {t('plan.changePlan', { defaultValue: 'Cambiar plan' })}
+          </Button>
+        </aside>
+
+        <section className="flex flex-col gap-4">
+          {intentStatus === 'error' || !options ? (
+            intentStatus === 'error' ? (
+              // Never strand the user on a spinner: say what failed and give them a way out.
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    {t('plan.setupIntentErrorBody', {
+                      defaultValue:
+                        'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo o continúa con el plan Gratis y mejóralo después.',
+                    })}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" className="rounded-full gap-2" onClick={() => setRetryToken(n => n + 1)}>
+                    <RotateCw className="h-4 w-4" />
+                    {t('plan.retry', { defaultValue: 'Reintentar' })}
+                  </Button>
+                  <Button variant="ghost" className="rounded-full" onClick={continuarGratis}>
+                    {t('plan.freeContinue', { defaultValue: 'Continuar con el plan Gratis' })}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
+            )
           ) : (
-            <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
-          )
-        ) : (
-          <Elements stripe={stripePromise} options={options}>
-            <PlanCardForm
-              payNowLabel={payNowLabel(selectedTier, interval)}
-              trialLabel={t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
-              trialHint={trialHint}
-              payNowHint={payNowHint}
-              onConfirmed={async (paymentMethodId, payNow) => {
-                // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
-                // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.
-                if (activateBeforeContinue) {
-                  await activateBeforeContinue({ tier: selectedTier, interval, payNow, paymentMethodId })
+            <Elements stripe={stripePromise} options={options}>
+              <PlanCardForm
+                payNowLabel={payNowLabel(selectedTier, interval)}
+                trialLabel={t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
+                trialOptionTitle={t('plan.optionTrial', { defaultValue: '{{count}} días gratis', count: trialDays })}
+                payNowOptionTitle={
+                  conIntroHoy
+                    ? t('plan.optionPayNowSave', { defaultValue: 'Pagar hoy y ahorrar' })
+                    : t('plan.optionPayNow', { defaultValue: 'Pagar hoy' })
                 }
-                onNext({ plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() } })
-              }}
-            />
-          </Elements>
-        )}
+                trialHint={trialHint}
+                payNowHint={payNowHint}
+                onConfirmed={async (paymentMethodId, payNow) => {
+                  // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
+                  // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.
+                  if (activateBeforeContinue) {
+                    await activateBeforeContinue({ tier: selectedTier, interval, payNow, paymentMethodId })
+                  }
+                  onNext({ plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() } })
+                }}
+              />
+            </Elements>
+          )}
+        </section>
       </div>
     </div>
   )

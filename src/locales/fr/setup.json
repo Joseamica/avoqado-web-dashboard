@@ -186,7 +186,20 @@
     "perYear": "par an",
     "trialHint": "Vous ne payez rien aujourd'hui. Le {{date}}, cette carte sera débitée de {{price}} {{period}}. Annulez avant depuis Facturation et vous ne serez pas débité.",
     "trialHintNoPrice": "Vous ne payez rien aujourd'hui. À la fin des {{count}} jours, cette carte sera débitée du prix du plan. Annulez avant depuis Facturation et vous ne serez pas débité.",
-    "payNowHint": "Vous êtes débité de {{price}} {{period}} aujourd'hui. TVA incluse."
+    "payNowHint": "Vous êtes débité de {{price}} {{period}} aujourd'hui. TVA incluse.",
+    "continue": "Continuer",
+    "checkoutTitle": "Confirmez votre plan",
+    "checkoutSubtitle": "Choisissez comment commencer et ajoutez votre carte.",
+    "yourPlan": "Votre plan",
+    "ivaIncluded": "TVA incluse",
+    "plusIva": "+ TVA",
+    "billedMonthly": "Facturé chaque mois",
+    "billedAnnually": "Facturé une fois par an",
+    "changePlan": "Changer de plan",
+    "howToStart": "Comment voulez-vous commencer ?",
+    "optionTrial": "{{count}} jours gratuits",
+    "optionPayNow": "Payer aujourd'hui",
+    "optionPayNowSave": "Payer aujourd'hui et économiser"
   },
   "consent": {
     "title": "Avant de commencer",

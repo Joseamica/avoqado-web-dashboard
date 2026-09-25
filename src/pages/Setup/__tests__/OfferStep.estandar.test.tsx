@@ -102,9 +102,16 @@ function pintarEstandar(props: Partial<React.ComponentProps<typeof OfferStep>> =
   )
 }
 
-async function pagarHoy() {
-  const user = userEvent.setup()
+/** Elegir el plan y pasar a la pantalla de pago (la tarjeta ya no vive bajo la cuadrícula). */
+async function alPago(user = userEvent.setup()) {
+  await user.click(await screen.findByRole('button', { name: /^Continuar$/ }))
   await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+  return user
+}
+
+async function pagarHoy() {
+  const user = await alPago()
+  await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
   await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
 }
 
@@ -164,8 +171,7 @@ describe('vista estándar — el camino feliz (no tenía ninguna prueba)', () =>
     })
 
     pintarEstandar()
-    const user = userEvent.setup()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    const user = await alPago()
     await user.click(screen.getByRole('button', { name: /30 días gratis/i }))
 
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
@@ -198,7 +204,8 @@ describe('vista estándar — un solo idioma de precio: CON IVA', () => {
 
   it('el botón de pagar hoy dice el precio de la promo CON IVA, no «$599»', async () => {
     pintarEstandar()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    const user = await alPago()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
     expect(screen.getByRole('button', { name: 'Pagar hoy y ahorrar (3 meses a $694.84)' })).toBeInTheDocument()
     expect(screen.queryByText(/\$599/)).not.toBeInTheDocument()
   })

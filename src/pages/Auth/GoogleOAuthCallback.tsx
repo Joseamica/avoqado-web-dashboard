@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/ui/toast'
+import { salesWhatsAppLink } from '@/config/plan-catalog'
 import * as authService from '@/services/auth.service'
 import { clearInviteToken, resolvePostLoginRedirect } from '@/lib/pendingInvitation'
 import { tomarIntentoDeAltaGoogle, tomarTurnoParaCanjear } from '@/lib/googleSignupIntent'
@@ -58,10 +60,40 @@ const GoogleOAuthCallback: React.FC = () => {
         await queryClient.refetchQueries({ queryKey: ['status'] })
 
         const isNewUser = result?.isNewUser
-        toast({
-          title: result?.message || t('auth.google.success'),
-          description: isNewUser ? t('auth.google.welcomeNewUser') : undefined,
-        })
+        // Venía de CREAR su cuenta pero ya tenía una con ese correo (decisión del founder, 25-sep, como
+        // Square: un correo = una cuenta). Entra a la suya y se le DICE; antes entraba en silencio y la
+        // oferta del anuncio se perdía sin que nadie lo explicara. Hoy sólo Avoqado agrega sucursales,
+        // así que el aviso dice a quién pedírselo en vez de mandarlo a un botón que no tiene.
+        const cuentaYaExistia = !!intentoDeAlta && !isNewUser && result?.businessCreated !== true
+        if (cuentaYaExistia) {
+          const escribirnos = t('auth.google.existingAccountAction', { defaultValue: 'Escríbenos' })
+          toast({
+            title: t('auth.google.existingAccountTitle', { defaultValue: 'Ya tenías una cuenta con este correo' }),
+            description: t('auth.google.existingAccountBody', {
+              defaultValue: 'Entraste a tu cuenta. Si querías abrir otro negocio, escríbenos y lo agregamos como sucursal.',
+            }),
+            duration: 20000,
+            action: (
+              <ToastAction
+                altText={escribirnos}
+                onClick={() =>
+                  window.open(
+                    salesWhatsAppLink('Hola, ya tengo cuenta en Avoqado y quiero abrir otro negocio.'),
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+              >
+                {escribirnos}
+              </ToastAction>
+            ),
+          })
+        } else {
+          toast({
+            title: result?.message || t('auth.google.success'),
+            description: isNewUser ? t('auth.google.welcomeNewUser') : undefined,
+          })
+        }
 
         // An invitation still waiting on this person must win over the normal landing page.
         // The email/password path has always done this (AuthContext's login mutation); Google

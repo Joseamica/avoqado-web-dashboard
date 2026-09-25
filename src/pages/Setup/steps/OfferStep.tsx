@@ -36,7 +36,7 @@ import {
   type PlanQuote,
 } from '../launchOffer.types'
 import { PlanCardForm } from './PlanCardForm'
-import { FUENTES_DE_TARJETA, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
+import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { PlanStep } from './PlanStep'
 import type { SetupData } from '../types'
 
@@ -171,9 +171,13 @@ export function OfferStep({
   // El iframe de Stripe no hereda nuestro CSS: el tema y la tipografía se le pasan aquí, y se
   // actualizan solos si la persona cambia de tema con la pantalla abierta.
   const apariencia = useAparienciaDeTarjeta()
+  const idiomaDeTarjeta = useTranslation().i18n?.language
   const options = useMemo(
-    () => (clientSecret ? { clientSecret, appearance: apariencia, fonts: FUENTES_DE_TARJETA } : undefined),
-    [clientSecret, apariencia],
+    () =>
+      clientSecret
+        ? { clientSecret, appearance: apariencia, fonts: FUENTES_DE_TARJETA, locale: localeDeTarjeta(idiomaDeTarjeta) }
+        : undefined,
+    [clientSecret, apariencia, idiomaDeTarjeta],
   )
 
   const caerAEstandar = useCallback(

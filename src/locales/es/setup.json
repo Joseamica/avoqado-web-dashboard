@@ -256,7 +256,20 @@
     "perYear": "al año",
     "trialHint": "Hoy no pagas nada. El {{date}} se cobran {{price}} {{period}} a esta tarjeta. Cancela antes desde Facturación y no se te cobra.",
     "trialHintNoPrice": "Hoy no pagas nada. Al terminar los {{count}} días se cobra el precio del plan a esta tarjeta. Cancela antes desde Facturación y no se te cobra.",
-    "payNowHint": "Hoy se cobran {{price}} {{period}}. IVA incluido."
+    "payNowHint": "Hoy se cobran {{price}} {{period}}. IVA incluido.",
+    "continue": "Continuar",
+    "checkoutTitle": "Confirma tu plan",
+    "checkoutSubtitle": "Elige cómo empezar y agrega tu tarjeta.",
+    "yourPlan": "Tu plan",
+    "ivaIncluded": "IVA incluido",
+    "plusIva": "+ IVA",
+    "billedMonthly": "Se cobra cada mes",
+    "billedAnnually": "Se cobra una vez al año",
+    "changePlan": "Cambiar plan",
+    "howToStart": "¿Cómo quieres empezar?",
+    "optionTrial": "{{count}} días gratis",
+    "optionPayNow": "Pagar hoy",
+    "optionPayNowSave": "Pagar hoy y ahorrar"
   },
   "consent": {
     "title": "Antes de empezar",

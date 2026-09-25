@@ -67,25 +67,30 @@ describe('PlanPicker', () => {
   // ---------------------------------------------------------------------------
   const card = (tier: string) => document.querySelector(`[data-tour="plan-card-${tier}"]`) as HTMLElement
 
-  it('choice mode: the picked tier reads as selected, never as the disabled owned-plan CTA', () => {
+  it('choice mode: the picked tier is marked on the card, never as the disabled owned-plan CTA', () => {
     render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
-    expect(screen.getByText('plan.cta.selected')).toBeInTheDocument()
+    expect(card('pro')).toHaveAttribute('aria-checked', 'true')
+    expect(card('free')).toHaveAttribute('aria-checked', 'false')
     expect(screen.queryByText('plan.cta.current')).not.toBeInTheDocument()
   })
 
-  it('choice mode: the picked tier CTA is live and re-fires onSelectTier', () => {
-    const onSelect = vi.fn()
-    render(<PlanPicker currentTier="PRO" onSelectTier={onSelect} selectionMode="choice" />)
-    fireEvent.click(screen.getByText('plan.cta.selected'))
-    expect(onSelect).toHaveBeenCalledWith('PRO', 'monthly')
+  it('choice mode: no per-card «Elegir/Seleccionado» buttons (the card is the control) and no upgrade wording', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
+    expect(screen.queryByText('plan.cta.selected')).not.toBeInTheDocument()
+    expect(screen.queryByText(/plan\.cta\.choose/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/plan\.cta\.(upgrade|downgrade)/)).not.toBeInTheDocument()
   })
 
-  it('choice mode: unpicked tiers offer "choose", not upgrade/downgrade wording', () => {
+  it('choice mode: Enterprise keeps its «Contactar ventas» action', () => {
     const onSelect = vi.fn()
     render(<PlanPicker currentTier="PRO" onSelectTier={onSelect} selectionMode="choice" />)
-    expect(screen.queryByText(/plan\.cta\.(upgrade|downgrade)/)).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('plan.cta.choose:plan.tiers.free.name'))
-    expect(onSelect).toHaveBeenCalledWith('FREE', 'monthly')
+    fireEvent.click(screen.getAllByText('plan.cta.contact').find(el => el.closest('button'))!)
+    expect(onSelect).toHaveBeenCalledWith('ENTERPRISE', 'monthly')
+  })
+
+  it('owned mode (Billing) keeps its per-card buttons', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('plan.cta.current')).toBeInTheDocument()
   })
 
   it('choice mode: clicking anywhere on a card selects it (no button required)', () => {

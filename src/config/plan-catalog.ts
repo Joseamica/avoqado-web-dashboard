@@ -59,7 +59,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceMonthly: 999,
     priceAnnual: 9990,
     checkout: 'self_serve',
-    featureKeys: ['allFree', 'reportsHistory', 'auditLog', 'aiMcp', 'loyaltyReferrals', 'reservationsOrdering', 'seatsUnlimited'],
+    featureKeys: ['allFree', 'proReports', 'proCustomers', 'proSellMore', 'proCashBank', 'aiMcp', 'proTablesSeats'],
     includes: [
       'ADVANCED_REPORTS',
       'AVAILABLE_BALANCE',
@@ -91,9 +91,10 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceMonthly: 1699,
     priceAnnual: 16990,
     checkout: 'self_serve', // Premium purchasable — Stripe product seeded (plan_premium_*)
-    featureKeys: ['allPro', 'cfdi', 'inventoryFifo', 'delivery', 'predictiveAnalytics', 'multiVenue', 'prioritySupport'],
+    featureKeys: ['allPro', 'cfdi', 'premiumInventory', 'premiumTeam', 'delivery', 'premiumOffline', 'premiumMultiSupport'],
     // 'ADVANCED_ANALYTICS' removed 2026-07-01: dead pay-per-feature code (never gated anything).
-    // The "analítica predictiva" bullet on the Premium card is featureKeys copy, not this code.
+    // 25-sep: se quitó el renglón «Analítica predictiva» de la tarjeta: no hay pantalla detrás.
+    // Las líneas de la tarjeta son TEMAS; la lista completa sale de `includes` (PlanComparison).
     includes: [
       'CFDI',
       'INVENTORY_TRACKING',
@@ -105,6 +106,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'MERCHANT_ROUTING_RULES', // Reglas condicionales de merchants en TPV (espejo de PREMIUM_ONLY_CODES backend)
       'DELIVERY_CHANNELS', // Canales de entrega (Uber Eats, Rappi, DiDi, etc.)
       'OFFLINE_LAN_HUB', // Hub LAN offline: los POS se coordinan por red local sin internet
+      'SCALE_INTEGRATION', // Báscula USB-serial (espejo de PREMIUM_ONLY_CODES; faltaba aquí hasta el 25-sep)
       // Generación de sugerencias de upsell por IA. Premium porque son tokens que
       // paga Avoqado. Espejo EXACTO de PREMIUM_ONLY_CODES en el backend
       // (basePlan.service.ts) — el motor `UPSELL` va en PRO, arriba, NO aquí.
@@ -150,5 +152,4 @@ export const getTierDef = (id: TierId) => PLAN_TIERS.find(t => t.id === id)!
 export const SALES_WHATSAPP_NUMBER = '525640070001'
 
 /** wa.me deep link with a pre-filled message (sales conversations are in Spanish). */
-export const salesWhatsAppLink = (message: string) =>
-  `https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+export const salesWhatsAppLink = (message: string) => `https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`

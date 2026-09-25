@@ -127,7 +127,12 @@ export function PlanPicker({
 
       {/* Cards */}
       <div
-        className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4"
+        className={cn(
+          'grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4',
+          // Al ELEGIR, cada tarjeta mide lo que su contenido: estirarlas a la de Pro dejaba media
+          // tarjeta vacía en Free y Enterprise sólo para empujar un botón que ya sobraba.
+          selectionMode === 'choice' && 'items-start',
+        )}
         {...(selectionMode === 'choice' ? { role: 'radiogroup', 'aria-label': t('plan.chooseAria') } : {})}
       >
         {tiers.map(tier => (
@@ -289,41 +294,46 @@ function PlanCard({
         ))}
       </ul>
 
-      <div className="mt-auto pt-2">
-        {isOwned ? (
-          <Button disabled variant="ghost" className="w-full cursor-default text-muted-foreground">
-            {t('plan.cta.current')}
-          </Button>
-        ) : tier.checkout === 'coming_soon' ? (
-          <Button disabled variant="outline" className="w-full gap-2">
-            <Badge variant="outline" className="h-4 px-1 text-[10px]">
-              {t('plan.comingSoon')}
-            </Badge>
-          </Button>
-        ) : tier.checkout === 'contact' ? (
-          <Button variant="outline" tabIndex={ctaTabIndex} className="w-full cursor-pointer" onClick={ctaClick}>
-            {t('plan.cta.contact')}
-          </Button>
-        ) : isPicked ? (
-          // Stays a real, live button — the bug the founder hit was this card rendering the
-          // owned-plan CTA (disabled "Tu plan actual") on the tier the wizard pre-selects.
-          <Button tabIndex={ctaTabIndex} className="w-full cursor-pointer gap-2" onClick={ctaClick}>
-            <Check className="h-4 w-4" />
-            {t('plan.cta.selected')}
-          </Button>
-        ) : (
-          <Button
-            className="w-full cursor-pointer"
-            tabIndex={ctaTabIndex}
-            variant={tier.popular && !isDowngrade ? 'default' : 'outline'}
-            onClick={ctaClick}
-          >
-            {isChoice
-              ? t('plan.cta.choose', { tier: tierName })
-              : t(`plan.cta.${isDowngrade ? 'downgrade' : 'upgrade'}`, { tier: tierName })}
-          </Button>
-        )}
-      </div>
+      {/* Al ELEGIR (asistentes) la tarjeta entera es el radio, el ✓ marca la elegida y cada asistente
+          tiene su propio «Continuar»: el botón «Elegir X / Seleccionado» sólo repetía eso. Se queda
+          el de Enterprise, que es una ACCIÓN (escribir a ventas), no una selección. */}
+      {isChoice && tier.checkout !== 'contact' ? null : (
+        <div className="mt-auto pt-2">
+          {isOwned ? (
+            <Button disabled variant="ghost" className="w-full cursor-default text-muted-foreground">
+              {t('plan.cta.current')}
+            </Button>
+          ) : tier.checkout === 'coming_soon' ? (
+            <Button disabled variant="outline" className="w-full gap-2">
+              <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                {t('plan.comingSoon')}
+              </Badge>
+            </Button>
+          ) : tier.checkout === 'contact' ? (
+            <Button variant="outline" tabIndex={ctaTabIndex} className="w-full cursor-pointer" onClick={ctaClick}>
+              {t('plan.cta.contact')}
+            </Button>
+          ) : isPicked ? (
+            // Stays a real, live button — the bug the founder hit was this card rendering the
+            // owned-plan CTA (disabled "Tu plan actual") on the tier the wizard pre-selects.
+            <Button tabIndex={ctaTabIndex} className="w-full cursor-pointer gap-2" onClick={ctaClick}>
+              <Check className="h-4 w-4" />
+              {t('plan.cta.selected')}
+            </Button>
+          ) : (
+            <Button
+              className="w-full cursor-pointer"
+              tabIndex={ctaTabIndex}
+              variant={tier.popular && !isDowngrade ? 'default' : 'outline'}
+              onClick={ctaClick}
+            >
+              {isChoice
+                ? t('plan.cta.choose', { tier: tierName })
+                : t(`plan.cta.${isDowngrade ? 'downgrade' : 'upgrade'}`, { tier: tierName })}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

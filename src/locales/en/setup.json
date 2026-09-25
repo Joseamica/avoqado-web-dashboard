@@ -256,7 +256,20 @@
     "perYear": "per year",
     "trialHint": "You pay nothing today. On {{date}} this card is charged {{price}} {{period}}. Cancel before then from Billing and you won't be charged.",
     "trialHintNoPrice": "You pay nothing today. When the {{count}} days end, this card is charged the plan price. Cancel before then from Billing and you won't be charged.",
-    "payNowHint": "You are charged {{price}} {{period}} today. VAT included."
+    "payNowHint": "You are charged {{price}} {{period}} today. VAT included.",
+    "continue": "Continue",
+    "checkoutTitle": "Confirm your plan",
+    "checkoutSubtitle": "Choose how to start and add your card.",
+    "yourPlan": "Your plan",
+    "ivaIncluded": "VAT included",
+    "plusIva": "+ VAT",
+    "billedMonthly": "Billed every month",
+    "billedAnnually": "Billed once a year",
+    "changePlan": "Change plan",
+    "howToStart": "How do you want to start?",
+    "optionTrial": "{{count}}-day free trial",
+    "optionPayNow": "Pay today",
+    "optionPayNowSave": "Pay today and save"
   },
   "consent": {
     "title": "Before we start",

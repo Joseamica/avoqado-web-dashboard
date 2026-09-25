@@ -473,7 +473,10 @@
       "success": "Connexion réussie",
       "welcomeNewUser": "Bienvenue ! Votre compte a été créé.",
       "genericError": "Erreur lors de l'authentification avec Google",
-      "authenticating": "Authentification avec Google..."
+      "authenticating": "Authentification avec Google...",
+      "existingAccountTitle": "Vous aviez déjà un compte avec cet e-mail",
+      "existingAccountBody": "Vous êtes connecté à votre compte. Si vous vouliez ouvrir un autre commerce, écrivez-nous et nous l’ajouterons comme établissement.",
+      "existingAccountAction": "Écrivez-nous"
     }
   },
   "errorBoundary": {

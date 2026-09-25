@@ -578,7 +578,10 @@
       "success": "Inicio de sesión exitoso",
       "welcomeNewUser": "¡Bienvenido! Tu cuenta ha sido creada.",
       "genericError": "Error al autenticar con Google",
-      "authenticating": "Autenticando con Google..."
+      "authenticating": "Autenticando con Google...",
+      "existingAccountTitle": "Ya tenías una cuenta con este correo",
+      "existingAccountBody": "Entraste a tu cuenta. Si querías abrir otro negocio, escríbenos y lo agregamos como sucursal.",
+      "existingAccountAction": "Escríbenos"
     }
   },
   "errorBoundary": {

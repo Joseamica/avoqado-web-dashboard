@@ -578,7 +578,10 @@
       "success": "Login successful",
       "welcomeNewUser": "Welcome! Your account has been created.",
       "genericError": "Error authenticating with Google",
-      "authenticating": "Authenticating with Google..."
+      "authenticating": "Authenticating with Google...",
+      "existingAccountTitle": "You already had an account with this email",
+      "existingAccountBody": "You are now signed in to it. If you wanted to open another business, message us and we will add it as a new location.",
+      "existingAccountAction": "Message us"
     }
   },
   "errorBoundary": {
