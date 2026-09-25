@@ -83,7 +83,11 @@ const QUOTE: PlanQuote = {
   ivaIncluded: true,
   trialDays: 30,
   tiers: {
-    PRO: { monthlyCents: 115884, annualCents: 1158840, intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true } },
+    PRO: {
+      monthlyCents: 115884,
+      annualCents: 1158840,
+      intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true },
+    },
     PREMIUM: { monthlyCents: 197084, annualCents: 1970840, intro: null },
   },
 }
@@ -172,7 +176,16 @@ describe('OfferStep — lo que pinta', () => {
 describe('OfferStep — el cobro', () => {
   it('manda EXACTAMENTE el cuerpo del contrato y avisa al asistente', async () => {
     activatePlan.mockResolvedValue({
-      data: { data: { status: 'ACTIVE', alreadyActive: false, tier: 'PRO', interval: 'monthly', firstChargeCents: 2200, nextChargeAt: '2026-10-17T00:00:00.000Z' } },
+      data: {
+        data: {
+          status: 'ACTIVE',
+          alreadyActive: false,
+          tier: 'PRO',
+          interval: 'monthly',
+          firstChargeCents: 2200,
+          nextChargeAt: '2026-10-17T00:00:00.000Z',
+        },
+      },
     })
 
     pintar()
@@ -189,13 +202,19 @@ describe('OfferStep — el cobro', () => {
     })
     await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
     // El respaldo del paso 10 va DESPUÉS del 200, nunca antes.
-    expect(saveStep).toHaveBeenCalledWith('org_1', 10, expect.objectContaining({ plan: expect.objectContaining({ tier: 'PRO', payNow: true }) }))
+    expect(saveStep).toHaveBeenCalledWith(
+      'org_1',
+      10,
+      expect.objectContaining({ plan: expect.objectContaining({ tier: 'PRO', payNow: true }) }),
+    )
     // La conversión de dinero se reporta en PESOS, no en centavos.
     expect(trackPurchase).toHaveBeenCalledWith(22, 'POS22')
   })
 
   it('🔴 un rechazo del banco (402) muestra el mensaje, NO avanza y NO escribe el respaldo step/10', async () => {
-    activatePlan.mockRejectedValue(errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'card_declined', message: 'Tu banco rechazó el cargo' } }))
+    activatePlan.mockRejectedValue(
+      errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'card_declined', message: 'Tu banco rechazó el cargo' } }),
+    )
 
     pintar()
     await pagar()
@@ -218,7 +237,9 @@ describe('OfferStep — el cobro', () => {
   })
 
   it('409 PLAN_ACTIVE_WITHOUT_OFFER explica que la oferta no se aplica y deja entrar — nunca dice que se cobró', async () => {
-    activatePlan.mockRejectedValue(errorHttp(409, 'PLAN_ACTIVE_WITHOUT_OFFER', { details: { currentTier: 'PRO', currentInterval: 'monthly' } }))
+    activatePlan.mockRejectedValue(
+      errorHttp(409, 'PLAN_ACTIVE_WITHOUT_OFFER', { details: { currentTier: 'PRO', currentInterval: 'monthly' } }),
+    )
 
     pintar()
     await pagar()
@@ -253,11 +274,18 @@ describe('OfferStep — el cobro', () => {
   it('503 reintenta el MISMO cuerpo a los 10 s y al cerrar en éxito termina el alta', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      activatePlan
-        .mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
-        .mockResolvedValueOnce({
-          data: { data: { status: 'ACTIVE', alreadyActive: false, tier: 'PRO', interval: 'monthly', firstChargeCents: 2200, nextChargeAt: '2026-10-17T00:00:00.000Z' } },
-        })
+      activatePlan.mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING')).mockResolvedValueOnce({
+        data: {
+          data: {
+            status: 'ACTIVE',
+            alreadyActive: false,
+            tier: 'PRO',
+            interval: 'monthly',
+            firstChargeCents: 2200,
+            nextChargeAt: '2026-10-17T00:00:00.000Z',
+          },
+        },
+      })
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
@@ -306,11 +334,18 @@ describe('OfferStep — el cobro', () => {
   it('409 PLAN_ACTIVATION_IN_PROGRESS se comporta como el 503 (otro intento tiene el lease)', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      activatePlan
-        .mockRejectedValueOnce(errorHttp(409, 'PLAN_ACTIVATION_IN_PROGRESS'))
-        .mockResolvedValueOnce({
-          data: { data: { status: 'ACTIVE', alreadyActive: true, tier: 'PRO', interval: 'monthly', firstChargeCents: 2200, nextChargeAt: '2026-10-17T00:00:00.000Z' } },
-        })
+      activatePlan.mockRejectedValueOnce(errorHttp(409, 'PLAN_ACTIVATION_IN_PROGRESS')).mockResolvedValueOnce({
+        data: {
+          data: {
+            status: 'ACTIVE',
+            alreadyActive: true,
+            tier: 'PRO',
+            interval: 'monthly',
+            firstChargeCents: 2200,
+            nextChargeAt: '2026-10-17T00:00:00.000Z',
+          },
+        },
+      })
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
@@ -378,7 +413,9 @@ describe('OfferStep — sin números en el código', () => {
    */
   it('🔴 un rechazo del banco se dice en ESPAÑOL, nunca con el texto en ingles de Stripe', async () => {
     activatePlan.mockRejectedValue(
-      errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'insufficient_funds', message: 'Your card has insufficient funds.' } }),
+      errorHttp(402, 'PLAN_PAYMENT_DECLINED', {
+        details: { declineCode: 'insufficient_funds', message: 'Your card has insufficient funds.' },
+      }),
     )
 
     const user = userEvent.setup()
@@ -403,5 +440,36 @@ describe('OfferStep — sin números en el código', () => {
 
     expect(await screen.findByText(/Tu banco rechaz/i)).toBeInTheDocument()
     expect(screen.queryByText(/Your card was declined/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('«Ver otros planes» tiene regreso a la oferta', () => {
+  // 🔴 Pro ES el plan de la oferta. Sin un regreso, quien toca «Ver otros planes» por curiosidad
+  // se queda frente a Pro a precio de lista y puede pagar $694.84 por lo mismo que costaba $22.
+  it('muestra «Volver a la oferta» y al tocarlo regresa a la tarjeta de $22', async () => {
+    const user = userEvent.setup()
+    pintar()
+    await user.click(await screen.findByRole('button', { name: 'Ver otros planes' }))
+    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Volver a la oferta de $22.00' }))
+    expect(screen.queryByTestId('plan-step-estandar')).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Ver otros planes' })).toBeInTheDocument()
+  })
+
+  it('avisa al asistente cuándo se ven los planes, para ensanchar la columna', async () => {
+    const user = userEvent.setup()
+    const onVistaDePlanes = vi.fn()
+    pintar({ onVistaDePlanes })
+    await user.click(await screen.findByRole('button', { name: 'Ver otros planes' }))
+    await waitFor(() => expect(onVistaDePlanes).toHaveBeenLastCalledWith(true))
+    await user.click(screen.getByRole('button', { name: 'Volver a la oferta de $22.00' }))
+    await waitFor(() => expect(onVistaDePlanes).toHaveBeenLastCalledWith(false))
+  })
+
+  it('con la oferta ya NO disponible no ofrece volver a ella', async () => {
+    pintar({ launchOffer: { code: 'POS22', slug: 'pos-22', available: false, unavailableReason: 'SOLD_OUT' } as any })
+    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Volver a la oferta/ })).not.toBeInTheDocument()
   })
 })

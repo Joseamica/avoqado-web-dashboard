@@ -21,6 +21,14 @@ const ACCENT_BG: Record<PlanTierDef['accent'], string> = {
 }
 
 const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
+/** Centavos del servidor → «$1,158.84». Siempre con los dos decimales: es el monto que se cobra. */
+const fmtCents = (c: number) => `$${(c / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+/** Precio de un plan tal como lo cotizó el servidor, en centavos y CON IVA (lo que se cobra). */
+export interface PrecioConIva {
+  monthlyCents: number
+  annualCents: number
+}
 
 /**
  * What `currentTier` means to the caller.
@@ -53,6 +61,13 @@ interface PlanPickerProps {
   promoNotes?: Partial<Record<TierId, string>>
   /** See {@link PlanSelectionMode}. Defaults to `'owned'` (billing portal semantics). */
   selectionMode?: PlanSelectionMode
+  /**
+   * Precios cotizados por el servidor, con IVA. Cuando vienen (el alta), la tarjeta pinta ESE
+   * monto y dice «IVA incluido»: en México el precio que se ve es el que se paga, y la misma
+   * pantalla ya habla en montos con IVA. Sin ellos (Facturación, conversión) se usa el catálogo
+   * «+ IVA» de siempre.
+   */
+  preciosConIva?: Partial<Record<TierId, PrecioConIva>>
 }
 
 export function PlanPicker({
@@ -62,6 +77,7 @@ export function PlanPicker({
   onIntervalChange,
   promoNotes,
   selectionMode = 'owned',
+  preciosConIva,
 }: PlanPickerProps) {
   const { t } = useTranslation('billing')
   const [internalInterval, setInternalInterval] = useState<'monthly' | 'annual'>('monthly')
@@ -123,6 +139,7 @@ export function PlanPicker({
             isCurrent={tier.id === currentTier}
             isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
             promoNote={promoNotes?.[tier.id]}
+            precioConIva={preciosConIva?.[tier.id]}
             onSelect={() => onSelectTier(tier.id, interval)}
           />
         ))}
@@ -138,6 +155,7 @@ function PlanCard({
   isCurrent,
   isDowngrade,
   promoNote,
+  precioConIva,
   onSelect,
 }: {
   tier: PlanTierDef
@@ -146,6 +164,7 @@ function PlanCard({
   isCurrent: boolean
   isDowngrade: boolean
   promoNote?: string
+  precioConIva?: PrecioConIva
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
@@ -153,8 +172,7 @@ function PlanCard({
   const tierName = t(`plan.tiers.${tier.key}.name`)
   // Always show the effective MONTHLY price as the headline; annual shows the per-month
   // equivalent with the yearly total in the subtitle (matches the approved mockup).
-  const monthlyEquiv =
-    interval === 'monthly' ? tier.priceMonthly : tier.priceAnnual != null ? Math.round(tier.priceAnnual / 12) : null
+  const monthlyEquiv = interval === 'monthly' ? tier.priceMonthly : tier.priceAnnual != null ? Math.round(tier.priceAnnual / 12) : null
 
   const isChoice = selectionMode === 'choice'
   /** Wizard: this card is the user's current pick. Billing: this is the plan they own. */
@@ -232,9 +250,15 @@ function PlanCard({
           <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
         ) : (
           <>
-            <span className="text-3xl font-extrabold tracking-tight">{fmt(monthlyEquiv)}</span>
+            <span className="text-3xl font-extrabold tracking-tight">
+              {precioConIva
+                ? fmtCents(interval === 'monthly' ? precioConIva.monthlyCents : Math.round(precioConIva.annualCents / 12))
+                : fmt(monthlyEquiv)}
+            </span>
             <span className="text-xs text-muted-foreground">{t('plan.perMonth')}</span>
-            {monthlyEquiv > 0 && <span className="text-[11px] text-muted-foreground">{t('plan.plusIva')}</span>}
+            {monthlyEquiv > 0 && (
+              <span className="text-[11px] text-muted-foreground">{precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</span>
+            )}
           </>
         )}
       </div>
@@ -244,12 +268,10 @@ function PlanCard({
           : tier.priceMonthly === null
             ? ''
             : interval === 'annual' && tier.priceAnnual != null
-              ? t('plan.annualEquiv', { price: fmt(tier.priceAnnual) })
+              ? t('plan.annualEquiv', { price: precioConIva ? fmtCents(precioConIva.annualCents) : fmt(tier.priceAnnual) })
               : t('plan.billedMonthly')}
       </div>
-      {promoNote && (
-        <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>
-      )}
+      {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}
 
       <ul className="mt-1 flex flex-col gap-2.5">
         {tier.featureKeys.map(fk => (

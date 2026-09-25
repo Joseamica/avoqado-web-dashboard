@@ -82,6 +82,7 @@
     "perMonth": "/mo",
     "perYear": "/yr",
     "plusIva": "+ VAT",
+    "ivaIncluded": "VAT included",
     "forever": "Forever",
     "billedMonthly": "Billed monthly",
     "annualEquiv": "{{price}}/yr · 2 months free",

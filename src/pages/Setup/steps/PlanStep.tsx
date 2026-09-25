@@ -68,7 +68,15 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   const { toast } = useToast()
   const checkoutPanelRef = useRef<HTMLDivElement | null>(null)
 
-  const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string)
+  const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote)
+  // Las tarjetas pintan los montos del servidor, con IVA, como el resto de esta pantalla. Sin
+  // cotización quedan los del catálogo («+ IVA»), que es lo que había.
+  const preciosConIva = quote?.tiers
+    ? {
+        PRO: { monthlyCents: quote.tiers.PRO.monthlyCents, annualCents: quote.tiers.PRO.annualCents },
+        PREMIUM: { monthlyCents: quote.tiers.PREMIUM.monthlyCents, annualCents: quote.tiers.PREMIUM.annualCents },
+      }
+    : undefined
   const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
   const tierName = tBilling(`plan.tiers.${getTierDef(selectedTier).key}.name`)
 
@@ -146,6 +154,7 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
           interval={interval}
           onIntervalChange={setInterval}
           promoNotes={interval === 'monthly' ? { PRO: promoLine } : undefined}
+          preciosConIva={preciosConIva}
           onSelectTier={handleSelectTier}
         />
       </div>
@@ -179,7 +188,8 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   {t('plan.setupIntentErrorBody', {
-                    defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo o continúa con el plan Gratis y mejóralo después.',
+                    defaultValue:
+                      'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo o continúa con el plan Gratis y mejóralo después.',
                   })}
                 </span>
               </div>
@@ -221,12 +231,23 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   )
 }
 
-/** El $599×3 solo existe para PRO mensual: Premium y anual pagan precio completo hoy. */
-function payNowLabelFactory(t: (k: string, o?: Record<string, unknown>) => string) {
+/**
+ * La promo de introducción solo existe para PRO mensual: Premium y anual pagan precio completo hoy.
+ * Con cotización, el monto del botón es el del SERVIDOR con IVA — el mismo que dice la tarjeta —;
+ * sin ella queda el texto de siempre.
+ */
+function payNowLabelFactory(t: (k: string, o?: Record<string, unknown>) => string, quote?: PlanQuote | null) {
+  const intro = quote?.tiers?.PRO?.intro ?? null
   return (tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual') =>
     interval === 'annual'
       ? t('plan.payNowAnnual', { defaultValue: 'Pagar hoy (anual)' })
       : tier === 'PRO'
-        ? t('plan.payNowMonthly', { defaultValue: 'Pagar hoy y ahorrar' })
+        ? intro
+          ? t('plan.payNowMonthlyFromQuote', {
+              defaultValue: 'Pagar hoy y ahorrar ({{count}} meses a {{intro}})',
+              count: intro.months,
+              intro: formatMXN(intro.monthlyCents),
+            })
+          : t('plan.payNowMonthly', { defaultValue: 'Pagar hoy y ahorrar' })
         : t('plan.payNow', { defaultValue: 'Pagar hoy' })
 }

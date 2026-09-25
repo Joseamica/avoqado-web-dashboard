@@ -112,4 +112,34 @@ describe('PlanPicker', () => {
     fireEvent.click(card('premium'))
     expect(onSelect).not.toHaveBeenCalled()
   })
+
+  // ── Precios del servidor, con IVA (alta: México muestra el precio YA con IVA) ──
+  // 🔴 En el alta la tarjeta decía «$999 + IVA» junto a «3 meses a $694.84… IVA incluido»:
+  // la misma tarjeta hablaba en dos idiomas de precio. Con la cotización del servidor se pinta
+  // SU monto con IVA; sin ella (Facturación, conversión) todo queda como estaba.
+  const PRECIOS = {
+    PRO: { monthlyCents: 115884, annualCents: 1158840 },
+    PREMIUM: { monthlyCents: 197084, annualCents: 1970840 },
+  }
+
+  it('con precios del servidor: el monto con IVA y la leyenda «IVA incluido», nunca «+ IVA»', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} preciosConIva={PRECIOS} />)
+    expect(screen.getByText('$1,158.84')).toBeInTheDocument()
+    expect(screen.getByText('$1,970.84')).toBeInTheDocument()
+    expect(screen.getAllByText('plan.ivaIncluded')).toHaveLength(2)
+    expect(screen.queryByText('plan.plusIva')).not.toBeInTheDocument()
+    expect(screen.queryByText('$999')).not.toBeInTheDocument()
+  })
+
+  it('con precios del servidor en anual: el equivalente mensual y el total del año, con IVA', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} interval="annual" preciosConIva={PRECIOS} />)
+    expect(screen.getByText('$965.70')).toBeInTheDocument() // 11,588.40 ÷ 12
+    expect(screen.getByText('plan.annualEquiv:$11,588.40')).toBeInTheDocument()
+  })
+
+  it('sin precios del servidor (Facturación) sigue igual: «$999» y «+ IVA» (regresión)', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('$999')).toBeInTheDocument()
+    expect(screen.getAllByText('plan.plusIva').length).toBeGreaterThan(0)
+  })
 })

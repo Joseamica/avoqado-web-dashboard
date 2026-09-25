@@ -45,9 +45,21 @@ vi.mock('react-i18next', () => ({
   Trans: ({ defaults }: { defaults?: string }) => <span>{defaults ?? ''}</span>,
 }))
 vi.mock('@/components/layouts/SetupWizardLayout', () => ({
-  SetupWizardLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SetupWizardLayout: ({ children, wide }: { children: React.ReactNode; wide?: boolean }) => (
+    <div data-testid="layout" data-wide={String(!!wide)}>
+      {children}
+    </div>
+  ),
 }))
-vi.mock('../steps/OfferStep', () => ({ OfferStep: () => <div data-testid="pantalla-oferta" /> }))
+vi.mock('../steps/OfferStep', () => ({
+  OfferStep: ({ onVistaDePlanes }: { onVistaDePlanes?: (v: boolean) => void }) => (
+    <div data-testid="pantalla-oferta">
+      <button type="button" onClick={() => onVistaDePlanes?.(true)}>
+        simular-ver-planes
+      </button>
+    </div>
+  ),
+}))
 vi.mock('../steps/BusinessTypeStep', () => ({
   BusinessTypeStep: ({ onNext }: { onNext: (d: unknown) => void }) => (
     <button onClick={() => onNext({ businessType: 'CAFE' })}>giro-continuar</button>
@@ -126,6 +138,15 @@ describe('ShortSetupWizard — dónde reanuda', () => {
   it('con lo básico capturado abre en la oferta', async () => {
     pintar()
     expect(await screen.findByTestId('pantalla-oferta')).toBeInTheDocument()
+  })
+
+  it('al ver los 4 planes la columna se ensancha; en la tarjeta de la oferta se queda angosta', async () => {
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByTestId('pantalla-oferta')
+    expect(screen.getByTestId('layout')).toHaveAttribute('data-wide', 'false')
+    await user.click(screen.getByRole('button', { name: 'simular-ver-planes' }))
+    expect(screen.getByTestId('layout')).toHaveAttribute('data-wide', 'true')
   })
 
   it('con el plan ya cobrado abre en el cierre', async () => {

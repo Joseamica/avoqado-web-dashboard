@@ -42,7 +42,13 @@ vi.mock('@stripe/react-stripe-js', () => ({
 }))
 // La rejilla de precios no participa en el cobro; el tier por defecto (PRO mensual) es el que
 // `PlanStep` ya trae seleccionado.
-vi.mock('@/components/billing/PlanPicker', () => ({ PlanPicker: () => <div data-testid="plan-picker" /> }))
+let propsDelPicker: Record<string, unknown> = {}
+vi.mock('@/components/billing/PlanPicker', () => ({
+  PlanPicker: (p: Record<string, unknown>) => {
+    propsDelPicker = p
+    return <div data-testid="plan-picker" />
+  },
+}))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (k: string, o?: any) => {
@@ -61,7 +67,11 @@ const QUOTE: PlanQuote = {
   ivaIncluded: true,
   trialDays: 30,
   tiers: {
-    PRO: { monthlyCents: 115884, annualCents: 1158840, intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true } },
+    PRO: {
+      monthlyCents: 115884,
+      annualCents: 1158840,
+      intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true },
+    },
     PREMIUM: { monthlyCents: 197084, annualCents: 1970840, intro: null },
   },
 }
@@ -112,7 +122,16 @@ beforeEach(() => {
 describe('vista estándar — el camino feliz (no tenía ninguna prueba)', () => {
   it('manda el cuerpo STANDARD exacto con el monto que el SERVIDOR cotizó, y avisa al asistente', async () => {
     activatePlan.mockResolvedValue({
-      data: { data: { status: 'ACTIVE', alreadyActive: false, tier: 'PRO', interval: 'monthly', firstChargeCents: 69484, nextChargeAt: '2026-10-17T00:00:00.000Z' } },
+      data: {
+        data: {
+          status: 'ACTIVE',
+          alreadyActive: false,
+          tier: 'PRO',
+          interval: 'monthly',
+          firstChargeCents: 69484,
+          nextChargeAt: '2026-10-17T00:00:00.000Z',
+        },
+      },
     })
 
     pintarEstandar()
@@ -132,7 +151,16 @@ describe('vista estándar — el camino feliz (no tenía ninguna prueba)', () =>
 
   it('la prueba gratis cobra CERO hoy y también pasa por activate-plan', async () => {
     activatePlan.mockResolvedValue({
-      data: { data: { status: 'ACTIVE', alreadyActive: false, tier: 'PRO', interval: 'monthly', firstChargeCents: 0, nextChargeAt: '2026-10-17T00:00:00.000Z' } },
+      data: {
+        data: {
+          status: 'ACTIVE',
+          alreadyActive: false,
+          tier: 'PRO',
+          interval: 'monthly',
+          firstChargeCents: 0,
+          nextChargeAt: '2026-10-17T00:00:00.000Z',
+        },
+      },
     })
 
     pintarEstandar()
@@ -152,6 +180,27 @@ describe('vista estándar — el camino feliz (no tenía ninguna prueba)', () =>
     await waitFor(() => expect(onFreePlan).toHaveBeenCalledTimes(1))
     expect(onFreePlan.mock.calls[0][0]).toMatchObject({ tier: 'FREE' })
     expect(activatePlan).not.toHaveBeenCalled()
+  })
+})
+
+describe('vista estándar — un solo idioma de precio: CON IVA', () => {
+  // 🔴 La tarjeta decía «$999 + IVA», su nota «3 meses a $694.84… IVA incluido» y el botón
+  // «3 meses a $599»: tres números para el mismo cobro. En México el precio que se ve es el que
+  // se paga, así que todo sale de la cotización del servidor, con IVA.
+  it('las tarjetas reciben los precios del servidor con IVA', async () => {
+    pintarEstandar()
+    await waitFor(() => expect(screen.getByTestId('plan-picker')).toBeInTheDocument())
+    expect(propsDelPicker.preciosConIva).toEqual({
+      PRO: { monthlyCents: 115884, annualCents: 1158840 },
+      PREMIUM: { monthlyCents: 197084, annualCents: 1970840 },
+    })
+  })
+
+  it('el botón de pagar hoy dice el precio de la promo CON IVA, no «$599»', async () => {
+    pintarEstandar()
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Pagar hoy y ahorrar (3 meses a $694.84)' })).toBeInTheDocument()
+    expect(screen.queryByText(/\$599/)).not.toBeInTheDocument()
   })
 })
 

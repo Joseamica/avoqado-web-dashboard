@@ -28,7 +28,13 @@ import { FalloDeCobro } from '../offer/falloDeCobro'
 import { textoDeRechazo } from '../offer/mensajeDeRechazo'
 import { expectedStandardFirstChargeCents } from '../offer/standardQuote'
 import { BACKEND_STEP_BY_ID } from '../stepRegistry'
-import { isOfferAvailable, type ActivatePlanBody, type ActivatePlanResult, type LaunchOfferState, type PlanQuote } from '../launchOffer.types'
+import {
+  isOfferAvailable,
+  type ActivatePlanBody,
+  type ActivatePlanResult,
+  type LaunchOfferState,
+  type PlanQuote,
+} from '../launchOffer.types'
 import { PlanCardForm } from './PlanCardForm'
 import { PlanStep } from './PlanStep'
 import type { SetupData } from '../types'
@@ -53,6 +59,8 @@ export interface OfferStepProps {
   onRefreshProgress: () => void | Promise<void>
   /** El plan GRATIS de la vista estándar: se guarda sin tarjeta. */
   onFreePlan?: (plan: NonNullable<SetupData['plan']>) => void
+  /** Avisa si se están mostrando los planes (4 tarjetas): el asistente ensancha su columna. */
+  onVistaDePlanes?: (viendoPlanes: boolean) => void
 }
 
 type Desenlace =
@@ -90,6 +98,7 @@ export function OfferStep({
   onFinish,
   onRefreshProgress,
   onFreePlan,
+  onVistaDePlanes,
 }: OfferStepProps) {
   const { t, i18n } = useTranslation('setup')
   const idioma = i18n?.language?.startsWith('en') ? 'en' : 'es'
@@ -101,6 +110,9 @@ export function OfferStep({
   // casos la oferta deja de estar enfrente y el precio normal hay que volver a tocarlo.
   const [verEstandar, setVerEstandar] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
+  // Sólo quien SE FUE por gusto («Ver otros planes») puede volver. Tras un 409 la oferta ya no
+  // aplica, y ofrecer el regreso sería mandarlo a una tarjeta que el servidor va a rechazar.
+  const [puedeVolver, setPuedeVolver] = useState(false)
   const [desenlace, setDesenlace] = useState<Desenlace>({ tipo: 'nada' })
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [intentStatus, setIntentStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -115,6 +127,19 @@ export function OfferStep({
   }, [])
 
   const mostrarOferta = !!oferta && !verEstandar
+
+  useEffect(() => {
+    onVistaDePlanes?.(!mostrarOferta)
+  }, [mostrarOferta, onVistaDePlanes])
+
+  // Pro ES el plan de la oferta: sin este regreso, quien mira los planes por curiosidad se queda
+  // frente a Pro a precio de lista, pagando mucho más por lo mismo.
+  const volverALaOferta = useCallback(() => {
+    setPuedeVolver(false)
+    setAviso(null)
+    setDesenlace({ tipo: 'nada' })
+    setVerEstandar(false)
+  }, [])
 
   // SetupIntent para la tarjeta. Solo hace falta en el camino de la oferta: la vista estándar es
   // `PlanStep`, que pide el suyo.
@@ -146,6 +171,7 @@ export function OfferStep({
 
   const caerAEstandar = useCallback(
     async (mensaje: string) => {
+      setPuedeVolver(false)
       setAviso(mensaje)
       setVerEstandar(true)
       setDesenlace({ tipo: 'nada' })
@@ -243,8 +269,7 @@ export function OfferStep({
         // prometer una confirmación que nunca llegará es mentirle a quien está pagando. Cae al
         // camino de abajo, que muestra el mensaje del servidor («no se te cobró nada»).
         const ambiguoDeCobro =
-          code !== 'PLAN_NOT_CONFIGURED' &&
-          (status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
+          code !== 'PLAN_NOT_CONFIGURED' && (status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
         if (ambiguoDeCobro) {
           if (reintentos.current >= MAX_REINTENTOS) {
             reintentos.current = 0
@@ -302,9 +327,7 @@ export function OfferStep({
         // 🔴 Sin la cotización del servidor no hay monto que consentir, así que NO se cobra. Lo que
         // no puede pasar —y pasaba— es que además se avance: este `return` era mudo y el asistente
         // guardaba un plan de PAGO sin que nadie hubiera llamado a `activate-plan` ni una vez.
-        throw new FalloDeCobro(
-          t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' }),
-        )
+        throw new FalloDeCobro(t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' }))
       }
       const cuerpo: ActivatePlanBody = {
         tier: args.tier,
@@ -351,13 +374,25 @@ export function OfferStep({
         {(aviso || noDisponible) && (
           <div className="flex items-start gap-2 rounded-xl border border-input p-4 text-sm">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <span>
+            <span className="flex-1">
               {aviso ??
                 t('offer.claimedUnavailable', {
                   defaultValue: 'La oferta {{code}} ya no está disponible.',
                   code: noDisponible?.code ?? '',
                 })}
             </span>
+            {puedeVolver && oferta && (
+              <button
+                type="button"
+                className="shrink-0 font-medium underline underline-offset-4 hover:text-foreground"
+                onClick={volverALaOferta}
+              >
+                {t('offer.backToOffer', {
+                  defaultValue: 'Volver a la oferta de {{promo}}',
+                  promo: formatMXN(oferta.promo.monthlyCents),
+                })}
+              </button>
+            )}
           </div>
         )}
         <PlanStep
@@ -458,7 +493,9 @@ export function OfferStep({
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-2 text-sm text-destructive">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{t('plan.setupIntentErrorBody', { defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.' })}</span>
+                <span>
+                  {t('plan.setupIntentErrorBody', { defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.' })}
+                </span>
               </div>
               <Button variant="outline" className="rounded-full gap-2" onClick={() => setRetryToken(n => n + 1)}>
                 <RotateCw className="h-4 w-4" />
@@ -490,7 +527,7 @@ export function OfferStep({
               defaultValue: 'La oferta de {{promo}} no aplica a otros planes.',
               promo: formatMXN(oferta!.promo.monthlyCents),
             }),
-          )
+          ).then(() => setPuedeVolver(true))
         }
       >
         {t('offer.seeOtherPlans', { defaultValue: 'Ver otros planes' })}

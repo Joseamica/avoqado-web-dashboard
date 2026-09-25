@@ -82,6 +82,7 @@
     "perMonth": "/mes",
     "perYear": "/año",
     "plusIva": "+ IVA",
+    "ivaIncluded": "IVA incluido",
     "forever": "Para siempre",
     "billedMonthly": "Se cobra mensual",
     "annualEquiv": "{{price}}/año · 2 meses gratis",

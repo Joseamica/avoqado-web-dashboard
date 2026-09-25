@@ -58,9 +58,16 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   const [pantalla, setPantalla] = useState<ShortSetupStepId | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [errorFinal, setErrorFinal] = useState<string | null>(null)
+  // Los 4 planes caben en fila sólo con la columna ancha (la misma que usa el alta largo). La
+  // tarjeta de la oferta se queda angosta: es una sola decisión, no una comparación.
+  const [viendoPlanes, setViendoPlanes] = useState(false)
   const reclamoIntentado = useRef(false)
 
-  const { data: progressData, isLoading, refetch } = useQuery({
+  const {
+    data: progressData,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['onboarding-progress', organizationId],
     queryFn: async () => {
       const response = await setupService.getProgress(organizationId)
@@ -167,13 +174,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   }
 
   const indiceVisible = PANTALLAS_VISIBLES.indexOf(pantalla)
-  const contador =
-    indiceVisible >= 0
-      ? t('wizard.step', { current: indiceVisible + 2, total: PANTALLAS_VISIBLES.length + 1 })
-      : null
+  const contador = indiceVisible >= 0 ? t('wizard.step', { current: indiceVisible + 2, total: PANTALLAS_VISIBLES.length + 1 }) : null
 
   return (
-    <SetupWizardLayout hideFinishLater wide={false}>
+    <SetupWizardLayout hideFinishLater wide={pantalla === 'offer' && viendoPlanes}>
       {guardando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50">
           <Icons.spinner className="h-8 w-8 animate-spin text-foreground" />
@@ -203,14 +207,18 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
           <BusinessBasicsStep
             data={datos}
             saving={guardando}
-            onNext={stepData => guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.businessBasics, stepData), 'businessType')}
+            onNext={stepData =>
+              guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.businessBasics, stepData), 'businessType')
+            }
           />
         )}
 
         {pantalla === 'businessType' && (
           <BusinessTypeStep
             data={datos}
-            onNext={stepData => void guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.businessType, stepData), 'offer')}
+            onNext={stepData =>
+              void guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.businessType, stepData), 'offer')
+            }
           />
         )}
 
@@ -224,6 +232,7 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             onActivated={() => setPantalla('done')}
             onFinish={() => void terminar()}
             onRefreshProgress={() => void refetch()}
+            onVistaDePlanes={setViendoPlanes}
             onFreePlan={plan =>
               void guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.offer, { plan }), 'done')
             }
