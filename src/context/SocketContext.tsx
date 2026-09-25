@@ -104,7 +104,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
       const espera = ESPERAS_DE_RECUPERACION_MS[intento.current]
       intento.current += 1
+      // Un solo temporizador a la vez (Codex ronda 5): varios errores seguidos no dejan huérfanos.
+      if (pendiente.current) clearTimeout(pendiente.current)
       pendiente.current = setTimeout(() => {
+        pendiente.current = undefined
         recreaciones.current.push(Date.now())
         setGeneracion(g => g + 1)
       }, espera)
@@ -114,6 +117,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(true)
       recuperando.current = false
       intento.current = 0
+      // Conectó: ninguna recreación pendiente debe tumbar este socket sano.
+      if (pendiente.current) {
+        clearTimeout(pendiente.current)
+        pendiente.current = undefined
+      }
     })
 
     socketInstance.on('disconnect', (reason: string) => {
@@ -128,7 +136,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socketInstance.on('connect_error', error => {
       console.error('Socket connection error:', error)
       setIsConnected(false)
-      if (recuperando.current) programarRecreacion()
+      // Sólo si socket.io YA no reintenta (el servidor rechazó, `active === false`); un error de red lo
+      // reintenta él solo y competir con eso tumbaría el socket sano (Codex ronda 5).
+      if (recuperando.current && !socketInstance.active) programarRecreacion()
     })
 
     setSocket(socketInstance)

@@ -8,7 +8,7 @@ import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Handler = (...args: unknown[]) => void
-const sockets: Array<{ handlers: Record<string, Handler>; disconnect: ReturnType<typeof vi.fn> }> = []
+const sockets: Array<{ handlers: Record<string, Handler>; disconnect: ReturnType<typeof vi.fn>; active: boolean }> = []
 
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => {
@@ -19,6 +19,8 @@ vi.mock('socket.io-client', () => ({
       },
       emit: vi.fn(),
       disconnect: vi.fn(),
+      // socket.io: `active === false` ⇒ el servidor rechazó y ya no reintenta solo.
+      active: false,
     }
     sockets.push(s)
     return s
@@ -84,5 +86,29 @@ describe('SocketProvider · desconexión hecha por el servidor', () => {
     }
     act(() => vi.advanceTimersByTime(120_000))
     expect(sockets).toHaveLength(5) // el original + 4 intentos
+  })
+
+  // Codex ronda 5: un error de TRANSPORTE lo reintenta socket.io solo; no hay que competir con él.
+  it('🔴 un error de red que socket.io sigue reintentando NO programa una recreación que tumbe el socket sano', () => {
+    render(<SocketProvider>{null}</SocketProvider>)
+    act(() => sockets[0].handlers.disconnect('io server disconnect'))
+    act(() => vi.advanceTimersByTime(1000))
+    expect(sockets).toHaveLength(2)
+    sockets[1].active = true // error de transporte: socket.io reintenta por su cuenta
+    act(() => sockets[1].handlers.connect_error(new Error('xhr poll error')))
+    act(() => sockets[1].handlers.connect()) // y lo logra
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(sockets).toHaveLength(2)
+    expect(sockets[1].disconnect).not.toHaveBeenCalled()
+  })
+
+  it('🔴 conectar cancela cualquier recreación pendiente', () => {
+    render(<SocketProvider>{null}</SocketProvider>)
+    act(() => sockets[0].handlers.disconnect('io server disconnect'))
+    act(() => vi.advanceTimersByTime(1000))
+    act(() => sockets[1].handlers.connect_error(new Error('no autorizado'))) // programa el intento a 3 s
+    act(() => sockets[1].handlers.connect()) // pero conecta antes
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(sockets).toHaveLength(2)
   })
 })
