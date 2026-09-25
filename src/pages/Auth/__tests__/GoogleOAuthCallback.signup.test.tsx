@@ -47,7 +47,7 @@ beforeEach(() => {
 describe('GoogleOAuthCallback — alta', () => {
   it('🔴 manda el intento del alta, registra la conversión y lleva al asistente', async () => {
     guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' } })
-    googleOAuthCallback.mockResolvedValue({ isNewUser: true })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: true })
 
     render(<GoogleOAuthCallback />)
 
@@ -68,6 +68,25 @@ describe('GoogleOAuthCallback — alta', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
     expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', undefined)
     expect(trackSignup).not.toHaveBeenCalled()
+  })
+
+  it('🔴 con intento pero la cuenta nació de una INVITACIÓN: no es alta, no cuenta conversión ni va al asistente', async () => {
+    // `isNewUser` también es true al aceptar una invitación. Antes eso bastaba para contar la
+    // conversión del anuncio (Google y ChatGPT) y mandar al empleado a configurar un negocio ajeno.
+    guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: false })
+    render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(trackSignup).not.toHaveBeenCalled()
+  })
+
+  it('un servidor que no manda `businessCreated` nunca se lee como alta', async () => {
+    guardarIntentoDeAltaGoogle({ legalVersion: 'v1' })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true })
+    render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalled())
+    expect(trackSignup).not.toHaveBeenCalled()
+    expect(navigate).not.toHaveBeenCalledWith('/setup', expect.anything())
   })
 
   it('con intento pero la cuenta YA existía: entra normal, sin contar una conversión falsa', async () => {
@@ -103,7 +122,7 @@ describe('GoogleOAuthCallback — alta', () => {
 describe('GoogleOAuthCallback — se procesa UNA vez', () => {
   it('🔴 montada como en la app (StrictMode), llama al servidor una sola vez y con el alta', async () => {
     guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
-    googleOAuthCallback.mockResolvedValue({ isNewUser: true })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: true })
     render(
       <StrictMode>
         <GoogleOAuthCallback />
@@ -118,7 +137,7 @@ describe('GoogleOAuthCallback — se procesa UNA vez', () => {
   it('🔴 si la pantalla se MONTA dos veces (el enrutador la remonta al cargar la sesión), el code se canjea una vez', async () => {
     params = new URLSearchParams('code=c-remontada')
     guardarIntentoDeAltaGoogle({ legalVersion: 'v1' })
-    googleOAuthCallback.mockResolvedValue({ isNewUser: true })
+    googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: true })
     const primera = render(<GoogleOAuthCallback />)
     primera.unmount()
     render(<GoogleOAuthCallback />)

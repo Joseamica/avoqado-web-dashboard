@@ -72,10 +72,11 @@ const GoogleOAuthCallback: React.FC = () => {
           isNewUser,
         })
 
-        // Alta NUEVA desde /signup: la conversión del anuncio (GA4 `sign_up`, igual que el alta por
-        // correo) y directo al asistente. Una cuenta que ya existía sólo inicia sesión: contarla
-        // como alta inflaría las conversiones del anuncio.
-        const altaNueva = !!intentoDeAlta && isNewUser === true
+        // Alta NUEVA desde /signup: la conversión del anuncio (Google y ChatGPT, igual que el alta por
+        // correo) y directo al asistente. 🔴 La decide `businessCreated`, NO `isNewUser`: ése también
+        // es true cuando la cuenta nace de una invitación, y un empleado invitado no es una conversión
+        // ni tiene negocio que configurar. Una cuenta que ya existía sólo inicia sesión.
+        const altaNueva = !!intentoDeAlta && result?.businessCreated === true
         if (altaNueva) trackSignup('google', intentoDeAlta?.launchCampaignCode)
 
         navigate(inviteRedirect ?? (altaNueva ? '/setup' : '/'), { replace: true })

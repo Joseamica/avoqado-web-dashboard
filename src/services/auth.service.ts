@@ -45,6 +45,9 @@ export interface AuthResponse {
   // Google OAuth only: true when this sign-in created the account from an invitation, meaning the
   // backend already marked that invitation ACCEPTED.
   isNewUser?: boolean
+  // Google OAuth only: true SÓLO cuando esta entrada creó un negocio (el alta desde /signup). Es lo
+  // que cuenta como conversión: `isNewUser` también es true al aceptar una invitación.
+  businessCreated?: boolean
 }
 
 export interface AuthStatusResponse {
