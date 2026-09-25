@@ -9,6 +9,11 @@ interface SocketContextType {
   leaveVenueRoom: (venueId: string) => void
 }
 
+// Recuperación tras una desconexión hecha por el servidor (ver SocketProvider).
+const ESPERAS_DE_RECUPERACION_MS = [1_000, 3_000, 10_000, 30_000]
+const VENTANA_ANTI_BUCLE_MS = 120_000
+const MAX_RECREACIONES_EN_VENTANA = 6
+
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
@@ -28,7 +33,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false)
   // Sube cada vez que hay que recrear el socket tras una desconexión hecha por el servidor (ver abajo).
   const [generacion, setGeneracion] = useState(0)
-  const ultimaRecreacion = useRef(0)
+  // Recuperación en curso: en qué intento va y cuándo se hicieron las recreaciones recientes (tope anti-bucle).
+  const recuperando = useRef(false)
+  const intento = useRef(0)
+  const recreaciones = useRef<number[]>([])
+  const pendiente = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const { isAuthenticated, isLoading } = useAuth()
 
   const resolveSocketUrl = (): string => {
@@ -81,35 +90,52 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     })
 
     // Set up event listeners
+    // 🔴 Cuando la desconexión la hace el SERVIDOR (p. ej. al cambiar la propia contraseña se cierran las
+    // sesiones, la actual incluida, y la página recibe cookies nuevas), socket.io NO reconecta solo y el panel
+    // se quedaba sin tiempo real. Se RECREA el socket (una instancia nueva hace que las pantallas vuelvan a
+    // unirse a sus salas) con esperas crecientes: si las cookies nuevas aún no llegan, el servidor rechaza y se
+    // intenta después. Si la sesión de verdad ya no sirve, se deja de intentar (ahí el HTTP manda al login).
+    const programarRecreacion = () => {
+      const ahora = Date.now()
+      recreaciones.current = recreaciones.current.filter(t => ahora - t < VENTANA_ANTI_BUCLE_MS)
+      if (intento.current >= ESPERAS_DE_RECUPERACION_MS.length || recreaciones.current.length >= MAX_RECREACIONES_EN_VENTANA) {
+        recuperando.current = false
+        return
+      }
+      const espera = ESPERAS_DE_RECUPERACION_MS[intento.current]
+      intento.current += 1
+      pendiente.current = setTimeout(() => {
+        recreaciones.current.push(Date.now())
+        setGeneracion(g => g + 1)
+      }, espera)
+    }
+
     socketInstance.on('connect', () => {
       setIsConnected(true)
+      recuperando.current = false
+      intento.current = 0
     })
-
-    // Recrear, no reconectar: una instancia NUEVA hace que las pantallas vuelvan a unirse a sus salas.
-    let recreacion: ReturnType<typeof setTimeout> | undefined
 
     socketInstance.on('disconnect', (reason: string) => {
       setIsConnected(false)
-      // 🔴 Cuando la desconexión la hace el SERVIDOR (p. ej. al cambiar la propia contraseña se cierran las
-      // sesiones, la actual incluida, y la página ya trae cookies nuevas), socket.io NO reconecta solo y el
-      // panel se quedaba sin tiempo real. Se recrea con las cookies vigentes; como mucho una vez cada 10 s,
-      // para no entrar en bucle si la sesión de verdad ya no sirve (ahí el HTTP manda al login).
-      if (reason === 'io server disconnect' && Date.now() - ultimaRecreacion.current > 10_000) {
-        ultimaRecreacion.current = Date.now()
-        recreacion = setTimeout(() => setGeneracion(g => g + 1), 1000)
+      if (reason === 'io server disconnect' && !recuperando.current) {
+        recuperando.current = true
+        intento.current = 0
+        programarRecreacion()
       }
     })
 
     socketInstance.on('connect_error', error => {
       console.error('Socket connection error:', error)
       setIsConnected(false)
+      if (recuperando.current) programarRecreacion()
     })
 
     setSocket(socketInstance)
 
     // Clean up on unmount
     return () => {
-      if (recreacion) clearTimeout(recreacion)
+      if (pendiente.current) clearTimeout(pendiente.current)
       socketInstance.disconnect()
     }
   }, [socketUrl, isAuthenticated, isLoading, generacion])

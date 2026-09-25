@@ -54,12 +54,35 @@ describe('SocketProvider · desconexión hecha por el servidor', () => {
     expect(sockets).toHaveLength(1)
   })
 
-  it('tope anti-bucle: dos desconexiones del servidor seguidas recrean UNA vez', () => {
+  // Codex ronda 4: la primera versión (1 s fijo + 10 s de bloqueo) dejaba el socket muerto en dos casos.
+  it('🔴 una segunda desconexión del servidor DESPUÉS de reconectar también se recupera', () => {
     render(<SocketProvider>{null}</SocketProvider>)
     act(() => sockets[0].handlers.disconnect('io server disconnect'))
-    act(() => vi.advanceTimersByTime(1500))
+    act(() => vi.advanceTimersByTime(1000))
+    act(() => sockets[1].handlers.connect())
     act(() => sockets[1].handlers.disconnect('io server disconnect'))
-    act(() => vi.advanceTimersByTime(1500))
+    act(() => vi.advanceTimersByTime(1000))
+    expect(sockets).toHaveLength(3)
+  })
+
+  it('🔴 si las cookies nuevas aún no llegaban (el servidor rechaza la conexión), reintenta más tarde', () => {
+    render(<SocketProvider>{null}</SocketProvider>)
+    act(() => sockets[0].handlers.disconnect('io server disconnect'))
+    act(() => vi.advanceTimersByTime(1000))
     expect(sockets).toHaveLength(2)
+    act(() => sockets[1].handlers.connect_error(new Error('no autorizado')))
+    act(() => vi.advanceTimersByTime(3000))
+    expect(sockets).toHaveLength(3)
+  })
+
+  it('tope anti-bucle: si la sesión de verdad ya no sirve, deja de intentar tras 4 intentos', () => {
+    render(<SocketProvider>{null}</SocketProvider>)
+    act(() => sockets[0].handlers.disconnect('io server disconnect'))
+    for (let i = 0; i < 10; i++) {
+      act(() => vi.advanceTimersByTime(30_000))
+      act(() => sockets[sockets.length - 1].handlers.connect_error?.(new Error('no autorizado')))
+    }
+    act(() => vi.advanceTimersByTime(120_000))
+    expect(sockets).toHaveLength(5) // el original + 4 intentos
   })
 })
