@@ -17,7 +17,6 @@ import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/f
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
@@ -111,8 +110,6 @@ export function UsersManagement() {
   const [detailHasChanges, setDetailHasChanges] = useState(false)
 
   // Reset password dialog state
-  const [tempPassword, setTempPassword] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
 
   // Fetch team members (scoped by venue or org)
   const { data: teamData, isLoading } = useQuery({
@@ -175,14 +172,18 @@ export function UsersManagement() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: (userId: string) => adminResetPassword(venueId!, userId),
+    // Decisión B (24-sep): ya no hay contraseña temporal; al empleado le llega un enlace a SU correo.
     onSuccess: data => {
-      setTempPassword(data.temporaryPassword)
-      setCopied(false)
+      toast({
+        title: t('playtelecom:users.resetLinkSent', { defaultValue: 'Enlace enviado' }),
+        description: data.message,
+      })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: t('playtelecom:users.resetPasswordError', { defaultValue: 'Error al restablecer contraseña' }),
+        description: error?.response?.data?.message,
         variant: 'destructive',
       })
     },
@@ -476,7 +477,10 @@ export function UsersManagement() {
         cell: ({ row }) => {
           if (!row.original.belongsToCurrentVenue) {
             return (
-              <Badge variant="outline" className="text-[11px] h-5 px-2 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+              <Badge
+                variant="outline"
+                className="text-[11px] h-5 px-2 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700"
+              >
                 <AlertTriangle className="w-3 h-3 mr-1" />
                 {t('playtelecom:users.status.notAssigned', { defaultValue: 'No asignado' })}
               </Badge>
@@ -737,49 +741,6 @@ export function UsersManagement() {
           </div>
         </FullScreenModal>
       )}
-
-      {/* Temp Password Dialog */}
-      <Dialog
-        open={!!tempPassword}
-        onOpenChange={open => {
-          if (!open) setTempPassword(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('playtelecom:users.resetPasswordSuccess', { defaultValue: 'Contraseña restablecida' })}</DialogTitle>
-            <DialogDescription>
-              {t('playtelecom:users.resetPasswordHint', {
-                defaultValue: 'Comparte esta contraseña temporal de forma segura. El usuario deberá cambiarla al iniciar sesión.',
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg border border-border bg-muted px-4 py-3 font-mono text-lg tracking-widest text-center select-all">
-              {tempPassword}
-            </code>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 cursor-pointer"
-              onClick={() => {
-                if (tempPassword) {
-                  navigator.clipboard.writeText(tempPassword)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }
-              }}
-            >
-              {copied ? '✓' : t('common:copy', { defaultValue: 'Copiar' })}
-            </Button>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTempPassword(null)} className="cursor-pointer">
-              {t('common:close', { defaultValue: 'Cerrar' })}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

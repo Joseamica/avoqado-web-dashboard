@@ -237,7 +237,7 @@ export const UserDetailPanel = forwardRef<UserDetailPanelRef, UserDetailPanelPro
                 className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
               >
                 <KeyRound className="w-3 h-3 mr-1" />
-                {t('playtelecom:users.resetPassword', { defaultValue: 'Restablecer Contrase\u00f1a' })}
+                {t('playtelecom:users.resetPassword', { defaultValue: 'Enviar enlace de contraseña' })}
               </Button>
             )}
             {user.status === 'active' ? (

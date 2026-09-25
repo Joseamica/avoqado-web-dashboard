@@ -291,10 +291,7 @@ export const getActivityFeed = async (
 }
 
 /** Fetch one lean, cursor-paginated page used only for browser exports. */
-export const getSalesExportRows = async (
-  venueId: string,
-  params: SalesExportRowsParams,
-): Promise<SalesExportRowsResponse> => {
+export const getSalesExportRows = async (venueId: string, params: SalesExportRowsParams): Promise<SalesExportRowsResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/sales-export-rows`, { params })
   return response.data.data
 }
@@ -507,10 +504,16 @@ export const getTeam = async (
   return { team: response.data.data, meta: response.data.meta }
 }
 
-/**
- * Admin reset password for a user
- */
-export const adminResetPassword = async (venueId: string, userId: string): Promise<{ temporaryPassword: string; message: string }> => {
+/** Decisión B (24-sep): el servidor manda un enlace al correo del empleado; nunca devuelve una contraseña. */
+export interface EnlaceDeRestablecimientoEnviado {
+  emailSent: boolean
+  /** Correo enmascarado, p. ej. `j•••@correo.mx`. */
+  email: string
+  message: string
+}
+
+/** Manda al correo del empleado un enlace para elegir una contraseña nueva. */
+export const adminResetPassword = async (venueId: string, userId: string): Promise<EnlaceDeRestablecimientoEnviado> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/admin/reset-password/${userId}`)
   return response.data.data
 }

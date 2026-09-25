@@ -1,3 +1,4 @@
+import type { EnlaceDeRestablecimientoEnviado } from './storesAnalysis.service'
 /**
  * Organization Dashboard API Service
  * Provides organization-level aggregate metrics and vision global
@@ -236,9 +237,8 @@ export const deleteOrgZone = async (orgId: string, zoneId: string): Promise<void
 // ADMIN RESET PASSWORD
 // ===========================================
 
-export interface ResetPasswordResult {
-  temporaryPassword: string
-}
+// Decisión B (24-sep): el servidor manda un enlace; nunca devuelve una contraseña.
+export type ResetPasswordResult = EnlaceDeRestablecimientoEnviado
 
 export const adminResetPassword = async (orgId: string, userId: string): Promise<ResetPasswordResult> => {
   const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/users/${userId}/reset-password`)

@@ -1,3 +1,4 @@
+import type { EnlaceDeRestablecimientoEnviado } from './storesAnalysis.service'
 /**
  * Organization Config Service
  * API calls for org-level configuration using orgId directly.
@@ -125,10 +126,7 @@ export const updateVenuePromoterLocationSettings = async (
   venueId: string,
   data: UpdateVenuePromoterLocationSettingsInput,
 ): Promise<VenuePromoterLocationSettings> => {
-  const response = await api.put(
-    `/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/promoter-location-settings`,
-    data,
-  )
+  const response = await api.put(`/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/promoter-location-settings`, data)
   return response.data.data
 }
 
@@ -284,7 +282,7 @@ export const updateOrgTeamMemberEmployeeCode = async (
   return response.data.data
 }
 
-export const resetOrgTeamMemberPassword = async (orgId: string, staffId: string): Promise<{ temporaryPassword: string }> => {
+export const resetOrgTeamMemberPassword = async (orgId: string, staffId: string): Promise<EnlaceDeRestablecimientoEnviado> => {
   const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/reset-password`)
   return response.data.data
 }

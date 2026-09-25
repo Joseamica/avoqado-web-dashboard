@@ -29,7 +29,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import DataTable from '@/components/data-table'
 import { FilterPill, FilterPillBar, CheckboxFilterContent } from '@/components/filters'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
@@ -122,8 +121,6 @@ const OrganizationTeam: React.FC = () => {
   const inviteFormRef = useRef<InviteTeamMemberFormRef>(null)
 
   // Reset password dialog
-  const [tempPassword, setTempPassword] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
 
   // Employee-code editor (white-label only)
   const [editEmployeeCode, setEditEmployeeCode] = useState('')
@@ -192,13 +189,17 @@ const OrganizationTeam: React.FC = () => {
 
   const resetPasswordMutation = useMutation({
     mutationFn: (userId: string) => adminResetPassword(contextVenueId!, userId),
+    // Decisión B (24-sep): ya no hay contraseña temporal; al empleado le llega un enlace a SU correo.
     onSuccess: data => {
-      setTempPassword(data.temporaryPassword)
-      setCopied(false)
+      toast({
+        title: t('organization:team.resetLinkSent', { defaultValue: 'Enlace enviado' }),
+        description: data.message,
+      })
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: t('organization:team.resetPasswordError', { defaultValue: 'Error al restablecer contraseña' }),
+        description: error?.response?.data?.message,
         variant: 'destructive',
       })
     },
@@ -213,8 +214,7 @@ const OrganizationTeam: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title:
-          error?.response?.data?.message || t('organization:team.employeeCodeUpdateError', { defaultValue: 'Error al actualizar ID' }),
+        title: error?.response?.data?.message || t('organization:team.employeeCodeUpdateError', { defaultValue: 'Error al actualizar ID' }),
         variant: 'destructive',
       })
     },
@@ -327,7 +327,6 @@ const OrganizationTeam: React.FC = () => {
     if (values.length === 1) return options.find(o => o.value === values[0])?.label || values[0]
     return `${values.length} seleccionados`
   }, [])
-
 
   const resetFilters = useCallback(() => {
     setVenueFilter([])
@@ -520,21 +519,21 @@ const OrganizationTeam: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-      <div>
-        <PageTitleWithInfo
-          title={
-            <>
-              <Users className="h-8 w-8 text-primary" />
-              <span>{t('organization:team.title')}</span>
-            </>
-          }
-          className="text-3xl font-bold text-foreground flex items-center gap-2"
-          tooltip={t('organization:info.team', {
-            defaultValue: 'Gestiona miembros y roles a nivel organizacion.',
-          })}
-        />
-        <p className="text-muted-foreground mt-1">{t('organization:team.subtitle', { count: orgTeam?.length || 0 })}</p>
-      </div>
+        <div>
+          <PageTitleWithInfo
+            title={
+              <>
+                <Users className="h-8 w-8 text-primary" />
+                <span>{t('organization:team.title')}</span>
+              </>
+            }
+            className="text-3xl font-bold text-foreground flex items-center gap-2"
+            tooltip={t('organization:info.team', {
+              defaultValue: 'Gestiona miembros y roles a nivel organizacion.',
+            })}
+          />
+          <p className="text-muted-foreground mt-1">{t('organization:team.subtitle', { count: orgTeam?.length || 0 })}</p>
+        </div>
 
         {/* Invite button — header right */}
         {contextVenueId && (
@@ -595,10 +594,7 @@ const OrganizationTeam: React.FC = () => {
               {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
             </div>
 
-            <FilterPillBar
-              onReset={resetFilters}
-              resetLabel={t('organization:team.clearFilters', { defaultValue: 'Borrar filtros' })}
-            >
+            <FilterPillBar onReset={resetFilters} resetLabel={t('organization:team.clearFilters', { defaultValue: 'Borrar filtros' })}>
               <FilterPill
                 label={t('organization:team.venues', { defaultValue: 'Sucursales' })}
                 activeValue={getFilterLabel(venueFilter, venueOptions)}
@@ -676,7 +672,7 @@ const OrganizationTeam: React.FC = () => {
                   className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
                 >
                   <KeyRound className="w-3 h-3 mr-1" />
-                  {t('organization:team.resetPassword', { defaultValue: 'Restablecer Contraseña' })}
+                  {t('organization:team.resetPassword', { defaultValue: 'Enviar enlace de contraseña' })}
                 </Button>
               </div>
             </GlassCard>
@@ -710,10 +706,7 @@ const OrganizationTeam: React.FC = () => {
                         employeeCode: next.length > 0 ? next : null,
                       })
                     }}
-                    disabled={
-                      updateEmployeeCodeMutation.isPending ||
-                      editEmployeeCode.trim() === (selectedOrgMember?.employeeCode ?? '')
-                    }
+                    disabled={updateEmployeeCodeMutation.isPending || editEmployeeCode.trim() === (selectedOrgMember?.employeeCode ?? '')}
                     className="h-9 cursor-pointer"
                   >
                     {updateEmployeeCodeMutation.isPending
@@ -871,49 +864,6 @@ const OrganizationTeam: React.FC = () => {
           </div>
         </FullScreenModal>
       )}
-
-      {/* Temp Password Dialog */}
-      <Dialog
-        open={!!tempPassword}
-        onOpenChange={open => {
-          if (!open) setTempPassword(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('organization:team.resetPasswordSuccess', { defaultValue: 'Contraseña restablecida' })}</DialogTitle>
-            <DialogDescription>
-              {t('organization:team.resetPasswordHint', {
-                defaultValue: 'Comparte esta contraseña temporal de forma segura. El usuario deberá cambiarla al iniciar sesión.',
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg border border-border bg-muted px-4 py-3 font-mono text-lg tracking-widest text-center select-all">
-              {tempPassword}
-            </code>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 cursor-pointer"
-              onClick={() => {
-                if (tempPassword) {
-                  navigator.clipboard.writeText(tempPassword)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }
-              }}
-            >
-              {copied ? '✓' : t('common:copy', { defaultValue: 'Copiar' })}
-            </Button>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTempPassword(null)} className="cursor-pointer">
-              {t('common:close', { defaultValue: 'Cerrar' })}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

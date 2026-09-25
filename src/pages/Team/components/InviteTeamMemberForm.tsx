@@ -42,7 +42,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
 import teamService, { InviteTeamMemberRequest, InviteType, PinConflict } from '@/services/team.service'
-import { adminResetPassword, getTeam } from '@/services/storesAnalysis.service'
+import { getTeam } from '@/services/storesAnalysis.service'
+import { resetPassword as fijarContrasenaComoSuperadmin } from '@/services/superadmin-staff.service'
 import { cn } from '@/lib/utils'
 import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { RoleAccessPreview } from './RoleAccessPreview'
@@ -93,6 +94,17 @@ const buildSuperadminTestEmail = (value: string): string => {
   const safeLocalPart = base || 'test.user'
   const uniqueSuffix = Date.now().toString(36)
   return `${safeLocalPart}.${uniqueSuffix}@example.com`
+}
+
+/**
+ * Contraseña para un usuario de PRUEBA (sólo SUPERADMIN, correo ficticio). Decisión B (24-sep): el
+ * restablecimiento del dueño ya no devuelve contraseñas, así que el superadmin la elige y la fija con su
+ * propia ruta (`/superadmin/staff/:id/reset-password`).
+ */
+const generarContrasenaDePrueba = (): string => {
+  const alfabeto = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  const bytes = crypto.getRandomValues(new Uint8Array(12))
+  return Array.from(bytes, b => alfabeto[b % alfabeto.length]).join('')
 }
 
 const extractTestCredentialsFromResponse = (payload: Record<string, any>, fallbackUsername: string): TestCredentials | null => {
@@ -265,10 +277,11 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
 
         if (candidateUserId) {
           try {
-            const resetResult = await adminResetPassword(venueId, String(candidateUserId))
+            const password = generarContrasenaDePrueba()
+            await fijarContrasenaComoSuperadmin(String(candidateUserId), password)
             return {
               username: discoveredUser?.username || fallbackEmail,
-              password: resetResult.temporaryPassword,
+              password,
             }
           } catch {
             // Fallback below
@@ -280,10 +293,11 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
         }
 
         try {
-          const resetResult = await adminResetPassword(venueId, discoveredUser.userId)
+          const password = generarContrasenaDePrueba()
+          await fijarContrasenaComoSuperadmin(discoveredUser.userId, password)
           return {
             username: discoveredUser.username,
-            password: resetResult.temporaryPassword,
+            password,
           }
         } catch {
           return null
