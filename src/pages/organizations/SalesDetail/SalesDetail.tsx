@@ -781,7 +781,7 @@ export default function SalesDetail() {
                     </td>
                     <td className="px-3 py-2">{statusBadge(row.status)}</td>
                     <td className="px-3 py-2 text-xs">
-                      {row.rejectionReasons.length > 0 ? (
+                      {row.rejectionReasons.length > 0 || row.reviewNotes?.trim() ? (
                         <div className="space-y-0.5">
                           {row.rejectionReasons.map(r => (
                             <div key={r} className="text-yellow-700 dark:text-yellow-400">
@@ -1164,7 +1164,7 @@ function SaleCard({
       )}
 
       {/* Rejection reasons */}
-      {row.rejectionReasons.length > 0 && (
+      {(row.rejectionReasons.length > 0 || !!row.reviewNotes?.trim()) && (
         <div className="text-xs space-y-0.5 pt-2 border-t border-border/30">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Razón</p>
           {row.rejectionReasons.map(r => (

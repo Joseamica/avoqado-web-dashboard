@@ -965,7 +965,7 @@ export function SalesReport() {
                             ))}
                           </div>
                         )}
-                        {verification.status === 'FAILED' && verification.reviewNotes && (
+                        {(verification.status === 'FAILED' || verification.status === 'REJECTED') && verification.reviewNotes && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
