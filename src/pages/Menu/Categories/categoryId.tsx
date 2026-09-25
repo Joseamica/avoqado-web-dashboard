@@ -21,12 +21,14 @@ import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/componen
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { PrintStationField } from '@/components/PrintStationField'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
   const { t: tCfdi } = useTranslation('cfdi')
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   const { categoryId } = useParams()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
@@ -121,6 +123,14 @@ export default function CategoryId() {
   })
 
   const form = useForm({})
+
+  // La miga de pan enseña el nombre de la categoría, no su id interno.
+  useEffect(() => {
+    if (categoryId && data?.name) setCustomSegment(categoryId, data.name)
+    return () => {
+      if (categoryId) clearCustomSegment(categoryId)
+    }
+  }, [categoryId, clearCustomSegment, data?.name, setCustomSegment])
 
   // Initialize form with server data when it loads
   useEffect(() => {

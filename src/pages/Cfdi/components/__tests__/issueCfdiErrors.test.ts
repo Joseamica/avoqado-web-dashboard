@@ -46,3 +46,15 @@ describe('avisoDeErrorAlFacturar', () => {
     expect(a.duration).toBeUndefined()
   })
 })
+
+describe('avisoDeErrorAlFacturar · sin repetir el título', () => {
+  const t = (k: string) => (k === 'issueDialog.errors.notFound' ? 'No se pudo determinar quién factura esta venta.' : k)
+  it('quita del texto la frase que ya dice el título', () => {
+    const a = avisoDeErrorAlFacturar(404, { error: 'No se pudo determinar quién factura esta venta. Revisa en Facturación › Configuración.' }, t)
+    expect(a.description).toBe('Revisa en Facturación › Configuración.')
+  })
+  it('deja el texto intacto si no repite el título', () => {
+    const a = avisoDeErrorAlFacturar(404, { error: 'Otra cosa.' }, t)
+    expect(a.description).toBe('Otra cosa.')
+  })
+})

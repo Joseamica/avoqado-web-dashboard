@@ -9,8 +9,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import { Loader2, Lock } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { mensajeDeFalloDeCobro } from '../offer/falloDeCobro'
 
 interface PlanCardFormProps {
@@ -18,6 +21,10 @@ interface PlanCardFormProps {
   payNowLabel: string
   /** Texto del botón de prueba gratis. Ausente ⇒ un SOLO botón (el camino de la oferta). */
   trialLabel?: string | null
+  /** Qué se cobra y cuándo, bajo el botón de prueba: nadie debería enterarse del cargo el día 31. */
+  trialHint?: string | null
+  /** Qué se cobra hoy, bajo el botón de pagar. */
+  payNowHint?: string | null
   onConfirmed: (paymentMethodId: string, payNow: boolean) => void | Promise<void>
   /** Bloquea los botones mientras el llamador habla con el servidor. */
   busy?: boolean
@@ -26,16 +33,30 @@ interface PlanCardFormProps {
   dataTourPrefix?: string
 }
 
-export function PlanCardForm({ payNowLabel, trialLabel, onConfirmed, busy, errorMessage, dataTourPrefix = 'setup-plan' }: PlanCardFormProps) {
+export function PlanCardForm({
+  payNowLabel,
+  trialLabel,
+  trialHint,
+  payNowHint,
+  onConfirmed,
+  busy,
+  errorMessage,
+  dataTourPrefix = 'setup-plan',
+}: PlanCardFormProps) {
   const stripe = useStripe()
   const elements = useElements()
   const { t } = useTranslation('setup')
   const [submitting, setSubmitting] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
+  // Cuál de los dos botones está trabajando, para que el giro salga en el que se tocó.
+  const [enCurso, setEnCurso] = useState<'trial' | 'pay' | null>(null)
+  // El iframe de Stripe tarda en pintar; mientras tanto se ve la silueta del formulario, no un hueco.
+  const [listo, setListo] = useState(false)
 
   const confirm = async (payNow: boolean) => {
     if (!stripe || !elements) return
     setSubmitting(true)
+    setEnCurso(payNow ? 'pay' : 'trial')
     setCardError(null)
     try {
       const { error, setupIntent } = await stripe.confirmSetup({ elements, redirect: 'if_required' })
@@ -52,36 +73,80 @@ export function PlanCardForm({ payNowLabel, trialLabel, onConfirmed, busy, error
         // Primero el texto que el llamador declaró legible (`FalloDeCobro`), luego el del
         // servidor. Nunca el `message` pelón de un Error cualquiera: un `TypeError` acabaría
         // en la pantalla de alguien que está pagando.
-        const legible =
-          mensajeDeFalloDeCobro(fallo) ?? (fallo as { response?: { data?: { message?: string } } })?.response?.data?.message
+        const legible = mensajeDeFalloDeCobro(fallo) ?? (fallo as { response?: { data?: { message?: string } } })?.response?.data?.message
         setCardError(legible || t('plan.chargeError', { defaultValue: 'No pudimos procesar el pago. Intenta de nuevo.' }))
       }
     } finally {
       setSubmitting(false)
+      setEnCurso(null)
     }
   }
 
   const bloqueado = submitting || !!busy
+  const girando = (cual: 'trial' | 'pay') => (enCurso === cual || (!!busy && !enCurso && cual === 'pay')) && bloqueado
 
   return (
-    <div className="flex flex-col gap-4">
-      <PaymentElement />
-      {(cardError || errorMessage) && <p className="text-sm text-destructive">{cardError || errorMessage}</p>}
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
+      <div className="relative min-h-[220px]">
+        {!listo && (
+          <div className="absolute inset-0 flex flex-col gap-4" aria-hidden="true">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-12 w-full rounded-[10px]" />
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-12 w-full rounded-[10px]" />
+              <Skeleton className="h-12 w-full rounded-[10px]" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-[10px]" />
+          </div>
+        )}
+        <div className={cn('transition-opacity duration-200 ease-out', listo ? 'opacity-100' : 'opacity-0')}>
+          <PaymentElement onReady={() => setListo(true)} />
+        </div>
+      </div>
+
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        {t('plan.cardSecure', {
+          defaultValue: 'Tu tarjeta viaja cifrada a Stripe. Avoqado nunca ve el número completo.',
+        })}
+      </p>
+
+      {(cardError || errorMessage) && (
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {cardError || errorMessage}
+        </p>
+      )}
+
+      <div className="flex flex-col gap-4">
         {trialLabel ? (
-          <Button data-tour={`${dataTourPrefix}-start-trial`} disabled={bloqueado} onClick={() => confirm(false)} className="rounded-full">
-            {trialLabel}
-          </Button>
+          <div className="flex flex-col gap-1.5">
+            <Button
+              data-tour={`${dataTourPrefix}-start-trial`}
+              disabled={bloqueado}
+              aria-busy={girando('trial')}
+              onClick={() => confirm(false)}
+              className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
+            >
+              {girando('trial') && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {trialLabel}
+            </Button>
+            {trialHint && <p className="px-2 text-center text-xs text-muted-foreground">{trialHint}</p>}
+          </div>
         ) : null}
-        <Button
-          data-tour={`${dataTourPrefix}-pay-now`}
-          disabled={bloqueado}
-          variant={trialLabel ? 'outline' : 'default'}
-          onClick={() => confirm(true)}
-          className="rounded-full"
-        >
-          {payNowLabel}
-        </Button>
+        <div className="flex flex-col gap-1.5">
+          <Button
+            data-tour={`${dataTourPrefix}-pay-now`}
+            disabled={bloqueado}
+            aria-busy={girando('pay')}
+            variant={trialLabel ? 'outline' : 'default'}
+            onClick={() => confirm(true)}
+            className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
+          >
+            {girando('pay') && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {payNowLabel}
+          </Button>
+          {payNowHint && <p className="px-2 text-center text-xs text-muted-foreground">{payNowHint}</p>}
+        </div>
       </div>
     </div>
   )

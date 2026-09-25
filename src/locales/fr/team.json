@@ -64,6 +64,10 @@
     "testCredentialsCopied": "Copié dans le presse-papiers.",
     "testCredentialsUnavailableTitle": "Invitation de test créée",
     "testCredentialsUnavailableDesc": "Les identifiants temporaires n'ont pas été renvoyés. L'invitation a été créée avec {{email}}.",
+    "testInviteLinkTitle": "Invitation de test créée",
+    "testInviteLinkDesc": "Le compte est créé lorsque l'invitation est acceptée. Ouvrez ce lien, créez le mot de passe et connectez-vous avec cet utilisateur.",
+    "testInviteLinkLabel": "Lien d'invitation",
+    "testInviteLinkOpen": "Ouvrir le lien dans un nouvel onglet",
     "validation": {
       "emailFormat": "Veuillez entrer une adresse email valide",
       "emailRequired": "L'email est requis",

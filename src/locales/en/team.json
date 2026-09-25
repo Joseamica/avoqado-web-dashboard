@@ -69,6 +69,10 @@
     "testCredentialsCopied": "Copied to clipboard.",
     "testCredentialsUnavailableTitle": "Test invitation created",
     "testCredentialsUnavailableDesc": "Temporary credentials were not returned. The invitation was created with {{email}}.",
+    "testInviteLinkTitle": "Test invitation created",
+    "testInviteLinkDesc": "The account is created when the invitation is accepted. Open this link, create the password and sign in as that user.",
+    "testInviteLinkLabel": "Invitation link",
+    "testInviteLinkOpen": "Open the link in a new tab",
     "validation": {
       "emailFormat": "Please enter a valid email address",
       "emailRequired": "Email is required",

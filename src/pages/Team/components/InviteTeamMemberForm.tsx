@@ -174,7 +174,11 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     const [conflictSummary, setConflictSummary] = useState<{ total: number; assigned: number } | null>(null)
     const [showTestCredentialsDialog, setShowTestCredentialsDialog] = useState(false)
     const [testCredentials, setTestCredentials] = useState<TestCredentials | null>(null)
-    const [copiedField, setCopiedField] = useState<'username' | 'password' | null>(null)
+    // Invitación NUEVA de prueba: la cuenta no existe hasta que se acepta, así que no hay contraseña que
+    // fijar. Se entrega el enlace de la invitación (el servidor sólo lo da si el correo no salió) para
+    // crear la contraseña por el camino normal de aceptación — sin puerta trasera.
+    const [testInviteLink, setTestInviteLink] = useState<string | null>(null)
+    const [copiedField, setCopiedField] = useState<'username' | 'password' | 'link' | null>(null)
     const { getDisplayName: getRoleDisplayName, isRoleActive } = useRoleConfig()
     const [inviteType, setInviteType] = useState<InviteType>('email')
     const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
@@ -307,14 +311,15 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     )
 
     const copyCredentialField = useCallback(
-      async (field: 'username' | 'password') => {
-        if (!testCredentials) return
+      async (field: 'username' | 'password' | 'link') => {
+        const valor = field === 'link' ? testInviteLink : testCredentials?.[field]
+        if (!valor) return
 
-        await navigator.clipboard.writeText(testCredentials[field])
+        await navigator.clipboard.writeText(valor)
         setCopiedField(field)
         setTimeout(() => setCopiedField(current => (current === field ? null : current)), 1500)
       },
-      [testCredentials],
+      [testCredentials, testInviteLink],
     )
 
     // Notify parent of validity changes
@@ -367,6 +372,14 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
 
           if (credentials) {
             setTestCredentials(credentials)
+            setCopiedField(null)
+            setShowTestCredentialsDialog(true)
+            return
+          }
+
+          const enlace = (data as { inviteLink?: string | null }).inviteLink
+          if (enlace) {
+            setTestInviteLink(enlace)
             setCopiedField(null)
             setShowTestCredentialsDialog(true)
             return
@@ -910,6 +923,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
             if (!open) {
               setShowTestCredentialsDialog(false)
               setTestCredentials(null)
+              setTestInviteLink(null)
               setCopiedField(null)
               finalizeInviteSuccess()
             }
@@ -917,13 +931,52 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{t('invite.testCredentialsTitle', { defaultValue: 'Credenciales de prueba' })}</DialogTitle>
+              <DialogTitle>
+                {testInviteLink
+                  ? t('invite.testInviteLinkTitle', { defaultValue: 'Invitación de prueba creada' })
+                  : t('invite.testCredentialsTitle', { defaultValue: 'Credenciales de prueba' })}
+              </DialogTitle>
               <DialogDescription>
-                {t('invite.testCredentialsDesc', {
-                  defaultValue: 'Guarda estas credenciales. Se muestran una sola vez para pruebas de acceso.',
-                })}
+                {testInviteLink
+                  ? t('invite.testInviteLinkDesc', {
+                      defaultValue:
+                        'La cuenta nace cuando se acepta la invitación. Abre este enlace, crea la contraseña y entra con ese usuario.',
+                    })
+                  : t('invite.testCredentialsDesc', {
+                      defaultValue: 'Guarda estas credenciales. Se muestran una sola vez para pruebas de acceso.',
+                    })}
               </DialogDescription>
             </DialogHeader>
+
+            {testInviteLink && (
+              <div className="space-y-2">
+                <Label>{t('invite.testInviteLinkLabel', { defaultValue: 'Enlace de la invitación' })}</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 truncate rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono select-all">
+                    {testInviteLink}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="cursor-pointer"
+                    onClick={() => copyCredentialField('link')}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                  <a href={testInviteLink} target="_blank" rel="noopener noreferrer">
+                    {t('invite.testInviteLinkOpen', { defaultValue: 'Abrir el enlace en otra pestaña' })}
+                  </a>
+                </Button>
+                {copiedField === 'link' && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('invite.testCredentialsCopied', { defaultValue: 'Copiado al portapapeles.' })}
+                  </p>
+                )}
+              </div>
+            )}
 
             {testCredentials && (
               <div className="space-y-4">
@@ -978,6 +1031,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                 onClick={() => {
                   setShowTestCredentialsDialog(false)
                   setTestCredentials(null)
+                  setTestInviteLink(null)
                   setCopiedField(null)
                   finalizeInviteSuccess()
                 }}

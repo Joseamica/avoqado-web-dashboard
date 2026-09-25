@@ -126,6 +126,8 @@ const routeKeyMap: Record<string, string> = {
   'payment-methods': 'sidebar:routes.paymentMethods',
   fiscal: 'sidebar:routes.fiscal',
   cfdi: 'sidebar:routes.cfdi',
+  configuracion: 'sidebar:routes.configuracion',
+  preparacion: 'sidebar:routes.preparacion',
   // Reportes
   reports: 'sidebar:routes.reports',
   reportes: 'sidebar:routes.reports',

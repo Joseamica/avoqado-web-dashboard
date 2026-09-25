@@ -17,6 +17,13 @@ export function avisoDeErrorAlFacturar(
   data: { code?: string; error?: string },
   t: (key: string) => string,
 ): AvisoFacturar {
+  const aviso = elegirAviso(status, data, t)
+  // El texto del servidor suele empezar con la misma frase del título: no se lee dos veces.
+  const repetido = aviso.description.startsWith(aviso.title) ? aviso.description.slice(aviso.title.length).trim() : null
+  return repetido ? { ...aviso, description: repetido } : aviso
+}
+
+function elegirAviso(status: 409 | 404, data: { code?: string; error?: string }, t: (key: string) => string): AvisoFacturar {
   const description = data.error || ''
   if (status === 409) {
     if (data.code === 'CFDI_ALREADY_ISSUED')

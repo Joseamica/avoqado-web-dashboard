@@ -193,13 +193,11 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   const formatDate = (dateString: string) => {
     const locale = getIntlLocale(i18n.language)
     const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale)
+    const date = dt.toLocaleString({ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
     return {
-      date: dt.toLocaleString({
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
+      // Sólo la primera letra en mayúscula: «Viernes, 25 de septiembre de 2026». La clase `capitalize`
+      // de CSS subía también el «de» («25 De Septiembre De 2026»).
+      date: date.charAt(0).toUpperCase() + date.slice(1),
       time: dt.toLocaleString({
         hour: '2-digit',
         minute: '2-digit',
@@ -390,7 +388,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.date')}</p>
-                    <p className="text-sm font-medium capitalize">{datetime?.date ?? 'N/A'}</p>
+                    <p className="text-sm font-medium">{datetime?.date ?? 'N/A'}</p>
                   </div>
                 </div>
 

@@ -65,27 +65,25 @@ describe('asistente LARGO (sin props nuevas)', () => {
 describe('alta CORTA (con activateBeforeContinue)', () => {
   it('cobra ANTES de avanzar', async () => {
     const onNext = vi.fn()
-    render(
-      <PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />,
-    )
+    render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />)
     await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
     await userEvent.setup().click(screen.getByRole('button', { name: /Pagar hoy/i }))
 
-    await waitFor(() => expect(activateBeforeContinue).toHaveBeenCalledWith({
-      tier: 'PRO',
-      interval: 'monthly',
-      payNow: true,
-      paymentMethodId: 'pm_1',
-    }))
+    await waitFor(() =>
+      expect(activateBeforeContinue).toHaveBeenCalledWith({
+        tier: 'PRO',
+        interval: 'monthly',
+        payNow: true,
+        paymentMethodId: 'pm_1',
+      }),
+    )
     await waitFor(() => expect(onNext).toHaveBeenCalled())
   })
 
   it('🔴 si el cobro REVIENTA no se avanza: avanzar dejaría el alta creyendo que hay plan pagado', async () => {
     const onNext = vi.fn()
     activateBeforeContinue.mockRejectedValue(new Error('402'))
-    render(
-      <PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />,
-    )
+    render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" activateBeforeContinue={activateBeforeContinue} />)
     await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
     await userEvent.setup().click(screen.getByRole('button', { name: /Pagar hoy/i }))
 
@@ -107,13 +105,44 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
           ivaIncluded: true,
           trialDays: 30,
           tiers: {
-            PRO: { monthlyCents: 115884, annualCents: 1158840, intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true } },
+            PRO: {
+              monthlyCents: 115884,
+              annualCents: 1158840,
+              intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true },
+            },
             PREMIUM: { monthlyCents: 197084, annualCents: 1970840, intro: null },
           },
         }}
       />,
     )
-    expect(await screen.findByText(/\$694\.84/)).toBeInTheDocument()
-    expect(screen.getByText(/\$1,158\.84/)).toBeInTheDocument()
+    expect(await screen.findByText(/Paga hoy: 3 meses a \$694\.84, luego \$1,158\.84 al mes/)).toBeInTheDocument()
+  })
+
+  it('🔴 bajo «30 días gratis» dice qué se cobra y cuándo: el precio COMPLETO, sin el descuento de pagar hoy', async () => {
+    render(
+      <PlanStep
+        data={{}}
+        onNext={vi.fn()}
+        venueId="venue_1"
+        organizationId="org_1"
+        quote={{
+          currency: 'MXN',
+          ivaIncluded: true,
+          trialDays: 30,
+          tiers: {
+            PRO: {
+              monthlyCents: 115884,
+              annualCents: 1158840,
+              intro: { monthlyCents: 69484, months: 3, interval: 'monthly', requiresPayNow: true },
+            },
+            PREMIUM: { monthlyCents: 197084, annualCents: 1970840, intro: null },
+          },
+        }}
+      />,
+    )
+    const aviso = await screen.findByText(/Hoy no pagas nada/)
+    expect(aviso.textContent).toMatch(/se cobran \$1,158\.84 al mes a esta tarjeta/)
+    expect(aviso.textContent).not.toMatch(/694/)
+    expect(aviso.textContent).toMatch(/Cancela antes/)
   })
 })

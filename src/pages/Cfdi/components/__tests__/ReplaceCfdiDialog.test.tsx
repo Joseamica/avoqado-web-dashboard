@@ -59,7 +59,7 @@ describe('ReplaceCfdiDialog', () => {
   it('antes de confirmar enseña la factura actual y qué va a pasar', () => {
     render(<ReplaceCfdiDialog cfdi={factura} onOpenChange={() => {}} />)
     const dialog = screen.getByRole('alertdialog')
-    expect(dialog).toHaveTextContent('A14')
+    expect(dialog).toHaveTextContent('A-14')
     expect(dialog).toHaveTextContent(es.replaceDialog.step1)
     expect(dialog).toHaveTextContent(es.replaceDialog.step2)
   })
@@ -69,7 +69,7 @@ describe('ReplaceCfdiDialog', () => {
     render(<ReplaceCfdiDialog cfdi={factura} onOpenChange={() => {}} />)
     confirmar()
     await waitFor(() => expect(screen.getByRole('alertdialog')).toHaveTextContent(es.replaceDialog.cancelledOk))
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('A16')
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('A-16')
   })
 
   it('🔴 cancelación EN TRÁMITE ⇒ dice que la anterior sigue vigente, nunca «cancelada»', async () => {

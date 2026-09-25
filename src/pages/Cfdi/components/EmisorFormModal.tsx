@@ -9,10 +9,14 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useUpsertEmisor } from '@/hooks/use-cfdi'
 import type { Emisor, GlobalPeriodicity } from '@/services/cfdi.service'
+import { REGIMEN_FISCAL_OPTIONS, USO_CFDI_OPTIONS } from './receptor-catalog'
+
+const opcion = (o: { code: string; description: string }) => ({ value: o.code, label: `${o.code} — ${o.description}` })
 
 const PERIODICITIES: GlobalPeriodicity[] = ['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'BIMESTRAL']
 
@@ -163,12 +167,16 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                     <FormItem>
                       <FormLabel>{t('emisorForm.regimenFiscal')}</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          inputMode="numeric"
-                          maxLength={3}
-                          placeholder={t('emisorForm.regimenFiscalPlaceholder')}
-                          className="h-12 text-base"
+                        <SearchableSelect
+                          options={REGIMEN_FISCAL_OPTIONS.map(opcion)}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          size="lg"
+                          searchThreshold={0}
+                          contentWidth="auto"
+                          placeholder={t('emisorForm.regimenFiscalSelect')}
+                          searchPlaceholder={t('issueDialog.regimenSearch')}
+                          emptyMessage={t('issueDialog.noResults')}
                         />
                       </FormControl>
                       <FormDescription>{t('emisorForm.regimenFiscalHint')}</FormDescription>
@@ -221,10 +229,16 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                     <FormItem>
                       <FormLabel>{t('emisorForm.defaultUsoCfdi')}</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={t('emisorForm.defaultUsoCfdiPlaceholder')}
-                          className="h-12 text-base"
+                        <SearchableSelect
+                          options={USO_CFDI_OPTIONS.map(opcion)}
+                          value={field.value ?? ''}
+                          onValueChange={field.onChange}
+                          size="lg"
+                          searchThreshold={0}
+                          contentWidth="auto"
+                          placeholder={t('emisorForm.defaultUsoCfdiSelect')}
+                          searchPlaceholder={t('issueDialog.usoSearch')}
+                          emptyMessage={t('issueDialog.noResults')}
                         />
                       </FormControl>
                       <FormMessage />

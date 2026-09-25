@@ -1,5 +1,5 @@
 {
-  "title": "Ordenes",
+  "title": "Órdenes",
   "searchPlaceholder": "Buscar",
   "cancelBlockedByTerminalCharge": "Hay un cobro en curso en la terminal para esta orden. Espera su resultado o cancélalo desde la terminal antes de cancelar o eliminar la orden.",
   "errorPrefix": "Error al cargar órdenes",

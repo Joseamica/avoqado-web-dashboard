@@ -75,7 +75,7 @@
     "subtitle": "Issue a CFDI for this bill",
     "sectionTitle": "Recipient fiscal data",
     "rfc": "RFC",
-    "rfcPlaceholder": "XAXX010101000",
+    "rfcPlaceholder": "ABCD800101XY1",
     "razonSocial": "Legal name",
     "razonSocialPlaceholder": "Customer name or legal entity name",
     "razonSocialHint": "Exactly as registered with the SAT (without the corporate suffix, e.g. no 'S.A. de C.V.').",
@@ -102,7 +102,7 @@
       "conflict": "This bill already has an invoice or one is in progress.",
       "alreadyIssued": "This sale already has an invoice — no new one was issued.",
       "cancelPending": "The cancellation of the previous invoice is still pending.",
-      "forbidden": "Activate the Pro Plan or invoicing is unavailable.",
+      "forbidden": "You can't invoice from here: either your user isn't allowed to issue invoices, or the business plan doesn't include invoicing (it comes with the Premium plan). Ask the business owner.",
       "notFound": "Could not determine who issues this sale's invoice.",
       "orderNotFound": "This sale does not belong to this business.",
       "generic": "Could not issue the invoice."
@@ -114,7 +114,8 @@
     "usoCfdiNeedsRegimen": "First choose your tax regime",
     "usoSearch": "Search the use…",
     "usoCfdiHint": "We only show CFDI uses valid for your tax regime.",
-    "noResults": "No results"
+    "noResults": "No results",
+    "regimenFiscalHintStaff": "The customer's tax regime (it appears on their Constancia de Situación Fiscal)."
   },
   "autofactura": {
     "cta": {
@@ -188,7 +189,7 @@
     "legalNamePlaceholder": "Name or legal entity name",
     "regimenFiscal": "Tax regime",
     "regimenFiscalPlaceholder": "601",
-    "regimenFiscalHint": "3-digit SAT code.",
+    "regimenFiscalHint": "It appears on your Constancia de Situación Fiscal.",
     "lugarExpedicion": "Place of issue (ZIP)",
     "lugarExpedicionPlaceholder": "06000",
     "lugarExpedicionHint": "5-digit postal code.",
@@ -200,11 +201,13 @@
     "save": "Save issuer",
     "cancel": "Cancel",
     "invoiceCashSales": "Invoice cash sales",
-    "invoiceCashSalesHint": "Off by default. Most businesses don't declare cash, so cash sales aren't invoiced via the receipt QR or the monthly global invoice. Turn it on only if you want cash sales to be invoiceable.",
+    "invoiceCashSalesHint": "Off by default. Most businesses don't declare cash, so cash sales aren't invoiced via the receipt QR or the global invoice. Turn it on only if you want cash sales to be invoiceable.",
     "includeCashInAccounting": "Count cash in accounting",
     "includeCashInAccountingHint": "Off by default. Your CASH sales don't enter the fiscal books (IVA, ISR, journal entries). Your “how much did I make?” view always shows them. Turn on only if you want to declare cash.",
     "isnRate": "Payroll tax rate (%)",
-    "isnRateHint": "State payroll tax (ISN), paid by the employer on wages. Varies by state (~1%–4%). Leave 0 if not applicable; the system computes it on each payroll."
+    "isnRateHint": "State payroll tax (ISN), paid by the employer on wages. Varies by state (~1%–4%). Leave 0 if not applicable; the system computes it on each payroll.",
+    "regimenFiscalSelect": "Select your tax regime",
+    "defaultUsoCfdiSelect": "Select the use"
   },
   "periodicity": {
     "DIARIO": "Daily",
@@ -222,7 +225,9 @@
     "passwordPlaceholder": "CSD password",
     "submit": "Upload CSD",
     "cancel": "Cancel",
-    "missingFiles": "Select the .cer and .key files."
+    "missingFiles": "Select the .cer and .key files.",
+    "chooseFile": "Choose file",
+    "noFile": "No file chosen"
   },
   "merchants": {
     "title": "Merchants",
@@ -244,10 +249,10 @@
       "button": "Add",
       "allConfigured": "All merchants are already configured."
     },
-    "globalHelp": "Billing on: lets this merchant issue CFDIs. Self-invoice: customers invoice themselves via the receipt QR. Include in global: Avoqado automatically issues the monthly global invoice to the General Public for sales nobody invoiced. ⚠️ Turn this on ONLY if your accountant does NOT issue it separately. In accounting: turn off to exclude this merchant from your fiscal books (journal entries / IVA / ISR); your management view still shows it.",
+    "globalHelp": "Billing on: lets this merchant issue CFDIs. Self-invoice: customers invoice themselves via the receipt QR. Include in global: Avoqado automatically issues the global invoice (on the issuer's schedule) to the General Public for sales nobody invoiced. Turn this on ONLY if your accountant does NOT issue it separately. In accounting: turn off to exclude this merchant from your fiscal books (journal entries / IVA / ISR); your management view still shows it.",
     "confirmGlobal": {
       "title": "Let Avoqado issue your global invoice?",
-      "description": "With this on, Avoqado will automatically issue a monthly global invoice to the General Public for this merchant's sales that no customer invoiced. If your accountant already issues that global invoice, do NOT enable this — you'd be reporting the same income twice to the SAT. Enable only if you want Avoqado to handle the global.",
+      "description": "With this on, Avoqado will automatically issue a global invoice, on the issuer's schedule, to the General Public for this merchant's sales that no customer invoiced. If your accountant already issues that global invoice, do NOT enable this — you'd be reporting the same income twice to the SAT. Enable only if you want Avoqado to handle the global.",
       "confirm": "Yes, let Avoqado issue it",
       "cancel": "Cancel"
     },

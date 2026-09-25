@@ -86,15 +86,15 @@
     "orders": "órdenes",
     "margin": "margen",
     "sold": "vendidos",
-    "totalOrders": "Ordenes totales",
-    "ordersLabel": "Ordenes",
+    "totalOrders": "Órdenes totales",
+    "ordersLabel": "Órdenes",
     "rating": "Calificación",
     "reviewCount": "NÂ° Reviews",
     "prepTime": "Tiempo Real",
     "target": "Meta"
   },
   "orderFrequency": {
-    "title": "Frecuencia de Ordenes",
+    "title": "Frecuencia de Órdenes",
     "desc": "Número de órdenes por hora"
   },
   "aov": {

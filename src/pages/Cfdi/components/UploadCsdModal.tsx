@@ -81,12 +81,20 @@ export function UploadCsdModal({ open, onClose, emisor }: UploadCsdModalProps) {
 
           <div className="space-y-2">
             <Label>{t('csdDialog.cerLabel')}</Label>
-            <Input type="file" accept=".cer" onChange={e => setCerFile(e.target.files?.[0] ?? null)} className="h-12" />
+            <label className="flex h-12 cursor-pointer items-center gap-3 rounded-md border border-input px-3 text-sm hover:bg-muted/50">
+              <input type="file" accept=".cer" className="sr-only" onChange={e => setCerFile(e.target.files?.[0] ?? null)} />
+              <span className="rounded-md border border-input bg-background px-3 py-1 font-medium">{t('csdDialog.chooseFile')}</span>
+              <span className="truncate text-muted-foreground">{cerFile?.name ?? t('csdDialog.noFile')}</span>
+            </label>
           </div>
 
           <div className="space-y-2">
             <Label>{t('csdDialog.keyLabel')}</Label>
-            <Input type="file" accept=".key" onChange={e => setKeyFile(e.target.files?.[0] ?? null)} className="h-12" />
+            <label className="flex h-12 cursor-pointer items-center gap-3 rounded-md border border-input px-3 text-sm hover:bg-muted/50">
+              <input type="file" accept=".key" className="sr-only" onChange={e => setKeyFile(e.target.files?.[0] ?? null)} />
+              <span className="rounded-md border border-input bg-background px-3 py-1 font-medium">{t('csdDialog.chooseFile')}</span>
+              <span className="truncate text-muted-foreground">{keyFile?.name ?? t('csdDialog.noFile')}</span>
+            </label>
           </div>
 
           <div className="space-y-2">

@@ -75,7 +75,7 @@
     "subtitle": "Genera un CFDI para esta cuenta",
     "sectionTitle": "Datos fiscales del receptor",
     "rfc": "RFC",
-    "rfcPlaceholder": "XAXX010101000",
+    "rfcPlaceholder": "ABCD800101XY1",
     "razonSocial": "Razón social",
     "razonSocialPlaceholder": "Nombre o razón social del cliente",
     "razonSocialHint": "Tal como está registrada ante el SAT (sin régimen societario, p. ej. sin 'S.A. de C.V.').",
@@ -102,7 +102,7 @@
       "conflict": "Esta cuenta ya tiene una factura o está en proceso.",
       "alreadyIssued": "Esta venta ya tiene factura — no se emitió una nueva.",
       "cancelPending": "La cancelación de la factura anterior sigue en trámite.",
-      "forbidden": "Activa el Plan Pro o la facturación no está disponible.",
+      "forbidden": "No puedes facturar desde aquí: o tu usuario no tiene permiso para facturar, o el plan del negocio no incluye facturación (viene en el plan Premium). Pídeselo al dueño del negocio.",
       "notFound": "No se pudo determinar quién factura esta venta.",
       "orderNotFound": "Esta venta no es de este negocio.",
       "generic": "No se pudo emitir la factura."
@@ -114,7 +114,8 @@
     "usoCfdiNeedsRegimen": "Primero elige tu régimen",
     "usoSearch": "Busca el uso…",
     "usoCfdiHint": "Solo mostramos los usos válidos para tu régimen.",
-    "noResults": "Sin resultados"
+    "noResults": "Sin resultados",
+    "regimenFiscalHintStaff": "El régimen del cliente (viene en su Constancia de Situación Fiscal)."
   },
   "autofactura": {
     "cta": {
@@ -188,7 +189,7 @@
     "legalNamePlaceholder": "Nombre o razón social",
     "regimenFiscal": "Régimen fiscal",
     "regimenFiscalPlaceholder": "601",
-    "regimenFiscalHint": "Clave de 3 dígitos del SAT.",
+    "regimenFiscalHint": "Viene en tu Constancia de Situación Fiscal.",
     "lugarExpedicion": "Lugar de expedición (CP)",
     "lugarExpedicionPlaceholder": "06000",
     "lugarExpedicionHint": "Código postal de 5 dígitos.",
@@ -200,11 +201,13 @@
     "save": "Guardar emisor",
     "cancel": "Cancelar",
     "invoiceCashSales": "Facturar ventas en efectivo",
-    "invoiceCashSalesHint": "Apagado por defecto. La mayoría de los negocios no declara el efectivo, así que no se factura ni en el recibo (QR) ni en la factura global mensual. Actívalo solo si quieres que las ventas en efectivo sí se puedan facturar.",
+    "invoiceCashSalesHint": "Apagado por defecto. La mayoría de los negocios no declara el efectivo, así que no se factura ni en el recibo (QR) ni en la factura global. Actívalo solo si quieres que las ventas en efectivo sí se puedan facturar.",
     "includeCashInAccounting": "Contar el efectivo en la contabilidad",
     "includeCashInAccountingHint": "Apagado por defecto. Tus ventas en EFECTIVO no entran a los libros fiscales (IVA, ISR, pólizas). Tu vista de “¿cuánto gané?” siempre las muestra. Actívalo solo si quieres declarar el efectivo.",
     "isnRate": "Tasa de ISN (%)",
-    "isnRateHint": "Impuesto sobre nómina de tu estado, lo paga el patrón sobre los sueldos. Varía por estado (~1%–4%). Déjalo en 0 si no aplica; el sistema lo calcula en cada nómina."
+    "isnRateHint": "Impuesto sobre nómina de tu estado, lo paga el patrón sobre los sueldos. Varía por estado (~1%–4%). Déjalo en 0 si no aplica; el sistema lo calcula en cada nómina.",
+    "regimenFiscalSelect": "Selecciona tu régimen",
+    "defaultUsoCfdiSelect": "Selecciona el uso"
   },
   "periodicity": {
     "DIARIO": "Diario",
@@ -222,7 +225,9 @@
     "passwordPlaceholder": "Contraseña del CSD",
     "submit": "Subir CSD",
     "cancel": "Cancelar",
-    "missingFiles": "Selecciona los archivos .cer y .key."
+    "missingFiles": "Selecciona los archivos .cer y .key.",
+    "chooseFile": "Elegir archivo",
+    "noFile": "Ningún archivo elegido"
   },
   "merchants": {
     "title": "Comercios",
@@ -244,10 +249,10 @@
       "button": "Agregar",
       "allConfigured": "Todos los comercios ya están configurados."
     },
-    "globalHelp": "Facturación activa: permite emitir CFDI de este comercio. Autofactura: el cliente se factura solo con el QR del recibo. Incluir en global: Avoqado emite automáticamente cada mes la factura global al Público en General por las ventas que nadie facturó. ⚠️ Actívalo SOLO si tu contador NO la emite por su cuenta. En contabilidad: apágalo para excluir este comercio de tus libros fiscales (pólizas / IVA / ISR); tu vista gerencial lo sigue mostrando.",
+    "globalHelp": "Facturación activa: se pueden emitir facturas de las ventas cobradas por este comercio. Autofactura: tu cliente se factura solo con el QR del recibo. Incluir en global: Avoqado emite la factura global al Público en General por las ventas que nadie facturó, según la periodicidad del emisor; actívalo solo si tu contador NO la emite por su cuenta. En contabilidad: apágalo para dejar este comercio fuera de tus libros fiscales (pólizas, IVA, ISR); tu vista gerencial lo sigue mostrando.",
     "confirmGlobal": {
       "title": "¿Que Avoqado emita tu factura global?",
-      "description": "Con esto activado, Avoqado emitirá automáticamente cada mes una factura global al Público en General por las ventas de este comercio que ningún cliente facturó. Si tu contador ya emite esa factura global por su cuenta, NO lo actives: estarías declarando los mismos ingresos dos veces ante el SAT. Actívalo solo si quieres que Avoqado se encargue de la global.",
+      "description": "Con esto activado, Avoqado emitirá automáticamente, según la periodicidad del emisor, una factura global al Público en General por las ventas de este comercio que ningún cliente facturó. Si tu contador ya emite esa factura global por su cuenta, NO lo actives: estarías declarando los mismos ingresos dos veces ante el SAT. Actívalo solo si quieres que Avoqado se encargue de la global.",
       "confirm": "Sí, que Avoqado la emita",
       "cancel": "Cancelar"
     },

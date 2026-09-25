@@ -192,7 +192,7 @@
     "general": "General",
     "branding": "Marca",
     "fiscal": "Fiscal",
-    "cfdi": "CFDI",
+    "cfdi": "Facturación",
     "paymentMethods": "Métodos de pago",
     "printStations": "Estaciones de impresión",
     "tenderTypes": "Formas de pago",
@@ -222,7 +222,9 @@
     "reportHomeCharts": "Gráficas",
     "reportPayLaterAging": "Cuentas por cobrar",
     "receiptLayout": "Diseño del ticket",
-    "paymentActivation": "Activar cobros"
+    "paymentActivation": "Activar cobros",
+    "configuracion": "Configuración",
+    "preparacion": "Preparación fiscal"
   },
   "paymentLinksMenu": {
     "links": "Ligas de pago",

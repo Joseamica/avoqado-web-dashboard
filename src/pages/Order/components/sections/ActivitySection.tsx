@@ -26,6 +26,7 @@ const iconFor = (e: ActivityEvent) => {
 
 const Node = ({ event, isLast, venueTimezone }: { event: ActivityEvent; isLast: boolean; venueTimezone: string }) => {
   const { t } = useTranslation('orders')
+  const { t: tPayment } = useTranslation('payment')
   const [open, setOpen] = useState(false)
   const Icon = iconFor(event)
   const time = DateTime.fromISO(event.timestamp, { zone: 'utc' }).setZone(venueTimezone).toFormat("d LLL, HH:mm", { locale: 'es' })
@@ -54,7 +55,8 @@ const Node = ({ event, isLast, venueTimezone }: { event: ActivityEvent; isLast: 
     case 'payment':
       title = t('drawer.activity.paymentProcessed', {
         amount: Currency(event.amount),
-        method: event.cardBrand ?? event.method,
+        // Marca de la tarjeta si la hay; si no, el método en español («Tarjeta de crédito»), nunca el código interno.
+        method: event.cardBrand ?? tPayment(`methods.${String(event.method).toLowerCase()}`, { defaultValue: event.method }),
       })
       break
     case 'refund':

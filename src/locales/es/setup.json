@@ -250,7 +250,13 @@
     "retry": "Reintentar",
     "cardError": "No se pudo guardar la tarjeta",
     "promoLineFromQuote": "Paga hoy: {{count}} meses a {{intro}}, luego {{list}} al mes. IVA incluido.",
-    "chargeError": "No pudimos procesar el pago. Intenta de nuevo."
+    "chargeError": "No pudimos procesar el pago. Intenta de nuevo.",
+    "cardSecure": "Tu tarjeta viaja cifrada a Stripe. Avoqado nunca ve el número completo.",
+    "perMonth": "al mes",
+    "perYear": "al año",
+    "trialHint": "Hoy no pagas nada. El {{date}} se cobran {{price}} {{period}} a esta tarjeta. Cancela antes desde Facturación y no se te cobra.",
+    "trialHintNoPrice": "Hoy no pagas nada. Al terminar los {{count}} días se cobra el precio del plan a esta tarjeta. Cancela antes desde Facturación y no se te cobra.",
+    "payNowHint": "Hoy se cobran {{price}} {{period}}. IVA incluido."
   },
   "consent": {
     "title": "Antes de empezar",

@@ -194,7 +194,7 @@
     "general": "General",
     "branding": "Branding",
     "fiscal": "Tax",
-    "cfdi": "CFDI",
+    "cfdi": "Invoicing",
     "paymentMethods": "Payment Methods",
     "printStations": "Print Stations",
     "tenderTypes": "Tender Types",
@@ -224,7 +224,9 @@
     "reportHomeCharts": "Charts",
     "reportPayLaterAging": "Accounts receivable",
     "receiptLayout": "Receipt design",
-    "paymentActivation": "Activate payments"
+    "paymentActivation": "Activate payments",
+    "configuracion": "Settings",
+    "preparacion": "Fiscal readiness"
   },
   "paymentLinksMenu": {
     "links": "Payment links",

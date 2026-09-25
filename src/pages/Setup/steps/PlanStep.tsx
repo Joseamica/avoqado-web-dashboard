@@ -24,7 +24,9 @@ import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalo
 import { setupService } from '@/services/setup.service'
 import { useToast } from '@/hooks/use-toast'
 import { PlanCardForm } from './PlanCardForm'
+import { FUENTES_DE_TARJETA, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { formatMXN } from '../offer/formatMXN'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import type { PlanQuote } from '../launchOffer.types'
 import type { StepProps } from '../types'
 
@@ -92,6 +94,43 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
       })
     : t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' })
 
+  // Qué pasa DESPUÉS de cada botón, dicho antes de tocarlo. Con prueba gratis el cargo llega solo el
+  // día que termina la prueba (Stripe cobra la tarjeta guardada), y sin descuento de introducción:
+  // ese descuento sólo existe pagando hoy. Nadie debería enterarse del cargo al verlo en su banco.
+  const { i18n } = useTranslation()
+  const trialDays = quote?.trialDays ?? 30
+  const precioTier = isPaidTier ? quote?.tiers?.[selectedTier] : undefined
+  const precioRecurrente = precioTier ? (interval === 'annual' ? precioTier.annualCents : precioTier.monthlyCents) : null
+  const periodo = interval === 'annual' ? t('plan.perYear', { defaultValue: 'al año' }) : t('plan.perMonth', { defaultValue: 'al mes' })
+  const fechaDelCobro = new Intl.DateTimeFormat(getIntlLocale(i18n?.language), {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'America/Mexico_City',
+  }).format(new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000))
+  const trialHint =
+    precioRecurrente != null
+      ? t('plan.trialHint', {
+          defaultValue:
+            'Hoy no pagas nada. El {{date}} se cobran {{price}} {{period}} a esta tarjeta. Cancela antes desde Facturación y no se te cobra.',
+          date: fechaDelCobro,
+          price: formatMXN(precioRecurrente),
+          period: periodo,
+        })
+      : t('plan.trialHintNoPrice', {
+          defaultValue:
+            'Hoy no pagas nada. Al terminar los {{count}} días se cobra el precio del plan a esta tarjeta. Cancela antes desde Facturación y no se te cobra.',
+          count: trialDays,
+        })
+  const conIntroHoy = selectedTier === 'PRO' && interval === 'monthly' && !!introPro
+  const payNowHint =
+    precioRecurrente != null && !conIntroHoy
+      ? t('plan.payNowHint', {
+          defaultValue: 'Hoy se cobran {{price}} {{period}}. IVA incluido.',
+          price: formatMXN(precioRecurrente),
+          period: periodo,
+        })
+      : null
+
   useEffect(() => {
     if (!venueId) {
       // Nothing to fetch against yet — surface it as an error with a retry instead of an
@@ -118,7 +157,13 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
     }
   }, [venueId, retryToken, toast, t])
 
-  const options = useMemo(() => (clientSecret ? { clientSecret } : undefined), [clientSecret])
+  // El iframe de Stripe no hereda nuestro CSS: el tema y la tipografía se le pasan aquí, y se
+  // actualizan solos si la persona cambia de tema con la pantalla abierta.
+  const apariencia = useAparienciaDeTarjeta()
+  const options = useMemo(
+    () => (clientSecret ? { clientSecret, appearance: apariencia, fonts: FUENTES_DE_TARJETA } : undefined),
+    [clientSecret, apariencia],
+  )
 
   const handleSelectTier = useCallback((tier: TierId) => {
     if (tier === 'ENTERPRISE') {
@@ -215,6 +260,8 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
             <PlanCardForm
               payNowLabel={payNowLabel(selectedTier, interval)}
               trialLabel={t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
+              trialHint={trialHint}
+              payNowHint={payNowHint}
               onConfirmed={async (paymentMethodId, payNow) => {
                 // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
                 // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.

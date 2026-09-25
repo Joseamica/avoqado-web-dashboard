@@ -25,7 +25,9 @@ interface ReplaceCfdiDialogProps {
 const money = (cents: number | null | undefined) =>
   typeof cents === 'number' ? (cents / 100).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : '—'
 
-const folioDe = (serie?: string | null, folio?: string | null, uuid?: string | null) => `${serie ?? ''}${folio ?? ''}` || uuid || '—'
+// Mismo formato que la lista de facturas («A-1»), para que el dueño reconozca la misma factura.
+const folioDe = (serie?: string | null, folio?: string | null, uuid?: string | null) =>
+  [serie, folio].filter(Boolean).join('-') || uuid || '—'
 
 /**
  * Sustituir una factura con el importe equivocado.

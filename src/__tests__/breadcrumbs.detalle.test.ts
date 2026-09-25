@@ -20,7 +20,6 @@ const PAGES = join(process.cwd(), 'src/pages')
 /** Pantallas de detalle que TODAVIA muestran el id crudo. Se encoge, nunca crece. */
 const PENDIENTES = [
   ':couponId',
-  'categories/:categoryId',
   'config/:configId',
   'inter-venue-transfers/:transferId',
   'menus/:menuId',
@@ -62,11 +61,11 @@ describe('las pantallas de detalle no enseñan el id crudo en la miga de pan', (
   it('las que NO están en la lista de pendientes ya ponen un nombre humano', () => {
     const conArreglo = archivosTsx(PAGES).filter(f => readFileSync(f, 'utf8').includes('setCustomSegment')).length
     // 8 arregladas al escribir esto; el número sólo puede subir.
-    expect(conArreglo).toBeGreaterThanOrEqual(9)
+    expect(conArreglo).toBeGreaterThanOrEqual(10)
   })
 
   it('🔴 no se añadieron pantallas de detalle nuevas sin miga de pan', () => {
     // Si esto falla: o arreglaste una (baja el número) o añadiste una sin miga (arréglala).
-    expect(conPantallaDetalle.length - PENDIENTES.length).toBe(10)
+    expect(conPantallaDetalle.length - PENDIENTES.length).toBe(11)
   })
 })

@@ -180,7 +180,13 @@
     "setupIntentError": "Nous n’avons pas pu préparer le paiement",
     "setupIntentErrorBody": "Nous n’avons pas pu préparer le paiement par carte. Réessayez, ou continuez avec le forfait Gratuit et changez plus tard.",
     "retry": "Réessayer",
-    "chargeError": "Nous n’avons pas pu traiter le paiement. Réessayez."
+    "chargeError": "Nous n’avons pas pu traiter le paiement. Réessayez.",
+    "cardSecure": "Votre carte est transmise chiffrée à Stripe. Avoqado ne voit jamais le numéro complet.",
+    "perMonth": "par mois",
+    "perYear": "par an",
+    "trialHint": "Vous ne payez rien aujourd'hui. Le {{date}}, cette carte sera débitée de {{price}} {{period}}. Annulez avant depuis Facturation et vous ne serez pas débité.",
+    "trialHintNoPrice": "Vous ne payez rien aujourd'hui. À la fin des {{count}} jours, cette carte sera débitée du prix du plan. Annulez avant depuis Facturation et vous ne serez pas débité.",
+    "payNowHint": "Vous êtes débité de {{price}} {{period}} aujourd'hui. TVA incluse."
   },
   "consent": {
     "title": "Avant de commencer",

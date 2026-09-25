@@ -250,7 +250,13 @@
     "retry": "Try again",
     "cardError": "We could not save the card",
     "promoLineFromQuote": "Pay today: {{count}} months at {{intro}}, then {{list}} per month. VAT included.",
-    "chargeError": "We could not process the payment. Try again."
+    "chargeError": "We could not process the payment. Try again.",
+    "cardSecure": "Your card travels encrypted to Stripe. Avoqado never sees the full number.",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "trialHint": "You pay nothing today. On {{date}} this card is charged {{price}} {{period}}. Cancel before then from Billing and you won't be charged.",
+    "trialHintNoPrice": "You pay nothing today. When the {{count}} days end, this card is charged the plan price. Cancel before then from Billing and you won't be charged.",
+    "payNowHint": "You are charged {{price}} {{period}} today. VAT included."
   },
   "consent": {
     "title": "Before we start",

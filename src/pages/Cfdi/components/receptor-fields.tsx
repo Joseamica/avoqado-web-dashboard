@@ -141,7 +141,7 @@ export function ReceptorFields({ form, emailRequired = false }: { form: AnyRecep
                   />
                 </div>
               </FormControl>
-              <FormDescription>{t('issueDialog.regimenFiscalHint')}</FormDescription>
+              <FormDescription>{emailRequired ? t('issueDialog.regimenFiscalHint') : t('issueDialog.regimenFiscalHintStaff')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}

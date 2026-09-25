@@ -69,6 +69,10 @@
     "testCredentialsCopied": "Copiado al portapapeles.",
     "testCredentialsUnavailableTitle": "Invitación de prueba creada",
     "testCredentialsUnavailableDesc": "No se recibieron credenciales temporales. La invitación se creó con {{email}}.",
+    "testInviteLinkTitle": "Invitación de prueba creada",
+    "testInviteLinkDesc": "La cuenta nace cuando se acepta la invitación. Abre este enlace, crea la contraseña y entra con ese usuario.",
+    "testInviteLinkLabel": "Enlace de la invitación",
+    "testInviteLinkOpen": "Abrir el enlace en otra pestaña",
     "validation": {
       "emailFormat": "Por favor ingresa un correo válido",
       "emailRequired": "El correo es requerido",
