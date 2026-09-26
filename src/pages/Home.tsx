@@ -317,7 +317,8 @@ export default function Home() {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen bg-background px-3 pb-4 pt-2 md:px-6 md:pb-6 md:pt-2">
-        <KYCStatusBanner />
+        {/* Sin el aviso naranja de «activa tus cobros»: la tarjeta de abajo ya lo dice, con los pasos. */}
+        <KYCStatusBanner sinAvisoDeEnvio />
 
         {/* El banner del MCP es su propio caso: su botón abre una GUÍA interactiva
             dentro del dashboard, algo que un anuncio de plataforma todavía no sabe hacer

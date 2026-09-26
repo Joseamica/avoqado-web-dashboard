@@ -25,7 +25,12 @@ import { useTranslation } from 'react-i18next'
  * Automatically determines which banner variant to show based on venue KYC status.
  * Returns null if no banner should be shown (demo venues or verified venues).
  */
-export function KYCStatusBanner() {
+/**
+ * @param sinAvisoDeEnvio Oculta la variante «activa tus cobros» (sin enviar). La usa Home, donde la tarjeta
+ *   «Activa tus cobros» dice lo mismo con los pasos a la vista: los dos juntos eran el mismo aviso repetido
+ *   (founder, 26-sep). «En revisión» y «rechazado» se siguen mostrando: dicen otra cosa.
+ */
+export function KYCStatusBanner({ sinAvisoDeEnvio = false }: { sinAvisoDeEnvio?: boolean } = {}) {
   const { activeVenue } = useAuth()
 
   if (!shouldShowKYCBanner(activeVenue)) return null
@@ -35,7 +40,7 @@ export function KYCStatusBanner() {
 
   switch (variant) {
     case 'missing':
-      return <KYCMissingBanner />
+      return sinAvisoDeEnvio ? null : <KYCMissingBanner />
     case 'pending':
       return <KYCPendingBanner />
     case 'rejected':
@@ -120,7 +125,12 @@ function KYCRejectedBanner() {
       <XCircle className="h-4 w-4" />
       <AlertDescription className="flex items-center justify-between gap-4">
         <p className="text-sm font-medium">{t('banner.rejected.message')}</p>
-        <Button size="sm" variant="destructive" className="shrink-0" onClick={() => navigate(`/venues/${activeVenue.slug}/settings/local/documents`)}>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="shrink-0"
+          onClick={() => navigate(`/venues/${activeVenue.slug}/settings/local/documents`)}
+        >
           {t('banner.rejected.action')}
         </Button>
       </AlertDescription>
