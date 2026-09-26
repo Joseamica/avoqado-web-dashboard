@@ -97,9 +97,9 @@ describe('cuándo aparece', () => {
   it('se puede CONTRAER, que es distinto de descartar', async () => {
     pintar()
     await screen.findByText(/Activa tus cobros/i)
-    expect(screen.getByText(/Datos fiscales/i)).toBeInTheDocument()
+    expect(screen.getByText(/Dirección de tu local/i)).toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('button', { expanded: true }))
-    expect(screen.queryByText(/Datos fiscales/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Dirección de tu local/i)).not.toBeInTheDocument()
   })
 })
 
@@ -150,7 +150,7 @@ describe('la compra de terminal conserva su candado (D5)', () => {
   it('el primer ítem lleva a «activar-cobros», la pantalla que captura todo', async () => {
     pintar()
     await screen.findByText(/Activa tus cobros/i)
-    const fila = screen.getByText(/Datos fiscales/i).closest('li')!
+    const fila = screen.getByText(/Dirección de tu local/i).closest('li')!
     await userEvent.setup().click(fila.querySelector('button')!)
     expect(navigate).toHaveBeenCalledWith('/venues/mi-negocio/activar-cobros')
   })

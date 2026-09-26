@@ -483,7 +483,7 @@
     "progress": "{{done}} sur {{total}} terminés",
     "toggle": "Afficher ou masquer",
     "items": {
-      "profile": "Informations fiscales, adresse et compte de dépôt",
+      "profile": "Adresse de votre établissement",
       "documents": "Téléversez vos documents",
       "online": "Paiements en ligne (facultatif)",
       "terminal": "Achetez votre terminal (facultatif)"
@@ -491,14 +491,16 @@
     "review": "Revoir",
     "start": "Commencer",
     "terminalBlocked": "Disponible une fois vos documents envoyés : un terminal sans encaissements actifs ne peut rien encaisser.",
-    "pageSubtitle": "Avec ces informations, nous pouvons ouvrir votre compte d’encaissement et vous verser vos ventes.",
+    "pageSubtitle": "Nous ne demandons que ce qui ne figure pas dans vos documents. Vos données fiscales et bancaires sont lues à partir de ce que vous téléversez.",
     "sections": {
       "business": "Votre établissement",
       "businessDesc": "Type d’entité et adresse de l’établissement.",
       "identity": "Qui est le responsable",
       "identityDesc": "Numéro fiscal, CURP et adresse du signataire.",
       "bank": "Où nous versons votre argent",
-      "bankDesc": "Le CLABE du compte qui reçoit votre argent."
+      "bankDesc": "Le CLABE du compte qui reçoit votre argent.",
+      "address": "Adresse de votre établissement",
+      "addressDesc": "Celle qui figure sur vos reçus et où nous envoyons le terminal."
     },
     "addressLabel": "Adresse de l’établissement",
     "addressPlaceholder": "Rue, numéro, quartier",
@@ -510,6 +512,20 @@
     "saved": "Enregistré",
     "saveError": "Enregistrement impossible. Vérifiez les informations et réessayez.",
     "saving": "Enregistrement…",
-    "back": "Retour"
+    "back": "Retour",
+    "saveAddress": "Enregistrer l'adresse",
+    "docsPendingTitle": "Il manque l'essentiel : vos documents",
+    "docsPendingBody": "Nous en tirons votre RFC, votre CLABE et vos données : c'est pourquoi nous ne vous les demandons pas. Sans eux, nous ne pouvons pas ouvrir votre compte d'encaissement.",
+    "docsPendingCta": "Téléverser mes documents",
+    "docsDoneTitle": "Nous avons vos documents",
+    "docsDoneBody": "Nous les vérifions et vous prévenons par e-mail dès que votre compte d'encaissement est ouvert.",
+    "docsReview": "Voir mes documents",
+    "docsCompanyNote": "Si votre entreprise est une société (S.A., S. de R.L., S.C.…), téléversez aussi l'acte constitutif et le pouvoir du signataire.",
+    "docNames": {
+      "ine": "Pièce d'identité (INE ou passeport)",
+      "rfc": "Constancia de Situación Fiscal",
+      "comprobanteDomicilio": "Justificatif de domicile",
+      "caratulaBancaria": "Page de garde du relevé bancaire"
+    }
   }
 }

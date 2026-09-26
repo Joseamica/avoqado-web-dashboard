@@ -484,7 +484,7 @@
     "progress": "{{done}} of {{total}} done",
     "toggle": "Show or hide",
     "items": {
-      "profile": "Tax details, address and deposit account",
+      "profile": "Your location address",
       "documents": "Upload your documents",
       "online": "Online payments (optional)",
       "terminal": "Buy your terminal (optional)"
@@ -492,14 +492,16 @@
     "review": "Review",
     "start": "Start",
     "terminalBlocked": "Available once you submit your documents: a terminal without active payments cannot charge.",
-    "pageSubtitle": "With these details we can open your payments account and deposit what you sell.",
+    "pageSubtitle": "We only ask for what isn't in your documents. We read your tax and bank details from what you upload.",
     "sections": {
       "business": "Your business",
       "businessDesc": "Entity type and the address of the venue.",
       "identity": "Who is responsible",
       "identityDesc": "Tax ID, CURP and address of the signer.",
       "bank": "Where we deposit",
-      "bankDesc": "The CLABE of the account where your money lands."
+      "bankDesc": "The CLABE of the account where your money lands.",
+      "address": "Your location address",
+      "addressDesc": "The one printed on your receipts and where we ship your terminal."
     },
     "addressLabel": "Venue address",
     "addressPlaceholder": "Street, number, neighborhood",
@@ -511,6 +513,20 @@
     "saved": "Saved",
     "saveError": "We could not save. Check the details and try again.",
     "saving": "Saving…",
-    "back": "Back"
+    "back": "Back",
+    "saveAddress": "Save address",
+    "docsPendingTitle": "The most important part is missing: your documents",
+    "docsPendingBody": "We take your RFC, CLABE and details from these, so we don't ask you to type them. Without them we can't open your payments account.",
+    "docsPendingCta": "Upload my documents",
+    "docsDoneTitle": "We have your documents",
+    "docsDoneBody": "We'll review them and email you as soon as your payments account is open.",
+    "docsReview": "View my documents",
+    "docsCompanyNote": "If your business is a company (S.A., S. de R.L., S.C.…), also upload the articles of incorporation and the signer's power of attorney.",
+    "docNames": {
+      "ine": "Official ID (INE or passport)",
+      "rfc": "Tax status certificate (Constancia de Situación Fiscal)",
+      "comprobanteDomicilio": "Proof of address",
+      "caratulaBancaria": "Bank statement cover page"
+    }
   }
 }

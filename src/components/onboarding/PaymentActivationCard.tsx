@@ -55,39 +55,38 @@ export function PaymentActivationCard() {
   const kycEnviado = kycStatus === 'PENDING_REVIEW' || kycStatus === 'IN_REVIEW' || kycStatus === 'VERIFIED'
 
   const items = useMemo(
-    () =>
-      [
-        {
-          id: 'profile' as ItemId,
-          titulo: t('paymentActivation.items.profile', { defaultValue: 'Datos fiscales, dirección y cuenta para depósitos' }),
-          destino: 'activar-cobros',
-          hecho: !!data?.profile?.complete,
-          bloqueado: false,
-        },
-        {
-          id: 'documents' as ItemId,
-          titulo: t('paymentActivation.items.documents', { defaultValue: 'Sube tus documentos' }),
-          destino: 'settings/local/documents',
-          hecho: kycEnviado,
-          bloqueado: false,
-        },
-        {
-          id: 'online' as ItemId,
-          titulo: t('paymentActivation.items.online', { defaultValue: 'Cobros en línea (opcional)' }),
-          destino: 'settings/integrations',
-          hecho: !!data?.onlinePaymentsConnected,
-          bloqueado: false,
-        },
-        {
-          id: 'terminal' as ItemId,
-          titulo: t('paymentActivation.items.terminal', { defaultValue: 'Compra tu terminal (opcional)' }),
-          destino: 'devices?action=buy',
-          hecho: (data?.terminalsCount ?? 0) > 0,
-          // 🔴 D5: la compra conserva su candado hasta que el KYC esté enviado. Se muestra
-          // DESHABILITADA con su explicación, nunca se esconde.
-          bloqueado: !kycEnviado,
-        },
-      ],
+    () => [
+      {
+        id: 'profile' as ItemId,
+        titulo: t('paymentActivation.items.profile', { defaultValue: 'Dirección de tu local' }),
+        destino: 'activar-cobros',
+        hecho: !!data?.profile?.complete,
+        bloqueado: false,
+      },
+      {
+        id: 'documents' as ItemId,
+        titulo: t('paymentActivation.items.documents', { defaultValue: 'Sube tus documentos' }),
+        destino: 'settings/local/documents',
+        hecho: kycEnviado,
+        bloqueado: false,
+      },
+      {
+        id: 'online' as ItemId,
+        titulo: t('paymentActivation.items.online', { defaultValue: 'Cobros en línea (opcional)' }),
+        destino: 'settings/integrations',
+        hecho: !!data?.onlinePaymentsConnected,
+        bloqueado: false,
+      },
+      {
+        id: 'terminal' as ItemId,
+        titulo: t('paymentActivation.items.terminal', { defaultValue: 'Compra tu terminal (opcional)' }),
+        destino: 'devices?action=buy',
+        hecho: (data?.terminalsCount ?? 0) > 0,
+        // 🔴 D5: la compra conserva su candado hasta que el KYC esté enviado. Se muestra
+        // DESHABILITADA con su explicación, nunca se esconde.
+        bloqueado: !kycEnviado,
+      },
+    ],
     [data, kycEnviado, t],
   )
 

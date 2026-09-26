@@ -484,7 +484,7 @@
     "progress": "{{done}} de {{total}} listos",
     "toggle": "Mostrar u ocultar",
     "items": {
-      "profile": "Datos fiscales, dirección y cuenta para depósitos",
+      "profile": "Dirección de tu local",
       "documents": "Sube tus documentos",
       "online": "Cobros en línea (opcional)",
       "terminal": "Compra tu terminal (opcional)"
@@ -492,14 +492,16 @@
     "review": "Revisar",
     "start": "Empezar",
     "terminalBlocked": "Disponible cuando envíes tus documentos: una terminal sin cobros activos no puede cobrar.",
-    "pageSubtitle": "Con estos datos podemos abrirte la cuenta de cobros y depositarte lo que vendas.",
+    "pageSubtitle": "Sólo te pedimos lo que no viene en tus documentos. Tus datos fiscales y bancarios los leemos de lo que subas.",
     "sections": {
       "business": "Tu negocio",
       "businessDesc": "Tipo de persona y dirección del local.",
       "identity": "Quién es el responsable",
       "identityDesc": "RFC, CURP y domicilio de quien firma.",
       "bank": "Dónde te depositamos",
-      "bankDesc": "La CLABE de la cuenta a la que llega tu dinero."
+      "bankDesc": "La CLABE de la cuenta a la que llega tu dinero.",
+      "address": "Dirección de tu local",
+      "addressDesc": "La que sale en tus recibos y a donde te mandamos la terminal."
     },
     "addressLabel": "Dirección del local",
     "addressPlaceholder": "Calle, número, colonia",
@@ -511,6 +513,20 @@
     "saved": "Guardado",
     "saveError": "No pudimos guardar. Revisa los datos e intenta otra vez.",
     "saving": "Guardando…",
-    "back": "Volver"
+    "back": "Volver",
+    "saveAddress": "Guardar dirección",
+    "docsPendingTitle": "Falta lo más importante: tus documentos",
+    "docsPendingBody": "De aquí sacamos tu RFC, tu CLABE y tus datos: por eso no te los pedimos a mano. Sin ellos no podemos abrir tu cuenta de cobros.",
+    "docsPendingCta": "Subir mis documentos",
+    "docsDoneTitle": "Ya tenemos tus documentos",
+    "docsDoneBody": "Los revisamos y te avisamos por correo en cuanto tu cuenta de cobros quede abierta.",
+    "docsReview": "Ver mis documentos",
+    "docsCompanyNote": "Si tu negocio es una empresa (S.A., S. de R.L., S.C.…), sube también el acta constitutiva y el poder de quien firma.",
+    "docNames": {
+      "ine": "Identificación oficial (INE o pasaporte)",
+      "rfc": "Constancia de Situación Fiscal",
+      "comprobanteDomicilio": "Comprobante de domicilio",
+      "caratulaBancaria": "Carátula de tu estado de cuenta"
+    }
   }
 }

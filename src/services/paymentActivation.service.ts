@@ -14,6 +14,8 @@ export interface PaymentActivationProfile {
   curpPresent: boolean
   legalAddressPresent: boolean
   venueAddressPresent?: boolean
+  /** La dirección del local con sus valores: la pantalla la vuelve a pintar para no teclearla dos veces. */
+  venueAddress?: { address: string; city: string; state: string; zipCode: string }
   clabeLast4: string | null
   bankName: string | null
   complete: boolean
@@ -23,7 +25,8 @@ export interface PaymentActivationStatus {
   kycStatus: 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
   entityType: string | null
   profile: PaymentActivationProfile
-  documents: { required: string[]; uploaded: string[] }
+  /** `missing`: los obligatorios que faltan, por nombre (la pantalla los enumera). */
+  documents: { required: string[]; uploaded: string[]; missing?: string[] }
   terminalsCount: number
   onlinePaymentsConnected: boolean
 }

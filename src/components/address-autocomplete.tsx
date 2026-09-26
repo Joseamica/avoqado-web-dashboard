@@ -23,6 +23,16 @@ export interface PlaceDetails {
 interface AddressAutocompleteProps {
   value?: string
   onAddressSelect: (place: PlaceDetails) => void
+  /**
+   * 🔴 Lo que el usuario TECLEA, tecla a tecla, sin haber elegido ninguna sugerencia.
+   *
+   * Sin esto el texto escrito a mano no sale nunca de este componente: `onAddressSelect` sólo
+   * dispara al elegir una sugerencia de Google. Una dirección que Google no encuentra —o
+   * simplemente escribir y darle a Guardar sin tocar la lista— dejaba el formulario creyendo que
+   * el campo estaba vacío, y el usuario leía «escribe la dirección completa» con la dirección
+   * completa delante. Opcional: quien no lo pase se comporta exactamente como antes.
+   */
+  onTextChange?: (texto: string) => void
   placeholder?: string
   countries?: string[]
   disabled?: boolean
@@ -38,6 +48,7 @@ function extractAddressComponent(components: google.maps.GeocoderAddressComponen
 export function AddressAutocomplete({
   value: externalValue,
   onAddressSelect,
+  onTextChange,
   placeholder,
   countries = ['mx'],
   disabled,
@@ -126,6 +137,7 @@ export function AddressAutocomplete({
 
   const handleInputChange = (inputValue: string) => {
     setValue(inputValue)
+    onTextChange?.(inputValue)
     if (inputValue.length > 0) {
       setOpen(true)
     } else {
