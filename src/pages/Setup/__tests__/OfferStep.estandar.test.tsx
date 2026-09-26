@@ -14,6 +14,7 @@
  *     pasar un plan de PAGO sin haber llamado a `activate-plan` una sola vez.
  *  4. El camino feliz manda el cuerpo `STANDARD` exacto del contrato (§3.6).
  */
+import { useState } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,6 +24,7 @@ const saveStep = vi.fn()
 const planSetupIntent = vi.fn()
 const confirmSetup = vi.fn()
 
+const secretMontado = vi.hoisted(() => ({ actual: undefined as string | undefined }))
 vi.mock('@/services/setup.service', () => ({
   setupService: {
     activatePlan: (...a: unknown[]) => activatePlan(...a),
@@ -32,13 +34,27 @@ vi.mock('@/services/setup.service', () => ({
 }))
 vi.mock('@/lib/gtag', () => ({ trackPurchase: vi.fn(), trackSignup: vi.fn() }))
 vi.mock('@/lib/posthog', () => ({ track: vi.fn() }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+// `toast` y `t` ESTABLES, como los reales: uno nuevo en cada render re-dispara el efecto que pide el SetupIntent
+// y escondía justo el defecto de reintentar tras un rechazo (full-testing, 26-sep).
+const toastEstable = vi.hoisted(() => vi.fn())
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastEstable }) }))
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))
 vi.mock('@stripe/react-stripe-js', () => ({
-  Elements: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  // Como el <Elements> REAL: su `clientSecret` es INMUTABLE — se queda con el del primer montaje y sólo
+  // cambia si se vuelve a montar. Con un <div> pelón, un SetupIntent nuevo «entraba» sin remontar y la
+  // prueba no podía ver que el formulario seguía confirmando el ya gastado (full-testing, 26-sep).
+  Elements: ({ children, options }: { children: React.ReactNode; options?: { clientSecret?: string } }) => {
+    const [inicial] = useState(options?.clientSecret)
+    secretMontado.actual = inicial
+    return (
+      <div data-testid="elements" data-secret={inicial}>
+        {children}
+      </div>
+    )
+  },
   PaymentElement: () => <div data-testid="payment-element" />,
   useStripe: () => ({ confirmSetup: (...a: unknown[]) => confirmSetup(...a) }),
-  useElements: () => ({}),
+  useElements: () => ({ secret: secretMontado.actual }),
 }))
 // La rejilla de precios no participa en el cobro; el tier por defecto (PRO mensual) es el que
 // `PlanStep` ya trae seleccionado.
@@ -49,15 +65,14 @@ vi.mock('@/components/billing/PlanPicker', () => ({
     return <div data-testid="plan-picker" />
   },
 }))
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (k: string, o?: any) => {
-      const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
-      return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
-    },
-    i18n: { language: 'es' },
-  }),
+const i18nEstable = vi.hoisted(() => ({
+  t: (k: string, o?: any) => {
+    const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
+    return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
+  },
+  i18n: { language: 'es' },
 }))
+vi.mock('react-i18next', () => ({ useTranslation: () => i18nEstable }))
 
 import { OfferStep } from '../steps/OfferStep'
 import type { PlanQuote } from '../launchOffer.types'
@@ -248,14 +263,19 @@ describe('vista estándar — ningún fallo avanza, y todos se VEN', () => {
     expect(onActivated).not.toHaveBeenCalled()
   })
 
-  it('🔴 una caída de red (sin `response`) no avanza y lo dice', async () => {
+  // Cambio DELIBERADO (Codex ronda 10, P1): antes decía «No pudimos procesar el pago» y soltaba el plan.
+  // Sin respuesta la petición PUDO cobrar: decir «no se pudo» invitaba a pagar otra vez con otra
+  // tarjeta. Sigue sin avanzar y sigue diciéndolo — ahora con la verdad: se está confirmando.
+  it('🔴 una caída de red (sin `response`) no avanza, dice que se está confirmando y NO suelta el plan', async () => {
     activatePlan.mockRejectedValue(new Error('Network Error'))
 
     pintarEstandar()
     await pagarHoy()
 
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
-    expect(await screen.findByText(/No pudimos procesar el pago/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Confirmando tu pago/i)).toBeInTheDocument()
+    expect(screen.queryByText(/No pudimos procesar el pago/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Cambiar plan/i })).toBeDisabled()
     expect(onFreePlan).not.toHaveBeenCalled()
     expect(onActivated).not.toHaveBeenCalled()
   })
@@ -269,5 +289,208 @@ describe('vista estándar — ningún fallo avanza, y todos se VEN', () => {
     expect(await screen.findByRole('button', { name: /Entrar a Avoqado/i })).toBeInTheDocument()
     expect(onFreePlan).not.toHaveBeenCalled()
     expect(saveStep).not.toHaveBeenCalled()
+  })
+})
+
+describe('🔴 un cobro que se está CONFIRMANDO (503 y reintentos) mantiene el plan bloqueado (Codex ronda 8, P1)', () => {
+  const exito = {
+    data: {
+      data: {
+        status: 'ACTIVE',
+        alreadyActive: false,
+        tier: 'PRO',
+        interval: 'monthly',
+        firstChargeCents: 69484,
+        nextChargeAt: '2026-10-17T00:00:00.000Z',
+      },
+    },
+  }
+
+  it('entre el 503 y el reintento no se puede cambiar a Free: el reintento activa Pro y el alta NO avanza como Free', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      activatePlan.mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING')).mockResolvedValueOnce(exito)
+      pintarEstandar()
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      await user.click(await screen.findByRole('button', { name: /^Continuar$/ }))
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+      await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+
+      // El primer intento ya terminó (503) y el reintento está agendado: el candado sigue puesto.
+      const cambiar = await screen.findByRole('button', { name: /Cambiar plan/i })
+      await waitFor(() => expect(cambiar).toBeDisabled())
+      await user.click(cambiar)
+      expect(screen.getByTestId('payment-element')).toBeInTheDocument()
+      expect(screen.queryByTestId('plan-picker')).not.toBeInTheDocument()
+      // Y no se puede pagar OTRA vez encima del cobro que se está confirmando.
+      expect(screen.getByRole('button', { name: /Pagar hoy/i })).toBeDisabled()
+
+      await vi.advanceTimersByTimeAsync(10_000)
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+      expect(onFreePlan).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('si la pantalla se va con un reintento EN VUELO, su respuesta tardía ya no activa nada', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      let responder: (v: unknown) => void = () => {}
+      activatePlan
+        .mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
+        .mockImplementationOnce(() => new Promise(r => (responder = r)))
+      const { unmount } = pintarEstandar()
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      await user.click(await screen.findByRole('button', { name: /^Continuar$/ }))
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+      await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+      await vi.advanceTimersByTimeAsync(10_000)
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+
+      unmount()
+      responder(exito)
+      await vi.advanceTimersByTimeAsync(50)
+      expect(onActivated).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('🔴 Codex ronda 9 — vista estándar', () => {
+  const exito = {
+    data: {
+      data: {
+        status: 'ACTIVE',
+        alreadyActive: false,
+        tier: 'PRO',
+        interval: 'monthly',
+        firstChargeCents: 69484,
+        nextChargeAt: '2026-10-17T00:00:00.000Z',
+      },
+    },
+  }
+
+  it('el reintento ya confirmó pero el respaldo sigue guardándose: no se desbloquea, y si la pantalla se va no avanza nada', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      let terminarRespaldo: (v: unknown) => void = () => {}
+      activatePlan.mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING')).mockResolvedValueOnce(exito)
+      saveStep.mockImplementation(() => new Promise(r => (terminarRespaldo = r)))
+      const { unmount } = pintarEstandar()
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      await user.click(await screen.findByRole('button', { name: /^Continuar$/ }))
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+      await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+      await vi.advanceTimersByTimeAsync(10_000)
+      await waitFor(() => expect(saveStep).toHaveBeenCalledTimes(1))
+
+      expect(screen.getByRole('button', { name: /Cambiar plan/i })).toBeDisabled()
+      unmount()
+      terminarRespaldo({})
+      await vi.advanceTimersByTimeAsync(50)
+      expect(onActivated).not.toHaveBeenCalled()
+      expect(onFreePlan).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('«sin confirmar» deja el plan bloqueado: ni «Cambiar plan» ni Free, y ofrece volver a comprobar', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
+      pintarEstandar()
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      await user.click(await screen.findByRole('button', { name: /^Continuar$/ }))
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+      await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+      for (let i = 0; i < 4; i++) await vi.advanceTimersByTimeAsync(10_000)
+
+      await waitFor(() => expect(screen.getByTestId('offer-pending-locked')).toBeInTheDocument())
+      const cambiar = screen.getByRole('button', { name: /Cambiar plan/i })
+      expect(cambiar).toBeDisabled()
+      await user.click(cambiar)
+      expect(screen.queryByTestId('plan-picker')).not.toBeInTheDocument()
+      expect(onFreePlan).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: /Volver a comprobar mi pago/i })).toBeEnabled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('🔴 revisión independiente (26-sep) — vista estándar tras recargar con un cobro colgado', () => {
+  it('se puede llegar a la tarjeta y confirmar; «Cambiar plan» y Free siguen bloqueados', async () => {
+    activatePlan.mockResolvedValue({
+      data: {
+        data: {
+          status: 'ACTIVE',
+          alreadyActive: false,
+          tier: 'PRO',
+          interval: 'monthly',
+          firstChargeCents: 69484,
+          nextChargeAt: '2026-10-17T00:00:00.000Z',
+        },
+      },
+    })
+    pintarEstandar({ activacionEnCurso: true })
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^Continuar$/ }))
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /Cambiar plan/i })).toBeDisabled()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+    await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+    // Un plan de pago cierra el paso por la misma función (`onFreePlan` con el plan dentro); lo que nunca
+    // puede pasar es cerrarlo como FREE.
+    expect(onFreePlan.mock.calls.every(([plan]) => plan?.tier !== 'FREE')).toBe(true)
+  })
+})
+
+describe('🔴 full-testing 26-sep: tras un rechazo se puede pagar con OTRA tarjeta sin recargar', () => {
+  it('pide un SetupIntent nuevo, remonta el formulario con él, conserva el mensaje y el segundo intento lo usa', async () => {
+    planSetupIntent
+      .mockReset()
+      .mockResolvedValueOnce({ data: { data: { clientSecret: 'seti_1' } } })
+      .mockResolvedValue({ data: { data: { clientSecret: 'seti_2' } } })
+    activatePlan
+      .mockRejectedValueOnce(errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'card_declined' } }))
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            status: 'ACTIVE',
+            alreadyActive: false,
+            tier: 'PRO',
+            interval: 'monthly',
+            firstChargeCents: 69484,
+            nextChargeAt: '2026-10-17T00:00:00.000Z',
+          },
+        },
+      })
+    pintarEstandar()
+    await pagarHoy()
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+
+    // El formulario vuelve con el SetupIntent NUEVO (el viejo ya quedó confirmado con la tarjeta rechazada)…
+    await waitFor(() => expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_2'))
+    // …y el mensaje del banco sigue a la vista aunque el formulario se haya vuelto a montar.
+    expect(screen.getByRole('alert')).toHaveTextContent(/rechaz/i)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy/i }))
+    await user.click(screen.getByRole('button', { name: /Pagar hoy/i }))
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+    expect(confirmSetup.mock.calls[1][0].elements.secret).toBe('seti_2')
+    await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
   })
 })

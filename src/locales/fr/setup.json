@@ -249,7 +249,10 @@
     "declineExpiredCard": "Votre carte a expiré. Essayez-en une autre.",
     "declineIncorrectCvc": "Le code de sécurité ne correspond pas. Vérifiez-le ou utilisez une autre carte.",
     "declineVelocity": "Votre banque a bloqué le débit après trop de tentatives. Patientez ou utilisez une autre carte.",
-    "declineProcessing": "Un problème est survenu lors du traitement de votre carte. Réessayez ou utilisez-en une autre."
+    "declineProcessing": "Un problème est survenu lors du traitement de votre carte. Réessayez ou utilisez-en une autre.",
+    "pendingNoChange": "En attendant, vous ne pouvez pas changer de forfait : le paiement a peut-être déjà été effectué.",
+    "recheck": "Vérifier à nouveau mon paiement",
+    "pendingAfterReload": "Votre dernier paiement n'a pas été confirmé. Confirmez à nouveau avec votre carte : s'il a déjà été débité, nous le récupérons et vous ne serez pas débité deux fois."
   },
   "done": {
     "title": "Tout est prêt",

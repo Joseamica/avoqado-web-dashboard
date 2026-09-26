@@ -62,6 +62,11 @@ export interface OfferStepProps {
   onFreePlan?: (plan: NonNullable<SetupData['plan']>) => void
   /** Avisa si se están mostrando los planes (4 tarjetas): el asistente ensancha su columna. */
   onVistaDePlanes?: (viendoPlanes: boolean) => void
+  /**
+   * El servidor tiene un cobro de este alta SIN cerrar (`planActivation.status === 'IN_PROGRESS'`).
+   * Llega así tras una recarga: el plan arranca bloqueado y se ofrece volver a comprobar.
+   */
+  activacionEnCurso?: boolean
 }
 
 type Desenlace =
@@ -100,6 +105,7 @@ export function OfferStep({
   onRefreshProgress,
   onFreePlan,
   onVistaDePlanes,
+  activacionEnCurso = false,
 }: OfferStepProps) {
   const { t, i18n } = useTranslation('setup')
   const idioma = i18n?.language?.startsWith('en') ? 'en' : 'es'
@@ -115,14 +121,50 @@ export function OfferStep({
   // aplica, y ofrecer el regreso sería mandarlo a una tarjeta que el servidor va a rechazar.
   const [puedeVolver, setPuedeVolver] = useState(false)
   const [desenlace, setDesenlace] = useState<Desenlace>({ tipo: 'nada' })
+  // 🔴 UNA regla para el candado del plan: desde que sale el cobro hasta que hay RESPUESTA DEFINITIVA,
+  // nada puede cambiar el plan (ni «Cambiar plan», ni Free, ni «Ver otros planes», ni volver a la
+  // oferta). Codex encontró el hueco por partes — el reintento del 503 (ronda 8), el `saveStep` tras
+  // el éxito, el primer cobro de la oferta y el «sin confirmar» (ronda 9) — porque el candado colgaba
+  // de «¿está reintentando?». Ahora cuelga del cobro:
+  //   · se prende al llamar `cobrar`;
+  //   · se apaga SÓLO con un no definitivo (rechazo del banco, oferta que ya no aplica, error claro);
+  //   · con éxito se queda puesto (el plan ya está activo);
+  //   · sin confirmar también se queda: el servidor pudo haber cobrado. La salida es «Volver a
+  //     comprobar», que pregunta por el MISMO cobro, nunca uno nuevo.
+  // El ref es para las guardas (sin cierres de estado viejos); el estado, para pintar.
+  const [cobroEnCurso, setCobroEnCurso] = useState(false)
+  const cobroEnCursoRef = useRef(false)
+  // Mientras Stripe guarda la tarjeta todavía no se llamó a `cobrar`, pero ya viene un cobro: también
+  // bloquea (Codex ronda 10). Lo reporta el formulario (sólo su trabajo propio, ver PlanCardForm).
+  const [tarjetaTrabajando, setTarjetaTrabajando] = useState(false)
+  const marcarCobroEnCurso = useCallback((enCurso: boolean) => {
+    cobroEnCursoRef.current = enCurso
+    setCobroEnCurso(enCurso)
+  }, [])
+  const ultimoCobro = useRef<{ cuerpo: ActivatePlanBody; plan: NonNullable<SetupData['plan']> } | null>(null)
+  // Tras una RECARGA con un cobro sin cerrar en el servidor (`activacionEnCurso`), el candado arranca
+  // puesto: la pantalla se pintó de cero y no sabe del cobro que ya salió (Codex ronda 10).
+  const pagoEnVuelo = cobroEnCurso || tarjetaTrabajando || !!activacionEnCurso
+  // El formulario de tarjeta NO se bloquea por `activacionEnCurso`: tras una recarga no hay cuerpo que
+  // reenviar, y la única forma de cerrar el cobro colgado es confirmar otra vez. El servidor recupera la
+  // suscripción del intento anterior por su id y entrega el plan, sin cobrar dos veces (revisión
+  // independiente, 26-sep: bloquearlo dejaba el alta sin salida).
+  const pagoBloqueado = cobroEnCurso || tarjetaTrabajando
+  const bloqueoRef = useRef(false)
+  bloqueoRef.current = pagoEnVuelo
+  const planBloqueado = () => cobroEnCursoRef.current || bloqueoRef.current
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [intentStatus, setIntentStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retryToken, setRetryToken] = useState(0)
   const reintentos = useRef(0)
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Si la pantalla se va, ni se agenda otro reintento ni una respuesta tardía mueve el alta.
+  const montado = useRef(false)
   useEffect(() => {
+    montado.current = true
     return () => {
+      montado.current = false
       if (temporizador.current) clearTimeout(temporizador.current)
     }
   }, [])
@@ -136,6 +178,7 @@ export function OfferStep({
   // Pro ES el plan de la oferta: sin este regreso, quien mira los planes por curiosidad se queda
   // frente a Pro a precio de lista, pagando mucho más por lo mismo.
   const volverALaOferta = useCallback(() => {
+    if (planBloqueado()) return
     setPuedeVolver(false)
     setAviso(null)
     setDesenlace({ tipo: 'nada' })
@@ -152,6 +195,9 @@ export function OfferStep({
     }
     let vivo = true
     setIntentStatus('loading')
+    // 🔴 El SetupIntent anterior puede estar GASTADO (tras un rechazo quedó confirmado con esa tarjeta): no se deja
+    // a la vista mientras llega el nuevo, o un clic rápido lo confirmaría otra vez y Stripe respondería 400.
+    setClientSecret(null)
     setupService
       .planSetupIntent(venueId)
       .then(res => {
@@ -184,11 +230,13 @@ export function OfferStep({
     async (mensaje: string) => {
       setPuedeVolver(false)
       setAviso(mensaje)
+      // La oferta ya no aplica: ese cobro NO ocurrió, el plan se puede volver a elegir.
+      marcarCobroEnCurso(false)
       setVerEstandar(true)
       setDesenlace({ tipo: 'nada' })
       await onRefreshProgress()
     },
-    [onRefreshProgress],
+    [marcarCobroEnCurso, onRefreshProgress],
   )
 
   /**
@@ -202,8 +250,11 @@ export function OfferStep({
    */
   const cobrar = useCallback(
     async (cuerpo: ActivatePlanBody, plan: NonNullable<SetupData['plan']>): Promise<ResultadoDeCobro> => {
+      marcarCobroEnCurso(true)
+      ultimoCobro.current = { cuerpo, plan }
       try {
         const res = await setupService.activatePlan(organizationId, cuerpo)
+        if (!montado.current) return { ok: false, mensaje: '' }
         const result = (res.data?.data ?? res.data) as ActivatePlanResult
         reintentos.current = 0
         setDesenlace({ tipo: 'nada' })
@@ -214,6 +265,8 @@ export function OfferStep({
         } catch {
           /* el respaldo no manda: la autoridad es `activate-plan`, que ya respondió 200 */
         }
+        // Segundo `await`: si la pantalla se fue mientras se guardaba el respaldo, no se avanza desde aquí.
+        if (!montado.current) return { ok: false, mensaje: '' }
 
         // El código de la campaña sale de la respuesta y, si el servidor no lo repite (es
         // opcional en el contrato), del cuerpo que MANDAMOS. Sin esto la conversión de una oferta
@@ -233,6 +286,7 @@ export function OfferStep({
         onActivated(result, plan)
         return { ok: true }
       } catch (error) {
+        if (!montado.current) return { ok: false, mensaje: '' }
         const { status, code, message, details } = leerError(error)
 
         if (status === 402) {
@@ -242,6 +296,7 @@ export function OfferStep({
           const texto = textoDeRechazo(declineCode)
           const mensaje = t(texto.clave, { defaultValue: texto.porDefecto })
           setDesenlace({ tipo: 'rechazo', mensaje })
+          marcarCobroEnCurso(false) // el banco dijo que no: no hay cobro
           // Tarjeta nueva ⇒ SetupIntent nuevo.
           setRetryToken(n => n + 1)
           return { ok: false, mensaje }
@@ -280,7 +335,10 @@ export function OfferStep({
         // prometer una confirmación que nunca llegará es mentirle a quien está pagando. Cae al
         // camino de abajo, que muestra el mensaje del servidor («no se te cobró nada»).
         const ambiguoDeCobro =
-          code !== 'PLAN_NOT_CONFIGURED' && (status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
+          code !== 'PLAN_NOT_CONFIGURED' &&
+          // Sin respuesta del servidor (red caída, timeout) NO es un «no»: la petición pudo llegar y
+          // cobrar. Se trata igual que un 503 — mismo cuerpo, mismo cobro (Codex ronda 10, P1).
+          (status === undefined || status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
         if (ambiguoDeCobro) {
           if (reintentos.current >= MAX_REINTENTOS) {
             reintentos.current = 0
@@ -290,6 +348,7 @@ export function OfferStep({
           reintentos.current += 1
           setDesenlace({ tipo: 'esperando' })
           temporizador.current = setTimeout(() => {
+            if (!montado.current) return
             void cobrar(cuerpo, plan)
           }, REINTENTO_MS)
           // Un reintento EN CURSO tampoco es un cobro: el alta no avanza. Si el reintento
@@ -299,10 +358,11 @@ export function OfferStep({
 
         const mensaje = message || t('offer.genericError', { defaultValue: 'No pudimos procesar el pago. Intenta de nuevo.' })
         setDesenlace({ tipo: 'rechazo', mensaje })
+        marcarCobroEnCurso(false) // error claro (incluido PLAN_NOT_CONFIGURED): el servidor no cobró
         return { ok: false, mensaje }
       }
     },
-    [caerAEstandar, onActivated, organizationId, t],
+    [caerAEstandar, marcarCobroEnCurso, onActivated, organizationId, t],
   )
 
   const pagarLaOferta = useCallback(
@@ -363,6 +423,50 @@ export function OfferStep({
     [cobrar, idioma, planQuote, t],
   )
 
+  // Sin respuesta definitiva tras los reintentos: el plan sigue bloqueado (pudo cobrarse). La única
+  // salida es preguntar otra vez por el MISMO cobro — mismo cuerpo, así que nunca es un cargo nuevo.
+  const volverAComprobar = useCallback(() => {
+    const ultimo = ultimoCobro.current
+    // Tras una recarga no hay cuerpo que reenviar (la tarjeta no se guarda en el navegador): se le
+    // pregunta al servidor cómo quedó. Si ya está activo, el asistente avanza solo.
+    if (!ultimo) return onRefreshProgress()
+    reintentos.current = 0
+    void cobrar(ultimo.cuerpo, ultimo.plan)
+  }, [cobrar, onRefreshProgress])
+
+  const avisoSinConfirmar =
+    desenlace.tipo === 'sin-confirmar' || (activacionEnCurso && !cobroEnCurso) ? (
+      <div
+        role="status"
+        data-testid="offer-pending-locked"
+        className="flex flex-col gap-3 rounded-xl border border-input p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
+      >
+        <span className="flex items-start gap-2">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span>
+            {desenlace.tipo === 'sin-confirmar' ? (
+              <>
+                {t('offer.pending', { defaultValue: 'Tu pago se está confirmando; vuelve en unos minutos.' })}{' '}
+                {t('offer.pendingNoChange', {
+                  defaultValue: 'Mientras tanto no puedes cambiar de plan: el cobro puede haberse hecho.',
+                })}
+              </>
+            ) : (
+              // Tras una recarga: la salida es confirmar otra vez con la tarjeta (el servidor recupera el cobro).
+              t('offer.pendingAfterReload', {
+                defaultValue:
+                  'Tu último pago quedó sin confirmar. Vuelve a confirmar con tu tarjeta: si ya se había cobrado, lo recuperamos y no se cobra dos veces.',
+              })
+            )}
+          </span>
+        </span>
+        <Button variant="outline" className="shrink-0 gap-2 rounded-full" data-tour="offer-recheck-payment" onClick={volverAComprobar}>
+          <RotateCw className="h-4 w-4" aria-hidden="true" />
+          {t('offer.recheck', { defaultValue: 'Volver a comprobar mi pago' })}
+        </Button>
+      </div>
+    ) : null
+
   // ── Callejón sin salida: NUNCA. Un plan ya activo se cierra con un botón que termina el alta ──
   if (desenlace.tipo === 'ya-activo') {
     return (
@@ -396,6 +500,7 @@ export function OfferStep({
               <button
                 type="button"
                 className="shrink-0 font-medium underline underline-offset-4 hover:text-foreground"
+                disabled={pagoEnVuelo}
                 onClick={volverALaOferta}
               >
                 {t('offer.backToOffer', {
@@ -406,15 +511,21 @@ export function OfferStep({
             )}
           </div>
         )}
+        {avisoSinConfirmar}
         <PlanStep
           data={data ?? {}}
           venueId={venueId ?? ''}
           organizationId={organizationId}
           quote={planQuote ?? null}
           activateBeforeContinue={activarEstandar}
+          cobroEnVuelo={pagoEnVuelo}
+          pagoBloqueado={pagoBloqueado}
+          onTrabajandoChange={setTarjetaTrabajando}
           onNext={stepData => {
             const plan = stepData.plan
             if (plan && plan.tier === 'FREE') {
+              // Con un cobro sin respuesta definitiva, Free NO: ese cobro puede terminar activando un plan.
+              if (planBloqueado()) return
               onFreePlan?.(plan)
               return
             }
@@ -427,7 +538,6 @@ export function OfferStep({
   }
 
   const promoTotal = oferta!.promo.periodTotalCents
-  const cobrando = desenlace.tipo === 'esperando'
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6">
@@ -493,11 +603,7 @@ export function OfferStep({
         {desenlace.tipo === 'esperando' && (
           <p className="text-sm text-muted-foreground">{t('offer.confirming', { defaultValue: 'Confirmando tu pago…' })}</p>
         )}
-        {desenlace.tipo === 'sin-confirmar' && (
-          <p className="text-sm text-destructive">
-            {t('offer.pending', { defaultValue: 'Tu pago se está confirmando; vuelve en unos minutos.' })}
-          </p>
-        )}
+        {avisoSinConfirmar}
 
         {intentStatus === 'error' || !options ? (
           intentStatus === 'error' ? (
@@ -517,11 +623,14 @@ export function OfferStep({
             <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
           )
         ) : (
-          <Elements stripe={stripePromise} options={options}>
+          // `key`: el `clientSecret` de <Elements> es INMUTABLE. Sin remontar, el SetupIntent nuevo que se pide tras un
+          // rechazo nunca llegaba al formulario y el reintento confirmaba el gastado (full-testing, 26-sep).
+          <Elements key={clientSecret ?? 'sin-intent'} stripe={stripePromise} options={options}>
             <PlanCardForm
               dataTourPrefix="setup-offer"
               payNowLabel={t('offer.payAndEnter', { defaultValue: 'Pagar {{price}} y entrar', price: formatMXN(oferta!.firstChargeCents) })}
-              busy={cobrando}
+              busy={pagoBloqueado}
+              onBusyChange={setTarjetaTrabajando}
               errorMessage={desenlace.tipo === 'rechazo' ? desenlace.mensaje : null}
               onConfirmed={pm => pagarLaOferta(pm)}
             />
@@ -531,7 +640,8 @@ export function OfferStep({
 
       <button
         type="button"
-        className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+        disabled={pagoEnVuelo}
+        className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         onClick={() =>
           void caerAEstandar(
             t('offer.otherPlansNote', {

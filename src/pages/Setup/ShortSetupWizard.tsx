@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import { track } from '@/lib/posthog'
 import { LEGAL_DOCS_VERSION } from '@/config/legal'
 import { capturarAtribucion, leerAtribucion } from '@/lib/acquisition'
-import { BACKEND_STEP_BY_ID, resolveShortResumeStep, type ShortSetupStepId } from './stepRegistry'
+import { BACKEND_STEP_BY_ID, estadoDeActivacion, resolveShortResumeStep, type ShortSetupStepId } from './stepRegistry'
 import { BusinessBasicsStep } from './steps/BusinessBasicsStep'
 import { BusinessTypeStep } from './steps/BusinessTypeStep'
 import { ConsentStep } from './steps/ConsentStep'
@@ -107,6 +107,13 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
     if (isLoading || !progress) return
     setPantalla(resolveShortResumeStep(progress as never))
   }, [isLoading, progress, pantalla])
+
+  // Un cobro que quedó sin cerrar (recarga a media confirmación) mantiene el plan bloqueado en la
+  // oferta; cuando el servidor lo da por ACTIVO al volver a preguntar, el alta avanza sola.
+  const estadoDelCobro = estadoDeActivacion(progress as never)
+  useEffect(() => {
+    if (pantalla === 'offer' && estadoDelCobro === 'ACTIVE') setPantalla('done')
+  }, [pantalla, estadoDelCobro])
 
   useEffect(() => {
     if (!pantalla) return
@@ -233,6 +240,7 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             onFinish={() => void terminar()}
             onRefreshProgress={() => void refetch()}
             onVistaDePlanes={setViendoPlanes}
+            activacionEnCurso={estadoDelCobro === 'IN_PROGRESS'}
             onFreePlan={plan =>
               void guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.offer, { plan }), 'done')
             }

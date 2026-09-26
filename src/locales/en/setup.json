@@ -319,7 +319,10 @@
     "declineExpiredCard": "Your card has expired. Try another one.",
     "declineIncorrectCvc": "The security code doesn't match. Check it or use another card.",
     "declineVelocity": "Your bank blocked the charge after too many attempts. Wait a bit or use another card.",
-    "declineProcessing": "There was a problem processing your card. Try again or use another one."
+    "declineProcessing": "There was a problem processing your card. Try again or use another one.",
+    "pendingNoChange": "You can't change plans in the meantime: the charge may already have gone through.",
+    "recheck": "Check my payment again",
+    "pendingAfterReload": "Your last payment wasn't confirmed. Confirm again with your card: if it was already charged, we recover it and you won't be charged twice."
   },
   "done": {
     "title": "All set",

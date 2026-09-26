@@ -6,7 +6,7 @@
  * 🔴 No cobra. Guarda la tarjeta con `confirmSetup` y entrega el `payment_method` a quien lo
  * llamó. Quien cobra es el SERVIDOR, con `activate-plan`.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { Check, Loader2, Lock } from 'lucide-react'
@@ -37,6 +37,8 @@ interface PlanCardFormProps {
   /**
    * Avisa cuando empieza y termina de trabajar (guardar la tarjeta + cobrar). Quien la monta bloquea
    * con esto su propia navegación: cambiar de plan con un cobro en vuelo avanzaba el alta dos veces.
+   * 🔴 Reporta sólo el trabajo PROPIO del formulario, no el `busy` que le llega de arriba: si el padre
+   * convirtiera este aviso en `busy`, el candado se alimentaría a sí mismo y nunca se apagaría.
    */
   onBusyChange?: (ocupado: boolean) => void
 }
@@ -64,6 +66,15 @@ export function PlanCardForm({
   // Con prueba gratis hay DOS caminos: se elige uno y un solo botón lo ejecuta. Arranca en la prueba
   // (hoy no se cobra nada), que era el botón principal.
   const [eleccion, setEleccion] = useState<'trial' | 'pay'>(trialLabel ? 'trial' : 'pay')
+  // Si el formulario ya no está en pantalla cuando Stripe termina de guardar la tarjeta, ese cobro NO
+  // sale: la persona ya se fue a otro plan (Codex ronda 10, P1).
+  const montado = useRef(false)
+  useEffect(() => {
+    montado.current = true
+    return () => {
+      montado.current = false
+    }
+  }, [])
 
   const confirm = async (payNow: boolean) => {
     if (!stripe || !elements) return
@@ -71,6 +82,7 @@ export function PlanCardForm({
     setCardError(null)
     try {
       const { error, setupIntent } = await stripe.confirmSetup({ elements, redirect: 'if_required' })
+      if (!montado.current) return
       if (error || !setupIntent?.payment_method) {
         setCardError(error?.message || t('plan.cardError', { defaultValue: 'No se pudo guardar la tarjeta' }))
         return
@@ -94,8 +106,8 @@ export function PlanCardForm({
 
   const bloqueado = submitting || !!busy
   useEffect(() => {
-    onBusyChange?.(bloqueado)
-  }, [bloqueado, onBusyChange])
+    onBusyChange?.(submitting)
+  }, [submitting, onBusyChange])
 
   const opciones = trialLabel
     ? ([

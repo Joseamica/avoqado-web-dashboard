@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast'
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { formatMXN } from '../offer/formatMXN'
+import { mensajeDeFalloDeCobro } from '../offer/falloDeCobro'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import type { PlanQuote } from '../launchOffer.types'
 import type { StepProps } from '../types'
@@ -53,12 +54,35 @@ interface PlanStepProps extends StepProps {
    * del texto fijo de la tarjeta de planes. Ausentes ⇒ el texto de siempre.
    */
   quote?: PlanQuote | null
+  /**
+   * El padre tiene un cobro CONFIRMÁNDOSE (503 y reintentos agendados). El formulario ya terminó su
+   * intento, así que su propio candado se soltó; éste lo sostiene hasta que haya desenlace. Sin él se
+   * podía volver a Free, avanzar, y que el reintento activara Pro después (Codex ronda 8, P1).
+   */
+  cobroEnVuelo?: boolean
+  /** Avisa al padre cuando este paso guarda la tarjeta o cobra: el padre bloquea SUS salidas con esto. */
+  onTrabajandoChange?: (trabajando: boolean) => void
+  /**
+   * Bloquea el formulario de TARJETA (por defecto, lo mismo que `cobroEnVuelo`). Se separa porque tras
+   * una recarga con un cobro sin cerrar el plan sigue congelado pero hay que poder CONFIRMAR otra vez:
+   * el servidor recupera la suscripción que ya cobró y entrega el plan, sin cobrar dos veces.
+   */
+  pagoBloqueado?: boolean
 }
 
 /** Tiers the wizard can persist. ENTERPRISE routes to contact-sales and is never stored. */
 type SelectableTier = 'FREE' | 'PRO' | 'PREMIUM'
 
-export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote }: PlanStepProps) {
+export function PlanStep({
+  onNext,
+  venueId,
+  data,
+  activateBeforeContinue,
+  quote,
+  cobroEnVuelo = false,
+  onTrabajandoChange,
+  pagoBloqueado,
+}: PlanStepProps) {
   const { t } = useTranslation('setup')
   const { t: tBilling } = useTranslation('billing')
   const [selectedTier, setSelectedTier] = useState<SelectableTier>(data.plan?.tier ?? 'PRO')
@@ -69,6 +93,9 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   // click, which reads exactly like a dead button. Track the state so we can offer a retry.
   const [intentStatus, setIntentStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retryToken, setRetryToken] = useState(0)
+  // El mensaje del último cobro fallido vive AQUÍ y no en el formulario: tras un fallo el formulario se vuelve a
+  // montar con un SetupIntent nuevo, y su propio estado (con el mensaje del banco) se perdería.
+  const [errorDePago, setErrorDePago] = useState<string | null>(null)
   const { toast } = useToast()
   // Dos fases en el MISMO paso: primero se elige el plan, luego se paga en una pantalla propia (como
   // la caja de una tienda). Antes la tarjeta quedaba debajo de la cuadrícula de planes, fuera de vista.
@@ -76,6 +103,10 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
   // 🔴 Mientras se guarda la tarjeta y se cobra NO se puede volver a elegir plan: hacerlo desmontaba
   // el candado del formulario y el alta avanzaba como Free y después como Pro (Codex ronda 7, P1).
   const [cobrando, setCobrando] = useState(false)
+  const bloqueado = cobrando || cobroEnVuelo
+  useEffect(() => {
+    onTrabajandoChange?.(cobrando)
+  }, [cobrando, onTrabajandoChange])
   const inicioRef = useRef<HTMLDivElement | null>(null)
 
   const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote)
@@ -151,7 +182,8 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
     precioRecurrente != null ? t('plan.ivaIncluded', { defaultValue: 'IVA incluido' }) : t('plan.plusIva', { defaultValue: '+ IVA' })
 
   const irA = (siguiente: 'elegir' | 'pagar') => {
-    if (cobrando) return
+    // Ir A PAGAR el mismo plan nunca cambia nada; lo que se congela es volver a ELEGIR.
+    if (bloqueado && siguiente === 'elegir') return
     setFase(siguiente)
     requestAnimationFrame(() => inicioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
@@ -165,6 +197,8 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
     }
     let active = true
     setIntentStatus('loading')
+    // 🔴 Nunca a la vista un SetupIntent posiblemente gastado mientras llega el nuevo (ver abajo).
+    setClientSecret(null)
     setupService
       .planSetupIntent(venueId)
       .then(res => {
@@ -194,17 +228,24 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
     [clientSecret, apariencia, idiomaDeTarjeta],
   )
 
-  const handleSelectTier = useCallback((tier: TierId) => {
-    if (tier === 'ENTERPRISE') {
-      // Enterprise is contact-sales only — no self-serve onboarding path (matches ConversionWizard).
-      window.open(salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'), '_blank', 'noopener,noreferrer')
-      return
-    }
-    // La siguiente acción (Continuar) vive en la barra fija de abajo: siempre a la vista, sin saltos.
-    setSelectedTier(tier)
-  }, [])
+  const handleSelectTier = useCallback(
+    (tier: TierId) => {
+      if (bloqueado) return // con un cobro sin cerrar, el plan elegido no se mueve
+      if (tier === 'ENTERPRISE') {
+        // Enterprise is contact-sales only — no self-serve onboarding path (matches ConversionWizard).
+        window.open(salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'), '_blank', 'noopener,noreferrer')
+        return
+      }
+      // La siguiente acción (Continuar) vive en la barra fija de abajo: siempre a la vista, sin saltos.
+      setSelectedTier(tier)
+    },
+    [bloqueado],
+  )
 
-  const continuarGratis = () => onNext({ plan: { tier: 'FREE', acceptedAt: new Date().toISOString() } })
+  const continuarGratis = () => {
+    if (bloqueado) return
+    onNext({ plan: { tier: 'FREE', acceptedAt: new Date().toISOString() } })
+  }
 
   if (fase === 'elegir' || !isPaidTier) {
     return (
@@ -329,7 +370,7 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
           <Button
             variant="ghost"
             data-tour="setup-plan-change"
-            disabled={cobrando}
+            disabled={bloqueado}
             className="-ml-3 w-fit gap-2 rounded-full text-muted-foreground hover:text-foreground"
             onClick={() => irA('elegir')}
           >
@@ -366,8 +407,10 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
               <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
             )
           ) : (
-            <Elements stripe={stripePromise} options={options}>
+            // `key`: el `clientSecret` de <Elements> es INMUTABLE; sin remontar, el SetupIntent nuevo no llega al formulario.
+            <Elements key={clientSecret ?? 'sin-intent'} stripe={stripePromise} options={options}>
               <PlanCardForm
+                errorMessage={errorDePago}
                 payNowLabel={payNowLabel(selectedTier, interval)}
                 trialLabel={t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
                 trialOptionTitle={t('plan.optionTrial', { defaultValue: '{{count}} días gratis', count: trialDays })}
@@ -378,12 +421,25 @@ export function PlanStep({ onNext, venueId, data, activateBeforeContinue, quote 
                 }
                 trialHint={trialHint}
                 payNowHint={payNowHint}
+                busy={pagoBloqueado ?? cobroEnVuelo}
                 onBusyChange={setCobrando}
                 onConfirmed={async (paymentMethodId, payNow) => {
                   // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
                   // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.
                   if (activateBeforeContinue) {
-                    await activateBeforeContinue({ tier: selectedTier, interval, payNow, paymentMethodId })
+                    setErrorDePago(null)
+                    try {
+                      await activateBeforeContinue({ tier: selectedTier, interval, payNow, paymentMethodId })
+                    } catch (fallo) {
+                      // 🔴 El SetupIntent ya quedó CONFIRMADO con esta tarjeta: está gastado. Sin uno nuevo, reintentar con
+                      // otra tarjeta daba «Se produjo un error de procesamiento» y sólo salía recargando (full-testing, 26-sep).
+                      setErrorDePago(
+                        mensajeDeFalloDeCobro(fallo) ??
+                          t('plan.chargeError', { defaultValue: 'No pudimos procesar el pago. Intenta de nuevo.' }),
+                      )
+                      setRetryToken(n => n + 1)
+                      throw fallo
+                    }
                   }
                   onNext({ plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() } })
                 }}

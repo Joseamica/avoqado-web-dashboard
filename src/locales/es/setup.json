@@ -319,7 +319,10 @@
     "declineExpiredCard": "Tu tarjeta está vencida. Prueba con otra.",
     "declineIncorrectCvc": "El código de seguridad no coincide. Revísalo o usa otra tarjeta.",
     "declineVelocity": "Tu banco bloqueó el cargo por demasiados intentos seguidos. Espera un poco o usa otra tarjeta.",
-    "declineProcessing": "Hubo un problema al procesar tu tarjeta. Intenta de nuevo o usa otra."
+    "declineProcessing": "Hubo un problema al procesar tu tarjeta. Intenta de nuevo o usa otra.",
+    "pendingNoChange": "Mientras tanto no puedes cambiar de plan: el cobro puede haberse hecho.",
+    "recheck": "Volver a comprobar mi pago",
+    "pendingAfterReload": "Tu último pago quedó sin confirmar. Vuelve a confirmar con tu tarjeta: si ya se había cobrado, lo recuperamos y no se cobra dos veces."
   },
   "done": {
     "title": "Todo listo",

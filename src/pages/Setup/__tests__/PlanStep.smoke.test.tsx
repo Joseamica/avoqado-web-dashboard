@@ -16,7 +16,8 @@ const activateBeforeContinue = vi.fn()
 vi.mock('@/services/setup.service', () => ({
   setupService: { planSetupIntent: (...a: unknown[]) => planSetupIntent(...a), activatePlan: vi.fn(), saveStep: vi.fn() },
 }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+const toastEstable = vi.fn()
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastEstable }) }))
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -25,13 +26,13 @@ vi.mock('@stripe/react-stripe-js', () => ({
   useElements: () => ({}),
 }))
 vi.mock('@/components/billing/PlanPicker', () => ({ PlanPicker: () => <div data-testid="plan-picker" /> }))
+// `t` ESTABLE, como el de i18next: uno nuevo en cada render re-dispara los efectos que dependen de él.
+const tEstable = (k: string, o?: any) => {
+  const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
+  return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
+}
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (k: string, o?: any) => {
-      const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
-      return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
-    },
-  }),
+  useTranslation: () => ({ t: tEstable }),
 }))
 
 import { PlanStep } from '../steps/PlanStep'
@@ -214,5 +215,21 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
     terminarElCobro()
     await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1))
     expect(onNext.mock.calls[0][0].plan).toMatchObject({ tier: 'PRO', payNow: true })
+  })
+})
+
+describe('🔴 cobro confirmándose en el padre (`cobroEnVuelo`), aun SIN formulario de tarjeta', () => {
+  it('si la tarjeta no cargó, ni «Cambiar plan» ni «Continuar con el plan Gratis» avanzan mientras se confirma el cobro', async () => {
+    const onNext = vi.fn()
+    planSetupIntent.mockRejectedValue(new Error('404'))
+    const { rerender } = render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /^Continuar$/ }))
+    await screen.findByRole('button', { name: /plan Gratis/i })
+
+    rerender(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" cobroEnVuelo />)
+    expect(screen.getByRole('button', { name: /Cambiar plan/i })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: /plan Gratis/i }))
+    expect(onNext).not.toHaveBeenCalled()
   })
 })

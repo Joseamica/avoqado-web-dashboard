@@ -52,10 +52,21 @@ vi.mock('@/components/layouts/SetupWizardLayout', () => ({
   ),
 }))
 vi.mock('../steps/OfferStep', () => ({
-  OfferStep: ({ onVistaDePlanes }: { onVistaDePlanes?: (v: boolean) => void }) => (
-    <div data-testid="pantalla-oferta">
+  OfferStep: ({
+    onVistaDePlanes,
+    activacionEnCurso,
+    onRefreshProgress,
+  }: {
+    onVistaDePlanes?: (v: boolean) => void
+    activacionEnCurso?: boolean
+    onRefreshProgress?: () => void
+  }) => (
+    <div data-testid="pantalla-oferta" data-activacion-en-curso={String(!!activacionEnCurso)}>
       <button type="button" onClick={() => onVistaDePlanes?.(true)}>
         simular-ver-planes
+      </button>
+      <button type="button" onClick={() => onRefreshProgress?.()}>
+        simular-volver-a-comprobar
       </button>
     </div>
   ),
@@ -258,5 +269,23 @@ describe('ShortSetupWizard — campaña del anuncio', () => {
     attachLaunchCampaign.mockRejectedValue(new Error('500'))
     pintar()
     expect(await screen.findByTestId('pantalla-oferta')).toBeInTheDocument()
+  })
+})
+
+describe('🔴 Codex ronda 10 — recargar con un cobro sin cerrar', () => {
+  it('la oferta llega BLOQUEADA y, cuando el servidor lo da por activo, el alta avanza sola', async () => {
+    getProgress.mockResolvedValue(progresoDe({ planActivationStatus: 'IN_PROGRESS' }))
+    pintar()
+    const oferta = await screen.findByTestId('pantalla-oferta')
+    expect(oferta).toHaveAttribute('data-activacion-en-curso', 'true')
+
+    getProgress.mockResolvedValue(progresoDe({ planActivationStatus: 'ACTIVE' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'simular-volver-a-comprobar' }))
+    await waitFor(() => expect(screen.queryByTestId('pantalla-oferta')).not.toBeInTheDocument())
+  })
+
+  it('sin cobro abierto, la oferta NO llega bloqueada (regresión)', async () => {
+    pintar()
+    expect(await screen.findByTestId('pantalla-oferta')).toHaveAttribute('data-activacion-en-curso', 'false')
   })
 })

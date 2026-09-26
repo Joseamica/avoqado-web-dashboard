@@ -82,7 +82,7 @@ export interface ShortResumeProgress {
   planActivation?: { status?: EstadoDeActivacion | null } | null
 }
 
-function estadoDeActivacion(progress: ShortResumeProgress | null | undefined): EstadoDeActivacion | null {
+export function estadoDeActivacion(progress: ShortResumeProgress | null | undefined): EstadoDeActivacion | null {
   return progress?.planActivationStatus ?? progress?.planActivation?.status ?? null
 }
 
