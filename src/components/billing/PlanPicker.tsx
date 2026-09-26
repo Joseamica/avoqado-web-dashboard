@@ -1,11 +1,13 @@
 // src/components/billing/PlanPicker.tsx
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PLAN_TIERS, TIER_ORDER, type TierId, type PlanTierDef } from '@/config/plan-catalog'
+import { totalDeBeneficios } from '@/config/plan-comparison'
+import { PlanBenefitsDialog } from './PlanBenefitsDialog'
 
 const ACCENT: Record<PlanTierDef['accent'], string> = {
   free: 'text-muted-foreground',
@@ -19,6 +21,9 @@ const ACCENT_BG: Record<PlanTierDef['accent'], string> = {
   premium: 'bg-amber-400/15',
   enterprise: 'bg-slate-300/10',
 }
+
+/** Beneficios que la tarjeta enseña a la vista; el resto vive en «Ver todos» (founder, 25-sep). */
+const PRINCIPALES_VISIBLES = 4
 
 const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
 /** Centavos del servidor → «$1,158.84». Siempre con los dos decimales: es el monto que se cobra. */
@@ -176,6 +181,7 @@ function PlanCard({
   const monthlyEquiv = interval === 'monthly' ? tier.priceMonthly : tier.priceAnnual != null ? Math.round(tier.priceAnnual / 12) : null
 
   const isChoice = selectionMode === 'choice'
+  const [verTodos, setVerTodos] = useState(false)
   /** Wizard: this card is the user's current pick. Billing: this is the plan they own. */
   const isPicked = isChoice && isCurrent
   const isOwned = !isChoice && isCurrent
@@ -210,128 +216,167 @@ function PlanCard({
   // One tab stop per card in choice mode: the card is the radio, the CTA is decoration.
   const ctaTabIndex = isChoice ? -1 : undefined
 
+  // Lo que ofrece el pie de «Ver todos»: elegir el plan desde ahí (asistentes) o escribir a ventas.
+  // En Facturación no se cambia de plan desde la ventana: sólo se cierra.
+  const accionDeLaVentana =
+    tier.checkout === 'contact'
+      ? { label: t('plan.cta.contact'), onClick: onSelect }
+      : isChoice && !isPicked && tier.checkout !== 'coming_soon'
+        ? { label: t('plan.cta.choose', { tier: tierName }), onClick: onSelect }
+        : undefined
+
   return (
-    <div
-      data-tour={`plan-card-${tier.id.toLowerCase()}`}
-      {...cardInteraction}
-      className={cn(
-        'relative flex flex-col gap-4 rounded-2xl border border-input bg-card p-5 transition hover:-translate-y-0.5',
-        tier.popular && 'border-emerald-400/55 ring-1 ring-emerald-400/25',
-        isChoice && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        isChoice && !isPicked && 'hover:border-foreground/30',
-        // Selection ring uses the neutral `primary` token, not emerald — emerald is already
-        // spoken for by the "Más popular" ring on PRO, so a green ring wouldn't read as
-        // "selected" on the one card that is selected by default.
-        isPicked && 'border-primary ring-2 ring-primary/30 hover:translate-y-0',
-      )}
-    >
-      {tier.popular && (
-        <span className="absolute -top-3 left-5 rounded-full bg-emerald-400 px-2.5 py-1 text-[11px] font-bold text-emerald-950">
-          {t('plan.popular')}
-        </span>
-      )}
-      {isPicked && (
-        // Icon only — `aria-checked` on the card already announces the state, and repeating
-        // the "Seleccionado" label here would just duplicate the CTA below it.
-        <span
-          aria-hidden="true"
-          className="absolute -top-3 right-4 grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground"
-        >
-          <Check className="h-3.5 w-3.5" />
-        </span>
-      )}
-      <div className={cn('grid h-10 w-10 place-items-center rounded-xl', ACCENT_BG[tier.accent], ACCENT[tier.accent])}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="text-lg font-bold">{tierName}</div>
-      <p className="min-h-[34px] text-sm text-muted-foreground">{t(`plan.tiers.${tier.key}.pitch`)}</p>
-
-      {/* El precio y «/mes · IVA incluido» pueden partirse en dos renglones: en tarjetas angostas no
-          caben juntos y el sufijo se salía del cuadro. El sufijo es UNA pieza (no se corta a la mitad). */}
-      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-        {monthlyEquiv === null ? (
-          <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
-        ) : (
-          <>
-            <span className="text-3xl font-extrabold tracking-tight">
-              {precioConIva
-                ? fmtCents(interval === 'monthly' ? precioConIva.monthlyCents : Math.round(precioConIva.annualCents / 12))
-                : fmt(monthlyEquiv)}
-            </span>
-            <span className="whitespace-nowrap text-xs text-muted-foreground">
-              {t('plan.perMonth')}
-              {monthlyEquiv > 0 && <> · {precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</>}
-            </span>
-          </>
+    <Fragment>
+      <div
+        data-tour={`plan-card-${tier.id.toLowerCase()}`}
+        {...cardInteraction}
+        className={cn(
+          'relative flex flex-col gap-4 rounded-2xl border border-input bg-card p-5 transition hover:-translate-y-0.5',
+          tier.popular && 'border-emerald-400/55 ring-1 ring-emerald-400/25',
+          isChoice && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isChoice && !isPicked && 'hover:border-foreground/30',
+          // Selection ring uses the neutral `primary` token, not emerald — emerald is already
+          // spoken for by the "Más popular" ring on PRO, so a green ring wouldn't read as
+          // "selected" on the one card that is selected by default.
+          isPicked && 'border-primary ring-2 ring-primary/30 hover:translate-y-0',
         )}
-      </div>
-      <div className="min-h-[16px] text-xs text-muted-foreground">
-        {tier.id === 'FREE'
-          ? t('plan.forever')
-          : tier.priceMonthly === null
-            ? ''
-            : interval === 'annual' && tier.priceAnnual != null
-              ? t('plan.annualEquiv', { price: precioConIva ? fmtCents(precioConIva.annualCents) : fmt(tier.priceAnnual) })
-              : t('plan.billedMonthly')}
-      </div>
-      {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}
+      >
+        {tier.popular && (
+          <span className="absolute -top-3 left-5 rounded-full bg-emerald-400 px-2.5 py-1 text-[11px] font-bold text-emerald-950">
+            {t('plan.popular')}
+          </span>
+        )}
+        {isPicked && (
+          // Icon only — `aria-checked` on the card already announces the state, and repeating
+          // the "Seleccionado" label here would just duplicate the CTA below it.
+          <span
+            aria-hidden="true"
+            className="absolute -top-3 right-4 grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground"
+          >
+            <Check className="h-3.5 w-3.5" />
+          </span>
+        )}
+        <div className={cn('grid h-10 w-10 place-items-center rounded-xl', ACCENT_BG[tier.accent], ACCENT[tier.accent])}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="text-lg font-bold">{tierName}</div>
+        <p className="min-h-[34px] text-sm text-muted-foreground">{t(`plan.tiers.${tier.key}.pitch`)}</p>
 
-      <ul className="mt-1 flex flex-col gap-2.5">
-        {tier.featureKeys.map(fk => (
-          <li key={fk} className="flex items-start gap-2 text-sm">
-            <Check className={cn('mt-0.5 h-4 w-4 shrink-0', ACCENT[tier.accent])} />
-            <span>
-              {t(`plan.features.${fk}`)}
-              {fk === 'chatbotBeta' && (
-                <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[9px]">
-                  Beta
-                </Badge>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      {/* Al ELEGIR (asistentes) la tarjeta entera es el radio, el ✓ marca la elegida y cada asistente
-          tiene su propio «Continuar»: el botón «Elegir X / Seleccionado» sólo repetía eso. Se queda
-          el de Enterprise, que es una ACCIÓN (escribir a ventas), no una selección. */}
-      {isChoice && tier.checkout !== 'contact' ? null : (
-        <div className="mt-auto pt-2">
-          {isOwned ? (
-            <Button disabled variant="ghost" className="w-full cursor-default text-muted-foreground">
-              {t('plan.cta.current')}
-            </Button>
-          ) : tier.checkout === 'coming_soon' ? (
-            <Button disabled variant="outline" className="w-full gap-2">
-              <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                {t('plan.comingSoon')}
-              </Badge>
-            </Button>
-          ) : tier.checkout === 'contact' ? (
-            <Button variant="outline" tabIndex={ctaTabIndex} className="w-full cursor-pointer" onClick={ctaClick}>
-              {t('plan.cta.contact')}
-            </Button>
-          ) : isPicked ? (
-            // Stays a real, live button — the bug the founder hit was this card rendering the
-            // owned-plan CTA (disabled "Tu plan actual") on the tier the wizard pre-selects.
-            <Button tabIndex={ctaTabIndex} className="w-full cursor-pointer gap-2" onClick={ctaClick}>
-              <Check className="h-4 w-4" />
-              {t('plan.cta.selected')}
-            </Button>
+        {/* El precio y «/mes · IVA incluido» pueden partirse en dos renglones: en tarjetas angostas no
+          caben juntos y el sufijo se salía del cuadro. El sufijo es UNA pieza (no se corta a la mitad). */}
+        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+          {monthlyEquiv === null ? (
+            <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
           ) : (
-            <Button
-              className="w-full cursor-pointer"
-              tabIndex={ctaTabIndex}
-              variant={tier.popular && !isDowngrade ? 'default' : 'outline'}
-              onClick={ctaClick}
-            >
-              {isChoice
-                ? t('plan.cta.choose', { tier: tierName })
-                : t(`plan.cta.${isDowngrade ? 'downgrade' : 'upgrade'}`, { tier: tierName })}
-            </Button>
+            <>
+              <span className="text-3xl font-extrabold tracking-tight">
+                {precioConIva
+                  ? fmtCents(interval === 'monthly' ? precioConIva.monthlyCents : Math.round(precioConIva.annualCents / 12))
+                  : fmt(monthlyEquiv)}
+              </span>
+              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                {t('plan.perMonth')}
+                {monthlyEquiv > 0 && <> · {precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</>}
+              </span>
+            </>
           )}
         </div>
-      )}
-    </div>
+        <div className="min-h-[16px] text-xs text-muted-foreground">
+          {tier.id === 'FREE'
+            ? t('plan.forever')
+            : tier.priceMonthly === null
+              ? ''
+              : interval === 'annual' && tier.priceAnnual != null
+                ? t('plan.annualEquiv', { price: precioConIva ? fmtCents(precioConIva.annualCents) : fmt(tier.priceAnnual) })
+                : t('plan.billedMonthly')}
+        </div>
+        {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}
+
+        <ul className="mt-1 flex flex-col gap-2.5">
+          {tier.featureKeys.slice(0, PRINCIPALES_VISIBLES).map(fk => (
+            <li key={fk} className="flex items-start gap-2 text-sm">
+              <Check className={cn('mt-0.5 h-4 w-4 shrink-0', ACCENT[tier.accent])} />
+              <span>
+                {t(`plan.features.${fk}`)}
+                {fk === 'chatbotBeta' && (
+                  <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[9px]">
+                    Beta
+                  </Badge>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Al fondo (`mt-auto`) para que quede a la misma altura en las cuatro tarjetas. Abre la lista
+          completa SIN elegir el plan: la tarjeta es el radio, así que el clic no debe subir hasta ella. */}
+        <div className="mt-auto flex flex-col gap-2 pt-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-tour={`plan-see-all-${tier.id.toLowerCase()}`}
+            className="-mx-2 w-fit cursor-pointer gap-1 px-2 text-sm font-semibold"
+            onClick={e => {
+              e.stopPropagation()
+              setVerTodos(true)
+            }}
+          >
+            {t('plan.benefits.seeAll', { count: totalDeBeneficios(tier), defaultValue: 'Ver todos ({{count}})' })}
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </Button>
+
+          {/* Al ELEGIR (asistentes) la tarjeta entera es el radio, el ✓ marca la elegida y cada asistente
+          tiene su propio «Continuar»: el botón «Elegir X / Seleccionado» sólo repetía eso. Se queda
+          el de Enterprise, que es una ACCIÓN (escribir a ventas), no una selección. */}
+          {isChoice && tier.checkout !== 'contact' ? null : (
+            <div>
+              {isOwned ? (
+                <Button disabled variant="ghost" className="w-full cursor-default text-muted-foreground">
+                  {t('plan.cta.current')}
+                </Button>
+              ) : tier.checkout === 'coming_soon' ? (
+                <Button disabled variant="outline" className="w-full gap-2">
+                  <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                    {t('plan.comingSoon')}
+                  </Badge>
+                </Button>
+              ) : tier.checkout === 'contact' ? (
+                <Button variant="outline" tabIndex={ctaTabIndex} className="w-full cursor-pointer" onClick={ctaClick}>
+                  {t('plan.cta.contact')}
+                </Button>
+              ) : isPicked ? (
+                // Stays a real, live button — the bug the founder hit was this card rendering the
+                // owned-plan CTA (disabled "Tu plan actual") on the tier the wizard pre-selects.
+                <Button tabIndex={ctaTabIndex} className="w-full cursor-pointer gap-2" onClick={ctaClick}>
+                  <Check className="h-4 w-4" />
+                  {t('plan.cta.selected')}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full cursor-pointer"
+                  tabIndex={ctaTabIndex}
+                  variant={tier.popular && !isDowngrade ? 'default' : 'outline'}
+                  onClick={ctaClick}
+                >
+                  {isChoice
+                    ? t('plan.cta.choose', { tier: tierName })
+                    : t(`plan.cta.${isDowngrade ? 'downgrade' : 'upgrade'}`, { tier: tierName })}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Hermana de la tarjeta, no hija: los eventos de React cruzan los portales, y un clic dentro de
+        la ventana subiría hasta la tarjeta y elegiría el plan sin querer. */}
+      <PlanBenefitsDialog
+        tier={tier}
+        open={verTodos}
+        onOpenChange={setVerTodos}
+        accentClassName={ACCENT[tier.accent]}
+        action={accionDeLaVentana}
+      />
+    </Fragment>
   )
 }

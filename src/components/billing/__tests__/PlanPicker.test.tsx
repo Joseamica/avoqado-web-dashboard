@@ -149,3 +149,62 @@ describe('PlanPicker', () => {
     expect(screen.getAllByText('plan.perMonth · plan.plusIva').length).toBeGreaterThan(0)
   })
 })
+
+describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
+  const tarjeta = (id: string) => document.querySelector(`[data-tour="plan-card-${id}"]`) as HTMLElement
+
+  it('cada tarjeta enseña sólo los 4 principales y tiene su botón «Ver todos»', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
+    for (const id of ['free', 'pro', 'premium', 'enterprise']) {
+      expect(tarjeta(id).querySelectorAll('ul > li').length).toBeLessThanOrEqual(4)
+      expect(tarjeta(id).querySelector(`[data-tour="plan-see-all-${id}"]`)).not.toBeNull()
+    }
+    // El 5º beneficio de Pro ya no está en la tarjeta: vive en la ventana.
+    expect(screen.queryByText('plan.features.proCashBank')).not.toBeInTheDocument()
+  })
+
+  it('🔴 abrir «Ver todos» NO elige el plan, ni al abrir ni al tocar dentro de la ventana', () => {
+    const onSelect = vi.fn()
+    render(<PlanPicker currentTier="PRO" onSelectTier={onSelect} selectionMode="choice" />)
+    fireEvent.click(tarjeta('premium').querySelector('[data-tour="plan-see-all-premium"]')!)
+    const ventana = screen.getByTestId('plan-benefits-PREMIUM')
+    fireEvent.click(ventana)
+    fireEvent.click(screen.getByText('plan.compare.rows.cfdi'))
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('la ventana lista TODO lo del plan (lo de abajo incluido) y nada de lo que no incluye', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
+    fireEvent.click(tarjeta('pro').querySelector('[data-tour="plan-see-all-pro"]')!)
+    const ventana = screen.getByTestId('plan-benefits-PRO')
+    expect(ventana.textContent).toMatch(/plan\.compare\.rows\.pos/) // de Free
+    expect(ventana.textContent).toMatch(/plan\.compare\.rows\.loyalty/) // de Pro
+    expect(ventana.textContent).not.toMatch(/plan\.compare\.rows\.cfdi/) // de Premium
+  })
+
+  it('desde la ventana se puede elegir el plan (asistente), una sola vez, y se cierra', () => {
+    const onSelect = vi.fn()
+    render(<PlanPicker currentTier="PRO" onSelectTier={onSelect} selectionMode="choice" />)
+    fireEvent.click(tarjeta('premium').querySelector('[data-tour="plan-see-all-premium"]')!)
+    fireEvent.click(screen.getByText('plan.cta.choose:plan.tiers.premium.name'))
+    expect(onSelect).toHaveBeenCalledTimes(1)
+    expect(onSelect).toHaveBeenCalledWith('PREMIUM', 'monthly')
+    expect(screen.queryByTestId('plan-benefits-PREMIUM')).not.toBeInTheDocument()
+  })
+
+  it('en Facturación la ventana sólo informa: no cambia de plan', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    fireEvent.click(tarjeta('pro').querySelector('[data-tour="plan-see-all-pro"]')!)
+    const ventana = screen.getByTestId('plan-benefits-PRO')
+    expect(ventana.querySelector('[data-tour="plan-benefits-action-pro"]')).toBeNull()
+  })
+
+  it('Enterprise enseña sus extras propios además de todo lo de Premium', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
+    fireEvent.click(tarjeta('enterprise').querySelector('[data-tour="plan-see-all-enterprise"]')!)
+    const ventana = screen.getByTestId('plan-benefits-ENTERPRISE')
+    expect(ventana.textContent).toMatch(/plan\.features\.whiteLabel/)
+    expect(ventana.textContent).toMatch(/plan\.compare\.rows\.cfdi/)
+    expect(ventana.textContent).not.toMatch(/plan\.features\.allPremium/)
+  })
+})

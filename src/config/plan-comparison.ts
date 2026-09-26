@@ -7,7 +7,7 @@
  * SIN código (lo que es de todos, o un número como los usuarios) llevan valores explícitos.
  * `planComparison.test.ts` falla si una función de pago de un plan no aparece en ninguna fila.
  */
-import { TIER_ORDER, getTierForFeature, type TierId } from './plan-catalog'
+import { TIER_ORDER, getTierForFeature, type PlanTierDef, type TierId } from './plan-catalog'
 
 /** Columnas de la tabla (Enterprise se vende por contacto: tiene su propia tarjeta). */
 export const TIERS_COMPARADOS = ['FREE', 'PRO', 'PREMIUM'] as const
@@ -125,3 +125,32 @@ export function novedadesDelPlan(tier: 'PRO' | 'PREMIUM'): { categoria: string; 
     }),
   })).filter(c => c.filas.length > 0)
 }
+
+export interface BeneficioDelPlan {
+  fila: FilaDeComparacion
+  /** `true` o un sufijo de `plan.compare.values` («Ilimitados»). Nunca `false`: lo que no incluye no se lista. */
+  valor: true | string
+}
+
+/**
+ * TODO lo que incluye `tier`, por categoría: la lista del botón «Ver todos» de cada tarjeta. Sale del
+ * mismo catálogo que la tabla, así que no puede prometer lo que el plan no da. Enterprise incluye todo
+ * lo de Premium (sus extras propios —marca propia, API, SLA— viven en el catálogo de la tarjeta).
+ */
+export function beneficiosDelPlan(tier: TierId): { categoria: string; beneficios: BeneficioDelPlan[] }[] {
+  const columna: TierComparado = tier === 'ENTERPRISE' ? 'PREMIUM' : tier
+  return PLAN_COMPARISON.map(c => ({
+    categoria: c.key,
+    beneficios: c.rows.flatMap(fila => {
+      const valor = valorDeCelda(fila, columna)
+      return valor === false ? [] : [{ fila, valor }]
+    }),
+  })).filter(c => c.beneficios.length > 0)
+}
+
+/** Extras que no son funciones del catálogo (marca propia, API, SLA): sólo Enterprise los tiene. */
+export const extrasDelPlan = (tier: PlanTierDef) => (tier.id === 'ENTERPRISE' ? tier.featureKeys.filter(k => !k.startsWith('all')) : [])
+
+/** Cuántos beneficios lista la ventana: el número del botón «Ver todos (N)». */
+export const totalDeBeneficios = (tier: PlanTierDef) =>
+  extrasDelPlan(tier).length + beneficiosDelPlan(tier.id).reduce((n, c) => n + c.beneficios.length, 0)

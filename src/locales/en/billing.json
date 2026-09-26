@@ -205,6 +205,12 @@
       "allPlansInclude": "Every plan includes: {{list}}.",
       "plusFree": "Everything in Free, plus:",
       "plusPro": "Everything in Pro, plus:"
+    },
+    "benefits": {
+      "seeAll": "See all ({{count}})",
+      "title": "Everything in {{tier}}",
+      "onlyIn": "Only in {{tier}}",
+      "close": "Close"
     }
   },
   "featureGate": {

@@ -80,6 +80,12 @@
       "allPlansInclude": "Tous les plans incluent : {{list}}.",
       "plusFree": "Tout ce qui est dans Free, plus :",
       "plusPro": "Tout ce qui est dans Pro, plus :"
+    },
+    "benefits": {
+      "seeAll": "Tout voir ({{count}})",
+      "title": "Tout ce que comprend {{tier}}",
+      "onlyIn": "Uniquement dans {{tier}}",
+      "close": "Fermer"
     }
   },
   "activeSubscriptions": {
