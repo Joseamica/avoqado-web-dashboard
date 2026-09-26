@@ -95,6 +95,8 @@
     "delete": "Supprimer"
   },
   "routes": {
+    "configuracion": "Configuration",
+    "preparacion": "Préparation fiscale",
     "home": "Accueil",
     "menu": "Produits",
     "menumaker": "Produits",

@@ -14,6 +14,7 @@ import { YieldStatusHoverCard } from './components/YieldStatusHoverCard'
 import { AdjustStockDialog } from './components/AdjustStockDialog'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { getProducts } from '@/services/menu.service'
 import { productInventoryApi as inventoryApi, rawMaterialsApi, type AdjustInventoryStockDto, type RawMaterial } from '@/services/inventory.service'
 import { supplierService, type Supplier } from '@/services/supplier.service'
@@ -32,6 +33,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { includesNormalized } from '@/lib/utils'
+import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { inventoryKeys, invalidateStockOverviewQueries, invalidateWasteQueries } from '@/lib/queryKeys/inventory'
 import { formatWasteQuantity, previewAfterWaste, readWasteSummary } from '@/lib/inventoryWaste'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -49,6 +51,7 @@ export default function InventorySummary() {
   const { t: tInventory, i18n } = useTranslation('inventory')
   const navigate = useNavigate()
   const { venueId, fullBasePath } = useCurrentVenue()
+  const { hasAccess, isLoading: isLoadingAccess } = useTierFeatureAccess('INVENTORY_TRACKING')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { getShortLabel } = useUnitTranslation()
@@ -74,14 +77,20 @@ export default function InventorySummary() {
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
-    enabled: !!venueId,
+    enabled: !!venueId && !isLoadingAccess && hasAccess,
+    retry: (failureCount, error) => failureCount < 1 && reintentarSalvoSinPermiso(failureCount, error),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 
   // Fetch raw materials (ingredients) to merge into the physical tab
   const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials } = useQuery({
     queryKey: inventoryKeys.rawMaterials(venueId ?? ''),
     queryFn: () => rawMaterialsApi.getAll(venueId!, { active: true }),
-    enabled: !!venueId,
+    enabled: !!venueId && !isLoadingAccess && hasAccess,
+    retry: (failureCount, error) => failureCount < 1 && reintentarSalvoSinPermiso(failureCount, error),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 
   const rawMaterials: RawMaterial[] = useMemo(() => {
@@ -91,7 +100,7 @@ export default function InventorySummary() {
     return []
   }, [rawMaterialsResponse])
 
-  const isLoading = isLoadingProducts || isLoadingRawMaterials
+  const isLoading = isLoadingAccess || isLoadingProducts || isLoadingRawMaterials
 
   // Stock Adjustment Mutation
   const adjustStockMutation = useMutation({
