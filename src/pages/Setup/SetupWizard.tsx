@@ -368,8 +368,9 @@ export default function SetupWizard() {
           void queryClient.invalidateQueries({ queryKey: ['onboarding-progress', orgId] })
         }
       } else {
-        // Final step completed — finalize setup
-        await handleComplete(merged)
+        // Final step completed — finalize setup. Devuelve si terminó: el paso de plan lo necesita para no quedarse con
+        // una tarjeta ya confirmada si la finalización falla (Codex R13).
+        return handleComplete(merged)
       }
     },
     [orgId, currentStep],
@@ -412,8 +413,8 @@ export default function SetupWizard() {
     await logout('/login')
   }, [data.plan, logout, toast, t])
 
-  const handleComplete = async (_finalData: SetupData) => {
-    if (!orgId) return
+  const handleComplete = async (_finalData: SetupData): Promise<boolean> => {
+    if (!orgId) return false
     setIsSaving(true)
     try {
       await setupService.completeSetup(orgId, i18n.language?.startsWith('en') ? 'en' : 'es')
@@ -425,9 +426,11 @@ export default function SetupWizard() {
 
       // Navigate to the dashboard — AuthContext will handle finding the venue
       navigate('/', { replace: true })
+      return true
     } catch (error) {
       console.error('[SetupWizard] Failed to complete setup:', error)
       setIsSaving(false)
+      return false
     }
   }
 

@@ -164,18 +164,21 @@ export default function PaymentActivationPage() {
               aria-label={t('paymentActivation.cityLabel', { defaultValue: 'Ciudad' })}
               placeholder={t('paymentActivation.cityLabel', { defaultValue: 'Ciudad' })}
               value={direccion.city}
+              maxLength={100}
               onChange={e => setDireccion(d => ({ ...d, city: e.target.value }))}
             />
             <Input
               aria-label={t('paymentActivation.stateLabel', { defaultValue: 'Estado' })}
               placeholder={t('paymentActivation.stateLabel', { defaultValue: 'Estado' })}
               value={direccion.state}
+              maxLength={100}
               onChange={e => setDireccion(d => ({ ...d, state: e.target.value }))}
             />
             <Input
               aria-label={t('paymentActivation.zipLabel', { defaultValue: 'Código postal' })}
               placeholder={t('paymentActivation.zipLabel', { defaultValue: 'Código postal' })}
               value={direccion.zipCode}
+              maxLength={10}
               onChange={e => setDireccion(d => ({ ...d, zipCode: e.target.value }))}
             />
           </div>

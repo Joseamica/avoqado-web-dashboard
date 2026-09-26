@@ -104,10 +104,17 @@ export function PlanCardForm({
     }
   }
 
-  const bloqueado = submitting || !!busy
+  // 🔴 Pagar sólo con el formulario de Stripe LISTO (`onReady`): tocar antes confirmaba contra un iframe sin montar y
+  // el clic se perdía en silencio (full-testing 26-sep).
+  const bloqueado = submitting || !!busy || !listo
   useEffect(() => {
     onBusyChange?.(submitting)
   }, [submitting, onBusyChange])
+  // Si el formulario se desmonta a media confirmación, el candado que anunció se suelta: sin esto el padre se
+  // quedaba «ocupado» para siempre, con los botones de cambiar de plan apagados.
+  const onBusyChangeRef = useRef(onBusyChange)
+  onBusyChangeRef.current = onBusyChange
+  useEffect(() => () => onBusyChangeRef.current?.(false), [])
 
   const opciones = trialLabel
     ? ([

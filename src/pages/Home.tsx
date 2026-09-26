@@ -36,6 +36,7 @@ import { useDashboardData } from '@/hooks/useDashboardData'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { useAccess } from '@/hooks/use-access'
+import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { getRoleHierarchyLevel, ROLE_HIERARCHY } from '@/lib/permissions/roleHierarchy'
 import { HAYCASH_ONBOARDING_URL, openPartner } from '@/config/partners'
 import { StaffRole } from '@/types'
@@ -65,7 +66,7 @@ export default function Home() {
   const hasAvailableBalance = hasFeatureAccess('ADVANCED_REPORTS')
   // El financiamiento es decisión del dueño: la tarjeta de HayCash se muestra a ADMIN+,
   // el mismo umbral que protege la sección de Integraciones donde también vive.
-  const { role } = useAccess()
+  const { role, can } = useAccess()
   const isAdmin = role != null && getRoleHierarchyLevel(role) >= ROLE_HIERARCHY[StaffRole.ADMIN]
   const navigate = useNavigate()
   const location = useLocation()
@@ -183,8 +184,10 @@ export default function Home() {
       const res = await getSettlementCalendar(venueId!, { from: todayRange.from, to: todayRange.to })
       return res.data
     },
-    enabled: !!venueId && !!todayIso && hasAvailableBalance, // PRO-only — don't 403 free venues
+    // PRO y con permiso: sin `settlements:read` el servidor contesta 403 (lo midió el /full-testing del 26-sep).
+    enabled: !!venueId && !!todayIso && hasAvailableBalance && can('settlements:read'),
     staleTime: 60_000,
+    retry: reintentarSalvoSinPermiso,
   })
 
   // Conteos para "Centro de negocios" — sólo se hidratan cuando el tab está

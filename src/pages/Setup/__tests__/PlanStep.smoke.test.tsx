@@ -5,6 +5,7 @@
  * asistente largo NO las pasa: ahí el cobro sigue ocurriendo al finalizar, por el camino legacy.
  * Si alguien hiciera el cobro obligatorio dentro del paso, el alta larga cobraría dos veces.
  */
+import { StrictMode, useEffect } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -21,7 +22,13 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastEstable }) 
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  PaymentElement: () => <div data-testid="payment-element" />,
+  // Como el REAL: avisa `onReady` cuando termina de pintar; el formulario no deja pagar antes.
+  PaymentElement: ({ onReady }: { onReady?: () => void }) => {
+    useEffect(() => {
+      onReady?.()
+    }, [onReady])
+    return <div data-testid="payment-element" />
+  },
   useStripe: () => ({ confirmSetup: (...a: unknown[]) => confirmSetup(...a) }),
   useElements: () => ({}),
 }))
@@ -62,6 +69,17 @@ describe('asistente LARGO (sin props nuevas)', () => {
     await user.click(screen.getByRole('button', { name: /30 días gratis/i }))
     await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1))
     expect(onNext.mock.calls[0][0].plan).toMatchObject({ tier: 'PRO', paymentMethodId: 'pm_1', payNow: false })
+  })
+
+  it('🔴 Codex R13: si la finalización del padre falla, lo DICE y pide un SetupIntent nuevo (la tarjeta ya lo gastó)', async () => {
+    const onNext = vi.fn().mockResolvedValue(false)
+    render(<PlanStep data={{}} onNext={onNext} venueId="venue_1" organizationId="org_1" />)
+
+    const user = await alPago()
+    await user.click(screen.getByRole('button', { name: /30 días gratis/i }))
+
+    expect(await screen.findByText(/No pudimos terminar tu alta/)).toBeInTheDocument()
+    await waitFor(() => expect(planSetupIntent).toHaveBeenCalledTimes(2))
   })
 
   it('el plan GRATIS sigue sin tarjeta', () => {
@@ -231,5 +249,16 @@ describe('🔴 cobro confirmándose en el padre (`cobroEnVuelo`), aun SIN formul
     expect(screen.getByRole('button', { name: /Cambiar plan/i })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: /plan Gratis/i }))
     expect(onNext).not.toHaveBeenCalled()
+  })
+
+  it('🔴 abrir la pantalla pide UN solo SetupIntent, aunque React corra el efecto dos veces (StrictMode)', async () => {
+    // El /full-testing del 26-sep midió DOS al abrir: el servidor creaba el cliente de Stripe dos veces en carrera.
+    render(
+      <StrictMode>
+        <PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" />
+      </StrictMode>,
+    )
+    await waitFor(() => expect(planSetupIntent).toHaveBeenCalled())
+    expect(planSetupIntent).toHaveBeenCalledTimes(1)
   })
 })

@@ -238,7 +238,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             data={datos}
             onActivated={() => setPantalla('done')}
             onFinish={() => void terminar()}
-            onRefreshProgress={() => void refetch()}
+            // Devuelve la PROMESA: «Volver a comprobar» se queda apagado hasta que el progreso llega (Codex R12).
+            onRefreshProgress={async () => {
+              await refetch()
+            }}
             onVistaDePlanes={setViendoPlanes}
             activacionEnCurso={estadoDelCobro === 'IN_PROGRESS'}
             onFreePlan={plan =>

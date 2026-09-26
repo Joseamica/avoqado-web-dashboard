@@ -21,6 +21,7 @@ import { AlertCircle, RotateCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { setupService } from '@/services/setup.service'
+import { pedidoCompartido, type PedidoEnVuelo } from './pedidoCompartido'
 import { track } from '@/lib/posthog'
 import { trackPurchase } from '@/lib/gtag'
 import { formatMXN } from '../offer/formatMXN'
@@ -156,6 +157,7 @@ export function OfferStep({
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [intentStatus, setIntentStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retryToken, setRetryToken] = useState(0)
+  const setupIntentEnVuelo = useRef<PedidoEnVuelo<Awaited<ReturnType<typeof setupService.planSetupIntent>>>>(null)
   const reintentos = useRef(0)
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -198,8 +200,7 @@ export function OfferStep({
     // 🔴 El SetupIntent anterior puede estar GASTADO (tras un rechazo quedó confirmado con esa tarjeta): no se deja
     // a la vista mientras llega el nuevo, o un clic rápido lo confirmaría otra vez y Stripe respondería 400.
     setClientSecret(null)
-    setupService
-      .planSetupIntent(venueId)
+    pedidoCompartido(setupIntentEnVuelo, `${venueId}:${retryToken}`, () => setupService.planSetupIntent(venueId))
       .then(res => {
         if (!vivo) return
         setClientSecret(res.data.data.clientSecret)
@@ -312,11 +313,21 @@ export function OfferStep({
         }
 
         if (code === 'PLAN_ACTIVE_WITHOUT_OFFER') {
-          const mensaje = t('offer.activeWithoutOffer', {
-            defaultValue:
-              'Tu plan {{tier}} ya está activo con los días de prueba, así que la oferta no se puede aplicar encima. No te cobramos nada ahora.',
-            tier: String((details as { currentTier?: string } | undefined)?.currentTier ?? ''),
-          })
+          const tier = String((details as { currentTier?: string } | undefined)?.currentTier ?? '')
+          // 🔴 26-sep: el plan activo puede venir de un cobro de un intento ANTERIOR (lo entrega el servidor al
+          // recuperarlo). A quien ya pagó no se le dice «no te cobramos nada».
+          const pagado = (details as { charged?: boolean } | undefined)?.charged === true
+          const mensaje = pagado
+            ? t('offer.activeWithoutOfferPaid', {
+                defaultValue:
+                  'Ya tienes activo el plan {{tier}} que pagaste en un intento anterior, así que la oferta no se puede aplicar encima. No te cobramos otra vez.',
+                tier,
+              })
+            : t('offer.activeWithoutOffer', {
+                defaultValue:
+                  'Tu plan {{tier}} ya está activo con los días de prueba, así que la oferta no se puede aplicar encima. No te cobramos nada ahora.',
+                tier,
+              })
           setDesenlace({ tipo: 'ya-activo', mensaje })
           return { ok: false, mensaje }
         }
@@ -338,7 +349,9 @@ export function OfferStep({
           code !== 'PLAN_NOT_CONFIGURED' &&
           // Sin respuesta del servidor (red caída, timeout) NO es un «no»: la petición pudo llegar y
           // cobrar. Se trata igual que un 503 — mismo cuerpo, mismo cobro (Codex ronda 10, P1).
-          (status === undefined || status === 503 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
+          // Y CUALQUIER 5xx, no sólo el 503: un 500 o un 502 del proxy (Render/Cloudflare) llega sin código y pudo ocurrir
+          // DESPUÉS del cargo. Tratarlo como error llano dejaba volver a pagar o elegir Gratis (full-testing 26-sep).
+          (status === undefined || status >= 500 || code === 'PLAN_ACTIVATION_PENDING' || code === 'PLAN_ACTIVATION_IN_PROGRESS')
         if (ambiguoDeCobro) {
           if (reintentos.current >= MAX_REINTENTOS) {
             reintentos.current = 0
@@ -359,6 +372,9 @@ export function OfferStep({
         const mensaje = message || t('offer.genericError', { defaultValue: 'No pudimos procesar el pago. Intenta de nuevo.' })
         setDesenlace({ tipo: 'rechazo', mensaje })
         marcarCobroEnCurso(false) // error claro (incluido PLAN_NOT_CONFIGURED): el servidor no cobró
+        // 🔴 Codex R12: la tarjeta YA confirmó este SetupIntent. Volver a pagar con él da 400 en Stripe; se pide uno
+        // nuevo, igual que tras un rechazo del banco (y como ya hace `PlanStep` ante cualquier fallo).
+        setRetryToken(n => n + 1)
         return { ok: false, mensaje }
       }
     },
@@ -425,13 +441,30 @@ export function OfferStep({
 
   // Sin respuesta definitiva tras los reintentos: el plan sigue bloqueado (pudo cobrarse). La única
   // salida es preguntar otra vez por el MISMO cobro — mismo cuerpo, así que nunca es un cargo nuevo.
+  // 🔴 Mientras una comprobación está en vuelo el botón se apaga: dos toques eran dos peticiones y dos reintentos
+  // en paralelo sobre el mismo cobro (full-testing 26-sep).
+  const [comprobando, setComprobando] = useState(false)
+  const comprobandoRef = useRef(false)
   const volverAComprobar = useCallback(() => {
+    if (comprobandoRef.current) return
+    comprobandoRef.current = true
+    setComprobando(true)
     const ultimo = ultimoCobro.current
     // Tras una recarga no hay cuerpo que reenviar (la tarjeta no se guarda en el navegador): se le
     // pregunta al servidor cómo quedó. Si ya está activo, el asistente avanza solo.
-    if (!ultimo) return onRefreshProgress()
-    reintentos.current = 0
-    void cobrar(ultimo.cuerpo, ultimo.plan)
+    let pregunta: Promise<unknown>
+    if (!ultimo) {
+      pregunta = Promise.resolve(onRefreshProgress())
+    } else {
+      reintentos.current = 0
+      pregunta = cobrar(ultimo.cuerpo, ultimo.plan)
+    }
+    void pregunta
+      .catch(() => undefined)
+      .finally(() => {
+        comprobandoRef.current = false
+        if (montado.current) setComprobando(false)
+      })
   }, [cobrar, onRefreshProgress])
 
   const avisoSinConfirmar =
@@ -460,7 +493,13 @@ export function OfferStep({
             )}
           </span>
         </span>
-        <Button variant="outline" className="shrink-0 gap-2 rounded-full" data-tour="offer-recheck-payment" onClick={volverAComprobar}>
+        <Button
+          variant="outline"
+          className="shrink-0 gap-2 rounded-full"
+          data-tour="offer-recheck-payment"
+          onClick={volverAComprobar}
+          disabled={comprobando}
+        >
           <RotateCw className="h-4 w-4" aria-hidden="true" />
           {t('offer.recheck', { defaultValue: 'Volver a comprobar mi pago' })}
         </Button>

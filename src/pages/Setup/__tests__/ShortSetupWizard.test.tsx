@@ -51,6 +51,7 @@ vi.mock('@/components/layouts/SetupWizardLayout', () => ({
     </div>
   ),
 }))
+const refrescoDevuelto = vi.hoisted(() => ({ valor: undefined as unknown }))
 vi.mock('../steps/OfferStep', () => ({
   OfferStep: ({
     onVistaDePlanes,
@@ -59,13 +60,13 @@ vi.mock('../steps/OfferStep', () => ({
   }: {
     onVistaDePlanes?: (v: boolean) => void
     activacionEnCurso?: boolean
-    onRefreshProgress?: () => void
+    onRefreshProgress?: () => void | Promise<void>
   }) => (
     <div data-testid="pantalla-oferta" data-activacion-en-curso={String(!!activacionEnCurso)}>
       <button type="button" onClick={() => onVistaDePlanes?.(true)}>
         simular-ver-planes
       </button>
-      <button type="button" onClick={() => onRefreshProgress?.()}>
+      <button type="button" onClick={() => (refrescoDevuelto.valor = onRefreshProgress?.())}>
         simular-volver-a-comprobar
       </button>
     </div>
@@ -282,6 +283,16 @@ describe('🔴 Codex ronda 10 — recargar con un cobro sin cerrar', () => {
     getProgress.mockResolvedValue(progresoDe({ planActivationStatus: 'ACTIVE' }))
     await userEvent.setup().click(screen.getByRole('button', { name: 'simular-volver-a-comprobar' }))
     await waitFor(() => expect(screen.queryByTestId('pantalla-oferta')).not.toBeInTheDocument())
+  })
+
+  it('🔴 Codex R12: el refresco devuelve su PROMESA — «Volver a comprobar» se apaga hasta que llega el progreso', async () => {
+    getProgress.mockResolvedValue(progresoDe({ planActivationStatus: 'IN_PROGRESS' }))
+    pintar()
+    await screen.findByTestId('pantalla-oferta')
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'simular-volver-a-comprobar' }))
+    expect(typeof (refrescoDevuelto.valor as Promise<void> | undefined)?.then).toBe('function')
+    await refrescoDevuelto.valor
   })
 
   it('sin cobro abierto, la oferta NO llega bloqueada (regresión)', async () => {

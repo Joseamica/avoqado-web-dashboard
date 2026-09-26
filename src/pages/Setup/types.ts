@@ -74,6 +74,7 @@ export interface SetupData {
 
 export interface StepProps {
   data: SetupData
-  onNext: (stepData: Partial<SetupData>) => void
+  /** El último paso recibe `false` si la finalización falló (el asistente largo); los demás lo ignoran. */
+  onNext: (stepData: Partial<SetupData>) => void | Promise<boolean | void>
   onBack?: () => void
 }

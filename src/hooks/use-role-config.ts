@@ -15,6 +15,7 @@ import {
 import { useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { deriveBusinessCategory, getSectorRoleDisplayNames } from '@/config/sector-terminology'
+import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 
 /**
  * Query key for role configs
@@ -61,6 +62,8 @@ export function useRoleConfig() {
     enabled: !!effectiveVenueId,
     staleTime: 5 * 60 * 1000, // 5 minutes - configs don't change often
     gcTime: 30 * 60 * 1000, // 30 minutes cache
+    // Roles sin `role-config:read` reciben 403 y se quedan con los nombres por defecto: reintentar no cambia eso.
+    retry: reintentarSalvoSinPermiso,
   })
 
   const configs = useMemo(() => configData?.configs ?? [], [configData?.configs])

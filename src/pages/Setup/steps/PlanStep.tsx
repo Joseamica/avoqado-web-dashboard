@@ -24,6 +24,7 @@ import { PlanComparison } from '@/components/billing/PlanComparison'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 import { novedadesDelPlan, valorDeCelda } from '@/config/plan-comparison'
 import { setupService } from '@/services/setup.service'
+import { pedidoCompartido, type PedidoEnVuelo } from './pedidoCompartido'
 import { useToast } from '@/hooks/use-toast'
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
@@ -93,10 +94,14 @@ export function PlanStep({
   // click, which reads exactly like a dead button. Track the state so we can offer a retry.
   const [intentStatus, setIntentStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retryToken, setRetryToken] = useState(0)
+  const setupIntentEnVuelo = useRef<PedidoEnVuelo<Awaited<ReturnType<typeof setupService.planSetupIntent>>>>(null)
   // El mensaje del último cobro fallido vive AQUÍ y no en el formulario: tras un fallo el formulario se vuelve a
   // montar con un SetupIntent nuevo, y su propio estado (con el mensaje del banco) se perdería.
   const [errorDePago, setErrorDePago] = useState<string | null>(null)
   const { toast } = useToast()
+  const avisarFalloDelIntent = useRef(() => {})
+  avisarFalloDelIntent.current = () =>
+    toast({ title: t('plan.setupIntentError', { defaultValue: 'No pudimos preparar el pago' }), variant: 'destructive' })
   // Dos fases en el MISMO paso: primero se elige el plan, luego se paga en una pantalla propia (como
   // la caja de una tienda). Antes la tarjeta quedaba debajo de la cuadrícula de planes, fuera de vista.
   const [fase, setFase] = useState<'elegir' | 'pagar'>('elegir')
@@ -199,8 +204,7 @@ export function PlanStep({
     setIntentStatus('loading')
     // 🔴 Nunca a la vista un SetupIntent posiblemente gastado mientras llega el nuevo (ver abajo).
     setClientSecret(null)
-    setupService
-      .planSetupIntent(venueId)
+    pedidoCompartido(setupIntentEnVuelo, `${venueId}:${retryToken}`, () => setupService.planSetupIntent(venueId))
       .then(res => {
         if (!active) return
         setClientSecret(res.data.data.clientSecret)
@@ -209,12 +213,13 @@ export function PlanStep({
       .catch(() => {
         if (!active) return
         setIntentStatus('error')
-        toast({ title: t('plan.setupIntentError', { defaultValue: 'No pudimos preparar el pago' }), variant: 'destructive' })
+        avisarFalloDelIntent.current()
       })
     return () => {
       active = false
     }
-  }, [venueId, retryToken, toast, t])
+    // `toast` y `t` NO van aquí: una referencia nueva de cualquiera de los dos pedía OTRO SetupIntent (26-sep).
+  }, [venueId, retryToken])
 
   // El iframe de Stripe no hereda nuestro CSS: el tema y la tipografía se le pasan aquí, y se
   // actualizan solos si la persona cambia de tema con la pantalla abierta.
@@ -441,7 +446,15 @@ export function PlanStep({
                       throw fallo
                     }
                   }
-                  onNext({ plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() } })
+                  const termino = await onNext({
+                    plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() },
+                  })
+                  // 🔴 Codex R13 — asistente LARGO: aquí el cobro va en la finalización del padre. Si falló, el SetupIntent
+                  // ya quedó confirmado con esta tarjeta: se pide uno nuevo y se DICE, en vez de quedarse mudo.
+                  if (termino === false) {
+                    setErrorDePago(t('plan.completeError', { defaultValue: 'No pudimos terminar tu alta. Intenta de nuevo.' }))
+                    setRetryToken(n => n + 1)
+                  }
                 }}
               />
             </Elements>

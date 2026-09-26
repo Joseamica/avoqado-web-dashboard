@@ -14,7 +14,7 @@
  *     pasar un plan de PAGO sin haber llamado a `activate-plan` una sola vez.
  *  4. El camino feliz manda el cuerpo `STANDARD` exacto del contrato (§3.6).
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -52,7 +52,13 @@ vi.mock('@stripe/react-stripe-js', () => ({
       </div>
     )
   },
-  PaymentElement: () => <div data-testid="payment-element" />,
+  // Como el REAL: avisa `onReady` cuando termina de pintar; el formulario no deja pagar antes.
+  PaymentElement: ({ onReady }: { onReady?: () => void }) => {
+    useEffect(() => {
+      onReady?.()
+    }, [onReady])
+    return <div data-testid="payment-element" />
+  },
   useStripe: () => ({ confirmSetup: (...a: unknown[]) => confirmSetup(...a) }),
   useElements: () => ({ secret: secretMontado.actual }),
 }))

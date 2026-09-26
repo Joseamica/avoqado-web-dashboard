@@ -9,7 +9,7 @@
  *  4. Una oferta que ya no está disponible NO se reintenta sola: se avisa y se enseña la vista
  *     estándar, donde el precio normal hay que volver a tocarlo.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,6 +23,7 @@ const confirmSetup = vi.fn()
 const trackPurchase = vi.fn()
 const track = vi.fn()
 
+const pagoListo = vi.hoisted(() => ({ auto: true }))
 const secretMontado = vi.hoisted(() => ({ actual: undefined as string | undefined }))
 vi.mock('@/services/setup.service', () => ({
   setupService: {
@@ -48,7 +49,13 @@ vi.mock('@stripe/react-stripe-js', () => ({
       </div>
     )
   },
-  PaymentElement: () => <div data-testid="payment-element" />,
+  // Como el REAL: avisa `onReady` cuando termina de pintar; el formulario no deja pagar antes.
+  PaymentElement: ({ onReady }: { onReady?: () => void }) => {
+    useEffect(() => {
+      if (pagoListo.auto) onReady?.()
+    }, [onReady])
+    return <div data-testid="payment-element" />
+  },
   useStripe: () => ({ confirmSetup: (...a: unknown[]) => confirmSetup(...a) }),
   useElements: () => ({ secret: secretMontado.actual }),
 }))
@@ -262,6 +269,19 @@ describe('OfferStep — el cobro', () => {
     expect(saveStep).not.toHaveBeenCalled()
   })
 
+  it('🔴 409 PLAN_ACTIVE_WITHOUT_OFFER sobre un cobro ANTERIOR: nunca le dice «no te cobramos nada» a quien ya pagó', async () => {
+    activatePlan.mockRejectedValue(
+      errorHttp(409, 'PLAN_ACTIVE_WITHOUT_OFFER', { details: { currentTier: 'PREMIUM', currentInterval: 'monthly', charged: true } }),
+    )
+
+    pintar()
+    await pagar()
+
+    expect(await screen.findByText(/pagaste en un intento anterior/i)).toBeInTheDocument()
+    expect(screen.queryByText(/No te cobramos nada/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Entrar a Avoqado/i })).toBeInTheDocument()
+  })
+
   it('409 LAUNCH_OFFER_UNAVAILABLE avisa, pide el progreso otra vez y NO vuelve a llamar a activate-plan', async () => {
     activatePlan.mockRejectedValue(errorHttp(409, 'LAUNCH_OFFER_UNAVAILABLE', { details: { reason: 'SOLD_OUT' } }))
 
@@ -320,6 +340,28 @@ describe('OfferStep — el cobro', () => {
     }
   })
 
+  it.each([500, 502, 504])('🔴 un %i sin código también pudo cobrar: confirma, no deja volver a pagar', async status => {
+    // El proxy (Render/Cloudflare) contesta 502/504 sin cuerpo nuestro, y un 500 pudo salir DESPUÉS del cargo.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      activatePlan.mockRejectedValue({ response: { status, data: {} } })
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      pintar()
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await user.click(screen.getByRole('button', { name: /pagar/i }))
+
+      expect(await screen.findByText(/Confirmando tu pago/i)).toBeInTheDocument()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000)
+      })
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+      expect(activatePlan.mock.calls[1]).toEqual(activatePlan.mock.calls[0]) // el MISMO cuerpo: nunca un segundo cobro
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('503 que nunca se resuelve se rinde después de 3 reintentos y lo DICE', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
@@ -341,6 +383,59 @@ describe('OfferStep — el cobro', () => {
       expect(onActivated).not.toHaveBeenCalled()
     } finally {
       vi.useRealTimers()
+    }
+  })
+
+  it('🔴 «Volver a comprobar» se apaga mientras la comprobación está en vuelo: dos toques no son dos peticiones', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      pintar()
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await user.click(screen.getByRole('button', { name: /pagar/i }))
+      for (let i = 0; i < 4; i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10_000)
+        })
+      }
+      const boton = await screen.findByRole('button', { name: /Volver a comprobar/i })
+      const antes = activatePlan.mock.calls.length
+
+      activatePlan.mockReturnValue(new Promise(() => undefined)) // el servidor no contesta todavía
+      await user.click(boton)
+      expect(boton).toBeDisabled()
+      await user.click(boton)
+      expect(activatePlan.mock.calls.length).toBe(antes + 1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('🔴 tras recargar, «Volver a comprobar» se queda apagado mientras el progreso sigue en camino', async () => {
+    let soltar: () => void = () => undefined
+    onRefreshProgress.mockReturnValue(new Promise<void>(r => (soltar = r)))
+    pintar({ activacionEnCurso: true })
+
+    const boton = await screen.findByRole('button', { name: /Volver a comprobar/i })
+    const user = userEvent.setup()
+    await user.click(boton)
+    expect(boton).toBeDisabled()
+    await user.click(boton)
+    expect(onRefreshProgress).toHaveBeenCalledTimes(1)
+
+    await act(async () => soltar())
+    await waitFor(() => expect(boton).toBeEnabled())
+  })
+
+  it('🔴 sin el aviso de Stripe (`onReady`) no se puede pagar la oferta', async () => {
+    pagoListo.auto = false
+    try {
+      pintar()
+      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      expect(screen.getByRole('button', { name: /pagar/i })).toBeDisabled()
+    } finally {
+      pagoListo.auto = true
     }
   })
 
@@ -417,6 +512,8 @@ describe('OfferStep — sin números en el código', () => {
     expect(screen.queryByText(/se está confirmando|Confirmando tu pago/i)).not.toBeInTheDocument()
     // un solo intento: ningún reintento arregla una configuración rota
     expect(activatePlan).toHaveBeenCalledTimes(1)
+    // 🔴 Codex R12: la tarjeta ya confirmó ese SetupIntent — para volver a pagar se pide uno NUEVO
+    await waitFor(() => expect(planSetupIntent).toHaveBeenCalledTimes(2))
   })
 
   /**

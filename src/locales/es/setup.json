@@ -1,6 +1,6 @@
 {
   "wizard": {
-    "finishLater": "Terminar mas tarde",
+    "finishLater": "Terminar más tarde",
     "next": "Siguiente",
     "back": "Atras",
     "accept": "Acepto y continuo",
@@ -28,7 +28,7 @@
     "continueWithGoogle": "Continuar con Google"
   },
   "step2": {
-    "title": "Cuentanos sobre tu negocio",
+    "title": "Cuéntanos sobre tu negocio",
     "subtitle": "Esto es lo que usaremos en tus correos, recibos y mensajes a los clientes",
     "businessNameLabel": "Nombre del negocio",
     "businessNamePlaceholder": "Ej: Tacos El Dorado",
@@ -42,22 +42,22 @@
     "noPhysicalAddress": "Mi negocio no tiene una dirección física permanente"
   },
   "step3": {
-    "title": "Que tipo de negocio describe mejor a {{businessName}}?",
-    "titleFallback": "Que tipo de negocio tienes?",
+    "title": "¿Qué tipo de negocio describe mejor a {{businessName}}?",
+    "titleFallback": "¿Qué tipo de negocio tienes?",
     "subtitle": "Busca o selecciona tu tipo de negocio",
     "searchPlaceholder": "Buscar tipo de negocio...",
     "noResults": "No se encontraron resultados"
   },
   "step4": {
-    "title": "Cuentanos de tu negocio",
+    "title": "Cuéntanos de tu negocio",
     "subtitle": "Cada negocio es único. Queremos conocer el tuyo.",
-    "entityTypeLabel": "Que tipo de entidad es tu negocio?",
+    "entityTypeLabel": "¿Qué tipo de entidad es tu negocio?",
     "entityTypePlaceholder": "Selecciona el tipo de entidad",
     "commercialNameLabel": "Nombre comercial",
     "commercialNamePlaceholder": "Nombre con el que se conoce tu negocio",
-    "commercialNameHint": "Este es el nombre que tus clientes veran en sus recibos y estados de cuenta",
+    "commercialNameHint": "Este es el nombre que tus clientes verán en sus recibos y estados de cuenta",
     "entityTypeRequired": "Selecciona el tipo de entidad de tu negocio",
-    "helpLink": "Ayudame a averiguarlo"
+    "helpLink": "Ayúdame a averiguarlo"
   },
   "step5": {
     "title": "Verifica tu identidad para activar tu cuenta",
@@ -78,28 +78,28 @@
     "curpHint": "18 caracteres alfanuméricos",
     "legalAddressLabel": "Dirección legal",
     "legalAddressPlaceholder": "Busca tu dirección legal",
-    "securityNotice": "Tu información esta protegida con encriptacion de nivel bancario y nunca sera compartida con terceros sin tu consentimiento."
+    "securityNotice": "Tu información está protegida con encriptación de nivel bancario y nunca será compartida con terceros sin tu consentimiento."
   },
   "step6": {
-    "title": "Terminos y condiciones",
-    "subtitle": "Por favor lee y acepta nuestros terminos para continuar",
-    "termsTitle": "Terminos de Servicio",
+    "title": "Términos y condiciones",
+    "subtitle": "Por favor lee y acepta nuestros términos para continuar",
+    "termsTitle": "Términos de Servicio",
     "privacyTitle": "Aviso de Privacidad",
-    "termsCheckbox": "He leido y acepto los Terminos de Servicio",
-    "privacyCheckbox": "He leido y acepto el Aviso de Privacidad",
-    "scrollToRead": "Desplazate hasta el final para poder aceptar",
-    "acceptTerms": "Acepto los Terminos de Servicio",
-    "termsPlaceholder": "Los terminos de servicio se cargaran aqui...",
-    "privacyPlaceholder": "El aviso de privacidad se cargara aqui..."
+    "termsCheckbox": "He leído y acepto los Términos de Servicio",
+    "privacyCheckbox": "He leído y acepto el Aviso de Privacidad",
+    "scrollToRead": "Desplázate hasta el final para poder aceptar",
+    "acceptTerms": "Acepto los Términos de Servicio",
+    "termsPlaceholder": "Los términos de servicio se cargarán aquí...",
+    "privacyPlaceholder": "El aviso de privacidad se cargará aquí..."
   },
   "step7": {
     "title": "Vincula tu cuenta bancaria",
-    "subtitle": "Los pagos con tarjeta se transferiran a tu cuenta en 1-2 dias habiles",
+    "subtitle": "Los pagos con tarjeta se transferirán a tu cuenta en 1-2 días hábiles",
     "clabeLabel": "CLABE interbancaria",
-    "clabePlaceholder": "18 digitos",
-    "clabeHint": "Puedes encontrar tu CLABE en tu estado de cuenta bancario o en tu banca en linea",
+    "clabePlaceholder": "18 dígitos",
+    "clabeHint": "Puedes encontrar tu CLABE en tu estado de cuenta bancario o en tu banca en línea",
     "bankNameLabel": "Banco",
-    "bankNamePlaceholder": "Se detectara automaticamente",
+    "bankNamePlaceholder": "Se detectará automáticamente",
     "accountHolderLabel": "Titular de la cuenta",
     "accountHolderPlaceholder": "Nombre como aparece en el banco",
     "accountHolderRequired": "El titular de la cuenta es obligatorio",
@@ -108,8 +108,8 @@
     "accountTypePlaceholder": "Selecciona el tipo de cuenta",
     "accountTypeChecking": "Cuenta de cheques",
     "accountTypeSavings": "Cuenta de ahorro",
-    "securityNotice": "Tu información bancaria esta protegida con encriptacion de nivel bancario. Solo la usamos para depositar tus pagos.",
-    "invalidClabe": "La CLABE debe tener exactamente 18 digitos"
+    "securityNotice": "Tu información bancaria está protegida con encriptación de nivel bancario. Solo la usamos para depositar tus pagos.",
+    "invalidClabe": "La CLABE debe tener exactamente 18 dígitos"
   },
   "step8": {
     "title": "Activa cobros online (opcional)",
@@ -176,33 +176,33 @@
     },
     "types": {
       "restaurant": "Restaurante",
-      "fastFood": "Comida rapida",
+      "fastFood": "Comida rápida",
       "bar": "Bar / Antro",
-      "cafe": "Cafeteria",
-      "bakery": "Panaderia / Pasteleria",
+      "cafe": "Cafetería",
+      "bakery": "Panadería / Pastelería",
       "foodTruck": "Food truck",
       "catering": "Catering",
       "cloudKitchen": "Cocina oculta / Dark kitchen",
       "retailStore": "Tienda general",
       "convenienceStore": "Tienda de conveniencia",
       "clothing": "Tienda de ropa",
-      "electronics": "Tienda de electronica",
+      "electronics": "Tienda de electrónica",
       "pharmacy": "Farmacia",
       "telecom": "Tienda de telecomunicaciones",
-      "salon": "Salon de belleza / Estetica",
+      "salon": "Salón de belleza / Estética",
       "spa": "Spa / Centro de bienestar",
       "fitness": "Gimnasio / Fitness",
-      "clinic": "Consultorio medico / Clinica",
+      "clinic": "Consultorio médico / Clínica",
       "veterinary": "Veterinaria",
-      "autoService": "Taller mecanico / Automotriz",
-      "laundry": "Lavanderia / Tintoreria",
-      "repairShop": "Taller de reparacion",
+      "autoService": "Taller mecánico / Automotriz",
+      "laundry": "Lavandería / Tintorería",
+      "repairShop": "Taller de reparación",
       "hotel": "Hotel",
       "hostel": "Hostal",
       "resort": "Resort",
       "cinema": "Cine",
       "nightclub": "Antro / Club nocturno",
-      "eventVenue": "Salon de eventos",
+      "eventVenue": "Salón de eventos",
       "arcade": "Arcade / Centro de juegos",
       "bowling": "Boliche",
       "other": "Otro"
@@ -218,7 +218,7 @@
       "saDeCV": "S.A. de C.V.",
       "sDeRLDeCV": "S. de R.L. de C.V.",
       "sc": "S.C. (Sociedad Civil)",
-      "ac": "A.C. (Asociacion Civil)",
+      "ac": "A.C. (Asociación Civil)",
       "sapiDeCV": "S.A.P.I. de C.V.",
       "sas": "S.A.S. (Sociedad por Acciones Simplificada)"
     }
@@ -251,6 +251,7 @@
     "cardError": "No se pudo guardar la tarjeta",
     "promoLineFromQuote": "Paga hoy: {{count}} meses a {{intro}}, luego {{list}} al mes. IVA incluido.",
     "chargeError": "No pudimos procesar el pago. Intenta de nuevo.",
+    "completeError": "No pudimos terminar tu alta. Intenta de nuevo.",
     "cardSecure": "Tu tarjeta viaja cifrada a Stripe. Avoqado nunca ve el número completo.",
     "perMonth": "al mes",
     "perYear": "al año",
@@ -309,6 +310,7 @@
     "genericError": "No pudimos procesar el pago. Intenta de nuevo.",
     "alreadyActivated": "Ya tienes el plan {{tier}} activo en este negocio.",
     "activeWithoutOffer": "Tu plan {{tier}} ya está activo con los días de prueba, así que la oferta no se puede aplicar encima. No te cobramos nada ahora.",
+    "activeWithoutOfferPaid": "Ya tienes activo el plan {{tier}} que pagaste en un intento anterior, así que la oferta no se puede aplicar encima. No te cobramos otra vez.",
     "alreadyActiveTitle": "Tu plan ya está activo",
     "enter": "Entrar a Avoqado",
     "changePlanNote": "Para cambiar de plan, entra a Facturación.",
