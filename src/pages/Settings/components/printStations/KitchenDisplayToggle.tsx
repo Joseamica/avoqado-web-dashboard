@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -20,7 +20,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
-import { setPrintStationKitchenDisplay, type PrintStation } from '@/services/printStations.service'
+import { setPrintStationKitchenDisplay, type PrintStation, type PrintStationsConfig } from '@/services/printStations.service'
 import { StaffRole } from '@/types'
 import { codigoDeRechazo, estadoDeCasilla, RECHAZO_NO_LANZADA, RECHAZO_REQUIERE_PRO } from './kitchenDisplay'
 
@@ -57,17 +57,32 @@ export function KitchenDisplayToggle({
     prendida: station.hasKitchenDisplay,
   })
 
+  // M-5: la tarjeta ámbar «pide Pro» no debe quedarse pegada — si el estado deja de pedir Pro (el plan se resolvió,
+  // en otra pestaña o tras el invalidateQueries de abajo), se apaga sola.
+  useEffect(() => {
+    if (estado.tipo !== 'REQUIERE_PRO') setPideMejorar(false)
+  }, [estado.tipo])
+
   const mutation = useMutation({
     mutationFn: (enabled: boolean) => setPrintStationKitchenDisplay(venueId, station.id, enabled),
-    onSuccess: (_data, enabled) => {
+    onSuccess: (estacionActualizada, enabled) => {
       toast({ title: t(enabled ? 'kitchenDisplay.enabledToast' : 'kitchenDisplay.disabledToast', { name: station.name }) })
+      // M-4: escribe la estación devuelta en la caché de inmediato — no esperar al refetch (que puede tardar o
+      // fallar) para que el switch refleje el nuevo estado. Si la caché está vacía, no hace nada (la deja como está;
+      // el refetch de abajo la llena).
+      qc.setQueryData<PrintStationsConfig>(['printStations', venueId, 'config'], prev =>
+        prev ? { ...prev, stations: prev.stations.map(s => (s.id === estacionActualizada.id ? estacionActualizada : s)) } : prev,
+      )
       qc.invalidateQueries({ queryKey: ['printStations', venueId] })
     },
     onError: error => {
       const code = codigoDeRechazo(error)
-      // El plan cambió desde que se cargó la pantalla: se ofrece el plan, no un error.
+      // El plan cambió desde que se cargó la pantalla: se ofrece el plan, no un error. Se invalida la consulta de
+      // plan-tier (I-2) para que el dashboard deje de creer que el negocio tiene Pro — el prefijo cubre
+      // `planTierQueryKey` (ver comentario Codex R4-8 en `use-tier-feature-access.ts`).
       if (code === RECHAZO_REQUIERE_PRO) {
         setPideMejorar(true)
+        qc.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
         return
       }
       const description =

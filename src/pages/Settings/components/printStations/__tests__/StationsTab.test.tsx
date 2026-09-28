@@ -12,11 +12,12 @@ const h = vi.hoisted(() => ({
   role: 'OWNER' as string,
   hasAccess: true,
   setMock: vi.fn(),
+  configShouldError: false,
 }))
 
 vi.mock('@/services/printStations.service', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/printStations.service')>()),
-  getPrintStationsConfig: () => Promise.resolve(h.config),
+  getPrintStationsConfig: () => (h.configShouldError ? Promise.reject(new Error('network')) : Promise.resolve(h.config)),
   getPrinters: () => Promise.resolve([]),
   setPrintStationKitchenDisplay: (...a: unknown[]) => h.setMock(...a),
   getRouting: () => Promise.resolve({ categories: [], products: [{ id: 'pr1', name: 'Taco', categoryId: null, printStationId: null }], unroutedCategories: 0, hasDefault: true }),
@@ -56,6 +57,7 @@ beforeEach(() => {
   h.role = 'OWNER'
   h.hasAccess = true
   h.setMock.mockReset()
+  h.configShouldError = false
 })
 
 function pintar() {
@@ -145,5 +147,27 @@ describe('StationsTab — tarjetas por estación (diseño A)', () => {
     await screen.findByTestId('station-card-s1')
     await userEvent.click(screen.getByRole('button', { name: 'Probar' }))
     expect(await screen.findByText('Simular una comanda')).toBeInTheDocument()
+  })
+
+  // M-3: un fallo de red al cargar se ve distinto de «aún no hay estaciones» — y se puede reintentar.
+  it('M-3: un error al cargar se distingue del vacío y permite reintentar', async () => {
+    h.configShouldError = true
+    pintar()
+    expect(await screen.findByText('No se pudieron cargar las estaciones')).toBeInTheDocument()
+    expect(screen.queryByText('Aún no hay estaciones. Crea la primera para empezar a rutear comandas.')).not.toBeInTheDocument()
+
+    h.configShouldError = false
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByTestId('station-card-s1')).toBeInTheDocument()
+  })
+
+  // M-9: con cero estaciones «Probar» aparece deshabilitado — debe decir por qué.
+  it('M-9: «Probar» deshabilitado explica por qué', async () => {
+    h.config = { stations: [], kitchenDisplayOpenToClients: true }
+    pintar()
+    await screen.findByText('Aún no hay estaciones. Crea la primera para empezar a rutear comandas.')
+    const boton = screen.getByRole('button', { name: 'Probar' })
+    expect(boton).toBeDisabled()
+    expect(boton).toHaveAttribute('title', 'Crea una estación primero')
   })
 })

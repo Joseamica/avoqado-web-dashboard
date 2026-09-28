@@ -185,4 +185,73 @@ describe('KitchenDisplayToggle', () => {
       ),
     )
   })
+
+  // I-2: tras un 403 REQUIRES_PRO, el dashboard debe dejar de creer que el negocio tiene Pro. Como `useTierFeatureAccess`
+  // está mockeado como un valor estático (no reactivo a TanStack Query), la aserción que el setup soporta es que se
+  // invalida la clave del plan-tier (`['venueFeatures', venueId]`, prefijo que cubre `planTierQueryKey` — ver el
+  // comentario Codex R4-8 en `use-tier-feature-access.ts`): eso es lo que hace que un remount / refetch real deje de
+  // ofrecer «Prender».
+  it('I-2: tras el 403 REQUIRES_PRO invalida la consulta de plan-tier del venue', async () => {
+    h.setMock.mockRejectedValue({ response: { status: 403, data: { message: 'x', code: 'KITCHEN_DISPLAY_REQUIRES_PRO' } } })
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <KitchenDisplayToggle venueId="v1" station={estacion()} abiertaAClientes />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await userEvent.click(casilla())
+    await userEvent.click(screen.getByRole('button', { name: 'Prender pantalla' }))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['venueFeatures', 'v1'] }))
+  })
+
+  // M-5: la tarjeta ámbar «pídele al dueño / ver planes» no debe quedarse pegada — si el estado deja de ser
+  // REQUIERE_PRO (el plan se resolvió a Pro), `pideMejorar` se apaga solo.
+  it('M-5: pideMejorar se apaga cuando el estado deja de pedir Pro', async () => {
+    h.hasAccess = false
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    // Un `rerender(ui)` con el MISMO objeto de elemento hace que React se salte la re-renderización (bailout por
+    // igualdad referencial) y nunca vuelva a invocar el hook mockeado — hay que construir el árbol de nuevo cada vez.
+    const pintarLocal = () => (
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <KitchenDisplayToggle venueId="v1" station={estacion()} abiertaAClientes />
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(pintarLocal())
+    await userEvent.click(casilla())
+    expect(screen.getByText('La pantalla de cocina es del plan Pro.')).toBeInTheDocument()
+
+    h.hasAccess = true
+    rerender(pintarLocal())
+    expect(screen.queryByText('La pantalla de cocina es del plan Pro.')).not.toBeInTheDocument()
+  })
+
+  // M-4: el resultado de la mutación (la estación devuelta por el servidor) se escribe en la caché de configuración
+  // ANTES del refetch. Se prueba leyendo la caché directamente: en este QueryClient aislado no hay ningún `useQuery`
+  // montado para esa clave, así que `invalidateQueries` no dispara ningún fetch real — si la caché ya trae el cambio,
+  // es porque vino de `setQueryData`, no de un refetch que "no resolvió".
+  it('M-4: onSuccess escribe la estación devuelta en la caché de configuración antes de que el refetch resuelva', async () => {
+    const actualizada = estacion({ hasKitchenDisplay: true })
+    h.setMock.mockResolvedValue(actualizada)
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const configKey = ['printStations', 'v1', 'config']
+    qc.setQueryData(configKey, { stations: [estacion()], kitchenDisplayOpenToClients: true })
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <KitchenDisplayToggle venueId="v1" station={estacion()} abiertaAClientes />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await userEvent.click(casilla())
+    await userEvent.click(screen.getByRole('button', { name: 'Prender pantalla' }))
+    await waitFor(() => {
+      const cache = qc.getQueryData<{ stations: PrintStation[] }>(configKey)
+      expect(cache?.stations.find(s => s.id === 's1')?.hasKitchenDisplay).toBe(true)
+    })
+  })
 })

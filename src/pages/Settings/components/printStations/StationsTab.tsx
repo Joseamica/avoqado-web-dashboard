@@ -56,7 +56,12 @@ export function StationsTab({ venueId }: { venueId: string }) {
 
   // Estaciones + puerta de lanzamiento de la pantalla (servidor, fase 3.1). Toda mutación invalida el prefijo
   // ['printStations', venueId], que también refresca esta clave.
-  const { data: config, isLoading } = useQuery({
+  const {
+    data: config,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['printStations', venueId, 'config'],
     queryFn: () => getPrintStationsConfig(venueId),
     enabled: !!venueId,
@@ -84,7 +89,13 @@ export function StationsTab({ venueId }: { venueId: string }) {
       <p className="text-sm text-muted-foreground">{t('stations.intro', { kitchen: term('kitchen') })}</p>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={() => setProbando(true)} disabled={!stations?.length} data-tour="print-station-test">
+        <Button
+          variant="outline"
+          onClick={() => setProbando(true)}
+          disabled={!stations?.length}
+          title={!stations?.length ? t('stations.testDisabledHint') : undefined}
+          data-tour="print-station-test"
+        >
           <PlayCircle className="mr-2 h-4 w-4" /> {t('stations.test')}
         </Button>
         <Button onClick={openCreate} data-tour="print-station-add">
@@ -96,6 +107,15 @@ export function StationsTab({ venueId }: { venueId: string }) {
         <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
         </div>
+      ) : isError ? (
+        <Card className="border-input">
+          <CardContent className="space-y-3 py-10 text-center text-sm text-muted-foreground">
+            <p>{t('stations.loadError')}</p>
+            <Button variant="outline" onClick={() => refetch()} className="cursor-pointer">
+              {t('stations.retry')}
+            </Button>
+          </CardContent>
+        </Card>
       ) : (stations?.length ?? 0) === 0 ? (
         <Card className="border-input">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">{t('stations.empty')}</CardContent>
