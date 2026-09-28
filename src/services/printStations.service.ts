@@ -35,8 +35,10 @@ export interface PrintStation {
   isDefault: boolean
   /** ¿Aquí se empaca? Recibe el ticket consolidado del pedido de reparto. UNA por negocio. */
   isPacking: boolean
-  /** «Se atiende con pantalla de cocina». Sin ninguna activa, las ventas no crean comanda KDS. Etapa 1: sólo SUPERADMIN la cambia. */
+  /** «Se atiende con pantalla de cocina». Prender pasa por la puerta de lanzamiento y el plan Pro (etapa 3, servidor). */
   hasKitchenDisplay: boolean
+  /** Desde cuándo la pantalla de esta estación enseña comandas: el servidor lo sella al prenderla (etapa 3). */
+  kitchenDisplaySince?: string | null
   active: boolean
   displayOrder: number
   printer?: { id: string; name: string; active: boolean; lastStatus: string | null } | null
@@ -124,6 +126,22 @@ export interface UpdateRoutingInput {
 export async function getPrintStations(venueId: string): Promise<PrintStation[]> {
   const res = await api.get(`${base(venueId)}/`)
   return res.data.data
+}
+
+export interface PrintStationsConfig {
+  stations: PrintStation[]
+  /**
+   * Puerta de lanzamiento del servidor (`PANTALLA_ABIERTA_A_CLIENTES`, fase 3.6 de la pantalla de cocina). Un servidor
+   * anterior a la etapa 3 no manda el campo ⇒ se lee como CERRADA: nunca se le ofrece al cliente algo que el servidor no
+   * conoce.
+   */
+  kitchenDisplayOpenToClients: boolean
+}
+
+/** Estaciones + puerta de lanzamiento (misma ruta que `getPrintStations`). Clave: `['printStations', venueId, 'config']`. */
+export async function getPrintStationsConfig(venueId: string): Promise<PrintStationsConfig> {
+  const res = await api.get(`${base(venueId)}/`)
+  return { stations: res.data.data, kitchenDisplayOpenToClients: res.data.kitchenDisplayOpenToClients === true }
 }
 
 export async function createPrintStation(venueId: string, body: CreateStationInput): Promise<PrintStation> {

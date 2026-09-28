@@ -81,6 +81,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Campañas de correo del negocio a SUS clientes (promos, cumpleaños). No confundir
       // con el Marketing de superadmin, que es Avoqado → los venues.
       'CUSTOMER_CAMPAIGNS',
+      // Pantalla de cocina por estación (etapa 3, decisión D-A del 27-sep: Pro, con lo de sin internet incluido).
+      // 🔴 Todavía NO se anuncia: `FUNCIONES_SIN_LANZAR` (plan-comparison.ts) la esconde de la tabla hasta la fase 3.6.
+      'KITCHEN_DISPLAY',
     ],
   },
   {

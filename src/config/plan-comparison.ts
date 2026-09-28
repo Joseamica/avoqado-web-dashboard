@@ -31,6 +31,13 @@ export interface CategoriaDeComparacion {
 
 const TODOS: Record<TierComparado, ValorDeCelda> = { FREE: true, PRO: true, PREMIUM: true }
 
+/**
+ * Funciones que ya están en `includes` (el paywall debe conocerlas) pero que TODAVÍA NO se ofrecen a clientes: no salen
+ * en la tabla hasta que se abre su puerta de calidad. `KITCHEN_DISPLAY` se quita de aquí —y gana su fila— en la fase 3.6
+ * de la pantalla de cocina, junto con `PANTALLA_ABIERTA_A_CLIENTES` del servidor.
+ */
+export const FUNCIONES_SIN_LANZAR: readonly string[] = ['KITCHEN_DISPLAY']
+
 export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
   {
     key: 'sell',

@@ -28,6 +28,10 @@ describe('plan-catalog', () => {
     expect(getTierForFeature('NOPE_XYZ')).toBeNull()
   })
 
+  it('KITCHEN_DISPLAY es Pro (espejo del servidor, decisión D-A del 27-sep)', () => {
+    expect(getTierForFeature('KITCHEN_DISPLAY')).toBe('PRO')
+  })
+
   it('Premium is self-serve and priced at $1,699', () => {
     const premium = PLAN_TIERS.find(t => t.id === 'PREMIUM')!
     expect(premium.checkout).toBe('self_serve')

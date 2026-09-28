@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { PLAN_TIERS } from '../plan-catalog'
-import { PLAN_COMPARISON, TIERS_COMPARADOS, valorDeCelda } from '../plan-comparison'
+import { FUNCIONES_SIN_LANZAR, PLAN_COMPARISON, TIERS_COMPARADOS, valorDeCelda } from '../plan-comparison'
 
 const fila = (key: string) => PLAN_COMPARISON.flatMap(c => c.rows).find(r => r.key === key)!
 
@@ -14,8 +14,19 @@ describe('tabla de comparación de planes', () => {
     const enTabla = new Set(PLAN_COMPARISON.flatMap(c => c.rows.flatMap(r => r.codes ?? [])))
     const faltan = PLAN_TIERS.filter(t => TIERS_COMPARADOS.includes(t.id as never))
       .flatMap(t => t.includes)
-      .filter(code => !enTabla.has(code))
+      .filter(code => !enTabla.has(code) && !FUNCIONES_SIN_LANZAR.includes(code))
     expect(faltan).toEqual([])
+  })
+
+  it('🔴 la pantalla de cocina no se anuncia en la tabla antes de su lanzamiento (fase 3.6)', () => {
+    const enTabla = new Set(PLAN_COMPARISON.flatMap(c => c.rows.flatMap(r => r.codes ?? [])))
+    expect(enTabla.has('KITCHEN_DISPLAY')).toBe(false)
+    expect(FUNCIONES_SIN_LANZAR).toContain('KITCHEN_DISPLAY')
+  })
+
+  it('cada función «sin lanzar» sigue en el catálogo (la lista no se queda con basura)', () => {
+    const delCatalogo = new Set(PLAN_TIERS.flatMap(t => t.includes))
+    expect(FUNCIONES_SIN_LANZAR.filter(code => !delCatalogo.has(code))).toEqual([])
   })
 
   it('las palomitas siguen al catálogo: CFDI sólo Premium, lealtad desde Pro, chatbot en todos', () => {
