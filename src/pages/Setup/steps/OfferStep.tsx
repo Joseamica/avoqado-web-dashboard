@@ -672,6 +672,8 @@ export function OfferStep({
               onBusyChange={setTarjetaTrabajando}
               errorMessage={desenlace.tipo === 'rechazo' ? desenlace.mensaje : null}
               onConfirmed={pm => pagarLaOferta(pm)}
+              // Stripe no cargó el formulario: se muestra el «Reintentar» de arriba, que pide un SetupIntent nuevo.
+              onLoadError={() => setIntentStatus('error')}
             />
           </Elements>
         )}

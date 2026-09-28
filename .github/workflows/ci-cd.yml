@@ -249,9 +249,24 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci --prefer-offline
 
+      # 🔴 Stripe: producción cobra en modo REAL, así que el dashboard necesita la llave pública REAL — la misma
+      # STRIPE_PUBLISHABLE_KEY que tiene el servidor en Render. La llave de pruebas del bloque `env` de arriba es sólo
+      # para CI/demo: con ella el formulario de tarjeta no carga (Stripe responde 400 a un SetupIntent real) y el botón
+      # de pagar se quedaba girando. Pasó en producción del 9-feb al 28-sep de 2026. Es pública por diseño (va en el
+      # bundle), por eso vive aquí como las demás llaves públicas.
+      - name: 🔐 Stripe key must be LIVE in production
+        env:
+          VITE_STRIPE_PUBLISHABLE_KEY: 'pk_live_ng36HpQnpUfxlfWQ69VC79B3004HA2xzRX'
+        run: |
+          case "$VITE_STRIPE_PUBLISHABLE_KEY" in
+            pk_live_*) echo "Stripe publishable key: live" ;;
+            *) echo "::error::VITE_STRIPE_PUBLISHABLE_KEY no es pk_live_ — el pago con tarjeta no cargaría en producción"; exit 1 ;;
+          esac
+
       - name: 🏗️ Build for Production
         run: npm run build
         env:
+          VITE_STRIPE_PUBLISHABLE_KEY: 'pk_live_ng36HpQnpUfxlfWQ69VC79B3004HA2xzRX'
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.avoqado.io' }}
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           # MUST match the backend's ENABLE_VENUE_BASE_SUBSCRIPTION (Render), which is ON.
