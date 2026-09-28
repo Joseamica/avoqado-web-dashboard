@@ -41,6 +41,12 @@ interface PlanCardFormProps {
    * convirtiera este aviso en `busy`, el candado se alimentaría a sí mismo y nunca se apagaría.
    */
   onBusyChange?: (ocupado: boolean) => void
+  /**
+   * Stripe no pudo cargar el formulario (`loaderror`: p. ej. la llave pública no es del mismo modo que el SetupIntent).
+   * Sin esto el botón giraba para siempre esperando un `onReady` que nunca llega (producción, 28-sep). Quien lo monta
+   * muestra su «Reintentar», que pide un SetupIntent nuevo.
+   */
+  onLoadError?: () => void
 }
 
 export function PlanCardForm({
@@ -55,6 +61,7 @@ export function PlanCardForm({
   errorMessage,
   dataTourPrefix = 'setup-plan',
   onBusyChange,
+  onLoadError,
 }: PlanCardFormProps) {
   const stripe = useStripe()
   const elements = useElements()
@@ -63,6 +70,7 @@ export function PlanCardForm({
   const [cardError, setCardError] = useState<string | null>(null)
   // El iframe de Stripe tarda en pintar; mientras tanto se ve la silueta del formulario, no un hueco.
   const [listo, setListo] = useState(false)
+  const [falloCarga, setFalloCarga] = useState(false)
   // Con prueba gratis hay DOS caminos: se elige uno y un solo botón lo ejecuta. Arranca en la prueba
   // (hoy no se cobra nada), que era el botón principal.
   const [eleccion, setEleccion] = useState<'trial' | 'pay'>(trialLabel ? 'trial' : 'pay')
@@ -106,7 +114,9 @@ export function PlanCardForm({
 
   // 🔴 Pagar sólo con el formulario de Stripe LISTO (`onReady`): tocar antes confirmaba contra un iframe sin montar y
   // el clic se perdía en silencio (full-testing 26-sep).
-  const bloqueado = submitting || !!busy || !listo
+  // Si Stripe no cargó, el botón queda apagado pero NO girando: no hay nada en camino.
+  const esperando = submitting || !!busy || (!listo && !falloCarga)
+  const bloqueado = esperando || falloCarga
   useEffect(() => {
     onBusyChange?.(submitting)
   }, [submitting, onBusyChange])
@@ -174,7 +184,7 @@ export function PlanCardForm({
       )}
 
       <div className="relative min-h-[220px]">
-        {!listo && (
+        {!listo && !falloCarga && (
           <div className="absolute inset-0 flex flex-col gap-4" aria-hidden="true">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-12 w-full rounded-[10px]" />
@@ -186,7 +196,14 @@ export function PlanCardForm({
           </div>
         )}
         <div className={cn('transition-opacity duration-200 ease-out', listo ? 'opacity-100' : 'opacity-0')}>
-          <PaymentElement onReady={() => setListo(true)} />
+          <PaymentElement
+            onReady={() => setListo(true)}
+            onLoadError={evento => {
+              console.error('[PlanCardForm] Stripe no pudo cargar el formulario de pago', evento?.error)
+              setFalloCarga(true)
+              onLoadError?.()
+            }}
+          />
         </div>
       </div>
 
@@ -197,9 +214,11 @@ export function PlanCardForm({
         })}
       </p>
 
-      {(cardError || errorMessage) && (
+      {(cardError || errorMessage || falloCarga) && (
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {cardError || errorMessage}
+          {cardError ||
+            errorMessage ||
+            t('plan.setupIntentErrorBody', { defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.' })}
         </p>
       )}
 
@@ -207,11 +226,11 @@ export function PlanCardForm({
         <Button
           data-tour={pagaHoy ? `${dataTourPrefix}-pay-now` : `${dataTourPrefix}-start-trial`}
           disabled={bloqueado}
-          aria-busy={bloqueado}
+          aria-busy={esperando}
           onClick={() => confirm(pagaHoy)}
           className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
         >
-          {bloqueado && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+          {esperando && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
           {etiqueta}
         </Button>
         {!opciones && payNowHint && <p className="px-2 text-center text-xs text-muted-foreground">{payNowHint}</p>}

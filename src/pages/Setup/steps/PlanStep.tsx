@@ -428,6 +428,8 @@ export function PlanStep({
                 payNowHint={payNowHint}
                 busy={pagoBloqueado ?? cobroEnVuelo}
                 onBusyChange={setCobrando}
+                // Stripe no cargó el formulario: se muestra el «Reintentar» de arriba, que pide un SetupIntent nuevo.
+                onLoadError={() => setIntentStatus('error')}
                 onConfirmed={async (paymentMethodId, payNow) => {
                   // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
                   // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.
