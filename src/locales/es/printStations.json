@@ -21,21 +21,24 @@
     "title": "No se pudo guardar",
     "generic": "Ocurrió un error. Intenta de nuevo."
   },
+  "destino": {
+    "PAPEL": "Papel",
+    "PANTALLA": "Pantalla",
+    "AMBAS": "Papel y pantalla",
+    "PAPEL_DE_LA_CAJA": "Papel en la caja"
+  },
   "stations": {
     "intro": "Una estación es un punto de preparación (por ejemplo {{kitchen}} o barra). Cada estación imprime en una impresora.",
     "empty": "Aún no hay estaciones. Crea la primera para empezar a rutear comandas.",
     "add": "Agregar estación",
     "createTitle": "Nueva estación",
     "editTitle": "Editar estación",
-    "colName": "Estación",
-    "colPrinter": "Impresora",
-    "colCopies": "Copias",
-    "colStatus": "Estado",
-    "noPrinter": "Sin impresora",
+    "printerLine": "Imprime en {{printer}}",
+    "copiesSuffix": "{{count}} copias",
+    "printerFallback": "Sin impresora propia: imprime en la impresora de cocina de la caja",
+    "destinationLine": "Llega a: {{destino}}",
     "defaultBadge": "Por defecto",
     "packingBadge": "Empaque",
-    "kitchenDisplayBadge": "Pantalla de cocina",
-    "statusActive": "Activa",
     "statusInactive": "Inactiva",
     "fields": {
       "name": "Nombre de la estación",

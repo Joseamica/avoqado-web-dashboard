@@ -21,21 +21,24 @@
     "title": "Couldn't save",
     "generic": "Something went wrong. Please try again."
   },
+  "destino": {
+    "PAPEL": "Paper",
+    "PANTALLA": "Display",
+    "AMBAS": "Paper and display",
+    "PAPEL_DE_LA_CAJA": "Paper at the register"
+  },
   "stations": {
     "intro": "A station is a prep point (for example {{kitchen}} or bar). Each station prints to one printer.",
     "empty": "No stations yet. Create the first one to start routing tickets.",
     "add": "Add station",
     "createTitle": "New station",
     "editTitle": "Edit station",
-    "colName": "Station",
-    "colPrinter": "Printer",
-    "colCopies": "Copies",
-    "colStatus": "Status",
-    "noPrinter": "No printer",
+    "printerLine": "Prints on {{printer}}",
+    "copiesSuffix": "{{count}} copies",
+    "printerFallback": "No printer of its own: prints on the register's kitchen printer",
+    "destinationLine": "Goes to: {{destino}}",
     "defaultBadge": "Default",
     "packingBadge": "Packing",
-    "kitchenDisplayBadge": "Kitchen display",
-    "statusActive": "Active",
     "statusInactive": "Inactive",
     "fields": {
       "name": "Station name",
