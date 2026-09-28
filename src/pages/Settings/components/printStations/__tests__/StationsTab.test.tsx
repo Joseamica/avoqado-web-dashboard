@@ -19,6 +19,7 @@ vi.mock('@/services/printStations.service', async importOriginal => ({
   getPrintStationsConfig: () => Promise.resolve(h.config),
   getPrinters: () => Promise.resolve([]),
   setPrintStationKitchenDisplay: (...a: unknown[]) => h.setMock(...a),
+  getRouting: () => Promise.resolve({ categories: [], products: [{ id: 'pr1', name: 'Taco', categoryId: null, printStationId: null }], unroutedCategories: 0, hasDefault: true }),
 }))
 vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: (p: string) => p === 'printers:manage', role: h.role }),
@@ -137,5 +138,12 @@ describe('StationsTab — tarjetas por estación (diseño A)', () => {
         .forEach(s => expect(s).toBeChecked()),
     )
     expect(screen.getByRole('heading', { name: 'Editar estación' })).toBeInTheDocument()
+  })
+
+  it('«Probar» abre el simulador sobre las estaciones del negocio', async () => {
+    pintar()
+    await screen.findByTestId('station-card-s1')
+    await userEvent.click(screen.getByRole('button', { name: 'Probar' }))
+    expect(await screen.findByText('Simular una comanda')).toBeInTheDocument()
   })
 })

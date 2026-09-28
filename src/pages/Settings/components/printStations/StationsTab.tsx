@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Plus, Printer as PrinterIcon } from 'lucide-react'
+import { Loader2, PlayCircle, Plus, Printer as PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -36,6 +36,7 @@ import {
   type PrintStation,
 } from '@/services/printStations.service'
 import { KitchenDisplayToggle } from './KitchenDisplayToggle'
+import { ProbarRuteoModal } from './RoutingSimulator'
 import { StationCard } from './StationCard'
 
 const NONE = '__none__'
@@ -51,6 +52,7 @@ export function StationsTab({ venueId }: { venueId: string }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isFormOpen, setFormOpen] = useState(false)
   const [toDelete, setToDelete] = useState<PrintStation | null>(null)
+  const [probando, setProbando] = useState(false)
 
   // Estaciones + puerta de lanzamiento de la pantalla (servidor, fase 3.1). Toda mutación invalida el prefijo
   // ['printStations', venueId], que también refresca esta clave.
@@ -81,7 +83,10 @@ export function StationsTab({ venueId }: { venueId: string }) {
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t('stations.intro', { kitchen: term('kitchen') })}</p>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" onClick={() => setProbando(true)} disabled={!stations?.length} data-tour="print-station-test">
+          <PlayCircle className="mr-2 h-4 w-4" /> {t('stations.test')}
+        </Button>
         <Button onClick={openCreate} data-tour="print-station-add">
           <Plus className="mr-2 h-4 w-4" /> {t('stations.add')}
         </Button>
@@ -116,6 +121,8 @@ export function StationsTab({ venueId }: { venueId: string }) {
       )}
 
       <DeleteStationDialog venueId={venueId} station={toDelete} onClose={() => setToDelete(null)} />
+
+      {probando && <ProbarRuteoModal venueId={venueId} stations={stations ?? []} onClose={() => setProbando(false)} />}
     </div>
   )
 }

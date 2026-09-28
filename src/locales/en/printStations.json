@@ -31,6 +31,8 @@
     "intro": "A station is a prep point (for example {{kitchen}} or bar). Each station prints to one printer.",
     "empty": "No stations yet. Create the first one to start routing tickets.",
     "add": "Add station",
+    "test": "Test",
+    "testTitle": "Where does each ticket go?",
     "createTitle": "New station",
     "editTitle": "Edit station",
     "printerLine": "Prints on {{printer}}",

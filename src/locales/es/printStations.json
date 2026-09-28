@@ -31,6 +31,8 @@
     "intro": "Una estación es un punto de preparación (por ejemplo {{kitchen}} o barra). Cada estación imprime en una impresora.",
     "empty": "Aún no hay estaciones. Crea la primera para empezar a rutear comandas.",
     "add": "Agregar estación",
+    "test": "Probar",
+    "testTitle": "¿A dónde va cada comanda?",
     "createTitle": "Nueva estación",
     "editTitle": "Editar estación",
     "printerLine": "Imprime en {{printer}}",
