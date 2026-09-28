@@ -95,9 +95,16 @@ export const getGoogleAuthUrl = async (): Promise<{ authUrl: string }> => {
  * `signup` SÓLO viaja cuando la persona venía de «Continuar con Google» en `/signup`: es lo que le
  * dice al servidor «crea mi negocio» (con la campaña del anuncio, los UTM y el consentimiento) en
  * vez de «inicia mi sesión». Sin él, un correo sin cuenta recibe el 403 de siempre.
+ *
+ * `state` es el que Google devolvió en la URL: el servidor sólo canjea el code si coincide con la cookie
+ * que puso en ESTE navegador al dar la URL de Google (login CSRF, 27-sep).
  */
-export const googleOAuthCallback = async (code: string, signup?: GoogleSignupIntent): Promise<AuthResponse> => {
-  const response = await api.post('/api/v1/dashboard/auth/google/callback', { code, ...(signup ? { signup } : {}) })
+export const googleOAuthCallback = async (code: string, state: string | null, signup?: GoogleSignupIntent): Promise<AuthResponse> => {
+  const response = await api.post('/api/v1/dashboard/auth/google/callback', {
+    code,
+    ...(state ? { state } : {}),
+    ...(signup ? { signup } : {}),
+  })
   return response.data
 }
 

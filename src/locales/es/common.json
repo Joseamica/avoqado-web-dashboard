@@ -578,6 +578,7 @@
       "success": "Inicio de sesión exitoso",
       "welcomeNewUser": "¡Bienvenido! Tu cuenta ha sido creada.",
       "genericError": "Error al autenticar con Google",
+      "stateInvalid": "No pudimos confirmar que este inicio de sesión lo empezaste tú en este navegador. Vuelve a intentarlo con el botón de Google.",
       "authenticating": "Autenticando con Google...",
       "existingAccountTitle": "Ya tenías una cuenta con este correo",
       "existingAccountBody": "Entraste a tu cuenta. Si querías abrir otro negocio, escríbenos y lo agregamos como sucursal.",
