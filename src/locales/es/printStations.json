@@ -160,5 +160,37 @@
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Algunos productos no tienen estación y saldrían en una comanda marcada SIN ESTACIÓN."
     }
+  },
+  "kitchenDisplay": {
+    "title": "Pantalla de cocina",
+    "description": "Las comandas de esta estación aparecen en la tablet de cocina.",
+    "proBadge": "PRO",
+    "switchLabel": "Pantalla de cocina de {{name}}",
+    "readOnly": "Sólo quien configura impresoras puede cambiarla.",
+    "soloAvoqado": "Sólo Avoqado la ve: la pantalla todavía no está abierta a clientes.",
+    "pilotOn": "Avoqado la prendió como prueba. Puedes apagarla.",
+    "planLapsed": "Tu plan ya no incluye la pantalla. Mientras siga prendida, las comandas llegan a la pantalla y también salen en papel.",
+    "requiresPro": "La pantalla de cocina es del plan Pro.",
+    "seePlans": "Ver planes",
+    "askOwner": "Pídele al dueño que mejore el plan.",
+    "saveFirst": "Guarda la estación para poder prender su pantalla de cocina.",
+    "confirmOn": {
+      "title": "¿Prender la pantalla de {{name}}?",
+      "body": "Las comandas de {{name}} van a aparecer en la pantalla de cocina, empezando por las que lleguen desde ahora.",
+      "withPrinter": "También siguen saliendo en la impresora {{printer}}.",
+      "withoutPrinter": "Como no tiene impresora, sólo saldrán en papel si la pantalla no contesta.",
+      "action": "Prender pantalla"
+    },
+    "confirmOff": {
+      "title": "¿Apagar la pantalla de {{name}}?",
+      "withPrinter": "Las comandas dejan de llegar a la pantalla y siguen saliendo en la impresora {{printer}}.",
+      "withoutPrinter": "Las comandas dejan de llegar a la pantalla y vuelven a salir en la impresora de cocina de la caja.",
+      "action": "Apagar pantalla"
+    },
+    "enabledToast": "Pantalla de {{name}} prendida",
+    "disabledToast": "Pantalla de {{name}} apagada",
+    "errors": {
+      "notReleased": "La pantalla de cocina todavía no está disponible para clientes. Pídele a Avoqado que la active."
+    }
   }
 }
