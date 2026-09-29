@@ -81,7 +81,7 @@ src/
 ├── services/     # API clients (axios)
 ├── routes/       # Router config + route protection
 ├── lib/          # Utils + shared libraries
-├── locales/      # i18n JSON files (en/, es/, fr/)
+├── locales/      # i18n JSON files (en/, es/; fr/ kept but unsupported since 2026-09-28)
 └── types.ts      # Global TypeScript types
 ```
 
