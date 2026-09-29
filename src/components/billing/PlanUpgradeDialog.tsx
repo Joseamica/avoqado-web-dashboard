@@ -1,17 +1,10 @@
 // src/components/billing/PlanUpgradeDialog.tsx
 import { useTranslation } from 'react-i18next'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 
-export function PlanUpgradeDialog({ tier, onClose }: { tier: TierId | null; onClose: () => void }) {
+export function PlanUpgradeDialog({ tier, onClose, title }: { tier: TierId | null; onClose: () => void; title?: string }) {
   const { t } = useTranslation('billing')
   if (!tier) return null
   const def = getTierDef(tier)
@@ -23,13 +16,11 @@ export function PlanUpgradeDialog({ tier, onClose }: { tier: TierId | null; onCl
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Icon className="h-5 w-5" /> {t('plan.cta.upgrade', { tier: tierName })}
+            <Icon className="h-5 w-5" /> {title ?? t('plan.cta.upgrade', { tier: tierName })}
           </DialogTitle>
           <DialogDescription>{t(`plan.tiers.${def.key}.pitch`)}</DialogDescription>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          {t('plan.assistedBody')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('plan.assistedBody')}</p>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             {t('confirmSubscribe.cancel')}

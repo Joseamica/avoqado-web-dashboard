@@ -1,8 +1,9 @@
 /**
  * E2E tests for the Pro→Free downgrade "choose who stays" flow.
  *
- * Flow — venue on an active PRO plan with 4 active users (Free cap = 2):
- *   the plan portal's Free card shows "Switch to Free"; clicking it fetches
+ * Flow — venue on an active classic PRO plan with 4 active users (Free cap = 2):
+ *   picking "Free" in the plan row turns the selection CTA into "Switch to Free";
+ *   clicking it opens the cancel dialog, which asks why first; confirming fetches
  *   the downgrade preview (`required: true`) and opens the
  *   DowngradeReconcileDialog where the owner picks who stays:
  *     • title from billing:plan.downgrade.title ("Choose who stays")
@@ -30,12 +31,17 @@ const BILLING_VENUE = createMockVenue({
   permissions: [
     'home:read',
     'menu:read',
-    'teams:read', 'teams:invite',
-    'orders:read', 'orders:update',
+    'teams:read',
+    'teams:invite',
+    'orders:read',
+    'orders:update',
     'payments:read',
     'reports:read',
-    'settings:read', 'settings:update',
-    'billing:read', 'billing:subscriptions:read',
+    'settings:read',
+    'settings:update',
+    'billing:read',
+    'billing:subscriptions:read',
+    'billing:subscriptions:manage',
   ],
 })
 
@@ -49,6 +55,20 @@ const PRO_PLAN_STATE = {
   currentPeriodEnd: '2026-07-01T00:00:00.000Z',
   stripeSubscriptionId: 'sub_test_e2e_001',
   grandfathered: false,
+  retentionOfferEligible: false,
+  pauseOfferEligible: false,
+  origin: {
+    kind: 'CLASSIC',
+    tier: 'PRO',
+    price: { base: 999, gross: 1158.84, currency: 'MXN' },
+    interval: 'month',
+    currentPeriodEnd: '2026-07-01T00:00:00.000Z',
+    cancelAt: null,
+    contractId: null,
+    contractRevision: null,
+    subscriptionId: 'sub_test_e2e_001',
+    paymentIssue: null,
+  },
 }
 
 const DOWNGRADE_PREVIEW = {
@@ -100,14 +120,13 @@ const DOWNGRADE_PREVIEW = {
 
 async function openDowngradeDialog(page: import('@playwright/test').Page) {
   await page.goto('/venues/venue-alpha/settings/billing/subscriptions')
-
-  // Plan picker renders the Free card with the downgrade CTA (current tier is PRO)
-  const freeCard = page.locator('[data-tour="plan-card-free"]')
-  await freeCard.waitFor({ state: 'visible', timeout: 15_000 })
-
-  await freeCard.getByRole('button', { name: /switch to free/i }).click()
-
-  // Preview (required: true) opens the reconcile FullScreenModal
+  const freeOption = page.locator('[data-tour="plan-option-free"]')
+  await freeOption.waitFor({ state: 'visible', timeout: 15_000 })
+  await freeOption.click()
+  await page.locator('[data-tour="plan-review"]').click()
+  // The cancel dialog asks why first; confirming fetches the preview (required) and opens "choose who stays".
+  await expect(page.getByRole('heading', { name: 'Before you go, why are you canceling?' })).toBeVisible()
+  await page.locator('[data-tour="cancel-confirm"]').click()
   await expect(page.getByRole('heading', { name: 'Choose who stays' })).toBeVisible({ timeout: 10_000 })
 }
 
@@ -130,7 +149,7 @@ test.describe('Pro→Free downgrade — choose who stays', () => {
     })
   })
 
-  test('"Switch to Free" opens the reconcile modal with the owner pre-selected and locked', async ({ page }) => {
+  test('"Switch to Free" asks why, then opens the reconcile modal with the owner pre-selected and locked', async ({ page }) => {
     await openDowngradeDialog(page)
 
     // All 4 roster rows render

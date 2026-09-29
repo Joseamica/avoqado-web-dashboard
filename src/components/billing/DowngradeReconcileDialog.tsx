@@ -1,96 +1,69 @@
 // src/components/billing/DowngradeReconcileDialog.tsx
 //
-// (B) Pro→Free downgrade "choose who stays" flow.
-//
-// When the owner downgrades a paid venue to Free and the venue has more active
-// cap-counting users than Free allows, the backend's downgrade-preview returns
-// `required = true`. This FullScreenModal lets the owner pick who stays:
-//   • The OWNER row (isOwner) is pre-selected AND locked — can't be unchecked.
-//   • At most `keepMax` rows can be selected (further checks disabled once reached).
-//   • Confirm → downgradeVenueToFree(venueId, selectedIds).
-//
-// The chosen users keep access; the rest are deactivated when the paid period
-// ends (not deleted — they reactivate automatically if the venue returns to Pro).
+// "Choose who stays" when a venue drops to Gratis with more users than it allows (spec §4.3). It writes nothing: the
+// caller decides what confirming does — schedule the classic downgrade with the owner's reason, or carry the choice
+// into a hybrid quote before paying. Owners are pre-selected and locked; at most `keepMax` rows.
 import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Check, Lock, Users } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
+import { Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
-import { useToast } from '@/hooks/use-toast'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useVenueDateTime } from '@/utils/datetime'
-import { downgradeVenueToFree, type DowngradePreview } from '@/services/features.service'
+import type { DowngradePreview } from '@/services/features.service'
+import { KeepStaffSelector, ownerIds } from './KeepStaffSelector'
 
 export interface DowngradeReconcileDialogProps {
   open: boolean
   onClose: () => void
-  venueId: string
   /** The backend preview (required=true) that triggered this flow. */
   preview: DowngradePreview
-  /** Scheduled "switches at" date (planState.currentPeriodEnd) when available. */
+  /** Scheduled "switches at" date (the plan's period end) when available. */
   currentPeriodEnd?: string | null
+  onConfirm: (keepStaffVenueIds: string[]) => void
+  pending?: boolean
+  confirmLabel?: string
+  /** Hybrid checkout only: go on without choosing; the automatic order applies (spec §4.3). */
+  onSkip?: () => void
 }
 
 export function DowngradeReconcileDialog({
   open,
   onClose,
-  venueId,
   preview,
   currentPeriodEnd,
+  onConfirm,
+  pending = false,
+  confirmLabel,
+  onSkip,
 }: DowngradeReconcileDialogProps) {
   const { t } = useTranslation('billing')
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
   const { formatDate } = useVenueDateTime()
-
-  const { cap, currentActive, keepMax, staff } = preview
-
-  // The owner is always kept and locked. Seed selection with every owner row.
-  const ownerIds = useMemo(() => staff.filter(s => s.isOwner).map(s => s.staffVenueId), [staff])
-
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(ownerIds))
-
-  // Re-seed selection whenever the dialog (re)opens or the roster changes — the owner
-  // must always start selected and locked.
+  const owners = useMemo(() => ownerIds(preview), [preview])
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(owners))
   useEffect(() => {
-    if (open) setSelected(new Set(ownerIds))
-  }, [open, ownerIds])
-
-  const selectedCount = selected.size
-  const atMax = selectedCount >= keepMax
-
-  const toggle = (row: DowngradePreview['staff'][number]) => {
-    if (row.isOwner) return // owner is locked
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(row.staffVenueId)) {
-        next.delete(row.staffVenueId)
-      } else if (next.size < keepMax) {
-        next.add(row.staffVenueId)
-      }
-      return next
-    })
-  }
-
-  const downgradeMutation = useMutation({
-    mutationFn: () => downgradeVenueToFree(venueId, Array.from(selected)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
-      toast({ title: t('plan.downgrade.successToast') })
-      onClose()
-    },
-    onError: () => {
-      toast({ title: t('plan.downgrade.errorToast'), variant: 'destructive' })
-    },
-  })
-
+    if (open) setSelected(new Set(owners))
+  }, [open, owners])
   const scheduledDate = currentPeriodEnd ? formatDate(currentPeriodEnd) : null
+  // On a phone the header can't hold the centred title and these labels: the buttons move to a bar at the bottom.
+  const phone = useIsMobile()
+  const buttons = (
+    <>
+      {onSkip && (
+        <Button variant="outline" onClick={onSkip} disabled={pending} className={phone ? 'flex-1' : undefined} data-tour="downgrade-skip">
+          {t('plan.downgrade.skipCta')}
+        </Button>
+      )}
+      <Button
+        data-tour="downgrade-confirm"
+        onClick={() => onConfirm(Array.from(selected))}
+        disabled={pending}
+        className={phone ? 'flex-1 cursor-pointer' : 'cursor-pointer'}
+      >
+        {pending ? t('plan.downgrade.confirming') : (confirmLabel ?? t('plan.downgrade.confirmCta'))}
+      </Button>
+    </>
+  )
 
   return (
     <FullScreenModal
@@ -98,109 +71,41 @@ export function DowngradeReconcileDialog({
       onClose={onClose}
       title={t('plan.downgrade.title')}
       contentClassName="bg-muted/30"
-      actions={
-        <Button
-          data-tour="downgrade-confirm"
-          onClick={() => downgradeMutation.mutate()}
-          disabled={downgradeMutation.isPending}
-          className="cursor-pointer"
-        >
-          {downgradeMutation.isPending ? t('plan.downgrade.confirming') : t('plan.downgrade.confirmCta')}
-        </Button>
-      }
+      actions={phone ? undefined : <div className="flex gap-2">{buttons}</div>}
     >
-      <div className="mx-auto max-w-2xl px-6 py-8 space-y-6">
-        {/* Explanation card */}
+      <div className="mx-auto max-w-2xl space-y-6 px-6 py-8">
         <div className="rounded-2xl border border-input bg-card p-6">
           <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400/15 text-amber-400">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-400/15 text-amber-400">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-semibold">{t('plan.downgrade.explainTitle', { cap })}</h3>
+              <h3 className="font-semibold">{t('plan.downgrade.explainTitle', { cap: preview.cap })}</h3>
               <p className="text-sm text-muted-foreground">
-                {t('plan.downgrade.explainBody', { cap, currentActive })}
+                {t(onSkip ? 'plan.downgrade.explainBodyNow' : 'plan.downgrade.explainBody', {
+                  cap: preview.cap,
+                  currentActive: preview.currentActive,
+                })}
               </p>
             </div>
           </div>
-
-          {/* Counter + scheduled date */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-input bg-muted/40 px-4 py-3">
             <span className="text-sm font-medium">
-              {t('plan.downgrade.counter', { selected: selectedCount, keepMax })}
+              {t('plan.downgrade.counter', { selected: selected.size, keepMax: preview.keepMax })}
             </span>
             {scheduledDate && (
-              <span className="text-xs text-muted-foreground">
-                {t('plan.downgrade.scheduledOn', { date: scheduledDate })}
-              </span>
+              <span className="text-xs text-muted-foreground">{t('plan.downgrade.scheduledOn', { date: scheduledDate })}</span>
             )}
           </div>
         </div>
-
-        {/* Roster — clickable selection rows */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t('plan.downgrade.rosterLabel')}
-          </p>
-          {staff.map(row => {
-            const isSelected = selected.has(row.staffVenueId)
-            const isLocked = row.isOwner
-            // A non-selected row is "disabled" only when the max is reached.
-            const isDisabled = !isSelected && atMax && !isLocked
-            return (
-              <div
-                key={row.staffVenueId}
-                role="button"
-                tabIndex={isLocked || isDisabled ? -1 : 0}
-                aria-pressed={isSelected}
-                aria-disabled={isLocked || isDisabled}
-                data-tour={`downgrade-staff-${row.staffVenueId}`}
-                onClick={() => !isDisabled && toggle(row)}
-                onKeyDown={e => {
-                  if ((e.key === 'Enter' || e.key === ' ') && !isDisabled) {
-                    e.preventDefault()
-                    toggle(row)
-                  }
-                }}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl border border-input p-3 transition-colors',
-                  isSelected ? 'bg-primary/5 border-primary/40' : 'bg-card',
-                  isLocked
-                    ? 'cursor-default'
-                    : isDisabled
-                      ? 'cursor-not-allowed opacity-50'
-                      : 'cursor-pointer hover:bg-muted/50',
-                )}
-              >
-                <Checkbox
-                  checked={isSelected}
-                  disabled={isLocked || isDisabled}
-                  // Row handles the click; keep the checkbox visually in sync only.
-                  onCheckedChange={() => !isDisabled && toggle(row)}
-                  onClick={e => e.stopPropagation()}
-                  aria-label={row.name}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium">{row.name}</span>
-                    {isLocked && (
-                      <Badge variant="secondary" className="h-4 gap-1 px-1.5 text-[10px]">
-                        <Lock className="h-2.5 w-2.5" />
-                        {t('plan.downgrade.youOwner')}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">{row.email}</p>
-                </div>
-                {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Reassurance footnote */}
+        <KeepStaffSelector preview={preview} selected={selected} onChange={setSelected} />
         <p className="text-xs text-muted-foreground">{t('plan.downgrade.reassurance')}</p>
       </div>
+      {phone && (
+        <div className="sticky bottom-0 flex gap-2 border-t border-border/30 bg-card p-4" data-tour="downgrade-actions-bar">
+          {buttons}
+        </div>
+      )}
     </FullScreenModal>
   )
 }

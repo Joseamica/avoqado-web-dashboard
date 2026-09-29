@@ -1,382 +1,170 @@
 // src/components/billing/CancelPlanDialog.tsx
-import { useEffect, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+//
+// Spec §4.4: one step. Why (optional), a comment, and two equal buttons — "cancel" on the left, "keep my plan" on the
+// right and focused (the safe default). It writes nothing: the caller runs the operation (classic downgrade, contract
+// cancellation) with what this returns. The stay offer shows only for classic plans.
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
-import { useVenueDateTime } from '@/utils/datetime'
-import { applyRetentionOffer, cancelVenuePlan } from '@/services/features.service'
+import { cn } from '@/lib/utils'
+import type { CancellationInput, CancellationReason } from '@/services/features.service'
 
-// ─── Types ─────────────────────────────────────────────────────────────────
+/** The seven reasons of spec §4.4: UI id → the server's reason, by exact name. */
+// eslint-disable-next-line react-refresh/only-export-components -- reasons list shared with its tests and the page
+export const CANCEL_REASONS = [
+  ['tooExpensive', 'TOO_EXPENSIVE'],
+  ['notUsing', 'UNUSED'],
+  ['missingFeature', 'MISSING_FEATURES'],
+  ['tooComplex', 'TOO_COMPLEX'],
+  ['switching', 'SWITCHED_SERVICE'],
+  ['temporary', 'TEMPORARY'],
+  ['other', 'OTHER'],
+] as const satisfies ReadonlyArray<readonly [string, CancellationReason]>
 
-type Step = 'reason' | 'offer' | 'confirm'
-
-type CancelReason = 'tooExpensive' | 'notUsing' | 'missingFeature' | 'switching' | 'temporary' | 'other'
-
-// ─── Countdown hook ─────────────────────────────────────────────────────────
-
-function useCountdown(seconds: number) {
-  const [remaining, setRemaining] = useState(seconds)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Reset and start whenever hook mounts (dialog opens to offer step)
-  useEffect(() => {
-    setRemaining(seconds)
-    intervalRef.current = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) clearInterval(intervalRef.current)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [seconds])
-
-  const mins = String(Math.floor(remaining / 60)).padStart(2, '0')
-  const secs = String(remaining % 60).padStart(2, '0')
-  return `${mins}:${secs}`
-}
-
-// ─── Reason step ────────────────────────────────────────────────────────────
-
-interface ReasonStepProps {
-  reason: CancelReason | null
-  setReason: (r: CancelReason) => void
-  otherText: string
-  setOtherText: (s: string) => void
-  onKeep: () => void
-  onContinue: () => void
-}
-
-function ReasonStep({ reason, setReason, otherText, setOtherText, onKeep, onContinue }: ReasonStepProps) {
-  const { t } = useTranslation('billing')
-
-  const reasons: CancelReason[] = ['tooExpensive', 'notUsing', 'missingFeature', 'switching', 'temporary', 'other']
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{t('plan.cancel.reason.title')}</DialogTitle>
-        <DialogDescription>{t('plan.cancel.reason.subtitle')}</DialogDescription>
-      </DialogHeader>
-
-      <RadioGroup
-        value={reason ?? ''}
-        onValueChange={(v) => setReason(v as CancelReason)}
-        className="flex flex-col gap-2"
-      >
-        {reasons.map((r) => (
-          <div
-            key={r}
-            className="flex items-center gap-3 rounded-lg border border-input p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => setReason(r)}
-          >
-            <RadioGroupItem value={r} id={`cancel-reason-${r}`} />
-            <Label htmlFor={`cancel-reason-${r}`} className="cursor-pointer text-sm font-normal">
-              {t(`plan.cancel.reason.options.${r}`)}
-            </Label>
-          </div>
-        ))}
-      </RadioGroup>
-
-      {reason === 'other' && (
-        <Textarea
-          placeholder={t('plan.cancel.reason.otherPlaceholder')}
-          value={otherText}
-          onChange={(e) => setOtherText(e.target.value)}
-          rows={2}
-          className="resize-none"
-        />
-      )}
-
-      <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground cursor-pointer"
-          onClick={onContinue}
-          disabled={!reason}
-          data-tour="cancel-continue"
-        >
-          {t('plan.cancel.reason.continueCta')}
-        </Button>
-        <Button
-          size="sm"
-          onClick={onKeep}
-          className="cursor-pointer"
-          data-tour="cancel-keep"
-        >
-          {t('plan.cancel.reason.keepCta')}
-        </Button>
-      </DialogFooter>
-    </>
-  )
-}
-
-// ─── Offer step ─────────────────────────────────────────────────────────────
-
-interface OfferStepProps {
-  reason: CancelReason | null
-  venueId: string
-  onKeep: () => void
-  onDecline: () => void
-}
-
-function OfferStep({ reason, venueId, onKeep, onDecline }: OfferStepProps) {
-  const { t } = useTranslation('billing')
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const timer = useCountdown(900) // 15:00
-
-  const showPause = reason === 'notUsing' || reason === 'temporary'
-
-  const retentionMutation = useMutation({
-    mutationFn: (offer: 'discount' | 'pause') => applyRetentionOffer(venueId, offer),
-    onSuccess: (_, offer) => {
-      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-      toast({
-        title: offer === 'pause' ? t('plan.cancel.offer.pauseSuccess') : t('plan.cancel.offer.discountSuccess'),
-      })
-      onKeep()
-    },
-    onError: () => {
-      toast({ title: t('plan.cancel.offer.error'), variant: 'destructive' })
-    },
-  })
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{t('plan.cancel.offer.title')}</DialogTitle>
-      </DialogHeader>
-
-      <div className="rounded-xl border border-input bg-muted/30 p-4 space-y-3">
-        <p className="text-sm font-medium leading-relaxed">
-          {t('plan.cancel.offer.discountBody')}
-        </p>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            {t('plan.cancel.offer.discountBadge')}
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          ⏳ {t('plan.cancel.offer.timerLabel', { timer })}
-        </p>
-      </div>
-
-      {showPause && (
-        <p className="text-sm text-center">
-          <button
-            type="button"
-            className="text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors cursor-pointer text-xs"
-            onClick={() => retentionMutation.mutate('pause')}
-            disabled={retentionMutation.isPending}
-          >
-            {t('plan.cancel.offer.pauseCta')}
-          </button>
-        </p>
-      )}
-
-      <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground cursor-pointer"
-          onClick={onDecline}
-          disabled={retentionMutation.isPending}
-          data-tour="cancel-continue"
-        >
-          {t('plan.cancel.offer.declineCta')}
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => retentionMutation.mutate('discount')}
-          disabled={retentionMutation.isPending}
-          className="cursor-pointer"
-          data-tour="cancel-accept-offer"
-        >
-          {retentionMutation.isPending ? t('plan.cancel.offer.applying') : t('plan.cancel.offer.acceptCta')}
-        </Button>
-      </DialogFooter>
-    </>
-  )
-}
-
-// ─── Confirm step ────────────────────────────────────────────────────────────
-
-interface ConfirmStepProps {
-  venueId: string
-  planName: string | null
-  currentPeriodEnd: string | null
-  onKeep: () => void
-  onClose: () => void
-}
-
-function ConfirmStep({ venueId, planName, currentPeriodEnd, onKeep, onClose }: ConfirmStepProps) {
-  const { t } = useTranslation('billing')
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const { formatDate } = useVenueDateTime()
-
-  const formattedDate = currentPeriodEnd
-    ? formatDate(currentPeriodEnd)
-    : null
-
-  const cancelMutation = useMutation({
-    mutationFn: () => cancelVenuePlan(venueId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      toast({ title: t('plan.cancel.confirm.successToast') })
-      onClose()
-    },
-    onError: () => {
-      toast({ title: t('plan.cancel.confirm.errorToast'), variant: 'destructive' })
-    },
-  })
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{t('plan.cancel.confirm.title')}</DialogTitle>
-        <DialogDescription>
-          {formattedDate
-            ? t('plan.cancel.confirm.body', { planName: planName ?? '', date: formattedDate })
-            : t('plan.cancel.confirm.bodyNoDate', { planName: planName ?? '' })}
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="rounded-xl border border-input bg-muted/30 p-4">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-          {t('plan.cancel.confirm.loseLabel')}
-        </p>
-        <ul className="space-y-1">
-          {(t('plan.cancel.confirm.loseItems', { returnObjects: true }) as string[]).map((item) => (
-            <li key={item} className="text-sm flex items-start gap-1.5">
-              <span className="text-destructive mt-0.5">✕</span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive cursor-pointer"
-          onClick={() => cancelMutation.mutate()}
-          disabled={cancelMutation.isPending}
-          data-tour="cancel-confirm"
-        >
-          {cancelMutation.isPending ? t('plan.cancel.confirm.canceling') : t('plan.cancel.confirm.cancelCta')}
-        </Button>
-        <Button
-          size="sm"
-          onClick={onKeep}
-          className="cursor-pointer"
-          data-tour="cancel-keep"
-        >
-          {t('plan.cancel.confirm.keepCta')}
-        </Button>
-      </DialogFooter>
-    </>
-  )
-}
-
-// ─── Main dialog ─────────────────────────────────────────────────────────────
+export type CancelTarget =
+  | { kind: 'PLAN'; tierName: string; until: string | null; classic: boolean; retentionOfferEligible: boolean; pauseOfferEligible: boolean }
+  | { kind: 'CONTRACT'; name: string; until: string | null }
 
 export interface CancelPlanDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  venueId: string
-  planName: string | null
-  currentPeriodEnd: string | null
-  /**
-   * Whether the venue is eligible to be shown the retention OFFER step
-   * (discount / pause). Anti-abuse: false for brand-new subs (<30d tenure) or
-   * subs that already have an active discount. When false, the reason step's
-   * "Continuar" goes straight to confirm — the offer step is skipped entirely.
-   */
-  retentionOfferEligible?: boolean
+  target: CancelTarget
+  /** The Free seat rule, when a plan ends and the venue drops to Gratis (spec §4.3). */
+  seatNotice?: 'CHOOSE' | 'AUTOMATIC' | null
+  note?: string | null
+  pending?: boolean
+  error?: string | null
+  onConfirm: (input: CancellationInput) => void
+  /** Classic plans only: stay with a discount or a pause instead. */
+  onAcceptOffer?: (offer: 'discount' | 'pause') => void
+  offerPending?: boolean
 }
+
+const COMMENT_MAX = 500
 
 export function CancelPlanDialog({
   open,
   onOpenChange,
-  venueId,
-  planName,
-  currentPeriodEnd,
-  retentionOfferEligible = false,
+  target,
+  seatNotice = null,
+  note = null,
+  pending = false,
+  error = null,
+  onConfirm,
+  onAcceptOffer,
+  offerPending = false,
 }: CancelPlanDialogProps) {
-  const [step, setStep] = useState<Step>('reason')
-  const [reason, setReason] = useState<CancelReason | null>(null)
-  const [otherText, setOtherText] = useState('')
-
-  // Reset state when dialog opens
+  const { t } = useTranslation('billing')
+  const [reason, setReason] = useState<CancellationReason | undefined>()
+  const [comment, setComment] = useState('')
   useEffect(() => {
     if (open) {
-      setStep('reason')
-      setReason(null)
-      setOtherText('')
+      setReason(undefined)
+      setComment('')
     }
   }, [open])
-
-  const handleKeep = () => onOpenChange(false)
-
-  // From the reason step, advance to the offer step ONLY when eligible;
-  // otherwise skip straight to confirm.
-  const handleContinue = () => setStep(retentionOfferEligible ? 'offer' : 'confirm')
-
-  // Defensive: if we somehow land on 'offer' while ineligible, treat it as confirm.
-  const effectiveStep: Step = step === 'offer' && !retentionOfferEligible ? 'confirm' : step
+  const busy = pending || offerPending
+  const isPlan = target.kind === 'PLAN'
+  const subtitle =
+    target.kind === 'PLAN'
+      ? target.until
+        ? t('plan.cancel.reason.subtitlePlan', { tier: target.tierName, date: target.until })
+        : t('plan.cancel.reason.subtitlePlanNoDate', { tier: target.tierName })
+      : target.until
+        ? t('plan.cancel.reason.subtitleContract', { name: target.name, date: target.until })
+        : t('plan.cancel.reason.subtitleContractNoDate', { name: target.name })
+  const offer =
+    target.kind === 'PLAN' && target.classic && onAcceptOffer
+      ? reason === 'TOO_EXPENSIVE' && target.retentionOfferEligible
+        ? 'discount'
+        : reason === 'TEMPORARY' && target.pauseOfferEligible
+          ? 'pause'
+          : null
+      : null
+  const confirm = () => {
+    const trimmed = comment.trim().slice(0, COMMENT_MAX)
+    onConfirm({ ...(reason ? { reason } : {}), ...(trimmed ? { comment: trimmed } : {}) })
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => !busy && onOpenChange(value)}>
       <DialogContent className="max-w-md">
-        {effectiveStep === 'reason' && (
-          <ReasonStep
-            reason={reason}
-            setReason={setReason}
-            otherText={otherText}
-            setOtherText={setOtherText}
-            onKeep={handleKeep}
-            onContinue={handleContinue}
-          />
+        <DialogHeader>
+          <DialogTitle>{t('plan.cancel.reason.title')}</DialogTitle>
+          <DialogDescription>{subtitle}</DialogDescription>
+        </DialogHeader>
+        <RadioGroup value={reason ?? ''} onValueChange={value => setReason(value as CancellationReason)} className="gap-2">
+          {CANCEL_REASONS.map(([id, value]) => (
+            <Label
+              key={id}
+              htmlFor={`cancel-reason-${id}`}
+              data-tour={`cancel-reason-${id}`}
+              className={cn(
+                'flex cursor-pointer items-center gap-3 rounded-lg border border-input px-3 py-2.5 text-sm font-normal',
+                reason === value && 'border-foreground',
+              )}
+            >
+              <RadioGroupItem id={`cancel-reason-${id}`} value={value} />
+              {t(`plan.cancel.reason.options.${id}`)}
+            </Label>
+          ))}
+        </RadioGroup>
+        {offer && (
+          <div className="space-y-2 rounded-lg border border-input bg-muted/40 p-3 text-sm" data-tour="cancel-offer">
+            <p>{t(offer === 'discount' ? 'plan.cancel.offer.discountBody' : 'plan.cancel.offer.pauseBody')}</p>
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => onAcceptOffer!(offer)} data-tour="cancel-accept-offer">
+              {offerPending
+                ? t('plan.cancel.offer.applying')
+                : t(offer === 'discount' ? 'plan.cancel.offer.acceptCta' : 'plan.cancel.offer.pauseCta')}
+            </Button>
+          </div>
         )}
-        {effectiveStep === 'offer' && (
-          <OfferStep
-            reason={reason}
-            venueId={venueId}
-            onKeep={handleKeep}
-            onDecline={() => setStep('confirm')}
-          />
+        <Textarea
+          value={comment}
+          onChange={event => setComment(event.target.value.slice(0, COMMENT_MAX))}
+          maxLength={COMMENT_MAX}
+          rows={3}
+          placeholder={t('plan.cancel.reason.otherPlaceholder')}
+          aria-label={t('plan.cancel.reason.otherPlaceholder')}
+          data-tour="cancel-comment"
+        />
+        {seatNotice && (
+          <p className="text-xs text-muted-foreground" data-tour="cancel-seat-notice">
+            {t(seatNotice === 'CHOOSE' ? 'plan.seatNotice.choose' : 'plan.seatNotice.automatic')}
+          </p>
         )}
-        {effectiveStep === 'confirm' && (
-          <ConfirmStep
-            venueId={venueId}
-            planName={planName}
-            currentPeriodEnd={currentPeriodEnd}
-            onKeep={handleKeep}
-            onClose={handleKeep}
-          />
+        {note && <p className="text-xs text-muted-foreground">{note}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
         )}
+        <DialogFooter className="grid grid-cols-2 gap-2 sm:space-x-0">
+          <Button
+            variant="outline"
+            className="h-auto min-h-9 whitespace-normal bg-muted"
+            disabled={busy}
+            onClick={confirm}
+            data-tour="cancel-confirm"
+          >
+            {pending
+              ? t('plan.cancel.confirm.canceling')
+              : t(isPlan ? 'plan.cancel.confirm.cancelCta' : 'plan.cancel.reason.confirmContractCta')}
+          </Button>
+          <Button
+            autoFocus
+            className="h-auto min-h-9 whitespace-normal"
+            disabled={busy}
+            onClick={() => onOpenChange(false)}
+            data-tour="cancel-keep"
+          >
+            {t(isPlan ? 'plan.cancel.reason.keepCta' : 'plan.cancel.reason.keepContractCta')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

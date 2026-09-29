@@ -6,6 +6,7 @@ import {
   MockSeatStatus,
   MockDowngradePreview,
   MockVenueFeatureStatus,
+  type MockFeatureGrid,
   createMockVenue,
   createMockUser,
   createAuthStatusResponse,
@@ -13,6 +14,7 @@ import {
   createMockSeatStatus,
   createMockDowngradePreview,
   createMockVenueFeatureStatus,
+  createMockFeatureGrid,
   DEFAULT_ROLE_CONFIGS,
   VENUE_ALPHA,
   VENUE_BETA,
@@ -41,6 +43,13 @@ export interface SetupApiMocksOptions {
   downgradePreview?: Partial<MockDowngradePreview>
   /** Override GET /venues/:id/features. Default: no à-la-carte feature grants. */
   venueFeatures?: Partial<MockVenueFeatureStatus>
+  /** Override GET /venues/:id/hybrid-billing/feature-grid. */
+  featureGrid?: Partial<MockFeatureGrid>
+  /** Override GET /venues/:id/hybrid-billing/replacement-options. Default: nothing replaceable. */
+  replacementOptions?: {
+    standaloneFeatureCodes?: string[]
+    items?: { subscriptionId: string; featureCodes: string[]; replaceable: boolean }[]
+  }
 }
 
 // ─── Setup ──────────────────────────────────────────────────────
@@ -54,10 +63,7 @@ export interface SetupApiMocksOptions {
  * priority) and specific routes after (highest priority).
  */
 export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = {}) {
-  const {
-    userRole = StaffRole.OWNER,
-    venueCount,
-  } = options
+  const { userRole = StaffRole.OWNER, venueCount } = options
 
   // Build venue list
   let venues = options.venues ?? [VENUE_ALPHA, VENUE_BETA]
@@ -72,13 +78,13 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   }
 
   // Assign userRole to each venue
-  const venuesWithRole = venues.map((v) => ({ ...v, role: userRole }))
+  const venuesWithRole = venues.map(v => ({ ...v, role: userRole }))
 
   const user = createMockUser(userRole, venuesWithRole)
   const authResponse = createAuthStatusResponse(user)
 
   // ── 1. Catch-all FIRST (lowest priority in LIFO) ─────────────
-  await page.route('**/api/v1/**', (route) =>
+  await page.route('**/api/v1/**', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -92,7 +98,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   // (features.service.ts), so every body is wrapped in { success, data }.
   // These globs match whole URLs, so `**/plan` does NOT swallow `/plan/seat-status`.
   const planState = createMockPlanState(options.planState)
-  await page.route('**/api/v1/dashboard/venues/*/plan', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/plan', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -112,7 +118,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
     // isDemoVenue check), so deriving exempt from grandfathered alone is correct for the fixture.
     exempt: planState.grandfathered === true,
   }
-  await page.route('**/api/v1/dashboard/venues/*/plan-tier', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/plan-tier', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -121,7 +127,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   const seatStatus = createMockSeatStatus(options.seatStatus)
-  await page.route('**/api/v1/dashboard/venues/*/plan/seat-status', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/plan/seat-status', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -130,7 +136,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   const downgradePreview = createMockDowngradePreview(options.downgradePreview)
-  await page.route('**/api/v1/dashboard/venues/*/plan/downgrade-preview', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/plan/downgrade-preview', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -144,7 +150,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
     venueName: venuesWithRole[0]?.name,
     ...options.venueFeatures,
   })
-  await page.route('**/api/v1/dashboard/venues/*/features', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/features', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -152,8 +158,36 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
     }),
   )
 
+  // Hybrid billing — the plan page reads the feature grid, the replaceable subscriptions,
+  // the contracts and the purchase in progress.
+  const featureGrid = createMockFeatureGrid(options.featureGrid)
+  await page.route('**/api/v1/dashboard/venues/*/hybrid-billing/feature-grid', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: featureGrid }) }),
+  )
+  const replacementOptions = {
+    standaloneFeatureCodes: options.replacementOptions?.standaloneFeatureCodes ?? ['CHATBOT'],
+    items: options.replacementOptions?.items ?? [],
+  }
+  await page.route('**/api/v1/dashboard/venues/*/hybrid-billing/replacement-options', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { ...replacementOptions, total: replacementOptions.items.length } }),
+    }),
+  )
+  await page.route('**/api/v1/dashboard/venues/*/hybrid-billing/contracts**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { items: [], total: 0, page: 1, pageSize: 10 } }),
+    }),
+  )
+  await page.route('**/api/v1/dashboard/venues/*/hybrid-billing/purchases/current', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) }),
+  )
+
   // White-label config
-  await page.route('**/api/v1/dashboard/venues/*/white-label*', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/white-label*', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -162,7 +196,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   // Invite team member (POST) + team members fallback (GET /team)
-  await page.route('**/api/v1/dashboard/venues/*/team', (route) => {
+  await page.route('**/api/v1/dashboard/venues/*/team', route => {
     if (route.request().method() === 'POST') {
       return route.fulfill({
         status: 200,
@@ -194,7 +228,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   })
 
   // Team invitations
-  await page.route('**/api/v1/dashboard/venues/*/team/invitations', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/team/invitations', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -203,7 +237,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   // Team members (paginated — URL has query params)
-  await page.route('**/api/v1/dashboard/venues/*/team?*', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/team?*', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -215,7 +249,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   // Role config
-  await page.route('**/api/v1/dashboard/venues/*/role-config', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/role-config', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -225,7 +259,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
 
   // User access (permissions) — used by useAccess() hook / PermissionGate
   const primaryVenue = venuesWithRole[0]
-  await page.route('**/api/v1/me/access*', (route) =>
+  await page.route('**/api/v1/me/access*', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -243,7 +277,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   // Keep dashboard setup widgets from covering buttons under test.
-  await page.route('**/api/v1/dashboard/venues/*/onboarding-state', (route) =>
+  await page.route('**/api/v1/dashboard/venues/*/onboarding-state', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -261,7 +295,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   // Auth status (HIGHEST priority — registered last)
-  await page.route('**/api/v1/dashboard/auth/status', (route) =>
+  await page.route('**/api/v1/dashboard/auth/status', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',

@@ -92,38 +92,44 @@ export function createMockVenue(overrides: Partial<MockSessionVenue> = {}): Mock
     role: StaffRole.OWNER,
     status: 'ACTIVE',
     permissions: [
-      'menu:read', 'menu:create', 'menu:update', 'menu:delete',
-      'teams:read', 'teams:invite', 'teams:update', 'teams:delete',
-      'tpv:read', 'tpv:create', 'tpv:update', 'tpv:delete',
-      'orders:read', 'orders:update',
+      'menu:read',
+      'menu:create',
+      'menu:update',
+      'menu:delete',
+      'teams:read',
+      'teams:invite',
+      'teams:update',
+      'teams:delete',
+      'tpv:read',
+      'tpv:create',
+      'tpv:update',
+      'tpv:delete',
+      'orders:read',
+      'orders:update',
       'payments:read',
       'reports:read',
-      'settings:read', 'settings:update',
+      'settings:read',
+      'settings:update',
       // El rol por defecto de este mock es OWNER, y un OWNER real SÍ los tiene
       // (permissions.ts del servidor, StaffRole.OWNER). Sin `manage`, el paywall
       // de FeatureGate pinta «pídeselo al dueño» en vez del botón de contratar.
-      'billing:subscriptions:read', 'billing:subscriptions:manage',
+      'billing:subscriptions:read',
+      'billing:subscriptions:manage',
     ],
     kycStatus: 'VERIFIED',
     organizationId: DEFAULT_ORG.id,
     organization: DEFAULT_ORG,
     features: [],
-    modules: [
-      { module: { id: 'mod-team', code: 'TEAM', name: 'Team Management' }, enabled: true },
-    ],
+    modules: [{ module: { id: 'mod-team', code: 'TEAM', name: 'Team Management' }, enabled: true }],
     ...overrides,
   }
 }
 
 // ─── Factory: User ──────────────────────────────────────────────
 
-export function createMockUser(
-  role: StaffRole,
-  venues: MockSessionVenue[],
-  overrides: Partial<MockUser> = {},
-): MockUser {
+export function createMockUser(role: StaffRole, venues: MockSessionVenue[], overrides: Partial<MockUser> = {}): MockUser {
   // Set the user's role on each venue to the given role (unless already overridden)
-  const venuesWithRole = venues.map((v) => ({
+  const venuesWithRole = venues.map(v => ({
     ...v,
     role: v.role === StaffRole.OWNER ? role : v.role, // only re-assign if still default
   }))
@@ -190,14 +196,28 @@ export const SINGLE_VENUE_OWNER = createMockUser(StaffRole.OWNER, [VENUE_ALPHA])
 export function createPlayTelecomVenue(overrides: Partial<MockSessionVenue> = {}): MockSessionVenue {
   return createMockVenue({
     permissions: [
-      'menu:read', 'menu:create', 'menu:update', 'menu:delete',
-      'teams:read', 'teams:invite', 'teams:update', 'teams:delete',
-      'tpv:read', 'tpv:create', 'tpv:update', 'tpv:delete',
-      'orders:read', 'orders:update',
+      'menu:read',
+      'menu:create',
+      'menu:update',
+      'menu:delete',
+      'teams:read',
+      'teams:invite',
+      'teams:update',
+      'teams:delete',
+      'tpv:read',
+      'tpv:create',
+      'tpv:update',
+      'tpv:delete',
+      'orders:read',
+      'orders:update',
       'payments:read',
       'reports:read',
-      'settings:read', 'settings:update',
-      'inventory:read', 'inventory:create', 'inventory:update', 'inventory:delete',
+      'settings:read',
+      'settings:update',
+      'inventory:read',
+      'inventory:create',
+      'inventory:update',
+      'inventory:delete',
       'inventory:org-manage',
       'serialized-inventory:create',
     ],
@@ -290,10 +310,7 @@ export const MOCK_VENUE_CATEGORIES: MockItemCategory[] = [
   },
 ]
 
-export const ALL_MOCK_CATEGORIES: MockItemCategory[] = [
-  ...MOCK_ORG_CATEGORIES,
-  ...MOCK_VENUE_CATEGORIES,
-]
+export const ALL_MOCK_CATEGORIES: MockItemCategory[] = [...MOCK_ORG_CATEGORIES, ...MOCK_VENUE_CATEGORIES]
 
 // ─── Plan-tier / Billing Fixtures ────────────────────────────────
 // Mirror the backend shapes consumed by src/services/features.service.ts
@@ -315,7 +332,10 @@ export interface MockPlanState {
   paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null
   stripeSubscriptionId: string | null
   retentionOfferEligible: boolean
+  pauseOfferEligible?: boolean
   grandfathered: boolean
+  /** Where the plan comes from (classic Stripe subscription, contract, comp…). Absent = older server: derived. */
+  origin?: Record<string, unknown>
 }
 
 /**
@@ -458,4 +478,63 @@ export const DEFAULT_ROLE_CONFIGS = {
     isActive: true,
     sortOrder: idx,
   })),
+}
+
+// ─── Feature grid (hybrid billing) ──────────────────────────────
+
+/** Mirrors GET /venues/:id/hybrid-billing/feature-grid (a small grid: the page renders whatever comes). */
+export interface MockFeatureGrid {
+  catalogVersion: string
+  purchasesEnabled: boolean
+  plans: { PRO: unknown; PREMIUM: unknown }
+  entries: unknown[]
+}
+
+const gridOffer = (id: string, price: number, extra: Record<string, unknown> = {}) => ({
+  publicationId: `pub_${id}`,
+  campaignId: `camp_${id}`,
+  name: id,
+  kind: 'FEATURES',
+  planTier: null,
+  price,
+  renewal: 'SAME_PRICE',
+  renewalPrice: null,
+  promotionCycles: null,
+  includedFeatureCodes: [id],
+  ...extra,
+})
+
+const gridEntry = (id: string, category: string, minimumTier: string, price: number | null, source = 'NONE') => ({
+  id,
+  featureCode: id.startsWith('BASE_') ? null : id,
+  names: { es: id, en: id, fr: id },
+  description: '',
+  category,
+  minimumTier,
+  offering: minimumTier === 'FREE' ? 'INCLUDED' : 'CONFIGURABLE',
+  access: { source, contractId: null, paidThrough: null, cancelAt: null },
+  offer: price == null ? null : gridOffer(id, price),
+})
+
+export function createMockFeatureGrid(overrides: Partial<MockFeatureGrid> = {}): MockFeatureGrid {
+  return {
+    catalogVersion: 'e2e',
+    purchasesEnabled: true,
+    plans: {
+      PRO: gridOffer('PRO', 1158.84, { kind: 'PLAN', planTier: 'PRO', includedFeatureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'] }),
+      PREMIUM: gridOffer('PREMIUM', 1970.84, {
+        kind: 'PLAN',
+        planTier: 'PREMIUM',
+        includedFeatureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS', 'CFDI'],
+      }),
+    },
+    entries: [
+      gridEntry('BASE_POS', 'sell', 'FREE', null, 'FREE'),
+      gridEntry('CHATBOT', 'ai', 'FREE', null, 'FREE'),
+      gridEntry('LOYALTY_PROGRAM', 'customers', 'PRO', 199),
+      gridEntry('RESERVATIONS', 'team', 'PRO', 129),
+      gridEntry('CFDI', 'money', 'PREMIUM', 249),
+    ],
+    ...overrides,
+  }
 }

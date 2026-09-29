@@ -1,154 +1,102 @@
-import api from '@/api'
-import { planDePagoConcedido } from './planConcedido'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
-import { useAuth } from '@/context/AuthContext'
-import { useSocket } from '@/context/SocketContext'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useToast } from '@/hooks/use-toast'
-import {
-  createPlanCheckoutSession,
-  downgradeVenueToFree,
-  getDowngradePreview,
-  getVenueFeatures,
-  getVenuePlan,
-  type DowngradePreview,
-  type VenueFeatureStatus,
-} from '@/services/features.service'
-import { StaffRole } from '@/types'
-import { PlanPicker } from '@/components/billing/PlanPicker'
-import { PlanUpgradeDialog } from '@/components/billing/PlanUpgradeDialog'
-import { DowngradeReconcileDialog } from '@/components/billing/DowngradeReconcileDialog'
-import { SuperadminFeatureControl } from './components/SuperadminFeatureControl'
-import { SuperadminPlanControl } from './components/SuperadminPlanControl'
-import type { TierId } from '@/config/plan-catalog'
-
-// Lazy load superadmin service - only imported when needed
-const loadSuperadminService = () => import('@/services/superadmin.service')
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Gift, Plus, Power, X, Zap } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+// src/pages/Settings/Billing/Subscriptions.tsx
+//
+// "Plan y facturación → Plan" (spec 2026-09-27): one view. The plan row, all functions by area with "Tu selección",
+// the contracts (whose panel also hosts the hybrid checkout) and the superadmin tools. Which server operation each
+// choice opens is decided by plan/planActions.ts; this file only composes and orchestrates the dialogs.
+import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
+import { useSocket } from '@/context/SocketContext'
+import { useAccess } from '@/hooks/use-access'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
-import { CurrentPlanCard } from './components/CurrentPlanCard'
+import { getVenuePlan, type CancellationInput, type DowngradePreview } from '@/services/features.service'
+import { hybridBilling, type HybridQuoteBody } from '@/services/hybridBilling.service'
+import { StaffRole } from '@/types'
+import { type TierId } from '@/config/plan-catalog'
+import { CancelPlanDialog } from '@/components/billing/CancelPlanDialog'
+import { DowngradeReconcileDialog } from '@/components/billing/DowngradeReconcileDialog'
+import { HybridBillingPanel } from '@/components/billing/HybridBillingPanel'
+import { PlanUpgradeDialog } from '@/components/billing/PlanUpgradeDialog'
+import { planDePagoConcedido } from './planConcedido'
+import { SuperadminBillingSection } from './components/SuperadminBillingSection'
+import { FeatureGrid } from './plan/FeatureGrid'
+import { PlanRow } from './plan/PlanRow'
+import { SelectionSummary } from './plan/SelectionSummary'
+import { serverCode, serverMessage, usePlanOperations } from './plan/usePlanOperations'
+import {
+  MAX_OFFERS,
+  canDropWithFeatures,
+  currentTarget,
+  gridMode,
+  isMarkable,
+  originOf,
+  summarizeSelection,
+  type PlanOperation,
+  type PlanTarget,
+} from './plan/planActions'
+
+type HybridDropOperation = Extract<PlanOperation, { kind: 'HYBRID_DROP' }>
+/** Re-reads of the plan after Stripe's return (waits before each, ~10 s in all) before the toast says "pending". */
+const CHECKOUT_REREADS_MS = [0, 1500, 3000, 5000]
 
 export default function Subscriptions() {
-  const { t, i18n } = useTranslation('billing')
+  const { t } = useTranslation('billing')
   const { venueId, venue } = useCurrentVenue()
+  const { can } = useAccess()
   const { staffInfo } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
   const { formatDate } = useVenueDateTime()
-
-  // Check if user is superadmin
-  // IMPORTANT: Use staffInfo.role (venue-specific) not user.role (highest across all venues)
+  const canRead = can('billing:subscriptions:read')
+  const canManage = can('billing:subscriptions:manage')
   const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
 
-  // Only users with billing access (ADMIN and above) can view subscriptions
-  const canViewBilling =
-    staffInfo?.role && [StaffRole.SUPERADMIN, StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER].includes(staffInfo.role as StaffRole)
-
-  // Superadmin state
-  const [showGrantTrialDialog, setShowGrantTrialDialog] = useState(false)
-  const [grantTrialFeatureCode, setGrantTrialFeatureCode] = useState<string>('')
-  const [grantTrialDays, setGrantTrialDays] = useState<number>(7)
-  const [showEnableFeatureDialog, setShowEnableFeatureDialog] = useState(false)
-  const [enableFeatureCode, setEnableFeatureCode] = useState<string>('')
-  const [disablingFeatureCode, setDisablingFeatureCode] = useState<string | null>(null)
-
-  // Fetch venue features status (only for users with billing access)
-  const { data: featuresStatus, isLoading: loadingFeatures } = useQuery<VenueFeatureStatus>({
-    queryKey: ['venueFeatures', venueId],
-    queryFn: () => getVenueFeatures(venueId),
-    enabled: !!venueId && canViewBilling,
+  const plan = useQuery({ queryKey: ['venuePlan', venueId], queryFn: () => getVenuePlan(venueId), enabled: !!venueId && canRead })
+  const grid = useQuery({
+    queryKey: ['featureGrid', venueId],
+    queryFn: () => hybridBilling.featureGrid(venueId),
+    enabled: !!venueId && canRead,
+    retry: false,
+  })
+  const replacements = useQuery({
+    queryKey: ['hybrid-replacements', venueId],
+    queryFn: () => hybridBilling.replacements(venueId),
+    enabled: !!venueId && canRead,
+    staleTime: 60000,
+    retry: false,
   })
 
-  // Current plan tier for the picker (base-plan state).
-  const { data: planState } = useQuery({
-    queryKey: ['venuePlan', venueId],
-    queryFn: () => getVenuePlan(venueId),
-    enabled: !!venueId && canViewBilling,
-  })
-  // Backend uses 'GRATIS' for the free tier; the catalog TierId uses 'FREE'.
-  const currentTier: TierId = planState?.planTier === 'GRATIS' ? 'FREE' : ((planState?.planTier as TierId) ?? 'FREE')
+  const origin = originOf(plan.data)
+  const grandfathered = plan.data?.grandfathered ?? false
+  const current = currentTarget(origin)
+  const [picked, setPicked] = useState<PlanTarget | null>(null)
+  const target = picked ?? current
+  const [marked, setMarked] = useState<string[]>([])
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
+  const [classicRejected, setClassicRejected] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  // HYBRID keeps the operation that was reviewed: the grid stays live while the preview loads.
+  const [reconcile, setReconcile] = useState<
+    | { preview: DowngradePreview; purpose: 'CANCEL'; input: CancellationInput }
+    | { preview: DowngradePreview; purpose: 'HYBRID'; op: HybridDropOperation }
+    | null
+  >(null)
+  const [assistedTier, setAssistedTier] = useState<TierId | null>(null)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const ops = usePlanOperations(venueId, () => setCheckoutOpen(true))
 
-  const [upgradeTier, setUpgradeTier] = useState<TierId | null>(null)
+  const selection = { origin, grandfathered, target, marked, grid: grid.data, replacements: replacements.data, classicRejected }
+  const model = summarizeSelection({ ...selection, interval: billingInterval })
+  const mode = gridMode(target, current, canDropWithFeatures(origin, replacements.data))
+  const seatRule = origin.kind === 'CLASSIC' ? 'CHOOSE' : 'AUTOMATIC'
 
-  // Stripe checkout session — redirect to hosted checkout (Pro or Premium)
-  const planCheckoutMutation = useMutation({
-    mutationFn: ({ tier, interval }: { tier: 'PRO' | 'PREMIUM'; interval: 'monthly' | 'annual' }) =>
-      createPlanCheckoutSession(venueId, tier, interval),
-    onSuccess: (url: string) => {
-      window.location.href = url
-    },
-    onError: () => {
-      toast({ title: t('plan.checkoutError'), variant: 'destructive' })
-    },
-  })
-
-  const startCheckout = (tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual') => {
-    planCheckoutMutation.mutate({ tier, interval })
-  }
-
-  // ─── Pro→Free downgrade "choose who stays" ────────────────────────────────
-  // When the owner picks Free while on a paid plan we first fetch the preview.
-  //  • required=false → schedule the downgrade immediately (period-end), same
-  //    confirmation tone as the cancel flow.
-  //  • required=true  → open the DowngradeReconcileDialog so the owner picks who stays.
-  const [reconcilePreview, setReconcilePreview] = useState<DowngradePreview | null>(null)
-
-  const downgradePreviewMutation = useMutation({
-    mutationFn: () => getDowngradePreview(venueId),
-    onSuccess: preview => {
-      if (preview.required) {
-        setReconcilePreview(preview)
-      } else {
-        // Already under cap — schedule the downgrade with an empty keep-list.
-        directDowngradeMutation.mutate()
-      }
-    },
-    onError: () => {
-      toast({ title: t('plan.downgrade.errorToast'), variant: 'destructive' })
-    },
-  })
-
-  const directDowngradeMutation = useMutation({
-    mutationFn: () => downgradeVenueToFree(venueId, []),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      toast({ title: t('plan.downgrade.scheduledToast') })
-    },
-    onError: () => {
-      toast({ title: t('plan.downgrade.errorToast'), variant: 'destructive' })
-    },
-  })
-
-  const handleDowngradeToFree = () => {
-    downgradePreviewMutation.mutate()
-  }
-
-  // Handle Stripe return params (?checkout=success|cancel) — runs once on mount
+  // Stripe return (?checkout=success|cancel): the payment is acknowledged first; the plan only after a fresh read.
   const [searchParams, setSearchParams] = useSearchParams()
   const checkoutHandledRef = useRef(false)
   useEffect(() => {
@@ -156,28 +104,26 @@ export default function Subscriptions() {
     const checkoutParam = searchParams.get('checkout')
     if (!checkoutParam) return
     checkoutHandledRef.current = true
-
     if (checkoutParam === 'success') {
-      // 🔴 Volver de Stripe significa que el PAGO se completó, no que el plan se haya concedido:
-      // el servidor sólo lo concede si la suscripción está vigente. Afirmar «tu plan está activo»
-      // sin comprobarlo le decía al negocio que todo salió bien mientras seguía sin acceso
-      // (auditoría de Codex, 19-sep). Primero se acusa el pago; el veredicto llega tras refrescar.
       toast({ title: t('plan.checkoutReceived') })
-      void Promise.all([
-        queryClient.refetchQueries({ queryKey: ['venuePlan', venueId] }),
-        queryClient.refetchQueries({ queryKey: ['venueFeatures', venueId] }),
-      ]).then(() => {
-        // `state`, no `planTier`: `planTier` dice 'PRO' aunque la fila esté inactiva.
-        const plan = queryClient.getQueryData<{ state?: string }>(['venuePlan', venueId])
-        toast({
-          title: planDePagoConcedido(plan?.state) ? t('plan.checkoutSuccess') : t('plan.checkoutPending'),
-        })
-      })
+      // Stripe sends the owner back a few seconds before its webhook grants the plan: re-read a few times before
+      // saying "pending", or the toast contradicts a row that shows the plan a moment later.
+      void (async () => {
+        let granted = false
+        for (const wait of CHECKOUT_REREADS_MS) {
+          if (wait) await new Promise(resolve => setTimeout(resolve, wait))
+          await Promise.all([
+            queryClient.refetchQueries({ queryKey: ['venuePlan', venueId] }),
+            queryClient.refetchQueries({ queryKey: ['featureGrid', venueId] }),
+          ])
+          granted = planDePagoConcedido(queryClient.getQueryData<{ state?: string }>(['venuePlan', venueId])?.state)
+          if (granted) break
+        }
+        toast({ title: granted ? t('plan.checkoutSuccess') : t('plan.checkoutPending') })
+      })()
     } else if (checkoutParam === 'cancel') {
       toast({ title: t('plan.checkoutCanceled') })
     }
-
-    // Strip the param from the URL without a navigation push
     setSearchParams(
       prev => {
         const next = new URLSearchParams(prev)
@@ -188,655 +134,244 @@ export default function Subscriptions() {
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch payment methods (used by the superadmin trial flow to detect a saved card)
-  const { data: paymentMethods } = useQuery<
-    Array<{
-      id: string
-      card: {
-        brand: string
-        last4: string
-        exp_month: number
-        exp_year: number
-      }
-    }>
-  >({
-    queryKey: ['paymentMethods', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-methods`)
-      return response.data.data
-    },
-    enabled: !!venueId && canViewBilling,
-  })
-
-  // Superadmin: Fetch all platform features (lazy loaded)
-  const {
-    data: allPlatformFeatures,
-    isLoading: isLoadingPlatformFeatures,
-    error: _platformFeaturesError,
-  } = useQuery({
-    queryKey: ['superadmin', 'features'],
-    queryFn: async () => {
-      const service = await loadSuperadminService()
-      return service.getAllFeatures()
-    },
-    enabled: isSuperadmin,
-  })
-
-  // Memoized list of features available for superadmin to enable/grant trial
-  // Shows ALL platform features that are NOT already active for this venue
-  const superadminFeatureOptions = useMemo(() => {
-    // If we have platform features, filter out active ones
-    if (allPlatformFeatures && allPlatformFeatures.length > 0) {
-      const activeCodes = new Set(featuresStatus?.activeFeatures.map(f => f.feature.code) || [])
-
-      // Note: Backend already filters by active=true, so we only need to filter out
-      // features that are already active for this venue
-      return allPlatformFeatures
-        .filter(f => !activeCodes.has(f.code))
-        .map(f => ({
-          id: f.id,
-          code: f.code,
-          name: f.name,
-          description: f.description,
-          monthlyPrice: f.monthlyPrice || f.basePrice || 0,
-          stripeProductId: '',
-          stripePriceId: '',
-          hadPreviously: false,
-        }))
-    }
-
-    // Fallback to venue's available features if platform features not loaded
-    if (featuresStatus?.availableFeatures) {
-      return [...featuresStatus.availableFeatures]
-    }
-
-    return []
-  }, [allPlatformFeatures, featuresStatus])
-
-  // Socket.IO listener for real-time subscription updates
+  // Real-time subscription changes refresh the plan and the grid.
   useEffect(() => {
     if (!socket || !venueId) return
-
-    const handleSubscriptionActivated = (data: any) => {
-      toast({
-        title: t('toast.paymentSuccess'),
-        description: t('toast.paymentSuccessDescription', { feature: data.featureCode }),
-        variant: 'default',
-      })
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['venueInvoices', venueId] })
+    const refresh = () => {
+      for (const key of ['venuePlan', 'featureGrid', 'venueFeatures', 'venueInvoices'])
+        void queryClient.invalidateQueries({ queryKey: [key, venueId] })
     }
-
-    const handleSubscriptionDeactivated = (data: any) => {
-      toast({
-        title: t('toast.subscriptionDeactivated'),
-        description: t('toast.subscriptionDeactivatedDescription', { feature: data.featureCode }),
-        variant: 'destructive',
-      })
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['venueInvoices', venueId] })
-    }
-
-    socket.on('subscription.activated', handleSubscriptionActivated)
-    socket.on('subscription.deactivated', handleSubscriptionDeactivated)
-
+    socket.on('subscription.activated', refresh)
+    socket.on('subscription.deactivated', refresh)
     return () => {
-      socket.off('subscription.activated', handleSubscriptionActivated)
-      socket.off('subscription.deactivated', handleSubscriptionDeactivated)
+      socket.off('subscription.activated', refresh)
+      socket.off('subscription.deactivated', refresh)
     }
-  }, [socket, venueId, queryClient, toast, t])
+  }, [socket, venueId, queryClient])
 
-  // Superadmin: Enable feature for venue (without payment) - lazy loaded
-  const superadminEnableMutation = useMutation({
-    mutationFn: async (featureCode: string) => {
-      const service = await loadSuperadminService()
-      return service.enableFeatureForVenue(venueId, featureCode)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      toast({
-        title: t('superadmin.toast.enableSuccess', { defaultValue: 'Feature enabled' }),
-        description: t('superadmin.toast.enableSuccessDesc', { defaultValue: 'Feature has been enabled for this venue' }),
-        variant: 'default',
-      })
-      setShowEnableFeatureDialog(false)
-      setEnableFeatureCode('')
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('superadmin.toast.enableError', { defaultValue: 'Failed to enable feature' }),
-        description: error.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-    },
-  })
+  const reset = () => {
+    setPicked(null)
+    setMarked([])
+    setClassicRejected(false)
+    setError(null)
+  }
+  const pick = (tier: PlanTarget) => {
+    setPicked(tier === current ? null : tier)
+    // A plan change starts the selection over: marks from another mode would sit in the summary with no checkbox.
+    if (tier !== target) setMarked([])
+    setClassicRejected(false)
+    setError(null)
+  }
+  const toggle = (code: string) => {
+    setMarked(prev => (prev.includes(code) ? prev.filter(item => item !== code) : prev.length >= MAX_OFFERS ? prev : [...prev, code]))
+    setError(null)
+  }
+  // "Cambio asistido" always asks about a paid plan: going to Gratis is about the plan being left.
+  const assistedFor = (tier: PlanTarget): PlanTarget => (tier === 'FREE' ? current : tier)
+  const assistTier = assistedFor(target)
+  const fail = (value: unknown) => setError(serverMessage(value, t('hybrid.error')))
+  // The server refused "drop keeping functions": the spec's fallback is the plain drop at period end (§4.1).
+  const fallbackDrop = () => {
+    setMarked([])
+    setError(null)
+    setCancelOpen(true)
+  }
+  const quote = (body: HybridQuoteBody) => ops.hybridQuote.mutate(body, { onSuccess: reset, onError: fail })
 
-  // Superadmin: Disable feature for venue - lazy loaded
-  const superadminDisableMutation = useMutation({
-    mutationFn: async (featureCode: string) => {
-      const service = await loadSuperadminService()
-      return service.disableFeatureForVenue(venueId, featureCode)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      toast({
-        title: t('superadmin.toast.disableSuccess', { defaultValue: 'Feature disabled' }),
-        description: t('superadmin.toast.disableSuccessDesc', { defaultValue: 'Feature has been disabled for this venue' }),
-        variant: 'default',
-      })
-      setDisablingFeatureCode(null)
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('superadmin.toast.disableError', { defaultValue: 'Failed to disable feature' }),
-        description: error.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-      setDisablingFeatureCode(null)
-    },
-  })
-
-  /// Superadmin: Grant DB-only trial to venue (always bypasses Stripe)
-  /// This allows superadmin to give trials even to "returning" users who already had the feature
-  /// When trial expires, user can subscribe normally via Stripe (with payment, no trial)
-  const superadminGrantTrialMutation = useMutation({
-    mutationFn: async ({ featureCode, days }: { featureCode: string; days: number }) => {
-      // Always use DB-only trial for superadmin grants
-      // This bypasses Stripe's "returning feature" logic that prevents re-trials
-      const superadminService = await loadSuperadminService()
-      return superadminService.grantTrialForVenue(venueId, featureCode, days)
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-      toast({
-        title: t('superadmin.toast.trialGranted', { defaultValue: 'Trial granted' }),
-        description: t('superadmin.toast.trialGrantedDesc', {
-          defaultValue: '{{days}}-day trial has been granted',
-          days: variables.days,
-        }),
-        variant: 'default',
-      })
-      setShowGrantTrialDialog(false)
-      setGrantTrialFeatureCode('')
-      setGrantTrialDays(7)
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('superadmin.toast.trialError', { defaultValue: 'Failed to grant trial' }),
-        description: error.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-    },
-  })
-
-  // Check if venue has payment method (required for Stripe trial)
-  const venueHasPaymentMethod = useMemo(() => {
-    return (paymentMethods && paymentMethods.length > 0) || !!featuresStatus?.paymentMethod?.last4
-  }, [paymentMethods, featuresStatus?.paymentMethod])
-
-  // Helper function to switch from grant trial to enable feature (when no PM)
-  const handleSwitchToEnableFeature = () => {
-    const selectedFeature = grantTrialFeatureCode
-    setShowGrantTrialDialog(false)
-    setGrantTrialFeatureCode('')
-    setEnableFeatureCode(selectedFeature)
-    setShowEnableFeatureDialog(true)
+  const review = async () => {
+    const op = model.operation
+    setError(null)
+    if (op.kind === 'ASSISTED') {
+      const tier = assistedFor(op.tier)
+      if (tier !== 'FREE') setAssistedTier(tier)
+      return
+    }
+    if (op.kind === 'CLASSIC_CHECKOUT')
+      return ops.classicCheckout.mutate(
+        { tier: op.tier, interval: billingInterval },
+        { onError: value => (serverCode(value) === 'PLAN_ABSORBE_SUELTA' ? setClassicRejected(true) : fail(value)) },
+      )
+    if (op.kind === 'FEATURES') return quote({ lines: op.lines, replaceSubscriptionIds: [], dropFeatureCodes: [] })
+    if (op.kind === 'HYBRID_REPLACE')
+      return quote({ lines: op.lines, replaceSubscriptionIds: op.replaceSubscriptionIds, dropFeatureCodes: op.dropFeatureCodes })
+    if (op.kind === 'HYBRID_DROP') {
+      const preview = await ops.preview.mutateAsync().catch(value => void fail(value))
+      if (!preview) return
+      if (preview.required) return setReconcile({ preview, purpose: 'HYBRID', op })
+      return quote({ lines: op.lines, replaceSubscriptionIds: op.replaceSubscriptionIds, dropFeatureCodes: op.dropFeatureCodes })
+    }
+    if (op.kind === 'DOWNGRADE_CLASSIC' || op.kind === 'CANCEL_CONTRACT') setCancelOpen(true)
   }
 
-  // Currency formatter — used by the superadmin feature panel (price badges + select labels).
-  const formatCurrency = (amount: number, currency: string = 'MXN') => {
-    return new Intl.NumberFormat(i18n.language, {
-      style: 'currency',
-      currency,
-    }).format(amount / 100)
+  const confirmCancel = async (input: CancellationInput) => {
+    if (origin.kind === 'CONTRACT' && origin.contractId && origin.contractRevision != null)
+      return ops.cancelContract.mutate(
+        { contractId: origin.contractId, revision: origin.contractRevision, input },
+        {
+          onSuccess: () => {
+            setCancelOpen(false)
+            reset()
+          },
+        },
+      )
+    const preview = await ops.preview
+      .mutateAsync()
+      .catch(value => void toast({ title: serverMessage(value, t('plan.downgrade.errorToast')), variant: 'destructive' }))
+    if (!preview) return
+    if (preview.required) {
+      setCancelOpen(false)
+      return setReconcile({ preview, purpose: 'CANCEL', input })
+    }
+    ops.downgrade.mutate(
+      { keep: [], input },
+      {
+        onSuccess: () => {
+          setCancelOpen(false)
+          reset()
+        },
+      },
+    )
   }
 
-  if (loadingFeatures) {
+  const confirmKeep = (keep: string[]) => {
+    if (!reconcile) return
+    if (reconcile.purpose === 'CANCEL')
+      return ops.downgrade.mutate(
+        { keep, input: reconcile.input },
+        {
+          onSuccess: () => {
+            setReconcile(null)
+            reset()
+          },
+        },
+      )
+    const { op } = reconcile
+    setReconcile(null)
+    quote({
+      lines: op.lines,
+      replaceSubscriptionIds: op.replaceSubscriptionIds,
+      dropFeatureCodes: op.dropFeatureCodes,
+      ...(keep.length ? { keepStaffVenueIds: keep } : {}),
+    })
+  }
+
+  const tierName = origin.tier ? t(`plan.tiers.${origin.tier.toLowerCase()}.name`) : ''
+  const until = origin.currentPeriodEnd ? formatDate(origin.currentPeriodEnd) : null
+  // Every write in flight blocks every write control: quote and downgrade carry no idempotency key.
+  const busy = Object.values(ops).some(op => op.isPending)
+
+  if (plan.isLoading || grid.isLoading)
     return (
       <div className="p-8">
         <p>{t('loading')}</p>
       </div>
     )
-  }
 
   return (
     <>
-      <div className="p-8 space-y-6">
-        {/* Base-plan "Tu plan" card (PLAN_PRO) — real Stripe state, cancel/reactivate, portal */}
-        {venueId && <CurrentPlanCard venueId={venueId} />}
-
-        {/* Plan-first picker (Free / Pro / Premium / Enterprise) */}
-        <PlanPicker
-          currentTier={currentTier}
-          onSelectTier={(tier, interval) => {
-            if (tier === 'PRO' || tier === 'PREMIUM') {
-              startCheckout(tier, interval)
-            } else if (tier === 'FREE' && currentTier !== 'FREE') {
-              // Downgrade from a paid plan to Free → reconcile seat cap first.
-              handleDowngradeToFree()
-            } else {
-              setUpgradeTier(tier)
-            }
-          }}
-        />
-
-        {/* Superadmin Feature Management Panel — collapsed by default */}
-        {isSuperadmin && (
-          <SuperadminFeatureControl>
-            <div className="pt-2">
-              {/* Base-plan admin: tier/grandfathered state, comp plans, plan trials */}
-              <SuperadminPlanControl venueId={venueId} venueName={venue?.name} planState={planState} />
-
-              <Separator className="my-6 bg-amber-400/20" />
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {/* Grant Trial */}
-                <button
-                  onClick={() => setShowGrantTrialDialog(true)}
-                  className="group flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-amber-400/30 hover:border-amber-400/60 bg-gradient-to-br from-amber-500/5 to-pink-500/5 hover:from-amber-500/10 hover:to-pink-500/10 transition-all duration-200 cursor-pointer"
-                >
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500 group-hover:shadow-md transition-shadow">
-                    <Gift className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-foreground">
-                      {t('superadmin.actions.grantTrial', { defaultValue: 'Grant Trial' })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t('superadmin.actions.grantTrialDesc', { defaultValue: 'Give free trial period' })}
-                    </p>
-                  </div>
-                </button>
-
-                {/* Enable Feature */}
-                <button
-                  onClick={() => setShowEnableFeatureDialog(true)}
-                  className="group flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-amber-400/30 hover:border-amber-400/60 bg-gradient-to-br from-amber-500/5 to-pink-500/5 hover:from-amber-500/10 hover:to-pink-500/10 transition-all duration-200 cursor-pointer"
-                >
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500 group-hover:shadow-md transition-shadow">
-                    <Zap className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-foreground">
-                      {t('superadmin.actions.enableFeature', { defaultValue: 'Enable Feature' })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t('superadmin.actions.enableFeatureDesc', { defaultValue: 'Activate without payment' })}
-                    </p>
-                  </div>
-                </button>
-
-                {/* Quick Stats */}
-                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-muted/30">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Power className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-foreground">
-                      {featuresStatus?.activeFeatures.length || 0} {t('superadmin.stats.activeFeatures', { defaultValue: 'Active' })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {featuresStatus?.availableFeatures.length || 0}{' '}
-                      {t('superadmin.stats.available', { defaultValue: 'available to add' })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Features with Superadmin Controls */}
-              {featuresStatus?.activeFeatures && featuresStatus.activeFeatures.length > 0 && (
-                <>
-                  <Separator className="my-4 bg-amber-400/20" />
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      {t('superadmin.activeFeatures.title', { defaultValue: 'Active Features Control' })}
-                    </h4>
-                    <div className="grid gap-2">
-                      {featuresStatus.activeFeatures.map(feature => (
-                        <div
-                          key={feature.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-amber-400/30 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={feature.active}
-                                onCheckedChange={checked => {
-                                  if (!checked) {
-                                    setDisablingFeatureCode(feature.feature.code)
-                                  }
-                                }}
-                                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-amber-400 data-[state=checked]:to-pink-500"
-                              />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{feature.feature.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {feature.endDate
-                                  ? t('superadmin.activeFeatures.trialUntil', {
-                                      defaultValue: 'Trial until {{date}}',
-                                      date: formatDate(feature.endDate),
-                                    })
-                                  : t('superadmin.activeFeatures.fullyActive', { defaultValue: 'Fully active' })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}/mo
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
+      <div className="space-y-6 p-4 pb-28 sm:p-8 sm:pb-28 xl:pb-8" data-tour="plan-page">
+        {plan.isError ? (
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {t('plan.page.planError')}
+          </p>
+        ) : (
+          <>
+            <PlanRow
+              origin={origin}
+              planState={plan.data}
+              grandfathered={grandfathered}
+              grid={grid.data}
+              replacements={replacements.data}
+              classicRejected={classicRejected}
+              current={current}
+              selected={target}
+              onSelect={pick}
+              interval={billingInterval}
+              onIntervalChange={setBillingInterval}
+              canManage={canManage}
+              busy={busy}
+              onCancel={() => setCancelOpen(true)}
+              onReactivate={() => ops.reactivate.mutate()}
+              onUpdatePayment={() => ops.portal.mutate()}
+            />
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              {grid.data ? (
+                <FeatureGrid
+                  entries={grid.data.entries}
+                  purchasesEnabled={grid.data.purchasesEnabled}
+                  mode={mode}
+                  marked={marked}
+                  isMarkable={entry => isMarkable(entry, mode)}
+                  onToggle={toggle}
+                  onPickTier={pick}
+                  canManage={canManage && !grandfathered}
+                />
+              ) : (
+                grid.isError && (
+                  <p
+                    role="alert"
+                    className="self-start rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+                  >
+                    {t('plan.page.gridError')}
+                  </p>
+                )
               )}
-
-              {/* Disclaimer */}
-              <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-400/30">
-                <p className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  {t('superadmin.disclaimer', {
-                    defaultValue:
-                      'Changes made here only affect this venue. For platform-wide feature management, use the Superadmin dashboard.',
-                  })}
-                </p>
-              </div>
+              {/* Outside the grid guard: the classic checkout and the drop need no grid (spec §4.1 falls back to ASSISTED). */}
+              <SelectionSummary
+                model={model}
+                seatRule={seatRule}
+                canManage={canManage}
+                busy={busy}
+                error={error}
+                onReview={() => void review()}
+                onPickTier={pick}
+                onAssisted={assistTier !== 'FREE' ? () => setAssistedTier(assistTier) : undefined}
+                onFallbackDrop={model.operation.kind === 'HYBRID_DROP' ? fallbackDrop : undefined}
+              />
             </div>
-          </SuperadminFeatureControl>
+          </>
         )}
+        <HybridBillingPanel
+          key={venueId}
+          venueId={venueId}
+          checkoutOpen={checkoutOpen}
+          onCheckoutOpenChange={setCheckoutOpen}
+          canRead={canRead}
+          canManage={canManage}
+          timezone={venue?.timezone ?? 'America/Mexico_City'}
+        />
+        {isSuperadmin && <SuperadminBillingSection venueId={venueId} venueName={venue?.name} planState={plan.data} />}
       </div>
 
-      {/* Plan upgrade dialog (assisted activation — Fase A interim) */}
-      <PlanUpgradeDialog tier={upgradeTier} onClose={() => setUpgradeTier(null)} />
-
-      {/* Pro→Free downgrade "choose who stays" — only when the preview requires it */}
-      {reconcilePreview && venueId && (
+      <PlanUpgradeDialog tier={assistedTier} title={t('plan.selection.assisted')} onClose={() => setAssistedTier(null)} />
+      <CancelPlanDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        target={{
+          kind: 'PLAN',
+          tierName,
+          until,
+          classic: origin.kind === 'CLASSIC',
+          retentionOfferEligible: plan.data?.retentionOfferEligible ?? false,
+          pauseOfferEligible: plan.data?.pauseOfferEligible ?? false,
+        }}
+        seatNotice={seatRule}
+        pending={ops.preview.isPending || ops.downgrade.isPending || ops.cancelContract.isPending}
+        onConfirm={input => void confirmCancel(input)}
+        onAcceptOffer={offer => ops.offer.mutate(offer, { onSuccess: () => setCancelOpen(false) })}
+        offerPending={ops.offer.isPending}
+      />
+      {reconcile && (
         <DowngradeReconcileDialog
-          open={!!reconcilePreview}
-          onClose={() => setReconcilePreview(null)}
-          venueId={venueId}
-          preview={reconcilePreview}
-          currentPeriodEnd={planState?.currentPeriodEnd}
+          open
+          onClose={() => setReconcile(null)}
+          preview={reconcile.preview}
+          currentPeriodEnd={reconcile.purpose === 'CANCEL' ? origin.currentPeriodEnd : null}
+          onConfirm={confirmKeep}
+          pending={ops.downgrade.isPending || ops.hybridQuote.isPending}
+          confirmLabel={reconcile.purpose === 'HYBRID' ? t('plan.downgrade.payCta') : undefined}
+          onSkip={reconcile.purpose === 'HYBRID' ? () => confirmKeep([]) : undefined}
         />
-      )}
-
-      {/* Superadmin: Grant Trial Dialog */}
-      {isSuperadmin && (
-        <Dialog open={showGrantTrialDialog} onOpenChange={setShowGrantTrialDialog}>
-          <DialogContent className="border-2 border-amber-400/50">
-            <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
-                  <Gift className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <DialogTitle className="bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
-                  {t('superadmin.grantTrial.title', { defaultValue: 'Grant Free Trial' })}
-                </DialogTitle>
-              </div>
-              <DialogDescription>
-                {t('superadmin.grantTrial.description', {
-                  defaultValue: 'Grant a free trial period for a feature to {{venue}}. This bypasses normal payment requirements.',
-                  venue: venue?.name || 'this venue',
-                })}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {/* Feature Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="trial-feature">{t('superadmin.grantTrial.selectFeature', { defaultValue: 'Select Feature' })}</Label>
-                <Select value={grantTrialFeatureCode} onValueChange={setGrantTrialFeatureCode}>
-                  <SelectTrigger id="trial-feature">
-                    <SelectValue placeholder={t('superadmin.grantTrial.selectPlaceholder', { defaultValue: 'Choose a feature...' })} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingPlatformFeatures && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.loadingFeatures')}</div>
-                    )}
-                    {!isLoadingPlatformFeatures &&
-                      superadminFeatureOptions.map(feature => (
-                        <SelectItem key={feature.code} value={feature.code}>
-                          {feature.name} - {formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}/mo
-                        </SelectItem>
-                      ))}
-                    {!isLoadingPlatformFeatures && superadminFeatureOptions.length === 0 && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.noFeaturesAvailable')}</div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Trial Duration */}
-              <div className="space-y-2">
-                <Label htmlFor="trial-days">{t('superadmin.grantTrial.duration', { defaultValue: 'Trial Duration (days)' })}</Label>
-                <div className="flex gap-2">
-                  {[7, 14, 30, 60, 90].map(days => (
-                    <Button
-                      key={days}
-                      type="button"
-                      variant={grantTrialDays === days ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setGrantTrialDays(days)}
-                      className={
-                        grantTrialDays === days
-                          ? 'bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0'
-                          : ''
-                      }
-                    >
-                      {days}
-                    </Button>
-                  ))}
-                  <Input
-                    id="trial-days"
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={grantTrialDays}
-                    onChange={e => setGrantTrialDays(Math.max(1, parseInt(e.target.value) || 7))}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-
-              {/* Info: DB-only trial (always shown - superadmin trials bypass Stripe) */}
-              <Alert className="border-amber-500/50 bg-amber-500/10">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                <AlertDescription className="text-amber-700 dark:text-amber-300">
-                  <p className="font-medium mb-1">
-                    {t('superadmin.grantTrial.dbOnlyTrialInfo', {
-                      defaultValue: 'DB-only trial (bypasses Stripe)',
-                    })}
-                  </p>
-                  <p className="text-sm">
-                    {t('superadmin.grantTrial.dbOnlyTrialInfoDesc', {
-                      defaultValue:
-                        'This trial is managed directly in the database and will automatically expire after the trial period. When the trial ends, the venue will need to subscribe through Stripe to continue.',
-                    })}
-                  </p>
-                </AlertDescription>
-              </Alert>
-
-              {/* Preview - show for both Stripe and DB-only trials */}
-              {grantTrialFeatureCode && (
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-400/30">
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
-                    {t('superadmin.grantTrial.preview', {
-                      defaultValue:
-                        '✨ {{feature}} will be active for {{days}} days for free. After the trial, the venue will need to subscribe to continue.',
-                      feature: superadminFeatureOptions.find(f => f.code === grantTrialFeatureCode)?.name || grantTrialFeatureCode,
-                      days: grantTrialDays,
-                    })}
-                  </p>
-                </div>
-              )}
-            </div>
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => setShowGrantTrialDialog(false)}>
-                {t('common:cancel')}
-              </Button>
-              {/* Show "Enable Free Instead" as secondary option when no payment method */}
-              {!venueHasPaymentMethod && grantTrialFeatureCode && (
-                <Button variant="outline" onClick={handleSwitchToEnableFeature} className="border-amber-400/50 hover:bg-amber-400/10">
-                  <Zap className="h-4 w-4 mr-2" />
-                  {t('superadmin.grantTrial.enableFreeInstead', { defaultValue: 'Enable Free Instead' })}
-                </Button>
-              )}
-              {/* Primary action: Grant Trial (DB-only, bypasses Stripe) */}
-              <Button
-                onClick={() => {
-                  if (grantTrialFeatureCode) {
-                    superadminGrantTrialMutation.mutate({
-                      featureCode: grantTrialFeatureCode,
-                      days: grantTrialDays,
-                    })
-                  }
-                }}
-                disabled={!grantTrialFeatureCode || superadminGrantTrialMutation.isPending}
-                className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
-              >
-                {superadminGrantTrialMutation.isPending
-                  ? t('common:loading')
-                  : t('superadmin.grantTrial.confirm', { defaultValue: 'Grant Trial' })}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Superadmin: Enable Feature Dialog */}
-      {isSuperadmin && (
-        <Dialog open={showEnableFeatureDialog} onOpenChange={setShowEnableFeatureDialog}>
-          <DialogContent className="border-2 border-amber-400/50">
-            <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
-                  <Zap className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <DialogTitle className="bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
-                  {t('superadmin.enableFeature.title', { defaultValue: 'Enable Feature' })}
-                </DialogTitle>
-              </div>
-              <DialogDescription>
-                {t('superadmin.enableFeature.description', {
-                  defaultValue: 'Enable a feature for {{venue}} without requiring payment. Use this for special arrangements or testing.',
-                  venue: venue?.name || 'this venue',
-                })}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {/* Feature Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="enable-feature">{t('superadmin.enableFeature.selectFeature', { defaultValue: 'Select Feature' })}</Label>
-                <Select value={enableFeatureCode} onValueChange={setEnableFeatureCode}>
-                  <SelectTrigger id="enable-feature">
-                    <SelectValue
-                      placeholder={t('superadmin.enableFeature.selectPlaceholder', { defaultValue: 'Choose a feature to enable...' })}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingPlatformFeatures && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.loadingFeatures')}</div>
-                    )}
-                    {!isLoadingPlatformFeatures &&
-                      superadminFeatureOptions.map(feature => (
-                        <SelectItem key={feature.code} value={feature.code}>
-                          <div className="flex items-center gap-2">
-                            <Plus className="h-3 w-3" />
-                            {feature.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    {!isLoadingPlatformFeatures && superadminFeatureOptions.length === 0 && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.noFeaturesAvailable')}</div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Warning */}
-              <Alert className="border-amber-400/50 bg-amber-500/10">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-sm text-amber-700 dark:text-amber-300">
-                  {t('superadmin.enableFeature.warning', {
-                    defaultValue:
-                      'This will enable the feature indefinitely without creating a subscription. The venue will not be charged.',
-                  })}
-                </AlertDescription>
-              </Alert>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowEnableFeatureDialog(false)}>
-                {t('common:cancel')}
-              </Button>
-              <Button
-                onClick={() => {
-                  if (enableFeatureCode) {
-                    superadminEnableMutation.mutate(enableFeatureCode)
-                  }
-                }}
-                disabled={!enableFeatureCode || superadminEnableMutation.isPending}
-                className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
-              >
-                {superadminEnableMutation.isPending
-                  ? t('common:loading')
-                  : t('superadmin.enableFeature.confirm', { defaultValue: 'Enable Feature' })}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Superadmin: Disable Feature Confirmation Dialog */}
-      {isSuperadmin && (
-        <AlertDialog open={!!disablingFeatureCode} onOpenChange={() => setDisablingFeatureCode(null)}>
-          <AlertDialogContent className="border-2 border-amber-400/50">
-            <AlertDialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
-                  <X className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <AlertDialogTitle className="bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
-                  {t('superadmin.disableFeature.title', { defaultValue: 'Disable Feature' })}
-                </AlertDialogTitle>
-              </div>
-              <AlertDialogDescription>
-                {t('superadmin.disableFeature.description', {
-                  defaultValue:
-                    'Are you sure you want to disable {{feature}} for {{venue}}? This action will immediately revoke access to this feature.',
-                  feature:
-                    featuresStatus?.activeFeatures.find(f => f.feature.code === disablingFeatureCode)?.feature.name || disablingFeatureCode,
-                  venue: venue?.name || 'this venue',
-                })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Alert variant="destructive" className="my-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {t('superadmin.disableFeature.warning', {
-                  defaultValue: 'This action cannot be undone. The venue will lose access immediately.',
-                })}
-              </AlertDescription>
-            </Alert>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (disablingFeatureCode) {
-                    superadminDisableMutation.mutate(disablingFeatureCode)
-                  }
-                }}
-                disabled={superadminDisableMutation.isPending}
-                className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
-              >
-                {superadminDisableMutation.isPending
-                  ? t('common:loading')
-                  : t('superadmin.disableFeature.confirm', { defaultValue: 'Disable Feature' })}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       )}
     </>
   )

@@ -13,7 +13,7 @@ const { t } = useTranslation()
 <Button>{t('save')}</Button>
 ```
 
-- Add translations for BOTH `en` and `es` (and `fr` if namespace exists)
+- Add translations for BOTH `en` and `es`. **French is no longer supported** (founder, 2026-09-28): never add new `fr` keys, never delete the existing `src/locales/fr/*` files, and a missing `fr` key is not a defect
 - Use interpolation: `t('greeting', { name })` — never concatenate strings
 - **Superadmin exception**: `src/pages/Superadmin/**` uses hardcoded Spanish, no i18n
 - ESLint rule `no-missing-translation-keys.js` validates keys match JSON files — don't suppress it

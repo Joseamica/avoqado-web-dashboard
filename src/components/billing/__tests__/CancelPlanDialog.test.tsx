@@ -1,240 +1,111 @@
 // src/components/billing/__tests__/CancelPlanDialog.test.tsx
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { CancelPlanDialog } from '../CancelPlanDialog'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CancelPlanDialog, type CancelTarget } from '../CancelPlanDialog'
 
-// ── react-i18next: return key (or interpolated) ──────────────────────────────
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (k: string, o?: Record<string, unknown>) => {
-      // returnObjects for loseItems array
-      if (o?.returnObjects) {
-        return ['Full reports & history', 'AI Assistant + MCP', 'Loyalty & referrals']
-      }
-      // Interpolate simple values
-      if (o && typeof o === 'object') {
-        return Object.entries(o).reduce(
-          (acc, [key, val]) => acc.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(val)),
-          k,
-        )
-      }
-      return k
-    },
+    t: (key: string, params: Record<string, unknown> = {}) =>
+      Object.entries(params).reduce((text, [name, value]) => `${text}|${name}=${value}`, key),
   }),
 }))
 
-// ── service mocks ────────────────────────────────────────────────────────────
-const mockApplyRetentionOffer = vi.fn()
-const mockCancelVenuePlan = vi.fn()
-
-vi.mock('@/services/features.service', () => ({
-  applyRetentionOffer: (...args: unknown[]) => mockApplyRetentionOffer(...args),
-  cancelVenuePlan: (...args: unknown[]) => mockCancelVenuePlan(...args),
-}))
-
-// ── TanStack Query ────────────────────────────────────────────────────────────
-const mockMutate = vi.fn()
-vi.mock('@tanstack/react-query', () => ({
-  useMutation: ({ mutationFn }: { mutationFn: (...args: unknown[]) => unknown }) => ({
-    mutate: (...args: unknown[]) => {
-      mockMutate(...args)
-      mutationFn(...args)
-    },
-    isPending: false,
-  }),
-  useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
-  }),
-}))
-
-// ── toast ────────────────────────────────────────────────────────────────────
-vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
-}))
-
-// ── datetime ─────────────────────────────────────────────────────────────────
-vi.mock('@/utils/datetime', () => ({
-  useVenueDateTime: () => ({
-    formatDate: (d: string) => d,
-  }),
-}))
-
-// ── Default props ─────────────────────────────────────────────────────────────
-// Eligible by default so the existing offer-step assertions keep exercising the
-// full reason → offer → confirm flow. Ineligibility is covered explicitly below.
-const defaultProps = {
-  open: true,
-  onOpenChange: vi.fn(),
-  venueId: 'venue-abc',
-  planName: 'Avoqado Pro',
-  currentPeriodEnd: '2026-07-08',
+const PLAN: CancelTarget = {
+  kind: 'PLAN',
+  tierName: 'Pro',
+  until: '27 oct 2026',
+  classic: true,
   retentionOfferEligible: true,
+  pauseOfferEligible: true,
 }
+const onConfirm = vi.fn()
+const onOpenChange = vi.fn()
+const onAcceptOffer = vi.fn()
+const renderDialog = (props: Partial<Parameters<typeof CancelPlanDialog>[0]> = {}) =>
+  render(<CancelPlanDialog open onOpenChange={onOpenChange} target={PLAN} onConfirm={onConfirm} onAcceptOffer={onAcceptOffer} {...props} />)
+const pick = (id: string) => userEvent.click(screen.getByText(`plan.cancel.reason.options.${id}`))
+
+beforeEach(() => {
+  onConfirm.mockReset()
+  onOpenChange.mockReset()
+  onAcceptOffer.mockReset()
+})
 
 describe('CancelPlanDialog', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockApplyRetentionOffer.mockResolvedValue(undefined)
-    mockCancelVenuePlan.mockResolvedValue({})
-  })
-
-  it('renders step "reason" with all 6 radio options on open', () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    // Heading
+  it('asks why with seven optional reasons and says until when the plan stays', () => {
+    renderDialog()
     expect(screen.getByText('plan.cancel.reason.title')).toBeInTheDocument()
-
-    // All 6 reasons
-    expect(screen.getByText('plan.cancel.reason.options.tooExpensive')).toBeInTheDocument()
-    expect(screen.getByText('plan.cancel.reason.options.notUsing')).toBeInTheDocument()
-    expect(screen.getByText('plan.cancel.reason.options.missingFeature')).toBeInTheDocument()
-    expect(screen.getByText('plan.cancel.reason.options.switching')).toBeInTheDocument()
-    expect(screen.getByText('plan.cancel.reason.options.temporary')).toBeInTheDocument()
-    expect(screen.getByText('plan.cancel.reason.options.other')).toBeInTheDocument()
+    expect(screen.getByText('plan.cancel.reason.subtitlePlan|tier=Pro|date=27 oct 2026')).toBeInTheDocument()
+    expect(screen.getAllByRole('radio')).toHaveLength(7)
   })
 
-  it('primary "keep" button closes the dialog without advancing', () => {
-    const onOpenChange = vi.fn()
-    render(<CancelPlanDialog {...defaultProps} onOpenChange={onOpenChange} />)
+  it('can cancel without choosing a reason', async () => {
+    renderDialog()
+    await userEvent.click(screen.getByRole('button', { name: 'plan.cancel.confirm.cancelCta' }))
+    expect(onConfirm).toHaveBeenCalledWith({})
+  })
 
-    fireEvent.click(screen.getByTestId ? screen.getByText('plan.cancel.reason.keepCta') : screen.getByText('plan.cancel.reason.keepCta'))
+  it('sends the server reason and the trimmed comment, capped at 500 characters', async () => {
+    renderDialog()
+    await pick('temporary')
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: `  ${'x'.repeat(600)}  ` } })
+    await userEvent.click(screen.getByRole('button', { name: 'plan.cancel.confirm.cancelCta' }))
+    const input = onConfirm.mock.calls[0][0]
+    expect(input.reason).toBe('TEMPORARY')
+    expect(input.comment.length).toBeLessThanOrEqual(500)
+  })
+
+  it('maps "difícil de usar" to TOO_COMPLEX', async () => {
+    renderDialog()
+    await pick('tooComplex')
+    await userEvent.click(screen.getByRole('button', { name: 'plan.cancel.confirm.cancelCta' }))
+    expect(onConfirm).toHaveBeenCalledWith({ reason: 'TOO_COMPLEX' })
+  })
+
+  it('puts "cancel" on the left and "keep my plan" on the right, focused by default, and keeping closes', async () => {
+    renderDialog()
+    const [left, right] = within(screen.getByRole('dialog'))
+      .getAllByRole('button')
+      .filter(button => button.dataset.tour?.startsWith('cancel-'))
+    expect(left).toHaveAttribute('data-tour', 'cancel-confirm')
+    expect(right).toHaveAttribute('data-tour', 'cancel-keep')
+    // Long labels (fr contract, «Me quedo con mi plan» at 390 px) must wrap inside their equal cells.
+    expect(left).toHaveClass('whitespace-normal', 'h-auto', 'min-h-9')
+    expect(right).toHaveClass('whitespace-normal', 'h-auto', 'min-h-9')
+    expect(right).toHaveFocus()
+    await userEvent.click(right)
     expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(onConfirm).not.toHaveBeenCalled()
   })
 
-  it('"Continue" is disabled until a reason is selected', () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-    const continueBtn = screen.getByText('plan.cancel.reason.continueCta')
-    expect(continueBtn).toBeDisabled()
+  it('offers the discount for "too expensive" and the pause for "temporary", classic plans only', async () => {
+    renderDialog()
+    await pick('tooExpensive')
+    await userEvent.click(screen.getByRole('button', { name: 'plan.cancel.offer.acceptCta' }))
+    expect(onAcceptOffer).toHaveBeenCalledWith('discount')
+    await pick('temporary')
+    await userEvent.click(screen.getByRole('button', { name: 'plan.cancel.offer.pauseCta' }))
+    expect(onAcceptOffer).toHaveBeenCalledWith('pause')
   })
 
-  it('with retentionOfferEligible=true, selecting a reason enables Continue; clicking it advances to step "offer"', async () => {
-    render(<CancelPlanDialog {...defaultProps} retentionOfferEligible={true} />)
-
-    // Select "tooExpensive"
-    const expensiveLabel = screen.getByText('plan.cancel.reason.options.tooExpensive')
-    fireEvent.click(expensiveLabel)
-
-    const continueBtn = screen.getByText('plan.cancel.reason.continueCta')
-    expect(continueBtn).not.toBeDisabled()
-
-    fireEvent.click(continueBtn)
-
-    await waitFor(() => {
-      expect(screen.getByText('plan.cancel.offer.title')).toBeInTheDocument()
-    })
+  it('no offer when not eligible, nor for a plan by contract', async () => {
+    renderDialog({ target: { ...PLAN, retentionOfferEligible: false } as CancelTarget })
+    await pick('tooExpensive')
+    expect(screen.queryByRole('button', { name: 'plan.cancel.offer.acceptCta' })).toBeNull()
   })
 
-  it('with retentionOfferEligible=false, reason → Continuar skips the offer step and goes straight to confirm', async () => {
-    render(<CancelPlanDialog {...defaultProps} retentionOfferEligible={false} />)
-
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.tooExpensive'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-
-    // Lands directly on confirm
-    await waitFor(() => {
-      expect(screen.getByText('plan.cancel.confirm.title')).toBeInTheDocument()
-    })
-
-    // The offer step (and its countdown timer) must NOT be shown
-    expect(screen.queryByText('plan.cancel.offer.title')).not.toBeInTheDocument()
-    expect(screen.queryByText('plan.cancel.offer.discountBody')).not.toBeInTheDocument()
-    expect(screen.queryByText(/plan\.cancel\.offer\.timerLabel/)).not.toBeInTheDocument()
+  it('a contract says when it stops renewing and uses its own labels', () => {
+    renderDialog({ target: { kind: 'CONTRACT', name: 'Reservas', until: '27 oct 2026' } })
+    expect(screen.getByText('plan.cancel.reason.subtitleContract|name=Reservas|date=27 oct 2026')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'plan.cancel.reason.confirmContractCta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'plan.cancel.reason.keepContractCta' })).toBeInTheDocument()
   })
 
-  it('offer step shows the discount copy and a live countdown (MM:SS format)', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    // Navigate to offer step
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.tooExpensive'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-
-    await waitFor(() => {
-      expect(screen.getByText('plan.cancel.offer.discountBody')).toBeInTheDocument()
-    })
-
-    // Discount badge present
-    expect(screen.getByText('plan.cancel.offer.discountBadge')).toBeInTheDocument()
-
-    // Timer label contains MM:SS — look for the pattern in any element containing the key
-    const timerElements = screen.getAllByText(/plan\.cancel\.offer\.timerLabel/)
-    expect(timerElements.length).toBeGreaterThan(0)
-  })
-
-  it('offer step shows pause CTA when reason is "notUsing"', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.notUsing'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-
-    await waitFor(() => {
-      expect(screen.getByText('plan.cancel.offer.pauseCta')).toBeInTheDocument()
-    })
-  })
-
-  it('offer step does NOT show pause CTA for reason "tooExpensive"', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.tooExpensive'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-
-    await waitFor(() => {
-      expect(screen.getByText('plan.cancel.offer.title')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText('plan.cancel.offer.pauseCta')).not.toBeInTheDocument()
-  })
-
-  it('"Accept and stay" on offer step calls applyRetentionOffer with "discount"', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.tooExpensive'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-
-    await waitFor(() => expect(screen.getByText('plan.cancel.offer.acceptCta')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('plan.cancel.offer.acceptCta'))
-
-    expect(mockApplyRetentionOffer).toHaveBeenCalledWith('venue-abc', 'discount')
-  })
-
-  it('"No thanks, cancel" on offer step advances to confirm step', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.tooExpensive'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-
-    await waitFor(() => expect(screen.getByText('plan.cancel.offer.declineCta')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('plan.cancel.offer.declineCta'))
-
-    await waitFor(() => {
-      expect(screen.getByText('plan.cancel.confirm.title')).toBeInTheDocument()
-    })
-  })
-
-  it('confirm step primary "keep" button closes the dialog', async () => {
-    const onOpenChange = vi.fn()
-    render(<CancelPlanDialog {...defaultProps} onOpenChange={onOpenChange} />)
-
-    // Navigate to confirm step
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.switching'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-    await waitFor(() => expect(screen.getByText('plan.cancel.offer.declineCta')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('plan.cancel.offer.declineCta'))
-    await waitFor(() => expect(screen.getByText('plan.cancel.confirm.keepCta')).toBeInTheDocument())
-
-    fireEvent.click(screen.getByText('plan.cancel.confirm.keepCta'))
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-  })
-
-  it('confirm step "Yes, cancel" calls cancelVenuePlan', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
-
-    fireEvent.click(screen.getByText('plan.cancel.reason.options.switching'))
-    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
-    await waitFor(() => expect(screen.getByText('plan.cancel.offer.declineCta')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('plan.cancel.offer.declineCta'))
-    await waitFor(() => expect(screen.getByText('plan.cancel.confirm.cancelCta')).toBeInTheDocument())
-
-    fireEvent.click(screen.getByText('plan.cancel.confirm.cancelCta'))
-    expect(mockCancelVenuePlan).toHaveBeenCalledWith('venue-abc')
+  it('shows the Free seat rule, a note and a server error when given', () => {
+    renderDialog({ seatNotice: 'CHOOSE', note: 'Revisión del pago en curso', error: 'No se pudo cancelar' })
+    expect(screen.getByText('plan.seatNotice.choose')).toBeInTheDocument()
+    expect(screen.getByText('Revisión del pago en curso')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo cancelar')
   })
 })
