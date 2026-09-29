@@ -22,6 +22,7 @@ import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { lineRefundAmount } from './refundAmount'
+import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
 type Tab = 'items' | 'amount'
 type ItemStep = 'select' | 'restock' | 'confirm'
@@ -61,6 +62,20 @@ interface IssueRefundSheetProps {
    * portion.
    */
   paymentTipAmount?: number
+  /**
+   * Venta (sin propina) que aún se puede devolver, en decimal: importe del cobro menos lo ya
+   * reembolsado (sólo reembolsos COMPLETED), topada además por el total restante (`maxRefundable`):
+   * un acumulado histórico sin filas baja el total, no el reparto. Decide si la casilla «Incluir
+   * propina» del reembolso por artículos arranca marcada (los artículos cubren toda la venta que queda).
+   */
+  remainingSaleAmount?: number
+  /**
+   * Propina que aún se puede devolver, en decimal (propina del cobro menos lo ya reembolsado), topada
+   * también por el total restante (`maxRefundable`). Es el máximo que se manda como `tipRefundCents` en
+   * el reembolso por artículos: la hoja lo recorta otra vez con lo que queda del total tras los
+   * artículos (`propinaQueCabe`). Con 0 la casilla se oculta.
+   */
+  remainingTipAmount?: number
   open: boolean
   onOpenChange: (open: boolean) => void
   onRefunded: () => void
@@ -74,6 +89,8 @@ export function IssueRefundSheet({
   orderItems = [],
   venueName,
   paymentTipAmount = 0,
+  remainingSaleAmount = 0,
+  remainingTipAmount = 0,
   open,
   onOpenChange,
   onRefunded,
@@ -95,6 +112,9 @@ export function IssueRefundSheet({
   // tip. ON → backend default (proportional split). OFF → send tipRefundCents=0
   // so the refund pulls 100% from the sale portion and the staff tip stays.
   const [includeTip, setIncludeTip] = useState(true)
+  // Casilla «Incluir propina» del reembolso POR ARTÍCULOS. null = el cajero aún no la tocó (manda el
+  // valor por defecto); true/false = su elección, que se respeta hasta cerrar la hoja.
+  const [itemsTipManual, setItemsTipManual] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -106,6 +126,7 @@ export function IssueRefundSheet({
       setAmountStr('')
       setReason('')
       setIncludeTip(true)
+      setItemsTipManual(null)
     }
   }, [open, orderItems.length])
 
@@ -135,6 +156,14 @@ export function IssueRefundSheet({
     () => selectedItems.filter(i => !!i.trackInventory && !!i.productId),
     [selectedItems],
   )
+  // Reembolso POR ARTÍCULOS: la casilla arranca marcada si se devuelve toda la venta que queda;
+  // si el cajero la toca, manda su elección hasta cerrar la hoja.
+  const itemsTipChecked = itemsTipManual ?? propinaMarcadaPorDefecto(itemsRefundAmount, remainingSaleAmount)
+  // La propina que se ofrece también se topa con lo que queda del TOTAL tras los artículos (con un acumulado histórico
+  // sin filas, venta + propina puede sumar más de lo que el servidor deja salir).
+  const tipAvailable = propinaQueCabe(remainingTipAmount, maxRefundable, itemsRefundAmount)
+  const itemsTip = itemsTipChecked ? tipAvailable : 0
+  const itemsTotal = Math.round((itemsRefundAmount + itemsTip) * 100) / 100
 
   const refundMutation = useMutation({
     mutationFn: async () => {
@@ -148,6 +177,8 @@ export function IssueRefundSheet({
         }
       } else {
         body.items = selectedItems.map(i => ({ orderItemId: i.id, quantity: effectiveQty(i) }))
+        // Con la casilla marcada se devuelve también la propina que queda, encima de los artículos.
+        if (itemsTip > 0) body.tipRefundCents = Math.round(itemsTip * 100)
         if (restockItemIds.size > 0) {
           body.restockItemIds = [...restockItemIds].filter(id =>
             selectedItemIds.has(id),
@@ -185,11 +216,13 @@ export function IssueRefundSheet({
   ]
 
   // --- Footer state machine ---
-  const itemsCanProceedSelect = selectedItemIds.size > 0 && itemsRefundAmount > 0 && itemsRefundAmount <= maxRefundable
+  // Los artículos se comparan contra la VENTA que queda (sin propina): la propina va aparte, en la casilla.
+  const itemsCanProceedSelect =
+    selectedItemIds.size > 0 && itemsRefundAmount > 0 && cabeEnCentavos(itemsRefundAmount, remainingSaleAmount)
   const canFinalConfirm =
     !!reason &&
     (tab === 'amount'
-      ? parsedAmount > 0 && parsedAmount <= maxRefundable
+      ? parsedAmount > 0 && cabeEnCentavos(parsedAmount, maxRefundable)
       : itemsCanProceedSelect)
 
   const onNextFromSelect = () => {
@@ -253,8 +286,8 @@ export function IssueRefundSheet({
               ? t('refund.restock.title', { defaultValue: 'Reabastecer existencias' })
               : tab === 'items' && itemStep === 'confirm'
                 ? t('refund.confirmTitle', {
-                    defaultValue: `Reembolso de ${Currency(itemsRefundAmount)}`,
-                    amount: Currency(itemsRefundAmount),
+                    defaultValue: `Reembolso de ${Currency(itemsTotal)}`,
+                    amount: Currency(itemsTotal),
                   })
                 : t('refund.title', { defaultValue: 'Emitir reembolso' })}
           </h2>
@@ -302,11 +335,14 @@ export function IssueRefundSheet({
 
           {tab === 'items' && itemStep === 'confirm' && (
             <ConfirmBody
-              amountToRefund={itemsRefundAmount}
+              amountToRefund={itemsTotal}
               methodLabel={methodLabel}
               reason={reason}
               onReasonChange={setReason}
               reasons={reasons}
+              tipAmount={tipAvailable}
+              includeTip={itemsTipChecked}
+              onIncludeTipChange={setItemsTipManual}
               t={t}
             />
           )}
@@ -320,7 +356,7 @@ export function IssueRefundSheet({
               reason={reason}
               onReasonChange={setReason}
               reasons={reasons}
-              overLimit={parsedAmount > maxRefundable}
+              overLimit={!cabeEnCentavos(parsedAmount, maxRefundable)}
               paymentTipAmount={paymentTipAmount}
               includeTip={includeTip}
               onIncludeTipChange={setIncludeTip}
@@ -591,13 +627,21 @@ function ConfirmBody({
   reason,
   onReasonChange,
   reasons,
+  tipAmount,
+  includeTip,
+  onIncludeTipChange,
   t,
 }: {
+  /** Artículos + propina (si la casilla está marcada): lo que de verdad se devuelve. */
   amountToRefund: number
   methodLabel: string
   reason: Reason | ''
   onReasonChange: (r: Reason) => void
   reasons: { value: Reason; label: string }[]
+  /** Propina que aún se puede devolver; con 0 no se muestra la casilla. */
+  tipAmount: number
+  includeTip: boolean
+  onIncludeTipChange: (v: boolean) => void
   t: (k: string, o?: any) => string
 }) {
   return (
@@ -609,7 +653,24 @@ function ConfirmBody({
       </div>
       <div className="rounded-lg border border-border/60 divide-y divide-border/60 text-sm">
         <Row label={t('refund.amount.refundTo', { defaultValue: 'Reembolsar a' })} value={<span>{methodLabel}</span>} />
-        <Row label={t('refund.amount.importe', { defaultValue: 'Importe' })} value={<span>{Currency(amountToRefund)}</span>} />
+        <Row
+          label={t('refund.amount.importe', { defaultValue: 'Importe' })}
+          value={
+            <>
+              <span>{Currency(amountToRefund)}</span>
+              {tipAmount > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {includeTip
+                    ? t('refund.items.tipIncluded', {
+                        defaultValue: `Incluye ${Currency(tipAmount)} de propina`,
+                        amount: Currency(tipAmount),
+                      })
+                    : t('refund.items.tipUntouched', { defaultValue: 'Sin tocar la propina del mesero' })}
+                </p>
+              )}
+            </>
+          }
+        />
         <div className="flex items-center">
           <div className="w-1/3 px-4 py-3 bg-muted/30 text-muted-foreground">
             {t('refund.amount.reason', { defaultValue: 'Motivo del reembolso' })}
@@ -630,6 +691,25 @@ function ConfirmBody({
           </div>
         </div>
       </div>
+
+      {tipAmount > 0 && (
+        <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 cursor-pointer">
+          <Checkbox checked={includeTip} onCheckedChange={v => onIncludeTipChange(v === true)} className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">
+              {t('refund.items.includeTip', { defaultValue: 'Incluir propina en el reembolso' })}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {includeTip
+                ? t('refund.items.includeTipOn', { defaultValue: 'Se devuelve también la propina del cobro.' })
+                : t('refund.items.includeTipOff', {
+                    defaultValue: 'Solo se reembolsan los artículos; la propina del mesero queda intacta.',
+                  })}
+            </div>
+          </div>
+          <span className="text-sm text-muted-foreground whitespace-nowrap self-center">{Currency(tipAmount)}</span>
+        </label>
+      )}
     </>
   )
 }
