@@ -65,7 +65,11 @@ export function useVenueTier(): {
   // `features:read`. This is the gate's source of truth: GET /plan is ADMIN/OWNER-only
   // (`billing:subscriptions:read`, returns price + Stripe ids), so sub-ADMIN staff
   // (MANAGER/CASHIER/WAITER/…) couldn't read grandfathered/tier and were wrongly paywalled.
-  const { data: planTierInfo, isLoading: planLoading, isSuccess: planResolved } = useQuery({
+  const {
+    data: planTierInfo,
+    isLoading: planLoading,
+    isSuccess: planResolved,
+  } = useQuery({
     queryKey: planTierQueryKey(venueId),
     queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: gateEnabled,
@@ -125,6 +129,8 @@ export function useVenueTier(): {
       if (planTierInfo === undefined) return true
       // Grandfathered legacy venue OR demo (exempt covers both) → exempt from ALL tier monetization.
       if (planTierInfo.exempt) return true
+      // v1 is the complete effective set, including legacy plans. A commercial tier is only a label.
+      if (planTierInfo.accessSchemaVersion === 1) return grantedCodes.has(feature)
       if (grantedCodes.has(feature)) return true // explicit / à-la-carte grant wins
       const required = getTierForFeature(feature) ?? 'PRO'
       return TIER_ORDER.indexOf(venueTier) >= TIER_ORDER.indexOf(required)
@@ -146,22 +152,22 @@ export function useVenueTier(): {
  *
  * @param enabled gate the network call (e.g. only fetch list rows while the switcher popover is open).
  */
-export function useVenuePlanTier(venueId: string | undefined, enabled = true): { tier: TierId | null; isLoading: boolean } {
+export function useVenuePlanTier(
+  venueId: string | undefined,
+  enabled = true,
+): { tier: TierId | null; commercialTier: TierId | null; isLoading: boolean } {
   const { data, isLoading } = useQuery({
     queryKey: planTierQueryKey(venueId),
     queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: enabled && !!venueId,
     staleTime: 5 * 60 * 1000,
   })
-  return { tier: data ? data.tier : null, isLoading }
+  return { tier: data ? data.tier : null, commercialTier: data?.commercialPlanTier ?? null, isLoading }
 }
 
 /** Single-feature convenience wrapper around {@link useVenueTier}. */
 export function useTierFeatureAccess(feature: string, requiredTierOverride?: TierId): TierFeatureAccess {
   const { hasFeatureAccess, isLoading, isResolved } = useVenueTier()
-  const requiredTier = useMemo(
-    () => requiredTierOverride ?? getTierForFeature(feature) ?? 'PRO',
-    [requiredTierOverride, feature],
-  )
+  const requiredTier = useMemo(() => requiredTierOverride ?? getTierForFeature(feature) ?? 'PRO', [requiredTierOverride, feature])
   return { hasAccess: hasFeatureAccess(feature), requiredTier, isLoading, isResolved }
 }

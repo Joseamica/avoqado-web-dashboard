@@ -26,6 +26,7 @@ type SignupData = {
   /** Versión legal aceptada + atribución del anuncio (§3.5). Opcionales: el alta no depende de ellas. */
   legalVersion?: string
   launchCampaignCode?: string
+  hybridOfferSlug?: string
   utm?: Record<string, string>
 }
 

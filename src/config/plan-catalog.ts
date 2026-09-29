@@ -81,6 +81,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Campañas de correo del negocio a SUS clientes (promos, cumpleaños). No confundir
       // con el Marketing de superadmin, que es Avoqado → los venues.
       'CUSTOMER_CAMPAIGNS',
+      'PRICE_LABELS', // Existing Pro capability on Android/iOS; mirrored in the common catalog.
     ],
   },
   {

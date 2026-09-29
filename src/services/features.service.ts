@@ -1,4 +1,5 @@
 import api from '@/api'
+import { z } from 'zod'
 import { VenueFeature } from '@/types'
 
 /**
@@ -120,6 +121,28 @@ export const downloadInvoice = async (venueId: string, invoiceId: string): Promi
   window.open(downloadUrl, '_blank')
 }
 
+/** Why the owner cancels (spec §4.4). Mirrors the server's CANCELLATION_REASONS by exact name. */
+export type CancellationReason =
+  'TOO_EXPENSIVE' | 'UNUSED' | 'MISSING_FEATURES' | 'TOO_COMPLEX' | 'SWITCHED_SERVICE' | 'TEMPORARY' | 'OTHER'
+export interface CancellationInput {
+  reason?: CancellationReason
+  comment?: string
+}
+
+/** The one obligation behind "Tu plan" (server PlanState.origin, spec §4.2). */
+export interface PlanOrigin {
+  kind: 'CLASSIC' | 'CONTRACT' | 'COMP' | 'NONE'
+  tier: 'PRO' | 'PREMIUM' | null
+  price: { base: number; gross: number; currency: 'MXN' } | null
+  interval: 'month' | 'year' | null
+  currentPeriodEnd: string | null
+  cancelAt: string | null
+  contractId: string | null
+  contractRevision: number | null
+  subscriptionId: string | null
+  paymentIssue: string | null
+}
+
 /**
  * Base-plan (PLAN_PRO) lifecycle state — GET /dashboard/venues/:venueId/plan.
  * Mirrors the backend PlanState shape exactly (planState.service.ts).
@@ -150,6 +173,10 @@ export interface PlanState {
    * A grandfathered venue operates exactly as it did before plan tiers existed.
    */
   grandfathered: boolean
+  /** Where "Tu plan" comes from. Optional: a server that predates it omits it (see originOf). */
+  origin?: PlanOrigin
+  /** Whether the retention PAUSE can be applied now (the server runs the same checks as applyRetentionOffer). */
+  pauseOfferEligible?: boolean
 }
 
 /** Get the venue's base-plan state. */
@@ -175,18 +202,37 @@ export interface VenuePlanTierInfo {
    * Opcional porque un servidor anterior no lo manda. Existe para que un empleado sin permiso de
    * facturación no vea «contrátala» sobre algo ya pagado (Codex, 21-sep, #10).
    */
+  accessSchemaVersion?: 1
+  accessObservedAt?: string
+  commercialPlanTier?: 'PRO' | 'PREMIUM' | null
   grantedFeatureCodes?: string[]
 }
 
 /** Get the venue's plan-tier gating signal (readable by every role). */
+const accessInfo = z
+  .object({
+    tier: z.enum(['FREE', 'PRO', 'PREMIUM', 'ENTERPRISE']),
+    grandfathered: z.boolean(),
+    exempt: z.boolean(),
+    accessSchemaVersion: z.literal(1).optional(),
+    accessObservedAt: z.string().datetime().optional(),
+    commercialPlanTier: z.enum(['PRO', 'PREMIUM']).nullable().optional(),
+    grantedFeatureCodes: z
+      .array(z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/))
+      .max(100)
+      .optional(),
+  })
+  .refine(value => value.accessSchemaVersion !== 1 || (value.accessObservedAt !== undefined && value.grantedFeatureCodes !== undefined))
+// Required fields are runtime-validated; this project's non-strict TS mode makes Zod infer optional keys.
+export const parseVenuePlanTierInfo = (value: unknown): VenuePlanTierInfo => accessInfo.parse(value) as VenuePlanTierInfo
 export const getVenuePlanTierInfo = async (venueId: string): Promise<VenuePlanTierInfo> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/plan-tier`)
-  return response.data.data
+  return parseVenuePlanTierInfo(response.data.data)
 }
 
-/** Schedule cancellation of the base plan at period end. Returns the updated state. */
-export const cancelVenuePlan = async (venueId: string): Promise<PlanState> => {
-  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/cancel`)
+/** Schedule cancellation of the base plan at period end, with the owner's reason. Returns the updated state. */
+export const cancelVenuePlan = async (venueId: string, input: CancellationInput = {}): Promise<PlanState> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/cancel`, input)
   return response.data.data
 }
 
@@ -269,11 +315,15 @@ export const getDowngradePreview = async (venueId: string): Promise<DowngradePre
 }
 
 /**
- * Schedule a downgrade to the Free plan at period end. `keepStaffVenueIds` is the set
- * of active cap-counting StaffVenue ids to keep — must include the OWNER and be ≤ keepMax.
- * Pass an empty array when already under cap. Returns the updated PlanState.
+ * Schedule a downgrade to the Free plan at period end. `keepStaffVenueIds` is the set of active cap-counting
+ * StaffVenue ids to keep — must include the OWNER and be ≤ keepMax (empty when already under cap). `input` carries
+ * the owner's cancellation reason. Returns the updated PlanState.
  */
-export const downgradeVenueToFree = async (venueId: string, keepStaffVenueIds: string[]): Promise<PlanState> => {
-  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/downgrade`, { keepStaffVenueIds })
+export const downgradeVenueToFree = async (
+  venueId: string,
+  keepStaffVenueIds: string[],
+  input: CancellationInput = {},
+): Promise<PlanState> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/downgrade`, { keepStaffVenueIds, ...input })
   return response.data.data
 }

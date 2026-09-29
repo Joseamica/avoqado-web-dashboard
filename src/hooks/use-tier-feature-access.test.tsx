@@ -84,3 +84,15 @@ describe('useTierFeatureAccess entitlement resolution', () => {
     expect(planTierQueryKey('v1').slice(0, 2)).toEqual(['venueFeatures', 'v1'])
   })
 })
+
+it('uses the exact v1 snapshot without expanding its commercial tier into other features', () => {
+  mockUseAccess.mockReturnValue({ canFeature: vi.fn(), role: 'MANAGER', isWhiteLabelEnabled: false })
+  mockUseCurrentVenue.mockReturnValue({ venueId: 'v', venue: { status: 'ACTIVE' } })
+  mockUseQuery.mockReturnValue({
+    data: { tier: 'PREMIUM', exempt: false, accessSchemaVersion: 1, grantedFeatureCodes: ['CFDI'] },
+    isLoading: false,
+    isSuccess: true,
+  })
+  expect(renderHook(() => useTierFeatureAccess('INVENTORY_TRACKING')).result.current.hasAccess).toBe(false)
+  expect(renderHook(() => useTierFeatureAccess('CFDI')).result.current.hasAccess).toBe(true)
+})
