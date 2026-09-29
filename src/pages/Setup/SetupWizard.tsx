@@ -136,6 +136,8 @@ export default function SetupWizard() {
     enabled: !!orgId,
     retry: false,
   })
+  const shortOnboarding =
+    (progressData as { featureFlags?: { shortOnboarding?: boolean } } | undefined)?.featureFlags?.shortOnboarding === true
 
   // Initialize wizard step + form data from backend progress + URL hash. Runs once
   // when the progress query settles. Backend is the source of truth for max progress;
@@ -143,6 +145,12 @@ export default function SetupWizard() {
   useEffect(() => {
     if (isInitialized) return
     if (isLoading) return
+    // The short wizard numbers its own screens: the long one's «#step-N» would contradict «Paso N de 4».
+    if (shortOnboarding) {
+      if (getStepIndexFromHash(window.location.hash) !== null)
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      return
+    }
 
     const progress = progressData?.progress
 
@@ -269,7 +277,7 @@ export default function SetupWizard() {
     }
 
     setIsInitialized(true)
-  }, [progressData, isLoading, isInitialized])
+  }, [progressData, isLoading, isInitialized, shortOnboarding])
 
   // Sync state with browser back/forward navigation. Pop events occur when the user
   // walks history entries pushed by handleNext (or types a hash manually).
@@ -437,7 +445,7 @@ export default function SetupWizard() {
   // 🔴 El asistente CORTO se monta si el SERVIDOR lo dice. La bandera viaja en `GET progress`
   // (`featureFlags.shortOnboarding`) y no en una variable de build: encenderla en Render no puede
   // depender de volver a desplegar el dashboard. Ausente ⇒ asistente largo, que es el de siempre.
-  if ((progressData as { featureFlags?: { shortOnboarding?: boolean } } | undefined)?.featureFlags?.shortOnboarding === true && orgId) {
+  if (shortOnboarding && orgId) {
     return <ShortSetupWizard organizationId={orgId} />
   }
 
