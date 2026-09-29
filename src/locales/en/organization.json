@@ -1302,6 +1302,7 @@
       "PRINT_ROUTING_ASSIGNED": "Print routing assigned",
       "PRINT_STATION_CREATED": "Print station created",
       "PRINT_STATION_DELETED": "Print station deleted",
+      "PRINT_STATION_KITCHEN_DISPLAY_SET": "Station kitchen display turned on or off",
       "PRINT_STATION_UPDATED": "Print station updated",
       "PRODUCT_CREATED": "Product created",
       "PRODUCT_DELETED": "Product deleted",

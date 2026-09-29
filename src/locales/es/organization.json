@@ -1302,6 +1302,7 @@
       "PRINT_ROUTING_ASSIGNED": "Ruteo de impresión asignado",
       "PRINT_STATION_CREATED": "Estación de impresión creada",
       "PRINT_STATION_DELETED": "Estación de impresión eliminada",
+      "PRINT_STATION_KITCHEN_DISPLAY_SET": "Pantalla de cocina de una estación prendida o apagada",
       "PRINT_STATION_UPDATED": "Estación de impresión actualizada",
       "PRODUCT_CREATED": "Producto creado",
       "PRODUCT_DELETED": "Producto eliminado",

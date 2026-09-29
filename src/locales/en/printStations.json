@@ -21,21 +21,29 @@
     "title": "Couldn't save",
     "generic": "Something went wrong. Please try again."
   },
+  "destino": {
+    "PAPEL": "Paper",
+    "PANTALLA": "Display",
+    "AMBAS": "Paper and display",
+    "PAPEL_DE_LA_CAJA": "Paper at the register"
+  },
   "stations": {
     "intro": "A station is a prep point (for example {{kitchen}} or bar). Each station prints to one printer.",
     "empty": "No stations yet. Create the first one to start routing tickets.",
+    "loadError": "Couldn't load the stations",
+    "retry": "Retry",
     "add": "Add station",
+    "test": "Test",
+    "testDisabledHint": "Create a station first",
+    "testTitle": "Where does each ticket go?",
     "createTitle": "New station",
     "editTitle": "Edit station",
-    "colName": "Station",
-    "colPrinter": "Printer",
-    "colCopies": "Copies",
-    "colStatus": "Status",
-    "noPrinter": "No printer",
+    "printerLine": "Prints on {{printer}}",
+    "copiesSuffix": "{{count}} copies",
+    "printerFallback": "No printer of its own: prints on the register's kitchen printer",
+    "destinationLine": "Goes to: {{destino}}",
     "defaultBadge": "Default",
     "packingBadge": "Packing",
-    "kitchenDisplayBadge": "Kitchen display",
-    "statusActive": "Active",
     "statusInactive": "Inactive",
     "fields": {
       "name": "Station name",
@@ -159,6 +167,38 @@
       "unroutedStation": "NO STATION",
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Some products have no station and would come out on a ticket marked NO STATION."
+    }
+  },
+  "kitchenDisplay": {
+    "title": "Kitchen display",
+    "description": "This station's tickets show on the kitchen tablet.",
+    "proBadge": "PRO",
+    "switchLabel": "Kitchen display for {{name}}",
+    "readOnly": "Only people who set up printers can change it.",
+    "soloAvoqado": "Only Avoqado sees this: the kitchen display is not open to customers yet.",
+    "pilotOn": "Avoqado turned it on as a trial. You can turn it off.",
+    "planLapsed": "Your plan no longer includes the kitchen display: tickets print on paper. Upgrade to Pro to use it again, or turn it off.",
+    "requiresPro": "Kitchen display is part of the Pro plan.",
+    "seePlans": "See plans",
+    "askOwner": "Ask the owner to upgrade the plan.",
+    "saveFirst": "Save the station to turn on its kitchen display.",
+    "confirmOn": {
+      "title": "Turn on the display for {{name}}?",
+      "body": "{{name}} tickets will show on the kitchen display, starting with the ones that arrive from now on.",
+      "withPrinter": "They also keep printing on {{printer}}.",
+      "withoutPrinter": "Since it has no printer, they will only print on paper if the display does not answer.",
+      "action": "Turn on display"
+    },
+    "confirmOff": {
+      "title": "Turn off the display for {{name}}?",
+      "withPrinter": "Tickets stop reaching the display and keep printing on {{printer}}.",
+      "withoutPrinter": "Tickets stop reaching the display and print again on the register's kitchen printer.",
+      "action": "Turn off display"
+    },
+    "enabledToast": "{{name}} display turned on",
+    "disabledToast": "{{name}} display turned off",
+    "errors": {
+      "notReleased": "The kitchen display is not available to customers yet. Ask Avoqado to turn it on."
     }
   }
 }

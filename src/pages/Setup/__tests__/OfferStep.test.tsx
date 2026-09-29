@@ -23,7 +23,7 @@ const confirmSetup = vi.fn()
 const trackPurchase = vi.fn()
 const track = vi.fn()
 
-const pagoListo = vi.hoisted(() => ({ auto: true }))
+const pagoListo = vi.hoisted(() => ({ auto: true, fallaCarga: false }))
 const secretMontado = vi.hoisted(() => ({ actual: undefined as string | undefined }))
 vi.mock('@/services/setup.service', () => ({
   setupService: {
@@ -50,9 +50,13 @@ vi.mock('@stripe/react-stripe-js', () => ({
     )
   },
   // Como el REAL: avisa `onReady` cuando termina de pintar; el formulario no deja pagar antes.
-  PaymentElement: ({ onReady }: { onReady?: () => void }) => {
+  PaymentElement: ({ onReady, onLoadError }: { onReady?: () => void; onLoadError?: (e: unknown) => void }) => {
+    // Como el REAL cuando Stripe rechaza la sesión: UN `loaderror` por montaje y nunca `onReady`.
     useEffect(() => {
-      if (pagoListo.auto) onReady?.()
+      if (pagoListo.fallaCarga) onLoadError?.({ elementType: 'payment', error: { type: 'invalid_request_error' } })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+      if (!pagoListo.fallaCarga && pagoListo.auto) onReady?.()
     }, [onReady])
     return <div data-testid="payment-element" />
   },
@@ -426,6 +430,22 @@ describe('OfferStep — el cobro', () => {
 
     await act(async () => soltar())
     await waitFor(() => expect(boton).toBeEnabled())
+  })
+
+  it('🔴 si Stripe no carga el formulario, NO gira para siempre: dice que falló y «Reintentar» pide un cobro nuevo', async () => {
+    pagoListo.fallaCarga = true
+    try {
+      pintar()
+      const reintentar = await screen.findByRole('button', { name: /reintentar/i })
+      expect(screen.getByText(/No pudimos preparar el pago con tarjeta/)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /pagar/i })).toBeNull()
+      pagoListo.fallaCarga = false
+      await userEvent.setup().click(reintentar)
+      await waitFor(() => expect(planSetupIntent).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(screen.getByRole('button', { name: /pagar/i })).toBeEnabled())
+    } finally {
+      pagoListo.fallaCarga = false
+    }
   })
 
   it('🔴 sin el aviso de Stripe (`onReady`) no se puede pagar la oferta', async () => {

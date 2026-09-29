@@ -4,15 +4,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Pencil, Plus, Printer as PrinterIcon, Trash2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Loader2, PlayCircle, Plus, Printer as PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,17 +22,22 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { StaffRole } from '@/types'
 import {
   createPrintStation,
   deletePrintStation,
   getPrinters,
-  getPrintStations,
+  getPrintStationsConfig,
   updatePrintStation,
   type PrintStation,
 } from '@/services/printStations.service'
-import { KitchenDisplaySuperadminPanel } from './KitchenDisplaySuperadminPanel'
+import { KitchenDisplayToggle } from './KitchenDisplayToggle'
+import { ProbarRuteoModal } from './RoutingSimulator'
+import { StationCard } from './StationCard'
 
 const NONE = '__none__'
 const FORM_ID = 'print-station-form'
@@ -44,31 +47,57 @@ const apiError = (e: any, fallback: string): string => e?.response?.data?.messag
 export function StationsTab({ venueId }: { venueId: string }) {
   const { t } = useTranslation('printStations')
   const { term } = useTerminology()
+  const { hasAccess: tieneAccesoPro } = useTierFeatureAccess('KITCHEN_DISPLAY')
 
-  const [editing, setEditing] = useState<PrintStation | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [isFormOpen, setFormOpen] = useState(false)
   const [toDelete, setToDelete] = useState<PrintStation | null>(null)
+  const [probando, setProbando] = useState(false)
 
-  const { data: stations, isLoading } = useQuery({
-    queryKey: ['printStations', venueId],
-    queryFn: () => getPrintStations(venueId),
+  // Estaciones + puerta de lanzamiento de la pantalla (servidor, fase 3.1). Toda mutación invalida el prefijo
+  // ['printStations', venueId], que también refresca esta clave.
+  const {
+    data: config,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['printStations', venueId, 'config'],
+    queryFn: () => getPrintStationsConfig(venueId),
     enabled: !!venueId,
   })
+  const stations = config?.stations
+  const abiertaAClientes = config?.kitchenDisplayOpenToClients ?? false
+  // La estación que se edita se lee VIVA de la lista: si su pantalla cambia desde el formulario, el formulario lo ve.
+  const editing = editingId ? (stations?.find(s => s.id === editingId) ?? null) : null
 
   const openCreate = () => {
-    setEditing(null)
+    setEditingId(null)
     setFormOpen(true)
   }
   const openEdit = (station: PrintStation) => {
-    setEditing(station)
+    setEditingId(station.id)
     setFormOpen(true)
+  }
+  const closeForm = () => {
+    setFormOpen(false)
+    setEditingId(null)
   }
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t('stations.intro', { kitchen: term('kitchen') })}</p>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={() => setProbando(true)}
+          disabled={!stations?.length}
+          title={!stations?.length ? t('stations.testDisabledHint') : undefined}
+          data-tour="print-station-test"
+        >
+          <PlayCircle className="mr-2 h-4 w-4" /> {t('stations.test')}
+        </Button>
         <Button onClick={openCreate} data-tour="print-station-add">
           <Plus className="mr-2 h-4 w-4" /> {t('stations.add')}
         </Button>
@@ -78,69 +107,42 @@ export function StationsTab({ venueId }: { venueId: string }) {
         <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
         </div>
+      ) : isError ? (
+        <Card className="border-input">
+          <CardContent className="space-y-3 py-10 text-center text-sm text-muted-foreground">
+            <p>{t('stations.loadError')}</p>
+            <Button variant="outline" onClick={() => refetch()} className="cursor-pointer">
+              {t('stations.retry')}
+            </Button>
+          </CardContent>
+        </Card>
       ) : (stations?.length ?? 0) === 0 ? (
         <Card className="border-input">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">{t('stations.empty')}</CardContent>
         </Card>
       ) : (
-        <Card className="border-input">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('stations.colName')}</TableHead>
-                  <TableHead>{t('stations.colPrinter')}</TableHead>
-                  <TableHead>{t('stations.colCopies')}</TableHead>
-                  <TableHead>{t('stations.colStatus')}</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stations!.map(station => (
-                  <TableRow key={station.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{station.name}</span>
-                        {station.isDefault && <Badge variant="secondary">{t('stations.defaultBadge')}</Badge>}
-                        {station.isPacking && <Badge variant="outline">{t('stations.packingBadge')}</Badge>}
-                        {station.hasKitchenDisplay && <Badge variant="outline">{t('stations.kitchenDisplayBadge')}</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{station.printer?.name ?? t('stations.noPrinter')}</TableCell>
-                    <TableCell className="text-muted-foreground">{station.copies}</TableCell>
-                    <TableCell>
-                      <Badge variant={station.active ? 'default' : 'outline'}>
-                        {station.active ? t('stations.statusActive') : t('stations.statusInactive')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => openEdit(station)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="cursor-pointer text-destructive"
-                          onClick={() => setToDelete(station)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="grid gap-3 md:grid-cols-2">
+          {stations!.map(station => (
+            <StationCard
+              key={station.id}
+              venueId={venueId}
+              station={station}
+              abiertaAClientes={abiertaAClientes}
+              tieneAccesoPro={tieneAccesoPro}
+              onEdit={() => openEdit(station)}
+              onDelete={() => setToDelete(station)}
+            />
+          ))}
+        </div>
       )}
 
-      {!!stations?.length && <KitchenDisplaySuperadminPanel venueId={venueId} stations={stations} />}
-
-      {isFormOpen && <StationFormModal venueId={venueId} station={editing} onClose={() => setFormOpen(false)} />}
+      {isFormOpen && (editingId === null || editing) && (
+        <StationFormModal venueId={venueId} station={editing} abiertaAClientes={abiertaAClientes} onClose={closeForm} />
+      )}
 
       <DeleteStationDialog venueId={venueId} station={toDelete} onClose={() => setToDelete(null)} />
+
+      {probando && <ProbarRuteoModal venueId={venueId} stations={stations ?? []} onClose={() => setProbando(false)} />}
     </div>
   )
 }
@@ -157,10 +159,22 @@ const stationSchema = z.object({
 })
 type StationForm = z.infer<typeof stationSchema>
 
-function StationFormModal({ venueId, station, onClose }: { venueId: string; station: PrintStation | null; onClose: () => void }) {
+function StationFormModal({
+  venueId,
+  station,
+  abiertaAClientes,
+  onClose,
+}: {
+  venueId: string
+  station: PrintStation | null
+  abiertaAClientes: boolean
+  onClose: () => void
+}) {
   const { t } = useTranslation('printStations')
   const { toast } = useToast()
   const qc = useQueryClient()
+  const { role } = useAccess()
+  const esSuperadmin = role === StaffRole.SUPERADMIN
 
   const { data: printers } = useQuery({
     queryKey: ['printers', venueId],
@@ -294,6 +308,14 @@ function StationFormModal({ venueId, station, onClose }: { venueId: string; stat
               onCheckedChange={v => setValue('isPacking', v, { shouldDirty: true })}
             />
           </div>
+
+          {/* Pantalla de cocina (etapa 3): se prende/apaga al momento, con su propia confirmación; no espera a «Guardar».
+              Una estación nueva no existe todavía en el servidor: primero se guarda. */}
+          {station ? (
+            <KitchenDisplayToggle venueId={venueId} station={station} abiertaAClientes={abiertaAClientes} />
+          ) : abiertaAClientes || esSuperadmin ? (
+            <p className="text-xs text-muted-foreground">{t('kitchenDisplay.saveFirst')}</p>
+          ) : null}
 
           {station && (
             <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-3">

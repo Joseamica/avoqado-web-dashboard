@@ -841,6 +841,7 @@
       "PRINT_ROUTING_ASSIGNED": "Routage d'impression attribué",
       "PRINT_STATION_CREATED": "Poste d'impression créé",
       "PRINT_STATION_DELETED": "Poste d'impression supprimé",
+      "PRINT_STATION_KITCHEN_DISPLAY_SET": "Écran de cuisine d'un poste activé ou désactivé",
       "PRINT_STATION_UPDATED": "Poste d'impression mis à jour",
       "PRODUCT_CREATED": "Produit créé",
       "PRODUCT_DELETED": "Produit supprimé",

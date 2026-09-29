@@ -53,7 +53,8 @@ const GoogleOAuthCallback: React.FC = () => {
       }
 
       try {
-        const result = await authService.googleOAuthCallback(code, intentoDeAlta ?? undefined)
+        // El `state` que Google devolvió: el servidor lo compara con la cookie de este navegador (login CSRF).
+        const result = await authService.googleOAuthCallback(code, searchParams.get('state'), intentoDeAlta ?? undefined)
 
         // SECURITY: Use refetchQueries to wait for auth state before navigating
         // invalidateQueries doesn't wait - causes race condition on slow networks
@@ -114,10 +115,12 @@ const GoogleOAuthCallback: React.FC = () => {
         navigate(inviteRedirect ?? (altaNueva ? '/setup' : '/'), { replace: true })
       } catch (error: any) {
         clearInviteToken()
+        // Este navegador no empezó este inicio de sesión (una liga ajena, o un intento viejo): se dice claro.
+        const stateRechazado = error.response?.data?.code === 'GOOGLE_OAUTH_STATE_INVALID'
         toast({
           title: t('auth.google.error'),
           variant: 'destructive',
-          description: error.response?.data?.message || t('auth.google.genericError'),
+          description: stateRechazado ? t('auth.google.stateInvalid') : error.response?.data?.message || t('auth.google.genericError'),
         })
         navigate(paginaDeRegreso, { replace: true })
       }

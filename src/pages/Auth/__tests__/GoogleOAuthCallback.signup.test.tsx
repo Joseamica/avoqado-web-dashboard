@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const navigate = vi.fn()
 const googleOAuthCallback = vi.fn()
 const trackSignup = vi.fn()
-let params = new URLSearchParams('code=c-1')
+let params = new URLSearchParams('code=c-1&state=s-1')
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useSearchParams: () => [params] }))
 vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ refetchQueries: vi.fn().mockResolvedValue(undefined) }) }))
@@ -42,7 +42,7 @@ beforeEach(() => {
   googleOAuthCallback.mockReset()
   trackSignup.mockReset()
   toast.mockReset()
-  params = new URLSearchParams('code=c-1')
+  params = new URLSearchParams('code=c-1&state=s-1')
   reiniciarCanjesParaPruebas()
 })
 
@@ -54,7 +54,7 @@ describe('GoogleOAuthCallback — alta', () => {
     render(<GoogleOAuthCallback />)
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/setup', { replace: true }))
-    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', {
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', 's-1', {
       legalVersion: 'v1',
       launchCampaignCode: 'POS22MX',
       utm: { utm_source: 'google' },
@@ -68,7 +68,7 @@ describe('GoogleOAuthCallback — alta', () => {
     googleOAuthCallback.mockResolvedValue({ isNewUser: false })
     render(<GoogleOAuthCallback />)
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
-    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', undefined)
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', 's-1', undefined)
     expect(trackSignup).not.toHaveBeenCalled()
   })
 
@@ -133,11 +133,11 @@ describe('GoogleOAuthCallback — se procesa UNA vez', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/setup', { replace: true }))
     await new Promise(r => setTimeout(r, 50))
     expect(googleOAuthCallback).toHaveBeenCalledTimes(1)
-    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', { legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', 's-1', { legalVersion: 'v1', launchCampaignCode: 'POS22MX' })
   })
 
   it('🔴 si la pantalla se MONTA dos veces (el enrutador la remonta al cargar la sesión), el code se canjea una vez', async () => {
-    params = new URLSearchParams('code=c-remontada')
+    params = new URLSearchParams('code=c-remontada&state=s-1')
     guardarIntentoDeAltaGoogle({ legalVersion: 'v1' })
     googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: true })
     const primera = render(<GoogleOAuthCallback />)
@@ -145,7 +145,7 @@ describe('GoogleOAuthCallback — se procesa UNA vez', () => {
     render(<GoogleOAuthCallback />)
     await new Promise(r => setTimeout(r, 50))
     expect(googleOAuthCallback).toHaveBeenCalledTimes(1)
-    expect(googleOAuthCallback).toHaveBeenCalledWith('c-remontada', { legalVersion: 'v1' })
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-remontada', 's-1', { legalVersion: 'v1' })
   })
 
   it('un re-render con otra función de traducción no vuelve a canjear el code', async () => {
@@ -189,5 +189,30 @@ describe('GoogleOAuthCallback — se procesa UNA vez', () => {
       await waitFor(() => expect(navigate).toHaveBeenCalled())
       expect(avisoDeCuentaExistente()).toBeUndefined()
     })
+  })
+})
+
+/**
+ * 🔴 Login CSRF (27-sep): el servidor sólo canjea el code si el `state` que Google devolvió coincide con
+ * la cookie de ESTE navegador. La pantalla tiene que reenviarlo, y si el servidor lo rechaza, decirlo en
+ * claro: casi siempre es una liga que alguien más armó, o un intento viejo.
+ */
+describe('GoogleOAuthCallback — state de Google', () => {
+  it('🔴 reenvía al servidor el state que Google devolvió en la URL', async () => {
+    params = new URLSearchParams('code=c-state&state=state-de-google')
+    googleOAuthCallback.mockResolvedValue({ isNewUser: false })
+    render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-state', 'state-de-google', undefined)
+  })
+
+  it('🔴 si el servidor rechaza el state, lo explica (no el error genérico) y regresa al login', async () => {
+    params = new URLSearchParams('code=c-ajeno&state=state-ajeno')
+    googleOAuthCallback.mockRejectedValue({
+      response: { status: 403, data: { code: 'GOOGLE_OAUTH_STATE_INVALID', message: 'mensaje del servidor' } },
+    })
+    render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/login', { replace: true }))
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', description: 'auth.google.stateInvalid' }))
   })
 })
