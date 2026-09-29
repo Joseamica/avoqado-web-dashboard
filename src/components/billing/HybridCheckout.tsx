@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FeatureCatalogBrowser } from './FeatureCatalogBrowser'
+import { HybridCartBar } from './HybridCartBar'
 import {
   hybridBilling,
   type HybridOffer,
@@ -27,8 +28,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 
 export function HybridTermsSummary({ terms, showRenewal = true }: { terms: HybridTerms; showRenewal?: boolean }) {
   const { t, i18n } = useTranslation('billing')
-  const price = (value: number) =>
-    new Intl.NumberFormat(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+  const price = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
   return (
     <div className="space-y-1">
       <p className="font-semibold tabular-nums">{t('hybrid.monthly', { price: price(terms.price) })}</p>
@@ -88,6 +88,11 @@ export function HybridCheckout({
   const [payment, setPayment] = useState<HybridPayment | null>(null)
   const [consent, setConsent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const alertRef = useRef<HTMLDivElement>(null)
+  // The alert sits above the offer list; the review button is far below it, so bring the reason into view.
+  useEffect(() => {
+    if (error) alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [error])
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30000)
@@ -186,7 +191,8 @@ export function HybridCheckout({
     ...new Set([
       ...(replacements.data?.standaloneFeatureCodes ?? ['CHATBOT']),
       ...(replacements.data?.items.filter(item => !replace.includes(item.subscriptionId)).flatMap(item => item.featureCodes) ?? []),
-      ...cart.filter(row => row.offer.definition.kind === 'PLAN').flatMap(row => row.offer.includedFeatureCodes),
+      // A plan or a single-feature offer in the cart already brings its features: a bundle never charges them again.
+      ...cart.filter(row => row.offer.definition.kind !== 'CHOICE_BUNDLE').flatMap(row => row.offer.includedFeatureCodes),
     ]),
   ]
   const effectiveCart = cart.map(row => ({ ...row, codes: row.codes.filter(code => !included.includes(code)) }))
@@ -196,6 +202,20 @@ export function HybridCheckout({
   const leaving = [
     ...new Set(replacements.data?.items.filter(item => replace.includes(item.subscriptionId)).flatMap(item => item.featureCodes) ?? []),
   ].filter(code => !included.includes(code) && !purchasedCodes.includes(code))
+  const feature = (code: string) => t(`hybrid.featureNames.${code}`, { defaultValue: code })
+  const rowCodes = (row: { offer: HybridOffer; codes: string[] }) =>
+    row.offer.definition.kind === 'CHOICE_BUNDLE' ? row.codes : row.offer.includedFeatureCodes
+  // The server refuses to charge a feature twice; say it on the card, before «Revisar cotización».
+  const conflict = (offer: HybridOffer) => {
+    if (offer.definition.kind === 'CHOICE_BUNDLE' || cart.some(row => row.offer.id === offer.id)) return null
+    const clash = cart.find(row => rowCodes(row).some(code => offer.includedFeatureCodes.includes(code)))
+    if (clash) return t('hybrid.inCart', { offer: clash.offer.name })
+    const owned = offer.definition.kind === 'FEATURES' ? offer.includedFeatureCodes.filter(code => included.includes(code)) : []
+    return owned.length ? t('hybrid.owned', { features: owned.map(feature).join(' · ') }) : null
+  }
+  const incomplete = effectiveCart.find(
+    row => row.offer.definition.kind === 'CHOICE_BUNDLE' && row.codes.length !== row.offer.definition.choiceCount,
+  )
   const valid =
     cart.length > 0 &&
     effectiveCart.every(row => row.offer.definition.kind !== 'CHOICE_BUNDLE' || row.codes.length === row.offer.definition.choiceCount) &&
@@ -262,7 +282,6 @@ export function HybridCheckout({
       timeStyle: 'short',
       timeZone: timezone,
     }).format(new Date(value))
-  const feature = (code: string) => t(`hybrid.featureNames.${code}`, { defaultValue: code })
   const recoveryError = current.isError || (attemptId && status.isError)
   const paymentUrl = safePaymentUrl(payment?.paymentUrl)
   const reviewExpired = purchase && new Date(purchase.quoteExpiresAt).getTime() <= now
@@ -293,7 +312,7 @@ export function HybridCheckout({
         </p>
       )}
       {(error || recoveryError) && (
-        <div role="alert" className="space-y-2 rounded-xl border border-destructive p-4">
+        <div ref={alertRef} role="alert" className="space-y-2 rounded-xl border border-destructive p-4">
           <p>{error ?? t('hybrid.error')}</p>
           {recoveryError && (
             <Button
@@ -421,10 +440,7 @@ export function HybridCheckout({
         </>
       ) : (
         <>
-          <header className="space-y-2">
-            <h2 className="text-2xl font-semibold">{t('hybrid.title')}</h2>
-            <p className="text-muted-foreground">{t('hybrid.intro')}</p>
-          </header>
+          <p className="text-muted-foreground">{t('hybrid.intro')}</p>
           {linked.isError && <p role="status">{t('hybrid.unavailable')}</p>}
           <Input
             aria-label={t('hybrid.search')}
@@ -453,8 +469,18 @@ export function HybridCheckout({
               <div className="grid gap-4 md:grid-cols-2">
                 {visible.map(offer => {
                   const selected = cart.some(row => row.offer.id === offer.id)
+                  const fromLink = offer.id === linked.data?.id
+                  const blocked = conflict(offer)
                   return (
-                    <article key={offer.id} className="flex flex-col gap-4 rounded-2xl border border-input p-5">
+                    <article
+                      key={offer.id}
+                      className={`flex flex-col gap-4 rounded-2xl border p-5 ${fromLink ? 'border-primary' : 'border-input'}`}
+                    >
+                      {fromLink && (
+                        <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                          {t('hybrid.fromLink')}
+                        </span>
+                      )}
                       <h3 className="text-lg font-semibold">{offer.name}</h3>
                       <HybridTermsSummary terms={offer.definition.terms} />
                       <p className="text-sm">
@@ -462,10 +488,15 @@ export function HybridCheckout({
                           ? t('hybrid.choice', { count: offer.definition.choiceCount })
                           : offer.includedFeatureCodes.map(feature).join(' · ')}
                       </p>
+                      {blocked && (
+                        <p role="note" className="text-sm text-muted-foreground">
+                          {blocked}
+                        </p>
+                      )}
                       <Button
                         variant={selected ? 'outline' : 'default'}
                         className="mt-auto"
-                        disabled={busy || !offer.purchaseAvailable || (!selected && cart.length >= 8)}
+                        disabled={busy || !offer.purchaseAvailable || !!blocked || (!selected && cart.length >= 8)}
                         data-tour="hybrid-offer-select"
                         onClick={() =>
                           setCart(rows => (selected ? rows.filter(row => row.offer.id !== offer.id) : [...rows, { offer, codes: [] }]))
@@ -528,7 +559,7 @@ export function HybridCheckout({
             <div className="space-y-5 rounded-2xl bg-muted/30 p-5">
               <h3 className="text-xl font-semibold">{t('hybrid.cart')}</h3>
               {effectiveCart.map(row => (
-                <article key={row.offer.id} className="space-y-3">
+                <article key={row.offer.id} id={`hybrid-row-${row.offer.id}`} className="scroll-mt-4 space-y-3">
                   <h4 className="font-semibold">{row.offer.name}</h4>
                   {row.offer.definition.kind === 'CHOICE_BUNDLE' && (
                     <>
@@ -560,14 +591,23 @@ export function HybridCheckout({
                   {t('hybrid.drop')}: {feature(code)}
                 </label>
               ))}
-              <Button
-                disabled={busy || !valid || current.isPending || !!recoveryError || !replacements.data}
-                onClick={review}
-                data-tour="hybrid-review"
-              >
-                {t('hybrid.review')}
-              </Button>
             </div>
+          )}
+          {cart.length > 0 && (
+            <HybridCartBar
+              missing={
+                incomplete?.offer.definition.kind === 'CHOICE_BUNDLE'
+                  ? {
+                      offer: incomplete.offer.name,
+                      count: incomplete.offer.definition.choiceCount - incomplete.codes.length,
+                      rowId: incomplete.offer.id,
+                    }
+                  : null
+              }
+              price={money(String(cart.reduce((sum, row) => sum + row.offer.definition.terms.price, 0)))}
+              reviewDisabled={busy || !valid || current.isPending || !!recoveryError || !replacements.data}
+              onReview={review}
+            />
           )}
         </>
       )}

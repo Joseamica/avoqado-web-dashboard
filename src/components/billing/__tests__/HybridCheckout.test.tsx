@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -14,7 +14,28 @@ vi.mock('@/api', () => ({
   getConnectionStatus: () => ({ isOnline: true, isServerReachable: true }),
   subscribeToConnection: () => () => {},
 }))
-vi.mock('../FeatureCatalogBrowser', () => ({ FeatureCatalogBrowser: () => <p>Full catalog</p> }))
+vi.mock('../FeatureCatalogBrowser', () => ({
+  FeatureCatalogBrowser: ({ selection }: { selection?: any }) => (
+    <div>
+      <p>Full catalog</p>
+      {selection?.eligibleCodes.map((code: string) => (
+        <label key={code}>
+          <input
+            type="checkbox"
+            checked={selection.selectedCodes.includes(code)}
+            disabled={selection.includedCodes.includes(code)}
+            onChange={e =>
+              selection.onChange(
+                e.target.checked ? [...selection.selectedCodes, code] : selection.selectedCodes.filter((c: string) => c !== code),
+              )
+            }
+          />
+          {code}
+        </label>
+      ))}
+    </div>
+  ),
+}))
 vi.mock('react-i18next', async () => {
   const { default: d } = await import('@/locales/en/billing.json')
   return {
@@ -84,11 +105,11 @@ beforeEach(() => {
     return { purchaseId: id, status: 'PAYMENT_PENDING', paymentUrl: 'https://invoice.stripe.com/i/test' }
   })
 })
-function mount(onCompleted = vi.fn()) {
+function mount(onCompleted = vi.fn(), initialSlug?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <HybridCheckout venueId="venue" onCompleted={onCompleted} />
+      <HybridCheckout venueId="venue" onCompleted={onCompleted} initialSlug={initialSlug} />
     </QueryClientProvider>,
   )
 }
@@ -146,4 +167,84 @@ it('forgets the stored attempt once the caller finishes a completed purchase', a
   await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
   await waitFor(() => expect(done).toHaveBeenCalledWith('purchase'))
   await waitFor(() => expect(readHybridAttempt('venue')).toBeNull())
+})
+it('brings a rejected quote into view, because the alert renders far above the review button', async () => {
+  const scroll = vi.fn()
+  Element.prototype.scrollIntoView = scroll
+  vi.mocked(hybridBilling.quote).mockRejectedValue({
+    response: { data: { message: 'Programa de lealtad ya está incluida; no se cobra otra vez.' } },
+  })
+  mount()
+  await userEvent.click(await screen.findByRole('button', { name: 'Add offer' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Review quote' }))
+  const alert = await screen.findByRole('alert')
+  expect(alert).toHaveTextContent('Programa de lealtad ya está incluida')
+  await waitFor(() => expect(scroll).toHaveBeenCalled())
+  expect(scroll.mock.contexts[scroll.mock.contexts.length - 1]).toBe(alert)
+})
+const bundle = {
+  ...offer,
+  id: 'bundle',
+  name: 'Choose 1',
+  slug: 'choose-1',
+  definition: { schemaVersion: 1, kind: 'CHOICE_BUNDLE', choiceCount: 1, eligibleFeatureCodes: ['LOYALTY_PROGRAM', 'CFDI'], terms },
+  includedFeatureCodes: [],
+} as const
+const loyalty = {
+  ...offer,
+  id: 'loyalty',
+  name: 'Loyalty',
+  slug: 'loyalty',
+  definition: { schemaVersion: 1, kind: 'FEATURES', featureCodes: ['LOYALTY_PROGRAM'], terms },
+  includedFeatureCodes: ['LOYALTY_PROGRAM'],
+} as const
+const card = (name: string) => screen.getByRole('heading', { name }).closest('article') as HTMLElement
+it('the modal already carries the title, so the checkout does not repeat it; prices read as money', async () => {
+  mount()
+  await screen.findByRole('button', { name: 'Add offer' })
+  expect(screen.queryByRole('heading', { name: 'Plans, features and bundles' })).not.toBeInTheDocument()
+  expect(screen.getByText('MX$379.50 per month · tax included')).toBeInTheDocument()
+})
+it('marks the offer that came in the campaign link', async () => {
+  vi.mocked(hybridBilling.offer).mockResolvedValue(offer as any)
+  mount(vi.fn(), 'invoicing')
+  expect(await screen.findByText('From your link')).toBeInTheDocument()
+})
+it('refuses on the card an offer whose feature is already chosen elsewhere, instead of after the quote', async () => {
+  vi.mocked(hybridBilling.offers).mockResolvedValue({ items: [bundle, loyalty], total: 2, page: 1, pageSize: 6 } as any)
+  const user = userEvent.setup()
+  mount()
+  await screen.findByRole('heading', { name: 'Choose 1' })
+  await user.click(within(card('Choose 1')).getByRole('button', { name: 'Add offer' }))
+  await user.click(screen.getByRole('checkbox', { name: 'LOYALTY_PROGRAM' }))
+  expect(within(card('Loyalty')).getByRole('button', { name: 'Add offer' })).toBeDisabled()
+  expect(
+    within(card('Loyalty')).getByText('Includes features you already chose in «Choose 1». Remove them there if you prefer this offer.'),
+  ).toBeInTheDocument()
+})
+it('an added single-feature offer takes that feature out of a bundle, so the bundle asks for another', async () => {
+  vi.mocked(hybridBilling.offers).mockResolvedValue({ items: [bundle, loyalty], total: 2, page: 1, pageSize: 6 } as any)
+  const user = userEvent.setup()
+  mount()
+  await screen.findByRole('heading', { name: 'Loyalty' })
+  await user.click(within(card('Loyalty')).getByRole('button', { name: 'Add offer' }))
+  await user.click(within(card('Choose 1')).getByRole('button', { name: 'Add offer' }))
+  expect(screen.getByRole('checkbox', { name: 'LOYALTY_PROGRAM' })).toBeDisabled()
+})
+it('keeps the review button in a bar that stays in view, and says what is missing', async () => {
+  vi.mocked(hybridBilling.offers).mockResolvedValue({ items: [bundle, loyalty], total: 2, page: 1, pageSize: 6 } as any)
+  const scroll = vi.fn()
+  Element.prototype.scrollIntoView = scroll
+  const user = userEvent.setup()
+  mount()
+  await screen.findByRole('heading', { name: 'Choose 1' })
+  await user.click(within(card('Choose 1')).getByRole('button', { name: 'Add offer' }))
+  const bar = screen.getByTestId('hybrid-cart-bar')
+  expect(bar).toHaveTextContent('«Choose 1»: choose 1 more')
+  expect(within(bar).getByRole('button', { name: 'Review quote' })).toBeDisabled()
+  await user.click(within(bar).getByRole('button', { name: 'Choose features' }))
+  expect(scroll).toHaveBeenCalled()
+  await user.click(screen.getByRole('checkbox', { name: 'CFDI' }))
+  expect(bar).toHaveTextContent('Your selection · MX$379.50 per month')
+  expect(within(bar).getByRole('button', { name: 'Review quote' })).toBeEnabled()
 })
