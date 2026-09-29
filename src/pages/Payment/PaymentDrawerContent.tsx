@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { AddCustomerSheet, Customer, CustomerFormSheet } from './CustomerSheets'
 import { IssueRefundSheet } from './IssueRefundSheet'
 import { RefundCreditNotePanel } from './RefundCreditNotePanel'
+import { restanteTotal, saldosPorDevolver } from './refundTip'
 
 interface PaymentDrawerContentProps {
   paymentId: string
@@ -201,9 +202,13 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const methodDisplay = methodSuffix ? `${methodLabel} · ${methodSuffix}` : methodLabel
 
   // Refund calculations
-  const refundedTotal = refunds.reduce((sum, r) => sum + Math.abs(Number(r.amount) || 0), 0)
-  const remainingRefundable = Math.max(0, total - refundedTotal)
-  const isFullyRefunded = refundedTotal >= total - 0.001 && total > 0
+  // Los topes cuentan igual que `issueRefund` (sólo COMPLETED; el máximo entre las filas y el acumulado histórico del
+  // cobro, en centavos): un FAILED no bloquea el reintento y un acumulado sin filas no ofrece de más.
+  const remainingRefundable = restanteTotal(total, refunds, payment.processorData)
+  // Venta y propina que quedan por separado, topadas con ese total: alimentan la casilla «Incluir propina» del
+  // reembolso por artículos.
+  const saldos = saldosPorDevolver(amount, tip, refunds, remainingRefundable)
+  const isFullyRefunded = remainingRefundable <= 0 && total > 0
 
   const linkedCustomer: Customer | null = payment.order?.customer ?? null
   const linkedCustomerName = linkedCustomer
@@ -495,6 +500,8 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         maxRefundable={remainingRefundable}
         methodLabel={methodLabel}
         paymentTipAmount={tip}
+        remainingSaleAmount={saldos.venta}
+        remainingTipAmount={saldos.propina}
         venueName={venue?.name}
         orderItems={orderItems.map((item: any) => {
           // Sum qty + amount already refunded for this orderItemId across
