@@ -33,6 +33,7 @@ vi.mock('@stripe/react-stripe-js', () => ({
   useElements: () => ({}),
 }))
 vi.mock('@/components/billing/PlanPicker', () => ({ PlanPicker: () => <div data-testid="plan-picker" /> }))
+vi.mock('@/components/billing/FeatureCatalogBrowser', () => ({ FeatureCatalogBrowser: () => <div data-testid="feature-catalog" /> }))
 // `t` ESTABLE, como el de i18next: uno nuevo en cada render re-dispara los efectos que dependen de él.
 const tEstable = (k: string, o?: any) => {
   const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
@@ -204,7 +205,7 @@ describe('alta CORTA (con activateBeforeContinue)', () => {
     render(<PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" />)
     await alPago()
     const resumen = screen.getByTestId('plan-summary-features')
-    expect(resumen.textContent).toMatch(/Todo lo de Free, más/)
+    expect(resumen.textContent).toMatch(/Todo lo de Gratis, más/)
     expect(resumen.textContent).toMatch(/plan\.compare\.rows\.loyalty/)
     expect(resumen.textContent).not.toMatch(/plan\.compare\.rows\.cfdi/)
   })

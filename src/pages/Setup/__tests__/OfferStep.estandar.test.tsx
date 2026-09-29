@@ -71,6 +71,8 @@ vi.mock('@/components/billing/PlanPicker', () => ({
     return <div data-testid="plan-picker" />
   },
 }))
+// Catalog interaction has its own tests; keep the real PlanStep payment flow under test here.
+vi.mock('@/components/billing/FeatureCatalogBrowser', () => ({ FeatureCatalogBrowser: () => <div data-testid="feature-catalog" /> }))
 const i18nEstable = vi.hoisted(() => ({
   t: (k: string, o?: any) => {
     const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k

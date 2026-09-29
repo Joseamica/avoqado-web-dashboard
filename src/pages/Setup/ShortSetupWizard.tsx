@@ -143,8 +143,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
         track('setup_step_completed', { step_id: pantalla, flow: 'short' })
         await refetch()
         setPantalla(siguiente)
+        return true
       } catch (error) {
         avisarFallo(error)
+        return false
       } finally {
         setGuardando(false)
       }
@@ -196,8 +198,8 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
         {pantalla === 'consent' && (
           <ConsentStep
             saving={guardando}
-            onAccept={() =>
-              guardarYAvanzar(
+            onAccept={async () => {
+              await guardarYAvanzar(
                 () =>
                   setupService.acceptTerms(organizationId, {
                     termsAccepted: true,
@@ -206,7 +208,7 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
                   }),
                 'businessBasics',
               )
-            }
+            }}
           />
         )}
 
@@ -214,9 +216,12 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
           <BusinessBasicsStep
             data={datos}
             saving={guardando}
-            onNext={stepData =>
-              guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.businessBasics, stepData), 'businessType')
-            }
+            onNext={async stepData => {
+              await guardarYAvanzar(
+                () => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.businessBasics, stepData),
+                'businessType',
+              )
+            }}
           />
         )}
 
@@ -244,9 +249,7 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             }}
             onVistaDePlanes={setViendoPlanes}
             activacionEnCurso={estadoDelCobro === 'IN_PROGRESS'}
-            onFreePlan={plan =>
-              void guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.offer, { plan }), 'done')
-            }
+            onFreePlan={plan => guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.offer, { plan }), 'done')}
           />
         )}
 

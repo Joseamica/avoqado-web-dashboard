@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import { trackSignup } from '@/lib/gtag'
 import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
 import { LEGAL_DOCS_VERSION } from '@/config/legal'
+import { captureHybridOffer, readHybridOffer } from '@/lib/hybridIntent'
 import { capturarAtribucion, leerAtribucion } from '@/lib/acquisition'
 import { resolveLaunchCampaignCode } from '@/services/launchOffer.service'
 import { GOOGLE_SIGNUP_INTENT_KEY, guardarIntentoDeAltaGoogle } from '@/lib/googleSignupIntent'
@@ -58,6 +59,7 @@ export default function SignupWizard() {
   // verificación de correo: la persona se va a su bandeja y vuelve por una URL limpia.
   useEffect(() => {
     capturarAtribucion()
+    captureHybridOffer()
   }, [])
 
   // Atribución del anuncio. Todo este bloque es «mejor esfuerzo»: cualquier fallo deja el alta
@@ -73,7 +75,7 @@ export default function SignupWizard() {
       }
     }
     const utm = atribucion && Object.keys(atribucion.utm).length > 0 ? atribucion.utm : undefined
-    return { launchCampaignCode, utm }
+    return { launchCampaignCode, utm, hybridOfferSlug: readHybridOffer() ?? undefined }
   }
 
   const pedirConsentimiento = () =>
@@ -91,10 +93,11 @@ export default function SignupWizard() {
     }
     setConsentError('')
     setIsGoogleLoading(true)
-    const { launchCampaignCode, utm } = await resolverAtribucion()
+    const { launchCampaignCode, hybridOfferSlug, utm } = await resolverAtribucion()
     guardarIntentoDeAltaGoogle({
       legalVersion: LEGAL_DOCS_VERSION,
       ...(launchCampaignCode ? { launchCampaignCode } : {}),
+      ...(hybridOfferSlug ? { hybridOfferSlug } : {}),
       ...(utm ? { utm } : {}),
     })
     try {
@@ -111,7 +114,7 @@ export default function SignupWizard() {
     }
   }
 
-  const onSubmit: SubmitHandler<SignupFormInputs> = async (formData) => {
+  const onSubmit: SubmitHandler<SignupFormInputs> = async formData => {
     // El servidor exige el consentimiento para TERMINAR el alta. Dejarlo pasar aquí no ahorra un
     // paso: mueve el rechazo al final, cuando la persona ya capturó todo.
     if (!consentAccepted) {
@@ -120,7 +123,7 @@ export default function SignupWizard() {
     }
     setConsentError('')
 
-    const { launchCampaignCode, utm } = await resolverAtribucion()
+    const { launchCampaignCode, hybridOfferSlug, utm } = await resolverAtribucion()
 
     try {
       // V2 signup: only email + password, empty names/org (backend defaults)
@@ -133,6 +136,7 @@ export default function SignupWizard() {
         wizardVersion: 2,
         legalVersion: LEGAL_DOCS_VERSION,
         ...(launchCampaignCode ? { launchCampaignCode } : {}),
+        ...(hybridOfferSlug ? { hybridOfferSlug } : {}),
         ...(utm ? { utm } : {}),
       })
 
@@ -141,8 +145,7 @@ export default function SignupWizard() {
       trackSignup('email', launchCampaignCode)
 
       // DEV: Skip email verification with bypass code
-      const skipVerification =
-        import.meta.env.DEV && import.meta.env.VITE_SKIP_EMAIL_VERIFICATION === 'true'
+      const skipVerification = import.meta.env.DEV && import.meta.env.VITE_SKIP_EMAIL_VERIFICATION === 'true'
 
       if (skipVerification) {
         await authService.verifyEmail({
@@ -173,9 +176,7 @@ export default function SignupWizard() {
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
         {/* Title */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {t('step1.title')}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t('step1.title')}</h1>
           <p className="text-sm text-muted-foreground">{t('step1.subtitle')}</p>
         </div>
 
@@ -195,9 +196,7 @@ export default function SignupWizard() {
               disabled={isLoading}
               className={cn('rounded-lg h-12 text-base', errors.email && 'border-destructive')}
             />
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
           </div>
 
           {/* Password */}
@@ -218,9 +217,7 @@ export default function SignupWizard() {
               disabled={isLoading}
               className={cn('rounded-lg h-12 text-base', errors.password && 'border-destructive')}
             />
-            {errors.password && (
-              <p className="text-xs text-destructive">{errors.password.message}</p>
-            )}
+            {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             <p className="text-xs text-muted-foreground">{t('step1.passwordHint')}</p>
           </div>
 
@@ -251,9 +248,7 @@ export default function SignupWizard() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-background px-4 text-muted-foreground">
-              {t('step1.orContinueWith', { defaultValue: 'o' })}
-            </span>
+            <span className="bg-background px-4 text-muted-foreground">{t('step1.orContinueWith', { defaultValue: 'o' })}</span>
           </div>
         </div>
         <Button

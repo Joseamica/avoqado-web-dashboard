@@ -27,8 +27,16 @@ describe('intento de alta con Google', () => {
   })
 
   it('lo que se guarda antes de ir a Google vuelve igual al regresar', () => {
-    guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' } }, 1000)
-    expect(tomarIntentoDeAltaGoogle(2000)).toEqual({ legalVersion: 'v1', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' } })
+    guardarIntentoDeAltaGoogle(
+      { legalVersion: 'v1', hybridOfferSlug: 'septiembre-flex', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' } },
+      1000,
+    )
+    expect(tomarIntentoDeAltaGoogle(2000)).toEqual({
+      legalVersion: 'v1',
+      hybridOfferSlug: 'septiembre-flex',
+      launchCampaignCode: 'POS22MX',
+      utm: { utm_source: 'google' },
+    })
   })
 
   it('🔴 se consume UNA vez: un intento viejo no convierte en alta un inicio de sesión posterior', () => {

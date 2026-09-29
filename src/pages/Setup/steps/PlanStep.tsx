@@ -21,6 +21,8 @@ import { AlertCircle, ArrowLeft, Check, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanPicker } from '@/components/billing/PlanPicker'
 import { PlanComparison } from '@/components/billing/PlanComparison'
+import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
+import { FeatureCatalogBrowser } from '@/components/billing/FeatureCatalogBrowser'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 import { novedadesDelPlan, valorDeCelda } from '@/config/plan-comparison'
 import { setupService } from '@/services/setup.service'
@@ -282,6 +284,8 @@ export function PlanStep({
 
         {/* Las tarjetas dicen TEMAS; el detalle completo, por categoría, vive aquí (cerrado por default). */}
         <PlanComparison selectedTier={selectedTier} />
+        <HybridOnboardingButton initialSlug={data.hybridOfferSlug} venueId={venueId} disabled={bloqueado} onNext={onNext} />
+        <FeatureCatalogBrowser />
 
         {/* Barra FIJA a la pantalla (no `sticky`: el contenedor del asistente la dejaba fuera de vista).
             El plan elegido y «Continuar» siempre visibles, aunque la cuadrícula o la tabla sean largas. */}
@@ -345,7 +349,7 @@ export function PlanStep({
             <div data-testid="plan-summary-features" className="flex flex-col gap-3 border-t border-input pt-5">
               <p className="text-sm font-medium">
                 {selectedTier === 'PRO'
-                  ? tBilling('plan.compare.plusFree', { defaultValue: 'Todo lo de Free, más:' })
+                  ? tBilling('plan.compare.plusFree', { defaultValue: 'Todo lo de Gratis, más:' })
                   : tBilling('plan.compare.plusPro', { defaultValue: 'Todo lo de Pro, más:' })}
               </p>
               {/* Lo que este plan agrega sobre el de abajo, una línea por categoría: completo, pero corto. */}

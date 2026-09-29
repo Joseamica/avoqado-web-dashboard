@@ -1,4 +1,5 @@
 export interface SetupData {
+  hybridOfferSlug?: string
   // Step 2: Business Info
   businessName?: string
   /**
@@ -52,6 +53,7 @@ export interface SetupData {
   }
   // Step: Plan (base subscription)
   plan?: {
+    hybridPurchaseId?: string
     /**
      * Selected tier. FREE completes without a card; PRO/PREMIUM require a
      * paymentMethodId. ENTERPRISE is contact-sales only and never persisted.

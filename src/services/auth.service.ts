@@ -134,6 +134,7 @@ export interface SignupDto {
   legalVersion?: string
   /** Código de la campaña del anuncio. Uno inválido lo descarta el servidor en silencio (§3.5). */
   launchCampaignCode?: string
+  hybridOfferSlug?: string
   /** UTMs y click ids, con la misma lista permitida que la landing. */
   utm?: Record<string, string>
 }

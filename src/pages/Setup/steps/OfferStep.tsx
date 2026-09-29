@@ -38,6 +38,7 @@ import {
 } from '../launchOffer.types'
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
+import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
 import { PlanStep } from './PlanStep'
 import type { SetupData } from '../types'
 
@@ -60,7 +61,7 @@ export interface OfferStepProps {
   /** Vuelve a pedir el progreso (la oferta pudo agotarse o cambiar mientras se capturaba). */
   onRefreshProgress: () => void | Promise<void>
   /** El plan GRATIS de la vista estándar: se guarda sin tarjeta. */
-  onFreePlan?: (plan: NonNullable<SetupData['plan']>) => void
+  onFreePlan?: (plan: NonNullable<SetupData['plan']>) => void | Promise<boolean | void>
   /** Avisa si se están mostrando los planes (4 tarjetas): el asistente ensancha su columna. */
   onVistaDePlanes?: (viendoPlanes: boolean) => void
   /**
@@ -565,11 +566,10 @@ export function OfferStep({
             if (plan && plan.tier === 'FREE') {
               // Con un cobro sin respuesta definitiva, Free NO: ese cobro puede terminar activando un plan.
               if (planBloqueado()) return
-              onFreePlan?.(plan)
-              return
+              return onFreePlan?.(plan)
             }
             // Los planes de pago ya pasaron por `activateBeforeContinue`; aquí solo se cierra.
-            if (plan) onFreePlan?.(plan)
+            if (plan) return onFreePlan?.(plan)
           }}
         />
       </div>
@@ -587,6 +587,12 @@ export function OfferStep({
         {oferta!.copy.subheadline && <p className="text-sm text-muted-foreground">{oferta!.copy.subheadline}</p>}
       </div>
 
+      <HybridOnboardingButton
+        initialSlug={data?.hybridOfferSlug}
+        venueId={venueId ?? ''}
+        disabled={pagoEnVuelo}
+        onNext={step => onFreePlan?.(step.plan!)}
+      />
       <div className="flex flex-col gap-4 rounded-2xl border border-input p-5">
         <div>
           <p className="text-3xl font-semibold">

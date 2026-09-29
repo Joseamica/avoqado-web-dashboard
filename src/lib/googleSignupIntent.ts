@@ -21,6 +21,7 @@ export const GOOGLE_SIGNUP_INTENT_TTL_MS = 30 * 60 * 1000
 export interface GoogleSignupIntent {
   legalVersion: string
   launchCampaignCode?: string
+  hybridOfferSlug?: string
   utm?: Record<string, string>
 }
 
@@ -78,6 +79,9 @@ export function tomarIntentoDeAltaGoogle(ahora: number = Date.now()): GoogleSign
     const utm = g.utm && typeof g.utm === 'object' && Object.keys(g.utm).length > 0 ? g.utm : undefined
     return {
       legalVersion: g.legalVersion,
+      ...(typeof g.hybridOfferSlug === 'string' && /^[a-z0-9][a-z0-9-]{0,99}$/.test(g.hybridOfferSlug)
+        ? { hybridOfferSlug: g.hybridOfferSlug }
+        : {}),
       ...(typeof g.launchCampaignCode === 'string' && g.launchCampaignCode ? { launchCampaignCode: g.launchCampaignCode } : {}),
       ...(utm ? { utm } : {}),
     }
