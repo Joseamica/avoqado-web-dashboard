@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { lineRefundAmount } from './refundAmount'
 
 type Tab = 'items' | 'amount'
 type ItemStep = 'select' | 'restock' | 'confirm'
@@ -125,19 +126,9 @@ export function IssueRefundSheet({
   const effectiveQty = (item: RefundableItem) =>
     Math.min(refundQtyByItem[item.id] ?? remainingQty(item), remainingQty(item))
   const itemsRefundAmount = useMemo(() => {
-    const sum = selectedItems.reduce((s, i) => {
-      const q = effectiveQty(i)
-      const remaining = remainingQty(i)
-      // Close-out case: user refunds ALL remaining qty of the line. Use
-      // (item.total − priorRefundedAmount) exact to avoid rounding drift
-      // (a line of $10 / qty 3, refunded 3× qty=1, would otherwise sum to
-      // $9.99 instead of $10.00).
-      const closingLine = q === remaining
-      const lineAmount = closingLine
-        ? Math.max(0, i.total - (i.priorRefundedAmount ?? 0))
-        : (i.total * q) / i.quantity
-      return s + Math.round(lineAmount * 100) / 100
-    }, 0)
+    // Lo que devolverá el servidor, al centavo: su mismo reparto por pieza ($10 / 3 =
+    // 3.34 + 3.33 + 3.33), empezando en la pieza que sigue a lo ya devuelto.
+    const sum = selectedItems.reduce((s, i) => s + lineRefundAmount(i, effectiveQty(i)), 0)
     return Math.round(sum * 100) / 100
   }, [selectedItems, refundQtyByItem])
   const restockableItems = useMemo(
@@ -444,9 +435,7 @@ function ItemsSelectBody({
           const qty = Math.min(Math.max(rawQty, 1), Math.max(1, remainingQty))
           const effectiveTotal = fullyRefunded
             ? priorAmount || i.total // show what was actually refunded, not a prorated slice
-            : qty === i.quantity
-              ? i.total
-              : (i.total * qty) / i.quantity
+            : lineRefundAmount(i, qty)
           const showStepper = selected && remainingQty > 1
 
           return (
