@@ -6,7 +6,7 @@ import type { FeatureGridEntry } from '@/services/hybridBilling.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { featureIcon } from './featureIcons'
-import { MAX_OFFERS, type GridMode } from './planActions'
+import { MAX_OFFERS, TIER_RANK, type GridMode, type PlanTarget } from './planActions'
 
 const CATEGORY_ORDER = ['sell', 'customers', 'inventory', 'money', 'team', 'ai', 'custom'] as const
 
@@ -19,10 +19,22 @@ export interface FeatureGridProps {
   onToggle: (featureCode: string) => void
   onPickTier: (tier: 'PRO' | 'PREMIUM') => void
   canManage: boolean
+  /** The plan the row has selected: a function above it jumps to the plan that includes it. */
+  target: PlanTarget
 }
 
 /** All 40 functions at once, by area (the founder's choice, Odoo-style): nothing hidden, nothing paged. */
-export function FeatureGrid({ entries, purchasesEnabled, mode, marked, isMarkable, onToggle, onPickTier, canManage }: FeatureGridProps) {
+export function FeatureGrid({
+  entries,
+  purchasesEnabled,
+  mode,
+  marked,
+  isMarkable,
+  onToggle,
+  onPickTier,
+  canManage,
+  target,
+}: FeatureGridProps) {
   const { t, i18n } = useTranslation('billing')
   const { formatDate } = useVenueDateTime()
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
@@ -117,7 +129,8 @@ export function FeatureGrid({ entries, purchasesEnabled, mode, marked, isMarkabl
           {body}
         </button>
       )
-    if (upsellTier && canManage && mode === 'ADD')
+    // Also while viewing another plan (VIEW): with Pro picked, a Premium function must still switch to Premium.
+    if (upsellTier && canManage && mode !== 'DROP' && TIER_RANK[upsellTier] > TIER_RANK[target])
       return (
         <button
           type="button"

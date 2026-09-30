@@ -305,6 +305,7 @@ export default function Subscriptions() {
                   onToggle={toggle}
                   onPickTier={pick}
                   canManage={canManage && !grandfathered}
+                  target={target}
                 />
               ) : (
                 grid.isError && (

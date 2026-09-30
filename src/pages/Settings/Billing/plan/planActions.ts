@@ -14,7 +14,7 @@ export type PlanTarget = 'FREE' | 'PRO' | 'PREMIUM'
 /** A hybrid quote takes at most eight offers (the server's `hybridQuoteBody`). */
 export const MAX_OFFERS = 8
 const IVA_RATE = 0.16
-const TIER_RANK = { FREE: 0, PRO: 1, PREMIUM: 2, ENTERPRISE: 3 } as const
+export const TIER_RANK = { FREE: 0, PRO: 1, PREMIUM: 2, ENTERPRISE: 3 } as const
 
 export const NO_ORIGIN: PlanOrigin = {
   kind: 'NONE',

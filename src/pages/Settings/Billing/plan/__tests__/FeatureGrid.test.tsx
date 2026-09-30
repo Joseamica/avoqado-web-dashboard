@@ -67,6 +67,7 @@ const renderGrid = (over: Partial<FeatureGridProps> = {}) => {
     onToggle: vi.fn(),
     onPickTier: vi.fn(),
     canManage: true,
+    target: 'FREE',
     ...over,
   }
   render(<FeatureGrid {...props} />)
@@ -112,6 +113,22 @@ describe('FeatureGrid', () => {
     expect(screen.getByText('plan.grid.quote')).toBeInTheDocument()
   })
 
+  it('with a plan already picked, a function the plan lacks still jumps to the plan that has it', async () => {
+    const entries = [...ENTRIES, entry('TABLE_SERVICE', 'sell', 'PRO', 'NONE', null)]
+    const pickTable = { name: 'plan.grid.pickTier|name=n-TABLE_SERVICE|tier=plan.tiers.pro.name' }
+    const pickCommissions = { name: 'plan.grid.pickTier|name=n-COMMISSIONS|tier=plan.tiers.premium.name' }
+    const props = renderGrid({ entries, purchasesEnabled: false, mode: 'VIEW', target: 'PRO' })
+    expect(screen.queryByRole('button', pickTable)).toBeNull()
+    await userEvent.click(screen.getByRole('button', pickCommissions))
+    expect(props.onPickTier).toHaveBeenCalledWith('PREMIUM')
+  })
+
+  it('with Premium picked, nothing sends the selection back down', () => {
+    const entries = [...ENTRIES, entry('TABLE_SERVICE', 'sell', 'PRO', 'NONE', null)]
+    renderGrid({ entries, purchasesEnabled: false, mode: 'VIEW', target: 'PREMIUM' })
+    expect(screen.queryByRole('button', { name: /pickTier/ })).toBeNull()
+  })
+
   it('with sales closed every function shows, with no price and no checkbox', () => {
     renderGrid({ purchasesEnabled: false })
     expect(screen.getByText('plan.grid.introClosed')).toBeInTheDocument()
@@ -131,6 +148,7 @@ describe('FeatureGrid', () => {
         onToggle={vi.fn()}
         onPickTier={vi.fn()}
         canManage
+        target="FREE"
       />,
     )
     expect(screen.getAllByRole('checkbox')).toHaveLength(8)
@@ -145,6 +163,7 @@ describe('FeatureGrid', () => {
         onToggle={vi.fn()}
         onPickTier={vi.fn()}
         canManage={false}
+        target="FREE"
       />,
     )
     expect(screen.queryByRole('checkbox')).toBeNull()
