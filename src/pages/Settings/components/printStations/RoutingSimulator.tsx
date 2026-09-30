@@ -81,11 +81,18 @@ export function RoutingSimulator({
                 onChange={e => {
                   const raw = e.target.value
                   setItems(prev =>
-                    prev.map((x, j) => (j === i ? { ...x, quantity: raw === '' ? (undefined as unknown as number) : parseInt(raw, 10) } : x)),
+                    prev.map((x, j) =>
+                      j === i ? { ...x, quantity: raw === '' ? (undefined as unknown as number) : parseInt(raw, 10) } : x,
+                    ),
                   )
                 }}
               />
-              <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => setItems(prev => prev.filter((_, j) => j !== i))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="cursor-pointer"
+                onClick={() => setItems(prev => prev.filter((_, j) => j !== i))}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -115,7 +122,7 @@ export function RoutingSimulator({
                 const destino = destinoDelPlan(plan, stations, tieneAccesoPro)
                 return (
                   <div key={plan.stationId ?? `unrouted-${i}`} className="rounded-lg border border-input p-4">
-                    <p className="mb-2 flex flex-wrap items-center gap-2 font-medium">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 font-medium">
                       {plan.unrouted ? (
                         <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
                           {t('routing.simulator.unroutedStation')}
@@ -124,7 +131,7 @@ export function RoutingSimulator({
                         <span>{plan.stationName}</span>
                       )}
                       {destino && <Badge variant="secondary">{t(`destino.${destino}`)}</Badge>}
-                    </p>
+                    </div>
                     <ul className="space-y-1 text-sm text-muted-foreground">
                       {plan.lines.map((line, j) => (
                         <li key={j}>{t('routing.simulator.lineFormat', { quantity: line.quantity, name: line.productName })}</li>

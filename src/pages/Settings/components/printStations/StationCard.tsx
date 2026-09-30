@@ -59,14 +59,18 @@ export function StationCard({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <PrinterIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>
-            {station.printer ? t('stations.printerLine', { printer: station.printer.name }) : t('stations.printerFallback')}
+            {station.printer
+              ? t('stations.printerLine', { printer: station.printer.name })
+              : t(destino === 'PANTALLA' ? 'stations.printerFallbackScreen' : 'stations.printerFallback')}
             {station.printer && station.copies > 1 && <> · {t('stations.copiesSuffix', { count: station.copies })}</>}
           </span>
         </div>
 
         <KitchenDisplayToggle venueId={venueId} station={station} abiertaAClientes={abiertaAClientes} />
 
-        <p className="text-xs text-muted-foreground">{t('stations.destinationLine', { destino: t(`destino.${destino}`) })}</p>
+        <p className="text-xs text-muted-foreground">
+          {station.active ? t('stations.destinationLine', { destino: t(`destino.${destino}`) }) : t('stations.destinationInactive')}
+        </p>
       </CardContent>
     </Card>
   )

@@ -28,7 +28,7 @@
     "PAPEL_DE_LA_CAJA": "Papel en la caja"
   },
   "stations": {
-    "intro": "Una estación es un punto de preparación (por ejemplo {{kitchen}} o barra). Cada estación imprime en una impresora.",
+    "intro": "Una estación es un punto de preparación (por ejemplo {{kitchen}} o barra). Cada estación manda sus comandas a una impresora, a una pantalla de cocina o a las dos.",
     "empty": "Aún no hay estaciones. Crea la primera para empezar a rutear comandas.",
     "loadError": "No se pudieron cargar las estaciones",
     "retry": "Reintentar",
@@ -41,7 +41,9 @@
     "printerLine": "Imprime en {{printer}}",
     "copiesSuffix": "{{count}} copias",
     "printerFallback": "Sin impresora propia: imprime en la impresora de cocina de la caja",
+    "printerFallbackScreen": "Sin impresora propia: sale en papel sólo si la pantalla no contesta",
     "destinationLine": "Llega a: {{destino}}",
+    "destinationInactive": "No recibe comandas",
     "defaultBadge": "Por defecto",
     "packingBadge": "Empaque",
     "statusInactive": "Inactiva",

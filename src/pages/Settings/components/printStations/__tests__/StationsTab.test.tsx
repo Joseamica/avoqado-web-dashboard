@@ -20,7 +20,13 @@ vi.mock('@/services/printStations.service', async importOriginal => ({
   getPrintStationsConfig: () => (h.configShouldError ? Promise.reject(new Error('network')) : Promise.resolve(h.config)),
   getPrinters: () => Promise.resolve([]),
   setPrintStationKitchenDisplay: (...a: unknown[]) => h.setMock(...a),
-  getRouting: () => Promise.resolve({ categories: [], products: [{ id: 'pr1', name: 'Taco', categoryId: null, printStationId: null }], unroutedCategories: 0, hasDefault: true }),
+  getRouting: () =>
+    Promise.resolve({
+      categories: [],
+      products: [{ id: 'pr1', name: 'Taco', categoryId: null, printStationId: null }],
+      unroutedCategories: 0,
+      hasDefault: true,
+    }),
 }))
 vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: (p: string) => p === 'printers:manage', role: h.role }),
@@ -94,6 +100,22 @@ describe('StationsTab — tarjetas por estación (diseño A)', () => {
     expect(screen.queryByRole('switch', { name: /Pantalla de cocina de/ })).not.toBeInTheDocument()
   })
 
+  it('sólo pantalla: no dice que imprime en la caja, dice que el papel es respaldo', async () => {
+    h.config = { stations: [cocina, { ...barra, hasKitchenDisplay: true }], kitchenDisplayOpenToClients: true }
+    pintar()
+    const tarjeta = await screen.findByTestId('station-card-s2')
+    expect(within(tarjeta).getByText('Sin impresora propia: sale en papel sólo si la pantalla no contesta')).toBeInTheDocument()
+    expect(within(tarjeta).getByText('Llega a: Pantalla')).toBeInTheDocument()
+  })
+
+  it('una estación inactiva no promete destino: no recibe comandas', async () => {
+    h.config = { stations: [cocina, { ...barra, hasKitchenDisplay: true, active: false }], kitchenDisplayOpenToClients: true }
+    pintar()
+    const tarjeta = await screen.findByTestId('station-card-s2')
+    expect(within(tarjeta).getByText('No recibe comandas')).toBeInTheDocument()
+    expect(within(tarjeta).queryByText(/Llega a:/)).not.toBeInTheDocument()
+  })
+
   it('bajó de plan con la pantalla prendida: la tarjeta no promete la pantalla', async () => {
     h.hasAccess = false
     h.config = { stations: [{ ...cocina, hasKitchenDisplay: true }], kitchenDisplayOpenToClients: true }
@@ -135,9 +157,7 @@ describe('StationsTab — tarjetas por estación (diseño A)', () => {
     await userEvent.click(casillas[casillas.length - 1])
     await userEvent.click(screen.getByRole('button', { name: 'Prender pantalla' }))
     await waitFor(() =>
-      screen
-        .getAllByRole('switch', { name: 'Pantalla de cocina de Barra', hidden: true })
-        .forEach(s => expect(s).toBeChecked()),
+      screen.getAllByRole('switch', { name: 'Pantalla de cocina de Barra', hidden: true }).forEach(s => expect(s).toBeChecked()),
     )
     expect(screen.getByRole('heading', { name: 'Editar estación' })).toBeInTheDocument()
   })

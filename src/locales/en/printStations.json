@@ -28,7 +28,7 @@
     "PAPEL_DE_LA_CAJA": "Paper at the register"
   },
   "stations": {
-    "intro": "A station is a prep point (for example {{kitchen}} or bar). Each station prints to one printer.",
+    "intro": "A station is a prep point (for example {{kitchen}} or bar). Each station sends its tickets to a printer, a kitchen display, or both.",
     "empty": "No stations yet. Create the first one to start routing tickets.",
     "loadError": "Couldn't load the stations",
     "retry": "Retry",
@@ -41,7 +41,9 @@
     "printerLine": "Prints on {{printer}}",
     "copiesSuffix": "{{count}} copies",
     "printerFallback": "No printer of its own: prints on the register's kitchen printer",
+    "printerFallbackScreen": "No printer of its own: prints on paper only if the screen doesn't answer",
     "destinationLine": "Goes to: {{destino}}",
+    "destinationInactive": "Receives no tickets",
     "defaultBadge": "Default",
     "packingBadge": "Packing",
     "statusInactive": "Inactive",
