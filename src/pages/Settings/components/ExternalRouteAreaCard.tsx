@@ -138,6 +138,7 @@ export function ExternalRouteAreaCard({ venueId, area, onSaved }: { venueId: str
           {!canConfigure && <p className="text-sm text-warning-foreground">{t('areaTickets.externalRoute.noPermission')}</p>}
 
           {!isExternal && <p className="text-xs text-muted-foreground">{t('areaTickets.externalRoute.policiesDisabledNote')}</p>}
+          {isExternal && <p className="text-xs text-muted-foreground">{t('areaTickets.externalRoute.skuHint')}</p>}
 
           <div className="grid gap-3 md:grid-cols-3" data-tour="area-external-route-policies">
             <div className="space-y-1.5">

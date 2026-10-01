@@ -17,15 +17,19 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
+import { apiErrorDescription } from '@/utils/apiError'
 import { Currency } from '@/utils/currency'
 import { Loader2, Search, Package, X } from 'lucide-react'
 import { ModifierInventoryMode, Unit } from '@/types'
+import { normalizeModifierSku } from './modifierSku'
 
 // Schema for the form validation
 // Define form values type
 type FormValues = {
   name: string
   price: number
+  /** Código del extra en el otro sistema de caja. '' = sin SKU (no se manda). */
+  sku: string
   /** Minutes this modifier adds to the booked service when picked. Null = no
    *  duration impact (price-only modifier). Used by the booking widget to
    *  extend the reservation slot ("Manicura tradicional 25min + Esmalte +35min = 60min"). */
@@ -44,6 +48,9 @@ const createFormSchema = (t: any) =>
   z.object({
     name: z.string().min(1, { message: t('modifiers.create.nameRequired') }),
     price: z.number().min(0).default(0),
+    // Sin validación local a propósito: el servidor es la autoridad y su mensaje se muestra al fallar.
+    // Ojo: debe estar declarado aquí — zod descarta las llaves que el esquema no conoce y el SKU no se enviaría.
+    sku: z.string().optional(),
     durationMin: z.number().int().min(0).max(480).nullable().default(null),
     active: z.boolean().default(true),
     // Inventory fields
@@ -79,6 +86,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
     defaultValues: {
       name: '',
       price: 0,
+      sku: '',
       durationMin: null,
       active: true,
       trackInventory: false,
@@ -134,10 +142,14 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
   // For creating the modifier
   const createModifierMutation = useMutation<unknown, Error, FormValues>({
     mutationFn: async formValues => {
+      // Vacío = sin SKU: al crear no hay nada que borrar, así que simplemente no se manda.
+      const sku = normalizeModifierSku(formValues.sku)
+
       // Create the modifier with inventory fields
       const payload: any = {
         name: formValues.name,
         price: formValues.price,
+        ...(sku ? { sku } : {}),
         durationMin: formValues.durationMin,
         active: formValues.active,
       }
@@ -180,7 +192,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
     onError: error => {
       toast({
         title: t('modifiers.create.toasts.createError'),
-        description: error.message || t('modifiers.create.toasts.createErrorDesc'),
+        // El motivo que contesta el servidor (p. ej. «El SKU sólo admite letras, números…»), no el genérico de axios.
+        description: apiErrorDescription(error) || t('modifiers.create.toasts.createErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -252,6 +265,22 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                         />
                       </div>
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* SKU — el código de este extra en el OTRO sistema de caja (caja externa) */}
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('modifiers.create.sku')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('modifiers.create.skuPlaceholder')} autoComplete="off" {...field} />
+                    </FormControl>
+                    <FormDescription>{t('modifiers.create.skuHelp')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -98,6 +98,12 @@ const AREA_EXTERNAL_NON_DEFAULT: FulfillmentArea = {
 
 const AREA_EXTERNAL_MANUAL: FulfillmentArea = { ...AREA_AVOQADO, settlementRoute: 'EXTERNAL' }
 
+// Texto literal del aviso del SKU. El MISMO matcher sirve al caso positivo y al negativo: así
+// "con Avoqado no se ve" no puede pasar en vacío por un matcher mal escrito — si el texto del
+// locale cambia y esta constante no, el caso positivo se pone rojo.
+const SKU_HINT =
+  'Cada producto y cada extra con precio de esta área necesita su SKU igual al código de la otra caja: es lo que sale impreso en el vale.'
+
 function renderCard(area: FulfillmentArea) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
@@ -205,5 +211,17 @@ describe('ExternalRouteAreaCard — el switch maestro de la ruta de cobro extern
     expect(screen.getByText(/sus cobros se quedan pendientes de confirmar y no se abre ninguna incidencia/i)).toBeInTheDocument()
     // Y NUNCA la promesa vieja, que era falsa.
     expect(screen.queryByText(/Se marca como cobrado al imprimir el vale, sin confirmación/i)).not.toBeInTheDocument()
+  })
+
+  it('con la ruta externa encendida avisa que cada producto y extra del área necesita su SKU igual al código de la otra caja', () => {
+    renderCard(AREA_EXTERNAL_MANUAL)
+
+    expect(screen.getByText(SKU_HINT)).toBeInTheDocument()
+  })
+
+  it('con Avoqado cobrando NO muestra el aviso del SKU: no hay otra caja cuyo código importe', () => {
+    renderCard(AREA_AVOQADO)
+
+    expect(screen.queryByText(SKU_HINT)).not.toBeInTheDocument()
   })
 })

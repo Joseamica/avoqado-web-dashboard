@@ -749,6 +749,7 @@
       "saveErrorFallback": "Try again.",
       "viewQueueLink": "View charges to confirm and incidents",
       "policiesDisabledNote": "These policies only apply when another checkout charges this area's tickets.",
+      "skuHint": "Every product and every paid extra in this area needs its SKU set to the other cashier's code: that is what gets printed on the ticket.",
       "confirmDialog": {
         "title": "Change the settlement route?",
         "description": "This area's tickets will be charged at another checkout. Avoqado will not record those sales or issue an invoice for them.",
