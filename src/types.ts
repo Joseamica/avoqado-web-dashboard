@@ -1359,6 +1359,9 @@ export interface Modifier {
 
   active: boolean
 
+  /** Código del extra en el OTRO sistema de caja (caja externa); sale impreso en el vale. */
+  sku?: string | null
+
   // Inventory tracking fields (Toast/Square pattern)
   rawMaterialId?: string | null
   rawMaterial?: {

@@ -14,15 +14,19 @@ import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { updateModifier } from '@/services/menu.service'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
+import { apiErrorDescription } from '@/utils/apiError'
 import { Currency } from '@/utils/currency'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Search, Package, X } from 'lucide-react'
 import { ModifierInventoryMode, Unit } from '@/types'
+import { normalizeModifierSku } from './modifierSku'
 
 // Define form values type
 type FormValues = {
   name: string
   price: number
+  /** Código del extra en el otro sistema de caja. '' = sin SKU (se manda `null` al servidor). */
+  sku: string
   /** Minutes this modifier adds to the booked service when picked. Null = price-only. */
   durationMin: number | null
   active: boolean
@@ -44,6 +48,7 @@ interface EditModifierProps {
   initialValues: {
     name: string
     price: number
+    sku?: string | null
     durationMin?: number | null
     active: boolean
     // Inventory fields (optional - may not be present in older modifiers)
@@ -82,6 +87,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     defaultValues: {
       name: initialValues.name,
       price: initialValues.price,
+      sku: initialValues.sku ?? '',
       durationMin: initialValues.durationMin ?? null,
       active: initialValues.active,
       trackInventory: hasInventoryTracking,
@@ -107,6 +113,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     form.reset({
       name: initialValues.name,
       price: initialValues.price,
+      sku: initialValues.sku ?? '',
       durationMin: initialValues.durationMin ?? null,
       active: initialValues.active,
       trackInventory: Boolean(initialValues.rawMaterialId),
@@ -155,6 +162,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
       const payload: any = {
         name: formValues.name,
         price: formValues.price,
+        // `null` (no ausente) para poder borrarlo: un `sku` ausente deja el que ya tenía.
+        sku: normalizeModifierSku(formValues.sku),
         durationMin: formValues.durationMin,
         active: formValues.active,
       }
@@ -203,7 +212,9 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     onError: error => {
       toast({
         title: t('modifiers.editModifier.toast.error'),
-        description: t('modifiers.editModifier.toast.errorDesc', { message: error.message }),
+        // La frase en español de siempre + el motivo que contesta el servidor (p. ej. «El SKU sólo admite letras,
+        // números…»); sólo si no trae uno, el message de axios.
+        description: t('modifiers.editModifier.toast.errorDesc', { message: apiErrorDescription(error) || error.message }),
         variant: 'destructive',
       })
     },
@@ -272,6 +283,22 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                         ref={field.ref}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* SKU — el código de este extra en el OTRO sistema de caja (caja externa) */}
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('modifiers.editModifier.fields.sku')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('modifiers.editModifier.fields.skuPlaceholder')} autoComplete="off" {...field} />
+                    </FormControl>
+                    <FormDescription>{t('modifiers.editModifier.fields.skuHelp')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
