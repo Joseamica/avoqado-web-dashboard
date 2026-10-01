@@ -785,6 +785,7 @@
       "saveErrorFallback": "Intenta de nuevo.",
       "viewQueueLink": "Ver cobros por confirmar e incidencias",
       "policiesDisabledNote": "Estas políticas sólo aplican cuando otra caja cobra los vales de esta área.",
+      "skuHint": "Cada producto y cada extra con precio de esta área necesita su SKU igual al código de la otra caja: es lo que sale impreso en el vale.",
       "confirmDialog": {
         "title": "¿Cambiar la ruta de cobro?",
         "description": "Los vales de esta área se cobrarán en otra caja. Avoqado no registrará esas ventas ni emitirá factura por ellas.",

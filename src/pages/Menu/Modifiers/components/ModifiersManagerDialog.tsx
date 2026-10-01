@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Info, ListChecks, Package, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -67,6 +67,29 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
   const queryClient = useQueryClient()
   const [subView, setSubView] = useState<SubView>({ kind: 'list' })
   const [modifierToDelete, setModifierToDelete] = useState<Modifier | null>(null)
+
+  // Los valores del formulario de edición se arman UNA vez por extra abierto (sólo cambia `subView`), no en cada
+  // render. Este diálogo se vuelve a renderizar con cada aviso (`useToast` lo suscribe a todos) y, si el objeto
+  // fuera nuevo en cada render, EditModifier reiniciaría el formulario: tras un guardado rechazado borraría lo
+  // que la persona tecleó y deshabilitaría «Guardar Cambios».
+  const editInitialValues = useMemo(
+    () =>
+      subView.kind === 'edit'
+        ? {
+            name: subView.modifier.name,
+            price: Number(subView.modifier.price ?? 0),
+            sku: subView.modifier.sku ?? null,
+            durationMin: (subView.modifier as any).durationMin ?? null,
+            active: subView.modifier.active ?? true,
+            rawMaterialId: subView.modifier.rawMaterialId ?? null,
+            rawMaterial: (subView.modifier.rawMaterial as any) ?? null,
+            quantityPerUnit: subView.modifier.quantityPerUnit ?? null,
+            unit: (subView.modifier.unit as string | null) ?? null,
+            inventoryMode: subView.modifier.inventoryMode ?? null,
+          }
+        : null,
+    [subView],
+  )
 
   const open = !!modifierGroupId
 
@@ -229,7 +252,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
           </div>
         )}
 
-        {subView.kind === 'edit' && modifierGroupId && (
+        {subView.kind === 'edit' && editInitialValues && modifierGroupId && (
           <div className="rounded-2xl border border-input bg-card p-6">
             <EditModifier
               venueId={venueId}
@@ -240,17 +263,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
                 invalidate()
                 setSubView({ kind: 'list' })
               }}
-              initialValues={{
-                name: subView.modifier.name,
-                price: Number(subView.modifier.price ?? 0),
-                durationMin: (subView.modifier as any).durationMin ?? null,
-                active: subView.modifier.active ?? true,
-                rawMaterialId: subView.modifier.rawMaterialId ?? null,
-                rawMaterial: (subView.modifier.rawMaterial as any) ?? null,
-                quantityPerUnit: subView.modifier.quantityPerUnit ?? null,
-                unit: (subView.modifier.unit as string | null) ?? null,
-                inventoryMode: subView.modifier.inventoryMode ?? null,
-              }}
+              initialValues={editInitialValues}
             />
           </div>
         )}
