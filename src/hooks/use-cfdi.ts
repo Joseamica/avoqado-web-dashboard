@@ -326,6 +326,24 @@ export function useReplaceCfdi() {
   })
 }
 
+/** Reenvía por correo una factura timbrada (PDF + XML). Sin correo, al del receptor registrado al facturar. */
+export function useSendCfdiEmail() {
+  const { venueId } = useCurrentVenue()
+  const { toast } = useToast()
+  const { t } = useTranslation('cfdi')
+
+  return useMutation({
+    mutationFn: ({ cfdiId, email }: { cfdiId: string; email?: string }) => cfdiService.sendCfdiEmail(venueId!, cfdiId, email),
+    onSuccess: data => {
+      // Sin destino = el correo que el cliente dio al facturar y que no conocemos aquí (facturas viejas).
+      toast({ title: data.destination ? t('toast.emailSent', { destination: data.destination }) : t('toast.emailSentRegistered') })
+    },
+    onError: (err: any) => {
+      toast({ title: t('toast.emailError'), description: apiErrorDescription(err), variant: 'destructive' })
+    },
+  })
+}
+
 /** Cancel an issued CFDI with a SAT motivo (01-04). */
 export function useCancelCfdi() {
   const { venueId } = useCurrentVenue()

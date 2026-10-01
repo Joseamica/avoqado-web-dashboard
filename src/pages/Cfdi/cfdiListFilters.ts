@@ -46,3 +46,11 @@ export function insigniaDeEstatus(cfdi: { status: string; cancelStatus?: string 
   if (cfdi.status === 'VALIDATION_FAILED' || cfdi.status === 'STAMP_FAILED') return { clave: cfdi.status, variante: 'destructive' }
   return { clave: cfdi.status, variante: 'outline' }
 }
+
+/**
+ * «Reenviar por correo» sólo en una factura vigente: timbrada y sin cancelación, o con la cancelación RECHAZADA (el receptor
+ * no la aceptó y la factura sigue valiendo). Con la cancelación en trámite, no (H24, auditoría 2026-09-30).
+ */
+export function sePuedeReenviar(cfdi: { status: string; cancelStatus?: string | null }): boolean {
+  return cfdi.status === 'STAMPED' && (!cfdi.cancelStatus || cfdi.cancelStatus === 'REJECTED')
+}

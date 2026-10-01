@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { Download, FileText, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
+import { Download, FileText, Mail, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
 
 import DataTable from '@/components/data-table'
 import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
@@ -28,7 +28,8 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
 import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
-import { STATUS_GROUPS, estatusDelServidor, insigniaDeEstatus, mesEnCurso } from './cfdiListFilters'
+import { SendCfdiEmailDialog } from './components/SendCfdiEmailDialog'
+import { STATUS_GROUPS, estatusDelServidor, insigniaDeEstatus, mesEnCurso, sePuedeReenviar } from './cfdiListFilters'
 
 const FLOW_OPTIONS: CfdiFlow[] = ['STAFF_B', 'AUTOFACTURA_A', 'GLOBAL_C']
 
@@ -158,9 +159,12 @@ export default function CfdiList() {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>(() => mesEnCurso(tz))
 
   const canConfigure = can('cfdi:configure')
+  // Reenviar por correo pide lo mismo que facturar (el servidor lo valida igual).
+  const canIssue = can('cfdi:issue')
 
   const [cancelTarget, setCancelTarget] = useState<Cfdi | null>(null)
   const [replaceTarget, setReplaceTarget] = useState<Cfdi | null>(null)
+  const [emailTarget, setEmailTarget] = useState<Cfdi | null>(null)
 
   const filters = useMemo(
     () => ({
@@ -251,7 +255,11 @@ export default function CfdiList() {
       {
         id: 'date',
         header: t('columns.date'),
-        cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.original.stampedAt ?? row.original.createdAt)}</span>,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {formatDate(row.original.stampedAt ?? row.original.updatedAt ?? row.original.createdAt)}
+          </span>
+        ),
       },
       {
         id: 'actions',
@@ -292,6 +300,12 @@ export default function CfdiList() {
                     <FileText className="mr-2 h-4 w-4" />
                     {t('actions.downloadPdf')}
                   </DropdownMenuItem>
+                  {canIssue && sePuedeReenviar(cfdi) && (
+                    <DropdownMenuItem onClick={() => setEmailTarget(cfdi)} data-tour="cfdi-send-email">
+                      <Mail className="mr-2 h-4 w-4" />
+                      {t('actions.sendEmail')}
+                    </DropdownMenuItem>
+                  )}
                   {canReplace && (
                     <>
                       <DropdownMenuSeparator />
@@ -317,7 +331,7 @@ export default function CfdiList() {
         },
       },
     ],
-    [t, formatDate, canConfigure, download],
+    [t, formatDate, canConfigure, canIssue, download],
   )
 
   return (
@@ -440,6 +454,7 @@ export default function CfdiList() {
 
         {hasCfdi && <CancelCfdiDialog cfdi={cancelTarget} onOpenChange={open => !open && setCancelTarget(null)} />}
         {hasCfdi && <ReplaceCfdiDialog cfdi={replaceTarget} onOpenChange={open => !open && setReplaceTarget(null)} />}
+        {hasCfdi && <SendCfdiEmailDialog cfdi={emailTarget} onOpenChange={open => !open && setEmailTarget(null)} />}
       </div>
     </FeatureGate>
   )

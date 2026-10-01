@@ -172,6 +172,8 @@ export interface Cfdi {
   totalCents: number
   stampedAt: string | null
   createdAt: string
+  /** Último intento: la fecha de una factura sin timbre (borrador o fallida). Opcional: servidores viejos no lo mandan. */
+  updatedAt?: string
   cancelStatus: string | null
   xmlUrl: string | null
   pdfUrl: string | null
@@ -281,6 +283,12 @@ export interface CancelCfdiRequest {
   motivo: CancelMotivo
   /** Required by SAT when motivo === '01' (substitutes another CFDI). */
   substituteUuid?: string
+}
+
+export interface SendCfdiEmailResponse {
+  folio: string
+  /** El correo al que se mandó; `null` = el que el cliente registró en el proveedor (facturas anteriores al protocolo). */
+  destination: string | null
 }
 
 export interface CancelCfdiResponse {
@@ -444,6 +452,12 @@ export const cfdiService = {
   async cancelCfdi(venueId: string, cfdiId: string, data: CancelCfdiRequest): Promise<CancelCfdiResponse> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/cfdi/${cfdiId}/cancel`, data)
     return response.data?.data ?? response.data
+  },
+
+  /** Reenvía por correo una factura timbrada (PDF + XML). Sin correo, al del receptor que se registró al facturar. */
+  async sendCfdiEmail(venueId: string, cfdiId: string, email?: string): Promise<SendCfdiEmailResponse> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/cfdi/${cfdiId}/email`, email ? { email } : {})
+    return response.data
   },
 
   /**

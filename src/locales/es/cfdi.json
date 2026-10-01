@@ -53,7 +53,8 @@
     "downloadXml": "Descargar XML",
     "downloadPdf": "Descargar PDF",
     "cancel": "Cancelar",
-    "replace": "Corregir importe (sustituir)"
+    "replace": "Corregir importe (sustituir)",
+    "sendEmail": "Reenviar por correo"
   },
   "cancelDialog": {
     "title": "Cancelar factura",
@@ -131,7 +132,7 @@
     "downloadPdf": "Descargar factura (PDF)",
     "downloadXml": "Descargar XML",
     "alreadyInvoiced": "Esta cuenta ya está facturada.",
-    "noPdf": "Tu factura está lista. Te la enviamos por correo.",
+    "noPdf": "Tu factura quedó timbrada. Si no recibiste el correo, pídele al negocio que te la reenvíe.",
     "success": {
       "title": "¡Factura generada!",
       "folio": "Serie-Folio: {{folio}}",
@@ -328,7 +329,10 @@
     },
     "logoError": "No se pudo subir el logo",
     "downloadError": "No se pudo descargar el archivo",
-    "replaceError": "No se pudo sustituir la factura"
+    "replaceError": "No se pudo sustituir la factura",
+    "emailSent": "Factura enviada a {{destination}}",
+    "emailSentRegistered": "Factura enviada al correo del cliente",
+    "emailError": "No se pudo enviar la factura por correo"
   },
   "creditNote": {
     "title": "Nota de crédito (CFDI de Egreso)",
@@ -393,5 +397,13 @@
     "rejectedTitle": "No se sustituyó nada",
     "rejectedIntro": "No se timbró ninguna factura. Por esto:",
     "close": "Cerrar"
+  },
+  "sendEmailDialog": {
+    "title": "Enviar la factura {{folio}} por correo",
+    "description": "Se manda el PDF y el XML. Déjalo vacío para usar el correo que dio el cliente al facturar.",
+    "emailLabel": "Otro correo (opcional)",
+    "emailPlaceholder": "cliente@correo.com",
+    "submit": "Enviar",
+    "cancel": "Cancelar"
   }
 }

@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
-import { STATUS_GROUPS, estatusDelServidor, mesEnCurso, insigniaDeEstatus } from '../cfdiListFilters'
+import { STATUS_GROUPS, estatusDelServidor, mesEnCurso, insigniaDeEstatus, sePuedeReenviar } from '../cfdiListFilters'
 
 describe('estatusDelServidor — grupos de la pantalla → estatus reales', () => {
   it('cada grupo se traduce a estatus que el servidor SÍ conoce', () => {
@@ -57,5 +57,18 @@ describe('insigniaDeEstatus — la lista no puede decir «Timbrada» de una fact
   it('los fallos de timbrado se ven como error', () => {
     expect(insigniaDeEstatus({ status: 'STAMP_FAILED', cancelStatus: null }).variante).toBe('destructive')
     expect(insigniaDeEstatus({ status: 'VALIDATION_FAILED', cancelStatus: null }).variante).toBe('destructive')
+  })
+})
+
+// 🔴 H24 (Codex, ronda 2 del correo): una cancelación RECHAZADA deja la factura vigente; el botón no puede desaparecer ahí.
+describe('sePuedeReenviar — «Reenviar por correo» en el menú de la factura', () => {
+  it.each([
+    ['timbrada', { status: 'STAMPED', cancelStatus: null }, true],
+    ['timbrada con la cancelación rechazada (sigue vigente)', { status: 'STAMPED', cancelStatus: 'REJECTED' }, true],
+    ['timbrada con la cancelación en trámite', { status: 'STAMPED', cancelStatus: 'REQUESTED' }, false],
+    ['cancelada', { status: 'CANCELLED', cancelStatus: 'ACCEPTED' }, false],
+    ['con error', { status: 'STAMP_FAILED', cancelStatus: null }, false],
+  ])('%s', (_label, cfdi, esperado) => {
+    expect(sePuedeReenviar(cfdi)).toBe(esperado)
   })
 })

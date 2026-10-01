@@ -53,7 +53,8 @@
     "downloadXml": "Download XML",
     "downloadPdf": "Download PDF",
     "cancel": "Cancel",
-    "replace": "Correct amount (replace)"
+    "replace": "Correct amount (replace)",
+    "sendEmail": "Resend by email"
   },
   "cancelDialog": {
     "title": "Cancel invoice",
@@ -131,7 +132,7 @@
     "downloadPdf": "Download invoice (PDF)",
     "downloadXml": "Download XML",
     "alreadyInvoiced": "This bill is already invoiced.",
-    "noPdf": "Your invoice is ready. We sent it to your email.",
+    "noPdf": "Your invoice has been issued. If you didn't get the email, ask the business to resend it.",
     "success": {
       "title": "Invoice generated!",
       "folio": "Series-Folio: {{folio}}",
@@ -328,7 +329,10 @@
     },
     "logoError": "Could not upload the logo",
     "downloadError": "Could not download the file",
-    "replaceError": "Could not replace the invoice"
+    "replaceError": "Could not replace the invoice",
+    "emailSent": "Invoice sent to {{destination}}",
+    "emailSentRegistered": "Invoice sent to the customer's email",
+    "emailError": "The invoice could not be emailed"
   },
   "creditNote": {
     "title": "Credit note (CFDI de Egreso)",
@@ -393,5 +397,13 @@
     "rejectedTitle": "Nothing was replaced",
     "rejectedIntro": "No invoice was stamped. Here is why:",
     "close": "Close"
+  },
+  "sendEmailDialog": {
+    "title": "Send invoice {{folio}} by email",
+    "description": "PDF and XML are sent. Leave it empty to use the email the customer gave when invoicing.",
+    "emailLabel": "Another email (optional)",
+    "emailPlaceholder": "customer@email.com",
+    "submit": "Send",
+    "cancel": "Cancel"
   }
 }
