@@ -556,6 +556,7 @@
       "payments_routing-manage": "Manage payment routing",
       "payments_resolve-no-instrument": "Confirm at the terminal that no card was presented",
       "payments_reconcile-uncharged": "Release a sale when the terminal didn't charge",
+      "payments_refund-to-cash": "Refund in cash a payment that wasn't made in cash",
       "payment_create-manual": "Record a manual payment",
       "payment-link_read": "View payment links",
       "payment-link_create": "Create payment links",

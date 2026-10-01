@@ -561,6 +561,7 @@
       "payments_routing-manage": "Configurar ruteo de pagos",
       "payments_resolve-no-instrument": "Confirmar en la terminal que no se presentó tarjeta",
       "payments_reconcile-uncharged": "Liberar una venta cuando la terminal no cobró",
+      "payments_refund-to-cash": "Devolver en efectivo un cobro que no fue en efectivo",
       "payment_create-manual": "Registrar un pago manual",
       "payment-link_read": "Ver links de pago",
       "payment-link_create": "Crear links de pago",
