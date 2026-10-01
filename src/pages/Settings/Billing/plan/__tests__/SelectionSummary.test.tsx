@@ -239,6 +239,24 @@ describe('SelectionSummary', () => {
     expect(screen.queryByRole('button', { name: /useList/ })).toBeNull()
   })
 
+  it('a line with no list asks to remove the function, by its catalog name', () => {
+    const reorder = { id: 'AUTO_REORDER', featureCode: 'AUTO_REORDER', names: { es: 'Reorden automático', en: 'Auto-reorder', fr: '' } }
+    renderSummary({
+      error: 'x',
+      dependency: { kind: 'REMOVE', code: 'AUTO_REORDER', entry: reorder as unknown as FeatureGridEntry },
+      onPreferList: vi.fn(),
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.remove|name=Reorden automático')
+    expect(screen.queryByRole('button', { name: /useList/ })).toBeNull()
+  })
+
+  it('a kept contract on Gratis, with no assisted button on screen, never names that button', () => {
+    renderSummary({ error: 'x', onAssisted: undefined, dependency: { kind: 'RETAINED', code: 'INVENTORY_TRACKING' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.retainedContact|name=INVENTORY_TRACKING')
+    expect(screen.queryByText(/plan\.dependency\.retained\|/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'plan.selection.assisted' })).toBeNull()
+  })
+
   it('a refused drop keeping functions offers dropping at period end', async () => {
     const onFallbackDrop = vi.fn()
     renderSummary({ error: 'No se pudo reemplazar', onFallbackDrop })

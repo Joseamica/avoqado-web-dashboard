@@ -492,10 +492,38 @@ describe('dependencyFix — what a refused dependency term offers (spec §5)', (
     expect(fix).toEqual({ kind: 'LIST', prefer: 'PLAN', plan: 'PRO', price: 1158.84 })
   })
 
-  it('a line without a list (or already on it) offers nothing; a kept contract is assisted; nothing at all asks to add it', () => {
+  it('a line without a list asks to remove the function that cannot outlast it (spec §5)', () => {
     const plain = entry('INVENTORY_TRACKING', 'PREMIUM', 'NONE', 599)
     const withPlain = { ...cart, grid: grid([plain, reorder]) }
-    expect(dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_INVENTORY_TRACKING' }), withPlain)).toBeNull()
+    // Removing the dependency itself would only turn the refusal into «add it»: what leaves is the dependent function.
+    expect(dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_INVENTORY_TRACKING' }), withPlain)).toEqual({
+      kind: 'REMOVE',
+      code: 'AUTO_REORDER',
+      entry: reorder,
+    })
+    // A plan line without a plan list: the same.
+    const promoPlan = {
+      ...base,
+      origin: NO_ORIGIN,
+      classicRejected: true,
+      target: 'PRO' as const,
+      marked: ['AUTO_REORDER'],
+      grid: grid([...ENTRIES, reorder], { plans: { PRO: planOffer('PRO', 899, 'pub_pro_promo'), PREMIUM: null } }),
+    }
+    expect(dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_pro_promo' }), promoPlan)).toEqual({
+      kind: 'REMOVE',
+      code: 'AUTO_REORDER',
+      entry: reorder,
+    })
+    // The dependent function is kept, not bought: nothing in the cart to remove, only the server's message.
+    expect(
+      dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_INVENTORY_TRACKING' }), { ...withPlain, marked: ['INVENTORY_TRACKING'] }),
+    ).toBeNull()
+  })
+
+  it('already on the list offers nothing; a kept contract is assisted; nothing at all asks to add it', () => {
+    const plain = entry('INVENTORY_TRACKING', 'PREMIUM', 'NONE', 599)
+    const withPlain = { ...cart, grid: grid([plain, reorder]) }
     const preferred = { ...cart, preferList: ['INVENTORY_TRACKING'], grid: grid([INVENTORY, reorder]) }
     expect(dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_list' }), preferred)).toBeNull()
     expect(dependencyFix(issue({ kind: 'RETAINED', source: 'sub_inv' }), withPlain)).toEqual({

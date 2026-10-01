@@ -156,9 +156,17 @@ export function SelectionSummary({
             <p>{error}</p>
             {dependency && dependency.kind !== 'LIST' && (
               <p>
-                {t(dependency.kind === 'RETAINED' ? 'plan.dependency.retained' : 'plan.dependency.missing', {
-                  name: codeName(dependency.code, dependency.entry),
-                })}
+                {t(
+                  dependency.kind === 'REMOVE'
+                    ? 'plan.dependency.remove'
+                    : dependency.kind === 'MISSING'
+                      ? 'plan.dependency.missing'
+                      : // The text names «Cambio asistido» only when that button is on screen (not on Gratis).
+                        onAssisted
+                        ? 'plan.dependency.retained'
+                        : 'plan.dependency.retainedContact',
+                  { name: codeName(dependency.code, dependency.entry) },
+                )}
               </p>
             )}
             {dependency?.kind === 'LIST' && onPreferList && (

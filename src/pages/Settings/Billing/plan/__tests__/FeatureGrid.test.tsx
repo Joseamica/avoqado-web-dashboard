@@ -144,6 +144,32 @@ describe('FeatureGrid', () => {
     expect(screen.getByText('plan.grid.promoEnds|count=2')).toBeInTheDocument()
   })
 
+  it('once the owner picked the list, the tile shows the list price like the summary and the quote', () => {
+    const promo = entry('INVENTORY_TRACKING', 'inventory', 'PREMIUM', 'NONE', 479.2)
+    promo.offer = { ...promo.offer!, listPrice: 599, renewal: 'REPRICE', renewalPrice: 599, promotionCycles: 3 }
+    promo.listOffer = {
+      ...promo.offer,
+      publicationId: 'pub_list',
+      price: 599,
+      renewal: 'SAME_PRICE',
+      renewalPrice: null,
+      promotionCycles: null,
+    }
+    renderGrid({ entries: [promo], preferList: ['INVENTORY_TRACKING'] })
+    expect(screen.getByText(/\$599\.00/)).toBeInTheDocument()
+    expect(screen.queryByText(/\$479\.20/)).toBeNull()
+    expect(document.querySelector('s')).toBeNull()
+    expect(screen.queryByText(/promoThen|promoForever|promoEnds/)).toBeNull()
+  })
+
+  it('a promotion without its cycles never shows a raw condition key', () => {
+    const promo = entry('INVENTORY_TRACKING', 'inventory', 'PREMIUM', 'NONE', 479.2)
+    promo.offer = { ...promo.offer!, listPrice: 599, renewal: 'REPRICE', renewalPrice: 599, promotionCycles: null }
+    renderGrid({ entries: [promo] })
+    expect(document.querySelector('s')).toHaveTextContent('$599.00')
+    expect(screen.queryByText(/promoThen|promoEnds/)).toBeNull()
+  })
+
   it('a list price (or a promotion with no list under it) shows no strike and no condition', () => {
     renderGrid({ entries: [entry('LOYALTY_PROGRAM', 'customers', 'PRO', 'NONE', 599)] })
     expect(document.querySelector('s')).toBeNull()

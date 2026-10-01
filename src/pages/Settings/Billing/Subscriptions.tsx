@@ -182,6 +182,9 @@ export default function Subscriptions() {
   }
   const toggle = (code: string) => {
     setMarked(prev => (prev.includes(code) ? prev.filter(item => item !== code) : prev.length >= MAX_OFFERS ? prev : [...prev, code]))
+    // A function unmarked forgets its list choice: marked again, it starts from the cheapest offer. ('PLAN' already goes
+    // with a plan change, in `pick`.)
+    setPreferList(prev => prev.filter(item => item !== code))
     setError(null)
   }
   // "Cambio asistido" always asks about a paid plan: going to Gratis is about the plan being left.
@@ -331,6 +334,7 @@ export default function Subscriptions() {
                   onPickTier={pick}
                   canManage={canManage && !grandfathered}
                   target={target}
+                  preferList={preferList}
                 />
               ) : (
                 grid.isError && (

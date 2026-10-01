@@ -349,33 +349,38 @@ export interface DependencyIssue {
 
 export type DependencyFix =
   | { kind: 'LIST'; prefer: string; plan?: 'PRO' | 'PREMIUM'; entry?: FeatureGridEntry; price: number }
-  | { kind: 'RETAINED' | 'MISSING'; code: string; entry?: FeatureGridEntry }
+  | { kind: 'RETAINED' | 'MISSING' | 'REMOVE'; code: string; entry?: FeatureGridEntry }
 
 /**
  * Spec §5: a cart line that brings the dependency for too short is redone at ITS list (the plan's, for a plan line — never
- * a loose function on top of it); a kept contract that ends first is an assisted change; nothing bringing it asks to add
- * it. A line without a list, or already on it, offers nothing beyond the server's message.
+ * a loose function on top of it); with no list, the function that cannot outlast it leaves the purchase (removing the
+ * dependency would only turn the refusal into «add it»). A kept contract that ends first is an assisted change; nothing
+ * bringing it asks to add it. Already on the list, or a dependent function the venue keeps instead of buying: only the
+ * server's message.
  */
 export function dependencyFix(issue: DependencyIssue, input: SelectionInput): DependencyFix | null {
   const entries = input.grid?.entries ?? []
+  const entryOf = (code: string) => entries.find(entry => entry.featureCode === code)
   const code = issue.requiredFeatureCode
-  const required = entries.find(entry => entry.featureCode === code)
-  if (!issue.unit) return { kind: 'MISSING', code, entry: required }
-  if (issue.unit.kind === 'RETAINED') return { kind: 'RETAINED', code, entry: required }
+  if (!issue.unit) return { kind: 'MISSING', code, entry: entryOf(code) }
+  if (issue.unit.kind === 'RETAINED') return { kind: 'RETAINED', code, entry: entryOf(code) }
   const { publicationId } = issue.unit
   const tier = input.target === 'FREE' ? null : input.target
+  let list: FeatureGridOffer | null | undefined
   if (tier && chosenPlanOffer(input.grid, tier, input.preferList)?.publicationId === publicationId) {
-    const list = input.grid?.planListOffers?.[tier]
-    return list && list.publicationId !== publicationId ? { kind: 'LIST', prefer: 'PLAN', plan: tier, price: list.price } : null
+    list = input.grid?.planListOffers?.[tier]
+    if (list && list.publicationId !== publicationId) return { kind: 'LIST', prefer: 'PLAN', plan: tier, price: list.price }
+  } else {
+    const line = entries.find(
+      entry =>
+        !!entry.featureCode &&
+        input.marked.includes(entry.featureCode) &&
+        chosenOffer(entry, input.preferList)?.publicationId === publicationId,
+    )
+    list = line?.listOffer
+    if (line?.featureCode && list && list.publicationId !== publicationId)
+      return { kind: 'LIST', prefer: line.featureCode, entry: line, price: list.price }
   }
-  const line = entries.find(
-    entry =>
-      !!entry.featureCode &&
-      input.marked.includes(entry.featureCode) &&
-      chosenOffer(entry, input.preferList)?.publicationId === publicationId,
-  )
-  const list = line?.listOffer
-  return line?.featureCode && list && list.publicationId !== publicationId
-    ? { kind: 'LIST', prefer: line.featureCode, entry: line, price: list.price }
-    : null
+  if (list) return null
+  return input.marked.includes(issue.featureCode) ? { kind: 'REMOVE', code: issue.featureCode, entry: entryOf(issue.featureCode) } : null
 }

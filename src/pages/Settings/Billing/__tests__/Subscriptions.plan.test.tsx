@@ -290,53 +290,57 @@ describe('each choice opens its operation (spec §4.1)', () => {
     )
   })
 
-  it('a dependency its promotion brings for too short offers that function at its list price, and quotes it', async () => {
-    const promo = {
-      ...offer('INVENTORY_TRACKING', 479.2),
-      publicationId: 'pub_promo_inv',
-      listPrice: 599,
-      renewal: 'END',
-      promotionCycles: 3,
-    }
+  // Inventory sold by a 3-month promotion with a $599 list behind it, and auto-reorder that needs it for good.
+  const stubPromoInventory = () =>
     vi.mocked(hybridBilling.featureGrid).mockResolvedValue({
       ...GRID,
       entries: [
         ...GRID.entries,
         {
           ...entry('INVENTORY_TRACKING', 'inventory', 'PREMIUM', 'NONE', null),
-          offer: promo,
-          listOffer: { ...offer('INVENTORY_TRACKING', 599), publicationId: 'pub_list_inv' },
+          offer: {
+            ...offer('INVENTORY_TRACKING', 479.2),
+            publicationId: 'pub_promo_inv',
+            listPrice: 599,
+            renewal: 'END',
+            promotionCycles: 3,
+          },
+          listOffer: { ...offer('INVENTORY_TRACKING', 599), publicationId: 'pub_list_inv', listPrice: 599 },
         },
         entry('AUTO_REORDER', 'inventory', 'PREMIUM', 'NONE', 149),
       ],
     } as never)
-    vi.mocked(hybridBilling.quote).mockRejectedValueOnce({
-      response: {
-        status: 409,
-        data: {
-          code: 'HYBRID_DEPENDENCY_TERM',
-          message:
-            'Reorden automático necesita Inventario FIFO, recetas y costeo mientras la conserves: agrégalo con precio de lista o consérvalo.',
-          details: [
-            {
-              featureCode: 'AUTO_REORDER',
-              requiredFeatureCode: 'INVENTORY_TRACKING',
-              requiredUntil: null,
-              unit: { kind: 'LINE', publicationId: 'pub_promo_inv' },
-            },
-          ],
-        },
+  const dependencyRefusal = {
+    response: {
+      status: 409,
+      data: {
+        code: 'HYBRID_DEPENDENCY_TERM',
+        message:
+          'Reorden automático necesita Inventario FIFO, recetas y costeo mientras la conserves: agrégalo con precio de lista o consérvalo.',
+        details: [
+          {
+            featureCode: 'AUTO_REORDER',
+            requiredFeatureCode: 'INVENTORY_TRACKING',
+            requiredUntil: null,
+            unit: { kind: 'LINE', publicationId: 'pub_promo_inv' },
+          },
+        ],
       },
-    })
+    },
+  }
+  const useListButton = { name: 'Usar el precio de lista de Inventario FIFO, recetas y costeo ($599.00)' }
+  const markInventory = { name: 'Marcar Inventario FIFO, recetas y costeo' }
+
+  it('a dependency its promotion brings for too short offers that function at its list price, and quotes it', async () => {
+    stubPromoInventory()
+    vi.mocked(hybridBilling.quote).mockRejectedValueOnce(dependencyRefusal)
     renderPage()
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Marcar Inventario FIFO, recetas y costeo' }))
+    await userEvent.click(await screen.findByRole('checkbox', markInventory))
     await userEvent.click(screen.getByRole('checkbox', { name: 'Marcar Reorden automático' }))
     await userEvent.click(review())
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('Reorden automático necesita Inventario FIFO')
-    await userEvent.click(
-      within(alert).getByRole('button', { name: 'Usar el precio de lista de Inventario FIFO, recetas y costeo ($599.00)' }),
-    )
+    await userEvent.click(within(alert).getByRole('button', useListButton))
     await waitFor(() =>
       expect(hybridBilling.quote).toHaveBeenLastCalledWith('venue', {
         lines: [
@@ -348,6 +352,25 @@ describe('each choice opens its operation (spec §4.1)', () => {
       }),
     )
     expect(await screen.findByText('checkout abierto')).toBeInTheDocument()
+  })
+
+  it('unmarking a function forgets its list choice: marked again, it starts from the cheapest offer', async () => {
+    stubPromoInventory()
+    vi.mocked(hybridBilling.quote)
+      .mockRejectedValueOnce(dependencyRefusal)
+      .mockRejectedValueOnce({ response: { status: 409, data: { message: 'Otra cosa salió mal.' } } })
+    renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', markInventory))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Marcar Reorden automático' }))
+    await userEvent.click(review())
+    await userEvent.click(within(await screen.findByRole('alert')).getByRole('button', useListButton))
+    expect(await screen.findByText('Otra cosa salió mal.')).toBeInTheDocument()
+    const summary = () => document.querySelector('[data-tour="plan-selection"]') as HTMLElement
+    expect(summary()).toHaveTextContent('$599.00')
+    await userEvent.click(screen.getByRole('checkbox', markInventory))
+    await userEvent.click(screen.getByRole('checkbox', markInventory))
+    expect(summary()).toHaveTextContent('$479.20')
+    expect(summary()).not.toHaveTextContent('$599.00')
   })
 
   it('a server refusal is shown as is, with the assisted change', async () => {

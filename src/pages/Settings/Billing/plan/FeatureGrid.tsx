@@ -6,7 +6,7 @@ import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBillin
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { featureIcon } from './featureIcons'
-import { MAX_OFFERS, TIER_RANK, type GridMode, type PlanTarget } from './planActions'
+import { MAX_OFFERS, TIER_RANK, chosenOffer, type GridMode, type PlanTarget } from './planActions'
 
 const CATEGORY_ORDER = ['sell', 'customers', 'inventory', 'money', 'team', 'ai', 'custom'] as const
 
@@ -21,6 +21,8 @@ export interface FeatureGridProps {
   canManage: boolean
   /** The plan the row has selected: a function above it jumps to the plan that includes it. */
   target: PlanTarget
+  /** Functions the owner chose at list price: the tile shows the offer the summary and the quote carry. */
+  preferList?: string[]
 }
 
 /** All 40 functions at once, by area (the founder's choice, Odoo-style): nothing hidden, nothing paged. */
@@ -34,6 +36,7 @@ export function FeatureGrid({
   onPickTier,
   canManage,
   target,
+  preferList,
 }: FeatureGridProps) {
   const { t, i18n } = useTranslation('billing')
   const { formatDate } = useVenueDateTime()
@@ -43,12 +46,15 @@ export function FeatureGrid({
     entry.featureCode ? t(`hybrid.featureNames.${entry.featureCode}`, { defaultValue: entry.names[lang] }) : entry.names[lang]
   const full = marked.length >= MAX_OFFERS
   // How long a promotion below its list lasts (spec §5): «Por 3 meses; luego $599», «Mientras la conserves».
+  // Without its cycles a term cannot be said (never a raw key): no line, as in the summary.
   const condition = (offer: FeatureGridOffer, listPrice: number) =>
-    offer.renewal === 'REPRICE'
-      ? t('plan.grid.promoThen', { count: offer.promotionCycles, price: money(offer.renewalPrice ?? listPrice) })
-      : offer.renewal === 'END'
-        ? t('plan.grid.promoEnds', { count: offer.promotionCycles })
-        : t('plan.grid.promoForever')
+    offer.renewal === 'SAME_PRICE'
+      ? t('plan.grid.promoForever')
+      : !offer.promotionCycles
+        ? null
+        : offer.renewal === 'REPRICE'
+          ? t('plan.grid.promoThen', { count: offer.promotionCycles, price: money(offer.renewalPrice ?? listPrice) })
+          : t('plan.grid.promoEnds', { count: offer.promotionCycles })
   const intro = !purchasesEnabled ? 'plan.grid.introClosed' : mode === 'DROP' ? 'plan.grid.introDrop' : 'plan.grid.intro'
 
   const status = (entry: FeatureGridEntry): { text: string | null; owned: boolean } => {
@@ -82,9 +88,10 @@ export function FeatureGrid({
         : null
     const { text, owned } = status(entry)
     // Owned already: no price to buy it again, unless going to Gratis and keeping it alone (DROP).
-    const showPrice = !!entry.offer && purchasesEnabled && (mode === 'DROP' || !owned)
-    const listPrice =
-      showPrice && entry.offer?.listPrice != null && entry.offer.listPrice > entry.offer.price ? entry.offer.listPrice : null
+    const offer = chosenOffer(entry, preferList)
+    const showPrice = !!offer && purchasesEnabled && (mode === 'DROP' || !owned)
+    const listPrice = showPrice && offer?.listPrice != null && offer.listPrice > offer.price ? offer.listPrice : null
+    const terms = listPrice != null && offer ? condition(offer, listPrice) : null
     const tour = `feature-tile-${entry.id.toLowerCase()}`
     const className = cn(
       'flex w-full items-center gap-3 rounded-xl border border-input bg-card p-3 text-left',
@@ -99,16 +106,10 @@ export function FeatureGrid({
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium">{name(entry)}</span>
           <span className="block text-sm font-semibold tabular-nums">
-            {showPrice && entry.offer
-              ? `${money(entry.offer.price)}${t('plan.perMonth')}`
-              : entry.offering === 'CONTACT'
-                ? t('plan.grid.quote')
-                : ' '}
+            {showPrice && offer ? `${money(offer.price)}${t('plan.perMonth')}` : entry.offering === 'CONTACT' ? t('plan.grid.quote') : ' '}
             {listPrice != null && <s className="ml-1.5 font-normal text-muted-foreground">{money(listPrice)}</s>}
           </span>
-          {listPrice != null && entry.offer && (
-            <span className="block text-xs text-muted-foreground">{condition(entry.offer, listPrice)}</span>
-          )}
+          {terms && <span className="block text-xs text-muted-foreground">{terms}</span>}
         </span>
         <span className="flex flex-col items-end gap-1">
           {markable ? (

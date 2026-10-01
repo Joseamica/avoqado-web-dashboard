@@ -288,7 +288,9 @@
     "dependency": {
       "useList": "Usar el precio de lista de {{name}} ({{price}})",
       "retained": "{{name}} termina antes que la función que depende de ella. Este cambio lo hacemos contigo: Cambio asistido.",
-      "missing": "Agrega {{name}} a tu compra para continuar."
+      "missing": "Agrega {{name}} a tu compra para continuar.",
+      "remove": "Quita {{name}} de tu compra para continuar.",
+      "retainedContact": "{{name}} termina antes que la función que depende de ella. Escríbenos y lo hacemos contigo."
     },
     "review": {
       "repriced": "{{name}} pasará de {{from}} a {{to}} con este cambio."
