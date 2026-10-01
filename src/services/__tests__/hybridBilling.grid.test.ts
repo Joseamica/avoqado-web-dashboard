@@ -46,6 +46,17 @@ describe('feature grid and hybrid writes', () => {
     expect(api.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/venue/hybrid-billing/feature-grid')
   })
 
+  it('keeps the list price, the list alternative and the plan lists (fields a server before 2026-10 does not send)', () => {
+    const list = { ...offer, publicationId: 'pub_list', price: 159, listPrice: 159 }
+    const withLists = {
+      ...grid,
+      planListOffers: { PRO: { ...offer, kind: 'PLAN', planTier: 'PRO', price: 1158.84, listPrice: 1158.84 }, PREMIUM: null },
+      entries: [{ ...grid.entries[0], offer: { ...offer, listPrice: 159 }, listOffer: list }],
+    }
+    expect(parseFeatureGrid(withLists)).toEqual(withLists)
+    expect(parseFeatureGrid(grid)).toEqual(grid)
+  })
+
   it('rejects a grid this client does not understand', () => {
     expect(() => parseFeatureGrid({ ...grid, entries: [{ ...grid.entries[0], category: 'magic' }] })).toThrow()
   })

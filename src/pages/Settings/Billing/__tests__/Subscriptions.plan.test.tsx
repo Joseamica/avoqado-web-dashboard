@@ -139,6 +139,14 @@ const CLASSIC_PRO = {
   currentPeriodEnd: '2026-10-27T00:00:00.000Z',
   subscriptionId: 'sub_classic',
 }
+const CONTRACT_PRO = {
+  kind: 'CONTRACT',
+  tier: 'PRO',
+  contractId: 'hc_pro',
+  contractRevision: 1,
+  subscriptionId: 'sub_contract',
+  currentPeriodEnd: '2026-10-27T00:00:00.000Z',
+}
 const PREVIEW = {
   required: true,
   cap: 2,
@@ -248,11 +256,25 @@ describe('each choice opens its operation (spec §4.1)', () => {
     expect(await screen.findByText('checkout abierto')).toBeInTheDocument()
   })
 
-  it('Pro → Premium goes through a replacement with credit, never through "Cambiar selección"', async () => {
+  it('Pro (classic) → Premium is an assisted change in phase 1: the classic subscription may be annual (§4.2 (c))', async () => {
     vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO) as never)
     vi.mocked(hybridBilling.replacements).mockResolvedValue({
       ...noReplacements,
       items: [{ subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true }],
+      total: 1,
+    } as never)
+    renderPage()
+    await userEvent.click(await screen.findByRole('radio', { name: /Premium/ }))
+    await userEvent.click(review())
+    expect(await screen.findByText('asistido PREMIUM')).toBeInTheDocument()
+    expect(hybridBilling.quote).not.toHaveBeenCalled()
+  })
+
+  it('Pro (contract) → Premium goes through a replacement with credit, never through "Cambiar selección"', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(plan(CONTRACT_PRO) as never)
+    vi.mocked(hybridBilling.replacements).mockResolvedValue({
+      ...noReplacements,
+      items: [{ subscriptionId: 'sub_contract', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true }],
       total: 1,
     } as never)
     renderPage()
@@ -262,17 +284,77 @@ describe('each choice opens its operation (spec §4.1)', () => {
     await waitFor(() =>
       expect(hybridBilling.quote).toHaveBeenCalledWith('venue', {
         lines: [{ publicationId: 'pub_PREMIUM', selectedFeatureCodes: [] }],
-        replaceSubscriptionIds: ['sub_classic'],
+        replaceSubscriptionIds: ['sub_contract'],
         dropFeatureCodes: [],
       }),
     )
   })
 
+  it('a dependency its promotion brings for too short offers that function at its list price, and quotes it', async () => {
+    const promo = {
+      ...offer('INVENTORY_TRACKING', 479.2),
+      publicationId: 'pub_promo_inv',
+      listPrice: 599,
+      renewal: 'END',
+      promotionCycles: 3,
+    }
+    vi.mocked(hybridBilling.featureGrid).mockResolvedValue({
+      ...GRID,
+      entries: [
+        ...GRID.entries,
+        {
+          ...entry('INVENTORY_TRACKING', 'inventory', 'PREMIUM', 'NONE', null),
+          offer: promo,
+          listOffer: { ...offer('INVENTORY_TRACKING', 599), publicationId: 'pub_list_inv' },
+        },
+        entry('AUTO_REORDER', 'inventory', 'PREMIUM', 'NONE', 149),
+      ],
+    } as never)
+    vi.mocked(hybridBilling.quote).mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          code: 'HYBRID_DEPENDENCY_TERM',
+          message:
+            'Reorden automático necesita Inventario FIFO, recetas y costeo mientras la conserves: agrégalo con precio de lista o consérvalo.',
+          details: [
+            {
+              featureCode: 'AUTO_REORDER',
+              requiredFeatureCode: 'INVENTORY_TRACKING',
+              requiredUntil: null,
+              unit: { kind: 'LINE', publicationId: 'pub_promo_inv' },
+            },
+          ],
+        },
+      },
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Marcar Inventario FIFO, recetas y costeo' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Marcar Reorden automático' }))
+    await userEvent.click(review())
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Reorden automático necesita Inventario FIFO')
+    await userEvent.click(
+      within(alert).getByRole('button', { name: 'Usar el precio de lista de Inventario FIFO, recetas y costeo ($599.00)' }),
+    )
+    await waitFor(() =>
+      expect(hybridBilling.quote).toHaveBeenLastCalledWith('venue', {
+        lines: [
+          { publicationId: 'pub_list_inv', selectedFeatureCodes: [] },
+          { publicationId: 'pub_AUTO_REORDER', selectedFeatureCodes: [] },
+        ],
+        replaceSubscriptionIds: [],
+        dropFeatureCodes: [],
+      }),
+    )
+    expect(await screen.findByText('checkout abierto')).toBeInTheDocument()
+  })
+
   it('a server refusal is shown as is, with the assisted change', async () => {
-    vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO) as never)
+    vi.mocked(getVenuePlan).mockResolvedValue(plan(CONTRACT_PRO) as never)
     vi.mocked(hybridBilling.replacements).mockResolvedValue({
       ...noReplacements,
-      items: [{ subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true }],
+      items: [{ subscriptionId: 'sub_contract', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true }],
       total: 1,
     } as never)
     vi.mocked(hybridBilling.quote).mockRejectedValue({

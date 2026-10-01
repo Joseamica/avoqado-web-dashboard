@@ -4,12 +4,17 @@ import type { PlanOrigin, PlanState } from '@/services/features.service'
 import type { FeatureAccessSource, FeatureGrid, FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import {
   NO_ORIGIN,
+  chosenOffer,
+  chosenPlanOffer,
   classicPrice,
   currentTarget,
+  dependencyFix,
   gridMode,
   isMarkable,
+  mixedChange,
   originOf,
   planOperation,
+  planPillPrice,
   summarizeSelection,
   tierFeatureCount,
 } from '../planActions'
@@ -66,6 +71,9 @@ const grid = (entries = ENTRIES, over: Partial<FeatureGrid> = {}): FeatureGrid =
 })
 const origin = (over: Partial<PlanOrigin>): PlanOrigin => ({ ...NO_ORIGIN, ...over })
 const CLASSIC_PRO = origin({ kind: 'CLASSIC', tier: 'PRO', subscriptionId: 'sub_classic' })
+// A plan bought through a hybrid contract, on the same subscription id the classic fixtures use: the cases that
+// test the replacement itself (spec §4.5), now that a classic plan changing tier is an assisted change (§4.2 (c)).
+const CONTRACT_PRO = origin({ kind: 'CONTRACT', tier: 'PRO', subscriptionId: 'sub_classic', contractId: 'hc_pro', contractRevision: 1 })
 const CONTRACT_PREMIUM = origin({
   kind: 'CONTRACT',
   tier: 'PREMIUM',
@@ -82,6 +90,24 @@ const base = { grandfathered: false, marked: [] as string[], grid: grid(), repla
 const classicSource = replacements([
   { subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true },
 ])
+const PRO_CODES = ['LOYALTY_PROGRAM', 'RESERVATIONS']
+const contractOrigin = (tier: 'PRO' | 'PREMIUM', subscriptionId: string) =>
+  origin({ kind: 'CONTRACT', tier, subscriptionId, contractId: `hc_${subscriptionId}`, contractRevision: 1 })
+const planOffer = (tier: 'PRO' | 'PREMIUM', price: number, publicationId = `pub_${tier}`) =>
+  offer(tier, price, { publicationId, kind: 'PLAN', planTier: tier, includedFeatureCodes: PLANS[tier].includedFeatureCodes })
+/** A function whose best offer is a promotion and whose list is another publication. */
+const promoWithList = (code: string, minimumTier: FeatureGridEntry['minimumTier'] = 'PREMIUM'): FeatureGridEntry => ({
+  ...entry(code, minimumTier),
+  offer: offer(code, 479.2, {
+    publicationId: 'pub_promo',
+    listPrice: 599,
+    renewal: 'REPRICE',
+    renewalPrice: 599,
+    promotionCycles: 3,
+  }),
+  listOffer: offer(code, 599, { publicationId: 'pub_list', listPrice: 599 }),
+})
+const INVENTORY = promoWithList('INVENTORY_TRACKING')
 
 describe('originOf', () => {
   it('uses the server origin when there is one', () => {
@@ -142,8 +168,15 @@ describe('planOperation — the table of spec §4.1', () => {
     expect(op).toEqual({ kind: 'ASSISTED', tier: 'PRO' })
   })
 
-  it('Pro (classic) → Premium replaces the classic subscription; Premium keeps everything', () => {
+  it('Pro (classic) → Premium is an assisted change in phase 1: the classic subscription may be annual (§4.2 (c))', () => {
     expect(planOperation({ ...base, origin: CLASSIC_PRO, target: 'PREMIUM', replacements: classicSource })).toEqual({
+      kind: 'ASSISTED',
+      tier: 'PREMIUM',
+    })
+  })
+
+  it('Pro (contract) → Premium replaces the plan subscription; Premium keeps everything', () => {
+    expect(planOperation({ ...base, origin: CONTRACT_PRO, target: 'PREMIUM', replacements: classicSource })).toEqual({
       kind: 'HYBRID_REPLACE',
       tier: 'PREMIUM',
       lines: [{ publicationId: 'pub_PREMIUM', selectedFeatureCodes: [] }],
@@ -152,10 +185,10 @@ describe('planOperation — the table of spec §4.1', () => {
     })
   })
 
-  it('Pro (classic) → Premium also replaces a standalone function Premium absorbs', () => {
+  it('Pro (contract) → Premium also replaces a standalone function Premium absorbs', () => {
     const op = planOperation({
       ...base,
-      origin: CLASSIC_PRO,
+      origin: CONTRACT_PRO,
       target: 'PREMIUM',
       replacements: replacements([
         { subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true },
@@ -168,23 +201,25 @@ describe('planOperation — the table of spec §4.1', () => {
     expect(ids).toHaveLength(2)
   })
 
-  it('a standalone function the new plan does not include is neither replaced nor dropped', () => {
+  it('a standalone function the new plan does not include is neither replaced nor dropped (spec §4.5)', () => {
+    // Commissions (Premium) bought alone stays on its own subscription at its own rate; loyalty, in Pro, is absorbed.
     const op = planOperation({
       ...base,
-      origin: CLASSIC_PRO,
-      target: 'PREMIUM',
+      origin: NO_ORIGIN,
+      classicRejected: true,
+      target: 'PRO',
       replacements: replacements([
-        { subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true },
+        { subscriptionId: 'sub_loyalty', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true },
         { subscriptionId: 'sub_commissions', featureCodes: ['COMMISSIONS'], replaceable: true },
       ]),
     })
-    expect(op).toMatchObject({ kind: 'HYBRID_REPLACE', replaceSubscriptionIds: ['sub_classic'], dropFeatureCodes: [] })
+    expect(op).toMatchObject({ kind: 'HYBRID_REPLACE', replaceSubscriptionIds: ['sub_loyalty'], dropFeatureCodes: [] })
   })
 
   it('a plan that cannot be replaced stays assisted even if a standalone function could be absorbed', () => {
     const op = planOperation({
       ...base,
-      origin: CLASSIC_PRO,
+      origin: CONTRACT_PRO,
       target: 'PREMIUM',
       replacements: replacements([
         { subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: false },
@@ -202,7 +237,7 @@ describe('planOperation — the table of spec §4.1', () => {
     }))
     const op = planOperation({
       ...base,
-      origin: CLASSIC_PRO,
+      origin: CONTRACT_PRO,
       target: 'PREMIUM',
       replacements: replacements([
         { subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true },
@@ -227,7 +262,7 @@ describe('planOperation — the table of spec §4.1', () => {
   it('a plan whose subscription cannot be replaced is an assisted change (never "Cambiar selección")', () => {
     const op = planOperation({
       ...base,
-      origin: CLASSIC_PRO,
+      origin: CONTRACT_PRO,
       target: 'PREMIUM',
       replacements: replacements([{ subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM'], replaceable: false }]),
     })
@@ -238,7 +273,7 @@ describe('planOperation — the table of spec §4.1', () => {
     expect(
       planOperation({
         ...base,
-        origin: CLASSIC_PRO,
+        origin: CONTRACT_PRO,
         target: 'PREMIUM',
         replacements: classicSource,
         grid: grid(ENTRIES, { purchasesEnabled: false }),
@@ -291,6 +326,184 @@ describe('planOperation — the table of spec §4.1', () => {
       ],
     })
     expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'FREE' })).toEqual({ kind: 'NONE' })
+  })
+})
+
+describe('mixed changes are assisted in phase 1 (spec §4.2)', () => {
+  it('(c) a classic plan changing tier stays assisted even with a plan LIST offer', () => {
+    const op = planOperation({
+      ...base,
+      origin: origin({ kind: 'CLASSIC', tier: 'PRO', subscriptionId: 'sub_c' }),
+      target: 'PREMIUM',
+      grid: grid(ENTRIES, { plans: { PRO: null, PREMIUM: planOffer('PREMIUM', 1970.84) } }),
+      replacements: replacements([{ subscriptionId: 'sub_c', featureCodes: PRO_CODES, replaceable: true }]),
+    })
+    expect(op).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+  })
+
+  it('(a) the plan subscription also carrying a standalone function is assisted', () => {
+    const op = planOperation({
+      ...base,
+      origin: contractOrigin('PRO', 'sub_h'),
+      target: 'PREMIUM',
+      grid: grid(ENTRIES, { plans: { PRO: null, PREMIUM: planOffer('PREMIUM', 1970.84) } }),
+      replacements: replacements([{ subscriptionId: 'sub_h', featureCodes: [...PRO_CODES, 'COMMISSIONS'], replaceable: true }]),
+    })
+    expect(op.kind).toBe('ASSISTED')
+  })
+
+  it('(a) … also when going to Gratis keeping a function: the replacement would take the standalone one along', () => {
+    const op = planOperation({
+      ...base,
+      origin: contractOrigin('PRO', 'sub_h'),
+      target: 'FREE',
+      marked: ['RESERVATIONS'],
+      replacements: replacements([{ subscriptionId: 'sub_h', featureCodes: [...PRO_CODES, 'COMMISSIONS'], replaceable: true }]),
+    })
+    expect(op).toEqual({ kind: 'ASSISTED', tier: 'FREE' })
+  })
+
+  it('(b) an unabsorbed subscription holding a plan function is assisted', () => {
+    const op = planOperation({
+      ...base,
+      origin: NO_ORIGIN,
+      classicRejected: true,
+      target: 'PRO',
+      grid: grid([...ENTRIES, entry('INVENTORY_TRACKING', 'PREMIUM')], { plans: { PRO: planOffer('PRO', 1158.84), PREMIUM: null } }),
+      replacements: replacements([
+        { subscriptionId: 'sub_mix', featureCodes: ['LOYALTY_PROGRAM', 'INVENTORY_TRACKING'], replaceable: true },
+        { subscriptionId: 'sub_res', featureCodes: ['RESERVATIONS'], replaceable: true },
+      ]),
+    })
+    expect(op.kind).toBe('ASSISTED')
+  })
+
+  it('classic plan dropping to Gratis keeping a function is HYBRID_DROP', () => {
+    const op = planOperation({
+      ...base,
+      origin: origin({ kind: 'CLASSIC', tier: 'PRO', subscriptionId: 'sub_c' }),
+      target: 'FREE',
+      marked: ['LOYALTY_PROGRAM'],
+      replacements: replacements([{ subscriptionId: 'sub_c', featureCodes: PRO_CODES, replaceable: true }]),
+    })
+    expect(op.kind).toBe('HYBRID_DROP')
+  })
+
+  it('… also when the classic subscription lists what every plan has and quote-only functions (server projection)', () => {
+    // The server's projection of a classic plan carries the free functions (CHATBOT) and, before 2026-09-29, a quote-only
+    // one: none of them is a function bought alone, so (a) does not apply.
+    const op = planOperation({
+      ...base,
+      origin: CLASSIC_PRO,
+      target: 'FREE',
+      marked: ['RESERVATIONS'],
+      replacements: replacements([
+        { subscriptionId: 'sub_classic', featureCodes: [...PRO_CODES, 'CHATBOT', 'WHITE_LABEL_DASHBOARD'], replaceable: true },
+      ]),
+    })
+    expect(op.kind).toBe('HYBRID_DROP')
+    expect(mixedChange({ ...base, origin: CLASSIC_PRO, target: 'FREE', marked: ['RESERVATIONS'] })).toBe(false)
+  })
+})
+
+describe('the chosen offer: the promotion, or its list when the owner asked for it', () => {
+  it('preferList swaps a marked function to its list offer', () => {
+    const op = planOperation({
+      ...base,
+      origin: NO_ORIGIN,
+      target: 'FREE',
+      marked: ['INVENTORY_TRACKING'],
+      preferList: ['INVENTORY_TRACKING'],
+      grid: grid([INVENTORY]),
+    })
+    expect(op).toEqual({ kind: 'FEATURES', lines: [{ publicationId: 'pub_list', selectedFeatureCodes: [] }] })
+    expect(chosenOffer(INVENTORY)).toBe(INVENTORY.offer)
+    expect(chosenOffer(INVENTORY, ['INVENTORY_TRACKING'])).toBe(INVENTORY.listOffer)
+  })
+
+  it('… and the summary shows that same offer: its price and no promotion condition', () => {
+    const model = summarizeSelection({
+      ...base,
+      origin: NO_ORIGIN,
+      target: 'FREE',
+      marked: ['INVENTORY_TRACKING'],
+      preferList: ['INVENTORY_TRACKING'],
+      grid: grid([INVENTORY]),
+      interval: 'monthly',
+    })
+    expect(model.lines[1]).toMatchObject({ offer: { publicationId: 'pub_list' }, price: 599 })
+    expect(model.monthlyTotal).toBe(599)
+  })
+
+  it('preferList PLAN swaps the plan line, the summary and the pill to the plan list offer', () => {
+    const proList = planOffer('PRO', 1158.84, 'pub_pro_list')
+    const input = {
+      ...base,
+      origin: NO_ORIGIN,
+      classicRejected: true,
+      grid: grid(ENTRIES, {
+        plans: { PRO: planOffer('PRO', 899, 'pub_pro_promo'), PREMIUM: null },
+        planListOffers: { PRO: proList, PREMIUM: null },
+      }),
+      replacements: replacements([{ subscriptionId: 'sub_loyalty', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true }]),
+    }
+    expect(planOperation({ ...input, target: 'PRO' })).toMatchObject({ lines: [{ publicationId: 'pub_pro_promo' }] })
+    expect(planOperation({ ...input, target: 'PRO', preferList: ['PLAN'] })).toMatchObject({
+      kind: 'HYBRID_REPLACE',
+      lines: [{ publicationId: 'pub_pro_list', selectedFeatureCodes: [] }],
+    })
+    const model = summarizeSelection({ ...input, target: 'PRO', preferList: ['PLAN'], interval: 'monthly' })
+    expect(model.lines[0]).toMatchObject({ plan: 'PRO', offer: proList, price: 1158.84 })
+    expect(planPillPrice('PRO', { ...input, interval: 'monthly' }).amount).toBe(899)
+    expect(planPillPrice('PRO', { ...input, preferList: ['PLAN'], interval: 'monthly' }).amount).toBe(1158.84)
+    expect(chosenPlanOffer(input.grid, 'PRO', ['PLAN'])).toBe(proList)
+    // A server without plan lists: the plan offer stays.
+    expect(chosenPlanOffer(grid(), 'PRO', ['PLAN'])).toBe(PLANS.PRO)
+  })
+})
+
+describe('dependencyFix — what a refused dependency term offers (spec §5)', () => {
+  const issue = (unit: Parameters<typeof dependencyFix>[0]['unit']) => ({
+    featureCode: 'AUTO_REORDER',
+    requiredFeatureCode: 'INVENTORY_TRACKING',
+    requiredUntil: null,
+    unit,
+  })
+  const cart = { ...base, origin: NO_ORIGIN, target: 'FREE' as const, marked: ['INVENTORY_TRACKING', 'AUTO_REORDER'] }
+  const reorder = entry('AUTO_REORDER', 'PREMIUM', 'NONE', 199)
+
+  it('a cart line with a list: use the list of THAT function', () => {
+    const fix = dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_promo' }), { ...cart, grid: grid([INVENTORY, reorder]) })
+    expect(fix).toEqual({ kind: 'LIST', prefer: 'INVENTORY_TRACKING', entry: INVENTORY, price: 599 })
+  })
+
+  it('a plan line with a plan list: use the list of the plan, never a loose function on top', () => {
+    const proList = planOffer('PRO', 1158.84, 'pub_pro_list')
+    const fix = dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_pro_promo' }), {
+      ...base,
+      origin: NO_ORIGIN,
+      classicRejected: true,
+      target: 'PRO',
+      grid: grid(ENTRIES, {
+        plans: { PRO: planOffer('PRO', 899, 'pub_pro_promo'), PREMIUM: null },
+        planListOffers: { PRO: proList, PREMIUM: null },
+      }),
+    })
+    expect(fix).toEqual({ kind: 'LIST', prefer: 'PLAN', plan: 'PRO', price: 1158.84 })
+  })
+
+  it('a line without a list (or already on it) offers nothing; a kept contract is assisted; nothing at all asks to add it', () => {
+    const plain = entry('INVENTORY_TRACKING', 'PREMIUM', 'NONE', 599)
+    const withPlain = { ...cart, grid: grid([plain, reorder]) }
+    expect(dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_INVENTORY_TRACKING' }), withPlain)).toBeNull()
+    const preferred = { ...cart, preferList: ['INVENTORY_TRACKING'], grid: grid([INVENTORY, reorder]) }
+    expect(dependencyFix(issue({ kind: 'LINE', publicationId: 'pub_list' }), preferred)).toBeNull()
+    expect(dependencyFix(issue({ kind: 'RETAINED', source: 'sub_inv' }), withPlain)).toEqual({
+      kind: 'RETAINED',
+      code: 'INVENTORY_TRACKING',
+      entry: plain,
+    })
+    expect(dependencyFix(issue(null), withPlain)).toEqual({ kind: 'MISSING', code: 'INVENTORY_TRACKING', entry: plain })
   })
 })
 
@@ -358,15 +571,50 @@ describe('summarizeSelection', () => {
       target: 'FREE',
       marked: ['RESERVATIONS'],
       grid: grid(inContract),
-      // The contract plan and a CFDI package share one subscription; loyalty is also held standalone.
+      // Loyalty is also held standalone, so only what nothing else keeps leaves.
       replacements: {
-        ...replacements([{ subscriptionId: 'sub_contract', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS', 'CFDI'], replaceable: true }]),
+        ...replacements([{ subscriptionId: 'sub_contract', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true }]),
         standaloneFeatureCodes: ['CHATBOT', 'LOYALTY_PROGRAM'],
       },
       interval: 'monthly',
     })
-    expect(model.operation).toMatchObject({ kind: 'HYBRID_DROP', dropFeatureCodes: ['CFDI'] })
-    expect(model.lose.map(item => item.id)).toEqual(['CFDI'])
+    expect(model.operation).toMatchObject({ kind: 'HYBRID_DROP', dropFeatureCodes: [] })
+    expect(model.lose).toEqual([])
+    const alone = summarizeSelection({
+      ...base,
+      origin: contractPro,
+      target: 'FREE',
+      marked: ['RESERVATIONS'],
+      grid: grid(inContract),
+      replacements: replacements([
+        { subscriptionId: 'sub_contract', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true },
+      ]),
+      interval: 'monthly',
+    })
+    expect(alone.operation).toMatchObject({ kind: 'HYBRID_DROP', dropFeatureCodes: ['LOYALTY_PROGRAM'] })
+    expect(alone.lose.map(item => item.id)).toEqual(['LOYALTY_PROGRAM'])
+  })
+
+  it('a contract plan sharing its subscription with a CFDI package cannot drop to Gratis by itself (§4.2 (a))', () => {
+    // The replacement would take the CFDI package along: a function with CONTRACT access cannot be marked in DROP.
+    const contractPro = origin({ kind: 'CONTRACT', tier: 'PRO', subscriptionId: 'sub_contract', contractId: 'hc_2', contractRevision: 1 })
+    const model = summarizeSelection({
+      ...base,
+      origin: contractPro,
+      target: 'FREE',
+      marked: ['RESERVATIONS'],
+      grid: grid([
+        entry('LOYALTY_PROGRAM', 'PRO', 'PLAN', 199),
+        entry('RESERVATIONS', 'PRO', 'PLAN', 129),
+        entry('CFDI', 'PREMIUM', 'CONTRACT', 249),
+      ]),
+      replacements: replacements([
+        { subscriptionId: 'sub_contract', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS', 'CFDI'], replaceable: true },
+      ]),
+      interval: 'monthly',
+    })
+    expect(model.operation).toEqual({ kind: 'ASSISTED', tier: 'FREE' })
+    expect(model.lose).toEqual([])
   })
 
   it('Pro → Premium never says you lose a function you never had', () => {
@@ -381,7 +629,7 @@ describe('summarizeSelection', () => {
     ]
     const model = summarizeSelection({
       ...base,
-      origin: CLASSIC_PRO,
+      origin: CONTRACT_PRO,
       target: 'PREMIUM',
       grid: grid(inPro),
       replacements: replacements([

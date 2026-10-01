@@ -247,7 +247,12 @@
       "quote": "Cotizar",
       "maxOffers": "Máximo 8 ofertas por compra.",
       "pickTier": "{{name}}: ver el plan {{tier}}, que la incluye",
-      "mark": "Marcar {{name}}"
+      "mark": "Marcar {{name}}",
+      "promoThen_one": "Por {{count}} mes; luego {{price}}",
+      "promoThen_other": "Por {{count}} meses; luego {{price}}",
+      "promoForever": "Mientras la conserves",
+      "promoEnds_one": "Por {{count}} mes; después termina",
+      "promoEnds_other": "Por {{count}} meses; después termina"
     },
     "selection": {
       "title": "Tu selección",
@@ -279,6 +284,14 @@
       "contractCancelled": "Listo: tu plan deja de renovarse al final del periodo pagado.",
       "gridError": "No pudimos cargar las funciones. Tu plan no cambió; intenta de nuevo en un momento.",
       "planError": "No pudimos cargar tu plan. No cambió nada; intenta de nuevo en un momento."
+    },
+    "dependency": {
+      "useList": "Usar el precio de lista de {{name}} ({{price}})",
+      "retained": "{{name}} termina antes que la función que depende de ella. Este cambio lo hacemos contigo: Cambio asistido.",
+      "missing": "Agrega {{name}} a tu compra para continuar."
+    },
+    "review": {
+      "repriced": "{{name}} pasará de {{from}} a {{to}} con este cambio."
     }
   },
   "featureGate": {

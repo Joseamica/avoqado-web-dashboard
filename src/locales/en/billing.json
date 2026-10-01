@@ -247,7 +247,12 @@
       "quote": "Get a quote",
       "maxOffers": "Up to 8 offers per purchase.",
       "pickTier": "{{name}}: see the {{tier}} plan, which includes it",
-      "mark": "Select {{name}}"
+      "mark": "Select {{name}}",
+      "promoThen_one": "For {{count}} month; then {{price}}",
+      "promoThen_other": "For {{count}} months; then {{price}}",
+      "promoForever": "For as long as you keep it",
+      "promoEnds_one": "For {{count}} month; then it ends",
+      "promoEnds_other": "For {{count}} months; then it ends"
     },
     "selection": {
       "title": "Your selection",
@@ -279,6 +284,14 @@
       "contractCancelled": "Done: your plan stops renewing at the end of the paid period.",
       "gridError": "We couldn't load the features. Your plan didn't change; try again in a moment.",
       "planError": "We couldn't load your plan. Nothing changed; try again in a moment."
+    },
+    "dependency": {
+      "useList": "Use the list price of {{name}} ({{price}})",
+      "retained": "{{name}} ends before the feature that depends on it. We make this change with you: Assisted change.",
+      "missing": "Add {{name}} to your purchase to continue."
+    },
+    "review": {
+      "repriced": "{{name}} will go from {{from}} to {{to}} with this change."
     }
   },
   "featureGate": {

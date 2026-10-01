@@ -13,9 +13,15 @@ import {
   type CancellationInput,
 } from '@/services/features.service'
 import { hybridBilling, type HybridQuoteBody } from '@/services/hybridBilling.service'
+import type { DependencyIssue } from './planActions'
 
-type ServerFailure = { response?: { status?: number; data?: { message?: string; code?: string } } }
+type ServerFailure = { response?: { status?: number; data?: { message?: string; code?: string; details?: unknown } } }
 export const serverCode = (value: unknown) => (value as ServerFailure)?.response?.data?.code
+/** The first issue of a HYBRID_DEPENDENCY_TERM refusal (spec §4.2 rule 4): the unit that brings the dependency. */
+export const dependencyIssue = (value: unknown): DependencyIssue | undefined => {
+  const details = (value as ServerFailure)?.response?.data?.details
+  return serverCode(value) === 'HYBRID_DEPENDENCY_TERM' && Array.isArray(details) ? details[0] : undefined
+}
 /** A refusal (4xx) is written for the owner; a server failure (5xx) is internal and often English, so ours is shown. */
 export const serverMessage = (value: unknown, fallback: string) => {
   const response = (value as ServerFailure)?.response

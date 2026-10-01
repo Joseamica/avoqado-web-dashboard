@@ -94,6 +94,62 @@ describe('FeatureGrid', () => {
     expect(screen.getByText(/199\.99/)).toBeInTheDocument()
   })
 
+  it('a promotion below its list shows the list struck through and when the promotional price ends', () => {
+    const promo = entry('INVENTORY_TRACKING', 'inventory', 'PREMIUM', 'NONE', 479.2)
+    promo.offer = { ...promo.offer!, listPrice: 599, renewal: 'REPRICE', renewalPrice: 599, promotionCycles: 3 }
+    const { rerender } = render(
+      <FeatureGrid
+        entries={[promo]}
+        purchasesEnabled
+        mode="ADD"
+        marked={[]}
+        isMarkable={item => isMarkable(item, 'ADD')}
+        onToggle={vi.fn()}
+        onPickTier={vi.fn()}
+        canManage
+        target="FREE"
+      />,
+    )
+    expect(screen.getByText(/\$479\.20/)).toBeInTheDocument()
+    const struck = document.querySelector('s')
+    expect(struck).toHaveTextContent('$599.00')
+    expect(screen.getByText('plan.grid.promoThen|count=3|price=$599.00')).toBeInTheDocument()
+    rerender(
+      <FeatureGrid
+        entries={[{ ...promo, offer: { ...promo.offer!, renewal: 'SAME_PRICE', renewalPrice: null, promotionCycles: null } }]}
+        purchasesEnabled
+        mode="ADD"
+        marked={[]}
+        isMarkable={item => isMarkable(item, 'ADD')}
+        onToggle={vi.fn()}
+        onPickTier={vi.fn()}
+        canManage
+        target="FREE"
+      />,
+    )
+    expect(screen.getByText('plan.grid.promoForever')).toBeInTheDocument()
+    rerender(
+      <FeatureGrid
+        entries={[{ ...promo, offer: { ...promo.offer!, renewal: 'END', renewalPrice: null, promotionCycles: 2 } }]}
+        purchasesEnabled
+        mode="ADD"
+        marked={[]}
+        isMarkable={item => isMarkable(item, 'ADD')}
+        onToggle={vi.fn()}
+        onPickTier={vi.fn()}
+        canManage
+        target="FREE"
+      />,
+    )
+    expect(screen.getByText('plan.grid.promoEnds|count=2')).toBeInTheDocument()
+  })
+
+  it('a list price (or a promotion with no list under it) shows no strike and no condition', () => {
+    renderGrid({ entries: [entry('LOYALTY_PROGRAM', 'customers', 'PRO', 'NONE', 599)] })
+    expect(document.querySelector('s')).toBeNull()
+    expect(screen.queryByText(/promoThen|promoForever|promoEnds/)).toBeNull()
+  })
+
   it('an owned function shows no price to buy it again', () => {
     renderGrid({ entries: [entry('PROMOTIONS', 'customers', 'PRO', 'PLAN', 149)] })
     expect(screen.getByText('plan.grid.inPlan')).toBeInTheDocument()

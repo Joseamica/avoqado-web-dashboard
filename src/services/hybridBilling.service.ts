@@ -37,6 +37,8 @@ export type HybridQuote = {
   replaces: string[]
   droppedFeatureCodes: string[]
   featureCodes: string[]
+  /** Spec §4.5: a function a replaced contract paid alone moves to today's price (pesos strings, '599.00'). */
+  repriced?: { featureCode: string; from: string; to: string }[]
 }
 export type HybridPurchase = {
   id: string
@@ -76,6 +78,8 @@ export type FeatureGridOffer = {
   renewalPrice: number | null
   promotionCycles: number | null
   includedFeatureCodes: string[]
+  /** The product's active list price, when it has one (servers since 2026-10). */
+  listPrice?: number | null
 }
 export type FeatureGridEntry = {
   id: string
@@ -87,11 +91,15 @@ export type FeatureGridEntry = {
   offering: 'INCLUDED' | 'CONFIGURABLE' | 'CONTACT'
   access: { source: FeatureAccessSource; contractId: string | null; paidThrough: string | null; cancelAt: string | null }
   offer: FeatureGridOffer | null
+  /** The function's LIST offer, only when it is not `offer` itself (spec §5). */
+  listOffer?: FeatureGridOffer | null
 }
 export type FeatureGrid = {
   catalogVersion: string
   purchasesEnabled: boolean
   plans: { PRO: FeatureGridOffer | null; PREMIUM: FeatureGridOffer | null }
+  /** The plans' LIST offers (may equal `plans`). */
+  planListOffers?: { PRO: FeatureGridOffer | null; PREMIUM: FeatureGridOffer | null }
   entries: FeatureGridEntry[]
 }
 export type HybridReplacementOptions = {
@@ -191,6 +199,10 @@ const hybridPurchaseSchema = z.object({
     replaces: z.array(identifier).max(100),
     droppedFeatureCodes: codes,
     featureCodes: codes,
+    repriced: z
+      .array(z.object({ featureCode: z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/), from: money, to: money }))
+      .max(100)
+      .optional(),
   }),
 })
 export const parseHybridPurchase = (value: unknown): HybridPurchase => hybridPurchaseSchema.parse(value) as HybridPurchase
@@ -224,11 +236,13 @@ const gridOffer = z.object({
   renewalPrice: amount.nullable(),
   promotionCycles: z.number().int().min(1).max(24).nullable(),
   includedFeatureCodes: codes,
+  listPrice: z.number().nullable().optional(),
 })
 const featureGridSchema = z.object({
   catalogVersion: z.string().min(1),
   purchasesEnabled: z.boolean(),
   plans: z.object({ PRO: gridOffer.nullable(), PREMIUM: gridOffer.nullable() }),
+  planListOffers: z.object({ PRO: gridOffer.nullable(), PREMIUM: gridOffer.nullable() }).optional(),
   entries: z
     .array(
       z.object({
@@ -249,6 +263,7 @@ const featureGridSchema = z.object({
           cancelAt: z.string().datetime().nullable(),
         }),
         offer: gridOffer.nullable(),
+        listOffer: gridOffer.nullable().optional(),
       }),
     )
     .max(100),

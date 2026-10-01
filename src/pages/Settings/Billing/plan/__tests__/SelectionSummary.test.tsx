@@ -184,6 +184,61 @@ describe('SelectionSummary', () => {
     expect(props.onAssisted).toHaveBeenCalled()
   })
 
+  it('a dependency the cart brings for too short: offers the list of that line, which the owner can pick', async () => {
+    const inventory = {
+      id: 'INVENTORY_TRACKING',
+      featureCode: 'INVENTORY_TRACKING',
+      names: { es: 'Inventario FIFO', en: 'FIFO inventory', fr: '' },
+    } as unknown as FeatureGridEntry
+    const onPreferList = vi.fn()
+    renderSummary({
+      error: 'Reorden automático necesita Inventario FIFO…',
+      dependency: { kind: 'LIST', prefer: 'INVENTORY_TRACKING', entry: inventory, price: 599 },
+      onPreferList,
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=Inventario FIFO|price=$599.00' }))
+    expect(onPreferList).toHaveBeenCalledWith('INVENTORY_TRACKING')
+  })
+
+  it('… the plan line: the list of the plan', async () => {
+    const onPreferList = vi.fn()
+    renderSummary({ error: 'x', dependency: { kind: 'LIST', prefer: 'PLAN', plan: 'PRO', price: 1158.84 }, onPreferList })
+    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=plan.tiers.pro.name|price=$1,158.84' }))
+    expect(onPreferList).toHaveBeenCalledWith('PLAN')
+  })
+
+  it('a dependency the venue keeps but that ends first goes to the assisted change; one nobody brings asks to add it', () => {
+    const { rerender } = render(
+      <SelectionSummary
+        model={model()}
+        seatRule="CHOOSE"
+        canManage
+        busy={false}
+        error="x"
+        onReview={vi.fn()}
+        onPickTier={vi.fn()}
+        onAssisted={vi.fn()}
+        dependency={{ kind: 'RETAINED', code: 'INVENTORY_TRACKING' }}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.retained|name=INVENTORY_TRACKING')
+    expect(screen.getByRole('button', { name: 'plan.selection.assisted' })).toBeInTheDocument()
+    rerender(
+      <SelectionSummary
+        model={model()}
+        seatRule="CHOOSE"
+        canManage
+        busy={false}
+        error="x"
+        onReview={vi.fn()}
+        onPickTier={vi.fn()}
+        dependency={{ kind: 'MISSING', code: 'INVENTORY_TRACKING' }}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.missing|name=INVENTORY_TRACKING')
+    expect(screen.queryByRole('button', { name: /useList/ })).toBeNull()
+  })
+
   it('a refused drop keeping functions offers dropping at period end', async () => {
     const onFallbackDrop = vi.fn()
     renderSummary({ error: 'No se pudo reemplazar', onFallbackDrop })

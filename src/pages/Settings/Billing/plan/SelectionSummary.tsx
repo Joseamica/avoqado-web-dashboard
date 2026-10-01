@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import type { PlanOperation, SelectionSummaryModel } from './planActions'
+import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
 
 export interface SelectionSummaryProps {
   model: SelectionSummaryModel
@@ -18,6 +18,10 @@ export interface SelectionSummaryProps {
   onAssisted?: () => void
   /** A refused "drop to Gratis keeping functions": the spec's fallback, drop at period end (§4.1). */
   onFallbackDrop?: () => void
+  /** A refused dependency term (HYBRID_DEPENDENCY_TERM): what fixes it (spec §5). */
+  dependency?: DependencyFix | null
+  /** Quote that function (or `'PLAN'`) at its list price instead. */
+  onPreferList?: (code: string) => void
 }
 
 const PURCHASES: PlanOperation['kind'][] = ['FEATURES', 'CLASSIC_CHECKOUT', 'HYBRID_REPLACE', 'HYBRID_DROP']
@@ -41,6 +45,8 @@ export function SelectionSummary({
   onPickTier,
   onAssisted,
   onFallbackDrop,
+  dependency,
+  onPreferList,
 }: SelectionSummaryProps) {
   const { t, i18n } = useTranslation('billing')
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
@@ -48,6 +54,8 @@ export function SelectionSummary({
   const tierName = (tier: string) => t(`plan.tiers.${tier.toLowerCase()}.name`)
   const name = (entry: FeatureGridEntry) =>
     entry.featureCode ? t(`hybrid.featureNames.${entry.featureCode}`, { defaultValue: entry.names[lang] }) : entry.names[lang]
+  const codeName = (code: string, entry?: FeatureGridEntry) =>
+    entry ? name(entry) : t(`hybrid.featureNames.${code}`, { defaultValue: code })
   const promo = (offer: FeatureGridOffer) =>
     offer.renewal === 'REPRICE' && offer.promotionCycles && offer.renewalPrice != null
       ? t('plan.selection.promo', { count: offer.promotionCycles, price: money(offer.renewalPrice) })
@@ -146,6 +154,27 @@ export function SelectionSummary({
         {error && (
           <div role="alert" className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             <p>{error}</p>
+            {dependency && dependency.kind !== 'LIST' && (
+              <p>
+                {t(dependency.kind === 'RETAINED' ? 'plan.dependency.retained' : 'plan.dependency.missing', {
+                  name: codeName(dependency.code, dependency.entry),
+                })}
+              </p>
+            )}
+            {dependency?.kind === 'LIST' && onPreferList && (
+              <Button
+                variant="link"
+                className="block h-auto whitespace-normal p-0 text-left"
+                disabled={busy || !canManage}
+                onClick={() => onPreferList(dependency.prefer)}
+                data-tour="plan-use-list"
+              >
+                {t('plan.dependency.useList', {
+                  name: dependency.plan ? tierName(dependency.plan) : codeName(dependency.prefer, dependency.entry),
+                  price: money(dependency.price),
+                })}
+              </Button>
+            )}
             {onFallbackDrop && (
               <Button
                 variant="link"
