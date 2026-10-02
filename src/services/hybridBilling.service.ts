@@ -236,7 +236,7 @@ const gridOffer = z.object({
   renewalPrice: amount.nullable(),
   promotionCycles: z.number().int().min(1).max(24).nullable(),
   includedFeatureCodes: codes,
-  listPrice: z.number().nullable().optional(),
+  listPrice: amount.nullable().optional(),
 })
 const featureGridSchema = z.object({
   catalogVersion: z.string().min(1),

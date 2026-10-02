@@ -194,6 +194,7 @@ export default function Subscriptions() {
   // The server refused "drop keeping functions": the spec's fallback is the plain drop at period end (§4.1).
   const fallbackDrop = () => {
     setMarked([])
+    setPreferList([])
     setError(null)
     setCancelOpen(true)
   }

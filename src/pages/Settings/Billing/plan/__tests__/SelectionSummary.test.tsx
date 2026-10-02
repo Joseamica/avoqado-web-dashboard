@@ -255,6 +255,11 @@ describe('SelectionSummary', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.retainedContact|name=INVENTORY_TRACKING')
     expect(screen.queryByText(/plan\.dependency\.retained\|/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'plan.selection.assisted' })).toBeNull()
+    // «Escríbenos» comes with a real channel: the sales WhatsApp, as the upgrade dialog has.
+    const contact = screen.getByRole('link', { name: 'plan.dependency.contactCta' })
+    expect(contact).toHaveAttribute('href', expect.stringMatching(/^https:\/\/wa\.me\/\d+\?text=/))
+    expect(contact.getAttribute('href')).toContain(encodeURIComponent('plan.dependency.contactMessage|name=INVENTORY_TRACKING'))
+    expect(contact).toHaveAttribute('target', '_blank')
   })
 
   it('a refused drop keeping functions offers dropping at period end', async () => {

@@ -248,11 +248,8 @@
       "maxOffers": "Máximo 8 ofertas por compra.",
       "pickTier": "{{name}}: ver el plan {{tier}}, que la incluye",
       "mark": "Marcar {{name}}",
-      "promoThen_one": "Por {{count}} mes; luego {{price}}",
-      "promoThen_other": "Por {{count}} meses; luego {{price}}",
       "promoForever": "Mientras la conserves",
-      "promoEnds_one": "Por {{count}} mes; después termina",
-      "promoEnds_other": "Por {{count}} meses; después termina"
+      "listPrice": "Precio de lista:"
     },
     "selection": {
       "title": "Tu selección",
@@ -290,7 +287,9 @@
       "retained": "{{name}} termina antes que la función que depende de ella. Este cambio lo hacemos contigo: Cambio asistido.",
       "missing": "Agrega {{name}} a tu compra para continuar.",
       "remove": "Quita {{name}} de tu compra para continuar.",
-      "retainedContact": "{{name}} termina antes que la función que depende de ella. Escríbenos y lo hacemos contigo."
+      "retainedContact": "{{name}} termina antes que la función que depende de ella. Escríbenos y lo hacemos contigo.",
+      "contactCta": "Escríbenos por WhatsApp",
+      "contactMessage": "Hola, quiero ayuda para cambiar mi plan de Avoqado: {{name}} termina antes que la función que depende de ella."
     },
     "review": {
       "repriced": "{{name}} pasará de {{from}} a {{to}} con este cambio."

@@ -2,6 +2,7 @@
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { salesWhatsAppLink } from '@/config/plan-catalog'
 import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
@@ -168,6 +169,18 @@ export function SelectionSummary({
                   { name: codeName(dependency.code, dependency.entry) },
                 )}
               </p>
+            )}
+            {/* «Escríbenos» on Gratis comes with a real channel: the sales WhatsApp (as the upgrade dialog). */}
+            {dependency?.kind === 'RETAINED' && !onAssisted && (
+              <a
+                className="block underline"
+                href={salesWhatsAppLink(t('plan.dependency.contactMessage', { name: codeName(dependency.code, dependency.entry) }))}
+                target="_blank"
+                rel="noreferrer"
+                data-tour="plan-dependency-contact"
+              >
+                {t('plan.dependency.contactCta')}
+              </a>
             )}
             {dependency?.kind === 'LIST' && onPreferList && (
               <Button

@@ -61,6 +61,14 @@ describe('feature grid and hybrid writes', () => {
     expect(() => parseFeatureGrid({ ...grid, entries: [{ ...grid.entries[0], category: 'magic' }] })).toThrow()
   })
 
+  it('a list price is a bounded amount like the price: never fractions of a cent or out of range', () => {
+    const withList = (listPrice: number) => ({ ...grid, entries: [{ ...grid.entries[0], offer: { ...offer, listPrice } }] })
+    expect(() => parseFeatureGrid(withList(159.999))).toThrow()
+    expect(() => parseFeatureGrid(withList(-1))).toThrow()
+    expect(() => parseFeatureGrid(withList(Number.POSITIVE_INFINITY))).toThrow()
+    expect(parseFeatureGrid(withList(159.99))).toEqual(withList(159.99))
+  })
+
   it('a contract cancellation carries the reason next to the observed revision', async () => {
     await hybridBilling.cancelContract('venue', 'hc_1', 3, { reason: 'TEMPORARY', comment: 'Cerramos agosto' })
     expect(api.post).toHaveBeenCalledWith('/api/v1/dashboard/venues/venue/hybrid-billing/contracts/hc_1/cancel', {

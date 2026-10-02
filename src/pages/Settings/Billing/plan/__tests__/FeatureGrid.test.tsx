@@ -1,5 +1,5 @@
 // src/pages/Settings/Billing/plan/__tests__/FeatureGrid.test.tsx
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { FeatureAccessSource, FeatureGridEntry } from '@/services/hybridBilling.service'
@@ -113,7 +113,9 @@ describe('FeatureGrid', () => {
     expect(screen.getByText(/\$479\.20/)).toBeInTheDocument()
     const struck = document.querySelector('s')
     expect(struck).toHaveTextContent('$599.00')
-    expect(screen.getByText('plan.grid.promoThen|count=3|price=$599.00')).toBeInTheDocument()
+    // A screen reader does not announce a strike: the struck number says what it is.
+    expect(within(struck as HTMLElement).getByText('plan.grid.listPrice')).toHaveClass('sr-only')
+    expect(screen.getByText('plan.selection.promo|count=3|price=$599.00')).toBeInTheDocument()
     rerender(
       <FeatureGrid
         entries={[{ ...promo, offer: { ...promo.offer!, renewal: 'SAME_PRICE', renewalPrice: null, promotionCycles: null } }]}
@@ -141,7 +143,37 @@ describe('FeatureGrid', () => {
         target="FREE"
       />,
     )
-    expect(screen.getByText('plan.grid.promoEnds|count=2')).toBeInTheDocument()
+    expect(screen.getByText('plan.selection.promoEnd|count=2')).toBeInTheDocument()
+  })
+
+  it('a promotion with no list under it still says when its price ends, as the summary does', () => {
+    const promo = entry('INVENTORY_TRACKING', 'inventory', 'PREMIUM', 'NONE', 479.2)
+    promo.offer = { ...promo.offer!, renewal: 'REPRICE', renewalPrice: 599, promotionCycles: 3 }
+    const { unmount } = render(
+      <FeatureGrid
+        entries={[
+          promo,
+          {
+            ...promo,
+            id: 'AUTO_REORDER',
+            featureCode: 'AUTO_REORDER',
+            offer: { ...promo.offer, renewal: 'END', renewalPrice: null, promotionCycles: 2 },
+          },
+        ]}
+        purchasesEnabled
+        mode="ADD"
+        marked={[]}
+        isMarkable={item => isMarkable(item, 'ADD')}
+        onToggle={vi.fn()}
+        onPickTier={vi.fn()}
+        canManage
+        target="FREE"
+      />,
+    )
+    expect(document.querySelector('s')).toBeNull()
+    expect(screen.getByText('plan.selection.promo|count=3|price=$599.00')).toBeInTheDocument()
+    expect(screen.getByText('plan.selection.promoEnd|count=2')).toBeInTheDocument()
+    unmount()
   })
 
   it('once the owner picked the list, the tile shows the list price like the summary and the quote', () => {
@@ -159,7 +191,7 @@ describe('FeatureGrid', () => {
     expect(screen.getByText(/\$599\.00/)).toBeInTheDocument()
     expect(screen.queryByText(/\$479\.20/)).toBeNull()
     expect(document.querySelector('s')).toBeNull()
-    expect(screen.queryByText(/promoThen|promoForever|promoEnds/)).toBeNull()
+    expect(screen.queryByText(/plan\.selection\.promo|promoForever/)).toBeNull()
   })
 
   it('a promotion without its cycles never shows a raw condition key', () => {
@@ -167,13 +199,13 @@ describe('FeatureGrid', () => {
     promo.offer = { ...promo.offer!, listPrice: 599, renewal: 'REPRICE', renewalPrice: 599, promotionCycles: null }
     renderGrid({ entries: [promo] })
     expect(document.querySelector('s')).toHaveTextContent('$599.00')
-    expect(screen.queryByText(/promoThen|promoEnds/)).toBeNull()
+    expect(screen.queryByText(/plan\.selection\.promo/)).toBeNull()
   })
 
-  it('a list price (or a promotion with no list under it) shows no strike and no condition', () => {
+  it('a list price (the same price for as long as it is kept) shows no strike and no condition', () => {
     renderGrid({ entries: [entry('LOYALTY_PROGRAM', 'customers', 'PRO', 'NONE', 599)] })
     expect(document.querySelector('s')).toBeNull()
-    expect(screen.queryByText(/promoThen|promoForever|promoEnds/)).toBeNull()
+    expect(screen.queryByText(/plan\.selection\.promo|promoForever/)).toBeNull()
   })
 
   it('an owned function shows no price to buy it again', () => {

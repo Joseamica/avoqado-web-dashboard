@@ -45,16 +45,16 @@ export function FeatureGrid({
   const name = (entry: FeatureGridEntry) =>
     entry.featureCode ? t(`hybrid.featureNames.${entry.featureCode}`, { defaultValue: entry.names[lang] }) : entry.names[lang]
   const full = marked.length >= MAX_OFFERS
-  // How long a promotion below its list lasts (spec §5): «Por 3 meses; luego $599», «Mientras la conserves».
-  // Without its cycles a term cannot be said (never a raw key): no line, as in the summary.
-  const condition = (offer: FeatureGridOffer, listPrice: number) =>
-    offer.renewal === 'SAME_PRICE'
-      ? t('plan.grid.promoForever')
-      : !offer.promotionCycles
-        ? null
-        : offer.renewal === 'REPRICE'
-          ? t('plan.grid.promoThen', { count: offer.promotionCycles, price: money(offer.renewalPrice ?? listPrice) })
-          : t('plan.grid.promoEnds', { count: offer.promotionCycles })
+  // How long a promotional price lasts (spec §5): «Por 3 meses; luego $599», «Mientras la conserves». A promotion with no
+  // list under it says it too, as the summary does; the same price forever is a promotion only below a list.
+  // Without its cycles (or the price it renews to) a term cannot be said (never a raw key): no line, as in the summary.
+  const condition = (offer: FeatureGridOffer, listPrice: number | null) => {
+    const renewsTo = offer.renewalPrice ?? listPrice
+    if (offer.renewal === 'SAME_PRICE') return listPrice != null ? t('plan.grid.promoForever') : null
+    if (!offer.promotionCycles) return null
+    if (offer.renewal === 'END') return t('plan.selection.promoEnd', { count: offer.promotionCycles })
+    return renewsTo != null ? t('plan.selection.promo', { count: offer.promotionCycles, price: money(renewsTo) }) : null
+  }
   const intro = !purchasesEnabled ? 'plan.grid.introClosed' : mode === 'DROP' ? 'plan.grid.introDrop' : 'plan.grid.intro'
 
   const status = (entry: FeatureGridEntry): { text: string | null; owned: boolean } => {
@@ -91,7 +91,7 @@ export function FeatureGrid({
     const offer = chosenOffer(entry, preferList)
     const showPrice = !!offer && purchasesEnabled && (mode === 'DROP' || !owned)
     const listPrice = showPrice && offer?.listPrice != null && offer.listPrice > offer.price ? offer.listPrice : null
-    const terms = listPrice != null && offer ? condition(offer, listPrice) : null
+    const terms = showPrice && offer ? condition(offer, listPrice) : null
     const tour = `feature-tile-${entry.id.toLowerCase()}`
     const className = cn(
       'flex w-full items-center gap-3 rounded-xl border border-input bg-card p-3 text-left',
@@ -107,7 +107,12 @@ export function FeatureGrid({
           <span className="block text-sm font-medium">{name(entry)}</span>
           <span className="block text-sm font-semibold tabular-nums">
             {showPrice && offer ? `${money(offer.price)}${t('plan.perMonth')}` : entry.offering === 'CONTACT' ? t('plan.grid.quote') : ' '}
-            {listPrice != null && <s className="ml-1.5 font-normal text-muted-foreground">{money(listPrice)}</s>}
+            {listPrice != null && (
+              <s className="ml-1.5 font-normal text-muted-foreground">
+                <span className="sr-only">{t('plan.grid.listPrice')} </span>
+                {money(listPrice)}
+              </s>
+            )}
           </span>
           {terms && <span className="block text-xs text-muted-foreground">{terms}</span>}
         </span>

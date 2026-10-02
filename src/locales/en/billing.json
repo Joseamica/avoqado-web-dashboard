@@ -248,11 +248,8 @@
       "maxOffers": "Up to 8 offers per purchase.",
       "pickTier": "{{name}}: see the {{tier}} plan, which includes it",
       "mark": "Select {{name}}",
-      "promoThen_one": "For {{count}} month; then {{price}}",
-      "promoThen_other": "For {{count}} months; then {{price}}",
       "promoForever": "For as long as you keep it",
-      "promoEnds_one": "For {{count}} month; then it ends",
-      "promoEnds_other": "For {{count}} months; then it ends"
+      "listPrice": "List price:"
     },
     "selection": {
       "title": "Your selection",
@@ -290,7 +287,9 @@
       "retained": "{{name}} ends before the feature that depends on it. We make this change with you: Assisted change.",
       "missing": "Add {{name}} to your purchase to continue.",
       "remove": "Remove {{name}} from your purchase to continue.",
-      "retainedContact": "{{name}} ends before the feature that depends on it. Message us and we'll make this change with you."
+      "retainedContact": "{{name}} ends before the feature that depends on it. Message us and we'll make this change with you.",
+      "contactCta": "Message us on WhatsApp",
+      "contactMessage": "Hi, I need help changing my Avoqado plan: {{name}} ends before the feature that depends on it."
     },
     "review": {
       "repriced": "{{name}} will go from {{from}} to {{to}} with this change."
