@@ -14,7 +14,17 @@
     "add": "Agregar nivel",
     "archive": "Archivar",
     "namePlaceholder": "Ej. Head Coach",
-    "empty": "Todavía no hay niveles. Crea el primero, por ejemplo Head Coach o Coach."
+    "empty": "Todavía no hay niveles. Crea el primero, por ejemplo Head Coach o Coach.",
+    "rename": "Renombrar {{name}}",
+    "newName": "Nuevo nombre del nivel",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "archiveLevel": "Archivar {{name}}",
+    "archiveTitle": "¿Archivar «{{name}}»?",
+    "archiveDescription": "Deja de aparecer en la tabla de pagos y en los selectores. Su historial se conserva.",
+    "archiveConfirm": "Archivar",
+    "renamed": "Nivel renombrado",
+    "archived": "Nivel archivado"
   },
   "who": {
     "title": "Quién es qué",
@@ -128,5 +138,14 @@
   },
   "errors": {
     "generic": "Algo salió mal. Intenta de nuevo."
+  },
+  "assign": {
+    "title": "Nivel de {{name}}",
+    "summary": "{{name}} pasa a {{level}}.",
+    "effectiveFrom": "¿Desde cuándo vale este nivel?",
+    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
+    "effectLoading": "Calculando cuántas clases cambian…",
+    "confirm": "Guardar nivel",
+    "saved": "Nivel guardado"
   }
 }

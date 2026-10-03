@@ -9,9 +9,10 @@ export function cuadriculaDesdeCeldas(celdas: CeldaDto[], niveles: string[], max
   return c
 }
 
-export function celdasDesdeCuadricula(c: Cuadricula): CeldaDto[] {
+/** Con `maxCount`, deja fuera las filas por encima del techo (la cuadrícula en edición puede guardarlas para no perderlas). */
+export function celdasDesdeCuadricula(c: Cuadricula, maxCount?: number): CeldaDto[] {
   const out: CeldaDto[] = []
-  for (const [payLevelId, filas] of Object.entries(c)) filas.forEach((amount, count) => { if (amount !== undefined) out.push({ payLevelId, count, amount }) })
+  for (const [payLevelId, filas] of Object.entries(c)) filas.forEach((amount, count) => { if (amount !== undefined && (maxCount === undefined || count <= maxCount)) out.push({ payLevelId, count, amount }) })
   return out
 }
 
@@ -37,5 +38,12 @@ export function faltantes(c: Cuadricula, maxCount: number): number {
 export function redimensionar(c: Cuadricula, maxCount: number): Cuadricula {
   const out: Cuadricula = {}
   for (const [k, filas] of Object.entries(c)) out[k] = Array.from({ length: maxCount + 1 }, (_, i) => filas[i])
+  return out
+}
+
+/** Como `redimensionar`, pero NUNCA recorta: sólo agrega filas vacías. Para editar el techo sin perder montos al teclear. */
+export function ampliar(c: Cuadricula, maxCount: number): Cuadricula {
+  const out: Cuadricula = {}
+  for (const [k, filas] of Object.entries(c)) out[k] = filas.length > maxCount ? filas : Array.from({ length: maxCount + 1 }, (_, i) => filas[i])
   return out
 }

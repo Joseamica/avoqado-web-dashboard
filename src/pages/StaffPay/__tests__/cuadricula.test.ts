@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cuadriculaDesdeCeldas, celdasDesdeCuadricula, rellenarHaciaAbajo, simular, faltantes, redimensionar } from '../cuadricula'
+import { cuadriculaDesdeCeldas, celdasDesdeCuadricula, rellenarHaciaAbajo, simular, faltantes, redimensionar, ampliar } from '../cuadricula'
 
 const PN_HC = [0, 430, 430, 430, 430, 460, 490, 530, 570, 610, 650]
 
@@ -32,5 +32,17 @@ describe('cuadrícula — regresión', () => {
   it('bajar el techo recorta filas; subirlo agrega vacías', () => {
     expect(redimensionar({ hc: PN_HC }, 3).hc).toEqual([0, 430, 430, 430])
     expect(redimensionar({ hc: [0, 1] }, 3).hc).toEqual([0, 1, undefined, undefined])
+  })
+  it('ampliar NUNCA recorta: editar el techo 10 → 1 → 12 conserva los montos', () => {
+    const c1 = ampliar({ hc: PN_HC }, 1)
+    expect(c1.hc).toEqual(PN_HC)
+    const c2 = ampliar(c1, 12)
+    expect(c2.hc[8]).toBe(570)
+    expect(c2.hc).toHaveLength(13)
+  })
+  it('celdasDesdeCuadricula con techo deja fuera las filas por encima del techo', () => {
+    const celdas = celdasDesdeCuadricula({ hc: PN_HC }, 5)
+    expect(celdas.every(c => c.count <= 5)).toBe(true)
+    expect(celdas).toHaveLength(6)
   })
 })

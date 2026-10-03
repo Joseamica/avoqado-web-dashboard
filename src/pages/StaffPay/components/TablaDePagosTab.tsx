@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDown, CheckCircle2, Circle, Plus } from 'lucide-react'
+import { ArrowDown, CheckCircle2, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,9 +14,11 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { teamService } from '@/services/team.service'
 import { useToast } from '@/hooks/use-toast'
-import { useAssignLevel, useCreateLevel, useCreateTable, useStaffPayAssignments, useStaffPayLevels, useStaffPayTables } from '@/hooks/useStaffPay'
-import { cuadriculaDesdeCeldas, faltantes, rellenarHaciaAbajo, redimensionar, simular, type Cuadricula } from '../cuadricula'
+import { useCreateTable, useStaffPayAssignments, useStaffPayLevels, useStaffPayTables } from '@/hooks/useStaffPay'
+import { ampliar, cuadriculaDesdeCeldas, faltantes, rellenarHaciaAbajo, simular, type Cuadricula } from '../cuadricula'
 import { hoyEnSede } from '../hoyEnSede'
+import { AsignarNivelModal } from './AsignarNivelModal'
+import { NivelesSection } from './NivelesSection'
 import { PublicarTablaModal } from './PublicarTablaModal'
 
 const TECHO_DEFAULT = 10
@@ -39,9 +41,7 @@ export function TablaDePagosTab() {
     enabled: !!venueId,
     staleTime: 60_000,
   })
-  const crearNivel = useCreateLevel()
   const crearTabla = useCreateTable()
-  const asignar = useAssignLevel()
 
   const niveles = useMemo(() => qNiveles.data ?? [], [qNiveles.data])
   const asignaciones = qAsignaciones.data ?? []
@@ -55,7 +55,7 @@ export function TablaDePagosTab() {
   const [techoTexto, setTechoTexto] = useState<number | undefined>(TECHO_DEFAULT)
   const [max, setMax] = useState(TECHO_DEFAULT) // último techo válido: la cuadrícula no colapsa mientras se edita el campo
   const [grid, setGrid] = useState<Cuadricula>({})
-  const [nuevoNivel, setNuevoNivel] = useState('')
+  const [porAsignar, setPorAsignar] = useState<{ staffId: string; staffName: string; payLevelId: string; payLevelName: string } | null>(null)
   const [simLugares, setSimLugares] = useState<number | undefined>(8)
   const [simNivel, setSimNivel] = useState<string | undefined>(undefined)
   const [publicar, setPublicar] = useState(false)
@@ -82,21 +82,11 @@ export function TablaDePagosTab() {
   const faltan = faltantes(grid, max)
   const nivelDe = (staffId: string) => asignaciones.find(a => a.staffId === staffId)
 
-  const asignarConAviso = (staffId: string, payLevelId: string) =>
-    asignar.mutate(
-      { staffId, payLevelId, effectiveFrom: hoyEnSede(venueTimezone) },
-      {
-        onSuccess: r => toast({ title: t('who.effect', { count: r.clasesQueCambian }) }),
-        onError: err => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' }),
-      },
-    )
-  const agregarNivel = () => {
-    const nombre = nuevoNivel.trim()
-    if (!nombre) return
-    crearNivel.mutate(nombre, {
-      onSuccess: () => setNuevoNivel(''),
-      onError: err => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' }),
-    })
+  // Elegir un nivel NO escribe: abre la confirmación con fecha y el efecto («cambia N clases») antes de guardar.
+  const pedirAsignacion = (staffId: string, staffName: string, payLevelId: string) => {
+    if (nivelDe(staffId)?.payLevelId === payLevelId) return
+    const payLevelName = activos.find(n => n.id === payLevelId)?.name ?? ''
+    setPorAsignar({ staffId, staffName, payLevelId, payLevelName })
   }
   const crearTablaVacia = () =>
     crearTabla.mutate(
@@ -113,7 +103,8 @@ export function TablaDePagosTab() {
     setTechoTexto(v)
     if (techoValido(v)) {
       setMax(v)
-      setGrid(g => redimensionar(g, v))
+      // Nunca recortar mientras se teclea (10 → «1» → 12 borraba filas): las filas sobre el techo se descartan al guardar.
+      setGrid(g => ampliar(g, v))
     }
   }
 
@@ -164,30 +155,7 @@ export function TablaDePagosTab() {
       </ol>
 
       {/* 1. Niveles */}
-      <section className="rounded-lg border border-input p-4 space-y-3">
-        <h3 className="font-semibold">{t('levels.title')}</h3>
-        {activos.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('levels.empty')}</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {activos.map(n => <span key={n.id} className="rounded-full bg-muted px-3 py-1 text-sm">{n.name}</span>)}
-          </div>
-        )}
-        <PermissionGate permission="staffpay:manage">
-          <form className="flex gap-2 max-w-md" onSubmit={e => { e.preventDefault(); agregarNivel() }}>
-            <Input
-              value={nuevoNivel}
-              aria-label={t('levels.namePlaceholder')}
-              placeholder={t('levels.namePlaceholder')}
-              onChange={e => setNuevoNivel(e.target.value)}
-              data-tour="staffpay-level-name"
-            />
-            <Button type="submit" className="cursor-pointer" disabled={!nuevoNivel.trim() || crearNivel.isPending} data-tour="staffpay-level-add">
-              <Plus className="h-4 w-4 mr-1" />{t('levels.add')}
-            </Button>
-          </form>
-        </PermissionGate>
-      </section>
+      <NivelesSection activos={activos} />
 
       {/* 2. Quién es qué */}
       <section className="rounded-lg border border-input p-4 space-y-3">
@@ -208,8 +176,8 @@ export function TablaDePagosTab() {
                 >
                   <Select
                     value={nivelDe(m.staffId)?.payLevelId ?? ''}
-                    onValueChange={payLevelId => asignarConAviso(m.staffId, payLevelId)}
-                    disabled={activos.length === 0 || asignar.isPending}
+                    onValueChange={payLevelId => pedirAsignacion(m.staffId, `${m.firstName} ${m.lastName}`.trim(), payLevelId)}
+                    disabled={activos.length === 0}
                   >
                     <SelectTrigger className="w-48 cursor-pointer" aria-label={`${m.firstName} ${m.lastName}`}>
                       <SelectValue placeholder={t('who.noLevel')} />
@@ -222,6 +190,18 @@ export function TablaDePagosTab() {
           </>
         )}
       </section>
+
+      {porAsignar && (
+        <AsignarNivelModal
+          open
+          onOpenChange={o => { if (!o) setPorAsignar(null) }}
+          staffId={porAsignar.staffId}
+          staffName={porAsignar.staffName}
+          payLevelId={porAsignar.payLevelId}
+          payLevelName={porAsignar.payLevelName}
+          hoy={hoyEnSede(venueTimezone)}
+        />
+      )}
 
       {/* 3. Cuadrícula */}
       <section className="rounded-lg border border-input p-4 space-y-4">

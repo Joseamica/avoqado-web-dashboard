@@ -14,7 +14,17 @@
     "add": "Add level",
     "archive": "Archive",
     "namePlaceholder": "E.g. Head Coach",
-    "empty": "No levels yet. Create the first one, for example Head Coach or Coach."
+    "empty": "No levels yet. Create the first one, for example Head Coach or Coach.",
+    "rename": "Rename {{name}}",
+    "newName": "New level name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "archiveLevel": "Archive {{name}}",
+    "archiveTitle": "Archive “{{name}}”?",
+    "archiveDescription": "It stops showing in the pay table and in the selectors. Its history is kept.",
+    "archiveConfirm": "Archive",
+    "renamed": "Level renamed",
+    "archived": "Level archived"
   },
   "who": {
     "title": "Who is what",
@@ -128,5 +138,14 @@
   },
   "errors": {
     "generic": "Something went wrong. Try again."
+  },
+  "assign": {
+    "title": "{{name}}’s level",
+    "summary": "{{name}} moves to {{level}}.",
+    "effectiveFrom": "From when does this level apply?",
+    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
+    "effectLoading": "Calculating how many classes change…",
+    "confirm": "Save level",
+    "saved": "Level saved"
   }
 }
