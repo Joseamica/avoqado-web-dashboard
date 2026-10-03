@@ -88,10 +88,50 @@
       "level": "Level",
       "classes": "Classes",
       "avgSeats": "Average spots",
-      "total": "Total"
+      "total": "Total",
+      "venue": "Venue"
     },
     "detail": "Breakdown",
-    "empty": "There are no finished classes in this period yet."
+    "empty": "There are no finished classes in this period yet.",
+    "truncated": "The list of people reached its limit and some do not appear here or in the «People» card. The total and the classes do count everything.",
+    "error": "The period could not be loaded.",
+    "retry": "Retry",
+    "venue": {
+      "label": "Venue",
+      "all": "All venues",
+      "this": "This venue"
+    },
+    "pageRange": "{{from}}–{{to}} of {{total}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "close": "Close period",
+    "comingSoon": "Coming soon",
+    "seeExceptions": "See which",
+    "seeOrphans": "See bookings",
+    "exceptionsTitle": "Classes that cannot be paid yet",
+    "orphansTitle": "Class bookings without a schedule",
+    "orphansHelp": "These are bookings for a class that is not on the calendar. They do not count toward any pay until the class exists.",
+    "loadMore": "Load more",
+    "listEmpty": "Nothing pending here.",
+    "listError": "The list could not be loaded.",
+    "shownOf": "{{shown}} of {{total}}",
+    "detailTitle": "Breakdown for {{name}}",
+    "detailEmpty": "This person has no finished classes in this period.",
+    "excluded": "Excluded",
+    "adjusted": "Adjusted",
+    "noCoach": "No coach",
+    "noGuest": "No name",
+    "detailColumns": {
+      "date": "Date",
+      "venue": "Venue",
+      "class": "Class",
+      "coach": "Coach",
+      "seats": "Spots",
+      "amount": "Amount",
+      "guest": "Customer",
+      "reason": "Reason"
+    },
+    "exceptionsHelp": "Each one says what it is missing before it can be paid."
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",

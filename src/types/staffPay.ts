@@ -20,6 +20,9 @@ export interface ReportePeriodoDto {
   huerfanas: number
 }
 export interface PaginaCursor<T> { items: T[]; nextCursor: string | null }
+export interface PaginaOffset<T> { items: T[]; total: number }
+/** Reserva de clase sin horario (spec §5.5): no cuenta para ningún pago. */
+export interface ReservaHuerfanaDto { reservationId: string; startsAt: string; venueId: string; productName: string | null; guestName: string | null }
 export interface PagoDeClaseDto {
   classSessionId: string; estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION' | 'NO_TERMINADA' | 'CANCELADA'
   motivo: MotivoExcepcion | null; monto: string | null; conteo: number | null; conteoCalculado: number | null

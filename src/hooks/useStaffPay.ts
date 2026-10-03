@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { staffPayService } from '@/services/staffPay.service'
 import type { AjusteClaseInput, CeldaDto } from '@/types/staffPay'
@@ -13,6 +13,7 @@ export const staffPayKeys = {
   classPay: (venueId: string | null, sessionId: string | null) => [...staffPayKeys.all(venueId), 'class', sessionId] as const,
 }
 const pesado = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
+const LIMITE_LISTA = 50
 
 export function useStaffPayAccess() {
   const { venueId } = useCurrentVenue()
@@ -33,6 +34,45 @@ export function useStaffPayTables(enabled = true) {
 export function useStaffPayReport(p: { offset: number; limit: number; sede?: string }, enabled = true) {
   const { venueId } = useCurrentVenue()
   return useQuery({ queryKey: [...staffPayKeys.report(venueId), p], queryFn: () => staffPayService.report(venueId!, p), enabled: !!venueId && enabled, placeholderData: keepPreviousData, ...pesado })
+}
+/** Desglose clase por clase de una persona en el periodo abierto (cursor, 50 por página). */
+export function useStaffPayDetail(staffId: string | null, sede: string | undefined, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useInfiniteQuery({
+    queryKey: [...staffPayKeys.report(venueId), 'detail', staffId, sede ?? null],
+    queryFn: ({ pageParam }) => staffPayService.staffDetail(venueId!, staffId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA, sede }),
+    initialPageParam: null as string | null,
+    getNextPageParam: last => last.nextCursor ?? undefined,
+    enabled: !!venueId && !!staffId && enabled,
+    ...pesado,
+  })
+}
+/** Clases del periodo que todavía no se pueden pagar (cursor, 50 por página). */
+export function useStaffPayExceptions(sede: string | undefined, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useInfiniteQuery({
+    queryKey: [...staffPayKeys.report(venueId), 'exceptions', sede ?? null],
+    queryFn: ({ pageParam }) => staffPayService.exceptions(venueId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA, sede }),
+    initialPageParam: null as string | null,
+    getNextPageParam: last => last.nextCursor ?? undefined,
+    enabled: !!venueId && enabled,
+    ...pesado,
+  })
+}
+/** Reservas de clase sin horario del periodo (offset, 50 por página). */
+export function useStaffPayOrphans(sede: string | undefined, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useInfiniteQuery({
+    queryKey: [...staffPayKeys.report(venueId), 'orphans', sede ?? null],
+    queryFn: ({ pageParam }) => staffPayService.orphans(venueId!, { offset: pageParam, limit: LIMITE_LISTA, sede }),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => {
+      const cargadas = pages.reduce((n, p) => n + p.items.length, 0)
+      return last.items.length > 0 && cargadas < last.total ? cargadas : undefined
+    },
+    enabled: !!venueId && enabled,
+    ...pesado,
+  })
 }
 export function useClassPay(sessionId: string | null, enabled = true) {
   const { venueId } = useCurrentVenue()

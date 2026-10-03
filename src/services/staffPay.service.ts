@@ -1,5 +1,5 @@
 import api from '@/api'
-import type { AjusteClaseInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, NivelDto, PagoDeClaseDto, PaginaCursor, ReportePeriodoDto, TablaDto } from '@/types/staffPay'
+import type { AjusteClaseInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaOffset, ReportePeriodoDto, ReservaHuerfanaDto, TablaDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
 
@@ -18,7 +18,7 @@ export const staffPayService = {
   async report(venueId: string, p: { fecha?: string; sede?: string; offset: number; limit: number }): Promise<ReportePeriodoDto> { return (await api.get(`${base(venueId)}/report`, { params: p })).data },
   async staffDetail(venueId: string, staffId: string, p: { fecha?: string; sede?: string; cursor?: string; limit: number }): Promise<PaginaCursor<ClaseValoradaDto>> { return (await api.get(`${base(venueId)}/report/staff/${staffId}`, { params: p })).data },
   async exceptions(venueId: string, p: { fecha?: string; sede?: string; cursor?: string; limit: number }): Promise<PaginaCursor<ClaseValoradaDto>> { return (await api.get(`${base(venueId)}/report/exceptions`, { params: p })).data },
-  async orphans(venueId: string, p: { fecha?: string; sede?: string; offset: number; limit: number }) { return (await api.get(`${base(venueId)}/report/orphans`, { params: p })).data },
+  async orphans(venueId: string, p: { fecha?: string; sede?: string; offset: number; limit: number }): Promise<PaginaOffset<ReservaHuerfanaDto>> { return (await api.get(`${base(venueId)}/report/orphans`, { params: p })).data },
   async classPay(venueId: string, sessionId: string): Promise<PagoDeClaseDto> { return (await api.get(`${base(venueId)}/class-sessions/${sessionId}/pay`)).data },
   async adjustClass(venueId: string, sessionId: string, data: AjusteClaseInput): Promise<PagoDeClaseDto> { return (await api.put(`${base(venueId)}/class-sessions/${sessionId}/pay-adjustments`, data)).data },
 }

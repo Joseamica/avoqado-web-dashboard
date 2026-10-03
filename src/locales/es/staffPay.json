@@ -88,10 +88,50 @@
       "level": "Nivel",
       "classes": "Clases",
       "avgSeats": "Lugares promedio",
-      "total": "Total"
+      "total": "Total",
+      "venue": "Sede"
     },
     "detail": "Desglose",
-    "empty": "Todavía no hay clases terminadas en este periodo."
+    "empty": "Todavía no hay clases terminadas en este periodo.",
+    "truncated": "La lista de personas llegó a su tope y algunas no aparecen aquí ni en la tarjeta «Personas». El total y las clases sí cuentan todo.",
+    "error": "No se pudo cargar el periodo.",
+    "retry": "Reintentar",
+    "venue": {
+      "label": "Sede",
+      "all": "Todas las sedes",
+      "this": "Esta sede"
+    },
+    "pageRange": "{{from}}–{{to}} de {{total}}",
+    "previousPage": "Página anterior",
+    "nextPage": "Página siguiente",
+    "close": "Cerrar periodo",
+    "comingSoon": "Muy pronto",
+    "seeExceptions": "Ver cuáles",
+    "seeOrphans": "Ver reservas",
+    "exceptionsTitle": "Clases que no se pueden pagar todavía",
+    "orphansTitle": "Reservas de clase sin horario",
+    "orphansHelp": "Son reservas de una clase que no está en el calendario. No suman a ningún pago hasta que la clase exista.",
+    "loadMore": "Cargar más",
+    "listEmpty": "No hay nada pendiente aquí.",
+    "listError": "No se pudo cargar la lista.",
+    "shownOf": "{{shown}} de {{total}}",
+    "detailTitle": "Desglose de {{name}}",
+    "detailEmpty": "Esta persona no tiene clases terminadas en este periodo.",
+    "excluded": "Excluida",
+    "adjusted": "Ajustada",
+    "noCoach": "Sin coach",
+    "noGuest": "Sin nombre",
+    "detailColumns": {
+      "date": "Fecha",
+      "venue": "Sede",
+      "class": "Clase",
+      "coach": "Coach",
+      "seats": "Lugares",
+      "amount": "Monto",
+      "guest": "Cliente",
+      "reason": "Motivo"
+    },
+    "exceptionsHelp": "Cada una dice qué le falta para poder pagarse."
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
