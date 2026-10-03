@@ -307,6 +307,9 @@ export const SerializedSalesDemo = lazyWithRetry(() => import('@/pages/Serialize
 export const CommissionsPage = lazyWithRetry(() => import('@/pages/Commissions/CommissionsPage'))
 export const CommissionConfigDetailPage = lazyWithRetry(() => import('@/pages/Commissions/CommissionConfigDetailPage'))
 
+// Pago por servicio
+export const StaffPayPage = lazyWithRetry(() => import('@/pages/StaffPay/StaffPayPage'))
+
 // PlayTelecom (Serialized Inventory Dashboard)
 export const PlayTelecomLayout = lazyWithRetry(() => import('@/pages/playtelecom/PlayTelecomLayout'))
 export const PlayTelecomCommandCenter = lazyWithRetry(() => import('@/pages/playtelecom/CommandCenter/CommandCenter'))

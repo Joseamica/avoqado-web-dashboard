@@ -132,6 +132,8 @@ import reportsEn from '@/locales/en/reports.json'
 import reportsEs from '@/locales/es/reports.json'
 import commissionsEn from '@/locales/en/commissions.json'
 import commissionsEs from '@/locales/es/commissions.json'
+import staffPayEn from '@/locales/en/staffPay.json'
+import staffPayEs from '@/locales/es/staffPay.json'
 import playtelecomEn from '@/locales/en/playtelecom.json'
 import playtelecomEs from '@/locales/es/playtelecom.json'
 import playtelecomFr from '@/locales/fr/playtelecom.json'
@@ -645,6 +647,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'commissions', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', staffPayEn],
+    ['es', staffPayEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'staffPay', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

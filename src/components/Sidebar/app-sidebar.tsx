@@ -515,11 +515,13 @@ export function AppSidebar({
       // (the commissions pages themselves show the <FeatureGate> paywall); white-label venues keep the
       // per-partner AVOQADO_COMMISSIONS toggle below. Never use checkFeatureAccess here — it can't tier-gate.
       { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', premiumLocked: !hasFeatureAccess('COMMISSIONS'), gatedFeature: 'COMMISSIONS', keywords: ['propinas', 'bonos', 'metas', 'goals'] },
+      { title: t('sidebar:teamMenu.servicePay', { defaultValue: 'Pago por servicio' }), url: 'servicio-pago', permission: 'staffpay:read', keywords: ['coach', 'instructor', 'tabulador', 'nómina', 'pago por clase'] },
     ].filter(item => {
       if (item.permission && !can(item.permission)) return false
       if (isWhiteLabelVenue) {
         if (item.url === 'team' && !canWL('AVOQADO_TEAM')) return false
         if (item.url === 'asistencia') return false
+        if (item.url === 'servicio-pago') return false
         if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
         if (item.url === 'commissions' && !canWL('AVOQADO_COMMISSIONS')) return false
       }

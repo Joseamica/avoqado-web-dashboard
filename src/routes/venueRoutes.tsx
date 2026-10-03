@@ -33,6 +33,7 @@ import {
   CategoryId,
   CommissionConfigDetailPage,
   CommissionsPage,
+  StaffPayPage,
   ContactImages,
   CouponForm,
   Coupons,
@@ -558,6 +559,13 @@ export function createVenueRoutes(): RouteObject[] {
         { index: true, element: <CommissionsPage /> },
         { path: 'config/:configId', element: <CommissionConfigDetailPage /> },
       ],
+    },
+
+    // Pago por servicio (requires staffpay:read). Apagado se ve y se explica dentro de la página.
+    {
+      path: 'servicio-pago',
+      element: <PermissionProtectedRoute permission="staffpay:read" />,
+      children: [{ index: true, element: <StaffPayPage /> }],
     },
 
     // Customer Management (requires customers:read permission)

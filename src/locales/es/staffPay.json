@@ -1,0 +1,105 @@
+{
+  "title": "Pago por servicio",
+  "subtitle": "Cuánto gana cada persona por clase, según cuántos lugares se ocuparon.",
+  "disabled": {
+    "title": "Pago por servicio no está activo en tu negocio",
+    "description": "Pídele a Avoqado que lo active. Quien tenga el permiso de configurar el equipo podrá capturar la tabla de pagos."
+  },
+  "tabs": {
+    "table": "Tabla de pagos",
+    "periods": "Periodos"
+  },
+  "levels": {
+    "title": "Niveles",
+    "add": "Agregar nivel",
+    "archive": "Archivar",
+    "namePlaceholder": "Ej. Head Coach"
+  },
+  "who": {
+    "title": "Quién es qué",
+    "noLevel": "Sin nivel",
+    "since": "Desde",
+    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban."
+  },
+  "grid": {
+    "title": "Tabla de pagos",
+    "venue": "Sede",
+    "ceiling": "Techo de lugares",
+    "row": "Lugares ocupados",
+    "missing": "falta",
+    "fillDown": "Rellenar hacia abajo hasta la fila",
+    "overCeiling": "Si una clase pasa de {{max}} lugares, se paga como {{max}}.",
+    "missingCount": "Faltan {{count}} montos",
+    "simulator": "Una clase con {{seats}} lugares, dada por {{level}} = {{amount}}",
+    "simulatorMissing": "Falta el monto para esa fila",
+    "countMode": "Cómo se cuenta un lugar",
+    "booked": "Quien reservó (aunque falte)",
+    "bookedHelp": "La coach no pierde por las faltas del cliente.",
+    "attended": "Sólo quien llegó",
+    "attendedHelp": "Muy pronto: necesita que el check-in sin internet guarde su hora real.",
+    "create": "Crear tabla de pagos",
+    "publish": "Guardar tabla"
+  },
+  "publish": {
+    "title": "Guardar tabla de pagos",
+    "effectiveFrom": "¿Desde cuándo vale esta tabla?",
+    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
+    "confirm": "Guardar",
+    "saved": "Tabla guardada"
+  },
+  "period": {
+    "title": "Periodo {{start}} – {{end}}",
+    "open": "Abierto",
+    "partial": "Vista parcial: sólo las sedes que puedes ver",
+    "cards": {
+      "total": "Total",
+      "classes": "Clases",
+      "people": "Personas",
+      "exceptions": "Excepciones"
+    },
+    "exceptionsBanner": "{{count}} clases no se pueden pagar todavía. Resuélvelas antes de cerrar.",
+    "orphans": "{{count}} reservas de clase sin horario no cuentan para ningún pago.",
+    "closeSoon": "Cerrar el periodo llega en la siguiente versión.",
+    "columns": {
+      "person": "Persona",
+      "level": "Nivel",
+      "classes": "Clases",
+      "avgSeats": "Lugares promedio",
+      "total": "Total"
+    },
+    "detail": "Desglose",
+    "empty": "Todavía no hay clases terminadas en este periodo."
+  },
+  "reasons": {
+    "SIN_COACH": "La clase no tiene coach",
+    "COACH_SIN_NIVEL": "La coach no tiene nivel",
+    "SIN_TABLA": "No hay tabla de pagos para esta clase",
+    "SIN_MONTO_PARA_ESE_CONTEO": "Falta el monto para ese número de lugares"
+  },
+  "classCard": {
+    "title": "Pago a la coach",
+    "seats": "{{count}} de {{max}} lugares",
+    "notFinished": "Se calcula cuando termine la clase.",
+    "cancelled": "Clase cancelada: no se paga.",
+    "excluded": "No se paga: {{reason}}",
+    "fixCount": "Corregir conteo",
+    "fixAmount": "Ajustar monto",
+    "exclude": "No se paga esta clase",
+    "adjusted": "Ajustado: {{reason}}"
+  },
+  "adjust": {
+    "title": "Ajustar el pago de la clase",
+    "count": "Lugares que cuentan",
+    "amount": "Monto",
+    "exclude": "No se paga esta clase",
+    "reason": "Motivo",
+    "clear": "Quitar ajustes",
+    "save": "Guardar"
+  },
+  "member": {
+    "title": "Nivel de pago",
+    "since": "Desde cuándo",
+    "save": "Guardar nivel",
+    "example": "Con este nivel, una clase de {{seats}} lugares en {{venue}} paga {{amount}}."
+  }
+}

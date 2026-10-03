@@ -1,0 +1,105 @@
+{
+  "title": "Pay per service",
+  "subtitle": "How much each person earns per class, based on how many spots were filled.",
+  "disabled": {
+    "title": "Pay per service is not active for your business",
+    "description": "Ask Avoqado to turn it on. Anyone with the permission to configure the team will be able to enter the pay table."
+  },
+  "tabs": {
+    "table": "Pay table",
+    "periods": "Periods"
+  },
+  "levels": {
+    "title": "Levels",
+    "add": "Add level",
+    "archive": "Archive",
+    "namePlaceholder": "E.g. Head Coach"
+  },
+  "who": {
+    "title": "Who is what",
+    "noLevel": "No level",
+    "since": "Since",
+    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were."
+  },
+  "grid": {
+    "title": "Pay table",
+    "venue": "Venue",
+    "ceiling": "Spot ceiling",
+    "row": "Spots filled",
+    "missing": "missing",
+    "fillDown": "Fill down to row",
+    "overCeiling": "If a class goes over {{max}} spots, it is paid as {{max}}.",
+    "missingCount": "{{count}} amounts missing",
+    "simulator": "A class with {{seats}} spots, taught by {{level}} = {{amount}}",
+    "simulatorMissing": "The amount for that row is missing",
+    "countMode": "How a spot is counted",
+    "booked": "Whoever booked (even if absent)",
+    "bookedHelp": "The coach does not lose pay for client no-shows.",
+    "attended": "Only those who showed up",
+    "attendedHelp": "Coming soon: it needs offline check-in to save the real arrival time.",
+    "create": "Create pay table",
+    "publish": "Save table"
+  },
+  "publish": {
+    "title": "Save pay table",
+    "effectiveFrom": "From when does this table apply?",
+    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
+    "confirm": "Save",
+    "saved": "Table saved"
+  },
+  "period": {
+    "title": "Period {{start}} – {{end}}",
+    "open": "Open",
+    "partial": "Partial view: only the venues you can see",
+    "cards": {
+      "total": "Total",
+      "classes": "Classes",
+      "people": "People",
+      "exceptions": "Exceptions"
+    },
+    "exceptionsBanner": "{{count}} classes cannot be paid yet. Resolve them before closing.",
+    "orphans": "{{count}} class bookings without a schedule do not count toward any pay.",
+    "closeSoon": "Closing the period arrives in the next version.",
+    "columns": {
+      "person": "Person",
+      "level": "Level",
+      "classes": "Classes",
+      "avgSeats": "Average spots",
+      "total": "Total"
+    },
+    "detail": "Breakdown",
+    "empty": "There are no finished classes in this period yet."
+  },
+  "reasons": {
+    "SIN_COACH": "The class has no coach",
+    "COACH_SIN_NIVEL": "The coach has no level",
+    "SIN_TABLA": "There is no pay table for this class",
+    "SIN_MONTO_PARA_ESE_CONTEO": "The amount for that number of spots is missing"
+  },
+  "classCard": {
+    "title": "Coach pay",
+    "seats": "{{count}} of {{max}} spots",
+    "notFinished": "Calculated when the class ends.",
+    "cancelled": "Class cancelled: not paid.",
+    "excluded": "Not paid: {{reason}}",
+    "fixCount": "Fix count",
+    "fixAmount": "Adjust amount",
+    "exclude": "This class is not paid",
+    "adjusted": "Adjusted: {{reason}}"
+  },
+  "adjust": {
+    "title": "Adjust the class pay",
+    "count": "Spots that count",
+    "amount": "Amount",
+    "exclude": "This class is not paid",
+    "reason": "Reason",
+    "clear": "Remove adjustments",
+    "save": "Save"
+  },
+  "member": {
+    "title": "Pay level",
+    "since": "Since when",
+    "save": "Save level",
+    "example": "With this level, a class of {{seats}} spots at {{venue}} pays {{amount}}."
+  }
+}

@@ -28,7 +28,8 @@
   "teamMenu": {
     "title": "Equipo",
     "members": "Miembros",
-    "attendance": "Asistencia"
+    "attendance": "Asistencia",
+    "servicePay": "Pago por servicio"
   },
   "settingsMenu": {
     "title": "Configuración"
