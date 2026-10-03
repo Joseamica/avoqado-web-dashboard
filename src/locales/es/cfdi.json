@@ -98,7 +98,7 @@
       "successDetail": "Folio {{folio}} · UUID {{uuid}}"
     },
     "errors": {
-      "validation": "No se pudo facturar. Corrige lo siguiente:",
+      "validation": "No se pudo facturar:",
       "pacRejected": "El PAC rechazó el timbrado.",
       "conflict": "Esta cuenta ya tiene una factura o está en proceso.",
       "alreadyIssued": "Esta venta ya tiene factura — no se emitió una nueva.",
@@ -116,7 +116,25 @@
     "usoSearch": "Busca el uso…",
     "usoCfdiHint": "Solo mostramos los usos válidos para tu régimen.",
     "noResults": "Sin resultados",
-    "regimenFiscalHintStaff": "El régimen del cliente (viene en su Constancia de Situación Fiscal)."
+    "regimenFiscalHintStaff": "El régimen del cliente (viene en su Constancia de Situación Fiscal).",
+    "priceContract": {
+      "explain": "Esta venta es de antes de que el negocio marcara el IVA por producto. Si su precio ya incluía el IVA (como se cobra normalmente en México), confírmalo y la factura saldrá con el IVA de cada producto.",
+      "confirmButton": "Confirmar que el precio ya incluía IVA",
+      "reviewTitle": "Revisa la venta antes de confirmar",
+      "sale": "Venta",
+      "saleNumber": "#{{number}}",
+      "date": "Fecha",
+      "total": "Total",
+      "reviewNote": "Esto sólo corrige el dato de la venta: no emite ni cancela ninguna factura. Al confirmar, volvemos a intentar la factura con los mismos datos del cliente.",
+      "confirmYes": "Sí, el precio incluía IVA",
+      "back": "Volver",
+      "needsConfirmation": "Esta venta necesita que alguien confirme que su precio ya incluía IVA.",
+      "askOwner": "Pídele al dueño o a un administrador que lo confirme.",
+      "confirmed": "Listo: quedó confirmado que el precio de esta venta incluía IVA.",
+      "changedSinceReview": "La venta cambió desde que la revisaste. Vuelve a tocar «{{submit}}» para ver la venta actualizada.",
+      "confirmedManual": "Listo, ya quedó confirmado. Revisa los datos y toca «{{submit}}» para facturar.",
+      "confirmError": "No se pudo confirmar. Intenta de nuevo."
+    }
   },
   "autofactura": {
     "cta": {

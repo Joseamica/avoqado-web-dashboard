@@ -246,6 +246,40 @@ export interface IssueCfdiResponse {
   cfdi: IssuedCfdi
 }
 
+/**
+ * Vista previa del «contrato de precio» de una venta (IVA por producto, §4.6 del spec).
+ *
+ * El 422 de «Facturar» la trae en `priceContract` SÓLO cuando lo que bloquea es una venta vieja de IVA
+ * mixto cuyo contrato se desconoce. Con `confirmable: true`, quien tenga `cfdi:configure` puede confirmar
+ * que el precio ya incluía IVA (con `version` + `huella` como candado de lo que vio). Con `confirmable:
+ * false`, el servidor ya puso su `motivo` en `reasons` en lugar del «confírmalo».
+ */
+export interface PriceContractPreview {
+  orderId: string
+  orderNumber: string
+  /** ISO 8601 (UTC). Se muestra en el timezone del venue. */
+  createdAt: string
+  totalMxn: number
+  taxAmountMxn: number
+  source: string
+  contratoActual: string
+  version: number
+  status: string
+  paymentStatus: string
+  paidAmountMxn: number
+  confirmable: boolean
+  motivo?: string
+  huella: string
+}
+
+/** Cuerpo del 422 de «Facturar»: no se timbró nada; `reasons` dice por qué. */
+export interface IssueCfdiValidationError {
+  error: string
+  reasons: string[]
+  cfdiId?: string
+  priceContract?: PriceContractPreview
+}
+
 // ─── Global CFDI (Flow C — "Factura global / Público en General") ────────────
 
 /** Period a stamped global CFDI covers (echoed back by the backend). */
@@ -491,6 +525,19 @@ export const cfdiService = {
       ...(receptor.email?.trim() && { email: receptor.email.trim() }),
     }
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cfdi`, body)
+    return response.data?.data ?? response.data
+  },
+
+  /**
+   * Confirma que una venta VIEJA (contrato de precio desconocido) se cobró con el IVA YA incluido, para
+   * que «Facturar» pueda emitirla con el IVA de cada producto. No emite ni cancela ninguna factura.
+   *
+   * `version` + `huella` son los de la vista previa que la persona vio: si la venta cambió desde entonces,
+   * el servidor responde 409 `CAMBIO_DESDE_LA_VISTA` sin tocar nada. Otros errores: 409 `NO_CONFIRMABLE`,
+   * 404 `NO_ENCONTRADA`, 403 sin `cfdi:configure`. El texto para mostrar viene en `error`.
+   */
+  async confirmPriceContract(venueId: string, orderId: string, version: number, huella: string): Promise<{ ok: true }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/price-contract/confirm`, { version, huella })
     return response.data?.data ?? response.data
   },
 
