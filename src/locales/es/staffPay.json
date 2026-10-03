@@ -116,6 +116,8 @@
     "listError": "No se pudo cargar la lista.",
     "shownOf": "{{shown}} de {{total}}",
     "detailTitle": "Desglose de {{name}}",
+    "detailSummary_one": "{{count}} clase · Total {{total}}",
+    "detailSummary_other": "{{count}} clases · Total {{total}}",
     "detailEmpty": "Esta persona no tiene clases terminadas en este periodo.",
     "excluded": "Excluida",
     "adjusted": "Ajustada",
@@ -131,7 +133,9 @@
       "guest": "Cliente",
       "reason": "Motivo"
     },
-    "exceptionsHelp": "Cada una dice qué le falta para poder pagarse."
+    "exceptionsHelp": "Cada una dice qué le falta para poder pagarse.",
+    "resolveInTable": "Resolver en la tabla de pagos",
+    "resolveNoCoach": "Asígnale coach desde el calendario de reservas."
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
@@ -141,7 +145,9 @@
   },
   "classCard": {
     "title": "Pago a la coach",
-    "seats": "{{count}} de {{max}} lugares",
+    "seats_one": "{{count}} lugar ocupado",
+    "seats_other": "{{count}} lugares ocupados",
+    "seatsOverCap": "se paga como {{max}}",
     "notFinished": "Se calcula cuando termine la clase.",
     "cancelled": "Clase cancelada: no se paga.",
     "excluded": "No se paga: {{reason}}",

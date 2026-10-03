@@ -7,10 +7,27 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useStaffPayDetail } from '@/hooks/useStaffPay'
 import { useNombreSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
-import { EstadoLista } from './ListasDelPeriodo'
+import { EstadoLista, TABLA_PERIODO } from './ListasDelPeriodo'
 
-/** Desglose de sólo lectura (un Sheet es válido; FullScreenModal es para crear/editar). */
-export function DesglosePersona({ staffId, staffName, sede, onClose }: { staffId: string; staffName: string; sede?: string; onClose: () => void }) {
+/**
+ * Desglose de sólo lectura (un Sheet es válido; FullScreenModal es para crear/editar). El total viene del renglón del
+ * reporte, no de sumar las filas: la lista es paginada y la suma de lo cargado mentiría con «Cargar más» pendiente.
+ */
+export function DesglosePersona({
+  staffId,
+  staffName,
+  clases,
+  total,
+  sede,
+  onClose,
+}: {
+  staffId: string
+  staffName: string
+  clases: number
+  total: string
+  sede?: string
+  onClose: () => void
+}) {
   const { t } = useTranslation('staffPay')
   const { formatDateTime } = useVenueDateTime()
   const nombreSede = useNombreSede()
@@ -19,10 +36,10 @@ export function DesglosePersona({ staffId, staffName, sede, onClose }: { staffId
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
         <SheetHeader>
           <SheetTitle>{t('period.detailTitle', { name: staffName })}</SheetTitle>
-          <SheetDescription className="sr-only">{t('period.detail')}</SheetDescription>
+          <SheetDescription>{t('period.detailSummary', { count: clases, total: Currency(Number(total)) })}</SheetDescription>
         </SheetHeader>
         <EstadoLista
           isLoading={q.isLoading}
@@ -34,7 +51,7 @@ export function DesglosePersona({ staffId, staffName, sede, onClose }: { staffId
           isFetchingNextPage={q.isFetchingNextPage}
           onLoadMore={() => q.fetchNextPage()}
         >
-          <table className="mt-4 w-full text-sm">
+          <table className={`mt-4 ${TABLA_PERIODO}`}>
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="py-2">{t('period.detailColumns.date')}</th>
@@ -47,7 +64,7 @@ export function DesglosePersona({ staffId, staffName, sede, onClose }: { staffId
             <tbody>
               {filas.map(f => (
                 <tr key={f.classSessionId} className="border-b border-border/50">
-                  <td className="py-2">{formatDateTime(f.startsAt)}</td>
+                  <td className="whitespace-nowrap py-2">{formatDateTime(f.startsAt)}</td>
                   <td className="text-muted-foreground">{nombreSede(f.venueId)}</td>
                   <td>
                     {f.productName}

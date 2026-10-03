@@ -116,8 +116,28 @@ describe('PagoDeClaseCard', () => {
     conRouter(<PagoDeClaseCard sessionId="s1" />)
     expect(screen.getByText(/570/)).toBeInTheDocument()
     expect(screen.getByText(/classCard.seats/)).toHaveTextContent('"count":8')
+    // El techo de la tabla no es el cupo de la clase: dentro del techo no se menciona.
+    expect(screen.queryByText(/classCard\.seatsOverCap/)).not.toBeInTheDocument()
     // El modo de conteo va junto al conteo (spec §7.2).
     expect(screen.getByText(/classCard\.mode\.BOOKED/)).toBeInTheDocument()
+  })
+
+  it('arriba del techo dice con qué fila se paga en vez de «11 de 10»', () => {
+    m.pay.mockReturnValue({
+      data: {
+        estado: 'OK',
+        monto: '650.00',
+        conteo: 11,
+        maxCount: 10,
+        countMode: 'BOOKED',
+        staffName: 'Ana',
+        payLevelName: 'Head Coach',
+        ajuste: null,
+      },
+    })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText(/classCard\.seats:/)).toHaveTextContent('"count":11')
+    expect(screen.getByText(/classCard\.seatsOverCap/)).toHaveTextContent('"max":10')
   })
 
   it('sin staffpay:read no pregunta nada al servidor y no pinta nada', () => {

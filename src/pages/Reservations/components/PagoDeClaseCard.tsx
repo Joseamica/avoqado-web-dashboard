@@ -74,7 +74,9 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             </p>
             {p.conteo !== null && p.conteo !== undefined && (
               <p className="text-sm text-muted-foreground">
-                <span>{t('classCard.seats', { count: p.conteo, max: p.maxCount ?? '—' })}</span>
+                {/* El techo NO es el cupo de la clase: sólo se menciona cuando se rebasa («11 · se paga como 10»). */}
+                <span>{t('classCard.seats', { count: p.conteo })}</span>
+                {p.maxCount != null && p.conteo > p.maxCount && <span> · {t('classCard.seatsOverCap', { max: p.maxCount })}</span>}
                 {p.countMode && MODOS_DE_CONTEO.has(p.countMode) && <span> · {t(`classCard.mode.${p.countMode}`)}</span>}
               </p>
             )}

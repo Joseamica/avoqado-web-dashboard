@@ -11,7 +11,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useStaffPayReport } from '@/hooks/useStaffPay'
 import { DesglosePersona } from './DesglosePersona'
-import { ExcepcionesSheet, HuerfanasSheet } from './ListasDelPeriodo'
+import { ExcepcionesSheet, HuerfanasSheet, TABLA_PERIODO } from './ListasDelPeriodo'
 import { useNombreSede } from '../useNombreSede'
 
 const LIMITE = 50
@@ -24,7 +24,7 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
   const nombreSede = useNombreSede()
   const [offset, setOffset] = useState(0)
   const [sede, setSede] = useState<string | undefined>(undefined)
-  const [persona, setPersona] = useState<{ staffId: string; staffName: string } | null>(null)
+  const [persona, setPersona] = useState<{ staffId: string; staffName: string; clases: number; total: string } | null>(null)
   const [lista, setLista] = useState<'excepciones' | 'huerfanas' | null>(null)
   // Las sedes del filtro salen del reporte SIN filtro: con `sede` puesto, `venueIds` ya viene recortado a esa sola.
   const [sedesConocidas, setSedesConocidas] = useState<string[]>([])
@@ -155,12 +155,21 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
         </div>
       )}
       {tj.excepciones > 0 && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+        >
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>{t('period.exceptionsBanner', { count: tj.excepciones })}</span>
           </div>
-          <Button variant="outline" size="sm" className="cursor-pointer" data-tour="staffpay-period-exceptions" onClick={() => setLista('excepciones')}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            data-tour="staffpay-period-exceptions"
+            onClick={() => setLista('excepciones')}
+          >
             {t('period.seeExceptions')}
           </Button>
         </div>
@@ -181,7 +190,7 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
         <p className="text-sm text-muted-foreground">{t('period.empty')}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className={TABLA_PERIODO}>
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="py-2">{t('period.columns.person')}</th>
@@ -203,7 +212,12 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
                   <td className="text-right">{p.promedioLugares}</td>
                   <td className="text-right font-semibold">{Currency(Number(p.total))}</td>
                   <td className="text-right">
-                    <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName })}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="cursor-pointer"
+                      onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName, clases: p.clases, total: p.total })}
+                    >
                       {t('period.detail')}
                     </Button>
                   </td>
@@ -251,7 +265,16 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
         <p className="text-xs text-muted-foreground">{t('period.closeSoon')}</p>
       </div>
 
-      {persona && <DesglosePersona staffId={persona.staffId} staffName={persona.staffName} sede={sede} onClose={() => setPersona(null)} />}
+      {persona && (
+        <DesglosePersona
+          staffId={persona.staffId}
+          staffName={persona.staffName}
+          clases={persona.clases}
+          total={persona.total}
+          sede={sede}
+          onClose={() => setPersona(null)}
+        />
+      )}
       {lista === 'excepciones' && <ExcepcionesSheet sede={sede} onClose={() => setLista(null)} />}
       {lista === 'huerfanas' && <HuerfanasSheet sede={sede} onClose={() => setLista(null)} />}
     </div>

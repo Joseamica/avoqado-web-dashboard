@@ -1,14 +1,22 @@
 import { useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useVenueDateTime } from '@/utils/datetime'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useStaffPayExceptions, useStaffPayOrphans } from '@/hooks/useStaffPay'
-import type { ReservaHuerfanaDto } from '@/types/staffPay'
+import type { MotivoExcepcion, ReservaHuerfanaDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
+
+/** Tablas del periodo: aire entre columnas (sin él, «Sede» y «Clase» se pegan en el panel lateral). */
+export const TABLA_PERIODO = 'w-full text-sm [&_th]:pr-4 [&_td]:pr-4 [&_th:last-child]:pr-0 [&_td:last-child]:pr-0'
+
+/** Excepciones que se resuelven en la pestaña «Tabla de pagos» (nivel, tabla o monto). */
+const SALIDA_EN_LA_TABLA = new Set<MotivoExcepcion>(['COACH_SIN_NIVEL', 'SIN_TABLA', 'SIN_MONTO_PARA_ESE_CONTEO'])
 
 /** Carga / error con reintento / vacío / «Cargar más»: una lista acotada nunca se queda en blanco sin explicación. */
 export function EstadoLista(p: {
@@ -61,13 +69,14 @@ export function EstadoLista(p: {
 export function ExcepcionesSheet({ sede, onClose }: { sede?: string; onClose: () => void }) {
   const { t } = useTranslation('staffPay')
   const { formatDateTime } = useVenueDateTime()
+  const { fullBasePath } = useCurrentVenue()
   const nombreSede = useNombreSede()
   const q = useStaffPayExceptions(sede)
   const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
         <SheetHeader>
           <SheetTitle>{t('period.exceptionsTitle')}</SheetTitle>
           <SheetDescription>{t('period.exceptionsHelp')}</SheetDescription>
@@ -82,7 +91,7 @@ export function ExcepcionesSheet({ sede, onClose }: { sede?: string; onClose: ()
           isFetchingNextPage={q.isFetchingNextPage}
           onLoadMore={() => q.fetchNextPage()}
         >
-          <table className="mt-4 w-full text-sm">
+          <table className={`mt-4 ${TABLA_PERIODO}`}>
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="py-2">{t('period.detailColumns.date')}</th>
@@ -93,15 +102,31 @@ export function ExcepcionesSheet({ sede, onClose }: { sede?: string; onClose: ()
               </tr>
             </thead>
             <tbody>
-              {filas.map(f => (
-                <tr key={f.classSessionId} className="border-b border-border/50 align-top">
-                  <td className="py-2">{formatDateTime(f.startsAt)}</td>
-                  <td className="text-muted-foreground">{nombreSede(f.venueId)}</td>
-                  <td>{f.productName}</td>
-                  <td>{f.staffName ?? t('period.noCoach')}</td>
-                  <td className="text-amber-700 dark:text-amber-400">{t(`reasons.${f.motivo ?? 'SIN_TABLA'}`)}</td>
-                </tr>
-              ))}
+              {filas.map(f => {
+                const motivo = f.motivo ?? 'SIN_TABLA'
+                return (
+                  <tr key={f.classSessionId} className="border-b border-border/50 align-top">
+                    <td className="whitespace-nowrap py-2">{formatDateTime(f.startsAt)}</td>
+                    <td className="py-2 text-muted-foreground">{nombreSede(f.venueId)}</td>
+                    <td className="py-2">{f.productName}</td>
+                    <td className="py-2">{f.staffName ?? t('period.noCoach')}</td>
+                    <td className="py-2">
+                      <p className="text-amber-700 dark:text-amber-400">{t(`reasons.${motivo}`)}</p>
+                      {SALIDA_EN_LA_TABLA.has(motivo) ? (
+                        <Link
+                          to={`${fullBasePath}/servicio-pago#tabla`}
+                          onClick={onClose}
+                          className="text-xs font-medium underline underline-offset-2"
+                        >
+                          {t('period.resolveInTable')}
+                        </Link>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">{t('period.resolveNoCoach')}</p>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </EstadoLista>
@@ -125,7 +150,7 @@ export function HuerfanasSheet({ sede, onClose }: { sede?: string; onClose: () =
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
         <SheetHeader>
           <SheetTitle>{t('period.orphansTitle')}</SheetTitle>
           <SheetDescription>{t('period.orphansHelp')}</SheetDescription>
@@ -141,7 +166,7 @@ export function HuerfanasSheet({ sede, onClose }: { sede?: string; onClose: () =
           onLoadMore={() => q.fetchNextPage()}
         >
           <p className="mt-4 text-xs text-muted-foreground">{t('period.shownOf', { shown: filas.length, total })}</p>
-          <table className="mt-2 w-full text-sm">
+          <table className={`mt-2 ${TABLA_PERIODO}`}>
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="py-2">{t('period.detailColumns.date')}</th>
@@ -153,7 +178,7 @@ export function HuerfanasSheet({ sede, onClose }: { sede?: string; onClose: () =
             <tbody>
               {filas.map(r => (
                 <tr key={r.reservationId} className="border-b border-border/50">
-                  <td className="py-2">{formatDateTime(r.startsAt)}</td>
+                  <td className="whitespace-nowrap py-2">{formatDateTime(r.startsAt)}</td>
                   <td className="text-muted-foreground">{nombreSede(r.venueId)}</td>
                   <td>{r.productName ?? '—'}</td>
                   <td>{r.guestName ?? t('period.noGuest')}</td>

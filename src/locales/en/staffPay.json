@@ -116,6 +116,8 @@
     "listError": "The list could not be loaded.",
     "shownOf": "{{shown}} of {{total}}",
     "detailTitle": "Breakdown for {{name}}",
+    "detailSummary_one": "{{count}} class · Total {{total}}",
+    "detailSummary_other": "{{count}} classes · Total {{total}}",
     "detailEmpty": "This person has no finished classes in this period.",
     "excluded": "Excluded",
     "adjusted": "Adjusted",
@@ -131,7 +133,9 @@
       "guest": "Customer",
       "reason": "Reason"
     },
-    "exceptionsHelp": "Each one says what it is missing before it can be paid."
+    "exceptionsHelp": "Each one says what it is missing before it can be paid.",
+    "resolveInTable": "Fix it in the pay table",
+    "resolveNoCoach": "Assign a coach from the reservations calendar."
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
@@ -141,7 +145,9 @@
   },
   "classCard": {
     "title": "Coach pay",
-    "seats": "{{count}} of {{max}} spots",
+    "seats_one": "{{count}} spot taken",
+    "seats_other": "{{count}} spots taken",
+    "seatsOverCap": "paid as {{max}}",
     "notFinished": "Calculated when the class ends.",
     "cancelled": "Class cancelled: not paid.",
     "excluded": "Not paid: {{reason}}",

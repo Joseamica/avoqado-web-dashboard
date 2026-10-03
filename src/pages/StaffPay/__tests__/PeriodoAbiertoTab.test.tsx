@@ -11,7 +11,7 @@ vi.mock('@/context/AuthContext', () => ({
 }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d, formatDateTime: (d: string) => d }) }))
 vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: () => null }))
-vi.mock('../components/ListasDelPeriodo', () => ({ ExcepcionesSheet: () => null, HuerfanasSheet: () => null }))
+vi.mock('../components/ListasDelPeriodo', () => ({ ExcepcionesSheet: () => null, HuerfanasSheet: () => null, TABLA_PERIODO: 'w-full text-sm' }))
 // Select nativo: el Select de Radix no se deja manejar en jsdom.
 vi.mock('@/components/ui/select', () => ({
   Select: ({ value, onValueChange, children }: any) => (
