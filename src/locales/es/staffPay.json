@@ -13,13 +13,16 @@
     "title": "Niveles",
     "add": "Agregar nivel",
     "archive": "Archivar",
-    "namePlaceholder": "Ej. Head Coach"
+    "namePlaceholder": "Ej. Head Coach",
+    "empty": "Todavía no hay niveles. Crea el primero, por ejemplo Head Coach o Coach."
   },
   "who": {
     "title": "Quién es qué",
     "noLevel": "Sin nivel",
     "since": "Desde",
-    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban."
+    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
+    "empty": "No hay personas activas en tu equipo.",
+    "needLevels": "Crea un nivel primero para poder asignarlo."
   },
   "grid": {
     "title": "Tabla de pagos",
@@ -38,14 +41,24 @@
     "attended": "Sólo quien llegó",
     "attendedHelp": "Muy pronto: necesita que el check-in sin internet guarde su hora real.",
     "create": "Crear tabla de pagos",
-    "publish": "Guardar tabla"
+    "publish": "Guardar tabla",
+    "empty": "Todavía no tienes tabla de pagos. Créala para capturar los montos.",
+    "needLevels": "Agrega al menos un nivel para llenar la tabla.",
+    "simulatorPrefix": "Una clase con",
+    "simulatorMiddle": "lugares, dada por",
+    "simulatorSeats": "Lugares de la clase de prueba",
+    "simulatorLevel": "Nivel de la clase de prueba",
+    "ceilingInvalid": "El techo va de 0 a {{max}} lugares.",
+    "cellLabel": "{{level}}, {{count}} lugares",
+    "fillApply": "Rellenar"
   },
   "publish": {
     "title": "Guardar tabla de pagos",
     "effectiveFrom": "¿Desde cuándo vale esta tabla?",
     "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "confirm": "Guardar",
-    "saved": "Tabla guardada"
+    "saved": "Tabla guardada",
+    "effectLoading": "Calculando cuántas clases cambian…"
   },
   "period": {
     "title": "Periodo {{start}} – {{end}}",
@@ -101,5 +114,19 @@
     "since": "Desde cuándo",
     "save": "Guardar nivel",
     "example": "Con este nivel, una clase de {{seats}} lugares en {{venue}} paga {{amount}}."
+  },
+  "steps": {
+    "title": "Pasos para configurar",
+    "levels": "Crea tus niveles",
+    "who": "Di quién es qué",
+    "grid": "Llena la tabla"
+  },
+  "states": {
+    "loading": "Cargando la tabla de pagos…",
+    "loadError": "No se pudo cargar la tabla de pagos.",
+    "retry": "Reintentar"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Intenta de nuevo."
   }
 }

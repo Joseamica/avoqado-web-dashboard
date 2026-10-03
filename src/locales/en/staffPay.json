@@ -13,13 +13,16 @@
     "title": "Levels",
     "add": "Add level",
     "archive": "Archive",
-    "namePlaceholder": "E.g. Head Coach"
+    "namePlaceholder": "E.g. Head Coach",
+    "empty": "No levels yet. Create the first one, for example Head Coach or Coach."
   },
   "who": {
     "title": "Who is what",
     "noLevel": "No level",
     "since": "Since",
-    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were."
+    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
+    "empty": "There are no active people on your team.",
+    "needLevels": "Create a level first so you can assign it."
   },
   "grid": {
     "title": "Pay table",
@@ -38,14 +41,24 @@
     "attended": "Only those who showed up",
     "attendedHelp": "Coming soon: it needs offline check-in to save the real arrival time.",
     "create": "Create pay table",
-    "publish": "Save table"
+    "publish": "Save table",
+    "empty": "You do not have a pay table yet. Create it to enter the amounts.",
+    "needLevels": "Add at least one level to fill in the table.",
+    "simulatorPrefix": "A class with",
+    "simulatorMiddle": "spots, taught by",
+    "simulatorSeats": "Spots in the test class",
+    "simulatorLevel": "Level of the test class",
+    "ceilingInvalid": "The ceiling goes from 0 to {{max}} spots.",
+    "cellLabel": "{{level}}, {{count}} spots",
+    "fillApply": "Fill"
   },
   "publish": {
     "title": "Save pay table",
     "effectiveFrom": "From when does this table apply?",
     "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "confirm": "Save",
-    "saved": "Table saved"
+    "saved": "Table saved",
+    "effectLoading": "Calculating how many classes change…"
   },
   "period": {
     "title": "Period {{start}} – {{end}}",
@@ -101,5 +114,19 @@
     "since": "Since when",
     "save": "Save level",
     "example": "With this level, a class of {{seats}} spots at {{venue}} pays {{amount}}."
+  },
+  "steps": {
+    "title": "Setup steps",
+    "levels": "Create your levels",
+    "who": "Say who is what",
+    "grid": "Fill in the table"
+  },
+  "states": {
+    "loading": "Loading the pay table…",
+    "loadError": "The pay table could not be loaded.",
+    "retry": "Retry"
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again."
   }
 }
