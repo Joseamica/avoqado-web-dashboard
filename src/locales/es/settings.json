@@ -274,6 +274,7 @@
       "attendance": "Asistencia",
       "staff_documents": "Expediente del personal",
       "class_sessions": "Clases asignadas",
+      "staff_pay": "Pago por servicio",
       "marketing": "Marketing",
       "cash_drawer": "Cajón de efectivo"
     },
@@ -393,6 +394,8 @@
     },
     "permissionLabels": {
       "home_read": "Ver panel de inicio",
+      "staffpay_read": "Ver pago por servicio",
+      "staffpay_manage": "Configurar pago por servicio",
       "analytics_read": "Ver analíticas",
       "analytics_export": "Exportar datos de analíticas",
       "settlements_read": "Ver liquidaciones",
