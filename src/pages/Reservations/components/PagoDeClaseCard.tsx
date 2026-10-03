@@ -11,6 +11,9 @@ import { useClassPay, useStaffPayAccess } from '@/hooks/useStaffPay'
 import { AjustePagoClaseModal, type ModoAjuste } from './AjustePagoClaseModal'
 
 /** Excepciones cuya salida está en la tabla de pagos (nivel, tabla o celda). */
+/** Modos de conteo con etiqueta; uno desconocido no se pinta. */
+const MODOS_DE_CONTEO = new Set(['BOOKED', 'ATTENDED'])
+
 const SALIDA_EN_LA_TABLA = new Set(['COACH_SIN_NIVEL', 'SIN_TABLA', 'SIN_MONTO_PARA_ESE_CONTEO'])
 
 /**
@@ -21,8 +24,10 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { fullBasePath } = useCurrentVenue()
-  const { data: acceso } = useStaffPayAccess()
-  const habilitado = !!acceso?.enabled && can('staffpay:read')
+  const puedeVer = can('staffpay:read')
+  // Sin el permiso no se pregunta ni si el módulo está prendido: la API no le manda nada (spec §7.2).
+  const { data: acceso } = useStaffPayAccess(puedeVer)
+  const habilitado = puedeVer && !!acceso?.enabled
   const { data: p, isLoading, isError } = useClassPay(sessionId, habilitado)
   const [modo, setModo] = useState<ModoAjuste | null>(null)
 
@@ -68,7 +73,10 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
               {p.payLevelName ? ` · ${p.payLevelName}` : ''}
             </p>
             {p.conteo !== null && p.conteo !== undefined && (
-              <p className="text-sm text-muted-foreground">{t('classCard.seats', { count: p.conteo, max: p.maxCount ?? '—' })}</p>
+              <p className="text-sm text-muted-foreground">
+                <span>{t('classCard.seats', { count: p.conteo, max: p.maxCount ?? '—' })}</span>
+                {p.countMode && MODOS_DE_CONTEO.has(p.countMode) && <span> · {t(`classCard.mode.${p.countMode}`)}</span>}
+              </p>
             )}
             {conteoCorregido && <p className="text-xs text-muted-foreground">{t('classCard.calculated', { count: p.conteoCalculado })}</p>}
             {p.estado === 'OK' ? (

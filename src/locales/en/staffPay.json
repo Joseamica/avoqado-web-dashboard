@@ -152,7 +152,11 @@
     "loadError": "Could not load the pay for this class.",
     "calculated": "The system counted {{count}}.",
     "exitNoCoach": "Pick the coach above and save, or mark “This class is not paid”.",
-    "exitGoToTable": "Fix it in the pay table"
+    "exitGoToTable": "Fix it in the pay table",
+    "mode": {
+      "BOOKED": "by bookings",
+      "ATTENDED": "by attendance"
+    }
   },
   "adjust": {
     "title": "Adjust the class pay",
@@ -167,7 +171,7 @@
     "emptyHint": "Leave it empty to use what the system counts.",
     "countInvalid": "Enter a whole number between 0 and {{max}}.",
     "amountHint": "Leave it empty to use the amount from the table.",
-    "amountInvalid": "Enter a valid amount (0 or more, up to 2 decimals).",
+    "amountInvalid": "Enter a valid amount (0 to 1,000,000, up to 2 decimals).",
     "reasonPlaceholder": "E.g. it was 9, one came in without booking",
     "reasonHint": "Required, at least {{min}} characters. It stays in the history."
   },

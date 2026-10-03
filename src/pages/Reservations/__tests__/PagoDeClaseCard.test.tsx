@@ -10,13 +10,15 @@ const m = vi.hoisted(() => ({
   adjust: vi.fn(),
   assign: vi.fn(),
   modalNivel: vi.fn(),
+  can: vi.fn(),
+  access: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k), i18n: { language: 'es' } }),
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.can(p) }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatCalendarDate: (d: string) => d }),
@@ -51,8 +53,8 @@ vi.mock('@/pages/StaffPay/components/AsignarNivelModal', () => ({
   },
 }))
 vi.mock('@/hooks/useStaffPay', () => ({
-  useStaffPayAccess: () => ({ data: { enabled: true } }),
-  useClassPay: () => m.pay(),
+  useStaffPayAccess: (enabled?: boolean) => m.access(enabled),
+  useClassPay: (...a: unknown[]) => m.pay(...a),
   useAdjustClass: () => ({ mutateAsync: m.adjust, isPending: false }),
   useStaffPayLevels: () => ({
     data: [
@@ -86,16 +88,55 @@ const pago = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 })
 
+const prenderPermisos = () => {
+  m.can.mockReturnValue(true)
+  // Igual que react-query: deshabilitado ⇒ sin datos.
+  m.access.mockImplementation((enabled = true) => ({ data: enabled ? { enabled: true } : undefined }))
+}
+
 describe('PagoDeClaseCard', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    prenderPermisos()
+  })
 
   it('muestra monto y conteo', () => {
     m.pay.mockReturnValue({
-      data: { estado: 'OK', monto: '570.00', conteo: 8, maxCount: 10, staffName: 'Ana', payLevelName: 'Head Coach', ajuste: null },
+      data: {
+        estado: 'OK',
+        monto: '570.00',
+        conteo: 8,
+        maxCount: 10,
+        countMode: 'BOOKED',
+        staffName: 'Ana',
+        payLevelName: 'Head Coach',
+        ajuste: null,
+      },
     })
     conRouter(<PagoDeClaseCard sessionId="s1" />)
     expect(screen.getByText(/570/)).toBeInTheDocument()
     expect(screen.getByText(/classCard.seats/)).toHaveTextContent('"count":8')
+    // El modo de conteo va junto al conteo (spec §7.2).
+    expect(screen.getByText(/classCard\.mode\.BOOKED/)).toBeInTheDocument()
+  })
+
+  it('sin staffpay:read no pregunta nada al servidor y no pinta nada', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:read' && p !== 'staffpay:manage')
+    m.pay.mockReturnValue({ data: undefined })
+    const { container } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(m.access).toHaveBeenCalled()
+    expect(m.access.mock.calls.every(([enabled]) => enabled === false)).toBe(true)
+    expect(m.pay.mock.calls.every(([, enabled]) => enabled === false)).toBe(true)
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('con «No se paga» prendido, un conteo inválido ya no bloquea guardar', () => {
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.exclude' }))
+    fireEvent.change(screen.getByLabelText('adjust.count'), { target: { value: '9.5' } })
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Clase interna' } })
+    expect(screen.getByRole('button', { name: 'adjust.save' })).toBeEnabled()
   })
 
   it('una excepción se explica con su motivo', () => {
@@ -135,7 +176,10 @@ describe('PagoDeClaseCard', () => {
 })
 
 describe('NivelDePagoSection', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    prenderPermisos()
+  })
 
   it('elegir otro nivel abre la confirmación con su vista previa; no asigna directo', () => {
     render(<NivelDePagoSection staffId="st1" staffName="Ana López" />)

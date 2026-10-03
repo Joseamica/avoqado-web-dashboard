@@ -15,9 +15,10 @@ export const staffPayKeys = {
 const pesado = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
 const LIMITE_LISTA = 50
 
-export function useStaffPayAccess() {
+/** `enabled=false` para quien no tiene `staffpay:read`: el servidor respondería 403 (y con reintentos, varias veces). */
+export function useStaffPayAccess(enabled = true) {
   const { venueId } = useCurrentVenue()
-  return useQuery({ queryKey: staffPayKeys.access(venueId), queryFn: () => staffPayService.access(venueId!), enabled: !!venueId, staleTime: 5 * 60_000 })
+  return useQuery({ queryKey: staffPayKeys.access(venueId), queryFn: () => staffPayService.access(venueId!), enabled: !!venueId && enabled, staleTime: 5 * 60_000 })
 }
 export function useStaffPayLevels(enabled = true) {
   const { venueId } = useCurrentVenue()

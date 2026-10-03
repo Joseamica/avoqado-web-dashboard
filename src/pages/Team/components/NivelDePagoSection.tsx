@@ -23,7 +23,7 @@ export function NivelDePagoSection({ staffId, staffName, className }: Props) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { venueTimezone, formatCalendarDate } = useVenueDateTime()
-  const { data: acceso } = useStaffPayAccess()
+  const { data: acceso } = useStaffPayAccess(can('staffpay:read'))
   const on = !!acceso?.enabled
   const qNiveles = useStaffPayLevels(on)
   const qAsignaciones = useStaffPayAssignments(on)

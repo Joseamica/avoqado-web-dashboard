@@ -12,12 +12,13 @@ import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
 
-// Límites del servidor: motivo 3..300 (recortado), conteo entero 0..500, monto ≥ 0 con hasta 2 decimales.
+// Límites del servidor: motivo 3..300 (recortado), conteo entero 0..500, monto 0..1,000,000 con hasta 2 decimales.
 const MOTIVO_MIN = 3
 const MOTIVO_MAX = 300
 const CONTEO_MAX = 500
 const ENTERO = /^\d+$/
 const MONTO = /^\d+(\.\d{1,2})?$/
+const MONTO_MAX = 1_000_000
 
 interface Props {
   sessionId: string
@@ -41,7 +42,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const enVuelo = useRef(false)
 
   const conteoValido = conteo === '' || (ENTERO.test(conteo) && Number(conteo) <= CONTEO_MAX)
-  const montoValido = monto === '' || MONTO.test(monto)
+  const montoValido = monto === '' || (MONTO.test(monto) && Number(monto) <= MONTO_MAX)
   const motivoValido = motivo.trim().length >= MOTIVO_MIN
   const nuevo: AjusteClaseInput = {
     payCountOverride: excluir || conteo === '' ? null : Number(conteo),
@@ -51,7 +52,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   }
   // Sin ajuste previo, guardar «nada» no tiene sentido; con ajuste previo, dejarlo vacío equivale a quitarlo.
   const vacio = nuevo.payCountOverride === null && nuevo.payAmountOverride === null && !nuevo.payExcluded
-  const puedeGuardar = motivoValido && conteoValido && montoValido && !(vacio && !previo) && !enviando
+  const puedeGuardar = motivoValido && (excluir || (conteoValido && montoValido)) && !(vacio && !previo) && !enviando
 
   const enviar = async (cuerpo: AjusteClaseInput) => {
     if (enVuelo.current) return
@@ -117,7 +118,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
             <p className="text-xs text-muted-foreground">
               {actual.conteoCalculado != null ? t('adjust.countHint', { count: actual.conteoCalculado }) : t('adjust.emptyHint')}
             </p>
-            {!conteoValido && <p className="text-xs text-destructive">{t('adjust.countInvalid', { max: CONTEO_MAX })}</p>}
+            {!excluir && !conteoValido && <p className="text-xs text-destructive">{t('adjust.countInvalid', { max: CONTEO_MAX })}</p>}
           </div>
 
           <div className="space-y-2">
@@ -128,6 +129,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
               type="number"
               inputMode="decimal"
               min={0}
+              max={MONTO_MAX}
               step="0.01"
               disabled={excluir}
               value={monto}
@@ -135,7 +137,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
               aria-invalid={!montoValido}
             />
             <p className="text-xs text-muted-foreground">{t('adjust.amountHint')}</p>
-            {!montoValido && <p className="text-xs text-destructive">{t('adjust.amountInvalid')}</p>}
+            {!excluir && !montoValido && <p className="text-xs text-destructive">{t('adjust.amountInvalid')}</p>}
           </div>
 
           <div className="space-y-2">

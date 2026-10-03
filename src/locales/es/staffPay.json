@@ -152,7 +152,11 @@
     "loadError": "No se pudo cargar el pago de esta clase.",
     "calculated": "El sistema contó {{count}}.",
     "exitNoCoach": "Elige la coach arriba y guarda, o marca «No se paga esta clase».",
-    "exitGoToTable": "Resolver en la tabla de pagos"
+    "exitGoToTable": "Resolver en la tabla de pagos",
+    "mode": {
+      "BOOKED": "por reservas",
+      "ATTENDED": "por asistencia"
+    }
   },
   "adjust": {
     "title": "Ajustar el pago de la clase",
@@ -167,7 +171,7 @@
     "emptyHint": "Déjalo vacío para usar lo que cuente el sistema.",
     "countInvalid": "Escribe un número entero entre 0 y {{max}}.",
     "amountHint": "Déjalo vacío para usar el monto de la tabla.",
-    "amountInvalid": "Escribe un monto válido (0 o más, hasta 2 decimales).",
+    "amountInvalid": "Escribe un monto válido (de 0 a 1,000,000, hasta 2 decimales).",
     "reasonPlaceholder": "Ej. eran 9, una entró sin reservar",
     "reasonHint": "Obligatorio, mínimo {{min}} letras. Queda en el historial."
   },
