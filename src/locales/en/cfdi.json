@@ -98,7 +98,7 @@
       "successDetail": "Folio {{folio}} · UUID {{uuid}}"
     },
     "errors": {
-      "validation": "Could not invoice. Fix the following:",
+      "validation": "Could not invoice:",
       "pacRejected": "The PAC rejected the stamp.",
       "conflict": "This bill already has an invoice or one is in progress.",
       "alreadyIssued": "This sale already has an invoice — no new one was issued.",
@@ -116,7 +116,25 @@
     "usoSearch": "Search the use…",
     "usoCfdiHint": "We only show CFDI uses valid for your tax regime.",
     "noResults": "No results",
-    "regimenFiscalHintStaff": "The customer's tax regime (it appears on their Constancia de Situación Fiscal)."
+    "regimenFiscalHintStaff": "The customer's tax regime (it appears on their Constancia de Situación Fiscal).",
+    "priceContract": {
+      "explain": "This sale is from before the business started setting VAT per product. If its price already included VAT (as is normal in Mexico), confirm it and the invoice will use each product's VAT.",
+      "confirmButton": "Confirm the price already included VAT",
+      "reviewTitle": "Review the sale before confirming",
+      "sale": "Sale",
+      "saleNumber": "#{{number}}",
+      "date": "Date",
+      "total": "Total",
+      "reviewNote": "This only corrects the sale's data: it does not issue or cancel any invoice. Once confirmed, we try the invoice again with the same customer data.",
+      "confirmYes": "Yes, the price included VAT",
+      "back": "Back",
+      "needsConfirmation": "Someone needs to confirm that this sale's price already included VAT.",
+      "askOwner": "Ask the owner or an administrator to confirm it.",
+      "confirmed": "Done: this sale's price is now confirmed as VAT-included.",
+      "changedSinceReview": "The sale changed since you reviewed it. Tap “{{submit}}” again to see the updated sale.",
+      "confirmedManual": "Done, it is confirmed. Check the details and tap “{{submit}}” to invoice.",
+      "confirmError": "Could not confirm. Try again."
+    }
   },
   "autofactura": {
     "cta": {

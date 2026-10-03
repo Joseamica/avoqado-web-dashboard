@@ -228,6 +228,26 @@ export function useIssueCfdi() {
 }
 
 /**
+ * Confirma que una venta vieja se cobró con el IVA YA incluido (el 422 de «Facturar» trae la vista previa
+ * en `priceContract`). Sólo corrige el dato de la venta; el diálogo vuelve a mandar «Facturar» al terminar.
+ *
+ * Sin toast de error aquí: el diálogo pinta el texto del servidor (409 `CAMBIO_DESDE_LA_VISTA` pide volver
+ * a facturar para ver la venta actualizada; 409 `NO_CONFIRMABLE` / 404 dicen por qué no).
+ */
+export function useConfirmPriceContract() {
+  const { venueId } = useCurrentVenue()
+  const { toast } = useToast()
+  const { t } = useTranslation('cfdi')
+
+  return useMutation<{ ok: true }, any, { orderId: string; version: number; huella: string }>({
+    mutationFn: ({ orderId, version, huella }) => cfdiService.confirmPriceContract(venueId!, orderId, version, huella),
+    onSuccess: () => {
+      toast({ title: t('issueDialog.priceContract.confirmed') })
+    },
+  })
+}
+
+/**
  * Flow C — manually stamp the period's global CFDI for an emisor.
  *
  * On success we invalidate the CFDI list so a freshly stamped global invoice
