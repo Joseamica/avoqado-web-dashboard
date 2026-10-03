@@ -29,6 +29,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { PermissionGate } from '@/components/PermissionGate'
 import { StaffDocuments } from './components/StaffDocuments'
 import { WorkScheduleSection } from './components/WorkScheduleSection'
+import { NivelDePagoSection } from './components/NivelDePagoSection'
 
 // Se prende cuando la subida vaya por el servidor a un prefijo privado (opción B, 26-ago).
 const STAFF_DOCUMENTS_ENABLED = true
@@ -579,6 +580,17 @@ export default function TeamId() {
             <WorkScheduleSection venueId={venueId} staffVenueId={memberDetails.id} />
           </PermissionGate>
         </div>
+      )}
+
+      {/* Nivel de pago por servicio. Tras staffpay:read; la sección no se pinta si el módulo está apagado. Oculto en WL. */}
+      {venueId && memberDetails.staffId && !isWhiteLabelMode && (
+        <PermissionGate permission="staffpay:read">
+          <NivelDePagoSection
+            className="mb-8"
+            staffId={memberDetails.staffId}
+            staffName={`${memberDetails.firstName} ${memberDetails.lastName}`.trim()}
+          />
+        </PermissionGate>
       )}
 
       {/* En white-label NO: PT no usa expediente y el detalle de miembro es compartido.

@@ -148,7 +148,11 @@
     "fixCount": "Corregir conteo",
     "fixAmount": "Ajustar monto",
     "exclude": "No se paga esta clase",
-    "adjusted": "Ajustado: {{reason}}"
+    "adjusted": "Ajustado: {{reason}}",
+    "loadError": "No se pudo cargar el pago de esta clase.",
+    "calculated": "El sistema contó {{count}}.",
+    "exitNoCoach": "Elige la coach arriba y guarda, o marca «No se paga esta clase».",
+    "exitGoToTable": "Resolver en la tabla de pagos"
   },
   "adjust": {
     "title": "Ajustar el pago de la clase",
@@ -157,13 +161,22 @@
     "exclude": "No se paga esta clase",
     "reason": "Motivo",
     "clear": "Quitar ajustes",
-    "save": "Guardar"
+    "save": "Guardar",
+    "saved": "Ajuste guardado",
+    "countHint": "El sistema contó {{count}}. Déjalo vacío para usar ese número.",
+    "emptyHint": "Déjalo vacío para usar lo que cuente el sistema.",
+    "countInvalid": "Escribe un número entero entre 0 y {{max}}.",
+    "amountHint": "Déjalo vacío para usar el monto de la tabla.",
+    "amountInvalid": "Escribe un monto válido (0 o más, hasta 2 decimales).",
+    "reasonPlaceholder": "Ej. eran 9, una entró sin reservar",
+    "reasonHint": "Obligatorio, mínimo {{min}} letras. Queda en el historial."
   },
   "member": {
     "title": "Nivel de pago",
     "since": "Desde cuándo",
     "save": "Guardar nivel",
-    "example": "Con este nivel, una clase de {{seats}} lugares en {{venue}} paga {{amount}}."
+    "example": "Con este nivel, una clase de {{seats}} lugares en {{venue}} paga {{amount}}.",
+    "loadError": "No se pudo cargar el nivel de pago."
   },
   "steps": {
     "title": "Pasos para configurar",

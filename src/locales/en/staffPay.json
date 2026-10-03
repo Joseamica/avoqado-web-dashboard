@@ -148,7 +148,11 @@
     "fixCount": "Fix count",
     "fixAmount": "Adjust amount",
     "exclude": "This class is not paid",
-    "adjusted": "Adjusted: {{reason}}"
+    "adjusted": "Adjusted: {{reason}}",
+    "loadError": "Could not load the pay for this class.",
+    "calculated": "The system counted {{count}}.",
+    "exitNoCoach": "Pick the coach above and save, or mark “This class is not paid”.",
+    "exitGoToTable": "Fix it in the pay table"
   },
   "adjust": {
     "title": "Adjust the class pay",
@@ -157,13 +161,22 @@
     "exclude": "This class is not paid",
     "reason": "Reason",
     "clear": "Remove adjustments",
-    "save": "Save"
+    "save": "Save",
+    "saved": "Adjustment saved",
+    "countHint": "The system counted {{count}}. Leave it empty to use that number.",
+    "emptyHint": "Leave it empty to use what the system counts.",
+    "countInvalid": "Enter a whole number between 0 and {{max}}.",
+    "amountHint": "Leave it empty to use the amount from the table.",
+    "amountInvalid": "Enter a valid amount (0 or more, up to 2 decimals).",
+    "reasonPlaceholder": "E.g. it was 9, one came in without booking",
+    "reasonHint": "Required, at least {{min}} characters. It stays in the history."
   },
   "member": {
     "title": "Pay level",
     "since": "Since when",
     "save": "Save level",
-    "example": "With this level, a class of {{seats}} spots at {{venue}} pays {{amount}}."
+    "example": "With this level, a class of {{seats}} spots at {{venue}} pays {{amount}}.",
+    "loadError": "Could not load the pay level."
   },
   "steps": {
     "title": "Setup steps",

@@ -32,6 +32,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { teamService } from '@/services/team.service'
 import classSessionService from '@/services/classSession.service'
+import { PagoDeClaseCard } from './PagoDeClaseCard'
 
 const editSchema = z
   .object({
@@ -138,6 +139,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
       queryClient.invalidateQueries({ queryKey: ['class-sessions', venueId] })
       queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
       queryClient.invalidateQueries({ queryKey: ['class-session', venueId, sessionId] })
+      // Cambiar coach, hora o cupo cambia el pago de la clase.
+      queryClient.invalidateQueries({ queryKey: ['staff-pay', venueId] })
       onOpenChange(false)
     },
     onError: (err: any) => {
@@ -153,6 +156,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
       toast({ title: t('classSession.cancelSuccess', { defaultValue: 'Clase cancelada' }) })
       queryClient.invalidateQueries({ queryKey: ['class-sessions', venueId] })
       queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['staff-pay', venueId] })
       onOpenChange(false)
     },
     onError: (err: any) => {
@@ -168,6 +172,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
       toast({ title: t('classSession.attendeeRemoved', { defaultValue: 'Asistente eliminado' }) })
       queryClient.invalidateQueries({ queryKey: ['class-session', venueId, sessionId] })
       queryClient.invalidateQueries({ queryKey: ['class-sessions', venueId] })
+      // Una reserva menos cambia el conteo de lugares que se pagan.
+      queryClient.invalidateQueries({ queryKey: ['staff-pay', venueId] })
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message ?? t('toasts.error')
@@ -352,6 +358,10 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                 </Select>
               </div>
             </div>
+
+            {/* Pago a la coach: sólo con el módulo prendido y staffpay:read. La tarjeta decide y pone su propio
+                separador, para no dejar una línea suelta cuando no se pinta. */}
+            {sessionId && <PagoDeClaseCard sessionId={sessionId} conSeparador />}
 
             {/* Internal notes */}
             <div className="space-y-1.5">
