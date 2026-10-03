@@ -391,6 +391,7 @@
       "home_read": "View home dashboard",
       "staffpay_read": "View service pay",
       "staffpay_manage": "Manage service pay",
+      "staffpay_close": "Close pay periods and record payments",
       "analytics_read": "View analytics",
       "analytics_export": "Export analytics data",
       "settlements_read": "View settlements",
