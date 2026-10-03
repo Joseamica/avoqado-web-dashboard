@@ -99,6 +99,12 @@ export default function CatalogImportPage() {
                 {t('masterCatalog.import.template', { defaultValue: 'Descargar plantilla' })}
               </a>
             </Button>
+            <p className="text-sm text-muted-foreground">
+              {t('masterCatalog.import.ivaNote', {
+                defaultValue:
+                  'Las columnas iva_rate y objeto_imp son históricas: puedes dejarlas vacías. Se guardan en el artículo, pero no configuran el IVA de ningún producto; el IVA lo elige cada negocio.',
+              })}
+            </p>
             <div className="space-y-2">
               <Label htmlFor="catalog-import-file">{t('masterCatalog.import.file', { defaultValue: 'Archivo XLSX' })}</Label>
               <Input

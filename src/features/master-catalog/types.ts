@@ -170,10 +170,8 @@ export interface CatalogItemCommand {
   familyId: string
   presentationLabel: string
   unit: string
-  taxRate: string
   satProductKey: string
   satUnitKey: string
-  objetoImp: string
   productType: string
   iepsMode: string
   iepsRate: string | null
@@ -189,6 +187,9 @@ export interface CatalogItemDetail extends CatalogItemSummary, CatalogItemComman
   manufacturer: CatalogReference
   family: CatalogReference & { parent: CatalogReference }
   organizationValues: Array<CatalogOrganizationValueInput & { id: string; revision: number; active: boolean }>
+  /** Sólo lectura: el catálogo ya no administra el IVA (D15); el server lo sigue respondiendo. */
+  taxRate?: string
+  objetoImp?: string
   createdById: string
   updatedById: string
   createdAt: string

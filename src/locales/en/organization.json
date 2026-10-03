@@ -34,7 +34,7 @@
     },
     "items": {
       "title": "Corporate items",
-      "description": "The central source for names, taxes, costs, and presentation across every venue.",
+      "description": "The central source of names, costs and presentation for every location. Each venue chooses VAT on its products; the VAT columns in the spreadsheet are historical.",
       "create": "Create item",
       "export": "Export catalog",
       "listTitle": "Corporate items",
@@ -89,10 +89,9 @@
       "financial": "Prices and tax information",
       "salePrice": "Sale price",
       "purchaseCost": "Purchase cost",
-      "taxRate": "VAT",
       "satProductKey": "SAT product key",
       "satUnitKey": "SAT unit key",
-      "objetoImp": "Tax object",
+      "ivaNote": "VAT isn't set in the catalog: each venue chooses it on its products. Products created from the catalog start at 16% VAT.",
       "saving": "Saving…",
       "save": "Save item"
     },
@@ -128,6 +127,7 @@
       "fileTitle": "Catalog file",
       "fileDescription": "We review the XLSX first. Nothing is written until your final confirmation.",
       "template": "Download template",
+      "ivaNote": "The iva_rate and objeto_imp columns are historical: you can leave them blank. They are stored on the item but never configure VAT on any product; each venue chooses VAT.",
       "file": "XLSX file",
       "review": "Review file",
       "reviewing": "Reviewing…",

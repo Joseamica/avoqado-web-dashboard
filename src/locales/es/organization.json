@@ -34,7 +34,7 @@
     },
     "items": {
       "title": "Artículos corporativos",
-      "description": "La fuente central de nombres, impuestos, costos y presentación para todas las sucursales.",
+      "description": "La fuente central de nombres, costos y presentación para todas las sucursales. El IVA lo elige cada negocio en sus productos; las columnas de IVA del Excel son históricas.",
       "create": "Crear artículo",
       "export": "Exportar catálogo",
       "listTitle": "Artículos corporativos",
@@ -89,10 +89,9 @@
       "financial": "Precios e información fiscal",
       "salePrice": "Precio de venta",
       "purchaseCost": "Costo de compra",
-      "taxRate": "IVA",
       "satProductKey": "Clave SAT",
       "satUnitKey": "Unidad SAT",
-      "objetoImp": "Objeto de impuesto",
+      "ivaNote": "El IVA no se define en el catálogo: cada negocio lo elige en sus productos. Los productos que se crean desde el catálogo nacen con IVA 16 %.",
       "saving": "Guardando…",
       "save": "Guardar artículo"
     },
@@ -128,6 +127,7 @@
       "fileTitle": "Archivo de catálogo",
       "fileDescription": "Primero revisamos el XLSX. Nada se escribe hasta tu confirmación final.",
       "template": "Descargar plantilla",
+      "ivaNote": "Las columnas iva_rate y objeto_imp son históricas: puedes dejarlas vacías. Se guardan en el artículo, pero no configuran el IVA de ningún producto; el IVA lo elige cada negocio.",
       "file": "Archivo XLSX",
       "review": "Revisar archivo",
       "reviewing": "Revisando…",

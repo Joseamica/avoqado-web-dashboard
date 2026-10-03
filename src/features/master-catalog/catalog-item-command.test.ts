@@ -15,10 +15,8 @@ function command(): CatalogItemCommand {
     familyId: 'leaf-1',
     presentationLabel: '1 L',
     unit: 'LITER',
-    taxRate: '0.1600',
     satProductKey: '01010101',
     satUnitKey: 'LTR',
-    objetoImp: '02',
     productType: 'REGULAR',
     iepsMode: 'NONE',
     iepsRate: null,
@@ -35,6 +33,8 @@ function command(): CatalogItemCommand {
 function item(): CatalogItemDetail {
   return {
     ...command(),
+    taxRate: '0.0000',
+    objetoImp: '02',
     id: 'item-1',
     organizationId: 'org-1',
     status: 'ACTIVE',
@@ -76,6 +76,13 @@ describe('catalog item command authority', () => {
         ],
       }),
     )
+  })
+
+  it('regresión D15: el update no arrastra el IVA del detalle', () => {
+    const update = prepareCatalogItemUpdate(item(), command())
+
+    expect(update).not.toHaveProperty('taxRate')
+    expect(update).not.toHaveProperty('objetoImp')
   })
 
   it('only exposes active leaf families with an active parent', () => {

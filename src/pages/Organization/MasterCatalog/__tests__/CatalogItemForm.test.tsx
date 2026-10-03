@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { CatalogItemDetail } from '@/features/master-catalog/types'
 import CatalogItemForm from '../components/CatalogItemForm'
 import CatalogValidationSummary from '../components/CatalogValidationSummary'
 
@@ -43,6 +44,85 @@ describe('CatalogItemForm', () => {
       }),
     )
     expect(screen.getByLabelText('Tipo de producto')).toHaveValue('FOOD_AND_BEV')
+  })
+
+  it('D15: no pide el IVA ni el objeto de impuesto, explica dónde vive y no los manda', () => {
+    const onSubmit = vi.fn()
+    render(<CatalogItemForm references={references} onSubmit={onSubmit} isSubmitting={false} />)
+
+    expect(screen.queryByLabelText('IVA')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Objeto de impuesto')).not.toBeInTheDocument()
+    expect(screen.getByText(/cada negocio lo elige en sus productos/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('SKU corporativo'), { target: { value: '000124' } })
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Café en grano' } })
+    fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: 'Bolsa de 1 kg' } })
+    fireEvent.change(screen.getByLabelText('URL de imagen'), { target: { value: 'https://example.com/cafe.png' } })
+    fireEvent.change(screen.getByLabelText('Presentación'), { target: { value: '1 kg' } })
+    fireEvent.change(screen.getByLabelText('Precio de venta'), { target: { value: '300.00' } })
+    fireEvent.change(screen.getByLabelText('Costo de compra'), { target: { value: '180.00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar artículo' }))
+
+    const command = onSubmit.mock.calls[0][0]
+    expect(command).not.toHaveProperty('taxRate')
+    expect(command).not.toHaveProperty('objetoImp')
+  })
+
+  it('D15: editar un artículo cuyo detalle trae IVA no lo vuelve a mandar', () => {
+    const onSubmit = vi.fn()
+    const initialItem = {
+      id: 'item-1',
+      organizationId: 'org-1',
+      sku: '000123',
+      kind: 'RETAIL_PRODUCT',
+      status: 'ACTIVE',
+      revision: 3,
+      bindingSummary: { total: 0 },
+      name: 'Café en grano',
+      description: 'Bolsa de 1 kg',
+      imageUrl: 'https://example.com/cafe.png',
+      brandId: 'brand-1',
+      manufacturerId: 'manufacturer-1',
+      familyId: 'family-1',
+      presentationLabel: '1 kg',
+      unit: 'UNIT',
+      satProductKey: '50201706',
+      satUnitKey: 'H87',
+      productType: 'REGULAR',
+      iepsMode: 'NONE',
+      iepsRate: null,
+      iepsQuota: null,
+      iepsQuotaUnit: null,
+      businessTypes: ['RESTAURANT'],
+      taxRate: '0.0000',
+      objetoImp: '02',
+      brand: { id: 'brand-1', name: 'Avoqado', status: 'ACTIVE', revision: 1 },
+      manufacturer: { id: 'manufacturer-1', name: 'Fabricante', status: 'ACTIVE', revision: 1 },
+      family: {
+        id: 'family-1',
+        name: 'Jarabes',
+        status: 'ACTIVE',
+        revision: 1,
+        parent: { id: 'root-1', name: 'Bebidas', status: 'ACTIVE', revision: 1 },
+      },
+      organizationValues: [
+        { id: 'sale', kind: 'SALE_PRICE', amount: '300.00', currency: 'MXN', revision: 1, active: true },
+        { id: 'cost', kind: 'PURCHASE_COST', amount: '180.00', currency: 'MXN', revision: 1, active: true },
+      ],
+      createdById: 'staff-1',
+      updatedById: 'staff-1',
+      createdAt: '2026-08-10T12:00:00.000Z',
+      updatedAt: '2026-08-10T12:00:00.000Z',
+      validation: { state: 'READY', summary: null },
+    } as unknown as CatalogItemDetail
+    render(<CatalogItemForm references={references} initialItem={initialItem} onSubmit={onSubmit} isSubmitting={false} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar artículo' }))
+
+    const command = onSubmit.mock.calls[0][0]
+    expect(command).toMatchObject({ name: 'Café en grano' })
+    expect(command).not.toHaveProperty('taxRate')
+    expect(command).not.toHaveProperty('objetoImp')
   })
 
   it('announces invalid and stale states and never labels them confirmable', () => {
