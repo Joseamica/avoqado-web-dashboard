@@ -30,7 +30,8 @@
     "title": "Quién es qué",
     "noLevel": "Sin nivel",
     "since": "Desde",
-    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
+    "effect_one": "Cambia el pago de {{count}} clase de este periodo. Las anteriores se quedan como estaban.",
+    "effect_other": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "empty": "No hay personas activas en tu equipo.",
     "needLevels": "Crea un nivel primero para poder asignarlo."
   },
@@ -42,14 +43,15 @@
     "missing": "falta",
     "fillDown": "Rellenar hacia abajo hasta la fila",
     "overCeiling": "Si una clase pasa de {{max}} lugares, se paga como {{max}}.",
-    "missingCount": "Faltan {{count}} montos",
+    "missingCount_one": "Falta {{count}} monto",
+    "missingCount_other": "Faltan {{count}} montos",
     "simulator": "Una clase con {{seats}} lugares, dada por {{level}} = {{amount}}",
     "simulatorMissing": "Falta el monto para esa fila",
     "countMode": "Cómo se cuenta un lugar",
     "booked": "Quien reservó (aunque falte)",
     "bookedHelp": "La coach no pierde por las faltas del cliente.",
     "attended": "Sólo quien llegó",
-    "attendedHelp": "Muy pronto: necesita que el check-in sin internet guarde su hora real.",
+    "attendedHelp": "Contar sólo a quien llegó estará disponible cuando el check-in quede registrado en el aparato; hoy se cuenta a quien reservó.",
     "create": "Crear tabla de pagos",
     "publish": "Guardar tabla",
     "empty": "Todavía no tienes tabla de pagos. Créala para capturar los montos.",
@@ -59,13 +61,15 @@
     "simulatorSeats": "Lugares de la clase de prueba",
     "simulatorLevel": "Nivel de la clase de prueba",
     "ceilingInvalid": "El techo va de 0 a {{max}} lugares.",
-    "cellLabel": "{{level}}, {{count}} lugares",
+    "cellLabel_one": "{{level}}, {{count}} lugar",
+    "cellLabel_other": "{{level}}, {{count}} lugares",
     "fillApply": "Rellenar"
   },
   "publish": {
     "title": "Guardar tabla de pagos",
     "effectiveFrom": "¿Desde cuándo vale esta tabla?",
-    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
+    "effect_one": "Cambia el pago de {{count}} clase de este periodo. Las anteriores se quedan como estaban.",
+    "effect_other": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "confirm": "Guardar",
     "saved": "Tabla guardada",
     "effectLoading": "Calculando cuántas clases cambian…"
@@ -73,6 +77,7 @@
   "period": {
     "title": "Periodo {{start}} – {{end}}",
     "open": "Abierto",
+    "noActivity": "Sin movimientos",
     "partial": "Vista parcial: sólo las sedes que puedes ver",
     "cards": {
       "total": "Total",
@@ -80,8 +85,10 @@
       "people": "Personas",
       "exceptions": "Excepciones"
     },
-    "exceptionsBanner": "{{count}} clases no se pueden pagar todavía. Resuélvelas antes de cerrar.",
-    "orphans": "{{count}} reservas de clase sin horario no cuentan para ningún pago.",
+    "exceptionsBanner_one": "{{count}} clase no se puede pagar todavía. Resuélvela antes de cerrar.",
+    "exceptionsBanner_other": "{{count}} clases no se pueden pagar todavía. Resuélvelas antes de cerrar.",
+    "orphans_one": "{{count}} reserva de clase sin horario no cuenta para ningún pago.",
+    "orphans_other": "{{count}} reservas de clase sin horario no cuentan para ningún pago.",
     "columns": {
       "person": "Persona",
       "level": "Nivel",
@@ -92,7 +99,9 @@
       "adjustments": "Ajustes"
     },
     "detail": "Desglose",
+    "capturedOn": "{{fecha}} (captura)",
     "empty": "Todavía no hay clases terminadas en este periodo.",
+    "noActivityEmpty": "No hubo clases ni ajustes en este periodo.",
     "truncated": "La lista de personas llegó a su tope y algunas no aparecen aquí ni en la tarjeta «Personas». El total y las clases sí cuentan todo.",
     "error": "No se pudo cargar el periodo.",
     "retry": "Reintentar",
@@ -126,6 +135,7 @@
       "date": "Fecha",
       "venue": "Sede",
       "class": "Clase",
+      "concept": "Concepto",
       "coach": "Coach",
       "seats": "Lugares",
       "amount": "Monto",
@@ -203,7 +213,9 @@
     "amountHint": "Déjalo vacío para usar el monto de la tabla.",
     "amountInvalid": "Escribe un monto válido (de 0 a 1,000,000, hasta 2 decimales).",
     "reasonPlaceholder": "Ej. eran 9, una entró sin reservar",
-    "reasonHint": "Obligatorio, mínimo {{min}} letras. Queda en el historial."
+    "reasonHint": "Obligatorio, mínimo {{min}} letras. Queda en el historial.",
+    "alreadyPaid": "Esta clase ya se pagó en el periodo del {{start}} al {{end}}: lo pagado no cambia; la diferencia queda pendiente y se liquida aparte.",
+    "alreadyCounted": "Esta clase ya se contabilizó en el periodo del {{start}} al {{end}}: lo contabilizado no cambia; la diferencia queda pendiente y se liquida aparte."
   },
   "member": {
     "title": "Nivel de pago",
@@ -230,7 +242,8 @@
     "title": "Nivel de {{name}}",
     "summary": "{{name}} pasa a {{level}}.",
     "effectiveFrom": "¿Desde cuándo vale este nivel?",
-    "effect": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
+    "effect_one": "Cambia el pago de {{count}} clase de este periodo. Las anteriores se quedan como estaban.",
+    "effect_other": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "effectLoading": "Calculando cuántas clases cambian…",
     "confirm": "Guardar nivel",
     "saved": "Nivel guardado"
@@ -239,7 +252,8 @@
     "period": "Periodo",
     "open": "Abierto",
     "paid": "Pagado",
-    "closedPaid": "Cerrado · {{pagadas}} de {{personas}} pagadas",
+    "closedPaid_one": "Cerrado · {{pagadas}} de {{count}} pagado",
+    "closedPaid_other": "Cerrado · {{pagadas}} de {{count}} pagados",
     "periodicity": "Cada cuánto pagas",
     "monthly": "Mensual",
     "semimonthly": "Quincenal (1-15 y 16-fin de mes)",

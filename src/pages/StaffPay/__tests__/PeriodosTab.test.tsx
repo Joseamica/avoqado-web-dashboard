@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PeriodosTab } from '../components/PeriodosTab'
 
@@ -45,6 +46,18 @@ const LISTA = {
   antesDe: '2026-09-01',
 }
 
+function VerUrl() {
+  const l = useLocation()
+  return <output data-testid="url">{`${l.search}${l.hash}`}</output>
+}
+const conUrl = (url = '/x#periodos') =>
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <PeriodosTab activa />
+      <VerUrl />
+    </MemoryRouter>,
+  )
+
 beforeEach(() => {
   vi.clearAllMocks()
   m.lista.mockReturnValue(LISTA)
@@ -53,27 +66,27 @@ beforeEach(() => {
 
 describe('PeriodosTab', () => {
   it('abre en el periodo abierto actual y explica por qué ya no se cambia la periodicidad', () => {
-    render(<PeriodosTab activa />)
+    conUrl()
     expect(screen.getByText('abierto 2026-10-01')).toBeInTheDocument()
     expect(screen.getByText('periods.periodicityLocked')).toBeInTheDocument()
   })
 
   it('con más de una página ofrece ver los periodos anteriores (nada se recorta en silencio)', () => {
-    render(<PeriodosTab activa />)
+    conUrl()
     fireEvent.click(screen.getByRole('button', { name: 'periods.loadOlder' }))
     expect(m.fetchNext).toHaveBeenCalled()
   })
 
   it('una quincena se nombra con sus días («1–15 de octubre de 2026»)', () => {
     m.lista.mockReturnValue({ ...LISTA, periodicidad: 'SEMIMONTHLY', items: [{ ...LISTA.items[0], end: '2026-10-15' }] })
-    render(<PeriodosTab activa />)
+    conUrl()
     expect(screen.getByRole('option', { name: /periods\.semimonthLabel/ })).toHaveTextContent('"desde":1,"hasta":15')
   })
 
   it('cambiar la frecuencia de pago pide confirmación antes de guardar', async () => {
     m.lista.mockReturnValue({ ...LISTA, puedeCambiarPeriodicidad: true })
     m.periodicity.mockResolvedValue({})
-    render(<PeriodosTab activa />)
+    conUrl()
     fireEvent.change(screen.getAllByLabelText('select')[1], { target: { value: 'SEMIMONTHLY' } })
     expect(m.periodicity).not.toHaveBeenCalled()
     expect(await screen.findByText('periods.changeHelp.SEMIMONTHLY')).toBeInTheDocument()
@@ -83,22 +96,44 @@ describe('PeriodosTab', () => {
 
   it('si el periodo se cerró y la lista ya se está recargando, no lanza otra recarga', () => {
     m.estado.mockReturnValue({ isFetching: true })
-    render(<PeriodosTab activa />)
+    conUrl()
     fireEvent.click(screen.getByRole('button', { name: 'simular-ya-cerrado' }))
     expect(m.refetch).not.toHaveBeenCalled()
   })
 
   it('si el periodo se cerró y nada recarga la lista, la recarga', () => {
-    render(<PeriodosTab activa />)
+    conUrl()
     fireEvent.click(screen.getByRole('button', { name: 'simular-ya-cerrado' }))
     expect(m.refetch).toHaveBeenCalled()
   })
 
   it('si recargar la lista falla con datos ya en pantalla, lo dice y deja reintentar (no un spinner eterno)', () => {
     m.estado.mockReturnValue({ isError: true })
-    render(<PeriodosTab activa />)
+    conUrl()
     expect(screen.getByText('periods.error')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
     expect(m.refetch).toHaveBeenCalled()
+  })
+
+  it('el periodo elegido se recuerda en la URL: al recargar con ?periodo= se ve ESE periodo (QA defecto 18)', () => {
+    conUrl('/x?periodo=2026-09-01#periodos')
+    expect(screen.getByText('cerrado p9')).toBeInTheDocument()
+  })
+
+  it('elegir un periodo lo escribe en la URL sin perder la pestaña', () => {
+    conUrl()
+    fireEvent.change(screen.getAllByLabelText('select')[0], { target: { value: '2026-09-01' } })
+    expect(screen.getByText('cerrado p9')).toBeInTheDocument()
+    expect(screen.getByTestId('url')).toHaveTextContent('?periodo=2026-09-01#periodos')
+  })
+
+  it('un ?periodo= que no está en la lista cae al periodo actual', () => {
+    conUrl('/x?periodo=2020-01-01#periodos')
+    expect(screen.getByText('abierto 2026-10-01')).toBeInTheDocument()
+  })
+
+  it('el selector cuenta los recibos pagados con plural por personas (QA defectos 13 y 16)', () => {
+    conUrl()
+    expect(screen.getByRole('option', { name: /periods\.closedPaid/ })).toHaveTextContent('"pagadas":2,"count":4')
   })
 })

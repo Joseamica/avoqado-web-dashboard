@@ -30,7 +30,8 @@
     "title": "Who is what",
     "noLevel": "No level",
     "since": "Since",
-    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
+    "effect_one": "Changes the pay of {{count}} class in this period. Earlier ones stay as they were.",
+    "effect_other": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "empty": "There are no active people on your team.",
     "needLevels": "Create a level first so you can assign it."
   },
@@ -42,14 +43,15 @@
     "missing": "missing",
     "fillDown": "Fill down to row",
     "overCeiling": "If a class goes over {{max}} spots, it is paid as {{max}}.",
-    "missingCount": "{{count}} amounts missing",
+    "missingCount_one": "{{count}} amount missing",
+    "missingCount_other": "{{count}} amounts missing",
     "simulator": "A class with {{seats}} spots, taught by {{level}} = {{amount}}",
     "simulatorMissing": "The amount for that row is missing",
     "countMode": "How a spot is counted",
     "booked": "Whoever booked (even if absent)",
     "bookedHelp": "The coach does not lose pay for client no-shows.",
     "attended": "Only those who showed up",
-    "attendedHelp": "Coming soon: it needs offline check-in to save the real arrival time.",
+    "attendedHelp": "Counting only those who showed up will be available once check-in is recorded on the device; today, everyone who booked is counted.",
     "create": "Create pay table",
     "publish": "Save table",
     "empty": "You do not have a pay table yet. Create it to enter the amounts.",
@@ -59,13 +61,15 @@
     "simulatorSeats": "Spots in the test class",
     "simulatorLevel": "Level of the test class",
     "ceilingInvalid": "The ceiling goes from 0 to {{max}} spots.",
-    "cellLabel": "{{level}}, {{count}} spots",
+    "cellLabel_one": "{{level}}, {{count}} spot",
+    "cellLabel_other": "{{level}}, {{count}} spots",
     "fillApply": "Fill"
   },
   "publish": {
     "title": "Save pay table",
     "effectiveFrom": "From when does this table apply?",
-    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
+    "effect_one": "Changes the pay of {{count}} class in this period. Earlier ones stay as they were.",
+    "effect_other": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "confirm": "Save",
     "saved": "Table saved",
     "effectLoading": "Calculating how many classes change…"
@@ -73,6 +77,7 @@
   "period": {
     "title": "Period {{start}} – {{end}}",
     "open": "Open",
+    "noActivity": "No activity",
     "partial": "Partial view: only the venues you can see",
     "cards": {
       "total": "Total",
@@ -80,8 +85,10 @@
       "people": "People",
       "exceptions": "Exceptions"
     },
-    "exceptionsBanner": "{{count}} classes cannot be paid yet. Resolve them before closing.",
-    "orphans": "{{count}} class bookings without a schedule do not count toward any pay.",
+    "exceptionsBanner_one": "{{count}} class cannot be paid yet. Resolve it before closing.",
+    "exceptionsBanner_other": "{{count}} classes cannot be paid yet. Resolve them before closing.",
+    "orphans_one": "{{count}} class booking without a schedule does not count toward any pay.",
+    "orphans_other": "{{count}} class bookings without a schedule do not count toward any pay.",
     "columns": {
       "person": "Person",
       "level": "Level",
@@ -92,7 +99,9 @@
       "adjustments": "Adjustments"
     },
     "detail": "Breakdown",
+    "capturedOn": "{{fecha}} (entered)",
     "empty": "There are no finished classes in this period yet.",
+    "noActivityEmpty": "There were no classes or adjustments in this period.",
     "truncated": "The list of people reached its limit and some do not appear here or in the «People» card. The total and the classes do count everything.",
     "error": "The period could not be loaded.",
     "retry": "Retry",
@@ -126,6 +135,7 @@
       "date": "Date",
       "venue": "Venue",
       "class": "Class",
+      "concept": "Description",
       "coach": "Coach",
       "seats": "Spots",
       "amount": "Amount",
@@ -203,7 +213,9 @@
     "amountHint": "Leave it empty to use the amount from the table.",
     "amountInvalid": "Enter a valid amount (0 to 1,000,000, up to 2 decimals).",
     "reasonPlaceholder": "E.g. it was 9, one came in without booking",
-    "reasonHint": "Required, at least {{min}} characters. It stays in the history."
+    "reasonHint": "Required, at least {{min}} characters. It stays in the history.",
+    "alreadyPaid": "This class was already paid in the period from {{start}} to {{end}}: what was paid does not change; the difference stays pending and is settled separately.",
+    "alreadyCounted": "This class was already counted in the period from {{start}} to {{end}}: what was counted does not change; the difference stays pending and is settled separately."
   },
   "member": {
     "title": "Pay level",
@@ -230,7 +242,8 @@
     "title": "{{name}}’s level",
     "summary": "{{name}} moves to {{level}}.",
     "effectiveFrom": "From when does this level apply?",
-    "effect": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
+    "effect_one": "Changes the pay of {{count}} class in this period. Earlier ones stay as they were.",
+    "effect_other": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "effectLoading": "Calculating how many classes change…",
     "confirm": "Save level",
     "saved": "Level saved"
@@ -239,7 +252,8 @@
     "period": "Pay period",
     "open": "Open",
     "paid": "Paid",
-    "closedPaid": "Closed · {{pagadas}} of {{personas}} paid",
+    "closedPaid_one": "Closed · {{pagadas}} of {{count}} paid",
+    "closedPaid_other": "Closed · {{pagadas}} of {{count}} paid",
     "periodicity": "How often you pay",
     "monthly": "Monthly",
     "semimonthly": "Twice a month (1-15 and 16-end)",

@@ -22,7 +22,7 @@ export default function StaffPayPage() {
   }
   const [tab, setTab] = useState<Tab>(desdeHash)
   useEffect(() => { setTab(desdeHash()) }, [location.hash]) // eslint-disable-line react-hooks/exhaustive-deps
-  const cambiar = (v: string) => { setTab(v as Tab); navigate(`${location.pathname}#${v}`, { replace: true }) }
+  const cambiar = (v: string) => { setTab(v as Tab); navigate(`${location.pathname}${location.search}#${v}`, { replace: true }) }
   const { data, isLoading } = useStaffPayAccess()
 
   return (

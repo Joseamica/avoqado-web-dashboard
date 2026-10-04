@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import {
@@ -19,39 +20,43 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useSetPeriodicity, useStaffPayPeriods } from '@/hooks/useStaffPay'
-import { getIntlLocale } from '@/utils/i18n-locale'
 import type { PeriodoListadoDto } from '@/types/staffPay'
 import { PeriodoAbiertoTab } from './PeriodoAbiertoTab'
 import { PeriodoCerradoView } from './PeriodoCerradoView'
+import { useNombrePeriodo } from '../useNombrePeriodo'
 
 const clave = (p: PeriodoListadoDto) => p.start
+/** El periodo elegido vive en la URL (`?periodo=2026-09-01`): al recargar se vuelve a ver el mismo. */
+const PARAM = 'periodo'
 
 /**
  * La pestaña «Periodos»: arriba, cuál periodo se ve (el abierto actual primero) y cada cuánto se paga; abajo, el periodo
  * abierto (en vivo, con «Cerrar») o el cerrado (congelado, con «Marcar pagado»).
  */
 export function PeriodosTab({ activa }: { activa: boolean }) {
-  const { t, i18n } = useTranslation('staffPay')
+  const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { toast } = useToast()
   const { data, isLoading, isError, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(activa)
   const setPeriodicity = useSetPeriodicity()
-  const [elegido, setElegido] = useState<string | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const elegido = new URLSearchParams(location.search).get(PARAM)
+  // `replace` y conservando el hash: la pestaña («#periodos») no se pierde y «atrás» no recorre cada periodo visto.
+  const setElegido = (v: string | null) => {
+    const sp = new URLSearchParams(location.search)
+    if (v) sp.set(PARAM, v)
+    else sp.delete(PARAM)
+    const search = sp.toString()
+    navigate({ search: search ? `?${search}` : '', hash: location.hash }, { replace: true })
+  }
   // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta.
   const [nuevaFrecuencia, setNuevaFrecuencia] = useState<'MONTHLY' | 'SEMIMONTHLY' | null>(null)
   const items = data?.items ?? []
+  // Un `?periodo=` que no está en la lista (viejo, mal escrito, de otra frecuencia) cae al periodo actual.
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
-
-  const mes = (p: PeriodoListadoDto) => {
-    const nombre = new Date(`${p.start}T12:00:00Z`).toLocaleDateString(getIntlLocale(i18n?.language), {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    })
-    return data?.periodicidad === 'SEMIMONTHLY'
-      ? t('periods.semimonthLabel', { desde: Number(p.start.slice(8)), hasta: Number(p.end.slice(8)), mes: nombre })
-      : nombre
-  }
+  const nombrePeriodo = useNombrePeriodo()
+  const mes = (p: PeriodoListadoDto) => nombrePeriodo(p, data?.periodicidad ?? 'MONTHLY')
   const estado = (p: PeriodoListadoDto) =>
     p.estado === 'OPEN'
       ? t('periods.open')
@@ -59,7 +64,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
         ? t('closed.badge')
         : p.pagadas === p.personas
           ? t('periods.paid')
-          : t('periods.closedPaid', { pagadas: p.pagadas, personas: p.personas })
+          : t('periods.closedPaid', { pagadas: p.pagadas, count: p.personas })
 
   const cambiarPeriodicidad = async () => {
     if (!nuevaFrecuencia) return
@@ -115,10 +120,14 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
         </div>
       )}
       <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
-        <div className="w-full space-y-1.5 sm:w-72">
+        <div className="w-full space-y-1.5 sm:w-96">
           <Label htmlFor="staffpay-periodo">{t('periods.period')}</Label>
           <Select value={clave(actual)} onValueChange={setElegido}>
-            <SelectTrigger id="staffpay-periodo" className="w-full cursor-pointer" data-tour="staffpay-period-select">
+            <SelectTrigger
+              id="staffpay-periodo"
+              className="h-auto min-h-9 w-full cursor-pointer whitespace-normal text-left [&>span]:line-clamp-2"
+              data-tour="staffpay-period-select"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
