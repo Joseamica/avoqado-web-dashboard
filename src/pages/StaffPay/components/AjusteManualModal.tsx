@@ -17,12 +17,13 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cn } from '@/lib/utils'
 import { useNombreSede } from '../useNombreSede'
+import { hoyEnSede } from '../hoyEnSede'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   sedes: string[]
-  /** Un día dentro del periodo abierto destino (default: hoy, lo decide el server). */
+  /** Un día dentro del periodo abierto destino. Sin ella, HOY en la sede, fijado al abrir (nunca el reloj del server). */
   fecha?: string
   /** «octubre 2026»: a qué periodo va, dicho antes de guardar. */
   etiqueta?: string
@@ -39,11 +40,14 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
-  const { formatCalendarDate } = useVenueDateTime()
+  const { formatCalendarDate, venueTimezone } = useVenueDateTime()
   const nombreSede = useNombreSede()
   const agregar = useAddAdjustment()
   // El padre monta el modal sólo cuando está abierto: una clave por apertura.
   const [clientKey] = useState(() => crypto.randomUUID())
+  // 🔴 Codex bloque A #1: el destino se fija AL ABRIR y viaja con la clave. Si el server usara el día en que recibe, un
+  // reintento tras medianoche de cambio de periodo daría CLAVE_REUTILIZADA y la recaptura duplicaría el bono.
+  const [fechaDestino] = useState(() => fecha ?? hoyEnSede(venueTimezone))
   // La sede que se está viendo siempre es una opción (al inicio del mes puede no tener dinero todavía).
   const listaSedes = useMemo(() => (venueId && !sedes.includes(venueId) ? [venueId, ...sedes] : sedes), [sedes, venueId])
   const [sede, setSedeElegida] = useState(venueId ?? sedes[0] ?? '')
@@ -99,7 +103,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
         sede,
         amount: tipo === 'descuento' ? -monto! : monto!,
         reason: motivo.trim(),
-        fecha,
+        fecha: fechaDestino,
         clientKey,
       })
       toast({ title: t('manualAdjust.saved', { start: formatCalendarDate(r.periodo.start), end: formatCalendarDate(r.periodo.end) }) })
@@ -116,7 +120,8 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
       'cursor-pointer rounded-full border px-4 py-1.5 text-sm transition-colors',
       tipo === v ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
     )
-  const destino = etiqueta ?? t('manualAdjust.openPeriod')
+  // Sin etiqueta (desde un periodo cerrado) se nombra por la fecha exacta que se manda: el texto no puede contradecirla.
+  const destino = etiqueta ?? t('manualAdjust.periodWithDate', { fecha: formatCalendarDate(fechaDestino) })
 
   return (
     <FullScreenModal

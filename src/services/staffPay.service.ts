@@ -1,5 +1,5 @@
 import api from '@/api'
-import type { AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaOffset, PreviewCierreDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, TablaDto } from '@/types/staffPay'
+import type { AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaOffset, PreviewCierreDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, TablaDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
 
@@ -26,9 +26,14 @@ export const staffPayService = {
   async setPeriodicity(venueId: string, periodicidad: 'MONTHLY' | 'SEMIMONTHLY') { return (await api.patch(`${base(venueId)}/periodicity`, { periodicidad })).data },
   async closePreview(venueId: string, fecha: string): Promise<PreviewCierreDto> { return (await api.get(`${base(venueId)}/periods/close-preview`, { params: { fecha } })).data },
   async close(venueId: string, body: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }): Promise<ResultadoCierreDto> { return (await api.post(`${base(venueId)}/periods/close`, body)).data },
-  async markPaid(venueId: string, periodId: string, body: { staffId?: string; nota?: string }): Promise<{ marcados: number }> { return (await api.post(`${base(venueId)}/periods/${periodId}/paid`, body)).data },
+  async paidPreview(venueId: string, periodId: string, staffId?: string): Promise<PreviewPagadoDto> { return (await api.get(`${base(venueId)}/periods/${periodId}/paid-preview`, { params: staffId ? { staffId } : {} })).data },
+  async markPaid(venueId: string, periodId: string, body: { staffId?: string; nota?: string; huellaEsperada?: string }): Promise<{ marcados: number }> { return (await api.post(`${base(venueId)}/periods/${periodId}/paid`, body)).data },
   async addAdjustment(venueId: string, body: AjusteManualInput): Promise<AjusteManualDto> { return (await api.post(`${base(venueId)}/adjustments`, body)).data },
-  async receipt(venueId: string, staffId: string, fecha: string, p: { cursor?: string; limit: number }): Promise<ReciboDto> { return (await api.get(`${base(venueId)}/staff/${staffId}/receipt`, { params: { fecha, ...p } })).data },
+  /** Con `sede`, renglones, total y cantidad son SÓLO de esa sede (Codex bloque A #5); la exportación no la acepta. */
+  async receipt(venueId: string, staffId: string, fecha: string, p: { cursor?: string; limit: number; sede?: string }): Promise<ReciboDto> {
+    const { sede, ...resto } = p
+    return (await api.get(`${base(venueId)}/staff/${staffId}/receipt`, { params: { fecha, ...resto, ...(sede ? { sede } : {}) } })).data
+  },
   async downloadReceipt(venueId: string, staffId: string, fecha: string, format: 'pdf' | 'xlsx', nombre: string): Promise<void> {
     try {
       const r = await api.get(`${base(venueId)}/staff/${staffId}/receipt/export`, { params: { fecha, format }, responseType: 'blob' })

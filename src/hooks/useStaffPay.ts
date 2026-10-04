@@ -124,13 +124,14 @@ const LIMITE_RECIBO = 100
  * El recibo por páginas (Codex R2-R1-20): `data.renglones` ya viene aplanado y `hasNextPage` dice si hay más («Cargar
  * más»); `data.total` y `data.cantidad` son del recibo ENTERO (los suma la base), nunca la suma de lo cargado.
  */
-export function useStaffReceipt(staffId: string | null, fecha: string | null, enabled = true) {
+export function useStaffReceipt(staffId: string | null, fecha: string | null, enabled = true, sede?: string) {
   const { venueId } = useCurrentVenue()
   const qc = useQueryClient()
-  const queryKey = [...staffPayKeys.report(venueId), 'receipt', staffId, fecha]
+  // `sede` en la llave: el cursor del server la lleva, y una página con otra sede respondería 409 RECIBO_CAMBIO.
+  const queryKey = [...staffPayKeys.report(venueId), 'receipt', staffId, fecha, sede ?? null]
   const q = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam }) => staffPayService.receipt(venueId!, staffId!, fecha!, { cursor: pageParam ?? undefined, limit: LIMITE_RECIBO }),
+    queryFn: ({ pageParam }) => staffPayService.receipt(venueId!, staffId!, fecha!, { cursor: pageParam ?? undefined, limit: LIMITE_RECIBO, sede }),
     initialPageParam: null as string | null,
     getNextPageParam: last => last.siguiente ?? undefined,
     enabled: !!venueId && !!staffId && !!fecha && enabled,
@@ -148,6 +149,22 @@ export function useStaffReceipt(staffId: string | null, fecha: string | null, en
   }, [codigo, qc])
   const data = useMemo(() => (q.data ? { ...q.data.pages[0], renglones: q.data.pages.flatMap(p => p.renglones) } : undefined), [q.data])
   return { ...q, data }
+}
+/**
+ * Cuánto registraría «marcar pagado» (de todos los pendientes, o de `staffId`) y con qué huella (Codex bloque A #6). Como
+ * el preview del cierre: nunca se reusa (`staleTime`/`gcTime` 0) y un 409 no se reintenta (es determinista).
+ */
+export function usePaidPreview(periodId: string | null, staffId: string | undefined, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useQuery({
+    queryKey: [...staffPayKeys.periods(venueId), 'paid-preview', periodId, staffId ?? null],
+    queryFn: () => staffPayService.paidPreview(venueId!, periodId!, staffId),
+    enabled: !!venueId && !!periodId && enabled,
+    staleTime: 0,
+    gcTime: 0,
+    retry: (n, e) => n < 1 && (e as { response?: { status?: number } } | null)?.response?.status !== 409,
+    refetchOnWindowFocus: false,
+  })
 }
 export function useClassPay(sessionId: string | null, enabled = true) {
   const { venueId } = useCurrentVenue()
@@ -196,7 +213,7 @@ export function useClosePeriod() {
 }
 export function useMarkPaid(periodId: string | null) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (b: { staffId?: string; nota?: string }) => staffPayService.markPaid(venueId!, periodId!, b), onSuccess: inv })
+  return useMutation({ mutationFn: (b: { staffId?: string; nota?: string; huellaEsperada?: string }) => staffPayService.markPaid(venueId!, periodId!, b), onSuccess: inv })
 }
 export function useAddAdjustment() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()

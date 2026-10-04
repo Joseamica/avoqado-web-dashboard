@@ -50,7 +50,9 @@ export function DesglosePersona({
   const q = useStaffPayDetail(staffId, sede, fecha, !cerrado)
   const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
   // El recibo se pide siempre que haya `fecha`: en un periodo cerrado ES el desglose; en uno abierto aporta los ajustes.
-  const recibo = useStaffReceipt(staffId, fecha ?? null, !!fecha)
+  // Con el MISMO filtro de sede que las clases y el encabezado (Codex bloque A #5): si no, los ajustes de otra sede se
+  // sumarían a la vista de ésta. La exportación sí va sin sede (su aviso lo dice).
+  const recibo = useStaffReceipt(staffId, fecha ?? null, !!fecha, sede)
   const renglones = recibo.data?.renglones ?? []
   const ajustes = renglones.filter(r => r.tipo !== 'CLASE')
   // Vista parcial: el recibo sólo trae las sedes que este usuario puede ver; nunca se presenta como el recibo completo.

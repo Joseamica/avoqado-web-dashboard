@@ -100,7 +100,7 @@ describe('DesglosePersona', () => {
       recibo([renglon('Spinning', '480.00'), renglon('Bono por cubrir', '100.00', 'AJUSTE')], { hasNextPage: true, fetchNextPage, data: { ...recibo([]).data, renglones: [renglon('Spinning', '480.00'), renglon('Bono por cubrir', '100.00', 'AJUSTE')], total: '680.00', cantidad: 3 } }),
     )
     render(<DesglosePersona staffId="s1" staffName="Ana López" clases={2} total="680.00" fecha="2026-09-01" cerrado onClose={() => {}} />)
-    expect(m.receipt).toHaveBeenCalledWith('s1', '2026-09-01', true)
+    expect(m.receipt).toHaveBeenCalledWith('s1', '2026-09-01', true, undefined)
     expect(screen.getByText('Bono por cubrir')).toBeInTheDocument()
     expect(screen.getByText('+$100.00')).toBeInTheDocument()
     expect(screen.getByText('$680.00')).toBeInTheDocument()
@@ -124,6 +124,14 @@ describe('DesglosePersona', () => {
     m.receipt.mockReturnValue(recibo([renglon('Bono', '100.00', 'AJUSTE')], { data: { ...recibo([]).data, renglones: [renglon('Bono', '100.00', 'AJUSTE')], parcial: true } }))
     render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="670.00" fecha="2026-10-01" onClose={() => {}} />)
     expect(screen.getByText('period.receiptPartial')).toBeInTheDocument()
+  })
+
+  it('con filtro de sede, el recibo (ajustes) se pide con ESA sede: encabezado y renglones del mismo alcance (Codex bloque A #5)', () => {
+    m.detail.mockReturnValue(q([{ items: [clase('c1')], nextCursor: null }]))
+    m.receipt.mockReturnValue(recibo([]))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="670.00" sede="v1" fecha="2026-10-01" onClose={() => {}} />)
+    expect(m.receipt).toHaveBeenCalledWith('s1', '2026-10-01', true, 'v1')
+    expect(m.detail).toHaveBeenCalledWith('s1', 'v1', '2026-10-01', true)
   })
 
   it('con periodo cerrado no pide el desglose en vivo (Codex R2-R1-21)', () => {

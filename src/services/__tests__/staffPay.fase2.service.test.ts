@@ -9,7 +9,7 @@ vi.mock('@/utils/export', () => ({ triggerDownload: vi.fn() }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 import { staffPayService } from '../staffPay.service'
 import { triggerDownload } from '@/utils/export'
-import { useStaffPayDetail, useStaffPayExceptions, useStaffPayOrphans, useStaffPayPeriods, useStaffPayReport, useStaffReceipt } from '@/hooks/useStaffPay'
+import { usePaidPreview, useStaffPayDetail, useStaffPayExceptions, useStaffPayOrphans, useStaffPayPeriods, useStaffPayReport, useStaffReceipt } from '@/hooks/useStaffPay'
 
 const base = '/api/v1/dashboard/venues/v1/staff-pay'
 beforeEach(() => vi.clearAllMocks())
@@ -29,6 +29,25 @@ describe('staffPayService — fase 2', () => {
     // La página siguiente lleva el cursor que dio la anterior (Codex R2-R1-20).
     await staffPayService.receipt('v1', 's1', '2026-08-15', { cursor: '2026-08-04T14:00:00.000Z|c1', limit: 100 })
     expect(m.get).toHaveBeenLastCalledWith(`${base}/staff/s1/receipt`, { params: { fecha: '2026-08-15', cursor: '2026-08-04T14:00:00.000Z|c1', limit: 100 } })
+  })
+  it('el recibo con filtro de sede manda `sede` (Codex bloque A #5); sin filtro no la manda', async () => {
+    m.get.mockResolvedValue({ data: {} })
+    await staffPayService.receipt('v1', 's1', '2026-08-15', { limit: 100, sede: 'v2' })
+    expect(m.get).toHaveBeenLastCalledWith(`${base}/staff/s1/receipt`, { params: { fecha: '2026-08-15', limit: 100, sede: 'v2' } })
+    await staffPayService.receipt('v1', 's1', '2026-08-15', { limit: 100 })
+    expect(m.get.mock.lastCall?.[1].params).not.toHaveProperty('sede')
+  })
+  it('preview de marcar pagado: sin staffId para «todos», con staffId para una persona (Codex bloque A #6)', async () => {
+    m.get.mockResolvedValue({ data: {} })
+    await staffPayService.paidPreview('v1', 'p1')
+    expect(m.get).toHaveBeenLastCalledWith(`${base}/periods/p1/paid-preview`, { params: {} })
+    await staffPayService.paidPreview('v1', 'p1', 's1')
+    expect(m.get).toHaveBeenLastCalledWith(`${base}/periods/p1/paid-preview`, { params: { staffId: 's1' } })
+  })
+  it('marcar pagado manda la huella del preview que se vio', async () => {
+    m.post.mockResolvedValue({ data: { marcados: 2 } })
+    await staffPayService.markPaid('v1', 'p1', { huellaEsperada: 'a'.repeat(64) })
+    expect(m.post).toHaveBeenLastCalledWith(`${base}/periods/p1/paid`, { huellaEsperada: 'a'.repeat(64) })
   })
   it('descargar el recibo pide un blob con el formato', async () => {
     const pdf = new Blob(['%PDF'])
@@ -87,6 +106,23 @@ describe('hooks de la fase 2', () => {
     await waitFor(() => expect(result.current.data?.renglones.map(r => r.concepto)).toEqual(['a', 'b', 'c']))
     expect(m.get).toHaveBeenLastCalledWith(`${base}/staff/s1/receipt`, { params: { fecha: '2026-08-15', cursor: 'cursor-1', limit: 100 } })
     expect(result.current.hasNextPage).toBe(false)
+  })
+
+  it('el recibo con sede pide ESA sede y no comparte caché con el recibo sin filtro', async () => {
+    m.get.mockResolvedValue({ data: pagina(['a'], null) })
+    const env = envoltorio()
+    renderHook(() => useStaffReceipt('s1', '2026-08-15'), { wrapper: env })
+    renderHook(() => useStaffReceipt('s1', '2026-08-15', true, 'v2'), { wrapper: env })
+    await waitFor(() => expect(m.get).toHaveBeenCalledTimes(2))
+    expect(m.get.mock.calls.map(([, o]) => o.params.sede)).toEqual([undefined, 'v2'])
+  })
+
+  it('preview de marcar pagado: un 409 no se reintenta (es determinista)', async () => {
+    m.get.mockRejectedValue(Object.assign(new Error('409'), { response: { status: 409, data: { code: 'HUELLA_CAMBIO' } } }))
+    const { result } = renderHook(() => usePaidPreview('p1', undefined), { wrapper: envoltorio() })
+    // Con reintento, `isError` llegaría hasta después del retraso del reintento (≥ 1 s), fuera del tiempo de waitFor.
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(m.get).toHaveBeenCalledTimes(1)
   })
 
   it('RECIBO_CAMBIO en la segunda página reinicia el recibo desde la primera, sin dejar el error', async () => {

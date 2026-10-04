@@ -306,8 +306,8 @@
     "markAllPaidTitle": "¿Registrar el pago de todos en {{periodo}}?",
     "markPaidHelp": "Registra un pago que hiciste fuera de Avoqado (efectivo, transferencia). Avoqado no mueve dinero.",
     "markPaidConfirm": "Registrar {{monto}}",
-    "markAllPaidConfirm_one": "Marcar {{count}} recibo como pagado",
-    "markAllPaidConfirm_other": "Marcar {{count}} recibos como pagados",
+    "markAllPaidConfirm_one": "Registrar {{monto}} de {{count}} recibo",
+    "markAllPaidConfirm_other": "Registrar {{monto}} de {{count}} recibos",
     "markedPaid_one": "{{count}} recibo marcado como pagado",
     "markedPaid_other": "{{count}} recibos marcados como pagados",
     "cancel": "Cancelar",
@@ -317,7 +317,11 @@
     "frozenHelp": "Lo de este periodo ya no cambia. Un bono o descuento nuevo va al periodo abierto.",
     "markPaidFor": "Marcar pagado a {{nombre}}",
     "alreadyPaid": "Ya estaban marcados como pagados.",
-    "markAllPartial": "Para marcar a todos necesitas ver todas las sedes del periodo."
+    "markAllPartial": "Para marcar a todos necesitas ver todas las sedes del periodo.",
+    "previewLoading": "Calculando cuánto se registra…",
+    "previewError": "No se pudo calcular cuánto se registra.",
+    "nothingPending": "Ya no hay recibos pendientes de pago.",
+    "changedHelp": "Alguien registró o cambió un pago mientras revisabas. Revisa el monto nuevo antes de confirmar."
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",
@@ -336,13 +340,13 @@
     "reason": "Motivo",
     "reasonPlaceholder": "Ej. Bono por cubrir 3 clases",
     "reasonHint": "Obligatorio, mínimo {{min}} letras. Sale en el recibo.",
-    "openPeriod": "el periodo abierto",
     "summaryBonus": "Se suman {{monto}} al recibo de {{persona}} en {{periodo}}.",
     "summaryDeduction": "Se restan {{monto}} del recibo de {{persona}} en {{periodo}}.",
     "summaryEmpty": "Elige a la persona y escribe el monto para ver cómo queda.",
     "goesTo": "Aparece en el recibo de esa persona con su motivo. Siempre va a un periodo abierto, nunca a uno cerrado.",
     "save": "Guardar ajuste",
     "saved": "Ajuste guardado en el periodo del {{start}} al {{end}}",
-    "selected": "Elegiste a {{persona}}."
+    "selected": "Elegiste a {{persona}}.",
+    "periodWithDate": "el periodo abierto que incluye el {{fecha}}"
   }
 }

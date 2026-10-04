@@ -92,6 +92,21 @@ describe('AjusteManualModal', () => {
     await waitFor(() => expect(m.add).toHaveBeenCalledTimes(2))
     expect(m.add.mock.calls[1][0].clientKey).toBe(m.add.mock.calls[0][0].clientKey)
     expect(m.add.mock.calls[1][0].amount).toBe(150)
+    // La fecha destino viaja SIEMPRE y es la misma en el reintento (Codex bloque A #1): no la decide el reloj del server.
+    expect(m.add.mock.calls[0][0].fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(m.add.mock.calls[1][0].fecha).toBe(m.add.mock.calls[0][0].fecha)
+  })
+  it('con la fecha del periodo abierto, manda ESA fecha', async () => {
+    m.add.mockResolvedValue({ id: 'e1', periodo: { start: '2026-10-01', end: '2026-10-31' } })
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-10-01" etiqueta="octubre 2026" />)
+    llenar()
+    fireEvent.click(screen.getByRole('button', { name: 'manualAdjust.save' }))
+    await waitFor(() => expect(m.add).toHaveBeenCalledWith(expect.objectContaining({ fecha: '2026-10-01' })))
+  })
+  it('sin etiqueta (desde un periodo cerrado), el resumen dice la fecha exacta a la que va', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-11-01" />)
+    llenar()
+    expect(screen.getByText(/manualAdjust\.summaryDeduction/)).toHaveTextContent('2026-11-01')
   })
   it('el buscador de persona se llama «Persona» (label conectado al input)', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)

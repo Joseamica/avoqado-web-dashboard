@@ -72,6 +72,17 @@ export interface ReciboDto {
   pagadoEn: string | null
   parcial: boolean
 }
+/** Lo que registraría «marcar pagado» (Codex bloque A #6): de TODOS los pendientes, o del de esa persona. */
+export interface PreviewPagadoDto {
+  periodo: { start: string; end: string; estado: 'OPEN' | 'CLOSED' }
+  /** Recibos pendientes que se marcarían y su total (string con 2 decimales): del periodo entero, no de la página. */
+  cantidad: number
+  total: string
+  /** Sólo los primeros 100, para enseñarlos; nunca para sumar. */
+  recibos: Array<{ staffId: string; nombre: string; total: string }>
+  /** Se manda como `huellaEsperada` al confirmar, con el MISMO `staffId` (o sin él). */
+  huella: string
+}
 export interface AjusteManualInput { sede: string; staffId: string; amount: number; reason: string; fecha?: string; clientKey: string }
 export interface AjusteManualDto { id: string; periodId: string; periodo: { start: string; end: string }; staffId: string; sede: string; amount: string; reason: string; yaExistia: boolean }
 export interface LineaContabilizadaDto { concepto: 'SERVICE' | 'RECONCILE'; staffId: string; staffName: string; monto: string; periodo: { start: string; end: string }; pagadoEn: string | null }
