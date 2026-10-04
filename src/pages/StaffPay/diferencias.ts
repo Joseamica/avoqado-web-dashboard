@@ -14,7 +14,7 @@ export const porPersona = (a: Fila, b: Fila) =>
 export const porFechaYPersona = (a: FilaDiferenciaDto, b: FilaDiferenciaDto) =>
   Date.parse(a.startsAt) - Date.parse(b.startsAt) || a.classSessionId.localeCompare(b.classSessionId) || porPersona(a, b)
 
-const CAUSAS = new Set<CausaDiferencia>(['CONTEO', 'COACH_SALE', 'COACH_ENTRA', 'CANCELADA', 'EXCLUIDA', 'TARDIA', 'MONTO'])
+const CAUSAS = new Set<CausaDiferencia>(['CONTEO', 'COACH_SALE', 'COACH_ENTRA', 'CANCELADA', 'EXCLUIDA', 'TARDIA', 'MONTO', 'REINCLUIDA'])
 
 /** Una línea corta con POR QUÉ existe la diferencia de esa persona; null si el server no lo dice (o es una causa nueva). */
 export function useCausaDiferencia() {

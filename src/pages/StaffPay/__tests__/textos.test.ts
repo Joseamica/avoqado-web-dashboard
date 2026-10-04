@@ -47,6 +47,10 @@ describe('textos de pago por servicio', () => {
     expect(tEs('differences.alreadySettledElsewhere')).toBe('Esta diferencia ya se liquidó (desde otra pantalla). No se agregó nada.')
     expect(tEs('differences.cause.CONTEO', { antes: 8, ahora: 10 })).toBe('Conteo corregido: 8 → 10')
     expect(tEs('differences.cause.COACH_SALE', { coach: 'Ana Martínez' })).toBe('Ya no da esta clase (ahora: Ana Martínez)')
+    // REINCLUIDA: no se pagaba al cerrar (excluida o cancelada) y ahora sí; TARDIA queda para la clase creada después.
+    expect(tEs('differences.cause.REINCLUIDA')).toBe('Clase que no se pagaba al cerrar y ahora sí')
+    expect(tEn('differences.cause.REINCLUIDA')).toBe("Class that wasn't paid at closing and now counts")
+    expect(tEs('differences.cause.TARDIA')).toBe('Clase registrada después del cierre')
     expect(tEs('differences.banner', { count: 1 })).toBe('1 diferencia por liquidar')
     expect(tEs('differences.banner', { count: 3 })).toBe('3 diferencias por liquidar')
     // El aviso de HUELLA_CAMBIO no repite su título en la descripción (QA B-7).

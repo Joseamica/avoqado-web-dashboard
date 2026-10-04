@@ -110,7 +110,7 @@ export interface FilaDiferenciaDto {
   /** Quién da la clase hoy (para «Ya no da esta clase (ahora: Ana)»). */
   coachActualNombre?: string | null
 }
-export type CausaDiferencia = 'CONTEO' | 'COACH_SALE' | 'COACH_ENTRA' | 'CANCELADA' | 'EXCLUIDA' | 'TARDIA' | 'MONTO'
+export type CausaDiferencia = 'CONTEO' | 'COACH_SALE' | 'COACH_ENTRA' | 'CANCELADA' | 'EXCLUIDA' | 'TARDIA' | 'MONTO' | 'REINCLUIDA'
 export interface PaginaDiferenciasDto { items: FilaDiferenciaDto[]; nextCursor: string | null; parcial: boolean }
 export interface PreviewLiquidacionDto {
   periodoOrigen: { id: string; start: string; end: string } | null

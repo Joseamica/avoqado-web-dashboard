@@ -431,7 +431,8 @@
       "CANCELADA": "Clase cancelada después del cierre",
       "EXCLUIDA": "Clase excluida del pago",
       "TARDIA": "Clase registrada después del cierre",
-      "MONTO": "Monto de la clase corregido"
+      "MONTO": "Monto de la clase corregido",
+      "REINCLUIDA": "Clase que no se pagaba al cerrar y ahora sí"
     },
     "exitNoPermission": "Se resuelve en la clase con «Ajustar monto», y para eso hace falta el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio."
   }

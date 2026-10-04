@@ -431,7 +431,8 @@
       "CANCELADA": "Class cancelled after the close",
       "EXCLUIDA": "Class excluded from pay",
       "TARDIA": "Class recorded after the close",
-      "MONTO": "Class amount corrected"
+      "MONTO": "Class amount corrected",
+      "REINCLUIDA": "Class that wasn't paid at closing and now counts"
     },
     "exitNoPermission": "It's resolved in the class with “Adjust amount”, which needs the «Close periods and record payments» permission. Ask the business owner."
   }
