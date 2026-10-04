@@ -173,14 +173,14 @@ describe('PassIntegrations (Pantalla A)', () => {
     svc.getPassCapacity.mockResolvedValue({ defaultMaxSpots: 3, weekly: [], suggestions: [] })
     const { client, rerender, tree } = renderPage()
     const input = await screen.findByLabelText('capacity.default.label')
-    await waitFor(() => expect(input).toHaveValue(3))
+    await waitFor(() => expect(input).toHaveValue('3'))
     await user.clear(input)
     await user.type(input, '7')
     client.setQueryData(passesKeys.overview('v2'), OVERVIEW)
     venue.id = 'v2'
     rerender(tree())
     await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledWith('v2'))
-    await waitFor(() => expect(screen.getByLabelText('capacity.default.label')).toHaveValue(3))
+    await waitFor(() => expect(screen.getByLabelText('capacity.default.label')).toHaveValue('3'))
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
   })
 
