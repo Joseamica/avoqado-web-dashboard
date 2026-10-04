@@ -408,6 +408,25 @@ describe('DiferenciasSection', () => {
     expect(nombres).toEqual(['Ana Martínez', 'Carlos Rodríguez'])
   })
 
+  it('sin permiso para ajustar la clase, la trabada dice qué permiso falta (sin «Ajustar monto» ni enlace)', () => {
+    m.can.mockImplementation((p: string) => p === 'staffpay:read')
+    m.lista.mockReturnValue(lista([fila({ estadoClase: 'EXCEPCION', motivo: 'SIN_TABLA', pendiente: null, corresponde: null })]))
+    pintar()
+    expect(screen.getByText('differences.exitNoPermission')).toBeInTheDocument()
+    expect(screen.queryByText('differences.exitClass')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'differences.openClass' })).not.toBeInTheDocument()
+  })
+
+  it('una clase que llegó tarde (sin ancla) se ajusta con staffpay:manage: ahí sí ofrece la salida', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    m.lista.mockReturnValue(
+      lista([fila({ periodoOrigenId: null, estadoClase: 'EXCEPCION', motivo: 'SIN_TABLA', pendiente: null, corresponde: null })]),
+    )
+    pintar()
+    expect(screen.getByText('differences.exitClass')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'differences.openClass' })).toBeInTheDocument()
+  })
+
   it('una diferencia dice POR QUÉ existe: conteo corregido (antes → ahora) y cambio de coach (QA B-4)', async () => {
     const filas = [
       fila({

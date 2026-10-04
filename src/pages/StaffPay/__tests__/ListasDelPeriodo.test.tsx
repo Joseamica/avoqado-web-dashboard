@@ -8,8 +8,15 @@ import { ExcepcionesSheet, HuerfanasSheet } from '../components/ListasDelPeriodo
 const m = vi.hoisted(() => ({ detail: vi.fn(), exceptions: vi.fn(), orphans: vi.fn(), receipt: vi.fn(), download: vi.fn() }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
-vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ allVenues: [{ id: 'v1', name: 'Prado Norte' }] }) }))
+vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x', venueBasePath: '/venues' }) }))
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    allVenues: [
+      { id: 'v1', name: 'Prado Norte', slug: 'prado-norte' },
+      { id: 'v2', name: 'BSF', slug: 'bsf' },
+    ],
+  }),
+}))
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d, formatDateTime: (d: string) => d }),
 }))
@@ -276,7 +283,7 @@ describe('ExcepcionesSheet', () => {
       q([
         {
           items: [
-            clase('c4', { estado: 'EXCEPCION', motivo: 'SIN_MONTO_PARA_ESE_CONTEO', monto: null }),
+            clase('c4', { estado: 'EXCEPCION', motivo: 'SIN_MONTO_PARA_ESE_CONTEO', monto: null, venueId: 'v2' }),
             clase('c5', { estado: 'EXCEPCION', motivo: 'SIN_COACH', monto: null, staffId: null, staffName: null }),
           ],
           nextCursor: null,
@@ -288,8 +295,9 @@ describe('ExcepcionesSheet', () => {
         <ExcepcionesSheet onClose={onClose} />
       </MemoryRouter>,
     )
+    // La tabla de la sede de la EXCEPCIÓN (BSF), no la del URL: misma clase de defecto que Codex C4.
     const enlace = screen.getByRole('link', { name: 'period.resolveInTable' })
-    expect(enlace).toHaveAttribute('href', '/venues/x/servicio-pago#tabla')
+    expect(enlace).toHaveAttribute('href', '/venues/bsf/servicio-pago#tabla')
     expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(screen.getByText('period.resolveNoCoach')).toBeInTheDocument()
     fireEvent.click(enlace)

@@ -6,10 +6,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useVenueDateTime } from '@/utils/datetime'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useStaffPayExceptions, useStaffPayOrphans } from '@/hooks/useStaffPay'
 import type { MotivoExcepcion, ReservaHuerfanaDto } from '@/types/staffPay'
-import { useNombreSede } from '../useNombreSede'
+import { useNombreSede, useRutaDeSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
 import { useFocoDeVuelta } from '../foco'
 
@@ -84,8 +83,9 @@ export function EstadoLista(p: {
 export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fecha?: string; onClose: () => void }) {
   const { t } = useTranslation('staffPay')
   const { formatDateTime } = useVenueDateTime()
-  const { fullBasePath } = useCurrentVenue()
   const nombreSede = useNombreSede()
+  // La tabla de pagos de la sede de la EXCEPCIÓN, no la del URL (misma clase de defecto que Codex C4).
+  const rutaDeSede = useRutaDeSede()
   const foco = useFocoDeVuelta()
   const q = useStaffPayExceptions(sede, fecha)
   const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
@@ -136,7 +136,7 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
                       <p className="text-amber-700 dark:text-amber-400">{t(`reasons.${motivo}`)}</p>
                       {SALIDA_EN_LA_TABLA.has(motivo) ? (
                         <Link
-                          to={`${fullBasePath}/servicio-pago#tabla`}
+                          to={`${rutaDeSede(f.venueId)}/servicio-pago#tabla`}
                           onClick={onClose}
                           className="text-xs font-medium underline underline-offset-2"
                         >

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useClassDifference, useSettleDifference } from '@/hooks/useStaffPay'
@@ -47,8 +48,13 @@ export function MotivoPorResolver({
   onNavegar?: () => void
 }) {
   const { t } = useTranslation('staffPay')
+  const { can } = useAccess()
   const { formatCalendarDate } = useVenueDateTime()
   const rutaDeSede = useRutaDeSede()
+  // Ajustar una clase pide `staffpay:manage`, y `staffpay:close` si ya está contabilizada (ancla). Sin eso no se le dice
+  // «usa Ajustar monto» como si pudiera: se dice qué permiso falta y a quién pedirlo.
+  const anclada = filas.some(f => f.periodoOrigenId !== null)
+  const puedeResolver = can('staffpay:close') || (!anclada && can('staffpay:manage'))
   const conMotivo = filas.find(f => f.motivo)
   const motivo = conMotivo?.motivo ?? null
   // Quien no tenía nivel es quien da la clase hoy (la coach original conserva el nivel de su primera línea).
@@ -64,11 +70,13 @@ export function MotivoPorResolver({
             : t('differences.blockedGeneric')}
       </p>
       <p className="text-xs text-muted-foreground">
-        {motivo === 'SIN_COACH'
-          ? t(enLaClase ? 'classCard.exitNoCoach' : 'differences.exitNoCoach')
-          : t(enLaClase ? 'differences.exitClassHere' : 'differences.exitClass')}
+        {!puedeResolver
+          ? t('differences.exitNoPermission')
+          : motivo === 'SIN_COACH'
+            ? t(enLaClase ? 'classCard.exitNoCoach' : 'differences.exitNoCoach')
+            : t(enLaClase ? 'differences.exitClassHere' : 'differences.exitClass')}
       </p>
-      {!enLaClase && (
+      {!enLaClase && puedeResolver && (
         <Link
           to={`${rutaDeSede(classVenueId)}/reservations/calendar?clase=${encodeURIComponent(sessionId)}`}
           onClick={onNavegar}

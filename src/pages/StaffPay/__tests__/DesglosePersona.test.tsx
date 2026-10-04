@@ -41,7 +41,7 @@ const recibo = (renglones: unknown[], total: string) => ({
 beforeEach(() => vi.clearAllMocks())
 
 describe('DesglosePersona', () => {
-  it('cada diferencia del periodo dice la fecha de SU clase (cinco «Diferencia: Yoga» ya se distinguen, QA B-3)', () => {
+  it('en «Ajustes del periodo» la diferencia NO repite su fecha (ya viene en el concepto); el ajuste sí lleva la de captura', () => {
     m.recibo.mockReturnValue(
       recibo(
         [
@@ -50,26 +50,27 @@ describe('DesglosePersona', () => {
             fecha: '2026-09-28',
             hora: null,
             sede: 'Wellness',
-            concepto: 'Diferencia: Yoga',
+            concepto: 'Diferencia · Yoga (clase grupal) del 28 sep 2026 (clase de septiembre)',
             lugares: 10,
             monto: '40.00',
           },
           {
-            tipo: 'DIFERENCIA',
-            fecha: '2026-09-15',
+            tipo: 'AJUSTE',
+            fecha: '2026-10-03',
             hora: null,
             sede: 'Wellness',
-            concepto: 'Diferencia: Yoga',
-            lugares: 1,
-            monto: '430.00',
+            concepto: 'Bono por cubrir',
+            lugares: null,
+            monto: '100.00',
           },
         ],
-        '470.00',
+        '140.00',
       ),
     )
-    render(<DesglosePersona staffId="a" staffName="Ana" clases={0} total="470.00" fecha="2026-10-01" onClose={vi.fn()} />)
-    expect(screen.getByText('dia(2026-09-28)')).toBeInTheDocument()
-    expect(screen.getByText('dia(2026-09-15)')).toBeInTheDocument()
+    render(<DesglosePersona staffId="a" staffName="Ana" clases={0} total="140.00" fecha="2026-10-01" onClose={vi.fn()} />)
+    expect(screen.getByText('Diferencia · Yoga (clase grupal) del 28 sep 2026 (clase de septiembre)')).toBeInTheDocument()
+    expect(screen.queryByText('dia(2026-09-28)')).not.toBeInTheDocument()
+    expect(screen.getByText('period.capturedOn:{"fecha":"dia(2026-10-03)"}')).toBeInTheDocument()
     expect(screen.queryByText('period.negativeBalance')).not.toBeInTheDocument()
   })
 

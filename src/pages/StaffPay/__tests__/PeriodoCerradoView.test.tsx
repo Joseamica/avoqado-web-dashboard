@@ -132,6 +132,54 @@ describe('PeriodoCerradoView', () => {
     await waitFor(() => expect(m.paid).toHaveBeenCalledWith({ staffId: 'c', huellaEsperada: HUELLA_ANA }))
   })
 
+  it('«Marcar todos» con un recibo en contra no enseña el neto: a quién se paga y quién queda en contra (pulido 3)', async () => {
+    m.can.mockReturnValue(true)
+    const mezcla = {
+      periodo: { start: '2026-09-01', end: '2026-09-30', estado: 'CLOSED' },
+      cantidad: 2,
+      total: '210.00',
+      recibos: [
+        { staffId: 'a', nombre: 'Ana Martínez', total: '570.00' },
+        { staffId: 'c', nombre: 'Carlos Rodríguez', total: '-360.00' },
+      ],
+      huella: HUELLA_TODOS,
+    }
+    m.preview.mockImplementation((_p: string, staffId: string | undefined, enabled: boolean) =>
+      enabled && !staffId ? { data: mezcla, isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined },
+    )
+    m.paid.mockResolvedValue({ marcados: 2 })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: 'closed.markAllPaid' }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('closed.paysOne:{"monto":"$570.00","nombre":"Ana Martínez"}')
+    expect(dialogo).toHaveTextContent('closed.owesOne:{"nombre":"Carlos Rodríguez","monto":"$360.00"}')
+    expect(dialogo).not.toHaveTextContent('$210.00')
+    const boton = screen.getByRole('button', { name: /closed\.markAllMixedConfirm/ })
+    expect(boton).toHaveTextContent('"count":2')
+    fireEvent.click(boton)
+    await waitFor(() => expect(m.paid).toHaveBeenCalledWith({ huellaEsperada: HUELLA_TODOS }))
+  })
+
+  it('«Marcar todos» con muchos recibos en cada signo da totales separados', async () => {
+    m.can.mockReturnValue(true)
+    const r = (staffId: string, total: string) => ({ staffId, nombre: staffId, total })
+    const mezcla = {
+      periodo: { start: '2026-09-01', end: '2026-09-30', estado: 'CLOSED' },
+      cantidad: 4,
+      total: '400.00',
+      recibos: [r('a', '500.00'), r('b', '300.00'), r('c', '-150.00'), r('d', '-250.00')],
+      huella: HUELLA_TODOS,
+    }
+    m.preview.mockImplementation((_p: string, staffId: string | undefined, enabled: boolean) =>
+      enabled && !staffId ? { data: mezcla, isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined },
+    )
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: 'closed.markAllPaid' }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('closed.paysMany:{"count":2,"monto":"$800.00"}')
+    expect(dialogo).toHaveTextContent('closed.owesMany:{"count":2,"monto":"$400.00"}')
+  })
+
   it('con diferencias por liquidar, un aviso arriba las cuenta (por clase) y lleva a la sección (QA B-12)', () => {
     m.can.mockReturnValue(true)
     const f = (classSessionId: string, persona: string) => ({ classSessionId, persona })

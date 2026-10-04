@@ -117,6 +117,17 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const errorPreview = (previewPago.error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
   // Un recibo en negativo no se «paga»: se registra como saldado, sin decir «le pagaste −$360» (QA B-6).
   const negativo = !!confirmar?.staffId && Number(vista?.total ?? confirmar.total ?? 0) < 0
+  // «Marcar todos» con algún recibo en negativo: el neto («Registrar $210.00 de 2 recibos») escondería que a Ana se le pagan
+  // $570 y Carlos queda en −$360. Se separa por signo con `recibos` (el server manda hasta 100); con más no alcanza y queda
+  // el neto, como antes.
+  const porSigno =
+    vista && !confirmar?.staffId && vista.recibos.length === vista.cantidad && vista.recibos.some(r => Number(r.total) < 0)
+      ? {
+          pagos: vista.recibos.filter(r => Number(r.total) >= 0),
+          enContra: vista.recibos.filter(r => Number(r.total) < 0),
+        }
+      : null
+  const suma = (rs: Array<{ total: string }>) => rs.reduce((a, r) => a + Number(r.total), 0)
 
   const estadoDePago = (pagadoEn?: string | null) =>
     pagadoEn ? (
@@ -349,6 +360,18 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
             </div>
           ) : vista && vista.cantidad === 0 ? (
             <p className="text-sm text-muted-foreground">{t('closed.nothingPending')}</p>
+          ) : porSigno ? (
+            <div className="space-y-1 text-sm" data-tour="staffpay-closed-mark-all-by-sign">
+              {porSigno.pagos.length === 1 && (
+                <p>{t('closed.paysOne', { monto: monto(porSigno.pagos[0].total), nombre: porSigno.pagos[0].nombre })}</p>
+              )}
+              {porSigno.pagos.length > 1 && <p>{t('closed.paysMany', { count: porSigno.pagos.length, monto: monto(suma(porSigno.pagos)) })}</p>}
+              {porSigno.enContra.length === 1 ? (
+                <p>{t('closed.owesOne', { nombre: porSigno.enContra[0].nombre, monto: monto(-Number(porSigno.enContra[0].total)) })}</p>
+              ) : (
+                <p>{t('closed.owesMany', { count: porSigno.enContra.length, monto: monto(-suma(porSigno.enContra)) })}</p>
+              )}
+            </div>
           ) : null}
           <AlertDialogFooter>
             <AlertDialogCancel className="cursor-pointer" disabled={marcar.isPending}>
@@ -368,6 +391,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                 ? t('closed.settleNegativeConfirm')
                 : confirmar?.staffId
                 ? t('closed.markPaidConfirm', { monto: montoVista })
+                : porSigno
+                ? t('closed.markAllMixedConfirm', { count: vista?.cantidad ?? pendientes })
                 : t('closed.markAllPaidConfirm', { count: vista?.cantidad ?? pendientes, monto: montoVista })}
             </AlertDialogAction>
           </AlertDialogFooter>

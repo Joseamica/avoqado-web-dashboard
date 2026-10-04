@@ -344,7 +344,15 @@
     "changedHelp": "Someone recorded or changed a payment while you were reviewing. Check the new amount before confirming.",
     "settleNegativeTitle": "Record {{nombre}}'s pay statement ({{monto}}) as settled?",
     "settleNegativeHelp": "Avoqado doesn't move money.",
-    "settleNegativeConfirm": "Record as settled"
+    "settleNegativeConfirm": "Record as settled",
+    "paysOne": "You pay {{monto}} to {{nombre}}.",
+    "paysMany_one": "You pay {{monto}} across {{count}} pay statement.",
+    "paysMany_other": "You pay {{monto}} across {{count}} pay statements.",
+    "owesOne": "{{nombre}} is left with a negative balance of {{monto}}.",
+    "owesMany_one": "{{count}} pay statement is left with a negative balance of {{monto}}.",
+    "owesMany_other": "{{count}} pay statements are left with a negative balance of {{monto}}.",
+    "markAllMixedConfirm_one": "Record {{count}} pay statement",
+    "markAllMixedConfirm_other": "Record {{count}} pay statements"
   },
   "manualAdjust": {
     "add": "Add adjustment to {{periodo}}",
@@ -397,7 +405,7 @@
     "pendingLine": "Difference to settle for {{persona}}: {{monto}}",
     "lateClass": "This class came in after {{periodo}} was closed: it is paid as a difference.",
     "lateClassGeneric": "This class came in after its period was closed: it is paid as a difference.",
-    "noPermission": "To settle differences you need the “Close periods and record payments” permission. Ask the business owner.",
+    "noPermission": "To settle differences you need the «Close periods and record payments» permission. Ask the business owner.",
     "loadError": "The difference for this class could not be calculated.",
     "previewError": "What would be settled could not be calculated.",
     "addsTo": "Added to the {{destino}} pay statement",
@@ -414,7 +422,6 @@
     "banner_one": "{{count}} difference to settle",
     "banner_other": "{{count}} differences to settle",
     "bannerMore": "More than {{n}} differences to settle",
-    "seeThem": "See them",
     "cause": {
       "CONTEO": "Count corrected: {{antes}} → {{ahora}}",
       "CONTEO_SIN_ANTES": "Count corrected",
@@ -425,6 +432,7 @@
       "EXCLUIDA": "Class excluded from pay",
       "TARDIA": "Class recorded after the close",
       "MONTO": "Class amount corrected"
-    }
+    },
+    "exitNoPermission": "It's resolved in the class with “Adjust amount”, which needs the «Close periods and record payments» permission. Ask the business owner."
   }
 }

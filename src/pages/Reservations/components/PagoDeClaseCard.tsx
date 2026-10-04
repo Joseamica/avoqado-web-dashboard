@@ -163,9 +163,13 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             ) : (
               <div className="space-y-1">
                 <p className="text-sm text-amber-700 dark:text-amber-400">{t(`reasons.${p.motivo}`)}</p>
-                {p.motivo === 'SIN_COACH' && <p className="text-xs text-muted-foreground">{t('classCard.exitNoCoach')}</p>}
-                {p.motivo && SALIDA_EN_LA_TABLA.has(p.motivo) && enPeriodoCerrado && (
-                  <p className="text-xs text-muted-foreground">{t('differences.exitClassHere')}</p>
+                {/* Con la diferencia trabada, su bloque de abajo ya dice quién, cuándo y la salida: aquí sólo el motivo (un solo
+                    bloque con la misma salida, no dos). */}
+                {p.motivo === 'SIN_COACH' && !diferencia?.bloqueada && (
+                  <p className="text-xs text-muted-foreground">{t('classCard.exitNoCoach')}</p>
+                )}
+                {p.motivo && SALIDA_EN_LA_TABLA.has(p.motivo) && enPeriodoCerrado && !diferencia?.bloqueada && (
+                  <p className="text-xs text-muted-foreground">{t(puedeAjustar ? 'differences.exitClassHere' : 'differences.exitNoPermission')}</p>
                 )}
                 {p.motivo && SALIDA_EN_LA_TABLA.has(p.motivo) && !enPeriodoCerrado && (
                   <Link to={`${fullBasePath}/servicio-pago#tabla`} className="text-xs font-medium underline underline-offset-2">

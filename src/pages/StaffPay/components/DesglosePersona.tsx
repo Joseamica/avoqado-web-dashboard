@@ -274,11 +274,11 @@ export function DesglosePersona({
                 <p className="text-sm font-medium">{t('period.periodAdjustments')}</p>
                 {ajustes.map((r, i) => (
                   <p key={i} className="flex justify-between gap-3 text-sm">
-                    {/* Con su fecha: la de la clase en una diferencia (si no, cinco «Diferencia: Yoga» no se distinguen, QA B-3);
-                        la de captura en un ajuste. */}
+                    {/* Un ajuste lleva su fecha de captura. Una diferencia NO: el server ya pone la fecha de su clase en el
+                        concepto («Diferencia · Yoga del 28 sep 2026 (clase de septiembre)», QA B-3); otra vez sería doble. */}
                     <span className="min-w-0">
                       {r.concepto}
-                      {r.fecha && <span className="block text-xs text-muted-foreground">{fechaDelRenglon(r)}</span>}
+                      {r.fecha && r.tipo === 'AJUSTE' && <span className="block text-xs text-muted-foreground">{fechaDelRenglon(r)}</span>}
                     </span>
                     <span className="whitespace-nowrap font-medium">{conSigno(r.monto)}</span>
                   </p>

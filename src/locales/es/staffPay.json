@@ -344,7 +344,15 @@
     "changedHelp": "Alguien registró o cambió un pago mientras revisabas. Revisa el monto nuevo antes de confirmar.",
     "settleNegativeTitle": "¿Registrar como saldado el recibo de {{nombre}} ({{monto}})?",
     "settleNegativeHelp": "Avoqado no mueve dinero.",
-    "settleNegativeConfirm": "Registrar como saldado"
+    "settleNegativeConfirm": "Registrar como saldado",
+    "paysOne": "Pagas {{monto}} a {{nombre}}.",
+    "paysMany_one": "Pagas {{monto}} en {{count}} recibo.",
+    "paysMany_other": "Pagas {{monto}} en {{count}} recibos.",
+    "owesOne": "{{nombre}} queda con saldo en contra de {{monto}}.",
+    "owesMany_one": "{{count}} recibo queda con saldo en contra por {{monto}}.",
+    "owesMany_other": "{{count}} recibos quedan con saldo en contra por {{monto}}.",
+    "markAllMixedConfirm_one": "Registrar {{count}} recibo",
+    "markAllMixedConfirm_other": "Registrar {{count}} recibos"
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",
@@ -414,7 +422,6 @@
     "banner_one": "{{count}} diferencia por liquidar",
     "banner_other": "{{count}} diferencias por liquidar",
     "bannerMore": "Más de {{n}} diferencias por liquidar",
-    "seeThem": "Verlas",
     "cause": {
       "CONTEO": "Conteo corregido: {{antes}} → {{ahora}}",
       "CONTEO_SIN_ANTES": "Conteo corregido",
@@ -425,6 +432,7 @@
       "EXCLUIDA": "Clase excluida del pago",
       "TARDIA": "Clase registrada después del cierre",
       "MONTO": "Monto de la clase corregido"
-    }
+    },
+    "exitNoPermission": "Se resuelve en la clase con «Ajustar monto», y para eso hace falta el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio."
   }
 }

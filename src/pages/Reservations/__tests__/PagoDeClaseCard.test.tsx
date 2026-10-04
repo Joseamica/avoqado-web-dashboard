@@ -15,7 +15,6 @@ const m = vi.hoisted(() => ({
   access: vi.fn(),
   diff: vi.fn(),
   dialogo: vi.fn(),
-  motivo: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({
@@ -54,17 +53,16 @@ vi.mock('@/components/ui/select', () => ({
   SelectContent: ({ children }: any) => <>{children}</>,
   SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
 }))
-// El diálogo de liquidar tiene sus propias pruebas (DiferenciasSection); aquí importa con qué clase y sede se abre.
-vi.mock('@/pages/StaffPay/components/LiquidarDialog', () => ({
+// El diálogo de liquidar tiene sus propias pruebas (DiferenciasSection); aquí importa con qué clase y sede se abre. El
+// motivo de una diferencia trabada (MotivoPorResolver) es el REAL: lo que se prueba es lo que se ve en la tarjeta.
+vi.mock('@/pages/StaffPay/components/LiquidarDialog', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/pages/StaffPay/components/LiquidarDialog')>()),
   LiquidarDialog: (p: unknown) => {
     m.dialogo(p)
     return <div data-testid="liquidar-dialogo" />
   },
-  MotivoPorResolver: (p: unknown) => {
-    m.motivo(p)
-    return <div>motivo-por-resolver</div>
-  },
 }))
+vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ allVenues: [{ id: 'v1', name: 'Wellness', slug: 'wellness' }] }) }))
 vi.mock('@/pages/StaffPay/components/AsignarNivelModal', () => ({
   AsignarNivelModal: (p: any) => {
     m.modalNivel(p)
@@ -481,10 +479,37 @@ describe('PagoDeClaseCard', () => {
     expect(screen.getByText('differences.blockedCard')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /differences\.settle/ })).not.toBeInTheDocument()
     // Nombra a quién y desde cuándo, y dice qué botón usar AQUÍ (sin enlace a la misma clase).
-    expect(m.motivo).toHaveBeenLastCalledWith(expect.objectContaining({ classVenueId: 'v1', sessionId: 's1', enLaClase: true }))
+    expect(screen.getByText('differences.noLevelFor:{"persona":"Ana Martínez","fecha":"2026-08-04"}')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'differences.openClass' })).not.toBeInTheDocument()
     // La tabla no arregla una clase de un periodo cerrado (Codex C3): no se ofrece.
     expect(screen.queryByRole('link', { name: 'classCard.exitGoToTable' })).not.toBeInTheDocument()
-    expect(screen.getByText('differences.exitClassHere')).toBeInTheDocument()
+  })
+
+  it('caso QA 5 (julio, Carlos sin nivel): UN solo bloque con la salida, no dos con la misma frase', () => {
+    m.pay.mockReturnValue({
+      data: contabilizada({ estado: 'EXCEPCION', motivo: 'COACH_SIN_NIVEL', monto: null, staffName: 'Carlos Rodríguez', payLevelName: null }),
+    })
+    m.diff.mockReturnValue(
+      diferencia([
+        fila('a', 'Ana Martínez', null, { congelado: '570.00', coachActual: 'c', periodoOrigenId: 'p7', fechaValoracion: '2026-07-15' }),
+        fila('c', 'Carlos Rodríguez', null, { coachActual: 'c', periodoOrigenId: 'p7', fechaValoracion: '2026-07-15' }),
+      ]),
+    )
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    // El motivo de hoy sigue arriba, pero la salida va UNA vez, en el bloque de la diferencia, con quién y cuándo.
+    expect(screen.getByText('reasons.COACH_SIN_NIVEL')).toBeInTheDocument()
+    expect(screen.getAllByText('differences.exitClassHere')).toHaveLength(1)
+    expect(screen.getByText('differences.noLevelFor:{"persona":"Carlos Rodríguez","fecha":"2026-07-15"}')).toBeInTheDocument()
+  })
+
+  it('sin staffpay:close, una clase contabilizada y trabada dice qué permiso falta, no «usa Ajustar monto»', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    m.pay.mockReturnValue({ data: contabilizada({ estado: 'EXCEPCION', motivo: 'COACH_SIN_NIVEL', monto: null }) })
+    m.diff.mockReturnValue(diferencia([fila('a', 'Ana Martínez', null, { periodoOrigenId: 'p8' })]))
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('differences.exitNoPermission')).toBeInTheDocument()
+    expect(screen.queryByText('differences.exitClassHere')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'classCard.fixAmount' })).not.toBeInTheDocument()
   })
 
   it('una excepción de una clase SIN cierre sí lleva a la tabla de pagos (ahí se arregla)', () => {

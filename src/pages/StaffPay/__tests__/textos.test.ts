@@ -52,6 +52,12 @@ describe('textos de pago por servicio', () => {
     // El aviso de HUELLA_CAMBIO no repite su título en la descripción (QA B-7).
     expect(tEs('differences.changedHelp')).not.toMatch(/montos cambiaron/i)
     expect(tEs('period.negativeBalance')).toBe('Saldo en contra: recibió de más en periodos anteriores. Avoqado no cobra ni descuenta solo.')
+    // «Marcar todos» con signos mezclados: lo que de verdad pasa, sin un neto (pulido 3).
+    expect(tEs('closed.paysOne', { monto: '$570.00', nombre: 'Ana Martínez' })).toBe('Pagas $570.00 a Ana Martínez.')
+    expect(tEs('closed.owesOne', { nombre: 'Carlos Rodríguez', monto: '$360.00' })).toBe('Carlos Rodríguez queda con saldo en contra de $360.00.')
+    expect(tEs('closed.owesMany', { count: 2, monto: '$400.00' })).toBe('2 recibos quedan con saldo en contra por $400.00.')
+    expect(tEs('closed.markAllMixedConfirm', { count: 2 })).toBe('Registrar 2 recibos')
+    expect(es.differences).not.toHaveProperty('seeThem')
     expect(tEs('closed.settleNegativeTitle', { nombre: 'Carlos Rodríguez', monto: '−$360.00' })).toBe(
       '¿Registrar como saldado el recibo de Carlos Rodríguez (−$360.00)?',
     )
