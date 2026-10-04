@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { passesKeys } from '@/hooks/use-passes'
@@ -547,16 +547,21 @@ describe('PassVisitsList', () => {
     await waitFor(() => expect(screen.queryByText('visits.refreshError')).not.toBeInTheDocument())
   })
 
-  // R2b-27 (c): la rama «nunca llegó una lista» es la de pantalla completa (distinta del aviso en línea): sin filas ni «Reintentar» del aviso.
-  it('sin datos y con error: error de pantalla (visits.loadError) con el mensaje del server, sin el aviso en línea', async () => {
-    svc.listPassVisits.mockRejectedValue({ response: { status: 500, data: { message: 'Se cayó la base' } } })
+  // R2b-27 (c): la rama «nunca llegó una lista» es la de pantalla completa (distinta del aviso en línea), sin filas.
+  // R2b-39 (full-testing, Issue 2): y trae su propio «Reintentar»; sin él había que esperar el siguiente refresco (~30 s).
+  it('sin datos y con error: error de pantalla con el mensaje del server y «Reintentar» que trae la lista', async () => {
+    const down = { response: { status: 500, data: { message: 'Se cayó la base' } } }
+    // La carga y su único reintento (retry: 1 del hook) fallan; el clic ya encuentra al servidor arriba.
+    svc.listPassVisits.mockRejectedValueOnce(down).mockRejectedValueOnce(down).mockResolvedValue(page([visit()]))
     renderList()
     expect(await screen.findByText('visits.loadError', {}, { timeout: 5_000 })).toBeInTheDocument()
     expect(screen.getByText('Se cayó la base')).toBeInTheDocument()
     expect(screen.queryByText('visits.refreshError')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'common:retry' })).not.toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
-  })
+    fireEvent.click(screen.getByRole('button', { name: 'common:retry' }))
+    expect(await screen.findByText('Ana López')).toBeInTheDocument()
+    expect(screen.queryByText('visits.loadError')).not.toBeInTheDocument()
+  }, 10_000)
 
   // R2b-27 (a): StrictMode (dev) monta, desmonta y vuelve a montar. Con filas YA vencidas desde la caché, el cleanup tiene que soltar
   // el timer de vencimiento; si no, la segunda pasada ve la ref llena, no programa nada y esa instancia nunca recarga por vencimiento.

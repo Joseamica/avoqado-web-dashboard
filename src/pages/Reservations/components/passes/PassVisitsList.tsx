@@ -196,6 +196,17 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>{t('visits.loadError')}</AlertTitle>
         <AlertDescription>{apiErrorDescription(query.error) || t('errors.generic')}</AlertDescription>
+        {/* R2b-39: sin esto había que esperar el siguiente refresco (~30 s) para volver a intentarlo. */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="col-start-2 mt-2 justify-self-start"
+          onClick={() => query.refetch()}
+          disabled={query.isFetching}
+          data-tour="passes-visits-load-retry"
+        >
+          {t('common:retry')}
+        </Button>
       </Alert>
     )
   }

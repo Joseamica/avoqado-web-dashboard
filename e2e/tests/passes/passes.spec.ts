@@ -366,6 +366,8 @@ test.describe('Pases — Check-ins (Pantalla B)', () => {
     await page.getByRole('tab', { name: /^expired$/i }).click()
     await expect(page.getByText('Se cayó la base')).toBeVisible()
     await expect(page.getByText(/couldn't load check-ins/i)).toBeVisible()
+    // R2b-39 (Issue 2): la primera carga fallida trae su «Reintentar»
+    await expect(page.locator('[data-tour="passes-visits-load-retry"]')).toBeVisible()
   })
 
   test('modo oscuro: la lista y el reporte se pintan con los tokens del tema', async ({ page }) => {
