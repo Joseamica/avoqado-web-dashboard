@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimePicker } from '@/components/ui/time-picker'
@@ -234,6 +234,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
               </>
             )}
           </DialogTitle>
+          {/* Para lectores de pantalla; sin ella Radix avisa (el DialogContent del repo no reenvía aria-describedby). */}
+          <DialogDescription className="sr-only">{t('classSession.editDescription')}</DialogDescription>
         </DialogHeader>
 
         {isLoading ? (

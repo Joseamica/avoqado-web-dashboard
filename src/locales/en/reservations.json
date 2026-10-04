@@ -272,13 +272,17 @@
     "attendees": "Attendees",
     "attendeeRemoved": "Attendee removed",
     "passes": "Passes: {{taken}} of {{cap}}",
+    "passesShort": "· Passes {{taken}}/{{cap}}",
+    "editDescription": "Date, time, capacity, instructor, notes and attendees of this class.",
     "sessionPassCap": {
       "label": "Spots for passes in this class",
-      "hint": "Empty = the day-and-time rule applies or, if there is none, the general one. {{taken}} already taken by members.",
+      "hint": "Empty = the day-and-time rule applies or, if there is none, the general one. {{count}} spot already taken by members.",
+      "hint_other": "Empty = the day-and-time rule applies or, if there is none, the general one. {{count}} spots already taken by members.",
       "invalid": "Enter a whole number from 0 to 500, or leave it empty.",
       "readOnly": "To change it, ask a business administrator.",
       "planUnresolved": "We couldn't verify your plan. Reload the page to change it.",
       "planRequired": "Changing it is part of the Pro plan (Passes).",
+      "unsaved": "Not saved",
       "save": "Save spots",
       "saved": "Spots for passes saved"
     },

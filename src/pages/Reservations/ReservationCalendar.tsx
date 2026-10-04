@@ -696,9 +696,9 @@ export default function ReservationCalendar() {
             {!isFull && spotsLeft <= 3 && (
               <span className="text-[10px] opacity-80">{t('classSession.spotsLeft', { count: spotsLeft })}</span>
             )}
+            <ClassSessionPassesLine passes={session.passes} />
           </div>
         )}
-        {height > 56 && <ClassSessionPassesLine passes={session.passes} />}
 
         {/* Bottom resize handle */}
         {canDrag && (

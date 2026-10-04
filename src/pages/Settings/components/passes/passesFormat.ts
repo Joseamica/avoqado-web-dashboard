@@ -12,3 +12,11 @@ export const toStartMinute = (time: string): number | null => {
 
 /** Lo mismo que valida el server (`MAX_PASS_SPOTS = 500`): entero de 0 a 500. */
 export const isValidSpots = (n: number | null): n is number => n !== null && Number.isInteger(n) && n >= 0 && n <= 500
+
+/**
+ * Lo que trae un `<input type="number">` de lugares: vacío → `null`. Lo que no es número («-», «e») el navegador también lo
+ * entrega como `''`, pero con `validity.badInput`: se devuelve `NaN` para que `isValidSpots` lo rechace en vez de leerlo
+ * como vacío. Al pintarlo, `NaN` va como `''` (React no acepta `NaN` en `value`).
+ */
+export const readSpots = (input: HTMLInputElement): number | null =>
+  input.validity.badInput ? NaN : input.value === '' ? null : Number(input.value)

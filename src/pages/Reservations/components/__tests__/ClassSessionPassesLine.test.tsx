@@ -8,9 +8,10 @@ vi.mock('react-i18next', () => ({
 import { ClassSessionPassesLine } from '../ClassSessionPassesLine'
 
 describe('ClassSessionPassesLine', () => {
-  it('con pases pinta «Pases: X de Y»', () => {
+  // H1: corto («· Pases 2/3»), para ir en la fila de inscritos del bloque, que ya se ve en la clase de 60 min
+  it('con pases pinta «· Pases X/Y» en corto', () => {
     render(<ClassSessionPassesLine passes={{ taken: 2, cap: 3, sessionCap: null }} />)
-    expect(screen.getByText('classSession.passes:{"taken":2,"cap":3}')).toBeInTheDocument()
+    expect(screen.getByText('classSession.passesShort:{"taken":2,"cap":3}')).toBeInTheDocument()
   })
 
   // sin conexión / clase no ligada / cancelada (null) o server viejo (undefined): nada

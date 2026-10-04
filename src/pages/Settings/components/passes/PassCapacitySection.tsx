@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast'
 import { deletePassCapRule, setDefaultPassCap, upsertWeeklyPassCap } from '@/services/passes.service'
 import { apiErrorDescription } from '@/utils/apiError'
 import type { WeeklyRuleInput, WeeklyRuleView } from '@/types/passes'
-import { hhmm, isValidSpots } from './passesFormat'
+import { hhmm, isValidSpots, readSpots } from './passesFormat'
 import { WeeklyRuleDialog } from './WeeklyRuleDialog'
 
 interface PassCapacitySectionProps {
@@ -148,8 +148,8 @@ export function PassCapacitySection({ venueId, canManage, connected }: PassCapac
                   max={500}
                   step={1}
                   className="w-28"
-                  value={defaultSpots ?? ''}
-                  onChange={e => setDraft({ base: serverDefault, value: e.target.value === '' ? null : Number(e.target.value) })}
+                  value={Number.isNaN(defaultSpots) ? '' : (defaultSpots ?? '')}
+                  onChange={e => setDraft({ base: serverDefault, value: readSpots(e.target) })}
                   disabled={disabled}
                   aria-invalid={!defaultValid}
                   aria-describedby="passes-default-cap-help"

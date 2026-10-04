@@ -101,6 +101,18 @@ describe('PassCapacitySection', () => {
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
   })
 
+  // T10 ronda 1 (H4): «-» o «e» no es «vacío» (que guardaría «todos los lugares libres»): es inválido y no se guarda.
+  // jsdom no implementa `validity.badInput` de type="number": se simula lo que hace el navegador (valor '' + badInput).
+  it('lo que no es número en el tope general no se lee como vacío: inválido y sin guardar', async () => {
+    renderSection()
+    const input = await screen.findByLabelText('capacity.default.label')
+    Object.defineProperty(input, 'validity', { configurable: true, value: { badInput: true } })
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input).toHaveAccessibleDescription('capacity.default.invalid')
+    expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
+  })
+
   // H9: el onSuccess/onError de guardar el tope DEVUELVE la recarga: mientras capacity no regresa, nada se puede tocar
   // (si no, el dueño editaría sobre el valor viejo). Quitar el `return` deja el campo habilitado y esto falla.
   it.each([

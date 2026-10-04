@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useAccess } from '@/hooks/use-access'
 import { useInvalidatePasses, usePassesAccess } from '@/hooks/use-passes'
 import { useToast } from '@/hooks/use-toast'
-import { isValidSpots } from '@/pages/Settings/components/passes/passesFormat'
+import { isValidSpots, readSpots } from '@/pages/Settings/components/passes/passesFormat'
 import { setSessionPassCap } from '@/services/passes.service'
 import { apiErrorDescription } from '@/utils/apiError'
 import type { SessionPasses } from '@/types/passes'
@@ -65,8 +65,10 @@ export function SessionPassCapField({ venueId, sessionId, passes }: SessionPassC
   if (!resolved) return readOnly(unresolved ? t('classSession.sessionPassCap.planUnresolved') : undefined)
   if (!hasFeature) return readOnly(t('classSession.sessionPassCap.planRequired'))
 
+  // `NaN` = algo que no es número («-», «e»): inválido y distinto del server.
   const valid = value === null || isValidSpots(value)
-  const canSave = value !== passes.sessionCap && valid && !save.isPending
+  const dirty = value !== passes.sessionCap
+  const canSave = dirty && valid && !save.isPending
   return (
     <div className="space-y-1.5" data-tour="class-session-pass-cap">
       <Label htmlFor="edit-pass-cap">{t('classSession.sessionPassCap.label')}</Label>
@@ -78,8 +80,8 @@ export function SessionPassCapField({ venueId, sessionId, passes }: SessionPassC
           max={500}
           step={1}
           className="w-28"
-          value={value ?? ''}
-          onChange={e => setDraft({ base: passes.sessionCap, value: e.target.value === '' ? null : Number(e.target.value) })}
+          value={Number.isNaN(value) ? '' : (value ?? '')}
+          onChange={e => setDraft({ base: passes.sessionCap, value: readSpots(e.target) })}
           // Está dentro del <form> de la clase: Enter lo mandaría (guarda la clase y cierra sin guardar esto).
           onKeyDown={e => {
             if (e.key !== 'Enter') return
@@ -102,9 +104,13 @@ export function SessionPassCapField({ venueId, sessionId, passes }: SessionPassC
           {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('classSession.sessionPassCap.save')}
         </Button>
+        {/* Este botón es aparte del «Guardar» de la clase: lo tecleado y no guardado se dice a la vista. */}
+        {dirty && !save.isPending && (
+          <span className="text-xs font-medium text-muted-foreground">{t('classSession.sessionPassCap.unsaved')}</span>
+        )}
       </div>
       <p id="edit-pass-cap-help" className={valid ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'}>
-        {valid ? t('classSession.sessionPassCap.hint', { taken: passes.taken }) : t('classSession.sessionPassCap.invalid')}
+        {valid ? t('classSession.sessionPassCap.hint', { count: passes.taken }) : t('classSession.sessionPassCap.invalid')}
       </p>
     </div>
   )

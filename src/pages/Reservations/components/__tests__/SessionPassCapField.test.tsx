@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -24,13 +24,19 @@ const SAVE = 'classSession.sessionPassCap.save'
 const BAD_SPOTS = 'Los lugares para pases van de 0 a 500.'
 
 let client: QueryClient
+const field = (sessionCap: number | null) => (
+  <QueryClientProvider client={client}>
+    <SessionPassCapField venueId="v1" sessionId="s9" passes={{ taken: 1, cap: 3, sessionCap }} />
+  </QueryClientProvider>
+)
 function renderField(sessionCap: number | null = 2) {
   client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
-  return render(
-    <QueryClientProvider client={client}>
-      <SessionPassCapField venueId="v1" sessionId="s9" passes={{ taken: 1, cap: 3, sessionCap }} />
-    </QueryClientProvider>,
-  )
+  return render(field(sessionCap))
+}
+// jsdom no implementa `validity.badInput` de type="number": se simula lo que hace el navegador con «-» o «e» (valor '' + badInput).
+function typeBadInput(input: HTMLElement) {
+  Object.defineProperty(input, 'validity', { configurable: true, value: { badInput: true } })
+  fireEvent.change(input, { target: { value: '' } })
 }
 
 beforeEach(() => {
@@ -79,7 +85,7 @@ describe('SessionPassCapField', () => {
     const input = screen.getByLabelText(LABEL)
     expect(button).toBeDisabled()
     expect(input).toHaveAttribute('aria-invalid', 'false')
-    expect(input).toHaveAccessibleDescription('classSession.sessionPassCap.hint:{"taken":1}')
+    expect(input).toHaveAccessibleDescription('classSession.sessionPassCap.hint:{"count":1}')
     await user.clear(input)
     await user.type(input, '501')
     expect(button).toBeDisabled()
@@ -88,6 +94,43 @@ describe('SessionPassCapField', () => {
     await user.clear(input)
     await user.type(input, '4')
     expect(button).toBeEnabled()
+  })
+
+  // H4: «-» o «e» no es «vacío» (que borraría el ajuste de la sesión): es inválido y no se guarda
+  it('lo que no es número no se lee como vacío: inválido y sin guardar', async () => {
+    renderField(2)
+    const input = screen.getByLabelText(LABEL)
+    typeBadInput(input)
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input).toHaveAccessibleDescription('classSession.sessionPassCap.invalid')
+    expect(screen.getByRole('button', { name: SAVE })).toBeDisabled()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(svc.setSessionPassCap).not.toHaveBeenCalled()
+  })
+
+  // H3: lo tecleado y no guardado se dice a la vista (el «Guardar» de la clase NO lo guarda)
+  it('un valor distinto al guardado dice «Sin guardar» hasta que el server trae ese valor', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderField(2)
+    expect(screen.queryByText('classSession.sessionPassCap.unsaved')).not.toBeInTheDocument()
+    const input = screen.getByLabelText(LABEL)
+    await user.clear(input)
+    await user.type(input, '4')
+    expect(screen.getByText('classSession.sessionPassCap.unsaved')).toBeInTheDocument()
+    rerender(field(4))
+    expect(screen.queryByText('classSession.sessionPassCap.unsaved')).not.toBeInTheDocument()
+  })
+
+  // H5 (patrón R2b-20): si el server trae OTRO valor que el que el borrador tomó como base, gana el del server
+  it('un valor nuevo del server reemplaza lo tecleado', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderField(2)
+    const input = screen.getByLabelText(LABEL)
+    await user.clear(input)
+    await user.type(input, '4')
+    rerender(field(7))
+    expect(screen.getByLabelText(LABEL)).toHaveValue(7)
+    expect(screen.queryByText('classSession.sessionPassCap.unsaved')).not.toBeInTheDocument()
   })
 
   // Enter dentro del diálogo de la clase mandaría el formulario de la clase: aquí guarda los lugares
@@ -135,6 +178,7 @@ describe('SessionPassCapField', () => {
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ variant: 'destructive', title: BAD_SPOTS }))
     await waitFor(() => expect(screen.getByLabelText(LABEL)).toBeEnabled())
     expect(screen.getByLabelText(LABEL)).toHaveValue(4)
+    expect(screen.getByText('classSession.sessionPassCap.unsaved')).toBeInTheDocument()
   })
 
   // sin permiso: se ve el dato, no el campo
