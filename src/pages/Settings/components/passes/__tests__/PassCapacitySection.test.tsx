@@ -68,9 +68,9 @@ describe('PassCapacitySection', () => {
     const user = userEvent.setup()
     renderSection()
     const input = await screen.findByLabelText('capacity.default.label')
-    expect(input).toHaveValue(3)
+    expect(input).toHaveValue('3')
     await user.clear(input)
-    expect(input).toHaveValue(null)
+    expect(input).toHaveValue('')
     await user.click(screen.getByRole('button', { name: 'capacity.default.save' }))
     await waitFor(() => expect(svc.setDefaultPassCap).toHaveBeenCalledWith('v1', null))
   })
@@ -101,16 +101,23 @@ describe('PassCapacitySection', () => {
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
   })
 
-  // T10 ronda 1 (H4): «-» o «e» no es «vacío» (que guardaría «todos los lugares libres»): es inválido y no se guarda.
-  // jsdom no implementa `validity.badInput` de type="number": se simula lo que hace el navegador (valor '' + badInput).
-  it('lo que no es número en el tope general no se lee como vacío: inválido y sin guardar', async () => {
+  // R2b-39 (full-testing, Issue 1): con type=number, «e» sobre un campo vacío no disparaba onChange y Guardar mandaba null.
+  // Ahora el campo es texto con teclado numérico: lo que no es dígito no entra, y lo que se ve es lo que se guarda.
+  it('el tope general sólo acepta dígitos: «e» no entra y «e2» guarda 2', async () => {
+    const user = userEvent.setup()
     renderSection()
     const input = await screen.findByLabelText('capacity.default.label')
-    Object.defineProperty(input, 'validity', { configurable: true, value: { badInput: true } })
-    fireEvent.change(input, { target: { value: '' } })
-    expect(input).toHaveAttribute('aria-invalid', 'true')
-    expect(input).toHaveAccessibleDescription('capacity.default.invalid')
+    expect(input).toHaveAttribute('inputmode', 'numeric')
+    await user.type(input, 'e')
+    expect(input).toHaveValue('3')
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
+    await user.clear(input)
+    await user.type(input, 'e')
+    expect(input).toHaveValue('')
+    await user.type(input, '2')
+    await user.click(screen.getByRole('button', { name: 'capacity.default.save' }))
+    await waitFor(() => expect(svc.setDefaultPassCap).toHaveBeenCalledWith('v1', 2))
+    expect(svc.setDefaultPassCap).toHaveBeenCalledTimes(1)
   })
 
   // H9: el onSuccess/onError de guardar el tope DEVUELVE la recarga: mientras capacity no regresa, nada se puede tocar
@@ -148,7 +155,7 @@ describe('PassCapacitySection', () => {
     await user.click(screen.getByRole('button', { name: 'capacity.default.save' }))
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: BAD_SPOTS })))
     await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledTimes(2))
-    expect(screen.getByLabelText('capacity.default.label')).toHaveValue(7)
+    expect(screen.getByLabelText('capacity.default.label')).toHaveValue('7')
   })
 
   // la excepción se pinta con día, hora y lugares; borrar pide confirmación
@@ -160,7 +167,7 @@ describe('PassCapacitySection', () => {
     renderSection()
     expect(await screen.findByText('Se cayó la base', {}, { timeout: 5_000 })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'common:retry' }))
-    expect(await screen.findByLabelText('capacity.default.label')).toHaveValue(3)
+    expect(await screen.findByLabelText('capacity.default.label')).toHaveValue('3')
     expect(screen.queryByText('capacity.loadError')).not.toBeInTheDocument()
   }, 10_000)
 
@@ -272,11 +279,11 @@ describe('PassCapacitySection', () => {
     expect(await within(screen.getByRole('dialog')).findByText(TOO_MANY)).toBeInTheDocument()
     expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
     await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledTimes(2))
-    expect(screen.getByLabelText('capacity.dialog.spots')).toHaveValue(2)
+    expect(screen.getByLabelText('capacity.dialog.spots')).toHaveValue('2')
     // al cerrar y volver a abrir, el error viejo ya no está
     await user.click(screen.getByRole('button', { name: 'Cerrar' }))
     await user.click(await screen.findByRole('button', { name: 'capacity.weekly.add' }))
-    expect(await screen.findByLabelText('capacity.dialog.spots')).toHaveValue(null)
+    expect(await screen.findByLabelText('capacity.dialog.spots')).toHaveValue('')
     expect(screen.queryByText(TOO_MANY)).not.toBeInTheDocument()
   })
 
@@ -298,7 +305,7 @@ describe('PassCapacitySection', () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     })
     // …y el borrador tecleado sigue ahí (el tope general del server sigue en 3)
-    expect(screen.getByLabelText('capacity.default.label')).toHaveValue(7)
+    expect(screen.getByLabelText('capacity.default.label')).toHaveValue('7')
   })
 
   // sin borrador, un tope general NUEVO del server sí llega al campo (no se ignora la respuesta fresca)
@@ -307,9 +314,9 @@ describe('PassCapacitySection', () => {
     // otro administrador cambió el tope general a 5 mientras esta pantalla estaba abierta
     svc.getPassCapacity.mockResolvedValueOnce(CAPACITY).mockResolvedValueOnce({ ...AFTER_APPLY, defaultMaxSpots: 5 })
     renderSection()
-    expect(await screen.findByLabelText('capacity.default.label')).toHaveValue(3)
+    expect(await screen.findByLabelText('capacity.default.label')).toHaveValue('3')
     await user.click(screen.getByRole('button', { name: 'capacity.suggestions.apply' }))
-    await waitFor(() => expect(screen.getByLabelText('capacity.default.label')).toHaveValue(5))
+    await waitFor(() => expect(screen.getByLabelText('capacity.default.label')).toHaveValue('5'))
   })
 
   it('sin permiso: input, Guardar, Agregar, Borrar y Aplicar deshabilitados', async () => {

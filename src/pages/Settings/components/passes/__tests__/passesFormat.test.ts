@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hhmm, isValidSpots, toStartMinute } from '../passesFormat'
+import { hhmm, isValidSpots, readSpots, toStartMinute } from '../passesFormat'
 
 describe('passesFormat', () => {
   it('hhmm: minutos locales → HH:mm; null → null (todo el día)', () => {
@@ -26,5 +26,18 @@ describe('passesFormat', () => {
     expect(isValidSpots(-1)).toBe(false)
     expect(isValidSpots(501)).toBe(false)
     expect(isValidSpots(1.5)).toBe(false)
+  })
+
+  // R2b-39: el campo es texto con teclado numérico y sólo acepta dígitos. Vacío (de verdad) = sin regla; lo demás se filtra.
+  it('readSpots: sólo dígitos; vacío → null; «e», «-», «+», «.» se descartan', () => {
+    expect(readSpots('')).toBeNull()
+    expect(readSpots('e')).toBeNull()
+    expect(readSpots('-')).toBeNull()
+    expect(readSpots('0')).toBe(0)
+    expect(readSpots('4e')).toBe(4)
+    expect(readSpots('e2')).toBe(2)
+    expect(readSpots('-3')).toBe(3)
+    expect(readSpots('+7')).toBe(7)
+    expect(readSpots('600')).toBe(600) // fuera de rango lo rechaza isValidSpots
   })
 })

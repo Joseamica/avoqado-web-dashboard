@@ -135,7 +135,7 @@ describe('EditClassSessionDialog + lugares para pases', () => {
     expect(screen.getByLabelText('classSession.fields.capacity')).toHaveValue(12)
     // …y al llegar la respuesta fresca, el formulario y el campo de lugares para pases la muestran
     await waitFor(() => expect(screen.getByLabelText('classSession.fields.capacity')).toHaveValue(7))
-    await waitFor(() => expect(screen.getByLabelText(PASS_CAP)).toHaveValue(5))
+    await waitFor(() => expect(screen.getByLabelText(PASS_CAP)).toHaveValue('5'))
   })
 
   // y sí se inicializa al abrir (lo que el reset siempre hizo bien)

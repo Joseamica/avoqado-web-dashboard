@@ -212,6 +212,33 @@ test.describe('Pases — Integraciones (Pantalla A)', () => {
     await expect.poll(() => disconnects).toBe(1)
   })
 
+  // R2b-39 (full-testing, Issue 1): con type=number, teclear «e» en un campo vacío no dispara onChange y Guardar mandaba
+  // `maxSpots:null` (borraba la regla). jsdom no lo ve: sólo el navegador real. Se borra el tope y se teclea «e2».
+  test('tope general: teclear «e» no se guarda como vacío; sólo los dígitos llegan al server', async ({ page }) => {
+    const puts: unknown[] = []
+    await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [VENUE], planState: PRO })
+    await mockPasses(page, { pending: () => [] })
+    await page.route('**/api/v1/dashboard/venues/*/pass-integrations/capacity/default', route => {
+      puts.push(route.request().postDataJSON())
+      return route.fulfill(ok({ saved: true }))
+    })
+    await hideDevtools(page)
+    await page.goto('/venues/venue-alpha/settings/integrations/pases')
+    const input = page.locator('[data-tour="passes-default-cap"]')
+    await expect(input).toHaveValue('3', { timeout: 15_000 })
+    await input.click()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('e')
+    await expect(input).toHaveValue('')
+    await page.keyboard.type('2')
+    await page.locator('[data-tour="passes-default-cap-save"]').click()
+    // 🔴 la prueba: ningún PUT con `maxSpots:null`; llega el 2 que se ve
+    await expect.poll(() => puts.length).toBe(1)
+    expect(puts).toEqual([{ maxSpots: 2 }])
+    await expect(input).toHaveValue('2')
+  })
+
   // P2-12: la ruta es hermana de `integrations` y la protege reservations:read, no el rol ADMIN
   test('un MANAGER con reservations:read llega a la configuración en sólo lectura', async ({ page }) => {
     await setupApiMocks(page, { userRole: StaffRole.MANAGER, venues: [MANAGER_VENUE], planState: PRO })
@@ -443,6 +470,37 @@ test.describe('Pases — calendario de clases (R2b-33/34: jsdom no mide)', () =>
     await page.screenshot({ path: 'test-results/passes-calendar-day-light.png' })
     await expectEnrolledRowFits(blocks[0], '7/12')
     await expectEnrolledRowFits(blocks[1], '10/12')
+  })
+
+  // R2b-39 (full-testing, Issue 1): el mismo dedazo en los lugares de UNA clase (diálogo de la clase en el calendario).
+  test('lugares de la clase: teclear «e» no se guarda como vacío; sólo los dígitos llegan al server', async ({ page }) => {
+    const puts: unknown[] = []
+    const blocks = await openCalendar(page, 'day')
+    await page.route('**/api/v1/dashboard/venues/*/class-sessions/s1', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...SESSIONS[0], passes: { taken: 2, cap: 4, sessionCap: 4 } }),
+      }),
+    )
+    await page.route('**/api/v1/dashboard/venues/*/pass-integrations/capacity/sessions/s1', route => {
+      puts.push(route.request().postDataJSON())
+      return route.fulfill(ok({ saved: true }))
+    })
+    await blocks[0].click()
+    const input = page.locator('[data-tour="class-session-pass-cap-input"]')
+    await expect(input).toHaveValue('4', { timeout: 15_000 })
+    await input.click()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('e')
+    await expect(input).toHaveValue('')
+    await page.keyboard.type('2')
+    await page.locator('[data-tour="class-session-pass-cap-save"]').click()
+    // 🔴 la prueba: ningún PUT con `maxSpots:null`; llega el 2 que se ve
+    await expect.poll(() => puts.length).toBe(1)
+    expect(puts).toEqual([{ maxSpots: 2 }])
+    await expect(input).toHaveValue('2')
   })
 
   // R2b-34 (arreglado): a 1280 px la columna de la semana mide ~119 px. El indicador compacto no se parte ni se encoge;

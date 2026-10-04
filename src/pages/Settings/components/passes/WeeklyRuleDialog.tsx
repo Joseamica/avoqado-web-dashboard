@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import type { WeeklyRuleInput, WeeklyRuleView } from '@/types/passes'
-import { isValidSpots, toStartMinute } from './passesFormat'
+import { SPOTS_INPUT_PROPS, isValidSpots, readSpots, toStartMinute } from './passesFormat'
 
 interface WeeklyRuleDialogProps {
   open: boolean
@@ -139,13 +139,10 @@ export function WeeklyRuleDialog({ open, onClose, onSave, saving, existing = [],
             <Label htmlFor="weekly-spots">{t('capacity.dialog.spots')}</Label>
             <Input
               id="weekly-spots"
-              type="number"
-              min={0}
-              max={500}
-              step={1}
+              {...SPOTS_INPUT_PROPS}
               className="h-12 text-base"
               value={spots ?? ''}
-              onChange={e => setSpots(e.target.value === '' ? null : Number(e.target.value))}
+              onChange={e => setSpots(readSpots(e.target.value))}
               aria-invalid={showSpotsError}
               aria-describedby={showSpotsError ? 'weekly-spots-hint weekly-spots-error' : 'weekly-spots-hint'}
               data-tour="passes-weekly-spots"

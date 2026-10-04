@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useAccess } from '@/hooks/use-access'
 import { useInvalidatePasses, usePassesAccess } from '@/hooks/use-passes'
 import { useToast } from '@/hooks/use-toast'
-import { isValidSpots, readSpots } from '@/pages/Settings/components/passes/passesFormat'
+import { SPOTS_INPUT_PROPS, isValidSpots, readSpots } from '@/pages/Settings/components/passes/passesFormat'
 import { setSessionPassCap } from '@/services/passes.service'
 import { apiErrorDescription } from '@/utils/apiError'
 import type { SessionPasses } from '@/types/passes'
@@ -65,7 +65,6 @@ export function SessionPassCapField({ venueId, sessionId, passes }: SessionPassC
   if (!resolved) return readOnly(unresolved ? t('classSession.sessionPassCap.planUnresolved') : undefined)
   if (!hasFeature) return readOnly(t('classSession.sessionPassCap.planRequired'))
 
-  // `NaN` = algo que no es número («-», «e»): inválido y distinto del server.
   const valid = value === null || isValidSpots(value)
   const dirty = value !== passes.sessionCap
   const canSave = dirty && valid && !save.isPending
@@ -75,13 +74,10 @@ export function SessionPassCapField({ venueId, sessionId, passes }: SessionPassC
       <div className="flex items-center gap-2">
         <Input
           id="edit-pass-cap"
-          type="number"
-          min={0}
-          max={500}
-          step={1}
+          {...SPOTS_INPUT_PROPS}
           className="w-28"
-          value={Number.isNaN(value) ? '' : (value ?? '')}
-          onChange={e => setDraft({ base: passes.sessionCap, value: readSpots(e.target) })}
+          value={value ?? ''}
+          onChange={e => setDraft({ base: passes.sessionCap, value: readSpots(e.target.value) })}
           // Está dentro del <form> de la clase: Enter lo mandaría (guarda la clase y cierra sin guardar esto).
           onKeyDown={e => {
             if (e.key !== 'Enter') return

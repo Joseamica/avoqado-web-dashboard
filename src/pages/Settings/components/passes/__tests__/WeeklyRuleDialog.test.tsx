@@ -30,6 +30,21 @@ describe('WeeklyRuleDialog', () => {
     expect(onSave).toHaveBeenCalledWith({ weekday: 1, startMinute: null, maxSpots: 0 })
   })
 
+  // R2b-39: los lugares, igual que el tope general y el de la clase: texto con teclado numérico, sólo dígitos
+  it('los lugares sólo aceptan dígitos: «e5» queda en 5', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn()
+    render(<WeeklyRuleDialog open onClose={() => {}} onSave={onSave} saving={false} />)
+    await user.click(screen.getByRole('switch', { name: 'capacity.dialog.allDay' }))
+    const spots = screen.getByLabelText('capacity.dialog.spots')
+    expect(spots).toHaveAttribute('inputmode', 'numeric')
+    await user.type(spots, 'e')
+    expect(spots).toHaveValue('')
+    await user.type(spots, '5')
+    await user.click(screen.getByRole('button', { name: 'common:save' }))
+    expect(onSave).toHaveBeenCalledWith({ weekday: 1, startMinute: null, maxSpots: 5 })
+  })
+
   // sin hora o sin lugares no se guarda y se dice por qué
   it('sin hora o sin lugares no guarda y muestra el motivo', async () => {
     const user = userEvent.setup()
