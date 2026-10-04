@@ -5,7 +5,7 @@ import { FEATURE_ICON_IDS, featureIcon } from '../featureIcons'
 
 describe('featureIcon', () => {
   it('every catalog id resolves to its own lucide component, aliases included', () => {
-    expect(FEATURE_ICON_IDS).toHaveLength(40)
+    expect(FEATURE_ICON_IDS).toHaveLength(41)
     // An import that resolved to undefined would silently fall back to Sparkles: only UPSELL_AI uses it on purpose.
     expect(FEATURE_ICON_IDS.filter(id => featureIcon(id) === Sparkles)).toEqual(['UPSELL_AI'])
   })

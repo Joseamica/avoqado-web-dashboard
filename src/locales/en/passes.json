@@ -1,0 +1,28 @@
+{
+  "providers": { "TOTALPASS": "TotalPass", "WELLHUB": "Wellhub" },
+  "days": { "0": "Sunday", "1": "Monday", "2": "Tuesday", "3": "Wednesday", "4": "Thursday", "5": "Friday", "6": "Saturday" },
+  "daysPlural": { "0": "Sundays", "1": "Mondays", "2": "Tuesdays", "3": "Wednesdays", "4": "Thursdays", "5": "Fridays", "6": "Saturdays" },
+  "allDay": "all day",
+  "errors": {
+    "generic": "Couldn't complete that. Try again.",
+    "planUnresolved": "We couldn't verify your plan. Reload the page to try again."
+  },
+  "page": {
+    "title": "Passes (TotalPass · Wellhub)",
+    "subtitle": "Connect your location so TotalPass and Wellhub members can book and check in to your classes from their app. You decide how many spots they get.",
+    "info": "TotalPass and Wellhub pay you for every confirmed visit. Here you connect your location, link your classes and decide how many spots to offer.",
+    "readOnly": "Read only: to connect or change settings, ask a business administrator.",
+    "loadError": "Couldn't load the passes settings"
+  },
+  "teaser": {
+    "title": "What this does",
+    "bullet1": "TotalPass and Wellhub members see your classes in their app and book on their own.",
+    "bullet2": "When they arrive, their check-in is confirmed and the provider pays you for that visit.",
+    "bullet3": "You decide how many spots per class go to passes, with suggestions based on how your classes fill up."
+  },
+  "wellhub": {
+    "title": "Wellhub",
+    "description": "Formerly Gympass. You'll be able to connect it as soon as Wellhub hands us your location's credentials.",
+    "connect": "Connect"
+  }
+}

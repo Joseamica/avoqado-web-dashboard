@@ -79,6 +79,7 @@ import {
   PaymentLinks,
   Ecommerce,
   PaymentLinkSettings,
+  PassIntegrations,
   ReservationBranding,
   Payments,
   ProductId,
@@ -793,6 +794,13 @@ export function createVenueRoutes(): RouteObject[] {
             { index: true, element: <VenueIntegrations /> },
             { path: 'google', element: <GoogleIntegration /> },
           ],
+        },
+        // Conector de pases (TotalPass · Wellhub) — ruta HERMANA de `integrations`, protegida por PERMISO y no por rol:
+        // un MANAGER con reservations:read la ve en sólo lectura (P2-12). Plan Pro: el gate vive DENTRO de la página.
+        {
+          path: 'integrations/pases',
+          element: <PermissionProtectedRoute permission="reservations:read" />,
+          children: [{ index: true, element: <PassIntegrations /> }],
         },
 
         // Este local — roles (URL unchanged: settings/role-permissions)

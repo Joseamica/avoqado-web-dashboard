@@ -433,6 +433,10 @@
           "title": "Crypto payments",
           "description": "Accept cryptocurrency payments with B4Bit."
         },
+        "passes": {
+          "title": "Passes (TotalPass · Wellhub)",
+          "description": "TotalPass and Wellhub members book and check in to your classes; you decide how many spots they get."
+        },
         "partner": "Partner",
         "haycash": {
           "title": "HayCash · Sales advance",

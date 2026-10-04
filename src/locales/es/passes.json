@@ -1,0 +1,28 @@
+{
+  "providers": { "TOTALPASS": "TotalPass", "WELLHUB": "Wellhub" },
+  "days": { "0": "Domingo", "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves", "5": "Viernes", "6": "Sábado" },
+  "daysPlural": { "0": "domingos", "1": "lunes", "2": "martes", "3": "miércoles", "4": "jueves", "5": "viernes", "6": "sábados" },
+  "allDay": "todo el día",
+  "errors": {
+    "generic": "No se pudo completar. Intenta de nuevo.",
+    "planUnresolved": "No pudimos comprobar tu plan. Recarga la página para intentarlo de nuevo."
+  },
+  "page": {
+    "title": "Pases (TotalPass · Wellhub)",
+    "subtitle": "Conecta tu sucursal para que los socios de TotalPass y Wellhub reserven y hagan check-in en tus clases desde su app. Tú decides cuántos lugares les das.",
+    "info": "TotalPass y Wellhub te pagan por cada visita confirmada. Aquí conectas tu sucursal, ligas tus clases y decides cuántos lugares les ofreces.",
+    "readOnly": "Sólo lectura: para conectar o cambiar la configuración, pídele a un administrador del negocio.",
+    "loadError": "No se pudo cargar la configuración de pases"
+  },
+  "teaser": {
+    "title": "Qué hace esta función",
+    "bullet1": "Los socios de TotalPass y Wellhub ven tus clases en su app y reservan solos.",
+    "bullet2": "Cuando llegan, su check-in se confirma y el proveedor te paga esa visita.",
+    "bullet3": "Tú decides cuántos lugares de cada clase se ofrecen a pases, con sugerencias según cómo se llenan tus clases."
+  },
+  "wellhub": {
+    "title": "Wellhub",
+    "description": "Antes Gympass. Se podrá conectar en cuanto Wellhub nos entregue las credenciales de tu sucursal.",
+    "connect": "Conectar"
+  }
+}

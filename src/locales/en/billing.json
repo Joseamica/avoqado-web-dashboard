@@ -783,7 +783,8 @@
       "AREA_TICKETS": "Area tickets",
       "VARIABLE_WEIGHT_BARCODE": "Variable-weight barcodes",
       "MASTER_CATALOG": "Master catalog",
-      "PRICE_LABELS": "Price labels"
+      "PRICE_LABELS": "Price labels",
+      "AGGREGATOR_PASSES": "Passes (TotalPass · Wellhub)"
     },
     "restoreChanged": "An offer in your saved selection changed or is no longer available. Retry or select again before requesting a quote.",
     "draftSaveFailed": "We could not save your selection in this browser. Keep this page open to preserve it.",
