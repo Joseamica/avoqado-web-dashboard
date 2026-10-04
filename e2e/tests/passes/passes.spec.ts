@@ -311,12 +311,27 @@ test.describe('Pases — Check-ins (Pantalla B)', () => {
     await expect(page.getByText('Ana López')).toBeVisible()
     // R2b-26: con un solo proveedor conectado el filtro de proveedor no se pinta; el filtro que hay es el de fecha.
     await expect(page.getByRole('button', { name: /^provider/i })).toHaveCount(0)
+    // D9: la respuesta del filtro se RETIENE hasta que la prueba la suelta. Mientras no llega, la fila anterior sigue a la vista
+    // con «Updating…» (la tabla no se desmontó en un spinner) y no se concluye «sin resultados».
+    let release!: () => void
+    const held = new Promise<void>(resolve => {
+      release = resolve
+    })
+    await page.route('**/api/v1/dashboard/venues/*/pass-integrations/visits?*', async route => {
+      if (!new URL(route.request().url()).searchParams.has('from')) return route.fallback()
+      await held
+      return route.fulfill(ok({ items: [], total: 0, hasMore: false, nextOffset: null }))
+    })
     await page.getByRole('button', { name: /^date$/i }).click()
     await page.getByLabel(/^from$/i).fill('2026-09-01')
     await page.getByRole('button', { name: /^apply$/i }).click()
-    // sin resultados con filtro — y la lista no se desmontó en un spinner entero
+    await expect(page.getByText(/updating…/i)).toBeVisible()
+    await expect(page.getByText('Ana López')).toBeVisible()
+    await expect(page.getByText(/no check-ins match these filters/i)).toHaveCount(0)
+    release()
+    // sin resultados con filtro, ya con la respuesta nueva
     await expect(page.getByText(/no check-ins match these filters/i)).toBeVisible()
-    await expect(page.getByRole('tab', { name: /^pending$/i })).toBeVisible()
+    await expect(page.getByText('Ana López')).toHaveCount(0)
     // error del servidor, con su mensaje tal cual
     await page.route('**/api/v1/dashboard/venues/*/pass-integrations/visits?*', route =>
       route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'Se cayó la base' }) }),
