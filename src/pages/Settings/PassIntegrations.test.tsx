@@ -199,4 +199,23 @@ describe('PassIntegrations (Pantalla A)', () => {
     expect(screen.getByTestId('feature-gate')).toBeInTheDocument()
     expect(screen.queryByText('totalpass.planPaused')).not.toBeInTheDocument()
   })
+
+  // Tarea 6: la tarjeta conectada recibe las clases del negocio de la vista general y las ofrece para ligar.
+  it('con plan y TotalPass ACTIVE ⇒ las clases del negocio aparecen para ligarlas a un plan', async () => {
+    svc.getPassIntegrationsOverview.mockResolvedValue({
+      ...OVERVIEW,
+      connections: [
+        {
+          ...OVERVIEW.connections[0],
+          status: 'ACTIVE',
+          externalPlaceName: 'Estudio Prueba',
+          plans: [{ id: '305', name: 'Gold', code: null }],
+        },
+        OVERVIEW.connections[1],
+      ],
+    })
+    renderPage()
+    expect(await screen.findByText('products.title')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Yoga' })).toHaveTextContent('products.none')
+  })
 })

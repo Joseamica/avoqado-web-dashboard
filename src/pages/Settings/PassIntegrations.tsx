@@ -74,7 +74,13 @@ export default function PassIntegrations() {
         <PassesTeaser />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          <TotalPassCard venueId={venueId} connection={totalpass} canManage={canManage} planPaused={planPaused} />
+          <TotalPassCard
+            venueId={venueId}
+            connection={totalpass}
+            classProducts={overview.data.classProducts}
+            canManage={canManage}
+            planPaused={planPaused}
+          />
           <WellhubCard />
         </div>
       )}

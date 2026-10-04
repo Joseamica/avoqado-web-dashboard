@@ -28,12 +28,15 @@ import { useInvalidatePasses } from '@/hooks/use-passes'
 import { useToast } from '@/hooks/use-toast'
 import { connectTotalPass, disconnectPassProvider, setPassConfirmMode } from '@/services/passes.service'
 import { apiErrorDescription } from '@/utils/apiError'
-import type { PassConfirmMode, PassConnectionView } from '@/types/passes'
+import type { PassConfirmMode, PassConnectionView, PassIntegrationsOverview } from '@/types/passes'
 import { passConnectionIsLive } from './passConnection'
+import { ProductLinksEditor } from './ProductLinksEditor'
 
 interface TotalPassCardProps {
   venueId: string
   connection: PassConnectionView
+  /** Las clases del negocio (tope de 200 del server) para ligarlas con los planes de TotalPass. */
+  classProducts: PassIntegrationsOverview['classProducts']
   canManage: boolean
   /** Pausa suave (R62 del server): el negocio perdió el plan con TotalPass vivo. Sólo el aviso, ver planes y Desconectar. */
   planPaused?: boolean
@@ -99,7 +102,7 @@ function PlanPausedNotice() {
  * Los errores del servidor se muestran TAL CUAL y en la tarjeta (no en un toast que se va): el dueño tiene que leer
  * «TotalPass no reconoce esa llave…» o «2 reservas de socios próximas…» para saber qué hacer.
  */
-export function TotalPassCard({ venueId, connection, canManage, planPaused = false }: TotalPassCardProps) {
+export function TotalPassCard({ venueId, connection, classProducts, canManage, planPaused = false }: TotalPassCardProps) {
   const { t } = useTranslation('passes')
   const { toast } = useToast()
   const invalidate = useInvalidatePasses()
@@ -312,6 +315,15 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
                   {confirmMode === 'AUTO' ? t('totalpass.mode.autoHint') : t('totalpass.mode.onCheckinHint')}
                 </p>
               </div>
+
+              <ProductLinksEditor
+                venueId={venueId}
+                provider="TOTALPASS"
+                plans={connection.plans}
+                productLinks={connection.productLinks}
+                classProducts={classProducts}
+                canManage={canManage}
+              />
             </>
           )}
 

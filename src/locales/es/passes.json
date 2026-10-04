@@ -54,5 +54,17 @@
     "disconnectBody": "Tus clases dejarán de publicarse en TotalPass y los socios ya no podrán reservar. Para volver a conectar tendrás que pegar tu llave otra vez.",
     "disconnectNoKey": "Como la conexión no está activa, Avoqado no puede quitar tus clases de TotalPass. Si alguna sigue publicada allá, bórrala desde el Portal de Academias de TotalPass.",
     "disconnectConfirm": "Sí, desconectar"
+  },
+  "products": {
+    "title": "Clases que se ofrecen a TotalPass",
+    "description": "Elige el plan de TotalPass de cada clase. Las que queden «Sin ligar» no se publican.",
+    "class": "Clase",
+    "plan": "Plan de TotalPass",
+    "none": "Sin ligar",
+    "noPlans": "Tu sucursal de TotalPass no tiene planes todavía. Créalos en su portal y vuelve a conectar.",
+    "noClasses": "No tienes productos tipo «Clase». Crea uno en el menú para poder ligarlo.",
+    "showing": "Se muestran {{shown}} de {{total}} clases. Si necesitas ligar las demás, escríbenos.",
+    "save": "Guardar clases",
+    "saved": "Clases guardadas"
   }
 }

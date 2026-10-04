@@ -9,7 +9,12 @@ Element.prototype.hasPointerCapture = () => false
 Element.prototype.setPointerCapture = () => {}
 Element.prototype.releasePointerCapture = () => {}
 
-const svc = vi.hoisted(() => ({ connectTotalPass: vi.fn(), setPassConfirmMode: vi.fn(), disconnectPassProvider: vi.fn() }))
+const svc = vi.hoisted(() => ({
+  connectTotalPass: vi.fn(),
+  setPassConfirmMode: vi.fn(),
+  setPassProductLinks: vi.fn(),
+  disconnectPassProvider: vi.fn(),
+}))
 vi.mock('@/services/passes.service', () => svc)
 const toastSpy = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastSpy }) }))
@@ -57,7 +62,13 @@ function renderCard(connection: PassConnectionView, canManage = true, planPaused
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <TotalPassCard venueId="v1" connection={connection} canManage={canManage} planPaused={planPaused} />
+      <TotalPassCard
+        venueId="v1"
+        connection={connection}
+        classProducts={{ items: [], total: 0 }}
+        canManage={canManage}
+        planPaused={planPaused}
+      />
     </QueryClientProvider>,
   )
 }

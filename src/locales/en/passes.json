@@ -54,5 +54,17 @@
     "disconnectBody": "Your classes will stop being published on TotalPass and members won't be able to book. To reconnect you'll need to paste your key again.",
     "disconnectNoKey": "Since the connection isn't active, Avoqado can't remove your classes from TotalPass. If any are still published there, delete them from the TotalPass Partner Portal.",
     "disconnectConfirm": "Yes, disconnect"
+  },
+  "products": {
+    "title": "Classes offered to TotalPass",
+    "description": "Pick the TotalPass plan for each class. Classes left as “Not linked” aren't published.",
+    "class": "Class",
+    "plan": "TotalPass plan",
+    "none": "Not linked",
+    "noPlans": "Your TotalPass location has no plans yet. Create them in their portal and reconnect.",
+    "noClasses": "You have no “Class” products. Create one in the menu to link it.",
+    "showing": "Showing {{shown}} of {{total}} classes. If you need to link the rest, write to us.",
+    "save": "Save classes",
+    "saved": "Classes saved"
   }
 }
