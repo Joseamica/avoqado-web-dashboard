@@ -206,7 +206,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg overflow-visible">
+      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -235,196 +235,199 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : session ? (
-          <form onSubmit={onSubmit} className="space-y-5">
-            {/* Enrollment summary */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <span className="font-medium">
-                  {session.enrolled}/{session.capacity}
-                </span>
-                <span className="text-muted-foreground text-sm ml-1.5">
-                  {t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' }).toLowerCase()}
-                </span>
-              </div>
-              {session.enrolled >= session.capacity && (
-                <Badge variant="outline" className="ml-auto border-violet-500/40 text-violet-700 dark:text-violet-300">
-                  {t('classSession.full')}
-                </Badge>
-              )}
-            </div>
-
-            {/* Date */}
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-date">{t('form.fields.date')}</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                {...register('date')}
-                disabled={isReadOnly}
-                className={errors.date ? 'border-destructive' : ''}
-              />
-              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
-            </div>
-
-            {/* Start / End time row */}
-            <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-startTime">{t('form.fields.startTime')}</Label>
-                <Controller
-                  control={control}
-                  name="startTime"
-                  render={({ field }) => (
-                    <TimePicker
-                      id="edit-startTime"
-                      value={field.value || undefined}
-                      onChange={time => field.onChange(time)}
-                      placeholder="--:--"
-                      label=""
-                      allowManualInput
-                      disabled={isReadOnly}
-                      error={!!errors.startTime}
-                    />
-                  )}
-                />
-                {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
-                {productDuration && editStartTime && (
-                  <p className="text-[11px] text-muted-foreground">
-                    {t('classSession.autoEndTime', {
-                      defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
-                      duration: productDuration,
-                      endTime: watch('endTime'),
-                    })}
-                  </p>
+          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
+            {/* Cuerpo desplazable: con la tarjeta de pago y la lista de asistentes el diálogo crecía más que la pantalla y
+                «Guardar» quedaba fuera de alcance (QA bloque B, defecto 1). Encabezado y pie quedan fijos. */}
+            <div className="-mx-6 min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-1" data-testid="class-session-body">
+              {/* Enrollment summary */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <span className="font-medium">
+                    {session.enrolled}/{session.capacity}
+                  </span>
+                  <span className="text-muted-foreground text-sm ml-1.5">
+                    {t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' }).toLowerCase()}
+                  </span>
+                </div>
+                {session.enrolled >= session.capacity && (
+                  <Badge variant="outline" className="ml-auto border-violet-500/40 text-violet-700 dark:text-violet-300">
+                    {t('classSession.full')}
+                  </Badge>
                 )}
               </div>
-              {!productDuration && (
+
+              {/* Date */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-date">{t('form.fields.date')}</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  {...register('date')}
+                  disabled={isReadOnly}
+                  className={errors.date ? 'border-destructive' : ''}
+                />
+                {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
+              </div>
+
+              {/* Start / End time row */}
+              <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="edit-endTime">{t('form.fields.endTime')}</Label>
+                  <Label htmlFor="edit-startTime">{t('form.fields.startTime')}</Label>
                   <Controller
                     control={control}
-                    name="endTime"
+                    name="startTime"
                     render={({ field }) => (
                       <TimePicker
-                        id="edit-endTime"
+                        id="edit-startTime"
                         value={field.value || undefined}
                         onChange={time => field.onChange(time)}
                         placeholder="--:--"
                         label=""
                         allowManualInput
                         disabled={isReadOnly}
-                        error={!!errors.endTime}
+                        error={!!errors.startTime}
                       />
                     )}
                   />
-                  {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
+                  {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
+                  {productDuration && editStartTime && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {t('classSession.autoEndTime', {
+                        defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
+                        duration: productDuration,
+                        endTime: watch('endTime'),
+                      })}
+                    </p>
+                  )}
                 </div>
+                {!productDuration && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-endTime">{t('form.fields.endTime')}</Label>
+                    <Controller
+                      control={control}
+                      name="endTime"
+                      render={({ field }) => (
+                        <TimePicker
+                          id="edit-endTime"
+                          value={field.value || undefined}
+                          onChange={time => field.onChange(time)}
+                          placeholder="--:--"
+                          label=""
+                          allowManualInput
+                          disabled={isReadOnly}
+                          error={!!errors.endTime}
+                        />
+                      )}
+                    />
+                    {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
+                  </div>
+                )}
+              </div>
+
+              {/* Capacity + Staff row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-capacity">{t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}</Label>
+                  <Input
+                    id="edit-capacity"
+                    type="number"
+                    min={Math.max(1, session.enrolled)}
+                    {...register('capacity')}
+                    disabled={isReadOnly}
+                    className={errors.capacity ? 'border-destructive' : ''}
+                  />
+                  {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-staff">{t('form.fields.staff')}</Label>
+                  <Select
+                    value={watch('assignedStaffId') || 'none'}
+                    onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v, { shouldDirty: true })}
+                    disabled={isReadOnly}
+                  >
+                    <SelectTrigger id="edit-staff">
+                      <SelectValue placeholder={t('noStaff')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t('noStaff')}</SelectItem>
+                      {staffMembers.map(s => (
+                        <SelectItem key={s.staffId} value={s.staffId}>
+                          {s.firstName} {s.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Pago a la coach: sólo con el módulo prendido y staffpay:read. La tarjeta decide y pone su propio
+                  separador, para no dejar una línea suelta cuando no se pinta. */}
+              {sessionId && <PagoDeClaseCard sessionId={sessionId} conSeparador />}
+
+              {/* Internal notes */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-notes">
+                  {t('form.fields.internalNotes')}
+                  <span className="text-muted-foreground text-xs ml-1">({tCommon('optional', { defaultValue: 'opcional' })})</span>
+                </Label>
+                <Textarea
+                  id="edit-notes"
+                  rows={2}
+                  placeholder={t('form.placeholders.internalNotes')}
+                  {...register('internalNotes')}
+                  disabled={isReadOnly}
+                />
+              </div>
+
+              {/* Attendees section */}
+              {attendees.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      {t('classSession.attendees', { defaultValue: 'Asistentes' })} ({attendees.length})
+                    </Label>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {attendees.map((a: any) => (
+                        <div key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
+                          <div className="min-w-0">
+                            <span className="font-medium truncate block">
+                              {a.customer
+                                ? `${a.customer.firstName} ${a.customer.lastName}`
+                                : a.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })}
+                            </span>
+                            {(a.guestPhone || a.customer?.phone) && (
+                              <span className="text-xs text-muted-foreground">{a.guestPhone || a.customer?.phone}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {a.partySize > 1 && (
+                              <Badge variant="outline" className="text-xs">
+                                {a.partySize}
+                              </Badge>
+                            )}
+                            {!isReadOnly && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => removeAttendeeMutation.mutate(a.id)}
+                                disabled={removeAttendeeMutation.isPending}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
-
-            {/* Capacity + Staff row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-capacity">{t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}</Label>
-                <Input
-                  id="edit-capacity"
-                  type="number"
-                  min={Math.max(1, session.enrolled)}
-                  {...register('capacity')}
-                  disabled={isReadOnly}
-                  className={errors.capacity ? 'border-destructive' : ''}
-                />
-                {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-staff">{t('form.fields.staff')}</Label>
-                <Select
-                  value={watch('assignedStaffId') || 'none'}
-                  onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v, { shouldDirty: true })}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger id="edit-staff">
-                    <SelectValue placeholder={t('noStaff')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('noStaff')}</SelectItem>
-                    {staffMembers.map(s => (
-                      <SelectItem key={s.staffId} value={s.staffId}>
-                        {s.firstName} {s.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Pago a la coach: sólo con el módulo prendido y staffpay:read. La tarjeta decide y pone su propio
-                separador, para no dejar una línea suelta cuando no se pinta. */}
-            {sessionId && <PagoDeClaseCard sessionId={sessionId} conSeparador />}
-
-            {/* Internal notes */}
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-notes">
-                {t('form.fields.internalNotes')}
-                <span className="text-muted-foreground text-xs ml-1">({tCommon('optional', { defaultValue: 'opcional' })})</span>
-              </Label>
-              <Textarea
-                id="edit-notes"
-                rows={2}
-                placeholder={t('form.placeholders.internalNotes')}
-                {...register('internalNotes')}
-                disabled={isReadOnly}
-              />
-            </div>
-
-            {/* Attendees section */}
-            {attendees.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    {t('classSession.attendees', { defaultValue: 'Asistentes' })} ({attendees.length})
-                  </Label>
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                    {attendees.map((a: any) => (
-                      <div key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
-                        <div className="min-w-0">
-                          <span className="font-medium truncate block">
-                            {a.customer
-                              ? `${a.customer.firstName} ${a.customer.lastName}`
-                              : a.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })}
-                          </span>
-                          {(a.guestPhone || a.customer?.phone) && (
-                            <span className="text-xs text-muted-foreground">{a.guestPhone || a.customer?.phone}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {a.partySize > 1 && (
-                            <Badge variant="outline" className="text-xs">
-                              {a.partySize}
-                            </Badge>
-                          )}
-                          {!isReadOnly && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => removeAttendeeMutation.mutate(a.id)}
-                              disabled={removeAttendeeMutation.isPending}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
             <DialogFooter className="pt-2 flex-col sm:flex-row gap-2">
               {/* Cancel session button (destructive, with confirmation) */}
               {!isReadOnly && (
