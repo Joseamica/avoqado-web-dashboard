@@ -24,6 +24,8 @@ import type { PeriodoListadoDto } from '@/types/staffPay'
 import { PeriodoAbiertoTab } from './PeriodoAbiertoTab'
 import { PeriodoCerradoView } from './PeriodoCerradoView'
 import { useNombrePeriodo } from '../useNombrePeriodo'
+import { hoyEnSede } from '../hoyEnSede'
+import { useVenueDateTime } from '@/utils/datetime'
 import { useFocoDeVuelta } from '../foco'
 
 const clave = (p: PeriodoListadoDto) => p.start
@@ -58,10 +60,16 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
   const nombrePeriodo = useNombrePeriodo()
   const focoFrecuencia = useFocoDeVuelta()
+  const { venueTimezone } = useVenueDateTime()
   const mes = (p: PeriodoListadoDto) => nombrePeriodo(p, data?.periodicidad ?? 'MONTHLY')
+  // «Abierto» sólo el periodo en curso: uno que ya terminó y nadie cerró dice «Sin cerrar». No «Sin movimientos»: un mes sin
+  // guardar puede tener clases (sólo un cierre o un ajuste guardan el periodo), y eso sólo lo sabe la vista, con el reporte.
+  const hoy = hoyEnSede(venueTimezone)
   const estado = (p: PeriodoListadoDto) =>
     p.estado === 'OPEN'
-      ? t('periods.open')
+      ? p.end < hoy
+        ? t('periods.notClosed')
+        : t('periods.open')
       : p.personas === 0
         ? t('closed.badge')
         : p.pagadas === p.personas

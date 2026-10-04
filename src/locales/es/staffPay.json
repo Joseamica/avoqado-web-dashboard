@@ -251,6 +251,7 @@
   "periods": {
     "period": "Periodo",
     "open": "Abierto",
+    "notClosed": "Sin cerrar",
     "paid": "Pagado",
     "closedPaid_one": "Cerrado · {{pagadas}} de {{count}} pagado",
     "closedPaid_other": "Cerrado · {{pagadas}} de {{count}} pagados",

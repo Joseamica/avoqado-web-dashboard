@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({ fetchNext: vi.fn(), periodicity: vi.fn(), lista: v
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City' }) }))
 vi.mock('../components/PeriodoAbiertoTab', () => ({
   PeriodoAbiertoTab: ({ fecha, onYaCerrado }: { fecha: string; onYaCerrado?: () => void }) => (
     <div>
@@ -135,5 +136,22 @@ describe('PeriodosTab', () => {
   it('el selector cuenta los recibos pagados con plural por personas (QA defectos 13 y 16)', () => {
     conUrl()
     expect(screen.getByRole('option', { name: /periods\.closedPaid/ })).toHaveTextContent('"pagadas":2,"count":4')
+  })
+
+  it('un mes que ya terminó y no se cerró dice «Sin cerrar»; el periodo en curso sigue «Abierto»', () => {
+    m.lista.mockReturnValue({
+      ...LISTA,
+      items: [
+        { id: null, start: '2099-12-01', end: '2099-12-31', estado: 'OPEN', personas: 0, pagadas: 0, total: '0.00' },
+        { id: null, start: '2025-11-01', end: '2025-11-30', estado: 'OPEN', personas: 0, pagadas: 0, total: '0.00' },
+        { id: 'p8', start: '2025-10-01', end: '2025-10-31', estado: 'OPEN', personas: 1, pagadas: 0, total: '-150.00' },
+      ],
+    })
+    conUrl()
+    const opciones = screen.getAllByRole('option').map(o => [o.getAttribute('value'), o.textContent])
+    expect(opciones).toContainEqual(['2099-12-01', expect.stringMatching(/periods\.open$/)])
+    expect(opciones).toContainEqual(['2025-11-01', expect.stringMatching(/periods\.notClosed$/)])
+    // Uno guardado (con un ajuste) que ya terminó tampoco está «Abierto»: falta cerrarlo.
+    expect(opciones).toContainEqual(['2025-10-01', expect.stringMatching(/periods\.notClosed$/)])
   })
 })
