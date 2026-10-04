@@ -38,6 +38,8 @@ export default function PassIntegrations() {
   const overview = usePassIntegrationsOverview(venueId ?? undefined)
   const totalpass = overview.data?.connections.find(c => c.provider === 'TOTALPASS')
   const planPaused = overview.data?.planActive === false && !!totalpass && passConnectionIsLive(totalpass)
+  // D4 (P2-13): sin datos de la vista general (cargando, o fallida) no se sabe si hay una conexión viva: no se decide el paywall.
+  const connectionUnknown = !overview.data && (overview.isLoading || overview.isError)
 
   const page = (
     <div className="space-y-6 p-6" data-tour="pass-integrations-page">
@@ -61,12 +63,9 @@ export default function PassIntegrations() {
         <div className="flex items-center justify-center py-16" role="status" aria-label={t('common:loading')}>
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : !planPaused && !hasFeature ? (
-        // Sin plan y sin nada vivo, tras el paywall: lo que se ve (borroso) es qué hace la función.
-        <PassesTeaser />
       ) : overview.isError && !overview.data ? (
         // Sólo si nunca llegaron datos: una recarga fallida (p. ej. tras un conectar sin red) no le quita al dueño la tarjeta,
-        // la llave que tecleó ni el mensaje del intento.
+        // la llave que tecleó ni el mensaje del intento. Antes que el paywall: sin plan puede haber una conexión viva (D4).
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('page.loadError')}</AlertTitle>
@@ -83,6 +82,9 @@ export default function PassIntegrations() {
             {t('common:retry')}
           </Button>
         </Alert>
+      ) : !planPaused && !hasFeature ? (
+        // Sin plan y sin nada vivo, tras el paywall: lo que se ve (borroso) es qué hace la función.
+        <PassesTeaser />
       ) : !overview.data || !totalpass ? (
         <PassesTeaser />
       ) : (
@@ -117,5 +119,6 @@ export default function PassIntegrations() {
   )
 
   // Con la pausa a la vista no va el paywall encima: la tarjeta ya dice qué pasó y cómo volver (mejorar el plan) o salir (Desconectar).
-  return planPaused ? page : <FeatureGate feature="AGGREGATOR_PASSES">{page}</FeatureGate>
+  // Tampoco mientras la conexión no se conoce: «cargando» o el error con «Reintentar» van sin paywall (D4).
+  return planPaused || connectionUnknown ? page : <FeatureGate feature="AGGREGATOR_PASSES">{page}</FeatureGate>
 }

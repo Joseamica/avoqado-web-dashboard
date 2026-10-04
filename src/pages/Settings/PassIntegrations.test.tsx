@@ -96,12 +96,44 @@ describe('PassIntegrations (Pantalla A)', () => {
     tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
     svc.getPassIntegrationsOverview.mockResolvedValue({ ...OVERVIEW, planActive: false })
     renderPage()
-    expect(screen.getByTestId('feature-gate')).toHaveAttribute('data-feature', 'AGGREGATOR_PASSES')
     expect(await screen.findByText('teaser.title')).toBeInTheDocument()
+    expect(screen.getByTestId('feature-gate')).toHaveAttribute('data-feature', 'AGGREGATOR_PASSES')
     expect(svc.getPassIntegrationsOverview).toHaveBeenCalledWith('v1')
     expect(svc.getPassCapacity).not.toHaveBeenCalled()
     expect(svc.listPassVisits).not.toHaveBeenCalled()
     expect(screen.queryByText('wellhub.title')).not.toBeInTheDocument()
+  })
+
+  // D4 (P2-13): sin el plan, una primera carga fallida no se resuelve con el paywall: puede haber una conexión viva que
+  // explicar y desconectar. Se dice el error con «Reintentar»; al reintentar con TotalPass vivo, la tarjeta en pausa.
+  it('sin el plan y la vista general falla ⇒ su error con «Reintentar» (no el teaser); al reintentar, la tarjeta en pausa', async () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    const down = { response: { status: 503, data: { message: 'Se cayó la base' } } }
+    svc.getPassIntegrationsOverview
+      .mockRejectedValueOnce(down)
+      .mockRejectedValueOnce(down)
+      .mockResolvedValue({
+        ...OVERVIEW,
+        planActive: false,
+        connections: [{ ...OVERVIEW.connections[0], status: 'ACTIVE', externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
+      })
+    renderPage()
+    expect(await screen.findByText('Se cayó la base', {}, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.queryByText('teaser.title')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'common:retry' }))
+    expect(await screen.findByText('totalpass.planPausedAuto')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeEnabled()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+  }, 10_000)
+
+  // D4: sin el plan, mientras la vista general carga no se pinta el paywall (podría ser la pausa).
+  it('sin el plan con la vista general cargando ⇒ «cargando», sin paywall', () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    svc.getPassIntegrationsOverview.mockReturnValue(new Promise(() => {}))
+    renderPage()
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
   })
 
   it('con el plan ⇒ carga la vista general y Wellhub aparece deshabilitado con «Próximamente»', async () => {
