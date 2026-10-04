@@ -235,13 +235,14 @@ export function PeriodoAbiertoTab({
         <div className="overflow-x-auto">
           <table className={TABLA_PERIODO}>
             <thead>
+              {/* En el celular sólo Persona, Total y Desglose: lo demás se ve desde md. */}
               <tr className="border-b border-border text-left">
                 <th className="py-2">{t('period.columns.person')}</th>
-                <th>{t('period.columns.level')}</th>
-                <th>{t('period.columns.venue')}</th>
-                <th className="text-right">{t('period.columns.classes')}</th>
-                <th className="text-right">{t('period.columns.avgSeats')}</th>
-                <th className="text-right">{t('period.columns.adjustments')}</th>
+                <th className="hidden md:table-cell">{t('period.columns.level')}</th>
+                <th className="hidden md:table-cell">{t('period.columns.venue')}</th>
+                <th className="hidden text-right md:table-cell">{t('period.columns.classes')}</th>
+                <th className="hidden text-right md:table-cell">{t('period.columns.avgSeats')}</th>
+                <th className="hidden text-right md:table-cell">{t('period.columns.adjustments')}</th>
                 <th className="text-right">{t('period.columns.total')}</th>
                 <th />
               </tr>
@@ -250,12 +251,12 @@ export function PeriodoAbiertoTab({
               {items.map(p => (
                 <tr key={p.staffId} className="border-b border-border/50">
                   <td className="py-2 font-medium">{p.staffName}</td>
-                  <td>{p.payLevelName ?? '—'}</td>
-                  <td className="text-muted-foreground">{p.venueIds.map(nombreSede).join(', ')}</td>
-                  <td className="text-right">{p.clases}</td>
-                  <td className="text-right">{p.promedioLugares}</td>
-                  <td className="whitespace-nowrap text-right">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
-                  <td className="text-right font-semibold">{monto(p.total)}</td>
+                  <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
+                  <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
+                  <td className="hidden text-right md:table-cell">{p.clases}</td>
+                  <td className="hidden text-right md:table-cell">{p.promedioLugares}</td>
+                  <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
+                  <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
                   <td className="text-right">
                     <Button
                       variant="ghost"

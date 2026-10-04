@@ -11,6 +11,7 @@ import { useClosePeriod, useClosePreview } from '@/hooks/useStaffPay'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { Bloqueo, ResultadoCierreDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
+import { useAccionDelModal } from '../accionDelModal'
 import { conSigno, monto } from '../conSigno'
 
 interface Props {
@@ -74,19 +75,21 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   const textoBloqueo = (b: Bloqueo) =>
     t(`close.block.${b.codigo}`, 'n' in b ? { count: b.n } : 'hasta' in b ? { hasta: formatCalendarDate(b.hasta) } : undefined)
   const mensajeError = (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
+  const accion = useAccionDelModal(
+    <Button className="cursor-pointer" disabled={!listo || enviando || isFetching} onClick={confirmar} data-tour="staffpay-close-confirm">
+      {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+      {etiqueta ? t('close.confirmNamed', { periodo: etiqueta }) : t('close.confirm')}
+    </Button>,
+  )
 
   return (
     <FullScreenModal
       open={open}
       onClose={() => onOpenChange(false)}
-      title={etiqueta ? t('close.titleNamed', { periodo: etiqueta }) : t('close.titleLoading')}
+      // En el celular el título corto: el periodo ya lo dicen el botón de abajo y el rango de la tarjeta.
+      title={etiqueta && !accion.enCelular ? t('close.titleNamed', { periodo: etiqueta }) : t('close.titleLoading')}
       contentClassName="bg-muted/30"
-      actions={
-        <Button className="cursor-pointer" disabled={!listo || enviando || isFetching} onClick={confirmar} data-tour="staffpay-close-confirm">
-          {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-          {etiqueta ? t('close.confirmNamed', { periodo: etiqueta }) : t('close.confirm')}
-        </Button>
-      }
+      actions={accion.actions}
     >
       <div className="mx-auto max-w-xl space-y-4 p-6">
         {isLoading ? (
@@ -163,6 +166,7 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
           </>
         )}
       </div>
+      {accion.abajo}
     </FullScreenModal>
   )
 }

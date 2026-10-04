@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CerrarPeriodoModal } from '../components/CerrarPeriodoModal'
@@ -8,7 +8,16 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: an
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d }) }))
 vi.mock('@/components/ui/full-screen-modal', () => ({
-  FullScreenModal: ({ open, children, actions }: { open: boolean; children: ReactNode; actions?: ReactNode }) => (open ? <div>{actions}{children}</div> : null),
+  FullScreenModal: ({ open, title, children, actions }: { open: boolean; title: string; children: ReactNode; actions?: ReactNode }) =>
+    open ? (
+      <div>
+        <header>
+          <h2>{title}</h2>
+          {actions}
+        </header>
+        {children}
+      </div>
+    ) : null,
 }))
 vi.mock('../useNombreSede', () => ({ useNombreSede: () => (id: string) => (id === 'v1' ? 'Prado Norte' : id) }))
 vi.mock('@/hooks/useStaffPay', () => ({
@@ -117,5 +126,28 @@ describe('CerrarPeriodoModal', () => {
     expect(screen.getByRole('button', { name: 'close.confirm' })).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
     expect(m.refetch).toHaveBeenCalled()
+  })
+
+  it('en el celular el botón de confirmar va abajo y el título es corto: no se enciman (QA defecto 4)', () => {
+    const ancho = window.innerWidth
+    window.innerWidth = 390
+    try {
+      m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
+      render(<CerrarPeriodoModal open fecha="2026-07-15" etiqueta="julio de 2026" onOpenChange={() => {}} onCerrado={() => {}} />)
+      const encabezado = screen.getByRole('banner')
+      expect(encabezado).toHaveTextContent('close.titleLoading')
+      expect(within(encabezado).queryByRole('button')).toBeNull()
+      expect(screen.getByRole('button', { name: /close\.confirmNamed/ })).toHaveTextContent('julio de 2026')
+    } finally {
+      window.innerWidth = ancho
+    }
+  })
+
+  it('en pantalla grande el botón sigue arriba y el título nombra el periodo', () => {
+    m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
+    render(<CerrarPeriodoModal open fecha="2026-07-15" etiqueta="julio de 2026" onOpenChange={() => {}} onCerrado={() => {}} />)
+    const encabezado = screen.getByRole('banner')
+    expect(encabezado).toHaveTextContent('close.titleNamed')
+    expect(within(encabezado).getByRole('button', { name: /close\.confirmNamed/ })).toBeInTheDocument()
   })
 })

@@ -51,8 +51,19 @@ describe('PeriodoCerradoView', () => {
     m.can.mockReturnValue(true)
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
     expect(screen.getByText(/closed\.paidOf/)).toHaveTextContent('"pagadas":1')
-    expect(screen.getByText(/closed\.paidOn/)).toBeInTheDocument()
-    expect(screen.getByText('closed.pending')).toBeInTheDocument()
+    // El estado de pago va en su columna y, en el celular (columna oculta), debajo del nombre: el mismo texto dos veces.
+    expect(screen.getAllByText(/closed\.paidOn/)).toHaveLength(2)
+    expect(screen.getAllByText('closed.pending')).toHaveLength(2)
+  })
+
+  it('en el celular la tabla deja Persona (con su estado de pago), Total y la acción; lo demás se oculta (QA defecto 3)', () => {
+    m.can.mockReturnValue(true)
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    const visiblesEnCelular = screen.getAllByRole('columnheader').filter(th => !th.className.includes('hidden'))
+    expect(visiblesEnCelular.map(th => th.textContent)).toEqual(['period.columns.person', 'period.columns.total', ''])
+    // Dentro de la celda de Persona va el estado, sólo para el celular.
+    const ana = screen.getByText('Ana').closest('td')!
+    expect(ana.querySelector('.md\\:hidden')).toHaveTextContent('closed.pending')
   })
   it('marcar pagado pide confirmación CON el monto y manda el staffId', async () => {
     m.can.mockReturnValue(true)

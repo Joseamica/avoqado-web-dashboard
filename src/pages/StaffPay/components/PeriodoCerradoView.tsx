@@ -106,6 +106,16 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const puedeConfirmar = !!vista && vista.cantidad > 0 && !previewPago.isFetching && !marcar.isPending
   const errorPreview = (previewPago.error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
 
+  const estadoDePago = (pagadoEn?: string | null) =>
+    pagadoEn ? (
+      <span className="inline-flex items-center gap-1 text-sm">
+        <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+        {t('closed.paidOn', { fecha: formatDate(pagadoEn) })}
+      </span>
+    ) : (
+      <Badge variant="outline">{t('closed.pending')}</Badge>
+    )
+
   const ejecutar = async () => {
     if (!confirmar || !vista || !puedeConfirmar) return
     try {
@@ -193,59 +203,56 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         <div className="overflow-x-auto">
           <table className={TABLA_PERIODO}>
             <thead>
+              {/* En el celular sólo Persona (con su estado de pago debajo), Total y la acción: lo demás se ve desde md. */}
               <tr className="border-b border-border text-left">
                 <th className="py-2">{t('period.columns.person')}</th>
-                <th>{t('period.columns.level')}</th>
-                <th>{t('period.columns.venue')}</th>
-                <th className="text-right">{t('period.columns.classes')}</th>
-                <th className="text-right">{t('period.columns.adjustments')}</th>
+                <th className="hidden md:table-cell">{t('period.columns.level')}</th>
+                <th className="hidden md:table-cell">{t('period.columns.venue')}</th>
+                <th className="hidden text-right md:table-cell">{t('period.columns.classes')}</th>
+                <th className="hidden text-right md:table-cell">{t('period.columns.adjustments')}</th>
                 <th className="text-right">{t('period.columns.total')}</th>
-                <th>{t('closed.payment')}</th>
+                <th className="hidden md:table-cell">{t('closed.payment')}</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {items.map(p => (
                 <tr key={p.staffId} className="border-b border-border/50">
-                  <td className="py-2 font-medium">{p.staffName}</td>
-                  <td>{p.payLevelName ?? '—'}</td>
-                  <td className="text-muted-foreground">{p.venueIds.map(nombreSede).join(', ')}</td>
-                  <td className="text-right">{p.clases}</td>
-                  <td className="whitespace-nowrap text-right">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
-                  <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
-                  <td className="whitespace-nowrap">
-                    {p.pagadoEn ? (
-                      <span className="inline-flex items-center gap-1 text-sm">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        {t('closed.paidOn', { fecha: formatDate(p.pagadoEn) })}
-                      </span>
-                    ) : (
-                      <Badge variant="outline">{t('closed.pending')}</Badge>
-                    )}
+                  <td className="py-2 font-medium">
+                    {p.staffName}
+                    <span className="mt-1 block font-normal md:hidden">{estadoDePago(p.pagadoEn)}</span>
                   </td>
+                  <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
+                  <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
+                  <td className="hidden text-right md:table-cell">{p.clases}</td>
+                  <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
+                  <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
+                  <td className="hidden whitespace-nowrap md:table-cell">{estadoDePago(p.pagadoEn)}</td>
                   <td className="whitespace-nowrap text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="cursor-pointer"
-                      aria-label={t('period.detailTitle', { name: p.staffName })}
-                      onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName, clases: p.clases, total: p.total })}
-                    >
-                      {t('period.detail')}
-                    </Button>
-                    {puedePagar && !p.pagadoEn && (
+                    <div className="flex flex-col items-end gap-1 md:flex-row md:items-center md:justify-end">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         className="cursor-pointer"
-                        disabled={ocupado}
-                        aria-label={t('closed.markPaidFor', { nombre: p.staffName })}
-                        onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName })}
-                        data-tour="staffpay-closed-mark-paid"
+                        aria-label={t('period.detailTitle', { name: p.staffName })}
+                        onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName, clases: p.clases, total: p.total })}
                       >
-                        {t('closed.markPaid')}
+                        {t('period.detail')}
                       </Button>
-                    )}
+                      {puedePagar && !p.pagadoEn && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer"
+                          disabled={ocupado}
+                          aria-label={t('closed.markPaidFor', { nombre: p.staffName })}
+                          onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName })}
+                          data-tour="staffpay-closed-mark-paid"
+                        >
+                          {t('closed.markPaid')}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

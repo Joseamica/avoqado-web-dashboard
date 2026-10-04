@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAdjustClass } from '@/hooks/useStaffPay'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
+import { useAccionDelModal } from '@/pages/StaffPay/accionDelModal'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
 
@@ -78,25 +79,15 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
     }
   }
 
+  const accion = useAccionDelModal(
+    <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo)} data-tour="class-pay-adjust-save">
+      {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {t('adjust.save')}
+    </Button>,
+  )
+
   return (
-    <FullScreenModal
-      open
-      onClose={onClose}
-      title={t('adjust.title')}
-      contentClassName="bg-muted/30"
-      actions={
-        <Button
-          type="button"
-          className="cursor-pointer"
-          disabled={!puedeGuardar}
-          onClick={() => void enviar(nuevo)}
-          data-tour="class-pay-adjust-save"
-        >
-          {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t('adjust.save')}
-        </Button>
-      }
-    >
+    <FullScreenModal open onClose={onClose} title={t('adjust.title')} contentClassName="bg-muted/30" actions={accion.actions}>
       <div className="max-w-xl mx-auto p-6">
         <section className="rounded-2xl border border-border/50 bg-card p-6 space-y-5">
           {origen && (
@@ -185,6 +176,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
           )}
         </section>
       </div>
+      {accion.abajo}
     </FullScreenModal>
   )
 }

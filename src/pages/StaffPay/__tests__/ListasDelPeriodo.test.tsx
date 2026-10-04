@@ -178,6 +178,24 @@ describe('DesglosePersona', () => {
     expect(screen.queryByText('-$150.00')).toBeNull()
   })
 
+  it('recibo en el celular: Fecha, Concepto y Monto; la fila del total cae bajo «Monto» en las dos anchuras (QA defecto 2)', () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([renglon('Spinning', '480.00')], { data: { ...recibo([]).data, renglones: [renglon('Spinning', '480.00')], total: '480.00', cantidad: 1 } }))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="480.00" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    const enCelular = (el: Element) => !el.className.includes('hidden')
+    expect(screen.getAllByRole('columnheader').filter(enCelular).map(th => th.textContent)).toEqual([
+      'period.detailColumns.date',
+      'period.detailColumns.concept',
+      'period.detailColumns.amount',
+    ])
+    // Cuántas columnas ocupa la fila del total con y sin las celdas ocultas: 3 en el celular, 5 en pantalla grande.
+    const total = screen.getByText('period.total').closest('tr')!
+    const columnas = (celdas: Element[]) => celdas.reduce((n, td) => n + Number((td as HTMLTableCellElement).colSpan || 1), 0)
+    expect(columnas([...total.children].filter(enCelular))).toBe(3)
+    expect(columnas([...total.children])).toBe(5)
+    expect(total.lastElementChild).toHaveTextContent('$480.00')
+  })
+
   it('PDF y Excel se descargan con un clic explícito, del recibo de esa persona y ese periodo', async () => {
     m.detail.mockReturnValue(q([]))
     m.receipt.mockReturnValue(recibo([]))

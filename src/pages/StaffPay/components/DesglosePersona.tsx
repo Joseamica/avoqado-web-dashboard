@@ -169,25 +169,26 @@ export function DesglosePersona({
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="py-2">{t('period.detailColumns.date')}</th>
-                    <th>{t('period.detailColumns.venue')}</th>
+                    <th className="hidden sm:table-cell">{t('period.detailColumns.venue')}</th>
                     <th>{t('period.detailColumns.concept')}</th>
-                    <th className="text-right">{t('period.detailColumns.seats')}</th>
+                    <th className="hidden text-right sm:table-cell">{t('period.detailColumns.seats')}</th>
                     <th className="text-right">{t('period.detailColumns.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {renglones.map((r, i) => (
                     <tr key={i} className="border-b border-border/50">
-                      <td className="whitespace-nowrap py-2">{r.fecha ? fechaDelRenglon(r) : ''}</td>
-                      <td className="text-muted-foreground">{r.sede}</td>
+                      <td className="py-2 sm:whitespace-nowrap">{r.fecha ? fechaDelRenglon(r) : ''}</td>
+                      <td className="hidden text-muted-foreground sm:table-cell">{r.sede}</td>
                       <td>{r.concepto}</td>
-                      <td className="text-right">{r.lugares ?? '—'}</td>
+                      <td className="hidden text-right sm:table-cell">{r.lugares ?? '—'}</td>
                       <td className="whitespace-nowrap text-right">{r.tipo === 'CLASE' ? Currency(Number(r.monto)) : conSigno(r.monto)}</td>
                     </tr>
                   ))}
                   <tr>
-                    {/* El total del recibo ENTERO (lo suma el server), aunque falten páginas por cargar (Codex R2-R1-20). */}
-                    <td className="py-2 font-semibold" colSpan={4}>
+                    {/* El total del recibo ENTERO (lo suma el server), aunque falten páginas por cargar (Codex R2-R1-20). Celdas
+                        que se esconden igual que las columnas: en el celular el monto cae bajo «Monto», no en una columna fantasma. */}
+                    <td className="py-2 font-semibold" colSpan={2}>
                       {parcial ? t('period.totalPartial') : t('period.total')}
                       {recibo.hasNextPage && (
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -195,6 +196,8 @@ export function DesglosePersona({
                         </span>
                       )}
                     </td>
+                    <td className="hidden sm:table-cell" />
+                    <td className="hidden sm:table-cell" />
                     <td className="whitespace-nowrap text-right font-semibold">{monto(recibo.data?.total ?? 0)}</td>
                   </tr>
                 </tbody>
@@ -219,17 +222,17 @@ export function DesglosePersona({
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="py-2">{t('period.detailColumns.date')}</th>
-                    <th>{t('period.detailColumns.venue')}</th>
+                    <th className="hidden sm:table-cell">{t('period.detailColumns.venue')}</th>
                     <th>{t('period.detailColumns.class')}</th>
-                    <th className="text-right">{t('period.detailColumns.seats')}</th>
+                    <th className="hidden text-right sm:table-cell">{t('period.detailColumns.seats')}</th>
                     <th className="text-right">{t('period.detailColumns.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filas.map(f => (
                     <tr key={f.classSessionId} className="border-b border-border/50">
-                      <td className="whitespace-nowrap py-2">{formatDateTime(f.startsAt)}</td>
-                      <td className="text-muted-foreground">{nombreSede(f.venueId)}</td>
+                      <td className="py-2 sm:whitespace-nowrap">{formatDateTime(f.startsAt)}</td>
+                      <td className="hidden text-muted-foreground sm:table-cell">{nombreSede(f.venueId)}</td>
                       <td>
                         {f.productName}
                         {f.tieneAjuste && (
@@ -238,7 +241,7 @@ export function DesglosePersona({
                           </Badge>
                         )}
                       </td>
-                      <td className="text-right">{f.conteo}</td>
+                      <td className="hidden text-right sm:table-cell">{f.conteo}</td>
                       <td className="text-right">
                         {f.estado === 'OK' ? (
                           <span className="font-medium">{Currency(Number(f.monto))}</span>
