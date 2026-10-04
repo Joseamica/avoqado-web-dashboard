@@ -144,6 +144,8 @@
     "updating": "Actualizando…",
     "refreshError": "No pudimos actualizar la lista; mostramos lo último que cargó.",
     "loadMore": "Cargar más",
+    "autoRefreshPaused": "Pausamos la actualización automática mientras revisas páginas anteriores.",
+    "backToLatest": "Volver a lo más reciente",
     "confirm": "Confirmar",
     "reject": "Rechazar",
     "connectionInactive": "La conexión con {{provider}} no está activa; revisa Configuración › Integraciones › Pases.",

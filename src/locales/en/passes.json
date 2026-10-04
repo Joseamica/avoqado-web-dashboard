@@ -144,6 +144,8 @@
     "updating": "Updating…",
     "refreshError": "We couldn't refresh the list; showing what last loaded.",
     "loadMore": "Load more",
+    "autoRefreshPaused": "We paused automatic updates while you review earlier pages.",
+    "backToLatest": "Back to the latest",
     "confirm": "Confirm",
     "reject": "Reject",
     "connectionInactive": "The {{provider}} connection isn't active; check Settings › Integrations › Passes.",

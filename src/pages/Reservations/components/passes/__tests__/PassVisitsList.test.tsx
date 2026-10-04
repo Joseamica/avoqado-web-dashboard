@@ -426,6 +426,38 @@ describe('PassVisitsList', () => {
     expect(svc.listPassVisits.mock.calls[1][1]).toMatchObject({ offset: 50 })
   })
 
+  // D6 (P2-15): con más de una página el refresco de 30 s se apaga (R2b-13); se dice, y «Volver a lo más reciente» deja sólo
+  // la primera página, la pone al día y el refresco vuelve a correr.
+  it('con varias páginas: aviso de actualización pausada y «Volver a lo más reciente» la reactiva', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: delay => vi.advanceTimersByTime(delay) })
+    const first = page([visit()], { total: 51, hasMore: true, nextOffset: 50 })
+    svc.listPassVisits
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(page([visit({ id: 'vis2', memberName: 'Beto' })], { total: 51 }))
+      .mockResolvedValue(first)
+    renderList()
+    expect(await screen.findByText('Ana López')).toBeInTheDocument()
+    expect(screen.queryByText('visits.autoRefreshPaused')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'visits.loadMore' }))
+    expect(await screen.findByText('Beto')).toBeInTheDocument()
+    expect(screen.getByText('visits.autoRefreshPaused')).toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31_000)
+    })
+    expect(svc.listPassVisits).toHaveBeenCalledTimes(2) // pausada: no se re-piden las dos páginas
+
+    await user.click(screen.getByRole('button', { name: 'visits.backToLatest' }))
+    await waitFor(() => expect(screen.queryByText('Beto')).not.toBeInTheDocument())
+    await waitFor(() => expect(svc.listPassVisits).toHaveBeenCalledTimes(3))
+    expect(svc.listPassVisits.mock.calls[2][1]).toMatchObject({ offset: 0 })
+    expect(screen.queryByText('visits.autoRefreshPaused')).not.toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31_000)
+    })
+    await waitFor(() => expect(svc.listPassVisits).toHaveBeenCalledTimes(4)) // el refresco volvió
+  })
+
   // P2-11: una llegada entre dos páginas corre las posiciones y la segunda repite el último de la primera.
   it('páginas solapadas no repiten la visita', async () => {
     const user = userEvent.setup()

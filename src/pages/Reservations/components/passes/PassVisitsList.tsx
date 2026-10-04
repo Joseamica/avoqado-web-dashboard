@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -24,7 +24,7 @@ import { passesKeys, useInvalidatePasses, usePassIntegrationsOverview, usePassVi
 import { useToast } from '@/hooks/use-toast'
 import type { DateRangeValue } from '@/pages/AreaTickets/components/DateRangeFilterContent'
 import { confirmPassVisit, rejectPassVisit } from '@/services/passes.service'
-import type { PassProvider, PassVisitValidation, PassVisitView } from '@/types/passes'
+import type { PassProvider, PassVisitValidation, PassVisitView, PassVisitsPage } from '@/types/passes'
 import { apiErrorDescription } from '@/utils/apiError'
 import { useVenueDateTime } from '@/utils/datetime'
 import { PASS_VISIT_TABS, type PassVisitTab } from './passVisitTabs'
@@ -91,6 +91,17 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
   const total = query.data?.pages[0]?.total ?? 0
   const hasFilters = !!provider || !!dateRange.from || !!dateRange.to
   const stale = query.isPlaceholderData
+  // D6: con más de una página el refresco de 30 s está apagado (refrescar una lista infinita re-pide TODAS sus páginas). Se
+  // dice, y «Volver a lo más reciente» deja sólo la primera, la pone al día y el refresco vuelve solo (el intervalo se
+  // recalcula con cada cambio de la caché).
+  const autoRefreshPaused = !stale && (query.data?.pages.length ?? 0) > 1
+  const backToLatest = () => {
+    queryClient.setQueryData<InfiniteData<PassVisitsPage, number>>(
+      passesKeys.visits(venueId, filters),
+      d => d && { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) },
+    )
+    void query.refetch()
+  }
 
   // Sin vista general (cargando o fallida) no se apaga nada: el 409 del server sigue cuidando el caso.
   const overview = usePassIntegrationsOverview(venueId)
@@ -215,6 +226,21 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
         <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('visits.updating')}
         </p>
+      )}
+      {autoRefreshPaused && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{t('visits.autoRefreshPaused')}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 cursor-pointer px-2 text-xs"
+            onClick={backToLatest}
+            disabled={query.isFetching}
+            data-tour="passes-visits-back-to-latest"
+          >
+            {t('visits.backToLatest')}
+          </Button>
+        </div>
       )}
       <Card className="border-input shadow-sm">
         <CardContent className="p-0">
