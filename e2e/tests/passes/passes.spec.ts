@@ -4,7 +4,8 @@
  *   2. teclear en un buscador conserva el foco — NO APLICA: estas pantallas no tienen búsqueda de texto al servidor
  *      (los filtros son píldoras y un <input type="month">); se cubre que cambiar de filtro no desmonta la lista;
  *   3. vacío, sin resultados y error se distinguen.
- * Más el gate de plan (Free ⇒ paywall), la pausa por el plan (Free con TotalPass conectado ⇒ aviso y Desconectar, R62),
+ * Más el gate de plan (Free ⇒ paywall), la pausa por el plan (Free con TotalPass conectado ⇒ aviso y Desconectar, R62; y sus
+ * check-ins siguen visibles y confirmables, D1),
  * un MANAGER en sólo lectura (P2-12), las pantallas en claro y oscuro, y el indicador de pases
  * (boleto + «2/3») completo dentro del bloque de una clase de 60 min en el calendario, día y semana (R2b-33/34; jsdom no mide).
  * Locale E2E: inglés (fallback 'en'). Capturas en test-results/ (Playwright las borra al empezar la siguiente corrida).
@@ -260,6 +261,19 @@ test.describe('Pases — Check-ins (Pantalla B)', () => {
     await expect(page.getByText('Ana López')).toHaveCount(0)
     await expect(page.getByText(/no pending check-ins/i)).toBeVisible()
     expect(confirms).toBe(1)
+  })
+
+  // D1 (P1-1): sin el plan pero con TotalPass vivo, los check-ins que llegan siguen siendo cobrables: se ven y se confirman
+  test('sin plan (Free) con TotalPass vivo: check-ins visibles, Confirmar habilitado y el aviso de la pausa', async ({ page }) => {
+    await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [VENUE], planState: FREE })
+    await mockPasses(page, { pending: () => [VISIT] }, OVERVIEW_PAUSED)
+    await hideDevtools(page)
+    await page.goto('/venues/venue-alpha/reservations/passes')
+    await expect(page.getByText('Ana López')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/here you can keep confirming the check-ins/i)).toBeVisible()
+    await expect(page.getByText(/included in pro/i)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^confirm$/i })).toBeEnabled()
+    await page.screenshot({ path: 'test-results/passes-visits-plan-paused-light.png', fullPage: true })
   })
 
   test('pestañas píldora en el hash, y el reporte del mes arriba (sólo proveedores conectados)', async ({ page }) => {

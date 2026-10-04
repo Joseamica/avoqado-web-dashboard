@@ -51,8 +51,8 @@ const FEATURE = 'AGGREGATOR_PASSES'
  * `warning-*` del tema: se leen igual en claro y en oscuro.
  *
  * El texto depende del modo (revisión final, Important 2): sin el plan el server sigue validando con TotalPass —en AUTO
- * se confirman solos; en manual, al marcar la asistencia de la reserva (Reservaciones, POS o kiosco)—, pero confirmar
- * desde la pantalla «Pases» tiene el candado del plan. Prometer «se siguen confirmando» en manual era falso.
+ * se confirman solos; en manual, desde Reservaciones › Pases, que sin el plan sigue abierta con una conexión viva (D1,
+ * C1 del server). Una visita sin reserva sólo se confirma ahí, y la degradación puede quitar el módulo de Reservaciones.
  */
 function PlanPausedNotice({ confirmMode }: { confirmMode: PassConfirmMode }) {
   const { t } = useTranslation('passes')

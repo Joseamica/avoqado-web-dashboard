@@ -30,7 +30,7 @@
     "description": "TotalPass members book and check in to your classes from their app.",
     "status": { "connected": "Connected", "notConnected": "Not connected", "paused": "Paused", "revoked": "Key rejected", "planPaused": "Paused by your plan" },
     "planPausedAuto": "Your plan no longer includes passes. We no longer publish new classes on TotalPass; what was already published or booked is honored and its check-ins are still confirmed automatically.",
-    "planPausedOnCheckin": "Your plan no longer includes passes. We no longer publish new classes on TotalPass; what was already published or booked is honored. To confirm check-ins, mark attendance as usual in Reservations.",
+    "planPausedOnCheckin": "Your plan no longer includes passes. We no longer publish new classes on TotalPass; what was already published or booked is honored. Check-ins that come in are confirmed in Reservations › Passes.",
     "place": "TotalPass location",
     "pausedHint": "This connection is paused. Paste your key to reconnect it.",
     "pendingHint": "The last attempt to connect didn't finish. Paste your key again.",
@@ -125,6 +125,7 @@
   "visits": {
     "title": "Pass check-ins",
     "subtitle": "TotalPass members who arrived at your business (Wellhub, coming soon). If you confirm attendance by hand, do it before the deadline or the provider won't pay for that visit.",
+    "planPaused": "Your plan no longer includes passes: new classes are no longer published. Here you can keep confirming the check-ins that come in.",
     "tabs": {
       "pending": "Pending",
       "confirmed": "Confirmed",

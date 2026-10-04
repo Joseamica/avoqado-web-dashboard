@@ -20,18 +20,28 @@ const passesAccess = vi.hoisted(() => ({
   current: { hasFeature: true, tierLoading: false, resolved: true, unresolved: false, enabled: true },
 }))
 // Proveedores con conexión (status ≠ null): sólo ellos se ofrecen en el filtro (H6: Wellhub no se presenta como activo).
-const connected = vi.hoisted(() => ({ providers: ['TOTALPASS', 'WELLHUB'] as string[] }))
+const connected = vi.hoisted(() => ({ providers: ['TOTALPASS', 'WELLHUB'] as string[], planActive: true }))
+/** D1: estado de la vista general fuera de los datos (cargando / fallida sin datos). */
+const overviewState = vi.hoisted(() => ({ isLoading: false, isError: false, noData: false, refetch: vi.fn() }))
 vi.mock('@/hooks/use-passes', () => ({
   usePassesAccess: () => passesAccess.current,
   usePassIntegrationsOverview: () => ({
-    data: {
-      planActive: true,
-      connections: ['TOTALPASS', 'WELLHUB'].map(provider => ({
-        provider,
-        status: connected.providers.includes(provider) ? 'ACTIVE' : null,
-      })),
-      classProducts: { items: [], total: 0 },
-    },
+    isLoading: overviewState.isLoading,
+    isError: overviewState.isError,
+    isFetching: false,
+    error: overviewState.isError ? { response: { data: { message: 'Se cayó la base' } } } : null,
+    refetch: overviewState.refetch,
+    data: overviewState.noData
+      ? undefined
+      : {
+          planActive: connected.planActive,
+          connections: ['TOTALPASS', 'WELLHUB'].map(provider => ({
+            provider,
+            status: connected.providers.includes(provider) ? 'ACTIVE' : null,
+            lastError: null,
+          })),
+          classProducts: { items: [], total: 0 },
+        },
   }),
 }))
 const listProps = vi.hoisted(() => ({ last: null as null | Record<string, unknown> }))
@@ -72,7 +82,12 @@ beforeEach(() => {
   passesAccess.current = { hasFeature: true, tierLoading: false, resolved: true, unresolved: false, enabled: true }
   listProps.last = null
   connected.providers = ['TOTALPASS', 'WELLHUB']
+  connected.planActive = true
+  Object.assign(overviewState, { isLoading: false, isError: false, noData: false })
+  overviewState.refetch.mockReset()
 })
+
+const NO_PLAN = { hasFeature: false, tierLoading: false, resolved: true, unresolved: false, enabled: false }
 
 describe('PassVisits (Pantalla B)', () => {
   it('vive dentro de <FeatureGate feature="AGGREGATOR_PASSES"> y arranca en Pendientes', () => {
@@ -129,6 +144,49 @@ describe('PassVisits (Pantalla B)', () => {
     fireEvent.change(screen.getByLabelText('visits.filters.dateTo'), { target: { value: '2030-01-12' } })
     await user.click(screen.getByRole('button', { name: 'visits.filters.apply' }))
     expect(listProps.last).toMatchObject({ provider: 'WELLHUB', dateRange: { from: '2030-01-10', to: '2030-01-12' } })
+  })
+
+  // D1 (P1-1): sin el plan pero con TotalPass vivo, los check-ins que llegan se siguen viendo y confirmando: sin paywall,
+  // con un aviso de la pausa arriba.
+  it('sin plan con una conexión viva ⇒ sin FeatureGate, aviso de la pausa y la lista montada', () => {
+    passesAccess.current = NO_PLAN
+    connected.planActive = false
+    connected.providers = ['TOTALPASS']
+    renderPage()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+    expect(screen.getByText('visits.planPaused')).toBeInTheDocument()
+    expect(screen.getByTestId('visits-list')).toBeInTheDocument()
+    expect(screen.getByTestId('visits-summary')).toBeInTheDocument()
+  })
+
+  it('sin plan y sin conexión viva ⇒ el FeatureGate de siempre, sin aviso de pausa', () => {
+    passesAccess.current = NO_PLAN
+    connected.planActive = false
+    connected.providers = []
+    renderPage()
+    expect(screen.getByTestId('feature-gate')).toBeInTheDocument()
+    expect(screen.queryByText('visits.planPaused')).not.toBeInTheDocument()
+  })
+
+  // D1: sin plan, mientras no se sabe si queda una conexión viva no se elige entre paywall y pausa.
+  it('sin plan con la vista general cargando ⇒ «cargando», ni paywall ni lista', () => {
+    passesAccess.current = NO_PLAN
+    Object.assign(overviewState, { isLoading: true, noData: true })
+    renderPage()
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('visits-list')).not.toBeInTheDocument()
+  })
+
+  it('sin plan con la vista general fallida ⇒ su error con «Reintentar», no el paywall', async () => {
+    const user = userEvent.setup()
+    passesAccess.current = NO_PLAN
+    Object.assign(overviewState, { isError: true, noData: true })
+    renderPage()
+    expect(screen.getByText('Se cayó la base')).toBeInTheDocument()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'common:retry' }))
+    expect(overviewState.refetch).toHaveBeenCalled()
   })
 
   // H6: con un solo proveedor conectado (hoy, TotalPass) no se ofrece un filtro de proveedor con Wellhub como si funcionara.

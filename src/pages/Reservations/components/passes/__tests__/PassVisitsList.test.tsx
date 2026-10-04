@@ -155,6 +155,15 @@ describe('PassVisitsList', () => {
     expect(svc.listPassVisits).toHaveBeenCalledTimes(2)
   })
 
+  // D1 (P1-1): sin el plan pero con TotalPass vivo, la lista carga y se confirma (el server ya no pide el plan aquí).
+  it('sin el plan con TotalPass vivo ⇒ la lista carga y Confirmar está habilitado', async () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    svc.getPassIntegrationsOverview.mockResolvedValue({ ...overview('ACTIVE'), planActive: false })
+    renderList()
+    expect(await screen.findByText('Ana López')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'visits.confirm' })).toBeEnabled()
+  })
+
   // P1-3 + P1-4: el server encoló la validación y devolvió PENDING: la fila se queda con «confirmación solicitada» y SIN
   // botones; el refresco de 30 s (sin tocar nada) la saca cuando TotalPass la confirmó.
   it('respuesta PENDING ⇒ «confirmación solicitada» sin botones; el refresco periódico la saca al quedar CONFIRMED', async () => {

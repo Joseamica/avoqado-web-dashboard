@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/react-query'
 import { createElement, type ReactNode } from 'react'
+import type { PassConnectionStatus, PassIntegrationsOverview } from '@/types/passes'
 
 type Tier = { hasFeatureAccess: (f: string) => boolean; isLoading: boolean; isResolved: boolean }
 const tier = vi.hoisted(() => ({ current: { hasFeatureAccess: (_f: string) => true, isLoading: false, isResolved: true } as Tier }))
@@ -71,10 +72,34 @@ function renderAll() {
   )
 }
 
+/** La vista general que devuelve el mock (D1: decide si, sin plan, las visitas siguen visibles). */
+const overviewData = { current: undefined as PassIntegrationsOverview | undefined }
+const overviewWith = (status: PassConnectionStatus | null): PassIntegrationsOverview => ({
+  planActive: false,
+  connections: [
+    {
+      provider: 'TOTALPASS',
+      available: true,
+      status,
+      externalPlaceName: null,
+      confirmMode: 'AUTO',
+      lastError: null,
+      plans: [],
+      productLinks: [],
+      updatedAt: null,
+    },
+  ],
+  classProducts: { items: [], total: 0 },
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
   client = new QueryClient()
-  mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
+  overviewData.current = undefined
+  mockUseQuery.mockImplementation((o: Opts) => ({
+    data: o.queryKey[2] === 'overview' ? overviewData.current : undefined,
+    isLoading: false,
+  }))
   mockUseInfiniteQuery.mockReturnValue({ data: undefined, isLoading: false })
   tier.current = { hasFeatureAccess: () => true, isLoading: false, isResolved: true }
   access.allowed = ['reservations:read']
@@ -86,9 +111,35 @@ describe('use-passes: candado de plan', () => {
   it('sin el plan ⇒ sólo el overview corre; capacity, visits y summary con enabled=false', () => {
     tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
     renderAll()
-    expect(allOpts()).toHaveLength(4)
+    expect(new Set(allOpts().map(o => o.queryKey[2]))).toEqual(new Set(['overview', 'capacity', 'visits', 'summary']))
     expect(optsFor('overview').enabled).toBe(true)
     for (const kind of ['capacity', 'visits', 'summary']) expect(optsFor(kind).enabled).toBe(false)
+  })
+  // D1 (P1-1): sin el plan pero con una conexión viva (pausa suave) el server deja ver y resolver las visitas que llegan:
+  // visitas y resumen corren (con su reloj); capacity sigue con el candado del plan
+  it('sin el plan con TotalPass vivo ⇒ visits y summary corren y se refrescan; capacity no', () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    overviewData.current = overviewWith('ACTIVE')
+    renderAll()
+    for (const kind of ['visits', 'summary']) expect(optsFor(kind).enabled).toBe(true)
+    expect(intervalWith(optsFor('visits'), 1)).toBe(30_000)
+    expect(optsFor('summary').refetchInterval).toBe(30_000)
+    expect(optsFor('capacity').enabled).toBe(false)
+  })
+  // D1: sin conexión viva (nunca conectó, o ya se desconectó) es el paywall de siempre: ni visitas ni resumen
+  it('sin el plan y sin conexión viva ⇒ visits y summary apagados', () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    overviewData.current = overviewWith(null)
+    renderAll()
+    for (const kind of ['visits', 'summary']) expect(optsFor(kind).enabled).toBe(false)
+  })
+  // D1: la pausa no se salta el permiso (el server sigue pidiendo reservations:read)
+  it('sin el plan con TotalPass vivo pero sin reservations:read ⇒ visits y summary apagados', () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    access.allowed = []
+    overviewData.current = overviewWith('ACTIVE')
+    renderAll()
+    for (const kind of ['visits', 'summary']) expect(optsFor(kind).enabled).toBe(false)
   })
   // nuevo — R62: el overview sí exige reservations:read (el server lo pide); sin él no sale una petición que acabe en 403
   it('sin reservations:read ⇒ el overview no corre', () => {
@@ -135,7 +186,8 @@ describe('use-passes: candado de plan', () => {
       expect(o.enabled).toBe(true)
       expect(o.queryKey.slice(0, 2)).toEqual(['passes', 'v1'])
     }
-    expect(allOpts().map(o => o.queryKey[2]).sort()).toEqual(['capacity', 'overview', 'summary', 'visits'])
+    // visits y summary leen también la vista general (D1): la misma clave, una sola petición en TanStack
+    expect([...new Set(allOpts().map(o => o.queryKey[2]))].sort()).toEqual(['capacity', 'overview', 'summary', 'visits'])
   })
   // nuevo
   it('sin venueId ⇒ enabled=false', () => {

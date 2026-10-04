@@ -1,4 +1,4 @@
-import type { PassConnectionView } from '@/types/passes'
+import type { PassConnectionView, PassIntegrationsOverview } from '@/types/passes'
 
 /**
  * ¿Queda algo vivo de esta conexión? ACTIVE; PAUSED; PENDING (un conectar a medias que ya reservó la sucursal, C5); o
@@ -8,3 +8,10 @@ import type { PassConnectionView } from '@/types/passes'
  */
 export const passConnectionIsLive = (c: PassConnectionView): boolean =>
   c.status === 'ACTIVE' || c.status === 'PAUSED' || c.status === 'PENDING' || (c.status === 'REVOKED' && !!c.lastError)
+
+/**
+ * Pausa suave (R62): el plan ya no incluye pases (lo dice el server) pero queda una conexión viva. Las visitas que siguen
+ * llegando se ven y se resuelven sin el plan (D1, C1 del server): son cobrables hasta que venza su plazo.
+ */
+export const passesPlanPaused = (overview: PassIntegrationsOverview | undefined): boolean =>
+  overview?.planActive === false && overview.connections.some(passConnectionIsLive)

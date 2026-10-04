@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Ticket } from 'lucide-react'
+import { AlertTriangle, Loader2, PauseCircle, Ticket } from 'lucide-react'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePassIntegrationsOverview, usePassesAccess } from '@/hooks/use-passes'
 import { DateRangeFilterContent, type DateRangeValue } from '@/pages/AreaTickets/components/DateRangeFilterContent'
+import { passesPlanPaused } from '@/pages/Settings/components/passes/passConnection'
 import type { PassProvider } from '@/types/passes'
+import { apiErrorDescription } from '@/utils/apiError'
 import { PassVisitsList } from './components/passes/PassVisitsList'
 import { PassVisitsSummary } from './components/passes/PassVisitsSummary'
 import { PASS_VISIT_TABS, type PassVisitTab } from './components/passes/passVisitTabs'
@@ -24,11 +27,14 @@ const tabTriggerClass =
  * Reservaciones › Pases (Pantalla B, spec §8): el equivalente a la pantalla de check-ins de buq. Pestañas píldora en
  * el hash (como CommissionsPage / ExternalSettlements), filtros Stripe-style compartidos por las pestañas, y el
  * reporte del mes arriba (Tarea 9). Si la consulta del plan falló (`unresolved`), se dice y no se monta la lista (P1-2).
+ *
+ * Pausa suave (D1): sin el plan pero con una conexión viva, los check-ins que siguen llegando son cobrables y el server deja
+ * verlos y resolverlos; la página se pinta SIN paywall y con un aviso arriba. Sin conexión viva, el paywall de siempre.
  */
 export default function PassVisits() {
   const { t } = useTranslation('passes')
   const { venueId } = useCurrentVenue()
-  const { unresolved } = usePassesAccess(venueId ?? undefined)
+  const { hasFeature, resolved, unresolved } = usePassesAccess(venueId ?? undefined)
   // Misma clave que la lista (TanStack la pide una vez). Sólo se ofrecen los proveedores que tienen conexión: Wellhub sigue
   // «muy pronto» y no se presenta como si funcionara (H6); con uno solo, el filtro de proveedor no aporta y no se pinta.
   const overview = usePassIntegrationsOverview(venueId ?? undefined)
@@ -61,75 +67,112 @@ export default function PassVisits() {
     [overview.data, t],
   )
   const dateLabel = dateRange.from || dateRange.to ? [dateRange.from, dateRange.to].filter(Boolean).join(' – ') : null
+  const planPaused = passesPlanPaused(overview.data)
 
   if (!venueId) return null
 
-  return (
-    <FeatureGate feature="AGGREGATOR_PASSES">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-6" data-tour="pass-visits-page">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <Ticket className="h-6 w-6" />
-            {t('visits.title')}
-          </h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t('visits.subtitle')}</p>
-        </div>
-
-        {unresolved ? (
+  // Sin el plan, mientras no se sepa si queda una conexión viva no se elige entre el paywall y la pausa (como la Pantalla A).
+  if (resolved && !hasFeature && !overview.data && (overview.isLoading || overview.isError)) {
+    return (
+      <div className="mx-auto max-w-6xl p-4 md:p-6">
+        {overview.isError ? (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{t('errors.planUnresolved')}</AlertDescription>
+            <AlertTitle>{t('visits.loadError')}</AlertTitle>
+            <AlertDescription>{apiErrorDescription(overview.error) || t('errors.generic')}</AlertDescription>
+            <Button
+              variant="outline"
+              size="sm"
+              className="col-start-2 mt-2 justify-self-start"
+              onClick={() => overview.refetch()}
+              disabled={overview.isFetching}
+              data-tour="passes-visits-overview-retry"
+            >
+              {t('common:retry')}
+            </Button>
           </Alert>
         ) : (
-          <>
-            {/* key: el mes por defecto sale de la zona del venue; otra sucursal arranca en SU mes actual (switchVenue no desmonta). */}
-            <PassVisitsSummary key={`summary-${venueId}`} venueId={venueId} />
-
-            <div className="flex flex-wrap items-center gap-2">
-              {providerOptions.length > 1 && (
-                <FilterPill
-                  label={t('visits.filters.provider')}
-                  activeLabel={provider ? t(`providers.${provider}`) : null}
-                  onClear={() => setProvider(null)}
-                >
-                  <SingleSelectFilterContent
-                    title={t('visits.filters.provider')}
-                    options={providerOptions}
-                    selectedValue={provider}
-                    onSelect={value => setProvider(value as PassProvider)}
-                  />
-                </FilterPill>
-              )}
-              <FilterPill label={t('visits.filters.date')} activeLabel={dateLabel} onClear={() => setDateRange({ from: null, to: null })}>
-                <DateRangeFilterContent
-                  title={t('visits.filters.date')}
-                  value={dateRange}
-                  onApply={setDateRange}
-                  labels={{
-                    from: t('visits.filters.dateFrom'),
-                    to: t('visits.filters.dateTo'),
-                    apply: t('visits.filters.apply'),
-                    clear: t('visits.filters.clear'),
-                  }}
-                />
-              </FilterPill>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="inline-flex h-auto flex-wrap items-center justify-start rounded-full border border-border bg-muted/60 p-1 text-muted-foreground">
-                {VALID_TABS.map(tab => (
-                  <TabsTrigger key={tab} value={tab} className={tabTriggerClass} data-tour={`passes-visits-tab-${tab}`}>
-                    {t(`visits.tabs.${tab}`)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            {/* key: el aviso «confirmación solicitada» y el diálogo de rechazo no cruzan a otra sucursal (switchVenue no desmonta). */}
-            <PassVisitsList key={venueId} venueId={venueId} tab={activeTab} provider={provider} dateRange={dateRange} />
-          </>
+          <div className="flex items-center justify-center py-16" role="status" aria-label={t('common:loading')}>
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
         )}
       </div>
-    </FeatureGate>
+    )
+  }
+
+  const page = (
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-6" data-tour="pass-visits-page">
+      <div>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+          <Ticket className="h-6 w-6" />
+          {t('visits.title')}
+        </h1>
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t('visits.subtitle')}</p>
+      </div>
+
+      {planPaused && (
+        <Alert className="border-warning-border bg-warning-muted text-warning-foreground" data-tour="passes-visits-plan-paused">
+          <PauseCircle className="h-4 w-4" />
+          <AlertDescription className="text-foreground">{t('visits.planPaused')}</AlertDescription>
+        </Alert>
+      )}
+
+      {unresolved ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{t('errors.planUnresolved')}</AlertDescription>
+        </Alert>
+      ) : (
+        <>
+          {/* key: el mes por defecto sale de la zona del venue; otra sucursal arranca en SU mes actual (switchVenue no desmonta). */}
+          <PassVisitsSummary key={`summary-${venueId}`} venueId={venueId} />
+
+          <div className="flex flex-wrap items-center gap-2">
+            {providerOptions.length > 1 && (
+              <FilterPill
+                label={t('visits.filters.provider')}
+                activeLabel={provider ? t(`providers.${provider}`) : null}
+                onClear={() => setProvider(null)}
+              >
+                <SingleSelectFilterContent
+                  title={t('visits.filters.provider')}
+                  options={providerOptions}
+                  selectedValue={provider}
+                  onSelect={value => setProvider(value as PassProvider)}
+                />
+              </FilterPill>
+            )}
+            <FilterPill label={t('visits.filters.date')} activeLabel={dateLabel} onClear={() => setDateRange({ from: null, to: null })}>
+              <DateRangeFilterContent
+                title={t('visits.filters.date')}
+                value={dateRange}
+                onApply={setDateRange}
+                labels={{
+                  from: t('visits.filters.dateFrom'),
+                  to: t('visits.filters.dateTo'),
+                  apply: t('visits.filters.apply'),
+                  clear: t('visits.filters.clear'),
+                }}
+              />
+            </FilterPill>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="inline-flex h-auto flex-wrap items-center justify-start rounded-full border border-border bg-muted/60 p-1 text-muted-foreground">
+              {VALID_TABS.map(tab => (
+                <TabsTrigger key={tab} value={tab} className={tabTriggerClass} data-tour={`passes-visits-tab-${tab}`}>
+                  {t(`visits.tabs.${tab}`)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          {/* key: el aviso «confirmación solicitada» y el diálogo de rechazo no cruzan a otra sucursal (switchVenue no desmonta). */}
+          <PassVisitsList key={venueId} venueId={venueId} tab={activeTab} provider={provider} dateRange={dateRange} />
+        </>
+      )}
+    </div>
   )
+
+  return planPaused ? page : <FeatureGate feature="AGGREGATOR_PASSES">{page}</FeatureGate>
 }

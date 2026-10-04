@@ -6,9 +6,9 @@
  * useVenueTier hace fail-open —`hasFeatureAccess()` devuelve true— mientras la consulta del plan está en vuelo Y si falló;
  * `isResolved` sólo es true cuando el plan se comprobó de verdad (o aplica un bypass: superadmin, demo, white-label).
  * Sin esto un venue SIN el plan pegaría a la API durante el cold-load o tras un error y recibiría 403 (el server gatea
- * /pass-integrations con checkFeatureAccess, salvo la vista general y desconectar — R62, pausa suave: por eso
- * `usePassIntegrationsOverview` usa su propio `enabled`). `unresolved` (ya no carga y no se resolvió) es «la consulta del
- * plan falló»: las pantallas lo dicen («recarga la página») en vez de pedir nada.
+ * /pass-integrations con checkFeatureAccess, salvo la vista general, desconectar y las visitas — R62, pausa suave: por eso
+ * `usePassIntegrationsOverview` y las visitas usan su propio `enabled`). `unresolved` (ya no carga y no se resolvió) es «la
+ * consulta del plan falló»: las pantallas lo dicen («recarga la página») en vez de pedir nada.
  *
  * Las claves cuelgan de ['passes', venueId] para que cada grupo de invalidación sea un prefijo: una lista que nace en
  * una clave nueva sin su invalidación se queda vieja en silencio (regla bounded-data-and-query-load.md).
@@ -17,6 +17,7 @@ import { useCallback } from 'react'
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
+import { passesPlanPaused } from '@/pages/Settings/components/passes/passConnection'
 import { getPassCapacity, getPassIntegrationsOverview, getPassVisitsSummary, listPassVisits } from '@/services/passes.service'
 import type { PassProvider, PassVisitStatus } from '@/types/passes'
 
@@ -71,7 +72,7 @@ export function usePassesAccess(venueId: string | undefined): {
  * La vista general NO pasa por el candado del plan (R62 del server, pausa suave): un negocio que perdió el plan sigue
  * conectado y debe VER que sus clases ya no se publican (`planActive: false`) y tener a la mano Desconectar. Corre con
  * `reservations:read` (lo que exige el server) y el plan RESUELTO —tenga o no el plan—, para que la pantalla elija entre
- * el paywall y la pausa sin adivinar. Capacity, visits y summary siguen con el `enabled` de usePassesAccess.
+ * el paywall y la pausa sin adivinar. Capacity sigue con el `enabled` de usePassesAccess; visits y summary, con el de abajo.
  */
 export function usePassIntegrationsOverview(venueId: string | undefined) {
   const { resolved } = usePassesAccess(venueId)
@@ -80,13 +81,25 @@ export function usePassIntegrationsOverview(venueId: string | undefined) {
   return useQuery({ queryKey: passesKeys.overview(venueId), queryFn: () => getPassIntegrationsOverview(venueId!), enabled, ...HEAVY })
 }
 
+/**
+ * Visitas y resumen (D1, C1 del server): además del plan, corren en la pausa suave —sin el plan pero con una conexión viva—,
+ * porque las visitas que llegan siguen siendo cobrables y el server ya deja verlas y resolverlas. Siempre con el plan
+ * RESUELTO y `reservations:read`. Capacity y configuración siguen sólo con el plan.
+ */
+function usePassVisitsEnabled(venueId: string | undefined): boolean {
+  const { enabled, resolved } = usePassesAccess(venueId)
+  const { can } = useAccess()
+  const { data } = usePassIntegrationsOverview(venueId)
+  return enabled || (!!venueId && resolved && can('reservations:read') && passesPlanPaused(data))
+}
+
 export function usePassCapacity(venueId: string | undefined) {
   const { enabled } = usePassesAccess(venueId)
   return useQuery({ queryKey: passesKeys.capacity(venueId), queryFn: () => getPassCapacity(venueId!), enabled, ...HEAVY })
 }
 
 export function usePassVisits(venueId: string | undefined, filters: PassVisitsListFilters) {
-  const { enabled } = usePassesAccess(venueId)
+  const enabled = usePassVisitsEnabled(venueId)
   return useInfiniteQuery({
     queryKey: passesKeys.visits(venueId, filters),
     queryFn: ({ pageParam }) => listPassVisits(venueId!, { ...filters, limit: VISITS_PAGE_SIZE, offset: pageParam }),
@@ -107,8 +120,7 @@ export function usePassVisits(venueId: string | undefined, filters: PassVisitsLi
 }
 
 export function usePassVisitsSummary(venueId: string | undefined, month: string) {
-  const { enabled } = usePassesAccess(venueId)
-  const on = enabled && !!month
+  const on = usePassVisitsEnabled(venueId) && !!month
   return useQuery({
     queryKey: passesKeys.summary(venueId, month),
     queryFn: () => getPassVisitsSummary(venueId!, month),
