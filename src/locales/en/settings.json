@@ -445,6 +445,7 @@
       "reservations_create": "Create reservations",
       "reservations_update": "Edit reservations",
       "reservations_cancel": "Cancel reservations",
+      "reservations_manage-passes": "Set up passes (TotalPass · Wellhub)",
       "settings_read": "View settings",
       "settings_manage": "Manage general settings",
       "venues_read": "View venue settings",
