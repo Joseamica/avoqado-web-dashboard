@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, Loader2, PauseCircle, XCircle } from 'lucide-react'
@@ -119,6 +119,9 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
   const [disconnectOpen, setDisconnectOpen] = useState(false)
   // Lo que contestó el último Desconectar: `unlinking` = el server ya está quitando las clases (aviso neutral), si no, error.
   const [disconnectResult, setDisconnectResult] = useState<{ text: string; unlinking: boolean } | null>(null)
+  // Ese resultado habla de la conexión de ESE momento: si el server ya trae otra (otro estado, o guardada de nuevo), sobra.
+  // Un refetch igual no la cambia: el «Vuelve a presionar…» de UNLINKING sólo desliga clases y no toca la conexión.
+  useEffect(() => setDisconnectResult(null), [connection.status, connection.updatedAt])
 
   const active = connection.status === 'ACTIVE'
   const paused = connection.status === 'PAUSED'
@@ -173,12 +176,10 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
       setDisconnectOpen(false)
       const text = apiErrorDescription(error) || t('errors.generic')
       const code = (error as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code
-      if (code === 'PASS_DISCONNECT_UNLINKING') {
-        setDisconnectResult({ text, unlinking: true })
-        // Las clases ya se desligaron en esa llamada: la vista se refresca (y el botón espera a que llegue, P2-8).
-        return invalidate(venueId, 'connection')
-      }
-      setDisconnectResult({ text, unlinking: false })
+      setDisconnectResult({ text, unlinking: code === 'PASS_DISCONNECT_UNLINKING' })
+      // Siempre se refresca (H1): con UNLINKING las clases ya se desligaron en esa llamada; con otro error el server pudo
+      // haber cambiado igual (p. ej. revocó y la respuesta se perdió). El botón espera a que lleguen los datos (P2-8).
+      return invalidate(venueId, 'connection')
     },
   })
 
@@ -421,7 +422,10 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
                 variant="outline"
                 size="sm"
                 disabled={disabled}
-                onClick={() => setDisconnectOpen(true)}
+                onClick={() => {
+                  setDisconnectResult(null)
+                  setDisconnectOpen(true)
+                }}
                 data-tour="passes-totalpass-disconnect"
               >
                 {t('totalpass.disconnect')}

@@ -60,17 +60,14 @@ const UPGRADE = 'billing:featureGate.upgrade:{"tier":"Pro"}'
 
 function renderCard(connection: PassConnectionView, canManage = true, planPaused = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  return render(
+  const tree = (c: PassConnectionView) => (
     <QueryClientProvider client={client}>
-      <TotalPassCard
-        venueId="v1"
-        connection={connection}
-        classProducts={{ items: [], total: 0 }}
-        canManage={canManage}
-        planPaused={planPaused}
-      />
-    </QueryClientProvider>,
+      <TotalPassCard venueId="v1" connection={c} classProducts={{ items: [], total: 0 }} canManage={canManage} planPaused={planPaused} />
+    </QueryClientProvider>
   )
+  const view = render(tree(connection))
+  // Lo que hace un refetch de la vista general: la MISMA tarjeta recibe la conexión nueva sin desmontarse.
+  return { ...view, rerenderWith: (c: PassConnectionView) => view.rerender(tree(c)) }
 }
 
 beforeEach(() => {
@@ -289,7 +286,43 @@ describe('TotalPassCard', () => {
     await user.click(screen.getByRole('button', { name: 'totalpass.disconnectConfirm' }))
     const message = await screen.findByText(/2 reservas de socios próximas/)
     expect(message.closest('[role="alert"]')).toHaveClass('text-destructive')
-    expect(invalidateSpy).not.toHaveBeenCalled()
+    // Revisión final, Minor 9: como todo onError de la rama, también recarga (el server pudo haber cambiado).
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
+  })
+
+  // Revisión final, Minor 10: el «Todavía no se puede desconectar…» no se queda pintado cuando la conexión del server ya es
+  // otra (otro estado, o guardada de nuevo: `updatedAt`), ni al volver a abrir el diálogo. Un refetch igual no lo borra.
+  it('el aviso de un Desconectar rechazado se va al llegar otra conexión del server o al volver a abrir el diálogo', async () => {
+    const user = userEvent.setup()
+    svc.disconnectPassProvider.mockRejectedValue({
+      response: { status: 409, data: { message: 'Todavía no se puede desconectar TotalPass: 2 reservas.', code: 'PASS_DISCONNECT_BLOCKED' } },
+    })
+    const TOUCHED = { ...CONNECTED, updatedAt: '2026-10-03T12:00:00.000Z' }
+    const { rerenderWith } = renderCard(TOUCHED)
+    const tryDisconnect = async () => {
+      await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))
+      await user.click(await screen.findByRole('button', { name: 'totalpass.disconnectConfirm' }))
+      expect(await screen.findByText(/2 reservas\./)).toBeInTheDocument()
+    }
+    await tryDisconnect()
+    rerenderWith({ ...TOUCHED })
+    expect(screen.getByText(/2 reservas\./)).toBeInTheDocument()
+    rerenderWith({ ...TOUCHED, confirmMode: 'ON_VENUE_CHECKIN', updatedAt: '2026-10-03T12:05:00.000Z' })
+    await waitFor(() => expect(screen.queryByText(/2 reservas\./)).not.toBeInTheDocument())
+    await tryDisconnect()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))
+    expect(screen.queryByText(/2 reservas\./)).not.toBeInTheDocument()
+  })
+
+  // Minor 9: un fallo de red al desconectar también recarga: el server pudo haber revocado y la tarjeta diría «Conectada».
+  it('desconectar falla por red ⇒ el mensaje se ve y la vista general se recarga', async () => {
+    const user = userEvent.setup()
+    svc.disconnectPassProvider.mockRejectedValue({ message: 'Network Error' })
+    renderCard(CONNECTED)
+    await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))
+    await user.click(await screen.findByRole('button', { name: 'totalpass.disconnectConfirm' }))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
   })
 
   // R2b-1 (R65 del server): con clases ligadas el server las desliga en esa misma llamada y pide volver a presionar.
