@@ -8,6 +8,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePassIntegrationsOverview, usePassesAccess } from '@/hooks/use-passes'
 import { apiErrorDescription } from '@/utils/apiError'
+import { PassCapacitySection } from './components/passes/PassCapacitySection'
 import { PassesTeaser } from './components/passes/PassesTeaser'
 import { passConnectionIsLive } from './components/passes/passConnection'
 import { TotalPassCard } from './components/passes/TotalPassCard'
@@ -73,16 +74,20 @@ export default function PassIntegrations() {
       ) : !overview.data || !totalpass ? (
         <PassesTeaser />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          <TotalPassCard
-            venueId={venueId}
-            connection={totalpass}
-            classProducts={overview.data.classProducts}
-            canManage={canManage}
-            planPaused={planPaused}
-          />
-          <WellhubCard />
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            <TotalPassCard
+              venueId={venueId}
+              connection={totalpass}
+              classProducts={overview.data.classProducts}
+              canManage={canManage}
+              planPaused={planPaused}
+            />
+            <WellhubCard />
+          </div>
+          {/* R62: sin plan los lugares siguen con candado en el server; en la pausa no se pinta (ni se pide /capacity). */}
+          {!planPaused && <PassCapacitySection venueId={venueId} canManage={canManage} />}
+        </>
       )}
     </div>
   )

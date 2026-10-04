@@ -69,5 +69,51 @@
     "showing": "Se muestran {{shown}} de {{total}} clases. Si necesitas ligar las demás, escríbenos.",
     "save": "Guardar clases",
     "saved": "Clases guardadas"
+  },
+  "capacity": {
+    "title": "Lugares para pases",
+    "description": "Cuántos lugares de cada clase se ofrecen a socios de TotalPass y Wellhub. Los dos comparten el mismo tope; gana la regla más específica: clase > día y hora > general.",
+    "loadError": "No se pudieron cargar los lugares para pases",
+    "default": {
+      "label": "En todas las clases, hasta",
+      "unit": "lugares para pases",
+      "hint": "Vacío = todos los lugares libres. 0 = ninguno.",
+      "invalid": "Escribe un número entero de 0 a 500, o déjalo vacío.",
+      "save": "Guardar tope",
+      "saved": "Tope general guardado"
+    },
+    "weekly": {
+      "title": "Excepciones por día y hora",
+      "empty": "Sin excepciones: en todas las clases aplica el tope general.",
+      "add": "+ Agregar",
+      "delete": "Borrar",
+      "deleteTitle": "¿Borrar esta excepción?",
+      "deleteBody": "Esas clases volverán al tope general.",
+      "deleteConfirm": "Sí, borrar",
+      "deleted": "Excepción borrada",
+      "saved": "Excepción guardada",
+      "spots": "{{count}} lugar",
+      "spots_other": "{{count}} lugares"
+    },
+    "dialog": {
+      "title": "Nueva excepción",
+      "subtitle": "Para un día de la semana (y una hora, si quieres), cuántos lugares se ofrecen a pases.",
+      "weekday": "Día",
+      "allDay": "Todo el día",
+      "time": "Hora de inicio de la clase",
+      "spots": "Lugares para pases",
+      "spotsHint": "De 0 a 500. 0 = esas clases no se ofrecen a pases.",
+      "errors": { "time": "Indica la hora de la clase o marca «Todo el día».", "spots": "Indica cuántos lugares (de 0 a 500)." }
+    },
+    "suggestions": {
+      "title": "Sugerencias",
+      "description": "Según cómo se llenan tus clases con clientes propios en las últimas 8 semanas.",
+      "line": "Tus {{day}} {{time}} se llenan al {{pct}} % con clientes propios → sugerimos {{spots}}",
+      "weeks": "{{count}} semana de datos",
+      "weeks_other": "{{count}} semanas de datos",
+      "apply": "Aplicar",
+      "applied": "Aplicada",
+      "empty": "Todavía no hay datos suficientes (se necesitan 3 semanas de clases)."
+    }
   }
 }

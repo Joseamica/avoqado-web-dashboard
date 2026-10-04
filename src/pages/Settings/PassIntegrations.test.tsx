@@ -81,6 +81,7 @@ beforeEach(() => {
   tier.current = { hasFeatureAccess: () => true, isLoading: false, isResolved: true }
   access.allowed = ['reservations:read', 'reservations:manage-passes']
   svc.getPassIntegrationsOverview.mockResolvedValue(OVERVIEW)
+  svc.getPassCapacity.mockResolvedValue({ defaultMaxSpots: null, weekly: [], suggestions: [] })
 })
 
 describe('PassIntegrations (Pantalla A)', () => {
@@ -104,6 +105,9 @@ describe('PassIntegrations (Pantalla A)', () => {
     expect(screen.getByText('common:comingSoon')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'wellhub.connect' })).toBeDisabled()
     expect(screen.queryByText('page.readOnly')).not.toBeInTheDocument()
+    // Tarea 7: con el plan, la sección de lugares para pases va debajo de las tarjetas.
+    expect(await screen.findByText('capacity.title')).toBeInTheDocument()
+    expect(svc.getPassCapacity).toHaveBeenCalledWith('v1')
   })
 
   // «Apagado se ve y se explica»: sin permiso de configurar se ve todo, con el aviso de a quién pedírselo.

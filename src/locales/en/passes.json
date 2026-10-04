@@ -69,5 +69,51 @@
     "showing": "Showing {{shown}} of {{total}} classes. If you need to link the rest, write to us.",
     "save": "Save classes",
     "saved": "Classes saved"
+  },
+  "capacity": {
+    "title": "Spots for passes",
+    "description": "How many spots per class go to TotalPass and Wellhub members. Both share the same cap; the most specific rule wins: class > day and time > general.",
+    "loadError": "Couldn't load the spots for passes",
+    "default": {
+      "label": "In every class, up to",
+      "unit": "spots for passes",
+      "hint": "Empty = every free spot. 0 = none.",
+      "invalid": "Enter a whole number from 0 to 500, or leave it empty.",
+      "save": "Save cap",
+      "saved": "General cap saved"
+    },
+    "weekly": {
+      "title": "Exceptions by day and time",
+      "empty": "No exceptions: the general cap applies to every class.",
+      "add": "+ Add",
+      "delete": "Delete",
+      "deleteTitle": "Delete this exception?",
+      "deleteBody": "Those classes go back to the general cap.",
+      "deleteConfirm": "Yes, delete",
+      "deleted": "Exception deleted",
+      "saved": "Exception saved",
+      "spots": "{{count}} spot",
+      "spots_other": "{{count}} spots"
+    },
+    "dialog": {
+      "title": "New exception",
+      "subtitle": "For one weekday (and a time, if you want), how many spots go to passes.",
+      "weekday": "Day",
+      "allDay": "All day",
+      "time": "Class start time",
+      "spots": "Spots for passes",
+      "spotsHint": "From 0 to 500. 0 = those classes aren't offered to passes.",
+      "errors": { "time": "Enter the class time or check “All day”.", "spots": "Enter how many spots (0 to 500)." }
+    },
+    "suggestions": {
+      "title": "Suggestions",
+      "description": "Based on how your classes fill up with your own clients over the last 8 weeks.",
+      "line": "Your {{day}} {{time}} classes fill up to {{pct}}% with your own clients → we suggest {{spots}}",
+      "weeks": "{{count}} week of data",
+      "weeks_other": "{{count}} weeks of data",
+      "apply": "Apply",
+      "applied": "Applied",
+      "empty": "Not enough data yet (3 weeks of classes are needed)."
+    }
   }
 }
