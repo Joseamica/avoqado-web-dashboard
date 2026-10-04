@@ -115,6 +115,8 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
   useEffect(
     () => () => {
       if (expiryTimer.current) clearTimeout(expiryTimer.current)
+      // Sin esto, el doble montaje de StrictMode (dev) deja la ref llena con un timer ya cancelado y esa instancia no vuelve a recargar por vencimiento.
+      expiryTimer.current = null
     },
     [],
   )
@@ -193,6 +195,16 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
           {apiErrorDescription(query.error) && (
             <AlertDescription className="text-muted-foreground">{apiErrorDescription(query.error)}</AlertDescription>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="col-start-2 mt-2 justify-self-start"
+            onClick={() => query.refetch()}
+            disabled={query.isFetching}
+            data-tour="passes-visits-retry"
+          >
+            {t('common:retry')}
+          </Button>
         </Alert>
       )}
       {stale && (

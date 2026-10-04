@@ -1,7 +1,9 @@
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { passesKeys } from '@/hooks/use-passes'
 import type { PassConnectionStatus, PassIntegrationsOverview, PassVisitView, PassVisitsPage } from '@/types/passes'
 
 const PLAN_OK = { hasFeatureAccess: () => true, isLoading: false, isResolved: true }
@@ -452,6 +454,41 @@ describe('PassVisitsList', () => {
     expect(screen.getByText('Ana López')).toBeInTheDocument()
     expect(screen.getByText('visits.rejectTitle')).toBeInTheDocument()
     expect(screen.queryByText('visits.loadError')).not.toBeInTheDocument()
+
+    // R2b-27: el aviso trae «Reintentar»; si la consulta ya responde, la lista se pone al día y el aviso se va.
+    svc.listPassVisits.mockResolvedValue(page([visit({ memberName: 'Ana Actualizada' })]))
+    await user.click(screen.getByRole('button', { name: 'common:cancel' })) // el diálogo modal tapa la página: se cierra antes
+    await user.click(screen.getByRole('button', { name: 'common:retry' }))
+    expect(await screen.findByText('Ana Actualizada')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('visits.refreshError')).not.toBeInTheDocument())
+  })
+
+  // R2b-27 (c): la rama «nunca llegó una lista» es la de pantalla completa (distinta del aviso en línea): sin filas ni «Reintentar» del aviso.
+  it('sin datos y con error: error de pantalla (visits.loadError) con el mensaje del server, sin el aviso en línea', async () => {
+    svc.listPassVisits.mockRejectedValue({ response: { status: 500, data: { message: 'Se cayó la base' } } })
+    renderList()
+    expect(await screen.findByText('visits.loadError', {}, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.getByText('Se cayó la base')).toBeInTheDocument()
+    expect(screen.queryByText('visits.refreshError')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'common:retry' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  // R2b-27 (a): StrictMode (dev) monta, desmonta y vuelve a montar. Con filas YA vencidas desde la caché, el cleanup tiene que soltar
+  // el timer de vencimiento; si no, la segunda pasada ve la ref llena, no programa nada y esa instancia nunca recarga por vencimiento.
+  it('StrictMode con filas ya vencidas en caché: igual hay una recarga por vencimiento', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const expired = visit({ deadlineAt: inMs(-60_000) })
+    client.setQueryData(passesKeys.visits('v1', { status: 'PENDING' }), { pages: [page([expired])], pageParams: [0] })
+    svc.listPassVisits.mockResolvedValue(page([]))
+    render(
+      <StrictMode>
+        <QueryClientProvider client={client}>{ui()}</QueryClientProvider>
+      </StrictMode>,
+    )
+    expect(screen.getByText('Ana López')).toBeInTheDocument()
+    await waitFor(() => expect(svc.listPassVisits).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByText('Ana López')).not.toBeInTheDocument())
   })
 
   // H2: mientras el plan no se comprueba la consulta está apagada: eso no es «no hay check-ins».
