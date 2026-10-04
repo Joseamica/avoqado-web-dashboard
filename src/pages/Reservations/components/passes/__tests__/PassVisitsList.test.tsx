@@ -292,6 +292,19 @@ describe('PassVisitsList', () => {
     expect(screen.getByRole('button', { name: 'visits.reject' })).toBeEnabled()
   })
 
+  // D5 (P2-14): reconectar desde otra sesión no deja Confirmar apagado para siempre: «Actualizar» vuelve a pedir la conexión.
+  it('conexión no activa ⇒ «Actualizar» vuelve a pedir la conexión y, ya activa, Confirmar se habilita', async () => {
+    const user = userEvent.setup()
+    svc.getPassIntegrationsOverview.mockResolvedValueOnce(overview('PAUSED')).mockResolvedValue(overview('ACTIVE'))
+    renderList()
+    expect(await screen.findByText('visits.connectionInactive:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'visits.confirm' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'common:refresh' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'visits.confirm' })).toBeEnabled())
+    expect(svc.getPassIntegrationsOverview).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('visits.connectionInactive:{"provider":"providers.TOTALPASS"}')).not.toBeInTheDocument()
+  })
+
   // R2b-23: si la vista general estaba vieja, el 409 PASS_CONNECTION_NOT_ACTIVE se muestra tal cual y la vuelve a pedir.
   it('409 PASS_CONNECTION_NOT_ACTIVE ⇒ su mensaje tal cual, y la fila se pone al día con la conexión', async () => {
     const user = userEvent.setup()

@@ -237,6 +237,8 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
                   acting={acting}
                   awaiting={!!awaiting[visit.id]}
                   connectionInactive={inactiveProviders.has(visit.provider)}
+                  refreshingConnection={overview.isFetching}
+                  onRefreshConnection={() => overview.refetch()}
                   onConfirm={() => confirm.mutate(visit.id)}
                   onReject={() => setToReject(visit)}
                   onExpired={onRowExpired}
@@ -319,12 +321,25 @@ interface VisitRowProps {
   acting: boolean
   awaiting: boolean
   connectionInactive: boolean
+  refreshingConnection: boolean
+  onRefreshConnection: () => void
   onConfirm: () => void
   onReject: () => void
   onExpired: () => void
 }
 
-function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfirm, onReject, onExpired }: VisitRowProps) {
+function VisitRow({
+  visit,
+  canAct,
+  acting,
+  awaiting,
+  connectionInactive,
+  refreshingConnection,
+  onRefreshConnection,
+  onConfirm,
+  onReject,
+  onExpired,
+}: VisitRowProps) {
   const { t } = useTranslation('passes')
   const { formatDateTime, formatTime } = useVenueDateTime()
   const pending = visit.status === 'PENDING'
@@ -427,9 +442,23 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
               )}
             </div>
             {showConfirm && connectionInactive && (
-              <p className="max-w-64 text-right text-xs text-muted-foreground">
-                {t('visits.connectionInactive', { provider: providerName })}
-              </p>
+              <>
+                <p className="max-w-64 text-right text-xs text-muted-foreground">
+                  {t('visits.connectionInactive', { provider: providerName })}
+                </p>
+                {/* D5: la vista general no se refresca sola; si se reconectó desde otra sesión, esto la trae sin recargar. */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 cursor-pointer px-2 text-xs"
+                  onClick={onRefreshConnection}
+                  disabled={refreshingConnection}
+                  data-tour="passes-visit-refresh-connection"
+                >
+                  {refreshingConnection && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                  {t('common:refresh')}
+                </Button>
+              </>
             )}
           </div>
         )}
