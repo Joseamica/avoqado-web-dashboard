@@ -671,7 +671,10 @@ describe('PassVisitsList', () => {
       expect(r.queryByRole('button', { name: 'visits.reject' })).not.toBeInTheDocument()
     })
 
-    it('RETRYING ⇒ «no respondió; lo reintentamos solos» con el motivo, sin botones ni «último error» repetido', async () => {
+    // Autorización (Codex, P1-6): la espera entre reintentos puede durar minutos y el server sí deja rechazar (sólo lo bloquea una
+    // validación IN_PROGRESS con lease vivo): Rechazar se queda a la mano; Confirmar no (ya se está confirmando).
+    it('RETRYING ⇒ «no respondió; lo reintentamos solos» con el motivo, Rechazar disponible y sin Confirmar', async () => {
+      const user = userEvent.setup()
       svc.listPassVisits.mockResolvedValue(page([visit({ validation: 'RETRYING', lastError: 'TotalPass HTTP 503' })]))
       renderList()
       const r = await row()
@@ -679,6 +682,9 @@ describe('PassVisitsList', () => {
       expect(r.getByText('visits.validation.reason:{"error":"TotalPass HTTP 503"}')).toBeInTheDocument()
       expect(r.queryByText(/^visits\.lastError/)).not.toBeInTheDocument()
       expect(r.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
+      await user.click(r.getByRole('button', { name: 'visits.reject' }))
+      await user.click(await screen.findByRole('button', { name: 'visits.rejectConfirm' }))
+      await waitFor(() => expect(svc.rejectPassVisit).toHaveBeenCalledWith('v1', 'vis1'))
     })
 
     it('FAILED ⇒ «no pudimos confirmar» con el motivo y Confirmar habilitado para reintentar', async () => {

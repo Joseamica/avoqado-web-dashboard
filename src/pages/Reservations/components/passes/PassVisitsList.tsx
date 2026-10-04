@@ -38,7 +38,7 @@ function dedupeById(items: PassVisitView[]): PassVisitView[] {
   return items.filter(v => (seen.has(v.id) ? false : (seen.add(v.id), true)))
 }
 
-/** La validación sigue en manos del server: no hay nada que hacer en la fila (confirmar otra vez sólo se juntaría). */
+/** La validación sigue en manos del server: confirmar otra vez sólo se juntaría (rechazar, ver `showReject`). */
 const IN_FLIGHT: ReadonlySet<PassVisitValidation> = new Set(['QUEUED', 'IN_PROGRESS', 'RETRYING'])
 
 /** Varias filas que vencen juntas (o que se montan ya vencidas) se juntan en una sola recarga por ventana (H4). */
@@ -391,9 +391,11 @@ function VisitRow({
   useEffect(() => {
     if (pending && expired) onExpired()
   }, [pending, expired, onExpired])
-  const open = canAct && pending && !expired && !inFlight
-  const showConfirm = open && visit.canConfirm
-  const showReject = open && visit.canReject
+  const open = canAct && pending && !expired
+  // Con la validación en curso no hay que confirmar otra vez. Rechazar sí sigue en RETRYING (R2b-38 + autorización P1-6): la
+  // espera entre reintentos puede durar minutos y el server sólo bloquea el rechazo con una validación IN_PROGRESS viva.
+  const showConfirm = open && !inFlight && visit.canConfirm
+  const showReject = open && (!inFlight || validation === 'RETRYING') && visit.canReject
   const confirmedByKey = visit.confirmedBy ? CONFIRMED_BY_KEYS[visit.confirmedBy] : undefined
   const providerName = t(`providers.${visit.provider}`)
   // Un rechazo deja «Rechazada por el estudio» en lastError: es una nota, no un error. Y con la validación en curso o fallida
