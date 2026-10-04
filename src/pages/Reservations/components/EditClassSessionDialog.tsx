@@ -74,7 +74,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     watch,
     setValue,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, dirtyFields },
   } = useForm<EditFormData>({
     resolver: zodResolver(editSchema),
   })
@@ -94,7 +94,15 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     staleTime: 60_000,
   })
 
-  const staffMembers = staffData?.data ?? []
+  // La coach actual SIEMPRE es una opción, aunque la lista del equipo no haya llegado todavía o no la traiga (inactiva, fuera
+  // de los primeros 100). Si no, el Select de Radix recibe un valor sin opción, su <select> nativo lo «corrige» a '' y la
+  // clase se guardaba SIN coach (QA N1: abrir la clase con ?clase= dejaba la clase en caché antes que el equipo).
+  const opcionesStaff = useMemo(() => {
+    const lista = (staffData?.data ?? []).map(s => ({ staffId: s.staffId, nombre: `${s.firstName} ${s.lastName}` }))
+    const actual = session?.assignedStaff
+    if (actual && !lista.some(s => s.staffId === actual.id)) lista.unshift({ staffId: actual.id, nombre: `${actual.firstName} ${actual.lastName}` })
+    return lista
+  }, [staffData, session])
 
   // Reset form when session data loads
   const wasOpenRef = useRef(false)
@@ -117,7 +125,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: (data: EditFormData) => {
+    mutationFn: ({ data, cambioStaff }: { data: EditFormData; cambioStaff: boolean }) => {
       const tz = venueTimezone
       const startsAtDt = DateTime.fromISO(`${data.date}T${data.startTime}:00`, { zone: tz })
       const endsAtDt = DateTime.fromISO(`${data.date}T${data.endTime}:00`, { zone: tz })
@@ -130,7 +138,9 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
         startsAt: startsAtDt.toUTC().toISO()!,
         endsAt: endsAtDt.toUTC().toISO()!,
         capacity: data.capacity,
-        assignedStaffId: data.assignedStaffId || null,
+        // Sólo si la persona lo cambió: ningún «Guardar» puede quitarle la coach a la clase por una carrera de carga (el
+        // server deja la coach como está cuando el campo no viene).
+        ...(cambioStaff ? { assignedStaffId: data.assignedStaffId || null } : {}),
         internalNotes: data.internalNotes || null,
       })
     },
@@ -181,7 +191,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     },
   })
 
-  const onSubmit = handleSubmit(data => updateMutation.mutate(data))
+  const onSubmit = handleSubmit(data => updateMutation.mutate({ data, cambioStaff: !!dirtyFields.assignedStaffId }))
   const isPending = updateMutation.isPending
   const isCancelled = session?.status === 'CANCELLED'
   const isCompleted = session?.status === 'COMPLETED'
@@ -344,7 +354,9 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                   <Label htmlFor="edit-staff">{t('form.fields.staff')}</Label>
                   <Select
                     value={watch('assignedStaffId') || 'none'}
-                    onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v, { shouldDirty: true })}
+                    // '' nunca lo elige una persona (Radix no admite ítems con valor vacío): es el <select> nativo de Radix
+                    // «corrigiendo» un valor que todavía no tiene opción. Se ignora.
+                    onValueChange={v => v !== '' && setValue('assignedStaffId', v === 'none' ? '' : v, { shouldDirty: true })}
                     disabled={isReadOnly}
                   >
                     <SelectTrigger id="edit-staff">
@@ -352,9 +364,9 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">{t('noStaff')}</SelectItem>
-                      {staffMembers.map(s => (
+                      {opcionesStaff.map(s => (
                         <SelectItem key={s.staffId} value={s.staffId}>
-                          {s.firstName} {s.lastName}
+                          {s.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
