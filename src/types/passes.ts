@@ -16,6 +16,8 @@ export interface PassProductLink {
   productName: string
   externalPlanId: string
   externalPlanName: string | null
+  /** La clase ya está archivada o dejó de ser clase: la liga sólo se conserva tal cual o se quita (C9). Opcional: server viejo. */
+  productArchived?: boolean
 }
 export interface PassConnectionView {
   provider: PassProvider

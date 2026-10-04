@@ -207,6 +207,56 @@ describe('ProductLinksEditor', () => {
     )
   })
 
+  // D3 (P2-10): una clase archivada (o que dejó de ser clase) con su liga viva se ve marcada; sólo se puede conservar tal cual
+  // o quitar (el server rechaza ligarla o cambiarle el plan).
+  describe('liga a una clase archivada', () => {
+    const ARCHIVED = { productId: 'p8', productName: 'Barre', externalPlanId: '305', externalPlanName: 'Gold', productArchived: true }
+
+    it('se ve marcada y su selector sólo ofrece conservar su plan o «Sin ligar»', async () => {
+      const user = userEvent.setup()
+      renderEditor({ productLinks: [...LINKS, ARCHIVED] })
+      expect(screen.getByText('products.archived')).toBeInTheDocument()
+      expect(screen.getByRole('combobox', { name: 'Barre' })).toHaveTextContent('Gold')
+      await user.click(screen.getByRole('combobox', { name: 'Barre' }))
+      const options = (await screen.findAllByRole('option')).map(o => o.textContent)
+      expect(options).toEqual(['products.none', 'Gold'])
+    })
+
+    it('guardar otro cambio la manda sin cambios; quitarla la manda fuera', async () => {
+      const user = userEvent.setup()
+      renderEditor({ productLinks: [...LINKS, ARCHIVED] })
+      await user.click(screen.getByRole('combobox', { name: 'Pilates' }))
+      await user.click(await screen.findByRole('option', { name: 'Silver' }))
+      await user.click(screen.getByRole('button', { name: 'products.save' }))
+      await waitFor(() =>
+        expect(svc.setPassProductLinks).toHaveBeenCalledWith('v1', 'TOTALPASS', [
+          { productId: 'p1', externalPlanId: '305' },
+          { productId: 'p2', externalPlanId: '306' },
+          { productId: 'p8', externalPlanId: '305' },
+        ]),
+      )
+      await user.click(screen.getByRole('combobox', { name: 'Barre' }))
+      await user.click(await screen.findByRole('option', { name: 'products.none' }))
+      await user.click(screen.getByRole('button', { name: 'products.save' }))
+      await waitFor(() =>
+        expect(svc.setPassProductLinks).toHaveBeenLastCalledWith('v1', 'TOTALPASS', [
+          { productId: 'p1', externalPlanId: '305' },
+          { productId: 'p2', externalPlanId: '306' },
+        ]),
+      )
+    })
+
+    it('si era la última clase, el editor sigue a la vista para poder quitarla', async () => {
+      const user = userEvent.setup()
+      renderEditor({ productLinks: [ARCHIVED], classProducts: { items: [], total: 0 } })
+      expect(screen.queryByText('products.noClasses')).not.toBeInTheDocument()
+      await user.click(screen.getByRole('combobox', { name: 'Barre' }))
+      await user.click(await screen.findByRole('option', { name: 'products.none' }))
+      await user.click(screen.getByRole('button', { name: 'products.save' }))
+      await waitFor(() => expect(svc.setPassProductLinks).toHaveBeenCalledWith('v1', 'TOTALPASS', []))
+    })
+  })
+
   // P2-10: la lista del server viene acotada (200) y NO se pagina (R32): se dice con un aviso VISIBLE, no un contador escondido.
   it('si hay más clases que las mostradas, lo dice con un aviso visible', () => {
     renderEditor({ classProducts: { items: PRODUCTS.items, total: 240 } })

@@ -4,6 +4,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -41,6 +42,9 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
     for (const link of productLinks) if (!byId.has(link.productId)) byId.set(link.productId, link.productName)
     return [...byId].map(([id, name]) => ({ id, name }))
   }, [classProducts.items, productLinks])
+
+  // D3 (C9 del server): archivada o ya no es clase. Su plan no se puede cambiar: sólo conservarla tal cual o quitarla.
+  const archived = useMemo(() => new Set(productLinks.filter(l => l.productArchived).map(l => l.productId)), [productLinks])
 
   const serverDraft = useMemo(
     () => Object.fromEntries(productLinks.map(l => [l.productId, l.externalPlanId])) as Record<string, string>,
@@ -105,9 +109,22 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
                   const value = draft[row.id] || NONE
                   // H2: ligada a un plan que TotalPass ya no tiene: se dice, no se deja el selector en blanco.
                   const missingPlan = value !== NONE && !knownPlans.has(value)
+                  const isArchived = archived.has(row.id)
+                  const options = isArchived ? plans.filter(p => p.id === serverDraft[row.id]) : plans
+                  const keepMissing = isArchived ? !knownPlans.has(serverDraft[row.id]) : missingPlan
                   return (
                     <TableRow key={row.id} className="border-input">
-                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{row.name}</span>
+                          {isArchived && (
+                            <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                              {t('products.archived')}
+                            </Badge>
+                          )}
+                        </div>
+                        {isArchived && <p className="text-xs text-muted-foreground">{t('products.archivedHint')}</p>}
+                      </TableCell>
                       <TableCell>
                         <Select
                           value={value}
@@ -119,8 +136,10 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value={NONE}>{t('products.none')}</SelectItem>
-                            {missingPlan && <SelectItem value={value}>{t('products.missingPlan')}</SelectItem>}
-                            {plans.map(plan => (
+                            {keepMissing && (
+                              <SelectItem value={isArchived ? serverDraft[row.id] : value}>{t('products.missingPlan')}</SelectItem>
+                            )}
+                            {options.map(plan => (
                               <SelectItem key={plan.id} value={plan.id}>
                                 {plan.name ?? plan.id}
                               </SelectItem>

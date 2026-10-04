@@ -66,6 +66,8 @@
     "plan": "TotalPass plan",
     "none": "Not linked",
     "missingPlan": "Plan that no longer exists in TotalPass",
+    "archived": "Archived class",
+    "archivedHint": "Its plan can no longer be changed: keep it as is or remove it with “Not linked”.",
     "noPlans": "Your TotalPass location has no plans yet. Create them in their portal and reconnect.",
     "noClasses": "You have no “Class” products. Create one in the menu to link it.",
     "showing": "Showing {{shown}} of {{total}} classes. If you need to link the rest, write to us.",

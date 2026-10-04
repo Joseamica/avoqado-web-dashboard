@@ -66,6 +66,8 @@
     "plan": "Plan de TotalPass",
     "none": "Sin ligar",
     "missingPlan": "Plan que ya no existe en TotalPass",
+    "archived": "Clase archivada",
+    "archivedHint": "Ya no se puede cambiar su plan: déjala así o quítala con «Sin ligar».",
     "noPlans": "Tu sucursal de TotalPass no tiene planes todavía. Créalos en su portal y vuelve a conectar.",
     "noClasses": "No tienes productos tipo «Clase». Crea uno en el menú para poder ligarlo.",
     "showing": "Se muestran {{shown}} de {{total}} clases. Si necesitas ligar las demás, escríbenos.",
