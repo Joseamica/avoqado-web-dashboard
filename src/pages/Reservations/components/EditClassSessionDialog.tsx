@@ -104,43 +104,50 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     return lista
   }, [staffData, session])
 
-  // Reset form when session data loads
-  const wasOpenRef = useRef(false)
+  // El formulario se llena al ABRIR (o con otra clase), con la hora de fin REAL de la clase. Un refetch con el diálogo
+  // abierto (volver a la pestaña) sólo lo actualiza si no hay cambios sin guardar: nunca pisa lo que se está escribiendo.
+  const iniciadoPara = useRef<string | null>(null)
+  const haySinGuardar = useRef(false)
+  haySinGuardar.current = isDirty
   useEffect(() => {
-    if (open && session && (!wasOpenRef.current || sessionId)) {
-      const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
-      const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
-
-      reset({
-        date: start.toFormat('yyyy-MM-dd'),
-        startTime: start.toFormat('HH:mm'),
-        endTime: end.toFormat('HH:mm'),
-        capacity: session.capacity,
-        assignedStaffId: session.assignedStaffId || '',
-        internalNotes: session.internalNotes || '',
-      })
+    if (!open) {
+      iniciadoPara.current = null
+      return
     }
-    wasOpenRef.current = open
+    if (!session || !sessionId) return
+    if (iniciadoPara.current === sessionId && haySinGuardar.current) return
+    iniciadoPara.current = sessionId
+    const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+    reset({
+      date: start.toFormat('yyyy-MM-dd'),
+      startTime: start.toFormat('HH:mm'),
+      endTime: end.toFormat('HH:mm'),
+      capacity: session.capacity,
+      assignedStaffId: session.assignedStaffId || '',
+      internalNotes: session.internalNotes || '',
+    })
   }, [open, session, sessionId, reset, venueTimezone])
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ data, cambioStaff }: { data: EditFormData; cambioStaff: boolean }) => {
+    mutationFn: ({ data, cambios }: { data: EditFormData; cambios: { staff: boolean; horario: boolean; cupo: boolean } }) => {
       const tz = venueTimezone
       const startsAtDt = DateTime.fromISO(`${data.date}T${data.startTime}:00`, { zone: tz })
       const endsAtDt = DateTime.fromISO(`${data.date}T${data.endTime}:00`, { zone: tz })
 
-      if (!startsAtDt.isValid || !endsAtDt.isValid) {
+      if (cambios.horario && (!startsAtDt.isValid || !endsAtDt.isValid)) {
         throw new Error('Fecha/hora inválida')
       }
 
+      // Sólo viaja lo que la persona cambió (el server deja como está lo que no viene): guardar una nota no puede mover
+      // la hora de la clase, cambiar el cupo ni quitarle la coach.
       return classSessionService.updateClassSession(venueId!, sessionId!, {
-        startsAt: startsAtDt.toUTC().toISO()!,
-        endsAt: endsAtDt.toUTC().toISO()!,
-        capacity: data.capacity,
+        ...(cambios.horario ? { startsAt: startsAtDt.toUTC().toISO()!, endsAt: endsAtDt.toUTC().toISO()! } : {}),
+        ...(cambios.cupo ? { capacity: data.capacity } : {}),
         // Sólo si la persona lo cambió: ningún «Guardar» puede quitarle la coach a la clase por una carrera de carga (el
         // server deja la coach como está cuando el campo no viene).
-        ...(cambioStaff ? { assignedStaffId: data.assignedStaffId || null } : {}),
+        ...(cambios.staff ? { assignedStaffId: data.assignedStaffId || null } : {}),
         internalNotes: data.internalNotes || null,
       })
     },
@@ -191,25 +198,41 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     },
   })
 
-  const onSubmit = handleSubmit(data => updateMutation.mutate({ data, cambioStaff: !!dirtyFields.assignedStaffId }))
+  const onSubmit = handleSubmit(data =>
+    updateMutation.mutate({
+      data,
+      cambios: {
+        staff: !!dirtyFields.assignedStaffId,
+        horario: !!(dirtyFields.date || dirtyFields.startTime || dirtyFields.endTime),
+        cupo: !!dirtyFields.capacity,
+      },
+    }),
+  )
   const isPending = updateMutation.isPending
   const isCancelled = session?.status === 'CANCELLED'
   const isCompleted = session?.status === 'COMPLETED'
   const isReadOnly = isCancelled || isCompleted
 
-  // Auto-calculate endTime from startTime + product duration
+  // La hora de fin se recalcula con la duración del producto SÓLO cuando la persona cambia la hora de inicio. Antes se
+  // recalculaba en cada carga y, como el guardado siempre mandaba el horario, cualquier «Guardar» acortaba o alargaba en
+  // silencio una clase cuya duración ya no era la del producto.
   const productDuration = (session?.product as any)?.duration ?? null
   const editStartTime = watch('startTime')
-  useEffect(() => {
-    if (!productDuration || !editStartTime) return
-    const [h, m] = editStartTime.split(':').map(Number)
-    if (isNaN(h) || isNaN(m)) return
-    const totalMinutes = h * 60 + m + productDuration
-    const endH = Math.floor(totalMinutes / 60) % 24
-    const endM = totalMinutes % 60
-    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
-    setValue('endTime', endTimeStr, { shouldValidate: true })
-  }, [editStartTime, productDuration, setValue])
+  const editEndTime = watch('endTime')
+  const minutos = (hhmm?: string) => {
+    const [h, m] = (hhmm ?? '').split(':').map(Number)
+    return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null
+  }
+  const cambiarInicio = (time: string) => {
+    setValue('startTime', time, { shouldDirty: true, shouldValidate: true })
+    const inicio = minutos(time)
+    if (!productDuration || inicio === null) return
+    const fin = inicio + productDuration
+    const endTimeStr = `${String(Math.floor(fin / 60) % 24).padStart(2, '0')}:${String(fin % 60).padStart(2, '0')}`
+    setValue('endTime', endTimeStr, { shouldDirty: true, shouldValidate: true })
+  }
+  // La duración que se enseña es la de ESTA clase (inicio → fin), no la del producto.
+  const duracionClase = minutos(editEndTime) !== null && minutos(editStartTime) !== null ? minutos(editEndTime)! - minutos(editStartTime)! : productDuration
 
   // Attendees are stored as reservations on the session
   const attendees = useMemo(() => (session as any)?.reservations ?? [], [session])
@@ -291,7 +314,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                       <TimePicker
                         id="edit-startTime"
                         value={field.value || undefined}
-                        onChange={time => field.onChange(time)}
+                        onChange={cambiarInicio}
                         placeholder="--:--"
                         label=""
                         allowManualInput
@@ -305,8 +328,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                     <p className="text-[11px] text-muted-foreground">
                       {t('classSession.autoEndTime', {
                         defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
-                        duration: productDuration,
-                        endTime: watch('endTime'),
+                        duration: duracionClase,
+                        endTime: editEndTime,
                       })}
                     </p>
                   )}

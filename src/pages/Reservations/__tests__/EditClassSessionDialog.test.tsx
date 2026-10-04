@@ -44,11 +44,14 @@ function diferida<T>() {
 }
 const pintar = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={qc}>
-      <EditClassSessionDialog open onOpenChange={vi.fn()} sessionId="s1" />
-    </QueryClientProvider>,
-  )
+  return {
+    qc,
+    ...render(
+      <QueryClientProvider client={qc}>
+        <EditClassSessionDialog open onOpenChange={vi.fn()} sessionId="s1" />
+      </QueryClientProvider>,
+    ),
+  }
 }
 const escribirNota = () =>
   fireEvent.change(screen.getByLabelText(/form\.fields\.internalNotes/), { target: { value: 'Llegó tarde la instructora' } })
@@ -106,6 +109,53 @@ describe('EditClassSessionDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
     await waitFor(() => expect(m.update).toHaveBeenCalled())
     expect(m.update.mock.calls[0][2]).not.toHaveProperty('assignedStaffId')
+  })
+
+  it('una clase de 50 min con un producto de 60: abrir y guardar una nota NO toca su horario (ni startsAt ni endsAt)', async () => {
+    m.session.mockResolvedValue(clase({ startsAt: '2026-09-28T14:00:00.000Z', endsAt: '2026-09-28T14:50:00.000Z' }))
+    pintar()
+    await screen.findByTestId('class-session-body')
+    await waitFor(() => expect(screen.getByLabelText(/form\.fields\.internalNotes/)).toBeInTheDocument())
+    escribirNota()
+    fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
+    await waitFor(() => expect(m.update).toHaveBeenCalled())
+    const cuerpo = m.update.mock.calls[0][2]
+    expect(cuerpo).not.toHaveProperty('startsAt')
+    expect(cuerpo).not.toHaveProperty('endsAt')
+    expect(cuerpo).not.toHaveProperty('capacity')
+  })
+
+  it('cambiar la hora de inicio SÍ recalcula el fin con la duración del producto y manda el horario nuevo', async () => {
+    m.session.mockResolvedValue(clase({ startsAt: '2026-09-28T14:00:00.000Z', endsAt: '2026-09-28T14:50:00.000Z' }))
+    pintar()
+    const inicio = (await screen.findByLabelText(/form\.fields\.startTime/)) as HTMLInputElement
+    await waitFor(() => expect(inicio).toHaveValue('08:00'))
+    fireEvent.change(inicio, { target: { value: '09:00' } })
+    fireEvent.blur(inicio)
+    fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
+    await waitFor(() => expect(m.update).toHaveBeenCalled())
+    // 09:00 en CDMX = 15:00 UTC; producto de 60 min ⇒ 16:00 UTC.
+    expect(m.update.mock.calls[0][2]).toMatchObject({ startsAt: '2026-09-28T15:00:00.000Z', endsAt: '2026-09-28T16:00:00.000Z' })
+  })
+
+  it('si la clase se vuelve a pedir con el diálogo abierto, lo que se estaba editando NO se pierde', async () => {
+    const { qc } = pintar()
+    await screen.findByTestId('class-session-body')
+    escribirNota()
+    m.session.mockResolvedValue(clase({ internalNotes: 'Nota que llegó del server', capacity: 15 }))
+    await qc.refetchQueries({ queryKey: ['class-session', 'v1', 's1'] })
+    // La pantalla ya pinta el dato nuevo (cupo 15)…
+    await waitFor(() => expect(screen.getByText('8/15')).toBeInTheDocument())
+    // …y aun así la nota que se estaba escribiendo sigue ahí.
+    expect(screen.getByLabelText(/form\.fields\.internalNotes/)).toHaveValue('Llegó tarde la instructora')
+  })
+
+  it('sin cambios sin guardar, un dato nuevo del server sí se muestra', async () => {
+    const { qc } = pintar()
+    await screen.findByTestId('class-session-body')
+    m.session.mockResolvedValue(clase({ internalNotes: 'Nota que llegó del server' }))
+    await qc.refetchQueries({ queryKey: ['class-session', 'v1', 's1'] })
+    await waitFor(() => expect(screen.getByLabelText(/form\.fields\.internalNotes/)).toHaveValue('Nota que llegó del server'))
   })
 
   it('quitar la coach A PROPÓSITO («Sin asignar») sí manda null', async () => {

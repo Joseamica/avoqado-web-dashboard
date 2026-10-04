@@ -36,6 +36,11 @@ describe('textos de pago por servicio', () => {
     expect(tEn('period.capturedOn', { fecha: 'Oct 3, 2026' })).toBe('Oct 3, 2026 (entered)')
     expect(tEs('period.detailColumns.concept')).toBe('Concepto')
   })
+  it('volver a pagar una clase excluida no promete valores cuando los campos están vacíos (ronda hora de fin)', () => {
+    expect(tEs('adjust.reincludeNote')).toMatch(/si los dejas vacíos, con el conteo del sistema y el monto de la tabla/)
+    expect(tEn('adjust.reincludeNote')).toMatch(/“This class is not paid”/)
+    expect(tEn('adjust.reincludeNote')).not.toMatch(/«|»/)
+  })
   it('diferencias: persona, monto y el mes destino en español natural; las mismas llaves en inglés (Bloque B)', () => {
     // «Por liquidar» (sin liquidar) y «falta pagarla» (liquidada, sin pagar): «pendiente» ya no significa dos cosas (QA B-8).
     expect(tEs('differences.pendingLine', { persona: 'Ana Martínez', monto: '+$40.00' })).toBe('Diferencia por liquidar de Ana Martínez: +$40.00')
