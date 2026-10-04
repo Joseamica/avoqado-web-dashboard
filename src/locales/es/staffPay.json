@@ -30,8 +30,6 @@
     "title": "Quién es qué",
     "noLevel": "Sin nivel",
     "since": "Desde",
-    "effect_one": "Cambia el pago de {{count}} clase de este periodo. Las anteriores se quedan como estaban.",
-    "effect_other": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "empty": "No hay personas activas en tu equipo.",
     "needLevels": "Crea un nivel primero para poder asignarlo."
   },
@@ -68,8 +66,6 @@
   "publish": {
     "title": "Guardar tabla de pagos",
     "effectiveFrom": "¿Desde cuándo vale esta tabla?",
-    "effect_one": "Cambia el pago de {{count}} clase de este periodo. Las anteriores se quedan como estaban.",
-    "effect_other": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "confirm": "Guardar",
     "saved": "Tabla guardada",
     "effectLoading": "Calculando cuántas clases cambian…"
@@ -246,8 +242,6 @@
     "title": "Nivel de {{name}}",
     "summary": "{{name}} pasa a {{level}}.",
     "effectiveFrom": "¿Desde cuándo vale este nivel?",
-    "effect_one": "Cambia el pago de {{count}} clase de este periodo. Las anteriores se quedan como estaban.",
-    "effect_other": "Cambia el pago de {{count}} clases de este periodo. Las anteriores se quedan como estaban.",
     "effectLoading": "Calculando cuántas clases cambian…",
     "confirm": "Guardar nivel",
     "saved": "Nivel guardado"
@@ -436,5 +430,24 @@
       "REINCLUIDA": "Clase que no se pagaba al cerrar y ahora sí"
     },
     "exitNoPermission": "Se resuelve en la clase con «Ajustar monto», y para eso hace falta el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio."
+  },
+  "vigencia": {
+    "part_one": "{{count}} clase de {{periodo}}",
+    "part_other": "{{count}} clases de {{periodo}}",
+    "partMore": "{{count}} de {{periodo}}",
+    "list": "{{inicio}} y {{ultimo}}",
+    "effect": "Cambia el pago de {{lista}}.",
+    "effectWithOlder": "Cambia el pago de {{lista}}, y de clases de {{anteriores}} que siguen abiertos.",
+    "effectOnlyOlder": "Cambia el pago de clases de {{anteriores}} que siguen abiertos.",
+    "olderMonths_one": "{{count}} mes anterior",
+    "olderMonths_other": "{{count}} meses anteriores",
+    "olderPeriods_one": "{{count}} periodo anterior",
+    "olderPeriods_other": "{{count}} periodos anteriores",
+    "effectNone": "No cambia el pago de ninguna clase todavía.",
+    "effectTotal_one": "Cambia el pago de {{count}} clase.",
+    "effectTotal_other": "Cambia el pago de {{count}} clases.",
+    "closedUnchanged": "Los meses ya cerrados no cambian.",
+    "closedUnchangedPeriods": "Los periodos ya cerrados no cambian.",
+    "useDate": "Usar el {{fecha}}"
   }
 }

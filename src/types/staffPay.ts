@@ -36,6 +36,16 @@ export interface PagoDeClaseDto {
   /** Fase 2 (Bloque B): sin ancla, ya terminada y su fecha cae en un periodo CERRADO: se paga como diferencia. */
   llegoTarde?: boolean
 }
+/**
+ * Simulación de publicar una tabla o asignar un nivel (revisión final I-2): cuántas clases cambian y en qué periodo
+ * ABIERTO (del más viejo al más nuevo, también los de 0). Opcionales: un server previo sólo manda `clasesQueCambian`.
+ */
+export interface SimulacionVigenciaDto {
+  clasesQueCambian: number
+  porPeriodo?: Array<{ start: string; end: string; clases: number }>
+  /** Periodos abiertos más viejos que también cambian y no se contaron (tope del server). */
+  periodosSinContar?: number
+}
 export interface AjusteClaseInput { payCountOverride: number | null; payAmountOverride: number | null; payExcluded: boolean; reason: string }
 
 // ── Fase 2: cerrar y pagar ──

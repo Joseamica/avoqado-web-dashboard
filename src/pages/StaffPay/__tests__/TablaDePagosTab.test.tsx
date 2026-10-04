@@ -36,6 +36,8 @@ vi.mock('@/hooks/useStaffPay', () => ({
   useAssignLevel: () => ({ mutate: m.assignMutate, mutateAsync: m.assign, isPending: false }),
   useCreateTable: () => ({ mutate: vi.fn() }),
   usePublishTable: () => ({ mutateAsync: m.publish }),
+  // El mínimo de la vigencia sale de la lista de periodos en caché; aquí no hay.
+  useStaffPayPeriods: () => ({ data: undefined }),
 }))
 
 const celda = (count: number) => screen.getByLabelText(`grid.cellLabel:${JSON.stringify({ level: 'Head Coach', count })}`) as HTMLInputElement
@@ -74,7 +76,8 @@ describe('TablaDePagosTab', () => {
   it('elegir el nivel de una persona sólo SIMULA; se escribe hasta confirmar', async () => {
     render(<TablaDePagosTab />)
     fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'hc' } })
-    await screen.findByText(`assign.effect:${JSON.stringify({ count: 3 })}`)
+    // Server previo (sólo el total): se dice el total, sin «de este periodo» ni «las anteriores se quedan».
+    await screen.findByText(`vigencia.effectTotal:${JSON.stringify({ count: 3 })}`)
     expect(m.assign).toHaveBeenCalledTimes(1)
     expect(m.assign.mock.calls[0][0]).toMatchObject({ staffId: 's1', payLevelId: 'hc', simular: true })
     expect(m.assignMutate).not.toHaveBeenCalled()

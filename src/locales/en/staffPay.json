@@ -30,8 +30,6 @@
     "title": "Who is what",
     "noLevel": "No level",
     "since": "Since",
-    "effect_one": "Changes the pay of {{count}} class in this period. Earlier ones stay as they were.",
-    "effect_other": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "empty": "There are no active people on your team.",
     "needLevels": "Create a level first so you can assign it."
   },
@@ -68,8 +66,6 @@
   "publish": {
     "title": "Save pay table",
     "effectiveFrom": "From when does this table apply?",
-    "effect_one": "Changes the pay of {{count}} class in this period. Earlier ones stay as they were.",
-    "effect_other": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "confirm": "Save",
     "saved": "Table saved",
     "effectLoading": "Calculating how many classes change…"
@@ -246,8 +242,6 @@
     "title": "{{name}}’s level",
     "summary": "{{name}} moves to {{level}}.",
     "effectiveFrom": "From when does this level apply?",
-    "effect_one": "Changes the pay of {{count}} class in this period. Earlier ones stay as they were.",
-    "effect_other": "Changes the pay of {{count}} classes in this period. Earlier ones stay as they were.",
     "effectLoading": "Calculating how many classes change…",
     "confirm": "Save level",
     "saved": "Level saved"
@@ -436,5 +430,24 @@
       "REINCLUIDA": "Class that wasn't paid at closing and now counts"
     },
     "exitNoPermission": "It's resolved in the class with “Adjust amount”, which needs the «Close periods and record payments» permission. Ask the business owner."
+  },
+  "vigencia": {
+    "part_one": "{{count}} class in {{periodo}}",
+    "part_other": "{{count}} classes in {{periodo}}",
+    "partMore": "{{count}} in {{periodo}}",
+    "list": "{{inicio}} and {{ultimo}}",
+    "effect": "Changes the pay of {{lista}}.",
+    "effectWithOlder": "Changes the pay of {{lista}}, and of classes in {{anteriores}} that are still open.",
+    "effectOnlyOlder": "Changes the pay of classes in {{anteriores}} that are still open.",
+    "olderMonths_one": "{{count}} earlier month",
+    "olderMonths_other": "{{count}} earlier months",
+    "olderPeriods_one": "{{count}} earlier period",
+    "olderPeriods_other": "{{count}} earlier periods",
+    "effectNone": "Doesn't change the pay of any class yet.",
+    "effectTotal_one": "Changes the pay of {{count}} class.",
+    "effectTotal_other": "Changes the pay of {{count}} classes.",
+    "closedUnchanged": "Months already closed don't change.",
+    "closedUnchangedPeriods": "Periods already closed don't change.",
+    "useDate": "Use {{fecha}}"
   }
 }
