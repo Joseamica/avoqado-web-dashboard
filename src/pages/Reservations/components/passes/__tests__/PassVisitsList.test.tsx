@@ -451,6 +451,8 @@ describe('PassVisitsList', () => {
     })
     expect(await screen.findByText('visits.refreshError')).toBeInTheDocument()
     expect(screen.getByText('Se cayó la base')).toBeInTheDocument()
+    // H7: la frase larga NO va en el título del Alert (line-clamp-1 la cortaría con «…» en celular).
+    expect(screen.getByText('visits.refreshError').closest('[data-slot="alert-title"]')).toBeNull()
     expect(screen.getByText('Ana López')).toBeInTheDocument()
     expect(screen.getByText('visits.rejectTitle')).toBeInTheDocument()
     expect(screen.queryByText('visits.loadError')).not.toBeInTheDocument()

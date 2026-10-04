@@ -191,10 +191,11 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
       {query.isError && (
         <Alert className="border-input bg-muted/40">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{t('visits.refreshError')}</AlertTitle>
-          {apiErrorDescription(query.error) && (
-            <AlertDescription className="text-muted-foreground">{apiErrorDescription(query.error)}</AlertDescription>
-          )}
+          {/* En la descripción y no en el título: el título recorta a una línea (line-clamp-1) y en celular se cortaba. */}
+          <AlertDescription className="text-foreground">
+            <p>{t('visits.refreshError')}</p>
+            {apiErrorDescription(query.error) && <p className="text-muted-foreground">{apiErrorDescription(query.error)}</p>}
+          </AlertDescription>
           <Button
             variant="outline"
             size="sm"

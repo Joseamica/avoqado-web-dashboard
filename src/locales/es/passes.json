@@ -176,11 +176,13 @@
   },
   "summary": {
     "title": "Reporte del mes",
-    "description": "Para cuadrar el depósito de cada proveedor: las vencidas son visitas que no te van a pagar.",
+    "description": "Para cuadrar el depósito de cada proveedor: se pagan las confirmadas y las ya confirmadas en el portal. Las vencidas (cobros perdidos) y las rechazadas no se pagan.",
     "month": "Mes",
+    "monthPlaceholder": "AAAA-MM",
     "loadError": "No se pudo cargar el reporte del mes",
     "refreshError": "No pudimos actualizar el reporte; mostramos lo último que cargó.",
     "empty": "Todavía no hay un proveedor conectado. Conéctalo en Configuración › Integraciones › Pases.",
+    "lateCancellationsNote": "Canceladas tarde: reservas de socios canceladas fuera de plazo, contadas por el día en que se cancelaron.",
     "columns": {
       "provider": "Proveedor",
       "confirmed": "Confirmadas",
