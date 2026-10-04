@@ -196,6 +196,7 @@ export const ReservationsPage = lazyWithRetry(() => import('@/pages/Reservations
 export const ReservationDetail = lazyWithRetry(() => import('@/pages/Reservations/ReservationDetail'))
 export const CreateReservation = lazyWithRetry(() => import('@/pages/Reservations/CreateReservation'))
 export const ReservationCalendar = lazyWithRetry(() => import('@/pages/Reservations/ReservationCalendar'))
+export const PassVisits = lazyWithRetry(() => import('@/pages/Reservations/PassVisits'))
 export const ReservationWaitlist = lazyWithRetry(() => import('@/pages/Reservations/Waitlist'))
 export const ReservationSettingsPage = lazyWithRetry(() => import('@/pages/Reservations/ReservationSettings'))
 export const OnlineBookingPage = lazyWithRetry(() => import('@/pages/Reservations/OnlineBookingPage'))

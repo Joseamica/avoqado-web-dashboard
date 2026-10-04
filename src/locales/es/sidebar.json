@@ -244,7 +244,8 @@
     "settings": "Configuración",
     "settingsGroup": "Ajustes",
     "general": "General",
-    "communications": "Comunicaciones"
+    "communications": "Comunicaciones",
+    "passes": "Pases (TotalPass · Wellhub)"
   },
   "requiresKycVerification": "Requiere verificación KYC",
   "premiumPro": "Incluido en el Plan Pro",

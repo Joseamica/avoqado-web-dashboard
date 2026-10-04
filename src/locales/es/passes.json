@@ -119,5 +119,55 @@
       "applied": "Aplicada",
       "empty": "Todavía no hay datos suficientes (se necesitan 3 semanas de clases)."
     }
+  },
+  "visits": {
+    "title": "Check-ins de pases",
+    "subtitle": "Socios de TotalPass y Wellhub que llegaron a tu negocio. Si confirmas la asistencia a mano, hazlo antes de que venza el plazo o el proveedor no paga esa visita.",
+    "tabs": {
+      "pending": "Pendientes",
+      "confirmed": "Confirmados",
+      "portal": "Ya confirmados en el portal",
+      "expired": "Vencidos",
+      "rejected": "Rechazados"
+    },
+    "filters": { "provider": "Proveedor", "date": "Fecha", "dateFrom": "Desde", "dateTo": "Hasta", "apply": "Aplicar", "clear": "Limpiar" },
+    "columns": { "member": "Socio", "class": "Clase", "arrived": "Llegó", "status": "Plazo / estado" },
+    "unknownMember": "Socio sin nombre",
+    "noClass": "Sin clase (acceso libre)",
+    "deadlineAt": "vence a las {{time}}",
+    "expiredLabel": "Plazo vencido",
+    "updating": "Actualizando…",
+    "loadMore": "Cargar más",
+    "confirm": "Confirmar",
+    "reject": "Rechazar",
+    "connectionInactive": "La conexión con {{provider}} no está activa; revisa Configuración › Integraciones › Pases.",
+    "confirmed": "Check-in confirmado",
+    "confirmRequested": "Confirmación solicitada. {{provider}} la confirmará en unos segundos.",
+    "confirmExpired": "El plazo ya venció: {{provider}} no pagará esta visita.",
+    "unexpectedStatus": "El check-in ya estaba «{{status}}»; no se cambió.",
+    "rejected": "Check-in rechazado",
+    "rejectTitle": "¿Rechazar este check-in?",
+    "rejectBody": "El socio no entrará con su pase y el proveedor no pagará esta visita. No se puede deshacer.",
+    "rejectConfirm": "Sí, rechazar",
+    "confirmedBy": { "AUTO": "Confirmada automáticamente", "VENUE": "Confirmada por el negocio" },
+    "status": {
+      "PENDING": "Pendiente",
+      "CONFIRMED": "Confirmado",
+      "ALREADY_CONFIRMED": "Confirmado en el portal",
+      "EXPIRED": "Vencido",
+      "REJECTED": "Rechazado"
+    },
+    "empty": {
+      "pending": "No hay check-ins pendientes. Cuando un socio llegue, aparece aquí.",
+      "confirmed": "Todavía no hay check-ins confirmados.",
+      "portal": "Ninguno se ha confirmado desde el portal del proveedor.",
+      "expired": "Ningún check-in ha vencido.",
+      "rejected": "No has rechazado ningún check-in."
+    },
+    "noMatches": "Ningún check-in coincide con estos filtros.",
+    "loadError": "No se pudieron cargar los check-ins",
+    "total": "{{count}} check-in",
+    "total_other": "{{count}} check-ins",
+    "lastError": "Último error: {{error}}"
   }
 }

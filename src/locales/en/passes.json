@@ -119,5 +119,55 @@
       "applied": "Applied",
       "empty": "Not enough data yet (3 weeks of classes are needed)."
     }
+  },
+  "visits": {
+    "title": "Pass check-ins",
+    "subtitle": "TotalPass and Wellhub members who arrived at your business. If you confirm attendance by hand, do it before the deadline or the provider won't pay for that visit.",
+    "tabs": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "portal": "Confirmed in the portal",
+      "expired": "Expired",
+      "rejected": "Rejected"
+    },
+    "filters": { "provider": "Provider", "date": "Date", "dateFrom": "From", "dateTo": "To", "apply": "Apply", "clear": "Clear" },
+    "columns": { "member": "Member", "class": "Class", "arrived": "Arrived", "status": "Deadline / status" },
+    "unknownMember": "Unnamed member",
+    "noClass": "No class (open access)",
+    "deadlineAt": "expires at {{time}}",
+    "expiredLabel": "Deadline expired",
+    "updating": "Updating…",
+    "loadMore": "Load more",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "connectionInactive": "The {{provider}} connection isn't active; check Settings › Integrations › Passes.",
+    "confirmed": "Check-in confirmed",
+    "confirmRequested": "Confirmation requested. {{provider}} will confirm it in a few seconds.",
+    "confirmExpired": "The deadline has passed: {{provider}} won't pay for this visit.",
+    "unexpectedStatus": "The check-in was already “{{status}}”; nothing changed.",
+    "rejected": "Check-in rejected",
+    "rejectTitle": "Reject this check-in?",
+    "rejectBody": "The member won't get in with their pass and the provider won't pay for this visit. This can't be undone.",
+    "rejectConfirm": "Yes, reject",
+    "confirmedBy": { "AUTO": "Confirmed automatically", "VENUE": "Confirmed by the business" },
+    "status": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ALREADY_CONFIRMED": "Confirmed in the portal",
+      "EXPIRED": "Expired",
+      "REJECTED": "Rejected"
+    },
+    "empty": {
+      "pending": "No pending check-ins. When a member arrives, it shows up here.",
+      "confirmed": "No confirmed check-ins yet.",
+      "portal": "None has been confirmed from the provider's portal.",
+      "expired": "No check-in has expired.",
+      "rejected": "You haven't rejected any check-in."
+    },
+    "noMatches": "No check-ins match these filters.",
+    "loadError": "Couldn't load check-ins",
+    "total": "{{count}} check-in",
+    "total_other": "{{count}} check-ins",
+    "lastError": "Last error: {{error}}"
   }
 }

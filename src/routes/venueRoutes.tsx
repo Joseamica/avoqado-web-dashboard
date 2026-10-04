@@ -96,6 +96,7 @@ import {
   ReservationsPage,
   ReservationDetail,
   ReservationCalendar,
+  PassVisits,
   ReservationWaitlist,
   ReservationSettingsPage,
   OnlineBookingPage,
@@ -590,6 +591,8 @@ export function createVenueRoutes(): RouteObject[] {
         { index: true, element: <ReservationsPage /> },
         { path: 'calendar', element: <ReservationCalendar /> },
         { path: 'waitlist', element: <ReservationWaitlist /> },
+        // Check-ins de pases (TotalPass · Wellhub). Plan Pro: el gate vive DENTRO de la página.
+        { path: 'passes', element: <PassVisits /> },
         {
           path: 'settings',
           element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
