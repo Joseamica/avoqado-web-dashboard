@@ -89,11 +89,11 @@
     },
     "weekly": {
       "title": "Exceptions by day and time",
-      "empty": "No exceptions: the general cap applies to every class.",
+      "empty": "No exceptions by day and time.",
       "add": "+ Add",
       "deleteRule": "Delete {{rule}}",
       "deleteTitle": "Delete this exception?",
-      "deleteBody": "“{{rule}}” will be deleted. Those classes go back to the general cap.",
+      "deleteBody": "“{{rule}}” will be removed; the other rules still apply.",
       "deleteConfirm": "Yes, delete",
       "deleted": "Exception deleted",
       "saved": "Exception saved",

@@ -89,11 +89,11 @@
     },
     "weekly": {
       "title": "Excepciones por día y hora",
-      "empty": "Sin excepciones: en todas las clases aplica el tope general.",
+      "empty": "No hay excepciones por día y hora.",
       "add": "+ Agregar",
       "deleteRule": "Borrar {{rule}}",
       "deleteTitle": "¿Borrar esta excepción?",
-      "deleteBody": "Se borra «{{rule}}». Esas clases volverán al tope general.",
+      "deleteBody": "Se elimina «{{rule}}»; las demás reglas siguen aplicándose.",
       "deleteConfirm": "Sí, borrar",
       "deleted": "Excepción borrada",
       "saved": "Excepción guardada",
