@@ -1,7 +1,8 @@
 /**
  * Conector de pases — consultas del dashboard con candado de plan.
  *
- * `enabled = !!venueId && isResolved && hasFeature`. `isResolved` (de useVenueTier) es más estricto que `!isLoading`:
+ * `enabled = !!venueId && isResolved && hasFeature && can('reservations:read')` (el server pide las dos cosas: permiso y
+ * plan). `isResolved` (de useVenueTier) es más estricto que `!isLoading`:
  * useVenueTier hace fail-open —`hasFeatureAccess()` devuelve true— mientras la consulta del plan está en vuelo Y si falló;
  * `isResolved` sólo es true cuando el plan se comprobó de verdad (o aplica un bypass: superadmin, demo, white-label).
  * Sin esto un venue SIN el plan pegaría a la API durante el cold-load o tras un error y recibiría 403 (el server gatea
@@ -53,6 +54,7 @@ export function usePassesAccess(venueId: string | undefined): {
   enabled: boolean
 } {
   const { hasFeatureAccess, isLoading: tierLoading, isResolved } = useVenueTier()
+  const { can } = useAccess()
   const hasFeature = hasFeatureAccess(PASSES_FEATURE)
   return {
     hasFeature,
@@ -60,7 +62,8 @@ export function usePassesAccess(venueId: string | undefined): {
     resolved: isResolved,
     // Sin negocio todavía no hay plan que comprobar: eso no es «la consulta falló» (no se pide recargar).
     unresolved: !!venueId && !tierLoading && !isResolved,
-    enabled: !!venueId && isResolved && hasFeature,
+    // Permiso también aquí (R2b-13): un consumidor fuera de una ruta protegida no lanza un 403 cada 30 s.
+    enabled: !!venueId && isResolved && hasFeature && can('reservations:read'),
   }
 }
 
@@ -95,8 +98,10 @@ export function usePassVisits(venueId: string | undefined, filters: PassVisitsLi
     staleTime: 15_000,
     retry: 1,
     refetchOnWindowFocus: false,
-    // `false` (no un número) sin plan: un reloj encendido sin permiso pegaría a la API cada 30 s.
-    refetchInterval: enabled ? PASSES_REFETCH_MS : false,
+    // `false` (no un número) sin plan ni permiso: un reloj encendido pegaría a la API cada 30 s. Y sólo con UNA página
+    // cargada (R2b-13): refrescar una lista infinita vuelve a pedir TODAS sus páginas; tras «Cargar más» la lista se pone al
+    // día al invalidar (confirmar/rechazar) o al cambiar de filtro.
+    refetchInterval: query => (enabled && (query.state.data?.pages.length ?? 0) <= 1 ? PASSES_REFETCH_MS : false),
     refetchIntervalInBackground: false,
   })
 }
@@ -117,7 +122,8 @@ export function usePassVisitsSummary(venueId: string | undefined, month: string)
 /**
  * Invalida SÓLO lo que lee lo que cambió, y devuelve la promesa para que el `onSuccess` de cada mutación la DEVUELVA:
  * así `isPending` dura hasta que los datos nuevos llegaron y los controles no se rehabilitan sobre valores viejos (P2-8).
- *   'connection' — conectar, modo, ligar clases, desconectar ⇒ overview.
+ *   'connection' — conectar, modo, ligar clases, desconectar ⇒ overview + `passes` de las sesiones (depende de la conexión
+ *                  activa y de las ligas): calendario (['class-sessions', venueId]) y detalle (['class-session', venueId]).
  *   'rules'      — tope general, excepciones, sugerencia aplicada, cupo por sesión ⇒ capacity + «Pases: X de Y» del
  *                  calendario (['class-sessions', venueId]) y del detalle de sesión (['class-session', venueId]).
  *   'visit'      — confirmar/rechazar: además de visits y summary, confirmar hace check-in de la reserva (Plan 2a,
@@ -133,7 +139,7 @@ export function useInvalidatePasses(): (venueId: string, group: PassInvalidation
     (venueId: string, group: PassInvalidationGroup) => {
       const keys: ReadonlyArray<readonly unknown[]> =
         group === 'connection'
-          ? [passesKeys.overview(venueId)]
+          ? [passesKeys.overview(venueId), ['class-sessions', venueId], ['class-session', venueId]]
           : group === 'rules'
             ? [passesKeys.capacity(venueId), ['class-sessions', venueId], ['class-session', venueId]]
             : [

@@ -46,7 +46,7 @@ type Opts = {
   staleTime?: number
   retry?: number
   refetchOnWindowFocus?: boolean
-  refetchInterval?: number | false
+  refetchInterval?: number | false | ((query: unknown) => number | false | undefined)
   refetchIntervalInBackground?: boolean
 }
 let client: QueryClient
@@ -55,6 +55,9 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 const allOpts = (): Opts[] => [...mockUseQuery.mock.calls, ...mockUseInfiniteQuery.mock.calls].map(c => c[0] as Opts)
 const optsFor = (kind: string): Opts => allOpts().find(o => o.queryKey[2] === kind)!
+/** El intervalo que TanStack aplicaría con `pages` páginas cargadas (la lista infinita lo decide con una función). */
+const intervalWith = (o: Opts, pages: number) =>
+  typeof o.refetchInterval === 'function' ? o.refetchInterval({ state: { data: { pages: Array(pages).fill({}) } } }) : o.refetchInterval
 
 function renderAll() {
   renderHook(
@@ -92,6 +95,17 @@ describe('use-passes: candado de plan', () => {
     access.allowed = []
     renderAll()
     expect(optsFor('overview').enabled).toBe(false)
+  })
+  // R2b-13 (m3): el server pide reservations:read también en capacity, visits y summary (gate(READ)); sin el permiso no
+  // corre ninguna ni su reloj de 30 s, aunque el consumidor viva fuera de una ruta protegida
+  it('sin reservations:read ⇒ capacity, visits y summary no corren ni se refrescan', () => {
+    access.allowed = []
+    renderAll()
+    for (const kind of ['capacity', 'visits', 'summary']) expect(optsFor(kind).enabled).toBe(false)
+    expect(intervalWith(optsFor('visits'), 1)).toBe(false)
+    expect(optsFor('summary').refetchInterval).toBe(false)
+    const { result } = renderHook(() => usePassesAccess('v1'), { wrapper })
+    expect(result.current.enabled).toBe(false)
   })
   // nuevo — Review Focus 2: useVenueTier hace fail-open mientras carga (hasFeatureAccess() devuelve true)
   it('con el plan todavía cargando ⇒ enabled=false aunque hasFeatureAccess diga true', () => {
@@ -142,16 +156,25 @@ describe('use-passes: candado de plan', () => {
   it('visitas y resumen se refrescan cada 30 s sólo en primer plano; overview y capacity no', () => {
     renderAll()
     for (const kind of ['visits', 'summary']) {
-      expect(optsFor(kind).refetchInterval).toBe(30_000)
+      expect(intervalWith(optsFor(kind), 1)).toBe(30_000)
       expect(optsFor(kind).refetchIntervalInBackground).toBe(false)
     }
     for (const kind of ['overview', 'capacity']) expect(optsFor(kind).refetchInterval).toBeUndefined()
+  })
+  // R2b-13 (m1): refrescar una lista infinita vuelve a pedir TODAS sus páginas; con más de una cargada el reloj se apaga
+  it('el reloj de visitas sólo corre con una página cargada (o ninguna todavía)', () => {
+    renderAll()
+    const o = optsFor('visits')
+    expect(typeof o.refetchInterval).toBe('function')
+    expect(intervalWith(o, 0)).toBe(30_000)
+    expect(intervalWith(o, 1)).toBe(30_000)
+    expect(intervalWith(o, 2)).toBe(false)
   })
   // nuevo — P1-4: sin plan no hay un reloj pegándole a la API cada 30 s
   it('sin el plan, el refresco periódico se apaga (refetchInterval=false)', () => {
     tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
     renderAll()
-    expect(optsFor('visits').refetchInterval).toBe(false)
+    expect(intervalWith(optsFor('visits'), 1)).toBe(false)
     expect(optsFor('summary').refetchInterval).toBe(false)
   })
   // nuevo
@@ -164,12 +187,13 @@ describe('use-passes: candado de plan', () => {
 
 describe('useInvalidatePasses: sólo lo que cambió', () => {
   const keysOf = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map(c => (c[0] as { queryKey: unknown }).queryKey)
-  // nuevo — conectar, modo, clases y desconectar sólo cambian el overview
-  it("'connection' invalida sólo el overview", async () => {
+  // R2b-13 (m4): conectar, ligar clases y desconectar cambian también `passes` de las sesiones (depende de la conexión
+  // activa y de las ligas): calendario y detalle de sesión
+  it("'connection' invalida el overview, class-sessions y class-session", async () => {
     const spy = vi.spyOn(client, 'invalidateQueries')
     const { result } = renderHook(() => useInvalidatePasses(), { wrapper })
     await result.current('v1', 'connection')
-    expect(keysOf(spy)).toEqual([passesKeys.overview('v1')])
+    expect(keysOf(spy)).toEqual([passesKeys.overview('v1'), ['class-sessions', 'v1'], ['class-session', 'v1']])
   })
   // nuevo — topes y cupo por sesión: la capacidad y lo que pinta «Pases: X de Y» (calendario y detalle de sesión)
   it("'rules' invalida capacity, class-sessions y class-session", async () => {
