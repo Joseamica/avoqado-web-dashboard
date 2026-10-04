@@ -435,7 +435,7 @@
         },
         "passes": {
           "title": "Passes (TotalPass · Wellhub)",
-          "description": "TotalPass and Wellhub members book and check in to your classes; you decide how many spots they get."
+          "description": "TotalPass members book and check in to your classes (Wellhub, coming soon); you decide how many spots they get."
         },
         "partner": "Partner",
         "haycash": {

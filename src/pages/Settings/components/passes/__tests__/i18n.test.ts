@@ -60,4 +60,16 @@ describe('i18n del conector de pases', () => {
     }
     expect(crudo('es')).not.toMatch(/"(Save|Cancel|Loading|Connect)"/)
   })
+
+  // Revisión final, Minor 3 (mismo criterio que R2b-16): la tarjeta del catálogo de Integraciones no promete que los socios de
+  // Wellhub ya reservan; Wellhub llega en el Plan 4.
+  it.each([
+    ['es', '(Wellhub, muy pronto)'],
+    ['en', '(Wellhub, coming soon)'],
+  ])('🔴 %s: el catálogo de Integraciones dice que Wellhub viene pronto', (lng, pronto) => {
+    const venue = JSON.parse(fs.readFileSync(path.join(LOCALES, lng, 'venue.json'), 'utf-8'))
+    const descripcion: string = venue.edit.integrations.catalog.passes.description
+    expect(descripcion).toContain(pronto)
+    expect(descripcion.split('Wellhub')).toHaveLength(2)
+  })
 })
