@@ -11,6 +11,19 @@ vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId:
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City' }) }))
 vi.mock('../components/PagoDeClaseCard', () => ({ PagoDeClaseCard: () => <div>tarjeta de pago</div> }))
+// El TimePicker real llama onChange al elegir de su lista AUNQUE sea la misma hora (time-picker.tsx: handleSelect no
+// compara); este doble hace lo mismo con cada cambio, para probar que elegir la misma hora no mueve nada.
+vi.mock('@/components/ui/time-picker', () => ({
+  TimePicker: ({ id, value, onChange, disabled }: { id?: string; value?: string; onChange?: (t: string) => void; disabled?: boolean }) => (
+    <>
+      <input id={id} value={value ?? ''} disabled={disabled} onChange={e => onChange?.(e.target.value)} />
+      {/* Como elegir de la lista la hora que ya está: onChange con el MISMO valor. */}
+      <button type="button" onClick={() => onChange?.(value ?? '')}>
+        {`elegir otra vez ${id}`}
+      </button>
+    </>
+  ),
+}))
 vi.mock('@/services/team.service', () => ({ teamService: { getTeamMembers: () => m.team() } }))
 vi.mock('@/services/classSession.service', () => ({
   default: {
@@ -136,6 +149,31 @@ describe('EditClassSessionDialog', () => {
     await waitFor(() => expect(m.update).toHaveBeenCalled())
     // 09:00 en CDMX = 15:00 UTC; producto de 60 min ⇒ 16:00 UTC.
     expect(m.update.mock.calls[0][2]).toMatchObject({ startsAt: '2026-09-28T15:00:00.000Z', endsAt: '2026-09-28T16:00:00.000Z' })
+  })
+
+  it('elegir la MISMA hora de inicio no recalcula el fin ni manda el horario', async () => {
+    m.session.mockResolvedValue(clase({ startsAt: '2026-09-28T14:00:00.000Z', endsAt: '2026-09-28T14:50:00.000Z' }))
+    pintar()
+    const inicio = (await screen.findByLabelText(/form\.fields\.startTime/)) as HTMLInputElement
+    await waitFor(() => expect(inicio).toHaveValue('08:00'))
+    fireEvent.click(screen.getByRole('button', { name: 'elegir otra vez edit-startTime' }))
+    escribirNota()
+    fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
+    await waitFor(() => expect(m.update).toHaveBeenCalled())
+    expect(m.update.mock.calls[0][2]).not.toHaveProperty('startsAt')
+    expect(m.update.mock.calls[0][2]).not.toHaveProperty('endsAt')
+  })
+
+  it('la nota sólo viaja si cambió: cambiar sólo el horario no reescribe la nota (otra persona pudo editarla)', async () => {
+    m.session.mockResolvedValue(clase({ internalNotes: 'Nota de otra persona' }))
+    pintar()
+    const inicio = (await screen.findByLabelText(/form\.fields\.startTime/)) as HTMLInputElement
+    await waitFor(() => expect(inicio).toHaveValue('08:00'))
+    fireEvent.change(inicio, { target: { value: '09:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
+    await waitFor(() => expect(m.update).toHaveBeenCalled())
+    expect(m.update.mock.calls[0][2]).toHaveProperty('startsAt')
+    expect(m.update.mock.calls[0][2]).not.toHaveProperty('internalNotes')
   })
 
   it('si la clase se vuelve a pedir con el diálogo abierto, lo que se estaba editando NO se pierde', async () => {

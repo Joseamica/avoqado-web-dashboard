@@ -74,6 +74,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     watch,
     setValue,
     reset,
+    getValues,
     formState: { errors, isDirty, dirtyFields },
   } = useForm<EditFormData>({
     resolver: zodResolver(editSchema),
@@ -131,7 +132,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ data, cambios }: { data: EditFormData; cambios: { staff: boolean; horario: boolean; cupo: boolean } }) => {
+    mutationFn: ({ data, cambios }: { data: EditFormData; cambios: { staff: boolean; horario: boolean; cupo: boolean; nota: boolean } }) => {
       const tz = venueTimezone
       const startsAtDt = DateTime.fromISO(`${data.date}T${data.startTime}:00`, { zone: tz })
       const endsAtDt = DateTime.fromISO(`${data.date}T${data.endTime}:00`, { zone: tz })
@@ -148,7 +149,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
         // Sólo si la persona lo cambió: ningún «Guardar» puede quitarle la coach a la clase por una carrera de carga (el
         // server deja la coach como está cuando el campo no viene).
         ...(cambios.staff ? { assignedStaffId: data.assignedStaffId || null } : {}),
-        internalNotes: data.internalNotes || null,
+        // La nota también: si un refetch se saltó el reset por otro campo sucio, mandarla pisaría la de otra persona.
+        ...(cambios.nota ? { internalNotes: data.internalNotes || null } : {}),
       })
     },
     onSuccess: () => {
@@ -205,6 +207,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
         staff: !!dirtyFields.assignedStaffId,
         horario: !!(dirtyFields.date || dirtyFields.startTime || dirtyFields.endTime),
         cupo: !!dirtyFields.capacity,
+        nota: !!dirtyFields.internalNotes,
       },
     }),
   )
@@ -224,6 +227,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
     return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null
   }
   const cambiarInicio = (time: string) => {
+    // El TimePicker avisa aunque se elija la MISMA hora: entonces no hay nada que recalcular ni que mandar.
+    if (time === getValues('startTime')) return
     setValue('startTime', time, { shouldDirty: true, shouldValidate: true })
     const inicio = minutos(time)
     if (!productDuration || inicio === null) return
