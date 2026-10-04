@@ -257,6 +257,48 @@ describe('ProductLinksEditor', () => {
     })
   })
 
+  // Autorización (Codex, P2-10): sin planes en TotalPass (o con el plan de la liga desaparecido) las ligas que hay se tienen
+  // que poder quitar, o conservar tal cual. Ligas nuevas y cambios de plan siguen sin poder hacerse.
+  describe('planes que desaparecieron', () => {
+    it('sin planes y con una liga ⇒ el aviso, la tabla con esa liga y Guardar para quitarla', async () => {
+      const user = userEvent.setup()
+      renderEditor({ plans: [] })
+      expect(screen.getByText('products.noPlans')).toBeInTheDocument()
+      expect(screen.queryByRole('combobox', { name: 'Pilates' })).not.toBeInTheDocument() // sin liga: nada que elegir
+      const yoga = screen.getByRole('combobox', { name: 'Yoga' })
+      expect(yoga).toHaveTextContent('products.missingPlan')
+      await user.click(yoga)
+      expect((await screen.findAllByRole('option')).map(o => o.textContent)).toEqual(['products.none', 'products.missingPlan'])
+      await user.click(screen.getByRole('option', { name: 'products.none' }))
+      await user.click(screen.getByRole('button', { name: 'products.save' }))
+      await waitFor(() => expect(svc.setPassProductLinks).toHaveBeenCalledWith('v1', 'TOTALPASS', []))
+    })
+
+    it('una liga archivada cuyo plan desapareció se conserva tal cual al guardar otro cambio, y se puede volver a ella', async () => {
+      const user = userEvent.setup()
+      const GONE = { productId: 'p8', productName: 'Barre', externalPlanId: '999', externalPlanName: null, productArchived: true }
+      renderEditor({ productLinks: [...LINKS, GONE] })
+      const barre = screen.getByRole('combobox', { name: 'Barre' })
+      expect(barre).toHaveTextContent('products.missingPlan')
+      // quitarla y arrepentirse: la opción de conservarla sigue ahí
+      await user.click(barre)
+      expect((await screen.findAllByRole('option')).map(o => o.textContent)).toEqual(['products.none', 'products.missingPlan'])
+      await user.click(screen.getByRole('option', { name: 'products.none' }))
+      await user.click(screen.getByRole('combobox', { name: 'Barre' }))
+      await user.click(await screen.findByRole('option', { name: 'products.missingPlan' }))
+      await user.click(screen.getByRole('combobox', { name: 'Pilates' }))
+      await user.click(await screen.findByRole('option', { name: 'Silver' }))
+      await user.click(screen.getByRole('button', { name: 'products.save' }))
+      await waitFor(() =>
+        expect(svc.setPassProductLinks).toHaveBeenCalledWith('v1', 'TOTALPASS', [
+          { productId: 'p1', externalPlanId: '305' },
+          { productId: 'p2', externalPlanId: '306' },
+          { productId: 'p8', externalPlanId: '999' },
+        ]),
+      )
+    })
+  })
+
   // P2-10: la lista del server viene acotada (200) y NO se pagina (R32): se dice con un aviso VISIBLE, no un contador escondido.
   it('si hay más clases que las mostradas, lo dice con un aviso visible', () => {
     renderEditor({ classProducts: { items: PRODUCTS.items, total: 240 } })

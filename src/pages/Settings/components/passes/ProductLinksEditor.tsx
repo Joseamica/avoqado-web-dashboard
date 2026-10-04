@@ -80,6 +80,15 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
   })
   const disabled = !canManage || save.isPending
   const knownPlans = useMemo(() => new Set(plans.map(p => p.id)), [plans])
+  // Sin planes en TotalPass no hay nada nuevo que ligar, pero las ligas que hay se tienen que poder quitar (o conservar): se
+  // ven sólo ésas, con el aviso (autorización P2-10).
+  const noPlans = plans.length === 0
+  const visibleRows = noPlans ? rows.filter(r => serverDraft[r.id]) : rows
+  const noPlansAlert = (
+    <Alert className="border-input bg-muted/40">
+      <AlertDescription className="text-sm text-muted-foreground">{t('products.noPlans')}</AlertDescription>
+    </Alert>
+  )
 
   return (
     <div className="space-y-3" data-tour="passes-product-links">
@@ -88,11 +97,8 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
         <p className="text-xs text-muted-foreground">{t('products.description')}</p>
       </div>
 
-      {plans.length === 0 ? (
-        <Alert className="border-input bg-muted/40">
-          <AlertDescription className="text-sm text-muted-foreground">{t('products.noPlans')}</AlertDescription>
-        </Alert>
-      ) : rows.length === 0 ? (
+      {noPlans && noPlansAlert}
+      {noPlans && productLinks.length === 0 ? null : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('products.noClasses')}</p>
       ) : (
         <>
@@ -105,13 +111,14 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map(row => {
+                {visibleRows.map(row => {
                   const value = draft[row.id] || NONE
-                  // H2: ligada a un plan que TotalPass ya no tiene: se dice, no se deja el selector en blanco.
-                  const missingPlan = value !== NONE && !knownPlans.has(value)
+                  const saved = serverDraft[row.id]
+                  // H2: ligada a un plan que TotalPass ya no tiene: se dice, no se deja el selector en blanco, y se puede volver a
+                  // dejarla tal cual después de elegir «Sin ligar» (también archivada o sin ningún plan, autorización P2-10).
+                  const keepMissing = !!saved && !knownPlans.has(saved)
                   const isArchived = archived.has(row.id)
-                  const options = isArchived ? plans.filter(p => p.id === serverDraft[row.id]) : plans
-                  const keepMissing = isArchived ? !knownPlans.has(serverDraft[row.id]) : missingPlan
+                  const options = isArchived ? plans.filter(p => p.id === saved) : plans
                   return (
                     <TableRow key={row.id} className="border-input">
                       <TableCell>
@@ -136,9 +143,7 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value={NONE}>{t('products.none')}</SelectItem>
-                            {keepMissing && (
-                              <SelectItem value={isArchived ? serverDraft[row.id] : value}>{t('products.missingPlan')}</SelectItem>
-                            )}
+                            {keepMissing && <SelectItem value={saved}>{t('products.missingPlan')}</SelectItem>}
                             {options.map(plan => (
                               <SelectItem key={plan.id} value={plan.id}>
                                 {plan.name ?? plan.id}
