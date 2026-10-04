@@ -9,7 +9,9 @@ vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId:
 vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({ allVenues: [{ id: 'v1', name: 'Prado Norte' }, { id: 'v2', name: 'BSF' }] }),
 }))
-vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d, formatDateTime: (d: string) => d }) }))
+vi.mock('@/utils/datetime', () => ({
+  useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d, formatDateTime: (d: string) => d, venueTimezone: 'America/Mexico_City' }),
+}))
 vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: () => null }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('../components/CerrarPeriodoModal', () => ({ CerrarPeriodoModal: ({ fecha }: { fecha: string }) => <div>cerrar-modal {fecha}</div> }))
@@ -91,14 +93,32 @@ describe('PeriodoAbiertoTab', () => {
     expect(refetch).toHaveBeenCalled()
   })
 
-  it('con staffpay:close y sin vista parcial se ve «Cerrar periodo» y abre el cierre de ESE periodo', () => {
-    m.report.mockReturnValue({ data: { ...base, parcial: false }, isLoading: false, isError: false, refetch: vi.fn() })
+  it('con staffpay:close, sin vista parcial y el periodo ya terminado, «Cerrar periodo» abre el cierre de ESE periodo', () => {
+    const terminado = { start: '2026-09-01', end: '2026-09-30', periodicidad: 'MONTHLY' }
+    m.report.mockReturnValue({ data: { ...base, parcial: false, periodo: terminado }, isLoading: false, isError: false, refetch: vi.fn() })
     render(<PeriodoAbiertoTab activa fecha="2026-10-01" etiqueta="octubre 2026" />)
     expect(m.report).toHaveBeenLastCalledWith({ offset: 0, limit: 50, sede: undefined, fecha: '2026-10-01' }, true)
     fireEvent.click(screen.getByRole('button', { name: 'period.close' }))
     expect(screen.getByText('cerrar-modal 2026-10-01')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /manualAdjust\.add/ }))
     expect(screen.getByText('ajuste-modal 2026-10-01')).toBeInTheDocument()
+  })
+
+  it('si el periodo todavía no termina, «Cerrar» queda apagado y dice desde cuándo se podrá', () => {
+    const enCurso = { start: '2099-12-01', end: '2099-12-31', periodicidad: 'MONTHLY' }
+    m.report.mockReturnValue({ data: { ...base, parcial: false, periodo: enCurso }, isLoading: false, isError: false, refetch: vi.fn() })
+    render(<PeriodoAbiertoTab activa fecha="2099-12-01" etiqueta="diciembre 2099" />)
+    expect(screen.getByRole('button', { name: 'period.close' })).toBeDisabled()
+    expect(screen.getByText(/period\.closeFrom/)).toHaveTextContent('2100-01-01')
+  })
+
+  it('si otro usuario ya lo cerró (el reporte llega CERRADO), avisa y pide refrescar la lista de periodos', () => {
+    const onYaCerrado = vi.fn()
+    m.report.mockReturnValue({ data: { ...base, periodo: { ...base.periodo, id: 'p10', estado: 'CLOSED' } }, isLoading: false, isError: false, refetch: vi.fn() })
+    render(<PeriodoAbiertoTab activa fecha="2026-10-01" onYaCerrado={onYaCerrado} />)
+    expect(onYaCerrado).toHaveBeenCalled()
+    expect(screen.getByText('period.justClosed')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'period.close' })).toBeNull()
   })
 
   it('en vista parcial no se pinta «Cerrar periodo» y explica por qué', () => {

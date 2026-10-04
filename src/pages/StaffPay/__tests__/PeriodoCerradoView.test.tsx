@@ -38,13 +38,40 @@ describe('PeriodoCerradoView', () => {
     expect(screen.getByText(/closed\.paidOn/)).toBeInTheDocument()
     expect(screen.getByText('closed.pending')).toBeInTheDocument()
   })
-  it('marcar pagado pide confirmación y manda el staffId', async () => {
+  it('marcar pagado pide confirmación CON el monto y manda el staffId', async () => {
     m.can.mockReturnValue(true)
     m.paid.mockResolvedValue({ marcados: 1 })
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
-    fireEvent.click(screen.getByRole('button', { name: 'closed.markPaid' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'closed.markPaidConfirm' }))
+    // El botón del renglón dice a quién (aria-label con el nombre).
+    const boton = screen.getByRole('button', { name: /closed\.markPaidFor/ })
+    expect(boton).toHaveAccessibleName(/Ana/)
+    fireEvent.click(boton)
+    expect(await screen.findByText(/closed\.markPaidTitle/)).toHaveTextContent('$570.00')
+    const confirmar = screen.getByRole('button', { name: /closed\.markPaidConfirm/ })
+    expect(confirmar).toHaveTextContent('$570.00')
+    fireEvent.click(confirmar)
     await waitFor(() => expect(m.paid).toHaveBeenCalledWith({ staffId: 'a' }))
+    expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringMatching(/closed\.markedPaid/) }))
+  })
+  it('si ya estaban marcados (marcados: 0), lo dice en vez de «0 recibos marcados»', async () => {
+    m.can.mockReturnValue(true)
+    m.paid.mockResolvedValue({ marcados: 0 })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /closed\.markPaidConfirm/ }))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'closed.alreadyPaid' })))
+  })
+  it('el «Desglose» de cada renglón dice de quién es', () => {
+    m.can.mockReturnValue(true)
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.getAllByRole('button', { name: /period\.detailTitle/ })[0]).toHaveAccessibleName(/Ana/)
+  })
+  it('en vista parcial no hay «Marcar todos» y una línea dice por qué', () => {
+    m.can.mockReturnValue(true)
+    m.reporte.mockReturnValue({ ...REPORTE, parcial: true })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.queryByRole('button', { name: /closed\.markAllPaid/ })).toBeNull()
+    expect(screen.getByText('closed.markAllPartial')).toBeInTheDocument()
   })
   it('marcar todos dice en el botón cuántos recibos se marcan y no manda staffId', async () => {
     m.can.mockReturnValue(true)
@@ -59,7 +86,7 @@ describe('PeriodoCerradoView', () => {
   it('sin staffpay:close no hay acciones de pago, y lo explica', () => {
     m.can.mockImplementation((p: string) => p !== 'staffpay:close')
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
-    expect(screen.queryByRole('button', { name: 'closed.markPaid' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /closed\.markPaidFor/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /closed\.markAllPaid/ })).toBeNull()
     expect(screen.getByText('closed.noPermission')).toBeInTheDocument()
   })
@@ -75,7 +102,7 @@ describe('PeriodoCerradoView', () => {
     m.can.mockReturnValue(true)
     m.reporte.mockReturnValue({ ...REPORTE, periodo: { ...REPORTE.periodo, estado: 'OPEN' } })
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
-    expect(screen.queryByRole('button', { name: 'closed.markPaid' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /closed\.markPaidFor/ })).toBeNull()
     expect(screen.queryByText(/closed\.paidOf/)).toBeNull()
   })
   it('si el reporte falla, explica y deja reintentar (nunca un esqueleto eterno)', () => {

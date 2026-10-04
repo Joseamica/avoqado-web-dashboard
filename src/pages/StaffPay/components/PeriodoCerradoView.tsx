@@ -55,7 +55,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   // `estado`: recién cerrado, la caché todavía puede traer el reporte EN VIVO de este mismo periodo (misma llave).
   const data = crudo && crudo.periodo.id === periodId && crudo.periodo.estado === 'CLOSED' ? crudo : undefined
   const marcar = useMarkPaid(periodId)
-  const [confirmar, setConfirmar] = useState<{ staffId?: string; nombre?: string } | null>(null)
+  // Con UNA persona se guarda su total: la confirmación dice cuánto se registra como pagado.
+  const [confirmar, setConfirmar] = useState<{ staffId?: string; nombre?: string; total?: string } | null>(null)
   const [persona, setPersona] = useState<{ staffId: string; staffName: string; clases: number; total: string } | null>(null)
   const [ajusteAbierto, setAjusteAbierto] = useState(false)
   const puedePagar = can('staffpay:close')
@@ -101,7 +102,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
     if (!confirmar) return
     try {
       const r = await marcar.mutateAsync(confirmar.staffId ? { staffId: confirmar.staffId } : {})
-      toast({ title: t('closed.markedPaid', { count: r.marcados }) })
+      toast({ title: r.marcados === 0 ? t('closed.alreadyPaid') : t('closed.markedPaid', { count: r.marcados }) })
     } catch (err) {
       toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
     } finally {
@@ -152,7 +153,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
             <Plus className="mr-1 h-3.5 w-3.5" />
             {etiquetaAbierto ? t('manualAdjust.add', { periodo: etiquetaAbierto }) : t('closed.addToOpen')}
           </Button>
-          <p className="text-xs text-muted-foreground">{t('closed.frozenHelp')}</p>
+          <p className="text-xs text-muted-foreground">
+            {data.parcial && pendientes > 0 ? t('closed.markAllPartial') : t('closed.frozenHelp')}
+          </p>
         </div>
       ) : (
         <div className="flex items-start gap-2 rounded-lg border border-input p-3 text-sm text-muted-foreground">
@@ -202,6 +205,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                       variant="ghost"
                       size="sm"
                       className="cursor-pointer"
+                      aria-label={t('period.detailTitle', { name: p.staffName })}
                       onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName, clases: p.clases, total: p.total })}
                     >
                       {t('period.detail')}
@@ -212,7 +216,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                         size="sm"
                         className="cursor-pointer"
                         disabled={ocupado}
-                        onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName })}
+                        aria-label={t('closed.markPaidFor', { nombre: p.staffName })}
+                        onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName, total: p.total })}
                         data-tour="staffpay-closed-mark-paid"
                       >
                         {t('closed.markPaid')}
@@ -256,7 +261,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmar?.staffId ? t('closed.markPaidTitle', { nombre: confirmar.nombre }) : t('closed.markAllPaidTitle', { periodo: etiqueta })}
+              {confirmar?.staffId
+                ? t('closed.markPaidTitle', { nombre: confirmar.nombre, monto: Currency(Number(confirmar.total)) })
+                : t('closed.markAllPaidTitle', { periodo: etiqueta })}
             </AlertDialogTitle>
             <AlertDialogDescription>{t('closed.markPaidHelp')}</AlertDialogDescription>
           </AlertDialogHeader>
@@ -274,7 +281,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
               }}
             >
               {marcar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmar?.staffId ? t('closed.markPaidConfirm') : t('closed.markAllPaidConfirm', { count: pendientes })}
+              {confirmar?.staffId
+                ? t('closed.markPaidConfirm', { monto: Currency(Number(confirmar.total)) })
+                : t('closed.markAllPaidConfirm', { count: pendientes })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Loader2, Search } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,7 +29,7 @@ interface Props {
 }
 
 const MIN_MOTIVO = 3
-type Persona = { staffId: string; nombre: string }
+type Persona = { staffId: string; nombre: string; email?: string }
 
 /**
  * Bono o descuento a mano para una persona, en un periodo ABIERTO. El monto se escribe positivo y el signo lo pone la
@@ -59,15 +60,18 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  // Lo elegido se guarda AL elegir (con su nombre y correo): si la búsqueda cambia y ya no la trae, sigue elegida.
   const [persona, setPersona] = useState<Persona | null>(null)
-  // Lo elegido se guarda AL elegir: si la búsqueda cambia y ya no la trae, sigue elegida (bounded-data).
-  const opciones = useMemo(() => {
-    const lista: Persona[] = (equipo.data?.data ?? []).map((p: { staffId: string; firstName: string; lastName: string }) => ({
-      staffId: p.staffId,
-      nombre: `${p.firstName} ${p.lastName}`.trim(),
-    }))
-    return persona && !lista.some(p => p.staffId === persona.staffId) ? [persona, ...lista] : lista
-  }, [equipo.data, persona])
+  // El correo como descripción distingue a dos personas con el mismo nombre.
+  const opciones = useMemo<SearchComboboxItem[]>(
+    () =>
+      (equipo.data?.data ?? []).map((p: { staffId: string; firstName: string; lastName: string; email?: string }) => ({
+        id: p.staffId,
+        label: `${p.firstName} ${p.lastName}`.trim(),
+        description: p.email || undefined,
+      })),
+    [equipo.data],
+  )
   const hayMas = equipo.data?.meta?.hasNextPage ?? false
   const totalEquipo = equipo.data?.meta?.totalCount ?? opciones.length
 
@@ -77,7 +81,10 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const [guardando, setGuardando] = useState(false)
   const listo = !!persona && !!sede && monto !== undefined && monto > 0 && motivo.trim().length >= MIN_MOTIVO
 
-  const elegirPersona = (staffId: string) => setPersona(opciones.find(p => p.staffId === staffId) ?? null)
+  const elegirPersona = (item: SearchComboboxItem) => {
+    setPersona({ staffId: item.id, nombre: item.label, email: item.description })
+    setBusqueda('')
+  }
   const cambiarSede = (v: string) => {
     setSedeElegida(v)
     setPersona(null)
@@ -144,29 +151,23 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="staffpay-ajuste-persona">{t('manualAdjust.person')}</Label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="h-12 pl-9 text-base"
+            <Label>{t('manualAdjust.person')}</Label>
+            <div data-tour="staffpay-adjust-person">
+              <SearchCombobox
                 placeholder={t('manualAdjust.search')}
+                items={opciones}
+                isLoading={equipo.isFetching}
                 value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                aria-label={t('manualAdjust.search')}
+                onChange={setBusqueda}
+                onSelect={elegirPersona}
               />
             </div>
-            <Select value={persona?.staffId ?? ''} onValueChange={elegirPersona}>
-              <SelectTrigger id="staffpay-ajuste-persona" className="h-12 cursor-pointer text-base" data-tour="staffpay-adjust-person">
-                <SelectValue placeholder={equipo.isLoading ? t('manualAdjust.loadingTeam') : t('manualAdjust.personPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {opciones.map(p => (
-                  <SelectItem key={p.staffId} value={p.staffId} className="cursor-pointer">
-                    {p.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {persona && (
+              <p className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span>{t('manualAdjust.selected', { persona: persona.email ? `${persona.nombre} (${persona.email})` : persona.nombre })}</span>
+              </p>
+            )}
             {equipo.isError ? (
               <p role="alert" className="flex items-center gap-2 text-xs text-destructive">
                 {t('manualAdjust.teamError')}

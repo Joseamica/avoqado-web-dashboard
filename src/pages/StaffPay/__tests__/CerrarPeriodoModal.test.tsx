@@ -24,7 +24,8 @@ describe('CerrarPeriodoModal', () => {
     m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
     m.close.mockResolvedValue({ periodId: 'p1', yaCerrado: false })
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
-    expect(screen.getByText(/close\.willFreeze/)).toHaveTextContent('"clases":72')
+    expect(screen.getByText(/close\.willFreeze/)).toHaveTextContent('"count":72')
+    expect(screen.getByText(/close\.willFreeze/)).toHaveTextContent('close.people')
     expect(screen.getByText(/close\.willFreeze/)).toHaveTextContent('Prado Norte')
     fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
     await waitFor(() => expect(m.close).toHaveBeenCalledWith({ fecha: '2026-08-15', huellaEsperada: 'h1', confirmarHuerfanas: false }))
@@ -67,6 +68,34 @@ describe('CerrarPeriodoModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
     await waitFor(() => expect(m.refetch).toHaveBeenCalled())
     expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'close.changed' }))
+  })
+
+  it('otro rechazo del server (4xx) dice el motivo y recarga el preview para mostrar los bloqueos reales', async () => {
+    m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
+    m.close.mockRejectedValue({ response: { status: 403, data: { message: 'No tienes permiso en BSF' } } })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
+    await waitFor(() => expect(m.refetch).toHaveBeenCalled())
+    expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'No tienes permiso en BSF', variant: 'destructive' }))
+  })
+
+  it('un error de red sólo avisa (no hay preview nuevo que pedir)', async () => {
+    m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
+    m.close.mockRejectedValue(new Error('Network Error'))
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'errors.generic' })))
+    expect(m.refetch).not.toHaveBeenCalled()
+  })
+
+  it('si el periodo ya estaba cerrado, lo dice con su total (no «Periodo cerrado» como si fuera nuevo)', async () => {
+    const onCerrado = vi.fn()
+    m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
+    m.close.mockResolvedValue({ periodId: 'p1', total: '36620.00', yaCerrado: true })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={onCerrado} />)
+    fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
+    await waitFor(() => expect(onCerrado).toHaveBeenCalled())
+    expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringMatching(/close\.alreadyClosed.*36,620\.00/) }))
   })
 
   it('si el preview falla, dice por qué, deja reintentar y no deja cerrar', () => {

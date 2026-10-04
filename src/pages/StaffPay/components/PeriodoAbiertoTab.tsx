@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ChevronLeft, ChevronRight, Info, Lock, Plus } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Info, Loader2, Lock, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,6 +15,7 @@ import { CerrarPeriodoModal } from './CerrarPeriodoModal'
 import { AjusteManualModal } from './AjusteManualModal'
 import { ExcepcionesSheet, HuerfanasSheet, TABLA_PERIODO } from './ListasDelPeriodo'
 import { useNombreSede } from '../useNombreSede'
+import { hoyEnSede } from '../hoyEnSede'
 import { conSigno } from '../conSigno'
 
 const LIMITE = 50
@@ -24,9 +25,20 @@ const TODAS = '__all__'
  * El periodo abierto, valorado en vivo. `fecha` (un día del periodo) elige CUÁL; sin ella, el de hoy (fase 1).
  * «Cerrar periodo» sólo con `staffpay:close` y viendo todas las sedes (spec §7.3); si no, dice por qué.
  */
-export function PeriodoAbiertoTab({ activa, fecha, etiqueta }: { activa: boolean; fecha?: string; etiqueta?: string }) {
+export function PeriodoAbiertoTab({
+  activa,
+  fecha,
+  etiqueta,
+  onYaCerrado,
+}: {
+  activa: boolean
+  fecha?: string
+  etiqueta?: string
+  /** El reporte llegó CERRADO (otro usuario lo cerró): el padre refresca la lista y cambia a la vista cerrada. */
+  onYaCerrado?: () => void
+}) {
   const { t } = useTranslation('staffPay')
-  const { formatCalendarDate } = useVenueDateTime()
+  const { formatCalendarDate, venueTimezone } = useVenueDateTime()
   const { venueId } = useCurrentVenue()
   const nombreSede = useNombreSede()
   const { can } = useAccess()
@@ -43,6 +55,10 @@ export function PeriodoAbiertoTab({ activa, fecha, etiqueta }: { activa: boolean
   useEffect(() => {
     if (data && sede === undefined) setSedesConocidas(data.venueIds)
   }, [data, sede])
+  const yaCerrado = data?.periodo.estado === 'CLOSED'
+  useEffect(() => {
+    if (yaCerrado) onYaCerrado?.()
+  }, [yaCerrado]) // eslint-disable-line react-hooks/exhaustive-deps -- avisar una vez por cambio de estado
 
   const opcionesSede = useMemo(() => {
     const ids = [...sedesConocidas]
@@ -88,8 +104,24 @@ export function PeriodoAbiertoTab({ activa, fecha, etiqueta }: { activa: boolean
     )
   }
 
+  if (yaCerrado) {
+    return (
+      <div role="status" className="flex items-center gap-2 rounded-lg border border-input p-4 text-sm">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+        <span>{t('period.justClosed')}</span>
+      </div>
+    )
+  }
+
   const tj = data.tarjetas
   const total = data.personas.total
+  // El periodo de hoy no se puede cerrar hasta que termine: se dice desde cuándo, en vez de abrir un cierre bloqueado.
+  const terminado = hoyEnSede(venueTimezone) > data.periodo.end
+  const diaSiguiente = (d: string) => {
+    const x = new Date(`${d}T12:00:00Z`)
+    x.setUTCDate(x.getUTCDate() + 1)
+    return x.toISOString().slice(0, 10)
+  }
   const mostrarFiltro = opcionesSede.length > 1 || sede !== undefined
 
   return (
@@ -279,11 +311,19 @@ export function PeriodoAbiertoTab({ activa, fecha, etiqueta }: { activa: boolean
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {t('period.closePartial')}
                 </p>
-              ) : (
+              ) : terminado ? (
                 <Button size="sm" className="cursor-pointer" onClick={() => setCerrarAbierto(true)} data-tour="staffpay-period-close">
                   <Lock className="mr-1 h-3.5 w-3.5" />
                   {t('period.close')}
                 </Button>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" disabled data-tour="staffpay-period-close">
+                    <Lock className="mr-1 h-3.5 w-3.5" />
+                    {t('period.close')}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">{t('period.closeFrom', { fecha: formatCalendarDate(diaSiguiente(data.periodo.end)) })}</p>
+                </>
               )}
             </>
           ) : (

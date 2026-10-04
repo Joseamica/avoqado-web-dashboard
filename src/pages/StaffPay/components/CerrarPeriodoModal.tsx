@@ -46,17 +46,25 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
     setEnviando(true)
     try {
       const r = await cerrar.mutateAsync({ fecha, huellaEsperada: p.huella, confirmarHuerfanas: p.huerfanas > 0 && entiendo })
-      toast({ title: t('close.done') })
+      // Un reintento (doble clic, otra pestaña) devuelve el MISMO cierre: se dice, no se presenta como uno nuevo.
+      toast({ title: r.yaCerrado ? t('close.alreadyClosed', { total: Currency(Number(r.total)) }) : t('close.done') })
       onCerrado(r)
       onOpenChange(false)
     } catch (err) {
-      const data = (err as { response?: { data?: { code?: string; message?: string } } })?.response?.data
+      const resp = (err as { response?: { status?: number; data?: { code?: string; message?: string } } })?.response
+      const data = resp?.data
       if (data?.code === 'HUELLA_CAMBIO') {
         toast({ title: t('close.changed'), description: t('close.changedHelp') })
         setEntiendo(false)
         await refetch()
       } else {
         toast({ title: data?.message ?? t('errors.generic'), variant: 'destructive' })
+        // Un 4xx (otro lo cerró, cambió un permiso, una clase empezó…) deja el preview viejo diciendo «se puede cerrar»:
+        // se recarga para que aparezcan los bloqueos reales y el botón se apague.
+        if (resp?.status && resp.status >= 400 && resp.status < 500) {
+          setEntiendo(false)
+          await refetch()
+        }
       }
     } finally {
       setEnviando(false)
@@ -123,7 +131,12 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
               <p className="text-sm">
                 {p.clases === 0 && p.personas === 0
                   ? t('close.empty')
-                  : t('close.willFreeze', { clases: p.clases, personas: p.personas, sedes: p.periodo.venueIds.map(nombreSede).join(', '), total: Currency(Number(p.total)) })}
+                  : t('close.willFreeze', {
+                      count: p.clases,
+                      personas: t('close.people', { count: p.personas }),
+                      sedes: p.periodo.venueIds.map(nombreSede).join(', '),
+                      total: Currency(Number(p.total)),
+                    })}
               </p>
               {Number(p.totalAjustes) !== 0 && (
                 <p className="text-sm text-muted-foreground">{t('close.adjustmentsIncluded', { total: Currency(Number(p.totalAjustes)) })}</p>

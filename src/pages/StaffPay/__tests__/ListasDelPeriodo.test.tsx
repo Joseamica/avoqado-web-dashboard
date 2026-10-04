@@ -110,6 +110,22 @@ describe('DesglosePersona', () => {
     expect(fetchNextPage).toHaveBeenCalled()
   })
 
+  it('un recibo de vista parcial NO se presenta como completo: «Total (vista parcial)» y por qué', () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([renglon('Spinning', '480.00')], { data: { ...recibo([]).data, renglones: [renglon('Spinning', '480.00')], total: '480.00', cantidad: 1, parcial: true } }))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="480.00" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    expect(screen.getByText('period.totalPartial')).toBeInTheDocument()
+    expect(screen.queryByText('period.total')).toBeNull()
+    expect(screen.getByText('period.receiptPartial')).toBeInTheDocument()
+  })
+
+  it('periodo abierto y recibo parcial: los ajustes también avisan que faltan sedes', () => {
+    m.detail.mockReturnValue(q([{ items: [clase('c1')], nextCursor: null }]))
+    m.receipt.mockReturnValue(recibo([renglon('Bono', '100.00', 'AJUSTE')], { data: { ...recibo([]).data, renglones: [renglon('Bono', '100.00', 'AJUSTE')], parcial: true } }))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="670.00" fecha="2026-10-01" onClose={() => {}} />)
+    expect(screen.getByText('period.receiptPartial')).toBeInTheDocument()
+  })
+
   it('con periodo cerrado no pide el desglose en vivo (Codex R2-R1-21)', () => {
     m.detail.mockReturnValue(q([]))
     m.receipt.mockReturnValue(recibo([]))

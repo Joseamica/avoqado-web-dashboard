@@ -142,7 +142,11 @@
     "receiptAllVenues": "El PDF y el Excel traen el recibo completo, con todas sus sedes.",
     "periodAdjustments": "Ajustes del periodo",
     "total": "Total",
-    "adjustmentsError": "No se pudieron cargar los ajustes del periodo."
+    "adjustmentsError": "No se pudieron cargar los ajustes del periodo.",
+    "totalPartial": "Total (vista parcial)",
+    "receiptPartial": "Este recibo sólo trae las sedes que puedes ver: faltan los renglones de otras sedes donde trabaja esta persona.",
+    "closeFrom": "Podrás cerrarlo a partir del {{fecha}}.",
+    "justClosed": "Alguien acaba de cerrar este periodo. Cargando la vista cerrada…"
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
@@ -226,13 +230,24 @@
     "periodicity": "Cada cuánto pagas",
     "monthly": "Mensual",
     "semimonthly": "Quincenal (1-15 y 16-fin de mes)",
-    "periodicityHelp": "Elígelo antes del primer cierre: después ya no se cambia.",
-    "periodicityLocked": "Ya hay periodos guardados: la periodicidad ya no se cambia.",
+    "periodicityHelp": "Elígelo antes del primer cierre o ajuste: después ya no se cambia.",
+    "periodicityLocked": "Ya hay cierres o ajustes registrados: la frecuencia de pago ya no se puede cambiar.",
     "periodicityNoPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede elegirlo. Pídeselo al dueño del negocio.",
     "periodicitySaved": "Periodicidad guardada",
     "loadOlder": "Ver periodos anteriores",
     "error": "No se pudo cargar la lista de periodos.",
-    "empty": "Todavía no hay periodos."
+    "empty": "Todavía no hay periodos.",
+    "semimonthLabel": "{{desde}}–{{hasta}} de {{mes}}",
+    "changeTitle": "¿Cambiar la frecuencia de pago a {{frecuencia}}?",
+    "changeConfirm": "Cambiar a {{frecuencia}}",
+    "changeHelp": {
+      "MONTHLY": "Cada periodo será un mes completo. Después del primer cierre o ajuste ya no se podrá cambiar.",
+      "SEMIMONTHLY": "Cada mes tendrá dos periodos: del 1 al 15 y del 16 a fin de mes. Después del primer cierre o ajuste ya no se podrá cambiar."
+    },
+    "short": {
+      "MONTHLY": "mensual",
+      "SEMIMONTHLY": "quincenal"
+    }
   },
   "close": {
     "titleLoading": "Cerrar periodo",
@@ -250,7 +265,6 @@
       "SIN_PERMISO": "Necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes del periodo. Pídeselo al dueño del negocio.",
       "YA_CERRADO": "Este periodo ya está cerrado."
     },
-    "willFreeze": "Se congelan {{clases}} clases de {{personas}} personas en {{sedes}}: {{total}}.",
     "empty": "No hay clases ni ajustes en este periodo: se cierra en $0.",
     "adjustmentsIncluded": "Incluye ajustes por {{total}}.",
     "afterwards": "Lo que cambie después aparecerá como diferencia pendiente; lo congelado no se mueve.",
@@ -259,7 +273,12 @@
     "done": "Periodo cerrado",
     "changed": "Los números cambiaron",
     "changedHelp": "Alguien cambió algo mientras revisabas. Revisa de nuevo antes de cerrar.",
-    "previewError": "No se pudo calcular el cierre."
+    "previewError": "No se pudo calcular el cierre.",
+    "willFreeze_one": "Se congela {{count}} clase de {{personas}} en {{sedes}}: {{total}}.",
+    "willFreeze_other": "Se congelan {{count}} clases de {{personas}} en {{sedes}}: {{total}}.",
+    "people_one": "{{count}} persona",
+    "people_other": "{{count}} personas",
+    "alreadyClosed": "Este periodo ya estaba cerrado (total {{total}})."
   },
   "closed": {
     "badge": "Cerrado",
@@ -270,10 +289,10 @@
     "paidOn": "Pagado el {{fecha}}",
     "markPaid": "Marcar pagado",
     "markAllPaid": "Marcar todos como pagados",
-    "markPaidTitle": "¿Registrar el pago de {{nombre}}?",
+    "markPaidTitle": "¿Registrar que le pagaste {{monto}} a {{nombre}}?",
     "markAllPaidTitle": "¿Registrar el pago de todos en {{periodo}}?",
     "markPaidHelp": "Registra un pago que hiciste fuera de Avoqado (efectivo, transferencia). Avoqado no mueve dinero.",
-    "markPaidConfirm": "Registrar pago",
+    "markPaidConfirm": "Registrar {{monto}}",
     "markAllPaidConfirm_one": "Marcar {{count}} recibo como pagado",
     "markAllPaidConfirm_other": "Marcar {{count}} recibos como pagados",
     "markedPaid_one": "{{count}} recibo marcado como pagado",
@@ -282,14 +301,15 @@
     "addToOpen": "Agregar ajuste al periodo abierto",
     "noPermission": "Para marcar pagos o agregar ajustes necesitas el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
     "empty": "Este periodo se cerró sin clases ni ajustes.",
-    "frozenHelp": "Lo de este periodo ya no cambia. Un bono o descuento nuevo va al periodo abierto."
+    "frozenHelp": "Lo de este periodo ya no cambia. Un bono o descuento nuevo va al periodo abierto.",
+    "markPaidFor": "Marcar pagado a {{nombre}}",
+    "alreadyPaid": "Ya estaban marcados como pagados.",
+    "markAllPartial": "Para marcar a todos necesitas ver todas las sedes del periodo."
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",
     "title": "Agregar ajuste",
     "person": "Persona",
-    "personPlaceholder": "Elige a quién",
-    "loadingTeam": "Cargando el equipo…",
     "search": "Buscar por nombre",
     "moreResults": "Mostrando {{n}} de {{total}}: escribe parte del nombre para encontrar a alguien más.",
     "noMatches": "Nadie coincide con «{{busqueda}}».",
@@ -309,6 +329,7 @@
     "summaryEmpty": "Elige a la persona y escribe el monto para ver cómo queda.",
     "goesTo": "Aparece en el recibo de esa persona con su motivo. Siempre va a un periodo abierto, nunca a uno cerrado.",
     "save": "Guardar ajuste",
-    "saved": "Ajuste guardado en el periodo del {{start}} al {{end}}"
+    "saved": "Ajuste guardado en el periodo del {{start}} al {{end}}",
+    "selected": "Elegiste a {{persona}}."
   }
 }

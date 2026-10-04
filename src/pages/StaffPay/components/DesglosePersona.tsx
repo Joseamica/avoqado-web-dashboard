@@ -53,6 +53,9 @@ export function DesglosePersona({
   const recibo = useStaffReceipt(staffId, fecha ?? null, !!fecha)
   const renglones = recibo.data?.renglones ?? []
   const ajustes = renglones.filter(r => r.tipo !== 'CLASE')
+  // Vista parcial: el recibo sólo trae las sedes que este usuario puede ver; nunca se presenta como el recibo completo.
+  const parcial = !!recibo.data?.parcial
+  const avisoParcial = parcial && <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{t('period.receiptPartial')}</p>
   const [bajando, setBajando] = useState<'pdf' | 'xlsx' | null>(null)
 
   const descargar = async (format: 'pdf' | 'xlsx') => {
@@ -170,7 +173,7 @@ export function DesglosePersona({
                   <tr>
                     {/* El total del recibo ENTERO (lo suma el server), aunque falten páginas por cargar (Codex R2-R1-20). */}
                     <td className="py-2 font-semibold" colSpan={4}>
-                      {t('period.total')}
+                      {parcial ? t('period.totalPartial') : t('period.total')}
                       {recibo.hasNextPage && (
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
                           {t('period.shownOf', { shown: renglones.length, total: recibo.data?.cantidad ?? 0 })}
@@ -181,6 +184,7 @@ export function DesglosePersona({
                   </tr>
                 </tbody>
               </table>
+              {avisoParcial}
               {masRenglones}
             </>
           )
@@ -234,7 +238,7 @@ export function DesglosePersona({
                 </tbody>
               </table>
             </EstadoLista>
-            {(ajustes.length > 0 || recibo.hasNextPage) && (
+            {(ajustes.length > 0 || recibo.hasNextPage || parcial) && (
               <div className="mt-6 space-y-1" data-tour="staffpay-detail-adjustments">
                 <p className="text-sm font-medium">{t('period.periodAdjustments')}</p>
                 {ajustes.map((r, i) => (
@@ -243,6 +247,7 @@ export function DesglosePersona({
                     <span className="whitespace-nowrap font-medium">{conSigno(r.monto)}</span>
                   </p>
                 ))}
+                {avisoParcial}
                 {/* Un recibo de más de una página puede traer sus ajustes después de las clases: se ofrecen, no se esconden. */}
                 {masRenglones}
               </div>

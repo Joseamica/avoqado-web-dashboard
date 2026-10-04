@@ -142,7 +142,11 @@
     "receiptAllVenues": "The PDF and Excel include the full pay statement, with all of its venues.",
     "periodAdjustments": "Period adjustments",
     "total": "Total",
-    "adjustmentsError": "The period adjustments could not be loaded."
+    "adjustmentsError": "The period adjustments could not be loaded.",
+    "totalPartial": "Total (partial view)",
+    "receiptPartial": "This pay statement only includes the venues you can see: rows from other venues where this person works are missing.",
+    "closeFrom": "You can close it starting {{fecha}}.",
+    "justClosed": "Someone just closed this period. Loading the closed view…"
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
@@ -226,13 +230,24 @@
     "periodicity": "How often you pay",
     "monthly": "Monthly",
     "semimonthly": "Twice a month (1-15 and 16-end)",
-    "periodicityHelp": "Choose it before the first close: after that it cannot be changed.",
-    "periodicityLocked": "There are saved periods already: the pay frequency can no longer be changed.",
+    "periodicityHelp": "Choose it before the first close or adjustment: after that it cannot be changed.",
+    "periodicityLocked": "There are closes or adjustments on record already: the pay frequency can no longer be changed.",
     "periodicityNoPermission": "Only someone with the «Close periods and record payments» permission can choose it. Ask the business owner.",
     "periodicitySaved": "Pay frequency saved",
     "loadOlder": "See earlier periods",
     "error": "The list of periods could not be loaded.",
-    "empty": "There are no periods yet."
+    "empty": "There are no periods yet.",
+    "semimonthLabel": "{{desde}}–{{hasta}} {{mes}}",
+    "changeTitle": "Change the pay frequency to {{frecuencia}}?",
+    "changeConfirm": "Change to {{frecuencia}}",
+    "changeHelp": {
+      "MONTHLY": "Each period will be a full month. After the first close or adjustment it can no longer be changed.",
+      "SEMIMONTHLY": "Each month will have two periods: the 1st to the 15th and the 16th to month end. After the first close or adjustment it can no longer be changed."
+    },
+    "short": {
+      "MONTHLY": "monthly",
+      "SEMIMONTHLY": "twice a month"
+    }
   },
   "close": {
     "titleLoading": "Close period",
@@ -250,7 +265,6 @@
       "SIN_PERMISO": "You need the «Close periods and record payments» permission in every venue of the period. Ask the business owner.",
       "YA_CERRADO": "This period is already closed."
     },
-    "willFreeze": "{{clases}} classes for {{personas}} people in {{sedes}} get frozen: {{total}}.",
     "empty": "There are no classes or adjustments in this period: it closes at $0.",
     "adjustmentsIncluded": "Includes adjustments of {{total}}.",
     "afterwards": "Anything that changes later will show up as a pending difference; what is frozen does not move.",
@@ -259,7 +273,12 @@
     "done": "Period closed",
     "changed": "The numbers changed",
     "changedHelp": "Someone changed something while you were reviewing. Review again before closing.",
-    "previewError": "The close could not be calculated."
+    "previewError": "The close could not be calculated.",
+    "willFreeze_one": "{{count}} class for {{personas}} in {{sedes}} gets frozen: {{total}}.",
+    "willFreeze_other": "{{count}} classes for {{personas}} in {{sedes}} get frozen: {{total}}.",
+    "people_one": "{{count}} person",
+    "people_other": "{{count}} people",
+    "alreadyClosed": "This period was already closed (total {{total}})."
   },
   "closed": {
     "badge": "Closed",
@@ -270,10 +289,10 @@
     "paidOn": "Paid on {{fecha}}",
     "markPaid": "Mark as paid",
     "markAllPaid": "Mark all as paid",
-    "markPaidTitle": "Record the payment for {{nombre}}?",
+    "markPaidTitle": "Record that you paid {{monto}} to {{nombre}}?",
     "markAllPaidTitle": "Record the payment for everyone in {{periodo}}?",
     "markPaidHelp": "Records a payment you made outside Avoqado (cash, transfer). Avoqado does not move money.",
-    "markPaidConfirm": "Record payment",
+    "markPaidConfirm": "Record {{monto}}",
     "markAllPaidConfirm_one": "Mark {{count}} pay statement as paid",
     "markAllPaidConfirm_other": "Mark {{count}} pay statements as paid",
     "markedPaid_one": "{{count}} pay statement marked as paid",
@@ -282,14 +301,15 @@
     "addToOpen": "Add adjustment to the open period",
     "noPermission": "To mark payments or add adjustments you need the «Close periods and record payments» permission. Ask the business owner.",
     "empty": "This period was closed with no classes or adjustments.",
-    "frozenHelp": "This period no longer changes. A new bonus or deduction goes to the open period."
+    "frozenHelp": "This period no longer changes. A new bonus or deduction goes to the open period.",
+    "markPaidFor": "Mark {{nombre}} as paid",
+    "alreadyPaid": "They were already marked as paid.",
+    "markAllPartial": "To mark everyone you need to see every venue of the period."
   },
   "manualAdjust": {
     "add": "Add adjustment to {{periodo}}",
     "title": "Add adjustment",
     "person": "Person",
-    "personPlaceholder": "Choose who",
-    "loadingTeam": "Loading the team…",
     "search": "Search by name",
     "moreResults": "Showing {{n}} of {{total}}: type part of the name to find someone else.",
     "noMatches": "Nobody matches «{{busqueda}}».",
@@ -309,6 +329,7 @@
     "summaryEmpty": "Choose the person and type the amount to see the result.",
     "goesTo": "It shows on that person’s pay statement with its reason. It always goes to an open period, never to a closed one.",
     "save": "Save adjustment",
-    "saved": "Adjustment saved in the period from {{start}} to {{end}}"
+    "saved": "Adjustment saved in the period from {{start}} to {{end}}",
+    "selected": "You chose {{persona}}."
   }
 }

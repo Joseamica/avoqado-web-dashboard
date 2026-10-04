@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -27,6 +37,8 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(activa)
   const setPeriodicity = useSetPeriodicity()
   const [elegido, setElegido] = useState<string | null>(null)
+  // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta.
+  const [nuevaFrecuencia, setNuevaFrecuencia] = useState<'MONTHLY' | 'SEMIMONTHLY' | null>(null)
   const items = data?.items ?? []
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
 
@@ -36,7 +48,9 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
       year: 'numeric',
       timeZone: 'UTC',
     })
-    return data?.periodicidad === 'SEMIMONTHLY' ? `${Number(p.start.slice(8))}–${Number(p.end.slice(8))} ${nombre}` : nombre
+    return data?.periodicidad === 'SEMIMONTHLY'
+      ? t('periods.semimonthLabel', { desde: Number(p.start.slice(8)), hasta: Number(p.end.slice(8)), mes: nombre })
+      : nombre
   }
   const estado = (p: PeriodoListadoDto) =>
     p.estado === 'OPEN'
@@ -47,13 +61,16 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
           ? t('periods.paid')
           : t('periods.closedPaid', { pagadas: p.pagadas, personas: p.personas })
 
-  const cambiarPeriodicidad = async (v: string) => {
+  const cambiarPeriodicidad = async () => {
+    if (!nuevaFrecuencia) return
     try {
-      await setPeriodicity.mutateAsync(v as 'MONTHLY' | 'SEMIMONTHLY')
+      await setPeriodicity.mutateAsync(nuevaFrecuencia)
       setElegido(null)
       toast({ title: t('periods.periodicitySaved') })
     } catch (err) {
       toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
+    } finally {
+      setNuevaFrecuencia(null)
     }
   }
 
@@ -116,7 +133,11 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
         </div>
         <div className="w-full space-y-1.5 sm:w-auto sm:max-w-sm">
           <Label htmlFor="staffpay-periodicidad">{t('periods.periodicity')}</Label>
-          <Select value={data.periodicidad} onValueChange={cambiarPeriodicidad} disabled={!puedeEditar || setPeriodicity.isPending}>
+          <Select
+            value={data.periodicidad}
+            onValueChange={v => v !== data.periodicidad && setNuevaFrecuencia(v as 'MONTHLY' | 'SEMIMONTHLY')}
+            disabled={!puedeEditar || setPeriodicity.isPending}
+          >
             <SelectTrigger id="staffpay-periodicidad" className="w-full cursor-pointer sm:w-64" data-tour="staffpay-periodicity">
               <SelectValue />
             </SelectTrigger>
@@ -137,8 +158,32 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
       {actual.estado === 'CLOSED' && actual.id ? (
         <PeriodoCerradoView key={actual.id} periodId={actual.id} fecha={actual.start} etiqueta={mes(actual)} etiquetaAbierto={abiertoHoy} />
       ) : (
-        <PeriodoAbiertoTab key={actual.start} activa={activa} fecha={actual.start} etiqueta={mes(actual)} />
+        <PeriodoAbiertoTab key={actual.start} activa={activa} fecha={actual.start} etiqueta={mes(actual)} onYaCerrado={() => void refetch()} />
       )}
+      <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && !setPeriodicity.isPending && setNuevaFrecuencia(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{nuevaFrecuencia && t('periods.changeTitle', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}</AlertDialogTitle>
+            <AlertDialogDescription>{nuevaFrecuencia && t(`periods.changeHelp.${nuevaFrecuencia}`)}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer" disabled={setPeriodicity.isPending}>
+              {t('closed.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              disabled={setPeriodicity.isPending}
+              onClick={e => {
+                e.preventDefault()
+                void cambiarPeriodicidad()
+              }}
+            >
+              {setPeriodicity.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {nuevaFrecuencia && t('periods.changeConfirm', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
