@@ -2,14 +2,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PeriodoCerradoView } from '../components/PeriodoCerradoView'
 
-const m = vi.hoisted(() => ({ can: vi.fn(), paid: vi.fn(), toast: vi.fn(), reporte: vi.fn(), extra: vi.fn(), preview: vi.fn(), refetchPreview: vi.fn() }))
+const m = vi.hoisted(() => ({ can: vi.fn(), paid: vi.fn(), toast: vi.fn(), reporte: vi.fn(), extra: vi.fn(), preview: vi.fn(), refetchPreview: vi.fn(), ajuste: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (d: string) => d.slice(0, 10), formatCalendarDate: (d: string) => d }) }))
 vi.mock('../useNombreSede', () => ({ useNombreSede: () => (id: string) => id }))
 vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: () => null }))
-vi.mock('../components/AjusteManualModal', () => ({ AjusteManualModal: () => null }))
+vi.mock('../components/AjusteManualModal', () => ({
+  AjusteManualModal: (p: unknown) => {
+    m.ajuste(p)
+    return null
+  },
+}))
 vi.mock('@/hooks/useStaffPay', () => ({
   useStaffPayReport: () => ({ data: m.reporte(), isLoading: false, isPlaceholderData: false, ...m.extra() }),
   useMarkPaid: () => ({ mutateAsync: m.paid, isPending: false }),
@@ -35,7 +40,7 @@ const REPORTE = {
 beforeEach(() => {
   vi.clearAllMocks()
   m.reporte.mockReturnValue(REPORTE)
-  m.extra.mockReturnValue({})
+  m.extra.mockReturnValue({ refetch: vi.fn() })
   m.preview.mockImplementation((_periodId: string, staffId: string | undefined, enabled: boolean) =>
     enabled ? { data: previewDe(staffId), isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined, isLoading: false },
   )
@@ -116,6 +121,28 @@ describe('PeriodoCerradoView', () => {
     expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'close.changed' }))
     expect(screen.getByRole('button', { name: /closed\.markAllPaidConfirm/ })).toBeInTheDocument()
   })
+  it('tras HUELLA_CAMBIO también recarga la tabla de atrás, no sólo el diálogo (QA defecto 6)', async () => {
+    const refetch = vi.fn()
+    m.can.mockReturnValue(true)
+    m.extra.mockReturnValue({ refetch })
+    m.paid.mockRejectedValue({ response: { status: 409, data: { code: 'HUELLA_CAMBIO' } } })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markAllPaid/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /closed\.markAllPaidConfirm/ }))
+    await waitFor(() => expect(refetch).toHaveBeenCalled())
+    expect(m.refetchPreview).toHaveBeenCalled()
+  })
+
+  it('un ajuste desde el cerrado no se limita a las sedes de ESTE periodo: el modal lee las del periodo destino (QA defecto 7)', () => {
+    m.can.mockReturnValue(true)
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" etiquetaAbierto="octubre de 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /manualAdjust\.add/ }))
+    const props = m.ajuste.mock.calls.at(-1)![0] as { fecha: string; sedes?: string[]; etiqueta?: string }
+    expect(props.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(props.sedes).toBeUndefined()
+    expect(props.etiqueta).toBeUndefined()
+  })
+
   it('mientras el preview carga o recarga, el botón de confirmar está apagado', async () => {
     m.can.mockReturnValue(true)
     m.preview.mockImplementation((_p: string, _s: string | undefined, enabled: boolean) =>

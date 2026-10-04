@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AjusteManualModal } from '../components/AjusteManualModal'
 
-const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn() }))
+const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn(), reporte: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
@@ -27,7 +27,11 @@ vi.mock('@/components/search-combobox', () => ({
     </div>
   ),
 }))
-vi.mock('@/hooks/useStaffPay', () => ({ useAddAdjustment: () => ({ mutateAsync: m.add, isPending: false }) }))
+vi.mock('@/hooks/useStaffPay', () => ({
+  useAddAdjustment: () => ({ mutateAsync: m.add, isPending: false }),
+  useStaffPayReport: (...a: unknown[]) => m.reporte(...a),
+}))
+vi.mock('@/components/ui/select', () => import('@/test/nativeSelectShim'))
 
 const persona = (staffId: string, firstName: string, lastName: string, email: string) => ({ staffId, firstName, lastName, email })
 const CARLA = { data: { data: [persona('s1', 'Carla', 'QA', 'carla@estudio.mx')], meta: { totalCount: 1, hasNextPage: false } } }
@@ -42,6 +46,7 @@ const llenar = (tipo: 'manualAdjust.bonus' | 'manualAdjust.deduction' = 'manualA
 beforeEach(() => {
   vi.clearAllMocks()
   m.equipo.mockReturnValue(CARLA)
+  m.reporte.mockReturnValue({ data: undefined })
 })
 
 describe('AjusteManualModal', () => {
@@ -115,5 +120,20 @@ describe('AjusteManualModal', () => {
   it('sin motivo o con monto vacío no deja guardar', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
     expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
+  })
+
+  it('desde un periodo cerrado (sin sedes ni etiqueta) lee el periodo destino: nombra su mes y ofrece TODAS sus sedes (QA defecto 7)', () => {
+    m.reporte.mockReturnValue({ data: { periodo: { start: '2026-10-01', end: '2026-10-31', periodicidad: 'MONTHLY', estado: 'OPEN' }, venueIds: ['v1', 'v2'] } })
+    render(<AjusteManualModal open onOpenChange={() => {}} fecha="2026-10-03" />)
+    // El periodo de la MISMA fecha que se manda, sin filtro de sede.
+    expect(m.reporte).toHaveBeenLastCalledWith({ offset: 0, limit: 1, fecha: '2026-10-03' }, true)
+    expect(screen.getByRole('option', { name: 'v2' })).toBeInTheDocument()
+    llenar()
+    expect(screen.getByText(/manualAdjust\.summaryDeduction/)).toHaveTextContent('octubre de 2026')
+  })
+
+  it('desde la vista abierta (con sus sedes) no pide el periodo otra vez', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-10-01" etiqueta="octubre 2026" />)
+    expect(m.reporte).not.toHaveBeenCalledWith(expect.anything(), true)
   })
 })

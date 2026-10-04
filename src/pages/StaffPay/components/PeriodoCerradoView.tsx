@@ -116,9 +116,10 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
     } catch (err) {
       const data = (err as { response?: { data?: { code?: string; message?: string } } })?.response?.data
       if (data?.code === 'HUELLA_CAMBIO') {
-        // Algo cambió desde el preview: se queda abierto con el monto nuevo; nada se marcó.
+        // Algo cambió desde el preview: se queda abierto con el monto nuevo; nada se marcó. La tabla de atrás también se
+        // recarga: si no, seguiría diciendo «Pendiente» a quien otro ya marcó (QA defecto 6).
         toast({ title: t('close.changed'), description: t('closed.changedHelp') })
-        await previewPago.refetch()
+        await Promise.all([previewPago.refetch(), refetch()])
       } else {
         toast({ title: data?.message ?? t('errors.generic'), variant: 'destructive' })
         setConfirmar(null)
@@ -329,8 +330,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         </AlertDialogContent>
       </AlertDialog>
       {persona && <DesglosePersona {...persona} fecha={fecha} cerrado onClose={() => setPersona(null)} />}
-      {/* Sin etiqueta: el modal nombra el destino por la fecha exacta que manda (no puede contradecirla). */}
-      {ajusteFecha && <AjusteManualModal open onOpenChange={o => !o && setAjusteFecha(null)} sedes={data.venueIds} fecha={ajusteFecha} />}
+      {/* Sin sedes ni etiqueta: el modal lee el periodo ABIERTO de esa fecha exacta (su nombre y TODAS sus sedes), no las
+          de este periodo cerrado (QA defecto 7). */}
+      {ajusteFecha && <AjusteManualModal open onOpenChange={o => !o && setAjusteFecha(null)} fecha={ajusteFecha} />}
     </div>
   )
 }

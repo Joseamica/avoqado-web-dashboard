@@ -55,6 +55,8 @@ export interface PreviewCierreDto {
   total: string
   huerfanas: number
   huella: string
+  /** Las sedes de `periodo.venueIds` donde hay clases pagables o ajustes, en el mismo orden (opcional: server previo). */
+  sedesConDinero?: string[]
 }
 export interface ResultadoCierreDto { periodId: string; start: string; end: string; venueIds: string[]; personas: number; total: string; huella: string; yaCerrado: boolean }
 export interface PeriodoListadoDto { id: string | null; start: string; end: string; estado: 'OPEN' | 'CLOSED'; personas: number; pagadas: number; total: string }

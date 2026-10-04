@@ -134,7 +134,8 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
                   : t('close.willFreeze', {
                       count: p.clases,
                       personas: t('close.people', { count: p.personas }),
-                      sedes: p.periodo.venueIds.map(nombreSede).join(', '),
+                      // Sólo donde hay dinero: «en Avoqado Wellness», no todas las sedes del alcance (QA defecto 8).
+                      sedes: (p.sedesConDinero ?? p.periodo.venueIds).map(nombreSede).join(', '),
                       total: monto(p.total),
                     })}
               </p>

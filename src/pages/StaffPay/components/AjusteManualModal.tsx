@@ -11,18 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
-import { useAddAdjustment } from '@/hooks/useStaffPay'
+import { useAddAdjustment, useStaffPayReport } from '@/hooks/useStaffPay'
 import { teamService } from '@/services/team.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cn } from '@/lib/utils'
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
+import { useNombrePeriodo } from '../useNombrePeriodo'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  sedes: string[]
+  /** Sedes del periodo destino. Sin ellas (desde un periodo cerrado) se leen del periodo abierto de la fecha destino. */
+  sedes?: string[]
   /** Un día dentro del periodo abierto destino. Sin ella, HOY en la sede, fijado al abrir (nunca el reloj del server). */
   fecha?: string
   /** «octubre 2026»: a qué periodo va, dicho antes de guardar. */
@@ -48,9 +50,16 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   // 🔴 Codex bloque A #1: el destino se fija AL ABRIR y viaja con la clave. Si el server usara el día en que recibe, un
   // reintento tras medianoche de cambio de periodo daría CLAVE_REUTILIZADA y la recaptura duplicaría el bono.
   const [fechaDestino] = useState(() => fecha ?? hoyEnSede(venueTimezone))
+  // Sin `sedes` (desde un periodo cerrado) el modal no sabe a qué periodo va ni dónde cabe el ajuste: lo lee del periodo
+  // abierto que contiene la fecha destino —la MISMA que se manda—, así el nombre no la contradice y se ofrecen todas sus
+  // sedes, no las del periodo cerrado (QA defecto 7).
+  const destinoLeido = useStaffPayReport({ offset: 0, limit: 1, fecha: fechaDestino }, open && !sedes)
+  const leido = destinoLeido.data
+  const nombrePeriodo = useNombrePeriodo()
+  const sedesDestino = useMemo(() => sedes ?? leido?.venueIds ?? [], [sedes, leido])
   // La sede que se está viendo siempre es una opción (al inicio del mes puede no tener dinero todavía).
-  const listaSedes = useMemo(() => (venueId && !sedes.includes(venueId) ? [venueId, ...sedes] : sedes), [sedes, venueId])
-  const [sede, setSedeElegida] = useState(venueId ?? sedes[0] ?? '')
+  const listaSedes = useMemo(() => (venueId && !sedesDestino.includes(venueId) ? [venueId, ...sedesDestino] : sedesDestino), [sedesDestino, venueId])
+  const [sede, setSedeElegida] = useState(venueId ?? sedes?.[0] ?? '')
   const [busqueda, setBusqueda] = useState('')
   const buscar = useDebounce(busqueda.trim(), 300)
   // La lista sale de la SEDE ELEGIDA y con búsqueda en el servidor (Codex R1-22): desde PN también se encuentra a quien
@@ -120,8 +129,10 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
       'cursor-pointer rounded-full border px-4 py-1.5 text-sm transition-colors',
       tipo === v ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
     )
-  // Sin etiqueta (desde un periodo cerrado) se nombra por la fecha exacta que se manda: el texto no puede contradecirla.
-  const destino = etiqueta ?? t('manualAdjust.periodWithDate', { fecha: formatCalendarDate(fechaDestino) })
+  // Sin etiqueta, el nombre del periodo leído para la fecha destino; mientras llega (o si falla), la fecha exacta.
+  const destino =
+    etiqueta ??
+    (leido ? nombrePeriodo(leido.periodo, leido.periodo.periodicidad) : t('manualAdjust.periodWithDate', { fecha: formatCalendarDate(fechaDestino) }))
 
   return (
     <FullScreenModal
