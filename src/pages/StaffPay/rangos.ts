@@ -5,8 +5,9 @@ export const MESES_AJUSTE_ATRAS = 12
 export const MONTO_MAXIMO = 1_000_000
 /** Monto positivo con hasta 2 decimales, como lo acepta el server (sin exponentes, sin signos). «.5» = 0.50 también vale. */
 export const MONTO_VALIDO = /^(\d+(\.\d{1,2})?|\.\d{1,2})$/
-/** «0», «0.», «.» o «12.»: todavía se está escribiendo; el aviso de monto inválido espera a salir del campo. */
-export const A_MEDIO_ESCRIBIR = /^(0|\d*\.)$/
+/** Sólo ceros con o sin punto («0», «00», «0.», «.0», «0.00», «.») o «12.»: todavía se está escribiendo (camino de
+ *  «0.05»); el aviso de monto inválido espera a salir del campo. «» no cuenta. */
+export const A_MEDIO_ESCRIBIR = /^(0+\.?0*|0*\.0*|\d+\.)$/
 
 /** `YYYY-MM-DD` más (o menos) N meses; un día que no existe en el mes destino cae en su último día (31 → 30, 29 feb → 28). */
 export function sumarMeses(fecha: string, meses: number): string {

@@ -215,7 +215,8 @@
     "reasonHint": "Obligatorio, mínimo {{min}} letras. Queda en el historial.",
     "alreadyPaid": "Esta clase ya se pagó en el periodo del {{start}} al {{end}}: lo pagado no cambia; la diferencia queda pendiente y se liquida aparte.",
     "alreadyCounted": "Esta clase ya se contabilizó en el periodo del {{start}} al {{end}}: lo contabilizado no cambia; la diferencia queda pendiente y se liquida aparte.",
-    "reincludeNote": "Esta clase está marcada «No se paga esta clase». Al guardar vuelve a pagarse: con el conteo y el monto que escribas abajo o, si los dejas vacíos, con el conteo del sistema y el monto de la tabla."
+    "reincludeNote": "Esta clase está marcada «No se paga esta clase». Al guardar vuelve a pagarse: con el conteo y el monto que escribas abajo o, si los dejas vacíos, con el conteo del sistema y el monto de la tabla.",
+    "keyReused": "La clase cambió desde tu último intento. Revisa los valores y guarda de nuevo."
   },
   "member": {
     "title": "Nivel de pago",

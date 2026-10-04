@@ -85,7 +85,8 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
     } catch (err) {
       if ((err as { response?: { data?: { code?: string } } } | null)?.response?.data?.code === 'CLAVE_REUTILIZADA') {
         setClaves(c => ({ ...c, [cual]: crypto.randomUUID() }))
-        setErrorClave(mensajeLegible(err) ?? t('errors.generic'))
+        // El dueño no maneja claves: texto propio (la clave ya rotó; el siguiente clic aplica).
+        setErrorClave(t('adjust.keyReused'))
       } else {
         // El mensaje del server, sin «Error de validación: campo:» (full-testing A12).
         toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
@@ -173,7 +174,10 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
               step="0.01"
               disabled={excluir}
               value={monto}
-              onChange={e => setMonto(e.target.value)}
+              onChange={e => {
+                setMonto(e.target.value)
+                if (A_MEDIO_ESCRIBIR.test(e.target.value)) setMontoTocado(false)
+              }}
               onBlur={() => setMontoTocado(true)}
               aria-invalid={!montoValido}
             />

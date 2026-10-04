@@ -148,6 +148,23 @@ describe('AjusteManualModal', () => {
     fireEvent.blur(monto)
     expect(screen.getByText('manualAdjust.amountInvalid')).toBeInTheDocument()
   })
+  it('teclear «0.05» no hace parpadear el aviso en «0.0»; y tras un primer blur, volver a «0» no avisa a la primera tecla', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} etiqueta="octubre 2026" />)
+    llenar('manualAdjust.bonus')
+    const monto = screen.getByLabelText('manualAdjust.amount')
+    for (const paso of ['0', '0.0', '0.05']) {
+      fireEvent.change(monto, { target: { value: paso } })
+      expect(screen.queryByText('manualAdjust.amountInvalid')).not.toBeInTheDocument()
+    }
+    fireEvent.change(monto, { target: { value: '0' } })
+    fireEvent.blur(monto)
+    expect(screen.getByText('manualAdjust.amountInvalid')).toBeInTheDocument()
+    // Se vuelve a escribir: «0.0» está a medias otra vez, el aviso espera al siguiente blur.
+    fireEvent.change(monto, { target: { value: '0.0' } })
+    expect(screen.queryByText('manualAdjust.amountInvalid')).not.toBeInTheDocument()
+    fireEvent.change(monto, { target: { value: '0.05' } })
+    expect(screen.getByText(/manualAdjust\.summaryBonus/)).toHaveTextContent('$0.05')
+  })
   it('un 400 del server se dice en línea y legible (sin «Error de validación: amount:»)', async () => {
     m.add.mockRejectedValue({ response: { status: 400, data: { message: 'Error de validación: amount: Máximo dos decimales' } } })
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)

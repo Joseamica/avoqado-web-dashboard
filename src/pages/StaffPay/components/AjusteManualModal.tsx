@@ -257,6 +257,8 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
               onChange={e => {
                 setErrorServer(null)
                 setMontoTexto(e.target.value)
+                // Volvió a quedar a medias: el aviso espera al siguiente blur.
+                if (A_MEDIO_ESCRIBIR.test(e.target.value)) setMontoTocado(false)
               }}
               onBlur={() => setMontoTocado(true)}
               aria-invalid={avisoMonto}

@@ -236,7 +236,7 @@ describe('PagoDeClaseCard', () => {
 
   it('409 CLAVE_REUTILIZADA: el modal no se atora — dice el porqué en línea y el siguiente intento lleva OTRA clave', async () => {
     m.adjust
-      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'CLAVE_REUTILIZADA', message: 'Ese ajuste ya se aplicó con otros valores: revisa la clase' } } })
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'CLAVE_REUTILIZADA', message: 'Esa clave ya se usó para otro ajuste de esta clase: usa otra clave' } } })
       .mockResolvedValueOnce({})
     m.pay.mockReturnValue({ data: pago() })
     conRouter(<PagoDeClaseCard sessionId="s1" />)
@@ -244,7 +244,10 @@ describe('PagoDeClaseCard', () => {
     fireEvent.change(screen.getByLabelText('adjust.count'), { target: { value: '9' } })
     fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Eran 9' } })
     fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ese ajuste ya se aplicó con otros valores: revisa la clase')
+    // El dueño no maneja claves: texto propio, no el del server.
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent('adjust.keyReused')
+    expect(alerta).not.toHaveTextContent(/clave/)
     await waitFor(() => expect(screen.getByRole('button', { name: 'adjust.save' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
     await waitFor(() => expect(m.adjust).toHaveBeenCalledTimes(2))

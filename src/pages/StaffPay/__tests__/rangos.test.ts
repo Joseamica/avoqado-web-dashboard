@@ -34,7 +34,8 @@ describe('rangos', () => {
     for (const malo of ['10.005', '1e12', '-5', '.', '1.', '', 'abc']) expect(MONTO_VALIDO.test(malo)).toBe(false)
   })
   it('«0», «0.», «.» y «12.» están a medio escribir: el aviso espera', () => {
-    for (const medio of ['0', '0.', '.', '12.']) expect(A_MEDIO_ESCRIBIR.test(medio)).toBe(true)
-    for (const listo of ['10.005', '0.5', '12', '-5']) expect(A_MEDIO_ESCRIBIR.test(listo)).toBe(false)
+    // Sólo ceros, con o sin punto, también (camino de «0.05»): «00», «0.0», «.0», «0.00».
+    for (const medio of ['0', '0.', '.', '12.', '00', '0.0', '.0', '0.00']) expect(A_MEDIO_ESCRIBIR.test(medio)).toBe(true)
+    for (const listo of ['10.005', '0.5', '0.05', '12', '-5', '']) expect(A_MEDIO_ESCRIBIR.test(listo)).toBe(false)
   })
 })
