@@ -269,6 +269,58 @@ describe('PagoDeClaseCard', () => {
     conRouter(<PagoDeClaseCard sessionId="s1" />)
     expect(screen.getByText(/classCard\.notPaidExcluded/)).toHaveTextContent('Clase interna')
     expect(screen.queryByText(/^classCard\.excluded:/)).not.toBeInTheDocument()
+    // Lo de hoy ya se dijo arriba: no queda un «Lo que corresponde hoy» sin nada debajo.
+    expect(screen.queryByText('classCard.today')).not.toBeInTheDocument()
+  })
+
+  it('una clase excluida con líneas ya contabilizadas sí dice «No se paga» de hoy, bajo «Lo que corresponde hoy»', () => {
+    m.pay.mockReturnValue({
+      data: contabilizada({
+        estado: 'EXCLUIDA',
+        monto: null,
+        ajuste: { payCountOverride: null, payAmountOverride: null, payExcluded: true, reason: 'Clase interna', at: null },
+      }),
+    })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText(/^classCard\.excluded:/)).toHaveTextContent('Clase interna')
+    expect(screen.getAllByText('classCard.today')).toHaveLength(1)
+    expect(screen.queryByText(/classCard\.notPaidExcluded/)).not.toBeInTheDocument()
+  })
+
+  it('«Lo que corresponde hoy» encabeza lo de hoy una sola vez, también si la clase no ha terminado o se canceló', () => {
+    for (const estado of ['NO_TERMINADA', 'CANCELADA']) {
+      m.pay.mockReturnValue({ data: contabilizada({ estado, monto: null, conteo: null }) })
+      const { unmount } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+      expect(screen.getAllByText('classCard.today')).toHaveLength(1)
+      unmount()
+    }
+    m.pay.mockReturnValue({ data: contabilizada() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getAllByText('classCard.today')).toHaveLength(1)
+  })
+
+  it('si la clase ya tiene un ajuste dice que la diferencia queda pendiente; sin ajuste, que se paga aparte al corregir', () => {
+    m.pay.mockReturnValue({
+      data: contabilizada({ ajuste: { payCountOverride: 9, payAmountOverride: null, payExcluded: false, reason: 'Eran 9', at: null } }),
+    })
+    const { unmount } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('classCard.differencePending')).toBeInTheDocument()
+    expect(screen.queryByText('classCard.fixAsDifference')).not.toBeInTheDocument()
+    unmount()
+    m.pay.mockReturnValue({ data: contabilizada() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('classCard.fixAsDifference')).toBeInTheDocument()
+    expect(screen.queryByText('classCard.differencePending')).not.toBeInTheDocument()
+  })
+
+  it('un cierre sin líneas para una clase que hoy sí se paga dice «Sin pago en ese cierre»', () => {
+    m.pay.mockReturnValue({ data: contabilizada({ lineas: [] }) })
+    const { unmount } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('classCard.noPayInClose')).toBeInTheDocument()
+    unmount()
+    m.pay.mockReturnValue({ data: contabilizada() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.queryByText('classCard.noPayInClose')).not.toBeInTheDocument()
   })
 
   it('un periodo de origen todavía abierto no dice que ya se cerró', () => {
@@ -278,6 +330,9 @@ describe('PagoDeClaseCard', () => {
     conRouter(<PagoDeClaseCard sessionId="s1" />)
     expect(screen.getByText(/classCard\.originOpen/)).toBeInTheDocument()
     expect(screen.queryByText(/classCard\.origin:/)).not.toBeInTheDocument()
+    // Abierto no es congelado: ni «no cambia» ni «no se llegó a pagar en ese cierre».
+    expect(screen.queryByText('classCard.frozen')).not.toBeInTheDocument()
+    expect(screen.queryByText('classCard.noPayInClose')).not.toBeInTheDocument()
   })
 
   it('una clase sin periodo de origen no pinta el bloque de contabilizada', () => {

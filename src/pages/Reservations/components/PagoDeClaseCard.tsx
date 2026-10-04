@@ -94,14 +94,17 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
               </p>
             ))}
             {excluidaSinLineas && <p className="text-xs">{t('classCard.notPaidExcluded', { reason: p.ajuste?.reason ?? '' })}</p>}
+            {congelada && p.estado === 'OK' && lineas.length === 0 && <p className="text-xs">{t('classCard.noPayInClose')}</p>}
             {congelada && (
               <p className="text-xs text-muted-foreground">
                 <span>{t('classCard.frozen')}</span>
-                {puedeAjustar && <span> {t('classCard.fixAsDifference')}</span>}
+                {puedeAjustar && <span> {t(p.ajuste ? 'classCard.differencePending' : 'classCard.fixAsDifference')}</span>}
               </p>
             )}
           </div>
         )}
+        {/* Encabeza todo lo de hoy, en cualquier estado. Con «excluida sin líneas» lo de hoy ya se dijo arriba: no queda título huérfano. */}
+        {origen && !excluidaSinLineas && <p className="text-xs text-muted-foreground">{t('classCard.today')}</p>}
         {p.estado === 'NO_TERMINADA' && <p className="text-sm text-muted-foreground">{t('classCard.notFinished')}</p>}
         {p.estado === 'CANCELADA' && <p className="text-sm text-muted-foreground">{t('classCard.cancelled')}</p>}
         {p.estado === 'EXCLUIDA' && !excluidaSinLineas && (
@@ -122,7 +125,6 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
               </p>
             )}
             {conteoCorregido && <p className="text-xs text-muted-foreground">{t('classCard.calculated', { count: p.conteoCalculado })}</p>}
-            {origen && <p className="text-xs text-muted-foreground">{t('classCard.today')}</p>}
             {p.estado === 'OK' ? (
               <p className="text-2xl font-bold">{Currency(Number(p.monto))}</p>
             ) : (
