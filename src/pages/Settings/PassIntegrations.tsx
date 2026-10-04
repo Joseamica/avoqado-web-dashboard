@@ -62,7 +62,9 @@ export default function PassIntegrations() {
       ) : !planPaused && !hasFeature ? (
         // Sin plan y sin nada vivo, tras el paywall: lo que se ve (borroso) es qué hace la función.
         <PassesTeaser />
-      ) : overview.isError ? (
+      ) : overview.isError && !overview.data ? (
+        // Sólo si nunca llegaron datos: una recarga fallida (p. ej. tras un conectar sin red) no le quita al dueño la tarjeta,
+        // la llave que tecleó ni el mensaje del intento.
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('page.loadError')}</AlertTitle>

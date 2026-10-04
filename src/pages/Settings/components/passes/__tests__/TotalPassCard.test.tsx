@@ -187,6 +187,9 @@ describe('TotalPassCard', () => {
       expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: 'Primero conecta TotalPass.' })),
     )
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
+    // Al fallar, el selector vuelve al valor guardado (no se queda con lo que no se guardó).
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveTextContent('totalpass.mode.auto'))
+    expect(screen.getByText('totalpass.mode.autoHint')).toBeInTheDocument()
   })
 
   // Desconectar pide confirmación; un rechazo del server (socios próximos) se ve tal cual y en rojo.

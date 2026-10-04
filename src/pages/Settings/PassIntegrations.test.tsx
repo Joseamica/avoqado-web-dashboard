@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -43,6 +44,7 @@ vi.mock('@/components/billing/FeatureGate', () => ({
 }))
 
 import PassIntegrations from './PassIntegrations'
+import { passesKeys } from '@/hooks/use-passes'
 
 const connection = (provider: PassProvider, available: boolean): PassConnectionView => ({
   provider,
@@ -65,13 +67,14 @@ const OVERVIEW: PassIntegrationsOverview = {
 // MemoryRouter: desde la Tarea 5 la tarjeta en pausa por el plan navega a Suscripciones (useNavigate).
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PassIntegrations />
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, client }
 }
 
 beforeEach(() => {
@@ -120,6 +123,24 @@ describe('PassIntegrations (Pantalla A)', () => {
       timeout: 5_000,
     })
   })
+
+  // Un conectar que falla por red recarga la vista general (H1) y esa recarga también falla: con datos ya cargados la tarjeta se
+  // queda (con la llave tecleada y su mensaje); el aviso de carga es sólo para cuando nunca llegaron datos.
+  it('si la recarga de la vista general falla con datos ya cargados ⇒ la tarjeta se queda con la llave tecleada', async () => {
+    const user = userEvent.setup()
+    const { client } = renderPage()
+    const input = await screen.findByLabelText('totalpass.keyLabel')
+    await user.type(input, 'llave-tecleada-0000')
+    svc.getPassIntegrationsOverview.mockRejectedValue({ message: 'Network Error' })
+    // La recarga termina en error (con su reintento) y el aviso a React sale en el siguiente tick del notifyManager.
+    await act(async () => {
+      await client.refetchQueries()
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    expect(client.getQueryState(passesKeys.overview('v1'))?.status).toBe('error')
+    expect(screen.queryByText('page.loadError')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('totalpass.keyLabel')).toHaveValue('llave-tecleada-0000')
+  }, 10_000)
 
   // P1-2: la consulta del plan falló: no se adivina (fail-open) ni se pide nada; se dice y se pide recargar.
   it('si el plan no pudo comprobarse ⇒ aviso «recarga la página» y NO se consulta la API', async () => {
