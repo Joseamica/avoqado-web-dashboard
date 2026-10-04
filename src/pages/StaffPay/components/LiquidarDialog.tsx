@@ -132,9 +132,6 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   const [enviando, setEnviando] = useState(false)
   // Candado síncrono: el estado de React puede no alcanzar a cerrarse entre dos clics (full-testing C6).
   const enVuelo = useRef(false)
-  // Esta clave ya se mandó y la respuesta no llegó: si el server ya la había aplicado, su «ya liquidada» es el éxito de ESTE
-  // clic, no «otra pantalla» (full-testing C11).
-  const sinConfirmar = useRef(false)
   // HUELLA_CAMBIO: los montos de abajo ya son los nuevos; se dice (con antes → ahora si se sabe) hasta el siguiente intento.
   const [cambio, setCambio] = useState<string | null>(null)
   // SEDE_FUERA_DEL_PERIODO: la sede salió del destino entre el preview y la confirmación.
@@ -165,16 +162,16 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
         solicitudId,
         ...(ampliar ? { ampliarAlcance: true } : {}),
       })
-      // «Ya liquidada» tras una respuesta perdida con ESTA clave = lo liquidó este clic. Si nunca se había mandado, es que no
-      // había nada nuevo que pagar: se dice neutro, no como pago nuevo.
-      const fueEste = !r.yaLiquidada || sinConfirmar.current
-      sinConfirmar.current = false
+      // La clave es un UUID nuevo por apertura: «ya liquidada» CON líneas sólo puede venir de un envío de ESTE diálogo (un
+      // reintento visible tras una respuesta perdida, o el reintento OCULTO del interceptor de `api.ts`). Es el éxito de
+      // este clic (full-testing C11). Sin líneas, no había nada nuevo que pagar: aviso neutro.
+      const fueEste = !r.yaLiquidada || r.lineas.length > 0
       const nombre = (staffId: string) => p.filas.find(f => f.persona === staffId)?.personaNombre ?? t('period.noCoach')
       const lineas = r.lineas.map(l => t('differences.settledLine', { persona: nombre(l.staffId), monto: conSigno(l.amount) })).join(' · ')
       toast(
         fueEste
           ? { title: t('differences.settled', { periodo: destino }), ...(lineas ? { description: lineas } : {}) }
-          : { title: t('differences.alreadySettled') },
+          : { title: t('differences.alreadySettledElsewhere') },
       )
       onClose()
     } catch (err) {
@@ -204,14 +201,10 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
         setExcepcionEn(p)
       } else if (sinRespuesta(err)) {
         // La respuesta no llegó: puede que sí se haya liquidado. El reintento lleva la MISMA clave, así que no duplica.
-        sinConfirmar.current = true
         toast({ title: t('differences.networkRetry') })
       } else {
         // CLAVE_REUTILIZADA no debería pasar con una clave nueva por apertura; si pasa, el siguiente intento lleva otra.
-        if (data?.code === 'CLAVE_REUTILIZADA') {
-          setSolicitudId(crypto.randomUUID())
-          sinConfirmar.current = false
-        }
+        if (data?.code === 'CLAVE_REUTILIZADA') setSolicitudId(crypto.randomUUID())
         toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
       }
     } finally {

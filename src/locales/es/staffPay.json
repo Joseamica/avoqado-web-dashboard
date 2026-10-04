@@ -390,7 +390,6 @@
     "venueOutside": "{{sede}} no está en {{destino}}. Al liquidar, esa sede se suma al periodo.",
     "addVenueAndSettle": "Sumar la sede y liquidar",
     "settled": "Diferencia liquidada en {{periodo}}",
-    "alreadySettled": "Esta diferencia ya se había liquidado. No se agregó nada nuevo.",
     "changed": "Los montos cambiaron",
     "changedHelp": "Revísalos antes de confirmar.",
     "moved": "La clase se movió de periodo",

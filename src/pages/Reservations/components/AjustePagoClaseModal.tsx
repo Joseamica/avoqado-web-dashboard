@@ -12,7 +12,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
 import { useAccionDelModal } from '@/pages/StaffPay/accionDelModal'
 import { useFocoDeVuelta } from '@/pages/StaffPay/foco'
-import { mensajeLegible } from '@/pages/StaffPay/rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible } from '@/pages/StaffPay/rangos'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
 
@@ -21,8 +21,6 @@ const MOTIVO_MIN = 3
 const MOTIVO_MAX = 300
 const CONTEO_MAX = 500
 const ENTERO = /^\d+$/
-const MONTO = /^\d+(\.\d{1,2})?$/
-const MONTO_MAX = 1_000_000
 
 interface Props {
   sessionId: string
@@ -43,17 +41,21 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const [monto, setMonto] = useState(previo?.payAmountOverride != null ? String(Number(previo.payAmountOverride)) : '')
   const [excluir, setExcluir] = useState(modo === 'excluir' ? true : modo ? false : (previo?.payExcluded ?? false))
   const [motivo, setMotivo] = useState('')
+  // El aviso de monto espera a salir del campo mientras se teclea «0.» o «.» (no parpadea).
+  const [montoTocado, setMontoTocado] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const enVuelo = useRef(false)
   // Una clave por apertura y por acción (full-testing C14): el interceptor reintenta un PUT cuando se pierde la respuesta, y
   // sin clave el server lo registraba dos veces. Los reintentos de ESTE modal usan la misma.
-  const [claves] = useState(() => ({ guardar: crypto.randomUUID(), quitar: crypto.randomUUID() }))
+  const [claves, setClaves] = useState(() => ({ guardar: crypto.randomUUID(), quitar: crypto.randomUUID() }))
+  // 409 CLAVE_REUTILIZADA (esa clave ya se aplicó con otros valores): se dice en línea y la clave rota, o el modal se atora.
+  const [errorClave, setErrorClave] = useState<string | null>(null)
   // Clase ya contabilizada en un cierre: corregirla no toca lo congelado. Se dice ANTES de guardar, no después.
   const origen = actual.periodoOrigen?.estado === 'CLOSED' ? actual.periodoOrigen : null
   const yaPagada = !!actual.lineas?.some(l => l.concepto === 'SERVICE' && l.pagadoEn)
 
   const conteoValido = conteo === '' || (ENTERO.test(conteo) && Number(conteo) <= CONTEO_MAX)
-  const montoValido = monto === '' || (MONTO.test(monto) && Number(monto) <= MONTO_MAX)
+  const montoValido = monto === '' || (MONTO_VALIDO.test(monto) && Number(monto) <= MONTO_MAXIMO)
   const motivoValido = motivo.trim().length >= MOTIVO_MIN
   // Lo que la clase ya tiene viaja igual si la persona no lo cambió (QA N3): excluir NO borra el conteo ni el monto
   // corregidos (antes viajaban null y, al volver a pagarla, «Ajustar monto» abría vacío y el 7 regresaba a 6). Con el
@@ -71,17 +73,23 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const vacio = nuevo.payCountOverride === null && nuevo.payAmountOverride === null && !nuevo.payExcluded
   const puedeGuardar = motivoValido && (excluir || (conteoValido && montoValido)) && !(vacio && !previo) && !enviando
 
-  const enviar = async (cuerpo: AjusteClaseInput, clientKey: string) => {
+  const enviar = async (cuerpo: AjusteClaseInput, cual: 'guardar' | 'quitar') => {
     if (enVuelo.current) return
     enVuelo.current = true
     setEnviando(true)
+    setErrorClave(null)
     try {
-      await guardar.mutateAsync({ ...cuerpo, clientKey })
+      await guardar.mutateAsync({ ...cuerpo, clientKey: claves[cual] })
       toast({ title: t('adjust.saved') })
       onClose()
     } catch (err) {
-      // El mensaje del server, sin «Error de validación: campo:» (full-testing A12).
-      toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
+      if ((err as { response?: { data?: { code?: string } } } | null)?.response?.data?.code === 'CLAVE_REUTILIZADA') {
+        setClaves(c => ({ ...c, [cual]: crypto.randomUUID() }))
+        setErrorClave(mensajeLegible(err) ?? t('errors.generic'))
+      } else {
+        // El mensaje del server, sin «Error de validación: campo:» (full-testing A12).
+        toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
+      }
     } finally {
       enVuelo.current = false
       setEnviando(false)
@@ -90,7 +98,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
 
   const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
-    <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo, claves.guardar)} data-tour="class-pay-adjust-save">
+    <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo, 'guardar')} data-tour="class-pay-adjust-save">
       {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {t('adjust.save')}
     </Button>,
@@ -124,6 +132,12 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
             <span className="text-base">{t('adjust.exclude')}</span>
           </label>
           {reincluye && <p className="text-sm text-muted-foreground">{t('adjust.reincludeNote')}</p>}
+          {errorClave && (
+            <p role="alert" className="flex items-start gap-2 rounded-lg border border-amber-500/40 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>{errorClave}</span>
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="class-pay-adjust-count">{t('adjust.count')}</Label>
@@ -155,15 +169,18 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
               type="number"
               inputMode="decimal"
               min={0}
-              max={MONTO_MAX}
+              max={MONTO_MAXIMO}
               step="0.01"
               disabled={excluir}
               value={monto}
               onChange={e => setMonto(e.target.value)}
+              onBlur={() => setMontoTocado(true)}
               aria-invalid={!montoValido}
             />
             <p className="text-xs text-muted-foreground">{t('adjust.amountHint')}</p>
-            {!excluir && !montoValido && <p className="text-xs text-destructive">{t('adjust.amountInvalid')}</p>}
+            {!excluir && !montoValido && (montoTocado || !A_MEDIO_ESCRIBIR.test(monto)) && (
+              <p className="text-xs text-destructive">{t('adjust.amountInvalid')}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -187,7 +204,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
                 variant="outline"
                 className="cursor-pointer"
                 disabled={!motivoValido || enviando}
-                onClick={() => void enviar({ payCountOverride: null, payAmountOverride: null, payExcluded: false, reason: motivo.trim() }, claves.quitar)}
+                onClick={() => void enviar({ payCountOverride: null, payAmountOverride: null, payExcluded: false, reason: motivo.trim() }, 'quitar')}
               >
                 {t('adjust.clear')}
               </Button>

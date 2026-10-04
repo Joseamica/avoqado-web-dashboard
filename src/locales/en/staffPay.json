@@ -390,7 +390,6 @@
     "venueOutside": "{{sede}} is not part of {{destino}}. Settling adds that location to the period.",
     "addVenueAndSettle": "Add the location and settle",
     "settled": "Difference settled in {{periodo}}",
-    "alreadySettled": "This difference had already been settled. Nothing new was added.",
     "changed": "The amounts changed",
     "changedHelp": "Review them before confirming.",
     "moved": "The class moved to another period",

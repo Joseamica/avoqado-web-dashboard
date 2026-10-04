@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
 
 describe('rangos', () => {
   it('suma y resta meses sin salirse del mes', () => {
@@ -28,5 +28,13 @@ describe('rangos', () => {
   it('sin respuesta = la petición pudo aplicarse', () => {
     expect(sinRespuesta(new Error('Network Error'))).toBe(true)
     expect(sinRespuesta({ response: { status: 409 } })).toBe(false)
+  })
+  it('un monto vale con hasta 2 decimales, también «.5» (como lo emite el input y lo acepta el server)', () => {
+    for (const ok of ['5', '0', '10.01', '.5', '0.50', '.05']) expect(MONTO_VALIDO.test(ok)).toBe(true)
+    for (const malo of ['10.005', '1e12', '-5', '.', '1.', '', 'abc']) expect(MONTO_VALIDO.test(malo)).toBe(false)
+  })
+  it('«0», «0.», «.» y «12.» están a medio escribir: el aviso espera', () => {
+    for (const medio of ['0', '0.', '.', '12.']) expect(A_MEDIO_ESCRIBIR.test(medio)).toBe(true)
+    for (const listo of ['10.005', '0.5', '12', '-5']) expect(A_MEDIO_ESCRIBIR.test(listo)).toBe(false)
   })
 })

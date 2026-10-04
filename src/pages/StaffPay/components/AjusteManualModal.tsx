@@ -21,7 +21,7 @@ import { hoyEnSede } from '../hoyEnSede'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
 import { useFocoDeVuelta } from '../foco'
-import { MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
 
 interface Props {
   open: boolean
@@ -97,6 +97,9 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const [montoTexto, setMontoTexto] = useState('')
   const montoValido = MONTO_VALIDO.test(montoTexto) && Number(montoTexto) > 0 && Number(montoTexto) <= MONTO_MAXIMO
   const monto = montoValido ? Number(montoTexto) : undefined
+  // El aviso no parpadea mientras se teclea «0» o «0.»: sale al dejar el campo o con un valor que ya no está a medias.
+  const [montoTocado, setMontoTocado] = useState(false)
+  const avisoMonto = montoTexto !== '' && !montoValido && (montoTocado || !A_MEDIO_ESCRIBIR.test(montoTexto))
   const [motivo, setMotivo] = useState('')
   const [guardando, setGuardando] = useState(false)
   // Candado síncrono (full-testing C6): el estado no alcanza a cerrarse entre dos clics seguidos.
@@ -255,10 +258,11 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
                 setErrorServer(null)
                 setMontoTexto(e.target.value)
               }}
-              aria-invalid={montoTexto !== '' && !montoValido}
+              onBlur={() => setMontoTocado(true)}
+              aria-invalid={avisoMonto}
               data-tour="staffpay-adjust-amount"
             />
-            {montoTexto !== '' && !montoValido && <p className="text-xs text-destructive">{t('manualAdjust.amountInvalid')}</p>}
+            {avisoMonto && <p className="text-xs text-destructive">{t('manualAdjust.amountInvalid')}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="staffpay-ajuste-motivo">{t('manualAdjust.reason')}</Label>

@@ -168,7 +168,7 @@ describe('DiferenciasSection', () => {
         }),
       ),
     )
-    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.alreadySettled' }))
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.alreadySettledElsewhere' }))
   })
 
   it('doble clic síncrono en confirmar manda UNA sola vez (candado síncrono)', async () => {
@@ -183,12 +183,12 @@ describe('DiferenciasSection', () => {
     soltar({ lineas: [], yaLiquidada: false })
   })
 
-  it('si ya estaba liquidada, lo dice como aviso neutro, no como un pago nuevo', async () => {
-    m.settle.mockResolvedValue({ lineas: [{ staffId: 'a', amount: '40.00' }], yaLiquidada: true })
+  it('«ya liquidada» SIN líneas (no había nada nuevo que pagar): aviso neutro, no un pago nuevo', async () => {
+    m.settle.mockResolvedValue({ lineas: [], yaLiquidada: true })
     pintar()
     abrir()
     await confirmar()
-    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.alreadySettled' })))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.alreadySettledElsewhere' })))
     expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringMatching(/differences\.settled/) }))
     expect(m.toast.mock.calls[0][0].variant).toBeUndefined()
   })

@@ -234,6 +234,23 @@ describe('PagoDeClaseCard', () => {
     expect(segunda).toBe(primera)
   })
 
+  it('409 CLAVE_REUTILIZADA: el modal no se atora — dice el porqué en línea y el siguiente intento lleva OTRA clave', async () => {
+    m.adjust
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'CLAVE_REUTILIZADA', message: 'Ese ajuste ya se aplicó con otros valores: revisa la clase' } } })
+      .mockResolvedValueOnce({})
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixCount' }))
+    fireEvent.change(screen.getByLabelText('adjust.count'), { target: { value: '9' } })
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Eran 9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ese ajuste ya se aplicó con otros valores: revisa la clase')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'adjust.save' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() => expect(m.adjust).toHaveBeenCalledTimes(2))
+    expect(m.adjust.mock.calls[1][0].clientKey).not.toBe(m.adjust.mock.calls[0][0].clientKey)
+  })
+
   it('un 400 del server en el ajuste de clase se dice legible, sin «Error de validación: campo:»', async () => {
     m.adjust.mockRejectedValue({ response: { status: 400, data: { message: 'Error de validación: payAmountOverride: Máximo dos decimales' } } })
     m.pay.mockReturnValue({ data: pago() })
