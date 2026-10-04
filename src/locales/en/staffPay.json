@@ -157,7 +157,8 @@
     "receiptPartial": "This pay statement only includes the venues you can see: rows from other venues where this person works are missing.",
     "closeFrom": "You can close it starting {{fecha}}.",
     "justClosed": "This period is already closed. Loading the closed view…",
-    "receiptExportPartial": "The PDF and Excel include only the venues you can see."
+    "receiptExportPartial": "The PDF and Excel include only the venues you can see.",
+    "loadMoreError": "Could not load more."
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
@@ -368,17 +369,16 @@
   },
   "differences": {
     "title": "Pending differences",
-    "help": "Changes that came in after the close: a corrected class or one recorded late. They are paid once, in the open period; this period's receipt does not change.",
+    "help": "Changes that came in after the close: a corrected class or one recorded late. They are settled once, in the open period (added or deducted); this period's pay statement does not change.",
     "classLine": "{{clase}} · {{fecha}}",
     "classLineVenue": "{{clase}} · {{fecha}} · {{sede}}",
     "settle": "Settle",
     "settleIn": "Settle in {{periodo}}",
-    "settleFor": "Settle the difference for {{clase}} on {{fecha}}",
+    "settleFor": "{{accion}}: {{clase}} on {{fecha}}",
     "settleTitle": "Settle difference",
-    "goesTo": "It is added to {{destino}}; the {{origen}} receipt does not change.",
     "venueOutside": "{{sede}} is not part of {{destino}}. Settling adds that location to the period.",
     "addVenueAndSettle": "Add the location and settle",
-    "settled": "Difference added to {{periodo}}",
+    "settled": "Difference settled in {{periodo}}",
     "alreadySettled": "This difference had already been settled. Nothing new was added.",
     "changed": "The amounts changed",
     "changedHelp": "The amounts changed: review them before confirming.",
@@ -394,6 +394,10 @@
     "lateClassGeneric": "This class came in after its period was closed: it is paid as a difference.",
     "noPermission": "To settle differences you need the “Close periods and record payments” permission. Ask the business owner.",
     "loadError": "The difference for this class could not be calculated.",
-    "previewError": "What would be settled could not be calculated."
+    "previewError": "What would be settled could not be calculated.",
+    "addsTo": "Added to the {{destino}} pay statement",
+    "subtractsFrom": "Deducted from the {{destino}} pay statement",
+    "originUnchanged": "The {{origen}} pay statement does not change.",
+    "movedHelpClass": "It is no longer a difference of that period. Review this class's pay again."
   }
 }

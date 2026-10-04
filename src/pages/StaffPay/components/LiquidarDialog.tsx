@@ -42,12 +42,17 @@ export function MotivoPorResolver({ motivo, onNavegar }: { motivo: MotivoExcepci
   )
 }
 
+/** El encabezado de «Diferencias pendientes»: a donde vuelve el foco si la fila liquidada ya no está. */
+export const ID_DIFERENCIAS = 'staffpay-diferencias'
+
 interface Props {
   /** 🔴 La sede de la CLASE (no la del URL): ahí se pide el preview y se liquida (Codex R1-18). */
   classVenueId: string
   sessionId: string
   /** Para nombrar la clase mientras llega el preview. */
   clase?: { productName: string; startsAt: string }
+  /** De dónde se abrió: la lista del periodo cerrado o la tarjeta de la clase (cambia el aviso y a dónde vuelve el foco). */
+  desde?: 'lista' | 'clase'
   onClose: () => void
 }
 
@@ -60,14 +65,16 @@ type ErrorApi = {
  * que se vio. Se monta al abrirse, así que cada apertura trae su propia clave (`solicitudId`): un doble clic o un reintento
  * tras HUELLA_CAMBIO reusan la de esta apertura; reabrir la clase con una diferencia nueva, no.
  */
-export function LiquidarDialog({ classVenueId, sessionId, clase, onClose }: Props) {
+export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista', onClose }: Props) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
   const { formatDateTime } = useVenueDateTime()
   const nombreSede = useNombreSede()
   const nombrePeriodo = useNombrePeriodo()
-  const foco = useFocoDeVuelta()
+  // Si la fila liquidada ya no está, al encabezado de la sección; si la sección también se fue, al del periodo (o, en la
+  // tarjeta, a su título).
+  const foco = useFocoDeVuelta(desde === 'lista' ? `#${ID_DIFERENCIAS}` : undefined)
   const { data: p, isLoading, isFetching, isError, error, refetch } = useClassDifference(classVenueId, sessionId, true)
   const liquidar = useSettleDifference(classVenueId, sessionId)
   // Nace al ABRIR, no con la clase: con la misma clave, el server respondería «ya liquidada» con las líneas viejas y no
@@ -116,7 +123,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, onClose }: Prop
       } else if (data?.code === 'SEDE_FUERA_DEL_PERIODO') {
         setSedeSalio(true)
       } else if (data?.code === 'ORIGEN_CAMBIO') {
-        toast({ title: t('differences.moved'), description: t('differences.movedHelp') })
+        toast({ title: t('differences.moved'), description: t(desde === 'lista' ? 'differences.movedHelp' : 'differences.movedHelpClass') })
         onClose()
       } else if (data?.code === 'CLASE_EN_EXCEPCION') {
         setExcepcionEn(p)
@@ -160,12 +167,18 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, onClose }: Prop
         <ul className="max-h-[40vh] divide-y divide-border/50 overflow-y-auto rounded-lg border border-input text-sm">
           {conMonto.map(f => (
             <li key={f.persona} className="flex items-baseline justify-between gap-3 px-3 py-2">
-              <span className="min-w-0 break-words">{f.personaNombre ?? t('period.noCoach')}</span>
+              {/* Por persona: una sustitución trae un descuento y un pago en la misma clase. */}
+              <span className="min-w-0 break-words">
+                {f.personaNombre ?? t('period.noCoach')}
+                <span className="block text-xs text-muted-foreground">
+                  {t(Number(f.pendiente) < 0 ? 'differences.subtractsFrom' : 'differences.addsTo', { destino })}
+                </span>
+              </span>
               <span className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{conSigno(f.pendiente!)}</span>
             </li>
           ))}
         </ul>
-        <p className="text-sm">{t('differences.goesTo', { destino, origen })}</p>
+        <p className="text-sm">{t('differences.originUnchanged', { origen })}</p>
         {ampliar && (
           <p className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400" role="note">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

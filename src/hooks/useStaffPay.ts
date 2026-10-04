@@ -203,6 +203,9 @@ export function useClassDifference(classVenueId: string | null, sessionId: strin
  * y los periodos (el destino suma la línea), el reporte y los recibos, y la ficha de la clase — de la sede actual y de la
  * de la clase —; nunca niveles, tablas ni accesos. Si los montos cambiaron (HUELLA_CAMBIO) el server manda el preview
  * nuevo y se pone en la caché tal cual: el diálogo lo muestra sin otra vuelta.
+ * 🔴 `onSuccess`/`onError` DEVUELVEN la recarga: `mutateAsync` resuelve cuando la lista ya no trae la clase liquidada. Si
+ * no, el diálogo cerraba, el foco volvía a un botón que desaparecía un instante después (y caía al <body>), y el aviso de
+ * éxito convivía con la clase todavía en pantalla.
  */
 export function useSettleDifference(classVenueId: string | null, sessionId: string | null) {
   const { venueId } = useCurrentVenue()
@@ -210,27 +213,27 @@ export function useSettleDifference(classVenueId: string | null, sessionId: stri
   const ficha = staffPayKeys.classPay(classVenueId, sessionId)
   return useMutation({
     mutationFn: (b: LiquidarInput) => staffPayService.settleDifference(classVenueId!, sessionId!, b),
-    onSuccess: () => {
-      for (const v of new Set([venueId, classVenueId])) {
-        void qc.invalidateQueries({ queryKey: staffPayKeys.periods(v) })
-        void qc.invalidateQueries({ queryKey: staffPayKeys.report(v) })
-      }
-      void qc.invalidateQueries({ queryKey: ficha })
-    },
+    onSuccess: () =>
+      Promise.all([
+        ...[...new Set([venueId, classVenueId])].flatMap(v => [
+          qc.invalidateQueries({ queryKey: staffPayKeys.periods(v) }),
+          qc.invalidateQueries({ queryKey: staffPayKeys.report(v) }),
+        ]),
+        qc.invalidateQueries({ queryKey: ficha }),
+      ]),
     onError: err => {
       const r = (err as { response?: { status?: number; data?: { code?: string; details?: { preview?: PreviewLiquidacionDto } } } } | null)?.response
       if (!r?.status || r.status < 400 || r.status >= 500) return
       // La lista también cambió (otros montos, la clase se movió o ya se liquidó): se recarga.
-      for (const v of new Set([venueId, classVenueId])) void qc.invalidateQueries({ queryKey: [...staffPayKeys.periods(v), 'differences'] })
+      const listas = [...new Set([venueId, classVenueId])].map(v => qc.invalidateQueries({ queryKey: [...staffPayKeys.periods(v), 'differences'] }))
       if (r.data?.code === 'HUELLA_CAMBIO') {
         // El preview nuevo, si vino, va directo a la caché; si no, el diálogo lo vuelve a pedir. La ficha sí se recarga.
         const nuevo = r.data.details?.preview
         if (nuevo) qc.setQueryData(staffPayKeys.classDifference(classVenueId, sessionId), nuevo)
-        void qc.invalidateQueries({ queryKey: ficha, exact: true })
-      } else {
-        // Otro periodo de origen, excepción, sede fuera del destino…: la ficha y su diferencia se vuelven a leer.
-        void qc.invalidateQueries({ queryKey: ficha })
+        return Promise.all([...listas, qc.invalidateQueries({ queryKey: ficha, exact: true })])
       }
+      // Otro periodo de origen, excepción, sede fuera del destino…: la ficha y su diferencia se vuelven a leer.
+      return Promise.all([...listas, qc.invalidateQueries({ queryKey: ficha })])
     },
   })
 }

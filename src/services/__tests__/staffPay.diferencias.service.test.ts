@@ -104,6 +104,41 @@ describe('hooks de diferencias', () => {
       expect(llaves).not.toContain(JSON.stringify(k))
     }
   })
+  it('liquidar resuelve DESPUÉS de recargar la lista: el diálogo no cierra con la clase todavía en pantalla', async () => {
+    let soltar: () => void = () => undefined
+    let vez = 0
+    m.get.mockImplementation(async () => {
+      vez += 1
+      if (vez === 1) return { data: { items: [{ classSessionId: 'c1' }], nextCursor: null, parcial: false } }
+      await new Promise<void>(r => {
+        soltar = r
+      })
+      return { data: { items: [], nextCursor: null, parcial: false } }
+    })
+    m.post.mockResolvedValue({ data: { lineas: [{ staffId: 'a', amount: '40.00' }], yaLiquidada: false } })
+    const { result } = renderHook(() => ({ lista: useDifferences('p8'), liquidar: useSettleDifference('v1', 'c1') }), {
+      wrapper: conCliente().wrapper,
+    })
+    await waitFor(() => expect(result.current.lista.data?.pages[0].items).toHaveLength(1))
+    let resuelto = false
+    let promesa: Promise<unknown> = Promise.resolve()
+    act(() => {
+      promesa = result.current.liquidar.mutateAsync(cuerpo).then(() => {
+        resuelto = true
+      })
+    })
+    // La recarga de la lista está en vuelo: la liquidación todavía no resuelve.
+    await waitFor(() => expect(m.get).toHaveBeenCalledTimes(2))
+    await new Promise(r => setTimeout(r, 30))
+    expect(resuelto).toBe(false)
+    soltar()
+    await act(async () => {
+      await promesa
+    })
+    expect(resuelto).toBe(true)
+    await waitFor(() => expect(result.current.lista.data?.pages[0].items).toHaveLength(0))
+  })
+
   it('HUELLA_CAMBIO con el preview nuevo lo deja en la caché de la clase, sin otra vuelta al server', async () => {
     const nuevo = preview('90.00')
     m.post.mockRejectedValue(

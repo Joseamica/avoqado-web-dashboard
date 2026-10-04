@@ -75,8 +75,9 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const diferencia = debeRevisar ? dif.data : undefined
   // Por PERSONA, no el total: una sustitución de $480 por $480 suma cero y aun así a cada una le toca algo (Codex R1-19).
   const pendientes = diferencia && !diferencia.bloqueada ? diferencia.filas.filter(f => f.pendiente !== null && Number(f.pendiente) !== 0) : []
-  // Con la diferencia ya calculada, su monto dice más que «la diferencia queda pendiente» (QA defecto 10b).
-  const textoDiferencia = p.ajuste ? (diferencia ? null : 'classCard.differencePending') : 'classCard.fixAsDifference'
+  // Con ajuste, el MONTO pendiente (abajo) dice más que «la diferencia queda pendiente» (QA defecto 10b). Mientras llega no
+  // se dice nada (si ya se liquidó sería falso); sólo si no se pudo calcular queda la frase genérica.
+  const textoDiferencia = p.ajuste ? (dif.isError ? 'classCard.differencePending' : null) : 'classCard.fixAsDifference'
 
   return (
     <>
@@ -203,7 +204,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
           </div>
         )}
         {modo && <AjustePagoClaseModal sessionId={sessionId} actual={p} modo={modo} onClose={() => setModo(null)} />}
-        {liquidando && venueId && <LiquidarDialog classVenueId={venueId} sessionId={sessionId} onClose={() => setLiquidando(false)} />}
+        {liquidando && venueId && <LiquidarDialog classVenueId={venueId} sessionId={sessionId} desde="clase" onClose={() => setLiquidando(false)} />}
       </div>
     </>
   )

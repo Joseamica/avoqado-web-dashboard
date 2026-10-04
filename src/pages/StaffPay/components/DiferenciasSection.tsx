@@ -10,7 +10,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { conSigno } from '../conSigno'
 import { useNombreSede } from '../useNombreSede'
 import { EstadoLista } from './ListasDelPeriodo'
-import { LiquidarDialog, MotivoPorResolver } from './LiquidarDialog'
+import { ID_DIFERENCIAS, LiquidarDialog, MotivoPorResolver } from './LiquidarDialog'
 
 interface ClaseConDiferencia {
   id: string
@@ -22,36 +22,43 @@ interface ClaseConDiferencia {
   motivo: MotivoExcepcion | null
 }
 
+const porFecha = (a: FilaDiferenciaDto, b: FilaDiferenciaDto) =>
+  Date.parse(a.startsAt) - Date.parse(b.startsAt) ||
+  a.classSessionId.localeCompare(b.classSessionId) ||
+  (a.persona ?? '').localeCompare(b.persona ?? '')
+
 /**
- * Las filas (una por persona) agrupadas por clase, en el orden del server. Una clase partida entre dos páginas queda en un
- * solo bloque y una persona repetida no se pinta dos veces.
+ * Las filas (una por persona) agrupadas por clase y ordenadas por FECHA de la clase. El server las entrega por id (así
+ * pagina rápido); aquí se ordena TODO lo cargado, así que al «Cargar más» las nuevas se acomodan en su fecha. Una clase
+ * partida entre dos páginas queda en un solo bloque y una persona repetida no se pinta dos veces.
  */
 function agrupar(paginas: PaginaDiferenciasDto[] | undefined): ClaseConDiferencia[] {
-  const clases = new Map<string, ClaseConDiferencia>()
-  const vistas = new Set<string>()
+  const unicas = new Map<string, FilaDiferenciaDto>()
   for (const p of paginas ?? []) {
     for (const f of p.items) {
       const llave = `${f.classSessionId}:${f.persona ?? ''}`
-      if (vistas.has(llave)) continue
-      vistas.add(llave)
-      let c = clases.get(f.classSessionId)
-      if (!c) {
-        c = {
-          id: f.classSessionId,
-          venueId: f.venueId,
-          productName: f.productName,
-          startsAt: f.startsAt,
-          filas: [],
-          bloqueada: false,
-          motivo: null,
-        }
-        clases.set(f.classSessionId, c)
+      if (!unicas.has(llave)) unicas.set(llave, f)
+    }
+  }
+  const clases = new Map<string, ClaseConDiferencia>()
+  for (const f of [...unicas.values()].sort(porFecha)) {
+    let c = clases.get(f.classSessionId)
+    if (!c) {
+      c = {
+        id: f.classSessionId,
+        venueId: f.venueId,
+        productName: f.productName,
+        startsAt: f.startsAt,
+        filas: [],
+        bloqueada: false,
+        motivo: null,
       }
-      c.filas.push(f)
-      if (f.pendiente === null) {
-        c.bloqueada = true
-        c.motivo ??= f.motivo
-      }
+      clases.set(f.classSessionId, c)
+    }
+    c.filas.push(f)
+    if (f.pendiente === null) {
+      c.bloqueada = true
+      c.motivo ??= f.motivo
     }
   }
   return [...clases.values()]
@@ -78,13 +85,10 @@ export function DiferenciasSection({ periodId, etiquetaAbierto }: { periodId: st
   const puedeLiquidar = can('staffpay:close')
 
   return (
-    <section
-      className="space-y-3 rounded-lg border border-input p-4"
-      aria-labelledby="staffpay-diferencias"
-      data-tour="staffpay-differences"
-    >
+    <section className="space-y-3 rounded-lg border border-input p-4" aria-labelledby={ID_DIFERENCIAS} data-tour="staffpay-differences">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 id="staffpay-diferencias" className="font-semibold">
+        {/* Ancla del foco al liquidar: la fila del botón ya no está (Radix lo devolvería al <body>). */}
+        <h3 id={ID_DIFERENCIAS} className="font-semibold outline-none" tabIndex={-1}>
           {t('differences.title')}
         </h3>
         {parcial && (
@@ -109,10 +113,12 @@ export function DiferenciasSection({ periodId, etiquetaAbierto }: { periodId: st
         hasNextPage={!!q.hasNextPage}
         isFetchingNextPage={q.isFetchingNextPage}
         onLoadMore={() => q.fetchNextPage()}
+        errorAlCargarMas={q.isFetchNextPageError}
       >
         <ul className="divide-y divide-border/50">
           {clases.map(c => {
             const fecha = formatDateTime(c.startsAt)
+            const accion = etiquetaAbierto ? t('differences.settleIn', { periodo: etiquetaAbierto }) : t('differences.settle')
             return (
               <li key={c.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -129,11 +135,12 @@ export function DiferenciasSection({ periodId, etiquetaAbierto }: { periodId: st
                       variant="outline"
                       size="sm"
                       className="w-full cursor-pointer sm:w-auto"
-                      aria-label={t('differences.settleFor', { clase: c.productName, fecha })}
+                      // WCAG 2.5.3: el nombre accesible EMPIEZA con lo que se lee («Liquidar en octubre de 2026: Reformer del …»).
+                      aria-label={t('differences.settleFor', { accion, clase: c.productName, fecha })}
                       onClick={() => setAbierta(c)}
                       data-tour="staffpay-difference-settle"
                     >
-                      {etiquetaAbierto ? t('differences.settleIn', { periodo: etiquetaAbierto }) : t('differences.settle')}
+                      {accion}
                     </Button>
                   )}
                 </div>

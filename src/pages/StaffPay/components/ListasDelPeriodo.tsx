@@ -29,6 +29,8 @@ export function EstadoLista(p: {
   hasNextPage: boolean
   isFetchingNextPage: boolean
   onLoadMore: () => void
+  /** Falló «Cargar más» (página 2+): lo cargado se queda y el aviso va junto al botón, con «Reintentar». */
+  errorAlCargarMas?: boolean
   children: ReactNode
 }) {
   const { t } = useTranslation('staffPay')
@@ -58,10 +60,22 @@ export function EstadoLista(p: {
   return (
     <>
       {p.children}
-      {p.hasNextPage && (
-        <Button variant="outline" className="mt-3 w-full cursor-pointer" disabled={p.isFetchingNextPage} onClick={p.onLoadMore}>
-          {t('period.loadMore')}
-        </Button>
+      {p.hasNextPage && p.errorAlCargarMas && !p.isFetchingNextPage ? (
+        <div role="alert" className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <span>{t('period.loadMoreError')}</span>
+          </div>
+          <Button variant="outline" size="sm" className="cursor-pointer" onClick={p.onLoadMore}>
+            {t('period.retry')}
+          </Button>
+        </div>
+      ) : (
+        p.hasNextPage && (
+          <Button variant="outline" className="mt-3 w-full cursor-pointer" disabled={p.isFetchingNextPage} onClick={p.onLoadMore}>
+            {t('period.loadMore')}
+          </Button>
+        )
       )}
     </>
   )
@@ -97,6 +111,7 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
           hasNextPage={!!q.hasNextPage}
           isFetchingNextPage={q.isFetchingNextPage}
           onLoadMore={() => q.fetchNextPage()}
+          errorAlCargarMas={q.isFetchNextPageError}
         >
           <table className={`mt-4 ${TABLA_PERIODO}`}>
             <thead>
@@ -177,6 +192,7 @@ export function HuerfanasSheet({ sede, fecha, onClose }: { sede?: string; fecha?
           hasNextPage={!!q.hasNextPage}
           isFetchingNextPage={q.isFetchingNextPage}
           onLoadMore={() => q.fetchNextPage()}
+          errorAlCargarMas={q.isFetchNextPageError}
         >
           <p className="mt-4 text-xs text-muted-foreground">{t('period.shownOf', { shown: filas.length, total })}</p>
           <table className={`mt-2 ${TABLA_PERIODO}`}>

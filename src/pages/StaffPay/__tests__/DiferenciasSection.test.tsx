@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DiferenciasSection } from '../components/DiferenciasSection'
+import { LiquidarDialog } from '../components/LiquidarDialog'
 import type { FilaDiferenciaDto, PreviewLiquidacionDto } from '@/types/staffPay'
 
 const m = vi.hoisted(() => ({
@@ -108,14 +109,17 @@ describe('DiferenciasSection', () => {
     // El botón dice a qué mes va; su nombre accesible, de qué clase es.
     const boton = screen.getByRole('button', { name: /differences\.settleFor/ })
     expect(boton).toHaveTextContent('octubre de 2026')
-    expect(boton).toHaveAccessibleName(/Reformer/)
+    // WCAG 2.5.3: el nombre accesible lleva el texto visible («Liquidar en octubre de 2026») y luego la clase.
+    expect(boton).toHaveAccessibleName(/differences\.settleFor.*"accion":"differences\.settleIn.*octubre de 2026.*Reformer/)
     abrir()
     // El diálogo nombra persona, monto y el mes destino; el recibo del origen no cambia.
     const dialogo = await screen.findByRole('alertdialog')
     expect(dialogo).toHaveTextContent('Ana Martínez')
     expect(dialogo).toHaveTextContent('+$40.00')
-    expect(dialogo).toHaveTextContent(/differences\.goesTo/)
-    expect(dialogo).toHaveTextContent('"destino":"octubre de 2026","origen":"agosto de 2026"')
+    // Positiva: se SUMA al recibo del mes destino; el del origen no cambia.
+    expect(dialogo).toHaveTextContent('differences.addsTo:{"destino":"octubre de 2026"}')
+    expect(dialogo).toHaveTextContent('differences.originUnchanged:{"origen":"agosto de 2026"}')
+    expect(dialogo).not.toHaveTextContent('differences.subtractsFrom')
     await confirmar()
     await waitFor(() => expect(m.settle).toHaveBeenCalledWith(expect.objectContaining({ periodoOrigenId: 'p8', huellaEsperada: HUELLA })))
     expect(m.settle.mock.calls[0][0].solicitudId).toMatch(/^[A-Za-z0-9_.-]{8,100}$/)
@@ -198,13 +202,104 @@ describe('DiferenciasSection', () => {
     await waitFor(() => expect(m.settle).toHaveBeenLastCalledWith(expect.objectContaining({ ampliarAlcance: true })))
   })
 
-  it('si la clase se movió de periodo, avisa y cierra el diálogo', async () => {
+  it('si la clase se movió de periodo, avisa (con la lista) y cierra el diálogo', async () => {
     m.settle.mockRejectedValueOnce({ response: { status: 409, data: { code: 'ORIGEN_CAMBIO' } } })
     pintar()
     abrir()
     await confirmar()
-    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.moved' })))
+    await waitFor(() =>
+      expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.moved', description: 'differences.movedHelp' })),
+    )
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+  })
+
+  it('abierto desde la tarjeta de la clase, ORIGEN_CAMBIO no habla de una lista que no hay', async () => {
+    m.settle.mockRejectedValueOnce({ response: { status: 409, data: { code: 'ORIGEN_CAMBIO' } } })
+    const onClose = vi.fn()
+    render(
+      <MemoryRouter>
+        <LiquidarDialog classVenueId="v2" sessionId="c1" desde="clase" onClose={onClose} />
+      </MemoryRouter>,
+    )
+    await confirmar()
+    await waitFor(() =>
+      expect(m.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'differences.moved', description: 'differences.movedHelpClass' }),
+      ),
+    )
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('una diferencia NEGATIVA se descuenta del recibo del mes destino; una mixta lo dice por persona', async () => {
+    conVista(vista({ filas: [fila({ pendiente: '-570.00' })], total: '-570.00' }))
+    const { unmount } = pintar()
+    abrir()
+    let dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('−$570.00')
+    expect(dialogo).toHaveTextContent('differences.subtractsFrom:{"destino":"octubre de 2026"}')
+    expect(dialogo).not.toHaveTextContent('differences.addsTo')
+    unmount()
+    const filas = [
+      fila({ persona: 'a', personaNombre: 'Ana Martínez', pendiente: '-480.00' }),
+      fila({ persona: 's', personaNombre: 'Sofía Ruiz', pendiente: '480.00' }),
+    ]
+    conVista(vista({ filas, total: '0.00' }))
+    pintar()
+    abrir()
+    dialogo = await screen.findByRole('alertdialog')
+    const personas = within(dialogo).getAllByRole('listitem')
+    expect(personas[0]).toHaveTextContent('Ana Martínez')
+    expect(personas[0]).toHaveTextContent('differences.subtractsFrom')
+    expect(personas[1]).toHaveTextContent('Sofía Ruiz')
+    expect(personas[1]).toHaveTextContent('differences.addsTo')
+  })
+
+  it('tras liquidar la ÚLTIMA diferencia (la sección desaparece), el foco va al encabezado del periodo, nunca al <body>', async () => {
+    // La recarga llega ANTES de que resuelva la liquidación (el hook espera sus invalidaciones).
+    m.settle.mockImplementation(async () => {
+      m.lista.mockReturnValue(lista([]))
+      return { lineas: [{ staffId: 'a', amount: '40.00' }], yaLiquidada: false }
+    })
+    render(
+      <MemoryRouter>
+        <h2 tabIndex={-1} data-staffpay-ancla>
+          periodo
+        </h2>
+        <DiferenciasSection periodId="p8" etiquetaAbierto="octubre de 2026" />
+      </MemoryRouter>,
+    )
+    const boton = screen.getByRole('button', { name: /differences\.settleFor/ })
+    boton.focus()
+    abrir()
+    await confirmar()
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    expect(screen.queryByText('differences.title')).not.toBeInTheDocument()
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('data-staffpay-ancla'))
+    expect(document.activeElement).not.toBe(document.body)
+  })
+
+  it('si quedan otras diferencias, el foco va al encabezado de la sección (la fila liquidada ya no está)', async () => {
+    const otra = fila({ classSessionId: 'c2', productName: 'Barre', startsAt: '2026-08-05T14:00:00Z' })
+    m.lista.mockReturnValue(lista([fila(), otra]))
+    m.settle.mockImplementation(async () => {
+      m.lista.mockReturnValue(lista([otra]))
+      return { lineas: [{ staffId: 'a', amount: '40.00' }], yaLiquidada: false }
+    })
+    render(
+      <MemoryRouter>
+        <h2 tabIndex={-1} data-staffpay-ancla>
+          periodo
+        </h2>
+        <DiferenciasSection periodId="p8" etiquetaAbierto="octubre de 2026" />
+      </MemoryRouter>,
+    )
+    const boton = screen.getAllByRole('button', { name: /differences\.settleFor/ })[0]
+    expect(boton).toHaveAccessibleName(/Reformer/)
+    boton.focus()
+    fireEvent.click(boton)
+    await confirmar()
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(document.activeElement).toHaveTextContent('differences.title'))
   })
 
   it('si el server dice que la clase quedó en excepción, lo explica, ofrece resolver y no deja confirmar', async () => {
@@ -296,6 +391,40 @@ describe('DiferenciasSection', () => {
     expect(screen.getByText('period.partial')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'period.loadMore' }))
     expect(m.fetchNextPage).toHaveBeenCalled()
+  })
+
+  it('si falla «Cargar más», lo dice junto al botón y deja reintentar (no es silencioso)', () => {
+    m.lista.mockReturnValue({ ...lista([fila()]), hasNextPage: true, isError: true, isFetchNextPageError: true })
+    pintar()
+    // Lo cargado sigue a la vista; el aviso va abajo, con su «Reintentar».
+    expect(screen.getByText('+$40.00')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('period.loadMoreError')
+    fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
+    expect(m.fetchNextPage).toHaveBeenCalled()
+  })
+
+  it('las clases salen por FECHA aunque el server las mande por id, también al «Cargar más»', () => {
+    const tarde = fila({ classSessionId: 'c1', productName: 'Reformer', startsAt: '2026-08-20T14:00:00Z' })
+    const temprano = fila({ classSessionId: 'c9', productName: 'Barre', startsAt: '2026-08-02T14:00:00Z' })
+    const medio = fila({
+      classSessionId: 'c5',
+      productName: 'Yoga',
+      startsAt: '2026-08-10T14:00:00Z',
+      persona: 's',
+      personaNombre: 'Sofía Ruiz',
+    })
+    m.lista.mockReturnValue({
+      ...lista([]),
+      data: {
+        pages: [
+          { items: [tarde, temprano], nextCursor: 'v2:c9:a', parcial: false },
+          { items: [medio], nextCursor: null, parcial: false },
+        ],
+      },
+    })
+    pintar()
+    const clases = screen.getAllByText(/differences\.classLine/).map(e => e.textContent)
+    expect(clases.map(c => c?.match(/"clase":"(\w+)"/)?.[1])).toEqual(['Barre', 'Yoga', 'Reformer'])
   })
 
   it('una clase partida entre dos páginas se agrupa en un solo bloque y no repite personas', () => {

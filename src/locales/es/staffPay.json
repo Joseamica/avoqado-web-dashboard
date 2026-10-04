@@ -157,7 +157,8 @@
     "receiptPartial": "Este recibo sólo trae las sedes que puedes ver: faltan los renglones de otras sedes donde trabaja esta persona.",
     "closeFrom": "Podrás cerrarlo a partir del {{fecha}}.",
     "justClosed": "Este periodo ya está cerrado. Cargando la vista cerrada…",
-    "receiptExportPartial": "El PDF y el Excel traen sólo las sedes que puedes ver."
+    "receiptExportPartial": "El PDF y el Excel traen sólo las sedes que puedes ver.",
+    "loadMoreError": "No se pudo cargar más."
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
@@ -368,17 +369,16 @@
   },
   "differences": {
     "title": "Diferencias pendientes",
-    "help": "Cambios que llegaron después del cierre: una clase corregida o que se registró tarde. Se pagan una sola vez en el periodo abierto; el recibo de este periodo no cambia.",
+    "help": "Cambios que llegaron después del cierre: una clase corregida o que se registró tarde. Se liquidan una sola vez en el periodo abierto (se suman o se descuentan); el recibo de este periodo no cambia.",
     "classLine": "{{clase}} · {{fecha}}",
     "classLineVenue": "{{clase}} · {{fecha}} · {{sede}}",
     "settle": "Liquidar",
     "settleIn": "Liquidar en {{periodo}}",
-    "settleFor": "Liquidar la diferencia de {{clase}} del {{fecha}}",
+    "settleFor": "{{accion}}: {{clase}} del {{fecha}}",
     "settleTitle": "Liquidar diferencia",
-    "goesTo": "Se agrega a {{destino}}; el recibo de {{origen}} no cambia.",
     "venueOutside": "{{sede}} no está en {{destino}}. Al liquidar, esa sede se suma al periodo.",
     "addVenueAndSettle": "Sumar la sede y liquidar",
-    "settled": "Diferencia agregada a {{periodo}}",
+    "settled": "Diferencia liquidada en {{periodo}}",
     "alreadySettled": "Esta diferencia ya se había liquidado. No se agregó nada nuevo.",
     "changed": "Los montos cambiaron",
     "changedHelp": "Los montos cambiaron: revisa antes de confirmar.",
@@ -394,6 +394,10 @@
     "lateClassGeneric": "Esta clase llegó después del cierre de su periodo: se paga como diferencia.",
     "noPermission": "Para liquidar diferencias necesitas el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
     "loadError": "No se pudo calcular la diferencia de esta clase.",
-    "previewError": "No se pudo calcular qué se liquida."
+    "previewError": "No se pudo calcular qué se liquida.",
+    "addsTo": "Se suma al recibo de {{destino}}",
+    "subtractsFrom": "Se descuenta del recibo de {{destino}}",
+    "originUnchanged": "El recibo de {{origen}} no cambia.",
+    "movedHelpClass": "Ya no es una diferencia de ese periodo. Revisa de nuevo el pago de esta clase."
   }
 }

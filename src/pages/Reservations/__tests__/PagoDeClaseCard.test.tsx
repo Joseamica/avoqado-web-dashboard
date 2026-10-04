@@ -338,12 +338,20 @@ describe('PagoDeClaseCard', () => {
     expect(screen.getAllByText('classCard.today')).toHaveLength(1)
   })
 
-  it('si la clase ya tiene un ajuste dice que la diferencia queda pendiente; sin ajuste, que se paga aparte al corregir', () => {
-    m.pay.mockReturnValue({
-      data: contabilizada({ ajuste: { payCountOverride: 9, payAmountOverride: null, payExcluded: false, reason: 'Eran 9', at: null } }),
-    })
-    const { unmount } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+  it('con ajuste, «la diferencia queda pendiente» sólo si no se pudo calcular el monto; sin ajuste, que se paga aparte al corregir', () => {
+    const ajustada = contabilizada({ ajuste: { payCountOverride: 9, payAmountOverride: null, payExcluded: false, reason: 'Eran 9', at: null } })
+    // Mientras llega el monto no se dice nada: si ya se liquidó, «queda pendiente» sería falso.
+    m.pay.mockReturnValue({ data: ajustada })
+    m.diff.mockReturnValue({ data: undefined, isLoading: true, isError: false })
+    let r = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.queryByText('classCard.differencePending')).not.toBeInTheDocument()
+    r.unmount()
+    m.diff.mockReturnValue({ data: undefined, isLoading: false, isError: true })
+    r = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('differences.loadError')).toBeInTheDocument()
     expect(screen.getByText('classCard.differencePending')).toBeInTheDocument()
+    const { unmount } = r
+    m.diff.mockReturnValue({ data: undefined, isLoading: false, isError: false })
     expect(screen.queryByText('classCard.fixAsDifference')).not.toBeInTheDocument()
     unmount()
     m.pay.mockReturnValue({ data: contabilizada() })
@@ -414,7 +422,7 @@ describe('PagoDeClaseCard', () => {
     const liquidar = screen.getByRole('button', { name: /differences\.settleIn/ })
     expect(liquidar).toHaveTextContent('"periodo":"octubre de 2026"')
     fireEvent.click(liquidar)
-    expect(m.dialogo).toHaveBeenLastCalledWith(expect.objectContaining({ classVenueId: 'v1', sessionId: 's1' }))
+    expect(m.dialogo).toHaveBeenLastCalledWith(expect.objectContaining({ classVenueId: 'v1', sessionId: 's1', desde: 'clase' }))
   })
 
   it('una sustitución de igual monto (−$480 y +$480, total cero) muestra a las dos personas y el botón (Codex R1-19)', () => {

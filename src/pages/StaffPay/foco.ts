@@ -10,7 +10,10 @@ const usable = (el: Element | null | undefined): el is HTMLElement =>
  * marcó pagado, se cerró el periodo, se abrió desde otro modal), al encabezado del periodo (`data-staffpay-ancla`) o, si
  * la vista todavía carga, al selector de periodo.
  */
-export function useFocoDeVuelta() {
+export function useFocoDeVuelta(
+  /** Un lugar estable antes del encabezado del periodo (p. ej. `#staffpay-diferencias`): si el botón ya no está, ahí. */
+  respaldo?: string,
+) {
   const origen = useRef<Element | null>(null)
   return useMemo(
     () => ({
@@ -29,10 +32,15 @@ export function useFocoDeVuelta() {
       },
       onCloseAutoFocus: (e: Event) => {
         e.preventDefault()
-        const destino = [origen.current, document.querySelector('[data-staffpay-ancla]'), document.getElementById('staffpay-periodo')].find(usable)
+        const destino = [
+          origen.current,
+          respaldo ? document.querySelector(respaldo) : null,
+          document.querySelector('[data-staffpay-ancla]'),
+          document.getElementById('staffpay-periodo'),
+        ].find(usable)
         destino?.focus({ preventScroll: true })
       },
     }),
-    [],
+    [respaldo],
   )
 }

@@ -36,6 +36,20 @@ describe('useFocoDeVuelta (QA defecto 12: el foco nunca cae al <body>)', () => {
     expect(document.activeElement).toHaveAttribute('data-staffpay-ancla')
   })
 
+  it('con un respaldo (la sección de diferencias), va ahí antes que al encabezado del periodo', () => {
+    crear('<h3 tabindex="-1" data-staffpay-ancla>Periodo</h3><h3 id="seccion" tabindex="-1">Diferencias</h3><button id="abrir">Liquidar</button>')
+    const { result } = renderHook(() => useFocoDeVuelta('#seccion'))
+    document.getElementById('abrir')!.focus()
+    result.current.onOpenAutoFocus()
+    document.getElementById('abrir')!.remove()
+    result.current.onCloseAutoFocus(evento())
+    expect(document.activeElement).toBe(document.getElementById('seccion'))
+    // Y si la sección también se fue (era la última diferencia), al encabezado del periodo.
+    document.getElementById('seccion')!.remove()
+    result.current.onCloseAutoFocus(evento())
+    expect(document.activeElement).toHaveAttribute('data-staffpay-ancla')
+  })
+
   it('si el botón quedó apagado, también va al encabezado', () => {
     crear('<h3 tabindex="-1" data-staffpay-ancla>Periodo</h3><button id="abrir">Marcar todos</button>')
     const { result } = renderHook(() => useFocoDeVuelta())
