@@ -21,8 +21,15 @@ export function useCountdown(deadlineAt: string | null): { msLeft: number; expir
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (!deadlineAt) return
+    const end = new Date(deadlineAt).getTime()
     setNow(Date.now())
-    const id = setInterval(() => setNow(Date.now()), 1000)
+    if (Date.now() >= end) return
+    // Al llegar a cero el reloj se detiene: una fila vencida no se vuelve a pintar cada segundo.
+    const id = setInterval(() => {
+      const t = Date.now()
+      setNow(t)
+      if (t >= end) clearInterval(id)
+    }, 1000)
     return () => clearInterval(id)
   }, [deadlineAt])
   const msLeft = deadlineAt ? Math.max(0, new Date(deadlineAt).getTime() - now) : 0

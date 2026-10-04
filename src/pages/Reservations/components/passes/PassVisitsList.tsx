@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -38,6 +38,9 @@ function dedupeById(items: PassVisitView[]): PassVisitView[] {
   return items.filter(v => (seen.has(v.id) ? false : (seen.add(v.id), true)))
 }
 
+/** Varias filas que vencen juntas (o que se montan ya vencidas) se juntan en una sola recarga por ventana (H4). */
+const EXPIRY_REFRESH_GAP_MS = 5_000
+
 const errorCode = (error: unknown) => (error as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code
 
 interface PassVisitsListProps {
@@ -60,6 +63,7 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
   const { t } = useTranslation('passes')
   const { toast } = useToast()
   const { can } = useAccess()
+  const { formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const invalidate = useInvalidatePasses()
   const canAct = can('reservations:update')
@@ -92,10 +96,28 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
     [overview.data],
   )
 
-  // Al llegar a cero la cuenta regresiva de una fila se vuelve a pedir la lista: el server ya la venció y sale de Pendientes.
-  const refreshList = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: passesKeys.visits(venueId, filters) })
-  }, [queryClient, venueId, filters])
+  // Al llegar a cero la cuenta regresiva de una fila se vuelve a pedir la lista (el server ya la venció y sale de Pendientes).
+  // Una sola recarga por ventana de 5 s aunque venzan varias filas; ninguna se pierde: la que vence dentro de la ventana
+  // queda para el final de ésta. Estable (no depende de los filtros) para que cambiar de filtro no la vuelva a disparar.
+  const expiryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastExpiryRefresh = useRef(0)
+  const onRowExpired = useCallback(() => {
+    if (expiryTimer.current) return
+    expiryTimer.current = setTimeout(
+      () => {
+        expiryTimer.current = null
+        lastExpiryRefresh.current = Date.now()
+        void queryClient.invalidateQueries({ queryKey: passesKeys.visitsAll(venueId) })
+      },
+      Math.max(0, lastExpiryRefresh.current + EXPIRY_REFRESH_GAP_MS - Date.now()),
+    )
+  }, [queryClient, venueId])
+  useEffect(
+    () => () => {
+      if (expiryTimer.current) clearTimeout(expiryTimer.current)
+    },
+    [],
+  )
 
   const providerName = (v: PassVisitView) => t(`providers.${v.provider}`)
   // El `message` del server, tal cual (en español: plazo vencido, conexión no activa, asistencia que no se pudo deshacer…).
@@ -143,14 +165,16 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
   })
   const acting = confirm.isPending || reject.isPending
 
-  if (query.isLoading) {
+  // `isPending` y no `isLoading`: con la consulta apagada (el plan aún sin comprobar) tampoco hay nada que concluir (H2).
+  if (query.isPending) {
     return (
       <div className="flex min-h-40 items-center justify-center gap-2 text-muted-foreground" role="status" aria-label={t('common:loading')}>
         <Loader2 className="h-5 w-5 animate-spin" /> {t('common:loading')}
       </div>
     )
   }
-  if (query.isError) {
+  // Sólo si nunca llegó una lista: un refresco o un «Cargar más» fallidos no la tapan (H1, como la T5 ronda 1b).
+  if (query.isError && !query.data) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -162,6 +186,15 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
 
   return (
     <div className="space-y-3">
+      {query.isError && (
+        <Alert className="border-input bg-muted/40">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t('visits.refreshError')}</AlertTitle>
+          {apiErrorDescription(query.error) && (
+            <AlertDescription className="text-muted-foreground">{apiErrorDescription(query.error)}</AlertDescription>
+          )}
+        </Alert>
+      )}
       {stale && (
         <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('visits.updating')}
@@ -190,7 +223,7 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
                   connectionInactive={inactiveProviders.has(visit.provider)}
                   onConfirm={() => confirm.mutate(visit.id)}
                   onReject={() => setToReject(visit)}
-                  onExpired={refreshList}
+                  onExpired={onRowExpired}
                 />
               ))}
               {items.length === 0 && !stale && (
@@ -206,7 +239,8 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
       </Card>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">{t('visits.total', { count: total })}</p>
+        {/* Con `stale` el total es del filtro ANTERIOR: no se presenta como definitivo (H3). */}
+        <p className="text-xs text-muted-foreground">{stale ? null : t('visits.total', { count: total })}</p>
         {query.hasNextPage && !stale && (
           <Button
             variant="outline"
@@ -228,7 +262,23 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
               <AlertTriangle className="h-5 w-5 text-destructive" />
               {t('visits.rejectTitle')}
             </AlertDialogTitle>
-            <AlertDialogDescription>{t('visits.rejectBody')}</AlertDialogDescription>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {/* Irreversible y pesa en el pago: se dice de quién es el check-in y de qué clase (H8). */}
+                {toReject && (
+                  <p className="font-medium text-foreground">
+                    {toReject.reservation
+                      ? t('visits.rejectWho', {
+                          member: toReject.memberName ?? t('visits.unknownMember'),
+                          class: toReject.reservation.productName ?? '—',
+                          time: formatDateTime(toReject.reservation.startsAt),
+                        })
+                      : t('visits.rejectWhoNoClass', { member: toReject.memberName ?? t('visits.unknownMember') })}
+                  </p>
+                )}
+                <p>{t('visits.rejectBody')}</p>
+              </div>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
@@ -267,11 +317,14 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
   useEffect(() => {
     if (pending && expired) onExpired()
   }, [pending, expired, onExpired])
-  const actionable = canAct && pending && visit.canConfirm && !expired && !awaiting
+  const open = canAct && pending && !expired && !awaiting
+  const showConfirm = open && visit.canConfirm
+  const showReject = open && visit.canReject
   const confirmedByKey = visit.confirmedBy ? CONFIRMED_BY_KEYS[visit.confirmedBy] : undefined
   const providerName = t(`providers.${visit.provider}`)
-  // Un rechazo deja «Rechazada por el estudio» en lastError: es una nota, no un error.
-  const showLastError = !!visit.lastError && visit.status !== 'REJECTED'
+  // Un rechazo deja «Rechazada por el estudio» en lastError: es una nota, no un error. Y en una fila «solicitada» el motivo
+  // va en la columna de estado (H9), no repetido aquí.
+  const showLastError = !!visit.lastError && visit.status !== 'REJECTED' && !(pending && awaiting)
 
   return (
     <TableRow className="border-input">
@@ -302,7 +355,12 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
           ) : awaiting ? (
             <div>
               <Badge variant="secondary">{t('visits.status.PENDING')}</Badge>
-              <p className="text-xs text-muted-foreground">{t('visits.confirmRequested', { provider: providerName })}</p>
+              <p className="text-xs text-muted-foreground">
+                {/* Sigue PENDING y el server dejó un motivo: se está reintentando con el proveedor (H9). */}
+                {visit.lastError
+                  ? t('visits.retrying', { provider: providerName, error: visit.lastError })
+                  : t('visits.confirmRequested', { provider: providerName })}
+              </p>
             </div>
           ) : (
             <div>
@@ -320,18 +378,24 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
         )}
       </TableCell>
       <TableCell className="text-right">
-        {actionable && (
+        {(showConfirm || showReject) && (
           <div className="flex flex-col items-end gap-1">
             <div className="flex justify-end gap-2">
-              <Button size="sm" onClick={onConfirm} disabled={acting || connectionInactive} data-tour="passes-visit-confirm">
-                {t('visits.confirm')}
-              </Button>
-              <Button size="sm" variant="outline" onClick={onReject} disabled={acting} data-tour="passes-visit-reject">
-                {t('visits.reject')}
-              </Button>
+              {showConfirm && (
+                <Button size="sm" onClick={onConfirm} disabled={acting || connectionInactive} data-tour="passes-visit-confirm">
+                  {t('visits.confirm')}
+                </Button>
+              )}
+              {showReject && (
+                <Button size="sm" variant="outline" onClick={onReject} disabled={acting} data-tour="passes-visit-reject">
+                  {t('visits.reject')}
+                </Button>
+              )}
             </div>
-            {connectionInactive && (
-              <p className="max-w-64 text-right text-xs text-muted-foreground">{t('visits.connectionInactive', { provider: providerName })}</p>
+            {showConfirm && connectionInactive && (
+              <p className="max-w-64 text-right text-xs text-muted-foreground">
+                {t('visits.connectionInactive', { provider: providerName })}
+              </p>
             )}
           </div>
         )}

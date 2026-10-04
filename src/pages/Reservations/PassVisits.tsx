@@ -8,14 +8,13 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { usePassesAccess } from '@/hooks/use-passes'
+import { usePassIntegrationsOverview, usePassesAccess } from '@/hooks/use-passes'
 import { DateRangeFilterContent, type DateRangeValue } from '@/pages/AreaTickets/components/DateRangeFilterContent'
 import type { PassProvider } from '@/types/passes'
 import { PassVisitsList } from './components/passes/PassVisitsList'
 import { PASS_VISIT_TABS, type PassVisitTab } from './components/passes/passVisitTabs'
 
 const VALID_TABS = Object.keys(PASS_VISIT_TABS) as PassVisitTab[]
-const PROVIDERS: PassProvider[] = ['TOTALPASS', 'WELLHUB']
 
 const tabTriggerClass =
   'group rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/80 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-foreground data-[state=active]:text-background'
@@ -29,6 +28,9 @@ export default function PassVisits() {
   const { t } = useTranslation('passes')
   const { venueId } = useCurrentVenue()
   const { unresolved } = usePassesAccess(venueId ?? undefined)
+  // Misma clave que la lista (TanStack la pide una vez). Sólo se ofrecen los proveedores que tienen conexión: Wellhub sigue
+  // «muy pronto» y no se presenta como si funcionara (H6); con uno solo, el filtro de proveedor no aporta y no se pinta.
+  const overview = usePassIntegrationsOverview(venueId ?? undefined)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -50,7 +52,13 @@ export default function PassVisits() {
 
   const [provider, setProvider] = useState<PassProvider | null>(null)
   const [dateRange, setDateRange] = useState<DateRangeValue>({ from: null, to: null })
-  const providerOptions = useMemo(() => PROVIDERS.map(value => ({ value, label: t(`providers.${value}`) })), [t])
+  const providerOptions = useMemo(
+    () =>
+      (overview.data?.connections ?? [])
+        .filter(c => c.status !== null)
+        .map(c => ({ value: c.provider, label: t(`providers.${c.provider}`) })),
+    [overview.data, t],
+  )
   const dateLabel = dateRange.from || dateRange.to ? [dateRange.from, dateRange.to].filter(Boolean).join(' – ') : null
 
   if (!venueId) return null
@@ -74,18 +82,20 @@ export default function PassVisits() {
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <FilterPill
-                label={t('visits.filters.provider')}
-                activeLabel={provider ? t(`providers.${provider}`) : null}
-                onClear={() => setProvider(null)}
-              >
-                <SingleSelectFilterContent
-                  title={t('visits.filters.provider')}
-                  options={providerOptions}
-                  selectedValue={provider}
-                  onSelect={value => setProvider(value as PassProvider)}
-                />
-              </FilterPill>
+              {providerOptions.length > 1 && (
+                <FilterPill
+                  label={t('visits.filters.provider')}
+                  activeLabel={provider ? t(`providers.${provider}`) : null}
+                  onClear={() => setProvider(null)}
+                >
+                  <SingleSelectFilterContent
+                    title={t('visits.filters.provider')}
+                    options={providerOptions}
+                    selectedValue={provider}
+                    onSelect={value => setProvider(value as PassProvider)}
+                  />
+                </FilterPill>
+              )}
               <FilterPill label={t('visits.filters.date')} activeLabel={dateLabel} onClear={() => setDateRange({ from: null, to: null })}>
                 <DateRangeFilterContent
                   title={t('visits.filters.date')}

@@ -24,6 +24,15 @@ describe('useCountdown', () => {
     expect(result.current.label).toBe('0:01')
     act(() => vi.advanceTimersByTime(2_000))
     expect(result.current).toMatchObject({ expired: true, label: '0:00' })
+    // H4: vencido, el reloj se detiene (no sigue re-pintando la fila cada segundo).
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('un plazo que ya pasó no arranca reloj', () => {
+    vi.setSystemTime(new Date('2030-01-10T12:00:00Z'))
+    const { result } = renderHook(() => useCountdown('2030-01-10T11:59:00Z'))
+    expect(result.current).toMatchObject({ expired: true, label: '0:00' })
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('sin plazo no cuenta nada', () => {

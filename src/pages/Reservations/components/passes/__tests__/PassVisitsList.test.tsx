@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { PassConnectionStatus, PassIntegrationsOverview, PassVisitView, PassVisitsPage } from '@/types/passes'
 
-vi.mock('@/hooks/use-tier-feature-access', () => ({
-  useVenueTier: () => ({ hasFeatureAccess: () => true, isLoading: false, isResolved: true }),
-}))
+const PLAN_OK = { hasFeatureAccess: () => true, isLoading: false, isResolved: true }
+const tier = vi.hoisted(() => ({ current: { hasFeatureAccess: (): boolean => true, isLoading: false, isResolved: true } }))
+vi.mock('@/hooks/use-tier-feature-access', () => ({ useVenueTier: () => tier.current }))
 const access = vi.hoisted(() => ({ allowed: ['reservations:read', 'reservations:update'] }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p) }) }))
 vi.mock('@/utils/datetime', () => ({
@@ -114,6 +114,7 @@ function renderList(props: Partial<Props> = {}) {
 }
 
 beforeEach(() => {
+  tier.current = PLAN_OK
   access.allowed = ['reservations:read', 'reservations:update']
   svc.listPassVisits.mockResolvedValue(page([visit()]))
   svc.confirmPassVisit.mockResolvedValue(visit({ status: 'CONFIRMED', canConfirm: false, canReject: false }))
@@ -319,6 +320,7 @@ describe('PassVisitsList', () => {
     expect(await screen.findByText('Ana López')).toBeInTheDocument()
     expect(screen.getByText(/^visits\.deadlineAt:/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'visits.reject' })).not.toBeInTheDocument()
   })
 
   // Tres estados distinguibles.
@@ -348,9 +350,12 @@ describe('PassVisitsList', () => {
     expect(screen.getByText('visits.updating')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
     expect(screen.queryByText('visits.noMatches')).not.toBeInTheDocument()
+    // H3: el total es del filtro ANTERIOR: no se presenta como definitivo.
+    expect(screen.queryByText(/^visits\.total/)).not.toBeInTheDocument()
     next.resolve(page([]))
     expect(await screen.findByText('visits.noMatches')).toBeInTheDocument()
     expect(screen.queryByText('visits.updating')).not.toBeInTheDocument()
+    expect(screen.getByText('visits.total:{"count":0}')).toBeInTheDocument()
   })
 
   // P2-7: los filtros viajan tal cual: estado de la pestaña, proveedor y los DÍAS elegidos (AAAA-MM-DD, `to` inclusivo).
@@ -423,5 +428,109 @@ describe('PassVisitsList', () => {
     expect(await screen.findByText('visits.confirmedBy.AUTO')).toBeInTheDocument()
     expect(screen.getByText('visits.confirmedBy.VENUE')).toBeInTheDocument()
     expect(screen.queryByText(/^(AUTO|VENUE)$/)).not.toBeInTheDocument()
+  })
+
+  // H1: un refresco que falla con la lista ya cargada no la tapa: las filas y el diálogo abierto se quedan, con un aviso en línea.
+  it('un refresco fallido conserva las filas y el diálogo de rechazo abierto, con un aviso en línea', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: delay => vi.advanceTimersByTime(delay) })
+    svc.listPassVisits
+      .mockResolvedValueOnce(page([visit()]))
+      .mockRejectedValue({ response: { status: 500, data: { message: 'Se cayó la base' } } })
+    renderList()
+    await user.click(await screen.findByRole('button', { name: 'visits.reject' }))
+    expect(await screen.findByText('visits.rejectTitle')).toBeInTheDocument()
+    // El refresco de 30 s falla, y también su único reintento (retry: 1).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000)
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000)
+    })
+    expect(await screen.findByText('visits.refreshError')).toBeInTheDocument()
+    expect(screen.getByText('Se cayó la base')).toBeInTheDocument()
+    expect(screen.getByText('Ana López')).toBeInTheDocument()
+    expect(screen.getByText('visits.rejectTitle')).toBeInTheDocument()
+    expect(screen.queryByText('visits.loadError')).not.toBeInTheDocument()
+  })
+
+  // H2: mientras el plan no se comprueba la consulta está apagada: eso no es «no hay check-ins».
+  it('con la consulta apagada (plan sin comprobar): «Cargando», ni vacío ni total, y no se pide nada', () => {
+    tier.current = { hasFeatureAccess: () => true, isLoading: true, isResolved: false }
+    renderList()
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByText('visits.empty.pending')).not.toBeInTheDocument()
+    expect(screen.queryByText(/^visits\.total/)).not.toBeInTheDocument()
+    expect(svc.listPassVisits).not.toHaveBeenCalled()
+  })
+
+  // H4: varias filas que vencen a la vez piden la lista UNA vez (no una por fila), y nada más después.
+  it('tres filas que vencen juntas ⇒ una sola recarga', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const deadlineAt = inMs(2_000)
+    svc.listPassVisits
+      .mockResolvedValueOnce(
+        page([
+          visit({ deadlineAt }),
+          visit({ id: 'vis2', memberName: 'Beto', deadlineAt }),
+          visit({ id: 'vis3', memberName: 'Caro', deadlineAt }),
+        ]),
+      )
+      .mockResolvedValue(page([]))
+    renderList()
+    expect(await screen.findByText('Caro')).toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000)
+    })
+    await waitFor(() => expect(screen.queryByText('Ana López')).not.toBeInTheDocument())
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+    })
+    expect(svc.listPassVisits).toHaveBeenCalledTimes(2)
+  })
+
+  // H5: cada botón sigue a su propia bandera del server.
+  it('Confirmar sigue a canConfirm y Rechazar a canReject', async () => {
+    svc.listPassVisits.mockResolvedValue(
+      page([visit({ canConfirm: false, canReject: true }), visit({ id: 'vis2', memberName: 'Beto', canConfirm: true, canReject: false })]),
+    )
+    renderList()
+    const ana = within((await screen.findByText('Ana López')).closest('tr')!)
+    expect(ana.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
+    expect(ana.getByRole('button', { name: 'visits.reject' })).toBeInTheDocument()
+    const beto = within(screen.getByText('Beto').closest('tr')!)
+    expect(beto.getByRole('button', { name: 'visits.confirm' })).toBeInTheDocument()
+    expect(beto.queryByRole('button', { name: 'visits.reject' })).not.toBeInTheDocument()
+  })
+
+  // H8: rechazar no se puede deshacer: el diálogo dice de quién es el check-in y de qué clase.
+  it('el diálogo de rechazo dice de quién es el check-in y de qué clase', async () => {
+    const user = userEvent.setup()
+    svc.listPassVisits.mockResolvedValue(page([visit(), visit({ id: 'vis2', memberName: null, reservation: null })]))
+    renderList()
+    const rejects = await screen.findAllByRole('button', { name: 'visits.reject' })
+    await user.click(rejects[0])
+    expect(
+      await screen.findByText('visits.rejectWho:{"member":"Ana López","class":"Yoga","time":"dt:2030-01-10T12:00:00Z"}'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'common:cancel' }))
+    await waitFor(() => expect(screen.queryByText('visits.rejectTitle')).not.toBeInTheDocument())
+    await user.click(rejects[1])
+    expect(await screen.findByText('visits.rejectWhoNoClass:{"member":"visits.unknownMember"}')).toBeInTheDocument()
+  })
+
+  // H9: la confirmación solicitada no se resolvió y el server dejó un motivo: se dice, en vez de «en unos segundos».
+  it('una fila «solicitada» que vuelve PENDING con lastError dice que se está reintentando y por qué', async () => {
+    const user = userEvent.setup()
+    svc.confirmPassVisit.mockResolvedValue(visit({ status: 'PENDING' }))
+    svc.listPassVisits.mockResolvedValueOnce(page([visit()])).mockResolvedValue(page([visit({ lastError: 'TotalPass HTTP 503' })]))
+    renderList()
+    await user.click(await screen.findByRole('button', { name: 'visits.confirm' }))
+    expect(
+      await screen.findByText('visits.retrying:{"provider":"providers.TOTALPASS","error":"TotalPass HTTP 503"}'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('visits.confirmRequested:{"provider":"providers.TOTALPASS"}')).not.toBeInTheDocument()
+    expect(screen.queryByText(/^visits\.lastError/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
   })
 })
