@@ -8,7 +8,8 @@ vi.mock('@/api', () => ({ default: m }))
 vi.mock('@/utils/export', () => ({ triggerDownload: vi.fn() }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 import { staffPayService } from '../staffPay.service'
-import { useStaffPayDetail, useStaffPayExceptions, useStaffPayOrphans, useStaffPayPeriods, useStaffReceipt } from '@/hooks/useStaffPay'
+import { triggerDownload } from '@/utils/export'
+import { useStaffPayDetail, useStaffPayExceptions, useStaffPayOrphans, useStaffPayPeriods, useStaffPayReport, useStaffReceipt } from '@/hooks/useStaffPay'
 
 const base = '/api/v1/dashboard/venues/v1/staff-pay'
 beforeEach(() => vi.clearAllMocks())
@@ -30,9 +31,20 @@ describe('staffPayService — fase 2', () => {
     expect(m.get).toHaveBeenLastCalledWith(`${base}/staff/s1/receipt`, { params: { fecha: '2026-08-15', cursor: '2026-08-04T14:00:00.000Z|c1', limit: 100 } })
   })
   it('descargar el recibo pide un blob con el formato', async () => {
-    m.get.mockResolvedValue({ data: new Blob(['%PDF']) })
+    const pdf = new Blob(['%PDF'])
+    m.get.mockResolvedValue({ data: pdf })
     await staffPayService.downloadReceipt('v1', 's1', '2026-08-15', 'pdf', 'recibo-ana')
     expect(m.get).toHaveBeenCalledWith(`${base}/staff/s1/receipt/export`, { params: { fecha: '2026-08-15', format: 'pdf' }, responseType: 'blob' })
+    expect(triggerDownload).toHaveBeenCalledWith(pdf, 'recibo-ana.pdf')
+  })
+  it('si la descarga falla, el cuerpo del error (un Blob) se deja como JSON y no se descarga nada', async () => {
+    const cuerpo = { code: 'RECIBO_DEMASIADO_GRANDE', message: 'El recibo es demasiado grande para un PDF' }
+    // jsdom no trae `Blob.text()` (los navegadores sí): se le pone a la instancia.
+    const blob = Object.assign(new Blob([JSON.stringify(cuerpo)]), { text: async () => JSON.stringify(cuerpo) })
+    m.get.mockRejectedValue(Object.assign(new Error('409'), { response: { status: 409, data: blob } }))
+    const err = await staffPayService.downloadReceipt('v1', 's1', '2026-08-15', 'pdf', 'recibo-ana').catch(e => e)
+    expect(err.response.data).toEqual(cuerpo)
+    expect(triggerDownload).not.toHaveBeenCalled()
   })
   it('periodos: la primera página sin parámetros y las siguientes con antesDe; periodicidad y pagado por su ruta', async () => {
     m.get.mockResolvedValue({ data: {} })
@@ -78,7 +90,7 @@ describe('hooks de la fase 2', () => {
   })
 
   it('RECIBO_CAMBIO en la segunda página reinicia el recibo desde la primera, sin dejar el error', async () => {
-    // El cursor sólo vale mientras no se haya vuelto a pedir la página 1: el 409 es determinista (el hook lo reintenta una vez).
+    // El cursor sólo vale mientras no se haya vuelto a pedir la página 1: el 409 es determinista y NO se reintenta.
     let paginas1 = 0
     m.get.mockImplementation(async (_url: string, { params }: { params: { cursor?: string } }) => {
       if (!params.cursor) paginas1++
@@ -91,10 +103,40 @@ describe('hooks de la fase 2', () => {
     await waitFor(() => expect(result.current.data?.renglones).toHaveLength(2))
     await act(async () => { await result.current.fetchNextPage().catch(() => undefined) })
     // Se reinició: otra vez la página 1 (sin cursor), el recibo vuelve a tener sus 2 renglones y ya no hay error.
-    await waitFor(() => expect(paginas1).toBe(2), { timeout: 4000 })
-    await waitFor(() => expect(result.current.isError).toBe(false), { timeout: 4000 })
+    await waitFor(() => expect(paginas1).toBe(2))
+    await waitFor(() => expect(result.current.isError).toBe(false))
     await waitFor(() => expect(result.current.data?.renglones).toHaveLength(2))
     expect(result.current.hasNextPage).toBe(true)
+    // Una sola petición con el cursor viejo: el 409 no se reintentó.
+    expect(m.get.mock.calls.filter(([, o]) => o.params.cursor)).toHaveLength(1)
+  })
+
+  it('reporte: paginar dentro del mismo periodo conserva lo anterior; cambiar de periodo NO', async () => {
+    // Cada petición queda pendiente hasta que la prueba la resuelve, para mirar el placeholder.
+    const pendientes: Array<(v: unknown) => void> = []
+    m.get.mockImplementation(() => new Promise(r => pendientes.push(r)))
+    const reporte = (estado: string) => ({ data: { periodo: { start: '2026-08-01', end: '2026-08-31', periodicidad: 'MONTHLY', estado }, personas: { items: [], total: 0, offset: 0, limit: 50 } } })
+    const { result, rerender } = renderHook(({ p }) => useStaffPayReport(p), {
+      wrapper: envoltorio(),
+      initialProps: { p: { offset: 0, limit: 50, fecha: '2026-08-15' } },
+    })
+    await waitFor(() => expect(pendientes).toHaveLength(1))
+    await act(async () => { pendientes[0](reporte('OPEN')) })
+    await waitFor(() => expect(result.current.data?.periodo.estado).toBe('OPEN'))
+
+    // Siguiente página del MISMO periodo: se ve lo anterior mientras llega.
+    rerender({ p: { offset: 50, limit: 50, fecha: '2026-08-15' } })
+    await waitFor(() => expect(pendientes).toHaveLength(2))
+    expect(result.current.isPlaceholderData).toBe(true)
+    expect(result.current.data?.periodo.estado).toBe('OPEN')
+    await act(async () => { pendientes[1](reporte('OPEN')) })
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false))
+
+    // OTRO periodo: nada del anterior (su `estado` no puede decidir qué pide la pantalla).
+    rerender({ p: { offset: 0, limit: 50, fecha: '2026-07-15' } })
+    await waitFor(() => expect(pendientes).toHaveLength(3))
+    expect(result.current.isPlaceholderData).toBe(false)
+    expect(result.current.data).toBeUndefined()
   })
 
   it('periodos: la segunda página pide antesDe y los items vienen aplanados', async () => {

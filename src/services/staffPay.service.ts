@@ -1,5 +1,4 @@
 import api from '@/api'
-import { triggerDownload } from '@/utils/export'
 import type { AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaOffset, PreviewCierreDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, TablaDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
@@ -31,7 +30,18 @@ export const staffPayService = {
   async addAdjustment(venueId: string, body: AjusteManualInput): Promise<AjusteManualDto> { return (await api.post(`${base(venueId)}/adjustments`, body)).data },
   async receipt(venueId: string, staffId: string, fecha: string, p: { cursor?: string; limit: number }): Promise<ReciboDto> { return (await api.get(`${base(venueId)}/staff/${staffId}/receipt`, { params: { fecha, ...p } })).data },
   async downloadReceipt(venueId: string, staffId: string, fecha: string, format: 'pdf' | 'xlsx', nombre: string): Promise<void> {
-    const r = await api.get(`${base(venueId)}/staff/${staffId}/receipt/export`, { params: { fecha, format }, responseType: 'blob' })
-    triggerDownload(r.data as Blob, `${nombre}.${format}`)
+    try {
+      const r = await api.get(`${base(venueId)}/staff/${staffId}/receipt/export`, { params: { fecha, format }, responseType: 'blob' })
+      // Import dinámico: `@/utils/export` arrastra exceljs y papaparse, y este servicio lo cargan pantallas que sólo pintan una tarjeta.
+      const { triggerDownload } = await import('@/utils/export')
+      triggerDownload(r.data as Blob, `${nombre}.${format}`)
+    } catch (err) {
+      // `responseType: 'blob'` ⇒ el cuerpo de un error llega como Blob: se deja como JSON para que el aviso diga la causa real.
+      const resp = (err as { response?: { data?: unknown } } | null)?.response
+      if (resp?.data instanceof Blob) {
+        try { resp.data = JSON.parse(await resp.data.text()) } catch { /* no era JSON: se deja el Blob */ }
+      }
+      throw err
+    }
   },
 }

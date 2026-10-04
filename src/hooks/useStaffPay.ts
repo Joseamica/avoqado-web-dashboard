@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { staffPayService } from '@/services/staffPay.service'
 import type { AjusteClaseInput, AjusteManualInput, CeldaDto } from '@/types/staffPay'
@@ -36,7 +36,18 @@ export function useStaffPayTables(enabled = true) {
 }
 export function useStaffPayReport(p: { offset: number; limit: number; sede?: string; fecha?: string }, enabled = true) {
   const { venueId } = useCurrentVenue()
-  return useQuery({ queryKey: [...staffPayKeys.report(venueId), p], queryFn: () => staffPayService.report(venueId!, p), enabled: !!venueId && enabled, placeholderData: keepPreviousData, ...pesado })
+  return useQuery({
+    queryKey: [...staffPayKeys.report(venueId), p],
+    queryFn: () => staffPayService.report(venueId!, p),
+    enabled: !!venueId && enabled,
+    // Paginar o filtrar DENTRO del mismo periodo conserva lo anterior; cambiar de periodo no: `periodo.estado` del anterior
+    // haría que la pantalla pidiera excepciones/huérfanas/desglose de un periodo cerrado (409 PERIODO_CERRADO).
+    placeholderData: (previo, consultaPrevia) => {
+      const k = consultaPrevia?.queryKey
+      return (k?.[k.length - 1] as typeof p | undefined)?.fecha === p.fecha ? previo : undefined
+    },
+    ...pesado,
+  })
 }
 /**
  * Desglose clase por clase de una persona en el periodo abierto (cursor, 50 por página). Para un periodo CERRADO el
@@ -102,6 +113,8 @@ export function useClosePreview(fecha: string | null, enabled = true) {
     queryFn: () => staffPayService.closePreview(venueId!, fecha!),
     enabled: !!venueId && !!fecha && enabled,
     staleTime: 0,
+    // Sin caché al cerrar el diálogo: al reabrirlo no se ve un preview viejo (con su huella) mientras refetchea.
+    gcTime: 0,
     retry: 1,
     refetchOnWindowFocus: false,
   })
@@ -122,6 +135,8 @@ export function useStaffReceipt(staffId: string | null, fecha: string | null, en
     getNextPageParam: last => last.siguiente ?? undefined,
     enabled: !!venueId && !!staffId && !!fecha && enabled,
     ...pesado,
+    // El 409 RECIBO_CAMBIO es determinista: reintentarlo sólo retrasa el reinicio.
+    retry: (n, e) => n < 1 && (e as { response?: { status?: number } } | null)?.response?.status !== 409,
   })
   // Codex R3-Nuevo 3: si el periodo se cerró entre dos páginas, el server responde 409 RECIBO_CAMBIO; la lista se
   // reinicia desde la página 1 (que ya es el recibo cerrado) en vez de quedarse con un error. `reset`, no `invalidate`:
