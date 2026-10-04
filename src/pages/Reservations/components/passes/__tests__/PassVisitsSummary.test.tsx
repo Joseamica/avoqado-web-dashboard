@@ -243,18 +243,20 @@ describe('PassVisitsSummary', () => {
     expect(screen.getByText('summary.refreshError').closest('[data-slot="alert-title"]')).toBeNull()
   })
 
-  // Las vencidas son los cobros perdidos: se distinguen cuando hay alguna.
-  it('resalta «vencidas» sólo cuando hay (> 0)', async () => {
+  // Las vencidas son los cobros perdidos: se distinguen cuando hay alguna. El rojo va en un hijo de la celda y NO en el
+  // <td>: en oscuro `.dark td { color }` (theme.css, sin capa) le gana a cualquier text-* puesto en el <td> (R2b-35).
+  it('resalta «vencidas» sólo cuando hay (> 0), con el color dentro de la celda', async () => {
     svc.getPassVisitsSummary.mockResolvedValue([{ ...ROWS[0], expired: 0 }])
     const { unmount } = renderSummary()
     const calm = (await screen.findByText('12')).closest('tr')!
-    expect(within(calm).getAllByRole('cell').filter(c => c.className.includes('text-destructive'))).toHaveLength(0)
+    expect(calm.querySelectorAll('.text-destructive')).toHaveLength(0)
     unmount()
     svc.getPassVisitsSummary.mockResolvedValue([ROWS[0]])
     renderSummary()
     const row = (await screen.findByText('12')).closest('tr')!
-    const flagged = within(row).getAllByRole('cell').filter(c => c.className.includes('text-destructive'))
+    const flagged = row.querySelectorAll('.text-destructive')
     expect(flagged).toHaveLength(1)
+    expect(flagged[0].tagName).not.toBe('TD')
     expect(flagged[0]).toHaveTextContent(/^2$/)
   })
 })

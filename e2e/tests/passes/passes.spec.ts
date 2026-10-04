@@ -5,8 +5,8 @@
  *      (los filtros son píldoras y un <input type="month">); se cubre que cambiar de filtro no desmonta la lista;
  *   3. vacío, sin resultados y error se distinguen.
  * Más el gate de plan (Free ⇒ paywall), la pausa por el plan (Free con TotalPass conectado ⇒ aviso y Desconectar, R62),
- * un MANAGER en sólo lectura (P2-12), las pantallas en claro y oscuro, y «· Passes 2/3» completo dentro del bloque de
- * una clase de 60 min en el calendario (R2b-33; jsdom no mide).
+ * un MANAGER en sólo lectura (P2-12), las pantallas en claro y oscuro, y el indicador de pases
+ * (boleto + «2/3») completo dentro del bloque de una clase de 60 min en el calendario, día y semana (R2b-33/34; jsdom no mide).
  * Locale E2E: inglés (fallback 'en'). Capturas en test-results/ (Playwright las borra al empezar la siguiente corrida).
  */
 import { test, expect, type Page } from '@playwright/test'
@@ -321,6 +321,14 @@ test.describe('Pases — Check-ins (Pantalla B)', () => {
     await darkMode(page)
     await expect(page.locator('html')).toHaveClass(/dark/)
     await expect(page.getByText('Ana López')).toBeVisible({ timeout: 15_000 })
+    // R2b-35: `.dark td { color }` (theme.css) pisa el color puesto en el <td>; el nuestro va en un hijo y debe sobrevivir.
+    const color = (l: ReturnType<Page['locator']>) => l.evaluate(el => getComputedStyle(el).color)
+    const report = page.getByRole('table').filter({ has: page.getByRole('columnheader', { name: /expired \(lost payments\)/i }) })
+    const expiredCell = report.getByRole('row').filter({ hasText: 'TotalPass' }).getByRole('cell').nth(3)
+    await expect(expiredCell).toHaveText('2')
+    expect(await color(expiredCell.locator('.text-destructive'))).not.toBe(await color(expiredCell))
+    const arrivedCell = page.getByRole('row').filter({ hasText: 'Ana López' }).getByRole('cell').nth(2)
+    expect(await color(arrivedCell.locator('.text-muted-foreground'))).not.toBe(await color(arrivedCell))
     await page.screenshot({ path: 'test-results/passes-visits-dark.png', fullPage: true })
   })
 })
@@ -350,7 +358,7 @@ const classSession = (id: string, hourLocal: number, enrolled: number) => ({
   updatedAt: '2026-10-01T00:00:00.000Z',
   passes: { taken: 2, cap: 3, sessionCap: null },
 })
-/** 7/12 = sin aviso de lugares; 10/12 = con «2 spots left» en la MISMA fila que «· Passes 2/3». */
+/** 7/12 = sin aviso de lugares; 10/12 = con «2 spots left» en la MISMA fila que el indicador de pases. */
 const SESSIONS = [classSession('s1', 10, 7), classSession('s2', 12, 10)]
 
 async function openCalendar(page: Page, view: 'day' | 'week') {
@@ -371,38 +379,51 @@ async function openCalendar(page: Page, view: 'day' | 'week') {
   return blocks
 }
 
-/** «· Passes 2/3» ENTERO dentro del bloque: su caja no sale del bloque (overflow-hidden) y el texto no lleva «…» (truncate). */
-async function expectPassesLineFits(block: ReturnType<Page['locator']>) {
-  const line = block.getByText('· Passes 2/3', { exact: true })
-  await expect(line).toBeVisible()
+/** La caja de `inner` cae entera dentro de la del bloque (que es overflow-hidden: lo que sale, no se ve). */
+async function expectInsideBlock(block: ReturnType<Page['locator']>, inner: ReturnType<Page['locator']>) {
+  await expect(inner).toBeVisible()
   const b = await block.boundingBox()
-  const l = await line.boundingBox()
+  const l = await inner.boundingBox()
   expect(b && l).toBeTruthy()
   expect(l!.x).toBeGreaterThanOrEqual(b!.x)
   expect(l!.y).toBeGreaterThanOrEqual(b!.y)
   expect(l!.x + l!.width).toBeLessThanOrEqual(b!.x + b!.width)
   expect(l!.y + l!.height).toBeLessThanOrEqual(b!.y + b!.height)
-  expect(await line.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
 }
 
-test.describe('Pases — calendario de clases (R2b-33: jsdom no mide)', () => {
-  test('vista día (la de arranque): «Passes 2/3» completo dentro del bloque de 60 min', async ({ page }) => {
+/**
+ * El indicador de pases (boleto + «2/3», nombre completo «Passes: 2 of 3») y los inscritos («7/12», «10/12») ENTEROS dentro
+ * del bloque, y la fila de inscritos en UN renglón (R2b-34: antes se partía y empujaba el «10/12» fuera del bloque).
+ */
+async function expectEnrolledRowFits(block: ReturnType<Page['locator']>, enrolled: string) {
+  const passes = block.getByRole('img', { name: 'Passes: 2 of 3' })
+  await expect(passes).toHaveAttribute('title', 'Passes: 2 of 3')
+  await expect(passes).toHaveText('2/3')
+  await expectInsideBlock(block, passes)
+  expect(await passes.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+  const count = block.getByText(enrolled, { exact: true })
+  await expectInsideBlock(block, count)
+  // un solo renglón: la fila no es más alta que una línea de texto-xs (16 px)
+  const row = passes.locator('xpath=..')
+  expect((await row.boundingBox())!.height).toBeLessThanOrEqual(16)
+}
+
+test.describe('Pases — calendario de clases (R2b-33/34: jsdom no mide)', () => {
+  test('vista día (la de arranque): pases e inscritos completos dentro del bloque de 60 min', async ({ page }) => {
     const blocks = await openCalendar(page, 'day')
     await page.screenshot({ path: 'test-results/passes-calendar-day-light.png' })
-    for (const block of blocks) await expectPassesLineFits(block)
+    await expectEnrolledRowFits(blocks[0], '7/12')
+    await expectEnrolledRowFits(blocks[1], '10/12')
   })
 
-  // 🔴 HALLAZGO (Tarea 11, 3-oct): en la vista SEMANA a 1280 px la columna mide ~119 px y la fila de inscritos ~101 px.
-  // «· Passes 2/3» (68 px) sale con «…» en una clase 7/12, y en una 10/12 el «2 spots left» se parte en tres renglones y
-  // empuja la fila fuera del bloque de 64 px (se pierde también el «10/12»). No se arregla a ciegas: lo decide el
-  // controlador. test.fail = el defecto está documentado; cuando se arregle, esta prueba avisará («expected to fail») y se
-  // le quita la marca.
-  test('vista semana: «Passes 2/3» completo dentro del bloque de 60 min', async ({ page }) => {
-    test.fail(true, 'Hallazgo R2b-33: en la vista semana la línea de pases se corta (ver task-11-report.md)')
+  // R2b-34 (arreglado): a 1280 px la columna de la semana mide ~119 px. El indicador compacto no se parte ni se encoge;
+  // si falta espacio, el que se recorta es «2 spots left».
+  test('vista semana a 1280 px: pases e inscritos completos dentro del bloque de 60 min', async ({ page }) => {
     const blocks = await openCalendar(page, 'week')
     await page.screenshot({ path: 'test-results/passes-calendar-week-light.png' })
     await blocks[0].screenshot({ path: 'test-results/passes-calendar-week-block-7of12-light.png' })
     await blocks[1].screenshot({ path: 'test-results/passes-calendar-week-block-10of12-light.png' })
-    for (const block of blocks) await expectPassesLineFits(block)
+    await expectEnrolledRowFits(blocks[0], '7/12')
+    await expectEnrolledRowFits(blocks[1], '10/12')
   })
 })

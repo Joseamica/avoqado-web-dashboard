@@ -272,7 +272,6 @@
     "attendees": "Asistentes",
     "attendeeRemoved": "Asistente eliminado",
     "passes": "Pases: {{taken}} de {{cap}}",
-    "passesShort": "· Pases {{taken}}/{{cap}}",
     "editDescription": "Fecha, horario, cupo, instructor, notas y asistentes de esta clase.",
     "sessionPassCap": {
       "label": "Lugares para pases en esta clase",

@@ -135,8 +135,9 @@ export function PassVisitsSummary({ venueId }: { venueId: string }) {
                   <TableRow key={row.provider} className="border-input">
                     <TableCell className="font-medium">{t(`providers.${row.provider}`)}</TableCell>
                     {COLUMNS.map(c => (
-                      <TableCell key={c} className={`text-right tabular-nums ${c === 'expired' && row.expired > 0 ? 'text-destructive' : ''}`}>
-                        {row[c]}
+                      // El color va en un hijo: en oscuro `.dark td { color }` (theme.css) le gana al del <td> (R2b-35).
+                      <TableCell key={c} className="text-right tabular-nums">
+                        <span className={c === 'expired' && row.expired > 0 ? 'text-destructive' : undefined}>{row[c]}</span>
                       </TableCell>
                     ))}
                   </TableRow>

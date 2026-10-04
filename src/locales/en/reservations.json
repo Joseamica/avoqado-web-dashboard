@@ -272,7 +272,6 @@
     "attendees": "Attendees",
     "attendeeRemoved": "Attendee removed",
     "passes": "Passes: {{taken}} of {{cap}}",
-    "passesShort": "· Passes {{taken}}/{{cap}}",
     "editDescription": "Date, time, capacity, instructor, notes and attendees of this class.",
     "sessionPassCap": {
       "label": "Spots for passes in this class",

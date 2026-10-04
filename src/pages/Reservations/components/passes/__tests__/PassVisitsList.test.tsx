@@ -126,6 +126,21 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('PassVisitsList', () => {
+  // R2b-35: en oscuro `.dark td { color }` (theme.css, sin capa) le gana a cualquier text-* puesto en el <td>: el gris de
+  // «Llegó» y del mensaje de vacío va en un hijo de la celda.
+  it('el gris de «Llegó» y del vacío va dentro de la celda, no en el <td>', async () => {
+    const { unmount } = renderList()
+    const arrived = await screen.findByText('dt:2030-01-10T11:55:00Z')
+    expect(arrived.tagName).not.toBe('TD')
+    expect(arrived).toHaveClass('text-muted-foreground')
+    unmount()
+    svc.listPassVisits.mockResolvedValue(page([]))
+    renderList()
+    const empty = await screen.findByText('visits.empty.pending')
+    expect(empty.tagName).not.toBe('TD')
+    expect(empty).toHaveClass('text-muted-foreground')
+  })
+
   // La prueba obligatoria «escribir y VER el resultado» (el server ya la devolvió CONFIRMED).
   it('confirmar un pendiente (respuesta CONFIRMED) lo quita de Pendientes sin recargar', async () => {
     const user = userEvent.setup()

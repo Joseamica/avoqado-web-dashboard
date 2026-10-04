@@ -241,8 +241,9 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
               ))}
               {items.length === 0 && !stale && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                    {hasFilters ? t('visits.noMatches') : t(`visits.empty.${tab}`)}
+                  <TableCell colSpan={5} className="py-10 text-center text-sm">
+                    {/* El gris va en un hijo: en oscuro `.dark td { color }` (theme.css) le gana al del <td> (R2b-35). */}
+                    <span className="text-muted-foreground">{hasFilters ? t('visits.noMatches') : t(`visits.empty.${tab}`)}</span>
                   </TableCell>
                 </TableRow>
               )}
@@ -360,7 +361,9 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
           <span className="text-muted-foreground">{t('visits.noClass')}</span>
         )}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">{formatDateTime(visit.startedAt)}</TableCell>
+      <TableCell className="text-sm">
+        <span className="text-muted-foreground">{formatDateTime(visit.startedAt)}</span>
+      </TableCell>
       <TableCell className="text-sm">
         {pending ? (
           expired ? (
