@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
+import { conSigno } from '@/pages/StaffPay/conSigno'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useClassPay, useStaffPayAccess } from '@/hooks/useStaffPay'
@@ -24,6 +26,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { fullBasePath } = useCurrentVenue()
+  const { formatDate, formatCalendarDate } = useVenueDateTime()
   const puedeVer = can('staffpay:read')
   // Sin el permiso no se pregunta ni si el módulo está prendido: la API no le manda nada (spec §7.2).
   const { data: acceso } = useStaffPayAccess(puedeVer)
@@ -54,6 +57,11 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const valorable = p.estado === 'OK' || p.estado === 'EXCEPCION'
   // Una clase ya contabilizada (ancla) sólo se corrige con el permiso de cierre.
   const puedeAjustar = can('staffpay:manage') && (!p.anclada || can('staffpay:close')) && (valorable || p.estado === 'EXCLUIDA')
+  // Clase contabilizada (spec §7.2): el periodo y las líneas vienen del server, ya sumadas; aquí no se calcula nada.
+  const origen = p.periodoOrigen
+  const lineas = p.lineas ?? []
+  const excluidaSinLineas = !!origen && p.estado === 'EXCLUIDA' && lineas.length === 0
+  const congelada = origen?.estado === 'CLOSED'
   const conteoCorregido = p.ajuste?.payCountOverride != null && p.conteoCalculado != null && p.ajuste.payCountOverride !== p.conteoCalculado
 
   return (
@@ -61,9 +69,42 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
       {sep}
       <div className="rounded-lg border border-input p-3 space-y-2" data-tour="class-pay-card">
         <p className="text-sm font-semibold">{t('classCard.title')}</p>
+        {origen && (
+          <div className="space-y-1 rounded-md bg-muted/40 p-2">
+            <p className="text-xs text-muted-foreground">
+              {t(congelada ? 'classCard.origin' : 'classCard.originOpen', {
+                start: formatCalendarDate(origen.start),
+                end: formatCalendarDate(origen.end),
+              })}
+            </p>
+            {lineas.map((l, i) => (
+              <p key={i} className="text-xs">
+                <span>
+                  {t(l.concepto === 'SERVICE' ? 'classCard.lineService' : 'classCard.lineReconcile', {
+                    start: formatCalendarDate(l.periodo.start),
+                    end: formatCalendarDate(l.periodo.end),
+                    persona: l.staffName,
+                    monto: l.concepto === 'SERVICE' ? Currency(Number(l.monto)) : conSigno(l.monto),
+                  })}
+                </span>
+                <span className="text-muted-foreground">
+                  {' · '}
+                  {l.pagadoEn ? t('classCard.linePaid', { fecha: formatDate(l.pagadoEn) }) : t('classCard.linePending')}
+                </span>
+              </p>
+            ))}
+            {excluidaSinLineas && <p className="text-xs">{t('classCard.notPaidExcluded', { reason: p.ajuste?.reason ?? '' })}</p>}
+            {congelada && (
+              <p className="text-xs text-muted-foreground">
+                <span>{t('classCard.frozen')}</span>
+                {puedeAjustar && <span> {t('classCard.fixAsDifference')}</span>}
+              </p>
+            )}
+          </div>
+        )}
         {p.estado === 'NO_TERMINADA' && <p className="text-sm text-muted-foreground">{t('classCard.notFinished')}</p>}
         {p.estado === 'CANCELADA' && <p className="text-sm text-muted-foreground">{t('classCard.cancelled')}</p>}
-        {p.estado === 'EXCLUIDA' && (
+        {p.estado === 'EXCLUIDA' && !excluidaSinLineas && (
           <p className="text-sm text-muted-foreground">{t('classCard.excluded', { reason: p.ajuste?.reason ?? '' })}</p>
         )}
         {valorable && (
@@ -81,6 +122,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
               </p>
             )}
             {conteoCorregido && <p className="text-xs text-muted-foreground">{t('classCard.calculated', { count: p.conteoCalculado })}</p>}
+            {origen && <p className="text-xs text-muted-foreground">{t('classCard.today')}</p>}
             {p.estado === 'OK' ? (
               <p className="text-2xl font-bold">{Currency(Number(p.monto))}</p>
             ) : (

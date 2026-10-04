@@ -21,7 +21,11 @@ vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId:
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.can(p) }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/utils/datetime', () => ({
-  useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatCalendarDate: (d: string) => d }),
+  useVenueDateTime: () => ({
+    venueTimezone: 'America/Mexico_City',
+    formatCalendarDate: (d: string) => d,
+    formatDate: (d: string) => d.slice(0, 10),
+  }),
 }))
 // El modal de pantalla completa real es Radix con portal; aquí sólo importa su contenido y sus acciones.
 vi.mock('@/components/ui/full-screen-modal', () => ({
@@ -178,6 +182,110 @@ describe('PagoDeClaseCard', () => {
     expect(guardar).toBeEnabled()
     fireEvent.click(guardar)
     expect(m.adjust).toHaveBeenCalledWith({ payCountOverride: 9, payAmountOverride: null, payExcluded: false, reason: 'abc' })
+  })
+
+  const contabilizada = (extra: Record<string, unknown> = {}) =>
+    pago({
+      conteo: 9,
+      monto: '610.00',
+      anclada: true,
+      periodoOrigen: { id: 'p8', start: '2026-08-01', end: '2026-08-31', estado: 'CLOSED' },
+      lineas: [
+        {
+          concepto: 'SERVICE',
+          staffId: 'a',
+          staffName: 'Ana',
+          monto: '570.00',
+          periodo: { start: '2026-08-01', end: '2026-08-31' },
+          pagadoEn: null,
+        },
+        {
+          concepto: 'RECONCILE',
+          staffId: 'a',
+          staffName: 'Ana',
+          monto: '40.00',
+          periodo: { start: '2026-10-01', end: '2026-10-31' },
+          pagadoEn: '2026-11-03T15:00:00Z',
+        },
+      ],
+      ...extra,
+    })
+
+  it('una clase contabilizada dice su periodo de origen y cada línea con el estado de su recibo', () => {
+    m.pay.mockReturnValue({ data: contabilizada({ conteoCalculado: 8 }) })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText(/classCard\.origin/)).toHaveTextContent('2026-08-01')
+    expect(screen.getByText(/classCard\.lineService/)).toHaveTextContent('570')
+    expect(screen.getByText(/classCard\.lineReconcile/)).toHaveTextContent('40')
+    expect(screen.getAllByText(/classCard\.linePending|classCard\.linePaid/)).toHaveLength(2)
+    expect(screen.getByText(/classCard\.linePaid/)).toHaveTextContent('2026-11-03')
+  })
+
+  it('una diferencia a favor de la coach lleva su signo y una a cargo también', () => {
+    m.pay.mockReturnValue({
+      data: contabilizada({
+        lineas: [
+          {
+            concepto: 'RECONCILE',
+            staffId: 'a',
+            staffName: 'Ana',
+            monto: '-40.00',
+            periodo: { start: '2026-10-01', end: '2026-10-31' },
+            pagadoEn: null,
+          },
+        ],
+      }),
+    })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText(/classCard\.lineReconcile/)).toHaveTextContent('−$40.00')
+  })
+
+  it('lo contabilizado no se edita: dice que no cambia y, si puede corregir, que la corrección se paga aparte', () => {
+    m.pay.mockReturnValue({ data: contabilizada() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('classCard.frozen')).toBeInTheDocument()
+    expect(screen.getByText('classCard.fixAsDifference')).toBeInTheDocument()
+    expect(screen.getByText('classCard.today')).toBeInTheDocument()
+  })
+
+  it('sin permiso para corregir una clase contabilizada no ofrece corregir ni promete la diferencia', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    m.pay.mockReturnValue({ data: contabilizada() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('classCard.frozen')).toBeInTheDocument()
+    expect(screen.queryByText('classCard.fixAsDifference')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'classCard.fixCount' })).not.toBeInTheDocument()
+  })
+
+  it('una clase excluida y contabilizada sin líneas dice «No se pagó: excluida» una sola vez', () => {
+    m.pay.mockReturnValue({
+      data: contabilizada({
+        estado: 'EXCLUIDA',
+        monto: null,
+        lineas: [],
+        ajuste: { payCountOverride: null, payAmountOverride: null, payExcluded: true, reason: 'Clase interna', at: null },
+      }),
+    })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText(/classCard\.notPaidExcluded/)).toHaveTextContent('Clase interna')
+    expect(screen.queryByText(/^classCard\.excluded:/)).not.toBeInTheDocument()
+  })
+
+  it('un periodo de origen todavía abierto no dice que ya se cerró', () => {
+    m.pay.mockReturnValue({
+      data: contabilizada({ lineas: [], periodoOrigen: { id: 'p8', start: '2026-08-01', end: '2026-08-31', estado: 'OPEN' } }),
+    })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText(/classCard\.originOpen/)).toBeInTheDocument()
+    expect(screen.queryByText(/classCard\.origin:/)).not.toBeInTheDocument()
+  })
+
+  it('una clase sin periodo de origen no pinta el bloque de contabilizada', () => {
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.queryByText(/classCard\.origin/)).not.toBeInTheDocument()
+    expect(screen.queryByText('classCard.frozen')).not.toBeInTheDocument()
+    expect(screen.queryByText('classCard.today')).not.toBeInTheDocument()
   })
 
   it('una clase sin coach se resuelve con «No se paga esta clase»', () => {
