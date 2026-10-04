@@ -99,6 +99,28 @@ describe('TotalPassCard', () => {
     expect(screen.getByLabelText('totalpass.keyLabel')).toHaveValue('')
   })
 
+  // Revisión final, Minor 7: la llave va oculta por default, pero el dueño puede verla para encontrar el carácter que sobra.
+  // Al conectar vuelve a ocultarse; el campo sigue sin autocompletar.
+  it('el ojo muestra y oculta la llave tecleada; al conectar vuelve a ocultarse', async () => {
+    const user = userEvent.setup()
+    renderCard(base)
+    const input = screen.getByLabelText('totalpass.keyLabel')
+    const eye = screen.getByRole('button', { name: 'totalpass.showKey' })
+    expect(eye).toHaveAttribute('aria-pressed', 'false')
+    await user.type(input, KEY)
+    await user.click(eye)
+    expect(input).toHaveAttribute('type', 'text')
+    expect(input).toHaveAttribute('autocomplete', 'new-password')
+    expect(eye).toHaveAttribute('aria-pressed', 'true')
+    await user.click(eye)
+    expect(input).toHaveAttribute('type', 'password')
+    await user.click(eye)
+    await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
+    await waitFor(() => expect(svc.connectTotalPass).toHaveBeenCalledWith('v1', KEY))
+    await waitFor(() => expect(screen.getByLabelText('totalpass.keyLabel')).toHaveAttribute('type', 'password'))
+    expect(screen.getByRole('button', { name: 'totalpass.showKey' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
   // El mensaje del server tal cual, y lo tecleado se queda para corregirlo. H1: aunque falle, el server pudo haber cambiado
   // de estado (PENDING con la sucursal reservada, o REVOKED si se interrumpió), así que la vista general se recarga.
   it('llave rechazada ⇒ el mensaje del servidor se ve, la llave no se borra y la vista general se recarga', async () => {
@@ -160,6 +182,7 @@ describe('TotalPassCard', () => {
     const input = screen.getByLabelText('totalpass.keyLabel')
     expect(input).toHaveAttribute('type', 'password')
     expect(input).toHaveAttribute('autocomplete', 'new-password')
+    expect(screen.getByRole('button', { name: 'totalpass.showKey' })).toBeInTheDocument()
     await user.type(input, KEY)
     await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
     await waitFor(() => expect(svc.connectTotalPass).toHaveBeenCalledWith('v1', KEY))

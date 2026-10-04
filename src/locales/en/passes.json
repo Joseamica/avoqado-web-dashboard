@@ -37,6 +37,7 @@
     "revokedHint": "TotalPass rejected the key for “{{place}}”. Paste a new key to reconnect, or disconnect to clean up the connection.",
     "keyLabel": "Your location key (place_api_key)",
     "keyPlaceholder": "Paste the key here",
+    "showKey": "Show the key",
     "keyHint": "Get it in the TotalPass Partner Portal → Integrations → Create new code. Paste it as is; we strip the spaces.",
     "connect": "Connect",
     "connecting": "Connecting…",

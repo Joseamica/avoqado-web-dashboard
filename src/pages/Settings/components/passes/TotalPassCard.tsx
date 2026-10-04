@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, Info, Loader2, PauseCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, Loader2, PauseCircle, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -112,6 +112,8 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
   const invalidate = useInvalidatePasses()
   const [key, setKey] = useState('')
   const [keyError, setKeyError] = useState<string | null>(null)
+  // Oculta por default; el ojo la enseña para encontrar el carácter que sobra (revisión final, Minor 7).
+  const [showKey, setShowKey] = useState(false)
   // R2b-18: ya conectada, el dueño puede volver a pegar la llave (conectar la MISMA sucursal hace upsert y re-lee los planes).
   const [rekeyOpen, setRekeyOpen] = useState(false)
   const [disconnectOpen, setDisconnectOpen] = useState(false)
@@ -135,6 +137,7 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
     onSuccess: () => {
       setKey('')
       setKeyError(null)
+      setShowKey(false)
       setRekeyOpen(false)
       toast({ title: t('totalpass.connected') })
       return invalidate(venueId, 'connection')
@@ -241,16 +244,32 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
     >
       <div className="grid gap-2">
         <Label htmlFor="totalpass-key">{t('totalpass.keyLabel')}</Label>
-        <Input
-          id="totalpass-key"
-          type="password"
-          autoComplete="new-password"
-          placeholder={t('totalpass.keyPlaceholder')}
-          value={key}
-          onChange={e => setKey(e.target.value)}
-          disabled={disabled}
-          data-tour="passes-totalpass-key"
-        />
+        <div className="relative">
+          <Input
+            id="totalpass-key"
+            type={showKey ? 'text' : 'password'}
+            autoComplete="new-password"
+            placeholder={t('totalpass.keyPlaceholder')}
+            value={key}
+            onChange={e => setKey(e.target.value)}
+            disabled={disabled}
+            className="pr-10"
+            data-tour="passes-totalpass-key"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-0 h-full cursor-pointer text-muted-foreground hover:text-foreground"
+            onClick={() => setShowKey(v => !v)}
+            disabled={disabled}
+            aria-label={t('totalpass.showKey')}
+            aria-pressed={showKey}
+            data-tour="passes-totalpass-key-show"
+          >
+            {showKey ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">{t('totalpass.keyHint')}</p>
       </div>
       {keyError ? (
@@ -275,6 +294,7 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
               setRekeyOpen(false)
               setKey('')
               setKeyError(null)
+              setShowKey(false)
             }}
             data-tour="passes-totalpass-rekey-cancel"
           >

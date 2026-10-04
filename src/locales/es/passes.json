@@ -37,6 +37,7 @@
     "revokedHint": "TotalPass rechazó la llave de «{{place}}». Pega una llave nueva para reconectarla, o desconecta para limpiar la conexión.",
     "keyLabel": "Llave de tu sucursal (place_api_key)",
     "keyPlaceholder": "Pega aquí la llave",
+    "showKey": "Mostrar la llave",
     "keyHint": "Se saca en el Portal de Academias de TotalPass → Integraciones → Crear nuevo código. Pégala tal cual; nosotros le quitamos los espacios.",
     "connect": "Conectar",
     "connecting": "Conectando…",
