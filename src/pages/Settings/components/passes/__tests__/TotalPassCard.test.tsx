@@ -372,7 +372,7 @@ describe('TotalPassCard', () => {
     renderCard(CONNECTED, true, true)
     expect(screen.getByText('totalpass.status.planPaused')).toBeInTheDocument()
     expect(screen.queryByText('totalpass.status.connected')).not.toBeInTheDocument()
-    expect(screen.getByText('totalpass.planPaused')).toBeInTheDocument()
+    expect(screen.getByText('totalpass.planPausedAuto')).toBeInTheDocument()
     expect(screen.getByText('Estudio Prueba')).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
@@ -388,13 +388,36 @@ describe('TotalPassCard', () => {
   })
 
   // R62 + C4: pausada por el plan con la llave ya rechazada ⇒ el diálogo dice que lo publicado se borra en el portal.
-  it('pausada por el plan (REVOKED por 401): sin formulario de llave; el diálogo de Desconectar trae la línea del portal', async () => {
+  // Revisión final, Minor 6: y el motivo del rechazo se ve YA, no hasta que el dueño mejora el plan.
+  it('pausada por el plan (REVOKED por 401): el motivo a la vista, sin formulario de llave; el diálogo trae la línea del portal', async () => {
     const user = userEvent.setup()
     renderCard({ ...CONNECTED, status: 'REVOKED', lastError: REVOKED_401 }, true, true)
-    expect(screen.getByText('totalpass.planPaused')).toBeInTheDocument()
+    expect(screen.getByText('totalpass.planPausedAuto')).toBeInTheDocument()
+    expect(screen.getByText(REVOKED_401).closest('[role="alert"]')).toHaveClass('text-destructive')
     expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))
     expect(await screen.findByText('totalpass.disconnectNoKey')).toBeInTheDocument()
+  })
+
+  // Revisión final, Minor 6: un conectar a medias en la pausa se dice igual que fuera de ella (aviso claro + motivo atenuado).
+  it('pausada por el plan con un conectar a medias (PENDING con lastError) ⇒ también el aviso de pendiente con su motivo', () => {
+    renderCard({ ...CONNECTED, status: 'PENDING', lastError: 'HTTP_503: TotalPass HTTP 503' }, true, true)
+    expect(screen.getByText('totalpass.planPausedAuto')).toBeInTheDocument()
+    expect(screen.getByText('totalpass.pendingHint')).toBeInTheDocument()
+    expect(screen.getByText('HTTP_503: TotalPass HTTP 503')).toHaveClass('text-xs', 'text-muted-foreground')
+    expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
+  })
+
+  // Revisión final, Important 2: sin el plan el server sigue validando con TotalPass, pero confirmar desde «Pases» tiene
+  // candado. En AUTO se confirman solos; en manual, al marcar la asistencia en Reservaciones (POS o kiosco) como siempre.
+  it('pausada por el plan: el aviso dice cómo se confirman los check-ins según el modo', () => {
+    const r1 = renderCard(CONNECTED, true, true)
+    expect(screen.getByText('totalpass.planPausedAuto')).toBeInTheDocument()
+    expect(screen.queryByText('totalpass.planPausedOnCheckin')).not.toBeInTheDocument()
+    r1.unmount()
+    renderCard({ ...CONNECTED, confirmMode: 'ON_VENUE_CHECKIN' }, true, true)
+    expect(screen.getByText('totalpass.planPausedOnCheckin')).toBeInTheDocument()
+    expect(screen.queryByText('totalpass.planPausedAuto')).not.toBeInTheDocument()
   })
 
   // R62: quien no puede contratar no ve el botón; se le dice a quién pedírselo (igual que el paywall).

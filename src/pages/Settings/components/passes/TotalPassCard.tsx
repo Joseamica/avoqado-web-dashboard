@@ -49,8 +49,12 @@ const FEATURE = 'AGGREGATOR_PASSES'
  * Suscripciones, y sólo para quien puede contratar (`canPurchase` = `billing:subscriptions:manage`); a los demás se les dice
  * a quién pedírselo. No pinta el precio, así que `useFeaturePrice` no pide el catálogo (`enabled: false`). Tokens
  * `warning-*` del tema: se leen igual en claro y en oscuro.
+ *
+ * El texto depende del modo (revisión final, Important 2): sin el plan el server sigue validando con TotalPass —en AUTO
+ * se confirman solos; en manual, al marcar la asistencia de la reserva (Reservaciones, POS o kiosco)—, pero confirmar
+ * desde la pantalla «Pases» tiene el candado del plan. Prometer «se siguen confirmando» en manual era falso.
  */
-function PlanPausedNotice() {
+function PlanPausedNotice({ confirmMode }: { confirmMode: PassConfirmMode }) {
   const { t } = useTranslation('passes')
   const { fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
@@ -63,7 +67,7 @@ function PlanPausedNotice() {
     <Alert className="border-warning-border bg-warning-muted text-warning-foreground" data-tour="passes-totalpass-plan-paused">
       <PauseCircle className="h-4 w-4" />
       <AlertDescription className="space-y-2 text-foreground">
-        <p>{t('totalpass.planPaused')}</p>
+        <p>{confirmMode === 'AUTO' ? t('totalpass.planPausedAuto') : t('totalpass.planPausedOnCheckin')}</p>
         {canPurchase ? (
           <Button
             type="button"
@@ -207,6 +211,24 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
     </Badge>
   )
 
+  // El motivo que dejó el server. H6: el de un conectar a medias se dice en claro, con el texto técnico abajo, chico, para
+  // soporte. Lo usan el formulario y la pausa por el plan (que no tiene formulario, pero el dueño debe saber que además la
+  // llave está rechazada antes de mejorar el plan).
+  const lastErrorBlock = !connection.lastError ? null : pending ? (
+    <Alert variant="destructive">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertDescription>
+        <p>{t('totalpass.pendingHint')}</p>
+        <p className="text-xs text-muted-foreground">{connection.lastError}</p>
+      </AlertDescription>
+    </Alert>
+  ) : (
+    <Alert variant="destructive">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertDescription>{connection.lastError}</AlertDescription>
+    </Alert>
+  )
+
   // El mismo formulario conecta y, ya conectada, vuelve a pegar la llave (R2b-18). En ese caso el `lastError` de la conexión
   // ya se ve arriba y hay un Cancelar.
   const keyForm = (
@@ -236,22 +258,8 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{keyError}</AlertDescription>
         </Alert>
-      ) : active ? null : pending && connection.lastError ? (
-        // H6: un conectar a medias se dice en claro; el texto técnico va abajo, chico, para soporte.
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <p>{t('totalpass.pendingHint')}</p>
-            <p className="text-xs text-muted-foreground">{connection.lastError}</p>
-          </AlertDescription>
-        </Alert>
-      ) : (
-        connection.lastError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{connection.lastError}</AlertDescription>
-          </Alert>
-        )
+      ) : active ? null : (
+        lastErrorBlock
       )}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={disabled || !key.trim()} data-tour="passes-totalpass-connect">
@@ -296,11 +304,13 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* R62: sin plan, sólo la sucursal, el aviso con el CTA y (abajo) Desconectar. Llave, modo y clases tienen candado. */}
+          {/* R62: sin plan, sólo la sucursal, el aviso con el CTA, el motivo si la llave falló y (abajo) Desconectar. Llave,
+              modo y clases tienen candado. */}
           {planPaused && (
             <>
               {place}
-              <PlanPausedNotice />
+              <PlanPausedNotice confirmMode={connection.confirmMode} />
+              {lastErrorBlock}
             </>
           )}
 

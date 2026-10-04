@@ -126,7 +126,7 @@ describe('PassIntegrations (Pantalla A)', () => {
       connections: [{ ...OVERVIEW.connections[0], status: 'ACTIVE', externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
     })
     renderPage()
-    expect(await screen.findByText('totalpass.planPaused')).toBeInTheDocument()
+    expect(await screen.findByText('totalpass.planPausedAuto')).toBeInTheDocument()
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     })
@@ -248,7 +248,7 @@ describe('PassIntegrations (Pantalla A)', () => {
       connections: [{ ...OVERVIEW.connections[0], status: 'ACTIVE', externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
     })
     renderPage()
-    expect(await screen.findByText('totalpass.planPaused')).toBeInTheDocument()
+    expect(await screen.findByText('totalpass.planPausedAuto')).toBeInTheDocument()
     expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
     expect(screen.getByText('Estudio Prueba')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeEnabled()
@@ -273,7 +273,7 @@ describe('PassIntegrations (Pantalla A)', () => {
     renderPage()
     expect(await screen.findByText('teaser.title')).toBeInTheDocument()
     expect(screen.getByTestId('feature-gate')).toHaveAttribute('data-feature', 'AGGREGATOR_PASSES')
-    expect(screen.queryByText('totalpass.planPaused')).not.toBeInTheDocument()
+    expect(screen.queryByText('totalpass.planPausedAuto')).not.toBeInTheDocument()
   })
 
   // R62: con plan nada cambia: dentro del FeatureGate, con el modo y sin aviso de pausa.
@@ -285,7 +285,7 @@ describe('PassIntegrations (Pantalla A)', () => {
     renderPage()
     expect(await screen.findByText('totalpass.mode.autoHint')).toBeInTheDocument()
     expect(screen.getByTestId('feature-gate')).toBeInTheDocument()
-    expect(screen.queryByText('totalpass.planPaused')).not.toBeInTheDocument()
+    expect(screen.queryByText('totalpass.planPausedAuto')).not.toBeInTheDocument()
     // H8: conectada ⇒ sin la línea de «se aplican en cuanto conectes»
     expect(await screen.findByText('capacity.title')).toBeInTheDocument()
     expect(screen.queryByText('capacity.notConnected')).not.toBeInTheDocument()
