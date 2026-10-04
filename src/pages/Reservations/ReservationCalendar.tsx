@@ -3,7 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Columns3, Eye, EyeOff, 
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ import type { Reservation, ReservationSettings, ReservationStatus } from '@/type
 import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
+import { useClaseDelEnlace } from './useClaseDelEnlace'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 import { GoogleCalendarBusyBlock } from './components/GoogleCalendarBusyBlock'
@@ -198,21 +199,8 @@ export default function ReservationCalendar() {
   // Edit class session dialog state
   const [editSessionId, setEditSessionId] = useState<string | null>(null)
   // Abrir una clase por enlace (`?clase=<id>`), p. ej. desde «Diferencias por liquidar» de pago por servicio: la única salida
-  // de una diferencia trabada es «Ajustar monto» en la clase. El parámetro se quita al abrirla (atrás no la reabre).
-  const [searchParams, setSearchParams] = useSearchParams()
-  const claseDelEnlace = searchParams.get('clase')
-  useEffect(() => {
-    if (!claseDelEnlace) return
-    setEditSessionId(claseDelEnlace)
-    setSearchParams(
-      prev => {
-        const sp = new URLSearchParams(prev)
-        sp.delete('clase')
-        return sp
-      },
-      { replace: true },
-    )
-  }, [claseDelEnlace, setSearchParams])
+  // de una diferencia trabada es «Ajustar monto» en la clase.
+  useClaseDelEnlace(venueId, setEditSessionId)
 
   // Drag/resize refs (declared early — handlers are set up after classSessions is available)
   const dragRef = useRef<{

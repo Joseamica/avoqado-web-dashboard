@@ -282,7 +282,8 @@
       "maxParticipants": "Max capacity",
       "save": "Create class",
       "success": "Class created successfully"
-    }
+    },
+    "linkNotFound": "We couldn't find that class at this location."
   },
   "waitlist": {
     "title": "Waitlist",
