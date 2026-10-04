@@ -148,7 +148,7 @@ describe('PeriodoCerradoView', () => {
     m.can.mockReturnValue(true)
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" etiquetaAbierto="octubre de 2026" />)
     fireEvent.click(screen.getByRole('button', { name: /manualAdjust\.add/ }))
-    const props = m.ajuste.mock.calls.at(-1)![0] as { fecha: string; sedes?: string[]; etiqueta?: string }
+    const props = m.ajuste.mock.calls[m.ajuste.mock.calls.length - 1][0] as { fecha: string; sedes?: string[]; etiqueta?: string }
     expect(props.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(props.sedes).toBeUndefined()
     expect(props.etiqueta).toBeUndefined()

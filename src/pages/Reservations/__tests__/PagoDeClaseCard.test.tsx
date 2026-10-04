@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PagoDeClaseCard } from '../components/PagoDeClaseCard'
 import { NivelDePagoSection } from '@/pages/Team/components/NivelDePagoSection'
+import type { PagoDeClaseDto } from '@/types/staffPay'
 
 const m = vi.hoisted(() => ({
   pay: vi.fn(),
@@ -249,7 +250,8 @@ describe('PagoDeClaseCard', () => {
   })
 
   it('corregir una clase ya contabilizada y PAGADA avisa antes de guardar que lo pagado no cambia (QA defecto 10)', () => {
-    const lineas = (contabilizada().lineas as Array<{ concepto: string }>).map(l => (l.concepto === 'SERVICE' ? { ...l, pagadoEn: '2026-09-03T15:00:00Z' } : l))
+    const ficha = contabilizada() as PagoDeClaseDto
+    const lineas = ficha.lineas!.map(l => (l.concepto === 'SERVICE' ? { ...l, pagadoEn: '2026-09-03T15:00:00Z' } : l))
     m.pay.mockReturnValue({ data: contabilizada({ lineas }) })
     conRouter(<PagoDeClaseCard sessionId="s1" />)
     expect(screen.queryByRole('note')).toBeNull()
