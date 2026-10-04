@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { PassCapacityView } from '@/types/passes'
 
-vi.mock('@/hooks/use-tier-feature-access', () => ({ useVenueTier: () => ({ hasFeatureAccess: () => true, isLoading: false, isResolved: true }) }))
+vi.mock('@/hooks/use-tier-feature-access', () => ({
+  useVenueTier: () => ({ hasFeatureAccess: () => true, isLoading: false, isResolved: true }),
+}))
 // usePassCapacity sólo consulta con `reservations:read` (usePassesAccess).
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
-const svc = vi.hoisted(() => ({ getPassCapacity: vi.fn(), setDefaultPassCap: vi.fn(), upsertWeeklyPassCap: vi.fn(), deletePassCapRule: vi.fn() }))
+const svc = vi.hoisted(() => ({
+  getPassCapacity: vi.fn(),
+  setDefaultPassCap: vi.fn(),
+  upsertWeeklyPassCap: vi.fn(),
+  deletePassCapRule: vi.fn(),
+}))
 vi.mock('@/services/passes.service', () => svc)
 const toastSpy = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastSpy }) }))
@@ -36,12 +43,15 @@ const AFTER_APPLY: PassCapacityView = {
 const TOO_MANY = 'Ya tienes 150 excepciones de lugares. Borra alguna antes de agregar otra.'
 const RULE_GONE = 'Esa regla ya no existe.'
 const BAD_SPOTS = 'Los lugares para pases van de 0 a 500.'
+// El renglón de la excepción de los sábados 09:00 (y el nombre de su botón de borrar).
+const SAT_RULE = 'days.6 · 09:00 · capacity.weekly.spots:{"count":1}'
+const DELETE_SAT = `capacity.weekly.deleteRule:${JSON.stringify({ rule: SAT_RULE })}`
 
-function renderSection(canManage = true) {
+function renderSection(canManage = true, connected = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <PassCapacitySection venueId="v1" canManage={canManage} />
+      <PassCapacitySection venueId="v1" canManage={canManage} connected={connected} />
     </QueryClientProvider>,
   )
 }
@@ -82,9 +92,37 @@ describe('PassCapacitySection', () => {
     renderSection()
     const input = await screen.findByLabelText('capacity.default.label')
     await user.clear(input)
+    expect(input).toHaveAttribute('aria-invalid', 'false')
+    expect(input).toHaveAccessibleDescription('capacity.default.hint')
     await user.type(input, '600')
     expect(screen.getByText('capacity.default.invalid')).toBeInTheDocument()
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input).toHaveAccessibleDescription('capacity.default.invalid')
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
+  })
+
+  // H9: el onSuccess/onError de guardar el tope DEVUELVE la recarga: mientras capacity no regresa, nada se puede tocar
+  // (si no, el dueño editaría sobre el valor viejo). Quitar el `return` deja el campo habilitado y esto falla.
+  it.each([
+    ['ok', true],
+    ['error', false],
+  ])('guardar el tope (%s) ⇒ el campo sigue deshabilitado hasta que llega la capacidad nueva', async (_label, ok) => {
+    const user = userEvent.setup()
+    let release: (view: PassCapacityView) => void = () => {}
+    svc.getPassCapacity.mockResolvedValueOnce(CAPACITY).mockReturnValueOnce(new Promise<PassCapacityView>(resolve => (release = resolve)))
+    if (!ok) svc.setDefaultPassCap.mockRejectedValue({ response: { status: 400, data: { message: BAD_SPOTS } } })
+    renderSection()
+    const input = await screen.findByLabelText('capacity.default.label')
+    await user.clear(input)
+    await user.type(input, '7')
+    await user.click(screen.getByRole('button', { name: 'capacity.default.save' }))
+    await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledTimes(2))
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    expect(screen.getByLabelText('capacity.default.label')).toBeDisabled()
+    await act(async () => release({ ...CAPACITY, defaultMaxSpots: ok ? 7 : 3 }))
+    await waitFor(() => expect(screen.getByLabelText('capacity.default.label')).toBeEnabled())
   })
 
   // El mensaje del server tal cual, lo tecleado se queda para corregirlo y la capacidad se recarga (R2b-17).
@@ -106,8 +144,10 @@ describe('PassCapacitySection', () => {
     const user = userEvent.setup()
     renderSection()
     // El texto exacto del renglón (la sugerencia de los sábados 09:00 también dice «09:00»: un regex suelto daría dos elementos)
-    expect(await screen.findByText('days.6 · 09:00 · capacity.weekly.spots:{"count":1}')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'capacity.weekly.delete' }))
+    expect(await screen.findByText(SAT_RULE)).toBeInTheDocument()
+    // H4: el botón y la confirmación dicen CUÁL se borra
+    await user.click(screen.getByRole('button', { name: DELETE_SAT }))
+    expect(await screen.findByText(`capacity.weekly.deleteBody:${JSON.stringify({ rule: SAT_RULE })}`)).toBeInTheDocument()
     expect(svc.deletePassCapRule).not.toHaveBeenCalled()
     await user.click(await screen.findByRole('button', { name: 'capacity.weekly.deleteConfirm' }))
     await waitFor(() => expect(svc.deletePassCapRule).toHaveBeenCalledWith('v1', 'r1'))
@@ -119,21 +159,60 @@ describe('PassCapacitySection', () => {
     svc.getPassCapacity.mockResolvedValueOnce(CAPACITY).mockResolvedValueOnce({ ...CAPACITY, weekly: [] })
     svc.deletePassCapRule.mockRejectedValue({ response: { status: 404, data: { message: RULE_GONE } } })
     renderSection()
-    await user.click(await screen.findByRole('button', { name: 'capacity.weekly.delete' }))
+    await user.click(await screen.findByRole('button', { name: DELETE_SAT }))
     await user.click(await screen.findByRole('button', { name: 'capacity.weekly.deleteConfirm' }))
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: RULE_GONE })))
     expect(await screen.findByText('capacity.weekly.empty')).toBeInTheDocument()
+  })
+
+  // H7: la lista va de lunes a domingo, como el diálogo (el server la manda con el domingo primero)
+  it('las excepciones se listan de lunes a domingo', async () => {
+    svc.getPassCapacity.mockResolvedValue({
+      ...CAPACITY,
+      weekly: [
+        { id: 'r0', weekday: 0, startMinute: null, maxSpots: 2 },
+        { id: 'r1', weekday: 1, startMinute: 540, maxSpots: 1 },
+        { id: 'r6', weekday: 6, startMinute: 600, maxSpots: 4 },
+      ],
+    })
+    renderSection()
+    await screen.findByText(/^days\.0 · /)
+    expect(screen.getAllByText(/^days\.\d · /).map(el => el.textContent?.slice(0, 6))).toEqual(['days.1', 'days.6', 'days.0'])
+  })
+
+  // H8: sin ninguna conexión viva, se dice que las reglas esperan a que se conecte TotalPass
+  it('sin conexión viva ⇒ «se aplican en cuanto conectes TotalPass»; conectada, no', async () => {
+    const { unmount } = renderSection(true, false)
+    expect(await screen.findByText('capacity.notConnected')).toBeInTheDocument()
+    unmount()
+    renderSection(true, true)
+    await screen.findByText('capacity.title')
+    expect(screen.queryByText('capacity.notConnected')).not.toBeInTheDocument()
   })
 
   // la sugerencia dice su porqué y Aplicar crea la excepción; la ya aplicada no tiene botón
   it('sugerencias: porqué + Aplicar crea la excepción; la aplicada se marca', async () => {
     const user = userEvent.setup()
     renderSection()
-    expect(await screen.findByText('capacity.suggestions.line:{"day":"daysPlural.1","time":"07:00","pct":67,"spots":3}')).toBeInTheDocument()
+    expect(
+      await screen.findByText('capacity.suggestions.line:{"day":"daysPlural.1","time":"07:00","pct":67,"count":3}'),
+    ).toBeInTheDocument()
     expect(screen.getByText('capacity.suggestions.applied')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'capacity.suggestions.apply' })).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'capacity.suggestions.apply' }))
     await waitFor(() => expect(svc.upsertWeeklyPassCap).toHaveBeenCalledWith('v1', { weekday: 1, startMinute: 420, maxSpots: 3 }))
+  })
+
+  // H3: si ya hay una excepción para ese día y hora con OTRO valor, la sugerencia dice cuántos hay hoy antes de reemplazarla
+  it('sugerencia sobre una excepción existente con otro valor ⇒ dice cuántos lugares hay hoy', async () => {
+    svc.getPassCapacity.mockResolvedValue({
+      ...CAPACITY,
+      weekly: [...CAPACITY.weekly, { id: 'r9', weekday: 1, startMinute: 420, maxSpots: 5 }],
+    })
+    renderSection()
+    expect(await screen.findByText('capacity.weekly.replaces:{"count":5}')).toBeInTheDocument()
+    // la de los sábados ya está aplicada (mismo valor): no se dice nada
+    expect(screen.getAllByText(/^capacity\.weekly\.replaces/)).toHaveLength(1)
   })
 
   // sin datos suficientes se dice con todas sus letras
@@ -154,18 +233,27 @@ describe('PassCapacitySection', () => {
     await waitFor(() => expect(svc.upsertWeeklyPassCap).toHaveBeenCalledWith('v1', { weekday: 1, startMinute: 1110, maxSpots: 2 }))
   })
 
-  // Con 150 excepciones el server no deja agregar otra: su mensaje tal cual y el diálogo sigue abierto con lo tecleado.
-  it('excepción 151 ⇒ el mensaje del server tal cual y el diálogo no se cierra', async () => {
+  // Con 150 excepciones el server no deja agregar otra: su mensaje tal cual DENTRO del diálogo (el modal tapa la lista que
+  // hay que corregir; un toast se iría en 5 s), y el diálogo sigue abierto con lo tecleado (H1).
+  it('excepción 151 ⇒ el mensaje del server tal cual dentro del diálogo, que no se cierra', async () => {
     const user = userEvent.setup()
-    svc.upsertWeeklyPassCap.mockRejectedValue({ response: { status: 400, data: { message: TOO_MANY, code: 'PASS_CAPACITY_TOO_MANY_RULES' } } })
+    svc.upsertWeeklyPassCap.mockRejectedValue({
+      response: { status: 400, data: { message: TOO_MANY, code: 'PASS_CAPACITY_TOO_MANY_RULES' } },
+    })
     renderSection()
     await user.click(await screen.findByRole('button', { name: 'capacity.weekly.add' }))
     fireEvent.change(screen.getByLabelText('capacity.dialog.time'), { target: { value: '18:30' } })
     fireEvent.change(screen.getByLabelText('capacity.dialog.spots'), { target: { value: '2' } })
     await user.click(screen.getByRole('button', { name: 'common:save' }))
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: TOO_MANY })))
+    expect(await within(screen.getByRole('dialog')).findByText(TOO_MANY)).toBeInTheDocument()
+    expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
     await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledTimes(2))
     expect(screen.getByLabelText('capacity.dialog.spots')).toHaveValue(2)
+    // al cerrar y volver a abrir, el error viejo ya no está
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await user.click(await screen.findByRole('button', { name: 'capacity.weekly.add' }))
+    expect(await screen.findByLabelText('capacity.dialog.spots')).toHaveValue(null)
+    expect(screen.queryByText(TOO_MANY)).not.toBeInTheDocument()
   })
 
   // el refetch tras aplicar una sugerencia trae OTRA respuesta y NO pisa el tope general a medio teclear
@@ -205,7 +293,7 @@ describe('PassCapacitySection', () => {
     expect(await screen.findByLabelText('capacity.default.label')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'capacity.weekly.add' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'capacity.weekly.delete' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: DELETE_SAT })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'capacity.suggestions.apply' })).toBeDisabled()
   })
 })

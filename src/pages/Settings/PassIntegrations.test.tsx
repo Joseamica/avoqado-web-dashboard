@@ -11,8 +11,10 @@ const tier = vi.hoisted(() => ({ current: { hasFeatureAccess: () => true, isLoad
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useVenueTier: () => tier.current }))
 const access = vi.hoisted(() => ({ allowed: ['reservations:read', 'reservations:manage-passes'] }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p) }) }))
+// Mutable: H6 cambia de sucursal sin desmontar la página.
+const venue = vi.hoisted(() => ({ id: 'v1' }))
 vi.mock('@/hooks/use-current-venue', () => ({
-  useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/test', venue: { timezone: 'America/Mexico_City' } }),
+  useCurrentVenue: () => ({ venueId: venue.id, fullBasePath: '/venues/test', venue: { timezone: 'America/Mexico_City' } }),
 }))
 // Todas las funciones del servicio, aunque esta prueba sólo use dos: las tarjetas de las Tareas 5-7 importan las
 // demás y un export ausente en un mock de vitest truena al usarse ("No "X" export is defined on the mock").
@@ -67,18 +69,21 @@ const OVERVIEW: PassIntegrationsOverview = {
 // MemoryRouter: desde la Tarea 5 la tarjeta en pausa por el plan navega a Suscripciones (useNavigate).
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const view = render(
+  // Una función (no un elemento fijo): `rerender` con elementos nuevos vuelve a pintar la página tras cambiar de sucursal.
+  const tree = () => (
     <QueryClientProvider client={client}>
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PassIntegrations />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
-  return { ...view, client }
+  const view = render(tree())
+  return { ...view, client, tree }
 }
 
 beforeEach(() => {
   tier.current = { hasFeatureAccess: () => true, isLoading: false, isResolved: true }
+  venue.id = 'v1'
   access.allowed = ['reservations:read', 'reservations:manage-passes']
   svc.getPassIntegrationsOverview.mockResolvedValue(OVERVIEW)
   svc.getPassCapacity.mockResolvedValue({ defaultMaxSpots: null, weekly: [], suggestions: [] })
@@ -108,6 +113,43 @@ describe('PassIntegrations (Pantalla A)', () => {
     // Tarea 7: con el plan, la sección de lugares para pases va debajo de las tarjetas.
     expect(await screen.findByText('capacity.title')).toBeInTheDocument()
     expect(svc.getPassCapacity).toHaveBeenCalledWith('v1')
+    // H8: TotalPass sin conectar ⇒ las reglas esperan a la conexión, y se dice
+    expect(screen.getByText('capacity.notConnected')).toBeInTheDocument()
+  })
+
+  // H9: el plan en caché dice que sí, pero el server ya no publica (planActive:false) con TotalPass vivo: la pausa manda y
+  // la sección no se pinta ni pide /capacity (que contestaría 403). Con el plan en false esto pasaría aunque faltara la guarda.
+  it('con el plan en caché pero planActive:false y TotalPass ACTIVE ⇒ sin sección de lugares ni /capacity', async () => {
+    svc.getPassIntegrationsOverview.mockResolvedValue({
+      ...OVERVIEW,
+      planActive: false,
+      connections: [{ ...OVERVIEW.connections[0], status: 'ACTIVE', externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
+    })
+    renderPage()
+    expect(await screen.findByText('totalpass.planPaused')).toBeInTheDocument()
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    expect(screen.queryByText('capacity.title')).not.toBeInTheDocument()
+    expect(svc.getPassCapacity).not.toHaveBeenCalled()
+  })
+
+  // H6: el borrador del tope general no cruza de sucursal. Con la vista general de la otra ya en caché la página no se
+  // desmonta, y sin `key={venueId}` el 7 tecleado reaparecería «sucio» sobre el mismo tope (3) de la otra sucursal.
+  it('cambiar de sucursal con un tope tecleado ⇒ el campo muestra el tope de la nueva sucursal', async () => {
+    const user = userEvent.setup()
+    svc.getPassCapacity.mockResolvedValue({ defaultMaxSpots: 3, weekly: [], suggestions: [] })
+    const { client, rerender, tree } = renderPage()
+    const input = await screen.findByLabelText('capacity.default.label')
+    await waitFor(() => expect(input).toHaveValue(3))
+    await user.clear(input)
+    await user.type(input, '7')
+    client.setQueryData(passesKeys.overview('v2'), OVERVIEW)
+    venue.id = 'v2'
+    rerender(tree())
+    await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledWith('v2'))
+    await waitFor(() => expect(screen.getByLabelText('capacity.default.label')).toHaveValue(3))
+    expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
   })
 
   // «Apagado se ve y se explica»: sin permiso de configurar se ve todo, con el aviso de a quién pedírselo.
@@ -202,6 +244,9 @@ describe('PassIntegrations (Pantalla A)', () => {
     expect(await screen.findByText('totalpass.mode.autoHint')).toBeInTheDocument()
     expect(screen.getByTestId('feature-gate')).toBeInTheDocument()
     expect(screen.queryByText('totalpass.planPaused')).not.toBeInTheDocument()
+    // H8: conectada ⇒ sin la línea de «se aplican en cuanto conectes»
+    expect(await screen.findByText('capacity.title')).toBeInTheDocument()
+    expect(screen.queryByText('capacity.notConnected')).not.toBeInTheDocument()
   })
 
   // Tarea 6: la tarjeta conectada recibe las clases del negocio de la vista general y las ofrece para ligar.

@@ -39,6 +39,38 @@ describe('WeeklyRuleDialog', () => {
     expect(onSave).not.toHaveBeenCalled()
     expect(screen.getByText('capacity.dialog.errors.time')).toBeInTheDocument()
     expect(screen.getByText('capacity.dialog.errors.spots')).toBeInTheDocument()
+    // H5: el lector de pantalla oye el motivo con el campo
+    expect(screen.getByLabelText('capacity.dialog.time')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('capacity.dialog.time')).toHaveAccessibleDescription('capacity.dialog.errors.time')
+    expect(screen.getByLabelText('capacity.dialog.spots')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('capacity.dialog.spots')).toHaveAccessibleDescription(
+      'capacity.dialog.spotsHint capacity.dialog.errors.spots',
+    )
+  })
+
+  // H3: ese día y hora ya tienen excepción con otro valor ⇒ se dice antes de reemplazarla; con el mismo valor, nada
+  it('día y hora con excepción existente ⇒ avisa que se reemplaza', () => {
+    render(
+      <WeeklyRuleDialog
+        open
+        onClose={() => {}}
+        onSave={() => {}}
+        saving={false}
+        existing={[{ id: 'r1', weekday: 6, startMinute: 540, maxSpots: 2 }]}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText('capacity.dialog.weekday'), { target: { value: '6' } })
+    expect(screen.queryByText('capacity.weekly.replaces')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('capacity.dialog.time'), { target: { value: '09:00' } })
+    expect(screen.getByText('capacity.weekly.replaces')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('capacity.dialog.spots'), { target: { value: '2' } })
+    expect(screen.queryByText('capacity.weekly.replaces')).not.toBeInTheDocument()
+  })
+
+  // H1: el error del server se pinta dentro del diálogo
+  it('con error del server ⇒ Alert destructivo dentro del diálogo', () => {
+    render(<WeeklyRuleDialog open onClose={() => {}} onSave={() => {}} saving={false} error="Mensaje del servidor" />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Mensaje del servidor')
   })
 
   // mientras guarda, el botón dice «Guardando…» y no se puede volver a presionar

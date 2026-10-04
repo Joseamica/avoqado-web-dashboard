@@ -74,6 +74,7 @@
     "title": "Spots for passes",
     "description": "How many spots per class go to TotalPass and Wellhub members. Both share the same cap; the most specific rule wins: class > day and time > general.",
     "loadError": "Couldn't load the spots for passes",
+    "notConnected": "These rules apply as soon as you connect TotalPass.",
     "default": {
       "label": "In every class, up to",
       "unit": "spots for passes",
@@ -86,14 +87,16 @@
       "title": "Exceptions by day and time",
       "empty": "No exceptions: the general cap applies to every class.",
       "add": "+ Add",
-      "delete": "Delete",
+      "deleteRule": "Delete {{rule}}",
       "deleteTitle": "Delete this exception?",
-      "deleteBody": "Those classes go back to the general cap.",
+      "deleteBody": "“{{rule}}” will be deleted. Those classes go back to the general cap.",
       "deleteConfirm": "Yes, delete",
       "deleted": "Exception deleted",
       "saved": "Exception saved",
       "spots": "{{count}} spot",
-      "spots_other": "{{count}} spots"
+      "spots_other": "{{count}} spots",
+      "replaces": "That day and time already have an exception of {{count}} spot; it will be replaced.",
+      "replaces_other": "That day and time already have an exception of {{count}} spots; it will be replaced."
     },
     "dialog": {
       "title": "New exception",
@@ -108,7 +111,8 @@
     "suggestions": {
       "title": "Suggestions",
       "description": "Based on how your classes fill up with your own clients over the last 8 weeks.",
-      "line": "Your {{day}} {{time}} classes fill up to {{pct}}% with your own clients → we suggest {{spots}}",
+      "line": "Your {{day}} {{time}} classes fill up to {{pct}}% with your own clients → we suggest {{count}} spot",
+      "line_other": "Your {{day}} {{time}} classes fill up to {{pct}}% with your own clients → we suggest {{count}} spots",
       "weeks": "{{count}} week of data",
       "weeks_other": "{{count}} weeks of data",
       "apply": "Apply",

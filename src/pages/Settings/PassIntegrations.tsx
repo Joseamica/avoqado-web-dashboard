@@ -86,7 +86,15 @@ export default function PassIntegrations() {
             <WellhubCard />
           </div>
           {/* R62: sin plan los lugares siguen con candado en el server; en la pausa no se pinta (ni se pide /capacity). */}
-          {!planPaused && <PassCapacitySection venueId={venueId} canManage={canManage} />}
+          {/* key: un borrador o diálogo abierto no cruza a otra sucursal (switchVenue conserva la ruta y no desmonta). */}
+          {!planPaused && (
+            <PassCapacitySection
+              key={venueId}
+              venueId={venueId}
+              canManage={canManage}
+              connected={overview.data.connections.some(passConnectionIsLive)}
+            />
+          )}
         </>
       )}
     </div>
