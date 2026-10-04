@@ -111,13 +111,16 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
 
   const active = connection.status === 'ACTIVE'
   const paused = connection.status === 'PAUSED'
+  const pending = connection.status === 'PENDING'
   // REVOKED con algo que limpiar = la revocó un 401, que deja `lastError`. NO `externalPlaceName`: desconectar no lo borra (C1).
   const revokedWithLeftovers = connection.status === 'REVOKED' && !!connection.lastError
   // ACTIVE, PAUSED, PENDING (un conectar a medias que ya reservó la sucursal: si no, «Desconéctala primero» no tiene
   // salida) o REVOKED con algo que limpiar. Mismo criterio con el que la página decide la pausa por el plan.
   const canDisconnect = passConnectionIsLive(connection)
 
-  // Cada onSuccess DEVUELVE la invalidación: isPending dura hasta que el overview nuevo llegó (P2-8).
+  // Cada onSuccess DEVUELVE la invalidación: isPending dura hasta que el overview nuevo llegó (P2-8). Los onError también
+  // recargan la vista (H1): aunque la petición falle, el server pudo haber cambiado de estado (un conectar que reservó la
+  // sucursal y quedó PENDING, uno interrumpido que quedó REVOKED, una conexión revocada en segundo plano al cambiar el modo).
   const connect = useMutation({
     mutationFn: () => connectTotalPass(venueId, key),
     onSuccess: () => {
@@ -127,7 +130,10 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
       return invalidate(venueId, 'connection')
     },
     // La llave tecleada se conserva: casi siempre el arreglo es «quítale un carácter», no «vuélvela a pegar».
-    onError: (error: unknown) => setKeyError(apiErrorDescription(error) || t('errors.generic')),
+    onError: (error: unknown) => {
+      setKeyError(apiErrorDescription(error) || t('errors.generic'))
+      return invalidate(venueId, 'connection')
+    },
   })
   const mode = useMutation({
     mutationFn: (confirmMode: PassConfirmMode) => setPassConfirmMode(venueId, 'TOTALPASS', confirmMode),
@@ -135,13 +141,18 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
       toast({ title: t('totalpass.mode.saved') })
       return invalidate(venueId, 'connection')
     },
-    onError: (error: unknown) => toast({ variant: 'destructive', title: apiErrorDescription(error) || t('errors.generic') }),
+    onError: (error: unknown) => {
+      toast({ variant: 'destructive', title: apiErrorDescription(error) || t('errors.generic') })
+      return invalidate(venueId, 'connection')
+    },
   })
   const disconnect = useMutation({
     mutationFn: () => disconnectPassProvider(venueId, 'TOTALPASS'),
     onMutate: () => setDisconnectResult(null),
     onSuccess: () => {
       setDisconnectOpen(false)
+      // El error de un conectar anterior («Desconéctala primero»…) ya no aplica (H2).
+      setKeyError(null)
       toast({ title: t('totalpass.disconnected') })
       return invalidate(venueId, 'connection')
     },
@@ -160,6 +171,8 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
 
   // Una sola mutación en vuelo por tarjeta: dos escrituras encimadas se pisarían con valores viejos.
   const disabled = !canManage || connect.isPending || mode.isPending || disconnect.isPending
+  // Mientras guarda, el selector y su consecuencia enseñan lo elegido, no el valor viejo (H4).
+  const confirmMode = mode.isPending ? (mode.variables ?? connection.confirmMode) : connection.confirmMode
 
   const badge = planPaused ? (
     <Badge variant="secondary" className="gap-1">
@@ -246,11 +259,27 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
                 />
                 <p className="text-xs text-muted-foreground">{t('totalpass.keyHint')}</p>
               </div>
-              {(keyError ?? connection.lastError) && (
+              {keyError ? (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{keyError ?? connection.lastError}</AlertDescription>
+                  <AlertDescription>{keyError}</AlertDescription>
                 </Alert>
+              ) : pending && connection.lastError ? (
+                // H6: un conectar a medias se dice en claro; el texto técnico va abajo, chico, para soporte.
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <p>{t('totalpass.pendingHint')}</p>
+                    <p className="text-xs text-muted-foreground">{connection.lastError}</p>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                connection.lastError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{connection.lastError}</AlertDescription>
+                  </Alert>
+                )
               )}
               <Button type="submit" disabled={disabled || !key.trim()} data-tour="passes-totalpass-connect">
                 {connect.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -269,9 +298,9 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
               )}
 
               <div className="space-y-1.5">
-                <Label>{t('totalpass.mode.label')}</Label>
-                <Select value={connection.confirmMode} disabled={disabled} onValueChange={value => mode.mutate(value as PassConfirmMode)}>
-                  <SelectTrigger data-tour="passes-totalpass-mode">
+                <Label htmlFor="totalpass-mode">{t('totalpass.mode.label')}</Label>
+                <Select value={confirmMode} disabled={disabled} onValueChange={value => mode.mutate(value as PassConfirmMode)}>
+                  <SelectTrigger id="totalpass-mode" data-tour="passes-totalpass-mode">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,7 +309,7 @@ export function TotalPassCard({ venueId, connection, canManage, planPaused = fal
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {connection.confirmMode === 'AUTO' ? t('totalpass.mode.autoHint') : t('totalpass.mode.onCheckinHint')}
+                  {confirmMode === 'AUTO' ? t('totalpass.mode.autoHint') : t('totalpass.mode.onCheckinHint')}
                 </p>
               </div>
             </>

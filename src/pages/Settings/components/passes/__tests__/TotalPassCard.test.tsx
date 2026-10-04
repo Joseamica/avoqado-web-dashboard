@@ -84,10 +84,13 @@ describe('TotalPassCard', () => {
     await waitFor(() => expect(svc.connectTotalPass).toHaveBeenCalledWith('v1', `  ${KEY} `))
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
     expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ title: 'totalpass.connected' }))
+    // La llave no se queda en el formulario después de conectar.
+    expect(screen.getByLabelText('totalpass.keyLabel')).toHaveValue('')
   })
 
-  // El mensaje del server tal cual, y lo tecleado se queda para corregirlo.
-  it('llave rechazada ⇒ el mensaje del servidor se ve en la tarjeta y la llave no se borra', async () => {
+  // El mensaje del server tal cual, y lo tecleado se queda para corregirlo. H1: aunque falle, el server pudo haber cambiado
+  // de estado (PENDING con la sucursal reservada, o REVOKED si se interrumpió), así que la vista general se recarga.
+  it('llave rechazada ⇒ el mensaje del servidor se ve, la llave no se borra y la vista general se recarga', async () => {
     const user = userEvent.setup()
     svc.connectTotalPass.mockRejectedValue({
       response: {
@@ -103,13 +106,34 @@ describe('TotalPassCard', () => {
     await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
     expect(await screen.findByText(/TotalPass no reconoce esa llave/)).toBeInTheDocument()
     expect(screen.getByLabelText('totalpass.keyLabel')).toHaveValue('llave-mala-0000')
-    expect(invalidateSpy).not.toHaveBeenCalled()
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
   })
 
-  // Una conexión que quedó a medias (PENDING + lastError) enseña el motivo y deja volver a intentar.
-  it('conexión incompleta (PENDING con lastError) ⇒ formulario + motivo', () => {
+  // H2: el error de la llave no se queda pegado después de soltar la sucursal con Desconectar.
+  it('el error de la llave se borra al desconectar', async () => {
+    const user = userEvent.setup()
+    svc.connectTotalPass.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { message: 'Este negocio ya está conectado a otra sucursal de TotalPass. Desconéctala primero.', code: 'PASS_OTHER_PLACE' },
+      },
+    })
+    renderCard({ ...base, status: 'PENDING', externalPlaceName: 'Estudio Prueba' })
+    await user.type(screen.getByLabelText('totalpass.keyLabel'), 'llave-de-otra-0000')
+    await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
+    expect(await screen.findByText(/Desconéctala primero/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))
+    await user.click(await screen.findByRole('button', { name: 'totalpass.disconnectConfirm' }))
+    await waitFor(() => expect(svc.disconnectPassProvider).toHaveBeenCalledWith('v1', 'TOTALPASS'))
+    await waitFor(() => expect(screen.queryByText(/Desconéctala primero/)).not.toBeInTheDocument())
+  })
+
+  // Una conexión que quedó a medias (PENDING + lastError) lo dice en claro y deja volver a intentar. H6: el texto técnico del
+  // server va debajo, chico y atenuado (sirve para soporte), no como el mensaje principal.
+  it('conexión incompleta (PENDING con lastError) ⇒ formulario + aviso claro + motivo técnico atenuado', () => {
     renderCard({ ...base, status: 'PENDING', lastError: 'HTTP_503: TotalPass HTTP 503' })
-    expect(screen.getByText('HTTP_503: TotalPass HTTP 503')).toBeInTheDocument()
+    expect(screen.getByText('totalpass.pendingHint')).toBeInTheDocument()
+    expect(screen.getByText('HTTP_503: TotalPass HTTP 503')).toHaveClass('text-xs', 'text-muted-foreground')
     expect(screen.getByLabelText('totalpass.keyLabel')).toBeInTheDocument()
     // PENDING ya reservó la sucursal: se puede soltar para conectar otra (R41 del server).
     expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeInTheDocument()
@@ -121,7 +145,8 @@ describe('TotalPassCard', () => {
     expect(screen.getByText('Estudio Prueba')).toBeInTheDocument()
     expect(screen.getByText('totalpass.mode.autoHint')).toBeInTheDocument()
     expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('combobox'))
+    // H5: el selector se anuncia con su etiqueta, no sólo con el valor elegido.
+    await user.click(screen.getByRole('combobox', { name: 'totalpass.mode.label' }))
     await user.click(await screen.findByRole('option', { name: 'totalpass.mode.onCheckin' }))
     await waitFor(() => expect(svc.setPassConfirmMode).toHaveBeenCalledWith('v1', 'TOTALPASS', 'ON_VENUE_CHECKIN'))
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
@@ -141,8 +166,27 @@ describe('TotalPassCard', () => {
     await user.click(await screen.findByRole('option', { name: 'totalpass.mode.onCheckin' }))
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
     expect(screen.getByRole('combobox')).toBeDisabled()
+    // H4: mientras guarda se ve lo que se eligió, no el valor viejo.
+    expect(screen.getByRole('combobox')).toHaveTextContent('totalpass.mode.onCheckin')
+    expect(screen.getByText('totalpass.mode.onCheckinHint')).toBeInTheDocument()
     release()
     await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled())
+  })
+
+  // H1: si el server rechaza el modo (p. ej. la conexión se revocó en segundo plano), el mensaje sale tal cual y la vista se
+  // recarga para que la tarjeta deje de decir «Conectada».
+  it('cambiar el modo falla ⇒ toast con el mensaje del servidor y la vista general se recarga', async () => {
+    const user = userEvent.setup()
+    svc.setPassConfirmMode.mockRejectedValue({
+      response: { status: 409, data: { message: 'Primero conecta TotalPass.', code: 'PASS_NOT_CONNECTED' } },
+    })
+    renderCard(CONNECTED)
+    await user.click(screen.getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: 'totalpass.mode.onCheckin' }))
+    await waitFor(() =>
+      expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: 'Primero conecta TotalPass.' })),
+    )
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
   })
 
   // Desconectar pide confirmación; un rechazo del server (socios próximos) se ve tal cual y en rojo.
@@ -152,7 +196,10 @@ describe('TotalPassCard', () => {
     svc.disconnectPassProvider.mockRejectedValue({
       response: {
         status: 409,
-        data: { message: 'Todavía no se puede desconectar TotalPass: 2 reservas de socios próximas o en curso.', code: 'PASS_DISCONNECT_BLOCKED' },
+        data: {
+          message: 'Todavía no se puede desconectar TotalPass: 2 reservas de socios próximas o en curso.',
+          code: 'PASS_DISCONNECT_BLOCKED',
+        },
       },
     })
     renderCard(CONNECTED)
@@ -173,9 +220,18 @@ describe('TotalPassCard', () => {
     svc.disconnectPassProvider.mockRejectedValue({
       response: {
         status: 409,
-        data: { message: 'Estamos quitando tus 2 clases de TotalPass. Vuelve a presionar Desconectar en unos minutos.', code: 'PASS_DISCONNECT_UNLINKING' },
+        data: {
+          message: 'Estamos quitando tus 2 clases de TotalPass. Vuelve a presionar Desconectar en unos minutos.',
+          code: 'PASS_DISCONNECT_UNLINKING',
+        },
       },
     })
+    let release!: () => void
+    invalidateSpy.mockReturnValueOnce(
+      new Promise<void>(resolve => {
+        release = resolve
+      }),
+    )
     renderCard(CONNECTED)
     await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))
     await user.click(await screen.findByRole('button', { name: 'totalpass.disconnectConfirm' }))
@@ -183,7 +239,9 @@ describe('TotalPassCard', () => {
     expect(message.closest('[role="alert"]')).not.toHaveClass('text-destructive')
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
     expect(toastSpy).not.toHaveBeenCalled()
-    // Volver a presionar sigue disponible.
+    // H7 (P2-8): mientras la vista se recarga, Desconectar sigue deshabilitado; al llegar los datos, se puede volver a presionar.
+    expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeDisabled()
+    release()
     await waitFor(() => expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeEnabled())
   })
 
