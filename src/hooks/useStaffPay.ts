@@ -1,7 +1,8 @@
+import { useEffect, useMemo } from 'react'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { staffPayService } from '@/services/staffPay.service'
-import type { AjusteClaseInput, CeldaDto } from '@/types/staffPay'
+import type { AjusteClaseInput, AjusteManualInput, CeldaDto } from '@/types/staffPay'
 
 export const staffPayKeys = {
   all: (venueId: string | null) => ['staff-pay', venueId] as const,
@@ -10,6 +11,7 @@ export const staffPayKeys = {
   assignments: (venueId: string | null) => [...staffPayKeys.all(venueId), 'assignments'] as const,
   tables: (venueId: string | null) => [...staffPayKeys.all(venueId), 'tables'] as const,
   report: (venueId: string | null) => [...staffPayKeys.all(venueId), 'report'] as const,
+  periods: (venueId: string | null) => [...staffPayKeys.all(venueId), 'periods'] as const,
   classPay: (venueId: string | null, sessionId: string | null) => [...staffPayKeys.all(venueId), 'class', sessionId] as const,
 }
 const pesado = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
@@ -32,40 +34,43 @@ export function useStaffPayTables(enabled = true) {
   const { venueId } = useCurrentVenue()
   return useQuery({ queryKey: staffPayKeys.tables(venueId), queryFn: () => staffPayService.tables(venueId!), enabled: !!venueId && enabled, ...pesado })
 }
-export function useStaffPayReport(p: { offset: number; limit: number; sede?: string }, enabled = true) {
+export function useStaffPayReport(p: { offset: number; limit: number; sede?: string; fecha?: string }, enabled = true) {
   const { venueId } = useCurrentVenue()
   return useQuery({ queryKey: [...staffPayKeys.report(venueId), p], queryFn: () => staffPayService.report(venueId!, p), enabled: !!venueId && enabled, placeholderData: keepPreviousData, ...pesado })
 }
-/** Desglose clase por clase de una persona en el periodo abierto (cursor, 50 por página). */
-export function useStaffPayDetail(staffId: string | null, sede: string | undefined, enabled = true) {
+/**
+ * Desglose clase por clase de una persona en el periodo abierto (cursor, 50 por página). Para un periodo CERRADO el
+ * server responde 409 PERIODO_CERRADO (Codex R2-R1-21): la pantalla lo apaga con `enabled` y lee el recibo.
+ */
+export function useStaffPayDetail(staffId: string | null, sede: string | undefined, fecha?: string, enabled = true) {
   const { venueId } = useCurrentVenue()
   return useInfiniteQuery({
-    queryKey: [...staffPayKeys.report(venueId), 'detail', staffId, sede ?? null],
-    queryFn: ({ pageParam }) => staffPayService.staffDetail(venueId!, staffId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA, sede }),
+    queryKey: [...staffPayKeys.report(venueId), 'detail', staffId, sede ?? null, fecha ?? null],
+    queryFn: ({ pageParam }) => staffPayService.staffDetail(venueId!, staffId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA, sede, fecha }),
     initialPageParam: null as string | null,
     getNextPageParam: last => last.nextCursor ?? undefined,
     enabled: !!venueId && !!staffId && enabled,
     ...pesado,
   })
 }
-/** Clases del periodo que todavía no se pueden pagar (cursor, 50 por página). */
-export function useStaffPayExceptions(sede: string | undefined, enabled = true) {
+/** Clases del periodo que todavía no se pueden pagar (cursor, 50 por página). Periodo cerrado ⇒ `enabled=false` (409). */
+export function useStaffPayExceptions(sede: string | undefined, fecha?: string, enabled = true) {
   const { venueId } = useCurrentVenue()
   return useInfiniteQuery({
-    queryKey: [...staffPayKeys.report(venueId), 'exceptions', sede ?? null],
-    queryFn: ({ pageParam }) => staffPayService.exceptions(venueId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA, sede }),
+    queryKey: [...staffPayKeys.report(venueId), 'exceptions', sede ?? null, fecha ?? null],
+    queryFn: ({ pageParam }) => staffPayService.exceptions(venueId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA, sede, fecha }),
     initialPageParam: null as string | null,
     getNextPageParam: last => last.nextCursor ?? undefined,
     enabled: !!venueId && enabled,
     ...pesado,
   })
 }
-/** Reservas de clase sin horario del periodo (offset, 50 por página). */
-export function useStaffPayOrphans(sede: string | undefined, enabled = true) {
+/** Reservas de clase sin horario del periodo (offset, 50 por página). Periodo cerrado ⇒ `enabled=false` (409). */
+export function useStaffPayOrphans(sede: string | undefined, fecha?: string, enabled = true) {
   const { venueId } = useCurrentVenue()
   return useInfiniteQuery({
-    queryKey: [...staffPayKeys.report(venueId), 'orphans', sede ?? null],
-    queryFn: ({ pageParam }) => staffPayService.orphans(venueId!, { offset: pageParam, limit: LIMITE_LISTA, sede }),
+    queryKey: [...staffPayKeys.report(venueId), 'orphans', sede ?? null, fecha ?? null],
+    queryFn: ({ pageParam }) => staffPayService.orphans(venueId!, { offset: pageParam, limit: LIMITE_LISTA, sede, fecha }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => {
       const cargadas = pages.reduce((n, p) => n + p.items.length, 0)
@@ -74,6 +79,60 @@ export function useStaffPayOrphans(sede: string | undefined, enabled = true) {
     enabled: !!venueId && enabled,
     ...pesado,
   })
+}
+/** Páginas de 24 periodos; `data.items` ya viene aplanado y `hasNextPage` dice si hay más viejos («Ver periodos anteriores»). */
+export function useStaffPayPeriods(enabled = true) {
+  const { venueId } = useCurrentVenue()
+  const q = useInfiniteQuery({
+    queryKey: staffPayKeys.periods(venueId),
+    queryFn: ({ pageParam }) => staffPayService.periods(venueId!, pageParam ?? undefined),
+    initialPageParam: null as string | null,
+    getNextPageParam: last => last.antesDe ?? undefined,
+    enabled: !!venueId && enabled,
+    ...pesado,
+  })
+  const data = useMemo(() => (q.data ? { ...q.data.pages[0], items: q.data.pages.flatMap(p => p.items) } : undefined), [q.data])
+  return { ...q, data }
+}
+/** Qué se cerraría hoy y con qué huella; nunca se reusa: `staleTime: 0` (la huella debe ser la de ESTE momento). */
+export function useClosePreview(fecha: string | null, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useQuery({
+    queryKey: [...staffPayKeys.periods(venueId), 'close-preview', fecha],
+    queryFn: () => staffPayService.closePreview(venueId!, fecha!),
+    enabled: !!venueId && !!fecha && enabled,
+    staleTime: 0,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+}
+const LIMITE_RECIBO = 100
+/**
+ * El recibo por páginas (Codex R2-R1-20): `data.renglones` ya viene aplanado y `hasNextPage` dice si hay más («Cargar
+ * más»); `data.total` y `data.cantidad` son del recibo ENTERO (los suma la base), nunca la suma de lo cargado.
+ */
+export function useStaffReceipt(staffId: string | null, fecha: string | null, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  const qc = useQueryClient()
+  const queryKey = [...staffPayKeys.report(venueId), 'receipt', staffId, fecha]
+  const q = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }) => staffPayService.receipt(venueId!, staffId!, fecha!, { cursor: pageParam ?? undefined, limit: LIMITE_RECIBO }),
+    initialPageParam: null as string | null,
+    getNextPageParam: last => last.siguiente ?? undefined,
+    enabled: !!venueId && !!staffId && !!fecha && enabled,
+    ...pesado,
+  })
+  // Codex R3-Nuevo 3: si el periodo se cerró entre dos páginas, el server responde 409 RECIBO_CAMBIO; la lista se
+  // reinicia desde la página 1 (que ya es el recibo cerrado) en vez de quedarse con un error. `reset`, no `invalidate`:
+  // invalidar volvería a pedir las páginas con los cursores viejos y toparía con el mismo 409.
+  const codigo = (q.error as { response?: { data?: { code?: string } } } | null)?.response?.data?.code
+  useEffect(() => {
+    if (codigo === 'RECIBO_CAMBIO') void qc.resetQueries({ queryKey })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `queryKey` se recrea en cada render; basta el código
+  }, [codigo, qc])
+  const data = useMemo(() => (q.data ? { ...q.data.pages[0], renglones: q.data.pages.flatMap(p => p.renglones) } : undefined), [q.data])
+  return { ...q, data }
 }
 export function useClassPay(sessionId: string | null, enabled = true) {
   const { venueId } = useCurrentVenue()
@@ -111,4 +170,20 @@ export function usePublishTable() {
 export function useAdjustClass(sessionId: string | null) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({ mutationFn: (p: AjusteClaseInput) => staffPayService.adjustClass(venueId!, sessionId!, p), onSuccess: inv })
+}
+export function useSetPeriodicity() {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  return useMutation({ mutationFn: (p: 'MONTHLY' | 'SEMIMONTHLY') => staffPayService.setPeriodicity(venueId!, p), onSuccess: inv })
+}
+export function useClosePeriod() {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  return useMutation({ mutationFn: (b: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }) => staffPayService.close(venueId!, b), onSuccess: inv })
+}
+export function useMarkPaid(periodId: string | null) {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  return useMutation({ mutationFn: (b: { staffId?: string; nota?: string }) => staffPayService.markPaid(venueId!, periodId!, b), onSuccess: inv })
+}
+export function useAddAdjustment() {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  return useMutation({ mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b), onSuccess: inv })
 }
