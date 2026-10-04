@@ -32,6 +32,7 @@ import type { Reservation, ReservationSettings, ReservationStatus } from '@/type
 import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
+import { ClassSessionPassesLine } from './components/ClassSessionPassesLine'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 import { GoogleCalendarBusyBlock } from './components/GoogleCalendarBusyBlock'
@@ -697,6 +698,7 @@ export default function ReservationCalendar() {
             )}
           </div>
         )}
+        {height > 56 && <ClassSessionPassesLine passes={session.passes} />}
 
         {/* Bottom resize handle */}
         {canDrag && (

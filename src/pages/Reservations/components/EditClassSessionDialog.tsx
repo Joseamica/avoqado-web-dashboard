@@ -32,6 +32,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { teamService } from '@/services/team.service'
 import classSessionService from '@/services/classSession.service'
+import { SessionPassCapField } from './SessionPassCapField'
 
 const editSchema = z
   .object({
@@ -95,24 +96,35 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
   const staffMembers = staffData?.data ?? []
 
-  // Reset form when session data loads
-  const wasOpenRef = useRef(false)
+  // Inicializa el formulario al ABRIR o al cambiar de sesión, y otra vez con cada respuesta nueva de ['class-session']
+  // MIENTRAS el dueño no haya tocado nada:
+  // - con borrador (`isDirty`), la respuesta nueva NO lo pisa (P1-5): guardar los lugares para pases (SessionPassCapField)
+  //   invalida esa clave, y un reset aquí borraba las notas o el cupo a medio escribir;
+  // - sin borrador, la respuesta fresca SÍ reemplaza a la de la caché (C2): al reabrir se pinta la caché (cupo 12) y, si
+  //   luego se ignorara la fresca (cupo 7), «Guardar» otro cambio reenviaría el 12 viejo.
+  // (El `|| sessionId` anterior era siempre verdadero: reseteaba con cada respuesta, hubiera borrador o no.)
+  // Límite aceptado: con borrador, los campos que el dueño NO tocó se quedan con el valor con que se inicializó.
+  const initializedForRef = useRef<string | null>(null)
   useEffect(() => {
-    if (open && session && (!wasOpenRef.current || sessionId)) {
-      const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
-      const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
-
-      reset({
-        date: start.toFormat('yyyy-MM-dd'),
-        startTime: start.toFormat('HH:mm'),
-        endTime: end.toFormat('HH:mm'),
-        capacity: session.capacity,
-        assignedStaffId: session.assignedStaffId || '',
-        internalNotes: session.internalNotes || '',
-      })
+    if (!open) {
+      initializedForRef.current = null
+      return
     }
-    wasOpenRef.current = open
-  }, [open, session, sessionId, reset, venueTimezone])
+    if (!session) return
+    if (initializedForRef.current === sessionId && isDirty) return
+    initializedForRef.current = sessionId
+    const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+
+    reset({
+      date: start.toFormat('yyyy-MM-dd'),
+      startTime: start.toFormat('HH:mm'),
+      endTime: end.toFormat('HH:mm'),
+      capacity: session.capacity,
+      assignedStaffId: session.assignedStaffId || '',
+      internalNotes: session.internalNotes || '',
+    })
+  }, [open, session, sessionId, isDirty, reset, venueTimezone])
 
   // Update mutation
   const updateMutation = useMutation({
@@ -352,6 +364,18 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                 </Select>
               </div>
             </div>
+
+            {/* Lugares para pases de ESTA sesión — sólo si la clase se ofrece a pases (passes ≠ null). Terminada: sólo se ven. */}
+            {session.passes &&
+              sessionId &&
+              venueId &&
+              (isReadOnly ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('classSession.passes', { taken: session.passes.taken, cap: session.passes.cap })}
+                </p>
+              ) : (
+                <SessionPassCapField key={sessionId} venueId={venueId} sessionId={sessionId} passes={session.passes} />
+              ))}
 
             {/* Internal notes */}
             <div className="space-y-1.5">
