@@ -24,7 +24,7 @@ import { passesKeys, useInvalidatePasses, usePassIntegrationsOverview, usePassVi
 import { useToast } from '@/hooks/use-toast'
 import type { DateRangeValue } from '@/pages/AreaTickets/components/DateRangeFilterContent'
 import { confirmPassVisit, rejectPassVisit } from '@/services/passes.service'
-import type { PassProvider, PassVisitView } from '@/types/passes'
+import type { PassProvider, PassVisitValidation, PassVisitView } from '@/types/passes'
 import { apiErrorDescription } from '@/utils/apiError'
 import { useVenueDateTime } from '@/utils/datetime'
 import { PASS_VISIT_TABS, type PassVisitTab } from './passVisitTabs'
@@ -37,6 +37,9 @@ function dedupeById(items: PassVisitView[]): PassVisitView[] {
   const seen = new Set<string>()
   return items.filter(v => (seen.has(v.id) ? false : (seen.add(v.id), true)))
 }
+
+/** La validación sigue en manos del server: no hay nada que hacer en la fila (confirmar otra vez sólo se juntaría). */
+const IN_FLIGHT: ReadonlySet<PassVisitValidation> = new Set(['QUEUED', 'IN_PROGRESS', 'RETRYING'])
 
 /** Varias filas que vencen juntas (o que se montan ya vencidas) se juntan en una sola recarga por ventana (H4). */
 const EXPIRY_REFRESH_GAP_MS = 5_000
@@ -68,8 +71,8 @@ export function PassVisitsList({ venueId, tab, provider, dateRange }: PassVisits
   const invalidate = useInvalidatePasses()
   const canAct = can('reservations:update')
   const [toReject, setToReject] = useState<PassVisitView | null>(null)
-  // Visitas cuya confirmación se pidió y el server dejó PENDING (la valida en segundo plano): se quedan en Pendientes
-  // con el aviso y sin botones hasta que el refresco las traiga confirmadas.
+  // Sólo para un server viejo, sin `validation` (D2): visitas cuya confirmación se pidió y quedaron PENDING. Con el server
+  // nuevo manda su `validation`, y esto no se lee.
   const [awaiting, setAwaiting] = useState<Record<string, true>>({})
 
   // Los días del filtro viajan TAL CUAL (AAAA-MM-DD, `to` inclusivo): la API los exige así y los convierte con la zona
@@ -326,19 +329,27 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
   const { formatDateTime, formatTime } = useVenueDateTime()
   const pending = visit.status === 'PENDING'
   const { label, expired } = useCountdown(pending ? visit.deadlineAt : null)
+  // D2: manda el estado real de la validación (server, C6), nunca un «reintentando» deducido de un texto. Un server viejo no
+  // lo manda: se deduce del clic local, como antes.
+  const validation: PassVisitValidation = visit.validation ?? (awaiting ? (visit.lastError ? 'RETRYING' : 'QUEUED') : 'NONE')
+  const inFlight = pending && IN_FLIGHT.has(validation)
+  const failed = pending && validation === 'FAILED'
   // Vencida en pantalla: se apagan los botones (el server calculó canConfirm al responder) y se vuelve a pedir la lista UNA
   // vez (los deps no cambian con un refetch que traiga la misma visita, así que no hay bucle).
   useEffect(() => {
     if (pending && expired) onExpired()
   }, [pending, expired, onExpired])
-  const open = canAct && pending && !expired && !awaiting
+  const open = canAct && pending && !expired && !inFlight
   const showConfirm = open && visit.canConfirm
   const showReject = open && visit.canReject
   const confirmedByKey = visit.confirmedBy ? CONFIRMED_BY_KEYS[visit.confirmedBy] : undefined
   const providerName = t(`providers.${visit.provider}`)
-  // Un rechazo deja «Rechazada por el estudio» en lastError: es una nota, no un error. Y en una fila «solicitada» el motivo
-  // va en la columna de estado (H9), no repetido aquí.
-  const showLastError = !!visit.lastError && visit.status !== 'REJECTED' && !(pending && awaiting)
+  // Un rechazo deja «Rechazada por el estudio» en lastError: es una nota, no un error. Y con la validación en curso o fallida
+  // el motivo va en la columna de estado (H9), no repetido aquí.
+  const showLastError = !!visit.lastError && visit.status !== 'REJECTED' && !inFlight && !failed
+  const reason = visit.lastError && (
+    <p className="text-xs text-muted-foreground">{t('visits.validation.reason', { error: visit.lastError })}</p>
+  )
 
   return (
     <TableRow className="border-input">
@@ -368,20 +379,27 @@ function VisitRow({ visit, canAct, acting, awaiting, connectionInactive, onConfi
         {pending ? (
           expired ? (
             <Badge variant="destructive">{t('visits.expiredLabel')}</Badge>
-          ) : awaiting ? (
+          ) : inFlight ? (
             <div>
               <Badge variant="secondary">{t('visits.status.PENDING')}</Badge>
               <p className="text-xs text-muted-foreground">
-                {/* Sigue PENDING y el server dejó un motivo: se está reintentando con el proveedor (H9). */}
-                {visit.lastError
-                  ? t('visits.retrying', { provider: providerName, error: visit.lastError })
-                  : t('visits.confirmRequested', { provider: providerName })}
+                {validation === 'RETRYING'
+                  ? t('visits.validation.retrying', { provider: providerName })
+                  : t('visits.validation.confirming', { provider: providerName })}
               </p>
+              {validation === 'RETRYING' && reason}
             </div>
           ) : (
             <div>
               <span className="font-mono tabular-nums">{label}</span>
               <div className="text-xs text-muted-foreground">{t('visits.deadlineAt', { time: formatTime(visit.deadlineAt) })}</div>
+              {/* Ya no hay reintento automático: se dice, y Confirmar vuelve a estar a la mano para reencolarla (P1-6). */}
+              {failed && (
+                <>
+                  <p className="text-xs text-destructive">{t('visits.validation.failed', { provider: providerName })}</p>
+                  {reason}
+                </>
+              )}
             </div>
           )
         ) : (

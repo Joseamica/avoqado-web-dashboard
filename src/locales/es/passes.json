@@ -146,8 +146,13 @@
     "reject": "Rechazar",
     "connectionInactive": "La conexión con {{provider}} no está activa; revisa Configuración › Integraciones › Pases.",
     "confirmed": "Check-in confirmado",
-    "confirmRequested": "Confirmación solicitada. {{provider}} la confirmará en unos segundos.",
-    "retrying": "Reintentando con {{provider}}: {{error}}",
+    "confirmRequested": "Confirmación enviada a {{provider}}. Su estado se ve aquí, en la lista.",
+    "validation": {
+      "confirming": "Confirmando con {{provider}}…",
+      "retrying": "{{provider}} no respondió; lo reintentamos solos.",
+      "failed": "No pudimos confirmar con {{provider}} y ya no lo reintentamos solos: vuelve a confirmarlo antes de que venza el plazo.",
+      "reason": "Motivo: {{error}}"
+    },
     "confirmExpired": "El plazo ya venció: {{provider}} no pagará esta visita.",
     "unexpectedStatus": "El check-in ya estaba «{{status}}»; no se cambió.",
     "rejected": "Check-in rechazado",

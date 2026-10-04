@@ -60,6 +60,12 @@ export interface PassCapacityView {
   suggestions: PassSuggestion[]
 }
 export type PassVisitStatus = 'PENDING' | 'CONFIRMED' | 'ALREADY_CONFIRMED' | 'EXPIRED' | 'REJECTED'
+/**
+ * Estado de la validación con el proveedor (última fila de la bandeja, C6 del server): QUEUED esperando, IN_PROGRESS
+ * llamando, RETRYING falló y hay otro intento programado, FAILED ya no se reintenta sola (confirmar otra vez la reencola),
+ * DONE terminó, NONE nunca se encoló.
+ */
+export type PassVisitValidation = 'NONE' | 'QUEUED' | 'IN_PROGRESS' | 'RETRYING' | 'FAILED' | 'DONE'
 /** `confirmedBy` es un CÓDIGO del server: 'AUTO' (se confirmó sola) o 'VENUE' (la confirmó el negocio), nunca un nombre (P3-17). */
 export interface PassVisitView {
   id: string
@@ -72,6 +78,8 @@ export interface PassVisitView {
   confirmedBy: string | null
   lastError: string | null
   reservation: { id: string; classSessionId: string | null; startsAt: string; productName: string | null } | null
+  /** Opcional: un server anterior a C6 no lo manda. */
+  validation?: PassVisitValidation
   canConfirm: boolean
   canReject: boolean
 }

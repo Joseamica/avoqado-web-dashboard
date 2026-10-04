@@ -174,7 +174,9 @@ describe('PassVisitsList', () => {
     renderList()
     expect(await screen.findByText('Ana López')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'visits.confirm' }))
-    expect(await screen.findByText('visits.confirmRequested:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+    // Server viejo (sin `validation`): se deduce del clic, como antes; la fila ya no promete «en unos segundos» (D2).
+    expect(await screen.findByText('visits.validation.confirming:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+    expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ title: 'visits.confirmRequested:{"provider":"providers.TOTALPASS"}' }))
     expect(screen.getByText('Ana López')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
     expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'visits.confirmed' }))
@@ -582,18 +584,80 @@ describe('PassVisitsList', () => {
     expect(await screen.findByText('visits.rejectWhoNoClass:{"member":"visits.unknownMember"}')).toBeInTheDocument()
   })
 
-  // H9: la confirmación solicitada no se resolvió y el server dejó un motivo: se dice, en vez de «en unos segundos».
-  it('una fila «solicitada» que vuelve PENDING con lastError dice que se está reintentando y por qué', async () => {
+  // H9 (server viejo, sin `validation`): la confirmación solicitada no se resolvió y el server dejó un motivo: se dice.
+  it('server viejo: una fila «solicitada» que vuelve PENDING con lastError dice que se reintenta y por qué', async () => {
     const user = userEvent.setup()
     svc.confirmPassVisit.mockResolvedValue(visit({ status: 'PENDING' }))
     svc.listPassVisits.mockResolvedValueOnce(page([visit()])).mockResolvedValue(page([visit({ lastError: 'TotalPass HTTP 503' })]))
     renderList()
     await user.click(await screen.findByRole('button', { name: 'visits.confirm' }))
-    expect(
-      await screen.findByText('visits.retrying:{"provider":"providers.TOTALPASS","error":"TotalPass HTTP 503"}'),
-    ).toBeInTheDocument()
-    expect(screen.queryByText('visits.confirmRequested:{"provider":"providers.TOTALPASS"}')).not.toBeInTheDocument()
+    expect(await screen.findByText('visits.validation.retrying:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+    expect(screen.getByText('visits.validation.reason:{"error":"TotalPass HTTP 503"}')).toBeInTheDocument()
     expect(screen.queryByText(/^visits\.lastError/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
+  })
+
+  // D2 (P1-6): manda el estado REAL de la validación que da el server, no un «reintentando» supuesto.
+  describe('estado de la validación con el proveedor', () => {
+    const row = async () => within((await screen.findByText('Ana López')).closest('tr')!)
+
+    it.each(['QUEUED', 'IN_PROGRESS'] as const)('%s ⇒ «Confirmando con TotalPass…», sin botones', async validation => {
+      svc.listPassVisits.mockResolvedValue(page([visit({ validation })]))
+      renderList()
+      const r = await row()
+      expect(r.getByText('visits.validation.confirming:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+      expect(r.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
+      expect(r.queryByRole('button', { name: 'visits.reject' })).not.toBeInTheDocument()
+    })
+
+    it('RETRYING ⇒ «no respondió; lo reintentamos solos» con el motivo, sin botones ni «último error» repetido', async () => {
+      svc.listPassVisits.mockResolvedValue(page([visit({ validation: 'RETRYING', lastError: 'TotalPass HTTP 503' })]))
+      renderList()
+      const r = await row()
+      expect(r.getByText('visits.validation.retrying:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+      expect(r.getByText('visits.validation.reason:{"error":"TotalPass HTTP 503"}')).toBeInTheDocument()
+      expect(r.queryByText(/^visits\.lastError/)).not.toBeInTheDocument()
+      expect(r.queryByRole('button', { name: 'visits.confirm' })).not.toBeInTheDocument()
+    })
+
+    it('FAILED ⇒ «no pudimos confirmar» con el motivo y Confirmar habilitado para reintentar', async () => {
+      const user = userEvent.setup()
+      svc.listPassVisits
+        .mockResolvedValueOnce(page([visit({ validation: 'FAILED', lastError: 'TotalPass HTTP 500' })]))
+        .mockResolvedValue(page([visit({ validation: 'QUEUED' })]))
+      svc.confirmPassVisit.mockResolvedValue(visit({ validation: 'QUEUED' }))
+      renderList()
+      const r = await row()
+      expect(r.getByText('visits.validation.failed:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+      expect(r.getByText('visits.validation.reason:{"error":"TotalPass HTTP 500"}')).toBeInTheDocument()
+      expect(r.getByText(/^visits\.deadlineAt:/)).toBeInTheDocument()
+      expect(r.getByRole('button', { name: 'visits.reject' })).toBeEnabled()
+      await user.click(r.getByRole('button', { name: 'visits.confirm' }))
+      await waitFor(() => expect(svc.confirmPassVisit).toHaveBeenCalledWith('v1', 'vis1'))
+      expect(await screen.findByText('visits.validation.confirming:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+    })
+
+    // El caso de la auditoría: se pidió confirmar, la validación se abandonó (DEAD_LETTER) y la pantalla abierta seguía
+    // diciendo «reintentando» sin botones. Con el server nuevo, el clic local no tapa lo que el server dice.
+    it('confirmar y luego FAILED ⇒ Confirmar vuelve a salir (el clic local no lo esconde)', async () => {
+      const user = userEvent.setup()
+      svc.confirmPassVisit.mockResolvedValue(visit({ validation: 'QUEUED' }))
+      svc.listPassVisits
+        .mockResolvedValueOnce(page([visit({ validation: 'NONE' })]))
+        .mockResolvedValue(page([visit({ validation: 'FAILED', lastError: 'TotalPass HTTP 500' })]))
+      renderList()
+      await user.click((await row()).getByRole('button', { name: 'visits.confirm' }))
+      expect(await screen.findByText('visits.validation.failed:{"provider":"providers.TOTALPASS"}')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'visits.confirm' })).toBeEnabled()
+    })
+
+    it.each(['NONE', 'DONE'] as const)('%s ⇒ cuenta regresiva y botones, como siempre', async validation => {
+      svc.listPassVisits.mockResolvedValue(page([visit({ validation })]))
+      renderList()
+      const r = await row()
+      expect(r.getByText(/^visits\.deadlineAt:/)).toBeInTheDocument()
+      expect(r.getByRole('button', { name: 'visits.confirm' })).toBeEnabled()
+      expect(r.queryByText(/^visits\.validation\./)).not.toBeInTheDocument()
+    })
   })
 })

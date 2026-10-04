@@ -146,8 +146,13 @@
     "reject": "Reject",
     "connectionInactive": "The {{provider}} connection isn't active; check Settings › Integrations › Passes.",
     "confirmed": "Check-in confirmed",
-    "confirmRequested": "Confirmation requested. {{provider}} will confirm it in a few seconds.",
-    "retrying": "Retrying with {{provider}}: {{error}}",
+    "confirmRequested": "Confirmation sent to {{provider}}. You can follow its status here, in the list.",
+    "validation": {
+      "confirming": "Confirming with {{provider}}…",
+      "retrying": "{{provider}} didn't respond; we'll retry on our own.",
+      "failed": "We couldn't confirm with {{provider}} and we won't retry on our own: confirm it again before the deadline.",
+      "reason": "Reason: {{error}}"
+    },
     "confirmExpired": "The deadline has passed: {{provider}} won't pay for this visit.",
     "unexpectedStatus": "The check-in was already “{{status}}”; nothing changed.",
     "rejected": "Check-in rejected",
