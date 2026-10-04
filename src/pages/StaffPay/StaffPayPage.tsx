@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useStaffPayAccess } from '@/hooks/useStaffPay'
 import { TablaDePagosTab } from './components/TablaDePagosTab'
-import { PeriodoAbiertoTab } from './components/PeriodoAbiertoTab'
+import { PeriodosTab } from './components/PeriodosTab'
 
 const TABS = ['tabla', 'periodos'] as const
 type Tab = (typeof TABS)[number]
@@ -49,7 +49,7 @@ export default function StaffPayPage() {
             <TabsTrigger value="periodos" data-tour="staffpay-tab-periodos" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">{t('tabs.periods')}</TabsTrigger>
           </TabsList>
           <TabsContent value="tabla"><TablaDePagosTab /></TabsContent>
-          <TabsContent value="periodos"><PeriodoAbiertoTab activa={tab === 'periodos'} /></TabsContent>
+          <TabsContent value="periodos"><PeriodosTab activa={tab === 'periodos'} /></TabsContent>
         </Tabs>
       )}
     </div>

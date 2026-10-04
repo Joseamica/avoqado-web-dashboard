@@ -66,12 +66,12 @@ export function EstadoLista(p: {
   )
 }
 
-export function ExcepcionesSheet({ sede, onClose }: { sede?: string; onClose: () => void }) {
+export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fecha?: string; onClose: () => void }) {
   const { t } = useTranslation('staffPay')
   const { formatDateTime } = useVenueDateTime()
   const { fullBasePath } = useCurrentVenue()
   const nombreSede = useNombreSede()
-  const q = useStaffPayExceptions(sede)
+  const q = useStaffPayExceptions(sede, fecha)
   const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
 
   return (
@@ -135,11 +135,11 @@ export function ExcepcionesSheet({ sede, onClose }: { sede?: string; onClose: ()
   )
 }
 
-export function HuerfanasSheet({ sede, onClose }: { sede?: string; onClose: () => void }) {
+export function HuerfanasSheet({ sede, fecha, onClose }: { sede?: string; fecha?: string; onClose: () => void }) {
   const { t } = useTranslation('staffPay')
   const { formatDateTime } = useVenueDateTime()
   const nombreSede = useNombreSede()
-  const q = useStaffPayOrphans(sede)
+  const q = useStaffPayOrphans(sede, fecha)
   const filas = useMemo(() => {
     const vistas = new Map<string, ReservaHuerfanaDto>()
     for (const p of q.data?.pages ?? []) for (const r of p.items) if (!vistas.has(r.reservationId)) vistas.set(r.reservationId, r)

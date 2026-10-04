@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DesglosePersona } from '../components/DesglosePersona'
 import { ExcepcionesSheet, HuerfanasSheet } from '../components/ListasDelPeriodo'
 
-const m = vi.hoisted(() => ({ detail: vi.fn(), exceptions: vi.fn(), orphans: vi.fn() }))
+const m = vi.hoisted(() => ({ detail: vi.fn(), exceptions: vi.fn(), orphans: vi.fn(), receipt: vi.fn(), download: vi.fn() }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
@@ -16,7 +16,9 @@ vi.mock('@/hooks/useStaffPay', () => ({
   useStaffPayDetail: (...a: any[]) => m.detail(...a),
   useStaffPayExceptions: (...a: any[]) => m.exceptions(...a),
   useStaffPayOrphans: (...a: any[]) => m.orphans(...a),
+  useStaffReceipt: (...a: any[]) => m.receipt(...a),
 }))
+vi.mock('@/services/staffPay.service', () => ({ staffPayService: { downloadReceipt: (...a: any[]) => m.download(...a) } }))
 
 const clase = (id: string, extra: Record<string, unknown> = {}) => ({
   classSessionId: id,
@@ -47,8 +49,23 @@ const q = (pages: any[], extra: Record<string, unknown> = {}) => ({
   ...extra,
 })
 
+const renglon = (concepto: string, monto: string, tipo = 'CLASE') => ({ tipo, fecha: '2026-09-02', hora: '07:00', sede: 'Prado Norte', concepto, lugares: tipo === 'CLASE' ? 8 : null, monto })
+const recibo = (renglones: any[], extra: Record<string, unknown> = {}) => ({
+  data: { persona: 'Ana López', periodo: { id: 'p9', start: '2026-09-01', end: '2026-09-30', estado: 'CLOSED' }, renglones, total: '0.00', cantidad: renglones.length, siguiente: null, pagadoEn: null, parcial: false },
+  isLoading: false,
+  isError: false,
+  hasNextPage: false,
+  isFetchingNextPage: false,
+  fetchNextPage: vi.fn(),
+  refetch: vi.fn(),
+  ...extra,
+})
+
 describe('DesglosePersona', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    m.receipt.mockReturnValue({ data: undefined, isLoading: false, isError: false, hasNextPage: false })
+  })
 
   it('pide el desglose con la sede del filtro y une páginas sin repetir clases', () => {
     m.detail.mockReturnValue(
@@ -58,7 +75,7 @@ describe('DesglosePersona', () => {
       ]),
     )
     render(<DesglosePersona staffId="s1" staffName="Ana López" clases={5} total="999.00" sede="v1" onClose={() => {}} />)
-    expect(m.detail).toHaveBeenCalledWith('s1', 'v1')
+    expect(m.detail).toHaveBeenCalledWith('s1', 'v1', undefined, true)
     // El total viene del renglón del reporte, no de sumar las filas cargadas (la lista es paginada).
     expect(screen.getByText(/period\.detailSummary/)).toHaveTextContent('"count":5')
     expect(screen.getByText(/period\.detailSummary/)).toHaveTextContent('999.00')
@@ -74,6 +91,67 @@ describe('DesglosePersona', () => {
     expect(screen.getByText('period.listError')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('cerrado lee el recibo, muestra el total del recibo ENTERO y ofrece «Cargar más» (Codex R2-R1-20)', () => {
+    const fetchNextPage = vi.fn()
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(
+      recibo([renglon('Spinning', '480.00'), renglon('Bono por cubrir', '100.00', 'AJUSTE')], { hasNextPage: true, fetchNextPage, data: { ...recibo([]).data, renglones: [renglon('Spinning', '480.00'), renglon('Bono por cubrir', '100.00', 'AJUSTE')], total: '680.00', cantidad: 3 } }),
+    )
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={2} total="680.00" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    expect(m.receipt).toHaveBeenCalledWith('s1', '2026-09-01', true)
+    expect(screen.getByText('Bono por cubrir')).toBeInTheDocument()
+    expect(screen.getByText('+$100.00')).toBeInTheDocument()
+    expect(screen.getByText('$680.00')).toBeInTheDocument()
+    expect(screen.queryByText('$580.00')).toBeNull()
+    expect(screen.getByText(/period\.shownOf/)).toHaveTextContent('"shown":2,"total":3')
+    fireEvent.click(screen.getByRole('button', { name: 'period.loadMore' }))
+    expect(fetchNextPage).toHaveBeenCalled()
+  })
+
+  it('con periodo cerrado no pide el desglose en vivo (Codex R2-R1-21)', () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([]))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={0} total="0" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    expect(m.detail).toHaveBeenCalledWith('s1', undefined, '2026-09-01', false)
+  })
+
+  it('cerrado y con error del recibo: nunca un recibo de $0, explica y deja reintentar', () => {
+    const refetch = vi.fn()
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: { response: { data: { message: 'Falló el recibo' } } }, hasNextPage: false, refetch })
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={0} total="0" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    expect(screen.getByText('Falló el recibo')).toBeInTheDocument()
+    expect(screen.queryByText('$0.00')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
+    expect(refetch).toHaveBeenCalled()
+  })
+
+  it('abierto conserva el desglose en vivo y agrega al final «Ajustes del periodo»', () => {
+    m.detail.mockReturnValue(q([{ items: [clase('c1')], nextCursor: null }]))
+    m.receipt.mockReturnValue(recibo([renglon('Spinning', '570.00'), renglon('Llegó tarde', '-150.00', 'AJUSTE')]))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="420.00" fecha="2026-10-01" onClose={() => {}} />)
+    expect(screen.getByText('period.periodAdjustments')).toBeInTheDocument()
+    expect(screen.getByText('Llegó tarde')).toBeInTheDocument()
+    expect(screen.getByText('−$150.00')).toBeInTheDocument()
+  })
+
+  it('PDF y Excel se descargan con un clic explícito, del recibo de esa persona y ese periodo', async () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([]))
+    m.download.mockResolvedValue(undefined)
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={0} total="0" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    expect(m.download).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'period.receiptExcel' }))
+    await waitFor(() => expect(m.download).toHaveBeenCalledWith('v1', 's1', '2026-09-01', 'xlsx', expect.stringContaining('Ana')))
+  })
+
+  it('con filtro de sede avisa que el PDF/Excel trae el recibo completo (no promete «sólo esta sede»)', () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([]))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={0} total="0" sede="v1" fecha="2026-10-01" onClose={() => {}} />)
+    expect(screen.getByText('period.receiptAllVenues')).toBeInTheDocument()
   })
 })
 
@@ -93,7 +171,7 @@ describe('ExcepcionesSheet', () => {
         <ExcepcionesSheet sede="v1" onClose={() => {}} />
       </MemoryRouter>,
     )
-    expect(m.exceptions).toHaveBeenCalledWith('v1')
+    expect(m.exceptions).toHaveBeenCalledWith('v1', undefined)
     expect(screen.getByText('reasons.COACH_SIN_NIVEL')).toBeInTheDocument()
     expect(screen.getByText('Ana López')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'period.loadMore' }))
@@ -141,7 +219,7 @@ describe('HuerfanasSheet', () => {
       ),
     )
     render(<HuerfanasSheet onClose={() => {}} />)
-    expect(m.orphans).toHaveBeenCalledWith(undefined)
+    expect(m.orphans).toHaveBeenCalledWith(undefined, undefined)
     expect(screen.getByText('Yoga')).toBeInTheDocument()
     expect(screen.getByText('period.noGuest')).toBeInTheDocument()
     expect(screen.getByText(/period.shownOf/)).toHaveTextContent('"shown":1,"total":3')

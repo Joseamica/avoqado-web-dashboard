@@ -1,34 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ChevronLeft, ChevronRight, Info, Lock } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Info, Lock, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { useStaffPayReport } from '@/hooks/useStaffPay'
 import { DesglosePersona } from './DesglosePersona'
+import { CerrarPeriodoModal } from './CerrarPeriodoModal'
+import { AjusteManualModal } from './AjusteManualModal'
 import { ExcepcionesSheet, HuerfanasSheet, TABLA_PERIODO } from './ListasDelPeriodo'
 import { useNombreSede } from '../useNombreSede'
+import { conSigno } from '../conSigno'
 
 const LIMITE = 50
 const TODAS = '__all__'
 
-export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
+/**
+ * El periodo abierto, valorado en vivo. `fecha` (un día del periodo) elige CUÁL; sin ella, el de hoy (fase 1).
+ * «Cerrar periodo» sólo con `staffpay:close` y viendo todas las sedes (spec §7.3); si no, dice por qué.
+ */
+export function PeriodoAbiertoTab({ activa, fecha, etiqueta }: { activa: boolean; fecha?: string; etiqueta?: string }) {
   const { t } = useTranslation('staffPay')
   const { formatCalendarDate } = useVenueDateTime()
   const { venueId } = useCurrentVenue()
   const nombreSede = useNombreSede()
+  const { can } = useAccess()
   const [offset, setOffset] = useState(0)
   const [sede, setSede] = useState<string | undefined>(undefined)
   const [persona, setPersona] = useState<{ staffId: string; staffName: string; clases: number; total: string } | null>(null)
   const [lista, setLista] = useState<'excepciones' | 'huerfanas' | null>(null)
+  const [cerrarAbierto, setCerrarAbierto] = useState(false)
+  const [ajusteAbierto, setAjusteAbierto] = useState(false)
   // Las sedes del filtro salen del reporte SIN filtro: con `sede` puesto, `venueIds` ya viene recortado a esa sola.
   const [sedesConocidas, setSedesConocidas] = useState<string[]>([])
-  const { data, isLoading, isError, refetch } = useStaffPayReport({ offset, limit: LIMITE, sede }, activa)
+  const { data, isLoading, isError, refetch } = useStaffPayReport({ offset, limit: LIMITE, sede, fecha }, activa)
 
   useEffect(() => {
     if (data && sede === undefined) setSedesConocidas(data.venueIds)
@@ -198,6 +208,7 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
                 <th>{t('period.columns.venue')}</th>
                 <th className="text-right">{t('period.columns.classes')}</th>
                 <th className="text-right">{t('period.columns.avgSeats')}</th>
+                <th className="text-right">{t('period.columns.adjustments')}</th>
                 <th className="text-right">{t('period.columns.total')}</th>
                 <th />
               </tr>
@@ -210,6 +221,7 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
                   <td className="text-muted-foreground">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="text-right">{p.clases}</td>
                   <td className="text-right">{p.promedioLugares}</td>
+                  <td className="whitespace-nowrap text-right">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
                   <td className="text-right font-semibold">{Currency(Number(p.total))}</td>
                   <td className="text-right">
                     <Button
@@ -254,16 +266,34 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-        <Button disabled variant="outline" size="sm" data-tour="staffpay-period-close">
-          <Lock className="mr-1 h-3.5 w-3.5" />
-          {t('period.close')}
-          <Badge variant="outline" className="ml-2 h-4 px-1.5 text-[10px]">
-            {t('period.comingSoon')}
-          </Badge>
-        </Button>
-        <p className="text-xs text-muted-foreground">{t('period.closeSoon')}</p>
-      </div>
+      {fecha && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          {can('staffpay:close') ? (
+            <>
+              <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAjusteAbierto(true)} data-tour="staffpay-period-adjust">
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                {etiqueta ? t('manualAdjust.add', { periodo: etiqueta }) : t('manualAdjust.title')}
+              </Button>
+              {data.parcial ? (
+                <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {t('period.closePartial')}
+                </p>
+              ) : (
+                <Button size="sm" className="cursor-pointer" onClick={() => setCerrarAbierto(true)} data-tour="staffpay-period-close">
+                  <Lock className="mr-1 h-3.5 w-3.5" />
+                  {t('period.close')}
+                </Button>
+              )}
+            </>
+          ) : (
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {t('period.closeNoPermission')}
+            </p>
+          )}
+        </div>
+      )}
 
       {persona && (
         <DesglosePersona
@@ -272,11 +302,28 @@ export function PeriodoAbiertoTab({ activa }: { activa: boolean }) {
           clases={persona.clases}
           total={persona.total}
           sede={sede}
+          fecha={fecha}
           onClose={() => setPersona(null)}
         />
       )}
-      {lista === 'excepciones' && <ExcepcionesSheet sede={sede} onClose={() => setLista(null)} />}
-      {lista === 'huerfanas' && <HuerfanasSheet sede={sede} onClose={() => setLista(null)} />}
+      {lista === 'excepciones' && <ExcepcionesSheet sede={sede} fecha={fecha} onClose={() => setLista(null)} />}
+      {lista === 'huerfanas' && <HuerfanasSheet sede={sede} fecha={fecha} onClose={() => setLista(null)} />}
+      {cerrarAbierto && fecha && (
+        <CerrarPeriodoModal
+          open
+          fecha={fecha}
+          etiqueta={etiqueta}
+          onOpenChange={setCerrarAbierto}
+          onCerrado={() => setCerrarAbierto(false)}
+          onVerExcepciones={() => {
+            setCerrarAbierto(false)
+            setLista('excepciones')
+          }}
+        />
+      )}
+      {ajusteAbierto && fecha && (
+        <AjusteManualModal open onOpenChange={setAjusteAbierto} fecha={fecha} etiqueta={etiqueta} sedes={opcionesSede} />
+      )}
     </div>
   )
 }

@@ -6,7 +6,7 @@ import StaffPayPage from '../StaffPayPage'
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
 vi.mock('../components/TablaDePagosTab', () => ({ TablaDePagosTab: () => <div>tabla-tab</div> }))
-vi.mock('../components/PeriodoAbiertoTab', () => ({ PeriodoAbiertoTab: () => <div>periodo-tab</div> }))
+vi.mock('../components/PeriodosTab', () => ({ PeriodosTab: () => <div>periodo-tab</div> }))
 const mockAccess = vi.fn()
 vi.mock('@/hooks/useStaffPay', () => ({ useStaffPayAccess: () => mockAccess() }))
 
