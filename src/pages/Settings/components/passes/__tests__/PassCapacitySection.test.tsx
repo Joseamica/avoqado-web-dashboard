@@ -152,6 +152,18 @@ describe('PassCapacitySection', () => {
   })
 
   // la excepción se pinta con día, hora y lugares; borrar pide confirmación
+  // Revisión final, Minor 4: la capacidad no se refresca sola; sin «Reintentar» el dueño se quedaba en el error hasta F5.
+  it('si la carga falla ⇒ el mensaje del servidor y «Reintentar» la vuelve a pedir', async () => {
+    const down = { response: { status: 500, data: { message: 'Se cayó la base' } } }
+    // La carga y su único reintento (retry: 1 del hook) fallan; el clic ya encuentra al servidor arriba.
+    svc.getPassCapacity.mockRejectedValueOnce(down).mockRejectedValueOnce(down).mockResolvedValue(CAPACITY)
+    renderSection()
+    expect(await screen.findByText('Se cayó la base', {}, { timeout: 5_000 })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'common:retry' }))
+    expect(await screen.findByLabelText('capacity.default.label')).toHaveValue(3)
+    expect(screen.queryByText('capacity.loadError')).not.toBeInTheDocument()
+  }, 10_000)
+
   it('lista las excepciones y borrar pasa por confirmación', async () => {
     const user = userEvent.setup()
     renderSection()

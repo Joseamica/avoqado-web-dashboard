@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -152,6 +152,37 @@ describe('PassIntegrations (Pantalla A)', () => {
     expect(screen.getByRole('button', { name: 'capacity.default.save' })).toBeDisabled()
   })
 
+  // Revisión final, Important 1: la tarjeta de TotalPass también lleva `key={venueId}`. Sin eso la llave tecleada (un secreto)
+  // y su error pasaban a la otra sucursal, y un Conectar ligaba la sucursal de TotalPass de A al negocio B.
+  it('cambiar de sucursal con una llave tecleada ⇒ el campo llega vacío y sin error', async () => {
+    const user = userEvent.setup()
+    svc.connectTotalPass.mockRejectedValue({ response: { status: 400, data: { message: 'TotalPass no reconoce esa llave.' } } })
+    const { client, rerender, tree } = renderPage()
+    await user.type(await screen.findByLabelText('totalpass.keyLabel'), 'llave-de-la-sucursal-a')
+    await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
+    expect(await screen.findByText('TotalPass no reconoce esa llave.')).toBeInTheDocument()
+    client.setQueryData(passesKeys.overview('v2'), OVERVIEW)
+    venue.id = 'v2'
+    rerender(tree())
+    await waitFor(() => expect(screen.getByLabelText('totalpass.keyLabel')).toHaveValue(''))
+    expect(screen.queryByText('TotalPass no reconoce esa llave.')).not.toBeInTheDocument()
+  })
+
+  // Revisión final, Minor 5: el server sólo aplica las reglas de lugares con la conexión ACTIVE (`passCapacity.service.ts`).
+  // Un conectar a medias o una llave rechazada todavía no las aplica: la línea se dice.
+  it.each([
+    ['PENDING', 'HTTP_503: TotalPass HTTP 503'],
+    ['REVOKED', 'El proveedor rechazó las llaves (401): hay que volver a conectar.'],
+  ] as const)('con plan y TotalPass %s ⇒ «se aplican en cuanto conectes»', async (status, lastError) => {
+    svc.getPassIntegrationsOverview.mockResolvedValue({
+      ...OVERVIEW,
+      connections: [{ ...OVERVIEW.connections[0], status, lastError, externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
+    })
+    renderPage()
+    expect(await screen.findByText('capacity.title')).toBeInTheDocument()
+    expect(screen.getByText('capacity.notConnected')).toBeInTheDocument()
+  })
+
   // «Apagado se ve y se explica»: sin permiso de configurar se ve todo, con el aviso de a quién pedírselo.
   it('sin reservations:manage-passes ⇒ aviso de sólo lectura', async () => {
     access.allowed = ['reservations:read']
@@ -169,6 +200,17 @@ describe('PassIntegrations (Pantalla A)', () => {
       timeout: 5_000,
     })
   })
+
+  // Revisión final, Minor 4: la vista general no se refresca sola; sin «Reintentar» el dueño se quedaba en el error hasta F5.
+  it('si la primera carga falla ⇒ «Reintentar» la vuelve a pedir y aparece la tarjeta', async () => {
+    const down = { response: { status: 503, data: { message: 'TotalPass no respondió.' } } }
+    // La carga y su único reintento (retry: 1 del hook) fallan; el clic ya encuentra al servidor arriba.
+    svc.getPassIntegrationsOverview.mockRejectedValueOnce(down).mockRejectedValueOnce(down).mockResolvedValue(OVERVIEW)
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'common:retry' }, { timeout: 5_000 }))
+    expect(await screen.findByLabelText('totalpass.keyLabel')).toBeInTheDocument()
+    expect(screen.queryByText('page.loadError')).not.toBeInTheDocument()
+  }, 10_000)
 
   // Un conectar que falla por red recarga la vista general (H1) y esa recarga también falla: con datos ya cargados la tarjeta se
   // queda (con la llave tecleada y su mensaje); el aviso de carga es sólo para cuando nunca llegaron datos.

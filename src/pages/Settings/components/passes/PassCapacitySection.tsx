@@ -30,7 +30,7 @@ import { WeeklyRuleDialog } from './WeeklyRuleDialog'
 interface PassCapacitySectionProps {
   venueId: string
   canManage: boolean
-  /** ¿Hay alguna conexión de pases viva? Sin ella las reglas se guardan igual y esperan a que se conecte TotalPass. */
+  /** ¿Hay alguna conexión ACTIVE (la única con la que el server aplica las reglas)? Sin ella se guardan igual y esperan. */
   connected: boolean
 }
 
@@ -116,6 +116,17 @@ export function PassCapacitySection({ venueId, canManage, connected }: PassCapac
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>{t('capacity.loadError')}</AlertTitle>
         <AlertDescription>{apiErrorDescription(capacity.error) || t('errors.generic')}</AlertDescription>
+        {/* No se refresca sola: sin esto el dueño se queda en el error hasta recargar la página. */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="col-start-2 mt-2 justify-self-start"
+          onClick={() => capacity.refetch()}
+          disabled={capacity.isFetching}
+          data-tour="passes-capacity-retry"
+        >
+          {t('common:retry')}
+        </Button>
       </Alert>
     )
   }

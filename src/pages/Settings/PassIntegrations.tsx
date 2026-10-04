@@ -2,6 +2,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useAccess } from '@/hooks/use-access'
@@ -70,13 +71,27 @@ export default function PassIntegrations() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('page.loadError')}</AlertTitle>
           <AlertDescription>{apiErrorDescription(overview.error) || t('errors.generic')}</AlertDescription>
+          {/* La vista general no se refresca sola: sin esto el dueño se queda en el error hasta recargar la página. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="col-start-2 mt-2 justify-self-start"
+            onClick={() => overview.refetch()}
+            disabled={overview.isFetching}
+            data-tour="passes-overview-retry"
+          >
+            {t('common:retry')}
+          </Button>
         </Alert>
       ) : !overview.data || !totalpass ? (
         <PassesTeaser />
       ) : (
         <>
+          {/* key (también aquí y en la sección de lugares): la llave tecleada, su error o un diálogo abierto no cruzan a
+              otra sucursal (switchVenue conserva la ruta y no desmonta). */}
           <div className="grid gap-4 md:grid-cols-2">
             <TotalPassCard
+              key={venueId}
               venueId={venueId}
               connection={totalpass}
               classProducts={overview.data.classProducts}
@@ -86,13 +101,14 @@ export default function PassIntegrations() {
             <WellhubCard />
           </div>
           {/* R62: sin plan los lugares siguen con candado en el server; en la pausa no se pinta (ni se pide /capacity). */}
-          {/* key: un borrador o diálogo abierto no cruza a otra sucursal (switchVenue conserva la ruta y no desmonta). */}
           {!planPaused && (
             <PassCapacitySection
               key={venueId}
               venueId={venueId}
               canManage={canManage}
-              connected={overview.data.connections.some(passConnectionIsLive)}
+              // El server sólo aplica las reglas con la conexión ACTIVE (`passCapacity.service.ts`); un conectar a medias
+              // o una llave rechazada todavía no. NO `passConnectionIsLive`: ése es el criterio de Desconectar y de la pausa.
+              connected={overview.data.connections.some(c => c.status === 'ACTIVE')}
             />
           )}
         </>
