@@ -34,7 +34,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   const { t, i18n } = useTranslation('staffPay')
   const { can } = useAccess()
   const { toast } = useToast()
-  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(activa)
+  const { data, isLoading, isError, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(activa)
   const setPeriodicity = useSetPeriodicity()
   const [elegido, setElegido] = useState<string | null>(null)
   // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta.
@@ -102,6 +102,18 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
 
   return (
     <div className="space-y-6">
+      {isError && (
+        // Ya hay lista, pero recargarla falló (p. ej. tras un cierre): se dice, para que nada se quede cargando sin fin.
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <span>{t('periods.error')}</span>
+          </div>
+          <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
+            {t('period.retry')}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
         <div className="w-full space-y-1.5 sm:w-72">
           <Label htmlFor="staffpay-periodo">{t('periods.period')}</Label>
@@ -158,7 +170,10 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
       {actual.estado === 'CLOSED' && actual.id ? (
         <PeriodoCerradoView key={actual.id} periodId={actual.id} fecha={actual.start} etiqueta={mes(actual)} etiquetaAbierto={abiertoHoy} />
       ) : (
-        <PeriodoAbiertoTab key={actual.start} activa={activa} fecha={actual.start} etiqueta={mes(actual)} onYaCerrado={() => void refetch()} />
+        <PeriodoAbiertoTab key={actual.start} activa={activa} fecha={actual.start} etiqueta={mes(actual)} onYaCerrado={() => {
+            // Quien cerró ya está recargando la lista (useInvalidarTodo): no se pide dos veces.
+            if (!isFetching) void refetch()
+          }} />
       )}
       <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && !setPeriodicity.isPending && setNuevaFrecuencia(null)}>
         <AlertDialogContent>

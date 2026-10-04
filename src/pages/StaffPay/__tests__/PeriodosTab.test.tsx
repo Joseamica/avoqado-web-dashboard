@@ -2,12 +2,21 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PeriodosTab } from '../components/PeriodosTab'
 
-const m = vi.hoisted(() => ({ fetchNext: vi.fn(), periodicity: vi.fn(), lista: vi.fn() }))
+const m = vi.hoisted(() => ({ fetchNext: vi.fn(), periodicity: vi.fn(), lista: vi.fn(), estado: vi.fn(), refetch: vi.fn() }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
-vi.mock('../components/PeriodoAbiertoTab', () => ({ PeriodoAbiertoTab: ({ fecha }: { fecha: string }) => <div>abierto {fecha}</div> }))
+vi.mock('../components/PeriodoAbiertoTab', () => ({
+  PeriodoAbiertoTab: ({ fecha, onYaCerrado }: { fecha: string; onYaCerrado?: () => void }) => (
+    <div>
+      abierto {fecha}
+      <button type="button" onClick={onYaCerrado}>
+        simular-ya-cerrado
+      </button>
+    </div>
+  ),
+}))
 vi.mock('../components/PeriodoCerradoView', () => ({ PeriodoCerradoView: ({ periodId }: { periodId: string }) => <div>cerrado {periodId}</div> }))
 // Select nativo: el Select de Radix no se deja manejar en jsdom.
 vi.mock('@/components/ui/select', () => ({
@@ -22,7 +31,7 @@ vi.mock('@/components/ui/select', () => ({
   SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
 }))
 vi.mock('@/hooks/useStaffPay', () => ({
-  useStaffPayPeriods: () => ({ data: m.lista(), isLoading: false, hasNextPage: true, fetchNextPage: m.fetchNext, isFetchingNextPage: false }),
+  useStaffPayPeriods: () => ({ data: m.lista(), isLoading: false, hasNextPage: true, fetchNextPage: m.fetchNext, isFetchingNextPage: false, refetch: m.refetch, ...m.estado() }),
   useSetPeriodicity: () => ({ mutateAsync: m.periodicity, isPending: false }),
 }))
 
@@ -39,6 +48,7 @@ const LISTA = {
 beforeEach(() => {
   vi.clearAllMocks()
   m.lista.mockReturnValue(LISTA)
+  m.estado.mockReturnValue({})
 })
 
 describe('PeriodosTab', () => {
@@ -69,5 +79,26 @@ describe('PeriodosTab', () => {
     expect(await screen.findByText('periods.changeHelp.SEMIMONTHLY')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /periods\.changeConfirm/ }))
     await waitFor(() => expect(m.periodicity).toHaveBeenCalledWith('SEMIMONTHLY'))
+  })
+
+  it('si el periodo se cerró y la lista ya se está recargando, no lanza otra recarga', () => {
+    m.estado.mockReturnValue({ isFetching: true })
+    render(<PeriodosTab activa />)
+    fireEvent.click(screen.getByRole('button', { name: 'simular-ya-cerrado' }))
+    expect(m.refetch).not.toHaveBeenCalled()
+  })
+
+  it('si el periodo se cerró y nada recarga la lista, la recarga', () => {
+    render(<PeriodosTab activa />)
+    fireEvent.click(screen.getByRole('button', { name: 'simular-ya-cerrado' }))
+    expect(m.refetch).toHaveBeenCalled()
+  })
+
+  it('si recargar la lista falla con datos ya en pantalla, lo dice y deja reintentar (no un spinner eterno)', () => {
+    m.estado.mockReturnValue({ isError: true })
+    render(<PeriodosTab activa />)
+    expect(screen.getByText('periods.error')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
+    expect(m.refetch).toHaveBeenCalled()
   })
 })

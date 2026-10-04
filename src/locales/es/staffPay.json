@@ -146,7 +146,8 @@
     "totalPartial": "Total (vista parcial)",
     "receiptPartial": "Este recibo sólo trae las sedes que puedes ver: faltan los renglones de otras sedes donde trabaja esta persona.",
     "closeFrom": "Podrás cerrarlo a partir del {{fecha}}.",
-    "justClosed": "Alguien acaba de cerrar este periodo. Cargando la vista cerrada…"
+    "justClosed": "Este periodo ya está cerrado. Cargando la vista cerrada…",
+    "receiptExportPartial": "El PDF y el Excel traen sólo las sedes que puedes ver."
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
@@ -233,7 +234,7 @@
     "periodicityHelp": "Elígelo antes del primer cierre o ajuste: después ya no se cambia.",
     "periodicityLocked": "Ya hay cierres o ajustes registrados: la frecuencia de pago ya no se puede cambiar.",
     "periodicityNoPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede elegirlo. Pídeselo al dueño del negocio.",
-    "periodicitySaved": "Periodicidad guardada",
+    "periodicitySaved": "Frecuencia de pago guardada",
     "loadOlder": "Ver periodos anteriores",
     "error": "No se pudo cargar la lista de periodos.",
     "empty": "Todavía no hay periodos.",

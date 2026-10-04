@@ -163,6 +163,14 @@ describe('DesglosePersona', () => {
     await waitFor(() => expect(m.download).toHaveBeenCalledWith('v1', 's1', '2026-09-01', 'xlsx', expect.stringContaining('Ana')))
   })
 
+  it('en vista parcial el aviso de la exportación dice que sólo trae las sedes que puedes ver', () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([], { data: { ...recibo([]).data, parcial: true } }))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={0} total="0" sede="v1" fecha="2026-10-01" onClose={() => {}} />)
+    expect(screen.getByText('period.receiptExportPartial')).toBeInTheDocument()
+    expect(screen.queryByText('period.receiptAllVenues')).toBeNull()
+  })
+
   it('con filtro de sede avisa que el PDF/Excel trae el recibo completo (no promete «sólo esta sede»)', () => {
     m.detail.mockReturnValue(q([]))
     m.receipt.mockReturnValue(recibo([]))

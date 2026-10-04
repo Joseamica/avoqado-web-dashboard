@@ -121,8 +121,12 @@ export function DesglosePersona({
                   {t('period.receiptExcel')}
                 </Button>
               </div>
-              {/* La exportación no filtra por sede: no se promete «sólo esta sede». */}
-              {sede && <p className="text-xs text-muted-foreground">{t('period.receiptAllVenues')}</p>}
+              {/* La exportación no filtra por sede (no se promete «sólo esta sede»), pero en vista parcial sí trae sólo lo visible. */}
+              {parcial ? (
+                <p className="text-xs text-muted-foreground">{t('period.receiptExportPartial')}</p>
+              ) : (
+                sede && <p className="text-xs text-muted-foreground">{t('period.receiptAllVenues')}</p>
+              )}
             </div>
           )}
         </SheetHeader>

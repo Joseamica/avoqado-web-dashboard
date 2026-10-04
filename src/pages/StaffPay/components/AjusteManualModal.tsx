@@ -151,9 +151,10 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             </div>
           )}
           <div className="space-y-2">
-            <Label>{t('manualAdjust.person')}</Label>
+            <Label htmlFor="staffpay-ajuste-persona">{t('manualAdjust.person')}</Label>
             <div data-tour="staffpay-adjust-person">
               <SearchCombobox
+                inputId="staffpay-ajuste-persona"
                 placeholder={t('manualAdjust.search')}
                 items={opciones}
                 isLoading={equipo.isFetching}

@@ -15,9 +15,9 @@ vi.mock('@/components/ui/full-screen-modal', () => ({
 vi.mock('@tanstack/react-query', async orig => ({ ...(await orig<object>()), useQuery: () => m.equipo() }))
 // El combobox real (Popover + cmdk) no se deja manejar en jsdom: cada resultado es un botón.
 vi.mock('@/components/search-combobox', () => ({
-  SearchCombobox: ({ items, onSelect, value, onChange }: any) => (
+  SearchCombobox: ({ items, onSelect, value, onChange, inputId }: any) => (
     <div>
-      <input aria-label="buscar-persona" value={value} onChange={e => onChange(e.target.value)} />
+      <input id={inputId} value={value} onChange={e => onChange(e.target.value)} />
       {items.map((i: any) => (
         <button key={i.id} type="button" onClick={() => onSelect(i)}>
           {i.label}
@@ -92,6 +92,10 @@ describe('AjusteManualModal', () => {
     await waitFor(() => expect(m.add).toHaveBeenCalledTimes(2))
     expect(m.add.mock.calls[1][0].clientKey).toBe(m.add.mock.calls[0][0].clientKey)
     expect(m.add.mock.calls[1][0].amount).toBe(150)
+  })
+  it('el buscador de persona se llama «Persona» (label conectado al input)', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    expect(screen.getByLabelText('manualAdjust.person')).toBeInstanceOf(HTMLInputElement)
   })
   it('sin motivo o con monto vacío no deja guardar', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)

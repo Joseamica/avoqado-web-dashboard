@@ -146,7 +146,8 @@
     "totalPartial": "Total (partial view)",
     "receiptPartial": "This pay statement only includes the venues you can see: rows from other venues where this person works are missing.",
     "closeFrom": "You can close it starting {{fecha}}.",
-    "justClosed": "Someone just closed this period. Loading the closed view…"
+    "justClosed": "This period is already closed. Loading the closed view…",
+    "receiptExportPartial": "The PDF and Excel include only the venues you can see."
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
