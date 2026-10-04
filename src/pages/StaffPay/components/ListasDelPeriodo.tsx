@@ -11,6 +11,7 @@ import { useStaffPayExceptions, useStaffPayOrphans } from '@/hooks/useStaffPay'
 import type { MotivoExcepcion, ReservaHuerfanaDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
+import { useFocoDeVuelta } from '../foco'
 
 /** Tablas del periodo: aire entre columnas (sin él, «Sede» y «Clase» se pegan en el panel lateral). */
 export const TABLA_PERIODO = 'w-full text-sm [&_th]:pr-4 [&_td]:pr-4 [&_th:last-child]:pr-0 [&_td:last-child]:pr-0'
@@ -71,12 +72,18 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
   const { formatDateTime } = useVenueDateTime()
   const { fullBasePath } = useCurrentVenue()
   const nombreSede = useNombreSede()
+  const foco = useFocoDeVuelta()
   const q = useStaffPayExceptions(sede, fecha)
   const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
+      <SheetContent
+        hasTitle
+        className="w-full overflow-y-auto sm:max-w-3xl"
+        onOpenAutoFocus={foco.onOpenAutoFocus}
+        onCloseAutoFocus={foco.onCloseAutoFocus}
+      >
         <SheetHeader>
           <SheetTitle>{t('period.exceptionsTitle')}</SheetTitle>
           <SheetDescription>{t('period.exceptionsHelp')}</SheetDescription>
@@ -139,6 +146,7 @@ export function HuerfanasSheet({ sede, fecha, onClose }: { sede?: string; fecha?
   const { t } = useTranslation('staffPay')
   const { formatDateTime } = useVenueDateTime()
   const nombreSede = useNombreSede()
+  const foco = useFocoDeVuelta()
   const q = useStaffPayOrphans(sede, fecha)
   const filas = useMemo(() => {
     const vistas = new Map<string, ReservaHuerfanaDto>()
@@ -150,7 +158,12 @@ export function HuerfanasSheet({ sede, fecha, onClose }: { sede?: string; fecha?
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
+      <SheetContent
+        hasTitle
+        className="w-full overflow-y-auto sm:max-w-3xl"
+        onOpenAutoFocus={foco.onOpenAutoFocus}
+        onCloseAutoFocus={foco.onCloseAutoFocus}
+      >
         <SheetHeader>
           <SheetTitle>{t('period.orphansTitle')}</SheetTitle>
           <SheetDescription>{t('period.orphansHelp')}</SheetDescription>

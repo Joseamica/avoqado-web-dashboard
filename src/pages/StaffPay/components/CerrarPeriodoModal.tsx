@@ -12,6 +12,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import type { Bloqueo, ResultadoCierreDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
 import { useAccionDelModal } from '../accionDelModal'
+import { useFocoDeVuelta } from '../foco'
 import { conSigno, monto } from '../conSigno'
 
 interface Props {
@@ -75,6 +76,7 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   const textoBloqueo = (b: Bloqueo) =>
     t(`close.block.${b.codigo}`, 'n' in b ? { count: b.n } : 'hasta' in b ? { hasta: formatCalendarDate(b.hasta) } : undefined)
   const mensajeError = (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
+  const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
     <Button className="cursor-pointer" disabled={!listo || enviando || isFetching} onClick={confirmar} data-tour="staffpay-close-confirm">
       {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
@@ -90,6 +92,8 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
       title={etiqueta && !accion.enCelular ? t('close.titleNamed', { periodo: etiqueta }) : t('close.titleLoading')}
       contentClassName="bg-muted/30"
       actions={accion.actions}
+      onOpenAutoFocus={foco.onOpenAutoFocusPantallaCompleta}
+      onCloseAutoFocus={foco.onCloseAutoFocus}
     >
       <div className="mx-auto max-w-xl space-y-4 p-6">
         {isLoading ? (

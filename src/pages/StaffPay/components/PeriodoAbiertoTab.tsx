@@ -129,7 +129,8 @@ export function PeriodoAbiertoTab({
     <div className="space-y-4" data-tour="staffpay-period">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold">
+          {/* Ancla del foco: a donde vuelve al cerrar un modal cuyo botón ya no existe (QA defecto 12). */}
+          <h3 className="font-semibold outline-none" tabIndex={-1} data-staffpay-ancla>
             {t('period.title', { start: formatCalendarDate(data.periodo.start), end: formatCalendarDate(data.periodo.end) })}
           </h3>
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{sinMovimientos ? t('period.noActivity') : t('period.open')}</span>

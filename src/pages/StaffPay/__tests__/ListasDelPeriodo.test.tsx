@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DesglosePersona } from '../components/DesglosePersona'
@@ -194,6 +195,30 @@ describe('DesglosePersona', () => {
     expect(columnas([...total.children].filter(enCelular))).toBe(3)
     expect(columnas([...total.children])).toBe(5)
     expect(total.lastElementChild).toHaveTextContent('$480.00')
+  })
+
+  it('al cerrar con Escape, el foco vuelve al botón «Desglose» y no al <body> (QA defecto 12)', async () => {
+    m.detail.mockReturnValue(q([]))
+    m.receipt.mockReturnValue(recibo([]))
+    function Arnes() {
+      const [ver, setVer] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setVer(true)}>
+            abrir-desglose
+          </button>
+          {ver && <DesglosePersona staffId="s1" staffName="Ana López" clases={0} total="0" fecha="2026-09-01" cerrado onClose={() => setVer(false)} />}
+        </>
+      )
+    }
+    render(<Arnes />)
+    const abrir = screen.getByRole('button', { name: 'abrir-desglose' })
+    abrir.focus()
+    fireEvent.click(abrir)
+    await screen.findByRole('dialog')
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(abrir))
   })
 
   it('PDF y Excel se descargan con un clic explícito, del recibo de esa persona y ese periodo', async () => {

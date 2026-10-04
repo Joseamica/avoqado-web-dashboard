@@ -11,6 +11,7 @@ import { useAdjustClass } from '@/hooks/useStaffPay'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
 import { useAccionDelModal } from '@/pages/StaffPay/accionDelModal'
+import { useFocoDeVuelta } from '@/pages/StaffPay/foco'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
 
@@ -79,6 +80,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
     }
   }
 
+  const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
     <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo)} data-tour="class-pay-adjust-save">
       {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -87,7 +89,15 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   )
 
   return (
-    <FullScreenModal open onClose={onClose} title={t('adjust.title')} contentClassName="bg-muted/30" actions={accion.actions}>
+    <FullScreenModal
+      open
+      onClose={onClose}
+      title={t('adjust.title')}
+      contentClassName="bg-muted/30"
+      actions={accion.actions}
+      onOpenAutoFocus={foco.onOpenAutoFocusPantallaCompleta}
+      onCloseAutoFocus={foco.onCloseAutoFocus}
+    >
       <div className="max-w-xl mx-auto p-6">
         <section className="rounded-2xl border border-border/50 bg-card p-6 space-y-5">
           {origen && (

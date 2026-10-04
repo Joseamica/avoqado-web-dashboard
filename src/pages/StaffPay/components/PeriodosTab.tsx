@@ -24,6 +24,7 @@ import type { PeriodoListadoDto } from '@/types/staffPay'
 import { PeriodoAbiertoTab } from './PeriodoAbiertoTab'
 import { PeriodoCerradoView } from './PeriodoCerradoView'
 import { useNombrePeriodo } from '../useNombrePeriodo'
+import { useFocoDeVuelta } from '../foco'
 
 const clave = (p: PeriodoListadoDto) => p.start
 /** El periodo elegido vive en la URL (`?periodo=2026-09-01`): al recargar se vuelve a ver el mismo. */
@@ -56,6 +57,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   // Un `?periodo=` que no está en la lista (viejo, mal escrito, de otra frecuencia) cae al periodo actual.
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
   const nombrePeriodo = useNombrePeriodo()
+  const focoFrecuencia = useFocoDeVuelta()
   const mes = (p: PeriodoListadoDto) => nombrePeriodo(p, data?.periodicidad ?? 'MONTHLY')
   const estado = (p: PeriodoListadoDto) =>
     p.estado === 'OPEN'
@@ -185,7 +187,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
           }} />
       )}
       <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && !setPeriodicity.isPending && setNuevaFrecuencia(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent onOpenAutoFocus={focoFrecuencia.onOpenAutoFocus} onCloseAutoFocus={focoFrecuencia.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{nuevaFrecuencia && t('periods.changeTitle', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}</AlertDialogTitle>
             <AlertDialogDescription>{nuevaFrecuencia && t(`periods.changeHelp.${nuevaFrecuencia}`)}</AlertDialogDescription>

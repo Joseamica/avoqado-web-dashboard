@@ -20,6 +20,7 @@ import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
+import { useFocoDeVuelta } from '../foco'
 
 interface Props {
   open: boolean
@@ -131,6 +132,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
       tipo === v ? 'border-foreground bg-foreground text-background' : 'border-border hover:bg-muted',
     )
   // Sin etiqueta, el nombre del periodo leído para la fecha destino; mientras llega (o si falla), la fecha exacta.
+  const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
     <Button className="cursor-pointer" disabled={!listo || guardando} onClick={guardar} data-tour="staffpay-adjust-save">
       {guardando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -148,6 +150,8 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
       title={t('manualAdjust.title')}
       contentClassName="bg-muted/30"
       actions={accion.actions}
+      onOpenAutoFocus={foco.onOpenAutoFocusPantallaCompleta}
+      onCloseAutoFocus={foco.onCloseAutoFocus}
     >
       <div className="mx-auto max-w-xl space-y-4 p-6">
         <section className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">

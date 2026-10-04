@@ -23,6 +23,7 @@ import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
 import { conSigno, monto } from '../conSigno'
 import { TABLA_PERIODO } from './ListasDelPeriodo'
+import { useFocoDeVuelta } from '../foco'
 import { DesglosePersona } from './DesglosePersona'
 import { AjusteManualModal } from './AjusteManualModal'
 
@@ -63,6 +64,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   // Un ajuste desde aquí va al periodo abierto de HOY en la sede, fijado al abrir (Codex bloque A #1).
   const [ajusteFecha, setAjusteFecha] = useState<string | null>(null)
   const puedePagar = can('staffpay:close')
+  const focoPago = useFocoDeVuelta()
 
   if (isError && !data) {
     return (
@@ -140,7 +142,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   return (
     <div className="space-y-4" data-tour="staffpay-closed-period">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-semibold">
+        {/* Ancla del foco: a donde vuelve al cerrar un modal cuyo botón ya no existe (QA defecto 12). */}
+        <h3 className="font-semibold outline-none" tabIndex={-1} data-staffpay-ancla>
           {t('period.title', { start: formatCalendarDate(data.periodo.start), end: formatCalendarDate(data.periodo.end) })}
         </h3>
         <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{tj.personas > 0 && pendientes === 0 ? t('periods.paid') : t('closed.badge')}</span>
@@ -288,7 +291,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       )}
 
       <AlertDialog open={!!confirmar} onOpenChange={o => !o && !marcar.isPending && setConfirmar(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent onOpenAutoFocus={focoPago.onOpenAutoFocus} onCloseAutoFocus={focoPago.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirmar?.staffId

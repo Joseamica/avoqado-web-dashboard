@@ -18,6 +18,7 @@ import { useNombreSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
 import { conSigno, monto } from '../conSigno'
 import { EstadoLista, TABLA_PERIODO } from './ListasDelPeriodo'
+import { useFocoDeVuelta } from '../foco'
 
 /**
  * Desglose de sólo lectura (un Sheet es válido; FullScreenModal es para crear/editar). El total viene del renglón del
@@ -50,6 +51,7 @@ export function DesglosePersona({
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const nombreSede = useNombreSede()
+  const foco = useFocoDeVuelta()
   const q = useStaffPayDetail(staffId, sede, fecha, !cerrado)
   const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
   // El recibo se pide siempre que haya `fecha`: en un periodo cerrado ES el desglose; en uno abierto aporta los ajustes.
@@ -93,7 +95,12 @@ export function DesglosePersona({
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
+      <SheetContent
+        hasTitle
+        className="w-full overflow-y-auto sm:max-w-3xl"
+        onOpenAutoFocus={foco.onOpenAutoFocus}
+        onCloseAutoFocus={foco.onCloseAutoFocus}
+      >
         <SheetHeader>
           <SheetTitle>{t('period.detailTitle', { name: staffName })}</SheetTitle>
           <SheetDescription>{t('period.detailSummary', { count: clases, total: monto(total) })}</SheetDescription>
