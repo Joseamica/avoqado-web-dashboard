@@ -9,14 +9,14 @@
   },
   "page": {
     "title": "Pases (TotalPass · Wellhub)",
-    "subtitle": "Conecta tu sucursal para que los socios de TotalPass y Wellhub reserven y hagan check-in en tus clases desde su app. Tú decides cuántos lugares les das.",
+    "subtitle": "Conecta tu sucursal para que los socios de TotalPass reserven y hagan check-in en tus clases desde su app (Wellhub, muy pronto). Tú decides cuántos lugares les das.",
     "info": "TotalPass y Wellhub te pagan por cada visita confirmada. Aquí conectas tu sucursal, ligas tus clases y decides cuántos lugares les ofreces.",
     "readOnly": "Sólo lectura: para conectar o cambiar la configuración, pídele a un administrador del negocio.",
     "loadError": "No se pudo cargar la configuración de pases"
   },
   "teaser": {
     "title": "Qué hace esta función",
-    "bullet1": "Los socios de TotalPass y Wellhub ven tus clases en su app y reservan solos.",
+    "bullet1": "Los socios de TotalPass ven tus clases en su app y reservan solos (Wellhub, muy pronto).",
     "bullet2": "Cuando llegan, su check-in se confirma y el proveedor te paga esa visita.",
     "bullet3": "Tú decides cuántos lugares de cada clase se ofrecen a pases, con sugerencias según cómo se llenan tus clases."
   },
@@ -24,5 +24,34 @@
     "title": "Wellhub",
     "description": "Antes Gympass. Se podrá conectar en cuanto Wellhub nos entregue las credenciales de tu sucursal.",
     "connect": "Conectar"
+  },
+  "totalpass": {
+    "title": "TotalPass",
+    "description": "Los socios de TotalPass reservan y hacen check-in en tus clases desde su app.",
+    "status": { "connected": "Conectada", "notConnected": "Sin conectar", "paused": "Pausada", "revoked": "Llave rechazada", "planPaused": "Pausada por el plan" },
+    "planPaused": "Tu plan ya no incluye pases. Tus clases dejaron de publicarse en TotalPass; lo que ya estaba reservado se respeta y sus check-ins se siguen confirmando.",
+    "place": "Sucursal de TotalPass",
+    "pausedHint": "TotalPass pausó esta conexión. Pega una llave nueva de tu portal para volver a conectarla.",
+    "revokedHint": "TotalPass rechazó la llave de «{{place}}». Pega una llave nueva para reconectarla, o desconecta para limpiar la conexión.",
+    "keyLabel": "Llave de tu sucursal (place_api_key)",
+    "keyPlaceholder": "Pega aquí la llave",
+    "keyHint": "Se saca en el Portal de Academias de TotalPass → Integraciones → Crear nuevo código. Pégala tal cual; nosotros le quitamos los espacios.",
+    "connect": "Conectar",
+    "connecting": "Conectando…",
+    "connected": "TotalPass quedó conectado",
+    "mode": {
+      "label": "Cómo se confirma la asistencia",
+      "auto": "Automático (recomendado)",
+      "autoHint": "Cada check-in se confirma solo en cuanto el socio lo hace: nadie tiene que marcarlo.",
+      "onCheckin": "Cuando el estudio registre la asistencia",
+      "onCheckinHint": "Se confirma cuando recepción, el kiosco o el coach marcan que el socio llegó. Si nadie lo hace dentro del plazo, TotalPass no paga esa visita.",
+      "saved": "Modo de confirmación guardado"
+    },
+    "disconnect": "Desconectar",
+    "disconnected": "TotalPass quedó desconectado",
+    "disconnectTitle": "¿Desconectar TotalPass?",
+    "disconnectBody": "Tus clases dejarán de publicarse en TotalPass y los socios ya no podrán reservar. Para volver a conectar tendrás que pegar tu llave otra vez.",
+    "disconnectNoKey": "Como la llave ya no funciona, Avoqado no puede quitar tus clases de TotalPass. Si alguna sigue publicada allá, bórrala desde el Portal de Academias de TotalPass.",
+    "disconnectConfirm": "Sí, desconectar"
   }
 }

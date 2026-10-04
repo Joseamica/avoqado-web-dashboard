@@ -129,4 +129,53 @@ describe('PassIntegrations (Pantalla A)', () => {
     expect(svc.getPassIntegrationsOverview).not.toHaveBeenCalled()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
+
+  // R62 (pausa suave): sin plan y con TotalPass vivo la página NO se esconde tras el paywall.
+  it('sin plan con TotalPass ACTIVE ⇒ sin paywall: aviso de pausa y Desconectar; sin modo, llave, clases ni lugares', async () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    svc.getPassIntegrationsOverview.mockResolvedValue({
+      ...OVERVIEW,
+      planActive: false,
+      connections: [{ ...OVERVIEW.connections[0], status: 'ACTIVE', externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
+    })
+    renderPage()
+    expect(await screen.findByText('totalpass.planPaused')).toBeInTheDocument()
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+    expect(screen.getByText('Estudio Prueba')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeEnabled()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
+    expect(screen.queryByText('products.title')).not.toBeInTheDocument() // clases ligadas (Tarea 6)
+    expect(screen.queryByText('capacity.title')).not.toBeInTheDocument() // lugares para pases (Tarea 7)
+    expect(svc.getPassCapacity).not.toHaveBeenCalled()
+  })
+
+  // R62: una REVOKED ya limpia no tiene nada vivo ⇒ como siempre, el paywall con el teaser.
+  it('sin plan con TotalPass REVOKED y sin lastError ⇒ FeatureGate con el teaser, sin aviso de pausa', async () => {
+    tier.current = { hasFeatureAccess: () => false, isLoading: false, isResolved: true }
+    svc.getPassIntegrationsOverview.mockResolvedValue({
+      ...OVERVIEW,
+      planActive: false,
+      connections: [
+        { ...OVERVIEW.connections[0], status: 'REVOKED', externalPlaceName: 'Estudio Prueba', lastError: null },
+        OVERVIEW.connections[1],
+      ],
+    })
+    renderPage()
+    expect(await screen.findByText('teaser.title')).toBeInTheDocument()
+    expect(screen.getByTestId('feature-gate')).toHaveAttribute('data-feature', 'AGGREGATOR_PASSES')
+    expect(screen.queryByText('totalpass.planPaused')).not.toBeInTheDocument()
+  })
+
+  // R62: con plan nada cambia: dentro del FeatureGate, con el modo y sin aviso de pausa.
+  it('con plan y TotalPass ACTIVE ⇒ como hoy: dentro del FeatureGate, con el modo y sin aviso de pausa', async () => {
+    svc.getPassIntegrationsOverview.mockResolvedValue({
+      ...OVERVIEW,
+      connections: [{ ...OVERVIEW.connections[0], status: 'ACTIVE', externalPlaceName: 'Estudio Prueba' }, OVERVIEW.connections[1]],
+    })
+    renderPage()
+    expect(await screen.findByText('totalpass.mode.autoHint')).toBeInTheDocument()
+    expect(screen.getByTestId('feature-gate')).toBeInTheDocument()
+    expect(screen.queryByText('totalpass.planPaused')).not.toBeInTheDocument()
+  })
 })

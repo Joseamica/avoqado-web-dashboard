@@ -9,14 +9,14 @@
   },
   "page": {
     "title": "Passes (TotalPass · Wellhub)",
-    "subtitle": "Connect your location so TotalPass and Wellhub members can book and check in to your classes from their app. You decide how many spots they get.",
+    "subtitle": "Connect your location so TotalPass members can book and check in to your classes from their app (Wellhub, coming soon). You decide how many spots they get.",
     "info": "TotalPass and Wellhub pay you for every confirmed visit. Here you connect your location, link your classes and decide how many spots to offer.",
     "readOnly": "Read only: to connect or change settings, ask a business administrator.",
     "loadError": "Couldn't load the passes settings"
   },
   "teaser": {
     "title": "What this does",
-    "bullet1": "TotalPass and Wellhub members see your classes in their app and book on their own.",
+    "bullet1": "TotalPass members see your classes in their app and book on their own (Wellhub, coming soon).",
     "bullet2": "When they arrive, their check-in is confirmed and the provider pays you for that visit.",
     "bullet3": "You decide how many spots per class go to passes, with suggestions based on how your classes fill up."
   },
@@ -24,5 +24,34 @@
     "title": "Wellhub",
     "description": "Formerly Gympass. You'll be able to connect it as soon as Wellhub hands us your location's credentials.",
     "connect": "Connect"
+  },
+  "totalpass": {
+    "title": "TotalPass",
+    "description": "TotalPass members book and check in to your classes from their app.",
+    "status": { "connected": "Connected", "notConnected": "Not connected", "paused": "Paused", "revoked": "Key rejected", "planPaused": "Paused by your plan" },
+    "planPaused": "Your plan no longer includes passes. Your classes stopped being published on TotalPass; anything already booked is honored and its check-ins keep being confirmed.",
+    "place": "TotalPass location",
+    "pausedHint": "TotalPass paused this connection. Paste a new key from your portal to reconnect it.",
+    "revokedHint": "TotalPass rejected the key for “{{place}}”. Paste a new key to reconnect, or disconnect to clean up the connection.",
+    "keyLabel": "Your location key (place_api_key)",
+    "keyPlaceholder": "Paste the key here",
+    "keyHint": "Get it in the TotalPass Partner Portal → Integrations → Create new code. Paste it as is; we strip the spaces.",
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "connected": "TotalPass is now connected",
+    "mode": {
+      "label": "How attendance gets confirmed",
+      "auto": "Automatic (recommended)",
+      "autoHint": "Each check-in is confirmed on its own as soon as the member checks in: nobody has to mark it.",
+      "onCheckin": "When the studio records attendance",
+      "onCheckinHint": "Confirmed when the front desk, the kiosk or the coach marks the member as arrived. If nobody does it in time, TotalPass won't pay for that visit.",
+      "saved": "Confirmation mode saved"
+    },
+    "disconnect": "Disconnect",
+    "disconnected": "TotalPass has been disconnected",
+    "disconnectTitle": "Disconnect TotalPass?",
+    "disconnectBody": "Your classes will stop being published on TotalPass and members won't be able to book. To reconnect you'll need to paste your key again.",
+    "disconnectNoKey": "Since the key no longer works, Avoqado can't remove your classes from TotalPass. If any are still published there, delete them from the TotalPass Partner Portal.",
+    "disconnectConfirm": "Yes, disconnect"
   }
 }

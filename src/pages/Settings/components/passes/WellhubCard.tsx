@@ -14,7 +14,7 @@ export function WellhubCard() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base">{t('wellhub.title')}</CardTitle>
-          <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+          <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
             {t('common:comingSoon')}
           </Badge>
         </div>
