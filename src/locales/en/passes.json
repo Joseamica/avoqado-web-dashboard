@@ -40,6 +40,8 @@
     "connect": "Connect",
     "connecting": "Connecting…",
     "connected": "TotalPass is now connected",
+    "rekey": "Paste the key again",
+    "rekeyHint": "Use it if you added or changed plans in TotalPass.",
     "mode": {
       "label": "How attendance gets confirmed",
       "auto": "Automatic (recommended)",
@@ -61,6 +63,7 @@
     "class": "Class",
     "plan": "TotalPass plan",
     "none": "Not linked",
+    "missingPlan": "Plan that no longer exists in TotalPass",
     "noPlans": "Your TotalPass location has no plans yet. Create them in their portal and reconnect.",
     "noClasses": "You have no “Class” products. Create one in the menu to link it.",
     "showing": "Showing {{shown}} of {{total}} classes. If you need to link the rest, write to us.",

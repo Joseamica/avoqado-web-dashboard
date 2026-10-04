@@ -150,6 +150,48 @@ describe('TotalPassCard', () => {
     expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeInTheDocument()
   })
 
+  // R2b-18: conectada, «Volver a pegar la llave» abre el mismo campo; conectar la MISMA sucursal hace upsert y re-lee los planes.
+  it('conectada: «Volver a pegar la llave» abre el campo; conectar desde ahí manda la llave y cierra el campo al terminar', async () => {
+    const user = userEvent.setup()
+    renderCard(CONNECTED)
+    expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
+    expect(screen.getByText('totalpass.rekeyHint')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'totalpass.rekey' }))
+    const input = screen.getByLabelText('totalpass.keyLabel')
+    expect(input).toHaveAttribute('type', 'password')
+    expect(input).toHaveAttribute('autocomplete', 'new-password')
+    await user.type(input, KEY)
+    await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
+    await waitFor(() => expect(svc.connectTotalPass).toHaveBeenCalledWith('v1', KEY))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
+    await waitFor(() => expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'totalpass.rekey' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'totalpass.mode.label' })).toBeInTheDocument()
+  })
+
+  // R2b-18: una llave rechazada deja el campo abierto con el mensaje del servidor y la llave tecleada; Cancelar lo cierra.
+  it('volver a pegar una llave rechazada ⇒ el campo sigue abierto con el error; Cancelar lo cierra y lo limpia', async () => {
+    const user = userEvent.setup()
+    svc.connectTotalPass.mockRejectedValue({
+      response: {
+        status: 400,
+        data: {
+          message: 'TotalPass no reconoce esa llave. Revisa que sea la «place_api_key» de esta sucursal y vuelve a pegarla.',
+          code: 'PASS_KEY_REJECTED',
+        },
+      },
+    })
+    renderCard(CONNECTED)
+    await user.click(screen.getByRole('button', { name: 'totalpass.rekey' }))
+    await user.type(screen.getByLabelText('totalpass.keyLabel'), KEY)
+    await user.click(screen.getByRole('button', { name: 'totalpass.connect' }))
+    expect(await screen.findByText(/TotalPass no reconoce esa llave/)).toBeInTheDocument()
+    expect(screen.getByLabelText('totalpass.keyLabel')).toHaveValue(KEY)
+    await user.click(screen.getByRole('button', { name: 'common:cancel' }))
+    expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
+    expect(screen.queryByText(/TotalPass no reconoce esa llave/)).not.toBeInTheDocument()
+  })
+
   it('conectada: muestra la sucursal, el modo con su consecuencia, y cambiarlo guarda e invalida el overview', async () => {
     const user = userEvent.setup()
     renderCard(CONNECTED)
@@ -314,6 +356,8 @@ describe('TotalPassCard', () => {
   it('sin permiso de configurar: todo deshabilitado, nada se esconde', () => {
     const r1 = renderCard(CONNECTED, false)
     expect(screen.getByRole('combobox')).toBeDisabled()
+    // R2b-18: volver a pegar la llave es configurar: sin permiso no se ofrece.
+    expect(screen.queryByRole('button', { name: 'totalpass.rekey' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeDisabled()
     expect(screen.getByText('Estudio Prueba')).toBeInTheDocument()
     r1.unmount()
@@ -332,6 +376,7 @@ describe('TotalPassCard', () => {
     expect(screen.getByText('Estudio Prueba')).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('totalpass.keyLabel')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'totalpass.rekey' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: UPGRADE }))
     expect(navigateSpy).toHaveBeenCalledWith('/venues/test/settings/billing/subscriptions')
     await user.click(screen.getByRole('button', { name: 'totalpass.disconnect' }))

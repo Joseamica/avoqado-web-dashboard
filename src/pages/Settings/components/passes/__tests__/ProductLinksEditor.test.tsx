@@ -122,6 +122,56 @@ describe('ProductLinksEditor', () => {
     expect(screen.getByRole('combobox', { name: 'Yoga' })).toHaveTextContent('products.none')
   })
 
+  // H4 (gemela de P2-8): el onError también DEVUELVE la invalidación ⇒ los controles se rehabilitan cuando la vista nueva llegó.
+  it('guardar falla ⇒ selectores y botón deshabilitados hasta que la recarga de la vista llegó', async () => {
+    const user = userEvent.setup()
+    svc.setPassProductLinks.mockRejectedValue({ response: { status: 409, data: { message: HAS_BOOKINGS } } })
+    let release!: () => void
+    invalidateSpy.mockReturnValueOnce(
+      new Promise<void>(resolve => {
+        release = resolve
+      }),
+    )
+    renderEditor()
+    await user.click(screen.getByRole('combobox', { name: 'Yoga' }))
+    await user.click(await screen.findByRole('option', { name: 'products.none' }))
+    await user.click(screen.getByRole('button', { name: 'products.save' }))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith('v1', 'connection'))
+    expect(screen.getByRole('combobox', { name: 'Yoga' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'products.save' })).toBeDisabled()
+    release()
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Yoga' })).toBeEnabled())
+    expect(screen.getByText(HAS_BOOKINGS)).toBeInTheDocument()
+  })
+
+  // H3: al volver a guardar, el error del intento anterior se va en cuanto sale la petición nueva.
+  it('volver a guardar borra el error del intento anterior', async () => {
+    const user = userEvent.setup()
+    svc.setPassProductLinks.mockRejectedValueOnce({ response: { status: 409, data: { message: HAS_BOOKINGS } } })
+    svc.setPassProductLinks.mockReturnValueOnce(new Promise(() => {}))
+    renderEditor()
+    await user.click(screen.getByRole('combobox', { name: 'Yoga' }))
+    await user.click(await screen.findByRole('option', { name: 'products.none' }))
+    await user.click(screen.getByRole('button', { name: 'products.save' }))
+    expect(await screen.findByText(HAS_BOOKINGS)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'products.save' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'products.save' }))
+    await waitFor(() => expect(svc.setPassProductLinks).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText(HAS_BOOKINGS)).not.toBeInTheDocument()
+  })
+
+  // H2: una liga a un plan que TotalPass ya no tiene se ve («Plan que ya no existe…»), no deja el selector en blanco, y la
+  // fila se puede pasar a «Sin ligar».
+  it('una liga a un plan que ya no existe se ve y se puede desligar', async () => {
+    const user = userEvent.setup()
+    renderEditor({ productLinks: [{ productId: 'p1', productName: 'Yoga', externalPlanId: '999', externalPlanName: 'Bronze' }] })
+    expect(screen.getByRole('combobox', { name: 'Yoga' })).toHaveTextContent('products.missingPlan')
+    await user.click(screen.getByRole('combobox', { name: 'Yoga' }))
+    await user.click(await screen.findByRole('option', { name: 'products.none' }))
+    await user.click(screen.getByRole('button', { name: 'products.save' }))
+    await waitFor(() => expect(svc.setPassProductLinks).toHaveBeenCalledWith('v1', 'TOTALPASS', []))
+  })
+
   // Los demás rechazos del server también salen tal cual (nada de texto fijo) y recargan la vista.
   it.each([
     ['409 cambiar el plan de una clase ya publicada', 409, 'PASS_PLAN_CHANGE_NEEDS_UNLINK', PLAN_CHANGE],

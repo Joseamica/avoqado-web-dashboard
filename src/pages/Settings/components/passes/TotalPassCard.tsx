@@ -108,6 +108,8 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
   const invalidate = useInvalidatePasses()
   const [key, setKey] = useState('')
   const [keyError, setKeyError] = useState<string | null>(null)
+  // R2b-18: ya conectada, el dueño puede volver a pegar la llave (conectar la MISMA sucursal hace upsert y re-lee los planes).
+  const [rekeyOpen, setRekeyOpen] = useState(false)
   const [disconnectOpen, setDisconnectOpen] = useState(false)
   // Lo que contestó el último Desconectar: `unlinking` = el server ya está quitando las clases (aviso neutral), si no, error.
   const [disconnectResult, setDisconnectResult] = useState<{ text: string; unlinking: boolean } | null>(null)
@@ -129,6 +131,7 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
     onSuccess: () => {
       setKey('')
       setKeyError(null)
+      setRekeyOpen(false)
       toast({ title: t('totalpass.connected') })
       return invalidate(venueId, 'connection')
     },
@@ -204,6 +207,76 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
     </Badge>
   )
 
+  // El mismo formulario conecta y, ya conectada, vuelve a pegar la llave (R2b-18). En ese caso el `lastError` de la conexión
+  // ya se ve arriba y hay un Cancelar.
+  const keyForm = (
+    <form
+      className="space-y-3"
+      onSubmit={e => {
+        e.preventDefault()
+        if (key.trim()) connect.mutate()
+      }}
+    >
+      <div className="grid gap-2">
+        <Label htmlFor="totalpass-key">{t('totalpass.keyLabel')}</Label>
+        <Input
+          id="totalpass-key"
+          type="password"
+          autoComplete="new-password"
+          placeholder={t('totalpass.keyPlaceholder')}
+          value={key}
+          onChange={e => setKey(e.target.value)}
+          disabled={disabled}
+          data-tour="passes-totalpass-key"
+        />
+        <p className="text-xs text-muted-foreground">{t('totalpass.keyHint')}</p>
+      </div>
+      {keyError ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{keyError}</AlertDescription>
+        </Alert>
+      ) : active ? null : pending && connection.lastError ? (
+        // H6: un conectar a medias se dice en claro; el texto técnico va abajo, chico, para soporte.
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <p>{t('totalpass.pendingHint')}</p>
+            <p className="text-xs text-muted-foreground">{connection.lastError}</p>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        connection.lastError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{connection.lastError}</AlertDescription>
+          </Alert>
+        )
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={disabled || !key.trim()} data-tour="passes-totalpass-connect">
+          {connect.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {connect.isPending ? t('totalpass.connecting') : t('totalpass.connect')}
+        </Button>
+        {active && (
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={connect.isPending}
+            onClick={() => {
+              setRekeyOpen(false)
+              setKey('')
+              setKeyError(null)
+            }}
+            data-tour="passes-totalpass-rekey-cancel"
+          >
+            {t('common:cancel')}
+          </Button>
+        )}
+      </div>
+    </form>
+  )
+
   const place = (
     <div className="space-y-1">
       <p className="text-sm font-medium text-foreground">{t('totalpass.place')}</p>
@@ -241,54 +314,7 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
           )}
 
           {planPaused ? null : !active ? (
-            <form
-              className="space-y-3"
-              onSubmit={e => {
-                e.preventDefault()
-                if (key.trim()) connect.mutate()
-              }}
-            >
-              <div className="grid gap-2">
-                <Label htmlFor="totalpass-key">{t('totalpass.keyLabel')}</Label>
-                <Input
-                  id="totalpass-key"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder={t('totalpass.keyPlaceholder')}
-                  value={key}
-                  onChange={e => setKey(e.target.value)}
-                  disabled={disabled}
-                  data-tour="passes-totalpass-key"
-                />
-                <p className="text-xs text-muted-foreground">{t('totalpass.keyHint')}</p>
-              </div>
-              {keyError ? (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{keyError}</AlertDescription>
-                </Alert>
-              ) : pending && connection.lastError ? (
-                // H6: un conectar a medias se dice en claro; el texto técnico va abajo, chico, para soporte.
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    <p>{t('totalpass.pendingHint')}</p>
-                    <p className="text-xs text-muted-foreground">{connection.lastError}</p>
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                connection.lastError && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{connection.lastError}</AlertDescription>
-                  </Alert>
-                )
-              )}
-              <Button type="submit" disabled={disabled || !key.trim()} data-tour="passes-totalpass-connect">
-                {connect.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {connect.isPending ? t('totalpass.connecting') : t('totalpass.connect')}
-              </Button>
-            </form>
+            keyForm
           ) : (
             <>
               {place}
@@ -299,6 +325,25 @@ export function TotalPassCard({ venueId, connection, classProducts, canManage, p
                   <AlertDescription>{connection.lastError}</AlertDescription>
                 </Alert>
               )}
+
+              {canManage &&
+                (rekeyOpen ? (
+                  keyForm
+                ) : (
+                  <div className="space-y-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={disabled}
+                      onClick={() => setRekeyOpen(true)}
+                      data-tour="passes-totalpass-rekey"
+                    >
+                      {t('totalpass.rekey')}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">{t('totalpass.rekeyHint')}</p>
+                  </div>
+                ))}
 
               <div className="space-y-1.5">
                 <Label htmlFor="totalpass-mode">{t('totalpass.mode.label')}</Label>

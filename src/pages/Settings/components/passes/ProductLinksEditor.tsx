@@ -62,8 +62,9 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
   const save = useMutation({
     mutationFn: () =>
       setPassProductLinks(venueId, provider, rows.filter(r => draft[r.id]).map(r => ({ productId: r.id, externalPlanId: draft[r.id] }))),
+    // El error del intento anterior se va en cuanto sale la petición nueva (H3).
+    onMutate: () => setSaveError(null),
     onSuccess: () => {
-      setSaveError(null)
       toast({ title: t('products.saved') })
       return invalidate(venueId, 'connection')
     },
@@ -74,6 +75,7 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
     },
   })
   const disabled = !canManage || save.isPending
+  const knownPlans = useMemo(() => new Set(plans.map(p => p.id)), [plans])
 
   return (
     <div className="space-y-3" data-tour="passes-product-links">
@@ -99,30 +101,36 @@ export function ProductLinksEditor({ venueId, provider, plans, productLinks, cla
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map(row => (
-                  <TableRow key={row.id} className="border-input">
-                    <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={draft[row.id] || NONE}
-                        disabled={disabled}
-                        onValueChange={value => setDraft(d => ({ ...d, [row.id]: value === NONE ? '' : value }))}
-                      >
-                        <SelectTrigger aria-label={row.name} className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>{t('products.none')}</SelectItem>
-                          {plans.map(plan => (
-                            <SelectItem key={plan.id} value={plan.id}>
-                              {plan.name ?? plan.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {rows.map(row => {
+                  const value = draft[row.id] || NONE
+                  // H2: ligada a un plan que TotalPass ya no tiene: se dice, no se deja el selector en blanco.
+                  const missingPlan = value !== NONE && !knownPlans.has(value)
+                  return (
+                    <TableRow key={row.id} className="border-input">
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={value}
+                          disabled={disabled}
+                          onValueChange={next => setDraft(d => ({ ...d, [row.id]: next === NONE ? '' : next }))}
+                        >
+                          <SelectTrigger aria-label={row.name} className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>{t('products.none')}</SelectItem>
+                            {missingPlan && <SelectItem value={value}>{t('products.missingPlan')}</SelectItem>}
+                            {plans.map(plan => (
+                              <SelectItem key={plan.id} value={plan.id}>
+                                {plan.name ?? plan.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

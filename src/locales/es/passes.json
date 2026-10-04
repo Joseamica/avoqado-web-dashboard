@@ -40,6 +40,8 @@
     "connect": "Conectar",
     "connecting": "Conectando…",
     "connected": "TotalPass quedó conectado",
+    "rekey": "Volver a pegar la llave",
+    "rekeyHint": "Úsalo si agregaste o cambiaste planes en TotalPass.",
     "mode": {
       "label": "Cómo se confirma la asistencia",
       "auto": "Automático (recomendado)",
@@ -61,6 +63,7 @@
     "class": "Clase",
     "plan": "Plan de TotalPass",
     "none": "Sin ligar",
+    "missingPlan": "Plan que ya no existe en TotalPass",
     "noPlans": "Tu sucursal de TotalPass no tiene planes todavía. Créalos en su portal y vuelve a conectar.",
     "noClasses": "No tienes productos tipo «Clase». Crea uno en el menú para poder ligarlo.",
     "showing": "Se muestran {{shown}} de {{total}} clases. Si necesitas ligar las demás, escríbenos.",
