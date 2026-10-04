@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useAdjustClass } from '@/hooks/useStaffPay'
+import { useVenueDateTime } from '@/utils/datetime'
 import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
@@ -32,6 +33,7 @@ interface Props {
 export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
+  const { formatCalendarDate } = useVenueDateTime()
   const guardar = useAdjustClass(sessionId)
   const previo = actual.ajuste
   const [conteo, setConteo] = useState(previo?.payCountOverride != null ? String(previo.payCountOverride) : '')
@@ -40,6 +42,9 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const [motivo, setMotivo] = useState('')
   const [enviando, setEnviando] = useState(false)
   const enVuelo = useRef(false)
+  // Clase ya contabilizada en un cierre: corregirla no toca lo congelado. Se dice ANTES de guardar, no después.
+  const origen = actual.periodoOrigen?.estado === 'CLOSED' ? actual.periodoOrigen : null
+  const yaPagada = !!actual.lineas?.some(l => l.concepto === 'SERVICE' && l.pagadoEn)
 
   const conteoValido = conteo === '' || (ENTERO.test(conteo) && Number(conteo) <= CONTEO_MAX)
   const montoValido = monto === '' || (MONTO.test(monto) && Number(monto) <= MONTO_MAX)
@@ -94,6 +99,17 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
     >
       <div className="max-w-xl mx-auto p-6">
         <section className="rounded-2xl border border-border/50 bg-card p-6 space-y-5">
+          {origen && (
+            <p role="note" className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                {t(yaPagada ? 'adjust.alreadyPaid' : 'adjust.alreadyCounted', {
+                  start: formatCalendarDate(origen.start),
+                  end: formatCalendarDate(origen.end),
+                })}
+              </span>
+            </p>
+          )}
           <label className="flex items-center gap-3 cursor-pointer">
             <Switch checked={excluir} onCheckedChange={setExcluir} aria-label={t('adjust.exclude')} />
             <span className="text-base">{t('adjust.exclude')}</span>

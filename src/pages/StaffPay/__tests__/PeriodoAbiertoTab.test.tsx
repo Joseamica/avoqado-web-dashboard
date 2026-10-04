@@ -136,6 +136,37 @@ describe('PeriodoAbiertoTab', () => {
     expect(screen.getByText('period.closeNoPermission')).toBeInTheDocument()
   })
 
+  const vacio = (periodo: Record<string, unknown>) => ({
+    data: { ...base, parcial: false, periodo, huerfanas: 0, tarjetas: { total: '0.00', clases: 0, personas: 0, excepciones: 0, excluidas: 0 }, personas: { items: [], total: 0, offset: 0, limit: 50 } },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })
+
+  it('un mes que ya pasó sin clases ni ajustes dice «Sin movimientos», no «Abierto» con trabajo pendiente (QA defecto 11)', () => {
+    m.report.mockReturnValue(vacio({ start: '2025-11-01', end: '2025-11-30', periodicidad: 'MONTHLY' }))
+    render(<PeriodoAbiertoTab activa fecha="2025-11-01" etiqueta="noviembre de 2025" />)
+    expect(screen.getByText('period.noActivity')).toBeInTheDocument()
+    expect(screen.getByText('period.noActivityEmpty')).toBeInTheDocument()
+    expect(screen.queryByText('period.open')).toBeNull()
+    expect(screen.queryByText('period.empty')).toBeNull()
+  })
+
+  it('el mes en curso sin clases todavía sigue «Abierto»', () => {
+    m.report.mockReturnValue(vacio({ start: '2099-12-01', end: '2099-12-31', periodicidad: 'MONTHLY' }))
+    render(<PeriodoAbiertoTab activa fecha="2099-12-01" />)
+    expect(screen.getByText('period.open')).toBeInTheDocument()
+    expect(screen.getByText('period.empty')).toBeInTheDocument()
+  })
+
+  it('un mes pasado con clases que no se pueden pagar NO es «Sin movimientos»', () => {
+    const r = vacio({ start: '2025-11-01', end: '2025-11-30', periodicidad: 'MONTHLY' })
+    r.data.tarjetas = { ...r.data.tarjetas, excepciones: 1 }
+    m.report.mockReturnValue(r)
+    render(<PeriodoAbiertoTab activa fecha="2025-11-01" />)
+    expect(screen.getByText('period.open')).toBeInTheDocument()
+  })
+
   it('la columna «Ajustes» muestra el bono o descuento de cada persona', () => {
     const conAjuste = { ...base.personas.items[0], ajustes: '-150.00' }
     m.report.mockReturnValue({ data: { ...base, personas: { ...base.personas, items: [conAjuste] } }, isLoading: false, isError: false, refetch: vi.fn() })

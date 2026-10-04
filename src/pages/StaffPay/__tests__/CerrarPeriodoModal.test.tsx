@@ -37,6 +37,12 @@ describe('CerrarPeriodoModal', () => {
     expect(screen.getByRole('button', { name: /close\.confirmNamed/ })).toHaveTextContent('agosto 2026')
   })
 
+  it('los ajustes del cierre llevan el mismo «−» que la tabla (QA defecto 14)', () => {
+    m.preview.mockReturnValue({ data: { ...ok, totalAjustes: '-150.00', total: '36470.00' }, isLoading: false, refetch: m.refetch })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    expect(screen.getByText(/close\.adjustmentsIncluded/)).toHaveTextContent('"total":"−$150.00"')
+  })
+
   it('con bloqueos los explica y no deja confirmar', () => {
     m.preview.mockReturnValue({ data: { ...ok, puedeCerrar: false, bloqueos: [{ codigo: 'EXCEPCIONES', n: 2 }] }, isLoading: false, refetch: m.refetch })
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)

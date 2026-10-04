@@ -8,10 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useClosePeriod, useClosePreview } from '@/hooks/useStaffPay'
-import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { Bloqueo, ResultadoCierreDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
+import { conSigno, monto } from '../conSigno'
 
 interface Props {
   open: boolean
@@ -47,7 +47,7 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
     try {
       const r = await cerrar.mutateAsync({ fecha, huellaEsperada: p.huella, confirmarHuerfanas: p.huerfanas > 0 && entiendo })
       // Un reintento (doble clic, otra pestaña) devuelve el MISMO cierre: se dice, no se presenta como uno nuevo.
-      toast({ title: r.yaCerrado ? t('close.alreadyClosed', { total: Currency(Number(r.total)) }) : t('close.done') })
+      toast({ title: r.yaCerrado ? t('close.alreadyClosed', { total: monto(r.total) }) : t('close.done') })
       onCerrado(r)
       onOpenChange(false)
     } catch (err) {
@@ -127,7 +127,7 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
               <p className="text-xs text-muted-foreground">
                 {t('close.range', { start: formatCalendarDate(p.periodo.start), end: formatCalendarDate(p.periodo.end) })}
               </p>
-              <p className="text-3xl font-bold tabular-nums">{Currency(Number(p.total))}</p>
+              <p className="text-3xl font-bold tabular-nums">{monto(p.total)}</p>
               <p className="text-sm">
                 {p.clases === 0 && p.personas === 0
                   ? t('close.empty')
@@ -135,11 +135,11 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
                       count: p.clases,
                       personas: t('close.people', { count: p.personas }),
                       sedes: p.periodo.venueIds.map(nombreSede).join(', '),
-                      total: Currency(Number(p.total)),
+                      total: monto(p.total),
                     })}
               </p>
               {Number(p.totalAjustes) !== 0 && (
-                <p className="text-sm text-muted-foreground">{t('close.adjustmentsIncluded', { total: Currency(Number(p.totalAjustes)) })}</p>
+                <p className="text-sm text-muted-foreground">{t('close.adjustmentsIncluded', { total: conSigno(p.totalAjustes) })}</p>
               )}
               <p className="text-sm text-muted-foreground">{t('close.afterwards')}</p>
             </section>

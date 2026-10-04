@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAccess } from '@/hooks/use-access'
@@ -16,7 +15,7 @@ import { AjusteManualModal } from './AjusteManualModal'
 import { ExcepcionesSheet, HuerfanasSheet, TABLA_PERIODO } from './ListasDelPeriodo'
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
-import { conSigno } from '../conSigno'
+import { conSigno, monto } from '../conSigno'
 
 const LIMITE = 50
 const TODAS = '__all__'
@@ -123,6 +122,8 @@ export function PeriodoAbiertoTab({
     return x.toISOString().slice(0, 10)
   }
   const mostrarFiltro = opcionesSede.length > 1 || sede !== undefined
+  // Un mes que ya pasó sin una sola clase ni ajuste no es «Abierto» con trabajo pendiente: no tuvo movimientos.
+  const sinMovimientos = terminado && total === 0 && tj.clases === 0 && tj.excepciones === 0 && !tj.excluidas
 
   return (
     <div className="space-y-4" data-tour="staffpay-period">
@@ -131,7 +132,7 @@ export function PeriodoAbiertoTab({
           <h3 className="font-semibold">
             {t('period.title', { start: formatCalendarDate(data.periodo.start), end: formatCalendarDate(data.periodo.end) })}
           </h3>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{t('period.open')}</span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{sinMovimientos ? t('period.noActivity') : t('period.open')}</span>
           {data.parcial && (
             <span className="rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
               {t('period.partial')}
@@ -164,7 +165,7 @@ export function PeriodoAbiertoTab({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {(
           [
-            [t('period.cards.total'), Currency(Number(tj.total))],
+            [t('period.cards.total'), monto(tj.total)],
             [t('period.cards.classes'), tj.clases],
             [t('period.cards.people'), tj.personas],
             [t('period.cards.exceptions'), tj.excepciones],
@@ -229,7 +230,7 @@ export function PeriodoAbiertoTab({
       )}
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('period.empty')}</p>
+        <p className="text-sm text-muted-foreground">{sinMovimientos ? t('period.noActivityEmpty') : t('period.empty')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className={TABLA_PERIODO}>
@@ -254,7 +255,7 @@ export function PeriodoAbiertoTab({
                   <td className="text-right">{p.clases}</td>
                   <td className="text-right">{p.promedioLugares}</td>
                   <td className="whitespace-nowrap text-right">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
-                  <td className="text-right font-semibold">{Currency(Number(p.total))}</td>
+                  <td className="text-right font-semibold">{monto(p.total)}</td>
                   <td className="text-right">
                     <Button
                       variant="ghost"

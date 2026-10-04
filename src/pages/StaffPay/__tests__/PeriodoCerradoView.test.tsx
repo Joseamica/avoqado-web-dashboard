@@ -74,6 +74,14 @@ describe('PeriodoCerradoView', () => {
     fireEvent.click(await screen.findByRole('button', { name: /closed\.markPaidConfirm/ }))
     await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'closed.alreadyPaid' })))
   })
+  it('un total negativo lleva el mismo «−» que la columna de ajustes (QA defecto 14)', () => {
+    m.can.mockReturnValue(true)
+    m.reporte.mockReturnValue({ ...REPORTE, personas: { ...REPORTE.personas, items: [{ ...ANA, clases: 0, ajustes: '-150.00', total: '-150.00' }] } })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.getAllByText('−$150.00')).toHaveLength(2)
+    expect(screen.queryByText('-$150.00')).toBeNull()
+  })
+
   it('el «Desglose» de cada renglón dice de quién es', () => {
     m.can.mockReturnValue(true)
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)

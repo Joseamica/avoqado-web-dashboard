@@ -248,6 +248,31 @@ describe('PagoDeClaseCard', () => {
     expect(screen.getByText('classCard.today')).toBeInTheDocument()
   })
 
+  it('corregir una clase ya contabilizada y PAGADA avisa antes de guardar que lo pagado no cambia (QA defecto 10)', () => {
+    const lineas = (contabilizada().lineas as Array<{ concepto: string }>).map(l => (l.concepto === 'SERVICE' ? { ...l, pagadoEn: '2026-09-03T15:00:00Z' } : l))
+    m.pay.mockReturnValue({ data: contabilizada({ lineas }) })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.queryByRole('note')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixCount' }))
+    const aviso = screen.getByRole('note')
+    expect(aviso).toHaveTextContent('adjust.alreadyPaid')
+    expect(aviso).toHaveTextContent('"start":"2026-08-01","end":"2026-08-31"')
+  })
+
+  it('contabilizada pero sin pagar: dice «se contabilizó», no «se pagó»', () => {
+    m.pay.mockReturnValue({ data: contabilizada() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixAmount' }))
+    expect(screen.getByRole('note')).toHaveTextContent('adjust.alreadyCounted')
+  })
+
+  it('una clase que no está en ningún cierre no lleva el aviso', () => {
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixCount' }))
+    expect(screen.queryByRole('note')).toBeNull()
+  })
+
   it('sin permiso para corregir una clase contabilizada no ofrece corregir ni promete la diferencia', () => {
     m.can.mockImplementation((p: string) => p !== 'staffpay:close')
     m.pay.mockReturnValue({ data: contabilizada() })

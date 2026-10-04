@@ -18,11 +18,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useMarkPaid, usePaidPreview, useStaffPayReport } from '@/hooks/useStaffPay'
-import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
-import { conSigno } from '../conSigno'
+import { conSigno, monto } from '../conSigno'
 import { TABLA_PERIODO } from './ListasDelPeriodo'
 import { DesglosePersona } from './DesglosePersona'
 import { AjusteManualModal } from './AjusteManualModal'
@@ -103,7 +102,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const ocupado = isPlaceholderData || marcar.isPending
 
   const vista = previewPago.data
-  const montoVista = vista ? Currency(Number(vista.total)) : '…'
+  const montoVista = vista ? monto(vista.total) : '…'
   const puedeConfirmar = !!vista && vista.cantidad > 0 && !previewPago.isFetching && !marcar.isPending
   const errorPreview = (previewPago.error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
 
@@ -143,7 +142,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {(
           [
-            [t('period.cards.total'), Currency(Number(tj.total))],
+            [t('period.cards.total'), monto(tj.total)],
             [t('period.cards.classes'), tj.clases],
             [t('period.cards.people'), tj.personas],
             [t('closed.paidCard'), t('closed.paidOf', { pagadas, personas: tj.personas })],
@@ -212,7 +211,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                   <td className="text-muted-foreground">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="text-right">{p.clases}</td>
                   <td className="whitespace-nowrap text-right">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
-                  <td className="whitespace-nowrap text-right font-semibold">{Currency(Number(p.total))}</td>
+                  <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
                   <td className="whitespace-nowrap">
                     {p.pagadoEn ? (
                       <span className="inline-flex items-center gap-1 text-sm">

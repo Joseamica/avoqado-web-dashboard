@@ -161,6 +161,23 @@ describe('DesglosePersona', () => {
     expect(screen.getByText('−$150.00')).toBeInTheDocument()
   })
 
+  it('recibo: «Concepto», un ajuste con su fecha de captura y las fechas con el formato del desglose en vivo (QA 9, 14, 15)', () => {
+    m.detail.mockReturnValue(q([]))
+    const ajuste = { ...renglon('Llegó tarde', '-150.00', 'AJUSTE'), fecha: '2026-10-03', hora: null }
+    m.receipt.mockReturnValue(recibo([renglon('Spinning', '480.00'), ajuste], { data: { ...recibo([]).data, renglones: [renglon('Spinning', '480.00'), ajuste], total: '-150.00', cantidad: 2 } }))
+    render(<DesglosePersona staffId="s1" staffName="Ana López" clases={1} total="-150.00" fecha="2026-09-01" cerrado onClose={() => {}} />)
+    expect(screen.getByRole('columnheader', { name: 'period.detailColumns.concept' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'period.detailColumns.class' })).toBeNull()
+    // El ajuste no es de un día de servicio: su fecha es la de captura, sin hora.
+    expect(screen.getByText(/period\.capturedOn/)).toHaveTextContent('"fecha":"2026-10-03"')
+    // La clase: «2 sep 2026, 7:00 a.m.», como formatDateTime del desglose en vivo (no «2 sep 2026 07:00»).
+    expect(screen.getByText(/^2 sep 2026, 7:00/)).toBeInTheDocument()
+    expect(screen.queryByText(/07:00/)).toBeNull()
+    // El mismo «−» en el renglón y en el total (nunca el guion de Intl).
+    expect(screen.getAllByText('−$150.00')).toHaveLength(2)
+    expect(screen.queryByText('-$150.00')).toBeNull()
+  })
+
   it('PDF y Excel se descargan con un clic explícito, del recibo de esa persona y ese periodo', async () => {
     m.detail.mockReturnValue(q([]))
     m.receipt.mockReturnValue(recibo([]))

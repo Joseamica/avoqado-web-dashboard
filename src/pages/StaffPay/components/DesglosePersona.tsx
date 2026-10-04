@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DateTime } from 'luxon'
 import { AlertTriangle, CheckCircle2, Download, Loader2 } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
@@ -11,9 +12,11 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useStaffPayDetail, useStaffReceipt } from '@/hooks/useStaffPay'
 import { staffPayService } from '@/services/staffPay.service'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import type { RenglonReciboDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
-import { conSigno } from '../conSigno'
+import { conSigno, monto } from '../conSigno'
 import { EstadoLista, TABLA_PERIODO } from './ListasDelPeriodo'
 
 /**
@@ -42,7 +45,7 @@ export function DesglosePersona({
   cerrado?: boolean
   onClose: () => void
 }) {
-  const { t } = useTranslation('staffPay')
+  const { t, i18n } = useTranslation('staffPay')
   const { formatDateTime, formatDate, formatCalendarDate } = useVenueDateTime()
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
@@ -59,6 +62,15 @@ export function DesglosePersona({
   const parcial = !!recibo.data?.parcial
   const avisoParcial = parcial && <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{t('period.receiptPartial')}</p>
   const [bajando, setBajando] = useState<'pdf' | 'xlsx' | null>(null)
+  // La fecha de un renglón con el MISMO formato que el desglose en vivo (formatDateTime: «29 sep 2026, 6:00 p.m.»). La hora
+  // del recibo ya es la de la sede (HH:MM): se arma sin zona para no moverla. Un ajuste no es de un día de servicio: su
+  // fecha es la de captura y lo dice.
+  const fechaDelRenglon = (r: RenglonReciboDto) =>
+    r.tipo === 'AJUSTE'
+      ? t('period.capturedOn', { fecha: formatCalendarDate(r.fecha) })
+      : r.hora
+        ? DateTime.fromISO(`${r.fecha}T${r.hora}`, { zone: 'utc' }).setLocale(getIntlLocale(i18n?.language)).toLocaleString(DateTime.DATETIME_MED)
+        : formatCalendarDate(r.fecha)
 
   const descargar = async (format: 'pdf' | 'xlsx') => {
     if (!fecha || !venueId || bajando) return
@@ -84,7 +96,7 @@ export function DesglosePersona({
       <SheetContent hasTitle className="w-full overflow-y-auto sm:max-w-3xl">
         <SheetHeader>
           <SheetTitle>{t('period.detailTitle', { name: staffName })}</SheetTitle>
-          <SheetDescription>{t('period.detailSummary', { count: clases, total: Currency(Number(total)) })}</SheetDescription>
+          <SheetDescription>{t('period.detailSummary', { count: clases, total: monto(total) })}</SheetDescription>
           {cerrado && recibo.data && (
             <div className="pt-1">
               {recibo.data.pagadoEn ? (
@@ -158,7 +170,7 @@ export function DesglosePersona({
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="py-2">{t('period.detailColumns.date')}</th>
                     <th>{t('period.detailColumns.venue')}</th>
-                    <th>{t('period.detailColumns.class')}</th>
+                    <th>{t('period.detailColumns.concept')}</th>
                     <th className="text-right">{t('period.detailColumns.seats')}</th>
                     <th className="text-right">{t('period.detailColumns.amount')}</th>
                   </tr>
@@ -166,10 +178,7 @@ export function DesglosePersona({
                 <tbody>
                   {renglones.map((r, i) => (
                     <tr key={i} className="border-b border-border/50">
-                      <td className="whitespace-nowrap py-2">
-                        {r.fecha ? formatCalendarDate(r.fecha) : ''}
-                        {r.hora ? ` ${r.hora}` : ''}
-                      </td>
+                      <td className="whitespace-nowrap py-2">{r.fecha ? fechaDelRenglon(r) : ''}</td>
                       <td className="text-muted-foreground">{r.sede}</td>
                       <td>{r.concepto}</td>
                       <td className="text-right">{r.lugares ?? '—'}</td>
@@ -186,7 +195,7 @@ export function DesglosePersona({
                         </span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap text-right font-semibold">{Currency(Number(recibo.data?.total ?? 0))}</td>
+                    <td className="whitespace-nowrap text-right font-semibold">{monto(recibo.data?.total ?? 0)}</td>
                   </tr>
                 </tbody>
               </table>
