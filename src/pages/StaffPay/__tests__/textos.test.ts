@@ -36,4 +36,14 @@ describe('textos de pago por servicio', () => {
     expect(tEn('period.capturedOn', { fecha: 'Oct 3, 2026' })).toBe('Oct 3, 2026 (entered)')
     expect(tEs('period.detailColumns.concept')).toBe('Concepto')
   })
+  it('diferencias: persona, monto y el mes destino en español natural; las mismas llaves en inglés (Bloque B)', () => {
+    expect(tEs('differences.pendingLine', { persona: 'Ana Martínez', monto: '+$40.00' })).toBe('Diferencia pendiente de Ana Martínez: +$40.00')
+    expect(tEs('differences.goesTo', { destino: 'octubre de 2026', origen: 'agosto de 2026' })).toBe(
+      'Se agrega a octubre de 2026; el recibo de agosto de 2026 no cambia.',
+    )
+    expect(tEs('differences.settleIn', { periodo: 'octubre de 2026' })).toBe('Liquidar en octubre de 2026')
+    expect(tEs('differences.lateClass', { periodo: 'agosto de 2026' })).toBe('Esta clase llegó después del cierre de agosto de 2026: se paga como diferencia.')
+    expect(Object.keys(en.differences).sort()).toEqual(Object.keys(es.differences).sort())
+    for (const texto of [...Object.values(es.differences), ...Object.values(en.differences)]) expect(texto).not.toMatch(/muy pronto|coming soon/i)
+  })
 })

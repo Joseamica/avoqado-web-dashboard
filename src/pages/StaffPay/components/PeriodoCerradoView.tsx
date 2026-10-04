@@ -26,6 +26,7 @@ import { TABLA_PERIODO } from './ListasDelPeriodo'
 import { useFocoDeVuelta } from '../foco'
 import { DesglosePersona } from './DesglosePersona'
 import { AjusteManualModal } from './AjusteManualModal'
+import { DiferenciasSection } from './DiferenciasSection'
 
 const LIMITE = 50
 
@@ -289,6 +290,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
           </Button>
         </div>
       )}
+
+      {/* Lo que cambió después del cierre: se paga una vez en el periodo abierto; los recibos de arriba no cambian. */}
+      <DiferenciasSection periodId={periodId} etiquetaAbierto={etiquetaAbierto} />
 
       <AlertDialog open={!!confirmar} onOpenChange={o => !o && !marcar.isPending && setConfirmar(null)}>
         <AlertDialogContent onOpenAutoFocus={focoPago.onOpenAutoFocus} onCloseAutoFocus={focoPago.onCloseAutoFocus}>

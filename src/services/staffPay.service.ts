@@ -1,5 +1,5 @@
 import api from '@/api'
-import type { AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaOffset, PreviewCierreDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, TablaDto } from '@/types/staffPay'
+import type { AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, TablaDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
 
@@ -33,6 +33,18 @@ export const staffPayService = {
   async receipt(venueId: string, staffId: string, fecha: string, p: { cursor?: string; limit: number; sede?: string }): Promise<ReciboDto> {
     const { sede, ...resto } = p
     return (await api.get(`${base(venueId)}/staff/${staffId}/receipt`, { params: { fecha, ...resto, ...(sede ? { sede } : {}) } })).data
+  },
+  // ── Fase 2, Bloque B: diferencias ──
+  /** Lo pendiente de un periodo CERRADO, por cursor (el server lo devuelve `null` en la última página). */
+  async differences(venueId: string, periodId: string, p: { cursor?: string; limit: number }): Promise<PaginaDiferenciasDto> {
+    return (await api.get(`${base(venueId)}/periods/${periodId}/differences`, { params: p.cursor ? p : { limit: p.limit } })).data
+  },
+  /** 🔴 Bajo la sede de la CLASE, no la del URL (Codex R1-18): desde otra sede, la clase da 404. */
+  async classDifference(classVenueId: string, sessionId: string, destinoFecha?: string): Promise<PreviewLiquidacionDto> {
+    return (await api.get(`${base(classVenueId)}/class-sessions/${sessionId}/difference`, { params: destinoFecha ? { destinoFecha } : {} })).data
+  },
+  async settleDifference(classVenueId: string, sessionId: string, body: LiquidarInput): Promise<ResultadoLiquidacionDto> {
+    return (await api.post(`${base(classVenueId)}/class-sessions/${sessionId}/difference/settle`, body)).data
   },
   async downloadReceipt(venueId: string, staffId: string, fecha: string, format: 'pdf' | 'xlsx', nombre: string): Promise<void> {
     try {

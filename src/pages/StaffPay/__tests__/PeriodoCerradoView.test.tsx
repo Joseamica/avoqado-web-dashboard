@@ -9,6 +9,14 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (d: string) => d.slice(0, 10), formatCalendarDate: (d: string) => d }) }))
 vi.mock('../useNombreSede', () => ({ useNombreSede: () => (id: string) => id }))
 vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: () => null }))
+// La sección pide su propia lista (useDifferences); aquí sólo importa que se monte con el periodo y el mes abierto.
+vi.mock('../components/DiferenciasSection', () => ({
+  DiferenciasSection: ({ periodId, etiquetaAbierto }: { periodId: string; etiquetaAbierto?: string }) => (
+    <div>
+      diferencias {periodId} {etiquetaAbierto}
+    </div>
+  ),
+}))
 vi.mock('../components/AjusteManualModal', () => ({
   AjusteManualModal: (p: unknown) => {
     m.ajuste(p)
@@ -49,8 +57,10 @@ beforeEach(() => {
 describe('PeriodoCerradoView', () => {
   it('muestra quién está pagado y cuántos faltan', () => {
     m.can.mockReturnValue(true)
-    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" etiquetaAbierto="octubre de 2026" />)
     expect(screen.getByText(/closed\.paidOf/)).toHaveTextContent('"pagadas":1')
+    // Debajo de los recibos, las diferencias de ESTE periodo, que se liquidan en el mes abierto.
+    expect(screen.getByText('diferencias p9 octubre de 2026')).toBeInTheDocument()
     // El estado de pago va en su columna y, en el celular (columna oculta), debajo del nombre: el mismo texto dos veces.
     expect(screen.getAllByText(/closed\.paidOn/)).toHaveLength(2)
     expect(screen.getAllByText('closed.pending')).toHaveLength(2)

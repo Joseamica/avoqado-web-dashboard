@@ -9,7 +9,9 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { conSigno } from '@/pages/StaffPay/conSigno'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useClassPay, useStaffPayAccess } from '@/hooks/useStaffPay'
+import { useClassDifference, useClassPay, useStaffPayAccess } from '@/hooks/useStaffPay'
+import { LiquidarDialog } from '@/pages/StaffPay/components/LiquidarDialog'
+import { periodicidadDe, useNombrePeriodo } from '@/pages/StaffPay/useNombrePeriodo'
 import { AjustePagoClaseModal, type ModoAjuste } from './AjustePagoClaseModal'
 
 /** Excepciones cuya salida está en la tabla de pagos (nivel, tabla o celda). */
@@ -25,14 +27,20 @@ const SALIDA_EN_LA_TABLA = new Set(['COACH_SIN_NIVEL', 'SIN_TABLA', 'SIN_MONTO_P
 export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId: string; conSeparador?: boolean }) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
-  const { fullBasePath } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDate, formatCalendarDate } = useVenueDateTime()
   const puedeVer = can('staffpay:read')
   // Sin el permiso no se pregunta ni si el módulo está prendido: la API no le manda nada (spec §7.2).
   const { data: acceso } = useStaffPayAccess(puedeVer)
   const habilitado = puedeVer && !!acceso?.enabled
   const { data: p, isLoading, isError } = useClassPay(sessionId, habilitado)
+  // Bloque B: la diferencia pendiente sólo existe si la clase está en un cierre o llegó tarde a uno. Se pide bajo la sede
+  // de la clase, que en el calendario es la del URL.
+  const debeRevisar = !!p && (p.periodoOrigen?.estado === 'CLOSED' || !!p.llegoTarde)
+  const dif = useClassDifference(venueId, sessionId, habilitado && debeRevisar)
+  const nombrePeriodo = useNombrePeriodo()
   const [modo, setModo] = useState<ModoAjuste | null>(null)
+  const [liquidando, setLiquidando] = useState(false)
 
   if (!habilitado) return null
   const sep = conSeparador ? <Separator /> : null
@@ -63,12 +71,26 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const excluidaSinLineas = !!origen && p.estado === 'EXCLUIDA' && lineas.length === 0
   const congelada = origen?.estado === 'CLOSED'
   const conteoCorregido = p.ajuste?.payCountOverride != null && p.conteoCalculado != null && p.ajuste.payCountOverride !== p.conteoCalculado
+  const nombre = (x: { start: string; end: string }) => nombrePeriodo(x, periodicidadDe(x))
+  const diferencia = debeRevisar ? dif.data : undefined
+  // Por PERSONA, no el total: una sustitución de $480 por $480 suma cero y aun así a cada una le toca algo (Codex R1-19).
+  const pendientes = diferencia && !diferencia.bloqueada ? diferencia.filas.filter(f => f.pendiente !== null && Number(f.pendiente) !== 0) : []
+  // Con la diferencia ya calculada, su monto dice más que «la diferencia queda pendiente» (QA defecto 10b).
+  const textoDiferencia = p.ajuste ? (diferencia ? null : 'classCard.differencePending') : 'classCard.fixAsDifference'
 
   return (
     <>
       {sep}
       <div className="rounded-lg border border-input p-3 space-y-2" data-tour="class-pay-card">
-        <p className="text-sm font-semibold">{t('classCard.title')}</p>
+        {/* Ancla del foco: a donde vuelve al cerrar «Liquidar» cuando su botón ya no existe (se liquidó). */}
+        <p className="text-sm font-semibold outline-none" tabIndex={-1} data-staffpay-ancla>
+          {t('classCard.title')}
+        </p>
+        {p.llegoTarde && (
+          <p className="rounded-md bg-muted/40 p-2 text-xs">
+            {diferencia?.periodoOrigen ? t('differences.lateClass', { periodo: nombre(diferencia.periodoOrigen) }) : t('differences.lateClassGeneric')}
+          </p>
+        )}
         {origen && (
           <div className="space-y-1 rounded-md bg-muted/40 p-2">
             <p className="text-xs text-muted-foreground">
@@ -98,7 +120,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             {congelada && (
               <p className="text-xs text-muted-foreground">
                 <span>{t('classCard.frozen')}</span>
-                {puedeAjustar && <span> {t(p.ajuste ? 'classCard.differencePending' : 'classCard.fixAsDifference')}</span>}
+                {puedeAjustar && textoDiferencia && <span> {t(textoDiferencia)}</span>}
               </p>
             )}
           </div>
@@ -140,6 +162,28 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             )}
           </>
         )}
+        {debeRevisar && dif.isError && (
+          <p className="text-xs text-muted-foreground" role="alert">
+            {t('differences.loadError')}
+          </p>
+        )}
+        {diferencia?.bloqueada && <p className="text-xs text-amber-700 dark:text-amber-400">{t('differences.blockedCard')}</p>}
+        {diferencia && pendientes.length > 0 && (
+          <div className="space-y-2 rounded-md border border-input p-2" data-tour="class-pay-difference">
+            {pendientes.map(f => (
+              <p key={f.persona} className="text-sm font-medium">
+                {t('differences.pendingLine', { persona: f.personaNombre ?? t('period.noCoach'), monto: conSigno(f.pendiente!) })}
+              </p>
+            ))}
+            {can('staffpay:close') ? (
+              <Button type="button" size="sm" className="cursor-pointer" onClick={() => setLiquidando(true)} data-tour="class-pay-settle">
+                {t('differences.settleIn', { periodo: nombre(diferencia.destino) })}
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t('differences.noPermission')}</p>
+            )}
+          </div>
+        )}
         {p.ajuste && p.estado !== 'EXCLUIDA' && (
           <p className="text-xs text-muted-foreground">{t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}</p>
         )}
@@ -159,6 +203,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
           </div>
         )}
         {modo && <AjustePagoClaseModal sessionId={sessionId} actual={p} modo={modo} onClose={() => setModo(null)} />}
+        {liquidando && venueId && <LiquidarDialog classVenueId={venueId} sessionId={sessionId} onClose={() => setLiquidando(false)} />}
       </div>
     </>
   )

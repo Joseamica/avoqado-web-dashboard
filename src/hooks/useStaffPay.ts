@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { staffPayService } from '@/services/staffPay.service'
-import type { AjusteClaseInput, AjusteManualInput, CeldaDto } from '@/types/staffPay'
+import type { AjusteClaseInput, AjusteManualInput, CeldaDto, LiquidarInput, PreviewLiquidacionDto } from '@/types/staffPay'
 
 export const staffPayKeys = {
   all: (venueId: string | null) => ['staff-pay', venueId] as const,
@@ -13,6 +13,10 @@ export const staffPayKeys = {
   report: (venueId: string | null) => [...staffPayKeys.all(venueId), 'report'] as const,
   periods: (venueId: string | null) => [...staffPayKeys.all(venueId), 'periods'] as const,
   classPay: (venueId: string | null, sessionId: string | null) => [...staffPayKeys.all(venueId), 'class', sessionId] as const,
+  /** Debajo de `periods`: lo que refresca la lista de periodos refresca también sus diferencias. */
+  differences: (venueId: string | null, periodId: string | null) => [...staffPayKeys.periods(venueId), 'differences', periodId] as const,
+  /** Debajo de `classPay` de la sede de la CLASE: corregir la clase (que invalida su ficha) refresca también su diferencia. */
+  classDifference: (classVenueId: string | null, sessionId: string | null) => [...staffPayKeys.classPay(classVenueId, sessionId), 'difference'] as const,
 }
 const pesado = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
 const LIMITE_LISTA = 50
@@ -164,6 +168,70 @@ export function usePaidPreview(periodId: string | null, staffId: string | undefi
     gcTime: 0,
     retry: (n, e) => n < 1 && (e as { response?: { status?: number } } | null)?.response?.status !== 409,
     refetchOnWindowFocus: false,
+  })
+}
+/** Diferencias pendientes de un periodo CERRADO (cursor, 50 por página). */
+export function useDifferences(periodId: string | null, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useInfiniteQuery({
+    queryKey: staffPayKeys.differences(venueId, periodId),
+    queryFn: ({ pageParam }) => staffPayService.differences(venueId!, periodId!, { cursor: pageParam ?? undefined, limit: LIMITE_LISTA }),
+    initialPageParam: null as string | null,
+    getNextPageParam: last => last.nextCursor ?? undefined,
+    enabled: !!venueId && !!periodId && enabled,
+    ...pesado,
+  })
+}
+const estado = (e: unknown) => (e as { response?: { status?: number } } | null)?.response?.status
+/**
+ * Qué se liquidaría de UNA clase y con qué huella. 🔴 Bajo la sede de la CLASE (Codex R1-18), que entra en la llave. La
+ * huella tiene que ser la de este momento: `staleTime: 0` (abrir el diálogo vuelve a pedirla). La caché se conserva para
+ * que la tarjeta de la clase y el diálogo compartan la misma consulta. Un 4xx no se reintenta (es determinista).
+ */
+export function useClassDifference(classVenueId: string | null, sessionId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: staffPayKeys.classDifference(classVenueId, sessionId),
+    queryFn: () => staffPayService.classDifference(classVenueId!, sessionId!),
+    enabled: !!classVenueId && !!sessionId && enabled,
+    staleTime: 0,
+    retry: (n, e) => n < 1 && !((estado(e) ?? 0) >= 400 && (estado(e) ?? 0) < 500),
+    refetchOnWindowFocus: false,
+  })
+}
+/**
+ * Liquidar la diferencia de UNA clase, bajo la sede de la clase. Al terminar refresca sólo lo que cambia: las diferencias
+ * y los periodos (el destino suma la línea), el reporte y los recibos, y la ficha de la clase — de la sede actual y de la
+ * de la clase —; nunca niveles, tablas ni accesos. Si los montos cambiaron (HUELLA_CAMBIO) el server manda el preview
+ * nuevo y se pone en la caché tal cual: el diálogo lo muestra sin otra vuelta.
+ */
+export function useSettleDifference(classVenueId: string | null, sessionId: string | null) {
+  const { venueId } = useCurrentVenue()
+  const qc = useQueryClient()
+  const ficha = staffPayKeys.classPay(classVenueId, sessionId)
+  return useMutation({
+    mutationFn: (b: LiquidarInput) => staffPayService.settleDifference(classVenueId!, sessionId!, b),
+    onSuccess: () => {
+      for (const v of new Set([venueId, classVenueId])) {
+        void qc.invalidateQueries({ queryKey: staffPayKeys.periods(v) })
+        void qc.invalidateQueries({ queryKey: staffPayKeys.report(v) })
+      }
+      void qc.invalidateQueries({ queryKey: ficha })
+    },
+    onError: err => {
+      const r = (err as { response?: { status?: number; data?: { code?: string; details?: { preview?: PreviewLiquidacionDto } } } } | null)?.response
+      if (!r?.status || r.status < 400 || r.status >= 500) return
+      // La lista también cambió (otros montos, la clase se movió o ya se liquidó): se recarga.
+      for (const v of new Set([venueId, classVenueId])) void qc.invalidateQueries({ queryKey: [...staffPayKeys.periods(v), 'differences'] })
+      if (r.data?.code === 'HUELLA_CAMBIO') {
+        // El preview nuevo, si vino, va directo a la caché; si no, el diálogo lo vuelve a pedir. La ficha sí se recarga.
+        const nuevo = r.data.details?.preview
+        if (nuevo) qc.setQueryData(staffPayKeys.classDifference(classVenueId, sessionId), nuevo)
+        void qc.invalidateQueries({ queryKey: ficha, exact: true })
+      } else {
+        // Otro periodo de origen, excepción, sede fuera del destino…: la ficha y su diferencia se vuelven a leer.
+        void qc.invalidateQueries({ queryKey: ficha })
+      }
+    },
   })
 }
 export function useClassPay(sessionId: string | null, enabled = true) {

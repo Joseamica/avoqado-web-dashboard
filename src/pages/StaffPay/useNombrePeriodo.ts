@@ -14,3 +14,10 @@ export function useNombrePeriodo() {
     [t, idioma],
   )
 }
+
+/**
+ * La periodicidad de un periodo por sus fechas, para nombrarlo donde no se tiene la de la organización (la tarjeta de una
+ * clase, el diálogo de liquidar): una quincena es 1–15 o 16–fin; un mes, 1–fin.
+ */
+export const periodicidadDe = (p: { start: string; end: string }): 'MONTHLY' | 'SEMIMONTHLY' =>
+  p.start.endsWith('-01') && !p.end.endsWith('-15') ? 'MONTHLY' : 'SEMIMONTHLY'

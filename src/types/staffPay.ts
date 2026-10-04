@@ -33,6 +33,8 @@ export interface PagoDeClaseDto {
   /** Fase 2: opcionales, el server de la fase 1 no los manda y el dashboard puede desplegarse antes. */
   periodoOrigen?: { id: string; start: string; end: string; estado: 'OPEN' | 'CLOSED' } | null
   lineas?: LineaContabilizadaDto[]
+  /** Fase 2 (Bloque B): sin ancla, ya terminada y su fecha cae en un periodo CERRADO: se paga como diferencia. */
+  llegoTarde?: boolean
 }
 export interface AjusteClaseInput { payCountOverride: number | null; payAmountOverride: number | null; payExcluded: boolean; reason: string }
 
@@ -88,3 +90,32 @@ export interface PreviewPagadoDto {
 export interface AjusteManualInput { sede: string; staffId: string; amount: number; reason: string; fecha?: string; clientKey: string }
 export interface AjusteManualDto { id: string; periodId: string; periodo: { start: string; end: string }; staffId: string; sede: string; amount: string; reason: string; yaExistia: boolean }
 export interface LineaContabilizadaDto { concepto: 'SERVICE' | 'RECONCILE'; staffId: string; staffName: string; monto: string; periodo: { start: string; end: string }; pagadoEn: string | null }
+
+// ── Fase 2, Bloque B: diferencias pendientes y liquidar ──
+/** Espejo de `FilaDiferencia` del server: una persona de una clase de un periodo cerrado. Montos como texto con 2 decimales. */
+export interface FilaDiferenciaDto {
+  classSessionId: string; venueId: string; productName: string; startsAt: string; fechaLocal: string; fechaValoracion: string
+  periodoOrigenId: string | null
+  /** null: la clase está en excepción y no hay a quién atribuirla (sin coach y sin líneas). */
+  persona: string | null; personaNombre: string | null; coachActual: string | null
+  estadoClase: 'OK' | 'EXCLUIDA' | 'EXCEPCION'; motivo: MotivoExcepcion | null
+  corresponde: string | null; congelado: string; conciliado: string
+  /** null: la clase está en excepción y no se liquida hasta resolverla. */
+  pendiente: string | null
+  payLevelId: string | null; payLevelName: string | null; tableVersionId: string | null; countMode: string | null; conteo: number
+}
+export interface PaginaDiferenciasDto { items: FilaDiferenciaDto[]; nextCursor: string | null; parcial: boolean }
+export interface PreviewLiquidacionDto {
+  periodoOrigen: { id: string; start: string; end: string } | null
+  /** `venueIds`: sólo las sedes del destino que quien lee puede ver. */
+  destino: { start: string; end: string; venueIds: string[] }
+  /** La sede de la clase ya está en el periodo destino; si no, se liquida con «Sumar la sede y liquidar». */
+  sedeEnDestino: boolean
+  filas: FilaDiferenciaDto[]
+  total: string
+  /** Alguna persona está en excepción: no se liquida hasta resolverla. */
+  bloqueada: boolean
+  huella: string
+}
+export interface LiquidarInput { periodoOrigenId: string; huellaEsperada: string; solicitudId: string; destinoFecha?: string; ampliarAlcance?: boolean }
+export interface ResultadoLiquidacionDto { lineas: Array<{ staffId: string; amount: string }>; yaLiquidada: boolean }
