@@ -47,8 +47,10 @@ export const setPassProductLinks = async (
   links: Array<{ productId: string; externalPlanId: string }>,
 ): Promise<PassConnectionView> => (await api.put(`${base(venueId)}/${slug(provider)}/products`, { links })).data.data
 
-/** POST /:provider/disconnect — sin candado de plan (R62). ACTIVE: 409 con el motivo si quedan clases ligadas, reservas
- * próximas o check-ins por confirmar; no ACTIVE: se desconecta siempre (R41). */
+/** POST /:provider/disconnect — sin candado de plan (R62). No ACTIVE: se desconecta siempre (R41). ACTIVE, dos 409 distintos:
+ * `PASS_DISCONNECT_UNLINKING` es AVANCE, no rechazo (tiene clases ligadas y ningún socio próximo: en esa misma llamada las
+ * desliga y pide volver a presionar Desconectar en unos minutos); `PASS_DISCONNECT_BLOCKED` sí es rechazo (hay socios con
+ * reserva próxima o check-ins por confirmar). Ambos traen `message` en español, que la UI muestra tal cual. */
 export const disconnectPassProvider = async (venueId: string, provider: PassProvider): Promise<{ disconnected: true }> =>
   (await api.post(`${base(venueId)}/${slug(provider)}/disconnect`)).data.data
 
@@ -60,9 +62,10 @@ export const getPassCapacity = async (venueId: string): Promise<PassCapacityView
 export const setDefaultPassCap = async (venueId: string, maxSpots: number | null): Promise<{ saved: true }> =>
   (await api.put(`${base(venueId)}/capacity/default`, { maxSpots })).data.data
 
-/** POST /capacity/weekly — la misma combinación día+hora actualiza la existente en vez de duplicarla. */
-export const upsertWeeklyPassCap = async (venueId: string, input: WeeklyRuleInput): Promise<WeeklyRuleView> =>
-  (await api.post(`${base(venueId)}/capacity/weekly`, input)).data.data
+/** POST /capacity/weekly — la misma combinación día+hora actualiza la existente en vez de duplicarla. Sólo viajan los tres
+ * campos: el esquema del server es estricto y un `id` de más (una regla de la lista) devolvería 400. */
+export const upsertWeeklyPassCap = async (venueId: string, { weekday, startMinute, maxSpots }: WeeklyRuleInput): Promise<WeeklyRuleView> =>
+  (await api.post(`${base(venueId)}/capacity/weekly`, { weekday, startMinute, maxSpots })).data.data
 
 /** DELETE /capacity/rules/:ruleId */
 export const deletePassCapRule = async (venueId: string, ruleId: string): Promise<{ deleted: true }> =>

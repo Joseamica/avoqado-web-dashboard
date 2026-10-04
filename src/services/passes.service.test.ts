@@ -71,6 +71,13 @@ describe('passes.service', () => {
     await setSessionPassCap('v1', 's9', 0)
     expect(mocked.put).toHaveBeenCalledWith(`${BASE}/capacity/sessions/s9`, { maxSpots: 0 })
   })
+  // nuevo — el zod del server es .strict(): una regla editada de la lista trae `id`, y un campo de más da 400
+  it('upsertWeeklyPassCap: manda sólo weekday, startMinute y maxSpots aunque reciba más campos', async () => {
+    mocked.post.mockResolvedValue(ok({ id: 'r1', weekday: 6, startMinute: null, maxSpots: 2 }))
+    const regla = { id: 'r1', weekday: 6, startMinute: null, maxSpots: 2 }
+    await upsertWeeklyPassCap('v1', regla)
+    expect(mocked.post).toHaveBeenCalledWith(`${BASE}/capacity/weekly`, { weekday: 6, startMinute: null, maxSpots: 2 })
+  })
   // nuevo — la lista va por query params (el server los parsea con zod): fechas como AAAA-MM-DD, `to` inclusivo (P2-7); nunca pide más de 100
   it('listPassVisits: filtros como params (días AAAA-MM-DD tal cual); summary con month; confirm y reject por POST', async () => {
     mocked.get.mockResolvedValue(ok({ items: [], total: 0, hasMore: false, nextOffset: null }))
