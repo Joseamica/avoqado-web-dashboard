@@ -19,8 +19,14 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: an
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
-vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDateTime: (d: string) => `fecha(${d})` }) }))
-vi.mock('../useNombreSede', () => ({ useNombreSede: () => (id: string) => `sede-${id}` }))
+vi.mock('@/utils/datetime', () => ({
+  useVenueDateTime: () => ({ formatDateTime: (d: string) => `fecha(${d})`, formatCalendarDate: (d: string) => `dia(${d})` }),
+}))
+vi.mock('../useNombreSede', () => ({
+  useNombreSede: () => (id: string) => `sede-${id}`,
+  // La ruta de OTRA sede por su slug (Codex C4): el enlace a la clase va a SU sede.
+  useRutaDeSede: () => (id: string) => `/venues/slug-${id}`,
+}))
 vi.mock('@/hooks/useStaffPay', () => ({
   useDifferences: (...a: unknown[]) => m.lista(...a),
   // Capturan sus argumentos (Preflight): así se puede afirmar con qué sede piden.
@@ -176,6 +182,35 @@ describe('DiferenciasSection', () => {
     await confirmar()
     await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.changed' })))
     expect(m.refetch).not.toHaveBeenCalled()
+    // El título no se repite en la descripción; dice cuánto era y cuánto es (QA B-7).
+    const aviso = m.toast.mock.calls.find(([a]) => a.title === 'differences.changed')![0]
+    expect(aviso.description).toBe('differences.changedFromTo:{"antes":"+$40.00","ahora":"+$90.00"}')
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('"antes":"+$40.00","ahora":"+$90.00"')
+  })
+
+  it('si otra pantalla ya la liquidó (HUELLA_CAMBIO con nada pendiente), lo dice y cierra, sin «revisa»', async () => {
+    const yaPagada = vista({ filas: [fila({ pendiente: '0.00', conciliado: '40.00' })], total: '0.00' })
+    m.settle.mockRejectedValueOnce({ response: { status: 409, data: { code: 'HUELLA_CAMBIO', details: { preview: yaPagada } } } })
+    pintar()
+    abrir()
+    await confirmar()
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.alreadySettledElsewhere' })))
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.changed' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+  })
+
+  it('si la lista se vacía con el diálogo abierto (otra pantalla liquidó), el diálogo NO desaparece con la sección', async () => {
+    const r = pintar()
+    abrir()
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument()
+    m.lista.mockReturnValue(lista([]))
+    r.rerender(
+      <MemoryRouter>
+        <DiferenciasSection periodId="p8" etiquetaAbierto="octubre de 2026" />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText('differences.title')).not.toBeInTheDocument()
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
   })
 
   it('si la sede de la clase no está en el periodo destino, lo dice desde el principio y el botón suma la sede', async () => {
@@ -228,6 +263,18 @@ describe('DiferenciasSection', () => {
       ),
     )
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('abierto desde la tarjeta con la clase bloqueada: dice qué botón usar AQUÍ, sin enlace a la misma clase', async () => {
+    conVista(vista({ bloqueada: true, filas: [fila({ estadoClase: 'EXCEPCION', motivo: 'SIN_MONTO_PARA_ESE_CONTEO', pendiente: null })] }))
+    render(
+      <MemoryRouter>
+        <LiquidarDialog classVenueId="v1" sessionId="c1" desde="clase" onClose={vi.fn()} />
+      </MemoryRouter>,
+    )
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('differences.exitClassHere')
+    expect(within(dialogo).queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('una diferencia NEGATIVA se descuenta del recibo del mes destino; una mixta lo dice por persona', async () => {
@@ -311,16 +358,114 @@ describe('DiferenciasSection', () => {
     await confirmar()
     const dialogo = await screen.findByRole('alertdialog')
     await waitFor(() => expect(dialogo).toHaveTextContent('differences.blockedGeneric'))
-    expect(screen.getByRole('link', { name: 'period.resolveInTable' })).toHaveAttribute('href', '/venues/x/servicio-pago#tabla')
+    // La tabla no arregla una clase de un periodo cerrado (Codex C3): se resuelve en la clase, en SU sede (Codex C4).
+    expect(dialogo).toHaveTextContent('differences.exitClass')
+    expect(screen.queryByRole('link', { name: 'period.resolveInTable' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'differences.openClass' })).toHaveAttribute(
+      'href',
+      '/venues/slug-v2/reservations/calendar?clase=c1',
+    )
     expect(screen.getByRole('button', { name: /differences\.settleIn/ })).toBeDisabled()
   })
 
-  it('una clase en excepción dice el motivo en ámbar, ofrece resolver y no se ofrece liquidar', () => {
-    m.lista.mockReturnValue(lista([fila({ estadoClase: 'EXCEPCION', motivo: 'COACH_SIN_NIVEL', pendiente: null, corresponde: null })]))
+  it('sin nivel: nombra a QUIÉN y desde cuándo, y lleva a la clase (no a la tabla) en su sede (QA B-5, Codex C3/C4)', () => {
+    // Carlos sustituyó a Ana y no tenía nivel ese día: Ana (la original) primero, y el mensaje habla de Carlos.
+    m.lista.mockReturnValue(
+      lista([
+        fila({
+          persona: 'c',
+          personaNombre: 'Carlos Rodríguez',
+          coachActual: 'c',
+          congelado: '0.00',
+          estadoClase: 'EXCEPCION',
+          motivo: 'COACH_SIN_NIVEL',
+          pendiente: null,
+          corresponde: null,
+          fechaValoracion: '2026-07-15',
+        }),
+        fila({
+          persona: 'a',
+          personaNombre: 'Ana Martínez',
+          coachActual: 'c',
+          estadoClase: 'EXCEPCION',
+          motivo: 'COACH_SIN_NIVEL',
+          pendiente: null,
+          corresponde: null,
+          fechaValoracion: '2026-07-15',
+        }),
+      ]),
+    )
     pintar()
-    expect(screen.getByText('reasons.COACH_SIN_NIVEL')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'period.resolveInTable' })).toBeInTheDocument()
+    expect(screen.getByText('differences.noLevelFor:{"persona":"Carlos Rodríguez","fecha":"dia(2026-07-15)"}')).toBeInTheDocument()
+    expect(screen.getByText('differences.exitClass')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'differences.openClass' })).toHaveAttribute(
+      'href',
+      '/venues/slug-v2/reservations/calendar?clase=c1',
+    )
+    expect(screen.queryByRole('link', { name: 'period.resolveInTable' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /differences\.settleFor/ })).not.toBeInTheDocument()
+    const nombres = screen.getAllByText(/^(Ana Martínez|Carlos Rodríguez)$/).map(e => e.textContent)
+    expect(nombres).toEqual(['Ana Martínez', 'Carlos Rodríguez'])
+  })
+
+  it('una diferencia dice POR QUÉ existe: conteo corregido (antes → ahora) y cambio de coach (QA B-4)', async () => {
+    const filas = [
+      fila({
+        persona: 'c',
+        personaNombre: 'Carlos Rodríguez',
+        pendiente: '-440.00',
+        causa: 'COACH_SALE',
+        coachActualNombre: 'Ana Martínez',
+      }),
+      fila({
+        persona: 'a',
+        personaNombre: 'Ana Martínez',
+        congelado: '0.00',
+        pendiente: '530.00',
+        causa: 'COACH_ENTRA',
+        coachActualNombre: 'Ana Martínez',
+      }),
+      fila({
+        classSessionId: 'c2',
+        productName: 'Pilates',
+        persona: 'a',
+        personaNombre: 'Ana Martínez',
+        causa: 'CONTEO',
+        conteoCongelado: 8,
+        conteo: 9,
+      }),
+    ]
+    m.lista.mockReturnValue(lista(filas))
+    conVista(vista({ filas: filas.slice(0, 2), total: '90.00' }))
+    pintar()
+    expect(screen.getByText('differences.cause.COACH_SALE:{"coach":"Ana Martínez"}')).toBeInTheDocument()
+    expect(screen.getByText('differences.cause.COACH_ENTRA')).toBeInTheDocument()
+    expect(screen.getByText('differences.cause.CONTEO:{"antes":8,"ahora":9}')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /differences\.settleFor/ })[0])
+    // Y en el diálogo, por persona; primero quien tenía la clase al cerrar (Carlos, congelado ≠ 0).
+    const personas = within(await screen.findByRole('alertdialog')).getAllByRole('listitem')
+    expect(personas[0]).toHaveTextContent('Carlos Rodríguez')
+    expect(personas[0]).toHaveTextContent('differences.cause.COACH_SALE')
+    expect(personas[1]).toHaveTextContent('differences.cause.COACH_ENTRA')
+  })
+
+  it('sin causa (server previo) no pinta nada de más', () => {
+    pintar()
+    expect(screen.queryByText(/differences\.cause\./)).not.toBeInTheDocument()
+  })
+
+  it('en el celular: clase → persona y monto → botón (el botón va DESPUÉS del monto, QA B-10)', () => {
+    pintar()
+    const monto = screen.getByText('+$40.00')
+    const boton = screen.getByRole('button', { name: /differences\.settleFor/ })
+    expect(monto.compareDocumentPosition(boton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('el encabezado que recibe el foco lo enseña con teclado (anillo focus-visible, QA B-11)', () => {
+    pintar()
+    const h = screen.getByText('differences.title')
+    expect(h).toHaveAttribute('tabindex', '-1')
+    expect(h.className).toMatch(/focus-visible:ring-2/)
   })
 
   it('el diálogo de una clase bloqueada dice el motivo y no deja confirmar', async () => {
@@ -335,7 +480,8 @@ describe('DiferenciasSection', () => {
     const dialogo = await screen.findByRole('alertdialog')
     expect(dialogo).toHaveTextContent('differences.blocked')
     expect(dialogo).toHaveTextContent('reasons.SIN_COACH')
-    expect(dialogo).toHaveTextContent('period.resolveNoCoach')
+    expect(dialogo).toHaveTextContent('differences.exitNoCoach')
+    expect(within(dialogo).getByRole('link', { name: 'differences.openClass' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /differences\.settleIn/ })).toBeDisabled()
   })
 

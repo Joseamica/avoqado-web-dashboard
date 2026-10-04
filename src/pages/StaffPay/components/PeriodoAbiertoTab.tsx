@@ -16,6 +16,7 @@ import { ExcepcionesSheet, HuerfanasSheet, TABLA_PERIODO } from './ListasDelPeri
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
 import { conSigno, monto } from '../conSigno'
+import { ANCLA_FOCO } from '../foco'
 
 const LIMITE = 50
 const TODAS = '__all__'
@@ -130,7 +131,7 @@ export function PeriodoAbiertoTab({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* Ancla del foco: a donde vuelve al cerrar un modal cuyo botón ya no existe (QA defecto 12). */}
-          <h3 className="font-semibold outline-none" tabIndex={-1} data-staffpay-ancla>
+          <h3 className={`font-semibold ${ANCLA_FOCO}`} tabIndex={-1} data-staffpay-ancla>
             {t('period.title', { start: formatCalendarDate(data.periodo.start), end: formatCalendarDate(data.periodo.end) })}
           </h3>
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{sinMovimientos ? t('period.noActivity') : t('period.open')}</span>
@@ -251,11 +252,15 @@ export function PeriodoAbiertoTab({
             <tbody>
               {items.map(p => (
                 <tr key={p.staffId} className="border-b border-border/50">
-                  <td className="py-2 font-medium">{p.staffName}</td>
+                  <td className="py-2 font-medium">
+                    {p.staffName}
+                    {/* Negativo: lo liquidado de periodos anteriores supera lo de éste (QA B-6). La explicación va en el desglose. */}
+                    {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
+                  </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
                   <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="hidden text-right md:table-cell">{p.clases}</td>
-                  <td className="hidden text-right md:table-cell">{p.promedioLugares}</td>
+                  <td className="hidden text-right md:table-cell">{p.clases === 0 ? '—' : p.promedioLugares}</td>
                   <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
                   <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
                   <td className="text-right">

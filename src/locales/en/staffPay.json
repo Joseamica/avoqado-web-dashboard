@@ -158,7 +158,9 @@
     "closeFrom": "You can close it starting {{fecha}}.",
     "justClosed": "This period is already closed. Loading the closed view…",
     "receiptExportPartial": "The PDF and Excel include only the venues you can see.",
-    "loadMoreError": "Could not load more."
+    "loadMoreError": "Could not load more.",
+    "negativeShort": "Negative balance",
+    "negativeBalance": "Negative balance: they were overpaid in earlier periods. Avoqado doesn't charge or deduct it on its own."
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
@@ -178,17 +180,17 @@
     "fixAmount": "Adjust amount",
     "exclude": "This class is not paid",
     "adjusted": "Adjusted: {{reason}}",
-    "origin": "This class was already counted in the period from {{start}} to {{end}}.",
-    "originOpen": "This class belongs to the period from {{start}} to {{end}}, which is not closed yet.",
-    "lineService": "Period close ({{start}} – {{end}}) · {{persona}}: {{monto}}",
-    "lineReconcile": "Difference in the period from {{start}} to {{end}} · {{persona}}: {{monto}}",
-    "linePending": "payment pending",
+    "origin": "This class was already counted in {{periodo}}.",
+    "originOpen": "This class belongs to {{periodo}}, which is not closed yet.",
+    "lineService": "{{periodo}} close · {{persona}}: {{monto}}",
+    "lineReconcile": "Settled in {{periodo}} · {{persona}}: {{monto}}",
+    "linePending": "not paid yet",
     "linePaid": "payment recorded on {{fecha}}",
     "notPaidExcluded": "Not paid: excluded ({{reason}})",
     "frozen": "What was already counted does not change.",
     "fixAsDifference": "If you correct this class, the difference is paid separately.",
     "today": "What applies today",
-    "differencePending": "The difference stays pending and is settled separately in an open period.",
+    "differencePending": "The difference stays to be settled in an open period.",
     "noPayInClose": "No payment in that close.",
     "loadError": "Could not load the pay for this class.",
     "calculated": "The system counted {{count}}.",
@@ -339,7 +341,10 @@
     "previewLoading": "Calculating how much gets recorded…",
     "previewError": "Could not calculate how much gets recorded.",
     "nothingPending": "There are no pending pay statements left.",
-    "changedHelp": "Someone recorded or changed a payment while you were reviewing. Check the new amount before confirming."
+    "changedHelp": "Someone recorded or changed a payment while you were reviewing. Check the new amount before confirming.",
+    "settleNegativeTitle": "Record {{nombre}}'s pay statement ({{monto}}) as settled?",
+    "settleNegativeHelp": "Avoqado doesn't move money.",
+    "settleNegativeConfirm": "Record as settled"
   },
   "manualAdjust": {
     "add": "Add adjustment to {{periodo}}",
@@ -368,7 +373,7 @@
     "periodWithDate": "the open period that includes {{fecha}}"
   },
   "differences": {
-    "title": "Pending differences",
+    "title": "Differences to settle",
     "help": "Changes that came in after the close: a corrected class or one recorded late. They are settled once, in the open period (added or deducted); this period's pay statement does not change.",
     "classLine": "{{clase}} · {{fecha}}",
     "classLineVenue": "{{clase}} · {{fecha}} · {{sede}}",
@@ -381,7 +386,7 @@
     "settled": "Difference settled in {{periodo}}",
     "alreadySettled": "This difference had already been settled. Nothing new was added.",
     "changed": "The amounts changed",
-    "changedHelp": "The amounts changed: review them before confirming.",
+    "changedHelp": "Review them before confirming.",
     "moved": "The class moved to another period",
     "movedHelp": "It is no longer a difference of this period. The list was updated.",
     "blocked": "This class can't be settled yet. Resolve this first:",
@@ -389,7 +394,7 @@
     "blockedCard": "This class's difference can be settled once you resolve it.",
     "toResolve": "To resolve",
     "nothing": "This class has nothing left to settle.",
-    "pendingLine": "Pending difference for {{persona}}: {{monto}}",
+    "pendingLine": "Difference to settle for {{persona}}: {{monto}}",
     "lateClass": "This class came in after {{periodo}} was closed: it is paid as a difference.",
     "lateClassGeneric": "This class came in after its period was closed: it is paid as a difference.",
     "noPermission": "To settle differences you need the “Close periods and record payments” permission. Ask the business owner.",
@@ -398,6 +403,28 @@
     "addsTo": "Added to the {{destino}} pay statement",
     "subtractsFrom": "Deducted from the {{destino}} pay statement",
     "originUnchanged": "The {{origen}} pay statement does not change.",
-    "movedHelpClass": "It is no longer a difference of that period. Review this class's pay again."
+    "movedHelpClass": "It is no longer a difference of that period. Review this class's pay again.",
+    "changedFromTo": "Before {{antes}}, now {{ahora}}. Review it before confirming.",
+    "alreadySettledElsewhere": "This difference was already settled (from another screen). Nothing was added.",
+    "noLevelFor": "{{persona}} had no level on {{fecha}}",
+    "exitClass": "That period is closed: the level and the table don't change for that date. Resolve it in the class with “Adjust amount”.",
+    "exitClassHere": "That period is closed: the level and the table don't change for that date. Use “Adjust amount” in this class.",
+    "exitNoCoach": "Assign a coach to the class or mark it “This class is not paid”.",
+    "openClass": "Open the class",
+    "banner_one": "{{count}} difference to settle",
+    "banner_other": "{{count}} differences to settle",
+    "bannerMore": "More than {{n}} differences to settle",
+    "seeThem": "See them",
+    "cause": {
+      "CONTEO": "Count corrected: {{antes}} → {{ahora}}",
+      "CONTEO_SIN_ANTES": "Count corrected",
+      "COACH_SALE": "No longer teaches this class (now: {{coach}})",
+      "COACH_SALE_SIN_NOMBRE": "No longer teaches this class",
+      "COACH_ENTRA": "Now teaches this class",
+      "CANCELADA": "Class cancelled after the close",
+      "EXCLUIDA": "Class excluded from pay",
+      "TARDIA": "Class recorded after the close",
+      "MONTO": "Class amount corrected"
+    }
   }
 }

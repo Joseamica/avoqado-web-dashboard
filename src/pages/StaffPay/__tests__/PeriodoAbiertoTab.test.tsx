@@ -61,6 +61,16 @@ describe('PeriodoAbiertoTab', () => {
     expect(screen.getByText('Ana López')).toBeInTheDocument()
   })
 
+  it('un recibo en negativo dice «Saldo en contra» y, sin clases, «Lugares promedio» es «—» (no 0) (QA B-6)', () => {
+    const carlos = { staffId: 's2', staffName: 'Carlos Rodríguez', payLevelName: 'Coach', venueIds: ['v1'], clases: 0, promedioLugares: 0, total: '-360.00' }
+    m.report.mockReturnValue({ data: { ...base, personas: { ...base.personas, items: [carlos] } }, isLoading: false, isError: false, refetch: vi.fn() })
+    render(<PeriodoAbiertoTab activa />)
+    const fila = screen.getByText('Carlos Rodríguez').closest('tr')!
+    expect(fila).toHaveTextContent('period.negativeShort')
+    expect(fila).toHaveTextContent('—')
+    expect(fila).toHaveTextContent('−$360.00')
+  })
+
   it('si el servidor truncó la lista de personas, lo dice (nunca lo esconde)', () => {
     m.report.mockReturnValue({ data: { ...base, truncado: true }, isLoading: false, isError: false, refetch: vi.fn() })
     render(<PeriodoAbiertoTab activa />)

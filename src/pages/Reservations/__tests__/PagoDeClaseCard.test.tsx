@@ -15,6 +15,7 @@ const m = vi.hoisted(() => ({
   access: vi.fn(),
   diff: vi.fn(),
   dialogo: vi.fn(),
+  motivo: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({
@@ -58,6 +59,10 @@ vi.mock('@/pages/StaffPay/components/LiquidarDialog', () => ({
   LiquidarDialog: (p: unknown) => {
     m.dialogo(p)
     return <div data-testid="liquidar-dialogo" />
+  },
+  MotivoPorResolver: (p: unknown) => {
+    m.motivo(p)
+    return <div>motivo-por-resolver</div>
   },
 }))
 vi.mock('@/pages/StaffPay/components/AsignarNivelModal', () => ({
@@ -227,8 +232,11 @@ describe('PagoDeClaseCard', () => {
   it('una clase contabilizada dice su periodo de origen y cada línea con el estado de su recibo', () => {
     m.pay.mockReturnValue({ data: contabilizada({ conteoCalculado: 8 }) })
     conRouter(<PagoDeClaseCard sessionId="s1" />)
-    expect(screen.getByText(/classCard\.origin/)).toHaveTextContent('2026-08-01')
+    // Un solo nombre para el periodo, el mismo del botón de liquidar: «agosto de 2026», no «del 1 ago al 31 ago» (QA B-8).
+    expect(screen.getByText(/classCard\.origin/)).toHaveTextContent('"periodo":"agosto de 2026"')
+    expect(screen.getByText(/classCard\.lineService/)).toHaveTextContent('"periodo":"agosto de 2026"')
     expect(screen.getByText(/classCard\.lineService/)).toHaveTextContent('570')
+    expect(screen.getByText(/classCard\.lineReconcile/)).toHaveTextContent('"periodo":"octubre de 2026"')
     expect(screen.getByText(/classCard\.lineReconcile/)).toHaveTextContent('40')
     expect(screen.getAllByText(/classCard\.linePending|classCard\.linePaid/)).toHaveLength(2)
     expect(screen.getByText(/classCard\.linePaid/)).toHaveTextContent('2026-11-03')
@@ -391,10 +399,11 @@ describe('PagoDeClaseCard', () => {
   })
 
   // ── Bloque B: diferencia pendiente de la clase ──
-  const fila = (persona: string, personaNombre: string, pendiente: string | null) => ({
+  const fila = (persona: string, personaNombre: string, pendiente: string | null, extra: Record<string, unknown> = {}) => ({
     classSessionId: 's1', venueId: 'v1', productName: 'Reformer', startsAt: '2026-08-04T14:00:00Z', fechaLocal: '2026-08-04', fechaValoracion: '2026-08-04',
     periodoOrigenId: null, persona, personaNombre, coachActual: persona, estadoClase: pendiente === null ? 'EXCEPCION' : 'OK', motivo: pendiente === null ? 'COACH_SIN_NIVEL' : null,
     corresponde: pendiente, congelado: '0.00', conciliado: '0.00', pendiente, payLevelId: null, payLevelName: null, tableVersionId: null, countMode: 'BOOKED', conteo: 8,
+    ...extra,
   })
   const diferencia = (filas: ReturnType<typeof fila>[], extra: Record<string, unknown> = {}) => ({
     data: {
@@ -471,6 +480,55 @@ describe('PagoDeClaseCard', () => {
     conRouter(<PagoDeClaseCard sessionId="s1" />)
     expect(screen.getByText('differences.blockedCard')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /differences\.settle/ })).not.toBeInTheDocument()
+    // Nombra a quién y desde cuándo, y dice qué botón usar AQUÍ (sin enlace a la misma clase).
+    expect(m.motivo).toHaveBeenLastCalledWith(expect.objectContaining({ classVenueId: 'v1', sessionId: 's1', enLaClase: true }))
+    // La tabla no arregla una clase de un periodo cerrado (Codex C3): no se ofrece.
+    expect(screen.queryByRole('link', { name: 'classCard.exitGoToTable' })).not.toBeInTheDocument()
+    expect(screen.getByText('differences.exitClassHere')).toBeInTheDocument()
+  })
+
+  it('una excepción de una clase SIN cierre sí lleva a la tabla de pagos (ahí se arregla)', () => {
+    m.pay.mockReturnValue({ data: pago({ estado: 'EXCEPCION', motivo: 'SIN_TABLA', monto: null }) })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByRole('link', { name: 'classCard.exitGoToTable' })).toBeInTheDocument()
+    expect(screen.queryByText('differences.exitClassHere')).not.toBeInTheDocument()
+  })
+
+  it('cada diferencia dice por qué existe, y primero va quien tenía la clase al cerrar (QA B-4, B-9)', () => {
+    m.pay.mockReturnValue({ data: contabilizada() })
+    m.diff.mockReturnValue(
+      diferencia([
+        fila('a', 'Ana Martínez', '530.00', { causa: 'COACH_ENTRA' }),
+        fila('c', 'Carlos Rodríguez', '-440.00', { congelado: '440.00', causa: 'COACH_SALE', coachActualNombre: 'Ana Martínez' }),
+      ]),
+    )
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    const lineas = screen.getAllByText(/differences\.pendingLine/).map(l => l.textContent)
+    expect(lineas[0]).toContain('Carlos Rodríguez')
+    expect(lineas[1]).toContain('Ana Martínez')
+    expect(screen.getByText('differences.cause.COACH_SALE:{"coach":"Ana Martínez"}')).toBeInTheDocument()
+    expect(screen.getByText('differences.cause.COACH_ENTRA')).toBeInTheDocument()
+  })
+
+  it('al abrir «Liquidar» o «Corregir conteo» suelta el foco del diálogo de la clase (sin «Blocked aria-hidden», QA B-13)', () => {
+    m.pay.mockReturnValue({ data: pago({ llegoTarde: true }) })
+    m.diff.mockReturnValue(diferencia([fila('a', 'Ana Martínez', '430.00')]))
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    const liquidar = screen.getByRole('button', { name: /differences\.settleIn/ })
+    liquidar.focus()
+    fireEvent.click(liquidar)
+    expect(document.activeElement).toBe(document.body)
+    expect(m.dialogo).toHaveBeenCalled()
+    const corregir = screen.getByRole('button', { name: 'classCard.fixCount' })
+    corregir.focus()
+    fireEvent.click(corregir)
+    expect(document.activeElement).not.toBe(corregir)
+  })
+
+  it('el título de la tarjeta (ancla del foco) enseña el foco con teclado (QA B-11)', () => {
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(screen.getByText('classCard.title').className).toMatch(/focus-visible:ring-2/)
   })
 
   it('si la diferencia no se pudo calcular, lo dice', () => {

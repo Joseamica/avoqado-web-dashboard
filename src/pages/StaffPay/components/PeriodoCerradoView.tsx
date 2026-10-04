@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Plus } from 'lucide-react'
 import {
@@ -17,16 +17,17 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
-import { useMarkPaid, usePaidPreview, useStaffPayReport } from '@/hooks/useStaffPay'
+import { useDifferences, useMarkPaid, usePaidPreview, useStaffPayReport } from '@/hooks/useStaffPay'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
 import { conSigno, monto } from '../conSigno'
 import { TABLA_PERIODO } from './ListasDelPeriodo'
-import { useFocoDeVuelta } from '../foco'
+import { ANCLA_FOCO, useFocoDeVuelta } from '../foco'
 import { DesglosePersona } from './DesglosePersona'
 import { AjusteManualModal } from './AjusteManualModal'
 import { DiferenciasSection } from './DiferenciasSection'
+import { ID_DIFERENCIAS } from './LiquidarDialog'
 
 const LIMITE = 50
 
@@ -57,7 +58,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   // `estado`: recién cerrado, la caché todavía puede traer el reporte EN VIVO de este mismo periodo (misma llave).
   const data = crudo && crudo.periodo.id === periodId && crudo.periodo.estado === 'CLOSED' ? crudo : undefined
   const marcar = useMarkPaid(periodId)
-  const [confirmar, setConfirmar] = useState<{ staffId?: string; nombre?: string } | null>(null)
+  const [confirmar, setConfirmar] = useState<{ staffId?: string; nombre?: string; total?: string } | null>(null)
   // Cuánto se registra lo dice el SERVER (Codex bloque A #6): de todos los pendientes o de esa persona, con la huella que
   // se manda al confirmar. Nunca la suma de la página visible.
   const previewPago = usePaidPreview(periodId, confirmar?.staffId, !!confirmar)
@@ -66,6 +67,12 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const [ajusteFecha, setAjusteFecha] = useState<string | null>(null)
   const puedePagar = can('staffpay:close')
   const focoPago = useFocoDeVuelta()
+  // Aviso arriba si quedan diferencias por liquidar (QA B-12): la MISMA consulta que la sección de abajo (no pide nada de más).
+  const diferencias = useDifferences(periodId, true)
+  const clasesConDiferencia = useMemo(
+    () => new Set((diferencias.data?.pages ?? []).flatMap(p => p.items.map(f => f.classSessionId))).size,
+    [diferencias.data],
+  )
 
   if (isError && !data) {
     return (
@@ -108,6 +115,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const montoVista = vista ? monto(vista.total) : '…'
   const puedeConfirmar = !!vista && vista.cantidad > 0 && !previewPago.isFetching && !marcar.isPending
   const errorPreview = (previewPago.error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
+  // Un recibo en negativo no se «paga»: se registra como saldado, sin decir «le pagaste −$360» (QA B-6).
+  const negativo = !!confirmar?.staffId && Number(vista?.total ?? confirmar.total ?? 0) < 0
 
   const estadoDePago = (pagadoEn?: string | null) =>
     pagadoEn ? (
@@ -144,7 +153,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
     <div className="space-y-4" data-tour="staffpay-closed-period">
       <div className="flex flex-wrap items-center gap-2">
         {/* Ancla del foco: a donde vuelve al cerrar un modal cuyo botón ya no existe (QA defecto 12). */}
-        <h3 className="font-semibold outline-none" tabIndex={-1} data-staffpay-ancla>
+        <h3 className={`font-semibold ${ANCLA_FOCO}`} tabIndex={-1} data-staffpay-ancla>
           {t('period.title', { start: formatCalendarDate(data.periodo.start), end: formatCalendarDate(data.periodo.end) })}
         </h3>
         <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{tj.personas > 0 && pendientes === 0 ? t('periods.paid') : t('closed.badge')}</span>
@@ -152,6 +161,22 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
           <span className="rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">{t('period.partial')}</span>
         )}
         {data.parcial && data.venueIds.length > 0 && <span className="text-xs text-muted-foreground">{data.venueIds.map(nombreSede).join(' · ')}</span>}
+        {clasesConDiferencia > 0 && (
+          <button
+            type="button"
+            className="cursor-pointer rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-amber-400"
+            onClick={() => {
+              const seccion = document.getElementById(ID_DIFERENCIAS)
+              seccion?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+              seccion?.focus({ preventScroll: true })
+            }}
+            data-tour="staffpay-closed-differences-banner"
+          >
+            {diferencias.hasNextPage
+              ? t('differences.bannerMore', { n: clasesConDiferencia })
+              : t('differences.banner', { count: clasesConDiferencia })}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -224,6 +249,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                 <tr key={p.staffId} className="border-b border-border/50">
                   <td className="py-2 font-medium">
                     {p.staffName}
+                    {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
                     <span className="mt-1 block font-normal md:hidden">{estadoDePago(p.pagadoEn)}</span>
                   </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
@@ -250,7 +276,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                           className="cursor-pointer"
                           disabled={ocupado}
                           aria-label={t('closed.markPaidFor', { nombre: p.staffName })}
-                          onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName })}
+                          onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName, total: p.total })}
                           data-tour="staffpay-closed-mark-paid"
                         >
                           {t('closed.markPaid')}
@@ -298,11 +324,13 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         <AlertDialogContent onOpenAutoFocus={focoPago.onOpenAutoFocus} onCloseAutoFocus={focoPago.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmar?.staffId
-                ? t('closed.markPaidTitle', { nombre: confirmar.nombre, monto: montoVista })
-                : t('closed.markAllPaidTitle', { periodo: etiqueta })}
+              {negativo
+                ? t('closed.settleNegativeTitle', { nombre: confirmar?.nombre, monto: montoVista })
+                : confirmar?.staffId
+                  ? t('closed.markPaidTitle', { nombre: confirmar.nombre, monto: montoVista })
+                  : t('closed.markAllPaidTitle', { periodo: etiqueta })}
             </AlertDialogTitle>
-            <AlertDialogDescription>{t('closed.markPaidHelp')}</AlertDialogDescription>
+            <AlertDialogDescription>{negativo ? t('closed.settleNegativeHelp') : t('closed.markPaidHelp')}</AlertDialogDescription>
           </AlertDialogHeader>
           {previewPago.isLoading ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-busy="true">
@@ -336,7 +364,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
               }}
             >
               {(marcar.isPending || previewPago.isFetching) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmar?.staffId
+              {negativo
+                ? t('closed.settleNegativeConfirm')
+                : confirmar?.staffId
                 ? t('closed.markPaidConfirm', { monto: montoVista })
                 : t('closed.markAllPaidConfirm', { count: vista?.cantidad ?? pendientes, monto: montoVista })}
             </AlertDialogAction>

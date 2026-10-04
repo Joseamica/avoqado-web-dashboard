@@ -150,6 +150,12 @@ export function DesglosePersona({
               )}
             </div>
           )}
+          {/* Recibo en negativo: se explica sin inventar una regla (QA B-6). */}
+          {Number(recibo.data?.total ?? total) < 0 && (
+            <p role="note" className="rounded-lg border border-input p-3 text-sm text-muted-foreground">
+              {t('period.negativeBalance')}
+            </p>
+          )}
         </SheetHeader>
 
         {cerrado ? (
@@ -268,7 +274,12 @@ export function DesglosePersona({
                 <p className="text-sm font-medium">{t('period.periodAdjustments')}</p>
                 {ajustes.map((r, i) => (
                   <p key={i} className="flex justify-between gap-3 text-sm">
-                    <span>{r.concepto}</span>
+                    {/* Con su fecha: la de la clase en una diferencia (si no, cinco «Diferencia: Yoga» no se distinguen, QA B-3);
+                        la de captura en un ajuste. */}
+                    <span className="min-w-0">
+                      {r.concepto}
+                      {r.fecha && <span className="block text-xs text-muted-foreground">{fechaDelRenglon(r)}</span>}
+                    </span>
                     <span className="whitespace-nowrap font-medium">{conSigno(r.monto)}</span>
                   </p>
                 ))}

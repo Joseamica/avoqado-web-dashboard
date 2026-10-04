@@ -158,7 +158,9 @@
     "closeFrom": "Podrás cerrarlo a partir del {{fecha}}.",
     "justClosed": "Este periodo ya está cerrado. Cargando la vista cerrada…",
     "receiptExportPartial": "El PDF y el Excel traen sólo las sedes que puedes ver.",
-    "loadMoreError": "No se pudo cargar más."
+    "loadMoreError": "No se pudo cargar más.",
+    "negativeShort": "Saldo en contra",
+    "negativeBalance": "Saldo en contra: recibió de más en periodos anteriores. Avoqado no cobra ni descuenta solo."
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
@@ -178,17 +180,17 @@
     "fixAmount": "Ajustar monto",
     "exclude": "No se paga esta clase",
     "adjusted": "Ajustado: {{reason}}",
-    "origin": "Esta clase ya se contabilizó en el periodo del {{start}} al {{end}}.",
-    "originOpen": "Esta clase es del periodo del {{start}} al {{end}}, que todavía no se cierra.",
-    "lineService": "Cierre del {{start}} al {{end}} · {{persona}}: {{monto}}",
-    "lineReconcile": "Diferencia en el periodo del {{start}} al {{end}} · {{persona}}: {{monto}}",
-    "linePending": "pendiente de pago",
+    "origin": "Esta clase ya se contabilizó en {{periodo}}.",
+    "originOpen": "Esta clase es de {{periodo}}, que todavía no se cierra.",
+    "lineService": "Cierre de {{periodo}} · {{persona}}: {{monto}}",
+    "lineReconcile": "Liquidada en {{periodo}} · {{persona}}: {{monto}}",
+    "linePending": "falta pagarla",
     "linePaid": "pago registrado el {{fecha}}",
     "notPaidExcluded": "No se pagó: excluida ({{reason}})",
     "frozen": "Lo que ya se contabilizó no cambia.",
     "fixAsDifference": "Si corriges esta clase, la diferencia se paga aparte.",
     "today": "Lo que corresponde hoy",
-    "differencePending": "La diferencia queda pendiente y se liquida aparte en un periodo abierto.",
+    "differencePending": "La diferencia queda por liquidar en un periodo abierto.",
     "noPayInClose": "Sin pago en ese cierre.",
     "loadError": "No se pudo cargar el pago de esta clase.",
     "calculated": "El sistema contó {{count}}.",
@@ -339,7 +341,10 @@
     "previewLoading": "Calculando cuánto se registra…",
     "previewError": "No se pudo calcular cuánto se registra.",
     "nothingPending": "Ya no hay recibos pendientes de pago.",
-    "changedHelp": "Alguien registró o cambió un pago mientras revisabas. Revisa el monto nuevo antes de confirmar."
+    "changedHelp": "Alguien registró o cambió un pago mientras revisabas. Revisa el monto nuevo antes de confirmar.",
+    "settleNegativeTitle": "¿Registrar como saldado el recibo de {{nombre}} ({{monto}})?",
+    "settleNegativeHelp": "Avoqado no mueve dinero.",
+    "settleNegativeConfirm": "Registrar como saldado"
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",
@@ -368,7 +373,7 @@
     "periodWithDate": "el periodo abierto que incluye el {{fecha}}"
   },
   "differences": {
-    "title": "Diferencias pendientes",
+    "title": "Diferencias por liquidar",
     "help": "Cambios que llegaron después del cierre: una clase corregida o que se registró tarde. Se liquidan una sola vez en el periodo abierto (se suman o se descuentan); el recibo de este periodo no cambia.",
     "classLine": "{{clase}} · {{fecha}}",
     "classLineVenue": "{{clase}} · {{fecha}} · {{sede}}",
@@ -381,7 +386,7 @@
     "settled": "Diferencia liquidada en {{periodo}}",
     "alreadySettled": "Esta diferencia ya se había liquidado. No se agregó nada nuevo.",
     "changed": "Los montos cambiaron",
-    "changedHelp": "Los montos cambiaron: revisa antes de confirmar.",
+    "changedHelp": "Revísalos antes de confirmar.",
     "moved": "La clase se movió de periodo",
     "movedHelp": "Ya no es una diferencia de este periodo. La lista se actualizó.",
     "blocked": "Esta clase no se puede liquidar todavía. Resuelve esto primero:",
@@ -389,7 +394,7 @@
     "blockedCard": "La diferencia de esta clase se podrá liquidar cuando la resuelvas.",
     "toResolve": "Por resolver",
     "nothing": "Esta clase ya no tiene nada pendiente de liquidar.",
-    "pendingLine": "Diferencia pendiente de {{persona}}: {{monto}}",
+    "pendingLine": "Diferencia por liquidar de {{persona}}: {{monto}}",
     "lateClass": "Esta clase llegó después del cierre de {{periodo}}: se paga como diferencia.",
     "lateClassGeneric": "Esta clase llegó después del cierre de su periodo: se paga como diferencia.",
     "noPermission": "Para liquidar diferencias necesitas el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
@@ -398,6 +403,28 @@
     "addsTo": "Se suma al recibo de {{destino}}",
     "subtractsFrom": "Se descuenta del recibo de {{destino}}",
     "originUnchanged": "El recibo de {{origen}} no cambia.",
-    "movedHelpClass": "Ya no es una diferencia de ese periodo. Revisa de nuevo el pago de esta clase."
+    "movedHelpClass": "Ya no es una diferencia de ese periodo. Revisa de nuevo el pago de esta clase.",
+    "changedFromTo": "Antes {{antes}}, ahora {{ahora}}. Revísalo antes de confirmar.",
+    "alreadySettledElsewhere": "Esta diferencia ya se liquidó (desde otra pantalla). No se agregó nada.",
+    "noLevelFor": "{{persona}} no tenía nivel el {{fecha}}",
+    "exitClass": "Ese periodo ya se cerró: el nivel y la tabla no cambian con esa fecha. Resuélvelo en la clase con «Ajustar monto».",
+    "exitClassHere": "Ese periodo ya se cerró: el nivel y la tabla no cambian con esa fecha. Usa «Ajustar monto» en esta clase.",
+    "exitNoCoach": "Asígnale coach a la clase o márcala «No se paga esta clase».",
+    "openClass": "Abrir la clase",
+    "banner_one": "{{count}} diferencia por liquidar",
+    "banner_other": "{{count}} diferencias por liquidar",
+    "bannerMore": "Más de {{n}} diferencias por liquidar",
+    "seeThem": "Verlas",
+    "cause": {
+      "CONTEO": "Conteo corregido: {{antes}} → {{ahora}}",
+      "CONTEO_SIN_ANTES": "Conteo corregido",
+      "COACH_SALE": "Ya no da esta clase (ahora: {{coach}})",
+      "COACH_SALE_SIN_NOMBRE": "Ya no da esta clase",
+      "COACH_ENTRA": "Ahora da esta clase",
+      "CANCELADA": "Clase cancelada después del cierre",
+      "EXCLUIDA": "Clase excluida del pago",
+      "TARDIA": "Clase registrada después del cierre",
+      "MONTO": "Monto de la clase corregido"
+    }
   }
 }

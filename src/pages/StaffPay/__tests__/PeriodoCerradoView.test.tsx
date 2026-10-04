@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PeriodoCerradoView } from '../components/PeriodoCerradoView'
 
-const m = vi.hoisted(() => ({ can: vi.fn(), paid: vi.fn(), toast: vi.fn(), reporte: vi.fn(), extra: vi.fn(), preview: vi.fn(), refetchPreview: vi.fn(), ajuste: vi.fn() }))
+const m = vi.hoisted(() => ({ can: vi.fn(), paid: vi.fn(), toast: vi.fn(), reporte: vi.fn(), extra: vi.fn(), preview: vi.fn(), refetchPreview: vi.fn(), ajuste: vi.fn(), difs: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
@@ -13,6 +13,9 @@ vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: () => null })
 vi.mock('../components/DiferenciasSection', () => ({
   DiferenciasSection: ({ periodId, etiquetaAbierto }: { periodId: string; etiquetaAbierto?: string }) => (
     <div>
+      <h3 id="staffpay-diferencias" tabIndex={-1}>
+        seccion
+      </h3>
       diferencias {periodId} {etiquetaAbierto}
     </div>
   ),
@@ -25,6 +28,8 @@ vi.mock('../components/AjusteManualModal', () => ({
 }))
 vi.mock('@/hooks/useStaffPay', () => ({
   useStaffPayReport: () => ({ data: m.reporte(), isLoading: false, isPlaceholderData: false, ...m.extra() }),
+  // La MISMA consulta que usa la sección (aquí, para el aviso de arriba).
+  useDifferences: () => m.difs(),
   useMarkPaid: () => ({ mutateAsync: m.paid, isPending: false }),
   usePaidPreview: (...a: any[]) => m.preview(...a),
 }))
@@ -49,6 +54,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   m.reporte.mockReturnValue(REPORTE)
   m.extra.mockReturnValue({ refetch: vi.fn() })
+  m.difs.mockReturnValue({ data: undefined, hasNextPage: false })
   m.preview.mockImplementation((_periodId: string, staffId: string | undefined, enabled: boolean) =>
     enabled ? { data: previewDe(staffId), isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined, isLoading: false },
   )
@@ -106,6 +112,51 @@ describe('PeriodoCerradoView', () => {
     render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
     expect(screen.getAllByText('−$150.00')).toHaveLength(2)
     expect(screen.queryByText('-$150.00')).toBeNull()
+  })
+
+  it('un recibo en NEGATIVO lo dice en su fila y «Marcar pagado» lo registra como saldado, sin «le pagaste −$360» (QA B-6)', async () => {
+    m.can.mockReturnValue(true)
+    const CARLOS = { ...ANA, staffId: 'c', staffName: 'Carlos Rodríguez', clases: 0, ajustes: '-360.00', total: '-360.00' }
+    m.reporte.mockReturnValue({ ...REPORTE, personas: { ...REPORTE.personas, items: [CARLOS] } })
+    m.preview.mockImplementation((_p: string, staffId: string | undefined, enabled: boolean) =>
+      enabled ? { data: { ...previewDe(staffId), total: '-360.00' }, isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined },
+    )
+    m.paid.mockResolvedValue({ marcados: 1 })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.getByText('period.negativeShort')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    expect(await screen.findByText(/closed\.settleNegativeTitle/)).toHaveTextContent('"nombre":"Carlos Rodríguez","monto":"−$360.00"')
+    expect(screen.getByText('closed.settleNegativeHelp')).toBeInTheDocument()
+    expect(screen.queryByText(/closed\.markPaidTitle/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'closed.settleNegativeConfirm' }))
+    await waitFor(() => expect(m.paid).toHaveBeenCalledWith({ staffId: 'c', huellaEsperada: HUELLA_ANA }))
+  })
+
+  it('con diferencias por liquidar, un aviso arriba las cuenta (por clase) y lleva a la sección (QA B-12)', () => {
+    m.can.mockReturnValue(true)
+    const f = (classSessionId: string, persona: string) => ({ classSessionId, persona })
+    m.difs.mockReturnValue({ data: { pages: [{ items: [f('c1', 'a'), f('c1', 's'), f('c2', 'a')], nextCursor: null, parcial: false }] }, hasNextPage: false })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    const aviso = screen.getByRole('button', { name: /differences\.banner/ })
+    expect(aviso).toHaveTextContent('"count":2')
+    fireEvent.click(aviso)
+    expect(document.activeElement).toHaveTextContent('seccion')
+  })
+
+  it('sin diferencias no hay aviso; con más páginas dice «más de»', () => {
+    m.can.mockReturnValue(true)
+    const { unmount } = render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.queryByRole('button', { name: /differences\.banner/ })).not.toBeInTheDocument()
+    unmount()
+    m.difs.mockReturnValue({ data: { pages: [{ items: [{ classSessionId: 'c1', persona: 'a' }], nextCursor: 'x', parcial: false }] }, hasNextPage: true })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.getByRole('button', { name: /differences\.bannerMore/ })).toHaveTextContent('"n":1')
+  })
+
+  it('el encabezado del periodo (ancla del foco) enseña el foco con teclado (QA B-11)', () => {
+    m.can.mockReturnValue(true)
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(document.querySelector('[data-staffpay-ancla]')!.className).toMatch(/focus-visible:ring-2/)
   })
 
   it('el «Desglose» de cada renglón dice de quién es', () => {

@@ -103,7 +103,14 @@ export interface FilaDiferenciaDto {
   /** null: la clase está en excepción y no se liquida hasta resolverla. */
   pendiente: string | null
   payLevelId: string | null; payLevelName: string | null; tableVersionId: string | null; countMode: string | null; conteo: number
+  /** Por qué existe la diferencia de esta persona (opcional: un server previo no lo manda y no se pinta nada). */
+  causa?: CausaDiferencia | null
+  /** El conteo con el que se congeló la clase (para «Conteo corregido: 8 → 10»). */
+  conteoCongelado?: number | null
+  /** Quién da la clase hoy (para «Ya no da esta clase (ahora: Ana)»). */
+  coachActualNombre?: string | null
 }
+export type CausaDiferencia = 'CONTEO' | 'COACH_SALE' | 'COACH_ENTRA' | 'CANCELADA' | 'EXCLUIDA' | 'TARDIA' | 'MONTO'
 export interface PaginaDiferenciasDto { items: FilaDiferenciaDto[]; nextCursor: string | null; parcial: boolean }
 export interface PreviewLiquidacionDto {
   periodoOrigen: { id: string; start: string; end: string } | null

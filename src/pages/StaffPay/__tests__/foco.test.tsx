@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { useFocoDeVuelta } from '../foco'
+import { soltarFocoAlAbrir, useFocoDeVuelta } from '../foco'
 
 const crear = (html: string) => {
   const caja = document.createElement('div')
@@ -48,6 +48,19 @@ describe('useFocoDeVuelta (QA defecto 12: el foco nunca cae al <body>)', () => {
     document.getElementById('seccion')!.remove()
     result.current.onCloseAutoFocus(evento())
     expect(document.activeElement).toHaveAttribute('data-staffpay-ancla')
+  })
+
+  it('abierto desde DENTRO de otro modal: suelta el foco antes de abrir y al cerrar vuelve a ese botón (QA B-13)', () => {
+    crear('<h3 tabindex="-1" data-staffpay-ancla>Pago</h3><button id="abrir">Liquidar</button>')
+    const { result } = renderHook(() => useFocoDeVuelta())
+    const boton = document.getElementById('abrir')!
+    boton.focus()
+    soltarFocoAlAbrir(boton)
+    // Nada enfocado dentro del modal de abajo cuando Radix lo oculte.
+    expect(document.activeElement).toBe(document.body)
+    result.current.onOpenAutoFocus()
+    result.current.onCloseAutoFocus(evento())
+    expect(document.activeElement).toBe(boton)
   })
 
   it('si el botón quedó apagado, también va al encabezado', () => {

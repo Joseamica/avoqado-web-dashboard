@@ -17,25 +17,64 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useClassDifference, useSettleDifference } from '@/hooks/useStaffPay'
-import type { MotivoExcepcion, PreviewLiquidacionDto } from '@/types/staffPay'
+import type { FilaDiferenciaDto, PreviewLiquidacionDto } from '@/types/staffPay'
 import { useVenueDateTime } from '@/utils/datetime'
 import { conSigno } from '../conSigno'
+import { porPersona, useCausaDiferencia } from '../diferencias'
 import { useFocoDeVuelta } from '../foco'
 import { periodicidadDe, useNombrePeriodo } from '../useNombrePeriodo'
-import { useNombreSede } from '../useNombreSede'
+import { useNombreSede, useRutaDeSede } from '../useNombreSede'
 
-/** El motivo por el que una clase no se puede pagar todavía, en ámbar, con su salida (la misma que en «Ver cuáles»). */
-export function MotivoPorResolver({ motivo, onNavegar }: { motivo: MotivoExcepcion | null; onNavegar?: () => void }) {
+/**
+ * Por qué una clase con diferencia no se puede liquidar todavía, en ámbar, y su ÚNICA salida real. Toda diferencia es de un
+ * periodo cerrado, y el server rechaza niveles y versiones de tabla con fecha dentro de un periodo cerrado
+ * (`assertFechaNoCerrada`): ni la tabla ni asignar el nivel la arreglan (Codex C3). Se resuelve en la clase: «Ajustar monto»
+ * (o, sin coach, asignarla o «No se paga esta clase»). El enlace va a la clase en SU sede, no en la del URL (Codex C4).
+ */
+export function MotivoPorResolver({
+  filas,
+  classVenueId,
+  sessionId,
+  enLaClase = false,
+  onNavegar,
+}: {
+  /** Las filas de la clase (todas sus personas): de ahí salen el motivo, la fecha y quién no tenía nivel. */
+  filas: FilaDiferenciaDto[]
+  classVenueId: string
+  sessionId: string
+  /** Ya se está en la clase (diálogo abierto desde su tarjeta): se dice qué botón usar, sin enlace. */
+  enLaClase?: boolean
+  onNavegar?: () => void
+}) {
   const { t } = useTranslation('staffPay')
-  const { fullBasePath } = useCurrentVenue()
+  const { formatCalendarDate } = useVenueDateTime()
+  const rutaDeSede = useRutaDeSede()
+  const conMotivo = filas.find(f => f.motivo)
+  const motivo = conMotivo?.motivo ?? null
+  // Quien no tenía nivel es quien da la clase hoy (la coach original conserva el nivel de su primera línea).
+  const sinNivel = filas[0]?.coachActualNombre ?? filas.find(f => f.persona !== null && f.persona === f.coachActual)?.personaNombre
+  const fecha = conMotivo?.fechaValoracion ?? filas[0]?.fechaValoracion
   return (
     <div className="space-y-0.5">
-      <p className="text-sm text-amber-700 dark:text-amber-400">{motivo ? t(`reasons.${motivo}`) : t('differences.blockedGeneric')}</p>
-      {motivo === 'SIN_COACH' ? (
-        <p className="text-xs text-muted-foreground">{t('period.resolveNoCoach')}</p>
-      ) : (
-        <Link to={`${fullBasePath}/servicio-pago#tabla`} onClick={onNavegar} className="text-xs font-medium underline underline-offset-2">
-          {t('period.resolveInTable')}
+      <p className="text-sm text-amber-700 dark:text-amber-400">
+        {motivo === 'COACH_SIN_NIVEL' && sinNivel && fecha
+          ? t('differences.noLevelFor', { persona: sinNivel, fecha: formatCalendarDate(fecha) })
+          : motivo
+            ? t(`reasons.${motivo}`)
+            : t('differences.blockedGeneric')}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {motivo === 'SIN_COACH'
+          ? t(enLaClase ? 'classCard.exitNoCoach' : 'differences.exitNoCoach')
+          : t(enLaClase ? 'differences.exitClassHere' : 'differences.exitClass')}
+      </p>
+      {!enLaClase && (
+        <Link
+          to={`${rutaDeSede(classVenueId)}/reservations/calendar?clase=${encodeURIComponent(sessionId)}`}
+          onClick={onNavegar}
+          className="text-xs font-medium underline underline-offset-2"
+        >
+          {t('differences.openClass')}
         </Link>
       )}
     </div>
@@ -72,6 +111,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   const { formatDateTime } = useVenueDateTime()
   const nombreSede = useNombreSede()
   const nombrePeriodo = useNombrePeriodo()
+  const causa = useCausaDiferencia()
   // Si la fila liquidada ya no está, al encabezado de la sección; si la sección también se fue, al del periodo (o, en la
   // tarjeta, a su título).
   const foco = useFocoDeVuelta(desde === 'lista' ? `#${ID_DIFERENCIAS}` : undefined)
@@ -81,8 +121,8 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   // pagaría una diferencia nueva de la misma clase.
   const [solicitudId, setSolicitudId] = useState(() => crypto.randomUUID())
   const [enviando, setEnviando] = useState(false)
-  // HUELLA_CAMBIO: los montos de abajo ya son los nuevos; se dice hasta el siguiente intento.
-  const [cambio, setCambio] = useState(false)
+  // HUELLA_CAMBIO: los montos de abajo ya son los nuevos; se dice (con antes → ahora si se sabe) hasta el siguiente intento.
+  const [cambio, setCambio] = useState<string | null>(null)
   // SEDE_FUERA_DEL_PERIODO: la sede salió del destino entre el preview y la confirmación.
   const [sedeSalio, setSedeSalio] = useState(false)
   // CLASE_EN_EXCEPCION: vale para el preview con el que se intentó; el nuevo (el hook ya lo pidió) trae su motivo.
@@ -90,7 +130,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   const enExcepcion = !!p && excepcionEn === p
 
   const filas = p?.filas ?? []
-  const conMonto = filas.filter(f => f.pendiente !== null && Number(f.pendiente) !== 0)
+  const conMonto = filas.filter(f => f.pendiente !== null && Number(f.pendiente) !== 0).sort(porPersona)
   const bloqueada = !!p?.bloqueada || enExcepcion
   const ampliar = !!p && (!p.sedeEnDestino || sedeSalio)
   const destino = p ? nombrePeriodo(p.destino, periodicidadDe(p.destino)) : ''
@@ -102,7 +142,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   const confirmar = async () => {
     if (!p?.periodoOrigen || !listo) return
     setEnviando(true)
-    setCambio(false)
+    setCambio(null)
     try {
       const r = await liquidar.mutateAsync({
         periodoOrigenId: p.periodoOrigen.id,
@@ -116,10 +156,21 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
     } catch (err) {
       const data = (err as ErrorApi)?.response?.data
       if (data?.code === 'HUELLA_CAMBIO') {
-        setCambio(true)
-        toast({ title: t('differences.changed'), description: t('differences.changedHelp') })
         // El hook ya puso en la caché el preview que vino en la respuesta; si no vino, se pide.
-        if (!data.details?.preview) await refetch()
+        const nuevo = data.details?.preview ?? (await refetch())?.data
+        const pendiente = (x: PreviewLiquidacionDto) => x.bloqueada || x.filas.some(f => f.pendiente !== null && Number(f.pendiente) !== 0)
+        if (nuevo && !pendiente(nuevo)) {
+          // Otra pantalla ya la liquidó: no hay nada que revisar (QA B-2).
+          toast({ title: t('differences.alreadySettledElsewhere') })
+          onClose()
+          return
+        }
+        const texto =
+          nuevo && nuevo.total !== p.total
+            ? t('differences.changedFromTo', { antes: conSigno(p.total), ahora: conSigno(nuevo.total) })
+            : t('differences.changedHelp')
+        setCambio(texto)
+        toast({ title: t('differences.changed'), description: texto })
       } else if (data?.code === 'SEDE_FUERA_DEL_PERIODO') {
         setSedeSalio(true)
       } else if (data?.code === 'ORIGEN_CAMBIO') {
@@ -157,7 +208,13 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
       return (
         <div className="space-y-1 rounded-lg border border-amber-500/40 p-3" role="note">
           <p className="text-sm">{t('differences.blocked')}</p>
-          <MotivoPorResolver motivo={filas.find(f => f.motivo)?.motivo ?? null} onNavegar={onClose} />
+          <MotivoPorResolver
+            filas={filas}
+            classVenueId={classVenueId}
+            sessionId={sessionId}
+            enLaClase={desde === 'clase'}
+            onNavegar={onClose}
+          />
         </div>
       )
     }
@@ -170,6 +227,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
               {/* Por persona: una sustitución trae un descuento y un pago en la misma clase. */}
               <span className="min-w-0 break-words">
                 {f.personaNombre ?? t('period.noCoach')}
+                {causa(f) && <span className="block text-xs text-muted-foreground">{causa(f)}</span>}
                 <span className="block text-xs text-muted-foreground">
                   {t(Number(f.pendiente) < 0 ? 'differences.subtractsFrom' : 'differences.addsTo', { destino })}
                 </span>
@@ -188,7 +246,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
         {cambio && (
           <p className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400" role="alert">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{t('differences.changedHelp')}</span>
+            <span>{cambio}</span>
           </p>
         )}
       </div>

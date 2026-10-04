@@ -37,7 +37,24 @@ describe('textos de pago por servicio', () => {
     expect(tEs('period.detailColumns.concept')).toBe('Concepto')
   })
   it('diferencias: persona, monto y el mes destino en español natural; las mismas llaves en inglés (Bloque B)', () => {
-    expect(tEs('differences.pendingLine', { persona: 'Ana Martínez', monto: '+$40.00' })).toBe('Diferencia pendiente de Ana Martínez: +$40.00')
+    // «Por liquidar» (sin liquidar) y «falta pagarla» (liquidada, sin pagar): «pendiente» ya no significa dos cosas (QA B-8).
+    expect(tEs('differences.pendingLine', { persona: 'Ana Martínez', monto: '+$40.00' })).toBe('Diferencia por liquidar de Ana Martínez: +$40.00')
+    expect(tEs('classCard.lineReconcile', { periodo: 'octubre de 2026', persona: 'Ana Martínez', monto: '+$40.00' })).toBe(
+      'Liquidada en octubre de 2026 · Ana Martínez: +$40.00',
+    )
+    expect(tEs('classCard.linePending')).toBe('falta pagarla')
+    expect(tEs('differences.noLevelFor', { persona: 'Carlos Rodríguez', fecha: '15 jul 2026' })).toBe('Carlos Rodríguez no tenía nivel el 15 jul 2026')
+    expect(tEs('differences.alreadySettledElsewhere')).toBe('Esta diferencia ya se liquidó (desde otra pantalla). No se agregó nada.')
+    expect(tEs('differences.cause.CONTEO', { antes: 8, ahora: 10 })).toBe('Conteo corregido: 8 → 10')
+    expect(tEs('differences.cause.COACH_SALE', { coach: 'Ana Martínez' })).toBe('Ya no da esta clase (ahora: Ana Martínez)')
+    expect(tEs('differences.banner', { count: 1 })).toBe('1 diferencia por liquidar')
+    expect(tEs('differences.banner', { count: 3 })).toBe('3 diferencias por liquidar')
+    // El aviso de HUELLA_CAMBIO no repite su título en la descripción (QA B-7).
+    expect(tEs('differences.changedHelp')).not.toMatch(/montos cambiaron/i)
+    expect(tEs('period.negativeBalance')).toBe('Saldo en contra: recibió de más en periodos anteriores. Avoqado no cobra ni descuenta solo.')
+    expect(tEs('closed.settleNegativeTitle', { nombre: 'Carlos Rodríguez', monto: '−$360.00' })).toBe(
+      '¿Registrar como saldado el recibo de Carlos Rodríguez (−$360.00)?',
+    )
     expect(tEs('differences.addsTo', { destino: 'octubre de 2026' })).toBe('Se suma al recibo de octubre de 2026')
     expect(tEs('differences.subtractsFrom', { destino: 'octubre de 2026' })).toBe('Se descuenta del recibo de octubre de 2026')
     expect(tEs('differences.originUnchanged', { origen: 'agosto de 2026' })).toBe('El recibo de agosto de 2026 no cambia.')
@@ -49,6 +66,7 @@ describe('textos de pago por servicio', () => {
     expect(tEs('differences.settleIn', { periodo: 'octubre de 2026' })).toBe('Liquidar en octubre de 2026')
     expect(tEs('differences.lateClass', { periodo: 'agosto de 2026' })).toBe('Esta clase llegó después del cierre de agosto de 2026: se paga como diferencia.')
     expect(Object.keys(en.differences).sort()).toEqual(Object.keys(es.differences).sort())
-    for (const texto of [...Object.values(es.differences), ...Object.values(en.differences)]) expect(texto).not.toMatch(/muy pronto|coming soon/i)
+    expect(Object.keys(en.differences.cause).sort()).toEqual(Object.keys(es.differences.cause).sort())
+    for (const texto of [...Object.values(es.differences), ...Object.values(en.differences)]) expect(JSON.stringify(texto)).not.toMatch(/muy pronto|coming soon/i)
   })
 })
