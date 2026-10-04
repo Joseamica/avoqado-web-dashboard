@@ -17,7 +17,7 @@ describe('textos de pago por servicio', () => {
     expect(tEs('period.exceptionsBanner', { count: 3 })).toMatch(/^3 clases no se pueden/)
     expect(tEn('period.exceptionsBanner', { count: 1 })).toMatch(/^1 class cannot/)
     expect(tEs('period.orphans', { count: 1 })).toMatch(/^1 reserva de clase sin horario no cuenta/)
-    expect(tEs('vigencia.part', { count: 1, periodo: 'octubre de 2026' })).toBe('1 clase de octubre de 2026')
+    expect(tEs('vigencia.part', { count: 1, periodo: 'octubre de 2026' })).toBe('1 clase en octubre de 2026')
     expect(tEs('vigencia.effectTotal', { count: 1 })).toBe('Cambia el pago de 1 clase.')
     expect(tEs('grid.missingCount', { count: 1 })).toBe('Falta 1 monto')
     expect(tEs('grid.cellLabel', { level: 'Coach', count: 1 })).toBe('Coach, 1 lugar')
@@ -41,17 +41,17 @@ describe('textos de pago por servicio', () => {
       inicio: tEs('vigencia.part', { count: 12, periodo: 'septiembre de 2026' }),
       ultimo: tEs('vigencia.partMore', { count: 3, periodo: 'octubre de 2026' }),
     })
-    expect(tEs('vigencia.effect', { lista })).toBe('Cambia el pago de 12 clases de septiembre de 2026 y 3 de octubre de 2026.')
+    // «en», no «de»: «3 de octubre» se leería como una fecha.
+    expect(tEs('vigencia.effect', { lista })).toBe('Cambia el pago de 12 clases en septiembre de 2026 y 3 en octubre de 2026.')
     expect(tEs('vigencia.effect', { lista: tEs('vigencia.part', { count: 3, periodo: 'octubre de 2026' }) })).toBe(
-      'Cambia el pago de 3 clases de octubre de 2026.',
+      'Cambia el pago de 3 clases en octubre de 2026.',
     )
+    expect(tEs('vigencia.partSemi', { count: 3, periodo: '16–30 de septiembre de 2026' })).toBe('3 clases en la quincena 16–30 de septiembre de 2026')
     expect(tEs('vigencia.effectNone')).toBe('No cambia el pago de ninguna clase todavía.')
-    expect(
-      tEs('vigencia.effectWithOlder', {
-        lista: tEs('vigencia.part', { count: 3, periodo: 'octubre de 2026' }),
-        anteriores: tEs('vigencia.olderMonths', { count: 2 }),
-      }),
-    ).toBe('Cambia el pago de 3 clases de octubre de 2026, y de clases de 2 meses anteriores que siguen abiertos.')
+    // Lo que el server no recorrió no se afirma; y el singular concuerda.
+    expect(tEs('vigencia.notCountedMonths', { count: 1 })).toBe('No se contó 1 mes anterior que sigue abierto; también puede cambiar.')
+    expect(tEs('vigencia.notCountedMonths', { count: 2 })).toBe('No se contaron 2 meses anteriores que siguen abiertos; también pueden cambiar.')
+    expect(tEs('vigencia.notCountedPeriods', { count: 1 })).toBe('No se contó 1 periodo anterior que sigue abierto; también puede cambiar.')
     expect(tEs('vigencia.closedUnchanged')).toBe('Los meses ya cerrados no cambian.')
     expect(tEs('vigencia.useDate', { fecha: '1 sep 2026' })).toBe('Usar el 1 sep 2026')
     for (const texto of [JSON.stringify(es), JSON.stringify(en)]) expect(texto).not.toMatch(/se quedan como estaban|stay as they were/)

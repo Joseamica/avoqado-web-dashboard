@@ -32,13 +32,25 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
   const [minimoDelServer, setMinimoDelServer] = useState<string | null>(null)
   // Sólo lo que ya está en caché (enabled=false): sin petición nueva.
   const { data: periodos } = useStaffPayPeriods(false)
+  const items = useMemo(() => periodos?.items ?? [], [periodos])
+  // El server deja cerrar fuera de orden (septiembre abierto por excepciones mientras octubre se cierra): la lista sólo
+  // impone un mínimo si NO hay un periodo abierto antes del último cerrado. El 400 del server sigue siendo la autoridad.
   const minimoDeLista = useMemo(() => {
-    const finCerrado = (periodos?.items ?? [])
-      .filter(p => p.estado === 'CLOSED')
-      .reduce<string | null>((a, p) => (!a || p.end > a ? p.end : a), null)
-    return finCerrado ? diaSiguiente(finCerrado) : null
-  }, [periodos])
+    const finCerrado = items.filter(p => p.estado === 'CLOSED').reduce<string | null>((a, p) => (!a || p.end > a ? p.end : a), null)
+    if (!finCerrado || items.some(p => p.estado === 'OPEN' && p.start < finCerrado)) return null
+    return diaSiguiente(finCerrado)
+  }, [items])
   const fechaValida = FECHA_ISO.test(fecha)
+  // La fecha cae DENTRO de un periodo cerrado de la lista: no se confirma, y se dice desde cuándo sí (el día siguiente a
+  // los cerrados seguidos, como el server).
+  const cerradoDeLista = useMemo(() => {
+    const cerrado = (d: string) => items.find(p => p.estado === 'CLOSED' && p.start <= d && d <= p.end)
+    const p = fechaValida ? cerrado(fecha) : undefined
+    if (!p) return null
+    let primera = diaSiguiente(p.end)
+    for (let siguiente = cerrado(primera); siguiente; siguiente = cerrado(primera)) primera = diaSiguiente(siguiente.end)
+    return { start: p.start, end: p.end, primera }
+  }, [items, fecha, fechaValida])
 
   useEffect(() => {
     if (!fechaValida) {
@@ -77,10 +89,17 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
     setFecha,
     efecto,
     calculando,
+    /** El mensaje del server (400) para ESTA fecha. */
     error,
+    /** La fecha cae en un periodo cerrado de la lista en caché (se explica igual que el 400). */
+    cerradoDeLista,
     minimo,
-    /** Fecha inválida, dentro de un periodo cerrado, o antes del mínimo conocido: no se confirma. */
-    bloqueada: !fechaValida || !!error || (!!minimo && fecha < minimo),
+    /** A dónde lleva el atajo «Usar el …». */
+    atajo: (error ? minimoDelServer : null) ?? cerradoDeLista?.primera ?? null,
+    /** De la lista en caché; si no está, la decide el primer periodo de la simulación. */
+    periodicidad: periodos?.periodicidad ?? null,
+    /** Fecha inválida o dentro de un periodo cerrado (según el server o la lista): no se confirma. */
+    bloqueada: !fechaValida || !!error || !!cerradoDeLista,
     /** Un 400 de fecha cerrada AL GUARDAR también se muestra en línea; devuelve true si lo era. */
     tomarError: (err: unknown) => {
       const c = fechaCerrada(err)

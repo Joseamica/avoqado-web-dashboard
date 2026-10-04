@@ -437,17 +437,20 @@
     "partMore": "{{count}} in {{periodo}}",
     "list": "{{inicio}} and {{ultimo}}",
     "effect": "Changes the pay of {{lista}}.",
-    "effectWithOlder": "Changes the pay of {{lista}}, and of classes in {{anteriores}} that are still open.",
-    "effectOnlyOlder": "Changes the pay of classes in {{anteriores}} that are still open.",
-    "olderMonths_one": "{{count}} earlier month",
-    "olderMonths_other": "{{count}} earlier months",
-    "olderPeriods_one": "{{count}} earlier period",
-    "olderPeriods_other": "{{count}} earlier periods",
     "effectNone": "Doesn't change the pay of any class yet.",
     "effectTotal_one": "Changes the pay of {{count}} class.",
     "effectTotal_other": "Changes the pay of {{count}} classes.",
     "closedUnchanged": "Months already closed don't change.",
     "closedUnchangedPeriods": "Periods already closed don't change.",
-    "useDate": "Use {{fecha}}"
+    "useDate": "Use {{fecha}}",
+    "partSemi_one": "{{count}} class in the half-month {{periodo}}",
+    "partSemi_other": "{{count}} classes in the half-month {{periodo}}",
+    "partMoreSemi": "{{count}} in the half-month {{periodo}}",
+    "effectNoneCounted": "No class changes in the periods checked.",
+    "notCountedMonths_one": "{{count}} earlier month that is still open wasn't counted; it may change too.",
+    "notCountedMonths_other": "{{count}} earlier months that are still open weren't counted; they may change too.",
+    "notCountedPeriods_one": "{{count}} earlier period that is still open wasn't counted; it may change too.",
+    "notCountedPeriods_other": "{{count}} earlier periods that are still open weren't counted; they may change too.",
+    "closedLocal": "{{periodo}} is already closed: choose a date from {{fecha}}. For a class in a closed period use “Adjust amount” in the class."
   }
 }

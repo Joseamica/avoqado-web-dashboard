@@ -432,22 +432,25 @@
     "exitNoPermission": "Se resuelve en la clase con «Ajustar monto», y para eso hace falta el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio."
   },
   "vigencia": {
-    "part_one": "{{count}} clase de {{periodo}}",
-    "part_other": "{{count}} clases de {{periodo}}",
-    "partMore": "{{count}} de {{periodo}}",
+    "part_one": "{{count}} clase en {{periodo}}",
+    "part_other": "{{count}} clases en {{periodo}}",
+    "partMore": "{{count}} en {{periodo}}",
     "list": "{{inicio}} y {{ultimo}}",
     "effect": "Cambia el pago de {{lista}}.",
-    "effectWithOlder": "Cambia el pago de {{lista}}, y de clases de {{anteriores}} que siguen abiertos.",
-    "effectOnlyOlder": "Cambia el pago de clases de {{anteriores}} que siguen abiertos.",
-    "olderMonths_one": "{{count}} mes anterior",
-    "olderMonths_other": "{{count}} meses anteriores",
-    "olderPeriods_one": "{{count}} periodo anterior",
-    "olderPeriods_other": "{{count}} periodos anteriores",
     "effectNone": "No cambia el pago de ninguna clase todavía.",
     "effectTotal_one": "Cambia el pago de {{count}} clase.",
     "effectTotal_other": "Cambia el pago de {{count}} clases.",
     "closedUnchanged": "Los meses ya cerrados no cambian.",
     "closedUnchangedPeriods": "Los periodos ya cerrados no cambian.",
-    "useDate": "Usar el {{fecha}}"
+    "useDate": "Usar el {{fecha}}",
+    "partSemi_one": "{{count}} clase en la quincena {{periodo}}",
+    "partSemi_other": "{{count}} clases en la quincena {{periodo}}",
+    "partMoreSemi": "{{count}} en la quincena {{periodo}}",
+    "effectNoneCounted": "En los periodos revisados no cambia ninguna clase.",
+    "notCountedMonths_one": "No se contó {{count}} mes anterior que sigue abierto; también puede cambiar.",
+    "notCountedMonths_other": "No se contaron {{count}} meses anteriores que siguen abiertos; también pueden cambiar.",
+    "notCountedPeriods_one": "No se contó {{count}} periodo anterior que sigue abierto; también puede cambiar.",
+    "notCountedPeriods_other": "No se contaron {{count}} periodos anteriores que siguen abiertos; también pueden cambiar.",
+    "closedLocal": "{{periodo}} ya se cerró: elige una fecha desde el {{fecha}}. Para una clase de un periodo cerrado usa «Ajustar monto» en la clase."
   }
 }

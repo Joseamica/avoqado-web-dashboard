@@ -47,7 +47,7 @@ beforeEach(() => {
 })
 
 describe('vigencia de un nivel o una tabla (revisión final I-2)', () => {
-  it('dos periodos abiertos: «12 clases de septiembre de 2026 y 3 de octubre de 2026», y los cerrados no cambian', async () => {
+  it('dos periodos abiertos: «12 clases en septiembre de 2026 y 3 en octubre de 2026», y los cerrados no cambian', async () => {
     m.assign.mockResolvedValue({
       clasesQueCambian: 15,
       porPeriodo: [
@@ -86,12 +86,12 @@ describe('vigencia de un nivel o una tabla (revisión final I-2)', () => {
     expect(await aviso()).toHaveTextContent('vigencia.effectNone')
   })
 
-  it('con periodos abiertos más viejos sin contar, lo dice', async () => {
+  it('con periodos abiertos más viejos SIN contar, no afirma que cambian: dice que no se contaron y que pueden cambiar', async () => {
     m.assign.mockResolvedValue({ clasesQueCambian: 3, porPeriodo: [{ ...OCT, clases: 3 }], periodosSinContar: 2 })
     pintar()
     const texto = await aviso()
-    expect(texto).toHaveTextContent(/^vigencia\.effectWithOlder/)
-    expect(texto).toHaveTextContent('vigencia.olderMonths:{\\"count\\":2}')
+    expect(texto).toHaveTextContent(/^vigencia\.effect:/)
+    expect(texto.parentElement).toHaveTextContent('vigencia.notCountedMonths:{"count":2}')
   })
 
   it('una fecha en un periodo cerrado: el mensaje del server en línea, botón apagado, «min» y el atajo a la primera fecha', async () => {
@@ -118,9 +118,10 @@ describe('vigencia de un nivel o una tabla (revisión final I-2)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('con la lista de periodos en caché, el «min» ya está desde el principio (día siguiente al último cerrado)', async () => {
+  it('con la lista de periodos en caché, el «min» ya está desde el principio y una fecha cerrada se explica', async () => {
     m.periodos.mockReturnValue({
       data: {
+        periodicidad: 'MONTHLY',
         items: [
           { start: '2026-10-01', end: '2026-10-31', estado: 'OPEN' },
           { start: '2026-08-01', end: '2026-08-31', estado: 'CLOSED' },
@@ -131,9 +132,53 @@ describe('vigencia de un nivel o una tabla (revisión final I-2)', () => {
     m.assign.mockResolvedValue({ clasesQueCambian: 0, porPeriodo: [], periodosSinContar: 0 })
     pintar()
     expect(screen.getByLabelText('assign.effectiveFrom')).toHaveAttribute('min', '2026-09-01')
-    // Y una fecha anterior al mínimo no se deja confirmar, aunque el server aún no conteste.
+    // Una fecha DENTRO de un mes cerrado de la lista no se deja confirmar, y se explica (aunque el server aún no conteste).
     fireEvent.change(screen.getByLabelText('assign.effectiveFrom'), { target: { value: '2026-08-15' } })
     expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeDisabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('vigencia.closedLocal:{"periodo":"agosto de 2026","fecha":"dia(2026-09-01)"}')
+    fireEvent.click(screen.getByRole('button', { name: 'vigencia.useDate:{"fecha":"dia(2026-09-01)"}' }))
+    expect(screen.getByLabelText('assign.effectiveFrom')).toHaveValue('2026-09-01')
+  })
+
+  it('cerrados fuera de orden (agosto cerrado, septiembre abierto, octubre cerrado): septiembre NO se bloquea; octubre sí, explicado', async () => {
+    m.periodos.mockReturnValue({
+      data: {
+        periodicidad: 'MONTHLY',
+        items: [
+          { start: '2026-11-01', end: '2026-11-30', estado: 'OPEN' },
+          { start: '2026-10-01', end: '2026-10-31', estado: 'CLOSED' },
+          { start: '2026-09-01', end: '2026-09-30', estado: 'OPEN' },
+          { start: '2026-08-01', end: '2026-08-31', estado: 'CLOSED' },
+        ],
+      },
+    })
+    m.assign.mockResolvedValue({ clasesQueCambian: 4, porPeriodo: [{ ...SEP, clases: 4 }], periodosSinContar: 0 })
+    render(
+      <AsignarNivelModal
+        open
+        onOpenChange={vi.fn()}
+        staffId="s1"
+        staffName="Ana"
+        payLevelId="hc"
+        payLevelName="Head Coach"
+        hoy="2026-11-03"
+      />,
+    )
+    // Con un mes abierto ANTES del último cerrado, la lista no impone un mínimo (el server sí acepta septiembre).
+    expect(screen.getByLabelText('assign.effectiveFrom')).not.toHaveAttribute('min')
+    fireEvent.change(screen.getByLabelText('assign.effectiveFrom'), { target: { value: '2026-09-15' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeEnabled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('assign.effectiveFrom'), { target: { value: '2026-10-10' } })
+    expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeDisabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('vigencia.closedLocal:{"periodo":"octubre de 2026","fecha":"dia(2026-11-01)"}')
+  })
+
+  it('«meses» o «periodos» sale de la periodicidad de la lista, también sin periodos en la simulación', async () => {
+    m.periodos.mockReturnValue({ data: { periodicidad: 'SEMIMONTHLY', items: [] } })
+    m.assign.mockResolvedValue({ clasesQueCambian: 0, porPeriodo: [], periodosSinContar: 0 })
+    pintar()
+    expect((await aviso()).parentElement).toHaveTextContent('vigencia.closedUnchangedPeriods')
   })
 
   it('al publicar una tabla: mismo aviso, y un 400 al GUARDAR también se explica en línea (no en un aviso genérico)', async () => {
