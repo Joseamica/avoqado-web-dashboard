@@ -42,6 +42,10 @@ vi.mock('./components/passes/PassVisitsList', () => ({
   },
 }))
 
+vi.mock('./components/passes/PassVisitsSummary', () => ({
+  PassVisitsSummary: ({ venueId }: { venueId: string }) => <div data-testid="visits-summary">{venueId}</div>,
+}))
+
 import PassVisits from './PassVisits'
 
 /** Muestra el hash de la URL: la pestaña elegida tiene que quedar ahí (sobrevive a recargar y se puede compartir). */
@@ -78,6 +82,15 @@ describe('PassVisits (Pantalla B)', () => {
     expect(listProps.last).toMatchObject({ venueId: 'v1', provider: null, dateRange: { from: null, to: null } })
   })
 
+  // Tarea 9: el reporte del mes va ARRIBA de los filtros y de la lista.
+  it('monta el reporte del mes de la sucursal arriba de los filtros', () => {
+    renderPage()
+    const summary = screen.getByTestId('visits-summary')
+    expect(summary).toHaveTextContent('v1')
+    expect(summary.compareDocumentPosition(screen.getByRole('button', { name: 'visits.filters.date' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(summary.compareDocumentPosition(screen.getByTestId('visits-list')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   // Pestañas píldora en hash.
   it('lee la pestaña del hash y cambiarla escribe el hash', async () => {
     const user = userEvent.setup()
@@ -100,6 +113,7 @@ describe('PassVisits (Pantalla B)', () => {
     renderPage()
     expect(screen.getByText('errors.planUnresolved')).toBeInTheDocument()
     expect(screen.queryByTestId('visits-list')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('visits-summary')).not.toBeInTheDocument()
   })
 
   // H7: lo elegido en los filtros llega a la lista (y de ahí a la consulta: PassVisitsList.test).

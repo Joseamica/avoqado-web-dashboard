@@ -12,6 +12,7 @@ import { usePassIntegrationsOverview, usePassesAccess } from '@/hooks/use-passes
 import { DateRangeFilterContent, type DateRangeValue } from '@/pages/AreaTickets/components/DateRangeFilterContent'
 import type { PassProvider } from '@/types/passes'
 import { PassVisitsList } from './components/passes/PassVisitsList'
+import { PassVisitsSummary } from './components/passes/PassVisitsSummary'
 import { PASS_VISIT_TABS, type PassVisitTab } from './components/passes/passVisitTabs'
 
 const VALID_TABS = Object.keys(PASS_VISIT_TABS) as PassVisitTab[]
@@ -81,6 +82,9 @@ export default function PassVisits() {
           </Alert>
         ) : (
           <>
+            {/* key: el mes por defecto sale de la zona del venue; otra sucursal arranca en SU mes actual (switchVenue no desmonta). */}
+            <PassVisitsSummary key={`summary-${venueId}`} venueId={venueId} />
+
             <div className="flex flex-wrap items-center gap-2">
               {providerOptions.length > 1 && (
                 <FilterPill

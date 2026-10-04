@@ -173,5 +173,22 @@
     "total": "{{count}} check-in",
     "total_other": "{{count}} check-ins",
     "lastError": "Last error: {{error}}"
+  },
+  "summary": {
+    "title": "Monthly report",
+    "description": "To reconcile each provider's deposit: expired ones are visits they won't pay for.",
+    "month": "Month",
+    "loadError": "Couldn't load the monthly report",
+    "refreshError": "We couldn't refresh the report; showing what last loaded.",
+    "empty": "No provider is connected yet. Connect one in Settings › Integrations › Passes.",
+    "columns": {
+      "provider": "Provider",
+      "confirmed": "Confirmed",
+      "alreadyConfirmed": "Confirmed in the portal",
+      "expired": "Expired (lost payments)",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "lateCancellations": "Late cancellations"
+    }
   }
 }

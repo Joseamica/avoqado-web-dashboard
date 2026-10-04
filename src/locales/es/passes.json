@@ -173,5 +173,22 @@
     "total": "{{count}} check-in",
     "total_other": "{{count}} check-ins",
     "lastError": "Último error: {{error}}"
+  },
+  "summary": {
+    "title": "Reporte del mes",
+    "description": "Para cuadrar el depósito de cada proveedor: las vencidas son visitas que no te van a pagar.",
+    "month": "Mes",
+    "loadError": "No se pudo cargar el reporte del mes",
+    "refreshError": "No pudimos actualizar el reporte; mostramos lo último que cargó.",
+    "empty": "Todavía no hay un proveedor conectado. Conéctalo en Configuración › Integraciones › Pases.",
+    "columns": {
+      "provider": "Proveedor",
+      "confirmed": "Confirmadas",
+      "alreadyConfirmed": "Ya confirmadas en el portal",
+      "expired": "Vencidas (cobros perdidos)",
+      "rejected": "Rechazadas",
+      "pending": "Pendientes",
+      "lateCancellations": "Canceladas tarde"
+    }
   }
 }
