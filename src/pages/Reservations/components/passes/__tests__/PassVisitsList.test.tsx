@@ -472,11 +472,22 @@ describe('PassVisitsList', () => {
   })
 
   it('muestra el último error de la fila', async () => {
+    svc.listPassVisits.mockResolvedValue(page([visit({ lastError: 'TotalPass HTTP 503' })]))
+    renderList()
+    expect(await screen.findByText('visits.lastError:{"error":"TotalPass HTTP 503"}')).toBeInTheDocument()
+  })
+
+  // D8 (P3-20): al vencer, el server deja una explicación en lastError; en Vencidos se muestra tal cual, sin «Último error»
+  // ni nada que diga que se sigue reintentando (aunque la última fila de la bandeja hubiera quedado reintentando).
+  it('una visita vencida muestra su lastError tal cual, sin prefijo ni «reintentamos»', async () => {
+    const EXPIRED_NOTE = 'Venció sin que el proveedor confirmara la visita.'
     svc.listPassVisits.mockResolvedValue(
-      page([visit({ status: 'EXPIRED', lastError: 'TotalPass HTTP 503', canConfirm: false, canReject: false })]),
+      page([visit({ status: 'EXPIRED', validation: 'RETRYING', lastError: EXPIRED_NOTE, canConfirm: false, canReject: false })]),
     )
     renderList({ tab: 'expired' })
-    expect(await screen.findByText('visits.lastError:{"error":"TotalPass HTTP 503"}')).toBeInTheDocument()
+    expect(await screen.findByText(EXPIRED_NOTE)).toBeInTheDocument()
+    expect(screen.queryByText(/^visits\.lastError/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^visits\.validation\./)).not.toBeInTheDocument()
   })
 
   // Un rechazo guarda «Rechazada por el estudio» en lastError: no es un error y no se pinta como tal.

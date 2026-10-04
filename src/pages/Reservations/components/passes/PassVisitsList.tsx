@@ -401,7 +401,13 @@ function VisitRow({
             {providerName}
           </Badge>
         </div>
-        {showLastError && <p className="mt-0.5 text-xs text-destructive">{t('visits.lastError', { error: visit.lastError })}</p>}
+        {/* D8: al vencer, el server deja una explicación («Venció sin que…»): va tal cual, no como «Último error». */}
+        {showLastError &&
+          (visit.status === 'EXPIRED' ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">{visit.lastError}</p>
+          ) : (
+            <p className="mt-0.5 text-xs text-destructive">{t('visits.lastError', { error: visit.lastError })}</p>
+          ))}
       </TableCell>
       <TableCell className="text-sm">
         {visit.reservation ? (
