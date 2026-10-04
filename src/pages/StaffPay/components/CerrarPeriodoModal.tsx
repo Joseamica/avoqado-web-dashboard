@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2, Lock } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -41,10 +41,13 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   const cerrar = useClosePeriod()
   const [entiendo, setEntiendo] = useState(false)
   const [enviando, setEnviando] = useState(false)
+  // Candado síncrono (full-testing C6): el estado no alcanza a cerrarse entre dos clics seguidos.
+  const enVuelo = useRef(false)
   const listo = !!p && !isError && p.puedeCerrar && (p.huerfanas === 0 || entiendo)
 
   const confirmar = async () => {
-    if (!p || !listo || enviando || isFetching) return
+    if (!p || !listo || enviando || isFetching || enVuelo.current) return
+    enVuelo.current = true
     setEnviando(true)
     try {
       const r = await cerrar.mutateAsync({ fecha, huellaEsperada: p.huella, confirmarHuerfanas: p.huerfanas > 0 && entiendo })
@@ -69,6 +72,7 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
         }
       }
     } finally {
+      enVuelo.current = false
       setEnviando(false)
     }
   }

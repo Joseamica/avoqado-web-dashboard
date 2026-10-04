@@ -164,14 +164,51 @@ describe('vigencia de un nivel o una tabla (revisión final I-2)', () => {
         hoy="2026-11-03"
       />,
     )
-    // Con un mes abierto ANTES del último cerrado, la lista no impone un mínimo (el server sí acepta septiembre).
-    expect(screen.getByLabelText('assign.effectiveFrom')).not.toHaveAttribute('min')
+    // Con un mes abierto ANTES del último cerrado, la lista no impone su mínimo (el server sí acepta septiembre): sólo queda
+    // la orilla del rango del contrato (hoy − 24 meses).
+    expect(screen.getByLabelText('assign.effectiveFrom')).toHaveAttribute('min', '2024-11-03')
     fireEvent.change(screen.getByLabelText('assign.effectiveFrom'), { target: { value: '2026-09-15' } })
     await waitFor(() => expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeEnabled())
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('assign.effectiveFrom'), { target: { value: '2026-10-10' } })
     expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeDisabled()
     expect(screen.getByRole('alert')).toHaveTextContent('vigencia.closedLocal:{"periodo":"octubre de 2026","fecha":"dia(2026-11-01)"}')
+  })
+
+  it('fuera del rango del contrato (hoy ± 24 meses): no se simula, botón apagado, se explica y el atajo lleva a la orilla (A11)', async () => {
+    m.assign.mockResolvedValue({ clasesQueCambian: 0, porPeriodo: [], periodosSinContar: 0 })
+    pintar()
+    await aviso()
+    const input = screen.getByLabelText('assign.effectiveFrom')
+    expect(input).toHaveAttribute('min', '2024-10-03')
+    expect(input).toHaveAttribute('max', '2028-10-03')
+    const llamadas = m.assign.mock.calls.length
+    fireEvent.change(input, { target: { value: '1900-01-01' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('vigencia.outOfRange:{"desde":"dia(2024-10-03)","hasta":"dia(2028-10-03)"}')
+    expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeDisabled()
+    expect(m.assign.mock.calls.length).toBe(llamadas)
+    fireEvent.click(screen.getByRole('button', { name: 'vigencia.useDate:{"fecha":"dia(2024-10-03)"}' }))
+    expect(input).toHaveValue('2024-10-03')
+    fireEvent.change(input, { target: { value: '2999-01-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'vigencia.useDate:{"fecha":"dia(2028-10-03)"}' }))
+    expect(input).toHaveValue('2028-10-03')
+  })
+
+  it('el 400 FECHA_FUERA_DE_RANGO del server se explica en línea, igual que el de un periodo cerrado', async () => {
+    m.assign.mockRejectedValue({
+      response: {
+        status: 400,
+        data: {
+          code: 'FECHA_FUERA_DE_RANGO',
+          message: 'La vigencia debe estar entre el 3 oct 2024 y el 3 oct 2028',
+          details: { desde: '2024-10-03', hasta: '2028-10-03' },
+        },
+      },
+    })
+    pintar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('La vigencia debe estar entre el 3 oct 2024 y el 3 oct 2028')
+    expect(m.toast).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'assign.confirm' })).toBeDisabled()
   })
 
   it('«meses» o «periodos» sale de la periodicidad de la lista, también sin periodos en la simulación', async () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Loader2 } from 'lucide-react'
@@ -23,6 +23,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { conSigno } from '../conSigno'
 import { porPersona, useCausaDiferencia } from '../diferencias'
 import { useFocoDeVuelta } from '../foco'
+import { mensajeLegible, sinRespuesta } from '../rangos'
 import { periodicidadDe, useNombrePeriodo } from '../useNombrePeriodo'
 import { useNombreSede, useRutaDeSede } from '../useNombreSede'
 
@@ -129,6 +130,11 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   // pagaría una diferencia nueva de la misma clase.
   const [solicitudId, setSolicitudId] = useState(() => crypto.randomUUID())
   const [enviando, setEnviando] = useState(false)
+  // Candado síncrono: el estado de React puede no alcanzar a cerrarse entre dos clics (full-testing C6).
+  const enVuelo = useRef(false)
+  // Esta clave ya se mandó y la respuesta no llegó: si el server ya la había aplicado, su «ya liquidada» es el éxito de ESTE
+  // clic, no «otra pantalla» (full-testing C11).
+  const sinConfirmar = useRef(false)
   // HUELLA_CAMBIO: los montos de abajo ya son los nuevos; se dice (con antes → ahora si se sabe) hasta el siguiente intento.
   const [cambio, setCambio] = useState<string | null>(null)
   // SEDE_FUERA_DEL_PERIODO: la sede salió del destino entre el preview y la confirmación.
@@ -148,7 +154,8 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   const mensajeError = (error as ErrorApi | null)?.response?.data?.message
 
   const confirmar = async () => {
-    if (!p?.periodoOrigen || !listo) return
+    if (!p?.periodoOrigen || !listo || enVuelo.current) return
+    enVuelo.current = true
     setEnviando(true)
     setCambio(null)
     try {
@@ -158,8 +165,17 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
         solicitudId,
         ...(ampliar ? { ampliarAlcance: true } : {}),
       })
-      // Una repetición (doble clic, la respuesta que no llegó) devuelve lo MISMO: se dice, no se presenta como pago nuevo.
-      toast({ title: r.yaLiquidada ? t('differences.alreadySettled') : t('differences.settled', { periodo: destino }) })
+      // «Ya liquidada» tras una respuesta perdida con ESTA clave = lo liquidó este clic. Si nunca se había mandado, es que no
+      // había nada nuevo que pagar: se dice neutro, no como pago nuevo.
+      const fueEste = !r.yaLiquidada || sinConfirmar.current
+      sinConfirmar.current = false
+      const nombre = (staffId: string) => p.filas.find(f => f.persona === staffId)?.personaNombre ?? t('period.noCoach')
+      const lineas = r.lineas.map(l => t('differences.settledLine', { persona: nombre(l.staffId), monto: conSigno(l.amount) })).join(' · ')
+      toast(
+        fueEste
+          ? { title: t('differences.settled', { periodo: destino }), ...(lineas ? { description: lineas } : {}) }
+          : { title: t('differences.alreadySettled') },
+      )
       onClose()
     } catch (err) {
       const data = (err as ErrorApi)?.response?.data
@@ -186,12 +202,20 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
         onClose()
       } else if (data?.code === 'CLASE_EN_EXCEPCION') {
         setExcepcionEn(p)
+      } else if (sinRespuesta(err)) {
+        // La respuesta no llegó: puede que sí se haya liquidado. El reintento lleva la MISMA clave, así que no duplica.
+        sinConfirmar.current = true
+        toast({ title: t('differences.networkRetry') })
       } else {
         // CLAVE_REUTILIZADA no debería pasar con una clave nueva por apertura; si pasa, el siguiente intento lleva otra.
-        if (data?.code === 'CLAVE_REUTILIZADA') setSolicitudId(crypto.randomUUID())
-        toast({ title: data?.message ?? t('errors.generic'), variant: 'destructive' })
+        if (data?.code === 'CLAVE_REUTILIZADA') {
+          setSolicitudId(crypto.randomUUID())
+          sinConfirmar.current = false
+        }
+        toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
       }
     } finally {
+      enVuelo.current = false
       setEnviando(false)
     }
   }

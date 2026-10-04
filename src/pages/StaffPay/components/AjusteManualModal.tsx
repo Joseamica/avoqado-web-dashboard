@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import { hoyEnSede } from '../hoyEnSede'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
 import { useFocoDeVuelta } from '../foco'
+import { MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
 
 interface Props {
   open: boolean
@@ -91,12 +92,24 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const totalEquipo = equipo.data?.meta?.totalCount ?? opciones.length
 
   const [tipo, setTipo] = useState<'bono' | 'descuento'>('bono')
-  const [monto, setMonto] = useState<number | undefined>(undefined)
+  // El monto como se escribe: se valida igual que el server (> 0, ≤ $1,000,000, máximo 2 decimales) ANTES de la vista
+  // previa. Antes 10.005 decía «Se suman $10.01» y 1e12 «$1,000,000,000,000.00», con «Guardar» encendido (full-testing A12).
+  const [montoTexto, setMontoTexto] = useState('')
+  const montoValido = MONTO_VALIDO.test(montoTexto) && Number(montoTexto) > 0 && Number(montoTexto) <= MONTO_MAXIMO
+  const monto = montoValido ? Number(montoTexto) : undefined
   const [motivo, setMotivo] = useState('')
   const [guardando, setGuardando] = useState(false)
-  const listo = !!persona && !!sede && monto !== undefined && monto > 0 && motivo.trim().length >= MIN_MOTIVO
+  // Candado síncrono (full-testing C6): el estado no alcanza a cerrarse entre dos clics seguidos.
+  const enVuelo = useRef(false)
+  // Un 400 del server (validación o fecha fuera de rango), dicho en línea y legible; se borra al cambiar algo.
+  const [errorServer, setErrorServer] = useState<string | null>(null)
+  // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy): se dice antes de guardar.
+  const desdeAjuste = sumarMeses(hoyEnSede(venueTimezone), -MESES_AJUSTE_ATRAS)
+  const fueraDeRango = fechaDestino < desdeAjuste
+  const listo = !!persona && !!sede && monto !== undefined && motivo.trim().length >= MIN_MOTIVO && !fueraDeRango
 
   const elegirPersona = (item: SearchComboboxItem) => {
+    setErrorServer(null)
     setPersona({ staffId: item.id, nombre: item.label, email: item.description })
     setBusqueda('')
   }
@@ -106,8 +119,10 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   }
 
   const guardar = async () => {
-    if (!listo || guardando) return
+    if (!listo || guardando || enVuelo.current) return
+    enVuelo.current = true
     setGuardando(true)
+    setErrorServer(null)
     try {
       const r = await agregar.mutateAsync({
         staffId: persona!.staffId,
@@ -120,8 +135,12 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
       toast({ title: t('manualAdjust.saved', { start: formatCalendarDate(r.periodo.start), end: formatCalendarDate(r.periodo.end) }) })
       onOpenChange(false)
     } catch (err) {
-      toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
+      const status = (err as { response?: { status?: number } } | null)?.response?.status
+      // Un 400 (monto, motivo, FECHA_FUERA_DE_RANGO…) se dice junto al formulario; lo demás, en un aviso.
+      if (status === 400) setErrorServer(mensajeLegible(err) ?? t('errors.generic'))
+      else toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
     } finally {
+      enVuelo.current = false
       setGuardando(false)
     }
   }
@@ -231,14 +250,15 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
               step="0.01"
               className="h-12 text-base"
               placeholder="0.00"
-              value={monto ?? ''}
+              value={montoTexto}
               onChange={e => {
-                const raw = e.target.value
-                const n = parseFloat(raw)
-                setMonto(raw === '' || Number.isNaN(n) ? undefined : Math.abs(n))
+                setErrorServer(null)
+                setMontoTexto(e.target.value)
               }}
+              aria-invalid={montoTexto !== '' && !montoValido}
               data-tour="staffpay-adjust-amount"
             />
+            {montoTexto !== '' && !montoValido && <p className="text-xs text-destructive">{t('manualAdjust.amountInvalid')}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="staffpay-ajuste-motivo">{t('manualAdjust.reason')}</Label>
@@ -247,13 +267,22 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
               className="h-12 text-base"
               maxLength={300}
               value={motivo}
-              onChange={e => setMotivo(e.target.value)}
+              onChange={e => {
+                setErrorServer(null)
+                setMotivo(e.target.value)
+              }}
               placeholder={t('manualAdjust.reasonPlaceholder')}
               data-tour="staffpay-adjust-reason"
             />
             <p className="text-xs text-muted-foreground">{t('manualAdjust.reasonHint', { min: MIN_MOTIVO })}</p>
           </div>
         </section>
+        {(fueraDeRango || errorServer) && (
+          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{errorServer ?? t('manualAdjust.outOfRange', { desde: formatCalendarDate(desdeAjuste) })}</span>
+          </div>
+        )}
         <section className="rounded-2xl border border-border/50 bg-card p-6 text-sm" aria-live="polite">
           {persona && monto !== undefined && monto > 0 ? (
             <p className="font-medium">

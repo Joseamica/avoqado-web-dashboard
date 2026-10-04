@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Plus } from 'lucide-react'
 import {
@@ -24,6 +24,7 @@ import { hoyEnSede } from '../hoyEnSede'
 import { conSigno, monto } from '../conSigno'
 import { TABLA_PERIODO } from './ListasDelPeriodo'
 import { ANCLA_FOCO, useFocoDeVuelta } from '../foco'
+import { mensajeLegible, sinRespuesta } from '../rangos'
 import { DesglosePersona } from './DesglosePersona'
 import { AjusteManualModal } from './AjusteManualModal'
 import { DiferenciasSection } from './DiferenciasSection'
@@ -67,6 +68,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const [ajusteFecha, setAjusteFecha] = useState<string | null>(null)
   const puedePagar = can('staffpay:close')
   const focoPago = useFocoDeVuelta()
+  // Candado SÍNCRONO: el estado de React no alcanza a cerrarse entre dos clics seguidos (full-testing C6: 200 + 409 y dos
+  // avisos que se contradecían). Se toma ANTES de mandar y se suelta al terminar.
+  const enVuelo = useRef(false)
   // Aviso arriba si quedan diferencias por liquidar (QA B-12): la MISMA consulta que la sección de abajo (no pide nada de más).
   const diferencias = useDifferences(periodId, true)
   const clasesConDiferencia = useMemo(
@@ -140,7 +144,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
     )
 
   const ejecutar = async () => {
-    if (!confirmar || !vista || !puedeConfirmar) return
+    if (!confirmar || !vista || !puedeConfirmar || enVuelo.current) return
+    enVuelo.current = true
     try {
       // La huella del preview que se vio, con el MISMO staffId (o sin él): el server marca exactamente eso o responde 409.
       const r = await marcar.mutateAsync({ ...(confirmar.staffId ? { staffId: confirmar.staffId } : {}), huellaEsperada: vista.huella })
@@ -153,10 +158,17 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         // recarga: si no, seguiría diciendo «Pendiente» a quien otro ya marcó (QA defecto 6).
         toast({ title: t('close.changed'), description: t('closed.changedHelp') })
         await Promise.all([previewPago.refetch(), refetch()])
+      } else if (sinRespuesta(err)) {
+        // La respuesta se perdió y el server pudo haber marcado (full-testing C7): se vuelve a pedir la tabla y el preview,
+        // y el diálogo enseña cómo quedó (si ya se marcó, «Ya no hay recibos pendientes»).
+        toast({ title: t('closed.networkCheck') })
+        await Promise.all([previewPago.refetch(), refetch()])
       } else {
-        toast({ title: data?.message ?? t('errors.generic'), variant: 'destructive' })
+        toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
         setConfirmar(null)
       }
+    } finally {
+      enVuelo.current = false
     }
   }
 

@@ -59,12 +59,15 @@ export function CampoVigencia({
   const { t } = useTranslation('staffPay')
   const { formatCalendarDate } = useVenueDateTime()
   const nombrePeriodo = useNombrePeriodo()
-  const { fecha, setFecha, efecto, calculando, error, cerradoDeLista, minimo, atajo, periodicidad } = vigencia
+  const { fecha, setFecha, efecto, calculando, error, cerradoDeLista, fueraDeRango, minimo, maximo, atajo, periodicidad } = vigencia
   const texto = useTextoDelEfecto(periodicidad)
   const frases = efecto ? texto(efecto) : null
   // El 400 del server manda; si no ha contestado, la lista en caché ya sabe que la fecha cae en un periodo cerrado.
   const porQue =
     error ??
+    (fueraDeRango
+      ? t('vigencia.outOfRange', { desde: formatCalendarDate(fueraDeRango.desde), hasta: formatCalendarDate(fueraDeRango.hasta) })
+      : null) ??
     (cerradoDeLista
       ? t('vigencia.closedLocal', {
           periodo: nombrePeriodo(cerradoDeLista, periodicidad ?? periodicidadDe(cerradoDeLista)),
@@ -81,6 +84,7 @@ export function CampoVigencia({
           className="h-12 text-base"
           value={fecha}
           min={minimo ?? undefined}
+          max={maximo}
           onChange={e => setFecha(e.target.value)}
           aria-invalid={!!porQue}
         />

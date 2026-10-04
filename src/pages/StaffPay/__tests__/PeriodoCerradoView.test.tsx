@@ -98,6 +98,35 @@ describe('PeriodoCerradoView', () => {
     await waitFor(() => expect(m.paid).toHaveBeenCalledWith({ staffId: 'a', huellaEsperada: HUELLA_ANA }))
     expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringMatching(/closed\.markedPaid/) }))
   })
+  it('doble clic en «Registrar $X» manda UNA sola vez (candado síncrono, full-testing C6)', async () => {
+    m.can.mockReturnValue(true)
+    let soltar: (v: unknown) => void = () => undefined
+    m.paid.mockReturnValue(new Promise(r => (soltar = r)))
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    const confirmar = await screen.findByRole('button', { name: /closed\.markPaidConfirm/ })
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+    expect(m.paid).toHaveBeenCalledTimes(1)
+    soltar({ marcados: 1 })
+    await waitFor(() => expect(m.toast).toHaveBeenCalledTimes(1))
+  })
+
+  it('«Marcar todos» con la respuesta PERDIDA: vuelve a pedir la tabla y el preview para mostrar lo que de verdad quedó (C7)', async () => {
+    m.can.mockReturnValue(true)
+    const refetchTabla = vi.fn()
+    m.extra.mockReturnValue({ refetch: refetchTabla })
+    m.paid.mockRejectedValue(new Error('Network Error'))
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: 'closed.markAllPaid' }))
+    fireEvent.click(await screen.findByRole('button', { name: /closed\.markAllPaidConfirm/ }))
+    await waitFor(() => expect(m.refetchPreview).toHaveBeenCalled())
+    expect(refetchTabla).toHaveBeenCalled()
+    expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'closed.networkCheck' }))
+    // El diálogo se queda: el preview nuevo dice cómo quedó (si ya se marcó, «Ya no hay recibos pendientes»).
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+  })
+
   it('si ya estaban marcados (marcados: 0), lo dice en vez de «0 recibos marcados»', async () => {
     m.can.mockReturnValue(true)
     m.paid.mockResolvedValue({ marcados: 0 })

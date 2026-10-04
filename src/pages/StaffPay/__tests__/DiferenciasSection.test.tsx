@@ -149,6 +149,40 @@ describe('DiferenciasSection', () => {
     expect(m.settle.mock.calls[1][0].solicitudId).not.toBe(m.settle.mock.calls[0][0].solicitudId)
   })
 
+  it('respuesta PERDIDA y reintento con la misma clave: «ya liquidada» es ÉXITO de este clic, con sus líneas (full-testing C11)', async () => {
+    m.settle.mockRejectedValueOnce(new Error('Network Error'))
+    m.settle.mockResolvedValueOnce({ lineas: [{ staffId: 'a', amount: '40.00' }], yaLiquidada: true })
+    pintar()
+    abrir()
+    await confirmar()
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.networkRetry' })))
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    await confirmar()
+    await waitFor(() => expect(m.settle).toHaveBeenCalledTimes(2))
+    expect(m.settle.mock.calls[1][0].solicitudId).toBe(m.settle.mock.calls[0][0].solicitudId)
+    await waitFor(() =>
+      expect(m.toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: expect.stringMatching(/^differences\.settled:/),
+          description: expect.stringContaining('Ana Martínez'),
+        }),
+      ),
+    )
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'differences.alreadySettled' }))
+  })
+
+  it('doble clic síncrono en confirmar manda UNA sola vez (candado síncrono)', async () => {
+    let soltar: (v: unknown) => void = () => undefined
+    m.settle.mockReturnValue(new Promise(r => (soltar = r)))
+    pintar()
+    abrir()
+    const boton = await screen.findByRole('button', { name: /differences\.settleIn/ })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    expect(m.settle).toHaveBeenCalledTimes(1)
+    soltar({ lineas: [], yaLiquidada: false })
+  })
+
   it('si ya estaba liquidada, lo dice como aviso neutro, no como un pago nuevo', async () => {
     m.settle.mockResolvedValue({ lineas: [{ staffId: 'a', amount: '40.00' }], yaLiquidada: true })
     pintar()

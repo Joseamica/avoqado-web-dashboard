@@ -15,6 +15,7 @@ const m = vi.hoisted(() => ({
   access: vi.fn(),
   diff: vi.fn(),
   dialogo: vi.fn(),
+  toast: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({
@@ -22,7 +23,7 @@ vi.mock('react-i18next', () => ({
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.can(p) }) }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({
     venueTimezone: 'America/Mexico_City',
@@ -189,7 +190,7 @@ describe('PagoDeClaseCard', () => {
     expect(screen.getByLabelText('adjust.count')).toHaveValue(7)
     fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Clase interna' } })
     fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
-    await waitFor(() => expect(m.adjust).toHaveBeenLastCalledWith({ payCountOverride: 7, payAmountOverride: null, payExcluded: true, reason: 'Clase interna' }))
+    await waitFor(() => expect(m.adjust).toHaveBeenLastCalledWith({ payCountOverride: 7, payAmountOverride: null, payExcluded: true, reason: 'Clase interna', clientKey: expect.any(String) }))
     unmount()
     // 2) Ya excluida (con su 7 guardado), «Ajustar monto»: se ve el 7, avisa que vuelve a pagarse, y el monto no toca el conteo.
     m.pay.mockReturnValue({ data: pago({ estado: 'EXCLUIDA', monto: null, ajuste: ajuste({ payExcluded: true, reason: 'Clase interna' }) }) })
@@ -201,7 +202,7 @@ describe('PagoDeClaseCard', () => {
     fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Se paga con monto fijo' } })
     fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
     await waitFor(() =>
-      expect(m.adjust).toHaveBeenLastCalledWith({ payCountOverride: 7, payAmountOverride: 500, payExcluded: false, reason: 'Se paga con monto fijo' }),
+      expect(m.adjust).toHaveBeenLastCalledWith({ payCountOverride: 7, payAmountOverride: 500, payExcluded: false, reason: 'Se paga con monto fijo', clientKey: expect.any(String) }),
     )
   })
 
@@ -214,6 +215,34 @@ describe('PagoDeClaseCard', () => {
     fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Clase interna' } })
     fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
     await waitFor(() => expect(m.adjust).toHaveBeenLastCalledWith(expect.objectContaining({ payCountOverride: 7, payExcluded: true })))
+  })
+
+  it('«Corregir conteo» manda una clave de la apertura y el reintento tras una respuesta perdida usa la MISMA (C14)', async () => {
+    m.adjust.mockRejectedValueOnce(new Error('Network Error')).mockResolvedValueOnce({})
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixCount' }))
+    fireEvent.change(screen.getByLabelText('adjust.count'), { target: { value: '9' } })
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Eran 9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() => expect(m.adjust).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'adjust.save' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() => expect(m.adjust).toHaveBeenCalledTimes(2))
+    const [primera, segunda] = m.adjust.mock.calls.map(c => c[0].clientKey)
+    expect(primera).toMatch(/^[A-Za-z0-9_.-]{8,100}$/)
+    expect(segunda).toBe(primera)
+  })
+
+  it('un 400 del server en el ajuste de clase se dice legible, sin «Error de validación: campo:»', async () => {
+    m.adjust.mockRejectedValue({ response: { status: 400, data: { message: 'Error de validación: payAmountOverride: Máximo dos decimales' } } })
+    m.pay.mockReturnValue({ data: pago() })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixAmount' }))
+    fireEvent.change(screen.getByLabelText('adjust.amount'), { target: { value: '500' } })
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Monto fijo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Máximo dos decimales' })))
   })
 
   it('una excepción se explica con su motivo', () => {
@@ -234,7 +263,7 @@ describe('PagoDeClaseCard', () => {
     fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'abc' } })
     expect(guardar).toBeEnabled()
     fireEvent.click(guardar)
-    expect(m.adjust).toHaveBeenCalledWith({ payCountOverride: 9, payAmountOverride: null, payExcluded: false, reason: 'abc' })
+    expect(m.adjust).toHaveBeenCalledWith({ payCountOverride: 9, payAmountOverride: null, payExcluded: false, reason: 'abc', clientKey: expect.any(String) })
   })
 
   const contabilizada = (extra: Record<string, unknown> = {}) =>
@@ -611,6 +640,7 @@ describe('PagoDeClaseCard', () => {
       payAmountOverride: null,
       payExcluded: true,
       reason: 'Clase de prueba interna',
+      clientKey: expect.any(String),
     })
   })
 })

@@ -12,6 +12,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
 import { useAccionDelModal } from '@/pages/StaffPay/accionDelModal'
 import { useFocoDeVuelta } from '@/pages/StaffPay/foco'
+import { mensajeLegible } from '@/pages/StaffPay/rangos'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
 
@@ -44,6 +45,9 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const [motivo, setMotivo] = useState('')
   const [enviando, setEnviando] = useState(false)
   const enVuelo = useRef(false)
+  // Una clave por apertura y por acción (full-testing C14): el interceptor reintenta un PUT cuando se pierde la respuesta, y
+  // sin clave el server lo registraba dos veces. Los reintentos de ESTE modal usan la misma.
+  const [claves] = useState(() => ({ guardar: crypto.randomUUID(), quitar: crypto.randomUUID() }))
   // Clase ya contabilizada en un cierre: corregirla no toca lo congelado. Se dice ANTES de guardar, no después.
   const origen = actual.periodoOrigen?.estado === 'CLOSED' ? actual.periodoOrigen : null
   const yaPagada = !!actual.lineas?.some(l => l.concepto === 'SERVICE' && l.pagadoEn)
@@ -67,19 +71,17 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const vacio = nuevo.payCountOverride === null && nuevo.payAmountOverride === null && !nuevo.payExcluded
   const puedeGuardar = motivoValido && (excluir || (conteoValido && montoValido)) && !(vacio && !previo) && !enviando
 
-  const enviar = async (cuerpo: AjusteClaseInput) => {
+  const enviar = async (cuerpo: AjusteClaseInput, clientKey: string) => {
     if (enVuelo.current) return
     enVuelo.current = true
     setEnviando(true)
     try {
-      await guardar.mutateAsync(cuerpo)
+      await guardar.mutateAsync({ ...cuerpo, clientKey })
       toast({ title: t('adjust.saved') })
       onClose()
     } catch (err) {
-      toast({
-        title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'),
-        variant: 'destructive',
-      })
+      // El mensaje del server, sin «Error de validación: campo:» (full-testing A12).
+      toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
     } finally {
       enVuelo.current = false
       setEnviando(false)
@@ -88,7 +90,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
 
   const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
-    <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo)} data-tour="class-pay-adjust-save">
+    <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo, claves.guardar)} data-tour="class-pay-adjust-save">
       {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {t('adjust.save')}
     </Button>,
@@ -185,7 +187,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
                 variant="outline"
                 className="cursor-pointer"
                 disabled={!motivoValido || enviando}
-                onClick={() => void enviar({ payCountOverride: null, payAmountOverride: null, payExcluded: false, reason: motivo.trim() })}
+                onClick={() => void enviar({ payCountOverride: null, payAmountOverride: null, payExcluded: false, reason: motivo.trim() }, claves.quitar)}
               >
                 {t('adjust.clear')}
               </Button>

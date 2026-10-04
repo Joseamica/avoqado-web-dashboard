@@ -284,7 +284,12 @@ export function useClosePeriod() {
 }
 export function useMarkPaid(periodId: string | null) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (b: { staffId?: string; nota?: string; huellaEsperada?: string }) => staffPayService.markPaid(venueId!, periodId!, b), onSuccess: inv })
+  return useMutation({
+    mutationFn: (b: { staffId?: string; nota?: string; huellaEsperada?: string }) => staffPayService.markPaid(venueId!, periodId!, b),
+    onSuccess: inv,
+    // Sin respuesta (se perdió): el server pudo haber marcado; se recarga lo mismo que en el éxito (full-testing C7).
+    onError: err => ((err as { response?: unknown } | null)?.response ? undefined : inv()),
+  })
 }
 export function useAddAdjustment() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()

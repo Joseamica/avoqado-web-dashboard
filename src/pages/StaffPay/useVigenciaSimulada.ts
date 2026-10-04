@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStaffPayPeriods } from '@/hooks/useStaffPay'
 import type { SimulacionVigenciaDto } from '@/types/staffPay'
+import { MESES_VIGENCIA, sumarMeses } from './rangos'
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/
 
@@ -10,13 +11,24 @@ const diaSiguiente = (d: string) => {
   return x.toISOString().slice(0, 10)
 }
 
-type ErrorApi = { response?: { data?: { code?: string; message?: string; details?: { primeraFechaPermitida?: string } } } }
-/** El 400 de una vigencia dentro de un periodo cerrado: su mensaje (en español, del server) y la primera fecha que sí vale. */
-const fechaCerrada = (err: unknown) => {
+type ErrorApi = {
+  response?: { data?: { code?: string; message?: string; details?: { primeraFechaPermitida?: string; desde?: string; hasta?: string } } }
+}
+/**
+ * Los 400 de una fecha que no vale: dentro de un periodo cerrado (la primera fecha que sí vale) o fuera del rango del
+ * contrato (FECHA_FUERA_DE_RANGO: la orilla más cercana). Su mensaje, en español, viene del server.
+ */
+const fechaQueNoVale = (err: unknown, fecha: string) => {
   const data = (err as ErrorApi | null)?.response?.data
-  return data?.code === 'FECHA_EN_PERIODO_CERRADO'
-    ? { message: data.message ?? '', primera: data.details?.primeraFechaPermitida ?? null }
-    : null
+  if (data?.code === 'FECHA_EN_PERIODO_CERRADO') {
+    const primera = data.details?.primeraFechaPermitida ?? null
+    return { message: data.message ?? '', atajo: primera, minimo: primera }
+  }
+  if (data?.code === 'FECHA_FUERA_DE_RANGO') {
+    const { desde, hasta } = data.details ?? {}
+    return { message: data.message ?? '', atajo: (desde && fecha < desde ? desde : hasta) ?? desde ?? null, minimo: null }
+  }
+  return null
 }
 
 /**
@@ -28,7 +40,7 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
   const [fecha, setFecha] = useState(hoy)
   const [efecto, setEfecto] = useState<SimulacionVigenciaDto | null>(null)
   const [calculando, setCalculando] = useState(false)
-  const [cerrada, setCerrada] = useState<{ fecha: string; message: string } | null>(null)
+  const [cerrada, setCerrada] = useState<{ fecha: string; message: string; atajo: string | null } | null>(null)
   const [minimoDelServer, setMinimoDelServer] = useState<string | null>(null)
   // Sólo lo que ya está en caché (enabled=false): sin petición nueva.
   const { data: periodos } = useStaffPayPeriods(false)
@@ -41,6 +53,10 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
     return diaSiguiente(finCerrado)
   }, [items])
   const fechaValida = FECHA_ISO.test(fecha)
+  // El rango del contrato (hoy ± 24 meses): antes «1900» dejaba «Guardar» encendido y decía «1515 meses abiertos» (A11).
+  const rangoDesde = sumarMeses(hoy, -MESES_VIGENCIA)
+  const rangoHasta = sumarMeses(hoy, MESES_VIGENCIA)
+  const fueraDeRango = fechaValida && (fecha < rangoDesde || fecha > rangoHasta)
   // La fecha cae DENTRO de un periodo cerrado de la lista: no se confirma, y se dice desde cuándo sí (el día siguiente a
   // los cerrados seguidos, como el server).
   const cerradoDeLista = useMemo(() => {
@@ -53,7 +69,8 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
   }, [items, fecha, fechaValida])
 
   useEffect(() => {
-    if (!fechaValida) {
+    // Fuera del rango ni se simula: el server diría lo mismo con un 400.
+    if (!fechaValida || fueraDeRango) {
       setEfecto(null)
       return
     }
@@ -68,10 +85,10 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
       .catch(err => {
         if (!vivo) return
         setEfecto(null)
-        const c = fechaCerrada(err)
+        const c = fechaQueNoVale(err, fecha)
         if (c) {
-          setCerrada({ fecha, message: c.message })
-          if (c.primera) setMinimoDelServer(c.primera)
+          setCerrada({ fecha, message: c.message, atajo: c.atajo })
+          if (c.minimo) setMinimoDelServer(c.minimo)
         }
       })
       .finally(() => {
@@ -83,7 +100,8 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
   }, [fecha, clave]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const error = cerrada && cerrada.fecha === fecha ? cerrada.message : null
-  const minimo = minimoDelServer ?? minimoDeLista
+  const minimoDeCierres = minimoDelServer ?? minimoDeLista
+  const minimo = minimoDeCierres && minimoDeCierres > rangoDesde ? minimoDeCierres : rangoDesde
   return {
     fecha,
     setFecha,
@@ -93,19 +111,26 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
     error,
     /** La fecha cae en un periodo cerrado de la lista en caché (se explica igual que el 400). */
     cerradoDeLista,
+    /** Fuera de hoy ± 24 meses: `{ desde, hasta }` para explicarlo. */
+    fueraDeRango: fueraDeRango ? { desde: rangoDesde, hasta: rangoHasta } : null,
     minimo,
-    /** A dónde lleva el atajo «Usar el …». */
-    atajo: (error ? minimoDelServer : null) ?? cerradoDeLista?.primera ?? null,
+    maximo: rangoHasta,
+    /** A dónde lleva el atajo «Usar el …»: la fecha válida más cercana. */
+    atajo:
+      (error ? cerrada?.atajo : null) ??
+      (fueraDeRango ? (fecha < rangoDesde ? rangoDesde : rangoHasta) : null) ??
+      cerradoDeLista?.primera ??
+      null,
     /** De la lista en caché; si no está, la decide el primer periodo de la simulación. */
     periodicidad: periodos?.periodicidad ?? null,
     /** Fecha inválida o dentro de un periodo cerrado (según el server o la lista): no se confirma. */
-    bloqueada: !fechaValida || !!error || !!cerradoDeLista,
-    /** Un 400 de fecha cerrada AL GUARDAR también se muestra en línea; devuelve true si lo era. */
+    bloqueada: !fechaValida || !!error || !!cerradoDeLista || fueraDeRango,
+    /** Un 400 de fecha que no vale AL GUARDAR también se muestra en línea; devuelve true si lo era. */
     tomarError: (err: unknown) => {
-      const c = fechaCerrada(err)
+      const c = fechaQueNoVale(err, fecha)
       if (!c) return false
-      setCerrada({ fecha, message: c.message })
-      if (c.primera) setMinimoDelServer(c.primera)
+      setCerrada({ fecha, message: c.message, atajo: c.atajo })
+      if (c.minimo) setMinimoDelServer(c.minimo)
       return true
     },
   }

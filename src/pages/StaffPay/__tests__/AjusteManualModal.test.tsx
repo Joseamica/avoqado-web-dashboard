@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AjusteManualModal } from '../components/AjusteManualModal'
+import { hoyEnSede } from '../hoyEnSede'
+import { sumarMeses } from '../rangos'
 
 const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn(), reporte: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
@@ -116,6 +118,53 @@ describe('AjusteManualModal', () => {
   it('el buscador de persona se llama «Persona» (label conectado al input)', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
     expect(screen.getByLabelText('manualAdjust.person')).toBeInstanceOf(HTMLInputElement)
+  })
+  it('un monto con más de 2 decimales o más grande que el tope se dice en línea, sin vista previa engañosa ni «Guardar» (A12)', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} etiqueta="octubre 2026" />)
+    llenar('manualAdjust.bonus')
+    for (const malo of ['10.005', '1000000000000', '-5']) {
+      fireEvent.change(screen.getByLabelText('manualAdjust.amount'), { target: { value: malo } })
+      expect(screen.getByText('manualAdjust.amountInvalid')).toBeInTheDocument()
+      expect(screen.queryByText(/manualAdjust\.summaryBonus/)).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
+    }
+    fireEvent.change(screen.getByLabelText('manualAdjust.amount'), { target: { value: '10.01' } })
+    expect(screen.queryByText('manualAdjust.amountInvalid')).not.toBeInTheDocument()
+    expect(screen.getByText(/manualAdjust\.summaryBonus/)).toHaveTextContent('$10.01')
+    expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeEnabled()
+  })
+  it('un 400 del server se dice en línea y legible (sin «Error de validación: amount:»)', async () => {
+    m.add.mockRejectedValue({ response: { status: 400, data: { message: 'Error de validación: amount: Máximo dos decimales' } } })
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    llenar('manualAdjust.bonus')
+    fireEvent.click(screen.getByRole('button', { name: 'manualAdjust.save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Máximo dos decimales')
+    expect(m.toast).not.toHaveBeenCalled()
+  })
+  it('un periodo de hace más de 12 meses no admite ajustes: se dice antes de guardar (A6)', () => {
+    const vieja = sumarMeses(hoyEnSede('America/Mexico_City'), -13)
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha={vieja} />)
+    llenar()
+    expect(screen.getByRole('alert')).toHaveTextContent(/manualAdjust\.outOfRange/)
+    expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
+  })
+  it('el 400 FECHA_FUERA_DE_RANGO también se explica en línea', async () => {
+    m.add.mockRejectedValue({
+      response: { status: 400, data: { code: 'FECHA_FUERA_DE_RANGO', message: 'La fecha debe estar entre el 4 oct 2025 y el 31 oct 2026', details: { desde: '2025-10-04', hasta: '2026-10-31' } } },
+    })
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    llenar()
+    fireEvent.click(screen.getByRole('button', { name: 'manualAdjust.save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('La fecha debe estar entre el 4 oct 2025 y el 31 oct 2026')
+  })
+  it('doble clic síncrono en «Guardar ajuste» manda UNA sola vez', () => {
+    m.add.mockReturnValue(new Promise(() => undefined))
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    llenar()
+    const guardar = screen.getByRole('button', { name: 'manualAdjust.save' })
+    fireEvent.click(guardar)
+    fireEvent.click(guardar)
+    expect(m.add).toHaveBeenCalledTimes(1)
   })
   it('sin motivo o con monto vacío no deja guardar', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)

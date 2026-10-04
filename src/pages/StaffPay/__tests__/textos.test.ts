@@ -57,6 +57,16 @@ describe('textos de pago por servicio', () => {
     for (const texto of [JSON.stringify(es), JSON.stringify(en)]) expect(texto).not.toMatch(/se quedan como estaban|stay as they were/)
     expect(Object.keys(en.vigencia).sort()).toEqual(Object.keys(es.vigencia).sort())
   })
+  it('full-testing: montos, rangos y respuestas perdidas dicen qué pasó en español natural', () => {
+    expect(tEs('manualAdjust.amountInvalid')).toBe('Escribe un monto mayor a $0 y de hasta $1,000,000.00, con máximo 2 decimales.')
+    expect(tEs('manualAdjust.outOfRange', { desde: '4 oct 2025' })).toBe('Un ajuste sólo puede ir a un periodo de los últimos 12 meses (desde el 4 oct 2025).')
+    expect(tEs('vigencia.outOfRange', { desde: '3 oct 2024', hasta: '3 oct 2028' })).toBe('La vigencia debe estar entre el 3 oct 2024 y el 3 oct 2028.')
+    expect(tEs('differences.networkRetry')).toMatch(/no se liquida dos veces/)
+    expect(tEs('closed.networkCheck')).toMatch(/no se registra dos veces/)
+    for (const k of ['amountInvalid', 'outOfRange']) expect(en.manualAdjust).toHaveProperty(k)
+    for (const k of ['networkRetry', 'settledLine']) expect(en.differences).toHaveProperty(k)
+    expect(en.closed).toHaveProperty('networkCheck')
+  })
   it('volver a pagar una clase excluida no promete valores cuando los campos están vacíos (ronda hora de fin)', () => {
     expect(tEs('adjust.reincludeNote')).toMatch(/si los dejas vacíos, con el conteo del sistema y el monto de la tabla/)
     expect(tEn('adjust.reincludeNote')).toMatch(/“This class is not paid”/)

@@ -46,7 +46,11 @@ export interface SimulacionVigenciaDto {
   /** Periodos abiertos más viejos que también cambian y no se contaron (tope del server). */
   periodosSinContar?: number
 }
-export interface AjusteClaseInput { payCountOverride: number | null; payAmountOverride: number | null; payExcluded: boolean; reason: string }
+export interface AjusteClaseInput {
+  payCountOverride: number | null; payAmountOverride: number | null; payExcluded: boolean; reason: string
+  /** Una por apertura del modal (full-testing C14): un reintento del interceptor no duplica el ajuste. Opcional en el server. */
+  clientKey?: string
+}
 
 // ── Fase 2: cerrar y pagar ──
 export type Bloqueo =

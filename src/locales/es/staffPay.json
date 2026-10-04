@@ -347,7 +347,8 @@
     "owesMany_one": "{{count}} recibo queda con saldo en contra por {{monto}}.",
     "owesMany_other": "{{count}} recibos quedan con saldo en contra por {{monto}}.",
     "markAllMixedConfirm_one": "Registrar {{count}} recibo",
-    "markAllMixedConfirm_other": "Registrar {{count}} recibos"
+    "markAllMixedConfirm_other": "Registrar {{count}} recibos",
+    "networkCheck": "No llegó la respuesta del servidor. Revisa abajo cómo quedó: si ya se registró, no se registra dos veces."
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",
@@ -373,7 +374,9 @@
     "save": "Guardar ajuste",
     "saved": "Ajuste guardado en el periodo del {{start}} al {{end}}",
     "selected": "Elegiste a {{persona}}.",
-    "periodWithDate": "el periodo abierto que incluye el {{fecha}}"
+    "periodWithDate": "el periodo abierto que incluye el {{fecha}}",
+    "amountInvalid": "Escribe un monto mayor a $0 y de hasta $1,000,000.00, con máximo 2 decimales.",
+    "outOfRange": "Un ajuste sólo puede ir a un periodo de los últimos 12 meses (desde el {{desde}})."
   },
   "differences": {
     "title": "Diferencias por liquidar",
@@ -429,7 +432,9 @@
       "MONTO": "Monto de la clase corregido",
       "REINCLUIDA": "Clase que no se pagaba al cerrar y ahora sí"
     },
-    "exitNoPermission": "Se resuelve en la clase con «Ajustar monto», y para eso hace falta el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio."
+    "exitNoPermission": "Se resuelve en la clase con «Ajustar monto», y para eso hace falta el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
+    "networkRetry": "No llegó la respuesta del servidor. Vuelve a intentarlo: no se liquida dos veces.",
+    "settledLine": "{{persona}} {{monto}}"
   },
   "vigencia": {
     "part_one": "{{count}} clase en {{periodo}}",
@@ -451,6 +456,7 @@
     "notCountedMonths_other": "No se contaron {{count}} meses anteriores que siguen abiertos; también pueden cambiar.",
     "notCountedPeriods_one": "No se contó {{count}} periodo anterior que sigue abierto; también puede cambiar.",
     "notCountedPeriods_other": "No se contaron {{count}} periodos anteriores que siguen abiertos; también pueden cambiar.",
-    "closedLocal": "{{periodo}} ya se cerró: elige una fecha desde el {{fecha}}. Para una clase de un periodo cerrado usa «Ajustar monto» en la clase."
+    "closedLocal": "{{periodo}} ya se cerró: elige una fecha desde el {{fecha}}. Para una clase de un periodo cerrado usa «Ajustar monto» en la clase.",
+    "outOfRange": "La vigencia debe estar entre el {{desde}} y el {{hasta}}."
   }
 }

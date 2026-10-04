@@ -40,6 +40,16 @@ describe('CerrarPeriodoModal', () => {
     await waitFor(() => expect(m.close).toHaveBeenCalledWith({ fecha: '2026-08-15', huellaEsperada: 'h1', confirmarHuerfanas: false }))
   })
 
+  it('doble clic síncrono en «Cerrar» manda UNA sola vez (candado síncrono)', () => {
+    m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
+    m.close.mockReturnValue(new Promise(() => undefined))
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    const boton = screen.getByRole('button', { name: 'close.confirm' })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    expect(m.close).toHaveBeenCalledTimes(1)
+  })
+
   it('con el nombre del periodo, el botón dice qué se cierra («Cerrar agosto 2026»)', () => {
     m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
     render(<CerrarPeriodoModal open fecha="2026-08-15" etiqueta="agosto 2026" onOpenChange={() => {}} onCerrado={() => {}} />)

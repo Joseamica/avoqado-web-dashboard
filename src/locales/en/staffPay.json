@@ -347,7 +347,8 @@
     "owesMany_one": "{{count}} pay statement is left with a negative balance of {{monto}}.",
     "owesMany_other": "{{count}} pay statements are left with a negative balance of {{monto}}.",
     "markAllMixedConfirm_one": "Record {{count}} pay statement",
-    "markAllMixedConfirm_other": "Record {{count}} pay statements"
+    "markAllMixedConfirm_other": "Record {{count}} pay statements",
+    "networkCheck": "The server's response didn't arrive. Check below how it ended up: if it was recorded, it won't be recorded twice."
   },
   "manualAdjust": {
     "add": "Add adjustment to {{periodo}}",
@@ -373,7 +374,9 @@
     "save": "Save adjustment",
     "saved": "Adjustment saved in the period from {{start}} to {{end}}",
     "selected": "You chose {{persona}}.",
-    "periodWithDate": "the open period that includes {{fecha}}"
+    "periodWithDate": "the open period that includes {{fecha}}",
+    "amountInvalid": "Enter an amount above $0 and up to $1,000,000.00, with at most 2 decimals.",
+    "outOfRange": "An adjustment can only go to a period in the last 12 months (from {{desde}})."
   },
   "differences": {
     "title": "Differences to settle",
@@ -429,7 +432,9 @@
       "MONTO": "Class amount corrected",
       "REINCLUIDA": "Class that wasn't paid at closing and now counts"
     },
-    "exitNoPermission": "It's resolved in the class with “Adjust amount”, which needs the «Close periods and record payments» permission. Ask the business owner."
+    "exitNoPermission": "It's resolved in the class with “Adjust amount”, which needs the «Close periods and record payments» permission. Ask the business owner.",
+    "networkRetry": "The server's response didn't arrive. Try again: it won't be settled twice.",
+    "settledLine": "{{persona}} {{monto}}"
   },
   "vigencia": {
     "part_one": "{{count}} class in {{periodo}}",
@@ -451,6 +456,7 @@
     "notCountedMonths_other": "{{count}} earlier months that are still open weren't counted; they may change too.",
     "notCountedPeriods_one": "{{count}} earlier period that is still open wasn't counted; it may change too.",
     "notCountedPeriods_other": "{{count}} earlier periods that are still open weren't counted; they may change too.",
-    "closedLocal": "{{periodo}} is already closed: choose a date from {{fecha}}. For a class in a closed period use “Adjust amount” in the class."
+    "closedLocal": "{{periodo}} is already closed: choose a date from {{fecha}}. For a class in a closed period use “Adjust amount” in the class.",
+    "outOfRange": "The start date must be between {{desde}} and {{hasta}}."
   }
 }
