@@ -304,6 +304,8 @@
     "previewError": "The close could not be calculated.",
     "willFreeze_one": "{{count}} class for {{personas}} in {{sedes}} gets frozen: {{total}}.",
     "willFreeze_other": "{{count}} classes for {{personas}} in {{sedes}} get frozen: {{total}}.",
+    "willFreezeNoVenue_one": "{{count}} class for {{personas}} gets frozen: {{total}}.",
+    "willFreezeNoVenue_other": "{{count}} classes for {{personas}} get frozen: {{total}}.",
     "people_one": "{{count}} person",
     "people_other": "{{count}} people",
     "alreadyClosed": "This period was already closed (total {{total}})."

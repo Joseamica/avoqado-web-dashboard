@@ -75,6 +75,9 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
 
   const textoBloqueo = (b: Bloqueo) =>
     t(`close.block.${b.codigo}`, 'n' in b ? { count: b.n } : 'hasta' in b ? { hasta: formatCalendarDate(b.hasta) } : undefined)
+  // Sólo donde hay dinero: «en Avoqado Wellness», no todas las sedes del alcance (QA defecto 8). Una lista VACÍA (p. ej. el
+  // único dinero es un ajuste de una sede que ya salió del alcance) omite «en …»; `venueIds` sólo cubre un server previo.
+  const sedesTexto = p ? (p.sedesConDinero ?? p.periodo.venueIds).map(nombreSede).join(', ') : ''
   const mensajeError = (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
   const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
@@ -138,11 +141,10 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
               <p className="text-sm">
                 {p.clases === 0 && p.personas === 0
                   ? t('close.empty')
-                  : t('close.willFreeze', {
+                  : t(sedesTexto ? 'close.willFreeze' : 'close.willFreezeNoVenue', {
                       count: p.clases,
                       personas: t('close.people', { count: p.personas }),
-                      // Sólo donde hay dinero: «en Avoqado Wellness», no todas las sedes del alcance (QA defecto 8).
-                      sedes: (p.sedesConDinero ?? p.periodo.venueIds).map(nombreSede).join(', '),
+                      sedes: sedesTexto,
                       total: monto(p.total),
                     })}
               </p>

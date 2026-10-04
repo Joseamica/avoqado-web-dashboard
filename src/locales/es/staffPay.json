@@ -304,6 +304,8 @@
     "previewError": "No se pudo calcular el cierre.",
     "willFreeze_one": "Se congela {{count}} clase de {{personas}} en {{sedes}}: {{total}}.",
     "willFreeze_other": "Se congelan {{count}} clases de {{personas}} en {{sedes}}: {{total}}.",
+    "willFreezeNoVenue_one": "Se congela {{count}} clase de {{personas}}: {{total}}.",
+    "willFreezeNoVenue_other": "Se congelan {{count}} clases de {{personas}}: {{total}}.",
     "people_one": "{{count}} persona",
     "people_other": "{{count}} personas",
     "alreadyClosed": "Este periodo ya estaba cerrado (total {{total}})."

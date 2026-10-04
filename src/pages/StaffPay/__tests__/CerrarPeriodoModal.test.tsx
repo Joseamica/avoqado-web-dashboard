@@ -52,6 +52,13 @@ describe('CerrarPeriodoModal', () => {
     expect(screen.getByText(/close\.willFreeze/)).toHaveTextContent('"sedes":"Prado Norte"')
   })
 
+  it('si ninguna sede del alcance trae dinero (sedesConDinero vacío), omite «en …» en vez de dejar «en : $X»', () => {
+    m.preview.mockReturnValue({ data: { ...ok, sedesConDinero: [] }, isLoading: false, refetch: m.refetch })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    expect(screen.getByText(/close\.willFreezeNoVenue/)).toHaveTextContent('"count":72')
+    expect(screen.queryByText(/close\.willFreeze:/)).toBeNull()
+  })
+
   it('los ajustes del cierre llevan el mismo «−» que la tabla (QA defecto 14)', () => {
     m.preview.mockReturnValue({ data: { ...ok, totalAjustes: '-150.00', total: '36470.00' }, isLoading: false, refetch: m.refetch })
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
