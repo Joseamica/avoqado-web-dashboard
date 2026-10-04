@@ -51,12 +51,18 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   const conteoValido = conteo === '' || (ENTERO.test(conteo) && Number(conteo) <= CONTEO_MAX)
   const montoValido = monto === '' || (MONTO.test(monto) && Number(monto) <= MONTO_MAX)
   const motivoValido = motivo.trim().length >= MOTIVO_MIN
+  // Lo que la clase ya tiene viaja igual si la persona no lo cambió (QA N3): excluir NO borra el conteo ni el monto
+  // corregidos (antes viajaban null y, al volver a pagarla, «Ajustar monto» abría vacío y el 7 regresaba a 6). Con el
+  // interruptor prendido los campos están apagados: un texto inválido ahí no se guarda, se conserva lo que había.
+  const leer = (texto: string, valido: boolean, previoValor: number | null) => (texto === '' ? null : valido ? Number(texto) : previoValor)
   const nuevo: AjusteClaseInput = {
-    payCountOverride: excluir || conteo === '' ? null : Number(conteo),
-    payAmountOverride: excluir || monto === '' ? null : Number(monto),
+    payCountOverride: leer(conteo, conteoValido, previo?.payCountOverride ?? null),
+    payAmountOverride: leer(monto, montoValido, previo?.payAmountOverride != null ? Number(previo.payAmountOverride) : null),
     payExcluded: excluir,
     reason: motivo.trim(),
   }
+  // Abrir «Corregir conteo» o «Ajustar monto» en una clase que no se paga la vuelve a pagar: se dice antes de guardar.
+  const reincluye = !!previo?.payExcluded && !excluir
   // Sin ajuste previo, guardar «nada» no tiene sentido; con ajuste previo, dejarlo vacío equivale a quitarlo.
   const vacio = nuevo.payCountOverride === null && nuevo.payAmountOverride === null && !nuevo.payExcluded
   const puedeGuardar = motivoValido && (excluir || (conteoValido && montoValido)) && !(vacio && !previo) && !enviando
@@ -115,6 +121,7 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
             <Switch checked={excluir} onCheckedChange={setExcluir} aria-label={t('adjust.exclude')} />
             <span className="text-base">{t('adjust.exclude')}</span>
           </label>
+          {reincluye && <p className="text-sm text-muted-foreground">{t('adjust.reincludeNote')}</p>}
 
           <div className="space-y-2">
             <Label htmlFor="class-pay-adjust-count">{t('adjust.count')}</Label>

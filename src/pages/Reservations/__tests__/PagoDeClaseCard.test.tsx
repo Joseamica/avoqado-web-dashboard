@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -177,6 +177,43 @@ describe('PagoDeClaseCard', () => {
     fireEvent.change(screen.getByLabelText('adjust.count'), { target: { value: '9.5' } })
     fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Clase interna' } })
     expect(screen.getByRole('button', { name: 'adjust.save' })).toBeEnabled()
+  })
+
+  it('QA N3: corregir a 7 → excluir NO borra el 7; «Ajustar monto» lo trae y guardar un monto no toca el conteo', async () => {
+    m.adjust.mockResolvedValue({})
+    const ajuste = (extra: Record<string, unknown>) => ({ payCountOverride: 7, payAmountOverride: null, payExcluded: false, reason: 'Eran 7', at: null, ...extra })
+    // 1) Con el conteo corregido a 7, «No se paga esta clase»: el 7 viaja tal cual (antes viajaba null y se perdía).
+    m.pay.mockReturnValue({ data: pago({ ajuste: ajuste({}) }) })
+    const { unmount } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.exclude' }))
+    expect(screen.getByLabelText('adjust.count')).toHaveValue(7)
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Clase interna' } })
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() => expect(m.adjust).toHaveBeenLastCalledWith({ payCountOverride: 7, payAmountOverride: null, payExcluded: true, reason: 'Clase interna' }))
+    unmount()
+    // 2) Ya excluida (con su 7 guardado), «Ajustar monto»: se ve el 7, avisa que vuelve a pagarse, y el monto no toca el conteo.
+    m.pay.mockReturnValue({ data: pago({ estado: 'EXCLUIDA', monto: null, ajuste: ajuste({ payExcluded: true, reason: 'Clase interna' }) }) })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.fixAmount' }))
+    expect(screen.getByLabelText('adjust.count')).toHaveValue(7)
+    expect(screen.getByText('adjust.reincludeNote')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('adjust.amount'), { target: { value: '500' } })
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Se paga con monto fijo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() =>
+      expect(m.adjust).toHaveBeenLastCalledWith({ payCountOverride: 7, payAmountOverride: 500, payExcluded: false, reason: 'Se paga con monto fijo' }),
+    )
+  })
+
+  it('excluida con un conteo inválido escrito: se guarda lo que la clase ya tenía, no el texto inválido', async () => {
+    m.adjust.mockResolvedValue({})
+    m.pay.mockReturnValue({ data: pago({ ajuste: { payCountOverride: 7, payAmountOverride: null, payExcluded: false, reason: 'Eran 7', at: null } }) })
+    conRouter(<PagoDeClaseCard sessionId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'classCard.exclude' }))
+    fireEvent.change(screen.getByLabelText('adjust.count'), { target: { value: '9.5' } })
+    fireEvent.change(screen.getByLabelText('adjust.reason'), { target: { value: 'Clase interna' } })
+    fireEvent.click(screen.getByRole('button', { name: 'adjust.save' }))
+    await waitFor(() => expect(m.adjust).toHaveBeenLastCalledWith(expect.objectContaining({ payCountOverride: 7, payExcluded: true })))
   })
 
   it('una excepción se explica con su motivo', () => {

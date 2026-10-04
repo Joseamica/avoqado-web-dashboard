@@ -218,7 +218,8 @@
     "reasonPlaceholder": "E.g. it was 9, one came in without booking",
     "reasonHint": "Required, at least {{min}} characters. It stays in the history.",
     "alreadyPaid": "This class was already paid in the period from {{start}} to {{end}}: what was paid does not change; the difference stays pending and is settled separately.",
-    "alreadyCounted": "This class was already counted in the period from {{start}} to {{end}}: what was counted does not change; the difference stays pending and is settled separately."
+    "alreadyCounted": "This class was already counted in the period from {{start}} to {{end}}: what was counted does not change; the difference stays pending and is settled separately.",
+    "reincludeNote": "This class is marked «This class is not paid». Saving makes it paid again, with the count and amount below."
   },
   "member": {
     "title": "Pay level",
