@@ -783,7 +783,8 @@
       "AREA_TICKETS": "Vales por área",
       "VARIABLE_WEIGHT_BARCODE": "Códigos de peso variable",
       "MASTER_CATALOG": "Catálogo maestro",
-      "PRICE_LABELS": "Etiquetas de precios"
+      "PRICE_LABELS": "Etiquetas de precios",
+      "AGGREGATOR_PASSES": "Pases (TotalPass · Wellhub)"
     },
     "restoreChanged": "Una oferta de tu selección guardada cambió o ya no está disponible. Reintenta o vuelve a elegir antes de cotizar.",
     "draftSaveFailed": "No pudimos guardar tu selección en este navegador. Mantén esta página abierta para conservarla.",

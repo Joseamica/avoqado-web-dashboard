@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { SessionPasses } from '@/types/passes'
 
 export type ClassSessionStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED'
 
@@ -27,6 +28,11 @@ export interface ClassSession {
   internalNotes: string | null
   createdAt: string
   updatedAt: string
+  /**
+   * Lugares para pases de esta sesión (Plan 2a T6). `null` = no se ofrece a pases (sin conexión activa, clase no ligada a
+   * un plan del proveedor o cancelada); ausente = server anterior. Las clases ya terminadas sí lo traen (historial).
+   */
+  passes?: SessionPasses | null
 }
 
 export interface ClassSessionAttendee {

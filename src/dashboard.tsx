@@ -106,6 +106,7 @@ const routeKeyMap: Record<string, string> = {
   // Operacion
   reservations: 'sidebar:routes.reservations',
   waitlist: 'sidebar:routes.waitlist',
+  passes: 'sidebar:routes.passes',
   reviews: 'sidebar:routes.reviews',
   delivery: 'sidebar:routes.delivery',
   ecommerce: 'sidebar:routes.ecommerce',
@@ -141,6 +142,7 @@ const routeKeyMap: Record<string, string> = {
   general: 'sidebar:routes.general',
   branding: 'sidebar:routes.branding',
   integrations: 'sidebar:routes.integrations',
+  pases: 'sidebar:routes.passes',
   'print-stations': 'sidebar:routes.printStations',
   'receipt-layout': 'sidebar:routes.receiptLayout',
   'role-permissions': 'sidebar:routes.rolePermissions',

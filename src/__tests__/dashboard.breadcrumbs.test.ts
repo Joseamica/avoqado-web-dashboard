@@ -101,7 +101,8 @@ describe('miga de pan · traduccion de las rutas', () => {
     ).toEqual([])
   })
 
-  it('toda clave del mapa existe en los tres idiomas', () => {
+  // es y en: el francés no se soporta desde el 28-sep-2026 (founder) — no se agregan claves fr nuevas.
+  it('toda clave del mapa existe en los idiomas soportados', () => {
     const src = leer('src/dashboard.tsx')
     const bloque = src.slice(src.indexOf('const routeKeyMap'))
     const cuerpo = bloque.slice(0, bloque.indexOf('\n}'))
@@ -109,7 +110,7 @@ describe('miga de pan · traduccion de las rutas', () => {
     expect(refs.length).toBeGreaterThan(20)
 
     const faltantes: string[] = []
-    for (const idioma of ['es', 'en', 'fr']) {
+    for (const idioma of ['es', 'en']) {
       for (const { ns, clave } of refs) {
         const archivo = path.join(raiz, `src/locales/${idioma}/${ns}.json`)
         if (!fs.existsSync(archivo)) {

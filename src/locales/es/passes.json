@@ -1,0 +1,208 @@
+{
+  "providers": { "TOTALPASS": "TotalPass", "WELLHUB": "Wellhub" },
+  "days": { "0": "Domingo", "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves", "5": "Viernes", "6": "Sábado" },
+  "daysPlural": { "0": "domingos", "1": "lunes", "2": "martes", "3": "miércoles", "4": "jueves", "5": "viernes", "6": "sábados" },
+  "allDay": "todo el día",
+  "errors": {
+    "generic": "No se pudo completar. Intenta de nuevo.",
+    "planUnresolved": "No pudimos comprobar tu plan. Recarga la página para intentarlo de nuevo."
+  },
+  "page": {
+    "title": "Pases (TotalPass · Wellhub)",
+    "subtitle": "Conecta tu sucursal para que los socios de TotalPass reserven y hagan check-in en tus clases desde su app (Wellhub, muy pronto). Tú decides cuántos lugares les das.",
+    "info": "TotalPass te paga cada visita confirmada (Wellhub, muy pronto). Aquí conectas tu sucursal, ligas tus clases y decides cuántos lugares les ofreces.",
+    "readOnly": "Sólo lectura: para conectar o cambiar la configuración, pídele a un administrador del negocio.",
+    "loadError": "No se pudo cargar la configuración de pases"
+  },
+  "teaser": {
+    "title": "Qué hace esta función",
+    "bullet1": "Los socios de TotalPass ven tus clases en su app y reservan solos (Wellhub, muy pronto).",
+    "bullet2": "Cuando llegan, su check-in se confirma y el proveedor te paga esa visita.",
+    "bullet3": "Tú decides cuántos lugares de cada clase se ofrecen a pases, con sugerencias según cómo se llenan tus clases."
+  },
+  "wellhub": {
+    "title": "Wellhub",
+    "description": "Antes Gympass. Se podrá conectar en cuanto Wellhub nos entregue las credenciales de tu sucursal.",
+    "connect": "Conectar"
+  },
+  "totalpass": {
+    "title": "TotalPass",
+    "description": "Los socios de TotalPass reservan y hacen check-in en tus clases desde su app.",
+    "status": { "connected": "Conectada", "notConnected": "Sin conectar", "paused": "Pausada", "revoked": "Llave rechazada", "planPaused": "Pausada por el plan" },
+    "planPausedAuto": "Tu plan ya no incluye pases. Ya no publicamos clases nuevas en TotalPass; lo que ya estaba publicado o reservado se respeta y sus check-ins se siguen confirmando solos.",
+    "planPausedOnCheckin": "Tu plan ya no incluye pases. Ya no publicamos clases nuevas en TotalPass; lo que ya estaba publicado o reservado se respeta. Los check-ins que lleguen se confirman en Reservaciones › Pases.",
+    "place": "Sucursal de TotalPass",
+    "pausedHint": "Esta conexión está en pausa. Pega tu llave para volver a conectarla.",
+    "pendingHint": "El último intento de conectar no terminó. Vuelve a pegar tu llave.",
+    "revokedHint": "TotalPass rechazó la llave de «{{place}}». Pega una llave nueva para reconectarla, o desconecta para limpiar la conexión.",
+    "keyLabel": "Llave de tu sucursal (place_api_key)",
+    "keyPlaceholder": "Pega aquí la llave",
+    "showKey": "Mostrar la llave",
+    "keyHint": "Se saca en el Portal de Academias de TotalPass → Integraciones → Crear nuevo código. Pégala tal cual; nosotros le quitamos los espacios.",
+    "connect": "Conectar",
+    "connecting": "Conectando…",
+    "connected": "TotalPass quedó conectado",
+    "rekey": "Volver a pegar la llave",
+    "rekeyHint": "Úsalo si agregaste o cambiaste planes en TotalPass.",
+    "mode": {
+      "label": "Cómo se confirma la asistencia",
+      "auto": "Automático (recomendado)",
+      "autoHint": "Cada check-in se confirma solo en cuanto el socio lo hace: nadie tiene que marcarlo.",
+      "onCheckin": "Cuando el estudio registre la asistencia",
+      "onCheckinHint": "Se confirma cuando recepción, el kiosco o el coach marcan que el socio llegó. Si nadie lo hace dentro del plazo, TotalPass no paga esa visita.",
+      "saved": "Modo de confirmación guardado"
+    },
+    "disconnect": "Desconectar",
+    "disconnected": "TotalPass quedó desconectado",
+    "disconnectTitle": "¿Desconectar TotalPass?",
+    "disconnectBody": "Tus clases dejarán de publicarse en TotalPass y los socios ya no podrán reservar. Para volver a conectar tendrás que pegar tu llave otra vez.",
+    "disconnectNoKey": "Como la conexión no está activa, Avoqado no puede quitar tus clases de TotalPass. Si alguna sigue publicada allá, bórrala desde el Portal de Academias de TotalPass.",
+    "disconnectConfirm": "Sí, desconectar"
+  },
+  "products": {
+    "title": "Clases que se ofrecen a TotalPass",
+    "description": "Elige el plan de TotalPass de cada clase. Las que queden «Sin ligar» no se publican.",
+    "class": "Clase",
+    "plan": "Plan de TotalPass",
+    "none": "Sin ligar",
+    "missingPlan": "Plan que ya no existe en TotalPass",
+    "archived": "Clase archivada",
+    "archivedHint": "Ya no se puede cambiar su plan: déjala así o quítala con «Sin ligar».",
+    "noPlans": "Tu sucursal de TotalPass no tiene planes todavía. Créalos en su portal y vuelve a conectar.",
+    "noClasses": "No tienes productos tipo «Clase». Crea uno en el menú para poder ligarlo.",
+    "showing": "Se muestran {{shown}} de {{total}} clases. Si necesitas ligar las demás, escríbenos.",
+    "save": "Guardar clases",
+    "saved": "Clases guardadas"
+  },
+  "capacity": {
+    "title": "Lugares para pases",
+    "description": "Cuántos lugares de cada clase se ofrecen a socios de TotalPass y Wellhub. Los dos comparten el mismo tope; gana la regla más específica: clase > día y hora > general.",
+    "loadError": "No se pudieron cargar los lugares para pases",
+    "notConnected": "Estas reglas se aplican en cuanto conectes TotalPass.",
+    "default": {
+      "label": "En todas las clases, hasta",
+      "unit": "lugares para pases",
+      "hint": "Vacío = todos los lugares libres. 0 = ninguno.",
+      "invalid": "Escribe un número entero de 0 a 500, o déjalo vacío.",
+      "save": "Guardar tope",
+      "saved": "Tope general guardado"
+    },
+    "weekly": {
+      "title": "Excepciones por día y hora",
+      "empty": "No hay excepciones por día y hora.",
+      "add": "+ Agregar",
+      "deleteRule": "Borrar {{rule}}",
+      "deleteTitle": "¿Borrar esta excepción?",
+      "deleteBody": "Se elimina «{{rule}}»; las demás reglas siguen aplicándose.",
+      "deleteConfirm": "Sí, borrar",
+      "deleted": "Excepción borrada",
+      "saved": "Excepción guardada",
+      "spots": "{{count}} lugar",
+      "spots_other": "{{count}} lugares",
+      "replaces": "Ese día y hora ya tienen una excepción de {{count}} lugar; se va a reemplazar.",
+      "replaces_other": "Ese día y hora ya tienen una excepción de {{count}} lugares; se va a reemplazar."
+    },
+    "dialog": {
+      "title": "Nueva excepción",
+      "subtitle": "Para un día de la semana (y una hora, si quieres), cuántos lugares se ofrecen a pases.",
+      "weekday": "Día",
+      "allDay": "Todo el día",
+      "time": "Hora de inicio de la clase",
+      "spots": "Lugares para pases",
+      "spotsHint": "De 0 a 500. 0 = esas clases no se ofrecen a pases.",
+      "errors": { "time": "Indica la hora de la clase o marca «Todo el día».", "spots": "Indica cuántos lugares (de 0 a 500)." }
+    },
+    "suggestions": {
+      "title": "Sugerencias",
+      "description": "Según cómo se llenan tus clases con clientes propios en las últimas 8 semanas.",
+      "line": "Tus {{day}} {{time}} se llenan al {{pct}} % con clientes propios → sugerimos {{count}} lugar",
+      "line_other": "Tus {{day}} {{time}} se llenan al {{pct}} % con clientes propios → sugerimos {{count}} lugares",
+      "weeks": "{{count}} semana de datos",
+      "weeks_other": "{{count}} semanas de datos",
+      "apply": "Aplicar",
+      "applied": "Aplicada",
+      "empty": "Todavía no hay datos suficientes (se necesitan 3 semanas de clases)."
+    }
+  },
+  "visits": {
+    "title": "Check-ins de pases",
+    "subtitle": "Socios de TotalPass que llegaron a tu negocio (Wellhub, muy pronto). Si confirmas la asistencia a mano, hazlo antes de que venza el plazo o el proveedor no paga esa visita.",
+    "planPaused": "Tu plan ya no incluye pases: ya no se publican clases nuevas. Aquí puedes seguir confirmando los check-ins que llegan.",
+    "tabs": {
+      "pending": "Pendientes",
+      "confirmed": "Confirmados",
+      "portal": "Ya confirmados en el portal",
+      "expired": "Vencidos",
+      "rejected": "Rechazados"
+    },
+    "filters": { "provider": "Proveedor", "date": "Fecha", "dateFrom": "Desde", "dateTo": "Hasta", "apply": "Aplicar", "clear": "Limpiar" },
+    "columns": { "member": "Socio", "class": "Clase", "arrived": "Llegó", "status": "Plazo / estado" },
+    "unknownMember": "Socio sin nombre",
+    "noClass": "Sin clase (acceso libre)",
+    "deadlineAt": "vence a las {{time}}",
+    "expiredLabel": "Plazo vencido",
+    "updating": "Actualizando…",
+    "refreshError": "No pudimos actualizar la lista; mostramos lo último que cargó.",
+    "loadMore": "Cargar más",
+    "autoRefreshPaused": "Pausamos la actualización automática mientras revisas páginas anteriores.",
+    "backToLatest": "Volver a lo más reciente",
+    "confirm": "Confirmar",
+    "reject": "Rechazar",
+    "connectionInactive": "La conexión con {{provider}} no está activa; revisa Configuración › Integraciones › Pases.",
+    "confirmed": "Check-in confirmado",
+    "confirmRequested": "Confirmación enviada a {{provider}}. Su estado se ve aquí, en la lista.",
+    "validation": {
+      "confirming": "Confirmando con {{provider}}…",
+      "retrying": "{{provider}} no respondió; lo reintentamos solos.",
+      "failed": "No pudimos confirmar con {{provider}} y ya no lo reintentamos solos: vuelve a confirmarlo antes de que venza el plazo.",
+      "reason": "Motivo: {{error}}"
+    },
+    "confirmExpired": "El plazo ya venció: {{provider}} no pagará esta visita.",
+    "unexpectedStatus": "El check-in ya estaba «{{status}}»; no se cambió.",
+    "rejected": "Check-in rechazado",
+    "rejectTitle": "¿Rechazar este check-in?",
+    "rejectWho": "{{member}} · {{class}} · {{time}}",
+    "rejectWhoNoClass": "{{member}} · Sin clase (acceso libre)",
+    "rejectBody": "El socio no entrará con su pase y el proveedor no pagará esta visita. No se puede deshacer.",
+    "rejectConfirm": "Sí, rechazar",
+    "confirmedBy": { "AUTO": "Confirmada automáticamente", "VENUE": "Confirmada por el negocio" },
+    "status": {
+      "PENDING": "Pendiente",
+      "CONFIRMED": "Confirmado",
+      "ALREADY_CONFIRMED": "Confirmado en el portal",
+      "EXPIRED": "Vencido",
+      "REJECTED": "Rechazado"
+    },
+    "empty": {
+      "pending": "No hay check-ins pendientes. Cuando un socio llegue, aparece aquí.",
+      "confirmed": "Todavía no hay check-ins confirmados.",
+      "portal": "Ninguno se ha confirmado desde el portal del proveedor.",
+      "expired": "Ningún check-in ha vencido.",
+      "rejected": "No has rechazado ningún check-in."
+    },
+    "noMatches": "Ningún check-in coincide con estos filtros.",
+    "loadError": "No se pudieron cargar los check-ins",
+    "total": "{{count}} check-in",
+    "total_other": "{{count}} check-ins",
+    "lastError": "Último error: {{error}}"
+  },
+  "summary": {
+    "title": "Reporte del mes",
+    "description": "Para cuadrar el depósito de cada proveedor: se pagan las confirmadas y las ya confirmadas en el portal. Las vencidas (cobros perdidos) y las rechazadas no se pagan.",
+    "month": "Mes",
+    "monthPlaceholder": "AAAA-MM",
+    "loadError": "No se pudo cargar el reporte del mes",
+    "refreshError": "No pudimos actualizar el reporte; mostramos lo último que cargó.",
+    "empty": "Todavía no hay un proveedor conectado. Conéctalo en Configuración › Integraciones › Pases.",
+    "lateCancellationsNote": "Canceladas tarde: reservas de socios canceladas fuera de plazo, contadas por el día en que se cancelaron.",
+    "columns": {
+      "provider": "Proveedor",
+      "confirmed": "Confirmadas",
+      "alreadyConfirmed": "Ya confirmadas en el portal",
+      "expired": "Vencidas (cobros perdidos)",
+      "rejected": "Rechazadas",
+      "pending": "Pendientes",
+      "lateCancellations": "Canceladas tarde"
+    }
+  }
+}

@@ -171,6 +171,8 @@ import tenderTypesEs from '@/locales/es/tenderTypes.json'
 import deliveryEn from '@/locales/en/delivery.json'
 import deliveryEs from '@/locales/es/delivery.json'
 import deliveryFr from '@/locales/fr/delivery.json'
+import passesEn from '@/locales/en/passes.json'
+import passesEs from '@/locales/es/passes.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -781,6 +783,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'delivery', bundle as Record<string, unknown>, true, true)
+})
+// Conector de pases (TotalPass · Wellhub) — es y en; el francés no se soporta desde el 28-sep-2026.
+;(
+  [
+    ['en', passesEn],
+    ['es', passesEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'passes', bundle as Record<string, unknown>, true, true)
 })
 
 /**
