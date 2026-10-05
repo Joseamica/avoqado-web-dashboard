@@ -394,6 +394,12 @@ export function HybridCheckout({
                   <p className="text-sm text-muted-foreground">{line.featureCodes.map(feature).join(' · ')}</p>
                 </article>
               ))}
+              {/* Spec §4.5: a function a replaced contract paid alone moves to today's price; say it before paying. */}
+              {purchase.quote.repriced?.map(item => (
+                <p key={item.featureCode} className="text-sm" data-tour="hybrid-quote-repriced">
+                  {t('plan.review.repriced', { name: feature(item.featureCode), from: money(item.from), to: money(item.to) })}
+                </p>
+              ))}
               <dl className="space-y-2">
                 {(
                   [

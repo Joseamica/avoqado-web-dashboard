@@ -78,6 +78,12 @@ describe('supported published terms', () => {
     }
     expect(parseHybridPurchase(purchase)).toEqual(purchase)
     for (const status of ['PAID', 'DELIVERING', 'REQUIRES_REVIEW']) expect(parseHybridPurchase({ ...purchase, status }).status).toBe(status)
+    // §4.5: a function a replaced contract paid alone moves to today's price; the quote says from what to what.
+    const repriced = { ...purchase, quote: { ...purchase.quote, repriced: [{ featureCode: 'CFDI', from: '299.00', to: '379.50' }] } }
+    expect(parseHybridPurchase(repriced)).toEqual(repriced)
+    expect(() =>
+      parseHybridPurchase({ ...repriced, quote: { ...repriced.quote, repriced: [{ featureCode: 'CFDI', from: '299' }] } }),
+    ).toThrow()
     expect(() => parseHybridPurchase({ ...purchase, quote: { ...purchase.quote, schemaVersion: 2 } })).toThrow()
     expect(() => parseHybridPurchase({ ...purchase, quote: { ...purchase.quote, dueNow: 'NaN' } })).toThrow()
     expect(() => parseHybridContract({ id: 'contract', definition: { ...valid.definition, schemaVersion: 2 } })).toThrow()
