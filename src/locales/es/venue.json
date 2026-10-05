@@ -433,6 +433,10 @@
           "title": "Pagos con cripto",
           "description": "Acepta pagos en criptomonedas con B4Bit."
         },
+        "passes": {
+          "title": "Pases (TotalPass · Wellhub)",
+          "description": "Los socios de TotalPass reservan y hacen check-in en tus clases (Wellhub, muy pronto); tú decides cuántos lugares les das."
+        },
         "partner": "Socio",
         "haycash": {
           "title": "HayCash · Adelanto de ventas",

@@ -129,6 +129,17 @@ it('reviews server prices and renewal, persists before acceptance, and waits for
   expect(done).not.toHaveBeenCalled()
   expect(hybridBilling.accept).toHaveBeenCalledTimes(1)
 })
+it("says which function the change reprices, from what its contract charged to today's price (spec §4.5)", async () => {
+  const user = userEvent.setup()
+  const repriced = [{ featureCode: 'LOYALTY_PROGRAM', from: '599.00', to: '699.00' }]
+  const quoted = { ...purchase, quote: { ...purchase.quote, repriced } }
+  vi.mocked(hybridBilling.quote).mockResolvedValue(quoted as any)
+  vi.mocked(hybridBilling.purchase).mockResolvedValue(quoted as any)
+  mount()
+  await user.click(await screen.findByRole('button', { name: 'Add offer' }))
+  await user.click(screen.getByRole('button', { name: 'Review quote' }))
+  expect(await screen.findByText(/Loyalty program will go from .*599\.00 to .*699\.00 with this change\./)).toBeInTheDocument()
+})
 it.each(['PAYMENT_PENDING', 'PAID', 'DELIVERING', 'REQUIRES_REVIEW'])(
   'recovers %s from the server after browser storage is lost',
   async status => {

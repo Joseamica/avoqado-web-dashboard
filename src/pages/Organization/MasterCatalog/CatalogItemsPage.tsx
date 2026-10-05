@@ -53,7 +53,8 @@ export default function CatalogItemsPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t('masterCatalog.items.description', {
-              defaultValue: 'La fuente central de nombres, impuestos, costos y presentación para todas las sucursales.',
+              defaultValue:
+                'La fuente central de nombres, costos y presentación para todas las sucursales. El IVA lo elige cada negocio en sus productos; las columnas de IVA del Excel son históricas.',
             })}
           </p>
         </div>

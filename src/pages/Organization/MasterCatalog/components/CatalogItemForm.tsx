@@ -23,10 +23,8 @@ const schema = z.object({
   unit: z.string().min(1),
   productType: z.string().min(1),
   businessType: z.string().min(1),
-  taxRate: z.string().regex(/^\d(?:\.\d{1,4})?$/),
   satProductKey: z.string().trim().min(1),
   satUnitKey: z.string().trim().min(1),
-  objetoImp: z.string().trim().min(1),
   salePrice: money,
   purchaseCost: money,
 })
@@ -67,10 +65,8 @@ export default function CatalogItemForm({ references, initialItem, onSubmit, isS
       unit: initialItem?.unit ?? 'UNIT',
       productType: initialItem?.productType ?? 'REGULAR',
       businessType: initialItem?.businessTypes[0] ?? 'RESTAURANT',
-      taxRate: initialItem?.taxRate ?? '0.1600',
       satProductKey: initialItem?.satProductKey ?? '01010101',
       satUnitKey: initialItem?.satUnitKey ?? 'H87',
-      objetoImp: initialItem?.objetoImp ?? '02',
       salePrice: initialItem?.organizationValues.find(value => value.kind === 'SALE_PRICE' && value.active)?.amount ?? '',
       purchaseCost: initialItem?.organizationValues.find(value => value.kind === 'PURCHASE_COST' && value.active)?.amount ?? '',
     },
@@ -93,10 +89,8 @@ export default function CatalogItemForm({ references, initialItem, onSubmit, isS
     familyId: values.familyId,
     presentationLabel: values.presentationLabel,
     unit: values.unit,
-    taxRate: values.taxRate,
     satProductKey: values.satProductKey,
     satUnitKey: values.satUnitKey,
-    objetoImp: values.objetoImp,
     productType: values.productType,
     iepsMode: 'NONE',
     iepsRate: null,
@@ -258,10 +252,6 @@ export default function CatalogItemForm({ references, initialItem, onSubmit, isS
           <FieldError id="catalog-purchaseCost-error" message={fields.purchaseCost?.message} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="catalog-tax">{t('masterCatalog.itemForm.taxRate', { defaultValue: 'IVA' })}</Label>
-          <Input id="catalog-tax" {...form.register('taxRate')} />
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="catalog-product-key">{t('masterCatalog.itemForm.satProductKey', { defaultValue: 'Clave SAT' })}</Label>
           <Input id="catalog-product-key" {...form.register('satProductKey')} />
         </div>
@@ -269,10 +259,12 @@ export default function CatalogItemForm({ references, initialItem, onSubmit, isS
           <Label htmlFor="catalog-unit-key">{t('masterCatalog.itemForm.satUnitKey', { defaultValue: 'Unidad SAT' })}</Label>
           <Input id="catalog-unit-key" {...form.register('satUnitKey')} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="catalog-tax-object">{t('masterCatalog.itemForm.objetoImp', { defaultValue: 'Objeto de impuesto' })}</Label>
-          <Input id="catalog-tax-object" {...form.register('objetoImp')} />
-        </div>
+        <p className="col-span-full text-sm text-muted-foreground">
+          {t('masterCatalog.itemForm.ivaNote', {
+            defaultValue:
+              'El IVA no se define en el catálogo: cada negocio lo elige en sus productos. Los productos que se crean desde el catálogo nacen con IVA 16 %.',
+          })}
+        </p>
       </section>
 
       {showSubmit && (

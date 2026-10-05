@@ -5,7 +5,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, HandCoins, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink } from 'lucide-react'
+import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, HandCoins, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Ticket, Trash2, Unlink } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -36,6 +36,7 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { HAYCASH_ONBOARDING_URL, openPartner } from '@/config/partners'
 import { financialConnectionAPI } from '@/services/financialConnection.service'
 import { getVenueChatStatus } from '@/services/venueChat.service'
+import { usePassIntegrationsOverview } from '@/hooks/use-passes'
 import VenueChat from './VenueChat'
 
 interface VenueIntegrations {
@@ -118,6 +119,10 @@ export default function VenueIntegrations() {
     },
   })
 
+  // Pases (TotalPass · Wellhub): el hook consulta con reservations:read y el plan comprobado, tenga o no el plan (R62: sin
+  // él la subpágina explica la pausa); sin dato no se inventa el punto de estado.
+  const { data: passesOverview } = usePassIntegrationsOverview(venueId ?? undefined)
+
   if (isLoading) {
     return (
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6">
@@ -150,6 +155,7 @@ export default function VenueIntegrations() {
   const whatsappConnected = !!chatStatus?.mode && chatStatus.mode !== 'DISABLED'
   const ecommerceConnected = merchants.length > 0
   const banksConnected = bankConnections.some(c => c.status === 'CONNECTED')
+  const passesConnected = passesOverview?.connections.some(c => c.status === 'ACTIVE') ?? false
 
   return (
     <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6" data-tour="settings-integrations-page">
@@ -180,6 +186,18 @@ export default function VenueIntegrations() {
           actionVariant={googleConnected ? 'outline' : 'default'}
           onAction={() => navigate('google')}
           dataTour="integration-card-google"
+        />
+
+        {/* Pases (TotalPass · Wellhub) — subpágina propia; plan Pro (paywall dentro de la subpágina) */}
+        <IntegrationCard
+          icon={Ticket}
+          title={t('edit.integrations.catalog.passes.title')}
+          description={t('edit.integrations.catalog.passes.description')}
+          status={passesOverview ? statusLabel(passesConnected) : undefined}
+          actionLabel={ctaLabel(passesConnected)}
+          actionVariant={passesConnected ? 'outline' : 'default'}
+          onAction={() => navigate('pases')}
+          dataTour="integration-card-passes"
         />
 
         {/* WhatsApp — chat con clientes (activación por QR, ex tab de Información del local) */}

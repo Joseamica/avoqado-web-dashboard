@@ -247,7 +247,9 @@
       "quote": "Cotizar",
       "maxOffers": "Máximo 8 ofertas por compra.",
       "pickTier": "{{name}}: ver el plan {{tier}}, que la incluye",
-      "mark": "Marcar {{name}}"
+      "mark": "Marcar {{name}}",
+      "promoForever": "Mientras la conserves",
+      "listPrice": "Precio de lista:"
     },
     "selection": {
       "title": "Tu selección",
@@ -279,6 +281,18 @@
       "contractCancelled": "Listo: tu plan deja de renovarse al final del periodo pagado.",
       "gridError": "No pudimos cargar las funciones. Tu plan no cambió; intenta de nuevo en un momento.",
       "planError": "No pudimos cargar tu plan. No cambió nada; intenta de nuevo en un momento."
+    },
+    "dependency": {
+      "useList": "Usar el precio de lista de {{name}} ({{price}})",
+      "retained": "{{name}} termina antes que la función que depende de ella. Este cambio lo hacemos contigo: Cambio asistido.",
+      "missing": "Agrega {{name}} a tu compra para continuar.",
+      "remove": "Quita {{name}} de tu compra para continuar.",
+      "retainedContact": "{{name}} termina antes que la función que depende de ella. Escríbenos y lo hacemos contigo.",
+      "contactCta": "Escríbenos por WhatsApp",
+      "contactMessage": "Hola, quiero ayuda para cambiar mi plan de Avoqado: {{name}} termina antes que la función que depende de ella."
+    },
+    "review": {
+      "repriced": "{{name}} pasará de {{from}} a {{to}} con este cambio."
     }
   },
   "featureGate": {
@@ -783,7 +797,8 @@
       "AREA_TICKETS": "Vales por área",
       "VARIABLE_WEIGHT_BARCODE": "Códigos de peso variable",
       "MASTER_CATALOG": "Catálogo maestro",
-      "PRICE_LABELS": "Etiquetas de precios"
+      "PRICE_LABELS": "Etiquetas de precios",
+      "AGGREGATOR_PASSES": "Pases (TotalPass · Wellhub)"
     },
     "restoreChanged": "Una oferta de tu selección guardada cambió o ya no está disponible. Reintenta o vuelve a elegir antes de cotizar.",
     "draftSaveFailed": "No pudimos guardar tu selección en este navegador. Mantén esta página abierta para conservarla.",

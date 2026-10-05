@@ -156,6 +156,7 @@
     "settings": "Configuración",
     "editvenue": "Editar Local",
     "integrations": "Integraciones",
+    "passes": "Pases",
     "teams": "Equipo",
     "commissions": "Comisiones",
     "billing": "Plan",
@@ -244,7 +245,8 @@
     "settings": "Configuración",
     "settingsGroup": "Ajustes",
     "general": "General",
-    "communications": "Comunicaciones"
+    "communications": "Comunicaciones",
+    "passes": "Pases (TotalPass · Wellhub)"
   },
   "requiresKycVerification": "Requiere verificación KYC",
   "premiumPro": "Incluido en el Plan Pro",

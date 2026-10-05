@@ -30,6 +30,8 @@ export interface PlanRowProps {
   onCancel: () => void
   onReactivate: () => void
   onUpdatePayment: () => void
+  /** What the selection quotes at list price (spec §5): the pill shows the price the quote will carry. */
+  preferList?: string[]
 }
 
 /** "Tu plan": three choices with what each one costs today, and the status of the one obligation behind it (spec §4.2). */
@@ -52,6 +54,7 @@ export function PlanRow(props: PlanRowProps) {
     replacements: props.replacements,
     classicRejected: props.classicRejected,
     interval: props.interval,
+    preferList: props.preferList,
   }
   const statusText =
     origin.kind === 'COMP'

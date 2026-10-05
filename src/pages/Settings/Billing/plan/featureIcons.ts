@@ -11,6 +11,7 @@ import {
   Clock,
   CreditCard,
   Download,
+  Dumbbell,
   FileText,
   Gift,
   HandCoins,
@@ -85,6 +86,7 @@ const ICONS: Record<string, LucideIcon> = {
   AREA_TICKETS: Ticket,
   VARIABLE_WEIGHT_BARCODE: Barcode,
   MASTER_CATALOG: Library,
+  AGGREGATOR_PASSES: Dumbbell,
 }
 
 export const FEATURE_ICON_IDS = Object.keys(ICONS)

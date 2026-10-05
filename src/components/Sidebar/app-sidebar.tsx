@@ -465,6 +465,15 @@ export function AppSidebar({
       { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
       { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
       { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
+      // Pases — VISIBLE TEASER (Pro): se ve siempre con su ⭐ si el plan no lo cubre; la página pinta el <FeatureGate>.
+      {
+        title: t('sidebar:reservationsMenu.passes', { defaultValue: 'Pases (TotalPass · Wellhub)' }),
+        url: 'reservations/passes',
+        permission: 'reservations:read',
+        premiumLocked: !hasFeatureAccess('AGGREGATOR_PASSES'),
+        gatedFeature: 'AGGREGATOR_PASSES',
+        keywords: ['pases', 'totalpass', 'wellhub', 'gympass', 'check-in', 'socios', 'agregador'],
+      },
       {
         title: t('sidebar:reservationsMenu.onlineBookingGroup', { defaultValue: 'Reservas en línea' }),
         url: '#reservations-online',

@@ -85,6 +85,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Pantalla de cocina por estación (etapa 3, decisión D-A del 27-sep: Pro, con lo de sin internet incluido).
       // 🔴 Todavía NO se anuncia: `FUNCIONES_SIN_LANZAR` (plan-comparison.ts) la esconde de la tabla hasta la fase 3.6.
       'KITCHEN_DISPLAY',
+      // Conector de pases (TotalPass · Wellhub): socios que reservan y hacen check-in con su pase.
+      // Pro por decisión del founder (D4, 2-oct-2026); suelta $199/mes. Espejo de LEGACY_PLAN_CODES del server.
+      'AGGREGATOR_PASSES',
     ],
   },
   {

@@ -184,6 +184,84 @@ describe('SelectionSummary', () => {
     expect(props.onAssisted).toHaveBeenCalled()
   })
 
+  it('a dependency the cart brings for too short: offers the list of that line, which the owner can pick', async () => {
+    const inventory = {
+      id: 'INVENTORY_TRACKING',
+      featureCode: 'INVENTORY_TRACKING',
+      names: { es: 'Inventario FIFO', en: 'FIFO inventory', fr: '' },
+    } as unknown as FeatureGridEntry
+    const onPreferList = vi.fn()
+    renderSummary({
+      error: 'Reorden automático necesita Inventario FIFO…',
+      dependency: { kind: 'LIST', prefer: 'INVENTORY_TRACKING', entry: inventory, price: 599 },
+      onPreferList,
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=Inventario FIFO|price=$599.00' }))
+    expect(onPreferList).toHaveBeenCalledWith('INVENTORY_TRACKING')
+  })
+
+  it('… the plan line: the list of the plan', async () => {
+    const onPreferList = vi.fn()
+    renderSummary({ error: 'x', dependency: { kind: 'LIST', prefer: 'PLAN', plan: 'PRO', price: 1158.84 }, onPreferList })
+    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=plan.tiers.pro.name|price=$1,158.84' }))
+    expect(onPreferList).toHaveBeenCalledWith('PLAN')
+  })
+
+  it('a dependency the venue keeps but that ends first goes to the assisted change; one nobody brings asks to add it', () => {
+    const { rerender } = render(
+      <SelectionSummary
+        model={model()}
+        seatRule="CHOOSE"
+        canManage
+        busy={false}
+        error="x"
+        onReview={vi.fn()}
+        onPickTier={vi.fn()}
+        onAssisted={vi.fn()}
+        dependency={{ kind: 'RETAINED', code: 'INVENTORY_TRACKING' }}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.retained|name=INVENTORY_TRACKING')
+    expect(screen.getByRole('button', { name: 'plan.selection.assisted' })).toBeInTheDocument()
+    rerender(
+      <SelectionSummary
+        model={model()}
+        seatRule="CHOOSE"
+        canManage
+        busy={false}
+        error="x"
+        onReview={vi.fn()}
+        onPickTier={vi.fn()}
+        dependency={{ kind: 'MISSING', code: 'INVENTORY_TRACKING' }}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.missing|name=INVENTORY_TRACKING')
+    expect(screen.queryByRole('button', { name: /useList/ })).toBeNull()
+  })
+
+  it('a line with no list asks to remove the function, by its catalog name', () => {
+    const reorder = { id: 'AUTO_REORDER', featureCode: 'AUTO_REORDER', names: { es: 'Reorden automático', en: 'Auto-reorder', fr: '' } }
+    renderSummary({
+      error: 'x',
+      dependency: { kind: 'REMOVE', code: 'AUTO_REORDER', entry: reorder as unknown as FeatureGridEntry },
+      onPreferList: vi.fn(),
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.remove|name=Reorden automático')
+    expect(screen.queryByRole('button', { name: /useList/ })).toBeNull()
+  })
+
+  it('a kept contract on Gratis, with no assisted button on screen, never names that button', () => {
+    renderSummary({ error: 'x', onAssisted: undefined, dependency: { kind: 'RETAINED', code: 'INVENTORY_TRACKING' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.dependency.retainedContact|name=INVENTORY_TRACKING')
+    expect(screen.queryByText(/plan\.dependency\.retained\|/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'plan.selection.assisted' })).toBeNull()
+    // «Escríbenos» comes with a real channel: the sales WhatsApp, as the upgrade dialog has.
+    const contact = screen.getByRole('link', { name: 'plan.dependency.contactCta' })
+    expect(contact).toHaveAttribute('href', expect.stringMatching(/^https:\/\/wa\.me\/\d+\?text=/))
+    expect(contact.getAttribute('href')).toContain(encodeURIComponent('plan.dependency.contactMessage|name=INVENTORY_TRACKING'))
+    expect(contact).toHaveAttribute('target', '_blank')
+  })
+
   it('a refused drop keeping functions offers dropping at period end', async () => {
     const onFallbackDrop = vi.fn()
     renderSummary({ error: 'No se pudo reemplazar', onFallbackDrop })

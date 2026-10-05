@@ -86,7 +86,39 @@ export interface SelectionInput {
   replacements: HybridReplacementOptions | undefined
   /** The classic checkout answered PLAN_ABSORBE_SUELTA: the plan absorbs a function bought alone. */
   classicRejected: boolean
+  /** Function codes (and `'PLAN'` for the plan) quoted at their list offer instead of the best one (spec §5). */
+  preferList?: string[]
 }
+
+/** The offer a function is quoted with: its list when the owner asked for it and it has one, else the best offer. */
+export const chosenOffer = (entry: FeatureGridEntry, preferList?: string[]) =>
+  (entry.featureCode && preferList?.includes(entry.featureCode) && entry.listOffer) || entry.offer
+
+/** The same for a plan: `'PLAN'` in preferList picks the plan's list. */
+export const chosenPlanOffer = (grid: FeatureGrid | undefined, tier: 'PRO' | 'PREMIUM', preferList?: string[]) =>
+  (preferList?.includes('PLAN') && grid?.planListOffers?.[tier]) || grid?.plans[tier] || null
+
+/** A function the plan grants as part of it (the catalog tier), as opposed to one sold only alone or by quote. */
+const inPlan = (grid: FeatureGrid, tier: 'PRO' | 'PREMIUM', code: string) => {
+  const e = grid.entries.find(x => x.featureCode === code)
+  return (
+    !!e &&
+    e.offering === 'CONFIGURABLE' &&
+    e.minimumTier !== null &&
+    e.minimumTier !== 'ENTERPRISE' &&
+    TIER_RANK[e.minimumTier] <= TIER_RANK[tier]
+  )
+}
+const sellable = (grid: FeatureGrid, code: string) => grid.entries.some(e => e.featureCode === code && e.offering === 'CONFIGURABLE')
+
+/** Replaceable subscriptions a plan offer covers whole: its replacement takes them along (spec §4.1). */
+const absorbedBy = (offer: FeatureGridOffer, replacements: HybridReplacementOptions | undefined) =>
+  (replacements?.items ?? [])
+    .filter(
+      item =>
+        item.replaceable && item.featureCodes.length > 0 && item.featureCodes.every(code => offer.includedFeatureCodes.includes(code)),
+    )
+    .map(item => item.subscriptionId)
 
 export type PlanOperation =
   | { kind: 'NONE' }
@@ -117,12 +149,46 @@ function ownSource(origin: PlanOrigin, replacements: HybridReplacementOptions | 
 export const canDropWithFeatures = (origin: PlanOrigin, replacements: HybridReplacementOptions | undefined) =>
   origin.kind !== 'NONE' && ownSource(origin, replacements).length > 0
 
+/**
+ * A change self-service would get wrong in phase 1, so it is "Cambio asistido" (spec §4.2, §4.5):
+ * (a) the current plan's subscription also carries a function bought alone — replacing it takes that function along;
+ * (b) a subscription the new plan does not absorb whole holds a function the plan includes — the server refuses the overlap;
+ * (c) a classic plan to another paid plan — the classic subscription may be annual or carry the intro coupon (phase 2).
+ */
+export function mixedChange(input: SelectionInput): boolean {
+  const { origin, target, grid } = input
+  const current = currentTarget(origin)
+  if (origin.kind === 'CLASSIC' && target !== 'FREE' && target !== current) return true
+  if (!grid) return false
+  const items = input.replacements?.items ?? []
+  const own = ownSource(origin, input.replacements)
+  // Only functions sold alone count: a plan's subscription also lists the free functions (and, on servers before
+  // 2026-09-29, quote-only ones), which no plan grants as CONFIGURABLE.
+  if (
+    current !== 'FREE' &&
+    items.some(
+      item => own.includes(item.subscriptionId) && item.featureCodes.some(code => sellable(grid, code) && !inPlan(grid, current, code)),
+    )
+  )
+    return true
+  if (target === 'FREE') return false
+  const offer = chosenPlanOffer(grid, target, input.preferList)
+  const absorbed = offer ? absorbedBy(offer, input.replacements) : []
+  return items.some(
+    item =>
+      !own.includes(item.subscriptionId) &&
+      !absorbed.includes(item.subscriptionId) &&
+      item.featureCodes.some(code => inPlan(grid, target, code)),
+  )
+}
+
 /** Which server operation a choice maps to (spec §4.1). Without one, it is "Cambio asistido", never an invented path. */
 export function planOperation(input: SelectionInput): PlanOperation {
   if (input.grandfathered) return { kind: 'FOUNDER' }
   const current = currentTarget(input.origin)
   const offers = input.marked.flatMap(code => {
-    const offer = input.grid?.entries.find(entry => entry.featureCode === code)?.offer
+    const found = input.grid?.entries.find(entry => entry.featureCode === code)
+    const offer = found && chosenOffer(found, input.preferList)
     return offer ? [offer] : []
   })
   const lines = offers.map(offer => ({ publicationId: offer.publicationId, selectedFeatureCodes: [] as string[] }))
@@ -131,7 +197,7 @@ export function planOperation(input: SelectionInput): PlanOperation {
   const own = ownSource(input.origin, input.replacements)
   if (input.target === 'FREE') {
     if (lines.length) {
-      if (!own.length) return { kind: 'ASSISTED', tier: 'FREE' }
+      if (!own.length || mixedChange(input)) return { kind: 'ASSISTED', tier: 'FREE' }
       const kept = offers.flatMap(offer => offer.includedFeatureCodes)
       return {
         kind: 'HYBRID_DROP',
@@ -146,17 +212,11 @@ export function planOperation(input: SelectionInput): PlanOperation {
     return { kind: 'ASSISTED', tier: 'FREE' }
   }
   if (input.origin.kind === 'NONE' && !input.classicRejected) return { kind: 'CLASSIC_CHECKOUT', tier: input.target }
-  const offer = input.grid?.purchasesEnabled ? input.grid.plans[input.target] : null
+  const offer = input.grid?.purchasesEnabled ? chosenPlanOffer(input.grid, input.target, input.preferList) : null
   if (!offer) return { kind: 'ASSISTED', tier: input.target }
   // The plan's own subscription must be replaceable; standalone functions the new plan absorbs go with it (spec §4.1).
-  if (input.origin.kind !== 'NONE' && !own.length) return { kind: 'ASSISTED', tier: input.target }
-  const absorbed = (input.replacements?.items ?? [])
-    .filter(
-      item =>
-        item.replaceable && item.featureCodes.length > 0 && item.featureCodes.every(code => offer.includedFeatureCodes.includes(code)),
-    )
-    .map(item => item.subscriptionId)
-  const sources = [...new Set([...own, ...absorbed])]
+  if ((input.origin.kind !== 'NONE' && !own.length) || mixedChange(input)) return { kind: 'ASSISTED', tier: input.target }
+  const sources = [...new Set([...own, ...absorbedBy(offer, input.replacements)])]
   // The server takes at most eight subscriptions to replace in one quote.
   if (!sources.length || sources.length > MAX_OFFERS) return { kind: 'ASSISTED', tier: input.target }
   return {
@@ -196,7 +256,8 @@ export function planPillPrice(
   const op = planOperation({ ...input, target: tier, marked: [] })
   if (op.kind === 'CLASSIC_CHECKOUT')
     return { amount: classicPrice(tier, input.interval), per: input.interval === 'annual' ? 'year' : 'month' }
-  if (op.kind === 'HYBRID_REPLACE' && input.grid?.plans[tier]) return { amount: input.grid.plans[tier]!.price, per: 'month' }
+  const offer = op.kind === 'HYBRID_REPLACE' ? chosenPlanOffer(input.grid, tier, input.preferList) : null
+  if (offer) return { amount: offer.price, per: 'month' }
   return { amount: classicPrice(tier, 'monthly'), per: 'month' }
 }
 
@@ -244,12 +305,13 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
   const entries = input.grid?.entries ?? []
   const features: SummaryLine[] = input.marked.flatMap(code => {
     const found = entries.find(item => item.featureCode === code)
-    return found?.offer ? [{ key: found.id, entry: found, offer: found.offer, price: found.offer.price }] : []
+    const offer = found && chosenOffer(found, input.preferList)
+    return found && offer ? [{ key: found.id, entry: found, offer, price: offer.price }] : []
   })
   const planLine: SummaryLine = {
     key: `plan-${input.target}`,
     plan: input.target,
-    offer: operation.kind === 'HYBRID_REPLACE' ? (input.grid?.plans[operation.tier] ?? undefined) : undefined,
+    offer: operation.kind === 'HYBRID_REPLACE' ? (chosenPlanOffer(input.grid, operation.tier, input.preferList) ?? undefined) : undefined,
     price: planPillPrice(input.target, input).amount,
   }
   const lines = input.target === current && current !== 'FREE' ? features : [planLine, ...features]
@@ -274,4 +336,51 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     seatNotice: input.target === 'FREE' && current !== 'FREE',
     tooMany: input.marked.length > MAX_OFFERS,
   }
+}
+
+/** One detail of the server's HYBRID_DEPENDENCY_TERM refusal (`DependencyTermIssue`, dates as ISO). */
+export interface DependencyIssue {
+  featureCode: string
+  requiredFeatureCode: string
+  requiredUntil?: string | null
+  /** What brings the dependency: a cart line (by publication), something the venue keeps, or nothing. */
+  unit: { kind: 'LINE'; publicationId: string } | { kind: 'RETAINED'; source?: string } | null
+}
+
+export type DependencyFix =
+  | { kind: 'LIST'; prefer: string; plan?: 'PRO' | 'PREMIUM'; entry?: FeatureGridEntry; price: number }
+  | { kind: 'RETAINED' | 'MISSING' | 'REMOVE'; code: string; entry?: FeatureGridEntry }
+
+/**
+ * Spec §5: a cart line that brings the dependency for too short is redone at ITS list (the plan's, for a plan line — never
+ * a loose function on top of it); with no list, the function that cannot outlast it leaves the purchase (removing the
+ * dependency would only turn the refusal into «add it»). A kept contract that ends first is an assisted change; nothing
+ * bringing it asks to add it. Already on the list, or a dependent function the venue keeps instead of buying: only the
+ * server's message.
+ */
+export function dependencyFix(issue: DependencyIssue, input: SelectionInput): DependencyFix | null {
+  const entries = input.grid?.entries ?? []
+  const entryOf = (code: string) => entries.find(entry => entry.featureCode === code)
+  const code = issue.requiredFeatureCode
+  if (!issue.unit) return { kind: 'MISSING', code, entry: entryOf(code) }
+  if (issue.unit.kind === 'RETAINED') return { kind: 'RETAINED', code, entry: entryOf(code) }
+  const { publicationId } = issue.unit
+  const tier = input.target === 'FREE' ? null : input.target
+  let list: FeatureGridOffer | null | undefined
+  if (tier && chosenPlanOffer(input.grid, tier, input.preferList)?.publicationId === publicationId) {
+    list = input.grid?.planListOffers?.[tier]
+    if (list && list.publicationId !== publicationId) return { kind: 'LIST', prefer: 'PLAN', plan: tier, price: list.price }
+  } else {
+    const line = entries.find(
+      entry =>
+        !!entry.featureCode &&
+        input.marked.includes(entry.featureCode) &&
+        chosenOffer(entry, input.preferList)?.publicationId === publicationId,
+    )
+    list = line?.listOffer
+    if (line?.featureCode && list && list.publicationId !== publicationId)
+      return { kind: 'LIST', prefer: line.featureCode, entry: line, price: list.price }
+  }
+  if (list) return null
+  return input.marked.includes(issue.featureCode) ? { kind: 'REMOVE', code: issue.featureCode, entry: entryOf(issue.featureCode) } : null
 }

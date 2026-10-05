@@ -60,6 +60,11 @@ describe('CatalogImportPage', () => {
     )
   })
 
+  it('D15: explica que las columnas de IVA del Excel son históricas', () => {
+    renderPage()
+    expect(screen.getByText(/iva_rate y objeto_imp son históricas/)).toBeInTheDocument()
+  })
+
   it('exposes one explicit final action and sends the one-time preview token', async () => {
     vi.mocked(catalogApi.previewCatalogImport).mockResolvedValue({
       importBatchId: 'batch-ready',

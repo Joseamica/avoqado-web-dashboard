@@ -26,15 +26,18 @@ import { SuperadminBillingSection } from './components/SuperadminBillingSection'
 import { FeatureGrid } from './plan/FeatureGrid'
 import { PlanRow } from './plan/PlanRow'
 import { SelectionSummary } from './plan/SelectionSummary'
-import { serverCode, serverMessage, usePlanOperations } from './plan/usePlanOperations'
+import { dependencyIssue, serverCode, serverMessage, usePlanOperations } from './plan/usePlanOperations'
 import {
   MAX_OFFERS,
   canDropWithFeatures,
   currentTarget,
+  dependencyFix,
   gridMode,
   isMarkable,
   originOf,
+  planOperation,
   summarizeSelection,
+  type DependencyIssue,
   type PlanOperation,
   type PlanTarget,
 } from './plan/planActions'
@@ -77,6 +80,8 @@ export default function Subscriptions() {
   const [picked, setPicked] = useState<PlanTarget | null>(null)
   const target = picked ?? current
   const [marked, setMarked] = useState<string[]>([])
+  // Functions (and 'PLAN') the owner chose to quote at list price after a refused dependency term (spec §5).
+  const [preferList, setPreferList] = useState<string[]>([])
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
   const [classicRejected, setClassicRejected] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -88,10 +93,19 @@ export default function Subscriptions() {
   >(null)
   const [assistedTier, setAssistedTier] = useState<TierId | null>(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ message: string; issue?: DependencyIssue } | null>(null)
   const ops = usePlanOperations(venueId, () => setCheckoutOpen(true))
 
-  const selection = { origin, grandfathered, target, marked, grid: grid.data, replacements: replacements.data, classicRejected }
+  const selection = {
+    origin,
+    grandfathered,
+    target,
+    marked,
+    grid: grid.data,
+    replacements: replacements.data,
+    classicRejected,
+    preferList,
+  }
   const model = summarizeSelection({ ...selection, interval: billingInterval })
   const mode = gridMode(target, current, canDropWithFeatures(origin, replacements.data))
   const seatRule = origin.kind === 'CLASSIC' ? 'CHOOSE' : 'AUTOMATIC'
@@ -152,34 +166,41 @@ export default function Subscriptions() {
   const reset = () => {
     setPicked(null)
     setMarked([])
+    setPreferList([])
     setClassicRejected(false)
     setError(null)
   }
   const pick = (tier: PlanTarget) => {
     setPicked(tier === current ? null : tier)
     // A plan change starts the selection over: marks from another mode would sit in the summary with no checkbox.
-    if (tier !== target) setMarked([])
+    if (tier !== target) {
+      setMarked([])
+      setPreferList([])
+    }
     setClassicRejected(false)
     setError(null)
   }
   const toggle = (code: string) => {
     setMarked(prev => (prev.includes(code) ? prev.filter(item => item !== code) : prev.length >= MAX_OFFERS ? prev : [...prev, code]))
+    // A function unmarked forgets its list choice: marked again, it starts from the cheapest offer. ('PLAN' already goes
+    // with a plan change, in `pick`.)
+    setPreferList(prev => prev.filter(item => item !== code))
     setError(null)
   }
   // "Cambio asistido" always asks about a paid plan: going to Gratis is about the plan being left.
   const assistedFor = (tier: PlanTarget): PlanTarget => (tier === 'FREE' ? current : tier)
   const assistTier = assistedFor(target)
-  const fail = (value: unknown) => setError(serverMessage(value, t('hybrid.error')))
+  const fail = (value: unknown) => setError({ message: serverMessage(value, t('hybrid.error')), issue: dependencyIssue(value) })
   // The server refused "drop keeping functions": the spec's fallback is the plain drop at period end (§4.1).
   const fallbackDrop = () => {
     setMarked([])
+    setPreferList([])
     setError(null)
     setCancelOpen(true)
   }
   const quote = (body: HybridQuoteBody) => ops.hybridQuote.mutate(body, { onSuccess: reset, onError: fail })
 
-  const review = async () => {
-    const op = model.operation
+  const review = async (op: PlanOperation = model.operation) => {
     setError(null)
     if (op.kind === 'ASSISTED') {
       const tier = assistedFor(op.tier)
@@ -255,6 +276,13 @@ export default function Subscriptions() {
     })
   }
 
+  // The refusal's alternative: quote that line at its list, re-reviewing with the selection it produces.
+  const preferListFor = (code: string) => {
+    const next = [...new Set([...preferList, code])]
+    setPreferList(next)
+    void review(planOperation({ ...selection, preferList: next }))
+  }
+
   const tierName = origin.tier ? t(`plan.tiers.${origin.tier.toLowerCase()}.name`) : ''
   const until = origin.currentPeriodEnd ? formatDate(origin.currentPeriodEnd) : null
   // Every write in flight blocks every write control: quote and downgrade carry no idempotency key.
@@ -293,6 +321,7 @@ export default function Subscriptions() {
               onCancel={() => setCancelOpen(true)}
               onReactivate={() => ops.reactivate.mutate()}
               onUpdatePayment={() => ops.portal.mutate()}
+              preferList={preferList}
             />
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
               {grid.data ? (
@@ -306,6 +335,7 @@ export default function Subscriptions() {
                   onPickTier={pick}
                   canManage={canManage && !grandfathered}
                   target={target}
+                  preferList={preferList}
                 />
               ) : (
                 grid.isError && (
@@ -323,7 +353,9 @@ export default function Subscriptions() {
                 seatRule={seatRule}
                 canManage={canManage}
                 busy={busy}
-                error={error}
+                error={error?.message ?? null}
+                dependency={error?.issue ? dependencyFix(error.issue, selection) : null}
+                onPreferList={preferListFor}
                 onReview={() => void review()}
                 onPickTier={pick}
                 onAssisted={assistTier !== 'FREE' ? () => setAssistedTier(assistTier) : undefined}

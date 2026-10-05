@@ -33,6 +33,7 @@ import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
 import { useClaseDelEnlace } from './useClaseDelEnlace'
+import { ClassSessionPassesLine } from './components/ClassSessionPassesLine'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 import { GoogleCalendarBusyBlock } from './components/GoogleCalendarBusyBlock'
@@ -686,18 +687,20 @@ export default function ReservationCalendar() {
           {formatTime(session.startsAt)} – {formatTime(session.endsAt)}
         </div>
         {height > 40 && (
-          <div className="flex items-center gap-1 opacity-70">
-            <Users className="h-3 w-3" />
-            <span>
+          // Una sola línea que no se parte (R2b-34): inscritos y pases nunca se encogen; el aviso de lugares se recorta.
+          <div className="flex items-center gap-1 whitespace-nowrap overflow-hidden opacity-70">
+            <Users className="h-3 w-3 shrink-0" />
+            <span className="shrink-0">
               {session.enrolled}/{session.capacity}
             </span>
+            <ClassSessionPassesLine passes={session.passes} />
             {isFull && (
-              <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1 border-violet-500/40">
-                {t('classSession.full')}
+              <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1 min-w-0 border-violet-500/40">
+                <span className="truncate">{t('classSession.full')}</span>
               </Badge>
             )}
             {!isFull && spotsLeft <= 3 && (
-              <span className="text-[10px] opacity-80">{t('classSession.spotsLeft', { count: spotsLeft })}</span>
+              <span className="min-w-0 truncate text-[10px] opacity-80">{t('classSession.spotsLeft', { count: spotsLeft })}</span>
             )}
           </div>
         )}

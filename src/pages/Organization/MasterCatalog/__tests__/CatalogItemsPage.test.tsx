@@ -53,6 +53,12 @@ describe('CatalogItemsPage', () => {
     mockedAccess.mockReturnValue({ canRead: true, canMutateContent: true } as never)
   })
 
+  it('D15: no presenta el catálogo como la fuente del IVA', () => {
+    renderPage()
+    expect(screen.queryByText(/impuestos/)).not.toBeInTheDocument()
+    expect(screen.getByText(/El IVA lo elige cada negocio/)).toBeInTheDocument()
+  })
+
   it('renders the tenant page as an accessible paginated table and preserves leading-zero SKU text', () => {
     renderPage()
 

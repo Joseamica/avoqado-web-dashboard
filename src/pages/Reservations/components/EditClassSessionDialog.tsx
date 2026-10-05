@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimePicker } from '@/components/ui/time-picker'
@@ -33,6 +33,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { teamService } from '@/services/team.service'
 import classSessionService from '@/services/classSession.service'
 import { PagoDeClaseCard } from './PagoDeClaseCard'
+import { SessionPassCapField } from './SessionPassCapField'
 
 const editSchema = z
   .object({
@@ -266,6 +267,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
               </>
             )}
           </DialogTitle>
+          {/* Para lectores de pantalla; sin ella Radix avisa (el DialogContent del repo no reenvía aria-describedby). */}
+          <DialogDescription className="sr-only">{t('classSession.editDescription')}</DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
@@ -401,6 +404,18 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                   </Select>
                 </div>
               </div>
+
+              {/* Lugares para pases de ESTA sesión — sólo si la clase se ofrece a pases (passes ≠ null). Terminada: sólo se ven. */}
+              {session.passes &&
+                sessionId &&
+                venueId &&
+                (isReadOnly ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t('classSession.passes', { taken: session.passes.taken, cap: session.passes.cap })}
+                  </p>
+                ) : (
+                  <SessionPassCapField key={sessionId} venueId={venueId} sessionId={sessionId} passes={session.passes} />
+                ))}
 
               {/* Pago a la coach: sólo con el módulo prendido y staffpay:read. La tarjeta decide y pone su propio
                   separador, para no dejar una línea suelta cuando no se pinta. */}
