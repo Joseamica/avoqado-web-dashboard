@@ -169,6 +169,7 @@ export const AreaTickets = lazyWithRetry(() => import('@/pages/Settings/AreaTick
 // configuración.
 export const ExternalSettlements = lazyWithRetry(() => import('@/pages/AreaTickets/ExternalSettlements'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
+export const PassIntegrations = lazyWithRetry(() => import('@/pages/Settings/PassIntegrations'))
 
 // Google Calendar Sync — picker page the OAuth callback redirects to with ?session=<token>
 export const GoogleCalendarPicker = lazyWithRetry(() => import('@/pages/GoogleCalendar/Picker'))
@@ -195,6 +196,7 @@ export const ReservationsPage = lazyWithRetry(() => import('@/pages/Reservations
 export const ReservationDetail = lazyWithRetry(() => import('@/pages/Reservations/ReservationDetail'))
 export const CreateReservation = lazyWithRetry(() => import('@/pages/Reservations/CreateReservation'))
 export const ReservationCalendar = lazyWithRetry(() => import('@/pages/Reservations/ReservationCalendar'))
+export const PassVisits = lazyWithRetry(() => import('@/pages/Reservations/PassVisits'))
 export const ReservationWaitlist = lazyWithRetry(() => import('@/pages/Reservations/Waitlist'))
 export const ReservationSettingsPage = lazyWithRetry(() => import('@/pages/Reservations/ReservationSettings'))
 export const OnlineBookingPage = lazyWithRetry(() => import('@/pages/Reservations/OnlineBookingPage'))

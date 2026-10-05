@@ -271,6 +271,20 @@
     "statusCompleted": "Completada",
     "attendees": "Asistentes",
     "attendeeRemoved": "Asistente eliminado",
+    "passes": "Pases: {{taken}} de {{cap}}",
+    "editDescription": "Fecha, horario, cupo, instructor, notas y asistentes de esta clase.",
+    "sessionPassCap": {
+      "label": "Lugares para pases en esta clase",
+      "hint": "Vacío = se usa la regla del día y horario o, si no hay, la general. Va {{count}} lugar tomado por socios.",
+      "hint_other": "Vacío = se usa la regla del día y horario o, si no hay, la general. Van {{count}} lugares tomados por socios.",
+      "invalid": "Escribe un número entero de 0 a 500, o déjalo vacío.",
+      "readOnly": "Para cambiarlo, pídele a un administrador del negocio.",
+      "planUnresolved": "No pudimos comprobar tu plan. Recarga la página para cambiarlo.",
+      "planRequired": "Cambiarlo es parte del plan Pro (Pases).",
+      "unsaved": "Sin guardar",
+      "save": "Guardar lugares",
+      "saved": "Lugares para pases guardados"
+    },
     "inlineCreate": {
       "title": "Nueva clase",
       "name": "Nombre",

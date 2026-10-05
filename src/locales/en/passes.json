@@ -1,0 +1,208 @@
+{
+  "providers": { "TOTALPASS": "TotalPass", "WELLHUB": "Wellhub" },
+  "days": { "0": "Sunday", "1": "Monday", "2": "Tuesday", "3": "Wednesday", "4": "Thursday", "5": "Friday", "6": "Saturday" },
+  "daysPlural": { "0": "Sundays", "1": "Mondays", "2": "Tuesdays", "3": "Wednesdays", "4": "Thursdays", "5": "Fridays", "6": "Saturdays" },
+  "allDay": "all day",
+  "errors": {
+    "generic": "Couldn't complete that. Try again.",
+    "planUnresolved": "We couldn't verify your plan. Reload the page to try again."
+  },
+  "page": {
+    "title": "Passes (TotalPass · Wellhub)",
+    "subtitle": "Connect your location so TotalPass members can book and check in to your classes from their app (Wellhub, coming soon). You decide how many spots they get.",
+    "info": "TotalPass pays you for every confirmed visit (Wellhub, coming soon). Here you connect your location, link your classes and decide how many spots to offer.",
+    "readOnly": "Read only: to connect or change settings, ask a business administrator.",
+    "loadError": "Couldn't load the passes settings"
+  },
+  "teaser": {
+    "title": "What this does",
+    "bullet1": "TotalPass members see your classes in their app and book on their own (Wellhub, coming soon).",
+    "bullet2": "When they arrive, their check-in is confirmed and the provider pays you for that visit.",
+    "bullet3": "You decide how many spots per class go to passes, with suggestions based on how your classes fill up."
+  },
+  "wellhub": {
+    "title": "Wellhub",
+    "description": "Formerly Gympass. You'll be able to connect it as soon as Wellhub hands us your location's credentials.",
+    "connect": "Connect"
+  },
+  "totalpass": {
+    "title": "TotalPass",
+    "description": "TotalPass members book and check in to your classes from their app.",
+    "status": { "connected": "Connected", "notConnected": "Not connected", "paused": "Paused", "revoked": "Key rejected", "planPaused": "Paused by your plan" },
+    "planPausedAuto": "Your plan no longer includes passes. We no longer publish new classes on TotalPass; what was already published or booked is honored and its check-ins are still confirmed automatically.",
+    "planPausedOnCheckin": "Your plan no longer includes passes. We no longer publish new classes on TotalPass; what was already published or booked is honored. Check-ins that come in are confirmed in Reservations › Passes.",
+    "place": "TotalPass location",
+    "pausedHint": "This connection is paused. Paste your key to reconnect it.",
+    "pendingHint": "The last attempt to connect didn't finish. Paste your key again.",
+    "revokedHint": "TotalPass rejected the key for “{{place}}”. Paste a new key to reconnect, or disconnect to clean up the connection.",
+    "keyLabel": "Your location key (place_api_key)",
+    "keyPlaceholder": "Paste the key here",
+    "showKey": "Show the key",
+    "keyHint": "Get it in the TotalPass Partner Portal → Integrations → Create new code. Paste it as is; we strip the spaces.",
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "connected": "TotalPass is now connected",
+    "rekey": "Paste the key again",
+    "rekeyHint": "Use it if you added or changed plans in TotalPass.",
+    "mode": {
+      "label": "How attendance gets confirmed",
+      "auto": "Automatic (recommended)",
+      "autoHint": "Each check-in is confirmed on its own as soon as the member checks in: nobody has to mark it.",
+      "onCheckin": "When the studio records attendance",
+      "onCheckinHint": "Confirmed when the front desk, the kiosk or the coach marks the member as arrived. If nobody does it in time, TotalPass won't pay for that visit.",
+      "saved": "Confirmation mode saved"
+    },
+    "disconnect": "Disconnect",
+    "disconnected": "TotalPass has been disconnected",
+    "disconnectTitle": "Disconnect TotalPass?",
+    "disconnectBody": "Your classes will stop being published on TotalPass and members won't be able to book. To reconnect you'll need to paste your key again.",
+    "disconnectNoKey": "Since the connection isn't active, Avoqado can't remove your classes from TotalPass. If any are still published there, delete them from the TotalPass Partner Portal.",
+    "disconnectConfirm": "Yes, disconnect"
+  },
+  "products": {
+    "title": "Classes offered to TotalPass",
+    "description": "Pick the TotalPass plan for each class. Classes left as “Not linked” aren't published.",
+    "class": "Class",
+    "plan": "TotalPass plan",
+    "none": "Not linked",
+    "missingPlan": "Plan that no longer exists in TotalPass",
+    "archived": "Archived class",
+    "archivedHint": "Its plan can no longer be changed: keep it as is or remove it with “Not linked”.",
+    "noPlans": "Your TotalPass location has no plans yet. Create them in their portal and reconnect.",
+    "noClasses": "You have no “Class” products. Create one in the menu to link it.",
+    "showing": "Showing {{shown}} of {{total}} classes. If you need to link the rest, write to us.",
+    "save": "Save classes",
+    "saved": "Classes saved"
+  },
+  "capacity": {
+    "title": "Spots for passes",
+    "description": "How many spots per class go to TotalPass and Wellhub members. Both share the same cap; the most specific rule wins: class > day and time > general.",
+    "loadError": "Couldn't load the spots for passes",
+    "notConnected": "These rules apply as soon as you connect TotalPass.",
+    "default": {
+      "label": "In every class, up to",
+      "unit": "spots for passes",
+      "hint": "Empty = every free spot. 0 = none.",
+      "invalid": "Enter a whole number from 0 to 500, or leave it empty.",
+      "save": "Save cap",
+      "saved": "General cap saved"
+    },
+    "weekly": {
+      "title": "Exceptions by day and time",
+      "empty": "No exceptions by day and time.",
+      "add": "+ Add",
+      "deleteRule": "Delete {{rule}}",
+      "deleteTitle": "Delete this exception?",
+      "deleteBody": "“{{rule}}” will be removed; the other rules still apply.",
+      "deleteConfirm": "Yes, delete",
+      "deleted": "Exception deleted",
+      "saved": "Exception saved",
+      "spots": "{{count}} spot",
+      "spots_other": "{{count}} spots",
+      "replaces": "That day and time already have an exception of {{count}} spot; it will be replaced.",
+      "replaces_other": "That day and time already have an exception of {{count}} spots; it will be replaced."
+    },
+    "dialog": {
+      "title": "New exception",
+      "subtitle": "For one weekday (and a time, if you want), how many spots go to passes.",
+      "weekday": "Day",
+      "allDay": "All day",
+      "time": "Class start time",
+      "spots": "Spots for passes",
+      "spotsHint": "From 0 to 500. 0 = those classes aren't offered to passes.",
+      "errors": { "time": "Enter the class time or check “All day”.", "spots": "Enter how many spots (0 to 500)." }
+    },
+    "suggestions": {
+      "title": "Suggestions",
+      "description": "Based on how your classes fill up with your own clients over the last 8 weeks.",
+      "line": "Your {{day}} {{time}} classes fill up to {{pct}}% with your own clients → we suggest {{count}} spot",
+      "line_other": "Your {{day}} {{time}} classes fill up to {{pct}}% with your own clients → we suggest {{count}} spots",
+      "weeks": "{{count}} week of data",
+      "weeks_other": "{{count}} weeks of data",
+      "apply": "Apply",
+      "applied": "Applied",
+      "empty": "Not enough data yet (3 weeks of classes are needed)."
+    }
+  },
+  "visits": {
+    "title": "Pass check-ins",
+    "subtitle": "TotalPass members who arrived at your business (Wellhub, coming soon). If you confirm attendance by hand, do it before the deadline or the provider won't pay for that visit.",
+    "planPaused": "Your plan no longer includes passes: new classes are no longer published. Here you can keep confirming the check-ins that come in.",
+    "tabs": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "portal": "Confirmed in the portal",
+      "expired": "Expired",
+      "rejected": "Rejected"
+    },
+    "filters": { "provider": "Provider", "date": "Date", "dateFrom": "From", "dateTo": "To", "apply": "Apply", "clear": "Clear" },
+    "columns": { "member": "Member", "class": "Class", "arrived": "Arrived", "status": "Deadline / status" },
+    "unknownMember": "Unnamed member",
+    "noClass": "No class (open access)",
+    "deadlineAt": "expires at {{time}}",
+    "expiredLabel": "Deadline expired",
+    "updating": "Updating…",
+    "refreshError": "We couldn't refresh the list; showing what last loaded.",
+    "loadMore": "Load more",
+    "autoRefreshPaused": "We paused automatic updates while you review earlier pages.",
+    "backToLatest": "Back to the latest",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "connectionInactive": "The {{provider}} connection isn't active; check Settings › Integrations › Passes.",
+    "confirmed": "Check-in confirmed",
+    "confirmRequested": "Confirmation sent to {{provider}}. You can follow its status here, in the list.",
+    "validation": {
+      "confirming": "Confirming with {{provider}}…",
+      "retrying": "{{provider}} didn't respond; we'll retry on our own.",
+      "failed": "We couldn't confirm with {{provider}} and we won't retry on our own: confirm it again before the deadline.",
+      "reason": "Reason: {{error}}"
+    },
+    "confirmExpired": "The deadline has passed: {{provider}} won't pay for this visit.",
+    "unexpectedStatus": "The check-in was already “{{status}}”; nothing changed.",
+    "rejected": "Check-in rejected",
+    "rejectTitle": "Reject this check-in?",
+    "rejectWho": "{{member}} · {{class}} · {{time}}",
+    "rejectWhoNoClass": "{{member}} · No class (open access)",
+    "rejectBody": "The member won't get in with their pass and the provider won't pay for this visit. This can't be undone.",
+    "rejectConfirm": "Yes, reject",
+    "confirmedBy": { "AUTO": "Confirmed automatically", "VENUE": "Confirmed by the business" },
+    "status": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ALREADY_CONFIRMED": "Confirmed in the portal",
+      "EXPIRED": "Expired",
+      "REJECTED": "Rejected"
+    },
+    "empty": {
+      "pending": "No pending check-ins. When a member arrives, it shows up here.",
+      "confirmed": "No confirmed check-ins yet.",
+      "portal": "None has been confirmed from the provider's portal.",
+      "expired": "No check-in has expired.",
+      "rejected": "You haven't rejected any check-in."
+    },
+    "noMatches": "No check-ins match these filters.",
+    "loadError": "Couldn't load check-ins",
+    "total": "{{count}} check-in",
+    "total_other": "{{count}} check-ins",
+    "lastError": "Last error: {{error}}"
+  },
+  "summary": {
+    "title": "Monthly report",
+    "description": "To reconcile each provider's deposit: confirmed visits and visits already confirmed in the portal are paid. Expired (lost payments) and rejected visits are not.",
+    "month": "Month",
+    "monthPlaceholder": "YYYY-MM",
+    "loadError": "Couldn't load the monthly report",
+    "refreshError": "We couldn't refresh the report; showing what last loaded.",
+    "empty": "No provider is connected yet. Connect one in Settings › Integrations › Passes.",
+    "lateCancellationsNote": "Late cancellations: member bookings cancelled past the deadline, counted by the day they were cancelled.",
+    "columns": {
+      "provider": "Provider",
+      "confirmed": "Confirmed",
+      "alreadyConfirmed": "Already confirmed in the portal",
+      "expired": "Expired (lost payments)",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "lateCancellations": "Late cancellations"
+    }
+  }
+}
