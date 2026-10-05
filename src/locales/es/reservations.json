@@ -296,7 +296,8 @@
       "maxParticipants": "Cupo máximo",
       "save": "Crear clase",
       "success": "Clase creada exitosamente"
-    }
+    },
+    "linkNotFound": "No encontramos esa clase en esta sede."
   },
   "waitlist": {
     "title": "Lista de Espera",

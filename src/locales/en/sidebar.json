@@ -29,7 +29,8 @@
   "teamMenu": {
     "title": "Team",
     "members": "Members",
-    "attendance": "Attendance"
+    "attendance": "Attendance",
+    "servicePay": "Pay per service"
   },
   "settingsMenu": {
     "title": "Settings"

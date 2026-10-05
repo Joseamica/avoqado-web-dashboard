@@ -32,6 +32,7 @@ import type { Reservation, ReservationSettings, ReservationStatus } from '@/type
 import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
+import { useClaseDelEnlace } from './useClaseDelEnlace'
 import { ClassSessionPassesLine } from './components/ClassSessionPassesLine'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
@@ -198,6 +199,9 @@ export default function ReservationCalendar() {
 
   // Edit class session dialog state
   const [editSessionId, setEditSessionId] = useState<string | null>(null)
+  // Abrir una clase por enlace (`?clase=<id>`), p. ej. desde «Diferencias por liquidar» de pago por servicio: la única salida
+  // de una diferencia trabada es «Ajustar monto» en la clase.
+  useClaseDelEnlace(venueId, setEditSessionId)
 
   // Drag/resize refs (declared early — handlers are set up after classSessions is available)
   const dragRef = useRef<{

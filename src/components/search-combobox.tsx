@@ -44,6 +44,8 @@ interface SearchComboboxProps {
   autoFocus?: boolean
   /** Additional class for the container */
   className?: string
+  /** `id` of the input, so a `<Label htmlFor>` gives it an accessible name */
+  inputId?: string
   /** Called when scroll reaches the bottom — for infinite scroll */
   onLoadMore?: () => void
   /** Whether there are more items to load */
@@ -71,6 +73,7 @@ export function SearchCombobox({
   onChange,
   autoFocus = false,
   className,
+  inputId,
   onLoadMore,
   hasMore = false,
   isLoadingMore = false,
@@ -112,6 +115,7 @@ export function SearchCombobox({
         <div className={cn('relative', className)}>
           <input
             ref={inputRef}
+            id={inputId}
             type="text"
             value={value}
             onChange={e => {

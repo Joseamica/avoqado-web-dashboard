@@ -115,6 +115,7 @@ const routeKeyMap: Record<string, string> = {
   asistencia: 'sidebar:routes.attendance',
   team: 'sidebar:routes.teams',
   commissions: 'sidebar:routes.commissions',
+  'servicio-pago': 'sidebar:teamMenu.servicePay',
   // Dinero
   refunds: 'sidebar:routes.refunds',
   disputes: 'sidebar:routes.disputes',

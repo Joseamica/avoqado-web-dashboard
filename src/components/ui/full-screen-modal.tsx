@@ -26,6 +26,12 @@ interface FullScreenModalProps {
   actions?: React.ReactNode
   /** Optional className for the content container */
   contentClassName?: string
+  /**
+   * Optional Radix focus hooks. Default on open: focus is NOT moved (no field gets focus); on close: Radix's default.
+   * Pass them to move focus into the modal on open, or to return it somewhere stable on close.
+   */
+  onOpenAutoFocus?: (event: Event) => void
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 export function FullScreenModal({
@@ -36,6 +42,8 @@ export function FullScreenModal({
   children,
   actions,
   contentClassName,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
 }: FullScreenModalProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -47,10 +55,13 @@ export function FullScreenModal({
             // Animation: slide up from bottom on open, slide down on close
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
-            'duration-300'
+            'duration-300',
+            // A caller that moves focus to the container itself must not get a focus ring around the whole page.
+            onOpenAutoFocus && 'outline-none'
           )}
           // Prevent auto-focus on first focusable element (we want natural flow)
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          onOpenAutoFocus={onOpenAutoFocus ?? ((e) => e.preventDefault())}
+          onCloseAutoFocus={onCloseAutoFocus}
         >
           {/* Header */}
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-card px-4 border-b border-border/30">
