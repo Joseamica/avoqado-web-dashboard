@@ -30,6 +30,20 @@ import { createPrinter, deletePrinter, getPrinters, updatePrinter, type Printer 
 const FORM_ID = 'printer-form'
 const DEFAULT_CHARSET = 'CP858'
 
+// Las mismas tres tablas de acentos que el POS (avoqado-android `TablaDeAcentos.delPanel`): CP858 es «Normal»
+// (Windows-1252, lo de siempre); PC850 y PC437 son para impresoras que ignoran esa tabla y sacan símbolos raros.
+const TABLAS_DE_ACENTOS = ['CP858', 'PC850', 'PC437'] as const
+const tablaDeAcentos = (charset: string) => {
+  const n = charset
+    .trim()
+    .toUpperCase()
+    .replace(/^(CP|PC)/, '')
+  return n === '850' ? 'PC850' : n === '437' ? 'PC437' : DEFAULT_CHARSET
+}
+
+// 72 = rollo de 80 mm cuyo cabezal imprime 42 columnas, no 48 (La Galeterie, 5-oct: con «80» la comanda salía encimada).
+const ANCHOS_DE_PAPEL = [58, 72, 80] as const
+
 // Servable connection types: NETWORK/BLUETOOTH (routed by the POS print gateway) and
 // POS_INTERNAL — the POS device's own built-in printer (Sunmi): the comanda prints on
 // the device that charged the sale, no IP involved. USB_SPOOLER (Windows desktop POS)
@@ -106,7 +120,9 @@ export function PrintersTab({ venueId }: { venueId: string }) {
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {printer.connectionType === 'POS_INTERNAL' ? t('printers.integratedAddress') : (printer.address ?? '—')}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{t('printers.widthValue', { mm: printer.paperWidthMm })}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {printer.paperWidthMm === 72 ? t('printers.width42') : t('printers.widthValue', { mm: printer.paperWidthMm })}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={printer.active ? 'default' : 'outline'}>
                         {printer.active ? t('printers.statusActive') : t('printers.statusInactive')}
@@ -205,13 +221,14 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
       address: printer?.address ?? '',
       paperWidthMm: printer?.paperWidthMm ?? 80,
       leftMarginChars: printer?.leftMarginChars ?? 0,
-      charset: printer?.charset ?? DEFAULT_CHARSET,
+      charset: tablaDeAcentos(printer?.charset ?? DEFAULT_CHARSET),
       active: printer?.active ?? true,
     },
   })
 
   const connectionType = watch('connectionType')
   const paperWidthMm = watch('paperWidthMm')
+  const charset = watch('charset')
   const active = watch('active')
 
   const handleConnectionTypeChange = (value: string) => {
@@ -326,16 +343,32 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="58">{t('printers.widthValue', { mm: 58 })}</SelectItem>
-                      <SelectItem value="80">{t('printers.widthValue', { mm: 80 })}</SelectItem>
+                      {ANCHOS_DE_PAPEL.map(mm => (
+                        <SelectItem key={mm} value={String(mm)}>
+                          {mm === 72 ? t('printers.width42') : t('printers.widthValue', { mm })}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="printer-charset">{t('printers.fields.charset')}</Label>
-                  <Input id="printer-charset" className="h-12 text-base" {...register('charset')} />
+                  <Select value={charset} onValueChange={v => setValue('charset', v, { shouldDirty: true })}>
+                    <SelectTrigger id="printer-charset" className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TABLAS_DE_ACENTOS.map(tabla => (
+                        <SelectItem key={tabla} value={tabla}>
+                          {t(`printers.charsetOptions.${tabla}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">{t('printers.fields.paperWidthHint')}</p>
+              <p className="text-xs text-muted-foreground">{t('printers.fields.charsetHint')}</p>
 
               <div className="space-y-2">
                 <Label htmlFor="printer-left-margin">{t('printers.fields.leftMargin')}</Label>

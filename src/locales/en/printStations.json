@@ -68,7 +68,7 @@
     }
   },
   "printers": {
-    "intro": "Register each physical printer in the venue. Connect it over the network (WiFi/Ethernet) or via Bluetooth.",
+    "intro": "Register each physical printer in the venue. Connect it over the network (WiFi/Ethernet) or via Bluetooth. The receipt and ticket printer of each register is not listed here: choose it on the register itself, in More › Settings › Printer.",
     "empty": "No printers registered yet.",
     "add": "Add printer",
     "createTitle": "New printer",
@@ -96,9 +96,11 @@
       "paperWidth": "Paper width",
       "leftMargin": "Shift right (columns)",
       "leftMarginHint": "Leave this at 0 unless you fitted a narrow roll with adapters into a wider printer: the paper then doesn't start where the printer thinks it does, and receipts come out cut off on the left. Print the test page from the POS, read the first ruler number you can see, and enter it here.",
-      "charset": "Charset",
+      "charset": "Accents",
       "active": "Printer active",
-      "posInternalHint": "The ticket prints on the device that charged the sale (the point of sale’s built-in printer). It has no IP address and works even without internet."
+      "posInternalHint": "The ticket prints on the device that charged the sale (the point of sale’s built-in printer). It has no IP address and works even without internet.",
+      "paperWidthHint": "If the ticket prints overlapped or cut off at 80 mm, your printer prints 42 columns: choose “80 mm (42 col.)”.",
+      "charsetHint": "Leave it on “Normal”. If accents print as strange symbols (CAFETER═A), choose PC850; if that fails too, PC437 (no accents on capital letters)."
     },
     "saved": "Printer saved",
     "deleted": "Printer deleted",
@@ -113,7 +115,13 @@
       "addressForbiddenPosInternal": "The built-in printer takes no address: it prints on the device that charged the sale"
     },
     "connectionPosInternal": "POS built-in printer",
-    "integratedAddress": "POS built-in"
+    "integratedAddress": "POS built-in",
+    "width42": "80 mm (42 col.)",
+    "charsetOptions": {
+      "CP858": "Normal",
+      "PC850": "PC850",
+      "PC437": "PC437"
+    }
   },
   "gateway": {
     "intro": "The gateway is the device (a tablet) that stays on and controls the printers on the venue's network.",
