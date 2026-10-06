@@ -223,6 +223,10 @@
     "receiveError": "Error receiving order",
     "receiveNoQuantity": "You must enter at least one quantity",
     "approveSuccess": "Order approved successfully",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancelSuccess": "Order cancelled successfully",
+    "cancelError": "Error cancelling order",
     "approveError": "Error approving order",
     "sendSuccess": "Order sent to supplier successfully",
     "sendError": "Error sending order",
@@ -370,10 +374,10 @@
     "partialProgress": "Partial delivery: {{invoiced}} of {{total}} of the order invoiced.",
     "supplierUnknown": "The issuer is not registered as a supplier; the invoice was stored anyway.",
     "standalone": {
-      "title": "Invoices without an order",
-      "hint": "The XML of an invoice that arrived on its own. Lines this supplier has billed before are recognized; new ones you confirm once and the system learns.",
+      "title": "Purchases from XML",
+      "hint": "Upload the supplier XML, identify items and review units and costs. Preparing a purchase does not add stock: approve it first, then receive it.",
       "upload": "Upload standalone invoice (XML)",
-      "empty": "No standalone invoices."
+      "empty": "No supplier invoices."
     },
     "lines": {
       "toggle": "{{count}} lines",
@@ -389,6 +393,38 @@
       "confirm": "Confirm",
       "learnedTitle": "Line identified",
       "learnedDesc": "The next invoice from this supplier will recognize it on its own."
+    },
+    "receipt": {
+      "identify": "Identify item and unit",
+      "xmlQuantity": "XML quantity: {{quantity}} · SAT unit {{unit}}",
+      "loadError": "Could not load. Please try again.",
+      "noArticles": "No items match this search.",
+      "totalArticles": "{{count}} items",
+      "previous": "Previous",
+      "next": "Next",
+      "unitHint": "This item’s inventory is measured in {{unit}}.",
+      "purchaseUnit": "Supplier unit or presentation",
+      "chooseUnit": "Choose a unit or presentation",
+      "presentationHint": "For boxes, packs or other presentations, configure the raw material’s conversion before receiving.",
+      "searchInvoices": "Search supplier, tax ID, invoice number or UUID",
+      "page": "Page {{page}} of {{pages}} · {{total}} invoices",
+      "received": "Inventory received",
+      "waitingApproval": "Purchase awaiting approval. Open the purchase order to approve it.",
+      "permission": "Inventory create and update permissions are required.",
+      "openOrder": "Open purchase order",
+      "review": "Review inventory receipt",
+      "confirmReceive": "Confirm receipt",
+      "confirmPrepare": "Prepare purchase for approval",
+      "prepared": "Purchase prepared: awaiting approval",
+      "receiveHint": "Confirm that this merchandise arrived. Inventory will be added once using the quantities and costs shown.",
+      "prepareHint": "Review items, units and costs. A purchase order will be prepared for approval. Inventory is added after approval and receipt confirmation.",
+      "includeIeps": "Include IEPS in merchandise cost",
+      "costTotal": "Inventory cost",
+      "ivaExcluded": "VAT excluded from cost",
+      "invoiceTotal": "Invoice total",
+      "costLine": "Net cost: {{cost}} · {{unitCost}} per {{unit}}",
+      "tooManyLines": "This invoice has {{total}} lines. XML receipts support up to 200 and this view shows the first 201. Review the full XML and use manual purchase orders for this purchase.",
+      "explicitPresentation": "This XML unit requires a presentation with an explicit conversion. Configure it on the raw material; for resale products use a manual purchase order."
     }
   }
 }
