@@ -60,6 +60,18 @@ function isStamped(cfdi: AutofacturaCfdi | null | undefined): cfdi is Autofactur
   return !!cfdi && cfdi.status === 'STAMPED'
 }
 
+/**
+ * GET status. `autofacturaUnavailable` is OPTIONAL (older servers don't send it) and only comes when
+ * `autofacturaAvailable` is false: DISABLED = the merchant doesn't offer it; FISCAL_BLOCK = the merchant
+ * enabled it but THIS sale can't be invoiced to the cent. The reasons are written for the merchant and
+ * never reach this public page.
+ */
+interface AutofacturaStatus {
+  cfdi: AutofacturaCfdi | null
+  autofacturaAvailable?: boolean
+  autofacturaUnavailable?: { kind: 'DISABLED' | 'FISCAL_BLOCK' }
+}
+
 type ResultState =
   | { kind: 'idle' }
   | { kind: 'success'; cfdi: AutofacturaCfdi }
@@ -106,9 +118,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   } = useQuery({
     queryKey: ['public-cfdi-status', accessKey],
     queryFn: async () => {
-      const res = await axios.get<{ cfdi: AutofacturaCfdi | null; autofacturaAvailable?: boolean }>(
-        `${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi`,
-      )
+      const res = await axios.get<AutofacturaStatus>(`${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi`)
       return res.data
     },
     enabled: !!accessKey,
@@ -119,6 +129,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   // The merchant/admin turned self-invoicing OFF → never offer it (default to
   // false until we know, so we don't flash a CTA the admin disabled).
   const autofacturaAvailable = statusData?.autofacturaAvailable ?? false
+  const fiscalBlock = statusData?.autofacturaUnavailable?.kind === 'FISCAL_BLOCK'
 
   const form = useForm<AutofacturaReceptorFormValues>({
     resolver: zodResolver(autofacturaReceptorSchema),
@@ -145,11 +156,18 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     onError: (err: unknown) => {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
       const data = (axios.isAxiosError(err) ? err.response?.data : undefined) as
-        | { error?: string; reasons?: string[]; message?: string }
+        | { error?: string; code?: string; reasons?: string[]; message?: string }
         | undefined
 
       switch (status) {
         case 422: {
+          // Bloqueo fiscal: el server ya no manda motivos (son del comercio). Se cierra el formulario y el status
+          // (que ahora dice FISCAL_BLOCK) pinta la tarjeta «Esta cuenta no se puede facturar en línea».
+          if (data?.code === 'FISCAL_BLOCK') {
+            setOpen(false)
+            queryClient.invalidateQueries({ queryKey: ['public-cfdi-status', accessKey] })
+            return
+          }
           const reasons =
             Array.isArray(data?.reasons) && data.reasons.length > 0 ? data.reasons : [data?.error || t('autofactura.errors.validation')]
           // Surface each field-specific reason ON its field (RFC, CP, régimen…).
@@ -393,6 +411,23 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
 
   // If the status GET itself failed, stay silent rather than block the receipt.
   if (isStatusError) return null
+
+  // ── The merchant DID enable self-invoicing, but this sale can't be invoiced to the cent ──
+  // Say so and tell them to ask the business for the invoice, instead of vanishing: a customer who was promised
+  // autofactura and sees nothing reads it as broken. Only customer text here — the reasons are for the merchant.
+  if (!autofacturaAvailable && fiscalBlock) {
+    return (
+      <Card className="border-input shadow-sm" data-tour="autofactura-fiscal-block">
+        <CardContent className="space-y-3 p-6 text-center">
+          <AlertTriangle className="mx-auto h-6 w-6 text-amber-500" />
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">{t('autofactura.fiscalBlock.title')}</h2>
+            <p className="text-sm text-muted-foreground">{t('autofactura.fiscalBlock.subtitle')}</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   // ── Merchant has self-invoicing DISABLED → render nothing ───────────────────
   // The admin decided this channel doesn't offer autofactura. The customer must

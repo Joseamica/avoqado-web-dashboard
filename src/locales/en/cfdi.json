@@ -172,7 +172,11 @@
       "sent": "Done! We sent it to you on WhatsApp.",
       "error": "We couldn't send it via WhatsApp. Check the number and try again."
     },
-    "downloadZip": "Download invoice (PDF + XML)"
+    "downloadZip": "Download invoice (PDF + XML)",
+    "fiscalBlock": {
+      "title": "This bill can't be invoiced online",
+      "subtitle": "Ask the business for your invoice directly."
+    }
   },
   "config": {
     "title": "Invoicing settings",
