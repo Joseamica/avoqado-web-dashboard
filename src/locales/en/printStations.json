@@ -177,6 +177,25 @@
       "unroutedStation": "NO STATION",
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Some products have no station and would come out on a ticket marked NO STATION."
+    },
+    "lists": {
+      "searchCategories": "Search categories",
+      "searchProducts": "Search products",
+      "categoriesTotal": "{{count}} categories",
+      "productsTotal": "{{count}} products",
+      "previousCategories": "Previous category page",
+      "nextCategories": "Next category page",
+      "previousProducts": "Previous product page",
+      "nextProducts": "Next product page",
+      "page": "Page {{page}} of {{totalPages}}",
+      "loadMore": "Load more",
+      "loadError": "Could not load routing",
+      "noMatches": "No matches for this search",
+      "emptyProducts": "There are no products yet",
+      "retry": "Retry",
+      "selected": "Selected: {{name}}",
+      "productLabel": "Product {{index}}",
+      "removeProduct": "Remove product {{index}}"
     }
   },
   "kitchenDisplay": {

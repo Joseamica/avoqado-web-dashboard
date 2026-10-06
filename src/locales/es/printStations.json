@@ -177,6 +177,25 @@
       "unroutedStation": "SIN ESTACIÓN",
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Algunos productos no tienen estación y saldrían en una comanda marcada SIN ESTACIÓN."
+    },
+    "lists": {
+      "searchCategories": "Buscar categorías",
+      "searchProducts": "Buscar productos",
+      "categoriesTotal": "{{count}} categorías",
+      "productsTotal": "{{count}} productos",
+      "previousCategories": "Página anterior de categorías",
+      "nextCategories": "Siguiente página de categorías",
+      "previousProducts": "Página anterior de productos",
+      "nextProducts": "Siguiente página de productos",
+      "page": "Página {{page}} de {{totalPages}}",
+      "loadMore": "Cargar más",
+      "loadError": "No se pudo cargar el ruteo",
+      "noMatches": "Sin resultados para esta búsqueda",
+      "emptyProducts": "Aún no hay productos",
+      "retry": "Reintentar",
+      "selected": "Seleccionado: {{name}}",
+      "productLabel": "Producto {{index}}",
+      "removeProduct": "Quitar producto {{index}}"
     }
   },
   "kitchenDisplay": {

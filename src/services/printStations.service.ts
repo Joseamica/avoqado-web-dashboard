@@ -53,7 +53,23 @@ export interface Gateway {
   lastHeartbeat: string | null
 }
 
+export interface RoutingPagination {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+export interface RoutingQuery {
+  section: 'categories' | 'products' | 'summary'
+  page?: number
+  pageSize?: number
+  search?: string
+  categoryId?: string
+}
+
 export interface RoutingCategory {
+  productCount?: number
   id: string
   name: string
   printStationId: string | null
@@ -67,6 +83,7 @@ export interface RoutingProduct {
 }
 
 export interface RoutingData {
+  pagination?: RoutingPagination
   categories: RoutingCategory[]
   products: RoutingProduct[]
   unroutedCategories: number
@@ -200,8 +217,8 @@ export async function updateGateway(venueId: string, body: UpdateGatewayInput): 
 
 // ── Ruteo ─────────────────────────────────────────────────────────────────
 
-export async function getRouting(venueId: string): Promise<RoutingData> {
-  const res = await api.get(`${base(venueId)}/routing`)
+export async function getRouting(venueId: string, query: RoutingQuery): Promise<RoutingData> {
+  const res = await api.get(`${base(venueId)}/routing`, { params: query })
   return res.data.data
 }
 
