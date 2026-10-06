@@ -17,7 +17,7 @@ export interface Printer {
   connectionType: PrinterConnectionType
   stableKey: string | null
   address: string | null
-  paperWidthMm: number // 58 | 80
+  paperWidthMm: number // 58 | 72 (80 mm de 42 columnas) | 80
   /** Corrimiento a la derecha en columnas (ESC/POS `GS L`). 0 = sin corrimiento. */
   leftMarginChars: number
   charset: string
