@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { reintentarReporte } from '@/components/accounting/errorDelReporte'
+import { reintentarReporte, repetirAlVolver } from '@/components/accounting/errorDelReporte'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { fetchIncomeStatement, incomeStatementKeys, type IncomeStatementResponse } from '@/services/reports/incomeStatement.service'
 
@@ -26,6 +26,9 @@ export function useIncomeStatement({ from, to, enabled = true }: UseIncomeStatem
     gcTime: 30 * 60 * 1000,
     // B4b (Codex r5 R5-8): REPORT_TOO_LARGE / REPORT_TIMEOUT no se repiten solos; lo demás, una vez como antes.
     retry: reintentarReporte(1),
+    // I1 (revisión final): tampoco al recuperar el foco ni al reconectar.
+    refetchOnWindowFocus: repetirAlVolver,
+    refetchOnReconnect: repetirAlVolver,
   })
 
   return {

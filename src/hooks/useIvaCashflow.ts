@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { reintentarReporte } from '@/components/accounting/errorDelReporte'
+import { reintentarReporte, repetirAlVolver } from '@/components/accounting/errorDelReporte'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getIvaCashflow, ivaCashflowKeys, type IvaCashflowResponse } from '@/services/fiscal/ivaFlujo.service'
 
@@ -16,5 +16,8 @@ export function useIvaCashflow(period: string, options?: { enabled?: boolean }) 
     staleTime: 30 * 1000,
     // B4b (Codex r5 R5-8): REPORT_TOO_LARGE / REPORT_TIMEOUT no se repiten solos; lo demás, 3 veces (el default de react-query de antes).
     retry: reintentarReporte(3),
+    // I1 (revisión final): tampoco al recuperar el foco ni al reconectar.
+    refetchOnWindowFocus: repetirAlVolver,
+    refetchOnReconnect: repetirAlVolver,
   })
 }

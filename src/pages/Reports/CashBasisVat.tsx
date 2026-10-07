@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
-import { codigoDelReporte } from '@/components/accounting/errorDelReporte'
+import { mensajeDelMes } from '@/components/accounting/errorDelReporte'
 import { AvisoIvaPorTasa, IvaPorTasa } from '@/components/accounting/IvaPorTasa'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -90,9 +90,10 @@ function CashBasisVatInner() {
         <Skeleton className="h-80 rounded-2xl" />
       ) : query.isError && hasAccess ? (
         // B4b (Codex r5 R5-8): en un mes no hay «rango más corto» que elegir; con REPORT_TOO_LARGE / REPORT_TIMEOUT la pantalla usa su
-        // propio texto, aunque el servidor mande el del reporte. Cualquier otro error, el genérico.
+        // propio texto, aunque el servidor mande el del reporte. M-B: salvo una VENTA que pasa un tope, cuyo mensaje nombra el folio.
+        // Cualquier otro error, el genérico.
         <AccountingErrorState
-          message={codigoDelReporte(query.error) ? t('accountingError.mesNoCalculado') : undefined}
+          message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
           onRetry={() => query.refetch()}
         />
       ) : needsFiscalSetup ? (

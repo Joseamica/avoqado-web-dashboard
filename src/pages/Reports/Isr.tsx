@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
-import { codigoDelReporte } from '@/components/accounting/errorDelReporte'
+import { mensajeDelMes } from '@/components/accounting/errorDelReporte'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -282,9 +282,10 @@ function IsrInner() {
         <Skeleton className="h-72 rounded-2xl" />
       ) : query.isError && hasAccess ? (
         // B4b (fallo 2 de la ronda 7; Codex r6 R6-2): pantalla de un mes, igual que el IVA. Con REPORT_TOO_LARGE / REPORT_TIMEOUT no hay
-        // «rango más corto» que elegir: su propio texto. Cualquier otro error, el genérico.
+        // «rango más corto» que elegir: su propio texto. M-B: salvo una VENTA que pasa un tope, cuyo mensaje nombra el folio. Cualquier
+        // otro error, el genérico.
         <AccountingErrorState
-          message={codigoDelReporte(query.error) ? t('accountingError.mesNoCalculado') : undefined}
+          message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
           onRetry={() => query.refetch()}
         />
       ) : needsFiscalSetup ? (

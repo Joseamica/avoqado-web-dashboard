@@ -70,7 +70,7 @@
     "exento": "exento",
     "noObjeto": "no objeto",
     "aproximadoBadge": "Aproximado",
-    "aproximado": "Ventas y devoluciones con IVA aproximado: {{count}}. No se pudo saber su IVA exacto: mezclan productos de distinto IVA y no queda registrado a qué producto le tocó un descuento o una devolución, o vienen de un sistema que no dice si su precio ya incluía el IVA. Su IVA se calculó en proporción.",
+    "aproximado": "Ventas y devoluciones con IVA aproximado: {{count}}. No se pudo saber su IVA exacto: mezclan productos de distinto IVA y no queda registrado a qué producto le tocó un descuento o una devolución, vienen de un sistema que no dice si su precio ya incluía el IVA, o la venta trae un descuento mayor que sus productos o se devolvió más de lo cobrado. Su IVA se calculó en proporción.",
     "nota": "Nota",
     "notaFacturas": "El IVA se calcula por tasa sobre lo cobrado y puede diferir por centavos del desglose de tus facturas"
   },

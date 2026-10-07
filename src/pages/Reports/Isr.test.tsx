@@ -59,4 +59,46 @@ describe('Isr · los dos errores del reporte (fallo 2 de la ronda 7; Codex r6 R6
     pantalla()
     expect(screen.getByText('accountingError.body')).toBeInTheDocument()
   })
+
+  it('🔴 M-B (revisión final) · REPORT_TOO_LARGE por una VENTA: el mensaje del servidor, que nombra el folio; no «vuelve a intentarlo»', () => {
+    vi.mocked(useIsrProvisional).mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: {
+        response: {
+          data: {
+            code: 'REPORT_TOO_LARGE',
+            message:
+              'La venta F-1234 tiene demasiados renglones, descuentos o devoluciones para calcular este reporte. Escríbenos a soporte con ese folio.',
+            details: { motivo: 'ORDEN', folio: 'F-1234' },
+          },
+        },
+      },
+      data: undefined,
+      refetch: vi.fn(),
+    } as never)
+    pantalla()
+    expect(
+      screen.getByText(
+        'La venta F-1234 tiene demasiados renglones, descuentos o devoluciones para calcular este reporte. Escríbenos a soporte con ese folio.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('accountingError.mesNoCalculado')).not.toBeInTheDocument()
+  })
+
+  it('control — M-B · REPORT_TOO_LARGE del PERIODO: el texto del mes, como siempre', () => {
+    vi.mocked(useIsrProvisional).mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: {
+        response: {
+          data: { code: 'REPORT_TOO_LARGE', message: 'No pudimos calcular este mes…', details: { motivo: 'PERIODO', limite: 300000 } },
+        },
+      },
+      data: undefined,
+      refetch: vi.fn(),
+    } as never)
+    pantalla()
+    expect(screen.getByText('accountingError.mesNoCalculado')).toBeInTheDocument()
+  })
 })

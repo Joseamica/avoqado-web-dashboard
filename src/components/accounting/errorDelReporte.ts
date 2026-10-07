@@ -7,7 +7,7 @@
  */
 export const CODIGOS_DEL_REPORTE = ['REPORT_TOO_LARGE', 'REPORT_TIMEOUT'] as const
 export type CodigoDelReporte = (typeof CODIGOS_DEL_REPORTE)[number]
-type RespuestaDeError = { response?: { data?: { code?: unknown; message?: unknown } } } | null | undefined
+type RespuestaDeError = { response?: { data?: { code?: unknown; message?: unknown; details?: unknown } } } | null | undefined
 
 /** El código del servidor si es uno de los dos; si no, null. */
 export function codigoDelReporte(error: unknown): CodigoDelReporte | null {
@@ -22,6 +22,20 @@ export function mensajeDelReporte(error: unknown): string | undefined {
   return typeof message === 'string' && message.trim() !== '' ? message : undefined
 }
 
+/**
+ * M-B (revisión final): el texto de las pantallas de UN mes (IVA en flujo, ISR). Con esos dos códigos, el texto del mes (ahí no hay
+ * «rango más corto» que elegir), salvo un REPORT_TOO_LARGE por una VENTA (`details.motivo === 'ORDEN'`, como lo manda `app.ts`): ese
+ * mensaje nombra el folio y dice que escriban a soporte, y reintentar no lo arregla, así que se muestra el del servidor. Para cualquier
+ * otro error, undefined (el genérico de la pantalla).
+ */
+export function mensajeDelMes(error: unknown, textoDelMes: string): string | undefined {
+  const codigo = codigoDelReporte(error)
+  if (codigo === null) return undefined
+  const details = (error as RespuestaDeError)?.response?.data?.details as { motivo?: unknown } | null | undefined
+  if (codigo === 'REPORT_TOO_LARGE' && details?.motivo === 'ORDEN') return mensajeDelReporte(error) ?? textoDelMes
+  return textoDelMes
+}
+
 /** Estados HTTP con los que el proxy corta una consulta que tardó demasiado (504 puerta de enlace, 524 de Cloudflare). */
 const ESTADOS_DE_CORTE_DEL_PROXY = [504, 524]
 
@@ -34,3 +48,12 @@ function esCorteDelProxy(error: unknown): boolean {
 /** El `retry` de react-query: hasta `veces` reintentos para lo demás, ninguno para esos dos códigos ni para el corte del proxy (504, 524). */
 export const reintentarReporte = (veces: number) => (fallas: number, error: unknown) =>
   codigoDelReporte(error) === null && !esCorteDelProxy(error) && fallas < veces
+
+/**
+ * I1 (revisión final): `refetchOnWindowFocus` y `refetchOnReconnect` de los reportes. react-query vuelve a pedir una consulta en error
+ * cada vez que la ventana recupera el foco o vuelve la red (sin datos, siempre está «vieja»); para esos dos códigos y para el corte del
+ * proxy eso es relanzar la consulta pesada sin que nadie lo pida. False cuando la consulta quedó en uno de esos errores; con cualquier
+ * otro (o sin error), lo de siempre.
+ */
+export const repetirAlVolver = (query: { state: { error: unknown } }): boolean =>
+  codigoDelReporte(query.state.error) === null && !esCorteDelProxy(query.state.error)

@@ -63,4 +63,46 @@ describe('CashBasisVat · el error del mes y la línea de las devoluciones (Code
     expect(screen.queryByText('cashBasisVat.zeroBody')).not.toBeInTheDocument()
     expect(screen.getByTestId('aviso-iva-por-tasa')).toBeInTheDocument()
   })
+
+  it('🔴 M-B (revisión final) · REPORT_TOO_LARGE por una VENTA: el mensaje del servidor, que nombra el folio; no «vuelve a intentarlo»', () => {
+    vi.mocked(useIvaCashflow).mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: {
+        response: {
+          data: {
+            code: 'REPORT_TOO_LARGE',
+            message:
+              'La venta F-1234 tiene demasiados renglones, descuentos o devoluciones para calcular este reporte. Escríbenos a soporte con ese folio.',
+            details: { motivo: 'ORDEN', folio: 'F-1234' },
+          },
+        },
+      },
+      data: undefined,
+      refetch: vi.fn(),
+    } as never)
+    pantalla()
+    expect(
+      screen.getByText(
+        'La venta F-1234 tiene demasiados renglones, descuentos o devoluciones para calcular este reporte. Escríbenos a soporte con ese folio.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('accountingError.mesNoCalculado')).not.toBeInTheDocument()
+  })
+
+  it('control — M-B · REPORT_TOO_LARGE del PERIODO: el texto del mes, como siempre', () => {
+    vi.mocked(useIvaCashflow).mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: {
+        response: {
+          data: { code: 'REPORT_TOO_LARGE', message: 'No pudimos calcular este mes…', details: { motivo: 'PERIODO', limite: 300000 } },
+        },
+      },
+      data: undefined,
+      refetch: vi.fn(),
+    } as never)
+    pantalla()
+    expect(screen.getByText('accountingError.mesNoCalculado')).toBeInTheDocument()
+  })
 })
