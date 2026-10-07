@@ -18,7 +18,7 @@ import { apiErrorDescription } from '@/utils/apiError'
 import { Currency } from '@/utils/currency'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Search, Package, X } from 'lucide-react'
-import { ModifierInventoryMode, Unit } from '@/types'
+import { ModifierInventoryMode, Unit, type Modifier } from '@/types'
 import { normalizeModifierSku } from './modifierSku'
 
 // Define form values type
@@ -53,14 +53,7 @@ interface EditModifierProps {
     active: boolean
     // Inventory fields (optional - may not be present in older modifiers)
     rawMaterialId?: string | null
-    rawMaterial?: {
-      id: string
-      name: string
-      sku: string
-      unit: string
-      currentStock: number
-      costPerUnit: number
-    } | null
+    rawMaterial?: Modifier['rawMaterial']
     quantityPerUnit?: number | null
     unit?: string | null
     inventoryMode?: ModifierInventoryMode | null
@@ -77,7 +70,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
   // State for raw material selection
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
-  const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterial | null>(null)
+  const [selectedRawMaterial, setSelectedRawMaterial] = useState<NonNullable<Modifier['rawMaterial']> | null>(null)
 
   // Determine if inventory tracking is enabled based on initial values
   const hasInventoryTracking = Boolean(initialValues.rawMaterialId)
@@ -125,7 +118,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
 
     // Set selected raw material from initial values
     if (initialValues.rawMaterial) {
-      setSelectedRawMaterial(initialValues.rawMaterial as RawMaterial)
+      setSelectedRawMaterial(initialValues.rawMaterial)
     } else {
       setSelectedRawMaterial(null)
     }
@@ -236,6 +229,13 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     form.setValue('rawMaterialId', null)
     form.setValue('unit', null)
   }
+
+  const receivedUnitCost = selectedRawMaterial?.costPerUnit
+  const parsedUnitCost =
+    typeof receivedUnitCost === 'number' || (typeof receivedUnitCost === 'string' && receivedUnitCost.trim() !== '')
+      ? Number(receivedUnitCost)
+      : null
+  const displayedUnitCost = parsedUnitCost !== null && Number.isFinite(parsedUnitCost) ? parsedUnitCost : null
 
   return (
     <div className="space-y-6">
@@ -447,7 +447,10 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                           <div>
                             <p className="text-sm font-medium text-foreground">{selectedRawMaterial.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {tInventory('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)} · {Currency(Number(selectedRawMaterial.costPerUnit))} / {formatUnit(selectedRawMaterial.unit)}
+                              {tInventory('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)}
+                              {displayedUnitCost !== null && (
+                                <> · {Currency(displayedUnitCost)} / {formatUnit(selectedRawMaterial.unit)}</>
+                              )}
                             </p>
                           </div>
                           <Button type="button" variant="ghost" size="sm" onClick={handleClearRawMaterial}>

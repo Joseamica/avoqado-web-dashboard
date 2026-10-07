@@ -33,7 +33,6 @@ import {
 
 // ─── Config ──────────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' })
 test.setTimeout(45_000)
 test.use({ viewport: { width: 1280, height: 900 } })
 
@@ -245,6 +244,7 @@ async function navigateToProducts(page: Page): Promise<void> {
 // ─── Tests ───────────────────────────────────────────────────────
 
 test.describe('Services Tab in MenuMaker', () => {
+  test.describe.configure({ mode: 'serial' })
   test('1 — Services nav link is visible in MenuMaker', async ({ page }) => {
     await setupAllMocks(page)
     await page.goto('/venues/venue-alpha/menumaker/services')
@@ -572,4 +572,98 @@ test.describe('Services Tab in MenuMaker', () => {
     expect(capturedConvertPayload.type).toBe('APPOINTMENTS_SERVICE')
     expect(capturedConvertPayload.trackInventory).toBe(false)
   })
+})
+
+test.describe('catalog read failure', () => {
+  for (const { name, navigate, fixture } of [
+    { name: 'Products', navigate: navigateToProducts, fixture: 'Proteína en polvo' },
+    { name: 'Services', navigate: navigateToServices, fixture: 'Corte de cabello' },
+  ]) {
+    test(`${name} — initial failure, blocked retry and recovery without reload`, async ({ page, baseURL }) => {
+      test.setTimeout(120_000)
+      expect(baseURL, 'Catalog mocks require a configured loopback baseURL').toBeTruthy()
+      const appURL = new URL(baseURL!)
+      expect(['localhost', '127.0.0.1', '[::1]']).toContain(appURL.hostname)
+      await setupAllMocks(page)
+
+      await page.routeWebSocket('**/*', socket => socket.close())
+      await page.route('**/*', route => {
+        const url = new URL(route.request().url())
+        // API fallback reaches setupApiMocks' catch-all fixture, never the network.
+        return url.origin === appURL.origin || url.pathname.startsWith('/api/v1/')
+          ? route.fallback()
+          : route.abort()
+      })
+
+      let blockCatalog = true
+      let failedGets = 0
+      let holdNextFailure = false
+      let releaseFailure: () => void = () => {}
+      let markRetryStarted: () => void = () => {}
+      const retryStarted = new Promise<void>(resolve => { markRetryStarted = resolve })
+      await page.route(
+        url => url.pathname.endsWith('/products') && url.searchParams.get('orderBy') === 'name',
+        async route => {
+          if (route.request().method() !== 'GET' || !blockCatalog) return route.fallback()
+          failedGets += 1
+          if (holdNextFailure) {
+            holdNextFailure = false
+            markRetryStarted()
+            await new Promise<void>(resolve => { releaseFailure = resolve })
+          }
+          return route.abort()
+        },
+      )
+
+      let documentNavigations = 0
+      page.on('framenavigated', frame => {
+        if (frame === page.mainFrame()) documentNavigations += 1
+      })
+      await navigate(page)
+
+      const alert = page.getByTestId('catalog-read-error')
+      const retry = alert.getByRole('button', { name: /^(Retry|Reintentar)$/ })
+      const message = /^(Could not load or refresh the catalog\. Please try again\.|No se pudo cargar o actualizar el catálogo\. Intenta de nuevo\.)$/
+      await expect(alert).toBeVisible({ timeout: 30_000 })
+      await expect(alert).toHaveAttribute('role', 'alert')
+      await expect(alert.getByText(message)).toBeVisible()
+      await expect(retry).toBeEnabled()
+      await expect(page.getByText(/^(Sin resultados|No results)$/)).not.toBeVisible()
+      await expect(page.getByText(/0 (de|of) 0/)).not.toBeVisible()
+      expect(failedGets).toBeGreaterThan(1)
+      const beforeRetryNavigations = documentNavigations
+      const beforeRetryFailures = failedGets
+
+      holdNextFailure = true
+      await retry.click()
+      await retryStarted
+      try {
+        // An initial no-data query may hide its alert while pending.
+        await expect.poll(() =>
+          page.locator('[data-testid="catalog-read-error"]:visible').evaluateAll(alerts =>
+            alerts.every(alert => {
+              const buttons = Array.from(alert.querySelectorAll('button')).filter(button =>
+                button.checkVisibility({ visibilityProperty: true }),
+              )
+              return buttons.length > 0 && buttons.every(button => button.disabled)
+            }),
+          ),
+        ).toBe(true)
+      } finally {
+        releaseFailure()
+      }
+      await expect(alert).toBeVisible({ timeout: 30_000 })
+      await expect(retry).toBeEnabled({ timeout: 30_000 })
+      await expect(alert.getByText(message)).toBeVisible()
+      await expect(page.getByText(/^(Sin resultados|No results)$/)).not.toBeVisible()
+      await expect(page.getByText(/0 (de|of) 0/)).not.toBeVisible()
+      expect(failedGets).toBeGreaterThan(beforeRetryFailures)
+
+      blockCatalog = false
+      await retry.click()
+      await expect(page.getByText(fixture, { exact: true })).toBeVisible({ timeout: 15_000 })
+      await expect(alert).not.toBeVisible()
+      expect(documentNavigations).toBe(beforeRetryNavigations)
+    })
+  }
 })
