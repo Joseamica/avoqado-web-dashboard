@@ -40,6 +40,7 @@ import {
 import { PermissionGate } from '@/components/PermissionGate'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from './components/BaseIvaSwitch'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import {
 	useCommissionConfig,
@@ -91,13 +92,12 @@ export default function CommissionConfigDetailPage() {
 	const { configId } = useParams<{ configId: string }>()
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { fullBasePath, venue, venueId } = useCurrentVenue()
+	const { fullBasePath, venueId } = useCurrentVenue()
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
-	const isMexico = venue?.country?.toLowerCase() === 'mexico' || venue?.country?.toLowerCase() === 'méxico' || venue?.country === 'MX'
 
 	const [showEditDialog, setShowEditDialog] = useState(false)
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -354,10 +354,7 @@ export default function CommissionConfigDetailPage() {
 							<h3 className="text-sm font-semibold">{t('wizard.step2.calculationBase')}</h3>
 						</div>
 						<div className="space-y-2">
-							<ToggleIndicator
-								enabled={config.includeTax ?? false}
-								label={t('wizard.step2.includeTax') + (isMexico ? ' (IVA 16%)' : '')}
-							/>
+							<BaseIvaSwitch id="detail-includeTax" checked={config.includeTax ?? false} />
 							<ToggleIndicator
 								enabled={config.includeTips ?? false}
 								label={t('wizard.step2.includeTips')}

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from '../../BaseIvaSwitch'
 import type { CommissionSetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardTouched } from '../useSetupReducer'
@@ -18,13 +18,8 @@ interface CalculationBaseCardProps {
 
 export default function CalculationBaseCard({ state, dispatch }: CalculationBaseCardProps) {
   const { t } = useTranslation('commissions')
-  const { venue } = useCurrentVenue()
   const [open, setOpen] = useState(false)
 
-  const isMexico =
-    venue?.country?.toLowerCase() === 'mexico' ||
-    venue?.country?.toLowerCase() === 'méxico' ||
-    venue?.country === 'MX'
 
   const { includeTax, includeTips, includeDiscount } = state.calculationBase
 
@@ -34,7 +29,7 @@ export default function CalculationBaseCard({ state, dispatch }: CalculationBase
   const parts: string[] = [
     includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet'),
   ]
-  if (includeTax) parts.push(isMexico ? 'IVA' : t('setup.calcBase.tax'))
+  parts.push(includeTax ? t('wizard.step2.taxBaseWith') : t('wizard.step2.taxBaseWithout'))
   if (includeTips) parts.push(t('setup.calcBase.tips'))
 
   return (
@@ -60,24 +55,11 @@ export default function CalculationBaseCard({ state, dispatch }: CalculationBase
             </p>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm">
-                    {t('wizard.step2.includeTax')}{isMexico ? ' (IVA 16%)' : ''}
-                  </Label>
-                  {isMexico && !includeTax && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {t('wizard.step2.taxExcludedHint')}
-                    </p>
-                  )}
-                </div>
-                <Switch
-                  checked={includeTax}
-                  onCheckedChange={checked =>
-                    dispatch({ type: 'SET_CALCULATION_BASE', data: { includeTax: checked } })
-                  }
-                />
-              </div>
+              <BaseIvaSwitch
+                id="setup-includeTax"
+                checked={includeTax}
+                onChange={checked => dispatch({ type: 'SET_CALCULATION_BASE', data: { includeTax: checked } })}
+              />
 
               <div className="flex items-center justify-between">
                 <Label className="text-sm">{t('wizard.step2.includeTips')}</Label>

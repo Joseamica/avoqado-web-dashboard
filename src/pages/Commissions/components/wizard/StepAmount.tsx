@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { WizardData } from './CreateCommissionWizard'
 import type { CommissionCalcType } from '@/types/commission'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from '../BaseIvaSwitch'
 import LiveExample from './LiveExample'
 import CommissionAdvancedConfig from './CommissionAdvancedConfig'
 import CategoryFilter from './CategoryFilter'
@@ -23,8 +23,6 @@ interface StepAmountProps {
 
 export default function StepAmount({ data, updateData, onNext, onPrevious, hideNavigation }: StepAmountProps) {
 	const { t } = useTranslation('commissions')
-	const { venue } = useCurrentVenue()
-	const isMexico = venue?.country?.toLowerCase() === 'mexico' || venue?.country?.toLowerCase() === 'méxico' || venue?.country === 'MX'
 	const [advancedOpen, setAdvancedOpen] = useState(
 		data.tiersEnabled || data.roleRatesEnabled || data.limitsEnabled
 	)
@@ -209,23 +207,7 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 					{t('wizard.step2.calculationBase')}
 				</h3>
 				<div className="space-y-2.5">
-					<div className="flex items-center justify-between">
-						<div>
-							<Label htmlFor="includeTax" className="text-sm">
-								{t('wizard.step2.includeTax')}{isMexico ? ' (IVA 16%)' : ''}
-							</Label>
-							{isMexico && !data.includeTax && (
-								<p className="text-xs text-muted-foreground mt-0.5">
-									{t('wizard.step2.taxExcludedHint')}
-								</p>
-							)}
-						</div>
-						<Switch
-							id="includeTax"
-							checked={data.includeTax}
-							onCheckedChange={(checked) => updateData({ includeTax: checked })}
-						/>
-					</div>
+					<BaseIvaSwitch id="includeTax" checked={data.includeTax} onChange={checked => updateData({ includeTax: checked })} />
 					<div className="flex items-center justify-between">
 						<Label htmlFor="includeTips" className="text-sm">
 							{t('wizard.step2.includeTips')}

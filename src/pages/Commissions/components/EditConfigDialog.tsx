@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from './BaseIvaSwitch'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionCalcType, CommissionConfig, TierPeriod } from '@/types/commission'
@@ -31,9 +31,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const { t } = useTranslation('commissions')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
-  const { venue } = useCurrentVenue()
 
-  const isMexico = venue?.country?.toLowerCase() === 'mexico' || venue?.country?.toLowerCase() === 'méxico' || venue?.country === 'MX'
 
   const updateConfigMutation = useUpdateCommissionConfig()
 
@@ -388,18 +386,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
         <div className="space-y-3 rounded-xl border border-border/50 p-4">
           <h3 className="text-sm font-medium text-muted-foreground">{t('wizard.step2.calculationBase')}</h3>
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="edit-includeTax" className="text-sm">
-                  {t('wizard.step2.includeTax')}
-                  {isMexico ? ' (IVA 16%)' : ''}
-                </Label>
-                {isMexico && !data.includeTax && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{t('wizard.step2.taxExcludedHint')}</p>
-                )}
-              </div>
-              <Switch id="edit-includeTax" checked={data.includeTax} onCheckedChange={checked => updateData({ includeTax: checked })} />
-            </div>
+            <BaseIvaSwitch id="edit-includeTax" checked={data.includeTax} onChange={checked => updateData({ includeTax: checked })} />
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-includeTips" className="text-sm">
                 {t('wizard.step2.includeTips')}
