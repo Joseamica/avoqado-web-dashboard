@@ -2,12 +2,27 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { DateTime } from 'luxon'
-import { ArrowRight, Banknote, Boxes, Calculator, FileCheck2, HandCoins, Landmark, Percent, PiggyBank, Receipt, Scissors, Wallet } from 'lucide-react'
+import {
+  ArrowRight,
+  Banknote,
+  Boxes,
+  Calculator,
+  FileCheck2,
+  HandCoins,
+  Landmark,
+  Percent,
+  PiggyBank,
+  Receipt,
+  Scissors,
+  Wallet,
+} from 'lucide-react'
 
 import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { mensajeDelReporte } from '@/components/accounting/errorDelReporte'
+import { IvaPorTasa, tasasPresentes } from '@/components/accounting/IvaPorTasa'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBusinessSummary } from '@/hooks/useAccounting'
@@ -44,13 +59,13 @@ export default function BusinessSummary() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError, refetch } = useBusinessSummary({ from, to })
-  const ivaPct = Math.round((data?.taxRateAssumed ?? 0.16) * 100)
+  const { data, isLoading, isError, error, refetch } = useBusinessSummary({ from, to })
 
   const inv = data?.invoicing
   const col = data?.collection
   const rec = data?.reconciliation
-  const hasZeroSales = !isLoading && !isError && data?.metrics?.salesCount === 0
+  // «Sin ventas» no es «sin movimientos» (B4b, Codex r5 R5-10): un periodo sólo con devoluciones muestra su resumen.
+  const hasZeroSales = !isLoading && !isError && data?.metrics?.salesCount === 0 && data?.metrics?.refundCount === 0
 
   return (
     <div className="p-4 space-y-5 bg-background">
@@ -81,7 +96,8 @@ export default function BusinessSummary() {
           ))}
         </div>
       ) : isError ? (
-        <AccountingErrorState onRetry={() => refetch()} />
+        // B4b (Codex r5 R5-8): con REPORT_TOO_LARGE / REPORT_TIMEOUT, el mensaje del servidor; si no, el genérico.
+        <AccountingErrorState message={mensajeDelReporte(error)} onRetry={() => refetch()} />
       ) : hasZeroSales ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
@@ -91,81 +107,85 @@ export default function BusinessSummary() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label={t('businessSummary.netRevenue')}
-            value={Currency(data?.revenue.netRevenueCents ?? 0, true)}
-            icon={<Banknote className="w-4 h-4" />}
-            accent="green"
-            tooltip={t('businessSummary.netRevenueTip')}
-          />
-          <MetricCard
-            label={t('incomeStatement.iva', { pct: ivaPct })}
-            value={Currency(data?.revenue.ivaCents ?? 0, true)}
-            icon={<Percent className="w-4 h-4" />}
-            accent="purple"
-          />
-          <MetricCard
-            label={t('businessSummary.invoicedPct')}
-            value={`${inv?.invoicedPct ?? 0}%`}
-            subValue={t('businessSummary.invoicedOf', { count: inv?.stampedCount ?? 0 })}
-            icon={<FileCheck2 className="w-4 h-4" />}
-            accent="blue"
-            tooltip={t('businessSummary.invoicedPctTip')}
-          />
-          <MetricCard
-            label={t('businessSummary.fees')}
-            value={Currency(data?.costs.processingFeesCents ?? 0, true)}
-            icon={<Scissors className="w-4 h-4" />}
-            accent="red"
-            tooltip={t('businessSummary.feesTip')}
-          />
-          <MetricCard
-            label={t('businessSummary.netAfterFees')}
-            value={Currency(data?.result.netAfterFeesCents ?? 0, true)}
-            icon={<Calculator className="w-4 h-4" />}
-            accent="green"
-            tooltip={t('businessSummary.netAfterFeesTip')}
-          />
-          {/* Costo de ventas + utilidad bruta: solo cuando hay inventario consumido (COGS > 0). */}
-          {(data?.result.cogsCents ?? 0) > 0 && (
-            <>
-              <MetricCard
-                label={t('businessSummary.cogs')}
-                value={Currency(data?.result.cogsCents ?? 0, true)}
-                icon={<Boxes className="w-4 h-4" />}
-                accent="red"
-                tooltip={t('businessSummary.cogsTip')}
-              />
-              <MetricCard
-                label={t('businessSummary.grossProfit')}
-                value={Currency(data?.result.grossProfitCents ?? 0, true)}
-                icon={<PiggyBank className="w-4 h-4" />}
-                accent="green"
-                tooltip={t('businessSummary.grossProfitTip')}
-              />
-            </>
-          )}
-          <MetricCard
-            label={t('incomeStatement.tips')}
-            value={Currency(data?.tips.totalCents ?? 0, true)}
-            subValue={t('incomeStatement.tipsSub')}
-            icon={<HandCoins className="w-4 h-4" />}
-            accent="yellow"
-          />
-          <MetricCard
-            label={t('incomeStatement.salesCount')}
-            value={data?.metrics.salesCount ?? 0}
-            icon={<Receipt className="w-4 h-4" />}
-            accent="blue"
-          />
-          <MetricCard
-            label={t('incomeStatement.averageTicket')}
-            value={Currency(data?.metrics.averageTicketCents ?? 0, true)}
-            icon={<Calculator className="w-4 h-4" />}
-            accent="orange"
-          />
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              label={t('businessSummary.netRevenue')}
+              value={Currency(data?.revenue.netRevenueCents ?? 0, true)}
+              icon={<Banknote className="w-4 h-4" />}
+              accent="green"
+              tooltip={t('businessSummary.netRevenueTip')}
+            />
+            <MetricCard
+              label={t('incomeStatement.iva')}
+              value={Currency(data?.revenue.ivaCents ?? 0, true)}
+              subValue={data?.revenue ? tasasPresentes(data.revenue, t) : undefined}
+              icon={<Percent className="w-4 h-4" />}
+              accent="purple"
+            />
+            <MetricCard
+              label={t('businessSummary.invoicedPct')}
+              value={`${inv?.invoicedPct ?? 0}%`}
+              subValue={t('businessSummary.invoicedOf', { count: inv?.stampedCount ?? 0 })}
+              icon={<FileCheck2 className="w-4 h-4" />}
+              accent="blue"
+              tooltip={t('businessSummary.invoicedPctTip')}
+            />
+            <MetricCard
+              label={t('businessSummary.fees')}
+              value={Currency(data?.costs.processingFeesCents ?? 0, true)}
+              icon={<Scissors className="w-4 h-4" />}
+              accent="red"
+              tooltip={t('businessSummary.feesTip')}
+            />
+            <MetricCard
+              label={t('businessSummary.netAfterFees')}
+              value={Currency(data?.result.netAfterFeesCents ?? 0, true)}
+              icon={<Calculator className="w-4 h-4" />}
+              accent="green"
+              tooltip={t('businessSummary.netAfterFeesTip')}
+            />
+            {/* Costo de ventas + utilidad bruta: solo cuando hay inventario consumido (COGS > 0). */}
+            {(data?.result.cogsCents ?? 0) > 0 && (
+              <>
+                <MetricCard
+                  label={t('businessSummary.cogs')}
+                  value={Currency(data?.result.cogsCents ?? 0, true)}
+                  icon={<Boxes className="w-4 h-4" />}
+                  accent="red"
+                  tooltip={t('businessSummary.cogsTip')}
+                />
+                <MetricCard
+                  label={t('businessSummary.grossProfit')}
+                  value={Currency(data?.result.grossProfitCents ?? 0, true)}
+                  icon={<PiggyBank className="w-4 h-4" />}
+                  accent="green"
+                  tooltip={t('businessSummary.grossProfitTip')}
+                />
+              </>
+            )}
+            <MetricCard
+              label={t('incomeStatement.tips')}
+              value={Currency(data?.tips.totalCents ?? 0, true)}
+              subValue={t('incomeStatement.tipsSub')}
+              icon={<HandCoins className="w-4 h-4" />}
+              accent="yellow"
+            />
+            <MetricCard
+              label={t('incomeStatement.salesCount')}
+              value={data?.metrics.salesCount ?? 0}
+              icon={<Receipt className="w-4 h-4" />}
+              accent="blue"
+            />
+            <MetricCard
+              label={t('incomeStatement.averageTicket')}
+              value={Currency(data?.metrics.averageTicketCents ?? 0, true)}
+              icon={<Calculator className="w-4 h-4" />}
+              accent="orange"
+            />
+          </div>
+          <IvaPorTasa desglose={data?.revenue ?? {}} />
+        </>
       )}
 
       {/* Panels: facturación + cobro */}
