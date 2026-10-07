@@ -52,6 +52,9 @@ vi.mock('@/services/menu.service', () => ({
       price: payload.price,
       ...(payload.sku !== undefined ? { sku: payload.sku } : {}),
     }
+    for (const key of ['durationMin', 'rawMaterialId', 'quantityPerUnit', 'unit', 'inventoryMode']) {
+      if (payload[key] !== undefined) server.modifier = { ...server.modifier, [key]: payload[key] }
+    }
     return server.modifier
   },
 }))
@@ -195,7 +198,16 @@ describe('ModifiersManagerDialog — el SKU del extra, de la lista al formulario
   })
 
   it('un SKU que el servidor rechaza no borra lo que la persona tecleó: sale el aviso y el campo queda como estaba', async () => {
-    server.modifier = extra('P000672')
+    server.modifier = {
+      ...extra('P000672'),
+      price: 5,
+      durationMin: 5,
+      rawMaterialId: 'rm-1',
+      rawMaterial: { id: 'rm-1', name: 'Ingrediente extra', unit: 'UNIT', currentStock: 100 },
+      quantityPerUnit: 0.25,
+      unit: 'UNIT',
+      inventoryMode: 'ADDITION',
+    }
     // La forma de un error de axios ante un 400: el motivo viaja en `response.data.message`.
     server.rejectWith = Object.assign(new Error('Request failed with status code 400'), {
       response: { data: { message: 'Error de validación: sku: El SKU sólo admite letras, números, guion y guion bajo' } },
@@ -214,6 +226,49 @@ describe('ModifiersManagerDialog — el SKU del extra, de la lista al formulario
     await act(async () => {})
     // …y lo tecleado sigue ahí para corregirlo, con «Guardar Cambios» disponible para reintentar.
     expect(screen.getByLabelText('SKU')).toHaveValue('P 1')
+    expect(screen.getByLabelText('Precio')).toHaveValue(5)
+    expect(screen.getByPlaceholderText('0')).toHaveAttribute('name', 'durationMin')
+    expect(screen.getByPlaceholderText('0')).toHaveValue(5)
+    expect(screen.getByLabelText('Cantidad por modificador')).toHaveValue(0.25)
+    const stock = screen.getByText(/^Stock Actual:/)
+    expect(stock.textContent).toContain('100.00 Unidad')
+    expect(stock.textContent).not.toContain('$')
     expect(screen.getByRole('button', { name: 'Guardar Cambios' })).toBeEnabled()
+  })
+
+  it('el extra parcial conserva inventario y duración al guardar/reabrir sin costo inventado', async () => {
+    server.modifier = {
+      ...extra('P000672'),
+      price: 5,
+      durationMin: 5,
+      rawMaterialId: 'rm-1',
+      rawMaterial: { id: 'rm-1', name: 'Ingrediente extra', unit: 'UNIT', currentStock: 100 },
+      quantityPerUnit: 0.25,
+      unit: 'UNIT',
+      inventoryMode: 'ADDITION',
+    }
+    const user = userEvent.setup()
+    renderDialog()
+    await abrirExtra(user)
+    expect((await screen.findByText(/^Stock Actual:/)).textContent).not.toContain('$')
+    await renombrar(user, 'Shot doble')
+    await guardar(user)
+    await waitFor(() => expect(server.updateCalls).toHaveLength(1))
+    expect(server.updateCalls[0][3]).toMatchObject({
+      price: 5,
+      durationMin: 5,
+      rawMaterialId: 'rm-1',
+      quantityPerUnit: 0.25,
+      unit: 'UNIT',
+      inventoryMode: 'ADDITION',
+    })
+    await abrirExtra(user, 'Shot doble')
+    expect(screen.getByLabelText('Precio')).toHaveValue(5)
+    expect(screen.getByPlaceholderText('0')).toHaveAttribute('name', 'durationMin')
+    expect(screen.getByPlaceholderText('0')).toHaveValue(5)
+    expect(screen.getByLabelText('Cantidad por modificador')).toHaveValue(0.25)
+    const stock = await screen.findByText(/^Stock Actual:/)
+    expect(stock.textContent).toContain('100.00 Unidad')
+    expect(stock.textContent).not.toContain('$')
   })
 })

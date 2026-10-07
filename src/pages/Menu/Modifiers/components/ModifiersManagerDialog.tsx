@@ -82,7 +82,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             durationMin: (subView.modifier as any).durationMin ?? null,
             active: subView.modifier.active ?? true,
             rawMaterialId: subView.modifier.rawMaterialId ?? null,
-            rawMaterial: (subView.modifier.rawMaterial as any) ?? null,
+            rawMaterial: subView.modifier.rawMaterial ?? null,
             quantityPerUnit: subView.modifier.quantityPerUnit ?? null,
             unit: (subView.modifier.unit as string | null) ?? null,
             inventoryMode: subView.modifier.inventoryMode ?? null,

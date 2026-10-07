@@ -108,11 +108,10 @@ export default function Services() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   // Fetch products (shared cache with Products page)
-  const { data: allProducts, isLoading } = useQuery({
+  const { data: allProducts, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
     refetchOnWindowFocus: true,
   })
 
@@ -223,6 +222,7 @@ export default function Services() {
       })
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
       toast({
         title: data.status ? t('services.toasts.activated') : t('services.toasts.deactivated'),
         description: t('services.toasts.saved'),
@@ -546,20 +546,30 @@ export default function Services() {
         )}
       </div>
 
-      <DataTable
-        data={filteredServices}
-        rowCount={filteredServices.length}
-        columns={columns}
-        isLoading={isLoading}
-        enableSearch={false}
-        tableId="menu:services"
-        pagination={pagination}
-        setPagination={setPagination}
-        onRowClick={row => {
-          setEditProductId(row.id)
-          setEditWizardOpen(true)
-        }}
-      />
+      {isError && (
+        <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
+          <span>{t('catalog.loadError')}</span>
+          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+            {tCommon('errors.retry')}
+          </Button>
+        </div>
+      )}
+      {(!isError || allProducts !== undefined) && (
+        <DataTable
+          data={filteredServices}
+          rowCount={filteredServices.length}
+          columns={columns}
+          isLoading={isLoading}
+          enableSearch={false}
+          tableId="menu:services"
+          pagination={pagination}
+          setPagination={setPagination}
+          onRowClick={row => {
+            setEditProductId(row.id)
+            setEditWizardOpen(true)
+          }}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

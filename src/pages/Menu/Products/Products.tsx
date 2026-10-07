@@ -195,6 +195,9 @@ export default function Products() {
   const {
     data: products,
     isLoading,
+    isError,
+    isFetching,
+    refetch,
     dataUpdatedAt: _dataUpdatedAt,
   } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
@@ -203,7 +206,6 @@ export default function Products() {
     // Especially important for RECIPE products where availableQuantity
     // can change when ingredient stock updates
     staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute as backup
     refetchOnWindowFocus: true, // Refetch when user returns to tab
   })
 
@@ -412,6 +414,8 @@ export default function Products() {
       })
     },
     onSuccess: (data, variables, _context) => {
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+
       // Verify the operation completed successfully by checking current state
       const currentProducts = queryClient.getQueryData<Product[]>(['products', venueId])
       const currentProduct = currentProducts?.find(p => p.id === variables.productId)
@@ -423,7 +427,6 @@ export default function Products() {
           description: 'Product status may have been modified by another user. Refreshing data...',
           variant: 'default',
         })
-        queryClient.invalidateQueries({ queryKey: ['products', venueId] })
         return
       }
 
@@ -983,20 +986,30 @@ export default function Products() {
         </div>
       </div>
 
-      <DataTable
-        data={filteredProducts || []}
-        rowCount={filteredProducts?.length}
-        columns={filteredColumns}
-        isLoading={isLoading}
-        enableSearch={false}
-        tableId="menu:products"
-        pagination={pagination}
-        setPagination={setPagination}
-        onRowClick={row => {
-          setEditProductId(row.id)
-          setEditWizardOpen(true)
-        }}
-      />
+      {isError && (
+        <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
+          <span>{t('catalog.loadError')}</span>
+          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+            {tCommon('errors.retry')}
+          </Button>
+        </div>
+      )}
+      {(!isError || products !== undefined) && (
+        <DataTable
+          data={filteredProducts || []}
+          rowCount={filteredProducts?.length}
+          columns={filteredColumns}
+          isLoading={isLoading}
+          enableSearch={false}
+          tableId="menu:products"
+          pagination={pagination}
+          setPagination={setPagination}
+          onRowClick={row => {
+            setEditProductId(row.id)
+            setEditWizardOpen(true)
+          }}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
