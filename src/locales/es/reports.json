@@ -2,7 +2,8 @@
   "subtitleSuffix": "{{base}} · {{suffix}}",
   "accountingError": {
     "body": "No se pudieron cargar los datos. Revisa tu conexión e inténtalo de nuevo.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "mesNoCalculado": "No pudimos calcular este mes de una vez; vuelve a intentarlo en unos minutos o escríbenos a soporte"
   },
   "bankReconciliation": {
     "title": "Conciliación con IA",
@@ -43,8 +44,8 @@
     "netRevenue": "Ingreso neto",
     "netRevenueTip": "Ventas brutas menos devoluciones (lo que realmente entró).",
     "taxableBase": "Base gravable",
-    "taxableBaseTip": "Monto sin IVA, sobre el que se calcula el {{pct}}%.",
-    "iva": "IVA trasladado ({{pct}}%)",
+    "taxableBaseTip": "Ventas sin IVA de lo que lleva IVA (16 %, 8 % y 0 %). Lo exento y lo no objeto van aparte.",
+    "iva": "IVA trasladado",
     "tips": "Propinas",
     "tipsSub": "No es ingreso del negocio",
     "tipsTip": "Pertenecen al personal; se muestran solo de forma informativa.",
@@ -52,12 +53,26 @@
     "averageTicket": "Ticket promedio",
     "error": "No se pudo cargar el estado de ingresos.",
     "disclosureRevenue": "Este tablero muestra ingresos, no utilidad: aún no descuenta costo de ventas ni gastos.",
-    "disclosureIva": "El IVA es un supuesto del {{pct}}% (tasa general); no refleja productos a tasa 0% o exentos.",
+    "disclosureIva": "El IVA sale de la tasa de cada producto (16 %, 8 %, 0 % o exento). Una venta de importe libre, sin producto, cuenta al 16 %.",
     "disclosureTips": "Las propinas se muestran solo de forma informativa y no se consideran ingreso.",
     "export": "Exportar",
     "concept": "Concepto",
     "amount": "Importe",
     "period": "Periodo"
+  },
+  "ivaPorTasa": {
+    "titulo": "IVA por tasa",
+    "tasa": "{{pct}} %",
+    "iva": "IVA {{tasa}}",
+    "baseTasa0": "Ventas a tasa 0 % (sin IVA)",
+    "baseExenta": "Ventas exentas de IVA",
+    "baseNoObjeto": "Ventas no objeto de IVA",
+    "exento": "exento",
+    "noObjeto": "no objeto",
+    "aproximadoBadge": "Aproximado",
+    "aproximado": "Ventas y devoluciones con IVA aproximado: {{count}}. No se pudo saber su IVA exacto: mezclan productos de distinto IVA y no queda registrado a qué producto le tocó un descuento o una devolución, o vienen de un sistema que no dice si su precio ya incluía el IVA. Su IVA se calculó en proporción.",
+    "nota": "Nota",
+    "notaFacturas": "El IVA se calcula por tasa sobre lo cobrado y puede diferir por centavos del desglose de tus facturas"
   },
   "businessSummary": {
     "title": "Resumen del negocio",
@@ -333,12 +348,11 @@
   "cashBasisVat": {
     "title": "IVA en flujo de efectivo · DIOT",
     "subtitle": "El IVA que causaste por lo que cobraste este mes (por RFC, suma todos tus locales)",
-    "preliminarBanner": "PRELIMINAR: ya descuenta tu IVA acreditable de gastos PAGADOS (Buzón de CFDIs). Sigue asumiendo tasa 16% y no incluye el IVA que clientes te hayan retenido en ventas. No lo uses como pago final sin tu contador.",
+    "preliminarBanner": "PRELIMINAR: ya descuenta tu IVA acreditable de gastos PAGADOS (Buzón de CFDIs). No incluye el IVA que clientes te hayan retenido en ventas. No lo uses como pago final sin tu contador.",
     "zeroBody": "Sin ventas cobradas este periodo. RECUERDA: aunque no tengas actividad, normalmente debes presentar tu declaración de IVA en ceros.",
     "multiOrg": "Este RFC opera locales en más de una organización de Avoqado; el cálculo los suma todos (es por contribuyente).",
     "cardTitle": "IVA en flujo de efectivo",
     "ivaTrasladado": "IVA trasladado cobrado (causado del periodo)",
-    "estimado16": "Estimado 16%",
     "baseGravable": "Base gravable",
     "ivaAcreditable": "IVA acreditable pagado (gastos)",
     "ivaAcreditableHint": "IVA de tus CFDIs de proveedores PAGADOS este mes (cash-basis). Resta al IVA a cargo.",
@@ -353,7 +367,7 @@
     "diotBody": "La DIOT lista el IVA que pagaste a cada proveedor (lado gastos). Requiere registrar tus CFDIs recibidos (próximamente, en el Buzón de CFDIs).",
     "error": "No se pudo cargar el IVA en flujo de efectivo.",
     "disclosureCashBasis": "El IVA se causa por FLUJO DE EFECTIVO: sobre lo que efectivamente cobraste en el mes, no sobre lo facturado.",
-    "disclosureNotInvoiced": "La tasa 16% es un supuesto general; locales con productos a 0%, 8% (frontera) o exentos verán el IVA sobreestimado.",
+    "disclosureNotInvoiced": "El IVA sale de la tasa de cada producto (16 %, 8 %, 0 % o exento). Una venta de importe libre, sin producto, cuenta al 16 %.",
     "disclosureSaldoFavor": "El arrastre o aplicación de un saldo a favor lo decides tú y tu contador; Avoqado no lo aplica automáticamente.",
     "ivaRetenidoTerceros": "IVA retenido a proveedores (a enterar)",
     "ivaRetenidoTercerosHint": "El IVA que TÚ retuviste a proveedores; se entera APARTE, no resta a tu IVA a cargo.",

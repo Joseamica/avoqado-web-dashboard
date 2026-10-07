@@ -2,7 +2,8 @@
   "subtitleSuffix": "{{base}} · {{suffix}}",
   "accountingError": {
     "body": "Could not load the data. Check your connection and try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "mesNoCalculado": "We couldn't calculate this month in one go; try again in a few minutes or contact support"
   },
   "bankReconciliation": {
     "title": "AI reconciliation",
@@ -43,8 +44,8 @@
     "netRevenue": "Net revenue",
     "netRevenueTip": "Gross sales minus refunds (what actually came in).",
     "taxableBase": "Taxable base",
-    "taxableBaseTip": "Amount without VAT, on which the {{pct}}% is calculated.",
-    "iva": "VAT collected ({{pct}}%)",
+    "taxableBaseTip": "Sales without VAT from taxed items (16%, 8% and 0%). Exempt and out-of-scope sales are shown separately.",
+    "iva": "VAT collected",
     "tips": "Tips",
     "tipsSub": "Not business income",
     "tipsTip": "They belong to staff; shown for reference only.",
@@ -52,12 +53,26 @@
     "averageTicket": "Average ticket",
     "error": "Could not load the revenue statement.",
     "disclosureRevenue": "This board shows revenue, not profit: it does not yet subtract cost of goods or expenses.",
-    "disclosureIva": "VAT assumes {{pct}}% (general rate); it does not reflect 0% or exempt products.",
+    "disclosureIva": "VAT comes from each product's rate (16%, 8%, 0% or exempt). A custom-amount sale with no product counts at 16%.",
     "disclosureTips": "Tips are shown for reference only and are not counted as income.",
     "export": "Export",
     "concept": "Concept",
     "amount": "Amount",
     "period": "Period"
+  },
+  "ivaPorTasa": {
+    "titulo": "VAT by rate",
+    "tasa": "{{pct}}%",
+    "iva": "VAT {{tasa}}",
+    "baseTasa0": "Sales at 0% (no VAT)",
+    "baseExenta": "VAT-exempt sales",
+    "baseNoObjeto": "Sales outside the scope of VAT",
+    "exento": "exempt",
+    "noObjeto": "out of scope",
+    "aproximadoBadge": "Approximate",
+    "aproximado": "Sales and refunds with approximate VAT: {{count}}. Their exact VAT couldn't be determined: they mix products with different VAT and it isn't recorded which product a discount or refund applied to, or they come from a system that doesn't say whether its prices included VAT. Their VAT was calculated proportionally.",
+    "nota": "Note",
+    "notaFacturas": "VAT is calculated by rate on what was collected and may differ by a few cents from your invoices' breakdown"
   },
   "businessSummary": {
     "title": "Business summary",
@@ -333,12 +348,11 @@
   "cashBasisVat": {
     "title": "Cash-basis VAT · DIOT",
     "subtitle": "The VAT you owe on what you collected this month (per RFC, sums all your venues)",
-    "preliminarBanner": "PRELIMINARY: this already subtracts your creditable VAT from PAID expenses (CFDI inbox). It still assumes a 16% rate and excludes VAT clients may have withheld on your sales. Do not use as a final payment without your accountant.",
+    "preliminarBanner": "PRELIMINARY: this already subtracts your creditable VAT from PAID expenses (CFDI inbox). It excludes VAT clients may have withheld on your sales. Do not use as a final payment without your accountant.",
     "zeroBody": "No sales collected this period. REMEMBER: even with no activity, you usually still have to file a zero VAT return.",
     "multiOrg": "This RFC operates venues across more than one Avoqado organization; the calculation sums them all (it's per taxpayer).",
     "cardTitle": "Cash-basis VAT",
     "ivaTrasladado": "Output VAT collected (accrued this period)",
-    "estimado16": "Estimated 16%",
     "baseGravable": "Taxable base",
     "ivaAcreditable": "Input VAT paid (expenses)",
     "ivaAcreditableHint": "VAT from your supplier CFDIs PAID this month (cash-basis). Reduces the VAT you owe.",
@@ -353,7 +367,7 @@
     "diotBody": "The DIOT lists the VAT you paid to each supplier (expense side). Requires recording your received CFDIs (coming soon, in the CFDI inbox).",
     "error": "Could not load the cash-basis VAT summary.",
     "disclosureCashBasis": "VAT accrues on a CASH-FLOW basis: on what you actually collected in the month, not on what you invoiced.",
-    "disclosureNotInvoiced": "The 16% rate is a general assumption; venues with 0%, 8% (border) or exempt products will see VAT overstated.",
+    "disclosureNotInvoiced": "VAT comes from each product's rate (16%, 8%, 0% or exempt). A custom-amount sale with no product counts at 16%.",
     "disclosureSaldoFavor": "Carrying forward or applying a credit balance is your and your accountant's decision; Avoqado does not apply it automatically.",
     "ivaRetenidoTerceros": "VAT withheld from suppliers (to remit)",
     "ivaRetenidoTercerosHint": "The VAT YOU withheld from suppliers; remitted SEPARATELY, it does not reduce the VAT you owe.",
