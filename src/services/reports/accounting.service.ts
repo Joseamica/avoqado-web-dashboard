@@ -9,6 +9,7 @@
  * ALL money fields in INTEGER CENTS — divide by 100 (or use Currency(x, true)) to display.
  */
 import api from '@/api'
+import type { IncomeStatementResponse } from './incomeStatement.service'
 
 export interface BusinessSummaryResponse {
   venueId: string
@@ -17,13 +18,8 @@ export interface BusinessSummaryResponse {
   timezone: string
   period: { from: string; to: string }
   taxRateAssumed: number
-  revenue: {
-    grossSalesCents: number
-    refundsCents: number
-    netRevenueCents: number
-    taxableBaseCents: number
-    ivaCents: number
-  }
+  /** El mismo bloque que el estado de resultados (incluye el desglose por tasa y los movimientos con IVA aproximado, opcionales). */
+  revenue: IncomeStatementResponse['revenue']
   invoicing: {
     stampedCount: number
     stampedTotalCents: number

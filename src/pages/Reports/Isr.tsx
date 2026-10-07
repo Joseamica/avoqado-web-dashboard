@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { mensajeDelMes } from '@/components/accounting/errorDelReporte'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -280,7 +281,13 @@ function IsrInner() {
       {query.isLoading && hasAccess ? (
         <Skeleton className="h-72 rounded-2xl" />
       ) : query.isError && hasAccess ? (
-        <AccountingErrorState onRetry={() => query.refetch()} />
+        // B4b (fallo 2 de la ronda 7; Codex r6 R6-2): pantalla de un mes, igual que el IVA. Con REPORT_TOO_LARGE / REPORT_TIMEOUT no hay
+        // «rango más corto» que elegir: su propio texto. M-B: salvo una VENTA que pasa un tope, cuyo mensaje nombra el folio. Cualquier
+        // otro error, el genérico.
+        <AccountingErrorState
+          message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
+          onRetry={() => query.refetch()}
+        />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
