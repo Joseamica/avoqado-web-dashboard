@@ -88,6 +88,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Conector de pases (TotalPass · Wellhub): socios que reservan y hacen check-in con su pase.
       // Pro por decisión del founder (D4, 2-oct-2026); suelta $199/mes. Espejo de LEGACY_PLAN_CODES del server.
       'AGGREGATOR_PASSES',
+      // Pago al personal: un recibo por persona con clases, comisiones y propinas (fase 3, decisión D3 del 5-oct-2026).
+      // Pro; suelta $199/mes por sucursal. Espejo de LEGACY_PLAN_CODES del server, por nombre exacto.
+      'SERVICE_PAY',
     ],
   },
   {
