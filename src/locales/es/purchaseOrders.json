@@ -418,6 +418,7 @@
       "prepared": "Compra preparada: pendiente de autorización",
       "receiveHint": "Confirma que esta mercancía llegó. Se sumará una sola vez al inventario con las cantidades y costos que se muestran.",
       "prepareHint": "Revisa los artículos, unidades y costos. Se preparará una orden pendiente de autorización; el inventario se suma después de autorizarla y confirmar su recepción.",
+      "supplierAutoCreate": "Al preparar la compra se registrará automáticamente este proveedor con el RFC {{rfc}} del XML. No necesitas darlo de alta antes.",
       "includeIeps": "Incluir IEPS en el costo de la mercancía",
       "costTotal": "Costo del inventario",
       "ivaExcluded": "IVA excluido del costo",

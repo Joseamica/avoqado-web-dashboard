@@ -212,7 +212,7 @@ export function InvoiceRow({
           {t('invoices.supplierUnverified')}
         </p>
       )}
-      {notes?.supplierUnknown && <p className="text-xs text-muted-foreground">{t('invoices.supplierUnknown')}</p>}
+      {notes?.supplierUnknown && !invoice.supplier && <p className="text-xs text-muted-foreground">{t('invoices.supplierUnknown')}</p>}
 
       {/* Fase 2: los renglones, con identificación humana de lo que los códigos no reconocen. */}
       {(!invoice.purchaseOrderId || invoice.inventoryPreparedAt) && <div className="flex flex-wrap items-center gap-3" data-tour="invoice-receipt-actions">

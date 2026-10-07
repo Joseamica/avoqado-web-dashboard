@@ -418,6 +418,7 @@
       "prepared": "Purchase prepared: awaiting approval",
       "receiveHint": "Confirm that this merchandise arrived. Inventory will be added once using the quantities and costs shown.",
       "prepareHint": "Review items, units and costs. A purchase order will be prepared for approval. Inventory is added after approval and receipt confirmation.",
+      "supplierAutoCreate": "Preparing this purchase will automatically register this supplier using RFC {{rfc}} from the XML. No prior registration is needed.",
       "includeIeps": "Include IEPS in merchandise cost",
       "costTotal": "Inventory cost",
       "ivaExcluded": "VAT excluded from cost",

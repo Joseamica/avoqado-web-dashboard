@@ -4,14 +4,37 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { InvoiceInventoryDialog } from './InvoiceInventoryDialog'
 import { purchaseOrderInvoiceService, type PurchaseOrderInvoice } from '@/services/purchaseOrderInvoice.service'
 
-vi.mock('@/services/purchaseOrderInvoice.service', () => ({ purchaseOrderInvoiceService: { previewInventory: vi.fn(), confirmInventory: vi.fn() } }))
+vi.mock('@/services/purchaseOrderInvoice.service', () => ({
+  purchaseOrderInvoiceService: { previewInventory: vi.fn(), confirmInventory: vi.fn() },
+}))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock('@/hooks/use-unit-translation', () => ({ useUnitTranslation: () => ({ getShortLabel: (unit: string) => unit }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 
 const invoice = { id: 'invoice', iepsCents: 0 } as PurchaseOrderInvoice
-const review = { action: 'PREPARE' as const, confirmationToken: 'a'.repeat(64), supplier: 'Proveedor', subtotal: '900', total: '1044', iva: '144', ieps: '0', includeIepsInCost: false,
-  lines: [{ lineId: 'line', name: 'Harina', quantity: '3', unit: 'KILOGRAM', presentationName: null, baseQuantity: '3000', baseUnit: 'GRAM', costAmount: '900', baseUnitCost: '0.3' }] }
+const review = {
+  action: 'PREPARE' as const,
+  confirmationToken: 'a'.repeat(64),
+  supplier: 'Proveedor',
+  subtotal: '900',
+  total: '1044',
+  iva: '144',
+  ieps: '0',
+  includeIepsInCost: false,
+  lines: [
+    {
+      lineId: 'line',
+      name: 'Harina',
+      quantity: '3',
+      unit: 'KILOGRAM',
+      presentationName: null,
+      baseQuantity: '3000',
+      baseUnit: 'GRAM',
+      costAmount: '900',
+      baseUnitCost: '0.3',
+    },
+  ],
+}
 
 afterEach(cleanup)
 beforeEach(() => {
@@ -20,9 +43,11 @@ beforeEach(() => {
 })
 function mount(props = invoice) {
   const onClose = vi.fn()
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <InvoiceInventoryDialog venueId="venue" invoice={props} onClose={onClose} />
-  </QueryClientProvider>)
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <InvoiceInventoryDialog venueId="venue" invoice={props} onClose={onClose} />
+    </QueryClientProvider>,
+  )
   return onClose
 }
 
@@ -34,6 +59,19 @@ it('opening the review has no stock effects; only explicit confirmation sends it
   fireEvent.click(screen.getByRole('button', { name: 'invoices.receipt.confirmPrepare' }))
   await waitFor(() => expect(purchaseOrderInvoiceService.confirmInventory).toHaveBeenCalledWith('venue', 'invoice', 'a'.repeat(64), false))
   await waitFor(() => expect(close).toHaveBeenCalledTimes(1))
+})
+
+it('explains automatic supplier registration and shows the configured box conversion before confirmation', async () => {
+  vi.mocked(purchaseOrderInvoiceService.previewInventory).mockResolvedValue({
+    ...review,
+    supplierWillBeCreated: true,
+    supplierRfc: 'AAA010101AAA',
+    lines: [{ ...review.lines[0], presentationName: 'caja de 12 kg', baseQuantity: '36000', baseUnitCost: '0.025' }],
+  })
+  mount()
+  expect(await screen.findByText('invoices.receipt.supplierAutoCreate')).toBeInTheDocument()
+  expect(screen.getByText('3 caja de 12 kg → 36000 GRAM')).toBeInTheDocument()
+  expect(purchaseOrderInvoiceService.confirmInventory).not.toHaveBeenCalled()
 })
 
 it('a rejected server review cannot be confirmed', async () => {

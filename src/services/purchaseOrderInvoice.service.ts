@@ -105,19 +105,39 @@ export const purchaseOrderInvoiceService = {
   },
 
   async inbox(venueId: string, page = 1, search = ''): Promise<InvoicePage> {
-    return (await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/inbox`, { params: { page, limit: 20, search: search || undefined } })).data
+    return (
+      await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/inbox`, {
+        params: { page, limit: 20, search: search || undefined },
+      })
+    ).data
   },
 
   async catalog(venueId: string, kind: 'RAW' | 'PRODUCT', page = 1, search = ''): Promise<InvoiceCatalogPage> {
-    return (await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/catalog`, { params: { kind, page, limit: 25, search: search || undefined } })).data
+    return (
+      await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/catalog`, {
+        params: { kind, page, limit: 25, search: search || undefined },
+      })
+    ).data
   },
 
   async previewInventory(venueId: string, invoiceId: string, includeIeps = false): Promise<InvoiceInventoryReview> {
-    return (await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/${invoiceId}/inventory`, { params: { includeIeps } })).data
+    return (
+      await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/${invoiceId}/inventory`, { params: { includeIeps } })
+    ).data
   },
 
-  async confirmInventory(venueId: string, invoiceId: string, confirmationToken: string, includeIeps: boolean): Promise<{ purchaseOrderId: string; status: string }> {
-    return (await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/${invoiceId}/inventory`, { confirmationToken, includeIeps })).data
+  async confirmInventory(
+    venueId: string,
+    invoiceId: string,
+    confirmationToken: string,
+    includeIeps: boolean,
+  ): Promise<{ purchaseOrderId: string; status: string }> {
+    return (
+      await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/${invoiceId}/inventory`, {
+        confirmationToken,
+        includeIeps,
+      })
+    ).data
   },
 
   /** Una persona confirma qué ES un renglón — y el sistema APRENDE el código del proveedor. */
@@ -135,17 +155,45 @@ export const purchaseOrderInvoiceService = {
   },
 }
 
-export interface InvoicePage { rows: PurchaseOrderInvoice[]; total: number; page: number; limit: number; totalPages: number }
-export interface InvoiceCatalogItem { id: string; name: string; unit: string }
-export interface InvoiceCatalogPage { rows: InvoiceCatalogItem[]; total: number; page: number; limit: number; totalPages: number }
+export interface InvoicePage {
+  rows: PurchaseOrderInvoice[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+export interface InvoiceCatalogItem {
+  id: string
+  name: string
+  unit: string
+}
+export interface InvoiceCatalogPage {
+  rows: InvoiceCatalogItem[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
 export interface InvoiceInventoryReview {
   action: 'PREPARE' | 'RECEIVE'
   confirmationToken: string
   supplier: string
+  supplierRfc?: string
+  supplierWillBeCreated?: boolean
   total: string
   subtotal: string
   iva: string
   ieps: string
   includeIepsInCost: boolean
-  lines: Array<{ lineId: string; name: string; quantity: string; unit: string; presentationName: string | null; baseQuantity: string; baseUnit: string; costAmount: string; baseUnitCost: string }>
+  lines: Array<{
+    lineId: string
+    name: string
+    quantity: string
+    unit: string
+    presentationName: string | null
+    baseQuantity: string
+    baseUnit: string
+    costAmount: string
+    baseUnitCost: string
+  }>
 }
