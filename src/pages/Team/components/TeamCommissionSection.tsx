@@ -4,7 +4,9 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { DollarSign, TrendingUp, Calendar } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useStaffCommissions } from '@/hooks/useCommissions'
+import { useAccess } from '@/hooks/use-access'
+import { useCommissionStats, useStaffCommissions } from '@/hooks/useCommissions'
+import { NotaDeLoCalculado } from '@/pages/Commissions/components/AvisosDeResumen'
 import type { CommissionSummary } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +37,12 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 
 	// Fetch staff commissions (includes calculations, summaries, stats, and tierProgress)
 	const { data: commissions, isLoading: isLoadingCommissions } = useStaffCommissions(staffId)
+
+	// Con Pago al personal activo, este historial es lo CALCULADO (E6a-fix3, hermano de «Resumen de Comisiones»): misma consulta de
+	// estadísticas de la sede que la pantalla de Comisiones (en caché), y el enlace al recibo sólo para quien puede verlo.
+	const { can } = useAccess()
+	const { data: stats } = useCommissionStats()
+	const nota = <NotaDeLoCalculado staffPayActive={stats?.staffPayActive === true} puedeVerRecibos={can('staffpay:read')} />
 
 	// Format currency
 	const formatCurrency = (amount: number) => {
@@ -168,7 +176,10 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 			{/* Commission History Table */}
 			{commissions?.summaries && commissions.summaries.length > 0 ? (
 				<>
-					<h4 className="text-sm font-medium mb-4">{t('staff.history')}</h4>
+					<h4 className="text-sm font-medium mb-1">{t('staff.history')}</h4>
+					<div className="mb-4 space-y-1">
+						{nota}
+					</div>
 					<div className="relative rounded-xl border border-border/50 overflow-hidden">
 						<DataTable<CommissionSummary>
 							columns={columns}
@@ -187,6 +198,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 					<p className="text-xs text-muted-foreground mt-1">
 						{t('staff.noCommissionsDescription')}
 					</p>
+					<div className="mt-3">{nota}</div>
 				</div>
 			)}
 		</GlassCard>
