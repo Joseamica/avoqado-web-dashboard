@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2, Lock } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -68,11 +68,24 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   // Desde dónde sí puede (E6a-fix2 K3): las sedes con alguna acción para él en `GET /sedes`.
   const dondeSi = (sedes.data?.sedes ?? []).filter(s => s.puedeActivar || s.puedeDesactivar).map(s => s.nombre)
   const [desactivando, setDesactivando] = useState<SedeEnPagoAlPersonalDto | null>(null)
+  // E6a-fix2 C4: la respuesta del cierre se perdió (o 5xx). No se da por hecho ni por fallido: se relee la vista previa y se dice
+  // qué pasó. «revisando» mientras relee; «sinRed» si tampoco pudo releer; «noSeCerro» si la vista previa sigue abierta.
+  const [incierto, setIncierto] = useState<'revisando' | 'sinRed' | 'noSeCerro' | null>(null)
+  const yaCerro = !!p?.bloqueos.some(b => b.codigo === 'YA_CERRADO')
+  const avisado = useRef(false)
+  useEffect(() => {
+    // Releer (sola, o con «Reintentar» al volver la red) dijo que sí se cerró: se dice y el modal se va.
+    if (!incierto || !yaCerro || avisado.current) return
+    avisado.current = true
+    toast({ title: t('close.uncertainClosed') })
+    onOpenChange(false)
+  }, [incierto, yaCerro]) // eslint-disable-line react-hooks/exhaustive-deps -- una vez, cuando la relectura lo confirma
 
   const confirmar = async () => {
     if (!p || !listo || enviando || isFetching || enVuelo.current) return
     enVuelo.current = true
     setEnviando(true)
+    setIncierto(null)
     try {
       const r = await cerrar.mutateAsync({ fecha, huellaEsperada: p.huella, confirmarHuerfanas: p.huerfanas > 0 && entiendo })
       // Un reintento (doble clic, otra pestaña) devuelve el MISMO cierre: se dice, no se presenta como uno nuevo.
@@ -86,6 +99,14 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
         toast({ title: t('close.changed'), description: t('close.changedHelp') })
         setEntiendo(false)
         await refetch()
+      } else if (!resp?.status || resp.status >= 500) {
+        // Sin respuesta (o 5xx): el servidor pudo haber cerrado. Se dice y se relee; si cerró, el efecto de arriba lo dice.
+        // Volver a intentar no cierra dos veces: el servidor reconoce el cierre hecho (`yaCerrado`) o pide revisar (huella).
+        if (resp?.status && data?.message) toast({ title: data.message, variant: 'destructive' })
+        setEntiendo(false)
+        setIncierto('revisando')
+        const r = await refetch()
+        setIncierto(r?.isError ? 'sinRed' : 'noSeCerro')
       } else {
         toast({ title: data?.message ?? t('errors.generic'), variant: 'destructive' })
         // Un 4xx (otro lo cerró, cambió un permiso, una clase empezó…) deja el preview viejo diciendo «se puede cerrar»:
@@ -148,6 +169,18 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
       onCloseAutoFocus={foco.onCloseAutoFocus}
     >
       <div className="mx-auto max-w-xl space-y-4 p-6">
+        {incierto && !yaCerro && (
+          <section role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-close-uncertain">
+            {incierto === 'revisando' ? (
+              <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            )}
+            <span>
+              {incierto === 'revisando' ? t('close.uncertainChecking') : incierto === 'sinRed' ? t('close.uncertainOffline') : t('close.uncertainNotClosed')}
+            </span>
+          </section>
+        )}
         {isLoading ? (
           <Skeleton className="h-40 w-full rounded-2xl" aria-busy="true" />
         ) : isError || !p ? (

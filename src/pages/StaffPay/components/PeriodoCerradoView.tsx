@@ -165,10 +165,14 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         toast({ title: t('close.changed'), description: t('closed.changedHelp') })
         await Promise.all([previewPago.refetch(), refetch()])
       } else if (sinRespuesta(err)) {
-        // La respuesta se perdió y el server pudo haber marcado (full-testing C7): se vuelve a pedir la tabla y el preview,
-        // y el diálogo enseña cómo quedó (si ya se marcó, «Ya no hay recibos pendientes»).
-        toast({ title: t('closed.networkCheck') })
-        await Promise.all([previewPago.refetch(), refetch()])
+        // La respuesta se perdió y el server pudo haber marcado (full-testing C7): se vuelve a pedir la tabla y el preview. Si ya
+        // no queda nada pendiente, ya estaba registrado: se dice y el diálogo se cierra (E6a-fix2 C4), en vez de preguntar por
+        // $0.00. Si sigue pendiente, el diálogo se queda con el monto de ahora.
+        const [vistaNueva] = await Promise.all([previewPago.refetch(), refetch()])
+        if (vistaNueva?.data?.cantidad === 0) {
+          toast({ title: t('closed.alreadyRecorded') })
+          setConfirmar(null)
+        } else toast({ title: t('closed.networkCheck') })
       } else {
         toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
         setConfirmar(null)
@@ -350,13 +354,18 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         <AlertDialogContent onOpenAutoFocus={focoPago.onOpenAutoFocus} onCloseAutoFocus={focoPago.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {negativo
-                ? t('closed.settleNegativeTitle', { nombre: confirmar?.nombre, monto: montoVista })
-                : confirmar?.staffId
-                  ? t('closed.markPaidTitle', { nombre: confirmar.nombre, monto: montoVista })
-                  : t('closed.markAllPaidTitle', { periodo: etiqueta })}
+              {/* Nada pendiente (otro lo registró, o ya se registró): no se pregunta «¿le pagaste $0.00?» (E6a-fix2 C4). */}
+              {vista?.cantidad === 0
+                ? t('closed.alreadyRecorded')
+                : negativo
+                  ? t('closed.settleNegativeTitle', { nombre: confirmar?.nombre, monto: montoVista })
+                  : confirmar?.staffId
+                    ? t('closed.markPaidTitle', { nombre: confirmar.nombre, monto: montoVista })
+                    : t('closed.markAllPaidTitle', { periodo: etiqueta })}
             </AlertDialogTitle>
-            <AlertDialogDescription>{negativo ? t('closed.settleNegativeHelp') : t('closed.markPaidHelp')}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {vista?.cantidad === 0 ? t('closed.nothingPending') : negativo ? t('closed.settleNegativeHelp') : t('closed.markPaidHelp')}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           {previewPago.isLoading ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-busy="true">
@@ -373,9 +382,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                 {t('period.retry')}
               </Button>
             </div>
-          ) : vista && vista.cantidad === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('closed.nothingPending')}</p>
-          ) : porSigno ? (
+          ) : vista && vista.cantidad === 0 ? null : porSigno ? (
             <div className="space-y-1 text-sm" data-tour="staffpay-closed-mark-all-by-sign">
               {porSigno.pagos.length === 1 && (
                 <p>{t('closed.paysOne', { monto: monto(porSigno.pagos[0].total), nombre: porSigno.pagos[0].nombre })}</p>
@@ -392,24 +399,26 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
             <AlertDialogCancel className="cursor-pointer" disabled={marcar.isPending}>
               {t('closed.cancel')}
             </AlertDialogCancel>
-            <AlertDialogAction
-              className="cursor-pointer"
-              disabled={!puedeConfirmar}
-              onClick={e => {
-                // Se cierra al terminar (no al hacer clic): el usuario ve que se está registrando.
-                e.preventDefault()
-                void ejecutar()
-              }}
-            >
-              {(marcar.isPending || previewPago.isFetching) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {negativo
-                ? t('closed.settleNegativeConfirm')
-                : confirmar?.staffId
-                ? t('closed.markPaidConfirm', { monto: montoVista })
-                : porSigno
-                ? t('closed.markAllMixedConfirm', { count: vista?.cantidad ?? pendientes })
-                : t('closed.markAllPaidConfirm', { count: vista?.cantidad ?? pendientes, monto: montoVista })}
-            </AlertDialogAction>
+            {vista?.cantidad !== 0 && (
+              <AlertDialogAction
+                className="cursor-pointer"
+                disabled={!puedeConfirmar}
+                onClick={e => {
+                  // Se cierra al terminar (no al hacer clic): el usuario ve que se está registrando.
+                  e.preventDefault()
+                  void ejecutar()
+                }}
+              >
+                {(marcar.isPending || previewPago.isFetching) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {negativo
+                  ? t('closed.settleNegativeConfirm')
+                  : confirmar?.staffId
+                  ? t('closed.markPaidConfirm', { monto: montoVista })
+                  : porSigno
+                  ? t('closed.markAllMixedConfirm', { count: vista?.cantidad ?? pendientes })
+                  : t('closed.markAllPaidConfirm', { count: vista?.cantidad ?? pendientes, monto: montoVista })}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

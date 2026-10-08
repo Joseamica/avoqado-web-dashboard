@@ -294,9 +294,20 @@ export function useSetPeriodicity() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({ mutationFn: (p: 'MONTHLY' | 'SEMIMONTHLY') => staffPayService.setPeriodicity(venueId!, p), onSuccess: inv })
 }
+/**
+ * Sin respuesta (o un 5xx) el periodo pudo haberse cerrado (E6a-fix2 C4): se relee todo MENOS la vista previa del cierre, que la
+ * relee el modal para decir qué pasó (una sola petición, la suya); sin esperar, así el modal dice «revisando…» mientras tanto.
+ */
 export function useClosePeriod() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (b: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }) => staffPayService.close(venueId!, b), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const qc = useQueryClient(); const inv = useInvalidarTodo()
+  return useMutation({
+    mutationFn: (b: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }) => staffPayService.close(venueId!, b),
+    onSuccess: inv,
+    onError: err => {
+      if ((estado(err) ?? 500) < 500) return
+      void qc.invalidateQueries({ queryKey: staffPayKeys.all(venueId), predicate: q => !q.queryKey.includes('close-preview') })
+    },
+  })
 }
 export function useMarkPaid(periodId: string | null) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado()

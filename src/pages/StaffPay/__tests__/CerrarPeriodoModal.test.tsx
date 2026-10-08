@@ -131,13 +131,16 @@ describe('CerrarPeriodoModal', () => {
     expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'No tienes permiso en BSF', variant: 'destructive' }))
   })
 
-  it('un error de red sólo avisa (no hay preview nuevo que pedir)', async () => {
+  // E6a-fix2 C4 (cambia la decisión anterior, «sólo avisa»): sin respuesta el servidor pudo haber cerrado; ya no se dice «Algo
+  // salió mal», se dice que no se sabe y se relee la vista previa (el caso completo, con hooks reales: `.sinRed.test`).
+  it('🔴 un error de red no dice «Algo salió mal»: dice que no sabe y relee la vista previa', async () => {
     m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
     m.close.mockRejectedValue(new Error('Network Error'))
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
-    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'errors.generic' })))
-    expect(m.refetch).not.toHaveBeenCalled()
+    await waitFor(() => expect(m.refetch).toHaveBeenCalled())
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'errors.generic' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/close\.uncertain/)
   })
 
   it('si el periodo ya estaba cerrado, lo dice con su total (no «Periodo cerrado» como si fuera nuevo)', async () => {

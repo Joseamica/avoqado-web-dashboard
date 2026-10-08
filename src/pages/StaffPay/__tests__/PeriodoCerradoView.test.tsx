@@ -112,6 +112,33 @@ describe('PeriodoCerradoView', () => {
     await waitFor(() => expect(m.toast).toHaveBeenCalledTimes(1))
   })
 
+  // E6a-fix2 C4 (full-testing E6a): recuperado de una respuesta perdida, el diálogo preguntaba «¿Registrar que le pagaste $0.00…?»
+  // con «Ya no hay recibos pendientes». Si al releer ya está pagado, se cierra diciendo que ya estaba registrado.
+  it('🔴 marcar pagado con la respuesta perdida y al releer YA está pagado: se cierra con «Ya estaba registrado»', async () => {
+    m.can.mockReturnValue(true)
+    m.paid.mockRejectedValue(new Error('Network Error'))
+    m.refetchPreview.mockResolvedValue({ data: { ...previewDe('a'), cantidad: 0, total: '0.00' }, isError: false })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /closed\.markPaidConfirm/ }))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'closed.alreadyRecorded' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'closed.networkCheck' }))
+  })
+
+  it('🔴 un recibo ya pagado (nada pendiente) nunca pregunta «¿Registrar que le pagaste $0.00…?»', async () => {
+    m.can.mockReturnValue(true)
+    m.preview.mockImplementation((_p: string, staffId: string | undefined, enabled: boolean) =>
+      enabled ? { data: { ...previewDe(staffId), cantidad: 0, total: '0.00' }, isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined, isLoading: false },
+    )
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('closed.alreadyRecorded')
+    expect(dialogo).not.toHaveTextContent(/closed\.markPaidTitle/)
+    expect(dialogo).not.toHaveTextContent('$0.00')
+  })
+
   it('«Marcar todos» con la respuesta PERDIDA: vuelve a pedir la tabla y el preview para mostrar lo que de verdad quedó (C7)', async () => {
     m.can.mockReturnValue(true)
     const refetchTabla = vi.fn()

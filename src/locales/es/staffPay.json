@@ -417,7 +417,11 @@
     "deactivateSede": "Desactivar {{sede}}",
     "people_one": "{{count}} persona",
     "people_other": "{{count}} personas",
-    "alreadyClosed": "Este periodo ya estaba cerrado (total {{total}})."
+    "alreadyClosed": "Este periodo ya estaba cerrado (total {{total}}).",
+    "uncertainChecking": "No sabemos si se cerró; revisando…",
+    "uncertainOffline": "No sabemos si se cerró. Cuando vuelva la conexión, revisa de nuevo: si ya se cerró, no se cierra dos veces.",
+    "uncertainNotClosed": "No se cerró: puedes volver a intentarlo.",
+    "uncertainClosed": "Sí se cerró: el periodo quedó cerrado."
   },
   "closed": {
     "badge": "Cerrado",
@@ -459,7 +463,8 @@
     "owesMany_other": "{{count}} recibos quedan con saldo en contra por {{monto}}.",
     "markAllMixedConfirm_one": "Registrar {{count}} recibo",
     "markAllMixedConfirm_other": "Registrar {{count}} recibos",
-    "networkCheck": "No llegó la respuesta del servidor. Revisa abajo cómo quedó: si ya se registró, no se registra dos veces."
+    "networkCheck": "No llegó la respuesta del servidor. Revisa abajo cómo quedó: si ya se registró, no se registra dos veces.",
+    "alreadyRecorded": "Ya estaba registrado: no se registró dos veces."
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",

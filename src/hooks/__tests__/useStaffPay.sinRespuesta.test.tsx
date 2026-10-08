@@ -45,6 +45,14 @@ describe('sin respuesta, el periodo se vuelve a leer', () => {
     await waitFor(() => expect(m.report).toHaveBeenCalledTimes(2))
   })
 
+  it('🔴 un cierre sin respuesta (pudo cerrarse) relee el periodo', async () => {
+    m.close.mockRejectedValue(new Error('Network Error'))
+    const { result } = montar(() => useClosePeriod())
+    await waitFor(() => expect(result.current.periodo.data).toBeDefined())
+    await act(() => result.current.accion.mutateAsync({ fecha: '2026-09-01', huellaEsperada: 'h', confirmarHuerfanas: false }).catch(() => undefined))
+    await waitFor(() => expect(m.report).toHaveBeenCalledTimes(2))
+  })
+
   it('un rechazo con desenlace (409, nada cambió) no relee', async () => {
     m.add.mockRejectedValue({ response: { status: 409, data: { code: 'PERIODO_CERRADO' } } })
     m.close.mockRejectedValue({ response: { status: 409, data: { code: 'HUELLA_CAMBIO' } } })

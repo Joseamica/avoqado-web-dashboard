@@ -417,7 +417,11 @@
     "deactivateSede": "Turn off {{sede}}",
     "people_one": "{{count}} person",
     "people_other": "{{count}} people",
-    "alreadyClosed": "This period was already closed (total {{total}})."
+    "alreadyClosed": "This period was already closed (total {{total}}).",
+    "uncertainChecking": "We don’t know whether it closed; checking…",
+    "uncertainOffline": "We don’t know whether it closed. When the connection is back, check again: if it already closed, it won’t close twice.",
+    "uncertainNotClosed": "It didn’t close: you can try again.",
+    "uncertainClosed": "It did close: the period is now closed."
   },
   "closed": {
     "badge": "Closed",
@@ -459,7 +463,8 @@
     "owesMany_other": "{{count}} pay statements are left with a negative balance of {{monto}}.",
     "markAllMixedConfirm_one": "Record {{count}} pay statement",
     "markAllMixedConfirm_other": "Record {{count}} pay statements",
-    "networkCheck": "The server's response didn't arrive. Check below how it ended up: if it was recorded, it won't be recorded twice."
+    "networkCheck": "The server's response didn't arrive. Check below how it ended up: if it was recorded, it won't be recorded twice.",
+    "alreadyRecorded": "It was already recorded: it wasn’t recorded twice."
   },
   "manualAdjust": {
     "add": "Add adjustment to {{periodo}}",
