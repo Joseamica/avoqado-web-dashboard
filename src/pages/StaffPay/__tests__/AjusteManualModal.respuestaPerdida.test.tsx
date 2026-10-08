@@ -421,3 +421,23 @@ describe('la vista previa del ajuste sin red (G2)', () => {
     await waitFor(() => expect(screen.queryByText('offline.willCalculatePending')).toBeNull())
   })
 })
+
+// G3 (guía E6c): tras el 409 CLAVE_REUTILIZADA el resumen seguía diciendo «Se suman $10.00 al recibo de…», aunque ese cambio NO se
+// guardó y «Guardar» ya estaba apagado. Lo único que vale ya es lo que se guardó.
+describe('el resumen tras el 409 CLAVE_REUTILIZADA (G3)', () => {
+  it('🔴 el resumen del cambio que no se guardó desaparece; queda lo que sí se guardó', async () => {
+    servidor()
+    abrir(cliente())
+    await llenar('9')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    fireEvent.change(screen.getByLabelText('manualAdjust.amount'), { target: { value: '10' } })
+    expect(screen.getByText(/^manualAdjust\.summaryBonus/)).toBeInTheDocument()
+    fireEvent.click(guardar())
+    await screen.findByText(/^manualAdjust\.keyReusedSaved/)
+    expect(guardar()).toBeDisabled()
+    expect(screen.queryByText(/^manualAdjust\.summaryBonus/)).toBeNull()
+    expect(screen.queryByText('manualAdjust.goesTo')).toBeNull()
+  })
+})

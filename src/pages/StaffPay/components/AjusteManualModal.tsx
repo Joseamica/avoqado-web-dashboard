@@ -394,48 +394,52 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             </span>
           </div>
         )}
-        <section className="rounded-2xl border border-border/50 bg-card p-6 text-sm" aria-live="polite">
-          {persona && monto !== undefined && monto > 0 ? (
-            <p className="font-medium">
-              {t(tipo === 'descuento' ? 'manualAdjust.summaryDeduction' : 'manualAdjust.summaryBonus', {
-                monto: Currency(monto),
-                persona: persona.nombre,
-                periodo: destino,
-              })}
-            </p>
-          ) : (
-            <p className="text-muted-foreground">{t('manualAdjust.summaryEmpty')}</p>
-          )}
-          <p className="mt-1 text-muted-foreground">{t('manualAdjust.goesTo')}</p>
-          {pendientesEnPausa && (
-            <p className="mt-3 flex items-start gap-2 text-muted-foreground" data-tour="staffpay-adjust-pending-offline">
-              <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>{t('offline.willCalculatePending')}</span>
-            </p>
-          )}
-          {pendientes && persona && (
-            <div role="note" className="mt-3 space-y-1 rounded-lg border border-amber-500/40 p-3 text-amber-800 dark:text-amber-300" data-tour="staffpay-adjust-pending">
-              {pendientes.porDestino.length === 1 ? (
-                <p>
-                  {t('manualAdjust.pendingOne', {
-                    persona: persona.nombre,
-                    monto: montoTotal(pendientes.total),
-                    cuando: cuandoSeDescuenta(t, pendientes.porDestino[0].seDescuenta, nombrePeriodo),
-                  })}
-                </p>
-              ) : (
-                <>
-                  <p>{t('manualAdjust.pendingMany', { persona: persona.nombre, monto: montoTotal(pendientes.total) })}</p>
-                  <ul className="list-disc space-y-0.5 pl-5">
-                    {pendientes.porDestino.map((d, i) => (
-                      <li key={i}>{lineaDePendiente(t, d, nombrePeriodo)}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
-        </section>
+        {/* Tras el 409 CLAVE_REUTILIZADA (G3) este cambio ya no se guarda: su resumen («Se suman $12.00…») se va y queda sólo lo que
+            el servidor dijo que SÍ se guardó. */}
+        {!yaGuardado && (
+          <section className="rounded-2xl border border-border/50 bg-card p-6 text-sm" aria-live="polite">
+            {persona && monto !== undefined && monto > 0 ? (
+              <p className="font-medium">
+                {t(tipo === 'descuento' ? 'manualAdjust.summaryDeduction' : 'manualAdjust.summaryBonus', {
+                  monto: Currency(monto),
+                  persona: persona.nombre,
+                  periodo: destino,
+                })}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">{t('manualAdjust.summaryEmpty')}</p>
+            )}
+            <p className="mt-1 text-muted-foreground">{t('manualAdjust.goesTo')}</p>
+            {pendientesEnPausa && (
+              <p className="mt-3 flex items-start gap-2 text-muted-foreground" data-tour="staffpay-adjust-pending-offline">
+                <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>{t('offline.willCalculatePending')}</span>
+              </p>
+            )}
+            {pendientes && persona && (
+              <div role="note" className="mt-3 space-y-1 rounded-lg border border-amber-500/40 p-3 text-amber-800 dark:text-amber-300" data-tour="staffpay-adjust-pending">
+                {pendientes.porDestino.length === 1 ? (
+                  <p>
+                    {t('manualAdjust.pendingOne', {
+                      persona: persona.nombre,
+                      monto: montoTotal(pendientes.total),
+                      cuando: cuandoSeDescuenta(t, pendientes.porDestino[0].seDescuenta, nombrePeriodo),
+                    })}
+                  </p>
+                ) : (
+                  <>
+                    <p>{t('manualAdjust.pendingMany', { persona: persona.nombre, monto: montoTotal(pendientes.total) })}</p>
+                    <ul className="list-disc space-y-0.5 pl-5">
+                      {pendientes.porDestino.map((d, i) => (
+                        <li key={i}>{lineaDePendiente(t, d, nombrePeriodo)}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
+          </section>
+        )}
       </div>
       {accion.abajo}
     </FullScreenModal>
