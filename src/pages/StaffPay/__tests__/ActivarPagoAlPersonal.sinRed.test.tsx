@@ -39,7 +39,7 @@ const activarSinRed = async () => {
   const boton = await screen.findByRole('button', { name: 'activation.button' })
   await waitFor(() => expect(boton).toBeEnabled())
   fireEvent.click(boton)
-  const confirmar = (await screen.findAllByRole('button', { name: 'activation.button' })).at(-1)!
+  const confirmar = (await screen.findAllByRole('button', { name: 'activation.button' })).slice(-1)[0]
   onlineManager.setOnline(false)
   fireEvent.click(confirmar)
   await screen.findByText('offline.willSendActivate')
@@ -63,7 +63,7 @@ describe('activar pago al personal sin red (C5)', () => {
     await volverLaRed()
     expect(m.activate).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'activation.button' }))
-    fireEvent.click((await screen.findAllByRole('button', { name: 'activation.button' })).at(-1)!)
+    fireEvent.click((await screen.findAllByRole('button', { name: 'activation.button' })).slice(-1)[0])
     await waitFor(() => expect(m.activate).toHaveBeenCalledTimes(1))
   })
   it('sin cancelar, al volver la red se manda una vez', async () => {
