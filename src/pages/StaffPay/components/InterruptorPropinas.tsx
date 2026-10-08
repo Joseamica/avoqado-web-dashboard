@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import {
@@ -32,16 +32,20 @@ export function InterruptorPropinas({ encendidas }: { encendidas: boolean }) {
   const cambiar = useSetTips()
   const foco = useFocoDeVuelta()
   const [pedido, setPedido] = useState<boolean | null>(null)
+  // Candado síncrono (E6a-fix F12, hermano de «Activar»): `isPending` no alcanza a cambiar entre dos clics seguidos.
+  const enVuelo = useRef(false)
   const puede = can('staffpay:close')
 
   const confirmar = async () => {
-    if (pedido === null) return
+    if (pedido === null || enVuelo.current) return
+    enVuelo.current = true
     try {
       const r = await cambiar.mutateAsync(pedido)
       toast({ title: t(r.encendidas ? 'tips.turnedOn' : 'tips.turnedOff') })
     } catch (err) {
       toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
     } finally {
+      enVuelo.current = false
       setPedido(null)
     }
   }

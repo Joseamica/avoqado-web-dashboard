@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Wallet } from 'lucide-react'
 import {
@@ -47,6 +47,8 @@ export function ActivarPagoAlPersonal() {
   // Las sedes que el dueño DESMARCÓ, guardadas al desmarcarlas: las demás con el plan entran (marcadas por defecto).
   const [desmarcadas, setDesmarcadas] = useState<ReadonlySet<string>>(() => new Set())
   const [confirmando, setConfirmando] = useState(false)
+  // Candado síncrono (como Sedes y el cierre, E6a-fix F12 / QA H9): `isPending` no alcanza a cambiar entre dos clics seguidos.
+  const enVuelo = useRef(false)
   const puede = can('staffpay:close')
   const fija = acceso?.periodicidadFija === true
   const guardada: Periodicidad = acceso?.periodicidad ?? 'MONTHLY'
@@ -73,6 +75,8 @@ export function ActivarPagoAlPersonal() {
     })
 
   const confirmar = async () => {
+    if (enVuelo.current) return
+    enVuelo.current = true
     try {
       const r = await activar.mutateAsync({ periodicidad, inicioEsperado: desde, sedes: marcadas })
       toast({ title: t('activation.done', { fecha: formatCalendarDate(r.startDate) }) })
@@ -83,6 +87,7 @@ export function ActivarPagoAlPersonal() {
       void releerAcceso()
       void sedesQ.refetch()
     } finally {
+      enVuelo.current = false
       setConfirmando(false)
     }
   }

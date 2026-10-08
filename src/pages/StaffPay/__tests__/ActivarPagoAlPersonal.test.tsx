@@ -95,6 +95,29 @@ describe('ActivarPagoAlPersonal (spec §7.1, §11)', () => {
     expect(m.toast).toHaveBeenCalledWith({ title: 'activation.done:{"fecha":"dia(2026-10-01)"}' })
   })
 
+  // E6a-fix F12 (QA H9): doble clic en «Activar» mandaba 2 POST (el servidor es idempotente, pero creaba la petición de más).
+  it('🔴 dos clics seguidos en «Activar» de la confirmación mandan UNA sola activación (candado síncrono)', async () => {
+    m.activar.mockReturnValue(new Promise(() => undefined))
+    render(<ActivarPagoAlPersonal />)
+    fireEvent.click(boton())
+    const confirmar = screen.getAllByRole('button', { name: 'activation.button' })[1]
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+    expect(m.activar).toHaveBeenCalledTimes(1)
+  })
+
+  it('tras un rechazo, el candado se suelta: se puede volver a activar', async () => {
+    m.activar.mockRejectedValueOnce({ response: { status: 409, data: { code: 'INICIO_CAMBIO', message: 'Cambió' } } })
+    m.activar.mockResolvedValueOnce({ startDate: '2026-10-01', yaActivado: false })
+    render(<ActivarPagoAlPersonal />)
+    fireEvent.click(boton())
+    fireEvent.click(screen.getAllByRole('button', { name: 'activation.button' })[1])
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'Cambió', variant: 'destructive' }))
+    fireEvent.click(boton())
+    fireEvent.click(screen.getAllByRole('button', { name: 'activation.button' })[1])
+    await waitFor(() => expect(m.activar).toHaveBeenCalledTimes(2))
+  })
+
   it('sin staffpay:close no hay botón y dice a quién pedírselo', () => {
     m.can.mockReturnValue(false)
     render(<ActivarPagoAlPersonal />)

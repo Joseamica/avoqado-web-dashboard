@@ -36,6 +36,17 @@ describe('InterruptorPropinas (decisión D2, spec §11)', () => {
     expect(m.toast).toHaveBeenCalledWith({ title: 'tips.turnedOn' })
   })
 
+  // E6a-fix F12, hermano de «Activar pago al personal» (QA H9): cada clic abre o cierra una ventana de propinas.
+  it('🔴 dos clics seguidos en confirmar mandan UN solo cambio (candado síncrono)', () => {
+    m.tips.mockReturnValue(new Promise(() => undefined))
+    render(<InterruptorPropinas encendidas={false} />)
+    fireEvent.click(screen.getByRole('switch', { name: 'tips.label' }))
+    const confirmar = screen.getByRole('button', { name: 'tips.onConfirm' })
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+    expect(m.tips).toHaveBeenCalledTimes(1)
+  })
+
   it('apagar explica que lo que ya ganó el derecho a entrar no se pierde', () => {
     render(<InterruptorPropinas encendidas />)
     fireEvent.click(screen.getByRole('switch', { name: 'tips.label' }))
