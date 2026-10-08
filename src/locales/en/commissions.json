@@ -332,7 +332,8 @@
     "noSummaries": "No pending summaries",
     "noSummariesDescription": "Summaries are automatically generated at the end of each period",
     "calculatedNote": "This is what was calculated. What gets paid is in the Staff pay statement.",
-    "showing": "Showing {{n}} of {{total}}"
+    "showing": "Showing {{n}} of {{total}}",
+    "lastTwelveMonths": "Last 12 months"
   },
   "status": {
     "DRAFT": "Draft",

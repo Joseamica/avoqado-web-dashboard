@@ -28,7 +28,7 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
     pageSize: 20,
   })
 
-  // Fetch summaries
+  // Fetch summaries. Sin fechas a propósito: el servidor pone la ventana de los últimos 12 meses y topa los renglones (`total`).
   const { data: page, isLoading } = useCommissionSummariesPage()
   const summaries = page?.items
 
@@ -115,6 +115,10 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
   const encabezado = (
     <div className="p-4 border-b border-border/50 space-y-1">
       <h3 className="font-semibold">{t('summary.title')}</h3>
+      {/* Sin fechas, el servidor devuelve los últimos 12 meses (no toda la historia de la sede): se dice cuál ventana es. */}
+      <p className="text-sm text-muted-foreground" data-tour="commissions-summary-window">
+        {t('summary.lastTwelveMonths')}
+      </p>
       <NotaDeLoCalculado staffPayActive={staffPayActive} puedeVerRecibos={puedeVerRecibos} />
       <MostrandoDeTotal n={summaries?.length ?? 0} total={page?.total} />
     </div>

@@ -332,7 +332,8 @@
     "noSummaries": "No hay resúmenes pendientes",
     "noSummariesDescription": "Los resúmenes se generan automáticamente al final de cada período",
     "calculatedNote": "Es lo calculado. Lo que se paga está en el recibo de Pago al personal.",
-    "showing": "Mostrando {{n}} de {{total}}"
+    "showing": "Mostrando {{n}} de {{total}}",
+    "lastTwelveMonths": "Últimos 12 meses"
   },
   "status": {
     "DRAFT": "Borrador",
