@@ -157,3 +157,25 @@ describe('cerrar el periodo sin red (C5)', () => {
     expect(m.toast).toHaveBeenCalledWith({ title: 'close.uncertainClosed' })
   })
 })
+
+// G2 (guía E6c): abrir «Cerrar periodo» YA sin red decía «No se pudo calcular el cierre.» en rojo, con «Reintentar» y sin
+// mencionar la red (la vista previa queda EN PAUSA, sin datos ni error). Ahora dice que se calcula al volver la red, sin rojo.
+describe('abrir el cierre ya sin red (G2)', () => {
+  it('🔴 dice que el cierre se calcula cuando vuelva la red (no un error en rojo), y al volver la red lo calcula', async () => {
+    m.preview.mockResolvedValue(OK)
+    onlineManager.setOnline(false)
+    abrir()
+    const aviso = await screen.findByText('offline.willCalculateClose')
+    expect(aviso.closest('[role="status"]')).not.toBeNull()
+    expect(screen.queryByText('close.previewError')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(m.preview).not.toHaveBeenCalled()
+    expect(cerrar()).toBeDisabled()
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    await waitFor(() => expect(cerrar()).toBeEnabled())
+    expect(screen.queryByText('offline.willCalculateClose')).toBeNull()
+  })
+})

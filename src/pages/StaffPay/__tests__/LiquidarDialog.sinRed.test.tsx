@@ -99,3 +99,23 @@ describe('liquidar una diferencia sin red (C5)', () => {
     await waitFor(() => expect(m.post).toHaveBeenCalledTimes(1))
   })
 })
+
+// G2 (hermano): abrir «Liquidar diferencia» YA sin red dejaba el diálogo vacío (ni montos ni por qué). Ahora lo dice.
+describe('abrir liquidar ya sin red (G2)', () => {
+  it('🔴 dice que se calcula al volver la red, y al volver la red trae lo que se liquida', async () => {
+    onlineManager.setOnline(false)
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <MemoryRouter>
+          <LiquidarDialog classVenueId="v1" sessionId="c1" onClose={vi.fn()} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText('offline.willCalculate')).toBeInTheDocument()
+    expect(screen.queryByText('differences.previewError')).toBeNull()
+    expect(m.get).not.toHaveBeenCalled()
+    await volverLaRed()
+    expect(await screen.findByRole('button', { name: /differences\.settleIn/ })).toBeEnabled()
+    expect(screen.queryByText('offline.willCalculate')).toBeNull()
+  })
+})

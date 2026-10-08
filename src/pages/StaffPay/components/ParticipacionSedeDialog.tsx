@@ -71,10 +71,13 @@ export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }:
   }
   // Mientras se envía, el éxito refresca todo (también esta vista previa, que ya diría «ya está activa»): no se muestra.
   const errorVista = q.isError && !enviando
-  const listo = !!v && !errorVista && !q.isFetching && !enviando
+  // Sin red la vista previa de ESTA fecha espera a la red (G2): se dice, y no se confirma con los montos (y la fecha) de una vista
+  // previa anterior que el `placeholderData` conserva.
+  const vistaEnPausa = q.isPaused && !enviando
+  const listo = !!v && !errorVista && !q.isFetching && !vistaEnPausa && !enviando
   const fmt = (d: string) => formatCalendarDate(d)
   const cuenta = (c: CuentaDto) => textoDeCuenta(t, c, i18n.language)
-  const fechaVista = v?.fecha ?? fecha
+  const fechaVista = vistaEnPausa ? (fecha ?? v?.fecha) : (v?.fecha ?? fecha)
 
   const confirmar = async () => {
     if (!v || !listo || enVuelo.current) return
@@ -148,6 +151,8 @@ export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }:
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
               <span>{mensajeLegible(q.error) ?? t('errors.generic')}</span>
             </div>
+          ) : vistaEnPausa ? (
+            <AvisoSinConexion texto={t('offline.willCalculate')} dataTour="staffpay-sede-preview-offline" />
           ) : !v ? (
             <Skeleton className="h-20 w-full" aria-busy="true" />
           ) : (

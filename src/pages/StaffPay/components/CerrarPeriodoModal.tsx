@@ -46,7 +46,8 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   const { toast } = useToast()
   const { formatCalendarDate } = useVenueDateTime()
   const nombreSede = useNombreSede()
-  const { data: p, isLoading, isError, error, isFetching, isPaused: relecturaEnPausa, refetch } = useClosePreview(open ? fecha : null)
+  // `vistaEnPausa`: sin red la vista previa espera a la red (TanStack la deja EN PAUSA, sin datos ni error) y se calcula sola al volver.
+  const { data: p, isLoading, isError, error, isFetching, isPaused: vistaEnPausa, refetch } = useClosePreview(open ? fecha : null)
   const cerrar = useClosePeriod()
   const [entiendo, setEntiendo] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -184,14 +185,14 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
         )}
         {incierto && !yaCerro && (
           <section role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-close-uncertain">
-            {incierto === 'revisando' && !relecturaEnPausa ? (
+            {incierto === 'revisando' && !vistaEnPausa ? (
               <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             ) : (
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             )}
             <span>
               {/* Releer también puede quedar en pausa si se cayó la red (C5): entonces se dice que se revise al volver la conexión. */}
-              {incierto === 'sinRed' || (incierto === 'revisando' && relecturaEnPausa)
+              {incierto === 'sinRed' || (incierto === 'revisando' && vistaEnPausa)
                 ? t('close.uncertainOffline')
                 : incierto === 'revisando'
                   ? t('close.uncertainChecking')
@@ -201,6 +202,12 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
         )}
         {isLoading ? (
           <Skeleton className="h-40 w-full rounded-2xl" aria-busy="true" />
+        ) : !p && vistaEnPausa ? (
+          // Abierto (o reintentado) ya sin red (G2): no es un error, es un estado normal; se calcula solo al volver la red.
+          <section role="status" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-close-preview-offline">
+            <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('offline.willCalculateClose')}</span>
+          </section>
         ) : isError || !p ? (
           <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card p-6 text-sm">
             <div className="flex items-start gap-2">

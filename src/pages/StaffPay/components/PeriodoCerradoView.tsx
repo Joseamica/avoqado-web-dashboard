@@ -29,6 +29,7 @@ import { DesglosePersona } from './DesglosePersona'
 import { TarjetasDelPeriodo } from './TarjetasDelPeriodo'
 import { nombreVisible } from '../personaBorrada'
 import { AjusteManualModal } from './AjusteManualModal'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { DiferenciasSection } from './DiferenciasSection'
 import { ID_DIFERENCIAS } from './LiquidarDialog'
 
@@ -398,7 +399,10 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
               {t('offline.willSend')}
             </p>
           )}
-          {previewPago.isLoading ? (
+          {previewPago.isPaused && !vista ? (
+            // Abierto ya sin red (G2): cuánto se registra lo calcula el servidor; se dice que espera a la red.
+            <AvisoSinConexion texto={t('offline.willCalculate')} dataTour="staffpay-closed-preview-offline" />
+          ) : previewPago.isLoading ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-busy="true">
               <Loader2 className="h-4 w-4 animate-spin" />
               {t('closed.previewLoading')}

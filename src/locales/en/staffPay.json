@@ -664,6 +664,8 @@
     "willSendSettle": "No connection: it will be sent when the network is back. If you cancel, it is not settled.",
     "willSendPeriodicity": "No connection: it will be sent when the network is back. If you cancel, the frequency does not change.",
     "willCalculate": "No connection: it will be calculated when the network is back.",
+    "willCalculateClose": "No connection: the close will be calculated when the network is back.",
+    "willCalculatePending": "No connection: this person's pending refunds will be checked when the network is back.",
     "cancelSend": "Cancel sending"
   }
 }

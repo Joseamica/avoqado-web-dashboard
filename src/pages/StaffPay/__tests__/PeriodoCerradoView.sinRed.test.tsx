@@ -96,3 +96,26 @@ describe('marcar pagado sin red (C5)', () => {
     await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: expect.stringContaining('closed.markedPaid') }))
   })
 })
+
+// G2 (hermano): abrir «marcar pagado» YA sin red dejaba el diálogo con «…» y el botón apagado, sin decir por qué.
+describe('abrir marcar pagado ya sin red (G2)', () => {
+  it('🔴 dice que el monto se calcula al volver la red, y al volver la red deja registrar', async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />
+      </QueryClientProvider>,
+    )
+    const marcar = await screen.findByRole('button', { name: /closed\.markPaidFor/ })
+    onlineManager.setOnline(false)
+    fireEvent.click(marcar)
+    expect(await screen.findByText('offline.willCalculate')).toBeInTheDocument()
+    expect(m.preview).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /closed\.markPaidConfirm/ })).toBeDisabled()
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: /closed\.markPaidConfirm/ })).toBeEnabled())
+    expect(screen.queryByText('offline.willCalculate')).toBeNull()
+  })
+})

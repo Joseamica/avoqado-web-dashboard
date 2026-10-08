@@ -664,6 +664,8 @@
     "willSendSettle": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se liquida.",
     "willSendPeriodicity": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, la frecuencia no cambia.",
     "willCalculate": "Sin conexión: se calculará al volver la red.",
+    "willCalculateClose": "Sin conexión: el cierre se calcula cuando vuelva la red.",
+    "willCalculatePending": "Sin conexión: las devoluciones pendientes de esta persona se revisan cuando vuelva la red.",
     "cancelSend": "Cancelar envío"
   }
 }

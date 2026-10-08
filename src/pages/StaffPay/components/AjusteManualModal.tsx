@@ -148,6 +148,8 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   // un cierre). Sólo AVISA: si falla o tarda, el ajuste se guarda igual. La de otra persona (cambió la elección) no se pinta.
   const vistaPrevia = useAdjustmentPreview(borrador ? { ...borrador, fecha: fechaDestino } : null, open)
   const avisoPendientes = listo && vistaPrevia.data?.staffId === persona?.staffId ? vistaPrevia.data?.avisoPendientes : undefined
+  // Sin red la vista previa espera a la red (G2): el aviso de devoluciones no puede salir, y se dice en vez de callarlo.
+  const pendientesEnPausa = listo && vistaPrevia.isPaused && vistaPrevia.data?.staffId !== persona?.staffId
 
   const elegirPersona = (item: SearchComboboxItem) => {
     setErrorServer(null)
@@ -405,6 +407,12 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <p className="text-muted-foreground">{t('manualAdjust.summaryEmpty')}</p>
           )}
           <p className="mt-1 text-muted-foreground">{t('manualAdjust.goesTo')}</p>
+          {pendientesEnPausa && (
+            <p className="mt-3 flex items-start gap-2 text-muted-foreground" data-tour="staffpay-adjust-pending-offline">
+              <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>{t('offline.willCalculatePending')}</span>
+            </p>
+          )}
           {pendientes && persona && (
             <div role="note" className="mt-3 space-y-1 rounded-lg border border-amber-500/40 p-3 text-amber-800 dark:text-amber-300" data-tour="staffpay-adjust-pending">
               {pendientes.porDestino.length === 1 ? (

@@ -84,3 +84,40 @@ describe.each([
     await waitFor(() => expect(llamada()).toHaveBeenCalledTimes(1))
   })
 })
+
+// G2 (hermano): abrir el diálogo de una sede YA sin red dejaba un esqueleto «cargando» para siempre; cambiar la fecha sin red
+// dejaba los montos y el botón de la fecha ANTERIOR, encendido. Ahora dice que se calcula al volver la red y no deja confirmar
+// una fecha que no se calculó.
+describe('la vista previa de una sede sin red (G2)', () => {
+  const pintar = () =>
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <ParticipacionSedeDialog sede={SEDE as never} accion="activar" onClose={m.onClose} />
+      </QueryClientProvider>,
+    )
+  const confirmar = () => screen.getByRole('button', { name: /sedes\.dialogo\.confirmar/ })
+  it('🔴 abierto ya sin red: dice que se calcula al volver la red (no un esqueleto sin fin), y al volver la red trae los montos', async () => {
+    m.preview.mockImplementation(async (_v: string, _s: string, _a: string, fecha?: string) => ({ ...BASE, fecha: fecha ?? BASE.fecha, accion: 'activar', entran: CERO, quedanFuera: CERO }))
+    onlineManager.setOnline(false)
+    pintar()
+    expect(await screen.findByText('offline.willCalculate')).toBeInTheDocument()
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull()
+    expect(confirmar()).toBeDisabled()
+    expect(m.preview).not.toHaveBeenCalled()
+    await volverLaRed()
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    expect(screen.queryByText('offline.willCalculate')).toBeNull()
+  })
+  it('🔴 cambiar la fecha sin red: no deja confirmar con los montos de la fecha anterior; al volver la red calcula la nueva', async () => {
+    m.preview.mockImplementation(async (_v: string, _s: string, _a: string, fecha?: string) => ({ ...BASE, fecha: fecha ?? BASE.fecha, accion: 'activar', entran: CERO, quedanFuera: CERO }))
+    pintar()
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    onlineManager.setOnline(false)
+    fireEvent.change(screen.getByLabelText('sedes.dialogo.desde'), { target: { value: '2026-10-05' } })
+    expect(await screen.findByText('offline.willCalculate')).toBeInTheDocument()
+    expect(confirmar()).toBeDisabled()
+    await volverLaRed()
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    expect(confirmar()).toHaveTextContent('2026-10-05')
+  })
+})

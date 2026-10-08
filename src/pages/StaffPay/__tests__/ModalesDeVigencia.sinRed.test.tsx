@@ -161,3 +161,17 @@ describe.each(casos)('$nombre: doble clic (candado)', ({ llamada, confirmar, pin
     await waitFor(() => expect(escrituras(llamada())).toHaveLength(2))
   })
 })
+
+// G2 (hermanos revisados): abrir la ventana YA sin red no deja un «calculando…» sin fin ni un error: la simulación espera a la red
+// (E6a-fix4) y lo dice desde el primer momento.
+describe.each(casos)('$nombre abierto ya sin red (G2)', ({ llamada, calculando, pintar }) => {
+  it('dice que se calculará al volver la red, y al volver la red se calcula', async () => {
+    onlineManager.setOnline(false)
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>{pintar(vi.fn())}</QueryClientProvider>)
+    expect(await screen.findByText('offline.willCalculate')).toBeInTheDocument()
+    expect(screen.queryByText(calculando)).toBeNull()
+    expect(llamada()).not.toHaveBeenCalled()
+    await volverLaRed()
+    expect(await screen.findByText(/^vigencia\.effectTotal/)).toBeInTheDocument()
+  })
+})

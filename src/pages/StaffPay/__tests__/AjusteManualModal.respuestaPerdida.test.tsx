@@ -399,3 +399,25 @@ describe('cambiar un ajuste que quedó en duda (C-n2)', () => {
     expect(clave(1)).toBe(clave(0))
   })
 })
+
+// G2 (hermano): sin red, la vista previa del ajuste (las devoluciones que se descontarán solas) quedaba EN PAUSA y el aviso
+// simplemente no salía: el dueño podía capturar un bono «para compensar» sin saber que la devolución ya se descuenta sola.
+describe('la vista previa del ajuste sin red (G2)', () => {
+  it('🔴 dice que las devoluciones pendientes se revisan al volver la red; al volver la red se revisan', async () => {
+    servidor([])
+    m.preview.mockResolvedValue({ staffId: 's-carlos', avisoPendientes: { total: '0.00', porDestino: [] } })
+    abrir(cliente())
+    fireEvent.click(await screen.findByRole('button', { name: 'Carlos QA' }))
+    onlineManager.setOnline(false)
+    fireEvent.change(screen.getByLabelText('manualAdjust.amount'), { target: { value: '25' } })
+    fireEvent.change(screen.getByLabelText('manualAdjust.reason'), { target: { value: 'FULLTEST dup' } })
+    expect(await screen.findByText('offline.willCalculatePending')).toBeInTheDocument()
+    expect(m.preview).not.toHaveBeenCalled()
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    await waitFor(() => expect(m.preview).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByText('offline.willCalculatePending')).toBeNull())
+  })
+})
