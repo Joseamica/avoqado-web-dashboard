@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { Download, FileText, Mail, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
+import { Download, FilePlus2, FileText, Mail, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
 
 import DataTable from '@/components/data-table'
 import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
@@ -27,6 +27,7 @@ import { useCfdis, useDownloadCfdiFile } from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
+import { GlobalComplementariaDialog } from './components/GlobalComplementariaDialog'
 import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
 import { SendCfdiEmailDialog } from './components/SendCfdiEmailDialog'
 import { STATUS_GROUPS, estatusDelServidor, insigniaDeEstatus, mesEnCurso, sePuedeReenviar } from './cfdiListFilters'
@@ -165,6 +166,8 @@ export default function CfdiList() {
   const [cancelTarget, setCancelTarget] = useState<Cfdi | null>(null)
   const [replaceTarget, setReplaceTarget] = useState<Cfdi | null>(null)
   const [emailTarget, setEmailTarget] = useState<Cfdi | null>(null)
+  // C1-25: la complementaria se pide por el id de la principal (y su emisor: la ruta es por emisor).
+  const [complementariaTarget, setComplementariaTarget] = useState<{ emisorId: string; principalId: string } | null>(null)
 
   const filters = useMemo(
     () => ({
@@ -276,6 +279,16 @@ export default function CfdiList() {
             !cfdi.isGlobal &&
             !!cfdi.orderId &&
             !(cfdi.replacedBy && cfdi.replacedBy.length > 0)
+          // C1-25: una global PRINCIPAL timbrada o cancelada —de cualquier periodicidad, también de antes de cambiarla— puede tener
+          // complementaria. Sólo si el servidor dice explícitamente que NO es complementaria (`complementariaDe: null`) y de qué
+          // emisor es; un servidor que todavía no lo dice no ofrece la acción.
+          const emisorDeLaGlobal = cfdi.fiscalEmisorId
+          const canComplement =
+            canConfigure &&
+            cfdi.isGlobal &&
+            (cfdi.status === 'STAMPED' || cfdi.status === 'CANCELLED') &&
+            cfdi.complementariaDe === null &&
+            !!emisorDeLaGlobal
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -305,6 +318,15 @@ export default function CfdiList() {
                       <Mail className="mr-2 h-4 w-4" />
                       {t('actions.sendEmail')}
                     </DropdownMenuItem>
+                  )}
+                  {canComplement && emisorDeLaGlobal && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setComplementariaTarget({ emisorId: emisorDeLaGlobal, principalId: cfdi.id })}>
+                        <FilePlus2 className="mr-2 h-4 w-4" />
+                        {t('globalInvoice.periods.complementary')}
+                      </DropdownMenuItem>
+                    </>
                   )}
                   {canReplace && (
                     <>
@@ -455,6 +477,13 @@ export default function CfdiList() {
         {hasCfdi && <CancelCfdiDialog cfdi={cancelTarget} onOpenChange={open => !open && setCancelTarget(null)} />}
         {hasCfdi && <ReplaceCfdiDialog cfdi={replaceTarget} onOpenChange={open => !open && setReplaceTarget(null)} />}
         {hasCfdi && <SendCfdiEmailDialog cfdi={emailTarget} onOpenChange={open => !open && setEmailTarget(null)} />}
+        {hasCfdi && (
+          <GlobalComplementariaDialog
+            emisorId={complementariaTarget?.emisorId ?? null}
+            principalId={complementariaTarget?.principalId ?? null}
+            onOpenChange={open => !open && setComplementariaTarget(null)}
+          />
+        )}
       </div>
     </FeatureGate>
   )

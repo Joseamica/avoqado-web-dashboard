@@ -7,9 +7,20 @@
  *
  * Mutations toast on success/error (i18n) and invalidate the relevant keys.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
+import {
+  hashKey,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+  type QueryClient,
+  type QueryKey,
+} from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { apiErrorDescription } from '@/utils/apiError'
+import { reintentarReporte, repetirAlVolver } from '@/components/accounting/errorDelReporte'
+import { apiErrorDescription, textoDelServidor } from '@/utils/apiError'
 import { triggerDownload } from '@/utils/export'
 import { useCurrentVenue } from './use-current-venue'
 import { useToast } from './use-toast'
@@ -17,8 +28,11 @@ import cfdiService, {
   type CancelCfdiRequest,
   type CfdiListFilters,
   type CfdiReceptor,
+  type FiscalConfig,
   type GlobalCfdiResult,
+  type GlobalExcluidasPage,
   type IssueCfdiResponse,
+  type MerchantConfig,
   type UpsertEmisorRequest,
   type UpsertMerchantConfigRequest,
   type UploadCsdRequest,
@@ -77,12 +91,18 @@ export function useUpsertEmisor() {
   return useMutation({
     mutationFn: ({ emisorId, data }: { emisorId?: string; data: UpsertEmisorRequest }) =>
       emisorId ? cfdiService.updateEmisor(venueId!, emisorId, data) : cfdiService.createEmisor(venueId!, data),
-    onSuccess: () => {
+    onSuccess: (_emisor, { emisorId }) => {
       queryClient.invalidateQueries({ queryKey: fiscalConfigQueryKey(venueId) })
+      // C1 (T13 ronda 1, M3): cambiar la periodicidad cambia los periodos recientes de ESE emisor; sin esto el panel enseñaría ≤60 s
+      // periodos de la periodicidad vieja, y «Emitir» en uno de ellos daría un 400 confuso. Ola final (M2): el interruptor de ventas fuera
+      // de la terminal y el de efectivo cambian también sus excluidas y su complementaria. Un RFC NUEVO cambia las de todo el negocio: con
+      // dos RFC, las ventas fuera de la terminal ya no entran a ninguna global.
+      invalidarLaGlobal(queryClient, venueId, emisorId)
       toast({ title: t('toast.emisorSaved') })
     },
     onError: (err: any) => {
-      toast({ title: t('toast.emisorSaveError'), description: apiErrorDescription(err), variant: 'destructive' })
+      // Ronda 2 (residual de la re-revisión): sólo el texto de NUESTRO servidor, nunca el «Request failed…» de axios.
+      toast({ title: t('toast.emisorSaveError'), description: textoDelServidor(err), variant: 'destructive' })
     },
   })
 }
@@ -167,10 +187,17 @@ export function useUpsertMerchantConfig() {
   const { toast } = useToast()
   const { t } = useTranslation('cfdi')
 
-  return useMutation({
-    mutationFn: (data: UpsertMerchantConfigRequest) => cfdiService.upsertMerchantConfig(venueId!, data),
-    onSuccess: () => {
+  return useMutation<MerchantConfig, any, UpsertMerchantConfigRequest, { emisorAnterior: string | null }>({
+    mutationFn: data => cfdiService.upsertMerchantConfig(venueId!, data),
+    // Ola final (punto 6): el RFC al que pertenecía el comercio ANTES de guardar, leído antes de que nada refresque la configuración.
+    onMutate: data => ({ emisorAnterior: emisorDelComercio(queryClient.getQueryData<FiscalConfig>(fiscalConfigQueryKey(venueId)), data) }),
+    onSuccess: (_config, data, previo) => {
       queryClient.invalidateQueries({ queryKey: fiscalConfigQueryKey(venueId) })
+      // Ola final (punto 6): «Facturación activa», «Incluir en global» y el RFC del comercio deciden qué ventas entran a la global de su RFC
+      // y si está apagada (`globalApagada`). Sin esto, el panel seguiría diciendo «apagada» después de prenderla aquí mismo. Sólo los RFC
+      // que cambian: el de ahora y, si se movió, el de antes.
+      for (const emisorId of new Set([data.fiscalEmisorId, previo?.emisorAnterior]))
+        if (emisorId) invalidarLaGlobal(queryClient, venueId, emisorId)
       toast({ title: t('toast.merchantSaved') })
     },
     onError: (err: any) => {
@@ -261,13 +288,179 @@ export function useTriggerGlobalCfdi() {
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
 
-  return useMutation<GlobalCfdiResult, any, string>({
-    mutationFn: (emisorId: string) => cfdiService.triggerGlobalCfdi(venueId!, emisorId),
+  // C1 (Tarea 8): con `desde`, un periodo reciente a mano (el panel de periodos); sin él, el último cerrado (el botón de siempre).
+  return useMutation<GlobalCfdiResult, any, { emisorId: string; desde?: string }>({
+    mutationFn: ({ emisorId, desde }) => cfdiService.triggerGlobalCfdi(venueId!, emisorId, desde),
+    // Al terminar —bien o mal—, el estado de los periodos de ESE emisor pudo cambiar (reservada, timbrada, detenida con su motivo).
+    // Sólo los suyos (ronda 1, I1): son consultas pesadas y los demás emisores no cambiaron.
+    onSettled: (_r, _e, { emisorId }) => {
+      queryClient.invalidateQueries({ queryKey: globalPeriodosQueryKey(venueId, emisorId) })
+      queryClient.invalidateQueries({ queryKey: ['global-excluidas', venueId, emisorId] })
+    },
     onSuccess: () => {
       // A new global CFDI (when stamped) must appear in the Facturas list.
       queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
     },
     // Status-specific UX is intentionally left to the caller.
+  })
+}
+
+export const globalPeriodosQueryKey = (venueId: string | null, emisorId: string | null) => ['global-periodos', venueId, emisorId]
+
+/**
+ * Ola final (M2 y punto 6): las tres consultas de la factura global que LEEN la configuración fiscal de un RFC (los periodos con su
+ * `globalApagada`, las ventas que no entraron y la vista previa de la complementaria). Sin `emisorId`, las de todo el negocio.
+ */
+function invalidarLaGlobal(queryClient: QueryClient, venueId: string | null, emisorId?: string) {
+  for (const raiz of ['global-periodos', 'global-excluidas', 'global-complementaria'])
+    queryClient.invalidateQueries({ queryKey: emisorId ? [raiz, venueId, emisorId] : [raiz, venueId] })
+}
+
+/** El RFC que la configuración en caché le da al comercio que se va a guardar (por su cuenta o su canal en línea); `null` si es nuevo. */
+function emisorDelComercio(config: FiscalConfig | undefined, data: UpsertMerchantConfigRequest): string | null {
+  const actual = config?.merchantConfigs?.find(c =>
+    data.merchantAccountId
+      ? c.merchantAccountId === data.merchantAccountId
+      : !!data.ecommerceMerchantId && c.ecommerceMerchantId === data.ecommerceMerchantId,
+  )
+  return actual?.fiscalEmisorId ?? null
+}
+
+/**
+ * C1 (T13 ronda 1, I1): la política de la casa para las tres consultas pesadas de la factura global (periodos, ventas que no
+ * entraron, vista previa de la complementaria; `.claude/rules/bounded-data-and-query-load.md`), local a cada consulta:
+ * - `staleTime` de un minuto y sin recarga al volver a la ventana: cada una revisa hasta cientos de ventas en el servidor, y el listado
+ *   por páginas recargaría TODAS las páginas ya abiertas;
+ * - un reintento como mucho, y ninguno ante un 4xx (no se arregla repitiendo) ni ante el corte del proxy (504/524), con el mismo
+ *   criterio de los reportes de B4b (`reintentarReporte`); y una consulta que el proxy cortó no se relanza sola al reconectar.
+ */
+const CONSULTA_PESADA_DE_LA_GLOBAL = {
+  staleTime: 60_000,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: repetirAlVolver,
+  retry: (fallas: number, err: unknown) => {
+    const status = (err as { response?: { status?: unknown } } | null)?.response?.status
+    if (typeof status === 'number' && status < 500) return false
+    return reintentarReporte(1)(fallas, err)
+  },
+} as const
+
+/**
+ * C1 (Tarea 8, C1-P16 = B): los periodos cerrados RECIENTES del emisor con el estado de su global. Sin paginación hacia atrás:
+ * un periodo más viejo se pide a soporte.
+ */
+export function useGlobalPeriodos(emisorId: string | null, options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+  const enabled = options?.enabled ?? true
+  return useQuery({
+    queryKey: globalPeriodosQueryKey(venueId, emisorId),
+    queryFn: () => cfdiService.getGlobalPeriodos(venueId!, emisorId!),
+    enabled: !!venueId && !!emisorId && enabled,
+    ...CONSULTA_PESADA_DE_LA_GLOBAL,
+  })
+}
+
+/**
+ * C1 (Tarea 12): las ventas que no entraron a la global de un periodo, por páginas. Los totales vienen SÓLO en la primera página
+ * (`data.pages[0]`); «Cargar más» pide la siguiente con su cursor.
+ */
+export function useGlobalExcluidas(
+  emisorId: string | null,
+  query: { principalId?: string; desde?: string },
+  options?: { enabled?: boolean },
+) {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+  const enabled = options?.enabled ?? true
+  const principalId = query.principalId ?? null
+  const desde = query.desde ?? null
+  const activa = !!venueId && !!emisorId && enabled
+  const resultado = useInfiniteQuery({
+    queryKey: ['global-excluidas', venueId, emisorId, principalId, desde],
+    queryFn: ({ pageParam }) =>
+      cfdiService.getGlobalExcluidas(venueId!, emisorId!, {
+        ...(query.principalId && { principalId: query.principalId }),
+        ...(query.desde && { desde: query.desde }),
+        ...(pageParam && { cursor: pageParam }),
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last: GlobalExcluidasPage) => last.siguiente ?? undefined,
+    enabled: activa,
+    // Un 400 («pídelo a soporte») o un 404 no se arreglan reintentando; el corte del proxy tampoco.
+    ...CONSULTA_PESADA_DE_LA_GLOBAL,
+    // N3: reconectar con páginas viejas las volvería a pedir TODAS en cadena; el listado se refresca al reabrirlo.
+    refetchOnReconnect: false,
+  })
+  // Ola final (I1 de la re-revisión 2): la llave que estaba ABIERTA. Cuando se deja de ver —el diálogo se cierra, cambia de periodo o el
+  // componente se desmonta— ESA llave se recorta a su primera página: al reabrir se pide una, no todas. Se recuerda la anterior porque el
+  // panel y Configuración limpian `principalId`/`desde`/`emisorId` en el MISMO render en que cierran, y va DESPUÉS de `useInfiniteQuery` para
+  // que el observador ya esté apagado (con la llave estable del sub-diálogo, un `resetQueries` aquí lo encontraba activo y recargaba).
+  const abierta = useRef<QueryKey | null>(null)
+  useEffect(() => {
+    const ahora: QueryKey | null = activa ? ['global-excluidas', venueId, emisorId, principalId, desde] : null
+    const anterior = abierta.current
+    if (anterior && (!ahora || hashKey(anterior) !== hashKey(ahora))) recortarALaPrimeraPagina(queryClient, anterior)
+    abierta.current = ahora
+  }, [activa, queryClient, venueId, emisorId, principalId, desde])
+  useEffect(
+    () => () => {
+      if (abierta.current) recortarALaPrimeraPagina(queryClient, abierta.current)
+    },
+    [queryClient],
+  )
+  return resultado
+}
+
+/**
+ * Ola final (I1): deja el listado de una llave con su PRIMERA página. Con más de una en caché, reabrirlo con los datos viejos haría que
+ * react-query volviera a pedir TODAS en cadena (cada una revisa hasta 200 ventas en el servidor).
+ * - `setQueryData` no pide nada y se le pasa la fecha de los datos: recortar no los rejuvenece; una llave invalidada sigue invalidada.
+ * - Si «Cargar más» iba en vuelo, se cancela (react-query vuelve al estado recortado); si no, la página llegaría después y se pegaría a
+ *   las demás. Como no se sabe qué traía, la llave queda vieja y al reabrir se pide la primera página.
+ */
+function recortarALaPrimeraPagina(queryClient: QueryClient, llave: QueryKey) {
+  const estado = queryClient.getQueryState<InfiniteData<GlobalExcluidasPage, string | undefined>>(llave)
+  const datos = estado?.data
+  if (!estado || !datos) return
+  const enVuelo = estado.fetchStatus === 'fetching'
+  if (datos.pages.length <= 1 && !enVuelo) return
+  queryClient.setQueryData<InfiniteData<GlobalExcluidasPage, string | undefined>>(
+    llave,
+    { pages: datos.pages.slice(0, 1), pageParams: datos.pageParams.slice(0, 1) },
+    { updatedAt: estado.dataUpdatedAt },
+  )
+  const envejecer = () => queryClient.invalidateQueries({ queryKey: llave, exact: true, refetchType: 'none' })
+  if (enVuelo) void queryClient.cancelQueries({ queryKey: llave, exact: true }).then(envejecer)
+  else if (estado.isInvalidated) void envejecer()
+}
+
+/** C1 (Tarea 11): la vista previa de la complementaria de una principal. Un 400 (no es principal, sin timbrar) no se reintenta. */
+export function useGlobalComplementariaPreview(emisorId: string | null, principalId: string | null) {
+  const { venueId } = useCurrentVenue()
+  return useQuery({
+    queryKey: ['global-complementaria', venueId, emisorId, principalId],
+    queryFn: () => cfdiService.getGlobalComplementariaPreview(venueId!, emisorId!, principalId!),
+    enabled: !!venueId && !!emisorId && !!principalId,
+    ...CONSULTA_PESADA_DE_LA_GLOBAL,
+  })
+}
+
+/**
+ * C1 (Tarea 11): emite (o retoma) la global complementaria de una principal. Como el disparo, sin toast aquí: el diálogo decide el
+ * aviso por cada desenlace. Al terminar refresca periodos, listado de excluidas, vista previa y la lista de facturas.
+ */
+export function useEmitGlobalComplementaria() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+  return useMutation<GlobalCfdiResult, any, { emisorId: string; principalId: string }>({
+    mutationFn: ({ emisorId, principalId }) => cfdiService.emitGlobalComplementaria(venueId!, emisorId, principalId),
+    // Sólo lo de ESE emisor (ronda 1, I1); la lista de facturas, porque la complementaria aparece ahí.
+    onSettled: (_r, _e, { emisorId }) => {
+      queryClient.invalidateQueries({ queryKey: globalPeriodosQueryKey(venueId, emisorId) })
+      queryClient.invalidateQueries({ queryKey: ['global-excluidas', venueId, emisorId] })
+      queryClient.invalidateQueries({ queryKey: ['global-complementaria', venueId, emisorId] })
+      queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
+    },
   })
 }
 
