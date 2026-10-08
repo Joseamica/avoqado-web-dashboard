@@ -70,7 +70,8 @@ export const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showReceiptScreen: true,
   defaultTipPercentage: null,
   tipSuggestions: [10, 15, 20],
-  requirePinLogin: true,
+  // Igual que el servidor (tpv.dashboard.service.ts). Lo fija tpv-settings.defaults.test.ts.
+  requirePinLogin: false,
   // Card payment kill-switch: default true (require backend before charge — legacy/safe)
   requireAvoqadoServerForCardPayment: true,
   showVerificationScreen: false,
@@ -85,7 +86,9 @@ export const DEFAULT_TPV_SETTINGS: TpvSettings = {
   kioskDefaultMerchantId: null,
   // Home screen buttons enabled by default
   showQuickPayment: true,
-  showOrderManagement: true,
+  // «Órdenes» es legacy (founder, 8-oct-2026) y el servidor la guarda apagada: antes el switch
+  // salía prendido al crear una terminal aunque el servidor guardara `false`.
+  showOrderManagement: false,
   showReports: true,
   showPayments: true,
   showSupport: true,

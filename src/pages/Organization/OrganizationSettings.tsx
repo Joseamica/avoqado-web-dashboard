@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useOrgTpvDefaults, useOrgTpvStats, useUpsertOrgTpvDefaults } from '@/hooks/useStoresAnalysis'
 import { getOrganization, updateOrganization, type OrganizationInfo } from '@/services/organization.service'
 import type { TpvSettings } from '@/services/tpv-settings.service'
+import { ORG_DEFAULT_TPV_SETTINGS } from './orgTpvDefaults'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, Info, Loader2, Mail, Monitor, Phone, Receipt, Save, Settings, TrendingUp } from 'lucide-react'
@@ -305,42 +306,6 @@ const OrganizationSettings: React.FC = () => {
 // ORG TPV CONFIG SECTION
 // =============================================================================
 
-const DEFAULT_TPV_SETTINGS: TpvSettings = {
-  showReviewScreen: true,
-  showTipScreen: true,
-  showReceiptScreen: true,
-  defaultTipPercentage: null,
-  tipSuggestions: [10, 15, 20],
-  requirePinLogin: true,
-  // Card payment kill-switch: default true (legacy/safe). Per-terminal toggle only;
-  // org-level editor keeps the safe default and never pushes it down.
-  requireAvoqadoServerForCardPayment: true,
-  showVerificationScreen: false,
-  requireVerificationPhoto: false,
-  requireVerificationBarcode: false,
-  requireClockInPhoto: false,
-  requireClockOutPhoto: false,
-  requireClockInToLogin: false,
-  kioskModeEnabled: false,
-  kioskDefaultMerchantId: null,
-  showQuickPayment: true,
-  showOrderManagement: true,
-  showReports: true,
-  showPayments: true,
-  showSupport: true,
-  showGoals: true,
-  showMessages: true,
-  showTrainings: true,
-  showCheckout: true,
-  showCryptoOption: false,
-  // Cellular Failover — OFF by default (org-level editor shouldn't push this;
-  // the UI for these fields is per-terminal only, canary rollout)
-  cellularFailoverMode: 'OFF',
-  cellularFailoverBadReadingsThreshold: 3,
-  cellularFailoverCooldownSeconds: 60,
-  cellularFailoverMinCellHoldSeconds: 120,
-}
-
 function OrgTpvConfigSection({ orgId }: { orgId: string }) {
   const { t } = useTranslation('organization')
   const { t: tTpv } = useTranslation('tpv')
@@ -357,15 +322,15 @@ function OrgTpvConfigSection({ orgId }: { orgId: string }) {
   const { data: stats } = useOrgTpvStats({ venueId })
   const upsertMutation = useUpsertOrgTpvDefaults({ venueId })
 
-  const [localSettings, setLocalSettings] = useState<TpvSettings>(DEFAULT_TPV_SETTINGS)
+  const [localSettings, setLocalSettings] = useState<TpvSettings>(ORG_DEFAULT_TPV_SETTINGS)
   const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     if (orgDefaults) {
-      setLocalSettings({ ...DEFAULT_TPV_SETTINGS, ...(orgDefaults as Partial<TpvSettings>) })
+      setLocalSettings({ ...ORG_DEFAULT_TPV_SETTINGS, ...(orgDefaults as Partial<TpvSettings>) })
       setHasChanges(false)
     } else if (!isLoading) {
-      setLocalSettings(DEFAULT_TPV_SETTINGS)
+      setLocalSettings(ORG_DEFAULT_TPV_SETTINGS)
       setHasChanges(false)
     }
   }, [orgDefaults, isLoading])

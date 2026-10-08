@@ -1,33 +1,15 @@
 import { useToast } from '@/hooks/use-toast'
 import { useTpvTour } from '@/hooks/useTpvTour'
 import { deleteTpv, getTpvs, sendTpvCommand as sendTpvCommandApi, type TpvListDevice } from '@/services/tpv.service'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import {
-  CheckCircle2,
-  CreditCard,
-  KeyRound,
-  Loader2,
-  Package,
-  Plus,
-  RotateCw,
-  Search,
-  Shield,
-  Terminal,
-  Trash2,
-  Wifi,
-  ExternalLink,
-  Wrench,
-  X,
-} from 'lucide-react'
+import { ChevronDown, CreditCard, Loader2, Plus, Search, Settings2, ShoppingCart, Smartphone, X, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { FilterPill, FilterPillBar, CheckboxFilterContent } from '@/components/filters'
-import { getTerminalStatusInfo, type TerminalStatusKey } from '@/lib/terminal-status'
 import { DEVICE_FORM_FACTORS } from '@/lib/device-kind'
-import { DeviceTypeCell } from '@/pages/Tpv/components/DeviceTypeCell'
 import { useDeviceKindLabels } from '@/pages/Tpv/components/useDeviceKindLabels'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -46,25 +28,42 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { MetricCard } from '@/components/ui/metric-card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { StatusPulse } from '@/components/ui/status-pulse'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { canMoveMoney } from '@/lib/kyc-utils'
+import { isTerminalOnline } from '@/lib/terminal-status'
 import { useDebounce } from '@/hooks/useDebounce'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI } from '@/services/superadmin-terminals.service'
 import { StaffRole } from '@/types'
 import { TpvCommandType } from '@/types/tpv-commands'
-import { Currency } from '@/utils/currency'
 import { useTranslation } from 'react-i18next'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
+import {
+  DeviceAppVersionCell,
+  DeviceBatteryCell,
+  DeviceIdCell,
+  DeviceNameCell,
+  DeviceStatusPill,
+  DeviceSystemCell,
+  DeviceTodaySalesCell,
+} from './components/DeviceListCells'
+import { DeviceMobileList } from './components/DeviceMobileList'
+import { DeviceRowMenu } from './components/DeviceRowMenu'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 import { TerminalOrdersTab } from './components/TerminalOrdersTab'
-import { canConfigurePayments, canSendCommand, getDeviceActionPolicy, isActivationPending } from './deviceCapabilities'
+import { canConfigurePayments, canSendCommand } from './deviceCapabilities'
 
 // ⚠️ COHERENCIA con tours interactivos:
 // Esta página tiene un tour driver.js (`useTpvTour`) que enseña al usuario
@@ -72,6 +71,11 @@ import { canConfigurePayments, canSendCommand, getDeviceActionPolicy, isActivati
 // TPVs, botón de crear, wizard de registro), revisa
 // `src/hooks/useTpvTour.ts` y actualiza los selectores `data-tour="tpv-*"`
 // y los textos de los steps en paralelo.
+//
+// Rediseño 8-oct-2026 (maqueta A1, elegida por el founder): una sola tabla al estilo
+// Square con columna «Sistema»; sin tarjetas de métricas (contaban sólo la página);
+// acciones en un menú «⋯» (el ↻ reiniciaba la terminal a un clic); tarjetas cuando el
+// contenido es angosto. Tablero: https://claude.ai/artifact/SruhLk2YJhKTcrHxjSCyim
 export default function Tpvs() {
   const { venueId, venue } = useCurrentVenue()
   const { user } = useAuth()
@@ -140,6 +144,7 @@ export default function Tpvs() {
   const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [terminalToDelete, setTerminalToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [terminalToRestart, setTerminalToRestart] = useState<TpvListDevice | null>(null)
   const [connectionFilter, setConnectionFilter] = useState<string[]>([])
   const [activationFilter, setActivationFilter] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -156,33 +161,9 @@ export default function Tpvs() {
   // Etiquetas de clase de aparato, compartidas por la columna "Tipo" y su filtro.
   const deviceKindLabels = useDeviceKindLabels()
 
-  const statusLabelMap: Record<TerminalStatusKey, string> = {
-    locked: tTpv('status.locked', { defaultValue: 'Bloqueado' }),
-    pending: tTpv('status.pendingActivation', { defaultValue: 'Pendiente' }),
-    online: tTpv('status.online', { defaultValue: 'En línea' }),
-    offline: tTpv('status.offline', { defaultValue: 'Sin conexión' }),
-    inactive: tTpv('status.inactive', { defaultValue: 'Inactivo' }),
-    maintenance: tTpv('status.maintenance', { defaultValue: 'Mantenimiento' }),
-    retired: tTpv('status.retired', { defaultValue: 'Retirado' }),
-    unknown: tTpv('status.unknown', { defaultValue: 'Desconocido' }),
-  }
-
-  const getTerminalStatusStyle = (status: string, lastHeartbeat?: string | null) => {
-    const info = getTerminalStatusInfo({ status, lastHeartbeat })
-    return {
-      pulseStatus: info.pulseStatus,
-      label: statusLabelMap[info.statusKey],
-      isOnline: info.isOnline,
-    }
-  }
-
-  const isTerminalOnline = (status: string, lastHeartbeat?: string | null) => {
-    return getTerminalStatusInfo({ status, lastHeartbeat }).isOnline
-  }
-
   // Multi-select filters and search are sent to backend so pagination respects them.
   // Previously filtered client-side on paginated data — missed matches on other pages.
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [
       'tpvs',
       venueId,
@@ -206,44 +187,26 @@ export default function Tpvs() {
         origins: originFilter.length > 0 ? (originFilter as Array<'provisioned' | 'selfRegistered'>) : undefined,
         search: debouncedSearchTerm || undefined,
       }),
+    // La búsqueda va en la queryKey: sin esto cada tecla deja `data` vacío, la tabla pinta su
+    // esqueleto y el buscador pierde el foco (bounded-data-and-query-load.md).
+    placeholderData: keepPreviousData,
   })
 
-  // Calculate metrics from data
-  const metrics = useMemo(() => {
-    const terminals = data?.data || []
-    const total = terminals.length
-    const online = terminals.filter(t => isTerminalOnline(t.status, t.lastHeartbeat)).length
-    const pendingActivation = terminals.filter(t => isActivationPending(t.capabilities, t.activatedAt)).length
-    const inMaintenance = terminals.filter(t => t.status === 'MAINTENANCE').length
-
-    return { total, online, pendingActivation, inMaintenance }
-  }, [data?.data])
-
-  // Relative time helper
-  const getRelativeTime = (dateString: string | null | undefined) => {
-    if (!dateString) return tTpv('filter.never', { defaultValue: 'Nunca' })
-    const now = Date.now()
-    const then = new Date(dateString).getTime()
-    const diffMs = now - then
-    const diffMin = Math.floor(diffMs / 60000)
-    const diffHr = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMin < 1) return tTpv('filter.justNow', { defaultValue: 'Ahora' })
-    if (diffMin < 60) return `${diffMin} min`
-    if (diffHr < 24) return `${diffHr}h`
-    return `${diffDays}d`
-  }
+  // 🔴 El TOTAL del server, no las filas de la página: con `rowCount = filas` el paginador
+  // creía que todo cabía en una página y los dispositivos 21+ quedaban ocultos sin aviso.
+  // Todas las lecturas de la lista pasan por aquí: una respuesta sin `data` (o `{}`) nunca tumba la página.
+  const filteredData = useMemo(() => data?.data ?? [], [data?.data])
+  const totalDevices = data?.meta?.total ?? filteredData.length
 
   // Version options derived from data
   const versionOptions = useMemo(() => {
-    const terminals = data?.data || []
+    const terminals = filteredData
     const versions: string[] = []
     terminals.forEach(t => {
       if (t.version && !versions.includes(t.version)) versions.push(t.version)
     })
     return versions.sort().map(v => ({ value: v, label: `v${v}` }))
-  }, [data?.data])
+  }, [filteredData])
 
   // Filter display label helper
   const getFilterDisplayLabel = (values: string[], options: { value: string; label: string }[]) => {
@@ -266,14 +229,17 @@ export default function Tpvs() {
     setSearchTerm('')
   }, [])
 
+  const hasActiveFilters =
+    connectionFilter.length + activationFilter.length + statusFilter.length + versionFilter.length + kindFilter.length + originFilter.length > 0 ||
+    debouncedSearchTerm.length > 0
+
   // Reset pagination when filters change
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, [connectionFilter, activationFilter, statusFilter, versionFilter, kindFilter, originFilter, debouncedSearchTerm])
 
-  // All filters are applied server-side via query params (see useQuery above).
-  // Client-side filtering over paginated data would only match terminals on the current page.
-  const filteredData = useMemo(() => data?.data || [], [data?.data])
+  // All filters are applied server-side via query params (see useQuery above): `filteredData` es
+  // la página que devolvió el server, no un filtro en el navegador.
 
   // Connection filter options
   const connectionOptions = useMemo(
@@ -319,8 +285,8 @@ export default function Tpvs() {
   )
 
   const hasPaymentCapableDevice = useMemo(
-    () => data?.data.some(device => canConfigurePayments(device.capabilities)) ?? false,
-    [data?.data],
+    () => filteredData.some(device => canConfigurePayments(device.capabilities)),
+    [filteredData],
   )
 
   // SUPERADMIN: Fetch terminals with assignedMerchantIds
@@ -357,7 +323,7 @@ export default function Tpvs() {
 
   // SUPERADMIN: Link merchant account to terminal
   const handleLinkMerchant = async (terminalId: string, merchantId: string) => {
-    const terminal = data?.data.find(device => device.id === terminalId)
+    const terminal = filteredData.find(device => device.id === terminalId)
     if (!canConfigurePayments(terminal?.capabilities)) return
     setLinkingMerchant({ terminalId, merchantId })
     try {
@@ -384,7 +350,7 @@ export default function Tpvs() {
 
   // SUPERADMIN: Unlink merchant account from terminal
   const handleUnlinkMerchant = async (terminalId: string, merchantId: string) => {
-    const terminal = data?.data.find(device => device.id === terminalId)
+    const terminal = filteredData.find(device => device.id === terminalId)
     if (!canConfigurePayments(terminal?.capabilities)) return
     setUnlinkingMerchant({ terminalId, merchantId })
     try {
@@ -431,7 +397,9 @@ export default function Tpvs() {
       }
       const newStatus = statusCommandMap[variables.command]
       if (newStatus) {
-        queryClient.setQueryData(['tpvs', venueId, pagination.pageIndex, pagination.pageSize], (old: any) => {
+        // `setQueriesData` con el prefijo: la queryKey real lleva filtros y búsqueda, así que la
+        // llave parcial de antes (`setQueryData`) nunca encontraba la lista y el cambio no se veía.
+        queryClient.setQueriesData({ queryKey: ['tpvs', venueId] }, (old: any) => {
           if (!old?.data) return old
           return {
             ...old,
@@ -493,163 +461,51 @@ export default function Tpvs() {
     },
   })
 
+  const rowLinkState = useMemo(() => ({ from: location.pathname }), [location.pathname])
+
   const columns: ColumnDef<TpvListDevice, unknown>[] = [
     {
       id: 'terminal',
       accessorKey: 'name',
-      meta: { label: tTpv('table.columns.name', { defaultValue: 'Terminal' }) },
-      header: tTpv('table.columns.name', { defaultValue: 'Terminal' }),
-      cell: ({ row }) => {
-        const terminal = row.original
-        const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
-
-        return (
-          <div className="flex items-center gap-3">
-            {/* Status indicator with pulse */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="relative">
-                  <StatusPulse status={statusStyle.pulseStatus} size="sm" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p className="text-xs font-medium">{statusStyle.label}</p>
-                {terminal.lastHeartbeat && (
-                  <p className="text-xs text-muted-foreground">{new Date(terminal.lastHeartbeat).toLocaleString()}</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Terminal info */}
-            <div className="flex flex-col min-w-0">
-              <span className="font-medium truncate">{terminal.name}</span>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {terminal.serialNumber && (
-                  <span className="font-mono truncate max-w-[140px]">
-                    {terminal.serialNumber.startsWith('AVQD-') ? terminal.serialNumber : terminal.serialNumber.slice(0, 8)}
-                  </span>
-                )}
-                {terminal.version && <span className="text-muted-foreground/60">v{terminal.version}</span>}
-              </div>
-            </div>
-          </div>
-        )
-      },
+      meta: { label: tTpv('list.columns.device') },
+      header: tTpv('list.columns.device'),
+      cell: ({ row }) => <DeviceNameCell device={row.original} name={row.original.name} />,
     },
     {
-      id: 'deviceKind',
-      header: tTpv('table.columns.deviceKind', { defaultValue: 'Tipo' }),
-      meta: { label: tTpv('table.columns.deviceKind', { defaultValue: 'Tipo' }) },
-      cell: ({ row }) => {
-        const terminal = row.original
-        return (
-          <DeviceTypeCell
-            formFactor={terminal.formFactor}
-            model={terminal.model}
-            brand={terminal.brand}
-            osVersion={terminal.osVersion}
-            selfRegistered={terminal.selfRegistered}
-          />
-        )
-      },
+      id: 'status',
+      meta: { label: tTpv('list.columns.status') },
+      header: tTpv('list.columns.status'),
+      cell: ({ row }) => <DeviceStatusPill device={row.original} />,
     },
     {
-      id: 'connection',
-      header: tTpv('table.columns.connection', { defaultValue: 'Conexión' }),
-      meta: { label: tTpv('table.columns.connection', { defaultValue: 'Conexión' }) },
-      cell: ({ row }) => {
-        const terminal = row.original
-        const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
-
-        return (
-          <div className="flex items-center gap-1.5">
-            <StatusPulse status={statusStyle.pulseStatus} size="sm" />
-            <span className="text-sm">{statusStyle.label}</span>
-          </div>
-        )
-      },
+      id: 'system',
+      meta: { label: tTpv('list.columns.system') },
+      header: tTpv('list.columns.system'),
+      cell: ({ row }) => <DeviceSystemCell device={row.original} />,
     },
     {
-      id: 'lastConnection',
-      header: tTpv('table.columns.lastConnection', { defaultValue: 'Última conexión' }),
-      meta: { label: tTpv('table.columns.lastConnection', { defaultValue: 'Última conexión' }) },
-      cell: ({ row }) => {
-        const terminal = row.original
-        const relativeTime = getRelativeTime(terminal.lastHeartbeat)
-
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-sm text-muted-foreground cursor-default">{relativeTime}</span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {terminal.lastHeartbeat
-                ? new Date(terminal.lastHeartbeat).toLocaleString()
-                : tTpv('filter.never', { defaultValue: 'Nunca' })}
-            </TooltipContent>
-          </Tooltip>
-        )
-      },
+      id: 'battery',
+      meta: { label: tTpv('list.columns.battery') },
+      header: tTpv('list.columns.battery'),
+      cell: ({ row }) => <DeviceBatteryCell device={row.original} />,
     },
     {
-      id: 'activation',
-      accessorKey: 'activatedAt',
-      meta: { label: tTpv('table.columns.activation', { defaultValue: 'Activación' }) },
-      header: tTpv('table.columns.activation', { defaultValue: 'Activación' }),
-      cell: ({ row }) => {
-        const terminal = row.original
-        const actionPolicy = getDeviceActionPolicy(terminal.capabilities, terminal.activatedAt)
-
-        if (actionPolicy.activationState === 'capabilities-unavailable') {
-          return <span className="text-sm text-muted-foreground">{tTpv('status.capabilitiesUnavailable')}</span>
-        }
-
-        if (actionPolicy.activationState === 'not-required') {
-          return <span className="text-sm text-muted-foreground">{tTpv('status.activationNotRequired')}</span>
-        }
-
-        if (actionPolicy.activationState === 'activated') {
-          return (
-            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-sm">{tTpv('status.activated', { defaultValue: 'Activado' })}</span>
-            </div>
-          )
-        }
-
-        return (
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Package className="w-4 h-4" />
-            <span className="text-sm">{tTpv('status.notActivated', { defaultValue: 'Sin activar' })}</span>
-          </div>
-        )
-      },
+      id: 'app',
+      meta: { label: tTpv('list.columns.app') },
+      header: tTpv('list.columns.app'),
+      cell: ({ row }) => <DeviceAppVersionCell device={row.original} />,
+    },
+    {
+      id: 'identifier',
+      meta: { label: tTpv('list.columns.id') },
+      header: tTpv('list.columns.id'),
+      cell: ({ row }) => <DeviceIdCell device={row.original} />,
     },
     {
       id: 'todaySales',
-      meta: { label: tTpv('table.columns.todaySales', { defaultValue: 'Ventas hoy' }) },
-      header: tTpv('table.columns.todaySales', { defaultValue: 'Ventas hoy' }),
-      cell: ({ row }) => {
-        const terminal = row.original
-        const count = terminal.todayPaymentCount || 0
-        const total = terminal.todayPaymentTotal || 0
-
-        if (count === 0) {
-          return <span className="text-sm text-muted-foreground">—</span>
-        }
-
-        return (
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">{Currency(total)}</span>
-            <span className="text-xs text-muted-foreground">
-              {count}{' '}
-              {count === 1
-                ? tTpv('table.transaction', { defaultValue: 'transacción' })
-                : tTpv('table.transactions', { defaultValue: 'transacciones' })}
-            </span>
-          </div>
-        )
-      },
+      meta: { label: tTpv('list.columns.todaySales') },
+      header: tTpv('list.columns.todaySales'),
+      cell: ({ row }) => <DeviceTodaySalesCell count={row.original.todayPaymentCount} total={row.original.todayPaymentTotal} />,
     },
     // SUPERADMIN: Merchant Accounts column
     ...(isSuperadmin
@@ -812,133 +668,35 @@ export default function Tpvs() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => {
-        const terminal = row.original
-        const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
-        const isInMaintenance = terminal.status === 'MAINTENANCE'
-        const isOnline = statusStyle.isOnline
-        const actionPolicy = getDeviceActionPolicy(terminal.capabilities, terminal.activatedAt)
-
-        return (
-          <div className="flex items-center justify-end gap-1">
-            {/* Show Activate button if terminal is pending activation */}
-            {actionPolicy.activationPending && (
-              <PermissionGate permission="tpv:update">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={e => {
-                    e.stopPropagation()
-                    setSelectedTerminalForActivation(terminal.id)
-                    setActivationModalOpen(true)
-                  }}
-                  className="h-7 px-2.5 text-xs"
-                >
-                  <KeyRound className="w-3.5 h-3.5 mr-1" />
-                  {tTpv('actions.activate', { defaultValue: 'Activar' })}
-                </Button>
-              </PermissionGate>
-            )}
-
-            {/* Only show command buttons if user has permission */}
-            <PermissionGate permission="tpv:command">
-              {isInMaintenance && canSendCommand(terminal.capabilities, TpvCommandType.EXIT_MAINTENANCE) ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={e => {
-                        e.stopPropagation()
-                        sendTpvCommand(terminal, TpvCommandType.EXIT_MAINTENANCE)
-                      }}
-                      className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{tTpv('actions.exit_maintenance', { defaultValue: 'Salir mantenimiento' })}</TooltipContent>
-                </Tooltip>
-              ) : !isInMaintenance && canSendCommand(terminal.capabilities, TpvCommandType.MAINTENANCE_MODE) ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={!isOnline}
-                      onClick={e => {
-                        e.stopPropagation()
-                        sendTpvCommand(terminal, TpvCommandType.MAINTENANCE_MODE)
-                      }}
-                      className="h-7 w-7"
-                    >
-                      <Wrench className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isOnline
-                      ? tTpv('actions.maintenance', { defaultValue: 'Mantenimiento' })
-                      : tTpv('actions.offline', { defaultValue: 'Desconectado' })}
-                  </TooltipContent>
-                </Tooltip>
-              ) : null}
-
-              {canSendCommand(terminal.capabilities, TpvCommandType.RESTART) && <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={e => {
-                      e.stopPropagation()
-                      sendTpvCommand(terminal, TpvCommandType.RESTART)
-                    }}
-                    className="h-7 w-7"
-                  >
-                    <RotateCw className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isOnline
-                    ? tTpv('commandLabels.RESTART', { defaultValue: 'Reiniciar' })
-                    : tTpv('commandLabels.RESTART_QUEUED', { defaultValue: 'Reiniciar (al conectarse)' })}
-                </TooltipContent>
-              </Tooltip>}
-            </PermissionGate>
-
-            {/* Delete button - only for non-activated terminals */}
-            {actionPolicy.activationPending && (
-              <PermissionGate permission="tpv:delete">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={e => {
-                        e.stopPropagation()
-                        setTerminalToDelete({ id: terminal.id, name: terminal.name })
-                        setDeleteDialogOpen(true)
-                      }}
-                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{tTpv('actions.delete', { defaultValue: 'Eliminar terminal' })}</TooltipContent>
-                </Tooltip>
-              </PermissionGate>
-            )}
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <DeviceRowMenu
+          device={row.original}
+          detailTo={row.original.id}
+          detailState={rowLinkState}
+          onActivate={device => {
+            setSelectedTerminalForActivation(device.id)
+            setActivationModalOpen(true)
+          }}
+          onRestart={setTerminalToRestart}
+          onCommand={sendTpvCommand}
+          onDelete={device => {
+            setTerminalToDelete({ id: device.id, name: device.name })
+            setDeleteDialogOpen(true)
+          }}
+        />
+      ),
     },
   ]
+
+  const restartIsQueued = terminalToRestart ? !isTerminalOnline(terminalToRestart.lastHeartbeat) : false
+  const emptyMessage = hasActiveFilters ? tTpv('list.noMatches') : tTpv('list.empty')
 
   return (
     <TooltipProvider>
       <div className="p-4 md:p-6 bg-background text-foreground max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
             <PageTitleWithInfo
               title={tTpv('title', { defaultValue: 'Dispositivos' })}
               className="text-2xl font-bold tracking-tight"
@@ -946,11 +704,9 @@ export default function Tpvs() {
                 defaultValue: 'Administra tus dispositivos y las acciones que cada modelo admite.',
               })}
             />
-            <p className="text-sm text-muted-foreground mt-1">
-              {tTpv('subtitle', { defaultValue: 'Los POS aparecen automáticamente al iniciar sesión; las TPV físicas se registran o solicitan aquí.' })}
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">{tTpv('list.subtitle')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             {/* SUPERADMIN: Direct terminal creation button */}
             {isSuperadmin && (
               <Tooltip>
@@ -960,8 +716,8 @@ export default function Tpvs() {
                     onClick={() => setSuperadminDialogOpen(true)}
                     className="h-9 bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
                   >
-                    <Shield className="w-4 h-4 mr-1.5" />
-                    <span>{tTpv('superadmin.quickCreate', { defaultValue: 'Crear Rápido' })}</span>
+                    <Zap className="w-4 h-4 mr-1.5" />
+                    <span>{tTpv('list.createTerminal')}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -974,46 +730,57 @@ export default function Tpvs() {
             {venue?.organizationId && (user?.role === StaffRole.OWNER || isSuperadmin) && (
               <Button size="sm" variant="outline" className="h-9" asChild>
                 <Link to={`/organizations/${venue.organizationId}/settings`}>
-                  <ExternalLink className="w-4 h-4 mr-1.5" />
-                  <span>{tTpv('actions.globalConfig', { defaultValue: 'Config. Global' })}</span>
+                  <Settings2 className="w-4 h-4 mr-1.5" />
+                  <span>{tTpv('list.terminalSettings')}</span>
                 </Link>
               </Button>
             )}
 
-            {/* Regular "Create" button - purchase wizard flow */}
+            {/* Agregar dispositivo: comprar una terminal, o explicar que un celular/tablet/PC no se registra */}
             <PermissionGate permission="tpv:create">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  {/* El span sostiene el tooltip cuando el botón está deshabilitado: un botón
-                      apagado no dispara eventos de ratón. */}
-                  <span className="inline-flex">
-                    <Button
-                      data-tour="tpv-new-btn"
-                      size="sm"
-                      variant={isSuperadmin ? 'outline' : 'default'}
-                      className="h-9"
-                      disabled={!puedeComprarTerminal}
-                      onClick={() => setWizardOpen(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-1.5" />
-                      <span>{tTpv('actions.createNew', { defaultValue: 'Registrar o pedir TPV' })}</span>
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!puedeComprarTerminal && (
-                  <TooltipContent>
-                    {tTpv('actions.buyBlockedByKyc', {
-                      defaultValue: 'Activa tus cobros para pedir una terminal: sin eso no podría cobrar con tarjeta.',
-                    })}
-                  </TooltipContent>
-                )}
-              </Tooltip>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button data-tour="tpv-new-btn" size="sm" className="h-9">
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    <span>{tTpv('list.add.button')}</span>
+                    <ChevronDown className="w-4 h-4 ml-1 opacity-70" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuItem
+                    data-tour="tpv-add-buy"
+                    disabled={!puedeComprarTerminal}
+                    onSelect={() => setWizardOpen(true)}
+                    className="items-start py-2.5"
+                  >
+                    <ShoppingCart className="mt-0.5 size-4" />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-medium">{tTpv('list.add.buy')}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {puedeComprarTerminal
+                          ? tTpv('list.add.buyHint')
+                          : tTpv('actions.buyBlockedByKyc', {
+                              defaultValue: 'Activa tus cobros para pedir una terminal: sin eso no podría cobrar con tarjeta.',
+                            })}
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="flex items-start gap-2 py-2.5 font-normal">
+                    <Smartphone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-medium">{tTpv('list.add.app')}</span>
+                      <span className="text-xs text-muted-foreground">{tTpv('list.add.appHint')}</span>
+                    </span>
+                  </DropdownMenuLabel>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </PermissionGate>
           </div>
         </div>
 
-        {/* Pill tabs: Terminals (existing list + metrics) vs Pedidos (orders list) */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {/* Pill tabs: Dispositivos vs Pedidos (órdenes de compra de terminales) */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
           <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-input h-auto w-fit">
             <TabsTrigger
               value="terminals"
@@ -1029,192 +796,196 @@ export default function Tpvs() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="terminals" className="space-y-6">
-            {/* Metrics Summary Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <MetricCard
-                label={tTpv('metrics.total', { defaultValue: 'Total' })}
-                value={metrics.total}
-                icon={<Terminal className="w-4 h-4" />}
-                accent="blue"
-              />
-              <MetricCard
-                label={tTpv('metrics.online', { defaultValue: 'En línea' })}
-                value={metrics.online}
-                icon={<Wifi className="w-4 h-4" />}
-                accent="green"
-                trend={metrics.online > 0 ? 'up' : 'neutral'}
-              />
-              <MetricCard
-                label={tTpv('metrics.pendingActivation', { defaultValue: 'Sin activar' })}
-                value={metrics.pendingActivation}
-                icon={<Package className="w-4 h-4" />}
-                accent={metrics.pendingActivation > 0 ? 'yellow' : 'blue'}
-              />
-              <MetricCard
-                label={tTpv('metrics.maintenance', { defaultValue: 'Mantenimiento' })}
-                value={metrics.inMaintenance}
-                icon={<Wrench className="w-4 h-4" />}
-                accent={metrics.inMaintenance > 0 ? 'orange' : 'blue'}
-              />
-            </div>
-
-            {/* Data Table — wrapper kept only for the tour anchor */}
-            <div data-tour="tpv-list">
-              <DataTable
-                data={filteredData}
-                rowCount={filteredData.length}
-                columns={columns}
-                isLoading={isLoading}
-                enableSearch={false}
-                clickableRow={row => ({
-                  to: row.id,
-                  state: { from: location.pathname },
-                })}
-                tableId="tpv:list"
-                pagination={pagination}
-                setPagination={setPagination}
-                tableTabLeft={
-                  <>
-                    {/* Expandable Search */}
-                    <div className="relative flex items-center">
-                      {isSearchOpen ? (
-                        <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                          <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              placeholder={tTpv('search.placeholder', { defaultValue: 'Buscar dispositivos...' })}
-                              value={searchTerm}
-                              onChange={e => setSearchTerm(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Escape') {
-                                  if (!searchTerm) setIsSearchOpen(false)
-                                }
-                              }}
-                              className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
-                              autoFocus
-                            />
-                            {searchTerm && (
-                              <button
-                                onClick={() => setSearchTerm('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-full"
-                            onClick={() => {
-                              setSearchTerm('')
-                              setIsSearchOpen(false)
-                            }}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant={searchTerm ? 'secondary' : 'ghost'}
-                          size="icon"
-                          className="h-7 w-7 rounded-full"
-                          onClick={() => setIsSearchOpen(true)}
+          <TabsContent value="terminals" className="space-y-4">
+            {/* Buscador y filtros FUERA de la tabla: los usan la tabla y las tarjetas, y no se desmontan al cargar. */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex items-center">
+                {isSearchOpen ? (
+                  <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder={tTpv('list.searchPlaceholder')}
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') {
+                            if (!searchTerm) setIsSearchOpen(false)
+                          }
+                        }}
+                        className="h-8 w-[220px] pl-8 pr-7 text-sm rounded-full"
+                        autoFocus
+                      />
+                      {searchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground"
+                          aria-label={tCommon('clear', { defaultValue: 'Limpiar' })}
                         >
-                          <Search className="h-3.5 w-3.5" />
-                        </Button>
+                          <X className="h-3 w-3" />
+                        </button>
                       )}
-                      {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full cursor-pointer"
+                      onClick={() => {
+                        setSearchTerm('')
+                        setIsSearchOpen(false)
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant={searchTerm ? 'secondary' : 'outline'}
+                    size="icon"
+                    className="h-8 w-8 rounded-full cursor-pointer"
+                    onClick={() => setIsSearchOpen(true)}
+                    aria-label={tTpv('list.searchPlaceholder')}
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+              </div>
 
-                    <FilterPillBar onReset={resetFilters} resetLabel={tTpv('filter.reset', { defaultValue: 'Borrar filtros' })}>
-                      <FilterPill
-                        label={tTpv('filter.deviceKind', { defaultValue: 'Tipo' })}
-                        activeValue={getFilterDisplayLabel(kindFilter, kindOptions)}
-                        isActive={kindFilter.length > 0}
-                        onClear={() => setKindFilter([])}
-                      >
-                        <CheckboxFilterContent
-                          title={tTpv('filter.deviceKind', { defaultValue: 'Tipo' })}
-                          options={kindOptions}
-                          selectedValues={kindFilter}
-                          onApply={setKindFilter}
-                        />
-                      </FilterPill>
-                      <FilterPill
-                        label={tTpv('filter.origin', { defaultValue: 'Origen' })}
-                        activeValue={getFilterDisplayLabel(originFilter, originOptions)}
-                        isActive={originFilter.length > 0}
-                        onClear={() => setOriginFilter([])}
-                      >
-                        <CheckboxFilterContent
-                          title={tTpv('filter.origin', { defaultValue: 'Origen' })}
-                          options={originOptions}
-                          selectedValues={originFilter}
-                          onApply={setOriginFilter}
-                        />
-                      </FilterPill>
-                      <FilterPill
-                        label={tTpv('filter.connection', { defaultValue: 'Conexión' })}
-                        activeValue={getFilterDisplayLabel(connectionFilter, connectionOptions)}
-                        isActive={connectionFilter.length > 0}
-                        onClear={() => setConnectionFilter([])}
-                      >
-                        <CheckboxFilterContent
-                          title={tTpv('filter.connection', { defaultValue: 'Conexión' })}
-                          options={connectionOptions}
-                          selectedValues={connectionFilter}
-                          onApply={setConnectionFilter}
-                        />
-                      </FilterPill>
-                      <FilterPill
-                        label={tTpv('filter.activation', { defaultValue: 'Activación' })}
-                        activeValue={getFilterDisplayLabel(activationFilter, activationOptions)}
-                        isActive={activationFilter.length > 0}
-                        onClear={() => setActivationFilter([])}
-                      >
-                        <CheckboxFilterContent
-                          title={tTpv('filter.activation', { defaultValue: 'Activación' })}
-                          options={activationOptions}
-                          selectedValues={activationFilter}
-                          onApply={setActivationFilter}
-                        />
-                      </FilterPill>
-                      <FilterPill
-                        label={tTpv('filter.status', { defaultValue: 'Estado' })}
-                        activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
-                        isActive={statusFilter.length > 0}
-                        onClear={() => setStatusFilter([])}
-                      >
-                        <CheckboxFilterContent
-                          title={tTpv('filter.status', { defaultValue: 'Estado' })}
-                          options={statusOptions}
-                          selectedValues={statusFilter}
-                          onApply={setStatusFilter}
-                        />
-                      </FilterPill>
-                      {versionOptions.length > 0 && (
-                        <FilterPill
-                          label={tTpv('filter.version', { defaultValue: 'Versión' })}
-                          activeValue={getFilterDisplayLabel(versionFilter, versionOptions)}
-                          isActive={versionFilter.length > 0}
-                          onClear={() => setVersionFilter([])}
-                        >
-                          <CheckboxFilterContent
-                            title={tTpv('filter.version', { defaultValue: 'Versión' })}
-                            options={versionOptions}
-                            selectedValues={versionFilter}
-                            onApply={setVersionFilter}
-                            searchable={versionOptions.length > 5}
-                          />
-                        </FilterPill>
-                      )}
-                    </FilterPillBar>
-                  </>
-                }
-              />
+              <FilterPillBar className="min-w-0 flex-1" onReset={resetFilters} resetLabel={tTpv('filter.reset', { defaultValue: 'Borrar filtros' })}>
+                <FilterPill
+                  label={tTpv('filter.connection', { defaultValue: 'Conexión' })}
+                  activeValue={getFilterDisplayLabel(connectionFilter, connectionOptions)}
+                  isActive={connectionFilter.length > 0}
+                  onClear={() => setConnectionFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={tTpv('filter.connection', { defaultValue: 'Conexión' })}
+                    options={connectionOptions}
+                    selectedValues={connectionFilter}
+                    onApply={setConnectionFilter}
+                  />
+                </FilterPill>
+                <FilterPill
+                  label={tTpv('filter.deviceKind', { defaultValue: 'Tipo' })}
+                  activeValue={getFilterDisplayLabel(kindFilter, kindOptions)}
+                  isActive={kindFilter.length > 0}
+                  onClear={() => setKindFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={tTpv('filter.deviceKind', { defaultValue: 'Tipo' })}
+                    options={kindOptions}
+                    selectedValues={kindFilter}
+                    onApply={setKindFilter}
+                  />
+                </FilterPill>
+                <FilterPill
+                  label={tTpv('filter.status', { defaultValue: 'Estado' })}
+                  activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
+                  isActive={statusFilter.length > 0}
+                  onClear={() => setStatusFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={tTpv('filter.status', { defaultValue: 'Estado' })}
+                    options={statusOptions}
+                    selectedValues={statusFilter}
+                    onApply={setStatusFilter}
+                  />
+                </FilterPill>
+                {versionOptions.length > 0 && (
+                  <FilterPill
+                    label={tTpv('filter.version', { defaultValue: 'Versión' })}
+                    activeValue={getFilterDisplayLabel(versionFilter, versionOptions)}
+                    isActive={versionFilter.length > 0}
+                    onClear={() => setVersionFilter([])}
+                  >
+                    <CheckboxFilterContent
+                      title={tTpv('filter.version', { defaultValue: 'Versión' })}
+                      options={versionOptions}
+                      selectedValues={versionFilter}
+                      onApply={setVersionFilter}
+                      searchable={versionOptions.length > 5}
+                    />
+                  </FilterPill>
+                )}
+                <FilterPill
+                  label={tTpv('filter.activation', { defaultValue: 'Activación' })}
+                  activeValue={getFilterDisplayLabel(activationFilter, activationOptions)}
+                  isActive={activationFilter.length > 0}
+                  onClear={() => setActivationFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={tTpv('filter.activation', { defaultValue: 'Activación' })}
+                    options={activationOptions}
+                    selectedValues={activationFilter}
+                    onApply={setActivationFilter}
+                  />
+                </FilterPill>
+                <FilterPill
+                  label={tTpv('filter.origin', { defaultValue: 'Origen' })}
+                  activeValue={getFilterDisplayLabel(originFilter, originOptions)}
+                  isActive={originFilter.length > 0}
+                  onClear={() => setOriginFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={tTpv('filter.origin', { defaultValue: 'Origen' })}
+                    options={originOptions}
+                    selectedValues={originFilter}
+                    onApply={setOriginFilter}
+                  />
+                </FilterPill>
+              </FilterPillBar>
+
+              {!isLoading && !isError && (
+                <span className="shrink-0 text-sm text-muted-foreground tabular-nums">{tTpv('list.count', { count: totalDevices })}</span>
+              )}
             </div>
+
+            {isError ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
+                <span>{tTpv('list.loadError')}</span>
+                <Button size="sm" variant="outline" onClick={() => refetch()}>
+                  {tTpv('list.retry')}
+                </Button>
+              </div>
+            ) : (
+              // Tabla cuando el CONTENIDO mide ≥ 64rem; tarjetas cuando no. Se mide el contenedor,
+              // no la pantalla: la barra lateral se come ~16rem y por eso la tabla se partía.
+              <div data-tour="tpv-list" className="@container">
+                <div className="hidden @5xl:block">
+                  <DataTable
+                    data={filteredData}
+                    rowCount={totalDevices}
+                    columns={columns}
+                    isLoading={isLoading}
+                    enableSearch={false}
+                    clickableRow={row => ({
+                      to: row.id,
+                      state: rowLinkState,
+                    })}
+                    tableId="tpv:list"
+                    pagination={pagination}
+                    setPagination={setPagination}
+                  />
+                  {!isLoading && filteredData.length === 0 && (
+                    <p className="mt-3 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+                  )}
+                </div>
+                <div className="@5xl:hidden">
+                  <DeviceMobileList
+                    devices={filteredData}
+                    isLoading={isLoading}
+                    total={totalDevices}
+                    pageIndex={pagination.pageIndex}
+                    pageSize={pagination.pageSize}
+                    onPageChange={pageIndex => setPagination(prev => ({ ...prev, pageIndex }))}
+                    linkState={rowLinkState}
+                    emptyMessage={emptyMessage}
+                  />
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="orders">
@@ -1251,6 +1022,29 @@ export default function Tpvs() {
             }}
           />
         )}
+
+        {/* Reiniciar pide confirmación: interrumpe un cobro si alguien está cobrando. */}
+        <AlertDialog open={!!terminalToRestart} onOpenChange={open => !open && setTerminalToRestart(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{tTpv('list.restartConfirm.title', { name: terminalToRestart?.name ?? '' })}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {restartIsQueued ? tTpv('list.restartConfirm.descriptionQueued') : tTpv('list.restartConfirm.description')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{tCommon('cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (terminalToRestart) sendTpvCommand(terminalToRestart, TpvCommandType.RESTART)
+                  setTerminalToRestart(null)
+                }}
+              >
+                {tTpv('list.restartConfirm.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Delete confirmation dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

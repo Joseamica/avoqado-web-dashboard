@@ -547,7 +547,8 @@
       "offlineHint": "Terminal must be online to restart",
       "dismiss": "Dismiss",
       "unsupportedDevice": "Changes were saved. This device does not support remote restart from Avoqado."
-    }
+    },
+    "showOrderManagementLegacy": "Show Orders (legacy feature)"
   },
   "activation": {
     "title": "Activate Terminal",
@@ -895,5 +896,185 @@
     "online": "Online",
     "pendingActivation": "Not activated",
     "maintenance": "Maintenance"
+  },
+  "list": {
+    "subtitle": "Payment terminals, phones, tablets and computers where your team sells.",
+    "count_one": "{{count}} device",
+    "count_other": "{{count}} devices",
+    "searchPlaceholder": "Search by name or serial",
+    "columns": {
+      "device": "Device",
+      "status": "Status",
+      "system": "System",
+      "battery": "Battery",
+      "app": "App",
+      "id": "ID",
+      "todaySales": "Sales today"
+    },
+    "role": {
+      "paymentTerminal": "Payment terminal",
+      "pointOfSale": "Point of sale",
+      "printer": "Printer",
+      "kitchenDisplay": "Kitchen display",
+      "other": "Device"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "neverConnected": "Never connected",
+      "pendingActivation": "Needs activation",
+      "maintenance": "Maintenance",
+      "locked": "Locked",
+      "retired": "Retired"
+    },
+    "lastSeen": {
+      "justNow": "just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{count}} h ago",
+      "days_one": "{{count}} day ago",
+      "days_other": "{{count}} days ago"
+    },
+    "tpvTag": "TPV",
+    "battery": {
+      "charging": "Charging",
+      "notReported": "This device doesn't report its battery yet."
+    },
+    "copyId": "Copy ID",
+    "copied": "Copied",
+    "salesCount_one": "{{count}} payment",
+    "salesCount_other": "{{count}} payments",
+    "menu": {
+      "open": "More actions",
+      "viewDetail": "View details",
+      "activate": "Activate",
+      "restart": "Restart",
+      "restartQueued": "Restart when it connects",
+      "maintenance": "Put in maintenance",
+      "needsOnline": "Must be online",
+      "exitMaintenance": "Exit maintenance",
+      "delete": "Delete"
+    },
+    "restartConfirm": {
+      "title": "Restart {{name}}?",
+      "description": "The terminal turns off and on again. If someone is taking a payment, it gets interrupted.",
+      "descriptionQueued": "It's offline: it will restart as soon as it connects.",
+      "confirm": "Restart"
+    },
+    "add": {
+      "button": "Add device",
+      "buy": "Buy a terminal",
+      "buyHint": "PAX A910S, NEXGO N86 or N62, shipped to you.",
+      "app": "Phone, tablet or computer",
+      "appHint": "No registration needed: sign in to the Avoqado app and it shows up here."
+    },
+    "createTerminal": "Create terminal",
+    "terminalSettings": "Terminal settings",
+    "loadError": "We couldn't load the device list.",
+    "retry": "Retry",
+    "empty": "No devices yet.",
+    "noMatches": "No device matches the search or filters.",
+    "pagination": {
+      "page": "Page {{page}} of {{pages}}",
+      "prev": "Previous",
+      "next": "Next"
+    }
+  },
+  "device": {
+    "back": "Devices",
+    "actions": "Actions",
+    "menu": {
+      "lock": "Lock terminal",
+      "unlock": "Unlock terminal",
+      "edit": "Edit details"
+    },
+    "banner": {
+      "maintenance": "In maintenance: this terminal can't take payments until it leaves maintenance.",
+      "locked": "Locked: nobody can use it until you unlock it."
+    },
+    "tabs": {
+      "messages": "Messages"
+    },
+    "sections": {
+      "thisDevice": "This device",
+      "identity": "Identification",
+      "customerDisplay": "Customer display",
+      "superadmin": "Superadmin only"
+    },
+    "fields": {
+      "network": "Network",
+      "memory": "App memory",
+      "memoryValue": "{{used}} MB of {{total}} MB",
+      "uptime": "Powered on for",
+      "activation": "Activation",
+      "lastSeen": "Last connection",
+      "name": "Name",
+      "serial": "Serial number",
+      "deviceId": "Device ID",
+      "model": "Model",
+      "brand": "Brand",
+      "type": "Type",
+      "created": "Added on"
+    },
+    "network": {
+      "WIFI": "Wi-Fi",
+      "CELLULAR": "Mobile data",
+      "ETHERNET": "Ethernet"
+    },
+    "activation": {
+      "activatedOn": "Activated on {{date}}",
+      "pending": "Needs activation",
+      "selfRegistered": "Registered itself on sign-in",
+      "notRequired": "No activation needed"
+    },
+    "activateWithoutCode": "Activate without code",
+    "activateWithoutCodeHint": "Pending: once turned on it will go in without asking for a code.",
+    "activatedWithoutCode": "Terminal activated",
+    "activatedWithoutCodeDesc": "It will go in without a code when it's turned on with internet."
+  },
+  "newTerminal": {
+    "title": "New terminal",
+    "superadminOnly": "Superadmin only · created for {{venue}}",
+    "sections": {
+      "model": "Model and details",
+      "activation": "How is it activated?",
+      "settings": "Payment settings"
+    },
+    "otherModel": "Other",
+    "otherModelHint": "Type, brand and model",
+    "fields": {
+      "type": "Type",
+      "brand": "Brand",
+      "model": "Model",
+      "serial": "Serial number",
+      "name": "Name",
+      "namePlaceholder": "E.g. Register 2"
+    },
+    "activation": {
+      "withCode": "With a 6-character code",
+      "withCodeDesc": "The manager types the code on the terminal. Expires in 7 days. Use it when you're not the one turning it on.",
+      "now": "Activate now, no code",
+      "nowDesc": "It goes straight in when turned on with internet. Use it if you're setting it up or shipping it ready.",
+      "recommended": "Recommended"
+    },
+    "settings": {
+      "inherit": "Use the organization's settings",
+      "inheritDesc": "Tips, receipt, PIN and screens like the other terminals.",
+      "customize": "Customize this terminal only",
+      "customizeDesc": "Anything you don't change follows the organization."
+    },
+    "submitWithCode": "Create and get code",
+    "submitActivate": "Create and activate",
+    "submitting": "Creating…",
+    "done": "Done",
+    "codeIntro": "{{name}} was created. Activation code:",
+    "codeExpires": "Expires in 7 days. It's typed on the terminal the first time it's turned on.",
+    "toast": {
+      "created": "Terminal created",
+      "createdNoCode": "The terminal was registered.",
+      "activated": "Terminal created and activated",
+      "activatedDesc": "{{name}} will go in without a code when it's turned on with internet.",
+      "activationFailed": "The terminal was created, but it couldn't be activated",
+      "activationFailedDesc": "It will ask for a code when turned on. Open it and use \"Activate without code\". {{error}}"
+    }
   }
 }
