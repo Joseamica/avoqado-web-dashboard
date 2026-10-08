@@ -4,10 +4,8 @@ import type {
 	CommissionTier,
 	CommissionOverride,
 	CommissionSummary,
-	CommissionPayout,
 	CommissionCalculation,
 	CommissionStats,
-	PayoutStats,
 	StaffCommissionsResponse,
 	MyCommissionsResponse,
 	StaffTierProgress,
@@ -17,12 +15,8 @@ import type {
 	UpdateCommissionTierInput,
 	CreateCommissionOverrideInput,
 	UpdateCommissionOverrideInput,
-	CreatePayoutInput,
-	AdjustSummaryInput,
-	AddBonusInput,
 	CommissionFilters,
 	SummaryFilters,
-	PayoutFilters,
 	PaymentCommission,
 	SalesGoal,
 	CreateSalesGoalInput,
@@ -230,122 +224,6 @@ export const commissionService = {
 		return response.data
 	},
 
-	// Get summaries that need attention (pending approval or disputed)
-	async getPendingSummaries(venueId: string): Promise<CommissionSummary[]> {
-		// Fetch both PENDING_APPROVAL and DISPUTED summaries
-		const [pendingRes, disputedRes] = await Promise.all([
-			api.get(`${BASE_URL}/venues/${venueId}/summaries?status=PENDING_APPROVAL`),
-			api.get(`${BASE_URL}/venues/${venueId}/summaries?status=DISPUTED`),
-		])
-		const pending = normalizeArrayResponse<CommissionSummary>(pendingRes.data)
-		const disputed = normalizeArrayResponse<CommissionSummary>(disputedRes.data)
-		// Return combined, with disputed first (they need more attention)
-		return [...disputed, ...pending]
-	},
-
-	// Approve a summary
-	async approveSummary(venueId: string, summaryId: string): Promise<CommissionSummary> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/${summaryId}/approve`)
-		return response.data
-	},
-
-	// Batch approve summaries
-	async approveSummariesBatch(venueId: string, summaryIds: string[]): Promise<{ approved: number; failed: number }> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/approve-batch`, { summaryIds })
-		return response.data
-	},
-
-	// Dispute a summary
-	async disputeSummary(venueId: string, summaryId: string, reason: string): Promise<CommissionSummary> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/${summaryId}/dispute`, { reason })
-		return response.data
-	},
-
-	// Resolve a disputed summary
-	async resolveSummaryDispute(venueId: string, summaryId: string, resolution: string): Promise<CommissionSummary> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/${summaryId}/resolve`, { resolution })
-		return response.data
-	},
-
-	// Add bonus to a summary
-	async addBonus(venueId: string, summaryId: string, data: AddBonusInput): Promise<CommissionSummary> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/${summaryId}/bonus`, data)
-		return response.data
-	},
-
-	// Add adjustment to a summary
-	async addAdjustment(venueId: string, summaryId: string, data: AdjustSummaryInput): Promise<CommissionSummary> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/${summaryId}/adjust`, data)
-		return response.data
-	},
-
-	// ============================================
-	// PAYOUT OPERATIONS
-	// ============================================
-
-	// Get all payouts for a venue
-	async getPayouts(venueId: string, filters?: PayoutFilters): Promise<CommissionPayout[]> {
-		const params = new URLSearchParams()
-		if (filters?.staffId) params.append('staffId', filters.staffId)
-		if (filters?.status) params.append('status', filters.status)
-		if (filters?.startDate) params.append('startDate', filters.startDate)
-		if (filters?.endDate) params.append('endDate', filters.endDate)
-		const response = await api.get(`${BASE_URL}/venues/${venueId}/payouts?${params}`)
-		return normalizeArrayResponse<CommissionPayout>(response.data)
-	},
-
-	// Get a single payout by ID
-	async getPayout(venueId: string, payoutId: string): Promise<CommissionPayout> {
-		const response = await api.get(`${BASE_URL}/venues/${venueId}/payouts/${payoutId}`)
-		return response.data
-	},
-
-	// Get payouts for a specific staff member
-	async getStaffPayouts(venueId: string, staffId: string, limit: number = 10): Promise<CommissionPayout[]> {
-		const params = new URLSearchParams({
-			staffId,
-			limit: limit.toString(),
-		})
-		const response = await api.get(`${BASE_URL}/venues/${venueId}/payouts?${params}`)
-		return normalizeArrayResponse<CommissionPayout>(response.data)
-	},
-
-	// Create payouts from approved summaries
-	async createPayouts(venueId: string, data: CreatePayoutInput): Promise<CommissionPayout[]> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/payouts`, data)
-		return response.data
-	},
-
-	// Approve a payout
-	async approvePayout(venueId: string, payoutId: string): Promise<CommissionPayout> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/payouts/${payoutId}/approve`)
-		return response.data
-	},
-
-	// Process a payout (mark as processing)
-	async processPayout(venueId: string, payoutId: string): Promise<CommissionPayout> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/payouts/${payoutId}/process`)
-		return response.data
-	},
-
-	// Complete a payout (mark as paid)
-	async completePayout(venueId: string, payoutId: string, reference?: string): Promise<CommissionPayout> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/payouts/${payoutId}/complete`, { reference })
-		return response.data
-	},
-
-	// Cancel a payout
-	async cancelPayout(venueId: string, payoutId: string, reason?: string): Promise<CommissionPayout> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/payouts/${payoutId}/cancel`, { reason })
-		return response.data
-	},
-
-	// Mark payout as failed
-	async failPayout(venueId: string, payoutId: string, failureReason: string): Promise<CommissionPayout> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/payouts/${payoutId}/fail`, { failureReason })
-		return response.data
-	},
-
 	// ============================================
 	// STATS OPERATIONS
 	// ============================================
@@ -353,12 +231,6 @@ export const commissionService = {
 	// Get overall commission stats for a venue
 	async getStats(venueId: string): Promise<CommissionStats> {
 		const response = await api.get(`${BASE_URL}/venues/${venueId}/stats`)
-		return response.data
-	},
-
-	// Get payout stats for a venue
-	async getPayoutStats(venueId: string): Promise<PayoutStats> {
-		const response = await api.get(`${BASE_URL}/venues/${venueId}/payouts/stats`)
 		return response.data
 	},
 

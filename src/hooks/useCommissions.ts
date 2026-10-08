@@ -8,12 +8,8 @@ import type {
 	UpdateCommissionTierInput,
 	CreateCommissionOverrideInput,
 	UpdateCommissionOverrideInput,
-	CreatePayoutInput,
-	AddBonusInput,
-	AdjustSummaryInput,
 	CommissionFilters,
 	SummaryFilters,
-	PayoutFilters,
 	CreateSalesGoalInput,
 	UpdateSalesGoalInput,
 	OrgPayoutConfigInput,
@@ -43,14 +39,8 @@ export const commissionKeys = {
 	// Summaries
 	summaries: (venueId: string | null) => [...commissionKeys.all, 'summaries', venueId] as const,
 	summary: (venueId: string | null, summaryId: string) => [...commissionKeys.summaries(venueId), summaryId] as const,
-	pendingSummaries: (venueId: string | null) => [...commissionKeys.summaries(venueId), 'pending'] as const,
-	// Payouts
-	payouts: (venueId: string | null) => [...commissionKeys.all, 'payouts', venueId] as const,
-	payout: (venueId: string | null, payoutId: string) => [...commissionKeys.payouts(venueId), payoutId] as const,
-	staffPayouts: (venueId: string | null, staffId: string) => [...commissionKeys.payouts(venueId), 'staff', staffId] as const,
 	// Stats
 	stats: (venueId: string | null) => [...commissionKeys.all, 'stats', venueId] as const,
-	payoutStats: (venueId: string | null) => [...commissionKeys.all, 'payout-stats', venueId] as const,
 	// Payment Commission
 	paymentCommission: (venueId: string | null, paymentId: string) =>
 		[...commissionKeys.all, 'payment', venueId, paymentId] as const,
@@ -397,234 +387,6 @@ export function useCommissionSummary(summaryId: string | undefined) {
 	})
 }
 
-/**
- * Hook for fetching pending summaries
- */
-export function usePendingCommissionSummaries() {
-	const { venueId } = useCurrentVenue()
-
-	return useQuery({
-		queryKey: commissionKeys.pendingSummaries(venueId),
-		queryFn: () => commissionService.getPendingSummaries(venueId!),
-		enabled: !!venueId,
-		staleTime: 1 * 60 * 1000, // 1 minute - pending items change frequently
-		gcTime: 5 * 60 * 1000,
-	})
-}
-
-/**
- * Hook for approving a summary
- */
-export function useApproveSummary() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: (summaryId: string) => commissionService.approveSummary(venueId!, summaryId),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.stats(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for batch approving summaries
- */
-export function useApproveSummariesBatch() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: (summaryIds: string[]) => commissionService.approveSummariesBatch(venueId!, summaryIds),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.stats(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for disputing a summary
- */
-export function useDisputeSummary() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: ({ summaryId, reason }: { summaryId: string; reason: string }) =>
-			commissionService.disputeSummary(venueId!, summaryId, reason),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for adding bonus to a summary
- */
-export function useAddBonus() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: ({ summaryId, data }: { summaryId: string; data: AddBonusInput }) =>
-			commissionService.addBonus(venueId!, summaryId, data),
-		onSuccess: (_, { summaryId }) => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summary(venueId, summaryId) })
-		},
-	})
-}
-
-/**
- * Hook for adding adjustment to a summary
- */
-export function useAddAdjustment() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: ({ summaryId, data }: { summaryId: string; data: AdjustSummaryInput }) =>
-			commissionService.addAdjustment(venueId!, summaryId, data),
-		onSuccess: (_, { summaryId }) => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summary(venueId, summaryId) })
-		},
-	})
-}
-
-// ============================================
-// PAYOUT HOOKS
-// ============================================
-
-/**
- * Hook for fetching payouts
- */
-export function useCommissionPayouts(filters?: PayoutFilters, options?: { enabled?: boolean }) {
-	const { venueId } = useCurrentVenue()
-
-	return useQuery({
-		queryKey: [...commissionKeys.payouts(venueId), filters],
-		queryFn: () => commissionService.getPayouts(venueId!, filters),
-		enabled: !!venueId && (options?.enabled ?? true),
-		staleTime: 2 * 60 * 1000,
-		gcTime: 10 * 60 * 1000,
-	})
-}
-
-/**
- * Hook for fetching a single payout
- */
-export function useCommissionPayout(payoutId: string | undefined) {
-	const { venueId } = useCurrentVenue()
-
-	return useQuery({
-		queryKey: commissionKeys.payout(venueId, payoutId || ''),
-		queryFn: () => commissionService.getPayout(venueId!, payoutId!),
-		enabled: !!venueId && !!payoutId,
-		staleTime: 2 * 60 * 1000,
-		gcTime: 10 * 60 * 1000,
-	})
-}
-
-/**
- * Hook for fetching staff payouts
- */
-export function useStaffPayouts(staffId: string | undefined, limit: number = 10) {
-	const { venueId } = useCurrentVenue()
-
-	return useQuery({
-		queryKey: [...commissionKeys.staffPayouts(venueId, staffId || ''), { limit }],
-		queryFn: () => commissionService.getStaffPayouts(venueId!, staffId!, limit),
-		enabled: !!venueId && !!staffId,
-		staleTime: 2 * 60 * 1000,
-		gcTime: 10 * 60 * 1000,
-	})
-}
-
-/**
- * Hook for creating payouts
- */
-export function useCreatePayouts() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: (data: CreatePayoutInput) => commissionService.createPayouts(venueId!, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.payouts(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.stats(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for approving a payout
- */
-export function useApprovePayout() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: (payoutId: string) => commissionService.approvePayout(venueId!, payoutId),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.payouts(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for processing a payout
- */
-export function useProcessPayout() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: (payoutId: string) => commissionService.processPayout(venueId!, payoutId),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.payouts(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for completing a payout
- */
-export function useCompletePayout() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: ({ payoutId, reference }: { payoutId: string; reference?: string }) =>
-			commissionService.completePayout(venueId!, payoutId, reference),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.payouts(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.summaries(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.stats(venueId) })
-			queryClient.invalidateQueries({ queryKey: commissionKeys.payoutStats(venueId) })
-		},
-	})
-}
-
-/**
- * Hook for canceling a payout
- */
-export function useCancelPayout() {
-	const { venueId } = useCurrentVenue()
-	const queryClient = useQueryClient()
-
-	return useMutation({
-		mutationFn: ({ payoutId, reason }: { payoutId: string; reason?: string }) =>
-			commissionService.cancelPayout(venueId!, payoutId, reason),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: commissionKeys.payouts(venueId) })
-		},
-	})
-}
-
 // ============================================
 // STATS HOOKS
 // ============================================
@@ -638,21 +400,6 @@ export function useCommissionStats() {
 	return useQuery({
 		queryKey: commissionKeys.stats(venueId),
 		queryFn: () => commissionService.getStats(venueId!),
-		enabled: !!venueId,
-		staleTime: 2 * 60 * 1000,
-		gcTime: 10 * 60 * 1000,
-	})
-}
-
-/**
- * Hook for fetching payout stats
- */
-export function usePayoutStats() {
-	const { venueId } = useCurrentVenue()
-
-	return useQuery({
-		queryKey: commissionKeys.payoutStats(venueId),
-		queryFn: () => commissionService.getPayoutStats(venueId!),
 		enabled: !!venueId,
 		staleTime: 2 * 60 * 1000,
 		gcTime: 10 * 60 * 1000,
@@ -971,22 +718,7 @@ export default {
 	useCommissionCalculations,
 	useCommissionSummaries,
 	useCommissionSummary,
-	usePendingCommissionSummaries,
-	useApproveSummary,
-	useApproveSummariesBatch,
-	useDisputeSummary,
-	useAddBonus,
-	useAddAdjustment,
-	useCommissionPayouts,
-	useCommissionPayout,
-	useStaffPayouts,
-	useCreatePayouts,
-	useApprovePayout,
-	useProcessPayout,
-	useCompletePayout,
-	useCancelPayout,
 	useCommissionStats,
-	usePayoutStats,
 	useCommissionByPayment,
 	useCalculateCommission,
 	useGenerateSummaries,

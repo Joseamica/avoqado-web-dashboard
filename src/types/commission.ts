@@ -245,6 +245,10 @@ export interface StaffTierProgress {
 
 export interface CommissionStats {
   totalPaid: number
+  /** Fase 3: hay pago al personal activo (plan + activación). Sin él, «Pagado» no aplica y se oculta. */
+  staffPayActive?: boolean
+  /** Fase 3: lo que el motor calculó en la sede, sin anuladas (KPI «Calculado»). */
+  totalCalculated?: number
   totalPending: number
   totalApproved: number
   staffWithCommissions: number

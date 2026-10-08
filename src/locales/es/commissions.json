@@ -10,6 +10,8 @@
     "payouts": "Pagos"
   },
   "overview": {
+    "paidInStaffPay": "Las comisiones se pagan en el recibo de Pago al personal, junto con las clases y las propinas.",
+    "goToStaffPay": "Ir a Pago al personal",
     "noConfigTitle": "Configura comisiones para tu equipo",
     "noConfigDescription": "Para ver el resumen de comisiones, primero necesitas crear una configuración. Define cuánto ganan tus empleados y cómo se calcula.",
     "goToConfig": "Ir a Configuración"
@@ -44,6 +46,7 @@
     }
   },
   "stats": {
+    "calculated": "Calculado",
     "totalEarned": "Total Ganado",
     "pending": "Pendiente",
     "paid": "Pagado",

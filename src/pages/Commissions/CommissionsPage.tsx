@@ -1,23 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { Info, Plus } from 'lucide-react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { useCommissionStats, useEffectiveCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
+import { useCommissionStats, useEffectiveCommissionConfigs } from '@/hooks/useCommissions'
 import { useAccess } from '@/hooks/use-access'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import CommissionKPICards from './components/CommissionKPICards'
 import TeamCommissionTable from './components/TeamCommissionTable'
 import CommissionConfigList from './components/CommissionConfigList'
-import SummaryApprovalList from './components/SummaryApprovalList'
-import PayoutList from './components/PayoutList'
 import GoalsTab from './components/GoalsTab'
 import CommissionSetupPanel from './components/setup-panel/CommissionSetupPanel'
 
-const VALID_TABS = ['overview', 'goals', 'config', 'approvals'] as const
+const VALID_TABS = ['overview', 'goals', 'config'] as const
 type TabValue = typeof VALID_TABS[number]
 
 export default function CommissionsPage() {
@@ -25,10 +24,8 @@ export default function CommissionsPage() {
 	const location = useLocation()
 	const navigate = useNavigate()
 	const { can } = useAccess()
+	const { fullBasePath } = useCurrentVenue()
 	const [showSetupPanel, setShowSetupPanel] = useState(false)
-
-	// Check permissions
-	const canViewPayouts = can('commissions:payout')
 
 	// Get tab from URL hash, default to 'overview'
 	const getTabFromHash = (): TabValue => {
@@ -41,11 +38,6 @@ export default function CommissionsPage() {
 	// Sync tab with URL hash
 	useEffect(() => {
 		const tabFromHash = getTabFromHash()
-		// Legacy: redirect old #payouts hash to #approvals (merged tab)
-		if (location.hash === '#payouts') {
-			navigate(`${location.pathname}#approvals`, { replace: true })
-			return
-		}
 		if (tabFromHash !== activeTab) {
 			setActiveTab(tabFromHash)
 		}
@@ -61,11 +53,6 @@ export default function CommissionsPage() {
 	// Data fetching
 	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
 	const { data: effectiveConfigs, isLoading: isLoadingConfigs } = useEffectiveCommissionConfigs()
-	const { data: pendingSummaries, isLoading: isLoadingPending } = usePendingCommissionSummaries()
-	// Only fetch payouts if user has permission
-	const { data: payouts, isLoading: isLoadingPayouts } = useCommissionPayouts(undefined, { enabled: canViewPayouts })
-
-	const pendingCount = pendingSummaries?.length || 0
 	const configCount = effectiveConfigs?.length || 0
 
 	return (
@@ -78,6 +65,20 @@ export default function CommissionsPage() {
 					tooltip={t('subtitle')}
 				/>
 				<p className="text-muted-foreground">{t('subtitle')}</p>
+				{/* Fase 3 (spec §8, §11): los resúmenes quedan de consulta; el pago vive en el recibo de Pago al personal. */}
+				<div
+					role="note"
+					className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-input p-3 text-sm"
+					data-tour="commissions-paid-in-staff-pay"
+				>
+					<Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+					<span>{t('overview.paidInStaffPay')}</span>
+					{can('staffpay:read') && (
+						<Link to={`${fullBasePath}/servicio-pago#periodos`} className="font-medium underline underline-offset-2">
+							{t('overview.goToStaffPay')}
+						</Link>
+					)}
+				</div>
 			</div>
 
 			<Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
@@ -102,20 +103,6 @@ export default function CommissionsPage() {
 						>
 							{t('tabs.goals')}
 							{activeTab === 'goals' && (
-								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-							)}
-						</button>
-						<button
-							onClick={() => handleTabChange('approvals')}
-							className={`relative pb-3 text-sm font-medium transition-colors ${
-								activeTab === 'approvals' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-							}`}
-						>
-							{t('tabs.approvals')}
-							{pendingCount > 0 && (
-								<span className="ml-1.5 text-xs opacity-60">{pendingCount}</span>
-							)}
-							{activeTab === 'approvals' && (
 								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
 							)}
 						</button>
@@ -165,17 +152,6 @@ export default function CommissionsPage() {
 						effectiveConfigs={effectiveConfigs}
 						isLoading={isLoadingConfigs}
 					/>
-				</TabsContent>
-
-				{/* Approvals & Payouts Tab */}
-				<TabsContent value="approvals" className="space-y-8">
-					<SummaryApprovalList
-						summaries={pendingSummaries || []}
-						isLoading={isLoadingPending}
-					/>
-					{canViewPayouts && (
-						<PayoutList payouts={payouts || []} isLoading={isLoadingPayouts} />
-					)}
 				</TabsContent>
 			</Tabs>
 
