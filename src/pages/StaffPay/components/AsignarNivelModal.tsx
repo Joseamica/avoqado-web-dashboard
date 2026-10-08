@@ -31,6 +31,7 @@ export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payL
     hoy,
     fecha => simular.mutateAsync({ staffId, payLevelId, effectiveFrom: fecha, simular: true }),
     `${staffId}:${payLevelId}`,
+    simular.isPaused,
   )
   const [guardando, setGuardando] = useState(false)
 

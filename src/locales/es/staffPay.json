@@ -660,6 +660,7 @@
     "willSendSede": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, la sede no cambia.",
     "willSendSettle": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se liquida.",
     "willSendPeriodicity": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, la frecuencia no cambia.",
+    "willCalculate": "Sin conexión: se calculará al volver la red.",
     "cancelSend": "Cancelar envío"
   }
 }

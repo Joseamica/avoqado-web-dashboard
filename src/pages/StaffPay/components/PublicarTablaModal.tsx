@@ -37,6 +37,7 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
     hoy,
     fecha => simular.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, cells, ...reglas, simular: true }),
     tableId,
+    simular.isPaused,
   )
 
   // Cerrar la ventana: sin red el envío está EN PAUSA (C5) y cerrar lo quita de la cola de verdad (no sale al volver la red).

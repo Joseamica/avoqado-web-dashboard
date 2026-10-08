@@ -40,6 +40,7 @@ const casos = [
     llamada: () => m.assign,
     confirmar: 'assign.confirm',
     fecha: 'assign.effectiveFrom',
+    calculando: 'assign.effectLoading',
     pintar: (onOpenChange: () => void) => (
       <AsignarNivelModal open onOpenChange={onOpenChange} staffId="s1" staffName="Ana" payLevelId="hc" payLevelName="Head Coach" hoy="2026-10-03" />
     ),
@@ -49,6 +50,7 @@ const casos = [
     llamada: () => m.publish,
     confirmar: 'publish.confirm',
     fecha: 'publish.effectiveFrom',
+    calculando: 'publish.effectLoading',
     pintar: (onOpenChange: () => void) => (
       <PublicarTablaModal open onOpenChange={onOpenChange} tableId="t1" maxCount={10} grid={{}} reglas={REGLAS} hoy="2026-10-03" />
     ),
@@ -69,7 +71,7 @@ const volverLaRed = () =>
   })
 const escrituras = (llamada: typeof m.assign) => llamada.mock.calls.filter(c => !(c[c.length - 1] as { simular?: boolean }).simular)
 
-describe.each(casos)('$nombre sin red (C5)', ({ llamada, confirmar, fecha, pintar }) => {
+describe.each(casos)('$nombre sin red (C5)', ({ llamada, confirmar, fecha, calculando, pintar }) => {
   const abrirYConfirmarSinRed = async () => {
     const onOpenChange = vi.fn()
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>{pintar(onOpenChange)}</QueryClientProvider>)
@@ -103,6 +105,21 @@ describe.each(casos)('$nombre sin red (C5)', ({ llamada, confirmar, fecha, pinta
     fireEvent.change(screen.getByLabelText(fecha), { target: { value: '2026-10-05' } })
     await new Promise(r => setTimeout(r, 80))
     expect(screen.queryByText('offline.willSendSaveClose')).toBeNull()
+  })
+  // E6a-fix4: la vista previa en pausa se quedaba diciendo «calculando…» sin fin; ahora dice que se calculará al volver la red.
+  it('🔴 cambiar la fecha sin red: la vista previa dice que se calculará al volver la red, y al volver la red se calcula', async () => {
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>{pintar(vi.fn())}</QueryClientProvider>)
+    await screen.findByText(/^vigencia\.effectTotal/)
+    onlineManager.setOnline(false)
+    fireEvent.change(screen.getByLabelText(fecha), { target: { value: '2026-10-05' } })
+    expect(await screen.findByText('offline.willCalculate')).toBeInTheDocument()
+    expect(screen.queryByText(calculando)).toBeNull()
+    await volverLaRed()
+    await waitFor(() => expect(screen.queryByText('offline.willCalculate')).toBeNull())
+    expect(await screen.findByText(/^vigencia\.effectTotal/)).toBeInTheDocument()
+    const llamadas = llamada().mock.calls
+    const ultima = llamadas[llamadas.length - 1]
+    expect(ultima[ultima.length - 1]).toEqual(expect.objectContaining({ effectiveFrom: '2026-10-05', simular: true }))
   })
   it('sin cerrar, al volver la red se guarda una vez', async () => {
     await abrirYConfirmarSinRed()
