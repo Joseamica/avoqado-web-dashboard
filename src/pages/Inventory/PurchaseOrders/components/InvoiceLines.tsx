@@ -1,21 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { getProducts } from '@/services/menu.service'
-import { rawMaterialsApi } from '@/services/inventory.service'
 import {
-  purchaseOrderInvoiceService,
   type PurchaseOrderInvoice,
   type PurchaseOrderInvoiceLine,
 } from '@/services/purchaseOrderInvoice.service'
 import { Currency } from '@/utils/currency'
+import { InvoiceLineEditor } from './InvoiceLineEditor'
 
 /**
  * Los renglones de una factura, con el flujo de la fase 2: lo que el código del proveedor ya
@@ -42,7 +36,7 @@ export function InvoiceLines({ venueId, invoice, editable }: Props) {
     <div className="space-y-2">
       <Button variant="ghost" size="sm" className="h-7 cursor-pointer px-2 text-xs" onClick={() => setOpen(v => !v)}>
         {open ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
-        {t('invoices.lines.toggle', { count: lines.length })}
+        {t('invoices.lines.toggle', { count: invoice._count?.lines ?? lines.length })}
         {pending > 0 && (
           <Badge variant="outline" className="ml-2 rounded-full text-[10px]">
             {t('invoices.lines.pending', { count: pending })}
@@ -50,6 +44,7 @@ export function InvoiceLines({ venueId, invoice, editable }: Props) {
         )}
       </Button>
 
+      {open && (invoice._count?.lines ?? lines.length) > 200 && <p className="text-sm text-muted-foreground">{t('invoices.receipt.tooManyLines', { total: invoice._count?.lines })}</p>}
       {open && (
         <ul className="space-y-2">
           {lines.map(line => (
@@ -74,6 +69,7 @@ function LineRow({
   editable: boolean
   t: (k: string, o?: Record<string, unknown>) => string
 }) {
+  const [editing, setEditing] = useState(false)
   const identified = !!line.rawMaterialId || !!line.productId
   const matched = !!line.purchaseOrderItemId
 
@@ -106,100 +102,8 @@ function LineRow({
         )}
       </div>
 
-      {!matched && !identified && editable && <IdentifyControls venueId={venueId} invoiceId={invoice.id} lineId={line.id} t={t} />}
+      {!matched && editable && <Button variant="outline" size="sm" onClick={() => setEditing(true)} data-tour="invoice-identify-line">{t('invoices.receipt.identify')}</Button>}
+      {editing && <InvoiceLineEditor venueId={venueId} invoiceId={invoice.id} line={line} onClose={() => setEditing(false)} />}
     </li>
-  )
-}
-
-function IdentifyControls({
-  venueId,
-  invoiceId,
-  lineId,
-  t,
-}: {
-  venueId: string
-  invoiceId: string
-  lineId: string
-  t: (k: string, o?: Record<string, unknown>) => string
-}) {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [kind, setKind] = useState<'RAW' | 'PRODUCT'>('RAW')
-  const [targetId, setTargetId] = useState<string>('')
-
-  const { data: rawMaterials = [] } = useQuery({
-    queryKey: ['raw-materials', venueId, 'for-invoice-identify'],
-    queryFn: async () => {
-      const response = await rawMaterialsApi.getAll(venueId, { active: true })
-      return (response.data?.data ?? response.data ?? []) as Array<{ id: string; name: string }>
-    },
-    enabled: kind === 'RAW',
-  })
-  const { data: products = [] } = useQuery({
-    queryKey: ['products', venueId, 'for-invoice-identify'],
-    queryFn: () => getProducts(venueId, { orderBy: 'name' }),
-    enabled: kind === 'PRODUCT',
-  })
-
-  const identify = useMutation({
-    mutationFn: () =>
-      purchaseOrderInvoiceService.identifyLine(
-        venueId,
-        invoiceId,
-        lineId,
-        kind === 'RAW' ? { rawMaterialId: targetId } : { productId: targetId },
-      ),
-    onSuccess: () => {
-      // La misma consulta alimenta la sección de la orden y la de facturas sin orden.
-      queryClient.invalidateQueries({ queryKey: ['purchase-order-invoices'] })
-      queryClient.invalidateQueries({ queryKey: ['supplier-invoices'] })
-      toast({ title: t('invoices.lines.learnedTitle'), description: t('invoices.lines.learnedDesc') })
-    },
-    onError: (error: any) => {
-      toast({ title: t('invoices.toasts.errorTitle'), description: error?.response?.data?.message, variant: 'destructive' })
-    },
-  })
-
-  const options = kind === 'RAW' ? rawMaterials : products
-
-  return (
-    <div className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
-      <div className="space-y-1">
-        <Label className="text-[11px]">{t('invoices.lines.kind')}</Label>
-        <Select
-          value={kind}
-          onValueChange={v => {
-            setKind(v as 'RAW' | 'PRODUCT')
-            setTargetId('')
-          }}
-        >
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="RAW">{t('invoices.lines.raw')}</SelectItem>
-            <SelectItem value="PRODUCT">{t('invoices.lines.product')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-1">
-        <Label className="text-[11px]">{t('invoices.lines.target')}</Label>
-        <Select value={targetId} onValueChange={setTargetId}>
-          <SelectTrigger className="h-8 w-52 text-xs">
-            <SelectValue placeholder={t('invoices.lines.targetPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((o: { id: string; name: string }) => (
-              <SelectItem key={o.id} value={o.id}>
-                {o.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <Button size="sm" className="h-8 cursor-pointer text-xs" disabled={!targetId || identify.isPending} onClick={() => identify.mutate()}>
-        {identify.isPending ? t('common:saving', { defaultValue: '...' }) : t('invoices.lines.confirm')}
-      </Button>
-    </div>
   )
 }

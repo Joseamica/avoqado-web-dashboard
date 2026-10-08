@@ -132,9 +132,9 @@ export function nombreDelRenglon(item: PurchaseOrderItem, fallback = '—'): str
   return objetivoDelRenglon(item)?.name ?? fallback
 }
 
-/** Unidad a mostrar: la de compra si se compró en presentación, si no la del artículo. */
+/** Cantidad y precio están en la unidad de COMPRA; la unidad base sólo sirve al inventario. */
 export function unidadDelRenglon(item: PurchaseOrderItem): string {
-  return item.presentationName || objetivoDelRenglon(item)?.unit || item.unit
+  return item.presentationName || item.unit
 }
 
 /** Si el renglón es mercancía para revender (tienda) o un insumo de cocina. */

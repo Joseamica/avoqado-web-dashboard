@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
+import { Command as CommandPrimitive } from 'cmdk'
 import { Badge } from '@/components/ui/badge'
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -24,6 +25,8 @@ export interface SearchComboboxItem {
 }
 
 interface SearchComboboxProps {
+  onOpenChange?: (open: boolean) => void
+  footer?: ReactNode
   /** Placeholder for the search input */
   placeholder?: string
   /** Items to display in the dropdown (already filtered by the caller) */
@@ -69,6 +72,8 @@ interface SearchComboboxProps {
  */
 export function SearchCombobox({
   placeholder,
+  onOpenChange,
+  footer,
   items,
   isLoading = false,
   onSelect,
@@ -89,6 +94,11 @@ export function SearchCombobox({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  const changeOpen = (next: boolean) => {
+    setOpen(next)
+    onOpenChange?.(next)
+  }
+
   // Infinite scroll detection on the cmdk list element.
   useEffect(() => {
     const list = listRef.current
@@ -104,60 +114,67 @@ export function SearchCombobox({
   const handleSelect = (item: SearchComboboxItem) => {
     if (item.disabled) return
     onSelect(item)
-    setOpen(false)
+    changeOpen(false)
   }
 
   const handleCreateNew = () => {
     if (!onCreateNew) return
     onCreateNew(value.trim())
-    setOpen(false)
+    changeOpen(false)
   }
 
   const defaultCreateLabel = (term: string) => `${term} (${t('createNew', 'crear nuevo')})`
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverAnchor asChild>
-        <div className={cn('relative', className)}>
-          <input
-            ref={inputRef}
-            id={inputId}
-            type="text"
-            value={value}
-            onChange={e => {
-              onChange(e.target.value)
-              if (!open) setOpen(true)
-            }}
-            onFocus={() => setOpen(true)}
-            onClick={() => setOpen(true)}
-            placeholder={placeholder}
-            autoFocus={autoFocus}
-            autoComplete="one-time-code"
-            className={cn(
-              'w-full h-12 px-4 text-base bg-transparent outline-none placeholder:text-muted-foreground rounded-lg border border-input transition-colors',
-              open && 'border-ring ring-1 ring-ring',
-            )}
-          />
-        </div>
-      </PopoverAnchor>
+    <Command shouldFilter={false} className="overflow-visible rounded-none border-none bg-transparent">
+      <Popover open={open} onOpenChange={changeOpen}>
+        <PopoverAnchor asChild>
+          <div className={cn('relative', className)}>
+            <CommandPrimitive.Input
+              asChild
+              value={value}
+              onValueChange={value => {
+                onChange(value)
+                if (!open) changeOpen(true)
+              }}
+            >
+              <input
+                ref={inputRef}
+                id={inputId}
+                type="text"
+                aria-expanded={open}
+                aria-labelledby={undefined}
+                onFocus={() => changeOpen(true)}
+                onClick={() => changeOpen(true)}
+                placeholder={placeholder}
+                autoFocus={autoFocus}
+                autoComplete="one-time-code"
+                className={cn(
+                  'w-full h-12 px-4 text-base bg-transparent outline-none placeholder:text-muted-foreground rounded-lg border border-input transition-colors',
+                  open && 'border-ring ring-1 ring-ring',
+                )}
+              />
+            </CommandPrimitive.Input>
+          </div>
+        </PopoverAnchor>
 
-      <PopoverContent
-        align="start"
-        sideOffset={4}
-        style={{ width: 'var(--radix-popover-trigger-width)' }}
-        // Keep focus on our own input; don't let Radix steal it.
-        onOpenAutoFocus={e => e.preventDefault()}
-        // Keep popover open when user clicks back into the input area.
-        onInteractOutside={e => {
-          if (inputRef.current?.contains(e.target as Node)) e.preventDefault()
-        }}
-        className="p-0 overflow-hidden rounded-lg border border-input bg-popover shadow-md"
-      >
-        <Command shouldFilter={false} className="rounded-none border-none bg-transparent">
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          style={{ width: 'var(--radix-popover-trigger-width)' }}
+          // Keep focus on our own input; don't let Radix steal it.
+          onOpenAutoFocus={e => e.preventDefault()}
+          // Keep popover open when user clicks back into the input area.
+          onInteractOutside={e => {
+            if (inputRef.current?.contains(e.target as Node)) e.preventDefault()
+          }}
+          className="p-0 overflow-hidden rounded-lg border border-input bg-popover shadow-md"
+        >
           {onCreateNew && (
             <button
               type="button"
               onClick={handleCreateNew}
+              onKeyDown={e => e.stopPropagation()}
               className="flex items-center w-full px-4 py-3 text-sm text-left font-medium bg-muted hover:bg-accent transition-colors"
             >
               {(createNewLabel || defaultCreateLabel)(value.trim())}
@@ -172,6 +189,16 @@ export function SearchCombobox({
             <CommandList
               ref={listRef}
               label={listLabel ?? t('suggestions')}
+              // cmdk falls back to focusing its list when asChild preserves an
+              // external inputId. Keep that generated-ID fallback on our input,
+              // so external labels work and arrows never interrupt typing.
+              onFocus={e => {
+                if (e.target !== e.currentTarget) return
+                const list = e.currentTarget
+                queueMicrotask(() => {
+                  if (listRef.current === list && document.activeElement === list) inputRef.current?.focus()
+                })
+              }}
               className="max-h-[360px]"
               // Some ancestor in the dashboard layout intercepts wheel events
               // (same workaround as time-picker.tsx:160). Without this, mouse
@@ -215,8 +242,9 @@ export function SearchCombobox({
               )}
             </CommandList>
           )}
-        </Command>
-      </PopoverContent>
-    </Popover>
+          {footer && <div onKeyDown={e => e.stopPropagation()}>{footer}</div>}
+        </PopoverContent>
+      </Popover>
+    </Command>
   )
 }

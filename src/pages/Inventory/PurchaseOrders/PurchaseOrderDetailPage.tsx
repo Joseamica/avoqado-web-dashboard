@@ -12,7 +12,6 @@ import {
   PurchaseOrderItemStatus,
   PurchaseOrderStatus,
   nombreDelRenglon,
-  objetivoDelRenglon,
 } from '@/services/purchaseOrder.service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -581,7 +580,7 @@ export default function PurchaseOrderDetailPage() {
                             capturar 50 huevos en vez de 50 cajas. */}
                         {item.quantityOrdered}{' '}
                         {item.presentationName ||
-                          formatUnitWithQuantity(item.quantityOrdered, objetivoDelRenglon(item)?.unit ?? item.unit, true)}
+                          formatUnitWithQuantity(item.quantityOrdered, item.unit, true)}
                       </TableCell>
                       <TableCell className="text-right py-6">
                         {formatPrice(item.unitPrice)}
@@ -836,7 +835,9 @@ export default function PurchaseOrderDetailPage() {
 
                   <div className="flex justify-between text-sm items-center">
                     <span className="text-muted-foreground">
-                      {t('details.tax')} ({(purchaseOrder.taxRate * 100).toFixed(0)}%)
+                      {t('details.tax')}
+                      {(Number(purchaseOrder.taxRate) !== 0 || parseFloat(purchaseOrder.taxAmount) === 0) &&
+                        ` (${(purchaseOrder.taxRate * 100).toFixed(0)}%)`}
                     </span>
                     <span className="font-medium">
                       {formatPrice(hasRemovedItems ? adjustedTaxAmount : purchaseOrder.taxAmount)}
@@ -956,16 +957,16 @@ export default function PurchaseOrderDetailPage() {
                 />
                 <span className="text-sm text-muted-foreground min-w-[80px] uppercase">
                   {receiveItemDialog.item?.presentationName ||
-                    (receiveItemDialog.item?.rawMaterial?.unit
-                      ? formatUnitWithQuantity(receiveItemDialog.quantity, receiveItemDialog.item.rawMaterial.unit, true)
+                    (receiveItemDialog.item?.unit
+                      ? formatUnitWithQuantity(receiveItemDialog.quantity, receiveItemDialog.item.unit, true)
                       : '')}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 {t('actions.quantityOrderedLabel')} {receiveItemDialog.item?.quantityOrdered || 0}{' '}
                 {receiveItemDialog.item?.presentationName ||
-                  (receiveItemDialog.item?.rawMaterial?.unit
-                    ? formatUnitWithQuantity(receiveItemDialog.item.quantityOrdered, receiveItemDialog.item.rawMaterial.unit, true)
+                  (receiveItemDialog.item?.unit
+                    ? formatUnitWithQuantity(receiveItemDialog.item.quantityOrdered, receiveItemDialog.item.unit, true)
                     : '')}
               </p>
               {receiveItemDialog.quantity > (receiveItemDialog.item?.quantityOrdered || 0) && (

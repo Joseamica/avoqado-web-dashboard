@@ -1367,10 +1367,10 @@ export interface Modifier {
   rawMaterial?: {
     id: string
     name: string
-    sku: string
+    sku?: string | null
     unit: string
     currentStock: number
-    costPerUnit: number
+    costPerUnit?: number | string | null
   } | null
   quantityPerUnit?: number | null // Amount of raw material per modifier unit
   unit?: Unit | string | null // Unit of measurement

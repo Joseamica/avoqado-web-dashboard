@@ -1,7 +1,10 @@
+import type { ComponentProps } from 'react'
+
 import i18n from '@/i18n'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { ModifierInventoryMode } from '@/types'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type CapturedToast = { title?: string; description?: string; variant?: string }
@@ -43,8 +46,18 @@ const MODIFIER_ID = 'mod-1'
 // Un solo objeto, fuera del render: EditModifier reinicia el formulario cada vez que
 // `initialValues` cambia de identidad, y un literal nuevo en cada render borraría lo tecleado.
 const INITIAL_VALUES = { name: 'Shot de espresso', price: 15, active: true, sku: 'P000672' }
+const INVENTORY_VALUES = {
+  ...INITIAL_VALUES,
+  price: 5,
+  durationMin: 5,
+  rawMaterialId: 'rm-1',
+  rawMaterial: { id: 'rm-1', name: 'Ingrediente extra', unit: 'UNIT', currentStock: 100 },
+  quantityPerUnit: 0.25,
+  unit: 'UNIT',
+  inventoryMode: ModifierInventoryMode.ADDITION,
+}
 
-function renderEdit() {
+function renderEdit(initialValues: ComponentProps<typeof EditModifier>['initialValues'] = INITIAL_VALUES) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -54,7 +67,7 @@ function renderEdit() {
         modifierGroupId={GROUP_ID}
         onBack={() => {}}
         onSuccess={() => {}}
-        initialValues={INITIAL_VALUES}
+        initialValues={initialValues}
       />
     </QueryClientProvider>,
   )
@@ -145,5 +158,52 @@ describe('EditModifier — SKU del extra (el código del OTRO POS, que sale impr
     expect(payload).toMatchObject({ name: 'Shot de espresso', price: 20 })
     // El valor de siempre, no `null`: un `null` aquí borraría en el servidor un SKU que nadie tocó.
     expect(payload).toHaveProperty('sku', 'P000672')
+  })
+
+  it('muestra stock y unidad sin inventar costo en el DTO parcial', async () => {
+    renderEdit({ ...INVENTORY_VALUES, inventoryMode: ModifierInventoryMode.ADDITION })
+    const stock = await screen.findByText(/^Stock Actual:/)
+    expect(stock.textContent).toMatch(/Stock Actual: 100\.00 Unidad/)
+    expect(stock.textContent).not.toContain('$')
+    expect(stock.textContent).not.toMatch(/NaN|Infinity|∞/)
+    expect(screen.getByLabelText('Cantidad por modificador')).toHaveValue(0.25)
+    expect(screen.getByLabelText('Precio')).toHaveValue(5)
+    expect(screen.getByPlaceholderText('0')).toHaveAttribute('name', 'durationMin')
+    expect(screen.getByPlaceholderText('0')).toHaveValue(5)
+  })
+
+  it.each([
+    [0, '$0.00'],
+    ['0', '$0.00'],
+    [3.25, '$3.25'],
+    ['3.25', '$3.25'],
+  ])('muestra el costo unitario disponible %s', async (costPerUnit, formatted) => {
+    renderEdit({
+      ...INVENTORY_VALUES,
+      inventoryMode: ModifierInventoryMode.ADDITION,
+      rawMaterial: { ...INVENTORY_VALUES.rawMaterial, costPerUnit },
+    })
+    const stock = await screen.findByText(/^Stock Actual:/)
+    expect(stock.textContent).toContain(`${formatted} / Unidad`)
+  })
+
+  it.each([undefined, null, '', '  ', 'sin costo', NaN, Infinity, -Infinity, 'Infinity'])(
+    'omite el costo no disponible %s sin perder stock/unidad', async costPerUnit => {
+      renderEdit({
+        ...INVENTORY_VALUES,
+        inventoryMode: ModifierInventoryMode.ADDITION,
+        rawMaterial: { ...INVENTORY_VALUES.rawMaterial, costPerUnit },
+      })
+      const stock = await screen.findByText(/^Stock Actual:/)
+      expect(stock.textContent).toContain('100.00 Unidad')
+      expect(stock.textContent).not.toContain('$')
+      expect(stock.textContent).not.toMatch(/NaN|Infinity|∞/)
+    },
+  )
+
+  it('sin ingrediente vinculado mantiene el selector sin inventar stock', () => {
+    renderEdit(INITIAL_VALUES)
+    expect(screen.queryByText(/^Stock Actual:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/\$NaN/)).not.toBeInTheDocument()
   })
 })

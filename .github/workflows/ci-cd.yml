@@ -14,7 +14,6 @@ on:
         default: 'staging'
         type: choice
         options:
-          - demo
           - production
 
 # Cancel outdated workflow runs
@@ -149,72 +148,6 @@ jobs:
           name: dashboard-build-${{ github.sha }}
           path: dist/
           retention-days: 7
-
-  # 🧪 Deploy to Demo Environment
-  deploy-demo:
-    name: 🧪 Deploy to Demo
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    if: |
-      (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'demo')
-    environment:
-      name: demo
-      url: https://demo.dashboard.avoqado.io
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v6
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: 📦 Cache node_modules
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
-            ${{ runner.os }}-node-
-
-      - name: 📦 Install dependencies
-        run: npm ci --prefer-offline
-
-      - name: 🏗️ Build for Demo
-        run: npm run build
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://demo.api.avoqado.io' }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
-
-      - name: 🚀 Deploy to Cloudflare Pages (Demo)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name demo-avoqado-web-dashboard --branch develop
-
-      # ✅ OPTIMIZATION: Faster health check (non-blocking due to Cloudflare WAF)
-      - name: 🏥 Demo health check
-        continue-on-error: true
-        run: |
-          echo "🏥 Checking demo deployment..."
-          echo "ℹ️ Note: Cloudflare WAF may block automated health checks"
-          for i in {1..5}; do
-            # Use -L to follow redirects, add user-agent to avoid bot detection
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L -A "GitHub-Actions-HealthCheck" https://demo.dashboard.avoqado.io)
-            echo "⏳ Attempt $i/5... HTTP $HTTP_CODE"
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Demo deployment successful!"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "⚠️ Demo health check inconclusive (Cloudflare WAF may be blocking)"
-          echo "📍 Manual verification: https://demo.dashboard.avoqado.io"
-          exit 0
 
   # 🏭 Deploy to Production Environment
   deploy-production:

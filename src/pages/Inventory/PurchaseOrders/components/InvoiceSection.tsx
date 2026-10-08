@@ -10,6 +10,9 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
+import { Link } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { InvoiceInventoryDialog } from './InvoiceInventoryDialog'
 import { InvoiceLines } from './InvoiceLines'
 import { useAccess } from '@/hooks/use-access'
 import { purchaseOrderInvoiceService, type InvoiceMatchStatus, type PurchaseOrderInvoice } from '@/services/purchaseOrderInvoice.service'
@@ -39,7 +42,7 @@ const STATUS_TONE: Record<InvoiceMatchStatus, 'ok' | 'warn'> = {
 
 export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
   const { t } = useTranslation(['purchaseOrders', 'common'])
-  const { formatDate } = useVenueDateTime()
+  const { formatCalendarDate: formatDate } = useVenueDateTime()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -143,8 +146,13 @@ export function InvoiceRow({
   t: (key: string, opts?: Record<string, unknown>) => string
 }) {
   const { can } = useAccess()
+  const { fullBasePath } = useCurrentVenue()
+  const [reviewing, setReviewing] = useState(false)
+  const canReceive = can('inventory:create') && can('inventory:update')
+  const received = !!invoice.inventoryReceivedAt || (!!invoice.inventoryPreparedAt && invoice.purchaseOrder?.status === 'RECEIVED')
+  const waitingApproval = !!invoice.inventoryPreparedAt && invoice.purchaseOrder?.status === 'PENDING_APPROVAL'
   const tone = STATUS_TONE[invoice.matchStatus] ?? 'warn'
-  const notes = invoice.matchNotes
+  const notes = invoice.inventoryPreparedAt ? null : invoice.matchNotes
   const diff = notes?.totalDifferenceCents ?? 0
 
   return (
@@ -162,7 +170,7 @@ export function InvoiceRow({
 
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium tabular-nums">{Currency(invoice.totalCents / 100)}</span>
-          {tone === 'ok' ? (
+          {!invoice.inventoryPreparedAt && (tone === 'ok' ? (
             <Badge variant="secondary" className="rounded-full gap-1">
               <CheckCircle2 className="h-3 w-3" />
               {t(`invoices.status.${invoice.matchStatus}`)}
@@ -172,7 +180,7 @@ export function InvoiceRow({
               <AlertTriangle className="h-3 w-3" />
               {t(`invoices.status.${invoice.matchStatus}`)}
             </Badge>
-          )}
+          ))}
         </div>
       </div>
 
@@ -204,10 +212,16 @@ export function InvoiceRow({
           {t('invoices.supplierUnverified')}
         </p>
       )}
-      {notes?.supplierUnknown && <p className="text-xs text-muted-foreground">{t('invoices.supplierUnknown')}</p>}
+      {notes?.supplierUnknown && !invoice.supplier && <p className="text-xs text-muted-foreground">{t('invoices.supplierUnknown')}</p>}
 
       {/* Fase 2: los renglones, con identificación humana de lo que los códigos no reconocen. */}
-      <InvoiceLines venueId={venueId} invoice={invoice} editable={can('inventory:update')} />
+      {(!invoice.purchaseOrderId || invoice.inventoryPreparedAt) && <div className="flex flex-wrap items-center gap-3" data-tour="invoice-receipt-actions">
+        {received ? <Badge variant="secondary">{t('invoices.receipt.received')}</Badge> : waitingApproval ? <p className="text-sm text-muted-foreground">{t('invoices.receipt.waitingApproval')}</p> : <Button variant="outline" size="sm" disabled={!canReceive} onClick={() => setReviewing(true)} data-tour="invoice-review-inventory">{t('invoices.receipt.review')}</Button>}
+        {!canReceive && !received && <p className="text-xs text-muted-foreground">{t('invoices.receipt.permission')}</p>}
+        {invoice.purchaseOrderId && <Link className="text-sm underline" to={`${fullBasePath}/inventory/purchase-orders/${invoice.purchaseOrderId}`}>{t('invoices.receipt.openOrder')}</Link>}
+      </div>}
+      {reviewing && <InvoiceInventoryDialog venueId={venueId} invoice={invoice} onClose={() => setReviewing(false)} />}
+      <InvoiceLines venueId={venueId} invoice={invoice} editable={can('inventory:update') && !invoice.inventoryPreparedAt && !invoice.inventoryReceivedAt} />
     </li>
   )
 }

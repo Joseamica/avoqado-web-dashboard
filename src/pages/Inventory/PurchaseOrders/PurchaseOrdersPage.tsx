@@ -935,7 +935,7 @@ export default function PurchaseOrdersPage() {
         </AlertDialog>
 
         {/* Fase 2 de la factura: las que llegaron SIN orden. */}
-        <StandaloneInvoicesSection venueId={venue?.id ?? ''} />
+        <FeatureGate feature="CFDI"><StandaloneInvoicesSection venueId={venue?.id ?? ''} /></FeatureGate>
 
         {/* Purchase Order Wizard */}
         <PurchaseOrderWizard

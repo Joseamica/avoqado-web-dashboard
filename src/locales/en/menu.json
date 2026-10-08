@@ -1,4 +1,7 @@
 {
+  "catalog": {
+    "loadError": "Could not load or refresh the catalog. Please try again."
+  },
   "overview": {
     "title": "Menu Overview",
     "newCategory": "New Category",

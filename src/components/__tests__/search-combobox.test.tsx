@@ -9,7 +9,8 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => `t:
 
 const abrir = (props: Partial<Parameters<typeof SearchCombobox>[0]> = {}) => {
   render(<SearchCombobox items={[{ id: 's1', label: 'Carlos QA' }]} value="" onChange={() => {}} onSelect={() => {}} inputId="buscar" {...props} />)
-  fireEvent.focus(screen.getByRole('textbox'))
+  // Desde develop (9c2fc8ff) el buscador es el `Command.Input` de cmdk: se anuncia como «combobox», ya no como «textbox».
+  fireEvent.focus(screen.getByRole('combobox'))
 }
 
 describe('SearchCombobox', () => {

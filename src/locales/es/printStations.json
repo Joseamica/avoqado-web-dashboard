@@ -68,7 +68,7 @@
     }
   },
   "printers": {
-    "intro": "Registra cada impresora física del local. Puedes conectarla por red (WiFi/Ethernet) o por Bluetooth.",
+    "intro": "Registra cada impresora física del local. Puedes conectarla por red (WiFi/Ethernet) o por Bluetooth. La impresora de recibos y vales de cada caja no va aquí: se elige en la propia caja, en Más › Ajustes › Impresora.",
     "empty": "Aún no hay impresoras registradas.",
     "add": "Agregar impresora",
     "createTitle": "Nueva impresora",
@@ -96,9 +96,11 @@
       "paperWidth": "Ancho de papel",
       "leftMargin": "Recorrer a la derecha (columnas)",
       "leftMarginHint": "Déjalo en 0 salvo que hayas puesto un rollo angosto con adaptadores en una impresora más ancha: ahí el papel no empieza donde la impresora cree y el ticket sale mocho de la izquierda. Imprime la página de prueba desde el POS, cuenta el primer número de la regla que alcances a ver y escríbelo aquí.",
-      "charset": "Codificación",
+      "charset": "Acentos",
       "active": "Impresora activa",
-      "posInternalHint": "La comanda sale en el propio aparato que cobró (la impresora integrada del punto de venta). No lleva dirección IP y funciona aun sin red."
+      "posInternalHint": "La comanda sale en el propio aparato que cobró (la impresora integrada del punto de venta). No lleva dirección IP y funciona aun sin red.",
+      "paperWidthHint": "Si la comanda sale encimada o cortada con 80 mm, tu impresora imprime 42 columnas: elige «80 mm (42 col.)».",
+      "charsetHint": "Déjalo en «Normal». Si los acentos salen como símbolos raros (CAFETER═A), elige PC850; si tampoco, PC437 (sin acento en las mayúsculas)."
     },
     "saved": "Impresora guardada",
     "deleted": "Impresora eliminada",
@@ -113,7 +115,13 @@
       "addressForbiddenPosInternal": "La impresora integrada no lleva dirección: imprime el propio aparato que cobró"
     },
     "connectionPosInternal": "Impresora integrada del POS",
-    "integratedAddress": "Integrada del POS"
+    "integratedAddress": "Integrada del POS",
+    "width42": "80 mm (42 col.)",
+    "charsetOptions": {
+      "CP858": "Normal",
+      "PC850": "PC850",
+      "PC437": "PC437"
+    }
   },
   "gateway": {
     "intro": "El gateway es el dispositivo (una tablet) que queda encendido y controla las impresoras en la red del local.",
@@ -169,6 +177,25 @@
       "unroutedStation": "SIN ESTACIÓN",
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Algunos productos no tienen estación y saldrían en una comanda marcada SIN ESTACIÓN."
+    },
+    "lists": {
+      "searchCategories": "Buscar categorías",
+      "searchProducts": "Buscar productos",
+      "categoriesTotal": "{{count}} categorías",
+      "productsTotal": "{{count}} productos",
+      "previousCategories": "Página anterior de categorías",
+      "nextCategories": "Siguiente página de categorías",
+      "previousProducts": "Página anterior de productos",
+      "nextProducts": "Siguiente página de productos",
+      "page": "Página {{page}} de {{totalPages}}",
+      "loadMore": "Cargar más",
+      "loadError": "No se pudo cargar el ruteo",
+      "noMatches": "Sin resultados para esta búsqueda",
+      "emptyProducts": "Aún no hay productos",
+      "retry": "Reintentar",
+      "selected": "Seleccionado: {{name}}",
+      "productLabel": "Producto {{index}}",
+      "removeProduct": "Quitar producto {{index}}"
     }
   },
   "kitchenDisplay": {

@@ -1,4 +1,7 @@
 {
+  "catalog": {
+    "loadError": "No se pudo cargar o actualizar el catálogo. Intenta de nuevo."
+  },
   "overview": {
     "title": "Resumen del Menú",
     "newCategory": "Nueva Categoría",

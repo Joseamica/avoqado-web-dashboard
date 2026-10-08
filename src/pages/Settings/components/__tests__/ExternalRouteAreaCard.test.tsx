@@ -43,7 +43,12 @@ import { ExternalRouteAreaCard } from '../ExternalRouteAreaCard'
 // ---------------------------------------------------------------------------
 // Anclado al propio archivo de test (no a `process.cwd()`): sigue apuntando bien
 // aunque vitest se lance desde otro directorio. `__tests__` → … → workspace root.
-const SCHEMA_PATH = path.resolve(__dirname, '../../../../../../avoqado-server/prisma/schema.prisma')
+// avq congela el schema hermano dentro del árbol verificado; tiene prioridad sobre
+// cualquier checkout cercano y conserva la comparación contra la fuente real.
+const FROZEN_SCHEMA_PATH = path.resolve(__dirname, '../../../../../.avq-server-schema.prisma')
+const SCHEMA_PATH = fs.existsSync(FROZEN_SCHEMA_PATH)
+  ? FROZEN_SCHEMA_PATH
+  : path.resolve(__dirname, '../../../../../../avoqado-server/prisma/schema.prisma')
 
 function prismaFulfillmentAreaDefaults(): Record<string, string> {
   if (!fs.existsSync(SCHEMA_PATH)) {

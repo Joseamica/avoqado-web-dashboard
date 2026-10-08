@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation } from '@tanstack/react-query'
 import { AlertTriangle, Loader2, PlayCircle, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useTerminology } from '@/hooks/use-terminology'
+import { SearchCombobox } from '@/components/search-combobox'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
 import { getRouting, previewRouting, type PreviewResult, type PrintStation } from '@/services/printStations.service'
@@ -21,28 +21,20 @@ const apiError = (e: any, fallback: string): string => e?.response?.data?.messag
  * las estaciones (diseño A: «botón Probar con el simulador existente»). Cada estación del resultado dice si su comanda
  * sale en papel, en la pantalla o en las dos.
  */
-export function RoutingSimulator({
-  venueId,
-  products,
-  stations,
-}: {
-  venueId: string
-  products: { id: string; name: string }[]
-  stations: PrintStation[]
-}) {
+export function RoutingSimulator({ venueId, stations }: { venueId: string; stations: PrintStation[] }) {
   const { t } = useTranslation('printStations')
   const { toast } = useToast()
   const { hasAccess: tieneAccesoPro } = useTierFeatureAccess('KITCHEN_DISPLAY')
-  const [items, setItems] = useState<{ productId: string; quantity: number }[]>([])
+  const [items, setItems] = useState<{ rowId: string; productId: string; label: string; quantity: number }[]>([])
   const [result, setResult] = useState<PreviewResult | null>(null)
 
   const simMut = useMutation({
-    mutationFn: () => previewRouting(venueId, { items }),
+    mutationFn: () => previewRouting(venueId, { items: items.map(({ productId, quantity }) => ({ productId, quantity })) }),
     onSuccess: setResult,
     onError: e => toast({ title: t('errors.title'), description: apiError(e, t('errors.generic')), variant: 'destructive' }),
   })
 
-  const addItem = () => setItems(prev => [...prev, { productId: '', quantity: 1 }])
+  const addItem = () => setItems(prev => [...prev, { rowId: crypto.randomUUID(), productId: '', label: '', quantity: 1 }])
   const canRun = items.length > 0 && items.every(i => i.productId && (i.quantity ?? 0) >= 1)
 
   return (
@@ -56,22 +48,15 @@ export function RoutingSimulator({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           {items.map((item, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2">
-              <Select
-                value={item.productId}
-                onValueChange={v => setItems(prev => prev.map((x, j) => (j === i ? { ...x, productId: v } : x)))}
-              >
-                <SelectTrigger className="w-64">
-                  <SelectValue placeholder={t('routing.simulator.selectProduct')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div key={item.rowId} className="flex flex-wrap items-center gap-2">
+              <ProductSelector
+                venueId={venueId}
+                index={i + 1}
+                selectedLabel={item.label}
+                onSelect={product =>
+                  setItems(prev => prev.map((x, j) => (j === i ? { ...x, productId: product.id, label: product.label } : x)))
+                }
+              />
               <Input
                 type="number"
                 min={1}
@@ -91,6 +76,7 @@ export function RoutingSimulator({
                 variant="ghost"
                 size="icon"
                 className="cursor-pointer"
+                aria-label={t('routing.lists.removeProduct', { index: i + 1 })}
                 onClick={() => setItems(prev => prev.filter((_, j) => j !== i))}
               >
                 <Trash2 className="h-4 w-4" />
@@ -148,31 +134,97 @@ export function RoutingSimulator({
   )
 }
 
-/**
- * El botón «Probar» de las estaciones: el mismo simulador, sin salir de la pestaña. Los productos salen de la misma
- * consulta que usa «Ruteo» (`['printRouting', venueId]`), así que no se piden dos veces.
- */
+function ProductSelector({
+  venueId,
+  index,
+  selectedLabel,
+  onSelect,
+}: {
+  venueId: string
+  index: number
+  selectedLabel: string
+  onSelect: (product: { id: string; label: string }) => void
+}) {
+  const { t } = useTranslation('printStations')
+  const [open, setOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const search = useDebounce(searchTerm, 300)
+  const query = useInfiniteQuery({
+    queryKey: ['printRouting', venueId, 'products', 'selector', search],
+    queryFn: ({ pageParam }) => getRouting(venueId, { section: 'products', page: pageParam, search }),
+    initialPageParam: 1,
+    getNextPageParam: last => (last.pagination && last.pagination.page < last.pagination.totalPages ? last.pagination.page + 1 : undefined),
+    enabled: open && !!venueId,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+  const options = useMemo(
+    () => [...new Map(query.data?.pages.flatMap(page => page.products).map(p => [p.id, { id: p.id, label: p.name }])).values()],
+    [query.data],
+  )
+  return (
+    <div className="w-64 space-y-1">
+      <label htmlFor={`routing-product-${index}`} className="sr-only">
+        {t('routing.lists.productLabel', { index })}
+      </label>
+      <SearchCombobox
+        inputId={`routing-product-${index}`}
+        placeholder={t('routing.simulator.selectProduct')}
+        items={options}
+        value={searchTerm}
+        onChange={value => setSearchTerm(value.slice(0, 100))}
+        onOpenChange={setOpen}
+        onSelect={product => {
+          onSelect(product)
+          setSearchTerm('')
+        }}
+        isLoading={query.isFetching && !query.isFetchingNextPage}
+        isLoadingMore={query.isFetchingNextPage}
+        hasMore={query.hasNextPage}
+        onLoadMore={() => {
+          if (open && !query.isFetching && query.hasNextPage) query.fetchNextPage()
+        }}
+        footer={
+          <div className="space-y-2 border-t border-border p-3 text-sm text-muted-foreground">
+            {query.isError ? (
+              <div role="alert">
+                {t('routing.lists.loadError')}{' '}
+                <Button size="sm" variant="outline" onClick={() => query.refetch()}>
+                  {t('routing.lists.retry')}
+                </Button>
+              </div>
+            ) : (
+              <>
+                {query.data && (
+                  <span>{t('routing.lists.productsTotal', { count: query.data.pages[0].pagination?.total ?? options.length })}</span>
+                )}
+                {!query.isFetching && query.data && options.length === 0 && (
+                  <p>{t(search ? 'routing.lists.noMatches' : 'routing.lists.emptyProducts')}</p>
+                )}
+                {query.hasNextPage && (
+                  <Button size="sm" variant="outline" disabled={query.isFetching} onClick={() => query.fetchNextPage()}>
+                    {t('routing.lists.loadMore')}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        }
+      />
+      {selectedLabel && <p className="text-xs text-muted-foreground">{t('routing.lists.selected', { name: selectedLabel })}</p>}
+    </div>
+  )
+}
+
+/** Probar comparte el simulador; el catálogo se pide al abrir su selector. */
 export function ProbarRuteoModal({ venueId, stations, onClose }: { venueId: string; stations: PrintStation[]; onClose: () => void }) {
   const { t } = useTranslation('printStations')
-  const { term } = useTerminology()
-  const { data, isLoading } = useQuery({
-    queryKey: ['printRouting', venueId],
-    queryFn: () => getRouting(venueId),
-    enabled: !!venueId,
-  })
-
   return (
     <FullScreenModal open onClose={onClose} title={t('stations.testTitle')} contentClassName="bg-muted/30">
       <div className="mx-auto max-w-2xl space-y-4 p-4 md:p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
-          </div>
-        ) : !data || data.products.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">{t('routing.empty', { menu: term('menu') })}</p>
-        ) : (
-          <RoutingSimulator venueId={venueId} products={data.products} stations={stations} />
-        )}
+        <RoutingSimulator key={venueId} venueId={venueId} stations={stations} />
       </div>
     </FullScreenModal>
   )

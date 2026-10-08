@@ -21,6 +21,18 @@ export interface IncomeStatementResponse {
     netRevenueCents: number
     taxableBaseCents: number
     ivaCents: number
+    /** Plan 4b · base a tasa 0 % (ya incluida en taxableBaseCents). */
+    tasa0BaseCents?: number
+    /** Plan 4b · base exenta (fuera de taxableBaseCents). */
+    exentoBaseCents?: number
+    /** Plan 4b · base no objeto de IVA (fuera de taxableBaseCents). */
+    noObjetoBaseCents?: number
+    /** Plan 4b · todo el ingreso sin IVA (la base del ISR). */
+    ingresosSinIvaCents?: number
+    /** IVA por tasa; llave = la tasa ("0.16", "0.08"). */
+    taxByRate?: Record<string, number>
+    /** B4b · ventas y devoluciones con IVA aproximado; 0 = todo se pudo atribuir; ausente = no se sabe. */
+    movimientosConIvaAproximado?: number
   }
   tips: { totalCents: number }
   metrics: {

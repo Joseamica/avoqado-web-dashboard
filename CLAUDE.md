@@ -184,15 +184,13 @@ backend
 
 ## Environment & Deployment
 
-Three environments deployed via GitHub Actions + Cloudflare Pages:
+One environment, deployed via GitHub Actions + Cloudflare Pages: **production** (`dashboard.avoqado.io` → `api.avoqado.io`),
+auto-deployed on push to `main`. Push to `develop` only runs tests.
 
-| Env        | URL                            | API                   |
-| ---------- | ------------------------------ | --------------------- |
-| Demo       | `demo.dashboard.avoqado.io`    | `demo.api.avoqado.io` |
-| Staging    | `staging.dashboard.avoqado.io` | Render staging        |
-| Production | `dashboard.avoqado.io`         | `api.avoqado.io`      |
-
-Auto-deploy: push to `develop` (demo + staging), push to `main` (production). Manual: `gh workflow run ci-cd.yml --field environment=demo`
+**Demo/staging retired (founder, 2026-10-04):** the Pages project `demo-avoqado-web-dashboard`
+(`demo.dashboard.avoqado.io`, `staging.dashboard.avoqado.io`, its `pages.dev`) now serves only a 302 to
+`https://dashboard.avoqado.io/signup`. Its production branch is `retirado-a-signup` and its Git previews are off, so a stray
+`wrangler pages deploy --branch develop` can no longer replace the redirect. Don't re-add a demo deploy job.
 
 Environment variables are in **GitHub Environments** (NOT Cloudflare Pages UI). Vite injects at build time.
 

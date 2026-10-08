@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { mensajeDelMes } from '@/components/accounting/errorDelReporte'
+import { AvisoIvaPorTasa, IvaPorTasa } from '@/components/accounting/IvaPorTasa'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -87,7 +89,13 @@ function CashBasisVatInner() {
       {query.isLoading && hasAccess ? (
         <Skeleton className="h-80 rounded-2xl" />
       ) : query.isError && hasAccess ? (
-        <AccountingErrorState onRetry={() => query.refetch()} />
+        // B4b (Codex r5 R5-8): en un mes no hay «rango más corto» que elegir; con REPORT_TOO_LARGE / REPORT_TIMEOUT la pantalla usa su
+        // propio texto, aunque el servidor mande el del reporte. M-B: salvo una VENTA que pasa un tope, cuyo mensaje nombra el folio.
+        // Cualquier otro error, el genérico.
+        <AccountingErrorState
+          message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
+          onRetry={() => query.refetch()}
+        />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -134,7 +142,12 @@ function CashBasisVatInner() {
                 <div className="rounded-lg bg-muted/40 px-3 py-2">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {t('cashBasisVat.ivaTrasladado')}
-                    <Badge variant="outline" className="h-4 px-1.5 text-[10px]">{t('cashBasisVat.estimado16')}</Badge>
+                    {/* «Aproximado» sólo con un número > 0; ausente = no se sabe, y no se afirma nada (nunca «exacto»). */}
+                    {(data?.movimientosConIvaAproximado ?? 0) > 0 && (
+                      <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                        {t('ivaPorTasa.aproximadoBadge')}
+                      </Badge>
+                    )}
                   </div>
                   <div className="mt-0.5 text-2xl font-semibold tabular-nums text-foreground">{Currency(data?.ivaTrasladadoCobradoCents ?? 0, true)}</div>
                   <p className="text-xs text-muted-foreground">{t('cashBasisVat.baseGravable')}: {Currency(data?.baseGravableCents ?? 0, true)}</p>
@@ -208,6 +221,18 @@ function CashBasisVatInner() {
               </CardContent>
             </Card>
           </div>
+
+          {/* B4b: el IVA de cada tasa (oculto sólo con 16 % puro y sin aproximados) y la línea fija, que sale siempre. */}
+          <IvaPorTasa
+            desglose={{
+              taxByRate: data?.ivaTrasladadoPorTasaCents,
+              tasa0BaseCents: data?.tasa0BaseCents,
+              exentoBaseCents: data?.exentoBaseCents,
+              noObjetoBaseCents: data?.noObjetoBaseCents,
+              movimientosConIvaAproximado: data?.movimientosConIvaAproximado,
+            }}
+          />
+          <AvisoIvaPorTasa />
         </>
       )}
 

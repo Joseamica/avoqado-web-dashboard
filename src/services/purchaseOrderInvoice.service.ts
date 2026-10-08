@@ -35,6 +35,11 @@ export interface PurchaseOrderInvoiceLine {
   /** Qué ES el renglón (fase 2): insumo O producto. Ambos null = pendiente de identificar. */
   rawMaterialId: string | null
   productId: string | null
+  purchaseUnit?: string | null
+  presentationName?: string | null
+  rawMaterial?: { id: string; name: string; unit: string } | null
+  product?: { id: string; name: string; unit: string } | null
+  iepsCents?: number
   supplierItemCode: string | null
   descripcion: string
   claveUnidad: string | null
@@ -49,7 +54,12 @@ export interface PurchaseOrderInvoice {
   /** Null = factura sin orden previa (fase 2). */
   purchaseOrderId: string | null
   supplier?: { id: string; name: string } | null
-  purchaseOrder?: { id: string; orderNumber: string } | null
+  purchaseOrder?: { id: string; orderNumber: string; status?: string } | null
+  inventoryPreparedAt?: string | null
+  inventoryReceivedAt?: string | null
+  inventoryIncludeIeps?: boolean | null
+  currency?: string | null
+  iepsCents?: number
   uuid: string
   serie: string | null
   folio: string | null
@@ -63,6 +73,7 @@ export interface PurchaseOrderInvoice {
   matchStatus: InvoiceMatchStatus
   matchNotes: InvoiceMatchNotes | null
   createdAt: string
+  _count?: { lines: number }
   lines: PurchaseOrderInvoiceLine[]
 }
 
@@ -93,12 +104,48 @@ export const purchaseOrderInvoiceService = {
     return response.data
   },
 
+  async inbox(venueId: string, page = 1, search = ''): Promise<InvoicePage> {
+    return (
+      await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/inbox`, {
+        params: { page, limit: 20, search: search || undefined },
+      })
+    ).data
+  },
+
+  async catalog(venueId: string, kind: 'RAW' | 'PRODUCT', page = 1, search = ''): Promise<InvoiceCatalogPage> {
+    return (
+      await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/catalog`, {
+        params: { kind, page, limit: 25, search: search || undefined },
+      })
+    ).data
+  },
+
+  async previewInventory(venueId: string, invoiceId: string, includeIeps = false): Promise<InvoiceInventoryReview> {
+    return (
+      await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/${invoiceId}/inventory`, { params: { includeIeps } })
+    ).data
+  },
+
+  async confirmInventory(
+    venueId: string,
+    invoiceId: string,
+    confirmationToken: string,
+    includeIeps: boolean,
+  ): Promise<{ purchaseOrderId: string; status: string }> {
+    return (
+      await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/supplier-invoices/${invoiceId}/inventory`, {
+        confirmationToken,
+        includeIeps,
+      })
+    ).data
+  },
+
   /** Una persona confirma qué ES un renglón — y el sistema APRENDE el código del proveedor. */
   async identifyLine(
     venueId: string,
     invoiceId: string,
     lineId: string,
-    body: { rawMaterialId?: string | null; productId?: string | null },
+    body: { rawMaterialId?: string | null; productId?: string | null; purchaseUnit?: string | null; presentationName?: string | null },
   ): Promise<PurchaseOrderInvoiceLine> {
     const response = await api.post(
       `/api/v1/dashboard/venues/${venueId}/inventory/purchase-invoices/${invoiceId}/lines/${lineId}/identify`,
@@ -106,4 +153,47 @@ export const purchaseOrderInvoiceService = {
     )
     return response.data
   },
+}
+
+export interface InvoicePage {
+  rows: PurchaseOrderInvoice[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+export interface InvoiceCatalogItem {
+  id: string
+  name: string
+  unit: string
+}
+export interface InvoiceCatalogPage {
+  rows: InvoiceCatalogItem[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+export interface InvoiceInventoryReview {
+  action: 'PREPARE' | 'RECEIVE'
+  confirmationToken: string
+  supplier: string
+  supplierRfc?: string
+  supplierWillBeCreated?: boolean
+  total: string
+  subtotal: string
+  iva: string
+  ieps: string
+  includeIepsInCost: boolean
+  lines: Array<{
+    lineId: string
+    name: string
+    quantity: string
+    unit: string
+    presentationName: string | null
+    baseQuantity: string
+    baseUnit: string
+    costAmount: string
+    baseUnitCost: string
+  }>
 }

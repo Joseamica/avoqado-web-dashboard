@@ -60,6 +60,8 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-invoices', venueId, purchaseOrder.id] })
+      queryClient.invalidateQueries({ queryKey: ['supplier-invoice-inbox', venueId] })
       toast({ description: t('actions.approveSuccess') })
     },
     onError: (error: any) => {
