@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -30,6 +30,8 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
   const simular = usePublishTable(true)
   const publicar = usePublishTable()
   const [guardando, setGuardando] = useState(false)
+  // Candado SÍNCRONO (revisión de E6b): el estado no alcanza a apagar el botón entre dos clics seguidos.
+  const enVuelo = useRef(false)
   // La cuadrícula en edición puede guardar filas por encima del techo: no viajan.
   const cells = useMemo(() => celdasDesdeCuadricula(grid, maxCount), [grid, maxCount])
   // Vista previa del efecto («cambia el pago de 12 clases de septiembre…») cada vez que cambia la fecha.
@@ -44,13 +46,15 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
   const cerrar = () => {
     if (publicar.isPaused) {
       publicar.cancelarEnPausa()
+      enVuelo.current = false
       setGuardando(false)
     }
     onOpenChange(false)
   }
 
   const guardar = async () => {
-    if (vigencia.bloqueada || guardando) return
+    if (vigencia.bloqueada || guardando || enVuelo.current) return
+    enVuelo.current = true
     setGuardando(true)
     try {
       await publicar.mutateAsync({ tableId, effectiveFrom: vigencia.fecha, maxCount, cells, ...reglas })
@@ -60,6 +64,7 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
       // Una fecha cerrada se explica en línea, con su atajo; lo demás, en un aviso.
       if (!vigencia.tomarError(err)) toast({ title: (err as any)?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
     } finally {
+      enVuelo.current = false
       setGuardando(false)
     }
   }

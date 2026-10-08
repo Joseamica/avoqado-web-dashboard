@@ -91,3 +91,50 @@ describe('cambiar la frecuencia sin red (C5)', () => {
     await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'periods.periodicitySaved' }))
   })
 })
+
+// E6a-fix4 (revisión de E6b): candado SÍNCRONO contra el doble clic al confirmar la frecuencia.
+describe('cambiar la frecuencia: doble clic (candado)', () => {
+  const abrirDialogo = async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <MemoryRouter initialEntries={['/x#periodos']}>
+          <PeriodosTab activa />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    fireEvent.change(frecuencia(), { target: { value: 'SEMIMONTHLY' } })
+    return screen.findByRole('button', { name: /periods\.changeConfirm/ })
+  }
+  it('🔴 dos clics seguidos cambian la frecuencia UNA vez', async () => {
+    m.periodicity.mockReturnValue(new Promise(() => undefined))
+    const confirmar = await abrirDialogo()
+    act(() => {
+      confirmar.click()
+      confirmar.click()
+    })
+    await waitFor(() => expect(m.periodicity).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 30))
+    expect(m.periodicity).toHaveBeenCalledTimes(1)
+  })
+  it('al terminar, el candado se suelta: se puede volver a cambiar', async () => {
+    const confirmar = await abrirDialogo()
+    fireEvent.click(confirmar)
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'periods.periodicitySaved' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    fireEvent.change(frecuencia(), { target: { value: 'SEMIMONTHLY' } })
+    fireEvent.click(await screen.findByRole('button', { name: /periods\.changeConfirm/ }))
+    await waitFor(() => expect(m.periodicity).toHaveBeenCalledTimes(2))
+  })
+  it('cancelar en pausa suelta el candado: al volver a confirmar con red, se manda', async () => {
+    const confirmar = await abrirDialogo()
+    onlineManager.setOnline(false)
+    fireEvent.click(confirmar)
+    await screen.findByText('offline.willSendPeriodicity')
+    fireEvent.click(screen.getByRole('button', { name: 'closed.cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    await volverLaRed()
+    fireEvent.change(frecuencia(), { target: { value: 'SEMIMONTHLY' } })
+    fireEvent.click(await screen.findByRole('button', { name: /periods\.changeConfirm/ }))
+    await waitFor(() => expect(m.periodicity).toHaveBeenCalledTimes(1))
+  })
+})

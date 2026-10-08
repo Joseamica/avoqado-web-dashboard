@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
@@ -66,6 +66,8 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta. Desde la fase 3 queda fija al activar
   // (el servidor manda `puedeCambiarPeriodicidad: false` y este diálogo no se alcanza); manda el servidor, así que se queda.
   const [nuevaFrecuencia, setNuevaFrecuencia] = useState<'MONTHLY' | 'SEMIMONTHLY' | null>(null)
+  // Candado SÍNCRONO (revisión de E6b): `isPending` no alcanza a apagar «Cambiar» entre dos clics seguidos.
+  const cambiando = useRef(false)
   const items = data?.items ?? []
   // Un `?periodo=` que no está en la lista (viejo, mal escrito, de otra frecuencia) cae al periodo actual.
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
@@ -97,7 +99,8 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
           : t('periods.closedPaid', { pagadas: p.pagadas, count: p.personas })
 
   const cambiarPeriodicidad = async () => {
-    if (!nuevaFrecuencia) return
+    if (!nuevaFrecuencia || cambiando.current) return
+    cambiando.current = true
     try {
       await setPeriodicity.mutateAsync(nuevaFrecuencia)
       setElegido(null)
@@ -105,14 +108,17 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
     } catch (err) {
       toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
     } finally {
+      cambiando.current = false
       setNuevaFrecuencia(null)
     }
   }
 
   // Cerrar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se cancela de verdad (no sale al volver la red).
   const cerrarFrecuencia = () => {
-    if (setPeriodicity.isPaused) setPeriodicity.cancelarEnPausa()
-    else if (setPeriodicity.isPending) return
+    if (setPeriodicity.isPaused) {
+      setPeriodicity.cancelarEnPausa()
+      cambiando.current = false
+    } else if (setPeriodicity.isPending) return
     setNuevaFrecuencia(null)
   }
 

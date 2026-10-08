@@ -72,3 +72,30 @@ describe('crear la tabla sin red (C5)', () => {
     await waitFor(() => expect(screen.queryByText('offline.willSendSave')).toBeNull())
   })
 })
+
+// E6a-fix4 (revisión de E6b): candado SÍNCRONO contra el doble clic en «Crear la tabla».
+describe('crear la tabla: doble clic (candado)', () => {
+  it('🔴 dos clics seguidos crean UNA tabla', async () => {
+    m.create.mockReturnValue(new Promise(() => undefined))
+    montar()
+    await waitFor(() => expect(crear()).toBeEnabled())
+    const boton = crear()
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(m.create).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 30))
+    expect(m.create).toHaveBeenCalledTimes(1)
+  })
+  it('tras un rechazo, el candado se suelta: se puede volver a crear', async () => {
+    m.create.mockRejectedValueOnce({ response: { status: 409, data: { message: 'Ya existe' } } })
+    montar()
+    await waitFor(() => expect(crear()).toBeEnabled())
+    fireEvent.click(crear())
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'Ya existe', variant: 'destructive' }))
+    await waitFor(() => expect(crear()).toBeEnabled())
+    fireEvent.click(crear())
+    await waitFor(() => expect(m.create).toHaveBeenCalledTimes(2))
+  })
+})

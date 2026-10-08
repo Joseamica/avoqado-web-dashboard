@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -34,18 +34,22 @@ export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payL
     simular.isPaused,
   )
   const [guardando, setGuardando] = useState(false)
+  // Candado SÍNCRONO (revisión de E6b): el estado no alcanza a apagar el botón entre dos clics seguidos.
+  const enVuelo = useRef(false)
 
   // Cerrar la ventana: sin red el envío está EN PAUSA (C5) y cerrar lo quita de la cola de verdad (no sale al volver la red).
   const cerrar = () => {
     if (asignar.isPaused) {
       asignar.cancelarEnPausa()
+      enVuelo.current = false
       setGuardando(false)
     }
     onOpenChange(false)
   }
 
   const guardar = async () => {
-    if (vigencia.bloqueada || guardando) return
+    if (vigencia.bloqueada || guardando || enVuelo.current) return
+    enVuelo.current = true
     setGuardando(true)
     try {
       await asignar.mutateAsync({ staffId, payLevelId, effectiveFrom: vigencia.fecha })
@@ -57,6 +61,7 @@ export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payL
         toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
       }
     } finally {
+      enVuelo.current = false
       setGuardando(false)
     }
   }

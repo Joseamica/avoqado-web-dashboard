@@ -128,3 +128,36 @@ describe.each(casos)('$nombre sin red (C5)', ({ llamada, confirmar, fecha, calcu
     await waitFor(() => expect(m.toast).toHaveBeenCalled())
   })
 })
+
+// E6a-fix4 (revisión de E6b): candado SÍNCRONO contra el doble clic. El estado `guardando` no alcanza a pintarse entre dos clics
+// que llegan antes de que React vuelva a pintar (los dos dentro del mismo `act`): sin candado, dos asignaciones/publicaciones.
+describe.each(casos)('$nombre: doble clic (candado)', ({ llamada, confirmar, pintar }) => {
+  const abrir = async () => {
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>{pintar(vi.fn())}</QueryClientProvider>)
+    await screen.findByText(/^vigencia\.effectTotal/)
+    const boton = screen.getByRole('button', { name: confirmar })
+    await waitFor(() => expect(boton).toBeEnabled())
+    return boton
+  }
+  it('🔴 dos clics seguidos guardan UNA vez', async () => {
+    const boton = await abrir()
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(m.toast).toHaveBeenCalled())
+    expect(escrituras(llamada())).toHaveLength(1)
+  })
+  it('tras un rechazo, el candado se suelta: se puede volver a guardar', async () => {
+    const boton = await abrir()
+    llamada().mockImplementation(async (...a: unknown[]) => {
+      if ((a[a.length - 1] as { simular?: boolean }).simular) return { clasesQueCambian: 3 }
+      throw { response: { status: 409, data: { message: 'Otro cambio' } } }
+    })
+    fireEvent.click(boton)
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'Otro cambio', variant: 'destructive' }))
+    await waitFor(() => expect(boton).toBeEnabled())
+    fireEvent.click(boton)
+    await waitFor(() => expect(escrituras(llamada())).toHaveLength(2))
+  })
+})

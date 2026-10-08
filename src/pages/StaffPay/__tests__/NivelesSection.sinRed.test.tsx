@@ -93,3 +93,55 @@ describe('niveles sin red (C5)', () => {
     expect(m.update).not.toHaveBeenCalled()
   })
 })
+
+// E6a-fix4 (revisión de E6b): candado SÍNCRONO contra el doble clic en agregar, renombrar y archivar. Dos clics que llegan antes
+// de que React vuelva a pintar (dentro del mismo `act`) no alcanzan a ver el botón apagado: sin candado, dos envíos.
+describe('niveles: doble clic (candado)', () => {
+  it('🔴 agregar: dos clics seguidos crean UN nivel; al terminar, el candado se suelta', async () => {
+    montar()
+    fireEvent.change(screen.getByPlaceholderText('levels.namePlaceholder'), { target: { value: 'Coach' } })
+    const agregar = screen.getByRole('button', { name: /levels\.add/ })
+    act(() => {
+      agregar.click()
+      agregar.click()
+    })
+    await waitFor(() => expect(screen.getByPlaceholderText('levels.namePlaceholder')).toHaveValue(''))
+    expect(m.create).toHaveBeenCalledTimes(1)
+    fireEvent.change(screen.getByPlaceholderText('levels.namePlaceholder'), { target: { value: 'Senior' } })
+    fireEvent.click(screen.getByRole('button', { name: /levels\.add/ }))
+    await waitFor(() => expect(m.create).toHaveBeenCalledTimes(2))
+  })
+  it('🔴 renombrar: dos clics seguidos mandan UN cambio', async () => {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: /levels\.rename/ }))
+    fireEvent.change(screen.getByLabelText('levels.newName'), { target: { value: 'Coach Senior' } })
+    const guardar = screen.getByRole('button', { name: 'levels.save' })
+    act(() => {
+      guardar.click()
+      guardar.click()
+    })
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'levels.renamed' }))
+    expect(m.update).toHaveBeenCalledTimes(1)
+  })
+  it('al terminar de renombrar, el candado se suelta: archivar después sí se manda', async () => {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: /levels\.rename/ }))
+    fireEvent.change(screen.getByLabelText('levels.newName'), { target: { value: 'Coach Senior' } })
+    fireEvent.click(screen.getByRole('button', { name: 'levels.save' }))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'levels.renamed' }))
+    fireEvent.click(screen.getByRole('button', { name: /levels\.archiveLevel/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'levels.archiveConfirm' }))
+    await waitFor(() => expect(m.update).toHaveBeenCalledTimes(2))
+  })
+  it('🔴 archivar: dos clics seguidos en la confirmación mandan UN archivo', async () => {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: /levels\.archiveLevel/ }))
+    const confirmar = await screen.findByRole('button', { name: 'levels.archiveConfirm' })
+    act(() => {
+      confirmar.click()
+      confirmar.click()
+    })
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'levels.archived' }))
+    expect(m.update).toHaveBeenCalledTimes(1)
+  })
+})

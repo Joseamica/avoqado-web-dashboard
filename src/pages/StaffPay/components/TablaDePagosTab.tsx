@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, CheckCircle2, Circle } from 'lucide-react'
@@ -46,6 +46,8 @@ export function TablaDePagosTab() {
     staleTime: 60_000,
   })
   const crearTabla = useCreateTable()
+  // Candado SÍNCRONO (revisión de E6b): `isPending` no alcanza a apagar «Crear la tabla» entre dos clics seguidos.
+  const creandoTabla = useRef(false)
   const permisoNiveles = usePermisoDeConfigurar()
 
   const niveles = useMemo(() => qNiveles.data ?? [], [qNiveles.data])
@@ -104,11 +106,24 @@ export function TablaDePagosTab() {
     const payLevelName = activos.find(n => n.id === payLevelId)?.name ?? ''
     setPorAsignar({ staffId, staffName, payLevelId, payLevelName })
   }
-  const crearTablaVacia = () =>
+  const crearTablaVacia = () => {
+    if (creandoTabla.current) return
+    creandoTabla.current = true
     crearTabla.mutate(
       { name: t('grid.title'), productIds: [] },
-      { onError: err => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' }) },
+      {
+        onError: err => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' }),
+        onSettled: () => {
+          creandoTabla.current = false
+        },
+      },
     )
+  }
+  // Cancelar el envío en pausa (C5) suelta también el candado: esa espera ya no termina.
+  const cancelarCrearTabla = () => {
+    crearTabla.cancelarEnPausa()
+    creandoTabla.current = false
+  }
   const fijarCelda = (payLevelId: string, count: number, raw: string) => {
     const n = raw === '' ? undefined : parseFloat(raw)
     const valor = n === undefined || Number.isNaN(n) ? undefined : n
@@ -229,7 +244,7 @@ export function TablaDePagosTab() {
             <p className="text-sm text-muted-foreground">{t('grid.empty')}</p>
             {/* Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola (no sale al volver la red). */}
             {crearTabla.isPaused && (
-              <AvisoSinConexion texto={t('offline.willSendSave')} onCancelar={() => crearTabla.cancelarEnPausa()} dataTour="staffpay-table-create-offline" />
+              <AvisoSinConexion texto={t('offline.willSendSave')} onCancelar={cancelarCrearTabla} dataTour="staffpay-table-create-offline" />
             )}
             <PermissionGate permission="staffpay:manage">
               <Button className="cursor-pointer" disabled={crearTabla.isPending} onClick={crearTablaVacia} data-tour="staffpay-table-create">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Archive, Check, Pencil, Plus, X } from 'lucide-react'
 import {
@@ -31,34 +31,46 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
   const [nuevoNivel, setNuevoNivel] = useState('')
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
   const [porArchivar, setPorArchivar] = useState<NivelDto | null>(null)
+  // Candados SÍNCRONOS (revisión de E6b): `isPending` no alcanza a apagar el botón entre dos clics seguidos. Uno por mutación; se
+  // sueltan al terminar (`onSettled`) o al cancelar el envío en pausa (esa espera ya no termina).
+  const creando = useRef(false)
+  const actualizando = useRef(false)
+  const soltar = (candado: { current: boolean }) => () => {
+    candado.current = false
+  }
 
   // Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola de verdad (no sale al volver la red).
   const enPausa = crearNivel.isPaused || actualizar.isPaused
   const cancelarEnvio = () => {
     crearNivel.cancelarEnPausa()
     actualizar.cancelarEnPausa()
+    creando.current = false
+    actualizando.current = false
   }
 
   const fallar = (err: unknown) => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' })
   const agregar = () => {
     const nombre = nuevoNivel.trim()
-    if (!nombre) return
-    crearNivel.mutate(nombre, { onSuccess: () => setNuevoNivel(''), onError: fallar })
+    if (!nombre || creando.current) return
+    creando.current = true
+    crearNivel.mutate(nombre, { onSuccess: () => setNuevoNivel(''), onError: fallar, onSettled: soltar(creando) })
   }
   const guardarNombre = () => {
     if (!editando) return
     const nombre = editando.nombre.trim()
-    if (!nombre) return
+    if (!nombre || actualizando.current) return
+    actualizando.current = true
     actualizar.mutate(
       { levelId: editando.id, name: nombre },
-      { onSuccess: () => { setEditando(null); toast({ title: t('levels.renamed') }) }, onError: fallar },
+      { onSuccess: () => { setEditando(null); toast({ title: t('levels.renamed') }) }, onError: fallar, onSettled: soltar(actualizando) },
     )
   }
   const archivar = () => {
-    if (!porArchivar) return
+    if (!porArchivar || actualizando.current) return
+    actualizando.current = true
     actualizar.mutate(
       { levelId: porArchivar.id, archived: true },
-      { onSuccess: () => toast({ title: t('levels.archived') }), onError: fallar },
+      { onSuccess: () => toast({ title: t('levels.archived') }), onError: fallar, onSettled: soltar(actualizando) },
     )
     setPorArchivar(null)
   }
