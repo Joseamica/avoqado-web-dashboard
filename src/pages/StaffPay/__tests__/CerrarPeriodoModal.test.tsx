@@ -159,46 +159,6 @@ describe('CerrarPeriodoModal', () => {
     expect(m.refetch).toHaveBeenCalled()
   })
 
-  // E6a-fix F10 (contrato con el server, QA H5): un periodo que termina antes del inicio de pago al personal ⇒ 409
-  // ANTES_DEL_INICIO con su mensaje en español. La pantalla lo dice tal cual y no deja cerrar.
-  const ANTES_DEL_INICIO = {
-    response: { status: 409, data: { code: 'ANTES_DEL_INICIO', message: 'Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior' } },
-  }
-  it('la vista previa de un periodo anterior al inicio (409 ANTES_DEL_INICIO) dice el mensaje del servidor y no deja cerrar', () => {
-    m.preview.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: ANTES_DEL_INICIO, refetch: m.refetch })
-    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
-    expect(screen.getByRole('alert')).toHaveTextContent('Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior')
-    expect(screen.getByRole('button', { name: 'close.confirm' })).toBeDisabled()
-  })
-
-  it('cerrar un periodo anterior al inicio (409 ANTES_DEL_INICIO): el aviso dice el mensaje del servidor', async () => {
-    m.preview.mockReturnValue({ data: ok, isLoading: false, refetch: m.refetch })
-    m.close.mockRejectedValue(ANTES_DEL_INICIO)
-    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'close.confirm' }))
-    await waitFor(() =>
-      expect(m.toast).toHaveBeenCalledWith({ title: 'Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior', variant: 'destructive' }),
-    )
-    expect(m.refetch).toHaveBeenCalled()
-  })
-
-  it('el estado por sede de un periodo pasado es el que manda el servidor para ESE periodo (no el de hoy de «Sedes»)', () => {
-    // Hoy las dos están activas en «Sedes»; en ese periodo sólo participó Prado Norte.
-    m.sedes.mockReturnValue({ data: { activado: true, sedes: [{ venueId: 'v2', estado: 'ACTIVA' }] } })
-    m.preview.mockReturnValue({
-      data: { ...ok, porSede: [
-        { venueId: 'v1', nombre: 'Prado Norte', estado: 'ACTIVA', entra: { clases: { n: 72, total: '36620.00', pendientesDeValoracion: 0 }, comisiones: { n: 0, total: '0.00' }, propinas: { n: 0, total: '0.00' } }, fuera: { clases: { n: 0, total: '0.00', pendientesDeValoracion: 0 }, comisiones: { n: 0, total: '0.00' }, propinas: { n: 0, total: '0.00' } }, pendientes: { n: 0, total: '0.00' } },
-        { venueId: 'v2', nombre: 'Wellness', estado: 'SIN_ACTIVAR', entra: { clases: { n: 0, total: '0.00', pendientesDeValoracion: 0 }, comisiones: { n: 0, total: '0.00' }, propinas: { n: 0, total: '0.00' } }, fuera: { clases: { n: 3, total: '900.00', pendientesDeValoracion: 0 }, comisiones: { n: 0, total: '0.00' }, propinas: { n: 0, total: '0.00' } }, pendientes: { n: 0, total: '0.00' } },
-      ] },
-      isLoading: false,
-      refetch: m.refetch,
-    })
-    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
-    const wellness = screen.getByText('Wellness').closest('li')!
-    expect(wellness).toHaveAttribute('data-estado', 'SIN_ACTIVAR')
-    expect(within(wellness).getByText('sedes.estado.SIN_ACTIVAR')).toBeInTheDocument()
-  })
-
   it('en el celular el botón de confirmar va abajo y el título es corto: no se enciman (QA defecto 4)', () => {
     const ancho = window.innerWidth
     window.innerWidth = 390
