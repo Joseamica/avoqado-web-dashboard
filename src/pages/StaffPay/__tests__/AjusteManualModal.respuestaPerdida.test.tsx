@@ -64,15 +64,31 @@ async function llenar(monto = '25') {
 }
 type Cuerpo = { clientKey: string; staffId: string; sede: string; amount: number; reason: string }
 /**
- * Guarda por clave, como el servidor: la misma clave devuelve el ajuste que ya guardó (`yaExistia`). `perder` es el número de
- * llamada (1, 2…) cuya respuesta se pierde DESPUÉS de guardar (el servidor sí lo guardó; al navegador no le llega nada).
+ * Guarda por clave, como el servidor: la misma clave devuelve el ajuste que ya guardó (`yaExistia`), y la misma clave con OTRO
+ * contenido responde 409 CLAVE_REUTILIZADA con lo que ya se guardó (`details.guardado`, E6a-fix5; sin él con `detalles: false`,
+ * como un servidor previo). `perder` es el número de llamada (1, 2…) cuya respuesta se pierde DESPUÉS de guardar (el servidor sí
+ * lo guardó; al navegador no le llega nada).
  */
-function servidor(perder: number[] = [1]) {
+function servidor(perder: number[] = [1], { detalles = true }: { detalles?: boolean } = {}) {
   const guardados = new Map<string, Cuerpo>()
   let n = 0
   m.add.mockImplementation(async (_venueId: string, b: Cuerpo) => {
     n++
-    const yaExistia = guardados.has(b.clientKey)
+    const previo = guardados.get(b.clientKey)
+    if (previo && (previo.amount !== b.amount || previo.staffId !== b.staffId || previo.sede !== b.sede || previo.reason !== b.reason)) {
+      const guardado = { staffNombre: 'Carlos QA', amount: previo.amount.toFixed(2), reason: previo.reason, periodo: { start: '2026-10-01', end: '2026-10-31' } }
+      throw {
+        response: {
+          status: 409,
+          data: {
+            code: 'CLAVE_REUTILIZADA',
+            message: `Ya se guardó un ajuste con esta solicitud: +$${guardado.amount} para Carlos QA (${previo.reason}). Si querías otro distinto, ábrelo de nuevo.`,
+            ...(detalles ? { details: { guardado } } : {}),
+          },
+        },
+      }
+    }
+    const yaExistia = !!previo
     if (!yaExistia) guardados.set(b.clientKey, b)
     if (perder.includes(n)) throw new Error('Network Error')
     return { id: `e-${b.clientKey}`, periodId: 'p10', periodo: { start: '2026-10-01', end: '2026-10-31' }, staffId: b.staffId, sede: b.sede, amount: `${b.amount}`, reason: b.reason, yaExistia }
@@ -249,5 +265,137 @@ describe('ajuste manual sin red (C5)', () => {
     })
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     expect(guardados.size).toBe(1)
+  })
+})
+
+// E6a-fix4 C-n2 (re-prueba, variante C de D1): la respuesta del $9 se pierde, el dueño cambia el monto a $10 en el MISMO modal y el
+// servidor responde CLAVE_REUTILIZADA. Antes: «Esta solicitud ya se usó para otro ajuste. Vuelve a abrir el formulario.» sin decir
+// que el $9 SÍ quedó; si reabría y capturaba $10, quedaban $9 + $10.
+describe('cambiar un ajuste que quedó en duda (C-n2)', () => {
+  const montoA = (v: string) => fireEvent.change(screen.getByLabelText('manualAdjust.amount'), { target: { value: v } })
+  it('🔴 mientras el borrador está en duda, editar el monto avisa que el anterior pudo haberse guardado', async () => {
+    servidor()
+    abrir(cliente())
+    await llenar('9')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    montoA('10')
+    expect(screen.queryByText('manualAdjust.uncertain')).toBeNull()
+    expect(screen.getByText('manualAdjust.uncertainEdited:{"monto":"+$9.00","persona":"Carlos QA"}')).toBeInTheDocument()
+    // Volver al mismo borrador vuelve al aviso de siempre.
+    montoA('9')
+    expect(screen.getByText('manualAdjust.uncertain')).toBeInTheDocument()
+    expect(screen.queryByText(/manualAdjust\.uncertainEdited/)).toBeNull()
+  })
+
+  it('🔴 409 CLAVE_REUTILIZADA: dice lo que YA se guardó, relee el periodo, saca el borrador de la duda y no deja guardar otro aquí', async () => {
+    const guardados = servidor()
+    const qc = cliente()
+    const releer = vi.spyOn(qc, 'invalidateQueries')
+    const onOpenChange = vi.fn()
+    const primero = abrir(qc, onOpenChange)
+    await llenar('9')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    montoA('10')
+    releer.mockClear()
+    fireEvent.click(guardar())
+    expect(
+      await screen.findByText(
+        'manualAdjust.keyReusedSaved:{"monto":"+$9.00","persona":"Carlos QA","motivo":"FULLTEST dup","start":"2026-10-01","end":"2026-10-31"}',
+      ),
+    ).toBeInTheDocument()
+    expect(guardados.size).toBe(1)
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(releer).toHaveBeenCalledWith({ queryKey: ['staff-pay', 'v1'] })
+    // Nada de «no sabemos» ni de «revisa antes de cambiarlo»: ya se sabe.
+    expect(screen.queryByText('manualAdjust.uncertain')).toBeNull()
+    expect(screen.queryByText(/manualAdjust\.uncertainEdited/)).toBeNull()
+    // Este modal ya no guarda: otro ajuste distinto se agrega abriendo uno nuevo.
+    expect(guardar()).toBeDisabled()
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+    // El $9 salió de la duda: capturarlo otra vez en un modal nuevo ya no dice «no sabemos».
+    primero.unmount()
+    abrir(qc)
+    await llenar('9')
+    expect(screen.queryByText('manualAdjust.uncertain')).toBeNull()
+  })
+
+  it('servidor previo (sin `details.guardado`): muestra su mensaje, relee y saca el borrador de la duda', async () => {
+    servidor([1], { detalles: false })
+    const qc = cliente()
+    const releer = vi.spyOn(qc, 'invalidateQueries')
+    abrir(qc)
+    await llenar('9')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    montoA('10')
+    releer.mockClear()
+    fireEvent.click(guardar())
+    expect(await screen.findByText('Ya se guardó un ajuste con esta solicitud: +$9.00 para Carlos QA (FULLTEST dup). Si querías otro distinto, ábrelo de nuevo.')).toBeInTheDocument()
+    expect(releer).toHaveBeenCalledWith({ queryKey: ['staff-pay', 'v1'] })
+    expect(guardar()).toBeDisabled()
+    montoA('9')
+    expect(screen.queryByText('manualAdjust.uncertain')).toBeNull()
+  })
+
+  it('🔴 en OTRO modal: un borrador en duda que se edita viaja con la clave de la duda (nunca $25 + $30)', async () => {
+    const guardados = servidor()
+    const qc = cliente()
+    const primero = abrir(qc)
+    await llenar('25')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    primero.unmount()
+    abrir(qc)
+    await llenar('25')
+    expect(screen.getByText('manualAdjust.uncertain')).toBeInTheDocument()
+    montoA('30')
+    expect(screen.getByText('manualAdjust.uncertainEdited:{"monto":"+$25.00","persona":"Carlos QA"}')).toBeInTheDocument()
+    fireEvent.click(guardar())
+    await screen.findByText(/^manualAdjust\.keyReusedSaved/)
+    expect(clave(1)).toBe(clave(0))
+    expect(guardados.size).toBe(1)
+  })
+
+  it('una duda que ya tuvo desenlace (el reintento dio 409 PERIODO_CERRADO) no sigue avisando al editar', async () => {
+    m.add.mockRejectedValueOnce(new Error('Network Error'))
+    m.add.mockRejectedValueOnce({ response: { status: 409, data: { code: 'PERIODO_CERRADO', message: 'Ese periodo ya está cerrado' } } })
+    abrir(cliente())
+    await llenar('9')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    fireEvent.click(guardar())
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'Ese periodo ya está cerrado', variant: 'destructive' }))
+    expect(screen.queryByText('manualAdjust.uncertain')).toBeNull()
+    montoA('10')
+    expect(screen.queryByText(/manualAdjust\.uncertainEdited/)).toBeNull()
+  })
+
+  it('si el anterior NO llegó a guardarse, el cambio se guarda solo (uno, el nuevo) y la duda se acaba', async () => {
+    const guardados = new Map<string, Cuerpo>()
+    m.add.mockImplementationOnce(async () => {
+      throw new Error('Network Error')
+    })
+    m.add.mockImplementation(async (_v: string, b: Cuerpo) => {
+      guardados.set(b.clientKey, b)
+      return { id: 'e1', periodId: 'p10', periodo: { start: '2026-10-01', end: '2026-10-31' }, yaExistia: false }
+    })
+    const onOpenChange = vi.fn()
+    abrir(cliente(), onOpenChange)
+    await llenar('9')
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    montoA('10')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect([...guardados.values()].map(b => b.amount)).toEqual([10])
+    expect(clave(1)).toBe(clave(0))
   })
 })

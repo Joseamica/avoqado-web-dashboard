@@ -496,6 +496,9 @@
     "pendingOne": "{{persona}} has {{monto}} in refunds that will be deducted automatically {{cuando}}. If this adjustment is for that, don’t record it.",
     "pendingMany": "{{persona}} has {{monto}} in refunds that will be deducted automatically. If this adjustment is for that, don’t record it:",
     "uncertain": "We don’t know whether it was saved. Try again: if it was already saved, it won’t be duplicated.",
+    "uncertainEdited": "The previous adjustment ({{monto}} for {{persona}}) may have been saved. If you change it and it was already saved, no second one is saved: we will tell you which one stayed.",
+    "keyReusedSaved": "The previous adjustment was saved: {{monto}} for {{persona}} ({{motivo}}), in the period from {{start}} to {{end}}. This change was not saved. If you wanted a different adjustment, close this window and add it again.",
+    "keyReused": "An adjustment was already saved with this request: check the list. If you wanted a different adjustment, close this window and add it again.",
     "alreadySaved": "This adjustment was already saved in the period from {{start}} to {{end}}: it wasn’t duplicated.",
     "beforeStart": "Staff pay is active since {{desde}}: an adjustment can’t go to an earlier period.",
     "peopleList": "Matching people"

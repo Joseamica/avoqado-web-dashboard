@@ -11,6 +11,10 @@
  * viaja con la MISMA clave. La fecha no entra en la huella: dentro del mismo periodo el servidor la trata como el mismo
  * destino, y en otro periodo responde 409 CLAVE_REUTILIZADA (nunca un segundo ajuste).
  *
+ * Un CAMBIO sobre un borrador en duda (otro monto o persona, E6a-fix4 C-n2) viaja con la clave de ESA duda, aunque venga de
+ * otro modal: si el anterior sí se guardó, el servidor responde 409 CLAVE_REUTILIZADA con lo que guardó (nunca $9 + $10); si no,
+ * se guarda sólo el nuevo. CLAVE_REUTILIZADA es un desenlace: la clave quedó gastada (`soltarClave`).
+ *
  * Vive en la memoria de la pestaña: al recargar, la lista ya viene del servidor y dice si el ajuste quedó.
  */
 export interface BorradorDeAjuste {
@@ -23,6 +27,8 @@ export interface BorradorDeAjuste {
 const enDuda = new Map<string, string>()
 const huella = (b: BorradorDeAjuste) => JSON.stringify([b.sede, b.staffId, b.amount.toFixed(2), b.reason])
 
+/** ¿Es el mismo ajuste (misma sede, persona, monto con signo y motivo)? */
+export const mismoBorrador = (a: BorradorDeAjuste, b: BorradorDeAjuste): boolean => huella(a) === huella(b)
 /** La clave de un borrador que quedó en duda, o la propia del modal. */
 export const claveDelBorrador = (b: BorradorDeAjuste, propia: string): string => enDuda.get(huella(b)) ?? propia
 /** ¿Este borrador quedó sin desenlace (sin respuesta, 5xx o en pausa)? */
@@ -41,3 +47,27 @@ export const soltarBorrador = (b: BorradorDeAjuste): void => {
 }
 /** Sólo pruebas: cada una empieza sin borradores en duda. */
 export const olvidarBorradoresEnDuda = (): void => enDuda.clear()
+
+/** Lo que el servidor dice que YA se guardó con esa clave (409 CLAVE_REUTILIZADA, `details.guardado`, E6a-fix5). */
+export interface AjusteYaGuardado {
+  persona: string
+  amount: number
+  reason: string
+  start: string
+  end: string
+}
+/**
+ * Lee `details.guardado` de un 409 CLAVE_REUTILIZADA, sólo si viene completo (persona, monto, motivo y periodo); si no (servidor
+ * previo o una forma rara), null: quien llama muestra el mensaje del servidor.
+ */
+export function ajusteYaGuardado(err: unknown): AjusteYaGuardado | null {
+  const g = (err as { response?: { data?: { details?: { guardado?: unknown } } } } | null)?.response?.data?.details?.guardado as
+    | { staffNombre?: unknown; amount?: unknown; reason?: unknown; periodo?: { start?: unknown; end?: unknown } | null }
+    | undefined
+  if (!g || typeof g !== 'object') return null
+  const amount = typeof g.amount === 'string' || typeof g.amount === 'number' ? Number(g.amount) : NaN
+  const { start, end } = g.periodo ?? {}
+  if (typeof g.staffNombre !== 'string' || !g.staffNombre || !Number.isFinite(amount) || typeof g.reason !== 'string') return null
+  if (typeof start !== 'string' || typeof end !== 'string') return null
+  return { persona: g.staffNombre, amount, reason: g.reason, start, end }
+}

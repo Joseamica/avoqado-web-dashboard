@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle2, Loader2, WifiOff } from 'lucide-react'
@@ -22,9 +22,18 @@ import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
 import { useFocoDeVuelta } from '../foco'
 import { A_MEDIO_ESCRIBIR, MONTO_MAXIMO, MONTO_VALIDO, desdeDelAjuste, mensajeLegible } from '../rangos'
-import { monto as montoTotal } from '../conSigno'
+import { conSigno, monto as montoTotal } from '../conSigno'
 import { cuandoSeDescuenta, hayPendientes, lineaDePendiente } from '../pendientes'
-import { anotarBorrador, borradorEnDuda, claveDelBorrador, soltarBorrador, soltarClave, type BorradorDeAjuste } from '../llaveDelAjuste'
+import {
+  ajusteYaGuardado,
+  anotarBorrador,
+  borradorEnDuda,
+  claveDelBorrador,
+  mismoBorrador,
+  soltarBorrador,
+  soltarClave,
+  type BorradorDeAjuste,
+} from '../llaveDelAjuste'
 
 interface Props {
   open: boolean
@@ -112,6 +121,10 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const mandado = useRef<{ borrador: BorradorDeAjuste; nuevo: boolean } | null>(null)
   // Un 400 del server (validación o fecha fuera de rango), dicho en línea y legible; se borra al cambiar algo.
   const [errorServer, setErrorServer] = useState<string | null>(null)
+  // C-n2: el último borrador EN DUDA que se vio en este modal (con el nombre de la persona), y lo que el servidor dijo que YA se
+  // guardó con esa clave (409 CLAVE_REUTILIZADA). Con eso dicho, este modal ya no guarda: otro ajuste se agrega en uno nuevo.
+  const [dudaVista, setDudaVista] = useState<{ borrador: BorradorDeAjuste; nombre: string } | null>(null)
+  const [yaGuardado, setYaGuardado] = useState<string | null>(null)
   // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy) y nunca antes del inicio de pago al
   // personal (409 ANTES_DEL_INICIO; E6a-fix2 K4): se dice antes de guardar, con el porqué que aplique.
   const { data: acceso } = useStaffPayAccess()
@@ -119,8 +132,18 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const fueraDeRango = fechaDestino < rango.desde
   const listo = !!persona && !!sede && monto !== undefined && motivo.trim().length >= MIN_MOTIVO && !fueraDeRango
   // Lo que se manda, con el signo ya puesto: su huella decide si es el mismo ajuste que quedó en duda (D1).
-  const borrador: BorradorDeAjuste | null = listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim() } : null
+  const borrador = useMemo<BorradorDeAjuste | null>(
+    () => (listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim() } : null),
+    [listo, sede, persona, tipo, monto, motivo],
+  )
   const enDuda = !!borrador && !guardando && borradorEnDuda(borrador)
+  useEffect(() => {
+    if (enDuda && borrador && persona && !(dudaVista && mismoBorrador(dudaVista.borrador, borrador))) setDudaVista({ borrador, nombre: persona.nombre })
+  }, [enDuda, borrador, persona, dudaVista])
+  // C-n2: el dueño cambia el monto o la persona de un borrador que quedó en duda. El cambio viaja con la clave de ESA duda (si el
+  // anterior sí se guardó, el servidor lo dice y no se crea otro), y se avisa antes de guardar.
+  const dudaPrevia = dudaVista && borradorEnDuda(dudaVista.borrador) ? dudaVista : null
+  const cambiaLaDuda = !!dudaPrevia && !guardando && !yaGuardado && !(borrador && mismoBorrador(borrador, dudaPrevia.borrador))
   // B13: con el formulario completo, la vista previa trae las devoluciones pendientes de esa persona (se descontarán solas en
   // un cierre). Sólo AVISA: si falla o tarda, el ajuste se guarda igual. La de otra persona (cambió la elección) no se pinta.
   const vistaPrevia = useAdjustmentPreview(borrador ? { ...borrador, fecha: fechaDestino } : null, open)
@@ -137,13 +160,14 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   }
 
   const guardar = async () => {
-    if (!borrador || guardando || enVuelo.current) return
+    if (!borrador || guardando || yaGuardado || enVuelo.current) return
     enVuelo.current = true
     setGuardando(true)
     setErrorServer(null)
     // 🔴 D1: la clave se anota ANTES de tocar la red. Si este mismo borrador quedó en duda (aun en otro modal), viaja con SU
-    // clave: el servidor devuelve el que ya guardó en vez de crear otro.
-    const clave = claveDelBorrador(borrador, clientKey)
+    // clave: el servidor devuelve el que ya guardó en vez de crear otro. Un cambio sobre un borrador en duda viaja con la clave
+    // de esa duda (C-n2).
+    const clave = claveDelBorrador(borrador, dudaPrevia ? claveDelBorrador(dudaPrevia.borrador, clientKey) : clientKey)
     mandado.current = { borrador, nuevo: !borradorEnDuda(borrador) }
     anotarBorrador(borrador, clave)
     try {
@@ -159,6 +183,22 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
         // hook ya relee el periodo. Un 5xx que sí trae mensaje del servidor lo dice, además, en un aviso.
         const mensaje = status === undefined ? null : mensajeLegible(err)
         if (mensaje) toast({ title: mensaje, variant: 'destructive' })
+      } else if ((err as { response?: { data?: { code?: string } } }).response?.data?.code === 'CLAVE_REUTILIZADA') {
+        // C-n2: la clave ya se gastó en un ajuste que SÍ se guardó (la respuesta se había perdido). Se dice cuál —sin invitar a
+        // capturarlo otra vez—, la duda se acaba para todo borrador con esa clave y el hook relee el periodo.
+        soltarClave(clave)
+        const g = ajusteYaGuardado(err)
+        setYaGuardado(
+          g
+            ? t('manualAdjust.keyReusedSaved', {
+                monto: conSigno(g.amount),
+                persona: g.persona,
+                motivo: g.reason,
+                start: formatCalendarDate(g.start),
+                end: formatCalendarDate(g.end),
+              })
+            : (mensajeLegible(err) ?? t('manualAdjust.keyReused')),
+        )
       } else {
         // Con desenlace (4xx): no se guardó; ese borrador deja de estar en duda. Un 400 (monto, motivo, FECHA_FUERA_DE_RANGO…)
         // se dice junto al formulario; lo demás, en un aviso.
@@ -180,7 +220,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   // Sin etiqueta, el nombre del periodo leído para la fecha destino; mientras llega (o si falla), la fecha exacta.
   const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
-    <Button className="cursor-pointer" disabled={!listo || guardando} onClick={guardar} data-tour="staffpay-adjust-save">
+    <Button className="cursor-pointer" disabled={!listo || guardando || !!yaGuardado} onClick={guardar} data-tour="staffpay-adjust-save">
       {guardando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {t('manualAdjust.save')}
     </Button>,
@@ -330,6 +370,18 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
           <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-uncertain">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>{t('manualAdjust.uncertain')}</span>
+          </div>
+        )}
+        {cambiaLaDuda && dudaPrevia && (
+          <div role="note" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-uncertain-edited">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('manualAdjust.uncertainEdited', { monto: conSigno(dudaPrevia.borrador.amount), persona: dudaPrevia.nombre })}</span>
+          </div>
+        )}
+        {yaGuardado && (
+          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-input bg-card p-4 text-sm" data-tour="staffpay-adjust-already-saved">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <span>{yaGuardado}</span>
           </div>
         )}
         {(fueraDeRango || errorServer) && (

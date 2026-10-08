@@ -347,7 +347,8 @@ export function useMarkPaid(periodId: string | null) {
 }
 /**
  * Sin respuesta (o un 5xx: un proxy pudo cortar después de guardar) el ajuste pudo haberse guardado: se relee lo mismo que en
- * el éxito, para que la tabla diga cómo quedó (E6a-fix2 D1). Reintentar con la misma clave no duplica.
+ * el éxito, para que la tabla diga cómo quedó (E6a-fix2 D1). Reintentar con la misma clave no duplica. Un 409
+ * CLAVE_REUTILIZADA dice que el de esa clave SÍ se guardó (E6a-fix4 C-n2): también se relee, para que la tabla lo enseñe.
  */
 export function useAddAdjustment() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
@@ -356,7 +357,10 @@ export function useAddAdjustment() {
     mutationKey,
     mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b),
     onSuccess: inv,
-    onError: err => ((estado(err) ?? 500) >= 500 ? inv() : undefined),
+    onError: err =>
+      (estado(err) ?? 500) >= 500 || (err as { response?: { data?: { code?: string } } } | null)?.response?.data?.code === 'CLAVE_REUTILIZADA'
+        ? inv()
+        : undefined,
   })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }

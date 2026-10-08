@@ -53,6 +53,16 @@ describe('sin respuesta, el periodo se vuelve a leer', () => {
     await waitFor(() => expect(m.report).toHaveBeenCalledTimes(2))
   })
 
+  // E6a-fix4 C-n2: CLAVE_REUTILIZADA dice que el ajuste de esa clave SÍ se guardó (la respuesta anterior se perdió): se relee para
+  // que la tabla lo enseñe y nadie lo capture otra vez como si no existiera.
+  it('🔴 un ajuste con 409 CLAVE_REUTILIZADA (el anterior sí se guardó) relee el periodo', async () => {
+    m.add.mockRejectedValue({ response: { status: 409, data: { code: 'CLAVE_REUTILIZADA', message: 'Ya se guardó' } } })
+    const { result } = montar(() => useAddAdjustment())
+    await waitFor(() => expect(result.current.periodo.data).toBeDefined())
+    await act(() => result.current.accion.mutateAsync(ajuste).catch(() => undefined))
+    await waitFor(() => expect(m.report).toHaveBeenCalledTimes(2))
+  })
+
   it('un rechazo con desenlace (409, nada cambió) no relee', async () => {
     m.add.mockRejectedValue({ response: { status: 409, data: { code: 'PERIODO_CERRADO' } } })
     m.close.mockRejectedValue({ response: { status: 409, data: { code: 'HUELLA_CAMBIO' } } })
