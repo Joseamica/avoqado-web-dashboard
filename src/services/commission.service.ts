@@ -170,7 +170,8 @@ export const commissionService = {
 	// STAFF COMMISSIONS
 	// ============================================
 
-	// Get commissions for a specific staff member
+	// Get commissions for a specific staff member. El servidor topa `summaries` a 12 periodos y dice cuántos tiene la persona
+	// (`summariesTotal`, E6a-fix4): sólo si es un número; si no (servidor previo, otro tipo), `undefined`, nunca un recorte inventado.
 	async getStaffCommissions(venueId: string, staffId: string, filters?: CommissionFilters): Promise<StaffCommissionsResponse> {
 		const params = new URLSearchParams()
 		if (filters?.startDate) params.append('startDate', filters.startDate)
@@ -178,7 +179,10 @@ export const commissionService = {
 		if (filters?.status) params.append('status', filters.status)
 		if (filters?.configId) params.append('configId', filters.configId)
 		const response = await api.get(`${BASE_URL}/venues/${venueId}/staff/${staffId}/commissions?${params}`)
-		return response.data.data
+		const data = response.data.data as StaffCommissionsResponse
+		if (!data) return data
+		const total: unknown = data.summariesTotal
+		return { ...data, summariesTotal: typeof total === 'number' && Number.isFinite(total) ? total : undefined }
 	},
 
 	// Get my own commissions (for staff portal)
