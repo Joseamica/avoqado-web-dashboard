@@ -633,7 +633,7 @@
       "dejanDeEntrar": "What stops counting, from after {{fecha}}: {{cuenta}}.",
       "permanecen": "What still counts up to {{fecha}}: {{cuenta}}.",
       "nadaCambia": "Nothing changes with that date.",
-      "borraActivacion": "With that date the activation is deleted: nothing from this location counts.",
+      "borraActivacion": "With that date the activation is deleted: nothing from this location goes into the pay statement.",
       "confirmarActivar": "Turn on from {{fecha}}",
       "confirmarDesactivar": "Turn off: last day {{fecha}}",
       "activada": "{{sede}} active since {{fecha}}",

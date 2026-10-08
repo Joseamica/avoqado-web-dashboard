@@ -633,7 +633,7 @@
       "dejanDeEntrar": "Lo que deja de entrar, de después del {{fecha}}: {{cuenta}}.",
       "permanecen": "Lo que sigue entrando hasta el {{fecha}}: {{cuenta}}.",
       "nadaCambia": "Nada cambia con esa fecha.",
-      "borraActivacion": "Con esa fecha se borra la activación: nada de esta sede entra al sobre.",
+      "borraActivacion": "Con esa fecha se borra la activación: nada de esta sede entra al recibo.",
       "confirmarActivar": "Activar desde el {{fecha}}",
       "confirmarDesactivar": "Desactivar: último día el {{fecha}}",
       "activada": "{{sede}} activa desde el {{fecha}}",

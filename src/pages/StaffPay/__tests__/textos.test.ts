@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import i18next from 'i18next'
 import { beforeAll, describe, expect, it } from 'vitest'
 import es from '@/locales/es/staffPay.json'
@@ -287,5 +289,27 @@ describe('textos de pago por servicio', () => {
       expect(texto).not.toMatch(/ajustad|adjusted/i)
     expect(tEs('rules.noPermission')).toBe('Para cambiar las reglas necesitas el permiso «Configurar pago al personal». Pídeselo al dueño del negocio.')
     expect(tEn('rules.noPermission')).toMatch(/“Manage staff pay”/)
+  })
+})
+
+// G8 (guía E6c): la jerga interna «sobre» se colaba en textos para el cliente («nada de esta sede entra al sobre»). Para el dueño
+// es «recibo» o «pago al personal». Se revisan TODOS los textos visibles (es y en), no sólo los de este módulo; las llaves y los
+// nombres internos no cuentan.
+describe('sin la jerga «sobre» en textos visibles (G8)', () => {
+  const textos = (o: unknown): string[] =>
+    typeof o === 'string' ? [o] : o && typeof o === 'object' ? Object.values(o as Record<string, unknown>).flatMap(textos) : []
+  const deIdioma = (lang: 'es' | 'en') => {
+    const dir = join(process.cwd(), 'src', 'locales', lang)
+    return readdirSync(dir)
+      .filter(f => f.endsWith('.json'))
+      .flatMap(f => textos(JSON.parse(readFileSync(join(dir, f), 'utf8').replace(/^\uFEFF/, ''))).map(t => `${f}: ${t}`))
+  }
+  it('🔴 ningún texto en español dice «el/al/del/un… sobre» (el sobre de pago), ni en inglés «envelope»', () => {
+    expect(deIdioma('es').filter(t => /\b(al|del|el|un|los|su|este|ese|cada)\s+sobres?\b/i.test(t))).toEqual([])
+    expect(deIdioma('en').filter(t => /\benvelopes?\b/i.test(t))).toEqual([])
+  })
+  it('🔴 borrar la activación de una sede dice que nada de esa sede entra al recibo', () => {
+    expect(tEs('sedes.dialogo.borraActivacion')).toBe('Con esa fecha se borra la activación: nada de esta sede entra al recibo.')
+    expect(tEn('sedes.dialogo.borraActivacion')).toBe('With that date the activation is deleted: nothing from this location goes into the pay statement.')
   })
 })
