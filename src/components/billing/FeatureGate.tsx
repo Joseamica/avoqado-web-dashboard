@@ -48,13 +48,17 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
   const tierName = def.key.charAt(0).toUpperCase() + def.key.slice(1)
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-input">
+    // 🔴 El cartel va EN el flujo, en la misma celda que el contenido borroso (E6a-fix F7, QA H2): el contenedor mide lo que
+    // el más alto de los dos. Con el cartel `absolute` encima, un contenido bajo (una tarjeta de 78 px) dejaba el contenedor de
+    // 78 px y `overflow-hidden` cortaba el precio y el botón: el dueño sin plan se quedaba sin salida. `minmax(0,1fr)`: una
+    // tabla ancha adentro no ensancha la columna (el cartel seguiría centrado fuera de la pantalla en el celular).
+    <div className="relative grid grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl border border-input">
       {/* blurred teaser */}
-      <div aria-hidden className="pointer-events-none select-none opacity-50 blur-[5px]">
+      <div aria-hidden className="pointer-events-none col-start-1 row-start-1 select-none opacity-50 blur-[5px]">
         {children}
       </div>
       {/* paywall card */}
-      <div className="absolute inset-0 grid place-items-center p-4">
+      <div className="col-start-1 row-start-1 grid place-items-center p-4">
         <div className="w-full max-w-sm rounded-2xl border border-input bg-popover p-7 text-center shadow-2xl">
           <div className={cn('mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-amber-400/15', ACCENT[def.accent])}>
             <Icon className="h-6 w-6" />

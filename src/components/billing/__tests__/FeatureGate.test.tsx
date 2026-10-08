@@ -143,6 +143,26 @@ describe('FeatureGate', () => {
     expect(screen.getByText('secret content')).toBeInTheDocument()
   })
 
+  // E6a-fix F7 (QA H2): el cartel iba `absolute inset-0` encima del contenido, así que con un contenido bajo (la tarjeta de 78 px
+  // de Pago al personal) el contenedor medía 78 px y `overflow-hidden` cortaba el precio y «Mejora a Pro». En jsdom no hay
+  // diseño: se prueba la estructura que garantiza el alto — el cartel va EN el flujo, en la misma celda de una cuadrícula que
+  // el contenido borroso, y el contenedor mide lo que el más alto de los dos.
+  it('🔴 el cartel no depende del alto del contenido: va en el flujo, en la misma celda que el contenido borroso', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+    renderGate(<div>tarjeta bajita</div>)
+    const boton = screen.getByText('featureGate.upgrade:Premium')
+    const contenedor = screen.getByText('tarjeta bajita').parentElement!.parentElement!
+    const [teaser, capaDelCartel] = Array.from(contenedor.children)
+    expect(capaDelCartel).toContainElement(boton)
+    expect(capaDelCartel).toContainElement(screen.getByText('featureGate.planPrice:Premium:$1,699'))
+    // Ninguna capa del cartel se saca del flujo (con `absolute` el contenedor no crece por ella).
+    for (let el: HTMLElement | null = boton; el && el !== contenedor; el = el.parentElement) expect(el).not.toHaveClass('absolute')
+    // Las dos capas en la misma celda de una cuadrícula de una columna que no se ensancha con el contenido.
+    expect(contenedor).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)]', 'overflow-hidden')
+    for (const capa of [teaser, capaDelCartel]) expect(capa).toHaveClass('col-start-1', 'row-start-1')
+    expect(teaser).toHaveAttribute('aria-hidden')
+  })
+
   it('normal venue on PREMIUM tier + CFDI feature → renders children without paywall', () => {
     mockUseQuery.mockReturnValue({ data: makePlanState('PREMIUM'), isLoading: false })
 
