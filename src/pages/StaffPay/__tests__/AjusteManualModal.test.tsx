@@ -17,8 +17,8 @@ vi.mock('@/components/ui/full-screen-modal', () => ({
 vi.mock('@tanstack/react-query', async orig => ({ ...(await orig<object>()), useQuery: () => m.equipo() }))
 // El combobox real (Popover + cmdk) no se deja manejar en jsdom: cada resultado es un botón.
 vi.mock('@/components/search-combobox', () => ({
-  SearchCombobox: ({ items, onSelect, value, onChange, inputId }: any) => (
-    <div>
+  SearchCombobox: ({ items, onSelect, value, onChange, inputId, listLabel }: any) => (
+    <div role="listbox" aria-label={listLabel}>
       <input id={inputId} value={value} onChange={e => onChange(e.target.value)} />
       {items.map((i: any) => (
         <button key={i.id} type="button" onClick={() => onSelect(i)}>
@@ -118,6 +118,11 @@ describe('AjusteManualModal', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-11-01" />)
     llenar()
     expect(screen.getByText(/manualAdjust\.summaryDeduction/)).toHaveTextContent('2026-11-01')
+  })
+  // E6a-fix2 K5: la lista de personas se anunciaba «Suggestions» (la etiqueta de fábrica de cmdk).
+  it('🔴 la lista de personas tiene su nombre en el idioma del dashboard', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    expect(screen.getByRole('listbox')).toHaveAttribute('aria-label', 'manualAdjust.peopleList')
   })
   it('el buscador de persona se llama «Persona» (label conectado al input)', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)

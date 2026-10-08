@@ -627,5 +627,7 @@
     "uploadFailedTitle": "Couldn't upload the image",
     "uploadFailed": "Try again. If it keeps failing, contact support.",
     "storageUnavailable": "The image service isn't available right now. Contact support."
-  }
+  },
+  "suggestions": "Suggestions",
+  "noResults": "No results"
 }

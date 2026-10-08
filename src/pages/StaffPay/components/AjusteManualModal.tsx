@@ -235,6 +235,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <div data-tour="staffpay-adjust-person">
               <SearchCombobox
                 inputId="staffpay-ajuste-persona"
+                listLabel={t('manualAdjust.peopleList')}
                 placeholder={t('manualAdjust.search')}
                 items={opciones}
                 isLoading={equipo.isFetching}

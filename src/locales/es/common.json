@@ -627,5 +627,7 @@
     "uploadFailedTitle": "No se pudo subir la imagen",
     "uploadFailed": "Vuelve a intentarlo. Si sigue fallando, contacta a soporte.",
     "storageUnavailable": "El servicio de imágenes no está disponible ahora mismo. Contacta a soporte."
-  }
+  },
+  "suggestions": "Sugerencias",
+  "noResults": "Sin resultados"
 }
