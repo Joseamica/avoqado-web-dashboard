@@ -329,7 +329,8 @@
     "adjustmentAmount": "Monto del Ajuste",
     "adjustmentReason": "Razón del Ajuste",
     "noSummaries": "No hay resúmenes pendientes",
-    "noSummariesDescription": "Los resúmenes se generan automáticamente al final de cada período"
+    "noSummariesDescription": "Los resúmenes se generan automáticamente al final de cada período",
+    "calculatedNote": "Es lo calculado. Lo que se paga está en el recibo de Pago al personal."
   },
   "status": {
     "DRAFT": "Borrador",

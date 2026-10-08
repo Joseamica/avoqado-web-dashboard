@@ -9,14 +9,15 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Eye, MoreHorizontal, FileText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 /**
  * Lo que el motor calculó por persona y periodo. Sin columna de estado (E6a-fix F9, QA H4): el estado de estos resúmenes es
  * del flujo viejo de pagos (retirado con el 410 de E1a) y contradecía al recibo («Pagado» con el recibo pendiente). El pago
- * vive en el recibo de Pago al personal; aquí no se aprueba ni se paga.
+ * vive en el recibo de Pago al personal; aquí no se aprueba ni se paga. Con Pago al personal activo (E6a-fix2 C6) se dice que
+ * esto es lo CALCULADO —puede no coincidir con lo que se paga— y, a quien puede verlo, se le lleva al recibo.
  */
-export default function TeamCommissionTable() {
+export default function TeamCommissionTable({ staffPayActive = false, puedeVerRecibos = false }: { staffPayActive?: boolean; puedeVerRecibos?: boolean } = {}) {
   const { t, i18n } = useTranslation('commissions')
   const { t: _tCommon } = useTranslation()
   const navigate = useNavigate()
@@ -109,6 +110,22 @@ export default function TeamCommissionTable() {
     [t, i18n.language, formatCurrency, formatPeriod, navigate, venueSlug, fullBasePath],
   )
 
+  const encabezado = (
+    <div className="p-4 border-b border-border/50 space-y-1">
+      <h3 className="font-semibold">{t('summary.title')}</h3>
+      {staffPayActive && (
+        <p className="text-sm text-muted-foreground" data-tour="commissions-summary-calculated-note">
+          {t('summary.calculatedNote')}{' '}
+          {puedeVerRecibos && (
+            <Link to={`${fullBasePath}/servicio-pago#periodos`} className="font-medium text-foreground underline underline-offset-2">
+              {t('overview.goToStaffPay')}
+            </Link>
+          )}
+        </p>
+      )}
+    </div>
+  )
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -123,9 +140,7 @@ export default function TeamCommissionTable() {
   if (!summaries || summaries.length === 0) {
     return (
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
-        <div className="p-4 border-b border-border/50">
-          <h3 className="font-semibold">{t('summary.title')}</h3>
-        </div>
+        {encabezado}
         <div className="flex flex-col items-center justify-center py-12 text-center px-4">
           <div className="p-4 rounded-full bg-muted mb-4">
             <FileText className="h-8 w-8 text-muted-foreground" />
@@ -141,9 +156,7 @@ export default function TeamCommissionTable() {
 
   return (
     <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
-      <div className="p-4 border-b border-border/50">
-        <h3 className="font-semibold">{t('summary.title')}</h3>
-      </div>
+      {encabezado}
       <DataTable<CommissionSummary>
         columns={columns}
         data={summaries}

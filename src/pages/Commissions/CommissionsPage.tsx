@@ -129,7 +129,7 @@ export default function CommissionsPage() {
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">
 					<CommissionKPICards stats={stats} isLoading={isLoadingStats} hasConfigs={configCount > 0} isLoadingConfigs={isLoadingConfigs} onGoToConfig={() => handleTabChange('config')} />
-					<TeamCommissionTable />
+					<TeamCommissionTable staffPayActive={stats?.staffPayActive === true} puedeVerRecibos={can('staffpay:read')} />
 				</TabsContent>
 
 				{/* Goals Tab */}

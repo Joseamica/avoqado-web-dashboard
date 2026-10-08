@@ -7,7 +7,10 @@ import TeamCommissionTable from '../TeamCommissionTable'
 
 const m = vi.hoisted(() => ({ summaries: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+  Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
+}))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueSlug: 'x', fullBasePath: '/venues/x' }) }))
 vi.mock('@/hooks/useCommissions', () => ({ useCommissionSummaries: () => m.summaries() }))
 // La tabla real: encabezados y celdas tal cual las definen las columnas.
@@ -55,5 +58,30 @@ describe('TeamCommissionTable', () => {
     m.summaries.mockReturnValue({ data: [resumen('PENDING_APPROVAL')], isLoading: false })
     render(<TeamCommissionTable />)
     expect(screen.queryByText(/approve|pay|aprobar|pagar/i)).toBeNull()
+  })
+
+  // E6a-fix2 C6 (full-testing E6a): los montos de esta tabla son lo CALCULADO por el motor y no siempre coinciden con lo que
+  // se paga (devoluciones de hoy, comisiones ya pagadas por el flujo viejo). Con Pago al personal activo se dice y se enlaza.
+  it('🔴 con Pago al personal activo, debajo del título dice que es lo calculado y lleva al recibo', () => {
+    m.summaries.mockReturnValue({ data: [resumen('CALCULATED')], isLoading: false })
+    render(<TeamCommissionTable staffPayActive puedeVerRecibos />)
+    expect(screen.getByText(/summary\.calculatedNote/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'overview.goToStaffPay' })).toHaveAttribute('href', '/venues/x/servicio-pago#periodos')
+  })
+
+  it('🔴 también sin resúmenes todavía (estado vacío)', () => {
+    m.summaries.mockReturnValue({ data: [], isLoading: false })
+    render(<TeamCommissionTable staffPayActive puedeVerRecibos />)
+    expect(screen.getByText(/summary\.calculatedNote/)).toBeInTheDocument()
+  })
+
+  it('sin Pago al personal activo no lo dice; sin permiso de verlo, la línea va sin enlace', () => {
+    m.summaries.mockReturnValue({ data: [resumen('CALCULATED')], isLoading: false })
+    const { unmount } = render(<TeamCommissionTable />)
+    expect(screen.queryByText(/summary\.calculatedNote/)).toBeNull()
+    unmount()
+    render(<TeamCommissionTable staffPayActive />)
+    expect(screen.getByText(/summary\.calculatedNote/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'overview.goToStaffPay' })).toBeNull()
   })
 })

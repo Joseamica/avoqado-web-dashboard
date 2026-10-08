@@ -16,7 +16,13 @@ vi.mock('@/hooks/useCommissions', () => ({
   useEffectiveCommissionConfigs: () => ({ data: [], isLoading: false }),
 }))
 vi.mock('../components/CommissionKPICards', () => ({ default: () => <div>kpis</div> }))
-vi.mock('../components/TeamCommissionTable', () => ({ default: () => <div>resumenes</div> }))
+vi.mock('../components/TeamCommissionTable', () => ({
+  default: ({ staffPayActive, puedeVerRecibos }: { staffPayActive?: boolean; puedeVerRecibos?: boolean }) => (
+    <div>
+      resumenes <span>{`activo ${String(staffPayActive)} recibos ${String(puedeVerRecibos)}`}</span>
+    </div>
+  ),
+}))
 vi.mock('../components/CommissionConfigList', () => ({ default: () => null }))
 vi.mock('../components/GoalsTab', () => ({ default: () => null }))
 vi.mock('../components/setup-panel/CommissionSetupPanel', () => ({ default: () => null }))
@@ -104,6 +110,18 @@ describe('CommissionsPage — las comisiones se pagan en Pago al personal (spec 
       sinPago()
       pagina('/venues/x/commissions')
       expect(screen.queryByText('overview.askOwner')).toBeNull()
+    })
+
+    // E6a-fix2 C6: la tabla de resúmenes sabe si la sede paga en Pago al personal y si quien mira puede ver los recibos.
+    it('🔴 la tabla recibe si Pago al personal está activo y si puede ver los recibos', () => {
+      m.stats = { staffPayActive: true }
+      const { unmount } = pagina('/venues/x/commissions')
+      expect(screen.getByText('activo true recibos true')).toBeInTheDocument()
+      unmount()
+      sinPago()
+      m.can.mockImplementation((p: string) => p !== 'staffpay:read')
+      pagina('/venues/x/commissions')
+      expect(screen.getByText('activo false recibos false')).toBeInTheDocument()
     })
 
     it('cargando: no afirma ni lo uno ni lo otro', () => {

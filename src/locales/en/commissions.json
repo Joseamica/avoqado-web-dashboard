@@ -329,7 +329,8 @@
     "adjustmentAmount": "Adjustment Amount",
     "adjustmentReason": "Adjustment Reason",
     "noSummaries": "No pending summaries",
-    "noSummariesDescription": "Summaries are automatically generated at the end of each period"
+    "noSummariesDescription": "Summaries are automatically generated at the end of each period",
+    "calculatedNote": "This is what was calculated. What gets paid is in the Staff pay statement."
   },
   "status": {
     "DRAFT": "Draft",
