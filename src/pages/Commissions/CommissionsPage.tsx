@@ -54,6 +54,7 @@ export default function CommissionsPage() {
 	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
 	const { data: effectiveConfigs, isLoading: isLoadingConfigs } = useEffectiveCommissionConfigs()
 	const configCount = effectiveConfigs?.length || 0
+	const sinPagoAlPersonal = !isLoadingStats && !!stats && stats.staffPayActive !== true
 
 	return (
 		<FeatureGate feature="COMMISSIONS">
@@ -72,7 +73,9 @@ export default function CommissionsPage() {
 					data-tour="commissions-paid-in-staff-pay"
 				>
 					<Info className="h-4 w-4 shrink-0 text-muted-foreground" />
-					<span>{t('overview.paidInStaffPay')}</span>
+					{/* Sede sin Pago al personal activo (o servidor viejo sin el campo): se explica qué hacer; cargando, no se afirma nada nuevo. */}
+					<span>{sinPagoAlPersonal ? t('overview.notInStaffPay') : t('overview.paidInStaffPay')}</span>
+					{sinPagoAlPersonal && !can('staffpay:read') && <span>{t('overview.askOwner')}</span>}
 					{can('staffpay:read') && (
 						<Link to={`${fullBasePath}/servicio-pago#periodos`} className="font-medium underline underline-offset-2">
 							{t('overview.goToStaffPay')}

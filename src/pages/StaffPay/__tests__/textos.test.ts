@@ -135,8 +135,28 @@ describe('textos de pago por servicio', () => {
     expect(textoDeCuenta(tEs, cuenta(0, 1, 0), 'es')).toBe('1 comisión ($30.00)')
     expect(textoDeCuenta(tEs, cuenta(1, 0, 0, 2), 'es')).toBe('1 clase ($500.00) y 2 clases que todavía no se pueden valorar')
     expect(tEs('sedes.fuera.sinActivar', { desde: '1 oct 2026', cuenta: '41 comisiones ($1,230.00)' })).toBe(
-      'Desde el 1 oct 2026 quedan fuera 41 comisiones ($1,230.00). Actívala para que entren.',
+      'Lo que queda fuera desde el 1 oct 2026: 41 comisiones ($1,230.00). Actívala para que entre.',
     )
+    // Concordancia: con UNA sola cosa ningún texto antepone un verbo plural a la cuenta («quedan fuera 1 comisión»).
+    const una = textoDeCuenta(tEs, cuenta(0, 1, 0), 'es')
+    const unaEn = textoDeCuenta(tEn, cuenta(0, 1, 0), 'en')
+    expect(tEs('sedes.fuera.antesDe', { desde: '1 oct', cuenta: una })).toBe('Lo que queda fuera, de antes del 1 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.dialogo.entran', { cuenta: una, fecha: '5 oct', sede: 'Roma' })).toBe(
+      'Lo que entra desde el 5 oct a las 00:00 (hora de Roma): 1 comisión ($30.00).',
+    )
+    expect(tEs('sedes.dialogo.quedanFuera', { cuenta: una, fecha: '5 oct' })).toBe('Lo que queda fuera, de antes del 5 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.dialogo.dejanDeEntrar', { cuenta: una, fecha: '5 oct' })).toBe('Lo que deja de entrar, vendido después del 5 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.dialogo.permanecen', { cuenta: una, fecha: '5 oct' })).toBe('Lo que sigue entrando hasta el 5 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.aviso.sinActivar', { sede: 'Roma', desde: '1 oct', cuenta: una })).toBe(
+      'Roma no está activa. Lo que queda fuera desde el 1 oct: 1 comisión ($30.00).',
+    )
+    expect(tEn('sedes.fuera.sinActivar', { desde: 'Oct 1', cuenta: unaEn })).toBe('What is left out since Oct 1: 1 commission ($30.00). Turn it on so it counts.')
+    expect(tEn('sedes.fuera.antesDe', { desde: 'Oct 1', cuenta: unaEn })).toBe('What is left out, from before Oct 1: 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.entran', { cuenta: unaEn, fecha: 'Oct 5', sede: 'Roma' })).toBe('What counts from Oct 5 at 00:00 (Roma time): 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.quedanFuera', { cuenta: unaEn, fecha: 'Oct 5' })).toBe('What is left out, from before Oct 5: 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.dejanDeEntrar', { cuenta: unaEn, fecha: 'Oct 5' })).toBe('What stops counting, sold after Oct 5: 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.permanecen', { cuenta: unaEn, fecha: 'Oct 5' })).toBe('What still counts up to Oct 5: 1 commission ($30.00).')
+    expect(tEn('sedes.aviso.sinActivar', { sede: 'Roma', desde: 'Oct 1', cuenta: unaEn })).toBe('Roma is not active. What is left out since Oct 1: 1 commission ($30.00).')
     // Una o varias sedes sin plan: el verbo concuerda.
     expect(tEs('sedes.aviso.sinPlan', { sedes: 'Condesa', count: 1 })).toMatch(/^Condesa sigue activa sin plan/)
     expect(tEs('sedes.aviso.sinPlan', { sedes: 'Condesa y Roma', count: 2 })).toMatch(/^Condesa y Roma siguen activas sin plan/)

@@ -505,8 +505,8 @@
     "activaHasta": "Activa del {{desde}} al {{hasta}}",
     "bloqueaCierre": "Perdió el plan y sigue activa: bloquea el cierre. Desactívala indicando su último día, o renueva el plan.",
     "fuera": {
-      "sinActivar": "Desde el {{desde}} quedan fuera {{cuenta}}. Actívala para que entren.",
-      "antesDe": "Antes del {{desde}} quedan fuera {{cuenta}}."
+      "sinActivar": "Lo que queda fuera desde el {{desde}}: {{cuenta}}. Actívala para que entre.",
+      "antesDe": "Lo que queda fuera, de antes del {{desde}}: {{cuenta}}."
     },
     "sinPlan": "Pago al personal viene en el plan Pro o se contrata suelto por sucursal.",
     "sinPlanPrecio": "Pago al personal viene en el plan Pro o se contrata suelto por {{precio}} al mes en esta sucursal.",
@@ -531,13 +531,13 @@
       "desde": "Desde qué día cuentan sus clases y ventas",
       "hasta": "Último día que cuenta",
       "rango": "Puedes elegir del {{desde}} al {{hasta}} (hora de la sede).",
-      "entran": "Entran {{cuenta}} desde el {{fecha}} a las 00:00 (hora de {{sede}}).",
+      "entran": "Lo que entra desde el {{fecha}} a las 00:00 (hora de {{sede}}): {{cuenta}}.",
       "entranNada": "Todavía no hay nada vendido desde el {{fecha}}: entra lo que venda desde ahora.",
-      "quedanFuera": "Quedan fuera {{cuenta}} de antes del {{fecha}}.",
+      "quedanFuera": "Lo que queda fuera, de antes del {{fecha}}: {{cuenta}}.",
       "quedaFueraNada": "No queda nada fuera.",
       "ajuste": "Lo anterior no entra; si debes algo, agrégalo como ajuste.",
-      "dejanDeEntrar": "Dejan de entrar {{cuenta}} vendidas después del {{fecha}}.",
-      "permanecen": "Siguen entrando {{cuenta}} hasta el {{fecha}}.",
+      "dejanDeEntrar": "Lo que deja de entrar, vendido después del {{fecha}}: {{cuenta}}.",
+      "permanecen": "Lo que sigue entrando hasta el {{fecha}}: {{cuenta}}.",
       "nadaCambia": "Nada cambia con esa fecha.",
       "borraActivacion": "Con esa fecha se borra la activación: nada de esta sede entra al sobre.",
       "confirmarActivar": "Activar desde el {{fecha}}",
@@ -547,7 +547,7 @@
       "borrada": "Se borró la activación de {{sede}}"
     },
     "aviso": {
-      "sinActivar": "{{sede}} no está activa: desde el {{desde}} quedan fuera {{cuenta}}.",
+      "sinActivar": "{{sede}} no está activa. Lo que queda fuera desde el {{desde}}: {{cuenta}}.",
       "sinPlan_one": "{{sedes}} sigue activa sin plan: el cierre está bloqueado hasta desactivarla o renovar el plan.",
       "sinPlan_other": "{{sedes}} siguen activas sin plan: el cierre está bloqueado hasta desactivarlas o renovar el plan.",
       "mas_one": "y {{count}} sede más",

@@ -11,6 +11,8 @@
   },
   "overview": {
     "paidInStaffPay": "Commissions are paid in the Staff pay statement, together with classes and tips.",
+    "notInStaffPay": "Commissions are calculated here. To pay them on a receipt, together with classes and tips, turn on Staff pay in this location.",
+    "askOwner": "Ask the business owner for it.",
     "goToStaffPay": "Go to Staff pay",
     "noConfigTitle": "Set up commissions for your team",
     "noConfigDescription": "To see the commissions overview, you first need to create a configuration. Define how much your staff earns and how it's calculated.",

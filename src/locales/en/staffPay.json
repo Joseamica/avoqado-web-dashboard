@@ -505,8 +505,8 @@
     "activaHasta": "Active from {{desde}} to {{hasta}}",
     "bloqueaCierre": "It lost the plan and is still active: it blocks closing. Turn it off with its last day, or renew the plan.",
     "fuera": {
-      "sinActivar": "Since {{desde}}, {{cuenta}} are left out. Turn it on so they count.",
-      "antesDe": "Before {{desde}}, {{cuenta}} are left out."
+      "sinActivar": "What is left out since {{desde}}: {{cuenta}}. Turn it on so it counts.",
+      "antesDe": "What is left out, from before {{desde}}: {{cuenta}}."
     },
     "sinPlan": "Staff pay is included in the Pro plan, or can be added on its own per location.",
     "sinPlanPrecio": "Staff pay is included in the Pro plan, or can be added on its own for {{precio}} a month at this location.",
@@ -531,13 +531,13 @@
       "desde": "From which day its classes and sales count",
       "hasta": "Last day that counts",
       "rango": "You can choose from {{desde}} to {{hasta}} (location time).",
-      "entran": "{{cuenta}} count from {{fecha}} at 00:00 ({{sede}} time).",
+      "entran": "What counts from {{fecha}} at 00:00 ({{sede}} time): {{cuenta}}.",
       "entranNada": "Nothing has been sold since {{fecha}} yet: whatever sells from now on counts.",
-      "quedanFuera": "{{cuenta}} from before {{fecha}} are left out.",
+      "quedanFuera": "What is left out, from before {{fecha}}: {{cuenta}}.",
       "quedaFueraNada": "Nothing is left out.",
       "ajuste": "Anything earlier doesn't count; if you owe something, add it as an adjustment.",
-      "dejanDeEntrar": "{{cuenta}} sold after {{fecha}} stop counting.",
-      "permanecen": "{{cuenta}} up to {{fecha}} still count.",
+      "dejanDeEntrar": "What stops counting, sold after {{fecha}}: {{cuenta}}.",
+      "permanecen": "What still counts up to {{fecha}}: {{cuenta}}.",
       "nadaCambia": "Nothing changes with that date.",
       "borraActivacion": "With that date the activation is deleted: nothing from this location counts.",
       "confirmarActivar": "Turn on from {{fecha}}",
@@ -547,7 +547,7 @@
       "borrada": "{{sede}}'s activation was deleted"
     },
     "aviso": {
-      "sinActivar": "{{sede}} is not active: since {{desde}}, {{cuenta}} are left out.",
+      "sinActivar": "{{sede}} is not active. What is left out since {{desde}}: {{cuenta}}.",
       "sinPlan_one": "{{sedes}} is still active without a plan: closing is blocked until you turn it off or renew the plan.",
       "sinPlan_other": "{{sedes}} are still active without a plan: closing is blocked until you turn them off or renew the plan.",
       "mas_one": "and {{count}} more location",
