@@ -312,3 +312,48 @@ export function useStaffPaySedes(enabled = true) {
   const { venueId } = useCurrentVenue()
   return useQuery({ queryKey: staffPayKeys.sedes(venueId), queryFn: () => staffPayService.sedes(venueId!), enabled: !!venueId && enabled, ...pesado })
 }
+/**
+ * Qué entra y qué queda fuera al activar o desactivar UNA sede desde `fecha` (sin ella, hoy de la sede). Nunca se reusa: es
+ * dinero (`staleTime`/`gcTime` 0). Al mover la fecha se conserva la vista anterior mientras llega la nueva (no parpadea;
+ * `isFetching` apaga el botón). Un 4xx no se reintenta: es determinista (YA_ACTIVA, FECHA_FUERA_DE_RANGO…).
+ */
+export function useParticipationPreview(sedeId: string | null, accion: 'activar' | 'desactivar', fecha?: string, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useQuery({
+    queryKey: [...staffPayKeys.sedes(venueId), sedeId, 'preview', accion, fecha ?? null],
+    queryFn: () => staffPayService.participationPreview(venueId!, sedeId!, accion, fecha),
+    enabled: !!venueId && !!sedeId && enabled,
+    staleTime: 0,
+    gcTime: 0,
+    retry: (n, e) => n < 1 && (estado(e) ?? 500) >= 500,
+    refetchOnWindowFocus: false,
+    placeholderData: previo => previo,
+  })
+}
+/**
+ * Activar o desactivar una sede refresca todo lo de pago al personal (el cierre, los reportes y el acceso dependen de las
+ * ventanas). Un rechazo 4xx dice que la sede cambió del otro lado: se relee la lista. Sin respuesta pudo haberse aplicado:
+ * se relee todo, como en el éxito.
+ */
+function useCambiarSede<B, R>(llamar: (venueId: string, b: B) => Promise<R>) {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (b: B) => llamar(venueId!, b),
+    onSuccess: inv,
+    onError: err => {
+      const s = estado(err)
+      if (!s) return inv()
+      if (s >= 400 && s < 500) return qc.invalidateQueries({ queryKey: staffPayKeys.sedes(venueId), exact: true })
+    },
+  })
+}
+export function useActivateSede() {
+  return useCambiarSede((venueId, p: { sedeId: string; desde: string; fechaEsperada: string }) =>
+    staffPayService.activateSede(venueId, p.sedeId, { desde: p.desde, fechaEsperada: p.fechaEsperada }),
+  )
+}
+export function useDeactivateSede() {
+  return useCambiarSede((venueId, p: { sedeId: string; hasta: string; fechaEsperada: string }) =>
+    staffPayService.deactivateSede(venueId, p.sedeId, { hasta: p.hasta, fechaEsperada: p.fechaEsperada }),
+  )
+}

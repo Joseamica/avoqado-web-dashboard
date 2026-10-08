@@ -1,5 +1,5 @@
 import api from '@/api'
-import type { AccesoDto, AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, EstadoSedesDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, SimulacionVigenciaDto, TablaDto } from '@/types/staffPay'
+import type { AccesoDto, AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, EstadoSedesDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, ResultadoVentanaDto, SimulacionVigenciaDto, TablaDto, VistaPreviaParticipacionDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
 
@@ -29,6 +29,17 @@ export const staffPayService = {
     return (await api.put(`${base(venueId)}/tips`, { encender })).data
   },
   async sedes(venueId: string): Promise<EstadoSedesDto> { return (await api.get(`${base(venueId)}/sedes`)).data },
+  /** Qué entra y qué queda fuera al activar o desactivar UNA sede desde `fecha`; sin ella, el servidor usa «hoy» de la sede. */
+  async participationPreview(venueId: string, sedeId: string, accion: 'activar' | 'desactivar', fecha?: string): Promise<VistaPreviaParticipacionDto> {
+    return (await api.get(`${base(venueId)}/sedes/${sedeId}/participation-preview`, { params: fecha ? { accion, fecha } : { accion } })).data
+  },
+  /** `fechaEsperada` = el `maximo` (hoy de la sede) que se vio en la vista previa: si ya es otro día, 409 FECHA_CAMBIO. */
+  async activateSede(venueId: string, sedeId: string, body: { desde: string; fechaEsperada: string }): Promise<ResultadoVentanaDto> {
+    return (await api.post(`${base(venueId)}/sedes/${sedeId}/activate`, body)).data
+  },
+  async deactivateSede(venueId: string, sedeId: string, body: { hasta: string; fechaEsperada: string }): Promise<ResultadoVentanaDto> {
+    return (await api.post(`${base(venueId)}/sedes/${sedeId}/deactivate`, body)).data
+  },
   // ── Fase 2: cerrar y pagar ──
   async periods(venueId: string, antesDe?: string): Promise<ListaPeriodosDto> { return (await api.get(`${base(venueId)}/periods`, { params: antesDe ? { antesDe } : {} })).data },
   async setPeriodicity(venueId: string, periodicidad: 'MONTHLY' | 'SEMIMONTHLY') { return (await api.patch(`${base(venueId)}/periodicity`, { periodicidad })).data },

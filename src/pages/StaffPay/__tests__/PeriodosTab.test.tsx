@@ -50,6 +50,7 @@ vi.mock('@/hooks/useStaffPay', () => ({
   useSetPeriodicity: () => ({ mutateAsync: m.periodicity, isPending: false }),
 }))
 vi.mock('../components/ActivarPagoAlPersonal', () => ({ ActivarPagoAlPersonal: () => <div>activar</div> }))
+vi.mock('../components/AvisoSedesFuera', () => ({ AvisoSedesFuera: ({ activa }: { activa: boolean }) => <div>aviso-sedes {String(activa)}</div> }))
 vi.mock('../components/InterruptorPropinas', () => ({ InterruptorPropinas: ({ encendidas }: { encendidas: boolean }) => <div>propinas {String(encendidas)}</div> }))
 
 const LISTA = {
@@ -177,6 +178,8 @@ describe('PeriodosTab', () => {
     expect(screen.getByText('activar')).toBeInTheDocument()
     expect(m.pedidos).toHaveBeenCalledWith(false)
     expect(screen.queryByText(/abierto/)).toBeNull()
+    // Sin activar no hay sedes «fuera»: el aviso no se pide.
+    expect(screen.queryByText(/aviso-sedes/)).toBeNull()
   })
 
   it('activado: dice desde cuándo y muestra el interruptor de propinas junto a la periodicidad', () => {
@@ -185,6 +188,12 @@ describe('PeriodosTab', () => {
     expect(screen.getByText(/activation\.activeSince/)).toHaveTextContent('2026-09-01')
     expect(screen.getByText('propinas false')).toBeInTheDocument()
     expect(m.pedidos).toHaveBeenCalledWith(true)
+  })
+
+  it('activado: el aviso de sedes fuera va arriba del selector de periodo, con la pestaña activa', () => {
+    conUrl()
+    const aviso = screen.getByText('aviso-sedes true')
+    expect(aviso.compareDocumentPosition(screen.getByText('periods.period')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('si la lista responde «sin activar» antes de que el acceso se refresque, ofrece activar en vez de un error (pre-flight E3a #3)', () => {

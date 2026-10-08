@@ -10,9 +10,10 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useStaffPayAccess } from '@/hooks/useStaffPay'
 import { TablaDePagosTab } from './components/TablaDePagosTab'
 import { PeriodosTab } from './components/PeriodosTab'
+import { SedesTab } from './components/SedesTab'
 import { mensajeLegible } from './rangos'
 
-const TABS = ['tabla', 'periodos'] as const
+const TABS = ['tabla', 'periodos', 'sedes'] as const
 type Tab = (typeof TABS)[number]
 
 export default function StaffPayPage() {
@@ -59,14 +60,23 @@ export default function StaffPayPage() {
           </Card>
         </FeatureGate>
       )}
+      {!isLoading && data?.enabled === false && data.activado === true && (
+        // Ya activado y ESTA sede perdió el plan: «Sedes» sigue a la mano (verlas y desactivar no piden plan, diseño r4.7),
+        // porque desactivar con su último día es la salida del bloqueo del cierre.
+        <div className="mt-6">
+          <SedesTab activa />
+        </div>
+      )}
       {data?.enabled && (
         <Tabs value={tab} onValueChange={cambiar} className="space-y-6">
           <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
             <TabsTrigger value="tabla" data-tour="staffpay-tab-tabla" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">{t('tabs.table')}</TabsTrigger>
             <TabsTrigger value="periodos" data-tour="staffpay-tab-periodos" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">{t('tabs.periods')}</TabsTrigger>
+            <TabsTrigger value="sedes" data-tour="staffpay-tab-sedes" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">{t('tabs.venues')}</TabsTrigger>
           </TabsList>
           <TabsContent value="tabla"><TablaDePagosTab /></TabsContent>
           <TabsContent value="periodos"><PeriodosTab activa={tab === 'periodos'} /></TabsContent>
+          <TabsContent value="sedes"><SedesTab activa={tab === 'sedes'} /></TabsContent>
         </Tabs>
       )}
     </div>

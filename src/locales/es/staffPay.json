@@ -37,7 +37,8 @@
   },
   "tabs": {
     "table": "Tabla de pagos",
-    "periods": "Periodos"
+    "periods": "Periodos",
+    "venues": "Sedes"
   },
   "levels": {
     "title": "Niveles",
@@ -488,5 +489,69 @@
     "notCountedPeriods_other": "No se contaron {{count}} periodos anteriores que siguen abiertos; también pueden cambiar.",
     "closedLocal": "{{periodo}} ya se cerró: elige una fecha desde el {{fecha}}. Para una clase de un periodo cerrado usa «Ajustar monto» en la clase.",
     "outOfRange": "La vigencia debe estar entre el {{desde}} y el {{hasta}}."
+  },
+  "sedes": {
+    "error": "No se pudo cargar el estado de las sedes.",
+    "irAActivar": "Activa pago al personal en «Periodos»",
+    "antesDeActivar": "Las sedes que elijas entran al activar pago al personal. Después puedes activar las demás, cada una desde su fecha.",
+    "conPlan": "Con plan",
+    "estado": {
+      "ACTIVA": "Activa",
+      "SIN_ACTIVAR": "Sin activar",
+      "ACTIVA_SIN_PLAN": "Activa sin plan",
+      "SIN_PLAN": "Sin plan"
+    },
+    "activaDesde": "Activa desde el {{desde}}",
+    "activaHasta": "Activa del {{desde}} al {{hasta}}",
+    "bloqueaCierre": "Perdió el plan y sigue activa: bloquea el cierre. Desactívala indicando su último día, o renueva el plan.",
+    "fuera": {
+      "sinActivar": "Desde el {{desde}} quedan fuera {{cuenta}}. Actívala para que entren.",
+      "antesDe": "Antes del {{desde}} quedan fuera {{cuenta}}."
+    },
+    "sinPlan": "Pago al personal viene en el plan Pro o se contrata suelto por sucursal.",
+    "sinPlanPrecio": "Pago al personal viene en el plan Pro o se contrata suelto por {{precio}} al mes en esta sucursal.",
+    "sinPermiso": "Para activar o desactivar una sede necesitas el permiso «Cerrar periodos y registrar pagos» en ella. Pídeselo al dueño del negocio.",
+    "sinDiasHoy": "El periodo de hoy ya está cerrado en esta sede: podrás activarla cuando empiece el siguiente.",
+    "activar": "Activar",
+    "desactivar": "Desactivar",
+    "verSedes": "Ver sedes",
+    "cuenta": {
+      "clases_one": "{{count}} clase ({{total}})",
+      "clases_other": "{{count}} clases ({{total}})",
+      "comisiones_one": "{{count}} comisión ({{total}})",
+      "comisiones_other": "{{count}} comisiones ({{total}})",
+      "propinas_one": "{{count}} propina ({{total}})",
+      "propinas_other": "{{count}} propinas ({{total}})",
+      "sinValorar_one": "{{count}} clase que todavía no se puede valorar",
+      "sinValorar_other": "{{count}} clases que todavía no se pueden valorar"
+    },
+    "dialogo": {
+      "tituloActivar": "Activar {{sede}}",
+      "tituloDesactivar": "Desactivar {{sede}}",
+      "desde": "Desde qué día cuentan sus clases y ventas",
+      "hasta": "Último día que cuenta",
+      "rango": "Puedes elegir del {{desde}} al {{hasta}} (hora de la sede).",
+      "entran": "Entran {{cuenta}} desde el {{fecha}} a las 00:00 (hora de {{sede}}).",
+      "entranNada": "Todavía no hay nada vendido desde el {{fecha}}: entra lo que venda desde ahora.",
+      "quedanFuera": "Quedan fuera {{cuenta}} de antes del {{fecha}}.",
+      "quedaFueraNada": "No queda nada fuera.",
+      "ajuste": "Lo anterior no entra; si debes algo, agrégalo como ajuste.",
+      "dejanDeEntrar": "Dejan de entrar {{cuenta}} vendidas después del {{fecha}}.",
+      "permanecen": "Siguen entrando {{cuenta}} hasta el {{fecha}}.",
+      "nadaCambia": "Nada cambia con esa fecha.",
+      "borraActivacion": "Con esa fecha se borra la activación: nada de esta sede entra al sobre.",
+      "confirmarActivar": "Activar desde el {{fecha}}",
+      "confirmarDesactivar": "Desactivar: último día el {{fecha}}",
+      "activada": "{{sede}} activa desde el {{fecha}}",
+      "desactivada": "{{sede}} desactivada: su último día es el {{fecha}}",
+      "borrada": "Se borró la activación de {{sede}}"
+    },
+    "aviso": {
+      "sinActivar": "{{sede}} no está activa: desde el {{desde}} quedan fuera {{cuenta}}.",
+      "sinPlan_one": "{{sedes}} sigue activa sin plan: el cierre está bloqueado hasta desactivarla o renovar el plan.",
+      "sinPlan_other": "{{sedes}} siguen activas sin plan: el cierre está bloqueado hasta desactivarlas o renovar el plan.",
+      "mas_one": "y {{count}} sede más",
+      "mas_other": "y {{count}} sedes más"
+    }
   }
 }

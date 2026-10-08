@@ -7,6 +7,7 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
 vi.mock('../components/TablaDePagosTab', () => ({ TablaDePagosTab: () => <div>tabla-tab</div> }))
 vi.mock('../components/PeriodosTab', () => ({ PeriodosTab: () => <div>periodo-tab</div> }))
+vi.mock('../components/SedesTab', () => ({ SedesTab: ({ activa }: { activa: boolean }) => <div>sedes-tab {String(activa)}</div> }))
 vi.mock('@/components/billing/FeatureGate', () => ({
   FeatureGate: ({ feature, children }: any) => <div data-testid={`gate-${feature}`}>{children}</div>,
 }))
@@ -39,6 +40,29 @@ describe('StaffPayPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
     expect(refetch).toHaveBeenCalledTimes(1)
   })
+  it('con el plan hay tres pestañas: Tabla, Periodos y Sedes', () => {
+    mockAccess.mockReturnValue({ data: { enabled: true, activado: true, startDate: '2026-10-01', propinasEncendidas: false }, isLoading: false })
+    render(<MemoryRouter initialEntries={['/x#sedes']}><StaffPayPage /></MemoryRouter>)
+    expect(screen.getByRole('tab', { name: 'tabs.venues' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'tabs.table' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'tabs.periods' })).toBeInTheDocument()
+    expect(screen.getByText('sedes-tab true')).toBeInTheDocument()
+  })
+
+  it('activado pero esta sede perdió el plan: el cartel y SÓLO la pestaña Sedes (desactivar no pide plan, r4.7)', () => {
+    mockAccess.mockReturnValue({ data: { enabled: false, activado: true, startDate: '2026-10-01', propinasEncendidas: false }, isLoading: false })
+    render(<MemoryRouter><StaffPayPage /></MemoryRouter>)
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'tabs.table' })).toBeNull()
+    expect(screen.getByText('sedes-tab true')).toBeInTheDocument()
+  })
+
+  it('sin el plan y sin activar: sólo el cartel, sin Sedes', () => {
+    mockAccess.mockReturnValue({ data: { enabled: false, activado: false, startDate: null, propinasEncendidas: false }, isLoading: false })
+    render(<MemoryRouter><StaffPayPage /></MemoryRouter>)
+    expect(screen.queryByText(/sedes-tab/)).toBeNull()
+  })
+
   it('si el acceso no carga y no hay mensaje del servidor, dice el genérico', () => {
     mockAccess.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('x'), refetch: vi.fn() })
     render(<MemoryRouter><StaffPayPage /></MemoryRouter>)

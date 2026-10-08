@@ -175,6 +175,13 @@ export interface EstadoSedesDto {
   periodo: { start: string; end: string } | null
   sedes: SedeEnPagoAlPersonalDto[]
 }
+/** Vista previa de activar o desactivar UNA sede (B11, diseño r5.4): todo neto, «después de confirmar». `maximo` = hoy de la sede. */
+export type VistaPreviaParticipacionDto = { fecha: string; minimo: string; maximo: string; zona: string } & (
+  | { accion: 'activar'; entran: CuentaDto; quedanFuera: CuentaDto }
+  | { accion: 'desactivar'; dejanDeEntrar: CuentaDto; permanecen: CuentaDto }
+)
+/** `ventana: null` al desactivar = se borró la activación (hasta = desde − 1). */
+export interface ResultadoVentanaDto { ventana: { venueId: string; desde: string; hasta: string | null } | null; minimo: string; minimoEfectivo: string }
 export type DestinoDto =
   | { tipo: 'AL_CERRAR'; periodo: { start: string; end: string } }
   | { tipo: 'PERIODO_POSTERIOR_A'; origen: { start: string; end: string } }

@@ -37,7 +37,8 @@
   },
   "tabs": {
     "table": "Pay table",
-    "periods": "Periods"
+    "periods": "Periods",
+    "venues": "Locations"
   },
   "levels": {
     "title": "Levels",
@@ -488,5 +489,69 @@
     "notCountedPeriods_other": "{{count}} earlier periods that are still open weren't counted; they may change too.",
     "closedLocal": "{{periodo}} is already closed: choose a date from {{fecha}}. For a class in a closed period use “Adjust amount” in the class.",
     "outOfRange": "The start date must be between {{desde}} and {{hasta}}."
+  },
+  "sedes": {
+    "error": "Couldn't load the locations' status.",
+    "irAActivar": "Turn on staff pay in “Periods”",
+    "antesDeActivar": "The locations you choose join when you turn on staff pay. Later you can turn on the rest, each from its own date.",
+    "conPlan": "In plan",
+    "estado": {
+      "ACTIVA": "Active",
+      "SIN_ACTIVAR": "Not active",
+      "ACTIVA_SIN_PLAN": "Active without plan",
+      "SIN_PLAN": "No plan"
+    },
+    "activaDesde": "Active since {{desde}}",
+    "activaHasta": "Active from {{desde}} to {{hasta}}",
+    "bloqueaCierre": "It lost the plan and is still active: it blocks closing. Turn it off with its last day, or renew the plan.",
+    "fuera": {
+      "sinActivar": "Since {{desde}}, {{cuenta}} are left out. Turn it on so they count.",
+      "antesDe": "Before {{desde}}, {{cuenta}} are left out."
+    },
+    "sinPlan": "Staff pay is included in the Pro plan, or can be added on its own per location.",
+    "sinPlanPrecio": "Staff pay is included in the Pro plan, or can be added on its own for {{precio}} a month at this location.",
+    "sinPermiso": "To turn a location on or off you need the “Close periods and record payments” permission there. Ask the business owner.",
+    "sinDiasHoy": "Today's period is already closed at this location: you can turn it on when the next one starts.",
+    "activar": "Turn on",
+    "desactivar": "Turn off",
+    "verSedes": "See locations",
+    "cuenta": {
+      "clases_one": "{{count}} class ({{total}})",
+      "clases_other": "{{count}} classes ({{total}})",
+      "comisiones_one": "{{count}} commission ({{total}})",
+      "comisiones_other": "{{count}} commissions ({{total}})",
+      "propinas_one": "{{count}} tip ({{total}})",
+      "propinas_other": "{{count}} tips ({{total}})",
+      "sinValorar_one": "{{count}} class that can't be valued yet",
+      "sinValorar_other": "{{count}} classes that can't be valued yet"
+    },
+    "dialogo": {
+      "tituloActivar": "Turn on {{sede}}",
+      "tituloDesactivar": "Turn off {{sede}}",
+      "desde": "From which day its classes and sales count",
+      "hasta": "Last day that counts",
+      "rango": "You can choose from {{desde}} to {{hasta}} (location time).",
+      "entran": "{{cuenta}} count from {{fecha}} at 00:00 ({{sede}} time).",
+      "entranNada": "Nothing has been sold since {{fecha}} yet: whatever sells from now on counts.",
+      "quedanFuera": "{{cuenta}} from before {{fecha}} are left out.",
+      "quedaFueraNada": "Nothing is left out.",
+      "ajuste": "Anything earlier doesn't count; if you owe something, add it as an adjustment.",
+      "dejanDeEntrar": "{{cuenta}} sold after {{fecha}} stop counting.",
+      "permanecen": "{{cuenta}} up to {{fecha}} still count.",
+      "nadaCambia": "Nothing changes with that date.",
+      "borraActivacion": "With that date the activation is deleted: nothing from this location counts.",
+      "confirmarActivar": "Turn on from {{fecha}}",
+      "confirmarDesactivar": "Turn off: last day {{fecha}}",
+      "activada": "{{sede}} active since {{fecha}}",
+      "desactivada": "{{sede}} turned off: its last day is {{fecha}}",
+      "borrada": "{{sede}}'s activation was deleted"
+    },
+    "aviso": {
+      "sinActivar": "{{sede}} is not active: since {{desde}}, {{cuenta}} are left out.",
+      "sinPlan_one": "{{sedes}} is still active without a plan: closing is blocked until you turn it off or renew the plan.",
+      "sinPlan_other": "{{sedes}} are still active without a plan: closing is blocked until you turn them off or renew the plan.",
+      "mas_one": "and {{count}} more location",
+      "mas_other": "and {{count}} more locations"
+    }
   }
 }

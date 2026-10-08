@@ -2,6 +2,7 @@ import i18next from 'i18next'
 import { beforeAll, describe, expect, it } from 'vitest'
 import es from '@/locales/es/staffPay.json'
 import en from '@/locales/en/staffPay.json'
+import { textoDeCuenta } from '../cuenta'
 
 /** Los textos de verdad (no las llaves): singular/plural, una sola palabra para «pagados» y nada de «Muy pronto». */
 const i18n = i18next.createInstance()
@@ -114,5 +115,34 @@ describe('textos de pago por servicio', () => {
     expect(Object.keys(en.differences).sort()).toEqual(Object.keys(es.differences).sort())
     expect(Object.keys(en.differences.cause).sort()).toEqual(Object.keys(es.differences.cause).sort())
     for (const texto of [...Object.values(es.differences), ...Object.values(en.differences)]) expect(JSON.stringify(texto)).not.toMatch(/muy pronto|coming soon/i)
+  })
+  it('es y en tienen las mismas llaves en los grupos nuevos (todos los niveles)', () => {
+    const llaves = (o: unknown, pre = ''): string[] =>
+      o && typeof o === 'object' ? Object.entries(o).flatMap(([k, v]) => llaves(v, `${pre}${k}.`)) : [pre.slice(0, -1)]
+    // `rules` (E4) se suma a esta lista cuando llegue.
+    for (const g of ['activation', 'tips', 'sedes'] as const) expect(llaves(en[g]).sort()).toEqual(llaves(es[g]).sort())
+    expect(en.tabs).toHaveProperty('venues')
+    expect(es.tabs.venues).toBe('Sedes')
+  })
+  it('sedes: la cuenta se lee con singular, plural y lista natural; neto, y sin un tipo en cero (diseño r5.4)', () => {
+    const cuenta = (cl: number, co: number, pr: number, sv = 0) => ({
+      clases: { n: cl, total: `${cl * 500}.00`, pendientesDeValoracion: sv },
+      comisiones: { n: co, total: `${co * 30}.00` },
+      propinas: { n: pr, total: `${pr * 30}.00` },
+    })
+    expect(textoDeCuenta(tEs, cuenta(3, 41, 18), 'es')).toBe('3 clases ($1,500.00), 41 comisiones ($1,230.00) y 18 propinas ($540.00)')
+    expect(textoDeCuenta(tEn, cuenta(3, 41, 18), 'en')).toBe('3 classes ($1,500.00), 41 commissions ($1,230.00), and 18 tips ($540.00)')
+    expect(textoDeCuenta(tEs, cuenta(0, 1, 0), 'es')).toBe('1 comisión ($30.00)')
+    expect(textoDeCuenta(tEs, cuenta(1, 0, 0, 2), 'es')).toBe('1 clase ($500.00) y 2 clases que todavía no se pueden valorar')
+    expect(tEs('sedes.fuera.sinActivar', { desde: '1 oct 2026', cuenta: '41 comisiones ($1,230.00)' })).toBe(
+      'Desde el 1 oct 2026 quedan fuera 41 comisiones ($1,230.00). Actívala para que entren.',
+    )
+    // Una o varias sedes sin plan: el verbo concuerda.
+    expect(tEs('sedes.aviso.sinPlan', { sedes: 'Condesa', count: 1 })).toMatch(/^Condesa sigue activa sin plan/)
+    expect(tEs('sedes.aviso.sinPlan', { sedes: 'Condesa y Roma', count: 2 })).toMatch(/^Condesa y Roma siguen activas sin plan/)
+    expect(tEn('sedes.aviso.sinPlan', { sedes: 'Condesa and Roma', count: 2 })).toMatch(/^Condesa and Roma are still active/)
+    expect(tEs('sedes.aviso.mas', { count: 1 })).toBe('y 1 sede más')
+    // Nunca «de este periodo»: lo que está fuera puede venir de periodos anteriores sin cerrar (ruling progress.md:309).
+    for (const texto of [JSON.stringify(es.sedes), JSON.stringify(en.sedes)]) expect(texto).not.toMatch(/de este periodo|this period/i)
   })
 })

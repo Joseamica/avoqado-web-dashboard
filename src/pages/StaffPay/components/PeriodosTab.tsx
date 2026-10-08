@@ -25,6 +25,7 @@ import { PeriodoAbiertoTab } from './PeriodoAbiertoTab'
 import { PeriodoCerradoView } from './PeriodoCerradoView'
 import { ActivarPagoAlPersonal } from './ActivarPagoAlPersonal'
 import { InterruptorPropinas } from './InterruptorPropinas'
+import { AvisoSedesFuera } from './AvisoSedesFuera'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hoyEnSede } from '../hoyEnSede'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -129,6 +130,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
 
   return (
     <div className="space-y-6">
+      <AvisoSedesFuera activa={activa} />
       {isError && (
         // Ya hay lista, pero recargarla falló (p. ej. tras un cierre): se dice, para que nada se quede cargando sin fin.
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
