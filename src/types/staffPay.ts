@@ -140,3 +140,48 @@ export interface PreviewLiquidacionDto {
 }
 export interface LiquidarInput { periodoOrigenId: string; huellaEsperada: string; solicitudId: string; destinoFecha?: string; ampliarAlcance?: boolean }
 export interface ResultadoLiquidacionDto { lineas: Array<{ staffId: string; amount: string }>; yaLiquidada: boolean }
+
+// ── Fase 3: activación, propinas, sedes y devoluciones pendientes (spec §7.1, §10) ──
+export interface AccesoDto {
+  /** El plan (función SERVICE_PAY) lo incluye. */
+  enabled: boolean
+  /** El dueño ya activó pago al personal (`staffPayStartDate`). */
+  activado: boolean
+  /** Fecha civil desde la que se suman comisiones y propinas; null sin activar. */
+  startDate: string | null
+  propinasEncendidas: boolean
+  /** La periodicidad guardada (E1d); opcional: un server previo no la manda. */
+  periodicidad?: 'MONTHLY' | 'SEMIMONTHLY'
+  /** true: ya no se puede cambiar (queda fija al activar). */
+  periodicidadFija?: boolean
+}
+/** Pesos con 2 decimales, NETO. */
+export interface MontoDto { n: number; total: string }
+export interface CuentaDto { clases: MontoDto & { pendientesDeValoracion: number }; comisiones: MontoDto; propinas: MontoDto }
+export type EstadoSedeDto = 'ACTIVA' | 'SIN_ACTIVAR' | 'ACTIVA_SIN_PLAN' | 'SIN_PLAN'
+export interface SedeEnPagoAlPersonalDto {
+  venueId: string; nombre: string; zona: string; tienePlan: boolean
+  estado: EstadoSedeDto
+  desde: string | null; hasta: string | null
+  /** Mínimo EFECTIVO para activar hoy; null si hoy no se puede. */
+  minimo: string | null
+  puedeActivar: boolean; puedeDesactivar: boolean
+  fueraEstePeriodo: CuentaDto
+}
+export interface EstadoSedesDto {
+  activado: boolean; startDate: string | null
+  periodo: { start: string; end: string } | null
+  sedes: SedeEnPagoAlPersonalDto[]
+}
+export type DestinoDto =
+  | { tipo: 'AL_CERRAR'; periodo: { start: string; end: string } }
+  | { tipo: 'PERIODO_POSTERIOR_A'; origen: { start: string; end: string } }
+export interface PendienteDto {
+  fuente: 'TIP' | 'COMMISSION'; sourceId: string; venueId: string; sede: string; staffId: string
+  persona: string; fecha: string; monto: string; seDescuenta: DestinoDto
+}
+export interface DevolucionesPendientesDto {
+  n: number; total: string
+  porDestino: Array<{ seDescuenta: DestinoDto; n: number; total: string; porSede: Array<{ venueId: string; n: number; total: string }> }>
+  items: PendienteDto[]; truncado: boolean
+}

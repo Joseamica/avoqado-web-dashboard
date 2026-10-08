@@ -1,9 +1,9 @@
 {
-  "title": "Pago por servicio",
-  "subtitle": "Cuánto gana cada persona por clase, según cuántos lugares se ocuparon.",
+  "title": "Pago al personal",
+  "subtitle": "Clases, comisiones y propinas de cada persona, en un solo recibo por periodo.",
   "disabled": {
-    "title": "Pago por servicio no está activo en tu negocio",
-    "description": "Pídele a Avoqado que lo active. Quien tenga el permiso de configurar el equipo podrá capturar la tabla de pagos."
+    "title": "Pago al personal no está activo en tu negocio",
+    "description": "Viene incluido en el plan Pro, o se contrata suelto por sucursal. Pídeselo a Avoqado."
   },
   "tabs": {
     "table": "Tabla de pagos",

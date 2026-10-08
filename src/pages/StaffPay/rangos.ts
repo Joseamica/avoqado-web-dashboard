@@ -33,3 +33,13 @@ export function mensajeLegible(err: unknown): string | null {
 
 /** El error no trajo respuesta: la petición pudo haberse aplicado (respuesta perdida, red caída). */
 export const sinRespuesta = (err: unknown) => !(err as { response?: unknown } | null)?.response
+
+/** Primer día del periodo que contiene `hoy` (YYYY-MM-DD): el 1, o el 16 en la segunda quincena (spec §7.1). */
+export function inicioDelPeriodo(hoy: string, periodicidad: 'MONTHLY' | 'SEMIMONTHLY'): string {
+  return `${hoy.slice(0, 8)}${periodicidad === 'SEMIMONTHLY' && Number(hoy.slice(8, 10)) > 15 ? '16' : '01'}`
+}
+
+/** 403 `not_activated`: lo de dinero antes de activar (el código viene en `data.error`, no en `data.code`). */
+export function esNoActivado(err: unknown): boolean {
+  return (err as { response?: { data?: { error?: string } } } | null)?.response?.data?.error === 'not_activated'
+}

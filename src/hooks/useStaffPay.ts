@@ -11,6 +11,7 @@ export const staffPayKeys = {
   assignments: (venueId: string | null) => [...staffPayKeys.all(venueId), 'assignments'] as const,
   tables: (venueId: string | null) => [...staffPayKeys.all(venueId), 'tables'] as const,
   report: (venueId: string | null) => [...staffPayKeys.all(venueId), 'report'] as const,
+  sedes: (venueId: string | null) => [...staffPayKeys.all(venueId), 'sedes'] as const,
   periods: (venueId: string | null) => [...staffPayKeys.all(venueId), 'periods'] as const,
   classPay: (venueId: string | null, sessionId: string | null) => [...staffPayKeys.all(venueId), 'class', sessionId] as const,
   /** Debajo de `periods`: lo que refresca la lista de periodos refresca también sus diferencias. */
@@ -294,4 +295,20 @@ export function useMarkPaid(periodId: string | null) {
 export function useAddAdjustment() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({ mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b), onSuccess: inv })
+}
+
+/** Activar pago al personal: fija la periodicidad, la fecha de inicio y las sedes. Refresca acceso, periodos, sedes y reporte. */
+export function useActivateStaffPay() {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  return useMutation({ mutationFn: (b: { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; inicioEsperado: string; sedes?: string[] }) => staffPayService.activate(venueId!, b), onSuccess: inv })
+}
+/** Prender o apagar «Pagar las propinas en el recibo» (abre o cierra una ventana, spec §7.1). */
+export function useSetTips() {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  return useMutation({ mutationFn: (encender: boolean) => staffPayService.setTips(venueId!, encender), onSuccess: inv })
+}
+/** Estado de activación por sede (sin puerta de plan: una sede que perdió el plan tiene que poder verse). */
+export function useStaffPaySedes(enabled = true) {
+  const { venueId } = useCurrentVenue()
+  return useQuery({ queryKey: staffPayKeys.sedes(venueId), queryFn: () => staffPayService.sedes(venueId!), enabled: !!venueId && enabled, ...pesado })
 }

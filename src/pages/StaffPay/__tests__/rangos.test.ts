@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, esNoActivado, inicioDelPeriodo, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
 
 describe('rangos', () => {
   it('suma y resta meses sin salirse del mes', () => {
@@ -37,5 +37,23 @@ describe('rangos', () => {
     // Sólo ceros, con o sin punto, también (camino de «0.05»): «00», «0.0», «.0», «0.00».
     for (const medio of ['0', '0.', '.', '12.', '00', '0.0', '.0', '0.00']) expect(A_MEDIO_ESCRIBIR.test(medio)).toBe(true)
     for (const listo of ['10.005', '0.5', '0.05', '12', '-5', '']) expect(A_MEDIO_ESCRIBIR.test(listo)).toBe(false)
+  })
+})
+
+describe('inicioDelPeriodo (desde cuándo se suman las comisiones al activar, spec §7.1)', () => {
+  it('mensual: el día 1; quincenal: el 1 hasta el 15 y el 16 después', () => {
+    expect(inicioDelPeriodo('2026-10-20', 'MONTHLY')).toBe('2026-10-01')
+    expect(inicioDelPeriodo('2026-10-15', 'SEMIMONTHLY')).toBe('2026-10-01')
+    expect(inicioDelPeriodo('2026-10-16', 'SEMIMONTHLY')).toBe('2026-10-16')
+    expect(inicioDelPeriodo('2026-02-28', 'SEMIMONTHLY')).toBe('2026-02-16')
+  })
+})
+
+describe('esNoActivado (403 not_activated de lo de dinero antes de activar)', () => {
+  it('lee response.data.error, no code', () => {
+    expect(esNoActivado({ response: { status: 403, data: { error: 'not_activated' } } })).toBe(true)
+    expect(esNoActivado({ response: { status: 403, data: { code: 'not_activated' } } })).toBe(false)
+    expect(esNoActivado({ response: { status: 403, data: { error: 'forbidden' } } })).toBe(false)
+    expect(esNoActivado(null)).toBe(false)
   })
 })

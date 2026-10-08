@@ -1,10 +1,10 @@
 import api from '@/api'
-import type { AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, SimulacionVigenciaDto, TablaDto } from '@/types/staffPay'
+import type { AccesoDto, AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, EstadoSedesDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, SimulacionVigenciaDto, TablaDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
 
 export const staffPayService = {
-  async access(venueId: string): Promise<{ enabled: boolean }> { return (await api.get(`${base(venueId)}/access`)).data },
+  async access(venueId: string): Promise<AccesoDto> { return (await api.get(`${base(venueId)}/access`)).data },
   async levels(venueId: string): Promise<NivelDto[]> { return (await api.get(`${base(venueId)}/levels`)).data },
   async createLevel(venueId: string, name: string): Promise<{ id: string }> { return (await api.post(`${base(venueId)}/levels`, { name })).data },
   async updateLevel(venueId: string, levelId: string, data: { name?: string; archived?: boolean; sortOrder?: number }) { return (await api.patch(`${base(venueId)}/levels/${levelId}`, data)).data },
@@ -21,6 +21,14 @@ export const staffPayService = {
   async orphans(venueId: string, p: { fecha?: string; sede?: string; offset: number; limit: number }): Promise<PaginaOffset<ReservaHuerfanaDto>> { return (await api.get(`${base(venueId)}/report/orphans`, { params: p })).data },
   async classPay(venueId: string, sessionId: string): Promise<PagoDeClaseDto> { return (await api.get(`${base(venueId)}/class-sessions/${sessionId}/pay`)).data },
   async adjustClass(venueId: string, sessionId: string, data: AjusteClaseInput): Promise<PagoDeClaseDto> { return (await api.put(`${base(venueId)}/class-sessions/${sessionId}/pay-adjustments`, data)).data },
+  // ── Fase 3: activar pago al personal, propinas en el recibo (staffpay:close) y estado por sede ──
+  async activate(venueId: string, body: { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; inicioEsperado: string; sedes?: string[] }): Promise<{ startDate: string; yaActivado: boolean }> {
+    return (await api.post(`${base(venueId)}/activate`, body)).data
+  },
+  async setTips(venueId: string, encender: boolean): Promise<{ encendidas: boolean }> {
+    return (await api.put(`${base(venueId)}/tips`, { encender })).data
+  },
+  async sedes(venueId: string): Promise<EstadoSedesDto> { return (await api.get(`${base(venueId)}/sedes`)).data },
   // ── Fase 2: cerrar y pagar ──
   async periods(venueId: string, antesDe?: string): Promise<ListaPeriodosDto> { return (await api.get(`${base(venueId)}/periods`, { params: antesDe ? { antesDe } : {} })).data },
   async setPeriodicity(venueId: string, periodicidad: 'MONTHLY' | 'SEMIMONTHLY') { return (await api.patch(`${base(venueId)}/periodicity`, { periodicidad })).data },

@@ -1,9 +1,9 @@
 {
-  "title": "Pay per service",
-  "subtitle": "How much each person earns per class, based on how many spots were filled.",
+  "title": "Staff pay",
+  "subtitle": "Classes, commissions and tips for each person, in one statement per period.",
   "disabled": {
-    "title": "Pay per service is not active for your business",
-    "description": "Ask Avoqado to turn it on. Anyone with the permission to configure the team will be able to enter the pay table."
+    "title": "Staff pay is not active in your business",
+    "description": "It is included in the Pro plan, or can be added on its own per location. Ask Avoqado."
   },
   "tabs": {
     "table": "Pay table",
