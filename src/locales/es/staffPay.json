@@ -645,5 +645,10 @@
     "ultimoDiaHoy": "Último día: hoy. Podrás volver a activarla desde mañana.",
     "cambiaDeSedeA": "Para activar o desactivar sedes, entra desde una sede donde tengas el permiso «Cerrar periodos y registrar pagos»: {{sedes}}."
   },
-  "orgPermission": "Para esto necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes de la organización. Pídeselo al dueño del negocio."
+  "orgPermission": "Para esto necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes de la organización. Pídeselo al dueño del negocio.",
+  "offline": {
+    "willSend": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se registra.",
+    "willSendClose": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se cierra el periodo.",
+    "willSendAdjustment": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se guarda el ajuste."
+  }
 }

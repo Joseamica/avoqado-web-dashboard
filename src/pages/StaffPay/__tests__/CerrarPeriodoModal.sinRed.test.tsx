@@ -2,9 +2,9 @@
 // Intenta de nuevo.» con el modal abierto. Ahora dice que no sabe, relee y, si cerró, lo dice. Con los hooks REALES y un
 // QueryClient real (sólo el servicio es simulado): la relectura la hace la invalidación del hook, como en la app.
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CerrarPeriodoModal } from '../components/CerrarPeriodoModal'
 
 const m = vi.hoisted(() => ({ preview: vi.fn(), close: vi.fn(), toast: vi.fn() }))
@@ -58,6 +58,7 @@ const abrir = (onOpenChange: (o: boolean) => void = vi.fn()) =>
 const cerrar = () => screen.getByRole('button', { name: /close\.confirmNamed/ })
 
 beforeEach(() => vi.clearAllMocks())
+afterEach(() => onlineManager.setOnline(true))
 
 describe('cerrar el periodo con la respuesta perdida (C4)', () => {
   it('🔴 dice que no sabe y relee; si el servidor SÍ cerró, lo dice y se cierra el modal', async () => {
@@ -102,6 +103,56 @@ describe('cerrar el periodo con la respuesta perdida (C4)', () => {
     expect(await screen.findByText('close.uncertainOffline', {}, { timeout: 4000 })).toBeInTheDocument()
     expect(onOpenChange).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(m.toast).toHaveBeenCalledWith({ title: 'close.uncertainClosed' })
+  })
+})
+
+// E6a-fix2 C5: sin red, TanStack deja el cierre EN PAUSA y lo manda solo al volver la red. Se dice; y cerrar la ventana mientras
+// está en pausa lo cancela de verdad (la petición nunca salió): al volver la red no se cierra el periodo.
+describe('cerrar el periodo sin red (C5)', () => {
+  it('🔴 en pausa dice que se enviará al volver la red', async () => {
+    m.preview.mockResolvedValue(OK)
+    abrir()
+    await waitFor(() => expect(cerrar()).toBeEnabled())
+    onlineManager.setOnline(false)
+    fireEvent.click(cerrar())
+    expect(await screen.findByText('offline.willSendClose')).toBeInTheDocument()
+    expect(m.close).not.toHaveBeenCalled()
+  })
+
+  it('🔴 cerrar la ventana en pausa cancela: al volver la red NO se cierra el periodo', async () => {
+    m.preview.mockResolvedValue(OK)
+    const onOpenChange = vi.fn()
+    abrir(onOpenChange)
+    await waitFor(() => expect(cerrar()).toBeEnabled())
+    onlineManager.setOnline(false)
+    fireEvent.click(cerrar())
+    await screen.findByText('offline.willSendClose')
+    fireEvent.click(screen.getByRole('button', { name: 'cerrar-modal' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    expect(m.close).not.toHaveBeenCalled()
+  })
+
+  it('🔴 si la red se cae justo después de perder la respuesta, la relectura en pausa dice que lo revise al volver la conexión', async () => {
+    m.preview.mockResolvedValueOnce(OK).mockResolvedValue(YA_CERRADO)
+    m.close.mockImplementation(async () => {
+      onlineManager.setOnline(false)
+      throw sinRed()
+    })
+    const onOpenChange = vi.fn()
+    abrir(onOpenChange)
+    await waitFor(() => expect(cerrar()).toBeEnabled())
+    fireEvent.click(cerrar())
+    expect(await screen.findByText('close.uncertainOffline')).toBeInTheDocument()
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     expect(m.toast).toHaveBeenCalledWith({ title: 'close.uncertainClosed' })
   })

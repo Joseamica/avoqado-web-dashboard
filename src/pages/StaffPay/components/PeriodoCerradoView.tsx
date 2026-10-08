@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Plus } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Plus, WifiOff } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -148,6 +148,16 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
     ) : (
       <Badge variant="outline">{t('closed.pending')}</Badge>
     )
+
+  // Cerrar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se cancela de verdad (no sale al volver la red)
+  // y el candado se suelta, porque esa espera ya no termina.
+  const cerrarDialogo = () => {
+    if (marcar.isPaused) {
+      marcar.cancelarEnPausa()
+      enVuelo.current = false
+    } else if (marcar.isPending) return
+    setConfirmar(null)
+  }
 
   const ejecutar = async () => {
     if (!confirmar || !vista || !puedeConfirmar || enVuelo.current) return
@@ -350,7 +360,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       {/* Lo que cambió después del cierre: se paga una vez en el periodo abierto; los recibos de arriba no cambian. */}
       <DiferenciasSection periodId={periodId} etiquetaAbierto={etiquetaAbierto} />
 
-      <AlertDialog open={!!confirmar} onOpenChange={o => !o && !marcar.isPending && setConfirmar(null)}>
+      <AlertDialog open={!!confirmar} onOpenChange={o => !o && cerrarDialogo()}>
         <AlertDialogContent onOpenAutoFocus={focoPago.onOpenAutoFocus} onCloseAutoFocus={focoPago.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -367,6 +377,12 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
               {vista?.cantidad === 0 ? t('closed.nothingPending') : negativo ? t('closed.settleNegativeHelp') : t('closed.markPaidHelp')}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {marcar.isPaused && (
+            <p role="status" className="flex items-start gap-2 rounded-lg border border-amber-500/40 p-3 text-sm" data-tour="staffpay-closed-offline">
+              <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              {t('offline.willSend')}
+            </p>
+          )}
           {previewPago.isLoading ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-busy="true">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -396,7 +412,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
             </div>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={marcar.isPending}>
+            {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+            <AlertDialogCancel className="cursor-pointer" disabled={marcar.isPending && !marcar.isPaused}>
               {t('closed.cancel')}
             </AlertDialogCancel>
             {vista?.cantidad !== 0 && (

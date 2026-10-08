@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type MutationKey, type QueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { useDebounce } from './useDebounce'
 import { commissionKeys } from './useCommissions'
@@ -246,6 +246,23 @@ export function useClassPay(sessionId: string | null, enabled = true) {
   return useQuery({ queryKey: staffPayKeys.classPay(venueId, sessionId), queryFn: () => staffPayService.classPay(venueId!, sessionId!), enabled: !!venueId && !!sessionId && enabled, retry: false })
 }
 
+/**
+ * Sin red, TanStack deja el envío EN PAUSA (`isPaused`) y lo manda solo al volver la red (E6a-fix2 C5). En pausa la petición
+ * todavía NO salió (con `networkMode` «online» la pausa es antes de llamar al servicio), así que cancelarla es seguro si se
+ * quita de la cola: `cancelarEnPausa` la saca del caché de mutaciones (al volver la red no se reanuda) y suelta el estado del
+ * botón. Devuelve si había algo en pausa.
+ */
+function conCancelarEnPausa<M extends { reset: () => void }>(mutacion: M, qc: QueryClient, mutationKey: MutationKey) {
+  const cancelarEnPausa = () => {
+    const cache = qc.getMutationCache()
+    const enPausa = cache.findAll({ mutationKey, predicate: x => x.state.isPaused })
+    for (const x of enPausa) cache.remove(x)
+    if (enPausa.length) mutacion.reset()
+    return enPausa.length > 0
+  }
+  return { ...mutacion, cancelarEnPausa }
+}
+
 function useInvalidarTodo() {
   const { venueId } = useCurrentVenue()
   const qc = useQueryClient()
@@ -300,7 +317,9 @@ export function useSetPeriodicity() {
  */
 export function useClosePeriod() {
   const { venueId } = useCurrentVenue(); const qc = useQueryClient(); const inv = useInvalidarTodo()
-  return useMutation({
+  const mutationKey = [...staffPayKeys.all(venueId), 'close']
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (b: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }) => staffPayService.close(venueId!, b),
     onSuccess: inv,
     onError: err => {
@@ -308,27 +327,34 @@ export function useClosePeriod() {
       void qc.invalidateQueries({ queryKey: staffPayKeys.all(venueId), predicate: q => !q.queryKey.includes('close-preview') })
     },
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useMarkPaid(periodId: string | null) {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado()
-  return useMutation({
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'mark-paid', periodId]
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (b: { staffId?: string; nota?: string; huellaEsperada?: string }) => staffPayService.markPaid(venueId!, periodId!, b),
     onSuccess: inv,
     // Sin respuesta (se perdió): el server pudo haber marcado; se recarga lo mismo que en el éxito (full-testing C7).
     onError: err => ((err as { response?: unknown } | null)?.response ? undefined : inv()),
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /**
  * Sin respuesta (o un 5xx: un proxy pudo cortar después de guardar) el ajuste pudo haberse guardado: se relee lo mismo que en
  * el éxito, para que la tabla diga cómo quedó (E6a-fix2 D1). Reintentar con la misma clave no duplica.
  */
 export function useAddAdjustment() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'adjustment']
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b),
     onSuccess: inv,
     onError: err => ((estado(err) ?? 500) >= 500 ? inv() : undefined),
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /**
  * La vista previa del ajuste manual (B13), sólo con el formulario completo (`q`): trae las devoluciones pendientes de esa

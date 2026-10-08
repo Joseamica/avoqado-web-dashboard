@@ -2,10 +2,10 @@
 // salió mal» y no releía; el dueño cerraba el modal, veía la tabla sin el ajuste, lo capturaba otra vez y el modal nuevo traía
 // OTRA clave: dos ajustes, se pagaba dos veces. Con los hooks REALES y un QueryClient real (sólo el servicio es simulado), y un
 // «servidor» de mentira que guarda por clave como el de verdad (misma clave ⇒ devuelve el que ya guardó, `yaExistia`).
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AjusteManualModal } from '../components/AjusteManualModal'
 import { olvidarBorradoresEnDuda } from '../llaveDelAjuste'
 
@@ -88,6 +88,7 @@ beforeEach(() => {
   m.preview.mockResolvedValue(undefined)
   m.access.mockResolvedValue({ enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false })
 })
+afterEach(() => onlineManager.setOnline(true))
 
 describe('ajuste manual con la respuesta perdida (D1)', () => {
   it('🔴 sin respuesta: no se cierra, dice que no sabe si se guardó, y reintentar manda la MISMA clave (un solo ajuste)', async () => {
@@ -179,5 +180,74 @@ describe('ajuste manual con la respuesta perdida (D1)', () => {
     fireEvent.click(guardar())
     await waitFor(() => expect(m.add).toHaveBeenCalledTimes(2))
     expect(clave(1)).not.toBe(clave(0))
+  })
+})
+
+// E6a-fix2 C5, hermano en el ajuste: sin red el guardado queda EN PAUSA. Se dice; cerrar el modal en pausa lo cancela de verdad
+// (al volver la red no se guarda) y el borrador sale de la duda: nunca salió, volver a capturarlo es un ajuste nuevo.
+describe('ajuste manual sin red (C5)', () => {
+  it('🔴 en pausa dice que se guardará al volver la red; cerrar el modal lo cancela y al volver la red NO se guarda', async () => {
+    servidor([])
+    const qc = cliente()
+    const onOpenChange = vi.fn()
+    abrir(qc, onOpenChange)
+    await llenar()
+    onlineManager.setOnline(false)
+    fireEvent.click(guardar())
+    expect(await screen.findByText('offline.willSendAdjustment')).toBeInTheDocument()
+    expect(m.add).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'cerrar-modal' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    expect(m.add).not.toHaveBeenCalled()
+  })
+
+  it('cancelar en pausa NO borra una duda de antes: tras una respuesta perdida, el mismo ajuste sigue viajando con su clave', async () => {
+    const guardados = servidor()
+    const qc = cliente()
+    const primero = abrir(qc)
+    await llenar()
+    fireEvent.click(guardar())
+    await screen.findByText('manualAdjust.uncertain')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    primero.unmount()
+    // Reabre el mismo ajuste sin red: queda en pausa y lo cancela al cerrar.
+    const segundo = abrir(qc)
+    await llenar()
+    onlineManager.setOnline(false)
+    fireEvent.click(guardar())
+    await screen.findByText('offline.willSendAdjustment')
+    fireEvent.click(screen.getByRole('button', { name: 'cerrar-modal' }))
+    segundo.unmount()
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    const onOpenChange = vi.fn()
+    abrir(qc, onOpenChange)
+    await llenar()
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(clave(1)).toBe(clave(0))
+    expect(guardados.size).toBe(1)
+  })
+
+  it('sin cerrar, al volver la red se guarda una vez', async () => {
+    const guardados = servidor([])
+    const onOpenChange = vi.fn()
+    abrir(cliente(), onOpenChange)
+    await llenar()
+    onlineManager.setOnline(false)
+    fireEvent.click(guardar())
+    await screen.findByText('offline.willSendAdjustment')
+    await act(async () => {
+      onlineManager.setOnline(true)
+      await new Promise(r => setTimeout(r, 50))
+    })
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(guardados.size).toBe(1)
   })
 })

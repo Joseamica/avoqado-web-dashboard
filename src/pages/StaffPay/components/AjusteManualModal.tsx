@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, WifiOff } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Button } from '@/components/ui/button'
@@ -108,6 +108,8 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const [guardando, setGuardando] = useState(false)
   // Candado síncrono (full-testing C6): el estado no alcanza a cerrarse entre dos clics seguidos.
   const enVuelo = useRef(false)
+  // El borrador que se mandó y si su duda nació con ESTE envío: cancelar en pausa (C5) sólo deshace lo que este envío anotó.
+  const mandado = useRef<{ borrador: BorradorDeAjuste; nuevo: boolean } | null>(null)
   // Un 400 del server (validación o fecha fuera de rango), dicho en línea y legible; se borra al cambiar algo.
   const [errorServer, setErrorServer] = useState<string | null>(null)
   // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy): se dice antes de guardar.
@@ -140,6 +142,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
     // 🔴 D1: la clave se anota ANTES de tocar la red. Si este mismo borrador quedó en duda (aun en otro modal), viaja con SU
     // clave: el servidor devuelve el que ya guardó en vez de crear otro.
     const clave = claveDelBorrador(borrador, clientKey)
+    mandado.current = { borrador, nuevo: !borradorEnDuda(borrador) }
     anotarBorrador(borrador, clave)
     try {
       const r = await agregar.mutateAsync({ ...borrador, fecha: fechaDestino, clientKey: clave })
@@ -185,10 +188,21 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
     etiqueta ??
     (leido ? nombrePeriodo(leido.periodo, leido.periodo.periodicidad) : t('manualAdjust.periodWithDate', { fecha: formatCalendarDate(fechaDestino) }))
 
+  // Cerrar en pausa sin red (C5): el envío todavía no salió; se cancela de verdad (no se guarda al volver la red) y, si la duda
+  // nació con este envío, el borrador sale de ella (nunca llegó al servidor). Una duda de antes (respuesta perdida) se conserva.
+  const cerrar = () => {
+    if (agregar.isPaused) {
+      agregar.cancelarEnPausa()
+      if (mandado.current?.nuevo) soltarBorrador(mandado.current.borrador)
+      enVuelo.current = false
+    }
+    onOpenChange(false)
+  }
+
   return (
     <FullScreenModal
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={cerrar}
       title={t('manualAdjust.title')}
       contentClassName="bg-muted/30"
       actions={accion.actions}
@@ -303,6 +317,12 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <p className="text-xs text-muted-foreground">{t('manualAdjust.reasonHint', { min: MIN_MOTIVO })}</p>
           </div>
         </section>
+        {agregar.isPaused && (
+          <div role="status" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-offline">
+            <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('offline.willSendAdjustment')}</span>
+          </div>
+        )}
         {enDuda && (
           <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-uncertain">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />

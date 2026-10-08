@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Loader2, Lock } from 'lucide-react'
+import { AlertTriangle, Loader2, Lock, WifiOff } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -46,7 +46,7 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   const { toast } = useToast()
   const { formatCalendarDate } = useVenueDateTime()
   const nombreSede = useNombreSede()
-  const { data: p, isLoading, isError, error, isFetching, refetch } = useClosePreview(open ? fecha : null)
+  const { data: p, isLoading, isError, error, isFetching, isPaused: relecturaEnPausa, refetch } = useClosePreview(open ? fecha : null)
   const cerrar = useClosePeriod()
   const [entiendo, setEntiendo] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -160,7 +160,14 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   return (
     <FullScreenModal
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={() => {
+        // En pausa sin red (C5) el cierre todavía no salió: cerrar la ventana lo cancela de verdad (no sale al volver la red).
+        if (cerrar.isPaused) {
+          cerrar.cancelarEnPausa()
+          enVuelo.current = false
+        }
+        onOpenChange(false)
+      }}
       // En el celular el título corto: el periodo ya lo dicen el botón de abajo y el rango de la tarjeta.
       title={etiqueta && !accion.enCelular ? t('close.titleNamed', { periodo: etiqueta }) : t('close.titleLoading')}
       contentClassName="bg-muted/30"
@@ -169,15 +176,26 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
       onCloseAutoFocus={foco.onCloseAutoFocus}
     >
       <div className="mx-auto max-w-xl space-y-4 p-6">
+        {cerrar.isPaused && (
+          <section role="status" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-close-offline">
+            <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('offline.willSendClose')}</span>
+          </section>
+        )}
         {incierto && !yaCerro && (
           <section role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-close-uncertain">
-            {incierto === 'revisando' ? (
+            {incierto === 'revisando' && !relecturaEnPausa ? (
               <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             ) : (
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             )}
             <span>
-              {incierto === 'revisando' ? t('close.uncertainChecking') : incierto === 'sinRed' ? t('close.uncertainOffline') : t('close.uncertainNotClosed')}
+              {/* Releer también puede quedar en pausa si se cayó la red (C5): entonces se dice que se revise al volver la conexión. */}
+              {incierto === 'sinRed' || (incierto === 'revisando' && relecturaEnPausa)
+                ? t('close.uncertainOffline')
+                : incierto === 'revisando'
+                  ? t('close.uncertainChecking')
+                  : t('close.uncertainNotClosed')}
             </span>
           </section>
         )}
