@@ -16,10 +16,14 @@ export function ReglasDeClase({
   reglas,
   errores,
   onChange,
+  onTocar,
 }: {
   reglas: ReglasForm
+  /** Los errores que se DICEN (`erroresVisibles`): no los de un campo vacío que todavía no se deja. */
   errores: ErrorRegla[]
   onChange: Dispatch<SetStateAction<ReglasForm>>
+  /** Al salir de un campo: desde ahí su error se dice aunque esté vacío (E6a-fix F12). */
+  onTocar?: (campo: ErrorRegla) => void
 }) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
@@ -54,19 +58,27 @@ export function ReglasDeClase({
               disabled={bloqueado}
               aria-invalid={errores.includes('coverHours')}
               onChange={e => onChange(r => ({ ...r, coverBonusHours: e.target.value }))}
+              onBlur={() => onTocar?.('coverHours')}
             />
             <span>{t('rules.coverMiddle')}</span>
-            <Input
-              aria-label={t('rules.coverAmount')}
-              type="number"
-              min={0}
-              step="0.01"
-              className="w-28"
-              value={reglas.coverBonusAmount}
-              disabled={bloqueado}
-              aria-invalid={errores.includes('coverAmount')}
-              onChange={e => onChange(r => ({ ...r, coverBonusAmount: e.target.value }))}
-            />
+            {/* Con su «$» delante (QA H14): «cobra su nivel más [$ 100]», no un número suelto. */}
+            <div className="relative">
+              <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                $
+              </span>
+              <Input
+                aria-label={t('rules.coverAmount')}
+                type="number"
+                min={0}
+                step="0.01"
+                className="w-28 pl-6"
+                value={reglas.coverBonusAmount}
+                disabled={bloqueado}
+                aria-invalid={errores.includes('coverAmount')}
+                onChange={e => onChange(r => ({ ...r, coverBonusAmount: e.target.value }))}
+                onBlur={() => onTocar?.('coverAmount')}
+              />
+            </div>
           </div>
         )}
         <div className="flex items-center gap-3">
@@ -93,6 +105,7 @@ export function ReglasDeClase({
               disabled={bloqueado}
               aria-invalid={errores.includes('lateHours')}
               onChange={e => onChange(r => ({ ...r, lateCancelHours: e.target.value }))}
+              onBlur={() => onTocar?.('lateHours')}
             />
             <span>{t('rules.lateSuffix')}</span>
           </div>

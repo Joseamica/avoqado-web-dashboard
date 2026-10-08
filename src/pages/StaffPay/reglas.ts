@@ -46,6 +46,16 @@ export function erroresDeReglas(r: ReglasForm): ErrorRegla[] {
   return e
 }
 
+const CAMPO: Record<ErrorRegla, keyof ReglasForm> = { coverHours: 'coverBonusHours', coverAmount: 'coverBonusAmount', lateHours: 'lateCancelHours' }
+/**
+ * Qué errores se DICEN (E6a-fix F12, QA H14): prender una regla deja sus campos vacíos y el error no sale antes de escribir.
+ * Se dice el de un campo que ya tiene algo escrito, el de uno que ya se dejó (`tocados`), o todos al intentar guardar.
+ * `erroresDeReglas` sigue siendo la verdad: lo que no se dice todavía igual impide publicar.
+ */
+export function erroresVisibles(r: ReglasForm, tocados: ReadonlySet<ErrorRegla>, todos: boolean): ErrorRegla[] {
+  return erroresDeReglas(r).filter(e => todos || tocados.has(e) || r[CAMPO[e]] !== '')
+}
+
 export function reglasPayload(r: ReglasForm): ReglasPayload {
   return {
     coverBonusHours: r.suplencia ? Number(r.coverBonusHours) : null,

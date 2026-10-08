@@ -154,6 +154,38 @@ describe('TablaDePagosTab', () => {
     expect(screen.getByText('grid.publish')).toBeEnabled()
   })
 
+  // E6a-fix F12 (QA H14): el error de rango salía al prender la regla, antes de escribir nada; y el monto no decía «$».
+  it('🔴 prender una regla no muestra el error antes de escribir; sí al salir del campo vacío', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.lateCancel' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByLabelText('rules.lateHours')).not.toHaveAttribute('aria-invalid', 'true')
+    fireEvent.blur(screen.getByLabelText('rules.lateHours'))
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.lateHours')
+    expect(screen.getByLabelText('rules.lateHours')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('grid.publish')).toBeDisabled()
+  })
+
+  it('🔴 «Guardar tabla» con una regla prendida y sin llenar: dice qué falta y no abre la publicación', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.cover' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.click(screen.getByText('grid.publish'))
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.coverHours')
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.coverAmount')
+    expect(m.publish).not.toHaveBeenCalled()
+    expect(screen.queryByText('publish.confirm')).toBeNull()
+    expect(screen.getByText('grid.publish')).toBeDisabled()
+  })
+
+  it('🔴 el monto extra de la suplencia lleva el prefijo «$»', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.cover' }))
+    const monto = screen.getByLabelText('rules.coverAmount')
+    expect(monto.parentElement).toHaveTextContent(/^\$$/)
+    expect(monto.parentElement!.firstElementChild).toHaveTextContent('$')
+  })
+
   it('sin «Configurar pago al personal» las reglas se ven pero no se mueven, y dice por qué (E4-fix)', () => {
     m.can.mockImplementation((p: string) => p !== 'staffpay:manage')
     m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }

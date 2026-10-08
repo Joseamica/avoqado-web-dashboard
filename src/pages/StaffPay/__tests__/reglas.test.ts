@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { erroresDeReglas, reglasDesdeVersion, reglasPayload } from '../reglas'
+import { erroresDeReglas, erroresVisibles, reglasDesdeVersion, reglasPayload } from '../reglas'
 
 const apagadas = reglasDesdeVersion(null)
 
@@ -45,5 +45,15 @@ describe('reglas de clase (spec §6.6, §7.3): la misma validación que el serve
   it('un server previo sin reglas (undefined) se lee como apagadas', () => {
     expect(reglasDesdeVersion(undefined)).toEqual(apagadas)
     expect(apagadas).toEqual({ suplencia: false, coverBonusHours: '', coverBonusAmount: '', cancelacion: false, lateCancelHours: '' })
+  })
+
+  // E6a-fix F12 (QA H14): prender una regla no grita antes de escribir.
+  it('🔴 se dice el error de un campo escrito, de uno ya dejado, o de todos al guardar; vacío y sin tocar, no', () => {
+    const r = { ...apagadas, suplencia: true, cancelacion: true, lateCancelHours: '0' }
+    expect(erroresDeReglas(r)).toEqual(['coverHours', 'coverAmount', 'lateHours'])
+    expect(erroresVisibles(r, new Set(), false)).toEqual(['lateHours'])
+    expect(erroresVisibles(r, new Set(['coverAmount']), false)).toEqual(['coverAmount', 'lateHours'])
+    expect(erroresVisibles(r, new Set(), true)).toEqual(['coverHours', 'coverAmount', 'lateHours'])
+    expect(erroresVisibles(apagadas, new Set(), true)).toEqual([])
   })
 })
