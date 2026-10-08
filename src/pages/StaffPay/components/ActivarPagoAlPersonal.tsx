@@ -24,6 +24,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useFocoDeVuelta } from '../foco'
 import { hoyEnSede } from '../hoyEnSede'
 import { inicioDelPeriodo, mensajeLegible } from '../rangos'
+import { AvisoSinConexion } from './AvisoSinConexion'
 
 type Periodicidad = 'MONTHLY' | 'SEMIMONTHLY'
 
@@ -76,6 +77,16 @@ export function ActivarPagoAlPersonal() {
       else nuevo.add(venueId)
       return nuevo
     })
+
+  // Cancelar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se quita de la cola de verdad (no sale al volver
+  // la red) y el candado se suelta, porque esa espera ya no termina.
+  const cerrar = () => {
+    if (activar.isPaused) {
+      activar.cancelarEnPausa()
+      enVuelo.current = false
+    } else if (activar.isPending) return
+    setConfirmando(false)
+  }
 
   const confirmar = async () => {
     if (enVuelo.current) return
@@ -175,14 +186,16 @@ export function ActivarPagoAlPersonal() {
           <p className="text-sm text-muted-foreground">{aqui ? t('orgPermission') : t('activation.noPermission')}</p>
         )}
       </CardContent>
-      <AlertDialog open={confirmando} onOpenChange={o => !o && !activar.isPending && setConfirmando(false)}>
+      <AlertDialog open={confirmando} onOpenChange={o => !o && cerrar()}>
         <AlertDialogContent onOpenAutoFocus={foco.onOpenAutoFocus} onCloseAutoFocus={foco.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('activation.confirmTitle', { frecuencia: t(`periods.short.${periodicidad}`) })}</AlertDialogTitle>
             <AlertDialogDescription>{t('activation.confirmHelp', { fecha: formatCalendarDate(desde) })}</AlertDialogDescription>
           </AlertDialogHeader>
+          {activar.isPaused && <AvisoSinConexion texto={t('offline.willSendActivate')} dataTour="staffpay-activation-offline" />}
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={activar.isPending}>
+            {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+            <AlertDialogCancel className="cursor-pointer" disabled={activar.isPending && !activar.isPaused} onClick={cerrar}>
               {t('closed.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction

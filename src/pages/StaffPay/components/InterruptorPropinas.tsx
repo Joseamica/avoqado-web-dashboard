@@ -17,6 +17,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useSetTips } from '@/hooks/useStaffPay'
 import { useFocoDeVuelta } from '../foco'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { mensajeLegible } from '../rangos'
 
 /**
@@ -38,6 +39,16 @@ export function InterruptorPropinas({ encendidas, puedeEnLaOrganizacion = true }
   const enVuelo = useRef(false)
   const aqui = can('staffpay:close')
   const puede = aqui && puedeEnLaOrganizacion
+
+  // Cancelar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se quita de la cola de verdad (no sale al
+  // volver la red) y el candado se suelta, porque esa espera ya no termina.
+  const cerrar = () => {
+    if (cambiar.isPaused) {
+      cambiar.cancelarEnPausa()
+      enVuelo.current = false
+    } else if (cambiar.isPending) return
+    setPedido(null)
+  }
 
   const confirmar = async () => {
     if (pedido === null || enVuelo.current) return
@@ -68,14 +79,16 @@ export function InterruptorPropinas({ encendidas, puedeEnLaOrganizacion = true }
         </Label>
       </div>
       <p className="text-xs text-muted-foreground">{puede ? t('tips.help') : aqui ? t('orgPermission') : t('tips.noPermission')}</p>
-      <AlertDialog open={pedido !== null} onOpenChange={o => !o && !cambiar.isPending && setPedido(null)}>
+      <AlertDialog open={pedido !== null} onOpenChange={o => !o && cerrar()}>
         <AlertDialogContent onOpenAutoFocus={foco.onOpenAutoFocus} onCloseAutoFocus={foco.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t(pedido ? 'tips.onTitle' : 'tips.offTitle')}</AlertDialogTitle>
             <AlertDialogDescription>{t(pedido ? 'tips.onHelp' : 'tips.offHelp')}</AlertDialogDescription>
           </AlertDialogHeader>
+          {cambiar.isPaused && <AvisoSinConexion texto={t('offline.willSendTips')} dataTour="staffpay-tips-offline" />}
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={cambiar.isPending}>
+            {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+            <AlertDialogCancel className="cursor-pointer" disabled={cambiar.isPending && !cambiar.isPaused} onClick={cerrar}>
               {t('closed.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction

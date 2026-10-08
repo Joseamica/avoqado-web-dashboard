@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePublishTable } from '@/hooks/useStaffPay'
 import { celdasDesdeCuadricula, type Cuadricula } from '../cuadricula'
 import type { ReglasPayload } from '../reglas'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { CampoVigencia } from './VigenciaConEfecto'
 import { useVigenciaSimulada } from '../useVigenciaSimulada'
 
@@ -25,6 +26,8 @@ interface Props {
 export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid, reglas, hoy }: Props) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
+  // La vista previa no escribe: su propia llave (`simulacion`), para que el aviso y la cancelación sean sólo del envío que guarda.
+  const simular = usePublishTable(true)
   const publicar = usePublishTable()
   const [guardando, setGuardando] = useState(false)
   // La cuadrícula en edición puede guardar filas por encima del techo: no viajan.
@@ -32,9 +35,18 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
   // Vista previa del efecto («cambia el pago de 12 clases de septiembre…») cada vez que cambia la fecha.
   const vigencia = useVigenciaSimulada(
     hoy,
-    fecha => publicar.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, cells, ...reglas, simular: true }),
+    fecha => simular.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, cells, ...reglas, simular: true }),
     tableId,
   )
+
+  // Cerrar la ventana: sin red el envío está EN PAUSA (C5) y cerrar lo quita de la cola de verdad (no sale al volver la red).
+  const cerrar = () => {
+    if (publicar.isPaused) {
+      publicar.cancelarEnPausa()
+      setGuardando(false)
+    }
+    onOpenChange(false)
+  }
 
   const guardar = async () => {
     if (vigencia.bloqueada || guardando) return
@@ -54,7 +66,7 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
   return (
     <FullScreenModal
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={cerrar}
       title={t('publish.title')}
       contentClassName="bg-muted/30"
       actions={
@@ -64,7 +76,8 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
         </Button>
       }
     >
-      <div className="max-w-xl mx-auto p-6">
+      <div className="max-w-xl mx-auto space-y-4 p-6">
+        {publicar.isPaused && <AvisoSinConexion texto={t('offline.willSendSaveClose')} dataTour="staffpay-publish-offline" />}
         <section className="rounded-2xl border border-border/50 bg-card p-6 space-y-4">
           <CampoVigencia id="staffpay-vigencia" label={t('publish.effectiveFrom')} textoCalculando={t('publish.effectLoading')} vigencia={vigencia} />
         </section>

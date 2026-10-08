@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useCreateLevel, useUpdateLevel } from '@/hooks/useStaffPay'
 import type { NivelDto } from '@/types/staffPay'
 import { usePermisoDeConfigurar } from '../permisoDeConfigurar'
+import { AvisoSinConexion } from './AvisoSinConexion'
 
 const mensajeDeError = (err: any, fallback: string): string => err?.response?.data?.message ?? fallback
 
@@ -30,6 +31,13 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
   const [nuevoNivel, setNuevoNivel] = useState('')
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
   const [porArchivar, setPorArchivar] = useState<NivelDto | null>(null)
+
+  // Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola de verdad (no sale al volver la red).
+  const enPausa = crearNivel.isPaused || actualizar.isPaused
+  const cancelarEnvio = () => {
+    crearNivel.cancelarEnPausa()
+    actualizar.cancelarEnPausa()
+  }
 
   const fallar = (err: unknown) => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' })
   const agregar = () => {
@@ -58,6 +66,7 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
   return (
     <section className="rounded-lg border border-input p-4 space-y-3">
       <h3 className="font-semibold">{t('levels.title')}</h3>
+      {enPausa && <AvisoSinConexion texto={t('offline.willSendSave')} onCancelar={cancelarEnvio} dataTour="staffpay-levels-offline" />}
       {activos.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('levels.empty')}</p>
       ) : (

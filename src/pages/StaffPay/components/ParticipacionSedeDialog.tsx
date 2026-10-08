@@ -13,6 +13,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { cuentaVacia, textoDeCuenta } from '../cuenta'
 import { useFocoDeVuelta } from '../foco'
 import { mensajeLegible, sinRespuesta } from '../rangos'
+import { AvisoSinConexion } from './AvisoSinConexion'
 
 interface Props {
   sede: SedeEnPagoAlPersonalDto
@@ -57,6 +58,17 @@ export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }:
   const tarjeta = `[data-sede-id="${sede.venueId}"]`
   const foco = useFocoDeVuelta(focoDeVuelta ?? [`${tarjeta} button`, tarjeta])
   const v = q.data
+  // Online-only por defecto, pero sin red el envío queda EN PAUSA (C5): se dice, y cancelar lo quita de la cola de verdad (no sale al
+  // volver la red). Mientras se manda de verdad, no se cierra.
+  const mutacion = accion === 'activar' ? activar : desactivar
+  const cerrar = () => {
+    if (mutacion.isPaused) {
+      mutacion.cancelarEnPausa()
+      enVuelo.current = false
+      setEnviando(false)
+    } else if (enviando) return
+    onClose()
+  }
   // Mientras se envía, el éxito refresca todo (también esta vista previa, que ya diría «ya está activa»): no se muestra.
   const errorVista = q.isError && !enviando
   const listo = !!v && !errorVista && !q.isFetching && !enviando
@@ -105,7 +117,7 @@ export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }:
   })
 
   return (
-    <Dialog open onOpenChange={o => !o && !enviando && onClose()}>
+    <Dialog open onOpenChange={o => !o && cerrar()}>
       <DialogContent hasTitle className="max-w-lg" onOpenAutoFocus={foco.onOpenAutoFocus} onCloseAutoFocus={foco.onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>
@@ -144,8 +156,10 @@ export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }:
             </div>
           )}
         </div>
+        {mutacion.isPaused && <AvisoSinConexion texto={t('offline.willSendSede')} dataTour="staffpay-sede-offline" />}
         <DialogFooter className="gap-2">
-          <Button variant="outline" className="cursor-pointer" disabled={enviando} onClick={onClose}>
+          {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+          <Button variant="outline" className="cursor-pointer" disabled={enviando && !mutacion.isPaused} onClick={cerrar}>
             {t('closed.cancel')}
           </Button>
           <Button

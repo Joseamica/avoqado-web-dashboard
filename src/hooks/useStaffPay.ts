@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type MutationKey, type QueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
+import { conCancelarEnPausa } from './staffPayPausa'
 import { useDebounce } from './useDebounce'
 import { commissionKeys } from './useCommissions'
 import { staffPayService } from '@/services/staffPay.service'
@@ -215,7 +216,9 @@ export function useSettleDifference(classVenueId: string | null, sessionId: stri
   const { venueId } = useCurrentVenue()
   const qc = useQueryClient()
   const ficha = staffPayKeys.classPay(classVenueId, sessionId)
-  return useMutation({
+  const mutationKey = [...staffPayKeys.all(venueId), 'settle', classVenueId, sessionId]
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (b: LiquidarInput) => staffPayService.settleDifference(classVenueId!, sessionId!, b),
     onSuccess: () =>
       Promise.all([
@@ -240,27 +243,11 @@ export function useSettleDifference(classVenueId: string | null, sessionId: stri
       return Promise.all([...listas, qc.invalidateQueries({ queryKey: ficha })])
     },
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useClassPay(sessionId: string | null, enabled = true) {
   const { venueId } = useCurrentVenue()
   return useQuery({ queryKey: staffPayKeys.classPay(venueId, sessionId), queryFn: () => staffPayService.classPay(venueId!, sessionId!), enabled: !!venueId && !!sessionId && enabled, retry: false })
-}
-
-/**
- * Sin red, TanStack deja el envío EN PAUSA (`isPaused`) y lo manda solo al volver la red (E6a-fix2 C5). En pausa la petición
- * todavía NO salió (con `networkMode` «online» la pausa es antes de llamar al servicio), así que cancelarla es seguro si se
- * quita de la cola: `cancelarEnPausa` la saca del caché de mutaciones (al volver la red no se reanuda) y suelta el estado del
- * botón. Devuelve si había algo en pausa.
- */
-function conCancelarEnPausa<M extends { reset: () => void }>(mutacion: M, qc: QueryClient, mutationKey: MutationKey) {
-  const cancelarEnPausa = () => {
-    const cache = qc.getMutationCache()
-    const enPausa = cache.findAll({ mutationKey, predicate: x => x.state.isPaused })
-    for (const x of enPausa) cache.remove(x)
-    if (enPausa.length) mutacion.reset()
-    return enPausa.length > 0
-  }
-  return { ...mutacion, cancelarEnPausa }
 }
 
 function useInvalidarTodo() {
@@ -280,28 +267,39 @@ function useInvalidarPagado() {
   return () => Promise.all([inv(), qc.invalidateQueries({ queryKey: [...commissionKeys.all, 'stats'] })])
 }
 export function useCreateLevel() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (name: string) => staffPayService.createLevel(venueId!, name), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'create-level']
+  const mutacion = useMutation({ mutationKey, mutationFn: (name: string) => staffPayService.createLevel(venueId!, name), onSuccess: inv })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useUpdateLevel() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (p: { levelId: string; name?: string; archived?: boolean }) => staffPayService.updateLevel(venueId!, p.levelId, p), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'update-level']
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: { levelId: string; name?: string; archived?: boolean }) => staffPayService.updateLevel(venueId!, p.levelId, p), onSuccess: inv })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
-export function useAssignLevel() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (p: { staffId: string; payLevelId: string; effectiveFrom: string; simular?: boolean }) => staffPayService.assign(venueId!, p), onSuccess: (_d, p) => { if (!p.simular) inv() } })
+/** `simulacion`: la vista previa («cambia el pago de N clases») no escribe y lleva su propia llave: no se mezcla con el envío en pausa. */
+export function useAssignLevel(simulacion = false) {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), simulacion ? 'assign-level-simulation' : 'assign-level']
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: { staffId: string; payLevelId: string; effectiveFrom: string; simular?: boolean }) => staffPayService.assign(venueId!, p), onSuccess: (_d, p) => { if (!p.simular) inv() } })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useCreateTable() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({ mutationFn: (p: { name: string; productIds: string[] }) => staffPayService.createTable(venueId!, p), onSuccess: inv })
 }
-export function usePublishTable() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({
+/** `simulacion`: como en `useAssignLevel`, la vista previa lleva su propia llave. */
+export function usePublishTable(simulacion = false) {
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), simulacion ? 'publish-table-simulation' : 'publish-table']
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (p: { tableId: string; effectiveFrom: string; maxCount: number; cells: CeldaDto[]; simular?: boolean } & ReglasPayload) =>
       staffPayService.publish(venueId!, p.tableId, { ...p, countMode: 'BOOKED' }),
     onSuccess: (_d, p) => { if (!p.simular) inv() },
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useAdjustClass(sessionId: string | null) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
@@ -379,18 +377,23 @@ export function useAdjustmentPreview(q: AjustePreviewQuery | null, enabled = tru
 
 /** Activar pago al personal: fija la periodicidad, la fecha de inicio y las sedes. Refresca acceso, periodos, sedes y reporte. */
 export function useActivateStaffPay() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado()
-  return useMutation({
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'activate']
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (b: { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; inicioEsperado: string; sedes?: string[] }) => staffPayService.activate(venueId!, b),
     onSuccess: inv,
     // Sin respuesta pudo haberse activado (el servidor es idempotente): se recarga lo mismo que en el éxito.
     onError: err => (estado(err) ? undefined : inv()),
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /** Prender o apagar «Pagar las propinas en el recibo» (abre o cierra una ventana, spec §7.1). */
 export function useSetTips() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (encender: boolean) => staffPayService.setTips(venueId!, encender), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'tips']
+  const mutacion = useMutation({ mutationKey, mutationFn: (encender: boolean) => staffPayService.setTips(venueId!, encender), onSuccess: inv })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /** Estado de activación por sede (sin puerta de plan: una sede que perdió el plan tiene que poder verse). */
 export function useStaffPaySedes(enabled = true) {
@@ -420,9 +423,11 @@ export function useParticipationPreview(sedeId: string | null, accion: 'activar'
  * ventanas). Un rechazo 4xx dice que la sede cambió del otro lado: se relee la lista. Sin respuesta pudo haberse aplicado:
  * se relee todo, como en el éxito.
  */
-function useCambiarSede<B, R>(llamar: (venueId: string, b: B) => Promise<R>) {
+function useCambiarSede<B, R>(clave: 'activate-sede' | 'deactivate-sede', llamar: (venueId: string, b: B) => Promise<R>) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado(); const qc = useQueryClient()
-  return useMutation({
+  const mutationKey = [...staffPayKeys.all(venueId), clave]
+  const mutacion = useMutation({
+    mutationKey,
     mutationFn: (b: B) => llamar(venueId!, b),
     onSuccess: inv,
     onError: err => {
@@ -431,14 +436,15 @@ function useCambiarSede<B, R>(llamar: (venueId: string, b: B) => Promise<R>) {
       if (s >= 400 && s < 500) return qc.invalidateQueries({ queryKey: staffPayKeys.sedes(venueId), exact: true })
     },
   })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useActivateSede() {
-  return useCambiarSede((venueId, p: { sedeId: string; desde: string; fechaEsperada: string }) =>
+  return useCambiarSede('activate-sede', (venueId, p: { sedeId: string; desde: string; fechaEsperada: string }) =>
     staffPayService.activateSede(venueId, p.sedeId, { desde: p.desde, fechaEsperada: p.fechaEsperada }),
   )
 }
 export function useDeactivateSede() {
-  return useCambiarSede((venueId, p: { sedeId: string; hasta: string; fechaEsperada: string }) =>
+  return useCambiarSede('deactivate-sede', (venueId, p: { sedeId: string; hasta: string; fechaEsperada: string }) =>
     staffPayService.deactivateSede(venueId, p.sedeId, { hasta: p.hasta, fechaEsperada: p.fechaEsperada }),
   )
 }
