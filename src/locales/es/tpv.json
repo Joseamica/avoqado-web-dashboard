@@ -529,6 +529,7 @@
     "showQuickPayment": "Mostrar Pago Rápido",
     "showQuickPaymentDesc": "Muestra el botón de pago rápido en la pantalla de inicio",
     "showOrderManagement": "Mostrar Órdenes",
+    "showOrderManagementLegacy": "Mostrar Órdenes (función antigua)",
     "showOrderManagementDesc": "Muestra el botón de gestión de órdenes en la pantalla de inicio",
     "showReports": "Mostrar Reportes",
     "showReportsDesc": "Muestra el botón de reportes en la pantalla de inicio",
@@ -916,5 +917,185 @@
     "online": "En línea",
     "pendingActivation": "Sin activar",
     "maintenance": "Mantenimiento"
+  },
+  "list": {
+    "subtitle": "Terminales de cobro, celulares, tablets y computadoras donde tu equipo vende.",
+    "count_one": "{{count}} dispositivo",
+    "count_other": "{{count}} dispositivos",
+    "searchPlaceholder": "Buscar por nombre o serie",
+    "columns": {
+      "device": "Dispositivo",
+      "status": "Estado",
+      "system": "Sistema",
+      "battery": "Batería",
+      "app": "App",
+      "id": "ID",
+      "todaySales": "Ventas hoy"
+    },
+    "role": {
+      "paymentTerminal": "Terminal de cobro",
+      "pointOfSale": "Punto de venta",
+      "printer": "Impresora",
+      "kitchenDisplay": "Pantalla de cocina",
+      "other": "Dispositivo"
+    },
+    "status": {
+      "online": "En línea",
+      "offline": "Sin conexión",
+      "neverConnected": "Nunca se ha conectado",
+      "pendingActivation": "Falta activar",
+      "maintenance": "Mantenimiento",
+      "locked": "Bloqueada",
+      "retired": "Retirada"
+    },
+    "lastSeen": {
+      "justNow": "hace un momento",
+      "minutes": "hace {{count}} min",
+      "hours": "hace {{count}} h",
+      "days_one": "hace {{count}} día",
+      "days_other": "hace {{count}} días"
+    },
+    "tpvTag": "TPV",
+    "battery": {
+      "charging": "Cargando",
+      "notReported": "Este dispositivo todavía no reporta su batería."
+    },
+    "copyId": "Copiar ID",
+    "copied": "Copiado",
+    "salesCount_one": "{{count}} cobro",
+    "salesCount_other": "{{count}} cobros",
+    "menu": {
+      "open": "Más acciones",
+      "viewDetail": "Ver detalle",
+      "activate": "Activar",
+      "restart": "Reiniciar",
+      "restartQueued": "Reiniciar al conectarse",
+      "maintenance": "Poner en mantenimiento",
+      "needsOnline": "Necesita estar en línea",
+      "exitMaintenance": "Salir de mantenimiento",
+      "delete": "Eliminar"
+    },
+    "restartConfirm": {
+      "title": "¿Reiniciar {{name}}?",
+      "description": "La terminal se apaga y vuelve a prender. Si alguien está cobrando, el cobro se interrumpe.",
+      "descriptionQueued": "Está sin conexión: se reiniciará en cuanto se conecte.",
+      "confirm": "Reiniciar"
+    },
+    "add": {
+      "button": "Agregar dispositivo",
+      "buy": "Comprar una terminal",
+      "buyHint": "PAX A910S, NEXGO N86 o N62, con envío.",
+      "app": "Celular, tablet o computadora",
+      "appHint": "No se registra: inicia sesión en la app Avoqado y aparece aquí solo."
+    },
+    "createTerminal": "Crear terminal",
+    "terminalSettings": "Ajustes de terminales",
+    "loadError": "No se pudo cargar la lista de dispositivos.",
+    "retry": "Reintentar",
+    "empty": "Todavía no hay dispositivos.",
+    "noMatches": "Ningún dispositivo coincide con la búsqueda o los filtros.",
+    "pagination": {
+      "page": "Página {{page}} de {{pages}}",
+      "prev": "Anterior",
+      "next": "Siguiente"
+    }
+  },
+  "device": {
+    "back": "Dispositivos",
+    "actions": "Acciones",
+    "menu": {
+      "lock": "Bloquear terminal",
+      "unlock": "Desbloquear terminal",
+      "edit": "Editar datos"
+    },
+    "banner": {
+      "maintenance": "En mantenimiento: esta terminal no cobra hasta que salga de mantenimiento.",
+      "locked": "Bloqueada: nadie puede usarla hasta que la desbloquees."
+    },
+    "tabs": {
+      "messages": "Mensajes"
+    },
+    "sections": {
+      "thisDevice": "Este dispositivo",
+      "identity": "Identificación",
+      "customerDisplay": "Pantalla del cliente",
+      "superadmin": "Solo superadmin"
+    },
+    "fields": {
+      "network": "Red",
+      "memory": "Memoria de la app",
+      "memoryValue": "{{used}} MB de {{total}} MB",
+      "uptime": "Encendida hace",
+      "activation": "Activación",
+      "lastSeen": "Última conexión",
+      "name": "Nombre",
+      "serial": "Número de serie",
+      "deviceId": "ID del dispositivo",
+      "model": "Modelo",
+      "brand": "Marca",
+      "type": "Tipo",
+      "created": "Dada de alta"
+    },
+    "network": {
+      "WIFI": "WiFi",
+      "CELLULAR": "Datos móviles",
+      "ETHERNET": "Cable de red"
+    },
+    "activation": {
+      "activatedOn": "Activada el {{date}}",
+      "pending": "Falta activar",
+      "selfRegistered": "Se registró sola al iniciar sesión",
+      "notRequired": "No requiere activación"
+    },
+    "activateWithoutCode": "Activar sin código",
+    "activateWithoutCodeHint": "Pendiente: al encenderla entrará sin pedir código.",
+    "activatedWithoutCode": "Terminal activada",
+    "activatedWithoutCodeDesc": "Entrará sin pedir código cuando se encienda y tenga internet."
+  },
+  "newTerminal": {
+    "title": "Nueva terminal",
+    "superadminOnly": "Solo superadmin · se crea para {{venue}}",
+    "sections": {
+      "model": "Modelo y datos",
+      "activation": "¿Cómo se activa?",
+      "settings": "Ajustes de cobro"
+    },
+    "otherModel": "Otro",
+    "otherModelHint": "Tipo, marca y modelo",
+    "fields": {
+      "type": "Tipo",
+      "brand": "Marca",
+      "model": "Modelo",
+      "serial": "Número de serie",
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Caja 2"
+    },
+    "activation": {
+      "withCode": "Con código de 6 dígitos",
+      "withCodeDesc": "El encargado teclea el código en la terminal. Vence en 7 días. Úsalo cuando no eres tú quien la enciende.",
+      "now": "Activar ya, sin código",
+      "nowDesc": "Entra directo al encenderla con internet. Úsalo si tú la vas a configurar o enviar lista.",
+      "recommended": "Recomendado"
+    },
+    "settings": {
+      "inherit": "Usar los ajustes de la organización",
+      "inheritDesc": "Propina, recibo, PIN y pantallas igual que las otras terminales.",
+      "customize": "Personalizar sólo esta terminal",
+      "customizeDesc": "Lo que no cambies sigue a la organización."
+    },
+    "submitWithCode": "Crear y generar código",
+    "submitActivate": "Crear y activar",
+    "submitting": "Creando…",
+    "done": "Listo",
+    "codeIntro": "{{name}} quedó creada. Código de activación:",
+    "codeExpires": "Vence en 7 días. Se teclea en la terminal la primera vez que se enciende.",
+    "toast": {
+      "created": "Terminal creada",
+      "createdNoCode": "La terminal quedó registrada.",
+      "activated": "Terminal creada y activada",
+      "activatedDesc": "{{name}} entrará sin pedir código cuando se encienda y tenga internet.",
+      "activationFailed": "La terminal se creó, pero no se pudo activar",
+      "activationFailedDesc": "Va a pedir código al encenderla. Ábrela y usa «Activar sin código». {{error}}"
+    }
   }
 }

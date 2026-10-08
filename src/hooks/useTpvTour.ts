@@ -56,10 +56,10 @@ export function useTpvTour() {
         {
           element: '[data-tour="tpv-list"]',
           popover: {
-            title: t('tour.list.title', { defaultValue: 'Tus terminales activas' }),
+            title: t('tour.list.title', { defaultValue: 'Tus dispositivos' }),
             description: t('tour.list.description', {
               defaultValue:
-                'Verás aquí cada dispositivo: número de serie, último uso, estado (online/offline) y meseros activos. Click en una terminal para ver detalle y configuración.',
+                'Aquí ves cada terminal, celular, tablet y computadora: si está en línea, su sistema, batería, versión de la app y lo que cobró hoy. Toca uno para ver su detalle; el botón «⋯» tiene las acciones.',
             }),
             side: 'top',
             align: 'start',
@@ -68,10 +68,10 @@ export function useTpvTour() {
         {
           element: '[data-tour="tpv-new-btn"]',
           popover: {
-            title: t('tour.add.title', { defaultValue: 'Registrar terminal nueva' }),
+            title: t('tour.add.title', { defaultValue: 'Agregar dispositivo' }),
             description: t('tour.add.description', {
               defaultValue:
-                'Para añadir un dispositivo: instala la app Avoqado TPV en el equipo, escanea el QR que aparece aquí, y la terminal queda emparejada al venue.',
+                'Desde aquí compras una terminal de cobro. Los celulares, tablets y computadoras no se registran: basta con iniciar sesión en la app Avoqado y aparecen solos en esta lista.',
             }),
             side: 'bottom',
             align: 'end',

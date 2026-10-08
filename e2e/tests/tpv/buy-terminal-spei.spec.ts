@@ -159,6 +159,8 @@ test.describe('Buy TPV — SPEI flow', () => {
     const openWizardBtn = page.locator('[data-tour="tpv-new-btn"]')
     await expect(openWizardBtn).toBeVisible({ timeout: 10_000 })
     await openWizardBtn.click()
+    // «Agregar dispositivo» abre un menú (rediseño 8-oct-2026); la compra es su primera opción.
+    await page.locator('[data-tour="tpv-add-buy"]').click()
 
     // Step 1 — Add PAX A910S to cart
     const addToCart = page.locator('[data-tour="tpv-cart-add-a910s"]')
