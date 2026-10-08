@@ -543,6 +543,7 @@
       "fixedAmount": "Fixed amount",
       "ofEachSale": "of each sale",
       "perTransaction": "per transaction",
+      "fixedAmountRange": "The fixed amount must be more than $0 and up to $999,999.99.",
       "fixedLabel": "Fixed amount",
       "exampleTitle": "Example with a sale of {amount}:",
       "exampleSale": "Sale:",

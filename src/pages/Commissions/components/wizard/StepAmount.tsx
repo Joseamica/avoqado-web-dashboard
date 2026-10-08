@@ -13,6 +13,7 @@ import BaseComisionSwitch from '../BaseComisionSwitch'
 import LiveExample from './LiveExample'
 import CommissionAdvancedConfig from './CommissionAdvancedConfig'
 import CategoryFilter from './CategoryFilter'
+import { aCentavos, MONTO_FIJO_MAXIMO, montoFijoValido } from '../../tasaDelEsquema'
 
 interface StepAmountProps {
 	data: WizardData
@@ -57,23 +58,21 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 		setRateInput(normalized.toFixed(2))
 	}
 
-	// Handle fixed amount change
+	// Monto fijo en pesos con centavos, de más de $0 a $999,999.99 (D-FIJO). Lo que no cabe no se guarda y el campo lo dice.
+	const montoTecleado = fixedAmountInput.trim() === '' ? null : aCentavos(Number(fixedAmountInput))
+	const montoFueraDeRango = montoTecleado !== null && !montoFijoValido(montoTecleado)
+
 	const handleFixedAmountChange = (value: string) => {
 		setFixedAmountInput(value)
 		if (value === '') return
-		const num = Number(value)
-		if (Number.isNaN(num) || num < 0) return
+		const num = aCentavos(Number(value))
+		if (!montoFijoValido(num)) return
 		updateData({ fixedAmount: num })
 	}
 
 	const handleFixedAmountBlur = () => {
-		if (fixedAmountInput.trim() === '') {
-			setFixedAmountInput(String(data.fixedAmount))
-			return
-		}
-
-		const num = Number(fixedAmountInput)
-		if (Number.isNaN(num) || num < 0) {
+		const num = aCentavos(Number(fixedAmountInput))
+		if (fixedAmountInput.trim() === '' || !montoFijoValido(num)) {
 			setFixedAmountInput(String(data.fixedAmount))
 			return
 		}
@@ -185,8 +184,11 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 						</span>
 						<Input
 							type="number"
-							step="1"
-							min="0"
+							step="0.01"
+							min="0.01"
+							max={MONTO_FIJO_MAXIMO}
+							aria-label={t('wizard.step2.fixedAmount')}
+							aria-invalid={montoFueraDeRango}
 							value={fixedAmountInput}
 							onChange={(e) => handleFixedAmountChange(e.target.value)}
 							onBlur={handleFixedAmountBlur}
@@ -196,6 +198,7 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 					<p className="text-sm text-muted-foreground mt-2">
 						{t('wizard.step2.perTransaction')}
 					</p>
+					{montoFueraDeRango && <p className="text-sm text-destructive mt-1">{t('wizard.step2.fixedAmountRange')}</p>}
 				</div>
 			)}
 

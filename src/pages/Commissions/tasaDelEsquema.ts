@@ -6,6 +6,18 @@ import type { CommissionCalcType } from '@/types/commission'
  */
 export const esMontoFijo = (calcType: CommissionCalcType) => calcType === 'FIXED'
 
+/**
+ * El tope de un monto fijo, en pesos (final-comisiones-viejas, D-FIJO). El servidor guarda el fijo en `defaultRate`, que pasó de
+ * Decimal(5,4) (tope $9.9999: un fijo de $10 desbordaba la columna) a Decimal(12,4), y exige 0 < monto ≤ 999,999.99 con un 400.
+ */
+export const MONTO_FIJO_MAXIMO = 999_999.99
+
+/** Un monto fijo válido: más de $0 y hasta $999,999.99. */
+export const montoFijoValido = (monto: number) => Number.isFinite(monto) && monto > 0 && monto <= MONTO_FIJO_MAXIMO
+
+/** Los pesos van con centavos, redondeo al centavo más cercano: $2.555 ⇒ $2.56 y $1.005 ⇒ $1.01 (en decimal, no en binario). */
+export const aCentavos = (monto: number) => Number(`${Math.round(Number(`${monto}e2`))}e-2`)
+
 /** Las tasas por rol sólo cuentan donde hay tasa: en un esquema fijo el servidor las ignora, y pintarlas diría que aplican (G5). */
 export const usaTasasPorRol = (c: { calcType: CommissionCalcType; roleRates: Record<string, number> | null }) =>
   !esMontoFijo(c.calcType) && !!c.roleRates && Object.keys(c.roleRates).length > 0

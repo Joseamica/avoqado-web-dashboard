@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import BaseIvaSwitch from './BaseIvaSwitch'
 import BaseComisionSwitch from './BaseComisionSwitch'
-import { calcTypeAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../tasaDelEsquema'
+import { aCentavos, calcTypeAGuardar, MONTO_FIJO_MAXIMO, montoFijoValido, ofreceNiveles, tasasPorRolAGuardar } from '../tasaDelEsquema'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionCalcType, CommissionConfig, TierPeriod } from '@/types/commission'
@@ -145,22 +145,21 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
     setRateInput(normalized.toFixed(2))
   }
 
-  // Handle fixed amount change
+  // Monto fijo en pesos con centavos, de más de $0 a $999,999.99 (D-FIJO). Lo que no cabe no se guarda y el campo lo dice.
+  const montoTecleado = fixedAmountInput.trim() === '' ? null : aCentavos(Number(fixedAmountInput))
+  const montoFueraDeRango = montoTecleado !== null && !montoFijoValido(montoTecleado)
+
   const handleFixedAmountChange = (value: string) => {
     setFixedAmountInput(value)
     if (value === '') return
-    const num = Number(value)
-    if (Number.isNaN(num) || num < 0) return
+    const num = aCentavos(Number(value))
+    if (!montoFijoValido(num)) return
     updateData({ fixedAmount: num })
   }
 
   const handleFixedAmountBlur = () => {
-    if (fixedAmountInput.trim() === '') {
-      setFixedAmountInput(String(data.fixedAmount))
-      return
-    }
-    const num = Number(fixedAmountInput)
-    if (Number.isNaN(num) || num < 0) {
+    const num = aCentavos(Number(fixedAmountInput))
+    if (fixedAmountInput.trim() === '' || !montoFijoValido(num)) {
       setFixedAmountInput(String(data.fixedAmount))
       return
     }
@@ -368,8 +367,11 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">$</span>
               <Input
                 type="number"
-                step="1"
-                min="0"
+                step="0.01"
+                min="0.01"
+                max={MONTO_FIJO_MAXIMO}
+                aria-label={t('wizard.step2.fixedAmount')}
+                aria-invalid={montoFueraDeRango}
                 value={fixedAmountInput}
                 onChange={e => handleFixedAmountChange(e.target.value)}
                 onBlur={handleFixedAmountBlur}
@@ -378,6 +380,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               />
             </div>
             <p className="text-sm text-muted-foreground mt-2">{t('wizard.step2.perTransaction')}</p>
+            {montoFueraDeRango && <p className="text-sm text-destructive mt-1">{t('wizard.step2.fixedAmountRange')}</p>}
           </div>
         )}
 

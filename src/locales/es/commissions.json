@@ -543,6 +543,7 @@
       "fixedAmount": "Monto fijo",
       "ofEachSale": "de cada venta",
       "perTransaction": "por cada transacción",
+      "fixedAmountRange": "El monto fijo debe ser mayor que $0 y de hasta $999,999.99.",
       "fixedLabel": "Monto fijo",
       "exampleTitle": "Ejemplo con una venta de {{amount}}:",
       "exampleSale": "Venta:",
