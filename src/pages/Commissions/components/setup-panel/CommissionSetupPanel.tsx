@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { commissionService } from '@/services/commission.service'
-import { useEffectiveCommissionConfigs } from '@/hooks/useCommissions'
+import { commissionKeys, useEffectiveCommissionConfigs } from '@/hooks/useCommissions'
 import { REQUIRED_CARDS } from './types'
 import { initialState, setupReducer, isCardValid, isRequiredComplete } from './useSetupReducer'
 import RateCard from './cards/RateCard'
@@ -118,7 +118,7 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
       return config
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['commission'] })
+      queryClient.invalidateQueries({ queryKey: commissionKeys.all })
       toast({ title: t('success.configCreated') })
       dispatch({ type: 'RESET' })
       onOpenChange(false)

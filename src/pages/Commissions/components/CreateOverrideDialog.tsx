@@ -238,12 +238,12 @@ export default function CreateOverrideDialog({
 													<CommandGroup>
 														{staffList?.map((staff) => (
 															<CommandItem
-																key={staff.id}
+																key={staff.staffId}
 																value={`${staff.firstName} ${staff.lastName}`}
 																onSelect={() => {
-																	field.onChange(staff.id)
+																	field.onChange(staff.staffId)
 																	setSelectedStaff({
-																		id: staff.id,
+																		id: staff.staffId,
 																		name: `${staff.firstName} ${staff.lastName}`,
 																	})
 																	setStaffSearchOpen(false)

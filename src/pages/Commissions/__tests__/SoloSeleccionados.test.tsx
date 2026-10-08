@@ -40,7 +40,8 @@ vi.mock('@/hooks/use-role-config', () => {
   const valor = { activeRoles: [{ role: 'WAITER' }, { role: 'CASHIER' }], getDisplayName: (r: string) => r }
   return { useRoleConfig: () => valor, default: () => valor }
 })
-vi.mock('@/hooks/useCommissions', () => ({
+vi.mock('@/hooks/useCommissions', async importOriginal => ({
+  commissionKeys: (await importOriginal<typeof import('@/hooks/useCommissions')>()).commissionKeys,
   useUpdateCommissionConfig: () => ({ mutateAsync: m.editar, isPending: false }),
   useEffectiveCommissionConfigs: () => ({ data: m.efectivos }),
   useCommissionConfig: () => ({ data: m.config, isLoading: false }),
