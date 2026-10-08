@@ -364,7 +364,8 @@ describe('CerrarPeriodoModal', () => {
     m.preview.mockReturnValue({ data: sinPlan(['v2'], true, [sede('v2', 'Wellness', 'ACTIVA_SIN_PLAN')]), isLoading: false, refetch: m.refetch })
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
     expect(screen.queryByRole('button', { name: /close\.deactivateSede/ })).toBeNull()
-    expect(screen.getByText('sedes.cambiaDeSede')).toBeInTheDocument()
+    // E6a-fix2 K3: y nombra desde dónde sí puede (las sedes con alguna acción en `GET /sedes`).
+    expect(screen.getByText(/sedes\.cambiaDeSedeA/)).toHaveTextContent('"sedes":"Wellness"')
   })
 
   it('un server sin `porSede` igual nombra la sede del bloqueo (con el nombre de la sesión)', () => {

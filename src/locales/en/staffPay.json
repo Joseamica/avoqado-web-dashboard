@@ -636,7 +636,9 @@
       "sinPlan_other": "{{sedes}} are still active without a plan: closing is blocked until you turn them off or renew the plan.",
       "mas_one": "and {{count}} more location",
       "mas_other": "and {{count}} more locations"
-    }
+    },
+    "ultimoDiaHoy": "Last day: today. You can turn it on again starting tomorrow.",
+    "cambiaDeSedeA": "To turn locations on or off, open this page from a location where you have the “Close periods and record payments” permission: {{sedes}}."
   },
   "orgPermission": "For this you need the «Close periods and record payments» permission in every location of the organization. Ask the business owner."
 }

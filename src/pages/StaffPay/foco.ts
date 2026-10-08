@@ -32,10 +32,17 @@ const quienAbrio = () => {
  * la vista todavía carga, al selector de periodo.
  */
 export function useFocoDeVuelta(
-  /** Un lugar estable antes del encabezado del periodo (p. ej. `#staffpay-diferencias`): si el botón ya no está, ahí. */
-  respaldo?: string,
+  /**
+   * Un lugar estable antes del encabezado del periodo (p. ej. `#staffpay-diferencias`): si el botón ya no está, ahí. Varios
+   * selectores, en orden: el primero que exista y se pueda enfocar (p. ej. el botón de una tarjeta y, si ya no lo tiene, la
+   * tarjeta misma; E6a-fix2 C3).
+   */
+  respaldo?: string | string[],
 ) {
   const origen = useRef<Element | null>(null)
+  const respaldos = respaldo === undefined ? [] : Array.isArray(respaldo) ? respaldo : [respaldo]
+  // La lista se recrea en cada pintada; el memo depende de su contenido.
+  const clave = respaldos.join('\n')
   return useMemo(
     () => ({
       /** Sheet y AlertDialog: Radix ya enfoca adentro; sólo se recuerda quién abrió. */
@@ -55,13 +62,13 @@ export function useFocoDeVuelta(
         e.preventDefault()
         const destino = [
           origen.current,
-          respaldo ? document.querySelector(respaldo) : null,
+          ...(clave ? clave.split('\n') : []).map(sel => document.querySelector(sel)),
           document.querySelector('[data-staffpay-ancla]'),
           document.getElementById('staffpay-periodo'),
         ].find(usable)
         destino?.focus({ preventScroll: true })
       },
     }),
-    [respaldo],
+    [clave],
   )
 }

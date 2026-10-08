@@ -16,7 +16,7 @@ import { useNombreSede } from '../useNombreSede'
 import { useAccionDelModal } from '../accionDelModal'
 import { ANCLA_FOCO, soltarFocoAlAbrir, useFocoDeVuelta } from '../foco'
 import { conSigno, monto } from '../conSigno'
-import { lista as listaNatural } from '../cuenta'
+import { lista as listaNatural, nombresCortos } from '../cuenta'
 import { AvisosDelCierre, CierrePorSede } from './DetalleDelCierre'
 import { ParticipacionSedeDialog } from './ParticipacionSedeDialog'
 
@@ -65,6 +65,8 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
     ? (sedes.data?.sedes ?? []).filter(s => sinPlan.venueIds.includes(s.venueId) && s.puedeDesactivar)
     : []
   const desactivables = aqui ? conPermisoAlla : []
+  // Desde dónde sí puede (E6a-fix2 K3): las sedes con alguna acción para él en `GET /sedes`.
+  const dondeSi = (sedes.data?.sedes ?? []).filter(s => s.puedeActivar || s.puedeDesactivar).map(s => s.nombre)
   const [desactivando, setDesactivando] = useState<SedeEnPagoAlPersonalDto | null>(null)
 
   const confirmar = async () => {
@@ -188,7 +190,9 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
                           </Button>
                         )}
                         {rojo && !aqui && conPermisoAlla.length > 0 && (
-                          <span className="text-xs font-normal text-muted-foreground">{t('sedes.cambiaDeSede')}</span>
+                          <span className="text-xs font-normal text-muted-foreground">
+                            {dondeSi.length ? t('sedes.cambiaDeSedeA', { sedes: nombresCortos(t, dondeSi, i18n?.language) }) : t('sedes.cambiaDeSede')}
+                          </span>
                         )}
                         {rojo &&
                           desactivables.map(s => (

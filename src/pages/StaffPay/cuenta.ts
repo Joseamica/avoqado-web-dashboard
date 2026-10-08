@@ -10,6 +10,14 @@ const ListFormat = (Intl as unknown as { ListFormat: FormatoDeLista }).ListForma
 /** «a, b y c» / «a, b, and c», según el idioma de la app. */
 export const lista = (partes: string[], idioma?: string) => new ListFormat(getIntlLocale(idioma), { type: 'conjunction' }).format(partes)
 
+/** Cuántos nombres se dicen uno por uno; los demás, «y N sedes más» (como el aviso de sedes fuera). */
+export const MAX_NOMBRADAS = 3
+/** «A», «A y B», «A, B y C» o «A, B, C y 2 sedes más» (E6a-fix2 K3). */
+export function nombresCortos(t: T, nombres: string[], idioma?: string): string {
+  if (nombres.length <= MAX_NOMBRADAS) return lista(nombres, idioma)
+  return `${nombres.slice(0, MAX_NOMBRADAS).join(', ')} ${t('sedes.aviso.mas', { count: nombres.length - MAX_NOMBRADAS })}`
+}
+
 /** Sin movimientos y sin clases por valorar (una venta y su devolución son 2 movimientos y $0: eso SÍ se dice). */
 export const cuentaVacia = (c: CuentaDto) =>
   c.clases.n === 0 && c.clases.pendientesDeValoracion === 0 && c.comisiones.n === 0 && c.propinas.n === 0

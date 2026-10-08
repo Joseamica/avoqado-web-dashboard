@@ -51,9 +51,11 @@ export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }:
   const desactivar = useDeactivateSede()
   // Candado síncrono (como CerrarPeriodoModal): el estado no alcanza a cambiar entre dos clics seguidos.
   const enVuelo = useRef(false)
-  // Si el botón que abrió ya no está (Activar pasó a Desactivar), el foco vuelve al primer botón de la tarjeta de la sede, o
-  // al lugar que diga quien lo abrió (el modal del cierre).
-  const foco = useFocoDeVuelta(focoDeVuelta ?? `[data-sede-id="${sede.venueId}"] button`)
+  // Si el botón que abrió ya no está (Activar pasó a Desactivar), el foco vuelve al primer botón de la tarjeta de la sede; si la
+  // tarjeta se quedó sin botones (desactivada con último día = hoy, E6a-fix2 C3), a la tarjeta misma. O al lugar que diga quien
+  // lo abrió (el modal del cierre).
+  const tarjeta = `[data-sede-id="${sede.venueId}"]`
+  const foco = useFocoDeVuelta(focoDeVuelta ?? [`${tarjeta} button`, tarjeta])
   const v = q.data
   // Mientras se envía, el éxito refresca todo (también esta vista previa, que ya diría «ya está activa»): no se muestra.
   const errorVista = q.isError && !enviando

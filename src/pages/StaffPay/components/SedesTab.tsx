@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils'
 import type { EstadoSedesDto, SedeEnPagoAlPersonalDto } from '@/types/staffPay'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { cuentaVacia, textoDeCuenta } from '../cuenta'
+import { cuentaVacia, nombresCortos, textoDeCuenta } from '../cuenta'
+import { ANCLA_FOCO } from '../foco'
 import { INSIGNIA_SEDE as INSIGNIA } from '../insigniaSede'
 import { mensajeLegible } from '../rangos'
 import { ParticipacionSedeDialog } from './ParticipacionSedeDialog'
@@ -28,7 +29,7 @@ type Accion = 'activar' | 'desactivar'
  * que perdió el plan también se ve aquí y se desactiva (es la salida del bloqueo del cierre).
  */
 export function SedesTab({ activa }: { activa: boolean }) {
-  const { t } = useTranslation('staffPay')
+  const { t, i18n } = useTranslation('staffPay')
   const { fullBasePath } = useCurrentVenue()
   const { data, isLoading, isError, error, refetch } = useStaffPaySedes(activa)
   // El precio suelto sólo se pide si alguna sede no tiene el plan (es una lectura de facturación).
@@ -46,12 +47,15 @@ export function SedesTab({ activa }: { activa: boolean }) {
   )
   if (isError && !data) return aviso
   if (isLoading || !data) return activa ? <Skeleton className="h-32 w-full" aria-busy="true" /> : null
+  // Desde dónde sí puede (E6a-fix2 K3): las sedes con alguna acción para él (`puedeActivar`/`puedeDesactivar` son su permiso ahí).
+  const conPermiso = data.sedes.filter(s => s.puedeActivar || s.puedeDesactivar).map(s => s.nombre)
+  const dondeSi = conPermiso.length ? nombresCortos(t, conPermiso, i18n.language) : null
 
   return (
     <div className="space-y-4" data-tour="staffpay-sedes">
       {isError && aviso}
       {!data.activado ? (
-        <AntesDeActivar data={data} irA={`${fullBasePath}/servicio-pago#periodos`} />
+        <AntesDeActivar data={data} precio={price} irA={`${fullBasePath}/servicio-pago#periodos`} />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data.sedes.map(s => (
@@ -60,6 +64,7 @@ export function SedesTab({ activa }: { activa: boolean }) {
               sede={s}
               precio={price}
               desdeDelPeriodo={data.periodo?.start ?? null}
+              dondeSi={dondeSi}
               onAbrir={accion => setAbierto({ sede: s, accion })}
             />
           ))}
@@ -70,7 +75,7 @@ export function SedesTab({ activa }: { activa: boolean }) {
   )
 }
 
-function AntesDeActivar({ data, irA }: { data: EstadoSedesDto; irA: string }) {
+function AntesDeActivar({ data, precio, irA }: { data: EstadoSedesDto; precio: number | null; irA: string }) {
   const { t } = useTranslation('staffPay')
   return (
     <>
@@ -84,11 +89,15 @@ function AntesDeActivar({ data, irA }: { data: EstadoSedesDto; irA: string }) {
       </Card>
       <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {data.sedes.map(s => (
-          <li key={s.venueId} className="flex items-center justify-between gap-2 rounded-lg border border-input p-3">
-            <span className="min-w-0 truncate text-sm font-medium">{s.nombre}</span>
-            <Badge variant="outline" className={s.tienePlan ? INSIGNIA.ACTIVA : INSIGNIA.SIN_PLAN}>
-              {s.tienePlan ? t('sedes.conPlan') : t('sedes.estado.SIN_PLAN')}
-            </Badge>
+          <li key={s.venueId} className="space-y-1 rounded-lg border border-input p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-sm font-medium">{s.nombre}</span>
+              <Badge variant="outline" className={s.tienePlan ? INSIGNIA.ACTIVA : INSIGNIA.SIN_PLAN}>
+                {s.tienePlan ? t('sedes.conPlan') : t('sedes.estado.SIN_PLAN')}
+              </Badge>
+            </div>
+            {/* La misma explicación que después de activar (E6a-fix2 K6): cómo se consigue el plan en esa sede. */}
+            {!s.tienePlan && <SinPlan precio={precio} />}
           </li>
         ))}
       </ul>
@@ -96,15 +105,26 @@ function AntesDeActivar({ data, irA }: { data: EstadoSedesDto; irA: string }) {
   )
 }
 
+/** Cómo se consigue pago al personal en una sede sin el plan: el plan Pro o suelto (con su precio, si se conoce). */
+function SinPlan({ precio }: { precio: number | null }) {
+  const { t } = useTranslation('staffPay')
+  return (
+    <p className="text-sm text-muted-foreground">{precio != null ? t('sedes.sinPlanPrecio', { precio: Currency(precio) }) : t('sedes.sinPlan')}</p>
+  )
+}
+
 function TarjetaDeSede({
   sede: s,
   precio,
   desdeDelPeriodo,
+  dondeSi,
   onAbrir,
 }: {
   sede: SedeEnPagoAlPersonalDto
   precio: number | null
   desdeDelPeriodo: string | null
+  /** Las sedes desde donde sí puede activar o desactivar, ya dichas («Full y Wellness»), o null si no hay ninguna. */
+  dondeSi: string | null
   onAbrir: (accion: Accion) => void
 }) {
   const { t, i18n } = useTranslation('staffPay')
@@ -127,12 +147,17 @@ function TarjetaDeSede({
   const sinDiasHoy = s.estado === 'SIN_ACTIVAR' && s.minimo === null
   const sinPermiso =
     (s.estado === 'SIN_ACTIVAR' && s.minimo !== null && !s.puedeActivar) || (conVentana && s.hasta === null && !s.puedeDesactivar)
+  // Desactivada con último día = hoy (E6a-fix2 C3): hoy todavía entra (ACTIVA) y no se puede reactivar hasta mañana (el servidor
+  // no lo ofrece; su `hasta` nunca es futuro). Sin esto la tarjeta se quedaba sin botones y sin explicación.
+  const ultimoDiaHoy = s.estado === 'ACTIVA' && s.hasta !== null && !s.puedeActivar
 
   return (
+    // Enfocable por programa (C3): si sus botones desaparecen al confirmar, el foco vuelve aquí y no al <body>.
     <li
       data-estado={s.estado}
       data-sede-id={s.venueId}
-      className={cn('space-y-2 rounded-lg border p-4', s.estado === 'ACTIVA_SIN_PLAN' ? 'border-destructive' : 'border-input')}
+      tabIndex={-1}
+      className={cn('space-y-2 rounded-lg border p-4', ANCLA_FOCO, s.estado === 'ACTIVA_SIN_PLAN' ? 'border-destructive' : 'border-input')}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="min-w-0 font-medium">{s.nombre}</p>
@@ -156,14 +181,13 @@ function TarjetaDeSede({
       {hayFuera && s.estado === 'ACTIVA' && s.desde && (
         <p className="text-sm text-muted-foreground">{t('sedes.fuera.antesDe', { desde: fecha(s.desde), cuenta: cuenta() })}</p>
       )}
-      {s.estado === 'SIN_PLAN' && (
-        <p className="text-sm text-muted-foreground">
-          {precio != null ? t('sedes.sinPlanPrecio', { precio: Currency(precio) }) : t('sedes.sinPlan')}
-        </p>
-      )}
+      {s.estado === 'SIN_PLAN' && <SinPlan precio={precio} />}
+      {ultimoDiaHoy && <p className="text-xs text-muted-foreground">{t('sedes.ultimoDiaHoy')}</p>}
       {sinDiasHoy && <p className="text-xs text-muted-foreground">{t('sedes.sinDiasHoy')}</p>}
       {sinPermiso && <p className="text-xs text-muted-foreground">{t('sedes.sinPermiso')}</p>}
-      {cambiaDeSede && <p className="text-xs text-muted-foreground">{t('sedes.cambiaDeSede')}</p>}
+      {cambiaDeSede && (
+        <p className="text-xs text-muted-foreground">{dondeSi ? t('sedes.cambiaDeSedeA', { sedes: dondeSi }) : t('sedes.cambiaDeSede')}</p>
+      )}
       {(puedeActivar || puedeDesactivar) && (
         <div className="flex flex-wrap gap-2 pt-1">
           {puedeActivar && (

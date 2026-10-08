@@ -100,7 +100,8 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
     con([sede({ venueId: 'b', nombre: 'Condesa', estado: 'SIN_ACTIVAR', desde: null, minimo: '2026-10-01', puedeActivar: true, puedeDesactivar: false })])
     pantalla()
     expect(screen.queryByRole('button', { name: 'sedes.activar' })).toBeNull()
-    expect(screen.getByText('sedes.cambiaDeSede')).toBeInTheDocument()
+    // E6a-fix2 K3: el aviso ahora nombra desde dónde (aquí, la misma Condesa, donde sí lo tiene).
+    expect(screen.getByText(/sedes\.cambiaDeSede/)).toHaveTextContent('Condesa')
     // No culpa al permiso del destino: ahí sí lo tiene.
     expect(screen.queryByText('sedes.sinPermiso')).toBeNull()
   })
@@ -110,7 +111,7 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
     con([sede({ puedeDesactivar: true })])
     pantalla()
     expect(screen.queryByRole('button', { name: 'sedes.desactivar' })).toBeNull()
-    expect(screen.getByText('sedes.cambiaDeSede')).toBeInTheDocument()
+    expect(screen.getByText(/sedes\.cambiaDeSede/)).toBeInTheDocument()
   })
 
   it('sin el permiso aquí NI en el destino: el aviso de siempre (a quién pedírselo), no «cambia de sede»', () => {
@@ -144,6 +145,43 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
     expect(screen.queryByText('sedes.sinPermiso')).toBeNull()
   })
 
+  // E6a-fix2 C3 (full-testing E6a): desactivada con último día = hoy, la tarjeta se quedaba sin botones y sin explicación (el
+  // servidor manda las dos banderas en false: hoy todavía entra y no se puede reactivar hasta mañana).
+  it('🔴 desactivada con último día HOY: dice que podrá volver a activarla desde mañana', () => {
+    con([sede({ hasta: '2026-10-08', puedeActivar: false, puedeDesactivar: false })])
+    pantalla()
+    expect(screen.getByText('sedes.ultimoDiaHoy')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sedes\.(activar|desactivar)/ })).toBeNull()
+    expect(screen.queryByText('sedes.sinPermiso')).toBeNull()
+  })
+
+  it('activa sin último día no dice «último día»', () => {
+    con([sede({})])
+    pantalla()
+    expect(screen.queryByText('sedes.ultimoDiaHoy')).toBeNull()
+  })
+
+  // E6a-fix2 K3: «entra desde una sede donde tengas el permiso» nombra cuáles (las que traen alguna acción en `GET /sedes`).
+  it('🔴 sin el permiso aquí: nombra las sedes desde donde sí puede entrar', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    con([
+      sede({ venueId: 'a', nombre: 'Full', puedeDesactivar: false }),
+      sede({ venueId: 'b', nombre: 'Wellness', puedeDesactivar: true }),
+    ])
+    pantalla()
+    expect(screen.getByText(/sedes\.cambiaDeSedeA/)).toHaveTextContent('"sedes":"Wellness"')
+  })
+
+  it('🔴 con más de 3, nombra 3 y cuenta el resto («y N más»)', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    con(['Alfa', 'Beta', 'Gama', 'Delta', 'Épsilon'].map(n => sede({ venueId: n, nombre: n, puedeDesactivar: true })))
+    pantalla()
+    const texto = screen.getAllByText(/sedes\.cambiaDeSedeA/)[0]
+    expect(texto).toHaveTextContent('"sedes":"Alfa, Beta, Gama sedes.aviso.mas')
+    expect(texto).toHaveTextContent('\\"count\\":2')
+    expect(texto).not.toHaveTextContent('Delta')
+  })
+
   it('sin nada fuera no dice «quedan fuera»', () => {
     con([sede({ estado: 'SIN_ACTIVAR', desde: null, minimo: '2026-10-01', puedeActivar: true, puedeDesactivar: false })])
     pantalla()
@@ -167,6 +205,16 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
     expect(screen.getByText('sedes.conPlan')).toBeInTheDocument()
     expect(screen.getByText('sedes.estado.SIN_PLAN')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /sedes\.(activar|desactivar)/ })).toBeNull()
+  })
+
+  // E6a-fix2 K6: antes de activar, una sede «Sin plan» explica lo mismo que después de activar (Pro o suelto, con su precio).
+  it('🔴 antes de activar, la sede sin plan dice cómo se consigue, con el precio suelto', () => {
+    con([sede({ estado: 'SIN_ACTIVAR', desde: null, puedeDesactivar: false }), sede({ venueId: 'c', nombre: 'Roma', tienePlan: false, estado: 'SIN_PLAN', desde: null, puedeDesactivar: false })], false)
+    pantalla()
+    const roma = screen.getByText('Roma').closest('li')!
+    expect(roma).toHaveTextContent('sedes.sinPlanPrecio')
+    expect(roma).toHaveTextContent('199')
+    expect(screen.getByText('Prado Norte').closest('li')).not.toHaveTextContent('sedes.sinPlan')
   })
 
   it('cargando: esqueleto, sin lista', () => {

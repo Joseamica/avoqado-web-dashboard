@@ -636,7 +636,9 @@
       "sinPlan_other": "{{sedes}} siguen activas sin plan: el cierre está bloqueado hasta desactivarlas o renovar el plan.",
       "mas_one": "y {{count}} sede más",
       "mas_other": "y {{count}} sedes más"
-    }
+    },
+    "ultimoDiaHoy": "Último día: hoy. Podrás volver a activarla desde mañana.",
+    "cambiaDeSedeA": "Para activar o desactivar sedes, entra desde una sede donde tengas el permiso «Cerrar periodos y registrar pagos»: {{sedes}}."
   },
   "orgPermission": "Para esto necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes de la organización. Pídeselo al dueño del negocio."
 }
