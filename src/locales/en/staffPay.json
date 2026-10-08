@@ -272,7 +272,8 @@
     "outOfEnvelope": "The location {{sede}} was not active in staff pay on {{fecha}}: this class is not in the statement.",
     "wouldPay": "If you turn it on from that day, {{monto}} would be paid.",
     "goToVenues": "See locations",
-    "overrideNotApplied": "The corrected count does not apply: the class was cancelled late and base pay applies."
+    "overrideNotApplied": "The corrected count does not apply: the class was cancelled late and base pay applies.",
+    "overrideReason": "Reason for the correction: {{reason}}"
   },
   "adjust": {
     "title": "Adjust the class pay",

@@ -252,14 +252,18 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             )}
           </div>
         )}
-        {p.ajuste && p.estado !== 'EXCLUIDA' && (
-          <p className="text-xs text-muted-foreground">
-            {/* Cancelada tarde: el conteo corregido sigue guardado pero no mueve el pago (E4-fix). Decirlo «Ajustado» engaña. */}
-            {canceladaTarde && p.ajuste.payCountOverride != null
-              ? t('classCard.overrideNotApplied')
-              : t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}
-          </p>
-        )}
+        {p.ajuste &&
+          p.estado !== 'EXCLUIDA' &&
+          (canceladaTarde && p.ajuste.payCountOverride != null ? (
+            // Cancelada tarde: el conteo corregido sigue guardado pero no mueve el pago (E4-fix); decirlo «Ajustado» engaña.
+            // El motivo de quien corrigió se conserva como dato (E5a-fix), sin volver a decir «Ajustado».
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              <p>{t('classCard.overrideNotApplied')}</p>
+              {p.ajuste.reason?.trim() && <p>{t('classCard.overrideReason', { reason: p.ajuste.reason.trim() })}</p>}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}</p>
+          ))}
         {puedeAjustar && (
           <div className="flex flex-wrap gap-2 pt-1">
             {/* En una cancelada tarde el conteo no cambia el pago (se paga la fila de 0): no se ofrece corregirlo. */}

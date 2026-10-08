@@ -272,7 +272,8 @@
     "outOfEnvelope": "La sede {{sede}} no estaba activa en pago al personal el {{fecha}}: esta clase no entra al recibo.",
     "wouldPay": "Si la activas desde ese día, se pagarían {{monto}}.",
     "goToVenues": "Ver sedes",
-    "overrideNotApplied": "El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base."
+    "overrideNotApplied": "El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base.",
+    "overrideReason": "Motivo de la corrección: {{reason}}"
   },
   "adjust": {
     "title": "Ajustar el pago de la clase",

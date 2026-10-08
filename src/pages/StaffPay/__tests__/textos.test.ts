@@ -255,6 +255,11 @@ describe('textos de pago por servicio', () => {
   it('E4-fix: la cancelada tarde dice que el conteo corregido no aplica; sin permiso, las reglas dicen cuál falta', () => {
     expect(tEs('classCard.overrideNotApplied')).toBe('El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base.')
     expect(tEn('classCard.overrideNotApplied')).toBe('The corrected count does not apply: the class was cancelled late and base pay applies.')
+    // E5a-fix: el motivo de la corrección se conserva como dato, sin decir «Ajustado».
+    expect(tEs('classCard.overrideReason', { reason: 'Llegaron 8' })).toBe('Motivo de la corrección: Llegaron 8')
+    expect(tEn('classCard.overrideReason', { reason: 'Llegaron 8' })).toBe('Reason for the correction: Llegaron 8')
+    for (const texto of [tEs('classCard.overrideReason', { reason: 'x' }), tEn('classCard.overrideReason', { reason: 'x' })])
+      expect(texto).not.toMatch(/ajustad|adjusted/i)
     expect(tEs('rules.noPermission')).toBe('Para cambiar las reglas necesitas el permiso «Configurar pago al personal». Pídeselo al dueño del negocio.')
     expect(tEn('rules.noPermission')).toMatch(/“Manage staff pay”/)
   })

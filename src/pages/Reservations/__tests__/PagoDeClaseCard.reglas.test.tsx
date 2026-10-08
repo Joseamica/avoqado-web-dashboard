@@ -163,6 +163,30 @@ describe('PagoDeClaseCard: reglas de clase y clase fuera del sobre (fase 3, E4)'
     expect(screen.getByRole('button', { name: 'classCard.fixAmount' })).toBeInTheDocument()
   })
 
+  // ── E5a-fix (duda 3 de E5a): el motivo que escribió quien corrigió no se pierde; se dice como dato, sin «Ajustado» ──
+  it('cancelada tarde con conteo corregido: conserva el motivo de la corrección debajo, sin volver a decir «Ajustado»', () => {
+    mostrar({ monto: '430.00', conteo: 0, conteoCalculado: 0, regla: { tipo: 'CANCELACION_TARDIA', horas: 2 }, ajuste: AJUSTE_CONTEO })
+    const motivo = screen.getByText(/^classCard\.overrideReason:/)
+    expect(motivo).toHaveTextContent('"reason":"Llegaron 8"')
+    expect(screen.getByText('classCard.overrideNotApplied')).toBeInTheDocument()
+    expect(screen.queryByText(/classCard\.adjusted/)).toBeNull()
+  })
+
+  it('cancelada tarde con conteo corregido sin motivo escrito: no pinta «Motivo de la corrección:» vacío', () => {
+    for (const reason of [null, '', '   ']) {
+      const ajuste = { ...AJUSTE_CONTEO, reason }
+      m.pay.mockReturnValue({
+        data: pago({ monto: '430.00', conteo: 0, conteoCalculado: 0, regla: { tipo: 'CANCELACION_TARDIA', horas: 2 }, ajuste }),
+        isLoading: false,
+        isError: false,
+      })
+      const { unmount } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+      expect(screen.getByText('classCard.overrideNotApplied')).toBeInTheDocument()
+      expect(screen.queryByText(/classCard\.overrideReason/)).toBeNull()
+      unmount()
+    }
+  })
+
   it('cancelada tarde sin conteo corregido: tampoco ofrece «Corregir conteo», ni dice que algo no aplica', () => {
     mostrar({ monto: '430.00', conteo: 0, conteoCalculado: 0, regla: { tipo: 'CANCELACION_TARDIA', horas: 2 } })
     expect(screen.queryByRole('button', { name: 'classCard.fixCount' })).toBeNull()
