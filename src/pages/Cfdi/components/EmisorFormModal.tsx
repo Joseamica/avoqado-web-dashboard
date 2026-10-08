@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useUpsertEmisor } from '@/hooks/use-cfdi'
+import { textoDelServidor } from '@/utils/apiError'
 import type { Emisor, GlobalPeriodicity } from '@/services/cfdi.service'
 import { REGIMEN_FISCAL_OPTIONS, USO_CFDI_OPTIONS } from './receptor-catalog'
 
@@ -20,7 +21,10 @@ const opcion = (o: { code: string; description: string }) => ({ value: o.code, l
 
 const PERIODICITIES: GlobalPeriodicity[] = ['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'BIMESTRAL']
 
-const emisorSchema = z.object({
+/** Régimen 621 (Incorporación Fiscal): el único al que el SAT le permite la periodicidad bimestral (Periodicidad "05"). */
+const REGIMEN_BIMESTRAL = '621'
+
+const emisorObject = z.object({
   rfc: z.string().trim().min(12).max(13),
   legalName: z.string().trim().min(1),
   regimenFiscal: z
@@ -35,11 +39,25 @@ const emisorSchema = z.object({
   defaultUsoCfdi: z.string().trim().optional(),
   globalPeriodicity: z.enum(['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'BIMESTRAL']),
   invoiceCashSales: z.boolean(),
+  // C1 (T10, ajuste del founder): las ventas cobradas fuera de la terminal en la global. Apagado de fábrica.
+  includeOffTerminalSalesInGlobal: z.boolean(),
   includeCashInAccounting: z.boolean(),
   isnRatePct: z.number().min(0).max(10), // ISN como PORCENTAJE (0-10); se guarda como fracción
 })
 
-type EmisorFormValues = z.infer<typeof emisorSchema>
+/**
+ * C1 (Tarea 9): Guía del CFDI global, `InformacionGlobal/Periodicidad` — «Cuando el valor de este campo sea "05" el campo
+ * RegimenFiscal debe ser "621"». El servidor también lo rechaza (400 con el texto), y su texto es el que vale si llega.
+ */
+function crearEsquema(mensajeBimestral: string) {
+  return emisorObject.superRefine((v, ctx) => {
+    if (v.globalPeriodicity === 'BIMESTRAL' && v.regimenFiscal !== REGIMEN_BIMESTRAL) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['globalPeriodicity'], message: mensajeBimestral })
+    }
+  })
+}
+
+type EmisorFormValues = z.infer<typeof emisorObject>
 
 interface EmisorFormModalProps {
   open: boolean
@@ -51,6 +69,8 @@ interface EmisorFormModalProps {
 export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps) {
   const { t } = useTranslation('cfdi')
   const upsertMutation = useUpsertEmisor()
+  const bimestralOnly621 = t('emisorForm.bimestralOnly621')
+  const emisorSchema = useMemo(() => crearEsquema(bimestralOnly621), [bimestralOnly621])
 
   const form = useForm<EmisorFormValues>({
     resolver: zodResolver(emisorSchema),
@@ -63,6 +83,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       defaultUsoCfdi: '',
       globalPeriodicity: 'MENSUAL',
       invoiceCashSales: false,
+      includeOffTerminalSalesInGlobal: false,
       includeCashInAccounting: false,
       isnRatePct: 0,
     },
@@ -80,6 +101,8 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       defaultUsoCfdi: emisor?.defaultUsoCfdi ?? '',
       globalPeriodicity: emisor?.globalPeriodicity ?? 'MENSUAL',
       invoiceCashSales: emisor?.invoiceCashSales ?? false,
+      // Un servidor anterior a la T10 no manda el campo: apagado.
+      includeOffTerminalSalesInGlobal: emisor?.includeOffTerminalSalesInGlobal ?? false,
       includeCashInAccounting: emisor?.includeCashInAccounting ?? false,
       isnRatePct: Math.round(Number(emisor?.isnRate ?? 0) * 100 * 100) / 100, // fracción → % (2 decimales)
     })
@@ -99,13 +122,25 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
           ...(values.defaultUsoCfdi?.trim() && { defaultUsoCfdi: values.defaultUsoCfdi.trim() }),
           globalPeriodicity: values.globalPeriodicity,
           invoiceCashSales: values.invoiceCashSales,
+          includeOffTerminalSalesInGlobal: values.includeOffTerminalSalesInGlobal,
           includeCashInAccounting: values.includeCashInAccounting,
           isnRate: values.isnRatePct / 100, // % → fracción
         },
       },
-      { onSuccess: () => onClose() },
+      {
+        onSuccess: () => onClose(),
+        // El 400 del servidor (p. ej. bimestral con un régimen que no es 621) se queda EN el formulario, con su texto.
+        onError: (err: any) => {
+          // Ronda 2 (residual): el texto de NUESTRO servidor o el de la pantalla; nunca el «Request failed…» de axios.
+          if (err?.response?.status === 400) form.setError('root.server', { message: textoDelServidor(err) ?? t('emisorForm.saveError') })
+        },
+      },
     )
   }
+
+  const regimen = form.watch('regimenFiscal')
+  const bimestralBloqueado = regimen !== REGIMEN_BIMESTRAL
+  const errorDelServidor = form.formState.errors.root?.server?.message
 
   return (
     <FullScreenModal
@@ -125,6 +160,12 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <section className="rounded-2xl border border-input bg-card p-6 space-y-5">
               <h2 className="text-base font-semibold">{t('emisorForm.title')}</h2>
+
+              {errorDelServidor && (
+                <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  {errorDelServidor}
+                </p>
+              )}
 
               <FormField
                 control={form.control}
@@ -250,10 +291,10 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
               <FormField
                 control={form.control}
                 name="globalPeriodicity"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>{t('emisorForm.globalPeriodicity')}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select name={field.name} value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue />
@@ -261,12 +302,14 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                       </FormControl>
                       <SelectContent>
                         {PERIODICITIES.map(p => (
-                          <SelectItem key={p} value={p}>
+                          <SelectItem key={p} value={p} disabled={p === 'BIMESTRAL' && bimestralBloqueado}>
                             {t(`periodicity.${p}`)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {/* Por qué la bimestral sale deshabilitada; si ya hay error en el campo, lo dice el mensaje (no dos veces). */}
+                    {bimestralBloqueado && !fieldState.error && <FormDescription>{bimestralOnly621}</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -280,6 +323,22 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                     <div className="space-y-0.5 pr-2">
                       <FormLabel>{t('emisorForm.invoiceCashSales')}</FormLabel>
                       <FormDescription>{t('emisorForm.invoiceCashSalesHint')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} className="cursor-pointer" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="includeOffTerminalSalesInGlobal"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between gap-3 rounded-lg border border-input p-4">
+                    <div className="space-y-0.5 pr-2">
+                      <FormLabel>{t('emisorForm.includeOffTerminalSalesInGlobal')}</FormLabel>
+                      <FormDescription>{t('emisorForm.includeOffTerminalSalesInGlobalHint')}</FormDescription>
                     </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} className="cursor-pointer" />

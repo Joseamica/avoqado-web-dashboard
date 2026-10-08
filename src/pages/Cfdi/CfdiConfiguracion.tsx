@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { FileText, Loader2, Plus, ShieldCheck, Store, Upload } from 'lucide-react'
@@ -16,18 +16,27 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { ToastAction } from '@/components/ui/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { useFiscalConfig, useProvisionEmisor, useSyncEmisorLogo, useTriggerGlobalCfdi, useUpsertMerchantConfig } from '@/hooks/use-cfdi'
+import {
+  useFiscalConfig,
+  useGlobalPeriodos,
+  useProvisionEmisor,
+  useSyncEmisorLogo,
+  useTriggerGlobalCfdi,
+  useUpsertMerchantConfig,
+} from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
-import type { CsdStatus, Emisor, GlobalCfdiResult, GlobalPeriod, MerchantConfig } from '@/services/cfdi.service'
+import type { CsdStatus, Emisor, MerchantConfig } from '@/services/cfdi.service'
 import { EmisorFormModal } from './components/EmisorFormModal'
+import { GlobalComplementariaDialog } from './components/GlobalComplementariaDialog'
+import { GlobalExcluidasDialog } from './components/GlobalExcluidasDialog'
+import { GlobalPeriodosPanel } from './components/GlobalPeriodosPanel'
+import { useAvisoDeLaGlobal } from './components/facturaGlobalUi'
 import { ManifiestoSection } from './components/ManifiestoSection'
 import { UploadCsdModal } from './components/UploadCsdModal'
 
@@ -47,11 +56,15 @@ function merchantLabel(config: MerchantConfig): string {
   return config.merchantAccount?.displayName || config.merchantAccount?.alias || config.ecommerceMerchant?.channelName || config.id
 }
 
-/** Human label for the period a stamped global CFDI covers, e.g. "06/2026". */
-function formatGlobalPeriod(period?: GlobalPeriod | null): string {
-  if (!period) return ''
-  const meses = period.meses ? `${period.meses}/` : ''
-  return `${meses}${period.anio ?? ''}`.trim()
+/**
+ * Ola final de C1 (punto 6): con la global APAGADA para el RFC (`globalApagada` del servidor) la tarjeta no ofrece «Generar factura global
+ * ahora»: no emitiría nada y su aviso diría «N ventas no entraron»; el panel de periodos explica por qué y cómo prenderla. Lee la MISMA
+ * consulta (misma llave y opciones) que ese panel, así que react-query la pide una sola vez; detrás del candado (`live: false`) no pide
+ * nada. Sin el campo (servidor anterior), el botón se ve como siempre.
+ */
+function SalvoGlobalApagada({ emisor, live, children }: { emisor: Pick<Emisor, 'id' | 'csdStatus'>; live: boolean; children: ReactNode }) {
+  const periodos = useGlobalPeriodos(emisor.id, { enabled: live && emisor.csdStatus === 'ACTIVE' })
+  return periodos.data?.globalApagada === true ? null : <>{children}</>
 }
 
 /**
@@ -59,12 +72,19 @@ function formatGlobalPeriod(period?: GlobalPeriod | null): string {
  * emisor. One card per emisor: shows its periodicity + a CSD-status hint, and a
  * confirm-gated trigger button. The endpoint has six distinct outcomes (201
  * stamped, 200 nothing-to-invoice, 409 CSD inactivo / en proceso, 422, 502,
- * 404) — each gets its own toast styling here.
+ * 404) — each gets its own toast (`useAvisoDeLaGlobal`, shared with the periods
+ * panel and the complementary dialog). C1 (Tarea 13): under the button, the
+ * panel of RECENT periods (`GlobalPeriodosPanel`), only with real data (`live`).
  */
-function GlobalInvoiceSection({ emisores }: { emisores: Emisor[] }) {
+export function GlobalInvoiceSection({ emisores, live }: { emisores: Emisor[]; live: boolean }) {
   const { t } = useTranslation('cfdi')
-  const { toast } = useToast()
+  // C1 (Tarea 13): el aviso de cada desenlace vive en `facturaGlobalUi` —lo comparten este botón, el panel de periodos y la
+  // complementaria— y, si quedaron ventas fuera, un segundo aviso lo dice con «Ver cuáles».
+  const { avisarResultado, avisarError } = useAvisoDeLaGlobal()
   const triggerMutation = useTriggerGlobalCfdi()
+  // El listado de las ventas que no entraron que abre «Ver cuáles», y la complementaria que se pida desde ahí.
+  const [excluidas, setExcluidas] = useState<{ emisorId: string; principalId?: string } | null>(null)
+  const [complementaria, setComplementaria] = useState<{ emisorId: string; principalId: string } | null>(null)
 
   // The emisor whose confirmation dialog is open (null = closed), plus the
   // emisor id currently being stamped so we only spin the clicked button.
@@ -73,71 +93,24 @@ function GlobalInvoiceSection({ emisores }: { emisores: Emisor[] }) {
 
   const runTrigger = (emisor: Emisor) => {
     setPendingId(emisor.id)
-    triggerMutation.mutate(emisor.id, {
-      onSuccess: result => handleSuccess(result),
-      onError: err => handleError(err),
-      onSettled: () => {
-        setPendingId(null)
-        setConfirmEmisor(null)
+    triggerMutation.mutate(
+      { emisorId: emisor.id },
+      {
+        onSuccess: result =>
+          avisarResultado(result, {
+            // Timbrada ⇒ por el id de la global (su periodo guardado, C1-32); sin global ⇒ el último periodo cerrado, el mismo que
+            // usó este botón.
+            onVerExcluidas: () =>
+              setExcluidas({ emisorId: emisor.id, ...('cfdi' in result && result.cfdi ? { principalId: result.cfdi.id } : {}) }),
+          }),
+        // M8 (ronda 1): un 422 también trae los conteos; «Ver cuáles» del último periodo cerrado, el que usó este botón.
+        onError: err => avisarError(err, { onVerExcluidas: () => setExcluidas({ emisorId: emisor.id }) }),
+        onSettled: () => {
+          setPendingId(null)
+          setConfirmEmisor(null)
+        },
       },
-    })
-  }
-
-  const handleSuccess = (result: GlobalCfdiResult) => {
-    // 200 — nothing to invoice for the period. Success-ish, NOT an error: use
-    // the default (non-destructive) toast styling.
-    if ('status' in result && result.status === 'NOTHING_TO_INVOICE') {
-      toast({ title: t('globalInvoice.toast.nothingTitle'), description: result.message })
-      return
-    }
-    // 201 — stamped. Surface serie-folio (+ a PDF link when available).
-    if ('cfdi' in result && result.cfdi) {
-      const { serie, folio, pdfUrl, globalPeriod } = result.cfdi
-      const period = formatGlobalPeriod(globalPeriod)
-      toast({
-        title: t('globalInvoice.toast.stampedTitle', { folio: `${serie}-${folio}` }),
-        description: period ? t('globalInvoice.toast.stampedDescription', { period }) : undefined,
-        action: pdfUrl ? (
-          <ToastAction altText={t('globalInvoice.toast.openPdf')} onClick={() => window.open(pdfUrl, '_blank', 'noopener')}>
-            {t('globalInvoice.toast.openPdf')}
-          </ToastAction>
-        ) : undefined,
-      })
-    }
-  }
-
-  const handleError = (err: any) => {
-    const status: number | undefined = err?.response?.status
-    const data = err?.response?.data ?? {}
-    const error: string | undefined = data?.error
-    const message: string | undefined = data?.message
-    const reasons: string[] | undefined = Array.isArray(data?.reasons) ? data.reasons : undefined
-
-    switch (status) {
-      case 409:
-        // Two distinct 409s: "en proceso" (already running) vs CSD inactivo.
-        if (typeof error === 'string' && /en proceso/i.test(error)) {
-          toast({ title: t('globalInvoice.toast.inProcessTitle'), description: error, variant: 'destructive' })
-        } else {
-          toast({ title: t('globalInvoice.toast.csdInactiveTitle'), description: error, variant: 'destructive' })
-        }
-        return
-      case 422:
-        toast({
-          title: error || t('globalInvoice.toast.validationTitle'),
-          description: reasons?.length ? reasons.join(' · ') : message,
-          variant: 'destructive',
-        })
-        return
-      case 502:
-        toast({ title: t('globalInvoice.toast.pacRejectedTitle'), description: message || error, variant: 'destructive' })
-        return
-      case 404:
-        toast({ title: t('globalInvoice.toast.notFoundTitle'), description: error, variant: 'destructive' })
-        return
-      default:
-        toast({ title: t('globalInvoice.toast.genericTitle'), description: error || message, variant: 'destructive' })
-    }
+    )
   }
 
   return (
@@ -175,25 +148,29 @@ function GlobalInvoiceSection({ emisores }: { emisores: Emisor[] }) {
                   </p>
                 )}
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  data-tour="cfdi-global-trigger-btn"
-                  disabled={!csdActive || isPending}
-                  onClick={() => setConfirmEmisor(emisor)}
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('globalInvoice.triggering')}
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="mr-2 h-4 w-4" />
-                      {t('globalInvoice.trigger')}
-                    </>
-                  )}
-                </Button>
+                <SalvoGlobalApagada emisor={emisor} live={live}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-tour="cfdi-global-trigger-btn"
+                    disabled={!csdActive || isPending}
+                    onClick={() => setConfirmEmisor(emisor)}
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('globalInvoice.triggering')}
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        {t('globalInvoice.trigger')}
+                      </>
+                    )}
+                  </Button>
+                </SalvoGlobalApagada>
+
+                {live && <GlobalPeriodosPanel emisor={emisor} />}
               </div>
             )
           })}
@@ -229,6 +206,26 @@ function GlobalInvoiceSection({ emisores }: { emisores: Emisor[] }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {live && (
+        <>
+          <GlobalExcluidasDialog
+            emisorId={excluidas?.emisorId ?? null}
+            principalId={excluidas?.principalId}
+            open={!!excluidas}
+            onOpenChange={o => !o && setExcluidas(null)}
+            onEmitirComplementaria={principalId => {
+              if (excluidas) setComplementaria({ emisorId: excluidas.emisorId, principalId })
+              setExcluidas(null)
+            }}
+          />
+          <GlobalComplementariaDialog
+            emisorId={complementaria?.emisorId ?? null}
+            principalId={complementaria?.principalId ?? null}
+            onOpenChange={o => !o && setComplementaria(null)}
+          />
+        </>
+      )}
     </section>
   )
 }
@@ -712,7 +709,7 @@ export default function CfdiConfiguracion() {
           <hr className="border-border" />
 
           {/* ── Factura global (Flow C) ──────────────────────── */}
-          <GlobalInvoiceSection emisores={emisores} />
+          <GlobalInvoiceSection emisores={emisores} live={hasCfdi} />
         </div>
 
         {hasCfdi && (

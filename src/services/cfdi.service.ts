@@ -83,6 +83,11 @@ export interface Emisor {
   globalPeriodicity: GlobalPeriodicity
   /** Opt-in: permitir facturar ventas en efectivo (QR + factura global). Default false. */
   invoiceCashSales: boolean
+  /**
+   * C1 (T10, ajuste del founder): incluir en la factura global las ventas cobradas FUERA de la terminal (efectivo, transferencia, vales y
+   * tipos de pago propios). Default false. Opcional: un servidor anterior no lo manda (se lee como apagado).
+   */
+  includeOffTerminalSalesInGlobal?: boolean
   /** Opt-in: que el efectivo cuente en los libros fiscales (IVA/ISR/pólizas). Default false. */
   includeCashInAccounting: boolean
   /** Tasa de ISN (impuesto sobre nómina, estatal), fracción 0-0.10 (0.03 = 3%). */
@@ -103,6 +108,8 @@ export interface UpsertEmisorRequest {
   globalPeriodicity?: GlobalPeriodicity
   /** Opt-in: permitir facturar ventas en efectivo (QR + factura global). */
   invoiceCashSales?: boolean
+  /** C1 (T10): incluir en la global las ventas cobradas fuera de la terminal. */
+  includeOffTerminalSalesInGlobal?: boolean
   /** Opt-in: que el efectivo cuente en los libros fiscales (IVA/ISR/pólizas). */
   includeCashInAccounting?: boolean
   /** Tasa de ISN (fracción 0-0.10). */
@@ -186,6 +193,16 @@ export interface Cfdi {
    * sin decir que una sustituye a la otra.
    */
   replacedBy?: Array<{ id: string; uuid: string | null; serie: string | null; folio: string | null; status: string; totalCents?: number }>
+  /**
+   * C1 (Tarea 11/13, contrato supuesto): el emisor de la factura. «Emitir complementaria» lo necesita (la ruta es por emisor).
+   * Opcional: sin él, la fila no ofrece la acción.
+   */
+  fiscalEmisorId?: string | null
+  /**
+   * C1 (contrato supuesto): en una global, el id de su principal si ESTA es una complementaria; `null` si es principal. Ausente
+   * (servidor anterior) ⇒ no se sabe y la fila no ofrece «Emitir complementaria».
+   */
+  complementariaDe?: string | null
 }
 
 export interface CfdiListFilters {
@@ -290,8 +307,24 @@ export interface GlobalPeriod {
   anio: number
 }
 
+/**
+ * Cuántas ventas quedaron fuera, por motivo (lista cerrada del servidor: `EFECTIVO`, `PRODUCTO_POR_REVISAR`, …).
+ * Opcional: un servidor anterior a C1 sólo manda `excluidasPorIvaMixto`.
+ */
+export type ExcluidasPorMotivo = Record<string, number>
+
+/** Campos de conteo que el servidor agrega a cada respuesta del disparo (C1, Tareas 10 y 11). Todos opcionales. */
+interface GlobalCfdiCounts {
+  /** Campo viejo: la suma de los motivos de IVA. Se conserva. */
+  excluidasPorIvaMixto?: number
+  /** C1 (Tarea 10): las excluidas por motivo, incluidas las de configuración (efectivo, comercio, RFC). */
+  excluidas?: ExcluidasPorMotivo
+  /** C1 (Tarea 11): el id de la global principal cuando ESTA es una complementaria. */
+  complementariaDe?: string
+}
+
 /** 201 body — the period's global CFDI was stamped. */
-export interface GlobalCfdiStamped {
+export interface GlobalCfdiStamped extends GlobalCfdiCounts {
   cfdi: {
     id: string
     uuid: string
@@ -303,13 +336,129 @@ export interface GlobalCfdiStamped {
 }
 
 /** 200 body — nothing to invoice for the period (success-ish, NOT an error). */
-export interface GlobalCfdiNothingToInvoice {
+export interface GlobalCfdiNothingToInvoice extends GlobalCfdiCounts {
   status: 'NOTHING_TO_INVOICE'
   message: string
 }
 
-/** Union of the two NON-error responses from the trigger endpoint. */
-export type GlobalCfdiResult = GlobalCfdiStamped | GlobalCfdiNothingToInvoice
+/**
+ * C1 (T11 ronda 1, m4): 200 — la llave YA estaba timbrada (otro clic o el job llegaron antes): no se emitió otra. Trae `cfdi` como el 201,
+ * así que hay que mirar `yaTimbrada` (o `status`) ANTES de avisar «timbrada».
+ */
+export interface GlobalCfdiAlreadyStamped extends GlobalCfdiCounts {
+  status: 'YA_TIMBRADA'
+  yaTimbrada: true
+  message: string
+  cfdi: GlobalCfdiStamped['cfdi']
+}
+
+/** Union of the NON-error responses from the trigger endpoint (and from the complementary one). */
+export type GlobalCfdiResult = GlobalCfdiStamped | GlobalCfdiNothingToInvoice | GlobalCfdiAlreadyStamped
+
+/** Estado de la global PRINCIPAL de un periodo (C1, Tarea 8). Una cancelación en trámite sigue `TIMBRADA`. */
+export type EstadoDelPeriodo = 'TIMBRADA' | 'SIN_TIMBRAR' | 'SIN_GLOBAL' | 'CANCELADA'
+
+/**
+ * Cuántas ventas del periodo entrarían HOY a una complementaria, entre las revisadas (C1-27). `completo: false` = el servidor dejó
+ * de revisar antes de terminar: `n` es «al menos n», y con `n: 0` no se sabe cuántas (nunca «200 o más»).
+ */
+export interface CorregidasPendientes {
+  n: number
+  completo: boolean
+}
+
+/** Un periodo cerrado RECIENTE de la factura global (los que revisa el job; uno más viejo se pide a soporte: C1-P16 = B). */
+export interface PeriodoDeLaGlobal {
+  /** Inicio del periodo, ISO con zona. Es lo que se manda tal cual como `desde` para emitirlo a mano. */
+  desde: string
+  /** Fin (exclusivo) del periodo, ISO. */
+  hasta: string
+  meses: string
+  anio: number
+  estado: EstadoDelPeriodo
+  /** La global principal del periodo, si existe. */
+  cfdiId: string | null
+  folio: string | null
+  /** Por qué no se timbró (sólo `SIN_TIMBRAR`), tal como lo manda el servidor. */
+  motivo: string | null
+  /** Sólo con la principal timbrada o cancelada (Tarea 11); si no, `null`. */
+  corregidasPendientes: CorregidasPendientes | null
+  /** Las complementarias de la principal (Tarea 11). `motivo`: sólo en una `SIN_TIMBRAR` (p. ej. el rechazo del PAC; T11 ronda 1, m2). */
+  complementarias: Array<{ cfdiId: string; folio: string | null; estado: 'TIMBRADA' | 'CANCELADA' | 'SIN_TIMBRAR'; motivo?: string | null }>
+}
+
+/**
+ * C1 (T10 ronda 1, I1): una global sin timbrar de OTRA periodicidad (de antes de que el RFC la cambiara). SÓLO para mostrar: nunca se emite
+ * desde el panel (su `desde` es de otra periodicidad). `estado`: `APARTADA` (tiene ventas apartadas), `RECHAZADA` (el PAC la rechazó; sus
+ * ventas quedaron libres), `DETENIDA` (captura que no se emitió). `complementariaDe` ≠ null ⇒ es una complementaria (se emite desde la lista).
+ */
+export interface GlobalDeOtraPeriodicidad {
+  cfdiId: string
+  periodicidad: GlobalPeriodicity
+  desde: string
+  hasta: string
+  meses: string
+  anio: number
+  estado: 'APARTADA' | 'RECHAZADA' | 'DETENIDA'
+  folio: string | null
+  motivo: string | null
+  complementariaDe: string | null
+}
+
+/** C1 (T8 + T10): la respuesta de `GET …/global/periodos`. `otrasPeriodicidades.completo: false` ⇒ hay más (a lo más 10 por llamada). */
+export interface GlobalPeriodosResponse {
+  periodos: PeriodoDeLaGlobal[]
+  otrasPeriodicidades: { globales: GlobalDeOtraPeriodicidad[]; completo: boolean }
+  /**
+   * Ola final de C1 («apagado se VE y se EXPLICA»): `true` = Avoqado no emite la global de este RFC (ningún comercio suyo con «Facturación
+   * activa» e «Incluir en global», y el interruptor de ventas fuera de la terminal apagado). Opcional: un servidor anterior no lo manda, y
+   * entonces la pantalla se comporta como siempre.
+   */
+  globalApagada?: boolean
+}
+
+/** Una venta que no entró a la factura global, con su motivo (C1, Tarea 12). */
+export interface GlobalExcluida {
+  orderId: string
+  folio: string
+  /** INTEGER CENTS: todos los cobros elegibles de la venta. */
+  cobradoCents: number
+  motivo: string
+  /** El texto genérico del motivo (qué pasó y qué hacer). */
+  texto: string
+  /** El detalle de ESTA venta (nombra productos o montos). Se muestra tal cual. */
+  detalle: string
+}
+
+/** Una página del listado de ventas que no entraron (C1, Tarea 12). `totales` y `corregidasPendientes` sólo en la primera página. */
+export interface GlobalExcluidasPage {
+  periodo: { meses: string; anio: number; desde: string; hasta: string }
+  estadoDelPeriodo: EstadoDelPeriodo
+  totales: { porMotivo: ExcluidasPorMotivo; total: number; completo: boolean; revisadas: number } | null
+  corregidasPendientes: CorregidasPendientes | null
+  /** La estadística HISTÓRICA de la captura de la principal: nunca se suma a `totales`. */
+  ultimaCaptura: { al: string; excluidas: ExcluidasPorMotivo } | null
+  excluidas: GlobalExcluida[]
+  /** Cursor de la siguiente página; `null` = no hay más. */
+  siguiente: string | null
+  revisadas: number
+}
+
+/** Qué periodo listar: el de una global que ya existe (por su id, C1-32) o uno reciente (`desde`); sin nada, el último cerrado. */
+export interface GlobalExcluidasQuery {
+  principalId?: string
+  desde?: string
+  cursor?: string
+}
+
+/** Vista previa de la complementaria de una principal (C1, Tarea 11). `motivo` ≠ null ⇒ no se puede emitir (p. ej. año fuera: C1-33). */
+export interface GlobalComplementariaPreview {
+  periodo: { desde: string; hasta: string; meses: string; anio: number }
+  estadoPrincipal: 'TIMBRADA' | 'CANCELADA'
+  corregidasPendientes: CorregidasPendientes
+  siguienteLlave: string | null
+  motivo: string | null
+}
 
 export type CancelMotivo = '01' | '02' | '03' | '04'
 
@@ -445,10 +594,62 @@ export const cfdiService = {
    * rejected, 404 not found) axios throws and the caller must read
    * `err.response.status` / `err.response.data` to branch.
    */
-  async triggerGlobalCfdi(venueId: string, emisorId: string): Promise<GlobalCfdiResult> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global`)
+  async triggerGlobalCfdi(venueId: string, emisorId: string, desde?: string): Promise<GlobalCfdiResult> {
+    // C1 (Tarea 8): `desde` = el inicio EXACTO de uno de los periodos recientes (tal cual lo manda `getGlobalPeriodos`). Sin él, sin
+    // cuerpo, como siempre: el último periodo cerrado. Fuera de los recientes ⇒ 400 «pídelo a soporte».
+    const url = `/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global`
+    const response = desde ? await api.post(url, { desde }) : await api.post(url)
     // Both 201 and 200 carry the meaningful body directly (no { data } wrapper
     // for this endpoint), but stay tolerant if the backend ever wraps it.
+    return (response.data?.data ?? response.data) as GlobalCfdiResult
+  },
+
+  /**
+   * C1 (Tarea 8): los periodos cerrados RECIENTES del emisor con el estado de su global (sin paginación hacia atrás) y, aparte (T10), las
+   * globales sin timbrar de una periodicidad anterior. Un servidor sin `otrasPeriodicidades` da la sección vacía. Ola final: `globalApagada`
+   * pasa tal cual si viene.
+   */
+  async getGlobalPeriodos(venueId: string, emisorId: string): Promise<GlobalPeriodosResponse> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global/periodos`)
+    const data = response.data?.data ?? response.data
+    return {
+      periodos: (data?.periodos ?? []) as PeriodoDeLaGlobal[],
+      otrasPeriodicidades: {
+        globales: (data?.otrasPeriodicidades?.globales ?? []) as GlobalDeOtraPeriodicidad[],
+        completo: data?.otrasPeriodicidades?.completo !== false,
+      },
+      // Ola final: sólo si el servidor lo manda como booleano; sin él (servidor anterior), la pantalla se comporta como siempre.
+      ...(typeof data?.globalApagada === 'boolean' && { globalApagada: data.globalApagada }),
+    }
+  },
+
+  /**
+   * C1 (Tarea 12): las ventas de un periodo que no entraron a la global de este emisor, por páginas (cursor). Sólo viajan los
+   * parámetros que se dan. 400 = periodo fuera de los recientes («pídelo a soporte»).
+   */
+  async getGlobalExcluidas(venueId: string, emisorId: string, query: GlobalExcluidasQuery = {}): Promise<GlobalExcluidasPage> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global/excluidas`, {
+      params: {
+        ...(query.principalId && { principalId: query.principalId }),
+        ...(query.desde && { desde: query.desde }),
+        ...(query.cursor && { cursor: query.cursor }),
+      },
+    })
+    return (response.data?.data ?? response.data) as GlobalExcluidasPage
+  },
+
+  /** C1 (Tarea 11): cuántas ventas entrarían a la complementaria de una principal (por su id), y si se puede emitir. */
+  async getGlobalComplementariaPreview(venueId: string, emisorId: string, principalId: string): Promise<GlobalComplementariaPreview> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global/${principalId}/complementaria`)
+    return (response.data?.data ?? response.data) as GlobalComplementariaPreview
+  },
+
+  /**
+   * C1 (Tarea 11): emite (o retoma) la global complementaria de una principal. Sólo una persona; el job nunca la emite. Mismas
+   * respuestas que el disparo (201 timbrada · 200 nada que facturar · 409 se está emitiendo · 422 · 502) más 400 con el texto.
+   */
+  async emitGlobalComplementaria(venueId: string, emisorId: string, principalId: string): Promise<GlobalCfdiResult> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global/${principalId}/complementaria`)
     return (response.data?.data ?? response.data) as GlobalCfdiResult
   },
 
