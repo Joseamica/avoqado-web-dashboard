@@ -274,7 +274,7 @@
       "attendance": "Attendance",
       "staff_documents": "Staff documents",
       "class_sessions": "Assigned classes",
-      "staff_pay": "Service pay",
+      "staff_pay": "Staff pay",
       "marketing": "Marketing",
       "cash_drawer": "Cash Drawer"
     },
@@ -389,8 +389,8 @@
     },
     "permissionLabels": {
       "home_read": "View home dashboard",
-      "staffpay_read": "View service pay",
-      "staffpay_manage": "Manage service pay",
+      "staffpay_read": "View staff pay",
+      "staffpay_manage": "Manage staff pay",
       "staffpay_close": "Close pay periods and record payments",
       "analytics_read": "View analytics",
       "analytics_export": "Export analytics data",

@@ -23,8 +23,8 @@ const MODOS_DE_CONTEO = new Set(['BOOKED', 'ATTENDED'])
 const SALIDA_EN_LA_TABLA = new Set(['COACH_SIN_NIVEL', 'SIN_TABLA', 'SIN_MONTO_PARA_ESE_CONTEO'])
 
 /**
- * Tarjeta «Pago a la coach» dentro del detalle de la clase. Sólo lee de las rutas de pago: con el módulo apagado o sin
- * `staffpay:read` no se pinta ni se pide nada.
+ * Tarjeta «Pago a la coach» dentro del detalle de la clase. Sólo lee de las rutas de pago: sin el plan, sin activar pago
+ * al personal o sin `staffpay:read` no se pinta ni se pide nada.
  */
 export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId: string; conSeparador?: boolean }) {
   const { t } = useTranslation('staffPay')
@@ -34,7 +34,8 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const puedeVer = can('staffpay:read')
   // Sin el permiso no se pregunta ni si el módulo está prendido: la API no le manda nada (spec §7.2).
   const { data: acceso } = useStaffPayAccess(puedeVer)
-  const habilitado = puedeVer && !!acceso?.enabled
+  // Decisión 9 del plan (fase 3): cuánto se le paga a alguien es dinero; sólo con el plan Y la activación.
+  const habilitado = puedeVer && !!acceso?.enabled && !!acceso?.activado
   const { data: p, isLoading, isError } = useClassPay(sessionId, habilitado)
   // Bloque B: la diferencia pendiente sólo existe si la clase está en un cierre o llegó tarde a uno. Se pide bajo la sede
   // de la clase, que en el calendario es la del URL.

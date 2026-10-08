@@ -19,28 +19,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
-import { useSetPeriodicity, useStaffPayPeriods } from '@/hooks/useStaffPay'
+import { useSetPeriodicity, useStaffPayAccess, useStaffPayPeriods } from '@/hooks/useStaffPay'
 import type { PeriodoListadoDto } from '@/types/staffPay'
 import { PeriodoAbiertoTab } from './PeriodoAbiertoTab'
 import { PeriodoCerradoView } from './PeriodoCerradoView'
+import { ActivarPagoAlPersonal } from './ActivarPagoAlPersonal'
+import { InterruptorPropinas } from './InterruptorPropinas'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hoyEnSede } from '../hoyEnSede'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useFocoDeVuelta } from '../foco'
+import { esNoActivado } from '../rangos'
 
 const clave = (p: PeriodoListadoDto) => p.start
 /** El periodo elegido vive en la URL (`?periodo=2026-09-01`): al recargar se vuelve a ver el mismo. */
 const PARAM = 'periodo'
 
 /**
- * La pestaña «Periodos»: arriba, cuál periodo se ve (el abierto actual primero) y cada cuánto se paga; abajo, el periodo
- * abierto (en vivo, con «Cerrar») o el cerrado (congelado, con «Marcar pagado»).
+ * La pestaña «Periodos»: arriba, cuál periodo se ve (el abierto actual primero), cada cuánto se paga y si las propinas van
+ * en el recibo; abajo, el periodo abierto (en vivo, con «Cerrar») o el cerrado (congelado, con «Marcar pagado»). Sin
+ * activar pago al personal, en su lugar la pantalla que explica y activa (spec §11).
  */
 export function PeriodosTab({ activa }: { activa: boolean }) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { toast } = useToast()
-  const { data, isLoading, isError, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(activa)
+  const { data: acceso } = useStaffPayAccess()
+  // Sin activar no hay periodos que ver: la pestaña explica y ofrece activar (spec §11), sin pedir la lista (daría 403).
+  const { data, isLoading, isError, error, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(
+    activa && acceso?.activado === true,
+  )
   const setPeriodicity = useSetPeriodicity()
   const location = useLocation()
   const navigate = useNavigate()
@@ -53,14 +61,15 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
     const search = sp.toString()
     navigate({ search: search ? `?${search}` : '', hash: location.hash }, { replace: true })
   }
-  // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta.
+  // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta. Desde la fase 3 queda fija al activar
+  // (el servidor manda `puedeCambiarPeriodicidad: false` y este diálogo no se alcanza); manda el servidor, así que se queda.
   const [nuevaFrecuencia, setNuevaFrecuencia] = useState<'MONTHLY' | 'SEMIMONTHLY' | null>(null)
   const items = data?.items ?? []
   // Un `?periodo=` que no está en la lista (viejo, mal escrito, de otra frecuencia) cae al periodo actual.
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
   const nombrePeriodo = useNombrePeriodo()
   const focoFrecuencia = useFocoDeVuelta()
-  const { venueTimezone } = useVenueDateTime()
+  const { venueTimezone, formatCalendarDate } = useVenueDateTime()
   const mes = (p: PeriodoListadoDto) => nombrePeriodo(p, data?.periodicidad ?? 'MONTHLY')
   // «Abierto» sólo el periodo en curso: uno que ya terminó y nadie cerró dice «Sin cerrar». No «Sin movimientos»: un mes sin
   // guardar puede tener clases (sólo un cierre o un ajuste guardan el periodo), y eso sólo lo sabe la vista, con el reporte.
@@ -89,6 +98,9 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
     }
   }
 
+  // Todos los hooks ya se llamaron. Sin activar —o si la lista contesta «sin activar» antes de que el acceso se refresque—,
+  // la pantalla de activar en lugar de un error.
+  if ((acceso && !acceso.activado) || (isError && !data && esNoActivado(error))) return activa ? <ActivarPagoAlPersonal /> : null
   if (isError && !data) {
     return (
       <Card className="border-input" role="alert">
@@ -161,6 +173,9 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
               {t('periods.loadOlder')}
             </Button>
           )}
+          {acceso?.startDate && (
+            <p className="text-xs text-muted-foreground">{t('activation.activeSince', { fecha: formatCalendarDate(acceso.startDate) })}</p>
+          )}
         </div>
         <div className="w-full space-y-1.5 sm:w-auto sm:max-w-sm">
           <Label htmlFor="staffpay-periodicidad">{t('periods.periodicity')}</Label>
@@ -185,6 +200,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
             {data.puedeCambiarPeriodicidad ? (puedeCerrar ? t('periods.periodicityHelp') : t('periods.periodicityNoPermission')) : t('periods.periodicityLocked')}
           </p>
         </div>
+        <InterruptorPropinas encendidas={!!acceso?.propinasEncendidas} />
       </div>
       {actual.estado === 'CLOSED' && actual.id ? (
         <PeriodoCerradoView key={actual.id} periodId={actual.id} fecha={actual.start} etiqueta={mes(actual)} etiquetaAbierto={abiertoHoy} />

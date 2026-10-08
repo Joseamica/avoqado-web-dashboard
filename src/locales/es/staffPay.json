@@ -5,6 +5,36 @@
     "title": "Pago al personal no está activo en tu negocio",
     "description": "Viene incluido en el plan Pro, o se contrata suelto por sucursal. Pídeselo a Avoqado."
   },
+  "activation": {
+    "title": "Activa pago al personal",
+    "what": "Cada periodo, Avoqado arma un recibo por persona con sus clases, sus comisiones de venta y, si lo eliges, sus propinas. Tú cierras el periodo y marcas lo que pagaste. Las sedes que no marques las activas después, cada una desde su fecha, en «Sedes».",
+    "noMoney": "Avoqado no mueve dinero: registra lo que tú pagas por fuera.",
+    "since": "Desde el {{fecha}} entran las clases, comisiones y propinas de las sedes que marques. Lo anterior no entra; si debes algo, agrégalo como ajuste.",
+    "venues": "Sedes que entran al activar",
+    "venueNoPlan": "Viene en el plan Pro o se contrata suelto por sucursal.",
+    "noVenues": "Marca al menos una sede para activar.",
+    "venuesError": "No se pudo cargar la lista de sedes.",
+    "periodicityFixed": "Ya hay periodos guardados: la frecuencia ya no se puede cambiar.",
+    "button": "Activar pago al personal",
+    "noPermission": "Para activarlo necesitas el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
+    "confirmTitle": "¿Activar pago al personal con pago {{frecuencia}}?",
+    "confirmHelp": "Las comisiones se suman desde el {{fecha}}; las anteriores no entran. La frecuencia queda fija al activar.",
+    "done": "Pago al personal activo desde el {{fecha}}",
+    "activeSince": "Activo desde el {{fecha}}: lo anterior no se suma."
+  },
+  "tips": {
+    "label": "Pagar las propinas en el recibo",
+    "help": "Si las entregas aparte cada día, déjalo apagado para no pagarlas dos veces.",
+    "noPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede cambiarlo.",
+    "onTitle": "¿Pagar las propinas en el recibo?",
+    "onHelp": "Desde ahora, la propina de cada cobro de una sede activa entra al recibo de quien atendió la cuenta (si no quedó registrado, de quien cobró). Las de antes de hoy no entran.",
+    "onConfirm": "Sí, pagarlas en el recibo",
+    "offTitle": "¿Dejar de pagar las propinas en el recibo?",
+    "offHelp": "Las propinas de los cobros desde ahora ya no entran al recibo. Las que ya entraron, o ya ganaron el derecho a entrar, no se pierden; y si se devuelve una que ya se pagó, se descuenta igual.",
+    "offConfirm": "Sí, dejar de pagarlas",
+    "turnedOn": "Las propinas se pagarán en el recibo",
+    "turnedOff": "Las propinas ya no se pagan en el recibo"
+  },
   "tabs": {
     "table": "Tabla de pagos",
     "periods": "Periodos"
@@ -258,7 +288,7 @@
     "monthly": "Mensual",
     "semimonthly": "Quincenal (1-15 y 16-fin de mes)",
     "periodicityHelp": "Elígelo antes del primer cierre o ajuste: después ya no se cambia.",
-    "periodicityLocked": "Ya hay cierres o ajustes registrados: la frecuencia de pago ya no se puede cambiar.",
+    "periodicityLocked": "La frecuencia quedó fija al activar pago al personal.",
     "periodicityNoPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede elegirlo. Pídeselo al dueño del negocio.",
     "periodicitySaved": "Frecuencia de pago guardada",
     "loadOlder": "Ver periodos anteriores",

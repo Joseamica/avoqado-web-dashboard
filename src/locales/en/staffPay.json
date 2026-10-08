@@ -5,6 +5,36 @@
     "title": "Staff pay is not active in your business",
     "description": "It is included in the Pro plan, or can be added on its own per location. Ask Avoqado."
   },
+  "activation": {
+    "title": "Turn on staff pay",
+    "what": "Each period, Avoqado builds one statement per person with their classes, their sales commissions and, if you choose, their tips. You close the period and mark what you paid. Locations you don't check can be turned on later, each from its own date, in «Locations».",
+    "noMoney": "Avoqado doesn't move money: it records what you pay outside of it.",
+    "since": "From {{fecha}}, the classes, commissions and tips of the locations you check are included. Anything earlier is not; if you owe something, add it as an adjustment.",
+    "venues": "Locations included when you turn it on",
+    "venueNoPlan": "Included in the Pro plan, or can be added on its own per location.",
+    "noVenues": "Check at least one location to turn it on.",
+    "venuesError": "The list of locations could not be loaded.",
+    "periodicityFixed": "There are saved periods already: the frequency can no longer be changed.",
+    "button": "Turn on staff pay",
+    "noPermission": "To turn it on you need the «Close periods and record payments» permission. Ask the business owner.",
+    "confirmTitle": "Turn on staff pay, paid {{frecuencia}}?",
+    "confirmHelp": "Commissions count from {{fecha}}; earlier ones are not included. The frequency is fixed once you turn it on.",
+    "done": "Staff pay active since {{fecha}}",
+    "activeSince": "Active since {{fecha}}: anything earlier is not included."
+  },
+  "tips": {
+    "label": "Pay tips in the statement",
+    "help": "If you hand them out separately every day, leave it off so you don't pay them twice.",
+    "noPermission": "Only someone with the «Close periods and record payments» permission can change it.",
+    "onTitle": "Pay tips in the statement?",
+    "onHelp": "From now on, each payment's tip at an active location goes to the statement of whoever served the check (if not recorded, whoever charged it). Tips from before today are not included.",
+    "onConfirm": "Yes, pay them in the statement",
+    "offTitle": "Stop paying tips in the statement?",
+    "offHelp": "Tips from payments from now on stop going into the statement. Those already included, or already entitled to be, are kept; and if a paid tip is refunded, it is still deducted.",
+    "offConfirm": "Yes, stop paying them",
+    "turnedOn": "Tips will be paid in the statement",
+    "turnedOff": "Tips are no longer paid in the statement"
+  },
   "tabs": {
     "table": "Pay table",
     "periods": "Periods"
@@ -258,7 +288,7 @@
     "monthly": "Monthly",
     "semimonthly": "Twice a month (1-15 and 16-end)",
     "periodicityHelp": "Choose it before the first close or adjustment: after that it cannot be changed.",
-    "periodicityLocked": "There are closes or adjustments on record already: the pay frequency can no longer be changed.",
+    "periodicityLocked": "The frequency was fixed when you turned on staff pay.",
     "periodicityNoPermission": "Only someone with the «Close periods and record payments» permission can choose it. Ask the business owner.",
     "periodicitySaved": "Pay frequency saved",
     "loadOlder": "See earlier periods",
