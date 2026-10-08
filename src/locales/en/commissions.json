@@ -88,6 +88,7 @@
     },
     "staff": {
       "title": "Staff",
+      "onlyExcludeInFixed": "With a fixed amount everyone earns the same per sale: here you can only exclude someone. A special rate only applies to percentage commissions.",
       "allStaff": "All staff",
       "excludedCount": "{{count}} excluded",
       "customCount": "{{count}} with custom rate",
@@ -140,6 +141,7 @@
     },
     "tiers": {
       "title": "Tiered Commission",
+      "onlyPercentage": "Only applies to percentage commissions",
       "enabledDesc": "{{count}} tiers configured",
       "disabledDesc": "Flat rate for everyone",
       "enablePrompt": "Enable tiers to give higher commission to top sellers.",
@@ -290,6 +292,7 @@
     "searchStaff": "Search employee...",
     "noStaffFound": "No employees found",
     "customRate": "Custom Rate",
+    "onlyExcludeInFixed": "With a fixed amount everyone earns the same per sale: here you can only exclude this person. A custom rate only applies to percentage commissions.",
     "customRatePlaceholder": "E.g. 3.5",
     "customRateHint": "Specific rate for this employee (overrides everything)",
     "customRateDescription": "Specific rate for this employee (overrides everything)",
@@ -621,6 +624,7 @@
     "advanced": {
       "tiers": {
         "title": "Tiered commission",
+        "onlyPercentage": "Only applies to percentage commissions: each level is a percentage of the sale, and with a fixed amount everyone earns the same amount per sale.",
         "desc": "The more the employee sells, the higher their commission percentage.",
         "disabled": "Disabled",
         "enabled": "Enabled",
@@ -694,6 +698,7 @@
       "overrides": {
         "title": "Staff exceptions",
         "desc": "Set custom rates or exclude specific employees from this commission configuration.",
+        "onlyExcludeInFixed": "With a fixed amount everyone earns the same per sale: here you can only exclude someone. A custom rate only applies to percentage commissions.",
         "addStaff": "Add employee",
         "excluded": "Excluded from commissions",
         "excludeLabel": "Exclude",

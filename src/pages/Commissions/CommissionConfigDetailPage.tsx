@@ -435,6 +435,7 @@ export default function CommissionConfigDetailPage() {
 					{/* Overrides Section */}
 					<CommissionOverrideList
 						configId={configId!}
+						calcType={config.calcType}
 						overrides={overrides || []}
 						isLoading={isLoadingOverrides}
 					/>

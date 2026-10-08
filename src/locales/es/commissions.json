@@ -88,6 +88,7 @@
     },
     "staff": {
       "title": "Empleados",
+      "onlyExcludeInFixed": "En un monto fijo todos ganan lo mismo por venta: aquí sólo puedes excluir a alguien. La tasa especial sólo aplica con comisión por porcentaje.",
       "allStaff": "Todos los empleados",
       "excludedCount": "{{count}} excluidos",
       "customCount": "{{count}} con tasa especial",
@@ -140,6 +141,7 @@
     },
     "tiers": {
       "title": "Comisión por Niveles",
+      "onlyPercentage": "Sólo aplica con comisión por porcentaje",
       "enabledDesc": "{{count}} niveles configurados",
       "disabledDesc": "Tasa fija para todos",
       "enablePrompt": "Activa los niveles para dar mayor comisión a quien vende más.",
@@ -290,6 +292,7 @@
     "searchStaff": "Buscar empleado...",
     "noStaffFound": "No se encontraron empleados",
     "customRate": "Tasa Personalizada",
+    "onlyExcludeInFixed": "En un monto fijo todos ganan lo mismo por venta: aquí sólo puedes excluir a esta persona. La tasa personalizada sólo aplica con comisión por porcentaje.",
     "customRatePlaceholder": "Ej: 3.5",
     "customRateHint": "Tasa específica para este empleado (sobrescribe todo)",
     "customRateDescription": "Tasa específica para este empleado (sobrescribe todo)",
@@ -621,6 +624,7 @@
     "advanced": {
       "tiers": {
         "title": "Comisión por niveles",
+        "onlyPercentage": "Sólo aplica con comisión por porcentaje: cada nivel es un porcentaje de la venta, y en un monto fijo todos ganan el mismo monto por venta.",
         "desc": "Mientras más vende el empleado, mayor es su porcentaje de comisión.",
         "disabled": "Desactivado",
         "enabled": "Activado",
@@ -690,6 +694,7 @@
       "overrides": {
         "title": "Excepciones por empleado",
         "desc": "Define tasas personalizadas o excluye empleados específicos de esta configuración de comisiones.",
+        "onlyExcludeInFixed": "En un monto fijo todos ganan lo mismo por venta: aquí sólo puedes excluir a alguien. La tasa personalizada sólo aplica con comisión por porcentaje.",
         "addStaff": "Agregar empleado",
         "excluded": "Excluido de comisiones",
         "excludeLabel": "Excluir",

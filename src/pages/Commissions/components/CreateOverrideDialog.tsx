@@ -43,7 +43,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useCreateCommissionOverride, useUpdateCommissionOverride } from '@/hooks/useCommissions'
 import { teamService } from '@/services/team.service'
 import { useToast } from '@/hooks/use-toast'
-import type { CommissionOverride } from '@/types/commission'
+import type { CommissionCalcType, CommissionOverride } from '@/types/commission'
+import { ofreceTasaPorPersona } from '../tasaDelEsquema'
 import { cn } from '@/lib/utils'
 
 const createOverrideSchema = z.object({
@@ -63,6 +64,8 @@ interface CreateOverrideDialogProps {
 	onOpenChange: (open: boolean) => void
 	configId: string
 	override?: CommissionOverride | null
+	/** El tipo del esquema: en un monto FIJO la tasa propia no tiene efecto y sólo se puede excluir (final-fijo-niveles). */
+	calcType: CommissionCalcType
 }
 
 export default function CreateOverrideDialog({
@@ -70,6 +73,7 @@ export default function CreateOverrideDialog({
 	onOpenChange,
 	configId,
 	override,
+	calcType,
 }: CreateOverrideDialogProps) {
 	const { t } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
@@ -80,6 +84,8 @@ export default function CreateOverrideDialog({
 	const [selectedStaff, setSelectedStaff] = useState<{ id: string; name: string } | null>(null)
 
 	const isEditing = !!override
+	// En un fijo el servidor paga el monto fijo a todos: la tasa propia no cuenta, la excepción sólo puede excluir.
+	const soloExcluir = !ofreceTasaPorPersona(calcType)
 
 	// Fetch venue staff for selection
 	const { data: staffData } = useQuery({
@@ -97,7 +103,7 @@ export default function CreateOverrideDialog({
 		defaultValues: {
 			staffId: override?.staffId || '',
 			customRate: override?.customRate != null ? override.customRate * 100 : null,
-			excludeFromCommissions: override?.excludeFromCommissions ?? false,
+			excludeFromCommissions: override?.excludeFromCommissions ?? soloExcluir,
 			notes: override?.notes || '',
 			effectiveFrom: override?.effectiveFrom?.split('T')[0] || '',
 			effectiveTo: override?.effectiveTo?.split('T')[0] || '',
@@ -127,7 +133,7 @@ export default function CreateOverrideDialog({
 				form.reset({
 					staffId: '',
 					customRate: null,
-					excludeFromCommissions: false,
+					excludeFromCommissions: soloExcluir,
 					notes: '',
 					effectiveFrom: '',
 					effectiveTo: '',
@@ -135,13 +141,13 @@ export default function CreateOverrideDialog({
 				})
 			}
 		}
-	}, [open, override, form])
+	}, [open, override, form, soloExcluir])
 
 	const onSubmit = async (data: OverrideFormData) => {
 		try {
 			const payload = {
 				staffId: data.staffId,
-				customRate: data.customRate !== null ? data.customRate / 100 : null,
+				customRate: !soloExcluir && data.customRate !== null ? data.customRate / 100 : null,
 				excludeFromCommissions: data.excludeFromCommissions,
 				notes: data.notes || undefined,
 				effectiveFrom: data.effectiveFrom || undefined,
@@ -274,8 +280,10 @@ export default function CreateOverrideDialog({
 							)}
 						/>
 
-						{/* Custom Rate - only shown when not excluded */}
-						{!excludeFromCommissions && (
+						{soloExcluir && <p className="text-sm text-muted-foreground">{t('overrides.onlyExcludeInFixed')}</p>}
+
+						{/* Custom Rate - only shown when not excluded (y nunca en un fijo) */}
+						{!excludeFromCommissions && !soloExcluir && (
 							<FormField
 								control={form.control}
 								name="customRate"
@@ -395,7 +403,7 @@ export default function CreateOverrideDialog({
 							>
 								{t('actions.cancel')}
 							</Button>
-							<Button type="submit" disabled={isPending}>
+							<Button type="submit" disabled={isPending || (soloExcluir && !excludeFromCommissions)}>
 								{isPending
 									? tCommon('common.saving')
 									: isEditing

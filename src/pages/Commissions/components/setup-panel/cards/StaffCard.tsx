@@ -15,6 +15,7 @@ import type { CommissionSetupState, StaffOverride } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardValid, isCardTouched } from '../useSetupReducer'
 import SetupCard from '../SetupCard'
+import { ofreceTasaPorPersona } from '../../../tasaDelEsquema'
 
 interface StaffCardProps {
   state: CommissionSetupState
@@ -37,11 +38,13 @@ export default function StaffCard({ state, dispatch }: StaffCardProps) {
 
   const isValid = isCardValid(state, 'staff')
   const { mode, overrides } = state.staff
+  // En un esquema de monto FIJO la tasa propia no tiene efecto (el servidor paga el monto fijo): sólo se puede excluir (final-fijo-niveles).
+  const tasaPropiaDisponible = ofreceTasaPorPersona(state.rate.calcType)
 
   const getDescription = () => {
     if (mode === 'all') {
       const excluded = overrides.filter(o => o.excluded).length
-      const custom = overrides.filter(o => !o.excluded && o.customRate !== null).length
+      const custom = tasaPropiaDisponible ? overrides.filter(o => !o.excluded && o.customRate !== null).length : 0
       if (excluded === 0 && custom === 0) return t('setup.staff.allStaff')
       const parts: string[] = [t('setup.staff.allStaff')]
       if (excluded > 0) parts.push(t('setup.staff.excludedCount', { count: excluded }))
@@ -136,6 +139,8 @@ export default function StaffCard({ state, dispatch }: StaffCardProps) {
               </Button>
             </div>
 
+            {!tasaPropiaDisponible && <p className="text-xs text-muted-foreground">{t('setup.staff.onlyExcludeInFixed')}</p>}
+
             {/* Current overrides */}
             {overrides.length > 0 && (
               <div className="space-y-2">
@@ -159,7 +164,7 @@ export default function StaffCard({ state, dispatch }: StaffCardProps) {
                           <UserX className="w-3 h-3 mr-1" />
                           {t('setup.staff.excluded')}
                         </Badge>
-                      ) : override.customRate !== null ? (
+                      ) : tasaPropiaDisponible && override.customRate !== null ? (
                         <span className="text-xs text-muted-foreground">
                           {(override.customRate * 100).toFixed(1)}%
                         </span>
@@ -181,7 +186,7 @@ export default function StaffCard({ state, dispatch }: StaffCardProps) {
                       </div>
                     )}
 
-                    {!override.excluded && (
+                    {!override.excluded && tasaPropiaDisponible && (
                       <div className="w-20">
                         <div className="relative">
                           <Input

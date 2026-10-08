@@ -13,7 +13,7 @@ import type {
 } from '@/types/commission'
 import StepAmount from './StepAmount'
 import StepConfirm from './StepConfirm'
-import { tasasPorRolAGuardar } from '../../tasaDelEsquema'
+import { calcTypeAGuardar, excepcionesAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 
 // Override type for wizard (simplified from CreateCommissionOverrideInput)
 export interface WizardOverride {
@@ -178,11 +178,13 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
     const handleSubmit = async () => {
       try {
         // For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
-        const effectiveCalcType = data.tiersEnabled ? 'TIERED' : data.calcType
         const effectiveRate = data.calcType === 'FIXED' ? data.fixedAmount : data.defaultRate
 
-        // When goal-based tier is enabled, set calcType to TIERED internally
-        const finalCalcType = data.useGoalAsTier ? 'TIERED' : effectiveCalcType
+        // Niveles o meta como nivel ⇒ TIERED, sólo con porcentaje. 🔴 Un fijo se guarda FIXED aunque traiga niveles o meta como nivel
+        // prendidos de antes: como TIERED, el servidor leería el monto como tasa (final-fijo-niveles).
+        const conNiveles = ofreceNiveles(data.calcType)
+        const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
+        const metaComoNivel = conNiveles && data.useGoalAsTier
 
         // Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
         const toISODateTime = (dateStr: string) => new Date(dateStr + 'T00:00:00').toISOString()
@@ -200,8 +202,8 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
           roleRates: tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates),
           filterByCategories: data.filterByCategories,
           categoryIds: data.filterByCategories ? data.categoryIds : [],
-          useGoalAsTier: data.useGoalAsTier,
-          goalBonusRate: data.useGoalAsTier ? data.goalBonusRate : null,
+          useGoalAsTier: metaComoNivel,
+          goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
           priority: data.priority,
           effectiveFrom: toISODateTime(data.effectiveFrom),
           effectiveTo: data.effectiveTo ? toISODateTime(data.effectiveTo) : null,
@@ -210,8 +212,8 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
 
         const createdConfig = await activeMutation.mutateAsync(input)
 
-        // Create tiers after config creation if enabled
-        if (data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
+        // Create tiers after config creation if enabled (nunca en un fijo: los niveles son porcentajes)
+        if (conNiveles && data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
           const tiersWithPeriod = data.tiers.map(tier => ({
             ...tier,
             tierPeriod: data.tierPeriod,
@@ -219,16 +221,17 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
           await commissionService.createTiersBatch(venueId, createdConfig.id, tiersWithPeriod)
         }
 
-        // Create overrides after config creation if enabled
+        // Create overrides after config creation if enabled. En un fijo sólo viajan las exclusiones, sin tasa propia.
         if (data.overridesEnabled && data.overrides.length > 0 && venueId && createdConfig?.id) {
-          const overridePromises = data.overrides.map(override =>
-            commissionService.createOverride(venueId, createdConfig.id, {
+          const excepciones = excepcionesAGuardar(
+            data.calcType,
+            data.overrides.map(override => ({
               staffId: override.staffId,
               customRate: override.excludeFromCommissions ? null : override.customRate,
-              excludeFromCommissions: override.excludeFromCommissions,
-            }),
+              excluir: override.excludeFromCommissions,
+            })),
           )
-          await Promise.all(overridePromises)
+          await Promise.all(excepciones.map(excepcion => commissionService.createOverride(venueId, createdConfig.id, excepcion)))
         }
 
         toast({

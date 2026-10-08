@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import BaseIvaSwitch from './BaseIvaSwitch'
 import BaseComisionSwitch from './BaseComisionSwitch'
-import { tasasPorRolAGuardar } from '../tasaDelEsquema'
+import { calcTypeAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../tasaDelEsquema'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionCalcType, CommissionConfig, TierPeriod } from '@/types/commission'
@@ -200,11 +200,12 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const handleSubmit = async () => {
     try {
       // For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
-      const effectiveCalcType = data.tiersEnabled ? 'TIERED' : data.calcType
       const effectiveRate = data.calcType === 'FIXED' ? Number(data.fixedAmount) : Number(data.defaultRate)
 
-      // When goal-based tier is enabled, set calcType to TIERED internally
-      const finalCalcType = data.useGoalAsTier ? 'TIERED' : effectiveCalcType
+      // Niveles o meta como nivel ⇒ TIERED, sólo con porcentaje. 🔴 Un esquema por niveles (o con meta como nivel) que pasa a «Monto
+      // fijo» se guarda FIXED: como TIERED, el servidor leería el monto como tasa (final-fijo-niveles).
+      const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
+      const metaComoNivel = ofreceNiveles(data.calcType) && data.useGoalAsTier
 
       // Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
       const toISODateTime = (dateStr: string | null | undefined) => {
@@ -235,8 +236,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           includeTax: data.includeTax,
           filterByCategories: data.filterByCategories,
           categoryIds: data.filterByCategories ? data.categoryIds : [],
-          useGoalAsTier: data.useGoalAsTier,
-          goalBonusRate: data.useGoalAsTier ? data.goalBonusRate : null,
+          useGoalAsTier: metaComoNivel,
+          goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
           attendanceLinked: data.attendanceLinked,
           attendanceLatePenaltyRate: data.attendanceLinked ? data.attendanceLatePenaltyRate : null,
           roleRates,

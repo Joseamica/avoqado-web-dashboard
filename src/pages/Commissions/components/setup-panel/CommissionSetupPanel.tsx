@@ -17,7 +17,7 @@ import CategoriesCard from './cards/CategoriesCard'
 import PeriodCard from './cards/PeriodCard'
 import TiersCard from './cards/TiersCard'
 import RoleRatesCard from './cards/RoleRatesCard'
-import { tasasPorRolAGuardar } from '../../tasaDelEsquema'
+import { excepcionesAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import LimitsCard from './cards/LimitsCard'
 
 interface CommissionSetupPanelProps {
@@ -64,7 +64,8 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
         maxAmount: state.limits.enabled ? state.limits.maxAmount : undefined,
       })
 
-      if (state.tiers.enabled && state.tiers.items.length > 0) {
+      // Los niveles son porcentajes: en un fijo no se ofrecen ni se crean (final-fijo-niveles).
+      if (ofreceNiveles(state.rate.calcType) && state.tiers.enabled && state.tiers.items.length > 0) {
         await commissionService.createTiersBatch(
           venueId,
           config.id,
@@ -82,14 +83,17 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
         )
       }
 
-      if (state.staff.overrides.length > 0) {
-        for (const override of state.staff.overrides) {
-          await commissionService.createOverride(venueId, config.id, {
-            staffId: override.staffId,
-            customRate: override.customRate ?? state.rate.defaultRate,
-            excludeFromCommissions: override.excluded,
-          })
-        }
+      // En un fijo sólo viajan las exclusiones, sin tasa propia (el servidor paga el monto fijo a todos los demás).
+      const excepciones = excepcionesAGuardar(
+        state.rate.calcType,
+        state.staff.overrides.map(override => ({
+          staffId: override.staffId,
+          customRate: override.customRate ?? state.rate.defaultRate,
+          excluir: override.excluded,
+        })),
+      )
+      for (const excepcion of excepciones) {
+        await commissionService.createOverride(venueId, config.id, excepcion)
       }
 
       return config
