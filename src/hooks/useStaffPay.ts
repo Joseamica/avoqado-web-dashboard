@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { useDebounce } from './useDebounce'
+import { commissionKeys } from './useCommissions'
 import { staffPayService } from '@/services/staffPay.service'
 import type { AjusteClaseInput, AjusteManualInput, AjustePreviewQuery, CeldaDto, LiquidarInput, PreviewLiquidacionDto } from '@/types/staffPay'
 import type { ReglasPayload } from '@/pages/StaffPay/reglas'
@@ -250,6 +251,17 @@ function useInvalidarTodo() {
   const qc = useQueryClient()
   return () => qc.invalidateQueries({ queryKey: staffPayKeys.all(venueId) })
 }
+/**
+ * Lo que cambia lo PAGADO (marcar pagado) o `staffPayActive` (activar, activar o desactivar una sede) también cambia las
+ * estadísticas de Comisiones («Pagado» y su aviso), que viven en otra llave y se dan por frescas 2 minutos (E6a-fix F2). Son
+ * operaciones de organización: el recibo junta comisiones de varias sedes y una ventana es de otra sede, así que se
+ * invalidan las estadísticas de TODAS las sedes (`['commissions', 'stats']`), no sólo las de la actual.
+ */
+function useInvalidarPagado() {
+  const qc = useQueryClient()
+  const inv = useInvalidarTodo()
+  return () => Promise.all([inv(), qc.invalidateQueries({ queryKey: [...commissionKeys.all, 'stats'] })])
+}
 export function useCreateLevel() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({ mutationFn: (name: string) => staffPayService.createLevel(venueId!, name), onSuccess: inv })
@@ -287,7 +299,7 @@ export function useClosePeriod() {
   return useMutation({ mutationFn: (b: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }) => staffPayService.close(venueId!, b), onSuccess: inv })
 }
 export function useMarkPaid(periodId: string | null) {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado()
   return useMutation({
     mutationFn: (b: { staffId?: string; nota?: string; huellaEsperada?: string }) => staffPayService.markPaid(venueId!, periodId!, b),
     onSuccess: inv,
@@ -322,8 +334,13 @@ export function useAdjustmentPreview(q: AjustePreviewQuery | null, enabled = tru
 
 /** Activar pago al personal: fija la periodicidad, la fecha de inicio y las sedes. Refresca acceso, periodos, sedes y reporte. */
 export function useActivateStaffPay() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (b: { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; inicioEsperado: string; sedes?: string[] }) => staffPayService.activate(venueId!, b), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado()
+  return useMutation({
+    mutationFn: (b: { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; inicioEsperado: string; sedes?: string[] }) => staffPayService.activate(venueId!, b),
+    onSuccess: inv,
+    // Sin respuesta pudo haberse activado (el servidor es idempotente): se recarga lo mismo que en el éxito.
+    onError: err => (estado(err) ? undefined : inv()),
+  })
 }
 /** Prender o apagar «Pagar las propinas en el recibo» (abre o cierra una ventana, spec §7.1). */
 export function useSetTips() {
@@ -359,7 +376,7 @@ export function useParticipationPreview(sedeId: string | null, accion: 'activar'
  * se relee todo, como en el éxito.
  */
 function useCambiarSede<B, R>(llamar: (venueId: string, b: B) => Promise<R>) {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarPagado(); const qc = useQueryClient()
   return useMutation({
     mutationFn: (b: B) => llamar(venueId!, b),
     onSuccess: inv,
