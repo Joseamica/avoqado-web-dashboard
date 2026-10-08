@@ -155,6 +155,21 @@ describe('PeriodosTab', () => {
   it('un ?periodo= que no está en la lista cae al periodo actual', () => {
     conUrl('/x?periodo=2020-01-01#periodos')
     expect(screen.getByText('abierto 2026-10-01')).toBeInTheDocument()
+    // Más viejo que lo cargado y con más páginas: podría estar en «Ver periodos anteriores»; la URL no se toca.
+    expect(screen.getByTestId('url')).toHaveTextContent('?periodo=2020-01-01#periodos')
+  })
+
+  // E6a-fix2 K7 (full-testing E6a): `?periodo=2026-08-01` (antes del inicio) mostraba octubre con la URL diciendo agosto.
+  it('🔴 un ?periodo= que no existe (lista completa) corrige la URL al periodo actual, sin perder la pestaña', async () => {
+    m.estado.mockReturnValue({ hasNextPage: false })
+    conUrl('/x?periodo=2026-08-01#periodos')
+    expect(screen.getByText('abierto 2026-10-01')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent(/^#periodos$/))
+  })
+
+  it('🔴 uno dentro de lo cargado que no es un periodo (mal escrito) también la corrige, aunque haya más páginas', async () => {
+    conUrl('/x?periodo=2026-09-15#periodos')
+    await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent(/^#periodos$/))
   })
 
   it('el selector cuenta los recibos pagados con plural por personas (QA defectos 13 y 16)', () => {

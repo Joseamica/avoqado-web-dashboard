@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
@@ -68,6 +68,15 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   const items = data?.items ?? []
   // Un `?periodo=` que no está en la lista (viejo, mal escrito, de otra frecuencia) cae al periodo actual.
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
+  // … y la URL se corrige (`replace`, E6a-fix2 K7): no puede decir agosto mientras se ve octubre. Sólo cuando consta que no
+  // existe: la lista ya está completa, o la fecha cae dentro de lo cargado. Uno más viejo que lo cargado, con más páginas,
+  // podría estar en «Ver periodos anteriores»: se deja.
+  const masViejo = items.length ? clave(items[items.length - 1]) : null
+  const noExiste = !!elegido && !!masViejo && !items.some(p => clave(p) === elegido) && (!hasNextPage || elegido >= masViejo)
+  useEffect(() => {
+    if (noExiste) setElegido(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `setElegido` lee la ubicación de este render; basta el veredicto
+  }, [noExiste])
   const nombrePeriodo = useNombrePeriodo()
   const focoFrecuencia = useFocoDeVuelta()
   const { venueTimezone, formatCalendarDate } = useVenueDateTime()
