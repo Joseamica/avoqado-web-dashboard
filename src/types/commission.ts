@@ -40,6 +40,12 @@ export interface CommissionConfig {
   roleRates: Record<string, number> | null
   filterByCategories: boolean
   categoryIds: string[]
+  /**
+   * Sólo cobra comisión de este esquema quien está en `staffIds` (D-ELEGIDOS, final-comisiones-viejas). Aditivo: un servidor
+   * anterior no lo devuelve (`undefined`), y entonces no sabe restringir a personas elegidas.
+   */
+  filterByStaff?: boolean
+  staffIds?: string[]
   useGoalAsTier: boolean
   goalBonusRate: number | null
   attendanceLinked: boolean
@@ -293,6 +299,8 @@ export interface CreateCommissionConfigInput {
   roleRates?: Record<string, number> | null
   filterByCategories?: boolean
   categoryIds?: string[]
+  filterByStaff?: boolean
+  staffIds?: string[]
   useGoalAsTier?: boolean
   goalBonusRate?: number | null
   attendanceLinked?: boolean
@@ -316,6 +324,8 @@ export interface UpdateCommissionConfigInput {
   roleRates?: Record<string, number> | null
   filterByCategories?: boolean
   categoryIds?: string[]
+  filterByStaff?: boolean
+  staffIds?: string[]
   useGoalAsTier?: boolean
   goalBonusRate?: number | null
   attendanceLinked?: boolean

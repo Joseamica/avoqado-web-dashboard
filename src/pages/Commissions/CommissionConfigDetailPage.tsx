@@ -22,6 +22,7 @@ import {
 	Goal,
 	CheckCircle2,
 	XCircle,
+	Users,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -50,9 +51,11 @@ import {
 } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import { getMenuCategories } from '@/services/menu.service'
+import { teamService } from '@/services/team.service'
 import type { CommissionCalcType, CommissionRecipient } from '@/types/commission'
 import { cn } from '@/lib/utils'
 import { usaTasasPorRol } from './tasaDelEsquema'
+import { soloPersonasElegidas } from './aQuienAplica'
 import CommissionTierList from './components/CommissionTierList'
 import CommissionOverrideList from './components/CommissionOverrideList'
 import EditConfigDialog from './components/EditConfigDialog'
@@ -129,6 +132,18 @@ export default function CommissionConfigDetailPage() {
 	})
 	const categoryNameById = (id: string) =>
 		(allCategories as Array<{ id: string; name: string }>).find(c => c.id === id)?.name ?? id
+
+	// Un esquema sólo para personas elegidas (D-ELEGIDOS) las nombra; misma lista y llave que la tarjeta «Empleados» del panel.
+	const hasChosenStaff = !!config && soloPersonasElegidas(config)
+	const { data: team } = useQuery({
+		queryKey: ['team-members', venueId],
+		queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
+		enabled: !!venueId && hasChosenStaff,
+	})
+	const staffNameById = (id: string) => {
+		const person = team?.data.find(p => p.staffId === id)
+		return person ? `${person.firstName} ${person.lastName}` : id
+	}
 
 	// Format percentage
 	const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`
@@ -402,6 +417,23 @@ export default function CommissionConfigDetailPage() {
 						</div>
 					)}
 
+					{/* Personas elegidas: sólo ellas cobran este esquema */}
+					{hasChosenStaff && (
+						<div className="rounded-2xl border border-border/50 p-5 space-y-3">
+							<div className="flex items-center gap-2">
+								<Users className="w-4 h-4 text-muted-foreground" />
+								<h3 className="text-sm font-semibold">{t('config.staffScope.chosenTitle')}</h3>
+							</div>
+							<div className="flex flex-wrap gap-1.5">
+								{config.staffIds!.map((id) => (
+									<Badge key={id} variant="secondary" className="text-xs">
+										{staffNameById(id)}
+									</Badge>
+								))}
+							</div>
+						</div>
+					)}
+
 					{/* Role Rates */}
 					{hasRoleRates && (
 						<div className="rounded-2xl border border-border/50 p-5 space-y-3">
@@ -436,6 +468,7 @@ export default function CommissionConfigDetailPage() {
 					<CommissionOverrideList
 						configId={configId!}
 						calcType={config.calcType}
+						personasElegidas={hasChosenStaff ? config.staffIds : undefined}
 						overrides={overrides || []}
 						isLoading={isLoadingOverrides}
 					/>

@@ -48,6 +48,8 @@ interface CommissionOverrideListProps {
 	configId: string
 	/** El tipo del esquema: en un monto fijo la tasa propia no tiene efecto, así que ni se ofrece ni se muestra (final-fijo-niveles). */
 	calcType: CommissionCalcType
+	/** Si el esquema sólo aplica a personas elegidas (D-ELEGIDOS): las excepciones nuevas son sólo para ellas. */
+	personasElegidas?: string[]
 	overrides: CommissionOverride[]
 	isLoading: boolean
 }
@@ -55,6 +57,7 @@ interface CommissionOverrideListProps {
 export default function CommissionOverrideList({
 	configId,
 	calcType,
+	personasElegidas,
 	overrides,
 	isLoading,
 }: CommissionOverrideListProps) {
@@ -263,6 +266,7 @@ export default function CommissionOverrideList({
 				configId={configId}
 				override={editingOverride}
 				calcType={calcType}
+				personasElegidas={personasElegidas}
 			/>
 
 			{/* Delete Confirmation Dialog */}

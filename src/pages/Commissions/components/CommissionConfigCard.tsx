@@ -14,6 +14,7 @@ import {
 	Building2,
 	Store,
 	Tag,
+	Users,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ import { getMenuCategories } from '@/services/menu.service'
 import type { CommissionConfig, CommissionCalcType, CommissionConfigSource } from '@/types/commission'
 import { cn } from '@/lib/utils'
 import { esMontoFijo, textoDeTasa, usaTasasPorRol } from '../tasaDelEsquema'
+import { soloPersonasElegidas } from '../aQuienAplica'
 
 // GlassCard with hover effect
 const GlassCard: React.FC<{
@@ -296,6 +298,14 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 								<span className="font-medium">Aplica a: </span>
 								{categoryNames.join(', ')}
 							</span>
+						</div>
+					)}
+
+					{/* Sólo para personas elegidas (D-ELEGIDOS): sólo ellas cobran este esquema */}
+					{soloPersonasElegidas(config) && (
+						<div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-1">
+							<Users className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+							<span>{t('config.staffScope.count', { count: config.staffIds!.length })}</span>
 						</div>
 					)}
 

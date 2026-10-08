@@ -66,6 +66,11 @@ interface CreateOverrideDialogProps {
 	override?: CommissionOverride | null
 	/** El tipo del esquema: en un monto FIJO la tasa propia no tiene efecto y sólo se puede excluir (final-fijo-niveles). */
 	calcType: CommissionCalcType
+	/**
+	 * Si el esquema sólo aplica a personas elegidas (`filterByStaff`, D-ELEGIDOS), sus `staffIds`: una excepción para alguien más no
+	 * cambiaría nada (no cobra este esquema), así que sólo se ofrecen ellas.
+	 */
+	personasElegidas?: string[]
 }
 
 export default function CreateOverrideDialog({
@@ -74,6 +79,7 @@ export default function CreateOverrideDialog({
 	configId,
 	override,
 	calcType,
+	personasElegidas,
 }: CreateOverrideDialogProps) {
 	const { t } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
@@ -93,7 +99,7 @@ export default function CreateOverrideDialog({
 		queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
 		enabled: !!venueId && open,
 	})
-	const staffList = staffData?.data || []
+	const staffList = (staffData?.data || []).filter(staff => !personasElegidas || personasElegidas.includes(staff.staffId))
 
 	const createOverrideMutation = useCreateCommissionOverride(configId)
 	const updateOverrideMutation = useUpdateCommissionOverride(configId)

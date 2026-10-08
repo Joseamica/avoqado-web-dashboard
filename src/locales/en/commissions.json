@@ -107,7 +107,11 @@
       "addException": "Add exception",
       "addStaff": "Add staff member",
       "searchPlaceholder": "Search staff...",
-      "noResults": "No staff found"
+      "noResults": "No staff found",
+      "restrictionUnavailable": "Limiting the commission to chosen people isn't available on your account yet. For now the scheme applies to the whole team; you can exclude whoever shouldn't earn it.",
+      "restrictionNotApplied": "The scheme wasn't created: limiting it to chosen people isn't available on your account yet. Choose «All staff» and exclude whoever shouldn't earn it.",
+      "restrictionNotAppliedKept": "The scheme was created, but it applies to the WHOLE team: limiting it to chosen people isn't available on your account yet. Deactivate it or exclude whoever shouldn't earn it.",
+      "chooseAtLeastOne": "Choose at least one person."
     },
     "calcBase": {
       "title": "Calculation Base",
@@ -222,7 +226,17 @@
     "inactive": "Inactive",
     "noConfigs": "No commission configurations",
     "noConfigsDescription": "Create your first configuration to start calculating commissions",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "staffScope": {
+      "title": "Who does it apply to?",
+      "all": "The whole team",
+      "allDesc": "The whole team earns this commission. To exclude someone or give them a special rate, use the exceptions on the scheme's page.",
+      "chosen": "Only chosen people",
+      "chosenDesc": "Only the people you choose earn this commission.",
+      "remove": "Remove {{name}}",
+      "chosenTitle": "Only applies to these people",
+      "count": "Only for chosen people: {{count}}"
+    }
   },
   "calcTypes": {
     "PERCENTAGE": "Percentage",

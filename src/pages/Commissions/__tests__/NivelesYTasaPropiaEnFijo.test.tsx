@@ -48,6 +48,8 @@ vi.mock('@/hooks/useCommissions', () => ({
   useCreateCommissionOverride: () => ({ mutateAsync: m.guardarExcepcion, isPending: false }),
   useUpdateCommissionOverride: () => ({ mutateAsync: m.guardarExcepcion, isPending: false }),
   useDeleteCommissionOverride: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  // El panel pregunta a los esquemas si el servidor sabe restringir a personas elegidas (D-ELEGIDOS); aquí no hay ninguno.
+  useEffectiveCommissionConfigs: () => ({ data: [] }),
 }))
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock('@/services/commission.service', () => ({

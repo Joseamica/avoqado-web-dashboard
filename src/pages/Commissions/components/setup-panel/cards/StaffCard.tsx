@@ -16,13 +16,16 @@ import type { SetupAction } from '../useSetupReducer'
 import { isCardValid, isCardTouched } from '../useSetupReducer'
 import SetupCard from '../SetupCard'
 import { ofreceTasaPorPersona } from '../../../tasaDelEsquema'
+import type { RestriccionPorPersona } from '../../../aQuienAplica'
 
 interface StaffCardProps {
   state: CommissionSetupState
   dispatch: (action: SetupAction) => void
+  /** Si el servidor sabe limitar el esquema a personas elegidas (D-ELEGIDOS). Si no, la tarjeta lo dice y no deja elegirlas. */
+  restriccion?: RestriccionPorPersona
 }
 
-export default function StaffCard({ state, dispatch }: StaffCardProps) {
+export default function StaffCard({ state, dispatch, restriccion = 'desconocida' }: StaffCardProps) {
   const { t } = useTranslation('commissions')
   const { venueId } = useCurrentVenue()
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
@@ -40,6 +43,8 @@ export default function StaffCard({ state, dispatch }: StaffCardProps) {
   const { mode, overrides } = state.staff
   // En un esquema de monto FIJO la tasa propia no tiene efecto (el servidor paga el monto fijo): sólo se puede excluir (final-fijo-niveles).
   const tasaPropiaDisponible = ofreceTasaPorPersona(state.rate.calcType)
+  // Un servidor que no sabe restringir no finge hacerlo: se dice y no se puede pasar a «Solo seleccionados».
+  const restriccionNoDisponible = restriccion === 'noDisponible'
 
   const getDescription = () => {
     if (mode === 'all') {
@@ -134,12 +139,17 @@ export default function StaffCard({ state, dispatch }: StaffCardProps) {
                     : t('setup.staff.modeSelectedDesc')}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={toggleMode}>
+              <Button variant="outline" size="sm" onClick={toggleMode} disabled={mode === 'all' && restriccionNoDisponible}>
                 {mode === 'all' ? t('setup.staff.switchToSelected') : t('setup.staff.switchToAll')}
               </Button>
             </div>
 
-            {!tasaPropiaDisponible && <p className="text-xs text-muted-foreground">{t('setup.staff.onlyExcludeInFixed')}</p>}
+            {restriccionNoDisponible && <p className="text-xs text-muted-foreground">{t('setup.staff.restrictionUnavailable')}</p>}
+
+            {/* «Sólo puedes excluir» es de las excepciones de «Todos»: con «Solo seleccionados» no hay excluir. */}
+            {!tasaPropiaDisponible && mode === 'all' && (
+              <p className="text-xs text-muted-foreground">{t('setup.staff.onlyExcludeInFixed')}</p>
+            )}
 
             {/* Current overrides */}
             {overrides.length > 0 && (

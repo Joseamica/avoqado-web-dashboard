@@ -19,6 +19,8 @@ import CommissionAdvancedConfig from './wizard/CommissionAdvancedConfig'
 import CategoryFilter from './wizard/CategoryFilter'
 import type { WizardData } from './wizard/CreateCommissionWizard'
 import LiveExample from './wizard/LiveExample'
+import AQuienAplicaEditor, { type AQuienAplica } from './AQuienAplicaEditor'
+import { servidorRestringePorPersona } from '../aQuienAplica'
 
 interface EditConfigDialogProps {
   open: boolean
@@ -99,6 +101,12 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const [fixedAmountInput, setFixedAmountInput] = useState(() => String(data.fixedAmount))
   const [goalBonusRateInput, setGoalBonusRateInput] = useState(() => (data.goalBonusRate * 100).toFixed(2))
   const [attendancePenaltyInput, setAttendancePenaltyInput] = useState(() => (data.attendanceLatePenaltyRate * 100).toFixed(0))
+  // A quién aplica (D-ELEGIDOS): se lee del esquema y se manda sólo si el servidor sabe restringir (sus esquemas traen
+  // `filterByStaff`); uno anterior no lo guardaría y el editor lo dice.
+  const restriccionDisponible = servidorRestringePorPersona(config)
+  const aQuienDelEsquema = (cfg: CommissionConfig): AQuienAplica => ({ soloElegidas: cfg.filterByStaff === true, staffIds: cfg.staffIds ?? [] })
+  const [aQuien, setAQuien] = useState<AQuienAplica>(() => aQuienDelEsquema(config))
+  const faltaElegir = restriccionDisponible && aQuien.soloElegidas && aQuien.staffIds.length === 0
 
   // Check if rate editing is locked due to existing calculations
   const calculationsCount = config._count?.calculations || 0
@@ -113,6 +121,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       setFixedAmountInput(String(wizardData.fixedAmount))
       setGoalBonusRateInput((wizardData.goalBonusRate * 100).toFixed(2))
       setAttendancePenaltyInput((wizardData.attendanceLatePenaltyRate * 100).toFixed(0))
+      setAQuien(aQuienDelEsquema(config))
       setAdvancedOpen(wizardData.tiersEnabled || wizardData.roleRatesEnabled || wizardData.limitsEnabled || wizardData.overridesEnabled)
     }
   }, [open, config])
@@ -235,6 +244,9 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           includeTax: data.includeTax,
           filterByCategories: data.filterByCategories,
           categoryIds: data.filterByCategories ? data.categoryIds : [],
+          ...(restriccionDisponible
+            ? { filterByStaff: aQuien.soloElegidas, staffIds: aQuien.soloElegidas ? aQuien.staffIds : [] }
+            : {}),
           useGoalAsTier: metaComoNivel,
           goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
           attendanceLinked: data.attendanceLinked,
@@ -263,7 +275,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   }
 
   const saveButton = (
-    <Button onClick={handleSubmit} disabled={updateConfigMutation.isPending || !data.name.trim()}>
+    <Button onClick={handleSubmit} disabled={updateConfigMutation.isPending || !data.name.trim() || faltaElegir}>
       {updateConfigMutation.isPending ? tCommon('common.saving') : t('actions.save')}
     </Button>
   )
@@ -469,6 +481,9 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
             </div>
           )}
         </div>
+
+        {/* ─── A quién aplica ─── */}
+        <AQuienAplicaEditor disponible={restriccionDisponible} valor={aQuien} onChange={setAQuien} />
 
         {/* ─── Meta como escalón ─── */}
         {data.calcType === 'PERCENTAGE' && (

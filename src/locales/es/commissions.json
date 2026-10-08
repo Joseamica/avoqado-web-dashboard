@@ -107,7 +107,11 @@
       "addException": "Agregar excepción",
       "addStaff": "Agregar empleado",
       "searchPlaceholder": "Buscar empleado...",
-      "noResults": "No se encontraron empleados"
+      "noResults": "No se encontraron empleados",
+      "restrictionUnavailable": "Limitar la comisión a personas elegidas todavía no está disponible en tu cuenta. Por ahora el esquema aplica a todo el equipo; puedes excluir a quien no deba cobrarla.",
+      "restrictionNotApplied": "No se creó el esquema: limitarlo a personas elegidas todavía no está disponible en tu cuenta. Elige «Todos los empleados» y excluye a quien no deba cobrarla.",
+      "restrictionNotAppliedKept": "El esquema se creó, pero aplica a TODO el equipo: limitarlo a personas elegidas todavía no está disponible en tu cuenta. Desactívalo o excluye a quien no deba cobrarla.",
+      "chooseAtLeastOne": "Elige al menos a una persona."
     },
     "calcBase": {
       "title": "Base de Cálculo",
@@ -222,7 +226,17 @@
     "inactive": "Inactiva",
     "noConfigs": "No hay configuraciones de comisión",
     "noConfigsDescription": "Crea tu primera configuración para empezar a calcular comisiones",
-    "viewDetails": "Ver Detalles"
+    "viewDetails": "Ver Detalles",
+    "staffScope": {
+      "title": "¿A quién aplica?",
+      "all": "Todo el equipo",
+      "allDesc": "Todo el equipo gana esta comisión. Para excluir a alguien o darle una tasa especial, usa las excepciones de la ficha del esquema.",
+      "chosen": "Sólo personas elegidas",
+      "chosenDesc": "Sólo las personas que elijas ganan esta comisión.",
+      "remove": "Quitar a {{name}}",
+      "chosenTitle": "Sólo aplica a estas personas",
+      "count": "Sólo para personas elegidas: {{count}}"
+    }
   },
   "calcTypes": {
     "PERCENTAGE": "Porcentaje",
