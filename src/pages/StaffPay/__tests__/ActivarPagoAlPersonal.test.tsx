@@ -207,4 +207,38 @@ describe('ActivarPagoAlPersonal (spec §7.1, §11)', () => {
     expect(m.releerSedes).toHaveBeenCalled()
     expect(m.releerAcceso).toHaveBeenCalled()
   })
+
+  describe('inicio que dice el servidor (E1d, inicioAlActivar)', () => {
+    const activar = async () => {
+      fireEvent.click(boton())
+      fireEvent.click(screen.getAllByRole('button', { name: 'activation.button' })[1])
+    }
+    it('periodicidad fija y guardada: usa la fecha del servidor en el texto y en inicioEsperado', async () => {
+      vi.setSystemTime(new Date('2026-10-07T18:00:00Z'))
+      m.acceso.mockReturnValue({ ...ACCESO, periodicidad: 'MONTHLY', periodicidadFija: true, inicioAlActivar: '2026-10-16' })
+      m.activar.mockResolvedValue({ startDate: '2026-10-16', yaActivado: false })
+      render(<ActivarPagoAlPersonal />)
+      expect(screen.getByText(/activation\.since/)).toHaveTextContent('dia(2026-10-16)')
+      await activar()
+      await waitFor(() => expect(m.activar).toHaveBeenCalledWith({ periodicidad: 'MONTHLY', inicioEsperado: '2026-10-16', sedes: ['s1'] }))
+    })
+    it('sin el campo (servidor viejo): el cálculo de siempre', async () => {
+      vi.setSystemTime(new Date('2026-10-07T18:00:00Z'))
+      m.activar.mockResolvedValue({ startDate: '2026-10-01', yaActivado: false })
+      render(<ActivarPagoAlPersonal />)
+      expect(screen.getByText(/activation\.since/)).toHaveTextContent('dia(2026-10-01)')
+      await activar()
+      await waitFor(() => expect(m.activar).toHaveBeenCalledWith({ periodicidad: 'MONTHLY', inicioEsperado: '2026-10-01', sedes: ['s1'] }))
+    })
+    it('no fija y el dueño elige otra periodicidad que la guardada: se usa el cálculo, no la fecha del servidor', async () => {
+      vi.setSystemTime(new Date('2026-10-07T18:00:00Z'))
+      m.acceso.mockReturnValue({ ...ACCESO, periodicidad: 'MONTHLY', periodicidadFija: false, inicioAlActivar: '2026-10-16' })
+      m.activar.mockResolvedValue({ startDate: '2026-10-01', yaActivado: false })
+      render(<ActivarPagoAlPersonal />)
+      fireEvent.change(screen.getByLabelText('periodicidad'), { target: { value: 'SEMIMONTHLY' } })
+      expect(screen.getByText(/activation\.since/)).toHaveTextContent('dia(2026-10-01)')
+      await activar()
+      await waitFor(() => expect(m.activar).toHaveBeenCalledWith({ periodicidad: 'SEMIMONTHLY', inicioEsperado: '2026-10-01', sedes: ['s1'] }))
+    })
+  })
 })

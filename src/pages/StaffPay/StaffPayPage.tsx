@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PowerOff } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { FeatureGate } from '@/components/billing/FeatureGate'
@@ -9,6 +10,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useStaffPayAccess } from '@/hooks/useStaffPay'
 import { TablaDePagosTab } from './components/TablaDePagosTab'
 import { PeriodosTab } from './components/PeriodosTab'
+import { mensajeLegible } from './rangos'
 
 const TABS = ['tabla', 'periodos'] as const
 type Tab = (typeof TABS)[number]
@@ -24,7 +26,7 @@ export default function StaffPayPage() {
   const [tab, setTab] = useState<Tab>(desdeHash)
   useEffect(() => { setTab(desdeHash()) }, [location.hash]) // eslint-disable-line react-hooks/exhaustive-deps
   const cambiar = (v: string) => { setTab(v as Tab); navigate(`${location.pathname}${location.search}#${v}`, { replace: true }) }
-  const { data, isLoading } = useStaffPayAccess()
+  const { data, isLoading, isError, error, refetch } = useStaffPayAccess()
 
   return (
     <div className="p-4 bg-background text-foreground">
@@ -32,6 +34,16 @@ export default function StaffPayPage() {
         <PageTitleWithInfo title={t('title')} className="text-2xl font-bold" tooltip={t('subtitle')} />
         <p className="text-muted-foreground">{t('subtitle')}</p>
       </div>
+      {isError && !data && (
+        <Card className="border-destructive/40" role="alert">
+          <CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm">
+            <span>{mensajeLegible(error) ?? t('errors.generic')}</span>
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void refetch()}>
+              {t('period.retry')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       {!isLoading && data?.enabled === false && (
         // Sin el plan, el cartel de planes (incluido en Pro, o suelto con su precio del catálogo); si el plan sí lo cubre y
         // sigue apagado por otra razón, la explicación de siempre (spec §10: apagado se ve y se explica).

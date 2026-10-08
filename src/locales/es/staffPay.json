@@ -9,7 +9,7 @@
     "title": "Activa pago al personal",
     "what": "Cada periodo, Avoqado arma un recibo por persona con sus clases, sus comisiones de venta y, si lo eliges, sus propinas. Tú cierras el periodo y marcas lo que pagaste. Las sedes que no marques las activas después, cada una desde su fecha, en «Sedes».",
     "noMoney": "Avoqado no mueve dinero: registra lo que tú pagas por fuera.",
-    "since": "Desde el {{fecha}} entran las clases, comisiones y propinas de las sedes que marques. Lo anterior no entra; si debes algo, agrégalo como ajuste.",
+    "since": "Desde el {{fecha}} entran las clases y las comisiones de las sedes que marques. Las propinas entran sólo si prendes «Pagar las propinas en el recibo», y desde ese momento. Lo anterior no entra; si debes algo, agrégalo como ajuste.",
     "venues": "Sedes que entran al activar",
     "venueNoPlan": "Viene en el plan Pro o se contrata suelto por sucursal.",
     "noVenues": "Marca al menos una sede para activar.",
@@ -18,7 +18,7 @@
     "button": "Activar pago al personal",
     "noPermission": "Para activarlo necesitas el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
     "confirmTitle": "¿Activar pago al personal con pago {{frecuencia}}?",
-    "confirmHelp": "Las comisiones se suman desde el {{fecha}}; las anteriores no entran. La frecuencia queda fija al activar.",
+    "confirmHelp": "Las clases y las comisiones entran desde el {{fecha}}; lo anterior no. La frecuencia queda fija al activar.",
     "done": "Pago al personal activo desde el {{fecha}}",
     "activeSince": "Activo desde el {{fecha}}: lo anterior no se suma."
   },

@@ -154,6 +154,8 @@ export interface AccesoDto {
   periodicidad?: 'MONTHLY' | 'SEMIMONTHLY'
   /** true: ya no se puede cambiar (queda fija al activar). */
   periodicidadFija?: boolean
+  /** Inicio que el servidor guardará al activar con la periodicidad guardada (E1d); opcional: un server previo no lo manda. */
+  inicioAlActivar?: string | null
 }
 /** Pesos con 2 decimales, NETO. */
 export interface MontoDto { n: number; total: string }

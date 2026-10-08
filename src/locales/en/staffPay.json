@@ -9,7 +9,7 @@
     "title": "Turn on staff pay",
     "what": "Each period, Avoqado builds one statement per person with their classes, their sales commissions and, if you choose, their tips. You close the period and mark what you paid. Locations you don't check can be turned on later, each from its own date, in «Locations».",
     "noMoney": "Avoqado doesn't move money: it records what you pay outside of it.",
-    "since": "From {{fecha}}, the classes, commissions and tips of the locations you check are included. Anything earlier is not; if you owe something, add it as an adjustment.",
+    "since": "From {{fecha}}, the classes and commissions of the locations you check are included. Tips are included only if you turn on “Pay tips in the statement”, and from that moment. Anything earlier is not; if you owe something, add it as an adjustment.",
     "venues": "Locations included when you turn it on",
     "venueNoPlan": "Included in the Pro plan, or can be added on its own per location.",
     "noVenues": "Check at least one location to turn it on.",
@@ -18,7 +18,7 @@
     "button": "Turn on staff pay",
     "noPermission": "To turn it on you need the «Close periods and record payments» permission. Ask the business owner.",
     "confirmTitle": "Turn on staff pay, paid {{frecuencia}}?",
-    "confirmHelp": "Commissions count from {{fecha}}; earlier ones are not included. The frequency is fixed once you turn it on.",
+    "confirmHelp": "Classes and commissions count from {{fecha}}; earlier ones are not included. The frequency is fixed once you turn it on.",
     "done": "Staff pay active since {{fecha}}",
     "activeSince": "Active since {{fecha}}: anything earlier is not included."
   },

@@ -52,7 +52,12 @@ export function ActivarPagoAlPersonal() {
   const guardada: Periodicidad = acceso?.periodicidad ?? 'MONTHLY'
   const periodicidad: Periodicidad = fija ? guardada : (elegida ?? guardada)
   // Lo que el servidor guardará: el inicio del periodo abierto hoy en la zona de la sede. Se recalcula en cada pintada.
-  const desde = inicioDelPeriodo(hoyEnSede(venueTimezone), periodicidad)
+  // Si el periodo de hoy ya se cerró (otra sede más al oeste), el servidor empieza al día siguiente de su fin: cuando lo sabe y
+  // la periodicidad es la guardada, su fecha manda; si no, el cálculo de siempre.
+  const desde =
+    periodicidad === guardada && acceso?.inicioAlActivar
+      ? acceso.inicioAlActivar
+      : inicioDelPeriodo(hoyEnSede(venueTimezone), periodicidad)
   const sedes = sedesQ.data?.sedes ?? []
   const marcadas = sedes.filter(s => s.tienePlan && !desmarcadas.has(s.venueId)).map(s => s.venueId)
   const sedesCargadas = !!sedesQ.data
