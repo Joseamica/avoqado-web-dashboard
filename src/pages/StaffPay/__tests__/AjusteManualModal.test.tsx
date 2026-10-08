@@ -175,6 +175,21 @@ describe('AjusteManualModal', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Máximo dos decimales')
     expect(m.toast).not.toHaveBeenCalled()
   })
+  // E6a-fix F10 (contrato con el server): ajustar un periodo anterior al inicio ⇒ 409 ANTES_DEL_INICIO con su mensaje.
+  it('un ajuste a un periodo anterior al inicio (409 ANTES_DEL_INICIO) dice el mensaje del servidor y no cierra', async () => {
+    const onOpenChange = vi.fn()
+    m.add.mockRejectedValue({
+      response: { status: 409, data: { code: 'ANTES_DEL_INICIO', message: 'Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior' } },
+    })
+    render(<AjusteManualModal open onOpenChange={onOpenChange} sedes={['v1']} />)
+    llenar()
+    fireEvent.click(screen.getByRole('button', { name: 'manualAdjust.save' }))
+    await waitFor(() =>
+      expect(m.toast).toHaveBeenCalledWith({ title: 'Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior', variant: 'destructive' }),
+    )
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+  })
+
   it('un periodo de hace más de 12 meses no admite ajustes: se dice antes de guardar (A6)', () => {
     const vieja = sumarMeses(hoyEnSede('America/Mexico_City'), -13)
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha={vieja} />)
