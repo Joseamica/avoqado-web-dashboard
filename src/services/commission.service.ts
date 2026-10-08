@@ -209,13 +209,20 @@ export const commissionService = {
 
 	// Get all summaries for a venue
 	async getSummaries(venueId: string, filters?: SummaryFilters): Promise<CommissionSummary[]> {
+		return (await commissionService.getSummariesPage(venueId, filters)).items
+	},
+
+	// Los mismos resúmenes con el `total` del servidor (E6a-fix3): topa la tabla a 500 renglones y dice cuántos había antes del tope.
+	// Sin `total` (servidor previo) o si no es un número: `undefined`, nunca inventado.
+	async getSummariesPage(venueId: string, filters?: SummaryFilters): Promise<{ items: CommissionSummary[]; total: number | undefined }> {
 		const params = new URLSearchParams()
 		if (filters?.staffId) params.append('staffId', filters.staffId)
 		if (filters?.status) params.append('status', filters.status)
 		if (filters?.periodStart) params.append('periodStart', filters.periodStart)
 		if (filters?.periodEnd) params.append('periodEnd', filters.periodEnd)
 		const response = await api.get(`${BASE_URL}/venues/${venueId}/summaries?${params}`)
-		return normalizeArrayResponse<CommissionSummary>(response.data)
+		const total = (response.data as { total?: unknown } | null)?.total
+		return { items: normalizeArrayResponse<CommissionSummary>(response.data), total: typeof total === 'number' ? total : undefined }
 	},
 
 	// Get a single summary by ID

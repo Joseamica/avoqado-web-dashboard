@@ -74,4 +74,19 @@ describe('TeamCommissionSection', () => {
     render(<TeamCommissionSection staffId="st1" />)
     expect(screen.getByText(/summary\.calculatedNote/)).toBeInTheDocument()
   })
+
+  // E6a-fix3: si el servidor dice que hay más periodos de los que mandó (`summariesTotal`), se dice; sin el dato, nada.
+  it('🔴 si hay más periodos que los mostrados, dice «Mostrando N de total»', () => {
+    m.staff.mockReturnValue(staff({ summariesTotal: 40 }))
+    render(<TeamCommissionSection staffId="st1" />)
+    expect(screen.getByText('summary.showing:{"n":1,"total":40}')).toBeInTheDocument()
+  })
+  it('sin total, o con todos, no dice nada', () => {
+    const { unmount } = render(<TeamCommissionSection staffId="st1" />)
+    expect(screen.queryByText(/summary\.showing/)).toBeNull()
+    unmount()
+    m.staff.mockReturnValue(staff({ summariesTotal: 1 }))
+    render(<TeamCommissionSection staffId="st1" />)
+    expect(screen.queryByText(/summary\.showing/)).toBeNull()
+  })
 })

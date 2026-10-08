@@ -6,7 +6,7 @@ import DataTable from '@/components/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useCommissionStats, useStaffCommissions } from '@/hooks/useCommissions'
-import { NotaDeLoCalculado } from '@/pages/Commissions/components/AvisosDeResumen'
+import { MostrandoDeTotal, NotaDeLoCalculado } from '@/pages/Commissions/components/AvisosDeResumen'
 import type { CommissionSummary } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
@@ -179,6 +179,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 					<h4 className="text-sm font-medium mb-1">{t('staff.history')}</h4>
 					<div className="mb-4 space-y-1">
 						{nota}
+						<MostrandoDeTotal n={commissions.summaries.length} total={commissions.summariesTotal} />
 					</div>
 					<div className="relative rounded-xl border border-border/50 overflow-hidden">
 						<DataTable<CommissionSummary>

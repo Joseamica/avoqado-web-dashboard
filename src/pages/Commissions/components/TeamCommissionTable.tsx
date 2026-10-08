@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useCommissionSummaries } from '@/hooks/useCommissions'
+import { useCommissionSummariesPage } from '@/hooks/useCommissions'
 import type { CommissionSummary } from '@/types/commission'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Eye, MoreHorizontal, FileText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { MostrandoDeTotal, NotaDeLoCalculado } from './AvisosDeResumen'
 
 /**
  * Lo que el motor calculó por persona y periodo. Sin columna de estado (E6a-fix F9, QA H4): el estado de estos resúmenes es
@@ -28,7 +29,8 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
   })
 
   // Fetch summaries
-  const { data: summaries, isLoading } = useCommissionSummaries()
+  const { data: page, isLoading } = useCommissionSummariesPage()
+  const summaries = page?.items
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -113,16 +115,8 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
   const encabezado = (
     <div className="p-4 border-b border-border/50 space-y-1">
       <h3 className="font-semibold">{t('summary.title')}</h3>
-      {staffPayActive && (
-        <p className="text-sm text-muted-foreground" data-tour="commissions-summary-calculated-note">
-          {t('summary.calculatedNote')}{' '}
-          {puedeVerRecibos && (
-            <Link to={`${fullBasePath}/servicio-pago#periodos`} className="font-medium text-foreground underline underline-offset-2">
-              {t('overview.goToStaffPay')}
-            </Link>
-          )}
-        </p>
-      )}
+      <NotaDeLoCalculado staffPayActive={staffPayActive} puedeVerRecibos={puedeVerRecibos} />
+      <MostrandoDeTotal n={summaries?.length ?? 0} total={page?.total} />
     </div>
   )
 

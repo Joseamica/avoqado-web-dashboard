@@ -22,3 +22,14 @@ export function NotaDeLoCalculado({ staffPayActive, puedeVerRecibos }: { staffPa
     </p>
   )
 }
+
+/** El servidor topa la tabla y dice cuántos renglones había: si son más de los recibidos, se dice (nunca un recorte mudo). */
+export function MostrandoDeTotal({ n, total }: { n: number; total?: number }) {
+  const { t } = useTranslation('commissions')
+  if (total === undefined || total <= n) return null
+  return (
+    <p className="text-sm text-muted-foreground" role="status" data-tour="commissions-summary-showing">
+      {t('summary.showing', { n, total })}
+    </p>
+  )
+}

@@ -452,6 +452,8 @@ export interface PaginatedCommissionPayoutsResponse {
 export interface StaffCommissionsResponse {
   calculations: CommissionCalculation[]
   summaries: CommissionSummary[]
+  /** Cuántos periodos había antes del tope de `summaries`, si el servidor lo dice (E6a-fix3). Sin él, no se afirma ningún recorte. */
+  summariesTotal?: number
   stats: StaffCommissionStats
   tierProgress: StaffTierProgress | null
 }

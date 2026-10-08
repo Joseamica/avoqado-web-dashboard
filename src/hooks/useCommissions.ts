@@ -372,6 +372,19 @@ export function useCommissionSummaries(filters?: SummaryFilters) {
 	})
 }
 
+/** Los resúmenes con el `total` del servidor (tope de la tabla, E6a-fix3). Otra llave: su forma no es la de `useCommissionSummaries`. */
+export function useCommissionSummariesPage(filters?: SummaryFilters) {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: [...commissionKeys.summaries(venueId), 'page', filters],
+		queryFn: () => commissionService.getSummariesPage(venueId!, filters),
+		enabled: !!venueId,
+		staleTime: 2 * 60 * 1000,
+		gcTime: 10 * 60 * 1000,
+	})
+}
+
 /**
  * Hook for fetching a single summary
  */
