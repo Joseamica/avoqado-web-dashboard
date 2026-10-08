@@ -52,6 +52,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getMenuCategories } from '@/services/menu.service'
 import type { CommissionCalcType, CommissionRecipient } from '@/types/commission'
 import { cn } from '@/lib/utils'
+import { usaTasasPorRol } from './tasaDelEsquema'
 import CommissionTierList from './components/CommissionTierList'
 import CommissionOverrideList from './components/CommissionOverrideList'
 import EditConfigDialog from './components/EditConfigDialog'
@@ -209,7 +210,8 @@ export default function CommissionConfigDetailPage() {
 	}
 
 	const hasLimits = config.minAmount !== null || config.maxAmount !== null
-	const hasRoleRates = config.roleRates && Object.keys(config.roleRates).length > 0
+	// En un esquema de monto fijo el servidor no usa las tasas por rol: no se pintan como si aplicaran (G5)
+	const hasRoleRates = usaTasasPorRol(config)
 	const hasCategories = config.filterByCategories && config.categoryIds && config.categoryIds.length > 0
 
 	return (

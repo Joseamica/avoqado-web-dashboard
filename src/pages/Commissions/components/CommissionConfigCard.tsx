@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getMenuCategories } from '@/services/menu.service'
 import type { CommissionConfig, CommissionCalcType, CommissionConfigSource } from '@/types/commission'
 import { cn } from '@/lib/utils'
+import { esMontoFijo, textoDeTasa, usaTasasPorRol } from '../tasaDelEsquema'
 
 // GlassCard with hover effect
 const GlassCard: React.FC<{
@@ -87,8 +88,8 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 	const { toast } = useToast()
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-	// Check if role rates are configured
-	const hasRoleRates = config.roleRates && Object.keys(config.roleRates).length > 0
+	// Las tasas por rol sólo cuentan en un esquema con tasa; en uno de monto fijo el servidor paga el monto (G5)
+	const hasRoleRates = usaTasasPorRol(config)
 	const hasAmountLimits = config.minAmount !== null || config.maxAmount !== null
 
 	// Load categories to resolve names for category-filtered configs
@@ -249,8 +250,11 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 						<div className="space-y-3 mb-4">
 							<div className="grid grid-cols-2 gap-3">
 								<div className="p-3 rounded-lg bg-muted/50">
-									<p className="text-xs text-muted-foreground">{t('config.defaultRate')}</p>
-									<p className="text-lg font-semibold">{formatPercent(config.defaultRate)}</p>
+									{/* Un monto fijo en pesos, nunca «500.00%» (G5). */}
+									<p className="text-xs text-muted-foreground">
+										{esMontoFijo(config.calcType) ? t('wizard.step2.fixedAmount') : t('config.defaultRate')}
+									</p>
+									<p className="text-lg font-semibold">{textoDeTasa(config.calcType, config.defaultRate, i18n.language)}</p>
 								</div>
 								<div className="p-3 rounded-lg bg-muted/50">
 									<p className="text-xs text-muted-foreground">{t('config.effectiveFrom')}</p>
