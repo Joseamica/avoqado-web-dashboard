@@ -104,6 +104,7 @@
   "rules": {
     "title": "Reglas",
     "help": "Opcionales y apagadas de fábrica. Se guardan con la tabla: cambiarlas es publicar una versión nueva, y lo ya cerrado no se mueve.",
+    "noPermission": "Para cambiar las reglas necesitas el permiso «Configurar pago al personal». Pídeselo al dueño del negocio.",
     "cover": "Suplencia con poco aviso",
     "coverPrefix": "Si a la coach se le asigna la clase con menos de",
     "coverMiddle": "horas de anticipación, cobra su nivel más",
@@ -270,7 +271,8 @@
     "lateCancelUnderHour": "Cancelada con menos de 1 h de aviso: se paga el sueldo base",
     "outOfEnvelope": "La sede {{sede}} no estaba activa en pago al personal el {{fecha}}: esta clase no entra al recibo.",
     "wouldPay": "Si la activas desde ese día, se pagarían {{monto}}.",
-    "goToVenues": "Ver sedes"
+    "goToVenues": "Ver sedes",
+    "overrideNotApplied": "El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base."
   },
   "adjust": {
     "title": "Ajustar el pago de la clase",

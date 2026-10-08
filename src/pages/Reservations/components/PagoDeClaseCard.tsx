@@ -253,13 +253,21 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
           </div>
         )}
         {p.ajuste && p.estado !== 'EXCLUIDA' && (
-          <p className="text-xs text-muted-foreground">{t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}</p>
+          <p className="text-xs text-muted-foreground">
+            {/* Cancelada tarde: el conteo corregido sigue guardado pero no mueve el pago (E4-fix). Decirlo «Ajustado» engaña. */}
+            {canceladaTarde && p.ajuste.payCountOverride != null
+              ? t('classCard.overrideNotApplied')
+              : t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}
+          </p>
         )}
         {puedeAjustar && (
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={abrir(() => setModo('conteo'))}>
-              {t('classCard.fixCount')}
-            </Button>
+            {/* En una cancelada tarde el conteo no cambia el pago (se paga la fila de 0): no se ofrece corregirlo. */}
+            {!canceladaTarde && (
+              <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={abrir(() => setModo('conteo'))}>
+                {t('classCard.fixCount')}
+              </Button>
+            )}
             <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={abrir(() => setModo('monto'))}>
               {t('classCard.fixAmount')}
             </Button>

@@ -9,12 +9,14 @@ const m = vi.hoisted(() => ({
   assignMutate: vi.fn(),
   update: vi.fn(),
   reglas: { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null } as Record<string, number | null>,
+  can: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City' }) }))
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: any) => <>{children}</> }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@tanstack/react-query', async () => ({
   ...(await vi.importActual<any>('@tanstack/react-query')),
@@ -53,6 +55,7 @@ describe('TablaDePagosTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     m.reglas = { ...APAGADAS }
+    m.can.mockReturnValue(true)
     m.publish.mockResolvedValue({ clasesQueCambian: 14 })
     m.assign.mockResolvedValue({ clasesQueCambian: 3 })
   })
@@ -149,5 +152,22 @@ describe('TablaDePagosTab', () => {
     fireEvent.change(screen.getByLabelText('rules.lateHours'), { target: { value: '2' } })
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.getByText('grid.publish')).toBeEnabled()
+  })
+
+  it('sin «Configurar pago al personal» las reglas se ven pero no se mueven, y dice por qué (E4-fix)', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:manage')
+    m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'rules.lateCancel' })).toBeDisabled()
+    for (const campo of ['rules.coverHours', 'rules.coverAmount', 'rules.lateHours']) expect(screen.getByLabelText(campo)).toBeDisabled()
+    expect(screen.getByText('rules.noPermission')).toBeInTheDocument()
+    // La cuadrícula no cambia (comportamiento previo): sólo las reglas.
+    expect(celda(8)).toBeEnabled()
+  })
+  it('con el permiso, las reglas se mueven y no hay aviso', () => {
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeEnabled()
+    expect(screen.queryByText('rules.noPermission')).toBeNull()
   })
 })

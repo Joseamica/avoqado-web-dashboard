@@ -214,4 +214,11 @@ describe('textos de pago por servicio', () => {
       'Carla QA tiene −$80.00 en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:',
     )
   })
+
+  it('E4-fix: la cancelada tarde dice que el conteo corregido no aplica; sin permiso, las reglas dicen cuál falta', () => {
+    expect(tEs('classCard.overrideNotApplied')).toBe('El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base.')
+    expect(tEn('classCard.overrideNotApplied')).toBe('The corrected count does not apply: the class was cancelled late and base pay applies.')
+    expect(tEs('rules.noPermission')).toBe('Para cambiar las reglas necesitas el permiso «Configurar pago al personal». Pídeselo al dueño del negocio.')
+    expect(tEn('rules.noPermission')).toMatch(/“Manage staff pay”/)
+  })
 })

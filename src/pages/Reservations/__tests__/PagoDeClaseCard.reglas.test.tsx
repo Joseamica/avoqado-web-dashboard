@@ -149,4 +149,38 @@ describe('PagoDeClaseCard: reglas de clase y clase fuera del sobre (fase 3, E4)'
     expect(screen.queryByText(/classCard\.wouldPay/)).toBeNull()
     expect(screen.getByRole('link', { name: 'classCard.goToVenues' })).toBeInTheDocument()
   })
+
+  // ── E4-fix (revisión de E4, duda 1): en una cancelada tarde el conteo no aplica (se paga la fila de 0, spec §6.6) ──
+  const AJUSTE_CONTEO = { payCountOverride: 8, payAmountOverride: null, payExcluded: false, reason: 'Llegaron 8', at: '2026-10-01T10:00:00Z' }
+
+  it('cancelada tarde con conteo corregido: dice que el conteo no aplica (no «Ajustado») y no ofrece «Corregir conteo»', () => {
+    mostrar({ monto: '430.00', conteo: 0, conteoCalculado: 0, regla: { tipo: 'CANCELACION_TARDIA', horas: 2 }, ajuste: AJUSTE_CONTEO })
+    expect(screen.getByText('classCard.overrideNotApplied')).toBeInTheDocument()
+    expect(screen.queryByText(/classCard\.adjusted/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'classCard.fixCount' })).toBeNull()
+    // Lo que sí cambia el pago sigue a la mano.
+    expect(screen.getByRole('button', { name: 'classCard.exclude' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'classCard.fixAmount' })).toBeInTheDocument()
+  })
+
+  it('cancelada tarde sin conteo corregido: tampoco ofrece «Corregir conteo», ni dice que algo no aplica', () => {
+    mostrar({ monto: '430.00', conteo: 0, conteoCalculado: 0, regla: { tipo: 'CANCELACION_TARDIA', horas: 2 } })
+    expect(screen.queryByRole('button', { name: 'classCard.fixCount' })).toBeNull()
+    expect(screen.queryByText('classCard.overrideNotApplied')).toBeNull()
+    expect(screen.getByRole('button', { name: 'classCard.exclude' })).toBeInTheDocument()
+  })
+
+  it('sin regla, el conteo corregido es un ajuste normal: «Ajustado: …» y «Corregir conteo» siguen', () => {
+    mostrar({ conteo: 8, conteoCalculado: 6, ajuste: AJUSTE_CONTEO })
+    expect(screen.getByText(/classCard\.adjusted/)).toHaveTextContent('Llegaron 8')
+    expect(screen.queryByText('classCard.overrideNotApplied')).toBeNull()
+    expect(screen.getByRole('button', { name: 'classCard.fixCount' })).toBeInTheDocument()
+  })
+
+  it('una suplencia con conteo corregido sí lo aplica: «Ajustado» y «Corregir conteo» siguen', () => {
+    mostrar({ monto: '670.00', conteo: 8, conteoCalculado: 6, regla: { tipo: 'SUPLENCIA', horas: 3, bono: '100.00' }, ajuste: AJUSTE_CONTEO })
+    expect(screen.getByText(/classCard\.adjusted/)).toBeInTheDocument()
+    expect(screen.queryByText('classCard.overrideNotApplied')).toBeNull()
+    expect(screen.getByRole('button', { name: 'classCard.fixCount' })).toBeInTheDocument()
+  })
 })

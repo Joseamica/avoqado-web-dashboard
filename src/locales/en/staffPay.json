@@ -104,6 +104,7 @@
   "rules": {
     "title": "Rules",
     "help": "Optional and off by default. They are saved with the table: changing them publishes a new version, and anything already closed does not move.",
+    "noPermission": "To change the rules you need the “Manage staff pay” permission. Ask the business owner.",
     "cover": "Short-notice cover",
     "coverPrefix": "If the coach is assigned the class with less than",
     "coverMiddle": "hours' notice, they earn their level plus",
@@ -270,7 +271,8 @@
     "lateCancelUnderHour": "Cancelled with less than 1 h notice: base pay applies",
     "outOfEnvelope": "The location {{sede}} was not active in staff pay on {{fecha}}: this class is not in the statement.",
     "wouldPay": "If you turn it on from that day, {{monto}} would be paid.",
-    "goToVenues": "See locations"
+    "goToVenues": "See locations",
+    "overrideNotApplied": "The corrected count does not apply: the class was cancelled late and base pay applies."
   },
   "adjust": {
     "title": "Adjust the class pay",
