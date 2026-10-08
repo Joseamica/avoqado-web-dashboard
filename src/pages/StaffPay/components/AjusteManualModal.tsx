@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
-import { useAddAdjustment, useAdjustmentPreview, useStaffPayReport } from '@/hooks/useStaffPay'
+import { useAddAdjustment, useAdjustmentPreview, useStaffPayAccess, useStaffPayReport } from '@/hooks/useStaffPay'
 import { teamService } from '@/services/team.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -21,7 +21,7 @@ import { hoyEnSede } from '../hoyEnSede'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
 import { useFocoDeVuelta } from '../foco'
-import { A_MEDIO_ESCRIBIR, MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_MAXIMO, MONTO_VALIDO, desdeDelAjuste, mensajeLegible } from '../rangos'
 import { monto as montoTotal } from '../conSigno'
 import { cuandoSeDescuenta, hayPendientes, lineaDePendiente } from '../pendientes'
 import { anotarBorrador, borradorEnDuda, claveDelBorrador, soltarBorrador, soltarClave, type BorradorDeAjuste } from '../llaveDelAjuste'
@@ -112,9 +112,11 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const mandado = useRef<{ borrador: BorradorDeAjuste; nuevo: boolean } | null>(null)
   // Un 400 del server (validación o fecha fuera de rango), dicho en línea y legible; se borra al cambiar algo.
   const [errorServer, setErrorServer] = useState<string | null>(null)
-  // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy): se dice antes de guardar.
-  const desdeAjuste = sumarMeses(hoyEnSede(venueTimezone), -MESES_AJUSTE_ATRAS)
-  const fueraDeRango = fechaDestino < desdeAjuste
+  // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy) y nunca antes del inicio de pago al
+  // personal (409 ANTES_DEL_INICIO; E6a-fix2 K4): se dice antes de guardar, con el porqué que aplique.
+  const { data: acceso } = useStaffPayAccess()
+  const rango = desdeDelAjuste(hoyEnSede(venueTimezone), acceso?.startDate)
+  const fueraDeRango = fechaDestino < rango.desde
   const listo = !!persona && !!sede && monto !== undefined && motivo.trim().length >= MIN_MOTIVO && !fueraDeRango
   // Lo que se manda, con el signo ya puesto: su huella decide si es el mismo ajuste que quedó en duda (D1).
   const borrador: BorradorDeAjuste | null = listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim() } : null
@@ -332,7 +334,9 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
         {(fueraDeRango || errorServer) && (
           <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <span>{errorServer ?? t('manualAdjust.outOfRange', { desde: formatCalendarDate(desdeAjuste) })}</span>
+            <span>
+              {errorServer ?? t(rango.porInicio ? 'manualAdjust.beforeStart' : 'manualAdjust.outOfRange', { desde: formatCalendarDate(rango.desde) })}
+            </span>
           </div>
         )}
         <section className="rounded-2xl border border-border/50 bg-card p-6 text-sm" aria-live="polite">

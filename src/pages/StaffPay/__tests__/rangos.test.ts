@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, esNoActivado, inicioDelPeriodo, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, desdeDelAjuste, esNoActivado, inicioDelPeriodo, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
 
 describe('rangos', () => {
   it('suma y resta meses sin salirse del mes', () => {
@@ -24,6 +24,13 @@ describe('rangos', () => {
     )
     expect(mensajeLegible({ response: { data: { message: 'Monto: no cambia' } } })).toBe('Monto: no cambia')
     expect(mensajeLegible(new Error('Network Error'))).toBeNull()
+  })
+  // E6a-fix2 K4: el rango del ajuste no ofrece días anteriores al inicio de pago al personal (el servidor los rechaza con 409).
+  it('🔴 un ajuste admite los últimos 12 meses, pero nunca antes del inicio de pago al personal', () => {
+    expect(desdeDelAjuste('2026-10-08', '2026-09-01')).toEqual({ desde: '2026-09-01', porInicio: true })
+    expect(desdeDelAjuste('2026-10-08', '2024-01-01')).toEqual({ desde: '2025-10-08', porInicio: false })
+    expect(desdeDelAjuste('2026-10-08', null)).toEqual({ desde: '2025-10-08', porInicio: false })
+    expect(desdeDelAjuste('2026-10-08', undefined)).toEqual({ desde: '2025-10-08', porInicio: false })
   })
   it('sin respuesta = la petición pudo aplicarse', () => {
     expect(sinRespuesta(new Error('Network Error'))).toBe(true)

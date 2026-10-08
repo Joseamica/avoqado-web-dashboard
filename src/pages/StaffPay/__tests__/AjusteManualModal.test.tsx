@@ -5,7 +5,7 @@ import { AjusteManualModal } from '../components/AjusteManualModal'
 import { hoyEnSede } from '../hoyEnSede'
 import { sumarMeses } from '../rangos'
 
-const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn(), reporte: vi.fn(), vistaPrevia: vi.fn() }))
+const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn(), reporte: vi.fn(), vistaPrevia: vi.fn(), acceso: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
@@ -33,6 +33,7 @@ vi.mock('@/hooks/useStaffPay', () => ({
   useAddAdjustment: () => ({ mutateAsync: m.add, isPending: false }),
   useStaffPayReport: (...a: unknown[]) => m.reporte(...a),
   useAdjustmentPreview: (...a: unknown[]) => m.vistaPrevia(...a),
+  useStaffPayAccess: () => ({ data: m.acceso() }),
 }))
 vi.mock('@/components/ui/select', () => import('@/test/nativeSelectShim'))
 
@@ -51,6 +52,7 @@ beforeEach(() => {
   m.equipo.mockReturnValue(CARLA)
   m.reporte.mockReturnValue({ data: undefined })
   m.vistaPrevia.mockReturnValue({ data: undefined })
+  m.acceso.mockReturnValue(undefined)
 })
 
 describe('AjusteManualModal', () => {
@@ -195,6 +197,14 @@ describe('AjusteManualModal', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha={vieja} />)
     llenar()
     expect(screen.getByRole('alert')).toHaveTextContent(/manualAdjust\.outOfRange/)
+    expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
+  })
+  // E6a-fix2 K4: el límite del ajuste también es el inicio de pago al personal; antes se ofrecían días que el servidor rechaza.
+  it('🔴 un periodo anterior al inicio de pago al personal no admite ajustes: se dice antes de guardar, con la fecha del inicio', () => {
+    m.acceso.mockReturnValue({ enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false })
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-08-15" />)
+    llenar()
+    expect(screen.getByRole('alert')).toHaveTextContent(/manualAdjust\.beforeStart.*2026-09-01/)
     expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
   })
   it('el 400 FECHA_FUERA_DE_RANGO también se explica en línea', async () => {

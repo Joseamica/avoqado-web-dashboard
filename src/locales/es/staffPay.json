@@ -496,7 +496,8 @@
     "pendingOne": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas {{cuando}}. Si este ajuste es por eso, no lo registres.",
     "pendingMany": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:",
     "uncertain": "No sabemos si se guardó. Vuelve a intentar: si ya se guardó, no se duplica.",
-    "alreadySaved": "Este ajuste ya estaba guardado en el periodo del {{start}} al {{end}}: no se duplicó."
+    "alreadySaved": "Este ajuste ya estaba guardado en el periodo del {{start}} al {{end}}: no se duplicó.",
+    "beforeStart": "Pago al personal está activo desde el {{desde}}: un ajuste no puede ir a un periodo anterior."
   },
   "differences": {
     "title": "Diferencias por liquidar",

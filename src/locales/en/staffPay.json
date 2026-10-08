@@ -496,7 +496,8 @@
     "pendingOne": "{{persona}} has {{monto}} in refunds that will be deducted automatically {{cuando}}. If this adjustment is for that, don’t record it.",
     "pendingMany": "{{persona}} has {{monto}} in refunds that will be deducted automatically. If this adjustment is for that, don’t record it:",
     "uncertain": "We don’t know whether it was saved. Try again: if it was already saved, it won’t be duplicated.",
-    "alreadySaved": "This adjustment was already saved in the period from {{start}} to {{end}}: it wasn’t duplicated."
+    "alreadySaved": "This adjustment was already saved in the period from {{start}} to {{end}}: it wasn’t duplicated.",
+    "beforeStart": "Staff pay is active since {{desde}}: an adjustment can’t go to an earlier period."
   },
   "differences": {
     "title": "Differences to settle",

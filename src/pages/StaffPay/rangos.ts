@@ -20,6 +20,15 @@ export function sumarMeses(fecha: string, meses: number): string {
 }
 
 /**
+ * Desde qué día admite un ajuste (E6a-fix2 K4): los últimos 12 meses Y no antes del inicio de pago al personal (`startDate`,
+ * siempre el inicio de un periodo). `porInicio`: el límite lo pone el inicio (el texto lo dice así).
+ */
+export function desdeDelAjuste(hoy: string, inicio: string | null | undefined): { desde: string; porInicio: boolean } {
+  const doceMeses = sumarMeses(hoy, -MESES_AJUSTE_ATRAS)
+  return inicio && inicio > doceMeses ? { desde: inicio, porInicio: true } : { desde: doceMeses, porInicio: false }
+}
+
+/**
  * El mensaje del server, legible: sin «Error de validación: » ni el nombre del campo («amount: »). Sin respuesta (red caída
  * o respuesta perdida) devuelve null.
  */
