@@ -3,7 +3,11 @@ export interface NivelDto { id: string; name: string; sortOrder: number; archive
 export interface AsignacionVigenteDto { staffId: string; payLevelId: string; payLevelName: string; effectiveFrom: string }
 export interface TablaDto {
   id: string; name: string; productIds: string[]; archivedFrom: string | null
-  vigente: null | { id: string; effectiveFrom: string; revision: number; countMode: 'BOOKED' | 'ATTENDED'; maxCount: number; cells: CeldaDto[] }
+  vigente: null | {
+    id: string; effectiveFrom: string; revision: number; countMode: 'BOOKED' | 'ATTENDED'; maxCount: number; cells: CeldaDto[]
+    /** Fase 3 (D4): las reglas de clase de la versión, ANIDADAS aquí. Opcional: un server previo no las manda. */
+    reglas?: { coverBonusHours: number | null; coverBonusAmount: number | null; lateCancelHours: number | null }
+  }
 }
 export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'SIN_MONTO_PARA_ESE_CONTEO'
 export interface ClaseValoradaDto {
@@ -24,8 +28,11 @@ export interface PaginaCursor<T> { items: T[]; nextCursor: string | null }
 export interface PaginaOffset<T> { items: T[]; total: number }
 /** Reserva de clase sin horario (spec §5.5): no cuenta para ningún pago. */
 export interface ReservaHuerfanaDto { reservationId: string; startsAt: string; venueId: string; productName: string | null; guestName: string | null }
+/** La regla de clase que movió el pago (espejo de `ReglaDeClase`, Bloque D3a). `horas` puede ser 0: «menos de 1 h». */
+export type ReglaDeClase = { tipo: 'SUPLENCIA'; horas: number; bono: string } | { tipo: 'CANCELACION_TARDIA'; horas: number }
 export interface PagoDeClaseDto {
-  classSessionId: string; estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION' | 'NO_TERMINADA' | 'CANCELADA'
+  // `FUERA_DEL_SOBRE` (fase 3, B11): sin ancla y su sede no estaba activa en pago al personal ese día.
+  classSessionId: string; estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION' | 'NO_TERMINADA' | 'CANCELADA' | 'FUERA_DEL_SOBRE'
   motivo: MotivoExcepcion | null; monto: string | null; conteo: number | null; conteoCalculado: number | null
   maxCount: number | null; countMode: string | null; staffName: string | null; payLevelName: string | null
   ajuste: { payCountOverride: number | null; payAmountOverride: string | null; payExcluded: boolean; reason: string | null; at: string | null } | null
@@ -35,6 +42,12 @@ export interface PagoDeClaseDto {
   lineas?: LineaContabilizadaDto[]
   /** Fase 2 (Bloque B): sin ancla, ya terminada y su fecha cae en un periodo CERRADO: se paga como diferencia. */
   llegoTarde?: boolean
+  /** Fase 3 (spec §6.6, D3d), opcional: la regla que movió el pago, con sus horas de aviso; null si ninguna. */
+  regla?: ReglaDeClase | null
+  /** Fase 3 (B11), sólo en `FUERA_DEL_SOBRE`: lo que pagaría si su sede hubiera estado activa ese día (null si no se puede). */
+  montoSiEntrara?: string | null
+  /** Fase 3 (B11), sólo en `FUERA_DEL_SOBRE`: la sede y la fecha local de la clase. */
+  sede?: { nombre: string; fecha: string } | null
 }
 /**
  * Simulación de publicar una tabla o asignar un nivel (revisión final I-2): cuántas clases cambian y en qué periodo

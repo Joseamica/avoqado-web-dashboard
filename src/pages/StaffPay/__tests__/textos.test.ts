@@ -119,10 +119,31 @@ describe('textos de pago por servicio', () => {
   it('es y en tienen las mismas llaves en los grupos nuevos (todos los niveles)', () => {
     const llaves = (o: unknown, pre = ''): string[] =>
       o && typeof o === 'object' ? Object.entries(o).flatMap(([k, v]) => llaves(v, `${pre}${k}.`)) : [pre.slice(0, -1)]
-    // `rules` (E4) se suma a esta lista cuando llegue.
-    for (const g of ['activation', 'tips', 'sedes'] as const) expect(llaves(en[g]).sort()).toEqual(llaves(es[g]).sort())
+    // Sin el grupo, `llaves(undefined)` sale igual en los dos idiomas: primero se exige que exista.
+    for (const g of ['activation', 'tips', 'sedes', 'rules'] as const) {
+      expect(llaves(es[g]).length).toBeGreaterThan(1)
+      expect(llaves(en[g]).sort()).toEqual(llaves(es[g]).sort())
+    }
     expect(en.tabs).toHaveProperty('venues')
     expect(es.tabs.venues).toBe('Sedes')
+    expect(llaves(en.classCard).sort()).toEqual(llaves(es.classCard).sort())
+  })
+  it('reglas de clase (E4): el motivo en la tarjeta, «menos de 1 h» con 0 h, y la clase fuera del sobre', () => {
+    expect(tEs('classCard.coverBonus', { horas: 3, monto: '+$100.00' })).toBe('Suplencia avisada 3 h antes: +$100.00')
+    expect(tEs('classCard.coverBonusUnderHour', { monto: '+$100.00' })).toBe('Suplencia avisada con menos de 1 h: +$100.00')
+    expect(tEs('classCard.lateCancel', { horas: 2 })).toBe('Cancelada 2 h antes: se paga el sueldo base')
+    expect(tEs('classCard.lateCancelUnderHour')).toBe('Cancelada con menos de 1 h de aviso: se paga el sueldo base')
+    expect(tEn('classCard.coverBonus', { horas: 3, monto: '+$100.00' })).toBe('Cover assigned 3 h before: +$100.00')
+    expect(tEn('classCard.lateCancelUnderHour')).toBe('Cancelled with less than 1 h notice: base pay applies')
+    expect(tEs('classCard.outOfEnvelope', { sede: 'Wellness', fecha: '20 oct 2026' })).toBe(
+      'La sede Wellness no estaba activa en pago al personal el 20 oct 2026: esta clase no entra al recibo.',
+    )
+    expect(tEs('classCard.wouldPay', { monto: '$570.00' })).toBe('Si la activas desde ese día, se pagarían $570.00.')
+    expect(tEs('classCard.goToVenues')).toBe('Ver sedes')
+    expect(tEs('rules.error.coverAmount', { max: '$100,000.00' })).toBe('El monto extra va de $0.01 a $100,000.00, con hasta dos decimales.')
+    expect(tEs('rules.error.lateHours', { max: 168 })).toBe('Las horas de la cancelación van de 1 a 168, sin decimales.')
+    // Ningún texto de la tarjeta dice «0 h antes».
+    for (const texto of [JSON.stringify(es.classCard), JSON.stringify(en.classCard)]) expect(texto).not.toMatch(/\b0 h\b/)
   })
   it('sedes: la cuenta se lee con singular, plural y lista natural; neto, y sin un tipo en cero (diseño r5.4)', () => {
     const cuenta = (cl: number, co: number, pr: number, sv = 0) => ({

@@ -228,7 +228,8 @@ describe('vigencia de un nivel o una tabla (revisión final I-2)', () => {
         },
       }
     })
-    render(<PublicarTablaModal open onOpenChange={vi.fn()} tableId="t1" maxCount={10} grid={{}} hoy="2026-10-03" />)
+    const reglas = { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null }
+    render(<PublicarTablaModal open onOpenChange={vi.fn()} tableId="t1" maxCount={10} grid={{}} reglas={reglas} hoy="2026-10-03" />)
     await aviso()
     fireEvent.click(screen.getByRole('button', { name: 'publish.confirm' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Septiembre ya se cerró.')

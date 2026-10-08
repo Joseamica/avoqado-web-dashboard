@@ -17,9 +17,11 @@ import { useToast } from '@/hooks/use-toast'
 import { useCreateTable, useStaffPayAssignments, useStaffPayLevels, useStaffPayTables } from '@/hooks/useStaffPay'
 import { ampliar, cuadriculaDesdeCeldas, faltantes, rellenarHaciaAbajo, simular, type Cuadricula } from '../cuadricula'
 import { hoyEnSede } from '../hoyEnSede'
+import { erroresDeReglas, reglasDesdeVersion, reglasPayload, type ReglasForm } from '../reglas'
 import { AsignarNivelModal } from './AsignarNivelModal'
 import { NivelesSection } from './NivelesSection'
 import { PublicarTablaModal } from './PublicarTablaModal'
+import { ReglasDeClase } from './ReglasDeClase'
 
 const TECHO_DEFAULT = 10
 const TECHO_MAX = 500
@@ -55,6 +57,7 @@ export function TablaDePagosTab() {
   const [techoTexto, setTechoTexto] = useState<number | undefined>(TECHO_DEFAULT)
   const [max, setMax] = useState(TECHO_DEFAULT) // último techo válido: la cuadrícula no colapsa mientras se edita el campo
   const [grid, setGrid] = useState<Cuadricula>({})
+  const [reglas, setReglas] = useState<ReglasForm>(() => reglasDesdeVersion(null))
   const [porAsignar, setPorAsignar] = useState<{ staffId: string; staffName: string; payLevelId: string; payLevelName: string } | null>(null)
   const [simLugares, setSimLugares] = useState<number | undefined>(8)
   const [simNivel, setSimNivel] = useState<string | undefined>(undefined)
@@ -66,6 +69,9 @@ export function TablaDePagosTab() {
     setTechoTexto(m)
     setMax(m)
     setGrid(cuadriculaDesdeCeldas(celdasVigentes ?? [], activos.map(n => n.id), m))
+    // Las reglas vienen ANIDADAS en `vigente.reglas` (D4): leerlas de `vigente` directo las daría por apagadas, y publicar
+    // sólo una celda las apagaría.
+    setReglas(reglasDesdeVersion(tabla?.vigente?.reglas))
   }, [tabla?.id, tabla?.vigente?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cambian los niveles (alta o archivo) → se conservan los montos sin guardar de los demás.
@@ -80,6 +86,7 @@ export function TablaDePagosTab() {
   const nivelSim = simNivel && activos.some(n => n.id === simNivel) ? simNivel : activos[0]?.id
   const sim = nivelSim ? simular(grid, nivelSim, simLugares ?? 0, max) : { monto: null, filaUsada: 0 }
   const faltan = faltantes(grid, max)
+  const erroresReglas = erroresDeReglas(reglas)
   const nivelDe = (staffId: string) => asignaciones.find(a => a.staffId === staffId)
 
   // Elegir un nivel NO escribe: abre la confirmación con fecha y el efecto («cambia N clases») antes de guardar.
@@ -259,6 +266,8 @@ export function TablaDePagosTab() {
               </label>
             </fieldset>
 
+            <ReglasDeClase reglas={reglas} errores={erroresReglas} onChange={setReglas} />
+
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Label htmlFor="staffpay-techo">{t('grid.ceiling')}</Label>
               <Input
@@ -322,7 +331,12 @@ export function TablaDePagosTab() {
             </div>
             <p className="text-xs text-muted-foreground">{t('grid.overCeiling', { max })}</p>
             <PermissionGate permission="staffpay:manage">
-              <Button className="cursor-pointer" disabled={techoInvalido} onClick={() => setPublicar(true)} data-tour="staffpay-publish">
+              <Button
+                className="cursor-pointer"
+                disabled={techoInvalido || erroresReglas.length > 0}
+                onClick={() => setPublicar(true)}
+                data-tour="staffpay-publish"
+              >
                 {t('grid.publish')}
               </Button>
             </PermissionGate>
@@ -333,6 +347,7 @@ export function TablaDePagosTab() {
                 tableId={tabla.id}
                 maxCount={max}
                 grid={grid}
+                reglas={reglasPayload(reglas)}
                 hoy={hoyEnSede(venueTimezone)}
               />
             )}

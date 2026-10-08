@@ -2,7 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TablaDePagosTab } from '../components/TablaDePagosTab'
 
-const m = vi.hoisted(() => ({ publish: vi.fn(), assign: vi.fn(), assignMutate: vi.fn(), update: vi.fn() }))
+const APAGADAS = { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null }
+const m = vi.hoisted(() => ({
+  publish: vi.fn(),
+  assign: vi.fn(),
+  assignMutate: vi.fn(),
+  update: vi.fn(),
+  reglas: { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null } as Record<string, number | null>,
+}))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
@@ -30,7 +37,7 @@ const PN_HC = [0, 430, 430, 430, 430, 460, 490, 530, 570, 610, 650]
 vi.mock('@/hooks/useStaffPay', () => ({
   useStaffPayLevels: () => ({ data: [{ id: 'hc', name: 'Head Coach', sortOrder: 0, archivedAt: null }] }),
   useStaffPayAssignments: () => ({ data: [] }),
-  useStaffPayTables: () => ({ data: [{ id: 't1', name: 'Todas', productIds: [], archivedFrom: null, vigente: { id: 'v', effectiveFrom: '2026-10-01', revision: 1, countMode: 'BOOKED', maxCount: 10, cells: PN_HC.map((amount, count) => ({ payLevelId: 'hc', count, amount })) } }] }),
+  useStaffPayTables: () => ({ data: [{ id: 't1', name: 'Todas', productIds: [], archivedFrom: null, vigente: { id: 'v', effectiveFrom: '2026-10-01', revision: 1, countMode: 'BOOKED', maxCount: 10, cells: PN_HC.map((amount, count) => ({ payLevelId: 'hc', count, amount })), reglas: m.reglas } }] }),
   useCreateLevel: () => ({ mutate: vi.fn() }),
   useUpdateLevel: () => ({ mutate: m.update, isPending: false }),
   useAssignLevel: () => ({ mutate: m.assignMutate, mutateAsync: m.assign, isPending: false }),
@@ -45,6 +52,7 @@ const celda = (count: number) => screen.getByLabelText(`grid.cellLabel:${JSON.st
 describe('TablaDePagosTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    m.reglas = { ...APAGADAS }
     m.publish.mockResolvedValue({ clasesQueCambian: 14 })
     m.assign.mockResolvedValue({ clasesQueCambian: 3 })
   })
@@ -92,5 +100,54 @@ describe('TablaDePagosTab', () => {
     fireEvent.change(screen.getByLabelText('levels.newName'), { target: { value: '  Head Coach Sr  ' } })
     fireEvent.click(screen.getByLabelText('levels.save'))
     expect(m.update).toHaveBeenCalledWith({ levelId: 'hc', name: 'Head Coach Sr' }, expect.anything())
+  })
+
+  it('🔴 una tabla que ya tiene reglas las conserva: cambiar sólo una celda y publicar las manda iguales (forma real de D4)', async () => {
+    m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'rules.lateCancel' })).toBeChecked()
+    expect(screen.getByLabelText('rules.coverHours')).toHaveValue(3)
+    fireEvent.change(celda(8), { target: { value: '580' } })
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    // La simulación y el guardado llevan las reglas de la versión vigente, nunca null.
+    for (const [payload] of m.publish.mock.calls) expect(payload).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 })
+  })
+
+  it('las reglas de clase viajan en la versión que se publica (también al simular); apagadas, como null', async () => {
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).not.toBeChecked()
+    expect(screen.queryByLabelText('rules.coverHours')).toBeNull()
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.cover' }))
+    fireEvent.change(screen.getByLabelText('rules.coverHours'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('rules.coverAmount'), { target: { value: '100' } })
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    expect(m.publish.mock.calls[0][0]).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: null })
+    // Guardar (no sólo simular) también las lleva.
+    fireEvent.click(screen.getByText('publish.confirm'))
+    await waitFor(() => expect(m.publish.mock.calls.some(([p]) => !p.simular)).toBe(true))
+    for (const [payload] of m.publish.mock.calls) expect(payload).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: null })
+  })
+
+  it('apagar una regla que la tabla tenía la manda en null (no se hereda)', async () => {
+    m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.lateCancel' }))
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    expect(m.publish.mock.calls[0][0]).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: null })
+  })
+
+  it('una regla mal llenada lo dice y no deja publicar', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.lateCancel' }))
+    fireEvent.change(screen.getByLabelText('rules.lateHours'), { target: { value: '0' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.lateHours')
+    expect(screen.getByText('grid.publish')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('rules.lateHours'), { target: { value: '2' } })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('grid.publish')).toBeEnabled()
   })
 })

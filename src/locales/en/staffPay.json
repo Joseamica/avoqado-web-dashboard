@@ -101,6 +101,24 @@
     "saved": "Table saved",
     "effectLoading": "Calculating how many classes change…"
   },
+  "rules": {
+    "title": "Rules",
+    "help": "Optional and off by default. They are saved with the table: changing them publishes a new version, and anything already closed does not move.",
+    "cover": "Short-notice cover",
+    "coverPrefix": "If the coach is assigned the class with less than",
+    "coverMiddle": "hours' notice, they earn their level plus",
+    "coverHours": "Cover notice hours",
+    "coverAmount": "Extra amount for cover",
+    "lateCancel": "Late cancellation",
+    "latePrefix": "If the class is cancelled with less than",
+    "lateSuffix": "hours' notice, the coach is paid the base pay (the 0-seat row).",
+    "lateHours": "Cancellation notice hours",
+    "error": {
+      "coverHours": "Cover hours go from 1 to {{max}}, whole numbers only.",
+      "coverAmount": "The extra amount goes from $0.01 to {{max}}, with up to two decimals.",
+      "lateHours": "Cancellation hours go from 1 to {{max}}, whole numbers only."
+    }
+  },
   "period": {
     "title": "Period {{start}} – {{end}}",
     "open": "Open",
@@ -226,7 +244,14 @@
     "mode": {
       "BOOKED": "by bookings",
       "ATTENDED": "by attendance"
-    }
+    },
+    "coverBonus": "Cover assigned {{horas}} h before: {{monto}}",
+    "coverBonusUnderHour": "Cover assigned with less than 1 h notice: {{monto}}",
+    "lateCancel": "Cancelled {{horas}} h before: base pay applies",
+    "lateCancelUnderHour": "Cancelled with less than 1 h notice: base pay applies",
+    "outOfEnvelope": "The location {{sede}} was not active in staff pay on {{fecha}}: this class is not in the statement.",
+    "wouldPay": "If you turn it on from that day, {{monto}} would be paid.",
+    "goToVenues": "See locations"
   },
   "adjust": {
     "title": "Adjust the class pay",

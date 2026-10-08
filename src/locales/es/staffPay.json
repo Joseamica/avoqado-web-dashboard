@@ -101,6 +101,24 @@
     "saved": "Tabla guardada",
     "effectLoading": "Calculando cuántas clases cambian…"
   },
+  "rules": {
+    "title": "Reglas",
+    "help": "Opcionales y apagadas de fábrica. Se guardan con la tabla: cambiarlas es publicar una versión nueva, y lo ya cerrado no se mueve.",
+    "cover": "Suplencia con poco aviso",
+    "coverPrefix": "Si a la coach se le asigna la clase con menos de",
+    "coverMiddle": "horas de anticipación, cobra su nivel más",
+    "coverHours": "Horas de aviso de la suplencia",
+    "coverAmount": "Monto extra por suplencia",
+    "lateCancel": "Cancelación tardía",
+    "latePrefix": "Si la clase se cancela con menos de",
+    "lateSuffix": "horas de anticipación, se le paga a la coach el sueldo base (la fila de 0 lugares).",
+    "lateHours": "Horas de aviso de la cancelación",
+    "error": {
+      "coverHours": "Las horas de la suplencia van de 1 a {{max}}, sin decimales.",
+      "coverAmount": "El monto extra va de $0.01 a {{max}}, con hasta dos decimales.",
+      "lateHours": "Las horas de la cancelación van de 1 a {{max}}, sin decimales."
+    }
+  },
   "period": {
     "title": "Periodo {{start}} – {{end}}",
     "open": "Abierto",
@@ -226,7 +244,14 @@
     "mode": {
       "BOOKED": "por reservas",
       "ATTENDED": "por asistencia"
-    }
+    },
+    "coverBonus": "Suplencia avisada {{horas}} h antes: {{monto}}",
+    "coverBonusUnderHour": "Suplencia avisada con menos de 1 h: {{monto}}",
+    "lateCancel": "Cancelada {{horas}} h antes: se paga el sueldo base",
+    "lateCancelUnderHour": "Cancelada con menos de 1 h de aviso: se paga el sueldo base",
+    "outOfEnvelope": "La sede {{sede}} no estaba activa en pago al personal el {{fecha}}: esta clase no entra al recibo.",
+    "wouldPay": "Si la activas desde ese día, se pagarían {{monto}}.",
+    "goToVenues": "Ver sedes"
   },
   "adjust": {
     "title": "Ajustar el pago de la clase",

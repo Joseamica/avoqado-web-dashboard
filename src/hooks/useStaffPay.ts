@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useCurrentVenue } from './use-current-venue'
 import { staffPayService } from '@/services/staffPay.service'
 import type { AjusteClaseInput, AjusteManualInput, CeldaDto, LiquidarInput, PreviewLiquidacionDto } from '@/types/staffPay'
+import type { ReglasPayload } from '@/pages/StaffPay/reglas'
 
 export const staffPayKeys = {
   all: (venueId: string | null) => ['staff-pay', venueId] as const,
@@ -267,7 +268,8 @@ export function useCreateTable() {
 export function usePublishTable() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({
-    mutationFn: (p: { tableId: string; effectiveFrom: string; maxCount: number; cells: CeldaDto[]; simular?: boolean }) => staffPayService.publish(venueId!, p.tableId, { ...p, countMode: 'BOOKED' }),
+    mutationFn: (p: { tableId: string; effectiveFrom: string; maxCount: number; cells: CeldaDto[]; simular?: boolean } & ReglasPayload) =>
+      staffPayService.publish(venueId!, p.tableId, { ...p, countMode: 'BOOKED' }),
     onSuccess: (_d, p) => { if (!p.simular) inv() },
   })
 }

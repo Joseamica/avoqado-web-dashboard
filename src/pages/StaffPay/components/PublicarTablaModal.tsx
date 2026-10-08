@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { usePublishTable } from '@/hooks/useStaffPay'
 import { celdasDesdeCuadricula, type Cuadricula } from '../cuadricula'
+import type { ReglasPayload } from '../reglas'
 import { CampoVigencia } from './VigenciaConEfecto'
 import { useVigenciaSimulada } from '../useVigenciaSimulada'
 
@@ -15,11 +16,13 @@ interface Props {
   tableId: string
   maxCount: number
   grid: Cuadricula
+  /** Las reglas de clase de la versión (spec §6.6): viajan también al simular, para que el efecto las cuente. */
+  reglas: ReglasPayload
   /** «Hoy» en la zona del negocio (YYYY-MM-DD): default de la vigencia. */
   hoy: string
 }
 
-export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid, hoy }: Props) {
+export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid, reglas, hoy }: Props) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
   const publicar = usePublishTable()
@@ -27,13 +30,17 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
   // La cuadrícula en edición puede guardar filas por encima del techo: no viajan.
   const cells = useMemo(() => celdasDesdeCuadricula(grid, maxCount), [grid, maxCount])
   // Vista previa del efecto («cambia el pago de 12 clases de septiembre…») cada vez que cambia la fecha.
-  const vigencia = useVigenciaSimulada(hoy, fecha => publicar.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, cells, simular: true }), tableId)
+  const vigencia = useVigenciaSimulada(
+    hoy,
+    fecha => publicar.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, cells, ...reglas, simular: true }),
+    tableId,
+  )
 
   const guardar = async () => {
     if (vigencia.bloqueada || guardando) return
     setGuardando(true)
     try {
-      await publicar.mutateAsync({ tableId, effectiveFrom: vigencia.fecha, maxCount, cells })
+      await publicar.mutateAsync({ tableId, effectiveFrom: vigencia.fecha, maxCount, cells, ...reglas })
       toast({ title: t('publish.saved') })
       onOpenChange(false)
     } catch (err) {
