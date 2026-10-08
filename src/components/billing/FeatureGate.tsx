@@ -57,8 +57,9 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
       <div aria-hidden className="pointer-events-none col-start-1 row-start-1 select-none opacity-50 blur-[5px]">
         {children}
       </div>
-      {/* paywall card */}
-      <div className="col-start-1 row-start-1 grid place-items-center p-4">
+      {/* paywall card — 🔴 `relative z-10` (E6a-fix2 C1): el borroso lleva `opacity-50`, que lo pinta en la capa de los
+          posicionados; sin z propio, esta capa (en el flujo) quedaba DEBAJO y el texto borroso tapaba el cartel y su botón. */}
+      <div className="relative z-10 col-start-1 row-start-1 grid place-items-center p-4">
         <div className="w-full max-w-sm rounded-2xl border border-input bg-popover p-7 text-center shadow-2xl">
           <div className={cn('mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-amber-400/15', ACCENT[def.accent])}>
             <Icon className="h-6 w-6" />

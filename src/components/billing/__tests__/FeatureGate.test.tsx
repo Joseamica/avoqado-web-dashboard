@@ -163,6 +163,20 @@ describe('FeatureGate', () => {
     expect(teaser).toHaveAttribute('aria-hidden')
   })
 
+  // E6a-fix2 C1 (full-testing E6a, regresión de F7): el contenido borroso lleva `opacity-50`, que lo pinta en la capa de los
+  // POSICIONADOS; la capa del cartel, ya en el flujo (F7), se pintaba DEBAJO: el texto borroso pasaba encima del cartel y el
+  // botón se veía gris, en las ~40 pantallas con candado. La capa del cartel tiene que ser posicionada y con su propio z.
+  it('🔴 la capa del cartel se pinta ENCIMA del contenido borroso (posicionada y con z), sin salirse del flujo', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+    renderGate(<div>tarjeta bajita</div>)
+    const contenedor = screen.getByText('tarjeta bajita').parentElement!.parentElement!
+    const [teaser, capaDelCartel] = Array.from(contenedor.children)
+    expect(teaser).toHaveClass('opacity-50')
+    expect(capaDelCartel).toHaveClass('relative', 'z-10')
+    expect(capaDelCartel).not.toHaveClass('absolute')
+    expect(teaser).not.toHaveClass('z-10')
+  })
+
   it('normal venue on PREMIUM tier + CFDI feature → renders children without paywall', () => {
     mockUseQuery.mockReturnValue({ data: makePlanState('PREMIUM'), isLoading: false })
 
