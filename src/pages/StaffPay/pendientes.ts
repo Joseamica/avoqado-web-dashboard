@@ -19,6 +19,9 @@ export function cuandoSeDescuenta(t: T, d: DestinoDto, nombre: NombrePeriodo): s
 export const lineaDePendiente = (t: T, d: PendientePorDestino, nombre: NombrePeriodo): string =>
   t('period.pendingLine', { monto: monto(d.total), cuando: cuandoSeDescuenta(t, d.seDescuenta, nombre) })
 
-/** Hay algo que avisar: al menos un destino y un total negativo (el server tampoco arma la frase con otro signo, B13 R6). */
-export const hayPendientes = (p?: DevolucionesPendientesDto | null): p is DevolucionesPendientesDto =>
+/**
+ * Hay algo que avisar: al menos un destino y un total negativo (el server tampoco arma la frase con otro signo, B13 R6). Sirve
+ * para el recibo y el ajuste (con `items`) y para la vista previa del cierre (sólo `n`, `total` y `porDestino`).
+ */
+export const hayPendientes = <P extends Pick<DevolucionesPendientesDto, 'total' | 'porDestino'>>(p?: P | null): p is P =>
   !!p && p.porDestino.length > 0 && Number(p.total) < 0

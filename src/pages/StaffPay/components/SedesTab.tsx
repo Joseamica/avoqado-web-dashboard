@@ -10,22 +10,15 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useFeaturePrice } from '@/hooks/use-feature-price'
 import { useStaffPaySedes } from '@/hooks/useStaffPay'
 import { cn } from '@/lib/utils'
-import type { EstadoSedeDto, EstadoSedesDto, SedeEnPagoAlPersonalDto } from '@/types/staffPay'
+import type { EstadoSedesDto, SedeEnPagoAlPersonalDto } from '@/types/staffPay'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cuentaVacia, textoDeCuenta } from '../cuenta'
+import { INSIGNIA_SEDE as INSIGNIA } from '../insigniaSede'
 import { mensajeLegible } from '../rangos'
 import { ParticipacionSedeDialog } from './ParticipacionSedeDialog'
 
 type Accion = 'activar' | 'desactivar'
-
-/** Verde activa, ámbar sin activar, ROJO activa sin plan (bloquea el cierre), gris sin plan (diseño r3.7(1), r4.7). */
-const INSIGNIA: Record<EstadoSedeDto, string> = {
-  ACTIVA: 'border-green-600/40 text-green-700 dark:text-green-400',
-  SIN_ACTIVAR: 'border-amber-500/50 text-amber-700 dark:text-amber-400',
-  ACTIVA_SIN_PLAN: 'border-destructive text-destructive',
-  SIN_PLAN: 'border-input text-muted-foreground',
-}
 
 /**
  * Pestaña «Sedes» de pago al personal (pantalla 1 del founder): cada sede con su estado, lo que hoy queda fuera y sus

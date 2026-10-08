@@ -74,6 +74,17 @@ export type Bloqueo =
   | { codigo: 'EXCEPCIONES'; n: number }
   | { codigo: 'SIN_PERMISO' }
   | { codigo: 'YA_CERRADO' }
+  /** B11: sedes del alcance activas (ventana sin fin) que perdieron el plan. `otrasConPlan`: desactivarlas libera el cierre. */
+  | { codigo: 'SEDE_ACTIVA_SIN_PLAN'; venueIds: string[]; otrasConPlan: boolean }
+/** B12: una sede del cierre (en el orden de `periodo.venueIds`): lo que entra, lo que NO entra en este cierre y sus pendientes. */
+export interface SedeDelCierreDto {
+  venueId: string; nombre: string; estado: EstadoSedeDto
+  /** Lo que el cierre congela de esta sede, neto (las comisiones incluyen sus anulaciones). */
+  entra: CuentaDto
+  /** completa − real: puede incluir sobrantes de periodos cerrados antes. Se dice «no entra en este cierre». */
+  fuera: CuentaDto
+  pendientes: MontoDto
+}
 export interface PreviewCierreDto {
   periodo: { id: string | null; start: string; end: string; venueIds: string[] }
   puedeCerrar: boolean
@@ -88,6 +99,20 @@ export interface PreviewCierreDto {
   huella: string
   /** Las sedes de `periodo.venueIds` donde hay clases pagables o ajustes, en el mismo orden (opcional: server previo). */
   sedesConDinero?: string[]
+  /** Fase 3 (spec §6.5, §11), opcionales: cuántas comisiones y propinas se congelan, y los reversos por anulación. */
+  comisiones?: number
+  propinas?: number
+  reversos?: number
+  /** Comisiones + propinas + reversos (`total = totalServicios + totalVentas + totalAjustes`). */
+  totalVentas?: string
+  /** Cobros con propina sin persona: no entran al recibo, no bloquean el cierre (spec §6.3). */
+  propinasSinDueno?: { n: number; total: string }
+  /** Resolución 16: cobros o devoluciones cuya comisión no se pudo calcular. Aviso: no bloquea ni entra en la huella. */
+  comisionesPorRevisar?: number
+  /** B12 (fuera de la huella; vacío en uno cerrado o sin permiso). */
+  porSede?: SedeDelCierreDto[]
+  /** B12: devoluciones de las sedes del alcance que este cierre NO descuenta, por destino (fuera de la huella). */
+  pendientes?: Pick<DevolucionesPendientesDto, 'n' | 'total' | 'porDestino'>
 }
 export interface ResultadoCierreDto { periodId: string; start: string; end: string; venueIds: string[]; personas: number; total: string; huella: string; yaCerrado: boolean }
 export interface PeriodoListadoDto { id: string | null; start: string; end: string; estado: 'OPEN' | 'CLOSED'; personas: number; pagadas: number; total: string }

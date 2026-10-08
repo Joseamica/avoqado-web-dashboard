@@ -122,7 +122,7 @@ describe('textos de pago por servicio', () => {
     const llaves = (o: unknown, pre = ''): string[] =>
       o && typeof o === 'object' ? Object.entries(o).flatMap(([k, v]) => llaves(v, `${pre}${k}.`)) : [pre.slice(0, -1)]
     // Sin el grupo, `llaves(undefined)` sale igual en los dos idiomas: primero se exige que exista.
-    for (const g of ['activation', 'tips', 'sedes', 'rules', 'period', 'manualAdjust'] as const) {
+    for (const g of ['activation', 'tips', 'sedes', 'rules', 'period', 'manualAdjust', 'close'] as const) {
       expect(llaves(es[g]).length).toBeGreaterThan(1)
       expect(llaves(en[g]).sort()).toEqual(llaves(es[g]).sort())
     }
@@ -213,6 +213,43 @@ describe('textos de pago por servicio', () => {
     expect(tEs('manualAdjust.pendingMany', { persona: 'Carla QA', monto: '−$80.00' })).toBe(
       'Carla QA tiene −$80.00 en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:',
     )
+  })
+
+  it('cierre de la fase 3 (E5b): singular y plural, lo que congela, los avisos y nada de «Muy pronto»', () => {
+    expect(tEs('close.commissions', { count: 1 })).toBe('1 comisión')
+    expect(tEs('close.tips', { count: 230 })).toBe('230 propinas')
+    expect(tEs('close.classes', { count: 1 })).toBe('1 clase')
+    expect(tEn('close.commissions', { count: 41 })).toBe('41 commissions')
+    expect(tEs('close.tipsWithoutOwner', { count: 1, total: '$80.00' })).toMatch(/^1 propina sin persona \(\$80\.00\) no entra al recibo/)
+    expect(tEs('close.tipsWithoutOwner', { count: 3, total: '$240.00' })).toMatch(/^3 propinas sin persona \(\$240\.00\) no entran al recibo/)
+    expect(tEs('close.willFreezeSales', { count: 1, lista: '1 comisión', personas: '1 persona', sedes: 'Prado Norte', total: '$90.00' })).toBe(
+      'Se congela 1 comisión de 1 persona en Prado Norte: $90.00.',
+    )
+    expect(tEs('close.willFreezeSales', { count: 3, lista: '1 clase y 2 propinas', personas: '2 personas', sedes: 'Roma', total: '$600.00' })).toBe(
+      'Se congelan 1 clase y 2 propinas de 2 personas en Roma: $600.00.',
+    )
+    expect(tEs('close.reversals', { count: 1 })).toBe('Incluye 1 comisión anulada que se descuenta.')
+    // Resolución 16 (progress.md: «E5b debe decir cobros o devoluciones»), con el verbo que concuerda.
+    expect(tEs('close.commissionsToReview', { count: 1 })).toBe('1 cobro o devolución con comisión por revisar: no entra hasta resolverla.')
+    expect(tEs('close.commissionsToReview', { count: 2 })).toBe('2 cobros o devoluciones con comisión por revisar: no entran hasta resolverlas.')
+    expect(tEs('close.empty')).toBe('No hay nada que pagar en este periodo: se cierra en $0.')
+    // El bloqueo en rojo, según haya otra sede con plan (diseño r4.7), con el verbo que concuerda.
+    expect(tEs('close.block.SEDE_ACTIVA_SIN_PLAN_otras', { count: 1, sedes: 'Wellness' })).toBe(
+      'Wellness sigue activa en pago al personal y ya no tiene el plan. Desactívala indicando su último día: con eso se puede cerrar.',
+    )
+    expect(tEs('close.block.SEDE_ACTIVA_SIN_PLAN_otras', { count: 2, sedes: 'Wellness y Roma' })).toMatch(/^Wellness y Roma siguen activas .* Desactívalas/)
+    expect(tEs('close.block.SEDE_ACTIVA_SIN_PLAN_ninguna', { count: 1, sedes: 'Wellness' })).toBe(
+      'Wellness sigue activa en pago al personal y ya no tiene el plan. Renueva el plan para cerrar: desactivarla no libera el cierre.',
+    )
+    expect(tEn('close.block.SEDE_ACTIVA_SIN_PLAN_ninguna', { count: 2, sedes: 'Wellness and Roma' })).toMatch(/^Wellness and Roma are still active/)
+    expect(tEs('close.deactivateSede', { sede: 'Wellness' })).toBe('Desactivar Wellness')
+    // Por sede: «no entra en este cierre», nunca «de este periodo» (ruling progress.md:309: incluye sobrantes de cerrados).
+    expect(tEs('close.bySede.fuera', { cuenta: '1 comisión ($30.00)' })).toBe('No entra en este cierre: 1 comisión ($30.00).')
+    expect(tEs('close.bySede.entra', { cuenta: '3 clases ($1,500.00)' })).toBe('Entra: 3 clases ($1,500.00).')
+    expect(tEn('close.bySede.fuera', { cuenta: '1 commission ($30.00)' })).toBe('Not in this close: 1 commission ($30.00).')
+    for (const g of [es.close.bySede, en.close.bySede]) expect(JSON.stringify(g)).not.toMatch(/de este periodo|this period/i)
+    expect(tEs('close.pendingTitle')).toBe('Devoluciones que este cierre no descuenta')
+    for (const texto of [JSON.stringify(es), JSON.stringify(en)]) expect(texto).not.toMatch(/muy pronto|coming soon/i)
   })
 
   it('E4-fix: la cancelada tarde dice que el conteo corregido no aplica; sin permiso, las reglas dicen cuál falta', () => {
