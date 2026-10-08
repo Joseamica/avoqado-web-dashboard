@@ -212,6 +212,11 @@ export interface AccesoDto {
   periodicidadFija?: boolean
   /** Inicio que el servidor guardará al activar con la periodicidad guardada (E1d); opcional: un server previo no lo manda. */
   inicioAlActivar?: string | null
+  /**
+   * E6a-fix2 C2: tiene «Cerrar periodos y registrar pagos» en TODAS las sedes que exigen las acciones de organización (activar,
+   * propinas); la MISMA regla que el 403 del servidor. Opcional: un servidor previo no lo manda ⇒ se trata como `true` (hoy).
+   */
+  puedeAdministrarOrganizacion?: boolean
 }
 /** Pesos con 2 decimales, NETO. */
 export interface MontoDto { n: number; total: string }

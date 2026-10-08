@@ -60,6 +60,21 @@ describe('InterruptorPropinas (decisión D2, spec §11)', () => {
     expect(screen.getByText('tips.noPermission')).toBeInTheDocument()
   })
 
+  // E6a-fix2 C2 (full-testing E6a): con el permiso en ESTA sede y no en todas, el interruptor se ofrecía y el servidor lo
+  // rechazaba con un 403 técnico. `GET /access` dice ahora `puedeAdministrarOrganizacion` (la MISMA regla que el 403).
+  it('🔴 sin el permiso en TODAS las sedes de la organización, se ve apagado y dice qué falta y a quién pedírselo', () => {
+    render(<InterruptorPropinas encendidas={false} puedeEnLaOrganizacion={false} />)
+    expect(screen.getByRole('switch', { name: 'tips.label' })).toBeDisabled()
+    expect(screen.getByText('orgPermission')).toBeInTheDocument()
+    expect(screen.queryByText('tips.help')).toBeNull()
+  })
+
+  it('un servidor viejo (sin el campo) se trata como «sí puede»: como hoy', () => {
+    render(<InterruptorPropinas encendidas={false} />)
+    expect(screen.getByRole('switch', { name: 'tips.label' })).toBeEnabled()
+    expect(screen.getByText('tips.help')).toBeInTheDocument()
+  })
+
   it('si el servidor no lo cambia, lo dice y el interruptor se queda como estaba (sin red: online-only)', async () => {
     m.tips.mockRejectedValue({ response: { status: 403, data: { message: 'No tienes permiso en la sede Norte' } } })
     render(<InterruptorPropinas encendidas={false} />)

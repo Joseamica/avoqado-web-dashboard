@@ -24,8 +24,10 @@ import { mensajeLegible } from '../rangos'
  * qué pasa con lo de antes, porque mueve dinero: prender no barre propinas anteriores; apagar no quita las que ya
  * ganaron el derecho a entrar. Sin `staffpay:close` se ve, no se mueve, y dice por qué. El interruptor sólo cambia cuando
  * el servidor contesta (sale de `GET /access`, que la mutación refresca): sin red, no cambia y el aviso lo dice.
+ * Es de TODA la organización (E6a-fix2 C2): con el permiso aquí pero no en todas las sedes (`puedeEnLaOrganizacion`, de
+ * `GET /access`), tampoco se mueve y dice qué falta; sin el dato (servidor viejo), como antes.
  */
-export function InterruptorPropinas({ encendidas }: { encendidas: boolean }) {
+export function InterruptorPropinas({ encendidas, puedeEnLaOrganizacion = true }: { encendidas: boolean; puedeEnLaOrganizacion?: boolean }) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { toast } = useToast()
@@ -34,7 +36,8 @@ export function InterruptorPropinas({ encendidas }: { encendidas: boolean }) {
   const [pedido, setPedido] = useState<boolean | null>(null)
   // Candado síncrono (E6a-fix F12, hermano de «Activar»): `isPending` no alcanza a cambiar entre dos clics seguidos.
   const enVuelo = useRef(false)
-  const puede = can('staffpay:close')
+  const aqui = can('staffpay:close')
+  const puede = aqui && puedeEnLaOrganizacion
 
   const confirmar = async () => {
     if (pedido === null || enVuelo.current) return
@@ -64,7 +67,7 @@ export function InterruptorPropinas({ encendidas }: { encendidas: boolean }) {
           {t('tips.label')}
         </Label>
       </div>
-      <p className="text-xs text-muted-foreground">{puede ? t('tips.help') : t('tips.noPermission')}</p>
+      <p className="text-xs text-muted-foreground">{puede ? t('tips.help') : aqui ? t('orgPermission') : t('tips.noPermission')}</p>
       <AlertDialog open={pedido !== null} onOpenChange={o => !o && !cambiar.isPending && setPedido(null)}>
         <AlertDialogContent onOpenAutoFocus={foco.onOpenAutoFocus} onCloseAutoFocus={foco.onCloseAutoFocus}>
           <AlertDialogHeader>

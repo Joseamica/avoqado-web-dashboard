@@ -51,7 +51,14 @@ vi.mock('@/hooks/useStaffPay', () => ({
 }))
 vi.mock('../components/ActivarPagoAlPersonal', () => ({ ActivarPagoAlPersonal: () => <div>activar</div> }))
 vi.mock('../components/AvisoSedesFuera', () => ({ AvisoSedesFuera: ({ activa }: { activa: boolean }) => <div>aviso-sedes {String(activa)}</div> }))
-vi.mock('../components/InterruptorPropinas', () => ({ InterruptorPropinas: ({ encendidas }: { encendidas: boolean }) => <div>propinas {String(encendidas)}</div> }))
+vi.mock('../components/InterruptorPropinas', () => ({
+  InterruptorPropinas: ({ encendidas, puedeEnLaOrganizacion }: { encendidas: boolean; puedeEnLaOrganizacion?: boolean }) => (
+    <div>
+      <span>propinas {String(encendidas)}</span>
+      <span>org {String(puedeEnLaOrganizacion)}</span>
+    </div>
+  ),
+}))
 
 const LISTA = {
   periodicidad: 'MONTHLY',
@@ -188,6 +195,17 @@ describe('PeriodosTab', () => {
     expect(screen.getByText(/activation\.activeSince/)).toHaveTextContent('2026-09-01')
     expect(screen.getByText('propinas false')).toBeInTheDocument()
     expect(m.pedidos).toHaveBeenCalledWith(true)
+  })
+
+  // E6a-fix2 C2: `puedeAdministrarOrganizacion` de `GET /access` llega al interruptor; sin el campo (servidor viejo) = sí puede.
+  it('🔴 el interruptor de propinas recibe si puede administrar la organización (sin el campo, sí puede)', () => {
+    m.acceso.actual = { ...m.acceso.actual, puedeAdministrarOrganizacion: false }
+    const { unmount } = conUrl()
+    expect(screen.getByText('org false')).toBeInTheDocument()
+    unmount()
+    m.acceso.actual = { enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false }
+    conUrl()
+    expect(screen.getByText('org true')).toBeInTheDocument()
   })
 
   it('activado: el aviso de sedes fuera va arriba del selector de periodo, con la pestaña activa', () => {

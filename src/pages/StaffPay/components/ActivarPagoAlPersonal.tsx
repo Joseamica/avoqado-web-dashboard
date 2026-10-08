@@ -49,7 +49,10 @@ export function ActivarPagoAlPersonal() {
   const [confirmando, setConfirmando] = useState(false)
   // Candado síncrono (como Sedes y el cierre, E6a-fix F12 / QA H9): `isPending` no alcanza a cambiar entre dos clics seguidos.
   const enVuelo = useRef(false)
-  const puede = can('staffpay:close')
+  // Activar es de TODA la organización (E6a-fix2 C2): además del permiso aquí, hace falta en todas las sedes que exige el servidor
+  // (`puedeAdministrarOrganizacion`, la misma regla que su 403). Sin el campo (servidor viejo), como antes.
+  const aqui = can('staffpay:close')
+  const puede = aqui && acceso?.puedeAdministrarOrganizacion !== false
   const fija = acceso?.periodicidadFija === true
   const guardada: Periodicidad = acceso?.periodicidad ?? 'MONTHLY'
   const periodicidad: Periodicidad = fija ? guardada : (elegida ?? guardada)
@@ -169,7 +172,7 @@ export function ActivarPagoAlPersonal() {
             {t('activation.button')}
           </Button>
         ) : (
-          <p className="text-sm text-muted-foreground">{t('activation.noPermission')}</p>
+          <p className="text-sm text-muted-foreground">{aqui ? t('orgPermission') : t('activation.noPermission')}</p>
         )}
       </CardContent>
       <AlertDialog open={confirmando} onOpenChange={o => !o && !activar.isPending && setConfirmando(false)}>

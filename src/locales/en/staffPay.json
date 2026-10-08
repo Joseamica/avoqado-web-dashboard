@@ -25,7 +25,7 @@
   "tips": {
     "label": "Pay tips in the statement",
     "help": "If you hand them out separately every day, leave it off so you don't pay them twice.",
-    "noPermission": "Only someone with the «Close periods and record payments» permission can change it.",
+    "noPermission": "Only someone with the «Close periods and record payments» permission can change it. Ask the business owner.",
     "onTitle": "Pay tips in the statement?",
     "onHelp": "From now on, each payment's tip at an active location goes to the statement of whoever served the check (if not recorded, whoever charged it). Tips from before today are not included.",
     "onConfirm": "Yes, pay them in the statement",
@@ -637,5 +637,6 @@
       "mas_one": "and {{count}} more location",
       "mas_other": "and {{count}} more locations"
     }
-  }
+  },
+  "orgPermission": "For this you need the «Close periods and record payments» permission in every location of the organization. Ask the business owner."
 }

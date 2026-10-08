@@ -34,6 +34,18 @@ describe('textos de pago por servicio', () => {
     for (const texto of [tEs('grid.attendedHelp'), tEn('grid.attendedHelp')]) expect(texto).not.toMatch(/muy pronto|coming soon/i)
     expect(tEs('grid.attendedHelp')).toMatch(/check-in quede registrado en el aparato; hoy se cuenta a quien reservó/)
   })
+  // E6a-fix2 C2 y K2 (full-testing E6a): cada bloqueo por permiso dice qué permiso, con su nombre (nunca el código interno), y a
+  // quién pedírselo. El de propinas no lo decía; el de organización, además, dice que hace falta en TODAS las sedes.
+  it('🔴 los bloqueos de permiso nombran el permiso y a quién pedírselo, sin códigos internos', () => {
+    const bloqueos = ['tips.noPermission', 'orgPermission', 'activation.noPermission', 'closed.noPermission', 'period.closeNoPermission']
+    for (const k of bloqueos) {
+      expect(tEs(k), k).toContain('«Cerrar periodos y registrar pagos»')
+      expect(tEs(k), k).toContain('Pídeselo al dueño del negocio.')
+      expect(tEs(k), k).not.toMatch(/staffpay:/)
+      expect(tEn(k), k).toMatch(/Ask the business owner/)
+    }
+    expect(tEs('orgPermission')).toContain('en todas las sedes de la organización')
+  })
   it('un ajuste del recibo dice que su fecha es la de captura (QA defecto 9)', () => {
     expect(tEs('period.capturedOn', { fecha: '3 oct 2026' })).toBe('3 oct 2026 (captura)')
     expect(tEn('period.capturedOn', { fecha: 'Oct 3, 2026' })).toBe('Oct 3, 2026 (entered)')

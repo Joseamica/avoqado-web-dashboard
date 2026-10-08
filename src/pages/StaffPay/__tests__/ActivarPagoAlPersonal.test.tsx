@@ -125,6 +125,26 @@ describe('ActivarPagoAlPersonal (spec §7.1, §11)', () => {
     expect(screen.getByText('activation.noPermission')).toBeInTheDocument()
   })
 
+  // E6a-fix2 C2 (full-testing E6a): activar es de toda la organización; con el permiso en esta sede y no en todas, el servidor
+  // contesta 403. `GET /access.puedeAdministrarOrganizacion` (la MISMA regla del 403) apaga el botón y dice qué falta.
+  it('🔴 sin el permiso en TODAS las sedes de la organización, no hay botón y dice qué falta y a quién pedírselo', () => {
+    m.acceso.mockReturnValue({ ...ACCESO, puedeAdministrarOrganizacion: false })
+    render(<ActivarPagoAlPersonal />)
+    expect(screen.queryByRole('button', { name: 'activation.button' })).toBeNull()
+    expect(screen.getByText('orgPermission')).toBeInTheDocument()
+    expect(screen.getByLabelText('periodicidad')).toBeDisabled()
+  })
+
+  it('con el campo en true, o sin él (servidor viejo), se puede activar como hoy', () => {
+    m.acceso.mockReturnValue({ ...ACCESO, puedeAdministrarOrganizacion: true })
+    const { unmount } = render(<ActivarPagoAlPersonal />)
+    expect(boton()).toBeEnabled()
+    unmount()
+    m.acceso.mockReturnValue(ACCESO)
+    render(<ActivarPagoAlPersonal />)
+    expect(boton()).toBeEnabled()
+  })
+
   it('las sedes con el plan vienen marcadas; las sin plan, apagadas y con su porqué; manda sólo las marcadas', async () => {
     m.sedes.mockReturnValue(conSedes(sede('s1', 'Centro', true), sede('s2', 'Norte', true), sede('s3', 'Sur', false)))
     m.activar.mockResolvedValue({ startDate: '2026-10-01', yaActivado: false })

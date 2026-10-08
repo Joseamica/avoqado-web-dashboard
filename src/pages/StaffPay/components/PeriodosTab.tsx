@@ -202,7 +202,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
             {data.puedeCambiarPeriodicidad ? (puedeCerrar ? t('periods.periodicityHelp') : t('periods.periodicityNoPermission')) : t('periods.periodicityLocked')}
           </p>
         </div>
-        <InterruptorPropinas encendidas={!!acceso?.propinasEncendidas} />
+        <InterruptorPropinas encendidas={!!acceso?.propinasEncendidas} puedeEnLaOrganizacion={acceso?.puedeAdministrarOrganizacion !== false} />
       </div>
       {actual.estado === 'CLOSED' && actual.id ? (
         <PeriodoCerradoView key={actual.id} periodId={actual.id} fecha={actual.start} etiqueta={mes(actual)} etiquetaAbierto={abiertoHoy} />

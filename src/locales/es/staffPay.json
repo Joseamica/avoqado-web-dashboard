@@ -25,7 +25,7 @@
   "tips": {
     "label": "Pagar las propinas en el recibo",
     "help": "Si las entregas aparte cada día, déjalo apagado para no pagarlas dos veces.",
-    "noPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede cambiarlo.",
+    "noPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede cambiarlo. Pídeselo al dueño del negocio.",
     "onTitle": "¿Pagar las propinas en el recibo?",
     "onHelp": "Desde ahora, la propina de cada cobro de una sede activa entra al recibo de quien atendió la cuenta (si no quedó registrado, de quien cobró). Las de antes de hoy no entran.",
     "onConfirm": "Sí, pagarlas en el recibo",
@@ -637,5 +637,6 @@
       "mas_one": "y {{count}} sede más",
       "mas_other": "y {{count}} sedes más"
     }
-  }
+  },
+  "orgPermission": "Para esto necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes de la organización. Pídeselo al dueño del negocio."
 }
