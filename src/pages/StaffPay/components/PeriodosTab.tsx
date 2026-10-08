@@ -26,6 +26,7 @@ import { PeriodoCerradoView } from './PeriodoCerradoView'
 import { ActivarPagoAlPersonal } from './ActivarPagoAlPersonal'
 import { InterruptorPropinas } from './InterruptorPropinas'
 import { AvisoSedesFuera } from './AvisoSedesFuera'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hoyEnSede } from '../hoyEnSede'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -106,6 +107,13 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
     } finally {
       setNuevaFrecuencia(null)
     }
+  }
+
+  // Cerrar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se cancela de verdad (no sale al volver la red).
+  const cerrarFrecuencia = () => {
+    if (setPeriodicity.isPaused) setPeriodicity.cancelarEnPausa()
+    else if (setPeriodicity.isPending) return
+    setNuevaFrecuencia(null)
   }
 
   // Todos los hooks ya se llamaron. Sin activar —o si la lista contesta «sin activar» antes de que el acceso se refresque—,
@@ -221,14 +229,16 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
             if (!isFetching) void refetch()
           }} />
       )}
-      <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && !setPeriodicity.isPending && setNuevaFrecuencia(null)}>
+      <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && cerrarFrecuencia()}>
         <AlertDialogContent onOpenAutoFocus={focoFrecuencia.onOpenAutoFocus} onCloseAutoFocus={focoFrecuencia.onCloseAutoFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{nuevaFrecuencia && t('periods.changeTitle', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}</AlertDialogTitle>
             <AlertDialogDescription>{nuevaFrecuencia && t(`periods.changeHelp.${nuevaFrecuencia}`)}</AlertDialogDescription>
           </AlertDialogHeader>
+          {setPeriodicity.isPaused && <AvisoSinConexion texto={t('offline.willSendPeriodicity')} dataTour="staffpay-periodicity-offline" />}
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={setPeriodicity.isPending}>
+            {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+            <AlertDialogCancel className="cursor-pointer" disabled={setPeriodicity.isPending && !setPeriodicity.isPaused}>
               {t('closed.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction

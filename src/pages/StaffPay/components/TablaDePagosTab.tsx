@@ -20,6 +20,7 @@ import { hoyEnSede } from '../hoyEnSede'
 import { erroresDeReglas, erroresVisibles, reglasDesdeVersion, reglasPayload, type ErrorRegla, type ReglasForm } from '../reglas'
 import { usePermisoDeConfigurar } from '../permisoDeConfigurar'
 import { AsignarNivelModal } from './AsignarNivelModal'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { NivelesSection } from './NivelesSection'
 import { PublicarTablaModal } from './PublicarTablaModal'
 import { ReglasDeClase } from './ReglasDeClase'
@@ -226,6 +227,10 @@ export function TablaDePagosTab() {
         {!tabla && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('grid.empty')}</p>
+            {/* Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola (no sale al volver la red). */}
+            {crearTabla.isPaused && (
+              <AvisoSinConexion texto={t('offline.willSendSave')} onCancelar={() => crearTabla.cancelarEnPausa()} dataTour="staffpay-table-create-offline" />
+            )}
             <PermissionGate permission="staffpay:manage">
               <Button className="cursor-pointer" disabled={crearTabla.isPending} onClick={crearTablaVacia} data-tour="staffpay-table-create">
                 {t('grid.create')}

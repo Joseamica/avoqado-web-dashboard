@@ -286,8 +286,10 @@ export function useAssignLevel(simulacion = false) {
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useCreateTable() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (p: { name: string; productIds: string[] }) => staffPayService.createTable(venueId!, p), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'create-table']
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: { name: string; productIds: string[] }) => staffPayService.createTable(venueId!, p), onSuccess: inv })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /** `simulacion`: como en `useAssignLevel`, la vista previa lleva su propia llave. */
 export function usePublishTable(simulacion = false) {
@@ -302,12 +304,16 @@ export function usePublishTable(simulacion = false) {
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useAdjustClass(sessionId: string | null) {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (p: AjusteClaseInput) => staffPayService.adjustClass(venueId!, sessionId!, p), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'adjust-class', sessionId]
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: AjusteClaseInput) => staffPayService.adjustClass(venueId!, sessionId!, p), onSuccess: inv })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useSetPeriodicity() {
-  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (p: 'MONTHLY' | 'SEMIMONTHLY') => staffPayService.setPeriodicity(venueId!, p), onSuccess: inv })
+  const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
+  const mutationKey = [...staffPayKeys.all(venueId), 'periodicity']
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: 'MONTHLY' | 'SEMIMONTHLY') => staffPayService.setPeriodicity(venueId!, p), onSuccess: inv })
+  return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /**
  * Sin respuesta (o un 5xx) el periodo pudo haberse cerrado (E6a-fix2 C4): se relee todo MENOS la vista previa del cierre, que la

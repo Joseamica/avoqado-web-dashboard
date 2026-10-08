@@ -659,6 +659,7 @@
     "willSendTips": "No connection: it will be sent when the network is back. If you cancel, nothing changes.",
     "willSendSede": "No connection: it will be sent when the network is back. If you cancel, the location does not change.",
     "willSendSettle": "No connection: it will be sent when the network is back. If you cancel, it is not settled.",
+    "willSendPeriodicity": "No connection: it will be sent when the network is back. If you cancel, the frequency does not change.",
     "cancelSend": "Cancel sending"
   }
 }
