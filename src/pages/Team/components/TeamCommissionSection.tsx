@@ -1,20 +1,11 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ColumnDef } from '@tanstack/react-table'
-import {
-	DollarSign,
-	TrendingUp,
-	Calendar,
-	CheckCircle2,
-	Clock,
-	AlertCircle,
-	Settings2,
-} from 'lucide-react'
+import { DollarSign, TrendingUp, Calendar } from 'lucide-react'
 import DataTable from '@/components/data-table'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useStaffCommissions } from '@/hooks/useCommissions'
-import type { CommissionSummary, CommissionSummaryStatus } from '@/types/commission'
+import type { CommissionSummary } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
 // GlassCard component
@@ -33,15 +24,7 @@ const GlassCard: React.FC<{
 	</div>
 )
 
-// Status styles
-const statusStyles: Record<CommissionSummaryStatus, { bg: string; icon: React.ReactNode }> = {
-	DRAFT: { bg: 'bg-muted text-muted-foreground', icon: <Settings2 className="h-3 w-3" /> },
-	CALCULATED: { bg: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', icon: <TrendingUp className="h-3 w-3" /> },
-	PENDING_APPROVAL: { bg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <Clock className="h-3 w-3" /> },
-	APPROVED: { bg: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
-	DISPUTED: { bg: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: <AlertCircle className="h-3 w-3" /> },
-	PAID: { bg: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', icon: <DollarSign className="h-3 w-3" /> },
-}
+// Sin el estado del resumen (E6a-fix F9, QA H4): es del flujo viejo de pagos y contradecía al recibo de Pago al personal.
 
 interface TeamCommissionSectionProps {
 	staffId: string
@@ -122,20 +105,6 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 						{formatCurrency(row.original.netAmount)}
 					</span>
 				),
-			},
-			{
-				accessorKey: 'status',
-				header: t('table.status'),
-				cell: ({ row }) => {
-					const status = row.original.status
-					const style = statusStyles[status]
-					return (
-						<Badge className={cn('font-medium gap-1', style.bg)}>
-							{style.icon}
-							{t(`status.${status}`)}
-						</Badge>
-					)
-				},
 			},
 		],
 		[t, i18n.language]
