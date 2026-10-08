@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CerrarPeriodoModal } from '../components/CerrarPeriodoModal'
 
-const m = vi.hoisted(() => ({ preview: vi.fn(), close: vi.fn(), refetch: vi.fn(), toast: vi.fn(), sedes: vi.fn() }))
+const m = vi.hoisted(() => ({ preview: vi.fn(), close: vi.fn(), refetch: vi.fn(), toast: vi.fn(), sedes: vi.fn(), can: vi.fn() }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d }) }))
@@ -38,6 +39,7 @@ const ok = { periodo: { id: null, start: '2026-08-01', end: '2026-08-31', venueI
 beforeEach(() => {
   vi.clearAllMocks()
   m.sedes.mockReturnValue({ data: undefined })
+  m.can.mockReturnValue(true)
 })
 
 describe('CerrarPeriodoModal', () => {
@@ -305,6 +307,16 @@ describe('CerrarPeriodoModal', () => {
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
     expect(screen.getByText(/close\.block\.SEDE_ACTIVA_SIN_PLAN_otras/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /close\.deactivateSede/ })).toBeNull()
+  })
+
+  // E6a-fix F3, hermano: el mismo diálogo y la misma ruta que en Sedes (exige «Cerrar periodos» en la sede ACTUAL).
+  it('🔴 sin «Cerrar periodos» en esta sede no ofrece «Desactivar <sede>» (terminaría en 403) y dice desde dónde', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    m.sedes.mockReturnValue(wellnessEnSedes(true))
+    m.preview.mockReturnValue({ data: sinPlan(['v2'], true, [sede('v2', 'Wellness', 'ACTIVA_SIN_PLAN')]), isLoading: false, refetch: m.refetch })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    expect(screen.queryByRole('button', { name: /close\.deactivateSede/ })).toBeNull()
+    expect(screen.getByText('sedes.cambiaDeSede')).toBeInTheDocument()
   })
 
   it('un server sin `porSede` igual nombra la sede del bloqueo (con el nombre de la sesión)', () => {

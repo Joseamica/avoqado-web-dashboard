@@ -588,6 +588,7 @@
     "sinPlan": "Staff pay is included in the Pro plan, or can be added on its own per location.",
     "sinPlanPrecio": "Staff pay is included in the Pro plan, or can be added on its own for {{precio}} a month at this location.",
     "sinPermiso": "To turn a location on or off you need the “Close periods and record payments” permission there. Ask the business owner.",
+    "cambiaDeSede": "To turn locations on or off, open this page from a location where you have the “Close periods and record payments” permission.",
     "sinDiasHoy": "Today's period is already closed at this location: you can turn it on when the next one starts.",
     "activar": "Turn on",
     "desactivar": "Turn off",

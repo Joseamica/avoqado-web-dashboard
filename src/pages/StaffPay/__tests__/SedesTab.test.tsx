@@ -3,7 +3,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SedesTab } from '../components/SedesTab'
 
-const m = vi.hoisted(() => ({ sedes: vi.fn(), dialogo: vi.fn(), precio: vi.fn() }))
+const m = vi.hoisted(() => ({ sedes: vi.fn(), dialogo: vi.fn(), precio: vi.fn(), can: vi.fn() }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k), i18n: { language: 'es' } }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatCalendarDate: (d: string) => `dia(${d})` }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ fullBasePath: '/venues/x' }) }))
@@ -38,7 +39,10 @@ const con = (sedes: unknown[], activado = true) =>
   m.sedes.mockReturnValue({ data: { activado, startDate: activado ? '2026-10-01' : null, periodo: activado ? { start: '2026-10-01', end: '2026-10-31' } : null, sedes }, isLoading: false, isError: false, refetch })
 const pantalla = () => render(<MemoryRouter><SedesTab activa /></MemoryRouter>)
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  m.can.mockReturnValue(true)
+})
 
 describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
   it('una sede sin activar va en ámbar con lo que queda fuera y su botón Activar', () => {
@@ -88,6 +92,33 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
     pantalla()
     expect(screen.queryByRole('button', { name: 'sedes.desactivar' })).toBeNull()
     expect(screen.getByText('sedes.sinPermiso')).toBeInTheDocument()
+  })
+
+  // E6a-fix F3 (Codex bloque E #3): la ruta va bajo la sede ACTUAL y exige «Cerrar periodos» ahí; las banderas son del destino.
+  it('🔴 con permiso en el destino pero NO en esta sede: sin Activar, y dice que entre desde una sede con el permiso', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    con([sede({ venueId: 'b', nombre: 'Condesa', estado: 'SIN_ACTIVAR', desde: null, minimo: '2026-10-01', puedeActivar: true, puedeDesactivar: false })])
+    pantalla()
+    expect(screen.queryByRole('button', { name: 'sedes.activar' })).toBeNull()
+    expect(screen.getByText('sedes.cambiaDeSede')).toBeInTheDocument()
+    // No culpa al permiso del destino: ahí sí lo tiene.
+    expect(screen.queryByText('sedes.sinPermiso')).toBeNull()
+  })
+
+  it('🔴 lo mismo con Desactivar: sin el permiso aquí no hay botón (terminaría en 403)', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:close')
+    con([sede({ puedeDesactivar: true })])
+    pantalla()
+    expect(screen.queryByRole('button', { name: 'sedes.desactivar' })).toBeNull()
+    expect(screen.getByText('sedes.cambiaDeSede')).toBeInTheDocument()
+  })
+
+  it('sin el permiso aquí NI en el destino: el aviso de siempre (a quién pedírselo), no «cambia de sede»', () => {
+    m.can.mockReturnValue(false)
+    con([sede({ puedeDesactivar: false })])
+    pantalla()
+    expect(screen.getByText('sedes.sinPermiso')).toBeInTheDocument()
+    expect(screen.queryByText('sedes.cambiaDeSede')).toBeNull()
   })
 
   it('sin activar y sin días que puedan entrar hoy: no culpa al permiso, dice por qué', () => {

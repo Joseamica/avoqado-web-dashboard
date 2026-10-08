@@ -588,6 +588,7 @@
     "sinPlan": "Pago al personal viene en el plan Pro o se contrata suelto por sucursal.",
     "sinPlanPrecio": "Pago al personal viene en el plan Pro o se contrata suelto por {{precio}} al mes en esta sucursal.",
     "sinPermiso": "Para activar o desactivar una sede necesitas el permiso «Cerrar periodos y registrar pagos» en ella. Pídeselo al dueño del negocio.",
+    "cambiaDeSede": "Para activar o desactivar sedes, entra desde una sede donde tengas el permiso «Cerrar periodos y registrar pagos».",
     "sinDiasHoy": "El periodo de hoy ya está cerrado en esta sede: podrás activarla cuando empiece el siguiente.",
     "activar": "Activar",
     "desactivar": "Desactivar",

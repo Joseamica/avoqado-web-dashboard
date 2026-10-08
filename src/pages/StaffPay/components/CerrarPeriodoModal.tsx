@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useClosePeriod, useClosePreview, useStaffPaySedes } from '@/hooks/useStaffPay'
 import { cn } from '@/lib/utils'
@@ -56,9 +57,14 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
   // y su `desde`, que pide el diálogo) sólo se piden en ese caso.
   const sinPlan = p?.bloqueos.find((b): b is BloqueoSinPlan => b.codigo === 'SEDE_ACTIVA_SIN_PLAN')
   const sedes = useStaffPaySedes(open && !!sinPlan?.otrasConPlan)
-  const desactivables = sinPlan?.otrasConPlan
+  // Como en «Sedes» (E6a-fix F3): `puedeDesactivar` es el permiso en la sede destino, y la ruta además exige «Cerrar periodos»
+  // en ESTA sede; sin él no se ofrece un botón que acabaría en 403, y se dice desde dónde se puede.
+  const { can } = useAccess()
+  const aqui = can('staffpay:close')
+  const conPermisoAlla = sinPlan?.otrasConPlan
     ? (sedes.data?.sedes ?? []).filter(s => sinPlan.venueIds.includes(s.venueId) && s.puedeDesactivar)
     : []
+  const desactivables = aqui ? conPermisoAlla : []
   const [desactivando, setDesactivando] = useState<SedeEnPagoAlPersonalDto | null>(null)
 
   const confirmar = async () => {
@@ -180,6 +186,9 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
                           <Button variant="outline" size="sm" className="cursor-pointer" onClick={onVerExcepciones}>
                             {t('period.seeExceptions')}
                           </Button>
+                        )}
+                        {rojo && !aqui && conPermisoAlla.length > 0 && (
+                          <span className="text-xs font-normal text-muted-foreground">{t('sedes.cambiaDeSede')}</span>
                         )}
                         {rojo &&
                           desactivables.map(s => (

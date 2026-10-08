@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useFeaturePrice } from '@/hooks/use-feature-price'
 import { useStaffPaySedes } from '@/hooks/useStaffPay'
@@ -107,9 +108,16 @@ function TarjetaDeSede({
   onAbrir: (accion: Accion) => void
 }) {
   const { t, i18n } = useTranslation('staffPay')
+  const { can } = useAccess()
   const { formatCalendarDate } = useVenueDateTime()
   const fecha = (d: string) => formatCalendarDate(d)
   const conVentana = s.estado === 'ACTIVA' || s.estado === 'ACTIVA_SIN_PLAN'
+  // `puedeActivar`/`puedeDesactivar` son el permiso en la sede DESTINO; la ruta va bajo la sede ACTUAL y también exige ahí
+  // «Cerrar periodos y registrar pagos» (E6a-fix F3): sin él, el botón terminaría en 403. Se dice que entre desde otra sede.
+  const aqui = can('staffpay:close')
+  const puedeActivar = s.puedeActivar && aqui
+  const puedeDesactivar = s.puedeDesactivar && aqui
+  const cambiaDeSede = !aqui && (s.puedeActivar || s.puedeDesactivar)
   const hayFuera = !cuentaVacia(s.fueraEstePeriodo)
   const cuenta = () => textoDeCuenta(t, s.fueraEstePeriodo, i18n.language)
   // Desde cuándo queda fuera lo de una sede sin activar: su mínimo para activarla hoy (o el inicio del periodo si hoy no hay).
@@ -155,14 +163,15 @@ function TarjetaDeSede({
       )}
       {sinDiasHoy && <p className="text-xs text-muted-foreground">{t('sedes.sinDiasHoy')}</p>}
       {sinPermiso && <p className="text-xs text-muted-foreground">{t('sedes.sinPermiso')}</p>}
-      {(s.puedeActivar || s.puedeDesactivar) && (
+      {cambiaDeSede && <p className="text-xs text-muted-foreground">{t('sedes.cambiaDeSede')}</p>}
+      {(puedeActivar || puedeDesactivar) && (
         <div className="flex flex-wrap gap-2 pt-1">
-          {s.puedeActivar && (
+          {puedeActivar && (
             <Button size="sm" className="cursor-pointer" onClick={() => onAbrir('activar')} data-tour="staffpay-sede-activar">
               {t('sedes.activar')}
             </Button>
           )}
-          {s.puedeDesactivar && (
+          {puedeDesactivar && (
             <Button
               size="sm"
               variant="outline"
