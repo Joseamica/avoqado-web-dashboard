@@ -32,6 +32,7 @@ import { hoyEnSede } from '../hoyEnSede'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useFocoDeVuelta } from '../foco'
 import { esNoActivado } from '../rangos'
+import { useUltimoNoNulo } from '../alCerrar'
 
 const clave = (p: PeriodoListadoDto) => p.start
 /** El periodo elegido vive en la URL (`?periodo=2026-09-01`): al recargar se vuelve a ver el mismo. */
@@ -66,6 +67,8 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta. Desde la fase 3 queda fija al activar
   // (el servidor manda `puedeCambiarPeriodicidad: false` y este diálogo no se alcanza); manda el servidor, así que se queda.
   const [nuevaFrecuencia, setNuevaFrecuencia] = useState<'MONTHLY' | 'SEMIMONTHLY' | null>(null)
+  // La frecuencia que nombra el diálogo mientras se cierra (K-n1): el título y el botón no se quedan vacíos.
+  const frecuenciaMostrada = useUltimoNoNulo(nuevaFrecuencia)
   // Candado SÍNCRONO (revisión de E6b): `isPending` no alcanza a apagar «Cambiar» entre dos clics seguidos.
   const cambiando = useRef(false)
   const items = data?.items ?? []
@@ -238,8 +241,8 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
       <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && cerrarFrecuencia()}>
         <AlertDialogContent onOpenAutoFocus={focoFrecuencia.onOpenAutoFocus} onCloseAutoFocus={focoFrecuencia.onCloseAutoFocus}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{nuevaFrecuencia && t('periods.changeTitle', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}</AlertDialogTitle>
-            <AlertDialogDescription>{nuevaFrecuencia && t(`periods.changeHelp.${nuevaFrecuencia}`)}</AlertDialogDescription>
+            <AlertDialogTitle>{frecuenciaMostrada && t('periods.changeTitle', { frecuencia: t(`periods.short.${frecuenciaMostrada}`) })}</AlertDialogTitle>
+            <AlertDialogDescription>{frecuenciaMostrada && t(`periods.changeHelp.${frecuenciaMostrada}`)}</AlertDialogDescription>
           </AlertDialogHeader>
           {setPeriodicity.isPaused && <AvisoSinConexion texto={t('offline.willSendPeriodicity')} dataTour="staffpay-periodicity-offline" />}
           <AlertDialogFooter>
@@ -256,7 +259,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
               }}
             >
               {setPeriodicity.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {nuevaFrecuencia && t('periods.changeConfirm', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}
+              {frecuenciaMostrada && t('periods.changeConfirm', { frecuencia: t(`periods.short.${frecuenciaMostrada}`) })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

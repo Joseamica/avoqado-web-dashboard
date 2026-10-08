@@ -18,6 +18,7 @@ import { useCreateLevel, useUpdateLevel } from '@/hooks/useStaffPay'
 import type { NivelDto } from '@/types/staffPay'
 import { usePermisoDeConfigurar } from '../permisoDeConfigurar'
 import { AvisoSinConexion } from './AvisoSinConexion'
+import { useUltimoNoNulo } from '../alCerrar'
 
 const mensajeDeError = (err: any, fallback: string): string => err?.response?.data?.message ?? fallback
 
@@ -31,6 +32,8 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
   const [nuevoNivel, setNuevoNivel] = useState('')
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
   const [porArchivar, setPorArchivar] = useState<NivelDto | null>(null)
+  // El nivel que nombra el diálogo mientras se cierra (K-n1): no se queda sin nombre.
+  const archivoMostrado = useUltimoNoNulo(porArchivar)
   // Candados SÍNCRONOS (revisión de E6b): `isPending` no alcanza a apagar el botón entre dos clics seguidos. Uno por mutación; se
   // sueltan al terminar (`onSettled`) o al cancelar el envío en pausa (esa espera ya no termina).
   const creando = useRef(false)
@@ -175,7 +178,7 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
       <AlertDialog open={!!porArchivar} onOpenChange={o => { if (!o) setPorArchivar(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('levels.archiveTitle', { name: porArchivar?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogTitle>{t('levels.archiveTitle', { name: archivoMostrado?.name ?? '' })}</AlertDialogTitle>
             <AlertDialogDescription>{t('levels.archiveDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

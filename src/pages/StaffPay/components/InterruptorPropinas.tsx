@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useSetTips } from '@/hooks/useStaffPay'
 import { useFocoDeVuelta } from '../foco'
 import { AvisoSinConexion } from './AvisoSinConexion'
+import { useUltimoNoNulo } from '../alCerrar'
 import { mensajeLegible } from '../rangos'
 
 /**
@@ -35,6 +36,8 @@ export function InterruptorPropinas({ encendidas, puedeEnLaOrganizacion = true }
   const cambiar = useSetTips()
   const foco = useFocoDeVuelta()
   const [pedido, setPedido] = useState<boolean | null>(null)
+  // Lo que dice el diálogo mientras se cierra: lo que se pidió, no lo contrario (K-n1).
+  const mostrado = useUltimoNoNulo(pedido)
   // Candado síncrono (E6a-fix F12, hermano de «Activar»): `isPending` no alcanza a cambiar entre dos clics seguidos.
   const enVuelo = useRef(false)
   const aqui = can('staffpay:close')
@@ -82,8 +85,8 @@ export function InterruptorPropinas({ encendidas, puedeEnLaOrganizacion = true }
       <AlertDialog open={pedido !== null} onOpenChange={o => !o && cerrar()}>
         <AlertDialogContent onOpenAutoFocus={foco.onOpenAutoFocus} onCloseAutoFocus={foco.onCloseAutoFocus}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t(pedido ? 'tips.onTitle' : 'tips.offTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t(pedido ? 'tips.onHelp' : 'tips.offHelp')}</AlertDialogDescription>
+            <AlertDialogTitle>{t(mostrado ? 'tips.onTitle' : 'tips.offTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t(mostrado ? 'tips.onHelp' : 'tips.offHelp')}</AlertDialogDescription>
           </AlertDialogHeader>
           {cambiar.isPaused && <AvisoSinConexion texto={t('offline.willSendTips')} dataTour="staffpay-tips-offline" />}
           <AlertDialogFooter>
@@ -100,7 +103,7 @@ export function InterruptorPropinas({ encendidas, puedeEnLaOrganizacion = true }
               }}
             >
               {cambiar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t(pedido ? 'tips.onConfirm' : 'tips.offConfirm')}
+              {t(mostrado ? 'tips.onConfirm' : 'tips.offConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

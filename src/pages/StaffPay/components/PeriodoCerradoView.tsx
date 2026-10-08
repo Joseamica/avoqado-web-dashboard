@@ -61,10 +61,18 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   // `estado`: recién cerrado, la caché todavía puede traer el reporte EN VIVO de este mismo periodo (misma llave).
   const data = crudo && crudo.periodo.id === periodId && crudo.periodo.estado === 'CLOSED' ? crudo : undefined
   const marcar = useMarkPaid(periodId)
+  // Qué se confirma (de todos o de una persona) y si el diálogo está abierto, por separado (E6a-fix4 K-n1): al cerrarse, Radix
+  // deja el contenido montado durante la animación de salida, y si `confirmar` se vaciara ahí mostraría el texto de «todos». Se
+  // vacía al terminar de cerrarse (`onCloseAutoFocus`), y con él la vista previa: reabrir la vuelve a pedir.
   const [confirmar, setConfirmar] = useState<{ staffId?: string; nombre?: string; total?: string } | null>(null)
+  const [abierto, setAbierto] = useState(false)
+  const abrirConfirmacion = (c: { staffId?: string; nombre?: string; total?: string }) => {
+    setConfirmar(c)
+    setAbierto(true)
+  }
   // Cuánto se registra lo dice el SERVER (Codex bloque A #6): de todos los pendientes o de esa persona, con la huella que
   // se manda al confirmar. Nunca la suma de la página visible.
-  const previewPago = usePaidPreview(periodId, confirmar?.staffId, !!confirmar)
+  const previewPago = usePaidPreview(periodId, confirmar?.staffId, abierto)
   const [persona, setPersona] = useState<{ staffId: string; staffName: string; clases: number; total: string } | null>(null)
   // Un ajuste desde aquí va al periodo abierto de HOY en la sede, fijado al abrir (Codex bloque A #1).
   const [ajusteFecha, setAjusteFecha] = useState<string | null>(null)
@@ -156,17 +164,17 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       marcar.cancelarEnPausa()
       enVuelo.current = false
     } else if (marcar.isPending) return
-    setConfirmar(null)
+    setAbierto(false)
   }
 
   const ejecutar = async () => {
-    if (!confirmar || !vista || !puedeConfirmar || enVuelo.current) return
+    if (!abierto || !confirmar || !vista || !puedeConfirmar || enVuelo.current) return
     enVuelo.current = true
     try {
       // La huella del preview que se vio, con el MISMO staffId (o sin él): el server marca exactamente eso o responde 409.
       const r = await marcar.mutateAsync({ ...(confirmar.staffId ? { staffId: confirmar.staffId } : {}), huellaEsperada: vista.huella })
       toast({ title: r.marcados === 0 ? t('closed.alreadyPaid') : t('closed.markedPaid', { count: r.marcados }) })
-      setConfirmar(null)
+      setAbierto(false)
     } catch (err) {
       const data = (err as { response?: { data?: { code?: string; message?: string } } })?.response?.data
       if (data?.code === 'HUELLA_CAMBIO') {
@@ -181,11 +189,11 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         const [vistaNueva] = await Promise.all([previewPago.refetch(), refetch()])
         if (vistaNueva?.data?.cantidad === 0) {
           toast({ title: t('closed.alreadyRecorded') })
-          setConfirmar(null)
+          setAbierto(false)
         } else toast({ title: t('closed.networkCheck') })
       } else {
         toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
-        setConfirmar(null)
+        setAbierto(false)
       }
     } finally {
       enVuelo.current = false
@@ -236,7 +244,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       {puedePagar ? (
         <div className="flex flex-wrap items-center gap-2">
           {!data.parcial && pendientes > 0 && (
-            <Button size="sm" className="cursor-pointer" disabled={ocupado} onClick={() => setConfirmar({})} data-tour="staffpay-closed-mark-all">
+            <Button size="sm" className="cursor-pointer" disabled={ocupado} onClick={() => abrirConfirmacion({})} data-tour="staffpay-closed-mark-all">
               <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
               {t('closed.markAllPaid')}
             </Button>
@@ -316,7 +324,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                           className="cursor-pointer"
                           disabled={ocupado}
                           aria-label={t('closed.markPaidFor', { nombre: nombre(p.staffName) })}
-                          onClick={() => setConfirmar({ staffId: p.staffId, nombre: nombre(p.staffName), total: p.total })}
+                          onClick={() => abrirConfirmacion({ staffId: p.staffId, nombre: nombre(p.staffName), total: p.total })}
                           data-tour="staffpay-closed-mark-paid"
                         >
                           {t('closed.markPaid')}
@@ -360,8 +368,15 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       {/* Lo que cambió después del cierre: se paga una vez en el periodo abierto; los recibos de arriba no cambian. */}
       <DiferenciasSection periodId={periodId} etiquetaAbierto={etiquetaAbierto} />
 
-      <AlertDialog open={!!confirmar} onOpenChange={o => !o && cerrarDialogo()}>
-        <AlertDialogContent onOpenAutoFocus={focoPago.onOpenAutoFocus} onCloseAutoFocus={focoPago.onCloseAutoFocus}>
+      <AlertDialog open={abierto} onOpenChange={o => !o && cerrarDialogo()}>
+        <AlertDialogContent
+          onOpenAutoFocus={focoPago.onOpenAutoFocus}
+          onCloseAutoFocus={e => {
+            focoPago.onCloseAutoFocus(e)
+            // Ya terminó de cerrarse: ahora sí se suelta lo que se confirmaba (K-n1).
+            setConfirmar(null)
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>
               {/* Nada pendiente (otro lo registró, o ya se registró): no se pregunta «¿le pagaste $0.00?» (E6a-fix2 C4). */}
