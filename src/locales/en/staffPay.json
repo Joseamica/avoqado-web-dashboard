@@ -489,7 +489,9 @@
     "amountInvalid": "Enter an amount above $0 and up to $1,000,000.00, with at most 2 decimals.",
     "outOfRange": "An adjustment can only go to a period in the last 12 months (from {{desde}}).",
     "pendingOne": "{{persona}} has {{monto}} in refunds that will be deducted automatically {{cuando}}. If this adjustment is for that, don’t record it.",
-    "pendingMany": "{{persona}} has {{monto}} in refunds that will be deducted automatically. If this adjustment is for that, don’t record it:"
+    "pendingMany": "{{persona}} has {{monto}} in refunds that will be deducted automatically. If this adjustment is for that, don’t record it:",
+    "uncertain": "We don’t know whether it was saved. Try again: if it was already saved, it won’t be duplicated.",
+    "alreadySaved": "This adjustment was already saved in the period from {{start}} to {{end}}: it wasn’t duplicated."
   },
   "differences": {
     "title": "Differences to settle",

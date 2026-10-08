@@ -307,9 +307,17 @@ export function useMarkPaid(periodId: string | null) {
     onError: err => ((err as { response?: unknown } | null)?.response ? undefined : inv()),
   })
 }
+/**
+ * Sin respuesta (o un 5xx: un proxy pudo cortar después de guardar) el ajuste pudo haberse guardado: se relee lo mismo que en
+ * el éxito, para que la tabla diga cómo quedó (E6a-fix2 D1). Reintentar con la misma clave no duplica.
+ */
 export function useAddAdjustment() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
-  return useMutation({ mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b), onSuccess: inv })
+  return useMutation({
+    mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b),
+    onSuccess: inv,
+    onError: err => ((estado(err) ?? 500) >= 500 ? inv() : undefined),
+  })
 }
 /**
  * La vista previa del ajuste manual (B13), sólo con el formulario completo (`q`): trae las devoluciones pendientes de esa

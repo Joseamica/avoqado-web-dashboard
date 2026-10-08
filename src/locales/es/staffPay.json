@@ -489,7 +489,9 @@
     "amountInvalid": "Escribe un monto mayor a $0 y de hasta $1,000,000.00, con máximo 2 decimales.",
     "outOfRange": "Un ajuste sólo puede ir a un periodo de los últimos 12 meses (desde el {{desde}}).",
     "pendingOne": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas {{cuando}}. Si este ajuste es por eso, no lo registres.",
-    "pendingMany": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:"
+    "pendingMany": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:",
+    "uncertain": "No sabemos si se guardó. Vuelve a intentar: si ya se guardó, no se duplica.",
+    "alreadySaved": "Este ajuste ya estaba guardado en el periodo del {{start}} al {{end}}: no se duplicó."
   },
   "differences": {
     "title": "Diferencias por liquidar",

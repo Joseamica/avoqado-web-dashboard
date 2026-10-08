@@ -24,6 +24,7 @@ import { useFocoDeVuelta } from '../foco'
 import { A_MEDIO_ESCRIBIR, MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
 import { monto as montoTotal } from '../conSigno'
 import { cuandoSeDescuenta, hayPendientes, lineaDePendiente } from '../pendientes'
+import { anotarBorrador, borradorEnDuda, claveDelBorrador, soltarBorrador, soltarClave, type BorradorDeAjuste } from '../llaveDelAjuste'
 
 interface Props {
   open: boolean
@@ -41,7 +42,8 @@ type Persona = { staffId: string; nombre: string; email?: string }
 
 /**
  * Bono o descuento a mano para una persona, en un periodo ABIERTO. El monto se escribe positivo y el signo lo pone la
- * elección; antes de guardar dice a quién, cuánto y a qué periodo va. Una clave por apertura: un doble clic no crea dos.
+ * elección; antes de guardar dice a quién, cuánto y a qué periodo va. Una clave por apertura: un doble clic no crea dos; y
+ * si la respuesta se pierde, la clave sigue al BORRADOR (`llaveDelAjuste`): volver a capturarlo, aun en otro modal, no crea dos.
  */
 export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }: Props) {
   const { t } = useTranslation('staffPay')
@@ -112,12 +114,12 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const desdeAjuste = sumarMeses(hoyEnSede(venueTimezone), -MESES_AJUSTE_ATRAS)
   const fueraDeRango = fechaDestino < desdeAjuste
   const listo = !!persona && !!sede && monto !== undefined && motivo.trim().length >= MIN_MOTIVO && !fueraDeRango
+  // Lo que se manda, con el signo ya puesto: su huella decide si es el mismo ajuste que quedó en duda (D1).
+  const borrador: BorradorDeAjuste | null = listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim() } : null
+  const enDuda = !!borrador && !guardando && borradorEnDuda(borrador)
   // B13: con el formulario completo, la vista previa trae las devoluciones pendientes de esa persona (se descontarán solas en
   // un cierre). Sólo AVISA: si falla o tarda, el ajuste se guarda igual. La de otra persona (cambió la elección) no se pinta.
-  const vistaPrevia = useAdjustmentPreview(
-    listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim(), fecha: fechaDestino } : null,
-    open,
-  )
+  const vistaPrevia = useAdjustmentPreview(borrador ? { ...borrador, fecha: fechaDestino } : null, open)
   const avisoPendientes = listo && vistaPrevia.data?.staffId === persona?.staffId ? vistaPrevia.data?.avisoPendientes : undefined
 
   const elegirPersona = (item: SearchComboboxItem) => {
@@ -131,26 +133,34 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   }
 
   const guardar = async () => {
-    if (!listo || guardando || enVuelo.current) return
+    if (!borrador || guardando || enVuelo.current) return
     enVuelo.current = true
     setGuardando(true)
     setErrorServer(null)
+    // 🔴 D1: la clave se anota ANTES de tocar la red. Si este mismo borrador quedó en duda (aun en otro modal), viaja con SU
+    // clave: el servidor devuelve el que ya guardó en vez de crear otro.
+    const clave = claveDelBorrador(borrador, clientKey)
+    anotarBorrador(borrador, clave)
     try {
-      const r = await agregar.mutateAsync({
-        staffId: persona!.staffId,
-        sede,
-        amount: tipo === 'descuento' ? -monto! : monto!,
-        reason: motivo.trim(),
-        fecha: fechaDestino,
-        clientKey,
-      })
-      toast({ title: t('manualAdjust.saved', { start: formatCalendarDate(r.periodo.start), end: formatCalendarDate(r.periodo.end) }) })
+      const r = await agregar.mutateAsync({ ...borrador, fecha: fechaDestino, clientKey: clave })
+      soltarClave(clave)
+      const rango = { start: formatCalendarDate(r.periodo.start), end: formatCalendarDate(r.periodo.end) }
+      toast({ title: t(r.yaExistia ? 'manualAdjust.alreadySaved' : 'manualAdjust.saved', rango) })
       onOpenChange(false)
     } catch (err) {
       const status = (err as { response?: { status?: number } } | null)?.response?.status
-      // Un 400 (monto, motivo, FECHA_FUERA_DE_RANGO…) se dice junto al formulario; lo demás, en un aviso.
-      if (status === 400) setErrorServer(mensajeLegible(err) ?? t('errors.generic'))
-      else toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
+      if (status === undefined || status >= 500) {
+        // En duda (sin respuesta o 5xx): el modal NO se cierra, el borrador conserva su clave y el aviso en línea lo dice; el
+        // hook ya relee el periodo. Un 5xx que sí trae mensaje del servidor lo dice, además, en un aviso.
+        const mensaje = status === undefined ? null : mensajeLegible(err)
+        if (mensaje) toast({ title: mensaje, variant: 'destructive' })
+      } else {
+        // Con desenlace (4xx): no se guardó; ese borrador deja de estar en duda. Un 400 (monto, motivo, FECHA_FUERA_DE_RANGO…)
+        // se dice junto al formulario; lo demás, en un aviso.
+        soltarBorrador(borrador)
+        if (status === 400) setErrorServer(mensajeLegible(err) ?? t('errors.generic'))
+        else toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
+      }
     } finally {
       enVuelo.current = false
       setGuardando(false)
@@ -293,6 +303,12 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <p className="text-xs text-muted-foreground">{t('manualAdjust.reasonHint', { min: MIN_MOTIVO })}</p>
           </div>
         </section>
+        {enDuda && (
+          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-uncertain">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('manualAdjust.uncertain')}</span>
+          </div>
+        )}
         {(fueraDeRango || errorServer) && (
           <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
