@@ -99,11 +99,16 @@ export function useVenueTier(): {
   // 🔴 Cuando el servidor manda `grantedFeatureCodes`, ÉSA es la respuesta y nada más (Codex, 21-sep,
   // R4-8). Deshabilitar la otra consulta NO vacía su caché: unirlas dejaba ganar una concesión vieja
   // (una suelta ya cancelada) sobre la denegación fresca de `/plan-tier`.
+  // Sólo arreglos (E6a-fix F4): el paywall nunca tumba la pantalla que protege, y un texto no concede nada por sus letras.
   const grantedCodes = useMemo(
     () =>
       servidorTraeConcesiones
-        ? new Set(planTierInfo?.grantedFeatureCodes ?? [])
-        : new Set((featureStatus?.activeFeatures ?? []).filter(f => !f.grantedByBasePlan).map(f => f.feature.code)),
+        ? new Set(Array.isArray(planTierInfo?.grantedFeatureCodes) ? planTierInfo.grantedFeatureCodes : [])
+        : new Set(
+            (Array.isArray(featureStatus?.activeFeatures) ? featureStatus.activeFeatures : [])
+              .filter(f => !f.grantedByBasePlan)
+              .map(f => f.feature.code),
+          ),
     [servidorTraeConcesiones, planTierInfo, featureStatus],
   )
 
