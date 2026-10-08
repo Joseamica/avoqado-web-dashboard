@@ -46,6 +46,15 @@ describe('textos de pago por servicio', () => {
     }
     expect(tEs('orgPermission')).toContain('en todas las sedes de la organización')
   })
+  // E6a-fix3 C2: el bloqueo de las acciones de organización que piden «Configurar pago al personal» (niveles y asignaciones).
+  it('🔴 el bloqueo de configurar en todas las sedes nombra el permiso y a quién pedírselo, sin códigos internos', () => {
+    expect(tEs('orgConfigPermission')).toBe(
+      'Para esto necesitas el permiso «Configurar pago al personal» en todas las sedes de la organización. Pídeselo al dueño del negocio.',
+    )
+    expect(tEs('orgConfigPermission')).not.toMatch(/staffpay:/)
+    expect(tEn('orgConfigPermission')).toMatch(/Ask the business owner/)
+    expect(tEn('orgConfigPermission')).not.toMatch(/staffpay:/)
+  })
   it('un ajuste del recibo dice que su fecha es la de captura (QA defecto 9)', () => {
     expect(tEs('period.capturedOn', { fecha: '3 oct 2026' })).toBe('3 oct 2026 (captura)')
     expect(tEn('period.capturedOn', { fecha: 'Oct 3, 2026' })).toBe('Oct 3, 2026 (entered)')

@@ -648,9 +648,17 @@
     "cambiaDeSedeA": "To turn locations on or off, open this page from a location where you have the “Close periods and record payments” permission: {{sedes}}."
   },
   "orgPermission": "For this you need the «Close periods and record payments» permission in every location of the organization. Ask the business owner.",
+  "orgConfigPermission": "For this you need the “Manage staff pay” permission in every location of the organization. Ask the business owner.",
   "offline": {
     "willSend": "No connection: it will be sent when the network is back. If you cancel, nothing is recorded.",
     "willSendClose": "No connection: it will be sent when the network is back. If you close this window, the period is not closed.",
-    "willSendAdjustment": "No connection: it will be sent when the network is back. If you close this window, the adjustment is not saved."
+    "willSendAdjustment": "No connection: it will be sent when the network is back. If you close this window, the adjustment is not saved.",
+    "willSendSave": "No connection: it will be sent when the network is back. If you cancel sending, it is not saved.",
+    "willSendSaveClose": "No connection: it will be sent when the network is back. If you close this window, it is not saved.",
+    "willSendActivate": "No connection: it will be sent when the network is back. If you cancel, it is not activated.",
+    "willSendTips": "No connection: it will be sent when the network is back. If you cancel, nothing changes.",
+    "willSendSede": "No connection: it will be sent when the network is back. If you cancel, the location does not change.",
+    "willSendSettle": "No connection: it will be sent when the network is back. If you cancel, it is not settled.",
+    "cancelSend": "Cancel sending"
   }
 }

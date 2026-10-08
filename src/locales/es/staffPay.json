@@ -648,9 +648,17 @@
     "cambiaDeSedeA": "Para activar o desactivar sedes, entra desde una sede donde tengas el permiso «Cerrar periodos y registrar pagos»: {{sedes}}."
   },
   "orgPermission": "Para esto necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes de la organización. Pídeselo al dueño del negocio.",
+  "orgConfigPermission": "Para esto necesitas el permiso «Configurar pago al personal» en todas las sedes de la organización. Pídeselo al dueño del negocio.",
   "offline": {
     "willSend": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se registra.",
     "willSendClose": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se cierra el periodo.",
-    "willSendAdjustment": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se guarda el ajuste."
+    "willSendAdjustment": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se guarda el ajuste.",
+    "willSendSave": "Sin conexión: se enviará cuando vuelva la red. Si cancelas el envío, no se guarda.",
+    "willSendSaveClose": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se guarda.",
+    "willSendActivate": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se activa.",
+    "willSendTips": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se cambia.",
+    "willSendSede": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, la sede no cambia.",
+    "willSendSettle": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se liquida.",
+    "cancelSend": "Cancelar envío"
   }
 }

@@ -10,6 +10,7 @@ const m = vi.hoisted(() => ({
   update: vi.fn(),
   reglas: { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null } as Record<string, number | null>,
   can: vi.fn(),
+  access: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
@@ -37,6 +38,7 @@ vi.mock('@/components/ui/select', () => ({
 }))
 const PN_HC = [0, 430, 430, 430, 430, 460, 490, 530, 570, 610, 650]
 vi.mock('@/hooks/useStaffPay', () => ({
+  useStaffPayAccess: () => ({ data: m.access() }),
   useStaffPayLevels: () => ({ data: [{ id: 'hc', name: 'Head Coach', sortOrder: 0, archivedAt: null }] }),
   useStaffPayAssignments: () => ({ data: [] }),
   useStaffPayTables: () => ({ data: [{ id: 't1', name: 'Todas', productIds: [], archivedFrom: null, vigente: { id: 'v', effectiveFrom: '2026-10-01', revision: 1, countMode: 'BOOKED', maxCount: 10, cells: PN_HC.map((amount, count) => ({ payLevelId: 'hc', count, amount })), reglas: m.reglas } }] }),
@@ -56,6 +58,7 @@ describe('TablaDePagosTab', () => {
     vi.clearAllMocks()
     m.reglas = { ...APAGADAS }
     m.can.mockReturnValue(true)
+    m.access.mockReturnValue({})
     m.publish.mockResolvedValue({ clasesQueCambian: 14 })
     m.assign.mockResolvedValue({ clasesQueCambian: 3 })
   })
@@ -201,5 +204,19 @@ describe('TablaDePagosTab', () => {
     render(<TablaDePagosTab />)
     expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeEnabled()
     expect(screen.queryByText('rules.noPermission')).toBeNull()
+  })
+  // E6a-fix3 C2: asignar nivel exige «Configurar pago al personal» en todas las sedes (el 403 de niveles.service).
+  it('🔴 sin «Configurar pago al personal» en todas las sedes, asignar nivel se ve apagado y dice por qué', () => {
+    m.access.mockReturnValue({ puedeConfigurarOrganizacion: false })
+    render(<TablaDePagosTab />)
+    expect(screen.getAllByRole('combobox')[0]).toBeDisabled()
+    // Niveles y «Quién es qué» lo dicen cada uno en su sección.
+    expect(screen.getAllByText('orgConfigPermission')).toHaveLength(2)
+  })
+  it('con el permiso en todas las sedes, asignar nivel se puede', () => {
+    m.access.mockReturnValue({ puedeConfigurarOrganizacion: true })
+    render(<TablaDePagosTab />)
+    expect(screen.getAllByRole('combobox')[0]).toBeEnabled()
+    expect(screen.queryByText('orgConfigPermission')).toBeNull()
   })
 })

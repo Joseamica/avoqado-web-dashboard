@@ -18,6 +18,7 @@ import { useCreateTable, useStaffPayAssignments, useStaffPayLevels, useStaffPayT
 import { ampliar, cuadriculaDesdeCeldas, faltantes, rellenarHaciaAbajo, simular, type Cuadricula } from '../cuadricula'
 import { hoyEnSede } from '../hoyEnSede'
 import { erroresDeReglas, erroresVisibles, reglasDesdeVersion, reglasPayload, type ErrorRegla, type ReglasForm } from '../reglas'
+import { usePermisoDeConfigurar } from '../permisoDeConfigurar'
 import { AsignarNivelModal } from './AsignarNivelModal'
 import { NivelesSection } from './NivelesSection'
 import { PublicarTablaModal } from './PublicarTablaModal'
@@ -44,6 +45,7 @@ export function TablaDePagosTab() {
     staleTime: 60_000,
   })
   const crearTabla = useCreateTable()
+  const permisoNiveles = usePermisoDeConfigurar()
 
   const niveles = useMemo(() => qNiveles.data ?? [], [qNiveles.data])
   const asignaciones = qAsignaciones.data ?? []
@@ -190,7 +192,7 @@ export function TablaDePagosTab() {
                   <Select
                     value={nivelDe(m.staffId)?.payLevelId ?? ''}
                     onValueChange={payLevelId => pedirAsignacion(m.staffId, `${m.firstName} ${m.lastName}`.trim(), payLevelId)}
-                    disabled={activos.length === 0}
+                    disabled={activos.length === 0 || !permisoNiveles.puede}
                   >
                     <SelectTrigger className="w-48 cursor-pointer" aria-label={`${m.firstName} ${m.lastName}`}>
                       <SelectValue placeholder={t('who.noLevel')} />
@@ -200,6 +202,7 @@ export function TablaDePagosTab() {
                 </PermissionGate>
               </div>
             ))}
+            {permisoNiveles.falta && <p className="text-xs text-muted-foreground">{t('orgConfigPermission')}</p>}
           </>
         )}
       </section>

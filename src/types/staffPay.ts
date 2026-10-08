@@ -217,6 +217,11 @@ export interface AccesoDto {
    * propinas); la MISMA regla que el 403 del servidor. Opcional: un servidor previo no lo manda ⇒ se trata como `true` (hoy).
    */
   puedeAdministrarOrganizacion?: boolean
+  /**
+   * E6a-fix3 C2: tiene «Configurar pago al personal» (`staffpay:manage`) en TODAS las sedes de la organización con el plan: lo que
+   * exigen crear, renombrar o archivar niveles y asignar nivel. Misma regla que su 403. Opcional: servidor previo ⇒ `true`.
+   */
+  puedeConfigurarOrganizacion?: boolean
 }
 /** Pesos con 2 decimales, NETO. */
 export interface MontoDto { n: number; total: string }
