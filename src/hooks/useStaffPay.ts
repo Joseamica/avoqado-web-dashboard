@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
+import { useDebounce } from './useDebounce'
 import { staffPayService } from '@/services/staffPay.service'
-import type { AjusteClaseInput, AjusteManualInput, CeldaDto, LiquidarInput, PreviewLiquidacionDto } from '@/types/staffPay'
+import type { AjusteClaseInput, AjusteManualInput, AjustePreviewQuery, CeldaDto, LiquidarInput, PreviewLiquidacionDto } from '@/types/staffPay'
 import type { ReglasPayload } from '@/pages/StaffPay/reglas'
 
 export const staffPayKeys = {
@@ -297,6 +298,26 @@ export function useMarkPaid(periodId: string | null) {
 export function useAddAdjustment() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo()
   return useMutation({ mutationFn: (b: AjusteManualInput) => staffPayService.addAdjustment(venueId!, b), onSuccess: inv })
+}
+/**
+ * La vista previa del ajuste manual (B13), sólo con el formulario completo (`q`): trae las devoluciones pendientes de esa
+ * persona para avisar antes de guardar. Teclear no pide una por tecla (la llave se fija 300 ms después de la última); nunca se
+ * reusa (`staleTime`/`gcTime` 0); un 4xx no se reintenta. Al cambiar la llave conserva la anterior: quien la pinta compara
+ * `staffId` con la persona elegida.
+ */
+export function useAdjustmentPreview(q: AjustePreviewQuery | null, enabled = true) {
+  const { venueId } = useCurrentVenue()
+  const clave = useDebounce(q && enabled ? JSON.stringify(q) : null, 300)
+  return useQuery({
+    queryKey: [...staffPayKeys.all(venueId), 'adjustment-preview', clave],
+    queryFn: () => staffPayService.adjustmentPreview(venueId!, JSON.parse(clave!) as AjustePreviewQuery),
+    enabled: !!venueId && !!clave && !!q && enabled,
+    staleTime: 0,
+    gcTime: 0,
+    retry: (n, e) => n < 1 && (estado(e) ?? 500) >= 500,
+    refetchOnWindowFocus: false,
+    placeholderData: previo => previo,
+  })
 }
 
 /** Activar pago al personal: fija la periodicidad, la fecha de inicio y las sedes. Refresca acceso, periodos, sedes y reporte. */

@@ -12,7 +12,7 @@ vi.mock('@/context/AuthContext', () => ({
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({ formatCalendarDate: (d: string) => d, formatDateTime: (d: string) => d, venueTimezone: 'America/Mexico_City' }),
 }))
-vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: () => null }))
+vi.mock('../components/DesglosePersona', () => ({ DesglosePersona: ({ staffName }: { staffName: string }) => <div>desglose {staffName}</div> }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('../components/CerrarPeriodoModal', () => ({ CerrarPeriodoModal: ({ fecha }: { fecha: string }) => <div>cerrar-modal {fecha}</div> }))
 vi.mock('../components/AjusteManualModal', () => ({ AjusteManualModal: ({ fecha }: { fecha: string }) => <div>ajuste-modal {fecha}</div> }))
@@ -183,5 +183,55 @@ describe('PeriodoAbiertoTab', () => {
     render(<PeriodoAbiertoTab activa fecha="2026-10-01" />)
     expect(screen.getByText('period.columns.adjustments')).toBeInTheDocument()
     expect(screen.getByText(/-\$150\.00|−\$150\.00|\$-150\.00/)).toBeInTheDocument()
+  })
+
+  it('en vivo: comisiones y propinas barribles hoy, cada una en su columna (spec §11)', () => {
+    m.report.mockReturnValue({
+      data: {
+        ...base,
+        tarjetas: { ...base.tarjetas, comisiones: '90.00', propinas: '540.00' },
+        personas: { ...base.personas, items: [{ ...base.personas.items[0], comisiones: '90.00', propinas: '540.00' }] },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    render(<PeriodoAbiertoTab activa />)
+    expect(screen.getByText('period.columns.commissions')).toBeInTheDocument()
+    expect(screen.getByText('period.columns.tips')).toBeInTheDocument()
+    expect(screen.getByText('period.cards.tips')).toBeInTheDocument()
+    // Un pago sin «+»: lo que gana, como el total.
+    const fila = screen.getByText('Ana López').closest('tr')!
+    expect(fila).toHaveTextContent('$90.00')
+    expect(fila).toHaveTextContent('$540.00')
+    expect(fila).not.toHaveTextContent('+$')
+  })
+
+  it('sin comisiones ni propinas (o un server previo que no las manda) no hay tarjetas ni columnas vacías', () => {
+    render(<PeriodoAbiertoTab activa />)
+    for (const k of ['period.columns.commissions', 'period.columns.tips', 'period.cards.commissions', 'period.cards.tips']) expect(screen.queryByText(k)).toBeNull()
+  })
+
+  it('el nombre vacío o el literal «Persona dada de baja» se dicen «Persona dada de baja» traducido, también al abrir su desglose', () => {
+    const borrada = { ...base.personas.items[0], staffId: 's9', staffName: 'Persona dada de baja' }
+    const vacia = { ...base.personas.items[0], staffId: 's8', staffName: '' }
+    m.report.mockReturnValue({ data: { ...base, personas: { ...base.personas, items: [borrada, vacia] } }, isLoading: false, isError: false, refetch: vi.fn() })
+    render(<PeriodoAbiertoTab activa />)
+    expect(screen.queryByText('Persona dada de baja')).toBeNull()
+    expect(screen.getAllByText('period.formerStaff')).toHaveLength(2)
+    fireEvent.click(screen.getAllByRole('button', { name: 'period.detail' })[0])
+    expect(screen.getByText('desglose period.formerStaff')).toBeInTheDocument()
+  })
+
+  it('un 409 con texto del server (LECTURA_VENCIDA) dice ESE texto, no el genérico (pre-flight E5a #4)', () => {
+    const error = { response: { status: 409, data: { code: 'LECTURA_VENCIDA', message: 'La consulta tardó demasiado y se canceló; intenta de nuevo en un momento' } } }
+    m.report.mockReturnValue({ data: undefined, isLoading: false, isError: true, error, refetch: vi.fn() })
+    const { unmount } = render(<PeriodoAbiertoTab activa />)
+    expect(screen.getByRole('alert')).toHaveTextContent('La consulta tardó demasiado y se canceló; intenta de nuevo en un momento')
+    unmount()
+    // Con datos viejos en pantalla, el aviso de arriba también dice el texto del server.
+    m.report.mockReturnValue({ data: base, isLoading: false, isError: true, error, refetch: vi.fn() })
+    render(<PeriodoAbiertoTab activa />)
+    expect(screen.getByText('La consulta tardó demasiado y se canceló; intenta de nuevo en un momento')).toBeInTheDocument()
   })
 })

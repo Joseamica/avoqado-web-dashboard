@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
-import { useAddAdjustment, useStaffPayReport } from '@/hooks/useStaffPay'
+import { useAddAdjustment, useAdjustmentPreview, useStaffPayReport } from '@/hooks/useStaffPay'
 import { teamService } from '@/services/team.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -22,6 +22,8 @@ import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
 import { useFocoDeVuelta } from '../foco'
 import { A_MEDIO_ESCRIBIR, MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
+import { monto as montoTotal } from '../conSigno'
+import { cuandoSeDescuenta, hayPendientes, lineaDePendiente } from '../pendientes'
 
 interface Props {
   open: boolean
@@ -110,6 +112,13 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const desdeAjuste = sumarMeses(hoyEnSede(venueTimezone), -MESES_AJUSTE_ATRAS)
   const fueraDeRango = fechaDestino < desdeAjuste
   const listo = !!persona && !!sede && monto !== undefined && motivo.trim().length >= MIN_MOTIVO && !fueraDeRango
+  // B13: con el formulario completo, la vista previa trae las devoluciones pendientes de esa persona (se descontarán solas en
+  // un cierre). Sólo AVISA: si falla o tarda, el ajuste se guarda igual. La de otra persona (cambió la elección) no se pinta.
+  const vistaPrevia = useAdjustmentPreview(
+    listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim(), fecha: fechaDestino } : null,
+    open,
+  )
+  const avisoPendientes = listo && vistaPrevia.data?.staffId === persona?.staffId ? vistaPrevia.data?.avisoPendientes : undefined
 
   const elegirPersona = (item: SearchComboboxItem) => {
     setErrorServer(null)
@@ -161,6 +170,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
       {t('manualAdjust.save')}
     </Button>,
   )
+  const pendientes = hayPendientes(avisoPendientes) ? avisoPendientes : null
   const destino =
     etiqueta ??
     (leido ? nombrePeriodo(leido.periodo, leido.periodo.periodicidad) : t('manualAdjust.periodWithDate', { fecha: formatCalendarDate(fechaDestino) }))
@@ -302,6 +312,28 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <p className="text-muted-foreground">{t('manualAdjust.summaryEmpty')}</p>
           )}
           <p className="mt-1 text-muted-foreground">{t('manualAdjust.goesTo')}</p>
+          {pendientes && persona && (
+            <div role="note" className="mt-3 space-y-1 rounded-lg border border-amber-500/40 p-3 text-amber-800 dark:text-amber-300" data-tour="staffpay-adjust-pending">
+              {pendientes.porDestino.length === 1 ? (
+                <p>
+                  {t('manualAdjust.pendingOne', {
+                    persona: persona.nombre,
+                    monto: montoTotal(pendientes.total),
+                    cuando: cuandoSeDescuenta(t, pendientes.porDestino[0].seDescuenta, nombrePeriodo),
+                  })}
+                </p>
+              ) : (
+                <>
+                  <p>{t('manualAdjust.pendingMany', { persona: persona.nombre, monto: montoTotal(pendientes.total) })}</p>
+                  <ul className="list-disc space-y-0.5 pl-5">
+                    {pendientes.porDestino.map((d, i) => (
+                      <li key={i}>{lineaDePendiente(t, d, nombrePeriodo)}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
         </section>
       </div>
       {accion.abajo}

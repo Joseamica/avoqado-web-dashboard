@@ -128,7 +128,9 @@
       "total": "Total",
       "classes": "Classes",
       "people": "People",
-      "exceptions": "Exceptions"
+      "exceptions": "Exceptions",
+      "commissions": "Commissions",
+      "tips": "Tips"
     },
     "exceptionsBanner_one": "{{count}} class cannot be paid yet. Resolve it before closing.",
     "exceptionsBanner_other": "{{count}} classes cannot be paid yet. Resolve them before closing.",
@@ -141,7 +143,9 @@
       "avgSeats": "Average spots",
       "total": "Total",
       "venue": "Venue",
-      "adjustments": "Adjustments"
+      "adjustments": "Adjustments",
+      "commissions": "Commissions",
+      "tips": "Tips"
     },
     "detail": "Breakdown",
     "capturedOn": "{{fecha}} (entered)",
@@ -205,7 +209,22 @@
     "receiptExportPartial": "The PDF and Excel include only the venues you can see.",
     "loadMoreError": "Could not load more.",
     "negativeShort": "Negative balance",
-    "negativeBalance": "Negative balance: they were overpaid in earlier periods. Avoqado doesn't charge or deduct it on its own."
+    "negativeBalance": "Negative balance: they were overpaid in earlier periods. Avoqado doesn't charge or deduct it on its own.",
+    "formerStaff": "Former staff member",
+    "salesSection": "Commissions and tips",
+    "detailSummaryTotal": "Total {{total}}",
+    "byType": {
+      "CLASE": "Classes",
+      "COMISION": "Commissions",
+      "PROPINA": "Tips",
+      "DIFERENCIA": "Differences",
+      "AJUSTE": "Adjustments"
+    },
+    "pendingTitle": "Refunds that will be deducted automatically",
+    "pendingHelp": "They are not in the total above: each one is deducted in the closing it names.",
+    "pendingLine": "{{monto}} will be deducted automatically {{cuando}}.",
+    "pendingAtClose": "when the {{periodo}} period closes",
+    "pendingAfter": "when a period after {{periodo}} closes (that one is already closed)"
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
@@ -433,7 +452,9 @@
     "selected": "You chose {{persona}}.",
     "periodWithDate": "the open period that includes {{fecha}}",
     "amountInvalid": "Enter an amount above $0 and up to $1,000,000.00, with at most 2 decimals.",
-    "outOfRange": "An adjustment can only go to a period in the last 12 months (from {{desde}})."
+    "outOfRange": "An adjustment can only go to a period in the last 12 months (from {{desde}}).",
+    "pendingOne": "{{persona}} has {{monto}} in refunds that will be deducted automatically {{cuando}}. If this adjustment is for that, don’t record it.",
+    "pendingMany": "{{persona}} has {{monto}} in refunds that will be deducted automatically. If this adjustment is for that, don’t record it:"
   },
   "differences": {
     "title": "Differences to settle",

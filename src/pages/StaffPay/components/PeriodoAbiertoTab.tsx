@@ -15,8 +15,11 @@ import { AjusteManualModal } from './AjusteManualModal'
 import { ExcepcionesSheet, HuerfanasSheet, TABLA_PERIODO } from './ListasDelPeriodo'
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
-import { conSigno, monto } from '../conSigno'
+import { conSigno, hayMonto, monto } from '../conSigno'
 import { ANCLA_FOCO } from '../foco'
+import { mensajeLegible } from '../rangos'
+import { nombreVisible } from '../personaBorrada'
+import { TarjetasDelPeriodo } from './TarjetasDelPeriodo'
 
 const LIMITE = 50
 const TODAS = '__all__'
@@ -50,7 +53,7 @@ export function PeriodoAbiertoTab({
   const [ajusteAbierto, setAjusteAbierto] = useState(false)
   // Las sedes del filtro salen del reporte SIN filtro: con `sede` puesto, `venueIds` ya viene recortado a esa sola.
   const [sedesConocidas, setSedesConocidas] = useState<string[]>([])
-  const { data, isLoading, isError, refetch } = useStaffPayReport({ offset, limit: LIMITE, sede, fecha }, activa)
+  const { data, isLoading, isError, error, refetch } = useStaffPayReport({ offset, limit: LIMITE, sede, fecha }, activa)
 
   useEffect(() => {
     if (data && sede === undefined) setSedesConocidas(data.venueIds)
@@ -80,7 +83,7 @@ export function PeriodoAbiertoTab({
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div className="flex items-start gap-2 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-            <span>{t('period.error')}</span>
+            <span>{mensajeLegible(error) ?? t('period.error')}</span>
           </div>
           <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
             {t('period.retry')}
@@ -115,6 +118,10 @@ export function PeriodoAbiertoTab({
 
   const tj = data.tarjetas
   const total = data.personas.total
+  // Fase 3 (spec §11): columnas y tarjetas de comisiones y propinas sólo cuando hay; un tipo vacío no aparece.
+  const hayComisiones = hayMonto(tj.comisiones, items.map(p => p.comisiones))
+  const hayPropinas = hayMonto(tj.propinas, items.map(p => p.propinas))
+  const nombre = (n: string) => nombreVisible(t, n)
   // El periodo de hoy no se puede cerrar hasta que termine: se dice desde cuándo, en vez de abrir un cierre bloqueado.
   const terminado = hoyEnSede(venueTimezone) > data.periodo.end
   const diaSiguiente = (d: string) => {
@@ -164,29 +171,22 @@ export function PeriodoAbiertoTab({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {(
-          [
-            [t('period.cards.total'), monto(tj.total)],
-            [t('period.cards.classes'), tj.clases],
-            [t('period.cards.people'), tj.personas],
-            [t('period.cards.exceptions'), tj.excepciones],
-          ] as const
-        ).map(([label, value]) => (
-          <Card key={String(label)} className="border-input">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-xl font-bold">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <TarjetasDelPeriodo
+        tarjetas={[
+          [t('period.cards.total'), monto(tj.total)],
+          ...(hayComisiones ? [[t('period.cards.commissions'), monto(tj.comisiones ?? '0')] as const] : []),
+          ...(hayPropinas ? [[t('period.cards.tips'), monto(tj.propinas ?? '0')] as const] : []),
+          [t('period.cards.classes'), tj.clases],
+          [t('period.cards.people'), tj.personas],
+          [t('period.cards.exceptions'), tj.excepciones],
+        ]}
+      />
 
       {isError && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-input p-3 text-sm">
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-            <span>{t('period.error')}</span>
+            <span>{mensajeLegible(error) ?? t('period.error')}</span>
           </div>
           <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
             {t('period.retry')}
@@ -243,6 +243,8 @@ export function PeriodoAbiertoTab({
                 <th className="hidden md:table-cell">{t('period.columns.level')}</th>
                 <th className="hidden md:table-cell">{t('period.columns.venue')}</th>
                 <th className="hidden text-right md:table-cell">{t('period.columns.classes')}</th>
+                {hayComisiones && <th className="hidden text-right md:table-cell">{t('period.columns.commissions')}</th>}
+                {hayPropinas && <th className="hidden text-right md:table-cell">{t('period.columns.tips')}</th>}
                 <th className="hidden text-right md:table-cell">{t('period.columns.avgSeats')}</th>
                 <th className="hidden text-right md:table-cell">{t('period.columns.adjustments')}</th>
                 <th className="text-right">{t('period.columns.total')}</th>
@@ -253,13 +255,15 @@ export function PeriodoAbiertoTab({
               {items.map(p => (
                 <tr key={p.staffId} className="border-b border-border/50">
                   <td className="py-2 font-medium">
-                    {p.staffName}
+                    {nombre(p.staffName)}
                     {/* Negativo: lo liquidado de periodos anteriores supera lo de éste (QA B-6). La explicación va en el desglose. */}
                     {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
                   </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
                   <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="hidden text-right md:table-cell">{p.clases}</td>
+                  {hayComisiones && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.comisiones ?? 0) !== 0 ? monto(p.comisiones!) : '—'}</td>}
+                  {hayPropinas && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.propinas ?? 0) !== 0 ? monto(p.propinas!) : '—'}</td>}
                   <td className="hidden text-right md:table-cell">{p.clases === 0 ? '—' : p.promedioLugares}</td>
                   <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
                   <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
@@ -268,7 +272,7 @@ export function PeriodoAbiertoTab({
                       variant="ghost"
                       size="sm"
                       className="cursor-pointer"
-                      onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName, clases: p.clases, total: p.total })}
+                      onClick={() => setPersona({ staffId: p.staffId, staffName: nombre(p.staffName), clases: p.clases, total: p.total })}
                     >
                       {t('period.detail')}
                     </Button>

@@ -20,8 +20,10 @@ export interface ReportePeriodoDto {
   periodo: { start: string; end: string; periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; id?: string | null; estado?: 'OPEN' | 'CLOSED' }
   parcial: boolean; truncado: boolean; venueIds: string[]
   /** `pagadas` (fase 2) es del periodo entero, no de la página que se ve (Codex R1-23). */
-  tarjetas: { total: string; clases: number; personas: number; excepciones: number; excluidas: number; pagadas?: number }
-  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; pagadoEn?: string | null }>; total: number; offset: number; limit: number }
+  /** Fase 3 (spec §11): `comisiones` y `propinas` netas, sumadas en la base; opcionales (un server previo no las manda). */
+  tarjetas: { total: string; clases: number; personas: number; excepciones: number; excluidas: number; pagadas?: number; comisiones?: string; propinas?: string }
+  /** `staffName` de una persona borrada puede llegar vacío o con el literal del server «Persona dada de baja». `total` ya incluye comisiones y propinas. */
+  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; comisiones?: string; propinas?: string; pagadoEn?: string | null }>; total: number; offset: number; limit: number }
   huerfanas: number
 }
 export interface PaginaCursor<T> { items: T[]; nextCursor: string | null }
@@ -90,7 +92,9 @@ export interface PreviewCierreDto {
 export interface ResultadoCierreDto { periodId: string; start: string; end: string; venueIds: string[]; personas: number; total: string; huella: string; yaCerrado: boolean }
 export interface PeriodoListadoDto { id: string | null; start: string; end: string; estado: 'OPEN' | 'CLOSED'; personas: number; pagadas: number; total: string }
 export interface ListaPeriodosDto { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; puedeCambiarPeriodicidad: boolean; items: PeriodoListadoDto[]; antesDe: string | null }
-export interface RenglonReciboDto { tipo: 'CLASE' | 'DIFERENCIA' | 'AJUSTE'; fecha: string; hora: string | null; sede: string; concepto: string; lugares: number | null; monto: string }
+/** Fase 3 (B5): comisiones y propinas son renglones del recibo; las propinas vienen agrupadas por día (sin hora). */
+export type TipoRenglon = 'CLASE' | 'DIFERENCIA' | 'AJUSTE' | 'COMISION' | 'PROPINA'
+export interface RenglonReciboDto { tipo: TipoRenglon; fecha: string; hora: string | null; sede: string; concepto: string; lugares: number | null; monto: string }
 export interface ReciboDto {
   persona: string
   periodo: { id: string | null; start: string; end: string; estado: 'OPEN' | 'CLOSED' }
@@ -102,6 +106,10 @@ export interface ReciboDto {
   siguiente: string | null
   pagadoEn: string | null
   parcial: boolean
+  /** Fase 3: total por tipo del recibo ENTERO (lo suma la base); un tipo sin renglones no viene. Opcional: server previo. */
+  totalesPorTipo?: Partial<Record<TipoRenglon, string>>
+  /** B12/B13: devoluciones de esta persona que se descontarán solas en OTRO cierre. null en uno cerrado y en las páginas 2+. */
+  pendientes?: DevolucionesPendientesDto | null
 }
 /** Lo que registraría «marcar pagado» (Codex bloque A #6): de TODOS los pendientes, o del de esa persona. */
 export interface PreviewPagadoDto {
@@ -115,6 +123,14 @@ export interface PreviewPagadoDto {
   huella: string
 }
 export interface AjusteManualInput { sede: string; staffId: string; amount: number; reason: string; fecha?: string; clientKey: string }
+/** Lo que se mandaría al guardar el ajuste (B13: `GET /adjustments/preview` lo valida igual que el POST). */
+export interface AjustePreviewQuery { sede: string; staffId: string; amount: number; reason: string; fecha?: string }
+/** B13: el ajuste tal como se guardaría y, aparte (fuera de su huella), las devoluciones pendientes de esa persona. */
+export interface AjustePreviewDto {
+  periodo: { start: string; end: string; estado?: 'OPEN' | 'CLOSED' }
+  staffId: string; persona: string; sede: string; sedeNombre: string; amount: string; reason: string; huella: string
+  avisoPendientes: DevolucionesPendientesDto
+}
 export interface AjusteManualDto { id: string; periodId: string; periodo: { start: string; end: string }; staffId: string; sede: string; amount: string; reason: string; yaExistia: boolean }
 export interface LineaContabilizadaDto { concepto: 'SERVICE' | 'RECONCILE'; staffId: string; staffName: string; monto: string; periodo: { start: string; end: string }; pagadoEn: string | null }
 

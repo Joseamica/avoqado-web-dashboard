@@ -3,6 +3,8 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import es from '@/locales/es/staffPay.json'
 import en from '@/locales/en/staffPay.json'
 import { textoDeCuenta } from '../cuenta'
+import { cuandoSeDescuenta, lineaDePendiente } from '../pendientes'
+import { nombreVisible } from '../personaBorrada'
 
 /** Los textos de verdad (no las llaves): singular/plural, una sola palabra para «pagados» y nada de «Muy pronto». */
 const i18n = i18next.createInstance()
@@ -120,7 +122,7 @@ describe('textos de pago por servicio', () => {
     const llaves = (o: unknown, pre = ''): string[] =>
       o && typeof o === 'object' ? Object.entries(o).flatMap(([k, v]) => llaves(v, `${pre}${k}.`)) : [pre.slice(0, -1)]
     // Sin el grupo, `llaves(undefined)` sale igual en los dos idiomas: primero se exige que exista.
-    for (const g of ['activation', 'tips', 'sedes', 'rules'] as const) {
+    for (const g of ['activation', 'tips', 'sedes', 'rules', 'period', 'manualAdjust'] as const) {
       expect(llaves(es[g]).length).toBeGreaterThan(1)
       expect(llaves(en[g]).sort()).toEqual(llaves(es[g]).sort())
     }
@@ -185,5 +187,31 @@ describe('textos de pago por servicio', () => {
     expect(tEs('sedes.aviso.mas', { count: 1 })).toBe('y 1 sede más')
     // Nunca «de este periodo»: lo que está fuera puede venir de periodos anteriores sin cerrar (ruling progress.md:309).
     for (const texto of [JSON.stringify(es.sedes), JSON.stringify(en.sedes)]) expect(texto).not.toMatch(/de este periodo|this period/i)
+  })
+
+  it('recibo de la fase 3 (E5a): persona dada de baja, total sin clases, tipos y devoluciones pendientes en español natural', () => {
+    expect(tEs('period.formerStaff')).toBe('Persona dada de baja')
+    expect(tEn('period.formerStaff')).toBe('Former staff member')
+    // El literal del server se traduce; un nombre real, no.
+    expect(nombreVisible(tEn, 'Persona dada de baja')).toBe('Former staff member')
+    expect(nombreVisible(tEn, '  ')).toBe('Former staff member')
+    expect(nombreVisible(tEn, null)).toBe('Former staff member')
+    expect(nombreVisible(tEn, 'Ana López')).toBe('Ana López')
+    expect(tEs('period.detailSummaryTotal', { total: '$730.00' })).toBe('Total $730.00')
+    expect(tEs('period.salesSection')).toBe('Comisiones y propinas')
+    expect(tEs('period.byType.COMISION')).toBe('Comisiones')
+    expect(tEn('period.byType.PROPINA')).toBe('Tips')
+    const nombre = (p: { start: string }) => (p.start === '2026-10-01' ? 'octubre de 2026' : 'septiembre de 2026')
+    const alCerrar = { seDescuenta: { tipo: 'AL_CERRAR' as const, periodo: { start: '2026-10-01', end: '2026-10-31' } }, n: 2, total: '-50.00', porSede: [] }
+    const despues = { seDescuenta: { tipo: 'PERIODO_POSTERIOR_A' as const, origen: { start: '2026-09-01', end: '2026-09-30' } }, n: 1, total: '-30.00', porSede: [] }
+    expect(lineaDePendiente(tEs, alCerrar, nombre)).toBe('−$50.00 se descontará solo al cerrar el periodo de octubre de 2026.')
+    expect(lineaDePendiente(tEs, despues, nombre)).toBe('−$30.00 se descontará solo al cerrar un periodo posterior al de septiembre de 2026 (ése ya se cerró).')
+    expect(lineaDePendiente(tEn, alCerrar, () => 'October 2026')).toBe('−$50.00 will be deducted automatically when the October 2026 period closes.')
+    expect(
+      tEs('manualAdjust.pendingOne', { persona: 'Carla QA', monto: '−$50.00', cuando: cuandoSeDescuenta(tEs, alCerrar.seDescuenta, nombre) }),
+    ).toBe('Carla QA tiene −$50.00 en devoluciones que se descontarán solas al cerrar el periodo de octubre de 2026. Si este ajuste es por eso, no lo registres.')
+    expect(tEs('manualAdjust.pendingMany', { persona: 'Carla QA', monto: '−$80.00' })).toBe(
+      'Carla QA tiene −$80.00 en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:',
+    )
   })
 })

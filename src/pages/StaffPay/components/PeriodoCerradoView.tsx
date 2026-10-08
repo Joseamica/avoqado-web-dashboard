@@ -21,11 +21,13 @@ import { useDifferences, useMarkPaid, usePaidPreview, useStaffPayReport } from '
 import { useVenueDateTime } from '@/utils/datetime'
 import { useNombreSede } from '../useNombreSede'
 import { hoyEnSede } from '../hoyEnSede'
-import { conSigno, monto } from '../conSigno'
+import { conSigno, hayMonto, monto } from '../conSigno'
 import { TABLA_PERIODO } from './ListasDelPeriodo'
 import { ANCLA_FOCO, useFocoDeVuelta } from '../foco'
 import { mensajeLegible, sinRespuesta } from '../rangos'
 import { DesglosePersona } from './DesglosePersona'
+import { TarjetasDelPeriodo } from './TarjetasDelPeriodo'
+import { nombreVisible } from '../personaBorrada'
 import { AjusteManualModal } from './AjusteManualModal'
 import { DiferenciasSection } from './DiferenciasSection'
 import { ID_DIFERENCIAS } from './LiquidarDialog'
@@ -53,7 +55,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const { formatDate, formatCalendarDate, venueTimezone } = useVenueDateTime()
   const nombreSede = useNombreSede()
   const [offset, setOffset] = useState(0)
-  const { data: crudo, isLoading, isError, isPlaceholderData, refetch } = useStaffPayReport({ offset, limit: LIMITE, fecha })
+  const { data: crudo, isLoading, isError, error, isPlaceholderData, refetch } = useStaffPayReport({ offset, limit: LIMITE, fecha })
   // 🔴 Codex R1-2: sólo los datos de ESTE periodo; mostrar septiembre y marcar pagado agosto sería pagar el mes equivocado.
   // El hook sólo conserva lo previo dentro del mismo periodo (paginar): mientras llega la página, no se marcan pagos.
   // `estado`: recién cerrado, la caché todavía puede traer el reporte EN VIVO de este mismo periodo (misma llave).
@@ -84,7 +86,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div className="flex items-start gap-2 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-            <span>{t('period.error')}</span>
+            <span>{mensajeLegible(error) ?? t('period.error')}</span>
           </div>
           <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
             {t('period.retry')}
@@ -113,6 +115,10 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const pendientes = Math.max(0, tj.personas - pagadas)
   const items = data.personas.items
   const total = data.personas.total
+  // Fase 3 (spec §11): columnas y tarjetas de comisiones y propinas sólo cuando hay; un tipo vacío no aparece.
+  const hayComisiones = hayMonto(tj.comisiones, items.map(p => p.comisiones))
+  const hayPropinas = hayMonto(tj.propinas, items.map(p => p.propinas))
+  const nombre = (n: string) => nombreVisible(t, n)
   const ocupado = isPlaceholderData || marcar.isPending
 
   const vista = previewPago.data
@@ -202,23 +208,16 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {(
-          [
-            [t('period.cards.total'), monto(tj.total)],
-            [t('period.cards.classes'), tj.clases],
-            [t('period.cards.people'), tj.personas],
-            [t('closed.paidCard'), t('closed.paidOf', { pagadas, personas: tj.personas })],
-          ] as const
-        ).map(([label, value]) => (
-          <Card key={String(label)} className="border-input">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-xl font-bold">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <TarjetasDelPeriodo
+        tarjetas={[
+          [t('period.cards.total'), monto(tj.total)],
+          ...(hayComisiones ? [[t('period.cards.commissions'), monto(tj.comisiones ?? '0')] as const] : []),
+          ...(hayPropinas ? [[t('period.cards.tips'), monto(tj.propinas ?? '0')] as const] : []),
+          [t('period.cards.classes'), tj.clases],
+          [t('period.cards.people'), tj.personas],
+          [t('closed.paidCard'), t('closed.paidOf', { pagadas, personas: tj.personas })],
+        ]}
+      />
 
       {puedePagar ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -261,6 +260,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                 <th className="hidden md:table-cell">{t('period.columns.level')}</th>
                 <th className="hidden md:table-cell">{t('period.columns.venue')}</th>
                 <th className="hidden text-right md:table-cell">{t('period.columns.classes')}</th>
+                {hayComisiones && <th className="hidden text-right md:table-cell">{t('period.columns.commissions')}</th>}
+                {hayPropinas && <th className="hidden text-right md:table-cell">{t('period.columns.tips')}</th>}
                 <th className="hidden text-right md:table-cell">{t('period.columns.adjustments')}</th>
                 <th className="text-right">{t('period.columns.total')}</th>
                 <th className="hidden md:table-cell">{t('closed.payment')}</th>
@@ -271,13 +272,15 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
               {items.map(p => (
                 <tr key={p.staffId} className="border-b border-border/50">
                   <td className="py-2 font-medium">
-                    {p.staffName}
+                    {nombre(p.staffName)}
                     {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
                     <span className="mt-1 block font-normal md:hidden">{estadoDePago(p.pagadoEn)}</span>
                   </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
                   <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="hidden text-right md:table-cell">{p.clases}</td>
+                  {hayComisiones && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.comisiones ?? 0) !== 0 ? monto(p.comisiones!) : '—'}</td>}
+                  {hayPropinas && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.propinas ?? 0) !== 0 ? monto(p.propinas!) : '—'}</td>}
                   <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
                   <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
                   <td className="hidden whitespace-nowrap md:table-cell">{estadoDePago(p.pagadoEn)}</td>
@@ -287,8 +290,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                         variant="ghost"
                         size="sm"
                         className="cursor-pointer"
-                        aria-label={t('period.detailTitle', { name: p.staffName })}
-                        onClick={() => setPersona({ staffId: p.staffId, staffName: p.staffName, clases: p.clases, total: p.total })}
+                        aria-label={t('period.detailTitle', { name: nombre(p.staffName) })}
+                        onClick={() => setPersona({ staffId: p.staffId, staffName: nombre(p.staffName), clases: p.clases, total: p.total })}
                       >
                         {t('period.detail')}
                       </Button>
@@ -298,8 +301,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                           size="sm"
                           className="cursor-pointer"
                           disabled={ocupado}
-                          aria-label={t('closed.markPaidFor', { nombre: p.staffName })}
-                          onClick={() => setConfirmar({ staffId: p.staffId, nombre: p.staffName, total: p.total })}
+                          aria-label={t('closed.markPaidFor', { nombre: nombre(p.staffName) })}
+                          onClick={() => setConfirmar({ staffId: p.staffId, nombre: nombre(p.staffName), total: p.total })}
                           data-tour="staffpay-closed-mark-paid"
                         >
                           {t('closed.markPaid')}

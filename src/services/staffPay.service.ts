@@ -1,6 +1,6 @@
 import api from '@/api'
 import type { ReglasPayload } from '@/pages/StaffPay/reglas'
-import type { AccesoDto, AjusteClaseInput, AjusteManualDto, AjusteManualInput, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, EstadoSedesDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, ResultadoVentanaDto, SimulacionVigenciaDto, TablaDto, VistaPreviaParticipacionDto } from '@/types/staffPay'
+import type { AccesoDto, AjusteClaseInput, AjusteManualDto, AjusteManualInput, AjustePreviewDto, AjustePreviewQuery, AsignacionVigenteDto, CeldaDto, ClaseValoradaDto, EstadoSedesDto, LiquidarInput, ListaPeriodosDto, NivelDto, PagoDeClaseDto, PaginaCursor, PaginaDiferenciasDto, PaginaOffset, PreviewCierreDto, PreviewLiquidacionDto, PreviewPagadoDto, ReciboDto, ReportePeriodoDto, ReservaHuerfanaDto, ResultadoCierreDto, ResultadoLiquidacionDto, ResultadoVentanaDto, SimulacionVigenciaDto, TablaDto, VistaPreviaParticipacionDto } from '@/types/staffPay'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/staff-pay`
 
@@ -50,6 +50,8 @@ export const staffPayService = {
   async paidPreview(venueId: string, periodId: string, staffId?: string): Promise<PreviewPagadoDto> { return (await api.get(`${base(venueId)}/periods/${periodId}/paid-preview`, { params: staffId ? { staffId } : {} })).data },
   async markPaid(venueId: string, periodId: string, body: { staffId?: string; nota?: string; huellaEsperada?: string }): Promise<{ marcados: number }> { return (await api.post(`${base(venueId)}/periods/${periodId}/paid`, body)).data },
   async addAdjustment(venueId: string, body: AjusteManualInput): Promise<AjusteManualDto> { return (await api.post(`${base(venueId)}/adjustments`, body)).data },
+  /** B13: el ajuste como se guardaría y las devoluciones pendientes de esa persona. GET: la suplantación sólo permite leer. */
+  async adjustmentPreview(venueId: string, q: AjustePreviewQuery): Promise<AjustePreviewDto> { return (await api.get(`${base(venueId)}/adjustments/preview`, { params: q })).data },
   /** Con `sede`, renglones, total y cantidad son SÓLO de esa sede (Codex bloque A #5); la exportación no la acepta. */
   async receipt(venueId: string, staffId: string, fecha: string, p: { cursor?: string; limit: number; sede?: string }): Promise<ReciboDto> {
     const { sede, ...resto } = p
