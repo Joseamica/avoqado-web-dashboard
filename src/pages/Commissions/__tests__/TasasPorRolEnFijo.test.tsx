@@ -14,7 +14,7 @@ import EditConfigDialog from '../components/EditConfigDialog'
 import StepConfirm from '../components/wizard/StepConfirm'
 import type { WizardData } from '../components/wizard/CreateCommissionWizard'
 
-const m = vi.hoisted(() => ({ mutateAsync: vi.fn(async () => ({})) }))
+const m = vi.hoisted(() => ({ mutateAsync: vi.fn(async (_input: unknown) => ({})) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
