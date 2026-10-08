@@ -14,7 +14,7 @@ import { LiquidarDialog, MotivoPorResolver } from '@/pages/StaffPay/components/L
 import { porPersona, useCausaDiferencia } from '@/pages/StaffPay/diferencias'
 import { ANCLA_FOCO, soltarFocoAlAbrir } from '@/pages/StaffPay/foco'
 import { periodicidadDe, useNombrePeriodo } from '@/pages/StaffPay/useNombrePeriodo'
-import type { ReglaDeClase } from '@/types/staffPay'
+import { textoDeRegla } from '@/pages/StaffPay/textoDeRegla'
 import { AjustePagoClaseModal, type ModoAjuste } from './AjustePagoClaseModal'
 
 /** Excepciones cuya salida está en la tabla de pagos (nivel, tabla o celda). */
@@ -79,16 +79,6 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   // Cancelada tarde (spec §6.6): se paga la fila de 0 lugares. Un conteo corregido sigue en la fila pero no aplica: no se
   // dicen lugares ni «el sistema contó» (pre-flight E4 #4).
   const canceladaTarde = p.regla?.tipo === 'CANCELACION_TARDIA'
-  // Por qué cambió el monto: decide SÓLO `regla.tipo`; el bono sale de `regla.bono`. Con 0 h de aviso (cambio o cancelación
-  // después del inicio) el server dice «menos de 1 h» (valoracion.ts:15): nunca «0 h antes».
-  const textoDeRegla = (r: ReglaDeClase) =>
-    r.tipo === 'SUPLENCIA'
-      ? r.horas < 1
-        ? t('classCard.coverBonusUnderHour', { monto: conSigno(r.bono) })
-        : t('classCard.coverBonus', { horas: r.horas, monto: conSigno(r.bono) })
-      : r.horas < 1
-        ? t('classCard.lateCancelUnderHour')
-        : t('classCard.lateCancel', { horas: r.horas })
   const nombre = (x: { start: string; end: string }) => nombrePeriodo(x, periodicidadDe(x))
   const diferencia = debeRevisar ? dif.data : undefined
   // Por PERSONA, no el total: una sustitución de $480 por $480 suma cero y aun así a cada una le toca algo (Codex R1-19).
@@ -199,7 +189,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             {p.estado === 'OK' ? (
               <>
                 <p className="text-2xl font-bold">{Currency(Number(p.monto))}</p>
-                {p.regla && <p className="text-xs text-muted-foreground">{textoDeRegla(p.regla)}</p>}
+                {p.regla && <p className="text-xs text-muted-foreground">{textoDeRegla(t, p.regla)}</p>}
               </>
             ) : (
               <div className="space-y-1">

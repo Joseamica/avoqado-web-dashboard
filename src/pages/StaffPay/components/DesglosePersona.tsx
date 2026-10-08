@@ -22,6 +22,7 @@ import { useFocoDeVuelta } from '../foco'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hayPendientes, lineaDePendiente } from '../pendientes'
 import { nombreVisible } from '../personaBorrada'
+import { porFecha, textoDeRegla } from '../textoDeRegla'
 
 /** Orden fijo de los totales por tipo (no el del JSON): primero lo que se gana, luego lo que lo corrige. */
 const ORDEN_TIPOS: TipoRenglon[] = ['CLASE', 'COMISION', 'PROPINA', 'DIFERENCIA', 'AJUSTE']
@@ -59,7 +60,8 @@ export function DesglosePersona({
   const nombreSede = useNombreSede()
   const foco = useFocoDeVuelta()
   const q = useStaffPayDetail(staffId, sede, fecha, !cerrado)
-  const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
+  // Por fecha, como el recibo cerrado (E6a-fix F14): el cursor del servidor va por sede e id.
+  const filas = useMemo(() => unirClases(q.data?.pages).sort(porFecha), [q.data])
   // El recibo se pide siempre que haya `fecha`: en un periodo cerrado ES el desglose; en uno abierto aporta los ajustes.
   // Con el MISMO filtro de sede que las clases y el encabezado (Codex bloque A #5): si no, los ajustes de otra sede se
   // sumarían a la vista de ésta. La exportación sí va sin sede (su aviso lo dice).
@@ -68,6 +70,9 @@ export function DesglosePersona({
   // Fase 3 (spec §11): comisiones y propinas son pago, no ajustes; su sección va aparte.
   const ventas = renglones.filter(r => r.tipo === 'COMISION' || r.tipo === 'PROPINA')
   const ajustes = renglones.filter(r => r.tipo === 'DIFERENCIA' || r.tipo === 'AJUSTE')
+  // «No tiene clases terminadas» sólo cuando no hay NADA (E6a-fix F11): con comisiones, propinas o ajustes no se dice ni se
+  // pinta una tabla de clases vacía (en una tienda sería cada recibo), y no se adelanta mientras llega el recibo.
+  const otroPago = ventas.length > 0 || ajustes.length > 0 || !!recibo.hasNextPage || (!!fecha && recibo.isLoading)
   const totales = recibo.data?.totalesPorTipo ?? {}
   const porTipo = ORDEN_TIPOS.filter(tipo => totales[tipo] != null).map(tipo => ({ tipo, total: totales[tipo]! }))
   // Un recibo cerrado de alguien borrado abre igual (spec §6.1): sin nombre recuperable, la etiqueta.
@@ -256,7 +261,7 @@ export function DesglosePersona({
               isLoading={q.isLoading}
               isError={q.isError && filas.length === 0}
               vacio={filas.length === 0}
-              textoVacio={t('period.detailEmpty')}
+              textoVacio={otroPago ? null : t('period.detailEmpty')}
               onRetry={() => q.refetch()}
               hasNextPage={!!q.hasNextPage}
               isFetchingNextPage={q.isFetchingNextPage}
@@ -284,6 +289,8 @@ export function DesglosePersona({
                             {t('period.adjusted')}
                           </Badge>
                         )}
+                        {/* La regla que movió el pago, como en el recibo cerrado (E6a-fix F14). */}
+                        {f.regla && <span className="block text-xs text-muted-foreground">{textoDeRegla(t, f.regla)}</span>}
                       </td>
                       <td className="hidden text-right sm:table-cell">{f.conteo}</td>
                       <td className="text-right">

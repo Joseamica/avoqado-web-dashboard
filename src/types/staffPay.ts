@@ -15,6 +15,8 @@ export interface ClaseValoradaDto {
   staffId: string | null; staffName: string | null; payLevelName: string | null; countMode: 'BOOKED' | 'ATTENDED' | null
   conteoCalculado: number; conteo: number; tieneAjuste: boolean; estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION'
   motivo: MotivoExcepcion | null; monto: string | null
+  /** Fase 3 (D3d): la regla que movió el pago (el server ya la manda en el desglose). Opcional: un server previo no. */
+  regla?: ReglaDeClase | null
 }
 export interface ReportePeriodoDto {
   periodo: { start: string; end: string; periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; id?: string | null; estado?: 'OPEN' | 'CLOSED' }

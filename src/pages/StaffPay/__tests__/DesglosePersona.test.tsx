@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DesglosePersona } from '../components/DesglosePersona'
 import { monto } from '../conSigno'
 
-const m = vi.hoisted(() => ({ recibo: vi.fn() }))
+const m = vi.hoisted(() => ({ recibo: vi.fn(), detalle: vi.fn() }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k), i18n: { language: 'es' } }),
 }))
@@ -19,7 +19,7 @@ vi.mock('@/utils/datetime', () => ({
 vi.mock('../useNombreSede', () => ({ useNombreSede: () => (id: string) => id }))
 vi.mock('@/services/staffPay.service', () => ({ staffPayService: {} }))
 vi.mock('@/hooks/useStaffPay', () => ({
-  useStaffPayDetail: () => ({ data: { pages: [{ items: [], nextCursor: null }] }, isLoading: false, isError: false, hasNextPage: false }),
+  useStaffPayDetail: () => m.detalle(),
   useStaffReceipt: () => m.recibo(),
 }))
 
@@ -39,7 +39,16 @@ const recibo = (renglones: unknown[], total: string) => ({
   hasNextPage: false,
 })
 
-beforeEach(() => vi.clearAllMocks())
+const detalle = (items: unknown[]) => ({ data: { pages: [{ items, nextCursor: null }] }, isLoading: false, isError: false, hasNextPage: false })
+const clase = (id: string, startsAt: string, x: Record<string, unknown> = {}) => ({
+  classSessionId: id, venueId: 'w', productName: `Yoga ${id}`, startsAt, fechaLocal: startsAt.slice(0, 10), staffId: 'a', staffName: 'Ana',
+  payLevelName: 'Coach', countMode: 'BOOKED', conteoCalculado: 6, conteo: 6, tieneAjuste: false, estado: 'OK', motivo: null, monto: '300.00', ...x,
+})
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  m.detalle.mockReturnValue(detalle([]))
+})
 
 describe('DesglosePersona', () => {
   it('en «Ajustes del periodo» la diferencia NO repite su fecha (ya viene en el concepto); el ajuste sí lleva la de captura', () => {
@@ -121,6 +130,57 @@ describe('DesglosePersona', () => {
     expect(ventas).not.toHaveTextContent('+$')
     expect(ajustes).toHaveTextContent('+$100.00')
     expect(screen.getByText(/period\.detailSummaryTotal/)).toBeInTheDocument()
+  })
+
+  // E6a-fix F11 (QA H6): en una tienda nadie tiene clases; el desglose de alguien con comisiones o propinas no abre diciendo
+  // «Esta persona no tiene clases terminadas en este periodo.».
+  it('🔴 sin clases pero con comisiones o propinas: no dice «no tiene clases terminadas» ni pinta una tabla de clases vacía', () => {
+    m.recibo.mockReturnValue(
+      recibo([{ tipo: 'COMISION', fecha: '2026-10-03', hora: '13:05', sede: 'Tienda', concepto: 'Comisión 3 % · venta #1234', lugares: null, monto: '90.00' }], '90.00'),
+    )
+    render(<DesglosePersona staffId="g" staffName="Grace" clases={0} total="90.00" fecha="2026-10-01" onClose={vi.fn()} />)
+    expect(screen.queryByText('period.detailEmpty')).toBeNull()
+    expect(screen.queryByText('period.detailColumns.class')).toBeNull()
+    expect(screen.getByText('period.salesSection')).toBeInTheDocument()
+  })
+
+  it('🔴 sólo con ajustes tampoco dice «no tiene clases terminadas»', () => {
+    m.recibo.mockReturnValue(recibo([{ tipo: 'AJUSTE', fecha: '2026-10-04', hora: null, sede: 'Tienda', concepto: 'Bono', lugares: null, monto: '50.00' }], '50.00'))
+    render(<DesglosePersona staffId="g" staffName="Grace" clases={0} total="50.00" fecha="2026-10-01" onClose={vi.fn()} />)
+    expect(screen.queryByText('period.detailEmpty')).toBeNull()
+  })
+
+  it('sin NADA (ni clases, ni ventas, ni ajustes): sí lo dice', () => {
+    m.recibo.mockReturnValue(recibo([], '0.00'))
+    render(<DesglosePersona staffId="g" staffName="Grace" clases={0} total="0.00" fecha="2026-10-01" onClose={vi.fn()} />)
+    expect(screen.getByText('period.detailEmpty')).toBeInTheDocument()
+  })
+
+  it('mientras el recibo carga no se adelanta a decir que no hay nada', () => {
+    m.recibo.mockReturnValue({ data: undefined, isLoading: true, isError: false, hasNextPage: false })
+    render(<DesglosePersona staffId="g" staffName="Grace" clases={0} total="90.00" fecha="2026-10-01" onClose={vi.fn()} />)
+    expect(screen.queryByText('period.detailEmpty')).toBeNull()
+  })
+
+  // E6a-fix F14 (QA H7): el desglose abierto ponía las clases como venían del cursor (9, 11, 8…) y sin la regla que movió el
+  // pago, que el recibo cerrado, el PDF y el Excel sí dicen.
+  it('🔴 periodo abierto: las clases van por fecha y dicen la regla que movió su pago, como el recibo cerrado', () => {
+    m.detalle.mockReturnValue(
+      detalle([
+        clase('c11', '2026-09-11T15:00:00.000Z'),
+        clase('c08', '2026-09-08T15:00:00.000Z', { regla: { tipo: 'CANCELACION_TARDIA', horas: 1 } }),
+        clase('c09', '2026-09-07T15:00:00.000Z', { regla: { tipo: 'SUPLENCIA', horas: 2, bono: '100.00' }, monto: '400.00' }),
+        clase('c10', '2026-09-10T15:00:00.000Z', { regla: { tipo: 'SUPLENCIA', horas: 0, bono: '100.00' } }),
+      ]),
+    )
+    m.recibo.mockReturnValue(recibo([], '1300.00'))
+    render(<DesglosePersona staffId="a" staffName="Ana" clases={4} total="1300.00" fecha="2026-09-01" onClose={vi.fn()} />)
+    const filas = screen.getAllByText(/^Yoga c/).map(el => el.textContent!.slice(0, 8))
+    expect(filas).toEqual(['Yoga c09', 'Yoga c08', 'Yoga c10', 'Yoga c11'])
+    expect(screen.getByText(/^Yoga c09/).closest('td')).toHaveTextContent('classCard.coverBonus:{"horas":2,"monto":"+$100.00"}')
+    expect(screen.getByText(/^Yoga c08/).closest('td')).toHaveTextContent('classCard.lateCancel:{"horas":1}')
+    expect(screen.getByText(/^Yoga c10/).closest('td')).toHaveTextContent('classCard.coverBonusUnderHour:{"monto":"+$100.00"}')
+    expect(screen.getByText(/^Yoga c11/).closest('td')).not.toHaveTextContent('classCard.')
   })
 
   it('recibo cerrado: totales por tipo arriba, una devolución de comisión con «−» y, sin nombre, «Persona dada de baja»', () => {
