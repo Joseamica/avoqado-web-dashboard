@@ -14,7 +14,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import type { Bloqueo, ResultadoCierreDto, SedeEnPagoAlPersonalDto } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
 import { useAccionDelModal } from '../accionDelModal'
-import { soltarFocoAlAbrir, useFocoDeVuelta } from '../foco'
+import { ANCLA_FOCO, soltarFocoAlAbrir, useFocoDeVuelta } from '../foco'
 import { conSigno, monto } from '../conSigno'
 import { lista as listaNatural } from '../cuenta'
 import { AvisosDelCierre, CierrePorSede } from './DetalleDelCierre'
@@ -213,7 +213,14 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
                 </ul>
               </section>
             )}
-            <section className="space-y-3 rounded-2xl border border-border/50 bg-card p-6" data-tour="staffpay-close-summary">
+            {/* Ancla del foco DENTRO del modal (E6a-fix F8): al desactivar una sede desde el bloqueo, su botón desaparece y el
+                foco vuelve aquí, al resumen de lo que se congela, nunca a la página de fondo. */}
+            <section
+              tabIndex={-1}
+              data-staffpay-cierre-ancla
+              className={cn('space-y-3 rounded-2xl border border-border/50 bg-card p-6', ANCLA_FOCO)}
+              data-tour="staffpay-close-summary"
+            >
               <p className="text-xs text-muted-foreground">
                 {t('close.range', { start: formatCalendarDate(p.periodo.start), end: formatCalendarDate(p.periodo.end) })}
               </p>
@@ -274,7 +281,12 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
       {accion.abajo}
       {open && desactivando && (
         // El diálogo de «Sedes» (E3c) en modo desactivar: al confirmar refresca todo pago al personal, también esta vista previa.
-        <ParticipacionSedeDialog sede={desactivando} accion="desactivar" onClose={() => setDesactivando(null)} />
+        <ParticipacionSedeDialog
+          sede={desactivando}
+          accion="desactivar"
+          focoDeVuelta="[data-staffpay-cierre-ancla]"
+          onClose={() => setDesactivando(null)}
+        />
       )}
     </FullScreenModal>
   )

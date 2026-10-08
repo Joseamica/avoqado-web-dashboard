@@ -18,6 +18,12 @@ interface Props {
   sede: SedeEnPagoAlPersonalDto
   accion: 'activar' | 'desactivar'
   onClose: () => void
+  /**
+   * A dónde vuelve el foco si el botón que abrió ya no está (selector). Sin él, al primer botón de la tarjeta de la sede
+   * («Sedes»). Abierto desde el modal del cierre, a un lugar DENTRO de ese modal (E6a-fix F8): el de «Sedes» no existe ahí y
+   * el foco caía en la página de fondo, tapada por el modal.
+   */
+  focoDeVuelta?: string
 }
 
 const estadoHttp = (e: unknown) => (e as { response?: { status?: number } } | null)?.response?.status ?? 0
@@ -29,20 +35,25 @@ const codigo = (e: unknown) => (e as { response?: { data?: { code?: string } } }
  * la fecha de la vista previa y el «hoy» de la sede que se vio (`fechaEsperada`): si ya es otro día, 409 FECHA_CAMBIO y se
  * vuelve a pedir. Online-only: nada cambia hasta que el servidor contesta.
  */
-export function ParticipacionSedeDialog({ sede, accion, onClose }: Props) {
+export function ParticipacionSedeDialog({ sede, accion, onClose, focoDeVuelta }: Props) {
   const { t, i18n } = useTranslation('staffPay')
   const { toast } = useToast()
   const { formatCalendarDate } = useVenueDateTime()
   // Sin fecha elegida, el servidor responde con «hoy» de la sede.
   const [fecha, setFecha] = useState<string | undefined>()
-  const q = useParticipationPreview(sede.venueId, accion, fecha)
+  const [enviando, setEnviando] = useState(false)
+  const [hecho, setHecho] = useState(false)
+  // Ni mientras se envía ni después del éxito se vuelve a pedir la vista previa (E6a-fix F12, QA H10): el éxito invalida todo
+  // pago al personal y el servidor ya diría 409 «ya está activa / no está activa» (una petición tirada, con su error en
+  // consola). Un rechazo la relee a mano (`refetch`).
+  const q = useParticipationPreview(sede.venueId, accion, fecha, !enviando && !hecho)
   const activar = useActivateSede()
   const desactivar = useDeactivateSede()
-  const [enviando, setEnviando] = useState(false)
   // Candado síncrono (como CerrarPeriodoModal): el estado no alcanza a cambiar entre dos clics seguidos.
   const enVuelo = useRef(false)
-  // Si el botón que abrió ya no está (Activar pasó a Desactivar), el foco vuelve al primer botón de la tarjeta de la sede.
-  const foco = useFocoDeVuelta(`[data-sede-id="${sede.venueId}"] button`)
+  // Si el botón que abrió ya no está (Activar pasó a Desactivar), el foco vuelve al primer botón de la tarjeta de la sede, o
+  // al lugar que diga quien lo abrió (el modal del cierre).
+  const foco = useFocoDeVuelta(focoDeVuelta ?? `[data-sede-id="${sede.venueId}"] button`)
   const v = q.data
   // Mientras se envía, el éxito refresca todo (también esta vista previa, que ya diría «ya está activa»): no se muestra.
   const errorVista = q.isError && !enviando
@@ -58,9 +69,11 @@ export function ParticipacionSedeDialog({ sede, accion, onClose }: Props) {
     try {
       if (accion === 'activar') {
         const r = await activar.mutateAsync({ sedeId: sede.venueId, desde: v.fecha, fechaEsperada: v.maximo })
+        setHecho(true)
         toast({ title: t('sedes.dialogo.activada', { sede: sede.nombre, fecha: fmt(r.ventana?.desde ?? v.fecha) }) })
       } else {
         const r = await desactivar.mutateAsync({ sedeId: sede.venueId, hasta: v.fecha, fechaEsperada: v.maximo })
+        setHecho(true)
         toast({
           title: r.ventana
             ? t('sedes.dialogo.desactivada', { sede: sede.nombre, fecha: fmt(r.ventana.hasta ?? v.fecha) })

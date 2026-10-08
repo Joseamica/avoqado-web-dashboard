@@ -28,8 +28,8 @@ vi.mock('@/hooks/useStaffPay', () => ({
 }))
 // El diálogo de E3c tiene sus propias pruebas: aquí sólo importa con qué sede y en qué modo se abre.
 vi.mock('../components/ParticipacionSedeDialog', () => ({
-  ParticipacionSedeDialog: ({ sede, accion }: { sede: { venueId: string }; accion: string }) => (
-    <div data-testid="participacion">
+  ParticipacionSedeDialog: ({ sede, accion, focoDeVuelta }: { sede: { venueId: string }; accion: string; focoDeVuelta?: string }) => (
+    <div data-testid="participacion" data-foco={focoDeVuelta}>
       {accion} {sede.venueId}
     </div>
   ),
@@ -321,6 +321,19 @@ describe('CerrarPeriodoModal', () => {
     expect(m.sedes).toHaveBeenCalledWith(true)
     fireEvent.click(screen.getByRole('button', { name: /close\.deactivateSede/ }))
     expect(screen.getByTestId('participacion')).toHaveTextContent('desactivar v2')
+  })
+
+  // E6a-fix F8 (QA H3): el respaldo del foco del diálogo es un lugar DENTRO de este modal, enfocable.
+  it('🔴 «Desactivar <sede>» abre el diálogo con el foco de vuelta al resumen de ESTE modal (no a la página de fondo)', () => {
+    m.sedes.mockReturnValue(wellnessEnSedes(true))
+    m.preview.mockReturnValue({ data: sinPlan(['v2'], true, [sede('v2', 'Wellness', 'ACTIVA_SIN_PLAN')]), isLoading: false, refetch: m.refetch })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /close\.deactivateSede/ }))
+    const selector = screen.getByTestId('participacion').getAttribute('data-foco')
+    expect(selector).toBeTruthy()
+    const ancla = document.querySelector(selector!)
+    expect(ancla).toHaveAttribute('data-tour', 'staffpay-close-summary')
+    expect(ancla).toHaveAttribute('tabindex', '-1')
   })
 
   it('sin ninguna sede con plan: dice que hay que renovar, no ofrece desactivar y no pide las sedes', () => {
