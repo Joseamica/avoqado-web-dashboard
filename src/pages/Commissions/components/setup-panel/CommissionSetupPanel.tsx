@@ -17,6 +17,7 @@ import CategoriesCard from './cards/CategoriesCard'
 import PeriodCard from './cards/PeriodCard'
 import TiersCard from './cards/TiersCard'
 import RoleRatesCard from './cards/RoleRatesCard'
+import { tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import LimitsCard from './cards/LimitsCard'
 
 interface CommissionSetupPanelProps {
@@ -58,7 +59,7 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
           ? new Date(`${state.name.effectiveTo}T23:59:59`).toISOString()
           : undefined,
         priority: state.name.priority,
-        roleRates: state.roleRates.enabled ? state.roleRates.rates : undefined,
+        roleRates: tasasPorRolAGuardar(state.rate.calcType, state.roleRates.enabled, state.roleRates.rates) ?? undefined,
         minAmount: state.limits.enabled ? state.limits.minAmount : undefined,
         maxAmount: state.limits.enabled ? state.limits.maxAmount : undefined,
       })

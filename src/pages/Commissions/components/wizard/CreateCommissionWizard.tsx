@@ -13,6 +13,7 @@ import type {
 } from '@/types/commission'
 import StepAmount from './StepAmount'
 import StepConfirm from './StepConfirm'
+import { tasasPorRolAGuardar } from '../../tasaDelEsquema'
 
 // Override type for wizard (simplified from CreateCommissionOverrideInput)
 export interface WizardOverride {
@@ -196,7 +197,7 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
           includeTips: data.includeTips,
           includeDiscount: data.includeDiscount,
           includeTax: data.includeTax,
-          roleRates: data.roleRatesEnabled ? data.roleRates : null,
+          roleRates: tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates),
           filterByCategories: data.filterByCategories,
           categoryIds: data.filterByCategories ? data.categoryIds : [],
           useGoalAsTier: data.useGoalAsTier,

@@ -149,6 +149,7 @@
     },
     "roleRates": {
       "title": "Tasas por Rol",
+      "onlyPercentage": "Sólo aplica con comisión por porcentaje",
       "enabledDesc": "{{count}} roles configurados",
       "disabledDesc": "Misma tasa para todos los roles",
       "enablePrompt": "Activa tasas por rol para dar diferente comisión según el puesto.",
@@ -654,6 +655,7 @@
       },
       "roleRates": {
         "title": "Tasas diferentes por rol",
+        "onlyPercentage": "Sólo aplica con comisión por porcentaje: en un monto fijo todos ganan el mismo monto por venta.",
         "disabled": "Desactivado (todos ganan lo mismo)",
         "enabled": "Activado",
         "roleHeader": "Rol",

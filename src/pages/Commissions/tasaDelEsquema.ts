@@ -15,3 +15,15 @@ export function textoDeTasa(calcType: CommissionCalcType, valor: number, idioma:
   if (!esMontoFijo(calcType)) return `${(valor * 100).toFixed(2)}%`
   return new Intl.NumberFormat(idioma === 'es' ? 'es-MX' : 'en-US', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(valor)
 }
+
+/** Las tasas por rol sólo se OFRECEN donde hay tasa: en un esquema fijo el servidor las ignora, y ofrecer algo sin efecto es un defecto. */
+export const ofreceTasasPorRol = (calcType: CommissionCalcType) => !esMontoFijo(calcType)
+
+/** Lo que se guarda: las tasas por rol sólo si se ofrecen y están prendidas. Un fijo nunca guarda tasas por rol (las limpia al editar). */
+export function tasasPorRolAGuardar(
+  calcType: CommissionCalcType,
+  prendidas: boolean,
+  tasas: Record<string, number> | null | undefined,
+): Record<string, number> | null {
+  return ofreceTasasPorRol(calcType) && prendidas && tasas ? tasas : null
+}

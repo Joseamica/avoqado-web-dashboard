@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useRoleConfig } from '@/hooks/use-role-config'
 import type { WizardData } from './CreateCommissionWizard'
 import type { TierPeriod } from '@/types/commission'
+import { ofreceTasasPorRol } from '../../tasaDelEsquema'
 
 interface StepConfirmProps {
 	data: WizardData
@@ -168,8 +169,8 @@ export default function StepConfirm({
 						</div>
 					)}
 
-					{/* Role rates if enabled */}
-					{data.roleRatesEnabled && (
+					{/* Role rates if enabled (nunca en un monto fijo: no se guardan) */}
+					{ofreceTasasPorRol(data.calcType) && data.roleRatesEnabled && (
 						<div className="py-2 border-b border-border/30">
 							<span className="text-sm text-muted-foreground">{t('wizard.step3.roleRates')}</span>
 							<div className="mt-2 grid grid-cols-3 gap-2">

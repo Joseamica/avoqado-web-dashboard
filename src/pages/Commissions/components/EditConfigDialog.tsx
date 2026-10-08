@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import BaseIvaSwitch from './BaseIvaSwitch'
 import BaseComisionSwitch from './BaseComisionSwitch'
+import { tasasPorRolAGuardar } from '../tasaDelEsquema'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionCalcType, CommissionConfig, TierPeriod } from '@/types/commission'
@@ -215,11 +216,10 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       const minAmount = data.limitsEnabled && data.minAmount !== null ? Number(data.minAmount) : null
       const maxAmount = data.limitsEnabled && data.maxAmount !== null ? Number(data.maxAmount) : null
 
-      // Convert roleRates values to numbers
-      const roleRates =
-        data.roleRatesEnabled && data.roleRates
-          ? Object.fromEntries(Object.entries(data.roleRates).map(([key, value]) => [key, Number(value)]))
-          : null
+      // Convert roleRates values to numbers. Un esquema de monto fijo nunca guarda tasas por rol (el servidor las ignora): si las traía,
+      // se limpian al guardar (duda 2 de la Parte 1b).
+      const tasasPorRol = tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates)
+      const roleRates = tasasPorRol ? Object.fromEntries(Object.entries(tasasPorRol).map(([key, value]) => [key, Number(value)])) : null
 
       await updateConfigMutation.mutateAsync({
         configId: config.id,

@@ -18,6 +18,7 @@ import { teamService } from '@/services/team.service'
 import type { TierPeriod, CreateCommissionTierInput } from '@/types/commission'
 import type { WizardData, WizardOverride } from './CreateCommissionWizard'
 import { TieredExample } from './LiveExample'
+import { ofreceTasasPorRol } from '../../tasaDelEsquema'
 
 interface AdvancedConfigProps {
 	data: WizardData
@@ -105,7 +106,9 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 		updateData({ tiers: newTiers })
 	}
 
-	// Role rates — use venue's active roles, excluding non-sales roles
+	// Role rates — use venue's active roles, excluding non-sales roles. En un esquema de monto FIJO no se ofrecen: el servidor paga
+	// el monto fijo por venta e ignora las tasas por rol (duda 2 de la Parte 1b).
+	const tasasPorRolDisponibles = ofreceTasasPorRol(data.calcType)
 	const { activeRoles } = useRoleConfig()
 	const NON_SALES_ROLES = ['SUPERADMIN', 'VIEWER']
 	const roleOptions = activeRoles
@@ -413,40 +416,46 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 								/>
 							</div>
 						</div>
-						<Switch
-							checked={data.roleRatesEnabled}
-							onCheckedChange={(checked) => {
-								// Mutually exclusive: if enabling role rates, disable tiers
-								if (checked) {
-									if (data.tiersEnabled) {
-										toast({
-											title: t('wizard.advanced.mutualExclusive.roleRatesEnabled'),
-											description: t('wizard.advanced.mutualExclusive.tiersDisabled'),
-										})
-									}
-									// Initialize with 3 default roles (user can add more)
-									const DEFAULT_ROLES = ['WAITER', 'CASHIER', 'MANAGER']
-									const initialRates: Record<string, number> = {}
-									for (const key of DEFAULT_ROLES) {
-										if (roleOptions.some(r => r.key === key)) {
-											initialRates[key] = data.roleRates[key] ?? data.defaultRate
+						{tasasPorRolDisponibles ? (
+							<Switch
+								checked={data.roleRatesEnabled}
+								onCheckedChange={(checked) => {
+									// Mutually exclusive: if enabling role rates, disable tiers
+									if (checked) {
+										if (data.tiersEnabled) {
+											toast({
+												title: t('wizard.advanced.mutualExclusive.roleRatesEnabled'),
+												description: t('wizard.advanced.mutualExclusive.tiersDisabled'),
+											})
 										}
-									}
-									// If none of the defaults exist, use first 3 available
-									if (Object.keys(initialRates).length === 0) {
-										for (const role of roleOptions.slice(0, 3)) {
-											initialRates[role.key] = data.roleRates[role.key] ?? data.defaultRate
+										// Initialize with 3 default roles (user can add more)
+										const DEFAULT_ROLES = ['WAITER', 'CASHIER', 'MANAGER']
+										const initialRates: Record<string, number> = {}
+										for (const key of DEFAULT_ROLES) {
+											if (roleOptions.some(r => r.key === key)) {
+												initialRates[key] = data.roleRates[key] ?? data.defaultRate
+											}
 										}
+										// If none of the defaults exist, use first 3 available
+										if (Object.keys(initialRates).length === 0) {
+											for (const role of roleOptions.slice(0, 3)) {
+												initialRates[role.key] = data.roleRates[role.key] ?? data.defaultRate
+											}
+										}
+										updateData({ roleRatesEnabled: true, tiersEnabled: false, roleRates: initialRates })
+									} else {
+										updateData({ roleRatesEnabled: false })
 									}
-									updateData({ roleRatesEnabled: true, tiersEnabled: false, roleRates: initialRates })
-								} else {
-									updateData({ roleRatesEnabled: false })
-								}
-							}}
-						/>
+								}}
+							/>
+						) : null}
 					</div>
 
-					{data.roleRatesEnabled && (
+					{!tasasPorRolDisponibles && (
+						<p className="text-xs text-muted-foreground">{t('wizard.advanced.roleRates.onlyPercentage')}</p>
+					)}
+
+					{tasasPorRolDisponibles && data.roleRatesEnabled && (
 						<div className="space-y-3 pt-2">
 							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 								{roleOptions

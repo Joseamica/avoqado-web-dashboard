@@ -149,6 +149,7 @@
     },
     "roleRates": {
       "title": "Rates by Role",
+      "onlyPercentage": "Only applies to percentage commissions",
       "enabledDesc": "{{count}} roles configured",
       "disabledDesc": "Same rate for all roles",
       "enablePrompt": "Enable role rates to set different commissions per position.",
@@ -658,6 +659,7 @@
       },
       "roleRates": {
         "title": "Different rates by role",
+        "onlyPercentage": "Only applies to percentage commissions: with a fixed amount everyone earns the same amount per sale.",
         "disabled": "Disabled (everyone earns the same)",
         "enabled": "Enabled",
         "roleHeader": "Role",
