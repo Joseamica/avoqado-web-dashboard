@@ -221,20 +221,28 @@ export function CerrarPeriodoModal({ open, fecha, etiqueta, onOpenChange, onCerr
               <p className="text-sm">
                 {p.clases === 0 && p.personas === 0
                   ? t('close.empty')
-                  : conVentas
-                    ? t(sedesTexto ? 'close.willFreezeSales' : 'close.willFreezeSalesNoVenue', {
-                        count: p.clases + comisiones + propinas,
-                        lista,
+                  : p.clases === 0 && !conVentas
+                    ? // Sólo ajustes (o sólo anuladas): se congelan recibos, no «0 clases» (E6a-fix F5). Un tipo en cero no se nombra.
+                      t(sedesTexto ? 'close.willFreezeReceipts' : 'close.willFreezeReceiptsNoVenue', {
+                        count: p.personas,
                         personas: t('close.people', { count: p.personas }),
                         sedes: sedesTexto,
                         total: monto(p.total),
                       })
-                    : t(sedesTexto ? 'close.willFreeze' : 'close.willFreezeNoVenue', {
-                        count: p.clases,
-                        personas: t('close.people', { count: p.personas }),
-                        sedes: sedesTexto,
-                        total: monto(p.total),
-                      })}
+                    : conVentas
+                      ? t(sedesTexto ? 'close.willFreezeSales' : 'close.willFreezeSalesNoVenue', {
+                          count: p.clases + comisiones + propinas,
+                          lista,
+                          personas: t('close.people', { count: p.personas }),
+                          sedes: sedesTexto,
+                          total: monto(p.total),
+                        })
+                      : t(sedesTexto ? 'close.willFreeze' : 'close.willFreezeNoVenue', {
+                          count: p.clases,
+                          personas: t('close.people', { count: p.personas }),
+                          sedes: sedesTexto,
+                          total: monto(p.total),
+                        })}
               </p>
               {Number(p.totalAjustes) !== 0 && (
                 <p className="text-sm text-muted-foreground">{t('close.adjustmentsIncluded', { total: conSigno(p.totalAjustes) })}</p>

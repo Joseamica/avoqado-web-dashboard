@@ -211,6 +211,41 @@ describe('CerrarPeriodoModal', () => {
     expect(o.count).toBe(12)
   })
 
+  // E6a-fix F5 (E5b duda 1): un periodo con sólo ajustes (o sólo anuladas) no dice «Se congelan 0 clases de 1 persona…».
+  it('🔴 sólo ajustes: «Se congelan los recibos de 1 persona…», sin nombrar «0 clases»', () => {
+    m.preview.mockReturnValue({
+      data: ventas({ clases: 0, personas: 1, comisiones: 0, propinas: 0, totalServicios: '0.00', totalAjustes: '-100.00', total: '-100.00' }),
+      isLoading: false,
+      refetch: m.refetch,
+    })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    expect(screen.queryByText(/close\.willFreeze(NoVenue)?:/)).toBeNull()
+    expect(screen.queryByText(/close\.classes/)).toBeNull()
+    const o = textoDe('close.willFreezeReceipts')
+    expect(o).toMatchObject({ personas: 'close.people:{"count":1}', sedes: 'Prado Norte', total: '−$100.00' })
+    expect(o.count).toBe(1)
+    expect(screen.getByText(/close\.adjustmentsIncluded/)).toBeInTheDocument()
+  })
+
+  it('🔴 sólo ajustes en una sede que ya salió del alcance: la misma frase sin «en …»', () => {
+    m.preview.mockReturnValue({
+      data: ventas({ clases: 0, personas: 2, comisiones: 0, propinas: 0, totalAjustes: '50.00', total: '50.00', sedesConDinero: [] }),
+      isLoading: false,
+      refetch: m.refetch,
+    })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    expect(textoDe('close.willFreezeReceiptsNoVenue')).toMatchObject({ personas: 'close.people:{"count":2}', count: 2 })
+  })
+
+  it('sólo comisiones (sin clases ni propinas): nombra sólo las comisiones', () => {
+    m.preview.mockReturnValue({ data: ventas({ clases: 0, personas: 1, comisiones: 1, propinas: 0 }), isLoading: false, refetch: m.refetch })
+    render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
+    const o = textoDe('close.willFreezeSales')
+    expect(o.lista).toBe('close.commissions:{"count":1}')
+    expect(o.count).toBe(1)
+    expect(screen.queryByText(/close\.willFreezeReceipts/)).toBeNull()
+  })
+
   it('sin sedes con dinero, la frase con ventas omite «en …» (como la de clases)', () => {
     m.preview.mockReturnValue({ data: ventas({ comisiones: 2, sedesConDinero: [] }), isLoading: false, refetch: m.refetch })
     render(<CerrarPeriodoModal open fecha="2026-08-15" onOpenChange={() => {}} onCerrado={() => {}} />)
