@@ -3,12 +3,20 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PeriodosTab } from '../components/PeriodosTab'
 
-const m = vi.hoisted(() => ({ fetchNext: vi.fn(), periodicity: vi.fn(), lista: vi.fn(), estado: vi.fn(), refetch: vi.fn() }))
+const m = vi.hoisted(() => ({
+  fetchNext: vi.fn(),
+  periodicity: vi.fn(),
+  lista: vi.fn(),
+  estado: vi.fn(),
+  refetch: vi.fn(),
+  acceso: { actual: { enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false } as any },
+  pedidos: vi.fn(),
+}))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
-vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City' }) }))
+vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatCalendarDate: (d: string) => d }) }))
 vi.mock('../components/PeriodoAbiertoTab', () => ({
   PeriodoAbiertoTab: ({ fecha, onYaCerrado }: { fecha: string; onYaCerrado?: () => void }) => (
     <div>
@@ -33,8 +41,23 @@ vi.mock('@/components/ui/select', () => ({
   SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
 }))
 vi.mock('@/hooks/useStaffPay', () => ({
-  useStaffPayPeriods: () => ({ data: m.lista(), isLoading: false, hasNextPage: true, fetchNextPage: m.fetchNext, isFetchingNextPage: false, refetch: m.refetch, ...m.estado() }),
+  useStaffPayAccess: () => ({ data: m.acceso.actual }),
+  useSetTips: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useStaffPayPeriods: (enabled: boolean) => {
+    m.pedidos(enabled)
+    return { data: m.lista(), isLoading: false, hasNextPage: true, fetchNextPage: m.fetchNext, isFetchingNextPage: false, refetch: m.refetch, ...m.estado() }
+  },
   useSetPeriodicity: () => ({ mutateAsync: m.periodicity, isPending: false }),
+}))
+vi.mock('../components/ActivarPagoAlPersonal', () => ({ ActivarPagoAlPersonal: () => <div>activar</div> }))
+vi.mock('../components/AvisoSedesFuera', () => ({ AvisoSedesFuera: ({ activa }: { activa: boolean }) => <div>aviso-sedes {String(activa)}</div> }))
+vi.mock('../components/InterruptorPropinas', () => ({
+  InterruptorPropinas: ({ encendidas, puedeEnLaOrganizacion }: { encendidas: boolean; puedeEnLaOrganizacion?: boolean }) => (
+    <div>
+      <span>propinas {String(encendidas)}</span>
+      <span>org {String(puedeEnLaOrganizacion)}</span>
+    </div>
+  ),
 }))
 
 const LISTA = {
@@ -63,6 +86,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   m.lista.mockReturnValue(LISTA)
   m.estado.mockReturnValue({})
+  m.acceso.actual = { enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false }
 })
 
 describe('PeriodosTab', () => {
@@ -131,6 +155,21 @@ describe('PeriodosTab', () => {
   it('un ?periodo= que no está en la lista cae al periodo actual', () => {
     conUrl('/x?periodo=2020-01-01#periodos')
     expect(screen.getByText('abierto 2026-10-01')).toBeInTheDocument()
+    // Más viejo que lo cargado y con más páginas: podría estar en «Ver periodos anteriores»; la URL no se toca.
+    expect(screen.getByTestId('url')).toHaveTextContent('?periodo=2020-01-01#periodos')
+  })
+
+  // E6a-fix2 K7 (full-testing E6a): `?periodo=2026-08-01` (antes del inicio) mostraba octubre con la URL diciendo agosto.
+  it('🔴 un ?periodo= que no existe (lista completa) corrige la URL al periodo actual, sin perder la pestaña', async () => {
+    m.estado.mockReturnValue({ hasNextPage: false })
+    conUrl('/x?periodo=2026-08-01#periodos')
+    expect(screen.getByText('abierto 2026-10-01')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent(/^#periodos$/))
+  })
+
+  it('🔴 uno dentro de lo cargado que no es un periodo (mal escrito) también la corrige, aunque haya más páginas', async () => {
+    conUrl('/x?periodo=2026-09-15#periodos')
+    await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent(/^#periodos$/))
   })
 
   it('el selector cuenta los recibos pagados con plural por personas (QA defectos 13 y 16)', () => {
@@ -153,5 +192,48 @@ describe('PeriodosTab', () => {
     expect(opciones).toContainEqual(['2025-11-01', expect.stringMatching(/periods\.notClosed$/)])
     // Uno guardado (con un ajuste) que ya terminó tampoco está «Abierto»: falta cerrarlo.
     expect(opciones).toContainEqual(['2025-10-01', expect.stringMatching(/periods\.notClosed$/)])
+  })
+
+  it('sin activar, la pestaña explica y ofrece activar; no pide periodos (spec §11)', () => {
+    m.acceso.actual = { enabled: true, activado: false, startDate: null, propinasEncendidas: false }
+    conUrl()
+    expect(screen.getByText('activar')).toBeInTheDocument()
+    expect(m.pedidos).toHaveBeenCalledWith(false)
+    expect(screen.queryByText(/abierto/)).toBeNull()
+    // Sin activar no hay sedes «fuera»: el aviso no se pide.
+    expect(screen.queryByText(/aviso-sedes/)).toBeNull()
+  })
+
+  it('activado: dice desde cuándo y muestra el interruptor de propinas junto a la periodicidad', () => {
+    m.lista.mockReturnValue(LISTA)
+    conUrl()
+    expect(screen.getByText(/activation\.activeSince/)).toHaveTextContent('2026-09-01')
+    expect(screen.getByText('propinas false')).toBeInTheDocument()
+    expect(m.pedidos).toHaveBeenCalledWith(true)
+  })
+
+  // E6a-fix2 C2: `puedeAdministrarOrganizacion` de `GET /access` llega al interruptor; sin el campo (servidor viejo) = sí puede.
+  it('🔴 el interruptor de propinas recibe si puede administrar la organización (sin el campo, sí puede)', () => {
+    m.acceso.actual = { ...m.acceso.actual, puedeAdministrarOrganizacion: false }
+    const { unmount } = conUrl()
+    expect(screen.getByText('org false')).toBeInTheDocument()
+    unmount()
+    m.acceso.actual = { enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false }
+    conUrl()
+    expect(screen.getByText('org true')).toBeInTheDocument()
+  })
+
+  it('activado: el aviso de sedes fuera va arriba del selector de periodo, con la pestaña activa', () => {
+    conUrl()
+    const aviso = screen.getByText('aviso-sedes true')
+    expect(aviso.compareDocumentPosition(screen.getByText('periods.period')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('si la lista responde «sin activar» antes de que el acceso se refresque, ofrece activar en vez de un error (pre-flight E3a #3)', () => {
+    m.lista.mockReturnValue(undefined)
+    m.estado.mockReturnValue({ isError: true, error: { response: { status: 403, data: { error: 'not_activated', message: 'Activa pago al personal' } } } })
+    conUrl()
+    expect(screen.getByText('activar')).toBeInTheDocument()
+    expect(screen.queryByText('periods.error')).toBeNull()
   })
 })

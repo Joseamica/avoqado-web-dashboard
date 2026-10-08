@@ -10,6 +10,10 @@
     "payouts": "Payouts"
   },
   "overview": {
+    "paidInStaffPay": "Commissions are paid in the Staff pay statement, together with classes and tips.",
+    "notInStaffPay": "Commissions are calculated here. To pay them on a receipt, together with classes and tips, turn on Staff pay in this location.",
+    "askOwner": "Ask the business owner for it.",
+    "goToStaffPay": "Go to Staff pay",
     "noConfigTitle": "Set up commissions for your team",
     "noConfigDescription": "To see the commissions overview, you first need to create a configuration. Define how much your staff earns and how it's calculated.",
     "goToConfig": "Go to Configuration"
@@ -44,6 +48,7 @@
     }
   },
   "stats": {
+    "calculated": "Calculated",
     "totalEarned": "Total Earned",
     "pending": "Pending",
     "paid": "Paid",
@@ -83,6 +88,7 @@
     },
     "staff": {
       "title": "Staff",
+      "onlyExcludeInFixed": "With a fixed amount everyone earns the same per sale: here you can only exclude someone. A special rate only applies to percentage commissions.",
       "allStaff": "All staff",
       "excludedCount": "{{count}} excluded",
       "customCount": "{{count}} with custom rate",
@@ -101,7 +107,11 @@
       "addException": "Add exception",
       "addStaff": "Add staff member",
       "searchPlaceholder": "Search staff...",
-      "noResults": "No staff found"
+      "noResults": "No staff found",
+      "restrictionUnavailable": "Limiting the commission to chosen people isn't available on your account yet. For now the scheme applies to the whole team; you can exclude whoever shouldn't earn it.",
+      "restrictionNotApplied": "The scheme wasn't created: limiting it to chosen people isn't available on your account yet. Choose «All staff» and exclude whoever shouldn't earn it.",
+      "restrictionNotAppliedKept": "The scheme was created, but it applies to the WHOLE team: limiting it to chosen people isn't available on your account yet. Deactivate it or exclude whoever shouldn't earn it.",
+      "chooseAtLeastOne": "Choose at least one person."
     },
     "calcBase": {
       "title": "Calculation Base",
@@ -135,6 +145,7 @@
     },
     "tiers": {
       "title": "Tiered Commission",
+      "onlyPercentage": "Only applies to percentage commissions",
       "enabledDesc": "{{count}} tiers configured",
       "disabledDesc": "Flat rate for everyone",
       "enablePrompt": "Enable tiers to give higher commission to top sellers.",
@@ -144,6 +155,7 @@
     },
     "roleRates": {
       "title": "Rates by Role",
+      "onlyPercentage": "Only applies to percentage commissions",
       "enabledDesc": "{{count}} roles configured",
       "disabledDesc": "Same rate for all roles",
       "enablePrompt": "Enable role rates to set different commissions per position.",
@@ -214,7 +226,17 @@
     "inactive": "Inactive",
     "noConfigs": "No commission configurations",
     "noConfigsDescription": "Create your first configuration to start calculating commissions",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "staffScope": {
+      "title": "Who does it apply to?",
+      "all": "The whole team",
+      "allDesc": "The whole team earns this commission. To exclude someone or give them a special rate, use the exceptions on the scheme's page.",
+      "chosen": "Only chosen people",
+      "chosenDesc": "Only the people you choose earn this commission.",
+      "remove": "Remove {{name}}",
+      "chosenTitle": "Only applies to these people",
+      "count": "Only for chosen people: {{count}}"
+    }
   },
   "calcTypes": {
     "PERCENTAGE": "Percentage",
@@ -284,6 +306,7 @@
     "searchStaff": "Search employee...",
     "noStaffFound": "No employees found",
     "customRate": "Custom Rate",
+    "onlyExcludeInFixed": "With a fixed amount everyone earns the same per sale: here you can only exclude this person. A custom rate only applies to percentage commissions.",
     "customRatePlaceholder": "E.g. 3.5",
     "customRateHint": "Specific rate for this employee (overrides everything)",
     "customRateDescription": "Specific rate for this employee (overrides everything)",
@@ -324,7 +347,10 @@
     "adjustmentAmount": "Adjustment Amount",
     "adjustmentReason": "Adjustment Reason",
     "noSummaries": "No pending summaries",
-    "noSummariesDescription": "Summaries are automatically generated at the end of each period"
+    "noSummariesDescription": "Summaries are automatically generated at the end of each period",
+    "calculatedNote": "This is what was calculated. What gets paid is in the Staff pay statement.",
+    "showing": "Showing {{n}} of {{total}}",
+    "lastTwelveMonths": "Last 12 months"
   },
   "status": {
     "DRAFT": "Draft",
@@ -531,6 +557,7 @@
       "fixedAmount": "Fixed amount",
       "ofEachSale": "of each sale",
       "perTransaction": "per transaction",
+      "fixedAmountRange": "The fixed amount must be more than $0 and up to $999,999.99.",
       "fixedLabel": "Fixed amount",
       "exampleTitle": "Example with a sale of {amount}:",
       "exampleSale": "Sale:",
@@ -539,8 +566,13 @@
       "advanced": "Advanced Configuration",
       "advancedDesc": "For businesses with more complex rules",
       "calculationBase": "Calculation base",
-      "includeTax": "Include tax",
-      "taxExcludedHint": "Commission will be calculated on the amount excluding tax (16%)",
+      "taxBaseAction": "Calculate with tax (IVA)",
+      "taxBaseNowWithout": "Now: without tax (IVA)",
+      "taxBaseNowWith": "Now: with tax (IVA)",
+      "taxBaseWith": "With tax (IVA)",
+      "taxBaseWithout": "Without tax (IVA)",
+      "taxBaseWithHint": "Commission is calculated on what the customer paid, tax included.",
+      "taxBaseWithoutHint": "Recommended. Commission is calculated on the sale without tax, split at each product's rate (16%, 8%, or nothing for 0% or exempt), using the same rule as your accounting.",
       "includeTips": "Include tips",
       "includeDiscount": "Commission base",
       "commissionBase": "Commission base",
@@ -548,6 +580,9 @@
       "commissionBaseList": "List price",
       "commissionBaseNetHint": "Recommended. Commission is calculated on what the customer actually paid: discounts and promotions lower it. Tips never count.",
       "commissionBaseListHint": "Commission is calculated on the catalog price even if the business charged less: discounts and promotions do NOT lower it.",
+      "commissionBaseAction": "Calculate on the list price",
+      "commissionBaseNowNet": "Now: what was actually charged",
+      "commissionBaseNowList": "Now: list price",
       "categories": "Categories",
       "onlySpecificCategories": "Commission will only be calculated on sales from these categories",
       "selectCategories": "Select categories...",
@@ -604,6 +639,7 @@
     "advanced": {
       "tiers": {
         "title": "Tiered commission",
+        "onlyPercentage": "Only applies to percentage commissions: each level is a percentage of the sale, and with a fixed amount everyone earns the same amount per sale.",
         "desc": "The more the employee sells, the higher their commission percentage.",
         "disabled": "Disabled",
         "enabled": "Enabled",
@@ -643,6 +679,7 @@
       },
       "roleRates": {
         "title": "Different rates by role",
+        "onlyPercentage": "Only applies to percentage commissions: with a fixed amount everyone earns the same amount per sale.",
         "disabled": "Disabled (everyone earns the same)",
         "enabled": "Enabled",
         "roleHeader": "Role",
@@ -676,6 +713,7 @@
       "overrides": {
         "title": "Staff exceptions",
         "desc": "Set custom rates or exclude specific employees from this commission configuration.",
+        "onlyExcludeInFixed": "With a fixed amount everyone earns the same per sale: here you can only exclude someone. A custom rate only applies to percentage commissions.",
         "addStaff": "Add employee",
         "excluded": "Excluded from commissions",
         "excludeLabel": "Exclude",

@@ -112,6 +112,33 @@ describe('PeriodoCerradoView', () => {
     await waitFor(() => expect(m.toast).toHaveBeenCalledTimes(1))
   })
 
+  // E6a-fix2 C4 (full-testing E6a): recuperado de una respuesta perdida, el diálogo preguntaba «¿Registrar que le pagaste $0.00…?»
+  // con «Ya no hay recibos pendientes». Si al releer ya está pagado, se cierra diciendo que ya estaba registrado.
+  it('🔴 marcar pagado con la respuesta perdida y al releer YA está pagado: se cierra con «Ya estaba registrado»', async () => {
+    m.can.mockReturnValue(true)
+    m.paid.mockRejectedValue(new Error('Network Error'))
+    m.refetchPreview.mockResolvedValue({ data: { ...previewDe('a'), cantidad: 0, total: '0.00' }, isError: false })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /closed\.markPaidConfirm/ }))
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith({ title: 'closed.alreadyRecorded' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(m.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'closed.networkCheck' }))
+  })
+
+  it('🔴 un recibo ya pagado (nada pendiente) nunca pregunta «¿Registrar que le pagaste $0.00…?»', async () => {
+    m.can.mockReturnValue(true)
+    m.preview.mockImplementation((_p: string, staffId: string | undefined, enabled: boolean) =>
+      enabled ? { data: { ...previewDe(staffId), cantidad: 0, total: '0.00' }, isLoading: false, isFetching: false, isError: false, refetch: m.refetchPreview } : { data: undefined, isLoading: false },
+    )
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    fireEvent.click(screen.getByRole('button', { name: /closed\.markPaidFor/ }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(dialogo).toHaveTextContent('closed.alreadyRecorded')
+    expect(dialogo).not.toHaveTextContent(/closed\.markPaidTitle/)
+    expect(dialogo).not.toHaveTextContent('$0.00')
+  })
+
   it('«Marcar todos» con la respuesta PERDIDA: vuelve a pedir la tabla y el preview para mostrar lo que de verdad quedó (C7)', async () => {
     m.can.mockReturnValue(true)
     const refetchTabla = vi.fn()
@@ -345,5 +372,50 @@ describe('PeriodoCerradoView', () => {
     expect(screen.getByText('period.error')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'period.retry' }))
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('con comisiones, su tarjeta y su columna; sin propinas, ninguna de las dos; sin nombre, «Persona dada de baja»', () => {
+    m.can.mockReturnValue(true)
+    m.reporte.mockReturnValue({
+      ...REPORTE,
+      tarjetas: { ...REPORTE.tarjetas, comisiones: '90.00', propinas: '0.00' },
+      personas: { ...REPORTE.personas, items: [{ ...ANA, comisiones: '90.00', propinas: '0.00' }, { ...SOFIA, staffName: '' }] },
+    })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" etiquetaAbierto="octubre de 2026" />)
+    expect(screen.getByText('period.cards.commissions')).toBeInTheDocument()
+    expect(screen.getByText('period.columns.commissions')).toBeInTheDocument()
+    expect(screen.queryByText('period.columns.tips')).toBeNull()
+    expect(screen.queryByText('period.cards.tips')).toBeNull()
+    expect(screen.getByText('period.formerStaff')).toBeInTheDocument()
+  })
+  it('una persona sin comisiones dice «—» en la columna; una devolución neta sale con «−» (pre-flight E5a)', () => {
+    m.can.mockReturnValue(true)
+    m.reporte.mockReturnValue({
+      ...REPORTE,
+      tarjetas: { ...REPORTE.tarjetas, comisiones: '50.00', propinas: '0.00' },
+      personas: { ...REPORTE.personas, items: [{ ...ANA, comisiones: '-40.00' }, { ...SOFIA, comisiones: '0.00' }] },
+    })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    const col = screen.getAllByRole('columnheader').findIndex(th => th.textContent === 'period.columns.commissions')
+    const celda = (nombre: string) => screen.getByText(nombre).closest('tr')!.querySelectorAll('td')[col]
+    expect(celda('Ana')).toHaveTextContent('−$40.00')
+    expect(celda('Sofía').textContent).toBe('—')
+  })
+  it('el literal «Persona dada de baja» del server se traduce en la fila, en el «Desglose» y en «Marcar pagado» (pre-flight E5a #2)', () => {
+    m.can.mockReturnValue(true)
+    m.reporte.mockReturnValue({ ...REPORTE, personas: { ...REPORTE.personas, items: [{ ...ANA, staffName: 'Persona dada de baja' }] } })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.queryByText('Persona dada de baja')).toBeNull()
+    expect(screen.getByRole('button', { name: /period\.detailTitle/ })).toHaveAccessibleName(/period\.formerStaff/)
+    expect(screen.getByRole('button', { name: /closed\.markPaidFor/ })).toHaveAccessibleName(/period\.formerStaff/)
+  })
+  it('un 409 con texto del server (LECTURA_VENCIDA) dice ESE texto, no el genérico (pre-flight E5a #4)', () => {
+    m.can.mockReturnValue(true)
+    m.reporte.mockReturnValue(undefined)
+    const error = { response: { status: 409, data: { code: 'LECTURA_VENCIDA', message: 'La consulta tardó demasiado y se canceló; intenta de nuevo en un momento' } } }
+    m.extra.mockReturnValue({ isError: true, error, refetch: vi.fn() })
+    render(<PeriodoCerradoView periodId="p9" fecha="2026-09-01" etiqueta="septiembre 2026" />)
+    expect(screen.getByRole('alert')).toHaveTextContent('La consulta tardó demasiado y se canceló; intenta de nuevo en un momento')
+    expect(screen.queryByText('period.error')).toBeNull()
   })
 })

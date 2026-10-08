@@ -11,6 +11,7 @@ import type { ThresholdType } from '@/types/commission'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardValid, isCardTouched } from '../useSetupReducer'
 import SetupCard from '../SetupCard'
+import { ofreceNiveles } from '../../../tasaDelEsquema'
 
 const TIER_PERIOD_OPTIONS: TierPeriod[] = ['WEEKLY', 'BIWEEKLY', 'MONTHLY']
 const TIER_EMOJIS = ['🥉', '🥈', '🥇', '💎', '👑']
@@ -26,9 +27,13 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
 
   const isValid = isCardValid(state, 'tiers')
 
-  const description = state.tiers.enabled
-    ? t('setup.tiers.enabledDesc', { count: state.tiers.items.length })
-    : t('setup.tiers.disabledDesc')
+  // Los niveles son porcentajes: en un esquema de monto FIJO no se ofrecen, la tarjeta se ve apagada y dice por qué (final-fijo-niveles).
+  const disponibles = ofreceNiveles(state.rate.calcType)
+  const description = !disponibles
+    ? t('setup.tiers.onlyPercentage')
+    : state.tiers.enabled
+      ? t('setup.tiers.enabledDesc', { count: state.tiers.items.length })
+      : t('setup.tiers.disabledDesc')
 
   const handleEnable = () => {
     dispatch({ type: 'SET_TIERS', data: { enabled: true } })
@@ -80,11 +85,12 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
         title={t('setup.tiers.title')}
         description={description}
         isValid={isValid}
-        touched={isCardTouched(state, 'tiers')}
+        touched={disponibles && isCardTouched(state, 'tiers')}
+        disabled={!disponibles}
         onClick={() => setOpen(true)}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={disponibles && open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('setup.tiers.title')}</DialogTitle>

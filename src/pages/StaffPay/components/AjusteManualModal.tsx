@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, WifiOff } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
-import { useAddAdjustment, useStaffPayReport } from '@/hooks/useStaffPay'
+import { useAddAdjustment, useAdjustmentPreview, useStaffPayAccess, useStaffPayReport } from '@/hooks/useStaffPay'
 import { teamService } from '@/services/team.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -21,7 +21,19 @@ import { hoyEnSede } from '../hoyEnSede'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { useAccionDelModal } from '../accionDelModal'
 import { useFocoDeVuelta } from '../foco'
-import { A_MEDIO_ESCRIBIR, MESES_AJUSTE_ATRAS, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_MAXIMO, MONTO_VALIDO, desdeDelAjuste, mensajeLegible } from '../rangos'
+import { conSigno, monto as montoTotal } from '../conSigno'
+import { cuandoSeDescuenta, hayPendientes, lineaDePendiente } from '../pendientes'
+import {
+  ajusteYaGuardado,
+  anotarBorrador,
+  borradorEnDuda,
+  claveDelBorrador,
+  mismoBorrador,
+  soltarBorrador,
+  soltarClave,
+  type BorradorDeAjuste,
+} from '../llaveDelAjuste'
 
 interface Props {
   open: boolean
@@ -39,7 +51,8 @@ type Persona = { staffId: string; nombre: string; email?: string }
 
 /**
  * Bono o descuento a mano para una persona, en un periodo ABIERTO. El monto se escribe positivo y el signo lo pone la
- * elección; antes de guardar dice a quién, cuánto y a qué periodo va. Una clave por apertura: un doble clic no crea dos.
+ * elección; antes de guardar dice a quién, cuánto y a qué periodo va. Una clave por apertura: un doble clic no crea dos; y
+ * si la respuesta se pierde, la clave sigue al BORRADOR (`llaveDelAjuste`): volver a capturarlo, aun en otro modal, no crea dos.
  */
 export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }: Props) {
   const { t } = useTranslation('staffPay')
@@ -104,12 +117,39 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   const [guardando, setGuardando] = useState(false)
   // Candado síncrono (full-testing C6): el estado no alcanza a cerrarse entre dos clics seguidos.
   const enVuelo = useRef(false)
+  // El borrador que se mandó y si su duda nació con ESTE envío: cancelar en pausa (C5) sólo deshace lo que este envío anotó.
+  const mandado = useRef<{ borrador: BorradorDeAjuste; nuevo: boolean } | null>(null)
   // Un 400 del server (validación o fecha fuera de rango), dicho en línea y legible; se borra al cambiar algo.
   const [errorServer, setErrorServer] = useState<string | null>(null)
-  // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy): se dice antes de guardar.
-  const desdeAjuste = sumarMeses(hoyEnSede(venueTimezone), -MESES_AJUSTE_ATRAS)
-  const fueraDeRango = fechaDestino < desdeAjuste
+  // C-n2: el último borrador EN DUDA que se vio en este modal (con el nombre de la persona), y lo que el servidor dijo que YA se
+  // guardó con esa clave (409 CLAVE_REUTILIZADA). Con eso dicho, este modal ya no guarda: otro ajuste se agrega en uno nuevo.
+  const [dudaVista, setDudaVista] = useState<{ borrador: BorradorDeAjuste; nombre: string } | null>(null)
+  const [yaGuardado, setYaGuardado] = useState<string | null>(null)
+  // El server sólo acepta ajustes de los últimos 12 meses (hasta el fin del periodo de hoy) y nunca antes del inicio de pago al
+  // personal (409 ANTES_DEL_INICIO; E6a-fix2 K4): se dice antes de guardar, con el porqué que aplique.
+  const { data: acceso } = useStaffPayAccess()
+  const rango = desdeDelAjuste(hoyEnSede(venueTimezone), acceso?.startDate)
+  const fueraDeRango = fechaDestino < rango.desde
   const listo = !!persona && !!sede && monto !== undefined && motivo.trim().length >= MIN_MOTIVO && !fueraDeRango
+  // Lo que se manda, con el signo ya puesto: su huella decide si es el mismo ajuste que quedó en duda (D1).
+  const borrador = useMemo<BorradorDeAjuste | null>(
+    () => (listo ? { sede, staffId: persona!.staffId, amount: tipo === 'descuento' ? -monto! : monto!, reason: motivo.trim() } : null),
+    [listo, sede, persona, tipo, monto, motivo],
+  )
+  const enDuda = !!borrador && !guardando && borradorEnDuda(borrador)
+  useEffect(() => {
+    if (enDuda && borrador && persona && !(dudaVista && mismoBorrador(dudaVista.borrador, borrador))) setDudaVista({ borrador, nombre: persona.nombre })
+  }, [enDuda, borrador, persona, dudaVista])
+  // C-n2: el dueño cambia el monto o la persona de un borrador que quedó en duda. El cambio viaja con la clave de ESA duda (si el
+  // anterior sí se guardó, el servidor lo dice y no se crea otro), y se avisa antes de guardar.
+  const dudaPrevia = dudaVista && borradorEnDuda(dudaVista.borrador) ? dudaVista : null
+  const cambiaLaDuda = !!dudaPrevia && !guardando && !yaGuardado && !(borrador && mismoBorrador(borrador, dudaPrevia.borrador))
+  // B13: con el formulario completo, la vista previa trae las devoluciones pendientes de esa persona (se descontarán solas en
+  // un cierre). Sólo AVISA: si falla o tarda, el ajuste se guarda igual. La de otra persona (cambió la elección) no se pinta.
+  const vistaPrevia = useAdjustmentPreview(borrador ? { ...borrador, fecha: fechaDestino } : null, open)
+  const avisoPendientes = listo && vistaPrevia.data?.staffId === persona?.staffId ? vistaPrevia.data?.avisoPendientes : undefined
+  // Sin red la vista previa espera a la red (G2): el aviso de devoluciones no puede salir, y se dice en vez de callarlo.
+  const pendientesEnPausa = listo && vistaPrevia.isPaused && vistaPrevia.data?.staffId !== persona?.staffId
 
   const elegirPersona = (item: SearchComboboxItem) => {
     setErrorServer(null)
@@ -122,26 +162,52 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   }
 
   const guardar = async () => {
-    if (!listo || guardando || enVuelo.current) return
+    if (!borrador || guardando || yaGuardado || enVuelo.current) return
     enVuelo.current = true
     setGuardando(true)
     setErrorServer(null)
+    // 🔴 D1: la clave se anota ANTES de tocar la red. Si este mismo borrador quedó en duda (aun en otro modal), viaja con SU
+    // clave: el servidor devuelve el que ya guardó en vez de crear otro. Un cambio sobre un borrador en duda viaja con la clave
+    // de esa duda (C-n2).
+    const clave = claveDelBorrador(borrador, dudaPrevia ? claveDelBorrador(dudaPrevia.borrador, clientKey) : clientKey)
+    mandado.current = { borrador, nuevo: !borradorEnDuda(borrador) }
+    anotarBorrador(borrador, clave)
     try {
-      const r = await agregar.mutateAsync({
-        staffId: persona!.staffId,
-        sede,
-        amount: tipo === 'descuento' ? -monto! : monto!,
-        reason: motivo.trim(),
-        fecha: fechaDestino,
-        clientKey,
-      })
-      toast({ title: t('manualAdjust.saved', { start: formatCalendarDate(r.periodo.start), end: formatCalendarDate(r.periodo.end) }) })
+      const r = await agregar.mutateAsync({ ...borrador, fecha: fechaDestino, clientKey: clave })
+      soltarClave(clave)
+      const rango = { start: formatCalendarDate(r.periodo.start), end: formatCalendarDate(r.periodo.end) }
+      toast({ title: t(r.yaExistia ? 'manualAdjust.alreadySaved' : 'manualAdjust.saved', rango) })
       onOpenChange(false)
     } catch (err) {
       const status = (err as { response?: { status?: number } } | null)?.response?.status
-      // Un 400 (monto, motivo, FECHA_FUERA_DE_RANGO…) se dice junto al formulario; lo demás, en un aviso.
-      if (status === 400) setErrorServer(mensajeLegible(err) ?? t('errors.generic'))
-      else toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
+      if (status === undefined || status >= 500) {
+        // En duda (sin respuesta o 5xx): el modal NO se cierra, el borrador conserva su clave y el aviso en línea lo dice; el
+        // hook ya relee el periodo. Un 5xx que sí trae mensaje del servidor lo dice, además, en un aviso.
+        const mensaje = status === undefined ? null : mensajeLegible(err)
+        if (mensaje) toast({ title: mensaje, variant: 'destructive' })
+      } else if ((err as { response?: { data?: { code?: string } } }).response?.data?.code === 'CLAVE_REUTILIZADA') {
+        // C-n2: la clave ya se gastó en un ajuste que SÍ se guardó (la respuesta se había perdido). Se dice cuál —sin invitar a
+        // capturarlo otra vez—, la duda se acaba para todo borrador con esa clave y el hook relee el periodo.
+        soltarClave(clave)
+        const g = ajusteYaGuardado(err)
+        setYaGuardado(
+          g
+            ? t('manualAdjust.keyReusedSaved', {
+                monto: conSigno(g.amount),
+                persona: g.persona,
+                motivo: g.reason,
+                start: formatCalendarDate(g.start),
+                end: formatCalendarDate(g.end),
+              })
+            : (mensajeLegible(err) ?? t('manualAdjust.keyReused')),
+        )
+      } else {
+        // Con desenlace (4xx): no se guardó; ese borrador deja de estar en duda. Un 400 (monto, motivo, FECHA_FUERA_DE_RANGO…)
+        // se dice junto al formulario; lo demás, en un aviso.
+        soltarBorrador(borrador)
+        if (status === 400) setErrorServer(mensajeLegible(err) ?? t('errors.generic'))
+        else toast({ title: mensajeLegible(err) ?? t('errors.generic'), variant: 'destructive' })
+      }
     } finally {
       enVuelo.current = false
       setGuardando(false)
@@ -156,19 +222,31 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
   // Sin etiqueta, el nombre del periodo leído para la fecha destino; mientras llega (o si falla), la fecha exacta.
   const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
-    <Button className="cursor-pointer" disabled={!listo || guardando} onClick={guardar} data-tour="staffpay-adjust-save">
+    <Button className="cursor-pointer" disabled={!listo || guardando || !!yaGuardado} onClick={guardar} data-tour="staffpay-adjust-save">
       {guardando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {t('manualAdjust.save')}
     </Button>,
   )
+  const pendientes = hayPendientes(avisoPendientes) ? avisoPendientes : null
   const destino =
     etiqueta ??
     (leido ? nombrePeriodo(leido.periodo, leido.periodo.periodicidad) : t('manualAdjust.periodWithDate', { fecha: formatCalendarDate(fechaDestino) }))
 
+  // Cerrar en pausa sin red (C5): el envío todavía no salió; se cancela de verdad (no se guarda al volver la red) y, si la duda
+  // nació con este envío, el borrador sale de ella (nunca llegó al servidor). Una duda de antes (respuesta perdida) se conserva.
+  const cerrar = () => {
+    if (agregar.isPaused) {
+      agregar.cancelarEnPausa()
+      if (mandado.current?.nuevo) soltarBorrador(mandado.current.borrador)
+      enVuelo.current = false
+    }
+    onOpenChange(false)
+  }
+
   return (
     <FullScreenModal
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={cerrar}
       title={t('manualAdjust.title')}
       contentClassName="bg-muted/30"
       actions={accion.actions}
@@ -199,6 +277,7 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <div data-tour="staffpay-adjust-person">
               <SearchCombobox
                 inputId="staffpay-ajuste-persona"
+                listLabel={t('manualAdjust.peopleList')}
                 placeholder={t('manualAdjust.search')}
                 items={opciones}
                 isLoading={equipo.isFetching}
@@ -283,26 +362,84 @@ export function AjusteManualModal({ open, onOpenChange, sedes, fecha, etiqueta }
             <p className="text-xs text-muted-foreground">{t('manualAdjust.reasonHint', { min: MIN_MOTIVO })}</p>
           </div>
         </section>
+        {agregar.isPaused && (
+          <div role="status" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-offline">
+            <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('offline.willSendAdjustment')}</span>
+          </div>
+        )}
+        {enDuda && (
+          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-uncertain">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('manualAdjust.uncertain')}</span>
+          </div>
+        )}
+        {cambiaLaDuda && dudaPrevia && (
+          <div role="note" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm" data-tour="staffpay-adjust-uncertain-edited">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('manualAdjust.uncertainEdited', { monto: conSigno(dudaPrevia.borrador.amount), persona: dudaPrevia.nombre })}</span>
+          </div>
+        )}
+        {yaGuardado && (
+          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-input bg-card p-4 text-sm" data-tour="staffpay-adjust-already-saved">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <span>{yaGuardado}</span>
+          </div>
+        )}
         {(fueraDeRango || errorServer) && (
           <div role="alert" className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-card p-4 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <span>{errorServer ?? t('manualAdjust.outOfRange', { desde: formatCalendarDate(desdeAjuste) })}</span>
+            <span>
+              {errorServer ?? t(rango.porInicio ? 'manualAdjust.beforeStart' : 'manualAdjust.outOfRange', { desde: formatCalendarDate(rango.desde) })}
+            </span>
           </div>
         )}
-        <section className="rounded-2xl border border-border/50 bg-card p-6 text-sm" aria-live="polite">
-          {persona && monto !== undefined && monto > 0 ? (
-            <p className="font-medium">
-              {t(tipo === 'descuento' ? 'manualAdjust.summaryDeduction' : 'manualAdjust.summaryBonus', {
-                monto: Currency(monto),
-                persona: persona.nombre,
-                periodo: destino,
-              })}
-            </p>
-          ) : (
-            <p className="text-muted-foreground">{t('manualAdjust.summaryEmpty')}</p>
-          )}
-          <p className="mt-1 text-muted-foreground">{t('manualAdjust.goesTo')}</p>
-        </section>
+        {/* Tras el 409 CLAVE_REUTILIZADA (G3) este cambio ya no se guarda: su resumen («Se suman $12.00…») se va y queda sólo lo que
+            el servidor dijo que SÍ se guardó. */}
+        {!yaGuardado && (
+          <section className="rounded-2xl border border-border/50 bg-card p-6 text-sm" aria-live="polite">
+            {persona && monto !== undefined && monto > 0 ? (
+              <p className="font-medium">
+                {t(tipo === 'descuento' ? 'manualAdjust.summaryDeduction' : 'manualAdjust.summaryBonus', {
+                  monto: Currency(monto),
+                  persona: persona.nombre,
+                  periodo: destino,
+                })}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">{t('manualAdjust.summaryEmpty')}</p>
+            )}
+            <p className="mt-1 text-muted-foreground">{t('manualAdjust.goesTo')}</p>
+            {pendientesEnPausa && (
+              <p className="mt-3 flex items-start gap-2 text-muted-foreground" data-tour="staffpay-adjust-pending-offline">
+                <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>{t('offline.willCalculatePending')}</span>
+              </p>
+            )}
+            {pendientes && persona && (
+              <div role="note" className="mt-3 space-y-1 rounded-lg border border-amber-500/40 p-3 text-amber-800 dark:text-amber-300" data-tour="staffpay-adjust-pending">
+                {pendientes.porDestino.length === 1 ? (
+                  <p>
+                    {t('manualAdjust.pendingOne', {
+                      persona: persona.nombre,
+                      monto: montoTotal(pendientes.total),
+                      cuando: cuandoSeDescuenta(t, pendientes.porDestino[0].seDescuenta, nombrePeriodo),
+                    })}
+                  </p>
+                ) : (
+                  <>
+                    <p>{t('manualAdjust.pendingMany', { persona: persona.nombre, monto: montoTotal(pendientes.total) })}</p>
+                    <ul className="list-disc space-y-0.5 pl-5">
+                      {pendientes.porDestino.map((d, i) => (
+                        <li key={i}>{lineaDePendiente(t, d, nombrePeriodo)}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
+          </section>
+        )}
       </div>
       {accion.abajo}
     </FullScreenModal>

@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useRoleConfig } from '@/hooks/use-role-config'
 import type { WizardData } from './CreateCommissionWizard'
 import type { TierPeriod } from '@/types/commission'
+import { ofreceNiveles, ofreceTasasPorRol } from '../../tasaDelEsquema'
 
 interface StepConfirmProps {
 	data: WizardData
@@ -49,6 +50,8 @@ export default function StepConfirm({
 	// Calculate example commission - consistent $1,000 across all steps
 	const exampleSale = 1000
 	const isFixed = data.calcType === 'FIXED'
+	// En un fijo no hay niveles (son porcentajes): aunque se hayan prendido antes de elegir «Monto fijo», no se guardan ni se presentan.
+	const conNiveles = ofreceNiveles(data.calcType) && data.tiersEnabled
 	let exampleCommission = isFixed ? data.fixedAmount : exampleSale * data.defaultRate
 	if (data.limitsEnabled && !isFixed) {
 		if (data.minAmount !== null && exampleCommission < data.minAmount) {
@@ -61,7 +64,7 @@ export default function StepConfirm({
 
 	// Get commission type display
 	const getCommissionTypeDisplay = () => {
-		if (data.tiersEnabled) {
+		if (conNiveles) {
 			return t('wizard.step3.typeTiered', { period: t(`wizard.advanced.tiers.periodOptions.${data.tierPeriod}`) })
 		}
 		if (isFixed) {
@@ -72,7 +75,7 @@ export default function StepConfirm({
 
 	// Get icon for commission type
 	const getCommissionIcon = () => {
-		if (data.tiersEnabled) {
+		if (conNiveles) {
 			return <TrendingUp className="w-4 h-4 text-purple-500" />
 		}
 		if (isFixed) {
@@ -138,7 +141,7 @@ export default function StepConfirm({
 					</div>
 
 					{/* Show tiers if enabled */}
-					{data.tiersEnabled && (
+					{conNiveles && (
 						<div className="py-2 border-b border-border/30">
 							<span className="text-sm text-muted-foreground">{t('wizard.step3.tiers')}</span>
 							<div className="mt-2 space-y-1">
@@ -168,8 +171,8 @@ export default function StepConfirm({
 						</div>
 					)}
 
-					{/* Role rates if enabled */}
-					{data.roleRatesEnabled && (
+					{/* Role rates if enabled (nunca en un monto fijo: no se guardan) */}
+					{ofreceTasasPorRol(data.calcType) && data.roleRatesEnabled && (
 						<div className="py-2 border-b border-border/30">
 							<span className="text-sm text-muted-foreground">{t('wizard.step3.roleRates')}</span>
 							<div className="mt-2 grid grid-cols-3 gap-2">

@@ -40,6 +40,12 @@ export interface CommissionConfig {
   roleRates: Record<string, number> | null
   filterByCategories: boolean
   categoryIds: string[]
+  /**
+   * Sólo cobra comisión de este esquema quien está en `staffIds` (D-ELEGIDOS, final-comisiones-viejas). Aditivo: un servidor
+   * anterior no lo devuelve (`undefined`), y entonces no sabe restringir a personas elegidas.
+   */
+  filterByStaff?: boolean
+  staffIds?: string[]
   useGoalAsTier: boolean
   goalBonusRate: number | null
   attendanceLinked: boolean
@@ -245,6 +251,10 @@ export interface StaffTierProgress {
 
 export interface CommissionStats {
   totalPaid: number
+  /** Fase 3: hay pago al personal activo (plan + activación). Sin él, «Pagado» no aplica y se oculta. */
+  staffPayActive?: boolean
+  /** Fase 3: lo que el motor calculó en la sede, sin anuladas (KPI «Calculado»). */
+  totalCalculated?: number
   totalPending: number
   totalApproved: number
   staffWithCommissions: number
@@ -289,6 +299,8 @@ export interface CreateCommissionConfigInput {
   roleRates?: Record<string, number> | null
   filterByCategories?: boolean
   categoryIds?: string[]
+  filterByStaff?: boolean
+  staffIds?: string[]
   useGoalAsTier?: boolean
   goalBonusRate?: number | null
   attendanceLinked?: boolean
@@ -312,6 +324,8 @@ export interface UpdateCommissionConfigInput {
   roleRates?: Record<string, number> | null
   filterByCategories?: boolean
   categoryIds?: string[]
+  filterByStaff?: boolean
+  staffIds?: string[]
   useGoalAsTier?: boolean
   goalBonusRate?: number | null
   attendanceLinked?: boolean
@@ -448,6 +462,8 @@ export interface PaginatedCommissionPayoutsResponse {
 export interface StaffCommissionsResponse {
   calculations: CommissionCalculation[]
   summaries: CommissionSummary[]
+  /** Cuántos periodos había antes del tope de `summaries`, si el servidor lo dice (E6a-fix3). Sin él, no se afirma ningún recorte. */
+  summariesTotal?: number
   stats: StaffCommissionStats
   tierProgress: StaffTierProgress | null
 }

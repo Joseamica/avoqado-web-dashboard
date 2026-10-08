@@ -1,20 +1,13 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ColumnDef } from '@tanstack/react-table'
-import {
-	DollarSign,
-	TrendingUp,
-	Calendar,
-	CheckCircle2,
-	Clock,
-	AlertCircle,
-	Settings2,
-} from 'lucide-react'
+import { DollarSign, TrendingUp, Calendar } from 'lucide-react'
 import DataTable from '@/components/data-table'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useStaffCommissions } from '@/hooks/useCommissions'
-import type { CommissionSummary, CommissionSummaryStatus } from '@/types/commission'
+import { useAccess } from '@/hooks/use-access'
+import { useCommissionStats, useStaffCommissions } from '@/hooks/useCommissions'
+import { MostrandoDeTotal, NotaDeLoCalculado } from '@/pages/Commissions/components/AvisosDeResumen'
+import type { CommissionSummary } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
 // GlassCard component
@@ -33,15 +26,7 @@ const GlassCard: React.FC<{
 	</div>
 )
 
-// Status styles
-const statusStyles: Record<CommissionSummaryStatus, { bg: string; icon: React.ReactNode }> = {
-	DRAFT: { bg: 'bg-muted text-muted-foreground', icon: <Settings2 className="h-3 w-3" /> },
-	CALCULATED: { bg: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', icon: <TrendingUp className="h-3 w-3" /> },
-	PENDING_APPROVAL: { bg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <Clock className="h-3 w-3" /> },
-	APPROVED: { bg: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
-	DISPUTED: { bg: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: <AlertCircle className="h-3 w-3" /> },
-	PAID: { bg: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', icon: <DollarSign className="h-3 w-3" /> },
-}
+// Sin el estado del resumen (E6a-fix F9, QA H4): es del flujo viejo de pagos y contradecía al recibo de Pago al personal.
 
 interface TeamCommissionSectionProps {
 	staffId: string
@@ -52,6 +37,12 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 
 	// Fetch staff commissions (includes calculations, summaries, stats, and tierProgress)
 	const { data: commissions, isLoading: isLoadingCommissions } = useStaffCommissions(staffId)
+
+	// Con Pago al personal activo, este historial es lo CALCULADO (E6a-fix3, hermano de «Resumen de Comisiones»): misma consulta de
+	// estadísticas de la sede que la pantalla de Comisiones (en caché), y el enlace al recibo sólo para quien puede verlo.
+	const { can } = useAccess()
+	const { data: stats } = useCommissionStats()
+	const nota = <NotaDeLoCalculado staffPayActive={stats?.staffPayActive === true} puedeVerRecibos={can('staffpay:read')} />
 
 	// Format currency
 	const formatCurrency = (amount: number) => {
@@ -123,20 +114,6 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 					</span>
 				),
 			},
-			{
-				accessorKey: 'status',
-				header: t('table.status'),
-				cell: ({ row }) => {
-					const status = row.original.status
-					const style = statusStyles[status]
-					return (
-						<Badge className={cn('font-medium gap-1', style.bg)}>
-							{style.icon}
-							{t(`status.${status}`)}
-						</Badge>
-					)
-				},
-			},
 		],
 		[t, i18n.language]
 	)
@@ -199,7 +176,11 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 			{/* Commission History Table */}
 			{commissions?.summaries && commissions.summaries.length > 0 ? (
 				<>
-					<h4 className="text-sm font-medium mb-4">{t('staff.history')}</h4>
+					<h4 className="text-sm font-medium mb-1">{t('staff.history')}</h4>
+					<div className="mb-4 space-y-1">
+						{nota}
+						<MostrandoDeTotal n={commissions.summaries.length} total={commissions.summariesTotal} />
+					</div>
 					<div className="relative rounded-xl border border-border/50 overflow-hidden">
 						<DataTable<CommissionSummary>
 							columns={columns}
@@ -218,6 +199,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 					<p className="text-xs text-muted-foreground mt-1">
 						{t('staff.noCommissionsDescription')}
 					</p>
+					<div className="mt-3">{nota}</div>
 				</div>
 			)}
 		</GlassCard>

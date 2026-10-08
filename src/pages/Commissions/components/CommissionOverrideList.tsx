@@ -23,7 +23,8 @@ import {
 import { PermissionGate } from '@/components/PermissionGate'
 import { useDeleteCommissionOverride } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
-import type { CommissionOverride } from '@/types/commission'
+import type { CommissionCalcType, CommissionOverride } from '@/types/commission'
+import { ofreceTasaPorPersona } from '../tasaDelEsquema'
 import { cn } from '@/lib/utils'
 import CreateOverrideDialog from './CreateOverrideDialog'
 
@@ -45,12 +46,18 @@ const GlassCard: React.FC<{
 
 interface CommissionOverrideListProps {
 	configId: string
+	/** El tipo del esquema: en un monto fijo la tasa propia no tiene efecto, así que ni se ofrece ni se muestra (final-fijo-niveles). */
+	calcType: CommissionCalcType
+	/** Si el esquema sólo aplica a personas elegidas (D-ELEGIDOS): las excepciones nuevas son sólo para ellas. */
+	personasElegidas?: string[]
 	overrides: CommissionOverride[]
 	isLoading: boolean
 }
 
 export default function CommissionOverrideList({
 	configId,
+	calcType,
+	personasElegidas,
 	overrides,
 	isLoading,
 }: CommissionOverrideListProps) {
@@ -186,7 +193,7 @@ export default function CommissionOverrideList({
 											)}
 										</div>
 										<div className="flex items-center gap-2 mt-1">
-											{override.customRate !== null && (
+											{ofreceTasaPorPersona(calcType) && override.customRate !== null && (
 												<span className="text-sm text-muted-foreground">
 													{t('overrides.customRate')}: {formatPercent(override.customRate)}
 												</span>
@@ -258,6 +265,8 @@ export default function CommissionOverrideList({
 				onOpenChange={setShowCreateDialog}
 				configId={configId}
 				override={editingOverride}
+				calcType={calcType}
+				personasElegidas={personasElegidas}
 			/>
 
 			{/* Delete Confirmation Dialog */}

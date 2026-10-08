@@ -11,3 +11,7 @@ export function monto(m: string | number): string {
   const n = Number(m)
   return n < 0 ? `−${Currency(-n)}` : Currency(n)
 }
+
+/** Fase 3 (spec §11): un tipo (comisiones o propinas) tiene tarjeta y columna sólo si el periodo o alguna persona lo trae ≠ 0. */
+export const hayMonto = (tarjeta: string | undefined, personas: ReadonlyArray<string | undefined>) =>
+  Number(tarjeta ?? 0) !== 0 || personas.some(x => Number(x ?? 0) !== 0)

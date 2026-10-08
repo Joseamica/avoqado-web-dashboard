@@ -1,13 +1,44 @@
 {
-  "title": "Pago por servicio",
-  "subtitle": "Cuánto gana cada persona por clase, según cuántos lugares se ocuparon.",
+  "title": "Pago al personal",
+  "subtitle": "Clases, comisiones y propinas de cada persona, en un solo recibo por periodo.",
   "disabled": {
-    "title": "Pago por servicio no está activo en tu negocio",
-    "description": "Pídele a Avoqado que lo active. Quien tenga el permiso de configurar el equipo podrá capturar la tabla de pagos."
+    "title": "Pago al personal no está activo en tu negocio",
+    "description": "Viene incluido en el plan Pro, o se contrata suelto por sucursal. Pídeselo a Avoqado."
+  },
+  "activation": {
+    "title": "Activa pago al personal",
+    "what": "Cada periodo, Avoqado arma un recibo por persona con sus clases, sus comisiones de venta y, si lo eliges, sus propinas. Tú cierras el periodo y marcas lo que pagaste. Las sedes que no marques las activas después, cada una desde su fecha, en «Sedes».",
+    "noMoney": "Avoqado no mueve dinero: registra lo que tú pagas por fuera.",
+    "since": "Desde el {{fecha}} entran las clases y las comisiones de las sedes que marques. Las propinas entran sólo si prendes «Pagar las propinas en el recibo», y desde ese momento. Lo anterior no entra; si debes algo, agrégalo como ajuste.",
+    "venues": "Sedes que entran al activar",
+    "venueNoPlan": "Viene en el plan Pro o se contrata suelto por sucursal.",
+    "noVenues": "Marca al menos una sede para activar.",
+    "venuesError": "No se pudo cargar la lista de sedes.",
+    "periodicityFixed": "Ya hay periodos guardados: la frecuencia ya no se puede cambiar.",
+    "button": "Activar pago al personal",
+    "noPermission": "Para activarlo necesitas el permiso «Cerrar periodos y registrar pagos». Pídeselo al dueño del negocio.",
+    "confirmTitle": "¿Activar pago al personal con pago {{frecuencia}}?",
+    "confirmHelp": "Las clases y las comisiones entran desde el {{fecha}}; lo anterior no. La frecuencia queda fija al activar.",
+    "done": "Pago al personal activo desde el {{fecha}}",
+    "activeSince": "Activo desde el {{fecha}}: lo anterior no se suma."
+  },
+  "tips": {
+    "label": "Pagar las propinas en el recibo",
+    "help": "Si las entregas aparte cada día, déjalo apagado para no pagarlas dos veces.",
+    "noPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede cambiarlo. Pídeselo al dueño del negocio.",
+    "onTitle": "¿Pagar las propinas en el recibo?",
+    "onHelp": "Desde ahora, la propina de cada cobro de una sede activa entra al recibo de quien atendió la cuenta (si no quedó registrado, de quien cobró). Las de antes de hoy no entran.",
+    "onConfirm": "Sí, pagarlas en el recibo",
+    "offTitle": "¿Dejar de pagar las propinas en el recibo?",
+    "offHelp": "Las propinas de los cobros desde ahora ya no entran al recibo. Las que ya entraron, o ya ganaron el derecho a entrar, no se pierden; y si se devuelve una que ya se pagó, se descuenta igual.",
+    "offConfirm": "Sí, dejar de pagarlas",
+    "turnedOn": "Las propinas se pagarán en el recibo",
+    "turnedOff": "Las propinas ya no se pagan en el recibo"
   },
   "tabs": {
     "table": "Tabla de pagos",
-    "periods": "Periodos"
+    "periods": "Periodos",
+    "venues": "Sedes"
   },
   "levels": {
     "title": "Niveles",
@@ -70,6 +101,25 @@
     "saved": "Tabla guardada",
     "effectLoading": "Calculando cuántas clases cambian…"
   },
+  "rules": {
+    "title": "Reglas",
+    "help": "Opcionales y apagadas de fábrica. Se guardan con la tabla: cambiarlas es publicar una versión nueva, y lo ya cerrado no se mueve.",
+    "noPermission": "Para cambiar las reglas necesitas el permiso «Configurar pago al personal». Pídeselo al dueño del negocio.",
+    "cover": "Suplencia con poco aviso",
+    "coverPrefix": "Si a la coach se le asigna la clase con menos de",
+    "coverMiddle": "horas de anticipación, cobra su nivel más",
+    "coverHours": "Horas de aviso de la suplencia",
+    "coverAmount": "Monto extra por suplencia",
+    "lateCancel": "Cancelación tardía",
+    "latePrefix": "Si la clase se cancela con menos de",
+    "lateSuffix": "horas de anticipación, se le paga a la coach el sueldo base (la fila de 0 lugares).",
+    "lateHours": "Horas de aviso de la cancelación",
+    "error": {
+      "coverHours": "Las horas de la suplencia van de 1 a {{max}}, sin decimales.",
+      "coverAmount": "El monto extra va de $0.01 a {{max}}, con hasta dos decimales.",
+      "lateHours": "Las horas de la cancelación van de 1 a {{max}}, sin decimales."
+    }
+  },
   "period": {
     "title": "Periodo {{start}} – {{end}}",
     "open": "Abierto",
@@ -79,7 +129,9 @@
       "total": "Total",
       "classes": "Clases",
       "people": "Personas",
-      "exceptions": "Excepciones"
+      "exceptions": "Excepciones",
+      "commissions": "Comisiones",
+      "tips": "Propinas"
     },
     "exceptionsBanner_one": "{{count}} clase no se puede pagar todavía. Resuélvela antes de cerrar.",
     "exceptionsBanner_other": "{{count}} clases no se pueden pagar todavía. Resuélvelas antes de cerrar.",
@@ -92,7 +144,9 @@
       "avgSeats": "Lugares promedio",
       "total": "Total",
       "venue": "Sede",
-      "adjustments": "Ajustes"
+      "adjustments": "Ajustes",
+      "commissions": "Comisiones",
+      "tips": "Propinas"
     },
     "detail": "Desglose",
     "capturedOn": "{{fecha}} (captura)",
@@ -156,7 +210,22 @@
     "receiptExportPartial": "El PDF y el Excel traen sólo las sedes que puedes ver.",
     "loadMoreError": "No se pudo cargar más.",
     "negativeShort": "Saldo en contra",
-    "negativeBalance": "Saldo en contra: recibió de más en periodos anteriores. Avoqado no cobra ni descuenta solo."
+    "negativeBalance": "Saldo en contra: recibió de más en periodos anteriores. Avoqado no cobra ni descuenta solo.",
+    "formerStaff": "Persona dada de baja",
+    "salesSection": "Comisiones y propinas",
+    "detailSummaryTotal": "Total {{total}}",
+    "byType": {
+      "CLASE": "Clases",
+      "COMISION": "Comisiones",
+      "PROPINA": "Propinas",
+      "DIFERENCIA": "Diferencias",
+      "AJUSTE": "Ajustes"
+    },
+    "pendingTitle": "Devoluciones que se descontarán solas",
+    "pendingHelp": "No están en el total de arriba: cada una se descuenta en el cierre que dice.",
+    "pendingLine": "{{monto}} se descontará solo {{cuando}}.",
+    "pendingAtClose": "al cerrar el periodo de {{periodo}}",
+    "pendingAfter": "al cerrar un periodo posterior al de {{periodo}} (ése ya se cerró)"
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
@@ -195,7 +264,16 @@
     "mode": {
       "BOOKED": "por reservas",
       "ATTENDED": "por asistencia"
-    }
+    },
+    "coverBonus": "Suplencia avisada {{horas}} h antes: {{monto}}",
+    "coverBonusUnderHour": "Suplencia avisada con menos de 1 h: {{monto}}",
+    "lateCancel": "Cancelada {{horas}} h antes: se paga el sueldo base",
+    "lateCancelUnderHour": "Cancelada con menos de 1 h de aviso: se paga el sueldo base",
+    "outOfEnvelope": "La sede {{sede}} no estaba activa en pago al personal el {{fecha}}: esta clase no entra al recibo.",
+    "wouldPay": "Si la activas desde ese día, se pagarían {{monto}}.",
+    "goToVenues": "Ver sedes",
+    "overrideNotApplied": "El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base.",
+    "overrideReason": "Motivo de la corrección: {{reason}}"
   },
   "adjust": {
     "title": "Ajustar el pago de la clase",
@@ -258,7 +336,7 @@
     "monthly": "Mensual",
     "semimonthly": "Quincenal (1-15 y 16-fin de mes)",
     "periodicityHelp": "Elígelo antes del primer cierre o ajuste: después ya no se cambia.",
-    "periodicityLocked": "Ya hay cierres o ajustes registrados: la frecuencia de pago ya no se puede cambiar.",
+    "periodicityLocked": "La frecuencia quedó fija al activar pago al personal.",
     "periodicityNoPermission": "Sólo quien tiene el permiso «Cerrar periodos y registrar pagos» puede elegirlo. Pídeselo al dueño del negocio.",
     "periodicitySaved": "Frecuencia de pago guardada",
     "loadOlder": "Ver periodos anteriores",
@@ -290,9 +368,19 @@
       "EXCEPCIONES_one": "Queda {{count}} clase que todavía no se puede pagar. Resuélvela en «Ver cuáles».",
       "EXCEPCIONES_other": "Quedan {{count}} clases que todavía no se pueden pagar. Resuélvelas en «Ver cuáles».",
       "SIN_PERMISO": "Necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes del periodo. Pídeselo al dueño del negocio.",
-      "YA_CERRADO": "Este periodo ya está cerrado."
+      "YA_CERRADO": "Este periodo ya está cerrado.",
+      "SEDE_ACTIVA_SIN_PLAN_otras_one": "{{sedes}} sigue activa en pago al personal y ya no tiene el plan. Desactívala indicando su último día: con eso se puede cerrar.",
+      "SEDE_ACTIVA_SIN_PLAN_otras_other": "{{sedes}} siguen activas en pago al personal y ya no tienen el plan. Desactívalas indicando su último día: con eso se puede cerrar.",
+      "SEDE_ACTIVA_SIN_PLAN_ninguna_one": "{{sedes}} sigue activa en pago al personal y ya no tiene el plan. Renueva el plan para cerrar: desactivarla no libera el cierre.",
+      "SEDE_ACTIVA_SIN_PLAN_ninguna_other": "{{sedes}} siguen activas en pago al personal y ya no tienen el plan. Renueva el plan para cerrar: desactivarlas no libera el cierre."
     },
-    "empty": "No hay clases ni ajustes en este periodo: se cierra en $0.",
+    "empty": "No hay nada que pagar en este periodo: se cierra en $0.",
+    "classes_one": "{{count}} clase",
+    "classes_other": "{{count}} clases",
+    "commissions_one": "{{count}} comisión",
+    "commissions_other": "{{count}} comisiones",
+    "tips_one": "{{count}} propina",
+    "tips_other": "{{count}} propinas",
     "adjustmentsIncluded": "Incluye ajustes por {{total}}.",
     "afterwards": "Lo que cambie después aparecerá como diferencia pendiente; lo congelado no se mueve.",
     "orphansConfirm_one": "Entiendo que {{count}} reserva de clase sin horario no cuenta para ningún pago.",
@@ -305,9 +393,35 @@
     "willFreeze_other": "Se congelan {{count}} clases de {{personas}} en {{sedes}}: {{total}}.",
     "willFreezeNoVenue_one": "Se congela {{count}} clase de {{personas}}: {{total}}.",
     "willFreezeNoVenue_other": "Se congelan {{count}} clases de {{personas}}: {{total}}.",
+    "willFreezeSales_one": "Se congela {{lista}} de {{personas}} en {{sedes}}: {{total}}.",
+    "willFreezeSales_other": "Se congelan {{lista}} de {{personas}} en {{sedes}}: {{total}}.",
+    "willFreezeSalesNoVenue_one": "Se congela {{lista}} de {{personas}}: {{total}}.",
+    "willFreezeSalesNoVenue_other": "Se congelan {{lista}} de {{personas}}: {{total}}.",
+    "willFreezeReceipts_one": "Se congela el recibo de {{personas}} en {{sedes}}: {{total}}.",
+    "willFreezeReceipts_other": "Se congelan los recibos de {{personas}} en {{sedes}}: {{total}}.",
+    "willFreezeReceiptsNoVenue_one": "Se congela el recibo de {{personas}}: {{total}}.",
+    "willFreezeReceiptsNoVenue_other": "Se congelan los recibos de {{personas}}: {{total}}.",
+    "reversals_one": "Incluye {{count}} comisión anulada que se descuenta.",
+    "reversals_other": "Incluye {{count}} comisiones anuladas que se descuentan.",
+    "tipsWithoutOwner_one": "{{count}} propina sin persona ({{total}}) no entra al recibo. Asigna en la orden quién atendió y entrará en el siguiente cierre.",
+    "tipsWithoutOwner_other": "{{count}} propinas sin persona ({{total}}) no entran al recibo. Asigna en cada orden quién atendió y entrarán en el siguiente cierre.",
+    "commissionsToReview_one": "{{count}} cobro o devolución con comisión por revisar: no entra hasta resolverla.",
+    "commissionsToReview_other": "{{count}} cobros o devoluciones con comisión por revisar: no entran hasta resolverlas.",
+    "bySede": {
+      "title": "Por sede",
+      "entra": "Entra: {{cuenta}}.",
+      "entraNada": "No entra nada.",
+      "fuera": "No entra en este cierre: {{cuenta}}."
+    },
+    "pendingTitle": "Devoluciones que este cierre no descuenta",
+    "deactivateSede": "Desactivar {{sede}}",
     "people_one": "{{count}} persona",
     "people_other": "{{count}} personas",
-    "alreadyClosed": "Este periodo ya estaba cerrado (total {{total}})."
+    "alreadyClosed": "Este periodo ya estaba cerrado (total {{total}}).",
+    "uncertainChecking": "No sabemos si se cerró; revisando…",
+    "uncertainOffline": "No sabemos si se cerró. Cuando vuelva la conexión, revisa de nuevo: si ya se cerró, no se cierra dos veces.",
+    "uncertainNotClosed": "No se cerró: puedes volver a intentarlo.",
+    "uncertainClosed": "Sí se cerró: el periodo quedó cerrado."
   },
   "closed": {
     "badge": "Cerrado",
@@ -349,7 +463,8 @@
     "owesMany_other": "{{count}} recibos quedan con saldo en contra por {{monto}}.",
     "markAllMixedConfirm_one": "Registrar {{count}} recibo",
     "markAllMixedConfirm_other": "Registrar {{count}} recibos",
-    "networkCheck": "No llegó la respuesta del servidor. Revisa abajo cómo quedó: si ya se registró, no se registra dos veces."
+    "networkCheck": "No llegó la respuesta del servidor. Revisa abajo cómo quedó: si ya se registró, no se registra dos veces.",
+    "alreadyRecorded": "Ya estaba registrado: no se registró dos veces."
   },
   "manualAdjust": {
     "add": "Agregar ajuste a {{periodo}}",
@@ -377,7 +492,16 @@
     "selected": "Elegiste a {{persona}}.",
     "periodWithDate": "el periodo abierto que incluye el {{fecha}}",
     "amountInvalid": "Escribe un monto mayor a $0 y de hasta $1,000,000.00, con máximo 2 decimales.",
-    "outOfRange": "Un ajuste sólo puede ir a un periodo de los últimos 12 meses (desde el {{desde}})."
+    "outOfRange": "Un ajuste sólo puede ir a un periodo de los últimos 12 meses (desde el {{desde}}).",
+    "pendingOne": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas {{cuando}}. Si este ajuste es por eso, no lo registres.",
+    "pendingMany": "{{persona}} tiene {{monto}} en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:",
+    "uncertain": "No sabemos si se guardó. Vuelve a intentar: si ya se guardó, no se duplica.",
+    "uncertainEdited": "El ajuste anterior ({{monto}} para {{persona}}) pudo haberse guardado. Si lo cambias y ya estaba guardado, no se guarda otro: te diremos cuál quedó.",
+    "keyReusedSaved": "El ajuste anterior sí se guardó: {{monto}} para {{persona}} ({{motivo}}), en el periodo del {{start}} al {{end}}. Este cambio no se guardó. Si querías otro ajuste distinto, cierra esta ventana y agrégalo de nuevo.",
+    "keyReused": "Ya se había guardado un ajuste con esta solicitud: revisa la lista. Si querías otro ajuste distinto, cierra esta ventana y agrégalo de nuevo.",
+    "alreadySaved": "Este ajuste ya estaba guardado en el periodo del {{start}} al {{end}}: no se duplicó.",
+    "beforeStart": "Pago al personal está activo desde el {{desde}}: un ajuste no puede ir a un periodo anterior.",
+    "peopleList": "Personas que coinciden"
   },
   "differences": {
     "title": "Diferencias por liquidar",
@@ -458,5 +582,90 @@
     "notCountedPeriods_other": "No se contaron {{count}} periodos anteriores que siguen abiertos; también pueden cambiar.",
     "closedLocal": "{{periodo}} ya se cerró: elige una fecha desde el {{fecha}}. Para una clase de un periodo cerrado usa «Ajustar monto» en la clase.",
     "outOfRange": "La vigencia debe estar entre el {{desde}} y el {{hasta}}."
+  },
+  "sedes": {
+    "error": "No se pudo cargar el estado de las sedes.",
+    "irAActivar": "Activa pago al personal en «Periodos»",
+    "antesDeActivar": "Las sedes que elijas entran al activar pago al personal. Después puedes activar las demás, cada una desde su fecha.",
+    "conPlan": "Con plan",
+    "estado": {
+      "ACTIVA": "Activa",
+      "SIN_ACTIVAR": "Sin activar",
+      "ACTIVA_SIN_PLAN": "Activa sin plan",
+      "SIN_PLAN": "Sin plan"
+    },
+    "activaDesde": "Activa desde el {{desde}}",
+    "activaHasta": "Activa del {{desde}} al {{hasta}}",
+    "bloqueaCierre": "Perdió el plan y sigue activa: bloquea el cierre. Desactívala indicando su último día, o renueva el plan.",
+    "fuera": {
+      "sinActivar": "Lo que queda fuera desde el {{desde}}: {{cuenta}}. Actívala para que entre.",
+      "antesDe": "Lo que queda fuera, de antes del {{desde}}: {{cuenta}}."
+    },
+    "sinPlan": "Pago al personal viene en el plan Pro o se contrata suelto por sucursal.",
+    "sinPlanPrecio": "Pago al personal viene en el plan Pro o se contrata suelto por {{precio}} al mes en esta sucursal.",
+    "sinPermiso": "Para activar o desactivar una sede necesitas el permiso «Cerrar periodos y registrar pagos» en ella. Pídeselo al dueño del negocio.",
+    "cambiaDeSede": "Para activar o desactivar sedes, entra desde una sede donde tengas el permiso «Cerrar periodos y registrar pagos».",
+    "sinDiasHoy": "El periodo de hoy ya está cerrado en esta sede: podrás activarla cuando empiece el siguiente.",
+    "activar": "Activar",
+    "desactivar": "Desactivar",
+    "verSedes": "Ver sedes",
+    "cuenta": {
+      "clases_one": "{{count}} clase ({{total}})",
+      "clases_other": "{{count}} clases ({{total}})",
+      "comisiones_one": "{{count}} comisión ({{total}})",
+      "comisiones_other": "{{count}} comisiones ({{total}})",
+      "propinas_one": "{{count}} propina ({{total}})",
+      "propinas_other": "{{count}} propinas ({{total}})",
+      "sinValorar_one": "{{count}} clase que todavía no se puede valorar",
+      "sinValorar_other": "{{count}} clases que todavía no se pueden valorar"
+    },
+    "dialogo": {
+      "tituloActivar": "Activar {{sede}}",
+      "tituloDesactivar": "Desactivar {{sede}}",
+      "desde": "Desde qué día cuentan sus clases y ventas",
+      "hasta": "Último día que cuenta",
+      "rango": "Puedes elegir del {{desde}} al {{hasta}} (hora de la sede).",
+      "entran": "Lo que entra desde el {{fecha}} a las 00:00 (hora de {{sede}}): {{cuenta}}.",
+      "entranNada": "Todavía no hay nada desde el {{fecha}}: entra todo lo de ahora en adelante.",
+      "quedanFuera": "Lo que queda fuera, de antes del {{fecha}}: {{cuenta}}.",
+      "quedaFueraNada": "No queda nada fuera.",
+      "ajuste": "Lo anterior no entra; si debes algo, agrégalo como ajuste.",
+      "dejanDeEntrar": "Lo que deja de entrar, de después del {{fecha}}: {{cuenta}}.",
+      "permanecen": "Lo que sigue entrando hasta el {{fecha}}: {{cuenta}}.",
+      "nadaCambia": "Nada cambia con esa fecha.",
+      "borraActivacion": "Con esa fecha se borra la activación: nada de esta sede entra al recibo.",
+      "confirmarActivar": "Activar desde el {{fecha}}",
+      "confirmarDesactivar": "Desactivar: último día el {{fecha}}",
+      "activada": "{{sede}} activa desde el {{fecha}}",
+      "desactivada": "{{sede}} desactivada: su último día es el {{fecha}}",
+      "borrada": "Se borró la activación de {{sede}}"
+    },
+    "aviso": {
+      "sinActivar": "{{sede}} no está activa. Lo que queda fuera desde el {{desde}}: {{cuenta}}.",
+      "sinPlan_one": "{{sedes}} sigue activa sin plan: el cierre está bloqueado hasta desactivarla o renovar el plan.",
+      "sinPlan_other": "{{sedes}} siguen activas sin plan: el cierre está bloqueado hasta desactivarlas o renovar el plan.",
+      "mas_one": "y {{count}} sede más",
+      "mas_other": "y {{count}} sedes más"
+    },
+    "ultimoDiaHoy": "Último día: hoy. Podrás volver a activarla desde mañana.",
+    "cambiaDeSedeA": "Para activar o desactivar sedes, entra desde una sede donde tengas el permiso «Cerrar periodos y registrar pagos»: {{sedes}}."
+  },
+  "orgPermission": "Para esto necesitas el permiso «Cerrar periodos y registrar pagos» en todas las sedes de la organización. Pídeselo al dueño del negocio.",
+  "orgConfigPermission": "Para esto necesitas el permiso «Configurar pago al personal» en todas las sedes de la organización. Pídeselo al dueño del negocio.",
+  "offline": {
+    "willSend": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se registra.",
+    "willSendClose": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se cierra el periodo.",
+    "willSendAdjustment": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se guarda el ajuste.",
+    "willSendSave": "Sin conexión: se enviará cuando vuelva la red. Si cancelas el envío, no se guarda.",
+    "willSendSaveClose": "Sin conexión: se enviará cuando vuelva la red. Si cierras esta ventana, no se guarda.",
+    "willSendActivate": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se activa.",
+    "willSendTips": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se cambia.",
+    "willSendSede": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, la sede no cambia.",
+    "willSendSettle": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, no se liquida.",
+    "willSendPeriodicity": "Sin conexión: se enviará cuando vuelva la red. Si cancelas, la frecuencia no cambia.",
+    "willCalculate": "Sin conexión: se calculará al volver la red.",
+    "willCalculateClose": "Sin conexión: el cierre se calcula cuando vuelva la red.",
+    "willCalculatePending": "Sin conexión: las devoluciones pendientes de esta persona se revisan cuando vuelva la red.",
+    "cancelSend": "Cancelar envío"
   }
 }

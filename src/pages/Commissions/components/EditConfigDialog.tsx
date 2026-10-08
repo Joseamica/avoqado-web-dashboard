@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from './BaseIvaSwitch'
+import BaseComisionSwitch from './BaseComisionSwitch'
+import { aCentavos, calcTypeAGuardar, MONTO_FIJO_MAXIMO, montoFijoValido, ofreceNiveles, tasasPorRolAGuardar } from '../tasaDelEsquema'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionCalcType, CommissionConfig, TierPeriod } from '@/types/commission'
@@ -17,6 +19,8 @@ import CommissionAdvancedConfig from './wizard/CommissionAdvancedConfig'
 import CategoryFilter from './wizard/CategoryFilter'
 import type { WizardData } from './wizard/CreateCommissionWizard'
 import LiveExample from './wizard/LiveExample'
+import AQuienAplicaEditor, { type AQuienAplica } from './AQuienAplicaEditor'
+import { servidorRestringePorPersona } from '../aQuienAplica'
 
 interface EditConfigDialogProps {
   open: boolean
@@ -31,9 +35,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const { t } = useTranslation('commissions')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
-  const { venue } = useCurrentVenue()
 
-  const isMexico = venue?.country?.toLowerCase() === 'mexico' || venue?.country?.toLowerCase() === 'méxico' || venue?.country === 'MX'
 
   const updateConfigMutation = useUpdateCommissionConfig()
 
@@ -99,6 +101,12 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const [fixedAmountInput, setFixedAmountInput] = useState(() => String(data.fixedAmount))
   const [goalBonusRateInput, setGoalBonusRateInput] = useState(() => (data.goalBonusRate * 100).toFixed(2))
   const [attendancePenaltyInput, setAttendancePenaltyInput] = useState(() => (data.attendanceLatePenaltyRate * 100).toFixed(0))
+  // A quién aplica (D-ELEGIDOS): se lee del esquema y se manda sólo si el servidor sabe restringir (sus esquemas traen
+  // `filterByStaff`); uno anterior no lo guardaría y el editor lo dice.
+  const restriccionDisponible = servidorRestringePorPersona(config)
+  const aQuienDelEsquema = (cfg: CommissionConfig): AQuienAplica => ({ soloElegidas: cfg.filterByStaff === true, staffIds: cfg.staffIds ?? [] })
+  const [aQuien, setAQuien] = useState<AQuienAplica>(() => aQuienDelEsquema(config))
+  const faltaElegir = restriccionDisponible && aQuien.soloElegidas && aQuien.staffIds.length === 0
 
   // Check if rate editing is locked due to existing calculations
   const calculationsCount = config._count?.calculations || 0
@@ -113,6 +121,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       setFixedAmountInput(String(wizardData.fixedAmount))
       setGoalBonusRateInput((wizardData.goalBonusRate * 100).toFixed(2))
       setAttendancePenaltyInput((wizardData.attendanceLatePenaltyRate * 100).toFixed(0))
+      setAQuien(aQuienDelEsquema(config))
       setAdvancedOpen(wizardData.tiersEnabled || wizardData.roleRatesEnabled || wizardData.limitsEnabled || wizardData.overridesEnabled)
     }
   }, [open, config])
@@ -145,22 +154,21 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
     setRateInput(normalized.toFixed(2))
   }
 
-  // Handle fixed amount change
+  // Monto fijo en pesos con centavos, de más de $0 a $999,999.99 (D-FIJO). Lo que no cabe no se guarda y el campo lo dice.
+  const montoTecleado = fixedAmountInput.trim() === '' ? null : aCentavos(Number(fixedAmountInput))
+  const montoFueraDeRango = montoTecleado !== null && !montoFijoValido(montoTecleado)
+
   const handleFixedAmountChange = (value: string) => {
     setFixedAmountInput(value)
     if (value === '') return
-    const num = Number(value)
-    if (Number.isNaN(num) || num < 0) return
+    const num = aCentavos(Number(value))
+    if (!montoFijoValido(num)) return
     updateData({ fixedAmount: num })
   }
 
   const handleFixedAmountBlur = () => {
-    if (fixedAmountInput.trim() === '') {
-      setFixedAmountInput(String(data.fixedAmount))
-      return
-    }
-    const num = Number(fixedAmountInput)
-    if (Number.isNaN(num) || num < 0) {
+    const num = aCentavos(Number(fixedAmountInput))
+    if (fixedAmountInput.trim() === '' || !montoFijoValido(num)) {
       setFixedAmountInput(String(data.fixedAmount))
       return
     }
@@ -200,11 +208,12 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   const handleSubmit = async () => {
     try {
       // For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
-      const effectiveCalcType = data.tiersEnabled ? 'TIERED' : data.calcType
       const effectiveRate = data.calcType === 'FIXED' ? Number(data.fixedAmount) : Number(data.defaultRate)
 
-      // When goal-based tier is enabled, set calcType to TIERED internally
-      const finalCalcType = data.useGoalAsTier ? 'TIERED' : effectiveCalcType
+      // Niveles o meta como nivel ⇒ TIERED, sólo con porcentaje. 🔴 Un esquema por niveles (o con meta como nivel) que pasa a «Monto
+      // fijo» se guarda FIXED: como TIERED, el servidor leería el monto como tasa (final-fijo-niveles).
+      const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
+      const metaComoNivel = ofreceNiveles(data.calcType) && data.useGoalAsTier
 
       // Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
       const toISODateTime = (dateStr: string | null | undefined) => {
@@ -216,11 +225,10 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       const minAmount = data.limitsEnabled && data.minAmount !== null ? Number(data.minAmount) : null
       const maxAmount = data.limitsEnabled && data.maxAmount !== null ? Number(data.maxAmount) : null
 
-      // Convert roleRates values to numbers
-      const roleRates =
-        data.roleRatesEnabled && data.roleRates
-          ? Object.fromEntries(Object.entries(data.roleRates).map(([key, value]) => [key, Number(value)]))
-          : null
+      // Convert roleRates values to numbers. Un esquema de monto fijo nunca guarda tasas por rol (el servidor las ignora): si las traía,
+      // se limpian al guardar (duda 2 de la Parte 1b).
+      const tasasPorRol = tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates)
+      const roleRates = tasasPorRol ? Object.fromEntries(Object.entries(tasasPorRol).map(([key, value]) => [key, Number(value)])) : null
 
       await updateConfigMutation.mutateAsync({
         configId: config.id,
@@ -236,8 +244,11 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           includeTax: data.includeTax,
           filterByCategories: data.filterByCategories,
           categoryIds: data.filterByCategories ? data.categoryIds : [],
-          useGoalAsTier: data.useGoalAsTier,
-          goalBonusRate: data.useGoalAsTier ? data.goalBonusRate : null,
+          ...(restriccionDisponible
+            ? { filterByStaff: aQuien.soloElegidas, staffIds: aQuien.soloElegidas ? aQuien.staffIds : [] }
+            : {}),
+          useGoalAsTier: metaComoNivel,
+          goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
           attendanceLinked: data.attendanceLinked,
           attendanceLatePenaltyRate: data.attendanceLinked ? data.attendanceLatePenaltyRate : null,
           roleRates,
@@ -264,7 +275,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
   }
 
   const saveButton = (
-    <Button onClick={handleSubmit} disabled={updateConfigMutation.isPending || !data.name.trim()}>
+    <Button onClick={handleSubmit} disabled={updateConfigMutation.isPending || !data.name.trim() || faltaElegir}>
       {updateConfigMutation.isPending ? tCommon('common.saving') : t('actions.save')}
     </Button>
   )
@@ -368,8 +379,11 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">$</span>
               <Input
                 type="number"
-                step="1"
-                min="0"
+                step="0.01"
+                min="0.01"
+                max={MONTO_FIJO_MAXIMO}
+                aria-label={t('wizard.step2.fixedAmount')}
+                aria-invalid={montoFueraDeRango}
                 value={fixedAmountInput}
                 onChange={e => handleFixedAmountChange(e.target.value)}
                 onBlur={handleFixedAmountBlur}
@@ -378,6 +392,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               />
             </div>
             <p className="text-sm text-muted-foreground mt-2">{t('wizard.step2.perTransaction')}</p>
+            {montoFueraDeRango && <p className="text-sm text-destructive mt-1">{t('wizard.step2.fixedAmountRange')}</p>}
           </div>
         )}
 
@@ -388,42 +403,19 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
         <div className="space-y-3 rounded-xl border border-border/50 p-4">
           <h3 className="text-sm font-medium text-muted-foreground">{t('wizard.step2.calculationBase')}</h3>
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="edit-includeTax" className="text-sm">
-                  {t('wizard.step2.includeTax')}
-                  {isMexico ? ' (IVA 16%)' : ''}
-                </Label>
-                {isMexico && !data.includeTax && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{t('wizard.step2.taxExcludedHint')}</p>
-                )}
-              </div>
-              <Switch id="edit-includeTax" checked={data.includeTax} onCheckedChange={checked => updateData({ includeTax: checked })} />
-            </div>
+            <BaseIvaSwitch id="edit-includeTax" checked={data.includeTax} onChange={checked => updateData({ includeTax: checked })} />
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-includeTips" className="text-sm">
                 {t('wizard.step2.includeTips')}
               </Label>
               <Switch id="edit-includeTips" checked={data.includeTips} onCheckedChange={checked => updateData({ includeTips: checked })} />
             </div>
-            {/* Base de la comisión — misma semántica que el asistente: la etiqueta
-                muestra la base vigente, no "incluir descuentos". */}
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <Label htmlFor="edit-includeDiscount" className="text-sm">
-                  {t('wizard.step2.commissionBase')}:{' '}
-                  {data.includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet')}
-                </Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {data.includeDiscount ? t('wizard.step2.commissionBaseListHint') : t('wizard.step2.commissionBaseNetHint')}
-                </p>
-              </div>
-              <Switch
-                id="edit-includeDiscount"
-                checked={data.includeDiscount}
-                onCheckedChange={checked => updateData({ includeDiscount: checked })}
-              />
-            </div>
+            {/* Base de la comisión — misma semántica que el asistente: la etiqueta es la ACCIÓN (ver BaseComisionSwitch). */}
+            <BaseComisionSwitch
+              id="edit-includeDiscount"
+              checked={data.includeDiscount}
+              onChange={checked => updateData({ includeDiscount: checked })}
+            />
             {/* Asistencia → comisiones (founder 2026-08-26): por esquema, nace apagada. Sólo
                 castiga RETARDO fuera de tolerancia; sin cuadrante o con el checador del venue
                 apagado no hace nada. El servidor exige el % al prenderla. */}
@@ -489,6 +481,9 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
             </div>
           )}
         </div>
+
+        {/* ─── A quién aplica ─── */}
+        <AQuienAplicaEditor disponible={restriccionDisponible} valor={aQuien} onChange={setAQuien} />
 
         {/* ─── Meta como escalón ─── */}
         {data.calcType === 'PERCENTAGE' && (

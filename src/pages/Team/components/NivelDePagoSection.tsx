@@ -39,7 +39,10 @@ export function NivelDePagoSection({ staffId, staffName, className }: Props) {
     actual && !activos.some(n => n.id === actual.payLevelId)
       ? [...activos, { id: actual.payLevelId, name: actual.payLevelName, sortOrder: Number.MAX_SAFE_INTEGER, archivedAt: 'archivado' }]
       : activos
-  const puedeCambiar = can('staffpay:manage')
+  // «Configurar pago al personal» aquí y en todas las sedes (E6a-fix3 C2): lo que exige el servidor para asignar nivel.
+  const aqui = can('staffpay:manage')
+  const falta = aqui && acceso?.puedeConfigurarOrganizacion === false
+  const puedeCambiar = aqui && !falta
 
   const elegir = (payLevelId: string) => {
     if (!payLevelId || payLevelId === actual?.payLevelId) return
@@ -58,8 +61,8 @@ export function NivelDePagoSection({ staffId, staffName, className }: Props) {
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
-          {puedeCambiar ? (
-            <Select value={actual?.payLevelId ?? ''} onValueChange={elegir} disabled={activos.length === 0}>
+          {aqui ? (
+            <Select value={actual?.payLevelId ?? ''} onValueChange={elegir} disabled={activos.length === 0 || falta}>
               <SelectTrigger className="w-56 cursor-pointer" aria-label={t('member.title')}>
                 <SelectValue placeholder={t('who.noLevel')} />
               </SelectTrigger>
@@ -80,6 +83,7 @@ export function NivelDePagoSection({ staffId, staffName, className }: Props) {
             </span>
           )}
           {puedeCambiar && activos.length === 0 && <p className="text-sm text-muted-foreground w-full">{t('who.needLevels')}</p>}
+          {falta && <p className="text-xs text-muted-foreground w-full">{t('orgConfigPermission')}</p>}
         </div>
       )}
 

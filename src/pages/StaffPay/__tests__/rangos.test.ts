@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
+import { A_MEDIO_ESCRIBIR, MONTO_VALIDO, desdeDelAjuste, esNoActivado, inicioDelPeriodo, mensajeLegible, sinRespuesta, sumarMeses } from '../rangos'
 
 describe('rangos', () => {
   it('suma y resta meses sin salirse del mes', () => {
@@ -25,6 +25,13 @@ describe('rangos', () => {
     expect(mensajeLegible({ response: { data: { message: 'Monto: no cambia' } } })).toBe('Monto: no cambia')
     expect(mensajeLegible(new Error('Network Error'))).toBeNull()
   })
+  // E6a-fix2 K4: el rango del ajuste no ofrece días anteriores al inicio de pago al personal (el servidor los rechaza con 409).
+  it('🔴 un ajuste admite los últimos 12 meses, pero nunca antes del inicio de pago al personal', () => {
+    expect(desdeDelAjuste('2026-10-08', '2026-09-01')).toEqual({ desde: '2026-09-01', porInicio: true })
+    expect(desdeDelAjuste('2026-10-08', '2024-01-01')).toEqual({ desde: '2025-10-08', porInicio: false })
+    expect(desdeDelAjuste('2026-10-08', null)).toEqual({ desde: '2025-10-08', porInicio: false })
+    expect(desdeDelAjuste('2026-10-08', undefined)).toEqual({ desde: '2025-10-08', porInicio: false })
+  })
   it('sin respuesta = la petición pudo aplicarse', () => {
     expect(sinRespuesta(new Error('Network Error'))).toBe(true)
     expect(sinRespuesta({ response: { status: 409 } })).toBe(false)
@@ -37,5 +44,23 @@ describe('rangos', () => {
     // Sólo ceros, con o sin punto, también (camino de «0.05»): «00», «0.0», «.0», «0.00».
     for (const medio of ['0', '0.', '.', '12.', '00', '0.0', '.0', '0.00']) expect(A_MEDIO_ESCRIBIR.test(medio)).toBe(true)
     for (const listo of ['10.005', '0.5', '0.05', '12', '-5', '']) expect(A_MEDIO_ESCRIBIR.test(listo)).toBe(false)
+  })
+})
+
+describe('inicioDelPeriodo (desde cuándo se suman las comisiones al activar, spec §7.1)', () => {
+  it('mensual: el día 1; quincenal: el 1 hasta el 15 y el 16 después', () => {
+    expect(inicioDelPeriodo('2026-10-20', 'MONTHLY')).toBe('2026-10-01')
+    expect(inicioDelPeriodo('2026-10-15', 'SEMIMONTHLY')).toBe('2026-10-01')
+    expect(inicioDelPeriodo('2026-10-16', 'SEMIMONTHLY')).toBe('2026-10-16')
+    expect(inicioDelPeriodo('2026-02-28', 'SEMIMONTHLY')).toBe('2026-02-16')
+  })
+})
+
+describe('esNoActivado (403 not_activated de lo de dinero antes de activar)', () => {
+  it('lee response.data.error, no code', () => {
+    expect(esNoActivado({ response: { status: 403, data: { error: 'not_activated' } } })).toBe(true)
+    expect(esNoActivado({ response: { status: 403, data: { code: 'not_activated' } } })).toBe(false)
+    expect(esNoActivado({ response: { status: 403, data: { error: 'forbidden' } } })).toBe(false)
+    expect(esNoActivado(null)).toBe(false)
   })
 })

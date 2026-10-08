@@ -55,6 +55,11 @@ interface SearchComboboxProps {
   hasMore?: boolean
   /** Whether more items are currently loading */
   isLoadingMore?: boolean
+  /**
+   * Accessible name of the results list. Defaults to the translated «Sugerencias» (cmdk's own default is the English
+   * «Suggestions», which screen readers announced on a Spanish dashboard — E6a-fix2 K5).
+   */
+  listLabel?: string
 }
 
 /**
@@ -82,6 +87,7 @@ export function SearchCombobox({
   onLoadMore,
   hasMore = false,
   isLoadingMore = false,
+  listLabel,
 }: SearchComboboxProps) {
   const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
@@ -182,6 +188,7 @@ export function SearchCombobox({
           ) : (
             <CommandList
               ref={listRef}
+              label={listLabel ?? t('suggestions')}
               // cmdk falls back to focusing its list when asChild preserves an
               // external inputId. Keep that generated-ID fallback on our input,
               // so external labels work and arrows never interrupt typing.
@@ -199,7 +206,7 @@ export function SearchCombobox({
               onWheel={e => e.stopPropagation()}
             >
               {items.length === 0 && value.trim() ? (
-                <CommandEmpty>Sin resultados</CommandEmpty>
+                <CommandEmpty>{t('noResults')}</CommandEmpty>
               ) : (
                 items.map(item => (
                   <CommandItem

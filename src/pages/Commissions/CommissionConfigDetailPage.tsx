@@ -22,6 +22,7 @@ import {
 	Goal,
 	CheckCircle2,
 	XCircle,
+	Users,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,7 @@ import {
 import { PermissionGate } from '@/components/PermissionGate'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from './components/BaseIvaSwitch'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import {
 	useCommissionConfig,
@@ -49,8 +51,11 @@ import {
 } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import { getMenuCategories } from '@/services/menu.service'
+import { teamService } from '@/services/team.service'
 import type { CommissionCalcType, CommissionRecipient } from '@/types/commission'
 import { cn } from '@/lib/utils'
+import { usaTasasPorRol } from './tasaDelEsquema'
+import { soloPersonasElegidas } from './aQuienAplica'
 import CommissionTierList from './components/CommissionTierList'
 import CommissionOverrideList from './components/CommissionOverrideList'
 import EditConfigDialog from './components/EditConfigDialog'
@@ -91,13 +96,12 @@ export default function CommissionConfigDetailPage() {
 	const { configId } = useParams<{ configId: string }>()
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { fullBasePath, venue, venueId } = useCurrentVenue()
+	const { fullBasePath, venueId } = useCurrentVenue()
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
-	const isMexico = venue?.country?.toLowerCase() === 'mexico' || venue?.country?.toLowerCase() === 'méxico' || venue?.country === 'MX'
 
 	const [showEditDialog, setShowEditDialog] = useState(false)
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -128,6 +132,18 @@ export default function CommissionConfigDetailPage() {
 	})
 	const categoryNameById = (id: string) =>
 		(allCategories as Array<{ id: string; name: string }>).find(c => c.id === id)?.name ?? id
+
+	// Un esquema sólo para personas elegidas (D-ELEGIDOS) las nombra; misma lista y llave que la tarjeta «Empleados» del panel.
+	const hasChosenStaff = !!config && soloPersonasElegidas(config)
+	const { data: team } = useQuery({
+		queryKey: ['team-members', venueId],
+		queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
+		enabled: !!venueId && hasChosenStaff,
+	})
+	const staffNameById = (id: string) => {
+		const person = team?.data.find(p => p.staffId === id)
+		return person ? `${person.firstName} ${person.lastName}` : id
+	}
 
 	// Format percentage
 	const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`
@@ -209,7 +225,8 @@ export default function CommissionConfigDetailPage() {
 	}
 
 	const hasLimits = config.minAmount !== null || config.maxAmount !== null
-	const hasRoleRates = config.roleRates && Object.keys(config.roleRates).length > 0
+	// En un esquema de monto fijo el servidor no usa las tasas por rol: no se pintan como si aplicaran (G5)
+	const hasRoleRates = usaTasasPorRol(config)
 	const hasCategories = config.filterByCategories && config.categoryIds && config.categoryIds.length > 0
 
 	return (
@@ -354,10 +371,7 @@ export default function CommissionConfigDetailPage() {
 							<h3 className="text-sm font-semibold">{t('wizard.step2.calculationBase')}</h3>
 						</div>
 						<div className="space-y-2">
-							<ToggleIndicator
-								enabled={config.includeTax ?? false}
-								label={t('wizard.step2.includeTax') + (isMexico ? ' (IVA 16%)' : '')}
-							/>
+							<BaseIvaSwitch id="detail-includeTax" checked={config.includeTax ?? false} />
 							<ToggleIndicator
 								enabled={config.includeTips ?? false}
 								label={t('wizard.step2.includeTips')}
@@ -403,6 +417,23 @@ export default function CommissionConfigDetailPage() {
 						</div>
 					)}
 
+					{/* Personas elegidas: sólo ellas cobran este esquema */}
+					{hasChosenStaff && (
+						<div className="rounded-2xl border border-border/50 p-5 space-y-3">
+							<div className="flex items-center gap-2">
+								<Users className="w-4 h-4 text-muted-foreground" />
+								<h3 className="text-sm font-semibold">{t('config.staffScope.chosenTitle')}</h3>
+							</div>
+							<div className="flex flex-wrap gap-1.5">
+								{config.staffIds!.map((id) => (
+									<Badge key={id} variant="secondary" className="text-xs">
+										{staffNameById(id)}
+									</Badge>
+								))}
+							</div>
+						</div>
+					)}
+
 					{/* Role Rates */}
 					{hasRoleRates && (
 						<div className="rounded-2xl border border-border/50 p-5 space-y-3">
@@ -436,6 +467,8 @@ export default function CommissionConfigDetailPage() {
 					{/* Overrides Section */}
 					<CommissionOverrideList
 						configId={configId!}
+						calcType={config.calcType}
+						personasElegidas={hasChosenStaff ? config.staffIds : undefined}
 						overrides={overrides || []}
 						isLoading={isLoadingOverrides}
 					/>

@@ -18,6 +18,7 @@ import { teamService } from '@/services/team.service'
 import type { TierPeriod, CreateCommissionTierInput } from '@/types/commission'
 import type { WizardData, WizardOverride } from './CreateCommissionWizard'
 import { TieredExample } from './LiveExample'
+import { ofreceNiveles, ofreceTasaPorPersona, ofreceTasasPorRol } from '../../tasaDelEsquema'
 
 interface AdvancedConfigProps {
 	data: WizardData
@@ -105,7 +106,12 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 		updateData({ tiers: newTiers })
 	}
 
-	// Role rates — use venue's active roles, excluding non-sales roles
+	// Role rates — use venue's active roles, excluding non-sales roles. En un esquema de monto FIJO no se ofrecen: el servidor paga
+	// el monto fijo por venta e ignora las tasas por rol (duda 2 de la Parte 1b).
+	const tasasPorRolDisponibles = ofreceTasasPorRol(data.calcType)
+	// Los niveles y la tasa propia por persona tampoco existen en un fijo: el servidor paga el monto fijo por venta (final-fijo-niveles).
+	const nivelesDisponibles = ofreceNiveles(data.calcType)
+	const tasaPorPersonaDisponible = ofreceTasaPorPersona(data.calcType)
 	const { activeRoles } = useRoleConfig()
 	const NON_SALES_ROLES = ['SUPERADMIN', 'VIEWER']
 	const roleOptions = activeRoles
@@ -123,12 +129,10 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 
 	// Override management
 	const addOverride = (staffId: string, staffName: string) => {
-		const newOverride: WizardOverride = {
-			staffId,
-			staffName,
-			customRate: data.defaultRate, // Default to current rate
-			excludeFromCommissions: false,
-		}
+		// En un fijo la única excepción que cuenta es excluir: se agrega excluida y sin tasa propia.
+		const newOverride: WizardOverride = tasaPorPersonaDisponible
+			? { staffId, staffName, customRate: data.defaultRate, excludeFromCommissions: false } // Default to current rate
+			: { staffId, staffName, customRate: null, excludeFromCommissions: true }
 		updateData({ overrides: [...data.overrides, newOverride] })
 		setStaffComboboxOpen(false)
 		setStaffSearchQuery('') // Clear search query
@@ -185,8 +189,18 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 			</CollapsibleTrigger>
 
 			<CollapsibleContent className="mt-4 space-y-4">
-				{/* Tiers Section — edit mode: managed on detail page, not saved here */}
-				{isEditMode ? (
+				{/* Tiers Section — en un fijo no se ofrecen (los niveles son porcentajes); edit mode: managed on detail page, not saved here */}
+				{!nivelesDisponibles ? (
+					<div className="p-4 rounded-xl border border-border/50 bg-muted/30 flex items-start gap-3">
+						<div className="p-2 rounded-lg bg-muted shrink-0">
+							<TrendingUp className="w-4 h-4 text-muted-foreground" />
+						</div>
+						<div>
+							<span className="font-medium text-sm">{t('wizard.advanced.tiers.title')}</span>
+							<p className="text-xs text-muted-foreground mt-0.5">{t('wizard.advanced.tiers.onlyPercentage')}</p>
+						</div>
+					</div>
+				) : isEditMode ? (
 					<div className="p-4 rounded-xl border border-border/50 bg-muted/30 flex items-start gap-3">
 						<div className="p-2 rounded-lg bg-muted shrink-0">
 							<TrendingUp className="w-4 h-4 text-muted-foreground" />
@@ -413,40 +427,46 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 								/>
 							</div>
 						</div>
-						<Switch
-							checked={data.roleRatesEnabled}
-							onCheckedChange={(checked) => {
-								// Mutually exclusive: if enabling role rates, disable tiers
-								if (checked) {
-									if (data.tiersEnabled) {
-										toast({
-											title: t('wizard.advanced.mutualExclusive.roleRatesEnabled'),
-											description: t('wizard.advanced.mutualExclusive.tiersDisabled'),
-										})
-									}
-									// Initialize with 3 default roles (user can add more)
-									const DEFAULT_ROLES = ['WAITER', 'CASHIER', 'MANAGER']
-									const initialRates: Record<string, number> = {}
-									for (const key of DEFAULT_ROLES) {
-										if (roleOptions.some(r => r.key === key)) {
-											initialRates[key] = data.roleRates[key] ?? data.defaultRate
+						{tasasPorRolDisponibles ? (
+							<Switch
+								checked={data.roleRatesEnabled}
+								onCheckedChange={(checked) => {
+									// Mutually exclusive: if enabling role rates, disable tiers
+									if (checked) {
+										if (data.tiersEnabled) {
+											toast({
+												title: t('wizard.advanced.mutualExclusive.roleRatesEnabled'),
+												description: t('wizard.advanced.mutualExclusive.tiersDisabled'),
+											})
 										}
-									}
-									// If none of the defaults exist, use first 3 available
-									if (Object.keys(initialRates).length === 0) {
-										for (const role of roleOptions.slice(0, 3)) {
-											initialRates[role.key] = data.roleRates[role.key] ?? data.defaultRate
+										// Initialize with 3 default roles (user can add more)
+										const DEFAULT_ROLES = ['WAITER', 'CASHIER', 'MANAGER']
+										const initialRates: Record<string, number> = {}
+										for (const key of DEFAULT_ROLES) {
+											if (roleOptions.some(r => r.key === key)) {
+												initialRates[key] = data.roleRates[key] ?? data.defaultRate
+											}
 										}
+										// If none of the defaults exist, use first 3 available
+										if (Object.keys(initialRates).length === 0) {
+											for (const role of roleOptions.slice(0, 3)) {
+												initialRates[role.key] = data.roleRates[role.key] ?? data.defaultRate
+											}
+										}
+										updateData({ roleRatesEnabled: true, tiersEnabled: false, roleRates: initialRates })
+									} else {
+										updateData({ roleRatesEnabled: false })
 									}
-									updateData({ roleRatesEnabled: true, tiersEnabled: false, roleRates: initialRates })
-								} else {
-									updateData({ roleRatesEnabled: false })
-								}
-							}}
-						/>
+								}}
+							/>
+						) : null}
 					</div>
 
-					{data.roleRatesEnabled && (
+					{!tasasPorRolDisponibles && (
+						<p className="text-xs text-muted-foreground">{t('wizard.advanced.roleRates.onlyPercentage')}</p>
+					)}
+
+					{tasasPorRolDisponibles && data.roleRatesEnabled && (
 						<div className="space-y-3 pt-2">
 							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 								{roleOptions
@@ -672,6 +692,9 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 							<p className="text-sm text-muted-foreground">
 								{t('wizard.advanced.overrides.desc')}
 							</p>
+							{!tasaPorPersonaDisponible && (
+								<p className="text-xs text-muted-foreground">{t('wizard.advanced.overrides.onlyExcludeInFixed')}</p>
+							)}
 
 							{/* Overrides as Horizontal Cards */}
 							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -733,31 +756,33 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange,
 											/>
 										</div>
 
-										{/* Commission rate - only show if not excluded */}
+										{/* Commission rate - only show if not excluded (y nunca en un fijo: ahí no tiene efecto) */}
 										{!override.excludeFromCommissions ? (
-											<div>
-												<label className="text-xs text-muted-foreground">
-													{t('wizard.advanced.overrides.customRate')}
-												</label>
-												<div className="relative mt-1">
-													<Input
-														type="number"
-														step="0.1"
-														min={0}
-														max={100}
-														value={((override.customRate || 0) * 100).toFixed(1)}
-														onChange={(e) =>
-															updateOverride(override.staffId, {
-																customRate: parseFloat(e.target.value) / 100 || 0,
-															})
-														}
-														className="h-10 text-lg font-semibold pr-8"
-													/>
-													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-														%
-													</span>
+											tasaPorPersonaDisponible && (
+												<div>
+													<label className="text-xs text-muted-foreground">
+														{t('wizard.advanced.overrides.customRate')}
+													</label>
+													<div className="relative mt-1">
+														<Input
+															type="number"
+															step="0.1"
+															min={0}
+															max={100}
+															value={((override.customRate || 0) * 100).toFixed(1)}
+															onChange={(e) =>
+																updateOverride(override.staffId, {
+																	customRate: parseFloat(e.target.value) / 100 || 0,
+																})
+															}
+															className="h-10 text-lg font-semibold pr-8"
+														/>
+														<span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+															%
+														</span>
+													</div>
 												</div>
-											</div>
+											)
 										) : (
 											<div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
 												<UserX className="w-4 h-4" />

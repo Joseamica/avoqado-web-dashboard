@@ -80,6 +80,22 @@ describe('useTierFeatureAccess entitlement resolution', () => {
     expect(result.current.hasAccess).toBe(false)
   })
 
+  // E6a-fix F4 (hermano de useFeaturePrice): el mismo paywall lee estas listas; algo que no es arreglo no lo tumba.
+  it('🔴 `activeFeatures` que no es arreglo no tumba el paywall: sin concesiones, decide el plan', () => {
+    mockUseQuery.mockImplementation((options: { queryKey: string[] }) => {
+      if (options.queryKey[2] === 'planTier') return { data: { tier: 'FREE', exempt: false }, isLoading: false, isSuccess: true }
+      return { data: { activeFeatures: { CFDI: true } }, isLoading: false, isSuccess: true }
+    })
+    expect(renderHook(() => useTierFeatureAccess('CASH_RECONCILIATION')).result.current.hasAccess).toBe(false)
+  })
+
+  it('🔴 `grantedFeatureCodes` que no es arreglo no tumba el paywall ni concede algo por sus letras', () => {
+    mockUseQuery.mockReturnValue({ data: { tier: 'FREE', exempt: false, grantedFeatureCodes: 'C' }, isLoading: false, isSuccess: true })
+    expect(renderHook(() => useTierFeatureAccess('C')).result.current.hasAccess).toBe(false)
+    mockUseQuery.mockReturnValue({ data: { tier: 'FREE', exempt: false, grantedFeatureCodes: { CFDI: true } }, isLoading: false, isSuccess: true })
+    expect(renderHook(() => useTierFeatureAccess('CFDI')).result.current.hasAccess).toBe(false)
+  })
+
   it('🔴 R4-8: la clave del plan-tier cuelga de venueFeatures (invalidar compras o bajas la refresca)', () => {
     expect(planTierQueryKey('v1').slice(0, 2)).toEqual(['venueFeatures', 'v1'])
   })

@@ -26,6 +26,7 @@ import { useFocoDeVuelta } from '../foco'
 import { mensajeLegible, sinRespuesta } from '../rangos'
 import { periodicidadDe, useNombrePeriodo } from '../useNombrePeriodo'
 import { useNombreSede, useRutaDeSede } from '../useNombreSede'
+import { AvisoSinConexion } from './AvisoSinConexion'
 
 /**
  * Por qué una clase con diferencia no se puede liquidar todavía, en ámbar, y su ÚNICA salida real. Toda diferencia es de un
@@ -124,7 +125,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   // Si la fila liquidada ya no está, al encabezado de la sección; si la sección también se fue, al del periodo (o, en la
   // tarjeta, a su título).
   const foco = useFocoDeVuelta(desde === 'lista' ? `#${ID_DIFERENCIAS}` : undefined)
-  const { data: p, isLoading, isFetching, isError, error, refetch } = useClassDifference(classVenueId, sessionId, true)
+  const { data: p, isLoading, isFetching, isError, error, isPaused, refetch } = useClassDifference(classVenueId, sessionId, true)
   const liquidar = useSettleDifference(classVenueId, sessionId)
   // Nace al ABRIR, no con la clase: con la misma clave, el server respondería «ya liquidada» con las líneas viejas y no
   // pagaría una diferencia nueva de la misma clase.
@@ -149,6 +150,17 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   const listo = !!p?.periodoOrigen && !bloqueada && conMonto.length > 0 && !isFetching && !enviando
   const cabecera = filas[0] ?? clase
   const mensajeError = (error as ErrorApi | null)?.response?.data?.message
+
+  // Cerrar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se quita de la cola de verdad (no sale al volver
+  // la red) y el candado se suelta, porque esa espera ya no termina.
+  const cerrar = () => {
+    if (liquidar.isPaused) {
+      liquidar.cancelarEnPausa()
+      enVuelo.current = false
+      setEnviando(false)
+    } else if (enviando) return
+    onClose()
+  }
 
   const confirmar = async () => {
     if (!p?.periodoOrigen || !listo || enVuelo.current) return
@@ -215,6 +227,8 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
 
   const contenido = () => {
     if (isLoading) return <Skeleton className="h-20 w-full" aria-busy="true" />
+    // Abierto ya sin red (G2): la vista previa espera a la red; se dice, en vez de un diálogo vacío.
+    if (!p && isPaused) return <AvisoSinConexion texto={t('offline.willCalculate')} dataTour="staffpay-settle-preview-offline" />
     if (isError && !p) {
       return (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
@@ -279,7 +293,7 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
   }
 
   return (
-    <AlertDialog open onOpenChange={o => !o && !enviando && onClose()}>
+    <AlertDialog open onOpenChange={o => !o && cerrar()}>
       <AlertDialogContent onOpenAutoFocus={foco.onOpenAutoFocus} onCloseAutoFocus={foco.onCloseAutoFocus}>
         <AlertDialogHeader>
           <AlertDialogTitle>{t('differences.settleTitle')}</AlertDialogTitle>
@@ -294,8 +308,10 @@ export function LiquidarDialog({ classVenueId, sessionId, clase, desde = 'lista'
           </AlertDialogDescription>
         </AlertDialogHeader>
         {contenido()}
+        {liquidar.isPaused && <AvisoSinConexion texto={t('offline.willSendSettle')} dataTour="staffpay-settle-offline" />}
         <AlertDialogFooter>
-          <AlertDialogCancel className="cursor-pointer" disabled={enviando}>
+          {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+          <AlertDialogCancel className="cursor-pointer" disabled={enviando && !liquidar.isPaused}>
             {t('closed.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction

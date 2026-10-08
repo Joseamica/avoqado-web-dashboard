@@ -2,12 +2,22 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TablaDePagosTab } from '../components/TablaDePagosTab'
 
-const m = vi.hoisted(() => ({ publish: vi.fn(), assign: vi.fn(), assignMutate: vi.fn(), update: vi.fn() }))
+const APAGADAS = { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null }
+const m = vi.hoisted(() => ({
+  publish: vi.fn(),
+  assign: vi.fn(),
+  assignMutate: vi.fn(),
+  update: vi.fn(),
+  reglas: { coverBonusHours: null, coverBonusAmount: null, lateCancelHours: null } as Record<string, number | null>,
+  can: vi.fn(),
+  access: vi.fn(),
+}))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City' }) }))
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: any) => <>{children}</> }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@tanstack/react-query', async () => ({
   ...(await vi.importActual<any>('@tanstack/react-query')),
@@ -28,9 +38,10 @@ vi.mock('@/components/ui/select', () => ({
 }))
 const PN_HC = [0, 430, 430, 430, 430, 460, 490, 530, 570, 610, 650]
 vi.mock('@/hooks/useStaffPay', () => ({
+  useStaffPayAccess: () => ({ data: m.access() }),
   useStaffPayLevels: () => ({ data: [{ id: 'hc', name: 'Head Coach', sortOrder: 0, archivedAt: null }] }),
   useStaffPayAssignments: () => ({ data: [] }),
-  useStaffPayTables: () => ({ data: [{ id: 't1', name: 'Todas', productIds: [], archivedFrom: null, vigente: { id: 'v', effectiveFrom: '2026-10-01', revision: 1, countMode: 'BOOKED', maxCount: 10, cells: PN_HC.map((amount, count) => ({ payLevelId: 'hc', count, amount })) } }] }),
+  useStaffPayTables: () => ({ data: [{ id: 't1', name: 'Todas', productIds: [], archivedFrom: null, vigente: { id: 'v', effectiveFrom: '2026-10-01', revision: 1, countMode: 'BOOKED', maxCount: 10, cells: PN_HC.map((amount, count) => ({ payLevelId: 'hc', count, amount })), reglas: m.reglas } }] }),
   useCreateLevel: () => ({ mutate: vi.fn() }),
   useUpdateLevel: () => ({ mutate: m.update, isPending: false }),
   useAssignLevel: () => ({ mutate: m.assignMutate, mutateAsync: m.assign, isPending: false }),
@@ -45,6 +56,9 @@ const celda = (count: number) => screen.getByLabelText(`grid.cellLabel:${JSON.st
 describe('TablaDePagosTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    m.reglas = { ...APAGADAS }
+    m.can.mockReturnValue(true)
+    m.access.mockReturnValue({})
     m.publish.mockResolvedValue({ clasesQueCambian: 14 })
     m.assign.mockResolvedValue({ clasesQueCambian: 3 })
   })
@@ -92,5 +106,117 @@ describe('TablaDePagosTab', () => {
     fireEvent.change(screen.getByLabelText('levels.newName'), { target: { value: '  Head Coach Sr  ' } })
     fireEvent.click(screen.getByLabelText('levels.save'))
     expect(m.update).toHaveBeenCalledWith({ levelId: 'hc', name: 'Head Coach Sr' }, expect.anything())
+  })
+
+  it('🔴 una tabla que ya tiene reglas las conserva: cambiar sólo una celda y publicar las manda iguales (forma real de D4)', async () => {
+    m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'rules.lateCancel' })).toBeChecked()
+    expect(screen.getByLabelText('rules.coverHours')).toHaveValue(3)
+    fireEvent.change(celda(8), { target: { value: '580' } })
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    // La simulación y el guardado llevan las reglas de la versión vigente, nunca null.
+    for (const [payload] of m.publish.mock.calls) expect(payload).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 })
+  })
+
+  it('las reglas de clase viajan en la versión que se publica (también al simular); apagadas, como null', async () => {
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).not.toBeChecked()
+    expect(screen.queryByLabelText('rules.coverHours')).toBeNull()
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.cover' }))
+    fireEvent.change(screen.getByLabelText('rules.coverHours'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('rules.coverAmount'), { target: { value: '100' } })
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    expect(m.publish.mock.calls[0][0]).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: null })
+    // Guardar (no sólo simular) también las lleva.
+    fireEvent.click(screen.getByText('publish.confirm'))
+    await waitFor(() => expect(m.publish.mock.calls.some(([p]) => !p.simular)).toBe(true))
+    for (const [payload] of m.publish.mock.calls) expect(payload).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: null })
+  })
+
+  it('apagar una regla que la tabla tenía la manda en null (no se hereda)', async () => {
+    m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.lateCancel' }))
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    expect(m.publish.mock.calls[0][0]).toMatchObject({ coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: null })
+  })
+
+  it('una regla mal llenada lo dice y no deja publicar', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.lateCancel' }))
+    fireEvent.change(screen.getByLabelText('rules.lateHours'), { target: { value: '0' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.lateHours')
+    expect(screen.getByText('grid.publish')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('rules.lateHours'), { target: { value: '2' } })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('grid.publish')).toBeEnabled()
+  })
+
+  // E6a-fix F12 (QA H14): el error de rango salía al prender la regla, antes de escribir nada; y el monto no decía «$».
+  it('🔴 prender una regla no muestra el error antes de escribir; sí al salir del campo vacío', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.lateCancel' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByLabelText('rules.lateHours')).not.toHaveAttribute('aria-invalid', 'true')
+    fireEvent.blur(screen.getByLabelText('rules.lateHours'))
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.lateHours')
+    expect(screen.getByLabelText('rules.lateHours')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('grid.publish')).toBeDisabled()
+  })
+
+  it('🔴 «Guardar tabla» con una regla prendida y sin llenar: dice qué falta y no abre la publicación', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.cover' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.click(screen.getByText('grid.publish'))
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.coverHours')
+    expect(screen.getByRole('alert')).toHaveTextContent('rules.error.coverAmount')
+    expect(m.publish).not.toHaveBeenCalled()
+    expect(screen.queryByText('publish.confirm')).toBeNull()
+    expect(screen.getByText('grid.publish')).toBeDisabled()
+  })
+
+  it('🔴 el monto extra de la suplencia lleva el prefijo «$»', () => {
+    render(<TablaDePagosTab />)
+    fireEvent.click(screen.getByRole('switch', { name: 'rules.cover' }))
+    const monto = screen.getByLabelText('rules.coverAmount')
+    expect(monto.parentElement).toHaveTextContent(/^\$$/)
+    expect(monto.parentElement!.firstElementChild).toHaveTextContent('$')
+  })
+
+  it('sin «Configurar pago al personal» las reglas se ven pero no se mueven, y dice por qué (E4-fix)', () => {
+    m.can.mockImplementation((p: string) => p !== 'staffpay:manage')
+    m.reglas = { coverBonusHours: 3, coverBonusAmount: 100, lateCancelHours: 2 }
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'rules.lateCancel' })).toBeDisabled()
+    for (const campo of ['rules.coverHours', 'rules.coverAmount', 'rules.lateHours']) expect(screen.getByLabelText(campo)).toBeDisabled()
+    expect(screen.getByText('rules.noPermission')).toBeInTheDocument()
+    // La cuadrícula no cambia (comportamiento previo): sólo las reglas.
+    expect(celda(8)).toBeEnabled()
+  })
+  it('con el permiso, las reglas se mueven y no hay aviso', () => {
+    render(<TablaDePagosTab />)
+    expect(screen.getByRole('switch', { name: 'rules.cover' })).toBeEnabled()
+    expect(screen.queryByText('rules.noPermission')).toBeNull()
+  })
+  // E6a-fix3 C2: asignar nivel exige «Configurar pago al personal» en todas las sedes (el 403 de niveles.service).
+  it('🔴 sin «Configurar pago al personal» en todas las sedes, asignar nivel se ve apagado y dice por qué', () => {
+    m.access.mockReturnValue({ puedeConfigurarOrganizacion: false })
+    render(<TablaDePagosTab />)
+    expect(screen.getAllByRole('combobox')[0]).toBeDisabled()
+    // Niveles y «Quién es qué» lo dicen cada uno en su sección.
+    expect(screen.getAllByText('orgConfigPermission')).toHaveLength(2)
+  })
+  it('con el permiso en todas las sedes, asignar nivel se puede', () => {
+    m.access.mockReturnValue({ puedeConfigurarOrganizacion: true })
+    render(<TablaDePagosTab />)
+    expect(screen.getAllByRole('combobox')[0]).toBeEnabled()
+    expect(screen.queryByText('orgConfigPermission')).toBeNull()
   })
 })

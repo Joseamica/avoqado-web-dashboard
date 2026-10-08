@@ -9,6 +9,7 @@ import './i18n'
 import './index.css'
 import './theme.css'
 import { captureDemoTourParams } from './lib/demo-tour-capture'
+import { reloadForChunkError } from './lib/lazyWithRetry'
 import { initPostHog } from './lib/posthog'
 
 // Avoqado Tour handoff (?demoTour=...): stash + strip BEFORE the router mounts —
@@ -21,10 +22,7 @@ initPostHog()
 // Handle Vite preload errors (CSS/JS chunks missing after deploy)
 // Vite emits this event when a dynamic import's preloaded dependency fails to load
 window.addEventListener('vite:preloadError', () => {
-  if (!sessionStorage.getItem('chunk-reload-attempted')) {
-    sessionStorage.setItem('chunk-reload-attempted', 'true')
-    window.location.reload()
-  }
+  reloadForChunkError()
 })
 
 // Las consultas pesadas configuran staleTime/retry/focus localmente. Mantener

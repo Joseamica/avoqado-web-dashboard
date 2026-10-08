@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { DollarSign, Clock, CheckCircle2, Users, Trophy, Medal, Award, Settings2, ArrowRight } from 'lucide-react'
+import { DollarSign, Calculator, Users, Trophy, Medal, Award, Settings2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { CommissionStats } from '@/types/commission'
@@ -154,29 +154,25 @@ export default function CommissionKPICards({ stats, isLoading, hasConfigs = true
 				)}
 			</GlassCard>
 
-			{/* KPI Metrics — 2x2 grid spanning 2 cols */}
+			{/* KPI (fase 3, decisión 13): sin aprobaciones, «Pendiente» y «Aprobado» se quedarían en $0 para siempre; quedan
+			    «Calculado», «Pagado» (lo pagado en recibos de Pago al personal; sin el sobre activo no aplica) y el equipo. */}
 			<div className="lg:col-span-2 grid grid-cols-2 gap-4">
 				<MetricCard
-					icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
-					iconColorClass="bg-gradient-to-br from-green-500/20 to-green-500/5"
-					label={t('stats.paid')}
-					value={formatCurrency(stats?.totalPaid || 0)}
-					isLoading={isLoading}
-				/>
-				<MetricCard
-					icon={<Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />}
-					iconColorClass="bg-gradient-to-br from-yellow-500/20 to-yellow-500/5"
-					label={t('stats.pending')}
-					value={formatCurrency(stats?.totalPending || 0)}
-					isLoading={isLoading}
-				/>
-				<MetricCard
-					icon={<CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+					icon={<Calculator className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
 					iconColorClass="bg-gradient-to-br from-blue-500/20 to-blue-500/5"
-					label={t('stats.approved')}
-					value={formatCurrency(stats?.totalApproved || 0)}
+					label={t('stats.calculated')}
+					value={formatCurrency(stats?.totalCalculated || 0)}
 					isLoading={isLoading}
 				/>
+				{stats?.staffPayActive && (
+					<MetricCard
+						icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
+						iconColorClass="bg-gradient-to-br from-green-500/20 to-green-500/5"
+						label={t('stats.paid')}
+						value={formatCurrency(stats.totalPaid || 0)}
+						isLoading={isLoading}
+					/>
+				)}
 				<MetricCard
 					icon={<Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
 					iconColorClass="bg-gradient-to-br from-purple-500/20 to-purple-500/5"

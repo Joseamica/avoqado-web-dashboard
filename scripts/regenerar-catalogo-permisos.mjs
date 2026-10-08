@@ -129,7 +129,7 @@ const CURACION = {
     ['STAFF_DOCUMENTS', ['staff-documents'], 'Expediente del personal'],
     ['ROLE_CONFIG', ['role-config'], 'Role Configuration'],
     ['COMMISSIONS', ['commissions'], 'Commission Management'],
-    ['STAFF_PAY', ['staffpay'], 'Pago por servicio'],
+    ['STAFF_PAY', ['staffpay'], 'Pago al personal'],
     ['GOALS', ['goals'], 'Org-Level Goals'],
     ['SETTINGS', ['settings'], 'Settings'],
     ['VENUES', ['venues'], 'Venue Settings'],

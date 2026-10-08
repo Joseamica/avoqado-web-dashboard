@@ -10,6 +10,7 @@ import type { CommissionSetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardValid, isCardTouched } from '../useSetupReducer'
 import SetupCard from '../SetupCard'
+import { ofreceTasasPorRol } from '../../../tasaDelEsquema'
 
 const NON_SALES_ROLES = ['SUPERADMIN', 'VIEWER']
 
@@ -28,9 +29,13 @@ export default function RoleRatesCard({ state, dispatch }: RoleRatesCardProps) {
     .filter(r => !NON_SALES_ROLES.includes(r.role))
     .map(r => ({ key: r.role, label: getDisplayName(r.role) }))
 
-  const description = state.roleRates.enabled
-    ? t('setup.roleRates.enabledDesc', { count: Object.keys(state.roleRates.rates).length })
-    : t('setup.roleRates.disabledDesc')
+  // En un esquema de monto FIJO no se ofrecen (el servidor las ignora): la tarjeta se ve apagada y dice por qué (duda 2, Parte 1b).
+  const disponibles = ofreceTasasPorRol(state.rate.calcType)
+  const description = !disponibles
+    ? t('setup.roleRates.onlyPercentage')
+    : state.roleRates.enabled
+      ? t('setup.roleRates.enabledDesc', { count: Object.keys(state.roleRates.rates).length })
+      : t('setup.roleRates.disabledDesc')
 
   const handleEnable = () => {
     const defaults: Record<string, number> = {}
@@ -70,11 +75,12 @@ export default function RoleRatesCard({ state, dispatch }: RoleRatesCardProps) {
         title={t('setup.roleRates.title')}
         description={description}
         isValid={isValid}
-        touched={isCardTouched(state, 'roleRates')}
+        touched={disponibles && isCardTouched(state, 'roleRates')}
+        disabled={!disponibles}
         onClick={() => setOpen(true)}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={disponibles && open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>{t('setup.roleRates.title')}</DialogTitle>

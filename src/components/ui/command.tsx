@@ -62,12 +62,22 @@ const CommandInput = React.forwardRef<
 
 CommandInput.displayName = CommandPrimitive.Input.displayName
 
+// La etiqueta accesible de fábrica de cmdk es «Suggestions», en inglés para todo idioma (E6a-fix2 K5): sin una propia, la
+// lista se nombra con «Sugerencias» traducido.
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.List ref={ref} className={cn('max-h-[300px] overflow-y-auto overflow-x-hidden', className)} {...props} />
-))
+>(({ className, label, ...props }, ref) => {
+  const { t } = useTranslation('common')
+  return (
+    <CommandPrimitive.List
+      ref={ref}
+      label={label ?? t('suggestions')}
+      className={cn('max-h-[300px] overflow-y-auto overflow-x-hidden', className)}
+      {...props}
+    />
+  )
+})
 
 CommandList.displayName = CommandPrimitive.List.displayName
 

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useAssignLevel } from '@/hooks/useStaffPay'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { CampoVigencia } from './VigenciaConEfecto'
 import { useVigenciaSimulada } from '../useVigenciaSimulada'
 
@@ -23,16 +24,32 @@ interface Props {
 export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payLevelId, payLevelName, hoy }: Props) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
+  // La vista previa no escribe: su propia llave (`simulacion`), para que el aviso y la cancelación sean sólo del envío que guarda.
+  const simular = useAssignLevel(true)
   const asignar = useAssignLevel()
   const vigencia = useVigenciaSimulada(
     hoy,
-    fecha => asignar.mutateAsync({ staffId, payLevelId, effectiveFrom: fecha, simular: true }),
+    fecha => simular.mutateAsync({ staffId, payLevelId, effectiveFrom: fecha, simular: true }),
     `${staffId}:${payLevelId}`,
+    simular.isPaused,
   )
   const [guardando, setGuardando] = useState(false)
+  // Candado SÍNCRONO (revisión de E6b): el estado no alcanza a apagar el botón entre dos clics seguidos.
+  const enVuelo = useRef(false)
+
+  // Cerrar la ventana: sin red el envío está EN PAUSA (C5) y cerrar lo quita de la cola de verdad (no sale al volver la red).
+  const cerrar = () => {
+    if (asignar.isPaused) {
+      asignar.cancelarEnPausa()
+      enVuelo.current = false
+      setGuardando(false)
+    }
+    onOpenChange(false)
+  }
 
   const guardar = async () => {
-    if (vigencia.bloqueada || guardando) return
+    if (vigencia.bloqueada || guardando || enVuelo.current) return
+    enVuelo.current = true
     setGuardando(true)
     try {
       await asignar.mutateAsync({ staffId, payLevelId, effectiveFrom: vigencia.fecha })
@@ -44,6 +61,7 @@ export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payL
         toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
       }
     } finally {
+      enVuelo.current = false
       setGuardando(false)
     }
   }
@@ -51,7 +69,7 @@ export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payL
   return (
     <FullScreenModal
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={cerrar}
       title={t('assign.title', { name: staffName })}
       contentClassName="bg-muted/30"
       actions={
@@ -61,7 +79,8 @@ export function AsignarNivelModal({ open, onOpenChange, staffId, staffName, payL
         </Button>
       }
     >
-      <div className="max-w-xl mx-auto p-6">
+      <div className="max-w-xl mx-auto space-y-4 p-6">
+        {asignar.isPaused && <AvisoSinConexion texto={t('offline.willSendSaveClose')} dataTour="staffpay-assign-offline" />}
         <section className="rounded-2xl border border-border/50 bg-card p-6 space-y-4">
           <p className="text-base font-medium">{t('assign.summary', { name: staffName, level: payLevelName })}</p>
           <CampoVigencia id="staffpay-asignar-desde" label={t('assign.effectiveFrom')} textoCalculando={t('assign.effectLoading')} vigencia={vigencia} />

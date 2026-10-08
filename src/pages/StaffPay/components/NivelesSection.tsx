@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Archive, Check, Pencil, Plus, X } from 'lucide-react'
 import {
@@ -13,10 +13,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PermissionGate } from '@/components/PermissionGate'
 import { useToast } from '@/hooks/use-toast'
 import { useCreateLevel, useUpdateLevel } from '@/hooks/useStaffPay'
 import type { NivelDto } from '@/types/staffPay'
+import { usePermisoDeConfigurar } from '../permisoDeConfigurar'
+import { AvisoSinConexion } from './AvisoSinConexion'
+import { useUltimoNoNulo } from '../alCerrar'
 
 const mensajeDeError = (err: any, fallback: string): string => err?.response?.data?.message ?? fallback
 
@@ -24,32 +26,54 @@ const mensajeDeError = (err: any, fallback: string): string => err?.response?.da
 export function NivelesSection({ activos }: { activos: NivelDto[] }) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
+  const permiso = usePermisoDeConfigurar()
   const crearNivel = useCreateLevel()
   const actualizar = useUpdateLevel()
   const [nuevoNivel, setNuevoNivel] = useState('')
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
   const [porArchivar, setPorArchivar] = useState<NivelDto | null>(null)
+  // El nivel que nombra el diálogo mientras se cierra (K-n1): no se queda sin nombre.
+  const archivoMostrado = useUltimoNoNulo(porArchivar)
+  // Candados SÍNCRONOS (revisión de E6b): `isPending` no alcanza a apagar el botón entre dos clics seguidos. Uno por mutación; se
+  // sueltan al terminar (`onSettled`) o al cancelar el envío en pausa (esa espera ya no termina).
+  const creando = useRef(false)
+  const actualizando = useRef(false)
+  const soltar = (candado: { current: boolean }) => () => {
+    candado.current = false
+  }
+
+  // Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola de verdad (no sale al volver la red).
+  const enPausa = crearNivel.isPaused || actualizar.isPaused
+  const cancelarEnvio = () => {
+    crearNivel.cancelarEnPausa()
+    actualizar.cancelarEnPausa()
+    creando.current = false
+    actualizando.current = false
+  }
 
   const fallar = (err: unknown) => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' })
   const agregar = () => {
     const nombre = nuevoNivel.trim()
-    if (!nombre) return
-    crearNivel.mutate(nombre, { onSuccess: () => setNuevoNivel(''), onError: fallar })
+    if (!nombre || creando.current) return
+    creando.current = true
+    crearNivel.mutate(nombre, { onSuccess: () => setNuevoNivel(''), onError: fallar, onSettled: soltar(creando) })
   }
   const guardarNombre = () => {
     if (!editando) return
     const nombre = editando.nombre.trim()
-    if (!nombre) return
+    if (!nombre || actualizando.current) return
+    actualizando.current = true
     actualizar.mutate(
       { levelId: editando.id, name: nombre },
-      { onSuccess: () => { setEditando(null); toast({ title: t('levels.renamed') }) }, onError: fallar },
+      { onSuccess: () => { setEditando(null); toast({ title: t('levels.renamed') }) }, onError: fallar, onSettled: soltar(actualizando) },
     )
   }
   const archivar = () => {
-    if (!porArchivar) return
+    if (!porArchivar || actualizando.current) return
+    actualizando.current = true
     actualizar.mutate(
       { levelId: porArchivar.id, archived: true },
-      { onSuccess: () => toast({ title: t('levels.archived') }), onError: fallar },
+      { onSuccess: () => toast({ title: t('levels.archived') }), onError: fallar, onSettled: soltar(actualizando) },
     )
     setPorArchivar(null)
   }
@@ -57,6 +81,7 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
   return (
     <section className="rounded-lg border border-input p-4 space-y-3">
       <h3 className="font-semibold">{t('levels.title')}</h3>
+      {enPausa && <AvisoSinConexion texto={t('offline.willSendSave')} onCancelar={cancelarEnvio} dataTour="staffpay-levels-offline" />}
       {activos.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('levels.empty')}</p>
       ) : (
@@ -100,13 +125,15 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
             ) : (
               <span key={n.id} className="inline-flex items-center gap-1 rounded-full bg-muted pl-3 pr-1 py-1 text-sm">
                 {n.name}
-                <PermissionGate permission="staffpay:manage">
+                {permiso.aqui && (
+                  <>
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-6 w-6 cursor-pointer"
                     aria-label={t('levels.rename', { name: n.name })}
                     title={t('levels.rename', { name: n.name })}
+                    disabled={!permiso.puede}
                     onClick={() => setEditando({ id: n.id, nombre: n.name })}
                   >
                     <Pencil className="h-3 w-3" />
@@ -117,35 +144,41 @@ export function NivelesSection({ activos }: { activos: NivelDto[] }) {
                     className="h-6 w-6 cursor-pointer"
                     aria-label={t('levels.archiveLevel', { name: n.name })}
                     title={t('levels.archiveLevel', { name: n.name })}
+                    disabled={!permiso.puede}
                     onClick={() => setPorArchivar(n)}
                   >
                     <Archive className="h-3 w-3" />
                   </Button>
-                </PermissionGate>
+                  </>
+                )}
               </span>
             ),
           )}
         </div>
       )}
-      <PermissionGate permission="staffpay:manage">
+      {permiso.aqui && (
+        <>
         <form className="flex gap-2 max-w-md" onSubmit={e => { e.preventDefault(); agregar() }}>
           <Input
             value={nuevoNivel}
+            disabled={!permiso.puede}
             aria-label={t('levels.namePlaceholder')}
             placeholder={t('levels.namePlaceholder')}
             onChange={e => setNuevoNivel(e.target.value)}
             data-tour="staffpay-level-name"
           />
-          <Button type="submit" className="cursor-pointer" disabled={!nuevoNivel.trim() || crearNivel.isPending} data-tour="staffpay-level-add">
+          <Button type="submit" className="cursor-pointer" disabled={!permiso.puede || !nuevoNivel.trim() || crearNivel.isPending} data-tour="staffpay-level-add">
             <Plus className="h-4 w-4 mr-1" />{t('levels.add')}
           </Button>
         </form>
-      </PermissionGate>
+        {permiso.falta && <p className="text-xs text-muted-foreground">{t('orgConfigPermission')}</p>}
+        </>
+      )}
 
       <AlertDialog open={!!porArchivar} onOpenChange={o => { if (!o) setPorArchivar(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('levels.archiveTitle', { name: porArchivar?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogTitle>{t('levels.archiveTitle', { name: archivoMostrado?.name ?? '' })}</AlertDialogTitle>
             <AlertDialogDescription>{t('levels.archiveDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

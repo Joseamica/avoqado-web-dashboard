@@ -11,6 +11,7 @@ import type { MotivoExcepcion, ReservaHuerfanaDto } from '@/types/staffPay'
 import { useNombreSede, useRutaDeSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
 import { useFocoDeVuelta } from '../foco'
+import { porFecha } from '../textoDeRegla'
 
 /** Tablas del periodo: aire entre columnas (sin él, «Sede» y «Clase» se pegan en el panel lateral). */
 export const TABLA_PERIODO = 'w-full text-sm [&_th]:pr-4 [&_td]:pr-4 [&_th:last-child]:pr-0 [&_td:last-child]:pr-0'
@@ -23,7 +24,8 @@ export function EstadoLista(p: {
   isLoading: boolean
   isError: boolean
   vacio: boolean
-  textoVacio: string
+  /** null: vacío sin nada que decir (p. ej. el desglose sin clases pero con comisiones, E6a-fix F11): no se pinta nada. */
+  textoVacio: string | null
   onRetry: () => void
   hasNextPage: boolean
   isFetchingNextPage: boolean
@@ -55,7 +57,7 @@ export function EstadoLista(p: {
       </div>
     )
   }
-  if (p.vacio) return <p className="mt-4 text-sm text-muted-foreground">{p.textoVacio}</p>
+  if (p.vacio) return p.textoVacio ? <p className="mt-4 text-sm text-muted-foreground">{p.textoVacio}</p> : null
   return (
     <>
       {p.children}
@@ -88,7 +90,8 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
   const rutaDeSede = useRutaDeSede()
   const foco = useFocoDeVuelta()
   const q = useStaffPayExceptions(sede, fecha)
-  const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
+  // Por fecha, como el desglose (E6a-fix F14): el cursor del servidor va por sede e id.
+  const filas = useMemo(() => unirClases(q.data?.pages).sort(porFecha), [q.data])
 
   return (
     <Sheet open onOpenChange={o => !o && onClose()}>

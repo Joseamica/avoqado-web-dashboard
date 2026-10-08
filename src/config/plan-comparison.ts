@@ -92,6 +92,7 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
     rows: [
       { key: 'seats', values: { FREE: 'upTo2', PRO: 'unlimited', PREMIUM: 'unlimited' } },
       { key: 'auditLog', codes: ['VENUE_AUDIT_LOG'] },
+      { key: 'staffPay', codes: ['SERVICE_PAY'] },
       { key: 'commissions', codes: ['COMMISSIONS'] },
       { key: 'attendance', codes: ['ATTENDANCE_TRACKING'] },
     ],

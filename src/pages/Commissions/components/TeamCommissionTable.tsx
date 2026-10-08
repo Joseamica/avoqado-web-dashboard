@@ -1,29 +1,24 @@
 import DataTable from '@/components/data-table'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useCommissionSummaries } from '@/hooks/useCommissions'
-import { cn } from '@/lib/utils'
-import type { CommissionSummary, CommissionSummaryStatus } from '@/types/commission'
+import { useCommissionSummariesPage } from '@/hooks/useCommissions'
+import type { CommissionSummary } from '@/types/commission'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Eye, MoreHorizontal, FileText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { MostrandoDeTotal, NotaDeLoCalculado } from './AvisosDeResumen'
 
-// Status badge styles
-const statusStyles: Record<CommissionSummaryStatus, string> = {
-  DRAFT: 'bg-muted text-muted-foreground',
-  CALCULATED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  APPROVED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  DISPUTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  PAID: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-}
-
-export default function TeamCommissionTable() {
+/**
+ * Lo que el motor calculó por persona y periodo. Sin columna de estado (E6a-fix F9, QA H4): el estado de estos resúmenes es
+ * del flujo viejo de pagos (retirado con el 410 de E1a) y contradecía al recibo («Pagado» con el recibo pendiente). El pago
+ * vive en el recibo de Pago al personal; aquí no se aprueba ni se paga. Con Pago al personal activo (E6a-fix2 C6) se dice que
+ * esto es lo CALCULADO —puede no coincidir con lo que se paga— y, a quien puede verlo, se le lleva al recibo.
+ */
+export default function TeamCommissionTable({ staffPayActive = false, puedeVerRecibos = false }: { staffPayActive?: boolean; puedeVerRecibos?: boolean } = {}) {
   const { t, i18n } = useTranslation('commissions')
   const { t: _tCommon } = useTranslation()
   const navigate = useNavigate()
@@ -33,8 +28,9 @@ export default function TeamCommissionTable() {
     pageSize: 20,
   })
 
-  // Fetch summaries
-  const { data: summaries, isLoading } = useCommissionSummaries()
+  // Fetch summaries. Sin fechas a propósito: el servidor pone la ventana de los últimos 12 meses y topa los renglones (`total`).
+  const { data: page, isLoading } = useCommissionSummariesPage()
+  const summaries = page?.items
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -92,14 +88,6 @@ export default function TeamCommissionTable() {
         cell: ({ row }) => <span className="font-semibold text-foreground">{formatCurrency(row.original.netAmount)}</span>,
       },
       {
-        accessorKey: 'status',
-        header: t('table.status'),
-        cell: ({ row }) => {
-          const status = row.original.status
-          return <Badge className={cn('font-medium', statusStyles[status])}>{t(`status.${status}`)}</Badge>
-        },
-      },
-      {
         id: 'actions',
         header: t('table.actions'),
         cell: ({ row }) => {
@@ -124,6 +112,18 @@ export default function TeamCommissionTable() {
     [t, i18n.language, formatCurrency, formatPeriod, navigate, venueSlug, fullBasePath],
   )
 
+  const encabezado = (
+    <div className="p-4 border-b border-border/50 space-y-1">
+      <h3 className="font-semibold">{t('summary.title')}</h3>
+      {/* Sin fechas, el servidor devuelve los últimos 12 meses (no toda la historia de la sede): se dice cuál ventana es. */}
+      <p className="text-sm text-muted-foreground" data-tour="commissions-summary-window">
+        {t('summary.lastTwelveMonths')}
+      </p>
+      <NotaDeLoCalculado staffPayActive={staffPayActive} puedeVerRecibos={puedeVerRecibos} />
+      <MostrandoDeTotal n={summaries?.length ?? 0} total={page?.total} />
+    </div>
+  )
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -138,9 +138,7 @@ export default function TeamCommissionTable() {
   if (!summaries || summaries.length === 0) {
     return (
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
-        <div className="p-4 border-b border-border/50">
-          <h3 className="font-semibold">{t('summary.title')}</h3>
-        </div>
+        {encabezado}
         <div className="flex flex-col items-center justify-center py-12 text-center px-4">
           <div className="p-4 rounded-full bg-muted mb-4">
             <FileText className="h-8 w-8 text-muted-foreground" />
@@ -156,9 +154,7 @@ export default function TeamCommissionTable() {
 
   return (
     <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
-      <div className="p-4 border-b border-border/50">
-        <h3 className="font-semibold">{t('summary.title')}</h3>
-      </div>
+      {encabezado}
       <DataTable<CommissionSummary>
         columns={columns}
         data={summaries}

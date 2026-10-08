@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
@@ -19,28 +19,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
-import { useSetPeriodicity, useStaffPayPeriods } from '@/hooks/useStaffPay'
+import { useSetPeriodicity, useStaffPayAccess, useStaffPayPeriods } from '@/hooks/useStaffPay'
 import type { PeriodoListadoDto } from '@/types/staffPay'
 import { PeriodoAbiertoTab } from './PeriodoAbiertoTab'
 import { PeriodoCerradoView } from './PeriodoCerradoView'
+import { ActivarPagoAlPersonal } from './ActivarPagoAlPersonal'
+import { InterruptorPropinas } from './InterruptorPropinas'
+import { AvisoSedesFuera } from './AvisoSedesFuera'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hoyEnSede } from '../hoyEnSede'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useFocoDeVuelta } from '../foco'
+import { esNoActivado } from '../rangos'
+import { useUltimoNoNulo } from '../alCerrar'
 
 const clave = (p: PeriodoListadoDto) => p.start
 /** El periodo elegido vive en la URL (`?periodo=2026-09-01`): al recargar se vuelve a ver el mismo. */
 const PARAM = 'periodo'
 
 /**
- * La pestaña «Periodos»: arriba, cuál periodo se ve (el abierto actual primero) y cada cuánto se paga; abajo, el periodo
- * abierto (en vivo, con «Cerrar») o el cerrado (congelado, con «Marcar pagado»).
+ * La pestaña «Periodos»: arriba, cuál periodo se ve (el abierto actual primero), cada cuánto se paga y si las propinas van
+ * en el recibo; abajo, el periodo abierto (en vivo, con «Cerrar») o el cerrado (congelado, con «Marcar pagado»). Sin
+ * activar pago al personal, en su lugar la pantalla que explica y activa (spec §11).
  */
 export function PeriodosTab({ activa }: { activa: boolean }) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { toast } = useToast()
-  const { data, isLoading, isError, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(activa)
+  const { data: acceso } = useStaffPayAccess()
+  // Sin activar no hay periodos que ver: la pestaña explica y ofrece activar (spec §11), sin pedir la lista (daría 403).
+  const { data, isLoading, isError, error, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(
+    activa && acceso?.activado === true,
+  )
   const setPeriodicity = useSetPeriodicity()
   const location = useLocation()
   const navigate = useNavigate()
@@ -53,14 +64,28 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
     const search = sp.toString()
     navigate({ search: search ? `?${search}` : '', hash: location.hash }, { replace: true })
   }
-  // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta.
+  // Cambiar la frecuencia se confirma: después del primer cierre ya no tiene vuelta. Desde la fase 3 queda fija al activar
+  // (el servidor manda `puedeCambiarPeriodicidad: false` y este diálogo no se alcanza); manda el servidor, así que se queda.
   const [nuevaFrecuencia, setNuevaFrecuencia] = useState<'MONTHLY' | 'SEMIMONTHLY' | null>(null)
+  // La frecuencia que nombra el diálogo mientras se cierra (K-n1): el título y el botón no se quedan vacíos.
+  const frecuenciaMostrada = useUltimoNoNulo(nuevaFrecuencia)
+  // Candado SÍNCRONO (revisión de E6b): `isPending` no alcanza a apagar «Cambiar» entre dos clics seguidos.
+  const cambiando = useRef(false)
   const items = data?.items ?? []
   // Un `?periodo=` que no está en la lista (viejo, mal escrito, de otra frecuencia) cae al periodo actual.
   const actual = items.find(p => clave(p) === elegido) ?? items[0]
+  // … y la URL se corrige (`replace`, E6a-fix2 K7): no puede decir agosto mientras se ve octubre. Sólo cuando consta que no
+  // existe: la lista ya está completa, o la fecha cae dentro de lo cargado. Uno más viejo que lo cargado, con más páginas,
+  // podría estar en «Ver periodos anteriores»: se deja.
+  const masViejo = items.length ? clave(items[items.length - 1]) : null
+  const noExiste = !!elegido && !!masViejo && !items.some(p => clave(p) === elegido) && (!hasNextPage || elegido >= masViejo)
+  useEffect(() => {
+    if (noExiste) setElegido(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `setElegido` lee la ubicación de este render; basta el veredicto
+  }, [noExiste])
   const nombrePeriodo = useNombrePeriodo()
   const focoFrecuencia = useFocoDeVuelta()
-  const { venueTimezone } = useVenueDateTime()
+  const { venueTimezone, formatCalendarDate } = useVenueDateTime()
   const mes = (p: PeriodoListadoDto) => nombrePeriodo(p, data?.periodicidad ?? 'MONTHLY')
   // «Abierto» sólo el periodo en curso: uno que ya terminó y nadie cerró dice «Sin cerrar». No «Sin movimientos»: un mes sin
   // guardar puede tener clases (sólo un cierre o un ajuste guardan el periodo), y eso sólo lo sabe la vista, con el reporte.
@@ -77,7 +102,8 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
           : t('periods.closedPaid', { pagadas: p.pagadas, count: p.personas })
 
   const cambiarPeriodicidad = async () => {
-    if (!nuevaFrecuencia) return
+    if (!nuevaFrecuencia || cambiando.current) return
+    cambiando.current = true
     try {
       await setPeriodicity.mutateAsync(nuevaFrecuencia)
       setElegido(null)
@@ -85,10 +111,23 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
     } catch (err) {
       toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
     } finally {
+      cambiando.current = false
       setNuevaFrecuencia(null)
     }
   }
 
+  // Cerrar el diálogo: mientras se manda, no; en pausa sin red (C5), sí: el envío se cancela de verdad (no sale al volver la red).
+  const cerrarFrecuencia = () => {
+    if (setPeriodicity.isPaused) {
+      setPeriodicity.cancelarEnPausa()
+      cambiando.current = false
+    } else if (setPeriodicity.isPending) return
+    setNuevaFrecuencia(null)
+  }
+
+  // Todos los hooks ya se llamaron. Sin activar —o si la lista contesta «sin activar» antes de que el acceso se refresque—,
+  // la pantalla de activar en lugar de un error.
+  if ((acceso && !acceso.activado) || (isError && !data && esNoActivado(error))) return activa ? <ActivarPagoAlPersonal /> : null
   if (isError && !data) {
     return (
       <Card className="border-input" role="alert">
@@ -117,6 +156,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
 
   return (
     <div className="space-y-6">
+      <AvisoSedesFuera activa={activa} />
       {isError && (
         // Ya hay lista, pero recargarla falló (p. ej. tras un cierre): se dice, para que nada se quede cargando sin fin.
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
@@ -161,6 +201,9 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
               {t('periods.loadOlder')}
             </Button>
           )}
+          {acceso?.startDate && (
+            <p className="text-xs text-muted-foreground">{t('activation.activeSince', { fecha: formatCalendarDate(acceso.startDate) })}</p>
+          )}
         </div>
         <div className="w-full space-y-1.5 sm:w-auto sm:max-w-sm">
           <Label htmlFor="staffpay-periodicidad">{t('periods.periodicity')}</Label>
@@ -185,6 +228,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
             {data.puedeCambiarPeriodicidad ? (puedeCerrar ? t('periods.periodicityHelp') : t('periods.periodicityNoPermission')) : t('periods.periodicityLocked')}
           </p>
         </div>
+        <InterruptorPropinas encendidas={!!acceso?.propinasEncendidas} puedeEnLaOrganizacion={acceso?.puedeAdministrarOrganizacion !== false} />
       </div>
       {actual.estado === 'CLOSED' && actual.id ? (
         <PeriodoCerradoView key={actual.id} periodId={actual.id} fecha={actual.start} etiqueta={mes(actual)} etiquetaAbierto={abiertoHoy} />
@@ -194,14 +238,16 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
             if (!isFetching) void refetch()
           }} />
       )}
-      <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && !setPeriodicity.isPending && setNuevaFrecuencia(null)}>
+      <AlertDialog open={!!nuevaFrecuencia} onOpenChange={o => !o && cerrarFrecuencia()}>
         <AlertDialogContent onOpenAutoFocus={focoFrecuencia.onOpenAutoFocus} onCloseAutoFocus={focoFrecuencia.onCloseAutoFocus}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{nuevaFrecuencia && t('periods.changeTitle', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}</AlertDialogTitle>
-            <AlertDialogDescription>{nuevaFrecuencia && t(`periods.changeHelp.${nuevaFrecuencia}`)}</AlertDialogDescription>
+            <AlertDialogTitle>{frecuenciaMostrada && t('periods.changeTitle', { frecuencia: t(`periods.short.${frecuenciaMostrada}`) })}</AlertDialogTitle>
+            <AlertDialogDescription>{frecuenciaMostrada && t(`periods.changeHelp.${frecuenciaMostrada}`)}</AlertDialogDescription>
           </AlertDialogHeader>
+          {setPeriodicity.isPaused && <AvisoSinConexion texto={t('offline.willSendPeriodicity')} dataTour="staffpay-periodicity-offline" />}
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={setPeriodicity.isPending}>
+            {/* En pausa (sin red) cancelar es seguro: la petición no ha salido y se quita de la cola (C5). */}
+            <AlertDialogCancel className="cursor-pointer" disabled={setPeriodicity.isPending && !setPeriodicity.isPaused}>
               {t('closed.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
@@ -213,7 +259,7 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
               }}
             >
               {setPeriodicity.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {nuevaFrecuencia && t('periods.changeConfirm', { frecuencia: t(`periods.short.${nuevaFrecuencia}`) })}
+              {frecuenciaMostrada && t('periods.changeConfirm', { frecuencia: t(`periods.short.${frecuenciaMostrada}`) })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

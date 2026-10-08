@@ -186,6 +186,7 @@
         "cfdi": "CFDI invoicing",
         "seats": "Users",
         "auditLog": "Activity log",
+        "staffPay": "Staff pay (classes, commissions and tips)",
         "commissions": "Commissions",
         "attendance": "Attendance clock",
         "chatbot": "Chatbot",

@@ -11,6 +11,10 @@ import { getConnectionStatus, subscribeToConnection } from '@/api'
  * - Server is unreachable (API calls failing)
  * Auto-hides when connection is restored
  * Sets --offline-banner-height CSS variable for layout adjustment
+ *
+ * Capa `z-40` (E6a-fix4 C-n1): ENCIMA del contenido de la página (la barra lateral y las cabeceras fijas son `z-10`, y el layout
+ * deja su espacio con `--offline-banner-height`) y DEBAJO de toda capa de diálogo (Dialog, AlertDialog, Sheet y FullScreenModal
+ * son `z-50`). Con `z-[100]` tapaba la cabecera de las ventanas de pantalla completa: la X y el botón de confirmar.
  */
 export function OfflineBanner() {
   const { t } = useTranslation()
@@ -61,7 +65,7 @@ export function OfflineBanner() {
   return (
     <div 
       ref={bannerRef}
-      className="bg-destructive text-destructive-foreground border-b border-destructive/20 px-4 py-2 fixed top-0 left-0 right-0 z-[100]"
+      className="bg-destructive text-destructive-foreground border-b border-destructive/20 px-4 py-2 fixed top-0 left-0 right-0 z-40"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm">

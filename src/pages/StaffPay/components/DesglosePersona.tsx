@@ -13,12 +13,19 @@ import { useToast } from '@/hooks/use-toast'
 import { useStaffPayDetail, useStaffReceipt } from '@/hooks/useStaffPay'
 import { staffPayService } from '@/services/staffPay.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import type { RenglonReciboDto } from '@/types/staffPay'
+import type { RenglonReciboDto, TipoRenglon } from '@/types/staffPay'
 import { useNombreSede } from '../useNombreSede'
 import { unirClases } from '../unirClases'
 import { conSigno, monto } from '../conSigno'
 import { EstadoLista, TABLA_PERIODO } from './ListasDelPeriodo'
 import { useFocoDeVuelta } from '../foco'
+import { useNombrePeriodo } from '../useNombrePeriodo'
+import { hayPendientes, lineaDePendiente } from '../pendientes'
+import { nombreVisible } from '../personaBorrada'
+import { porFecha, textoDeRegla } from '../textoDeRegla'
+
+/** Orden fijo de los totales por tipo (no el del JSON): primero lo que se gana, luego lo que lo corrige. */
+const ORDEN_TIPOS: TipoRenglon[] = ['CLASE', 'COMISION', 'PROPINA', 'DIFERENCIA', 'AJUSTE']
 
 /**
  * Desglose de sólo lectura (un Sheet es válido; FullScreenModal es para crear/editar). El total viene del renglón del
@@ -53,13 +60,29 @@ export function DesglosePersona({
   const nombreSede = useNombreSede()
   const foco = useFocoDeVuelta()
   const q = useStaffPayDetail(staffId, sede, fecha, !cerrado)
-  const filas = useMemo(() => unirClases(q.data?.pages), [q.data])
+  // Por fecha, como el recibo cerrado (E6a-fix F14): el cursor del servidor va por sede e id.
+  const filas = useMemo(() => unirClases(q.data?.pages).sort(porFecha), [q.data])
   // El recibo se pide siempre que haya `fecha`: en un periodo cerrado ES el desglose; en uno abierto aporta los ajustes.
   // Con el MISMO filtro de sede que las clases y el encabezado (Codex bloque A #5): si no, los ajustes de otra sede se
   // sumarían a la vista de ésta. La exportación sí va sin sede (su aviso lo dice).
   const recibo = useStaffReceipt(staffId, fecha ?? null, !!fecha, sede)
   const renglones = recibo.data?.renglones ?? []
-  const ajustes = renglones.filter(r => r.tipo !== 'CLASE')
+  // Fase 3 (spec §11): comisiones y propinas son pago, no ajustes; su sección va aparte.
+  const ventas = renglones.filter(r => r.tipo === 'COMISION' || r.tipo === 'PROPINA')
+  const ajustes = renglones.filter(r => r.tipo === 'DIFERENCIA' || r.tipo === 'AJUSTE')
+  // «No tiene clases terminadas» sólo cuando no hay NADA (E6a-fix F11): con comisiones, propinas o ajustes no se dice ni se
+  // pinta una tabla de clases vacía (en una tienda sería cada recibo), y no se adelanta mientras llega el recibo.
+  const otroPago = ventas.length > 0 || ajustes.length > 0 || !!recibo.hasNextPage || (!!fecha && recibo.isLoading)
+  const totales = recibo.data?.totalesPorTipo ?? {}
+  const porTipo = ORDEN_TIPOS.filter(tipo => totales[tipo] != null).map(tipo => ({ tipo, total: totales[tipo]! }))
+  // Un recibo cerrado de alguien borrado abre igual (spec §6.1): sin nombre recuperable, la etiqueta.
+  const nombre = nombreVisible(t, staffName)
+  // Un pago (clase, comisión, propina) sin «+» y con «−» si es devolución; un ajuste o una diferencia, con su signo.
+  const montoDe = (r: RenglonReciboDto) => (r.tipo === 'DIFERENCIA' || r.tipo === 'AJUSTE' ? conSigno(r.monto) : monto(r.monto))
+  // Devoluciones que se descontarán solas en OTRO cierre (B12): el server sólo las manda en el recibo abierto y en su primera
+  // página; se pintan en la vista abierta.
+  const nombrePeriodo = useNombrePeriodo()
+  const pendientes = hayPendientes(recibo.data?.pendientes) ? recibo.data!.pendientes! : null
   // Vista parcial: el recibo sólo trae las sedes que este usuario puede ver; nunca se presenta como el recibo completo.
   const parcial = !!recibo.data?.parcial
   const avisoParcial = parcial && <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{t('period.receiptPartial')}</p>
@@ -78,7 +101,7 @@ export function DesglosePersona({
     if (!fecha || !venueId || bajando) return
     setBajando(format)
     try {
-      await staffPayService.downloadReceipt(venueId, staffId, fecha, format, `recibo-${staffName}-${fecha.slice(0, 7)}`)
+      await staffPayService.downloadReceipt(venueId, staffId, fecha, format, `recibo-${nombre}-${fecha.slice(0, 7)}`)
     } catch (err) {
       toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
     } finally {
@@ -102,8 +125,21 @@ export function DesglosePersona({
         onCloseAutoFocus={foco.onCloseAutoFocus}
       >
         <SheetHeader>
-          <SheetTitle>{t('period.detailTitle', { name: staffName })}</SheetTitle>
-          <SheetDescription>{t('period.detailSummary', { count: clases, total: monto(total) })}</SheetDescription>
+          <SheetTitle>{t('period.detailTitle', { name: nombre })}</SheetTitle>
+          <SheetDescription>
+            {clases > 0 ? t('period.detailSummary', { count: clases, total: monto(total) }) : t('period.detailSummaryTotal', { total: monto(total) })}
+          </SheetDescription>
+          {/* Totales por tipo del recibo ENTERO (los suma el server): sólo si hay más de un tipo. */}
+          {porTipo.length > 1 && (
+            <dl className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm" data-tour="staffpay-receipt-by-type">
+              {porTipo.map(x => (
+                <div key={x.tipo} className="flex gap-1">
+                  <dt className="text-muted-foreground">{t(`period.byType.${x.tipo}`)}</dt>
+                  <dd className="font-medium">{monto(x.total)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
           {cerrado && recibo.data && (
             <div className="pt-1">
               {recibo.data.pagadoEn ? (
@@ -195,7 +231,7 @@ export function DesglosePersona({
                       <td className="hidden text-muted-foreground sm:table-cell">{r.sede}</td>
                       <td>{r.concepto}</td>
                       <td className="hidden text-right sm:table-cell">{r.lugares ?? '—'}</td>
-                      <td className="whitespace-nowrap text-right">{r.tipo === 'CLASE' ? Currency(Number(r.monto)) : conSigno(r.monto)}</td>
+                      <td className="whitespace-nowrap text-right">{montoDe(r)}</td>
                     </tr>
                   ))}
                   <tr>
@@ -225,7 +261,7 @@ export function DesglosePersona({
               isLoading={q.isLoading}
               isError={q.isError && filas.length === 0}
               vacio={filas.length === 0}
-              textoVacio={t('period.detailEmpty')}
+              textoVacio={otroPago ? null : t('period.detailEmpty')}
               onRetry={() => q.refetch()}
               hasNextPage={!!q.hasNextPage}
               isFetchingNextPage={q.isFetchingNextPage}
@@ -253,6 +289,8 @@ export function DesglosePersona({
                             {t('period.adjusted')}
                           </Badge>
                         )}
+                        {/* La regla que movió el pago, como en el recibo cerrado (E6a-fix F14). */}
+                        {f.regla && <span className="block text-xs text-muted-foreground">{textoDeRegla(t, f.regla)}</span>}
                       </td>
                       <td className="hidden text-right sm:table-cell">{f.conteo}</td>
                       <td className="text-right">
@@ -269,6 +307,20 @@ export function DesglosePersona({
                 </tbody>
               </table>
             </EstadoLista>
+            {ventas.length > 0 && (
+              <div className="mt-6 space-y-1" data-tour="staffpay-detail-sales">
+                <p className="text-sm font-medium">{t('period.salesSection')}</p>
+                {ventas.map((r, i) => (
+                  <p key={i} className="flex justify-between gap-3 text-sm">
+                    <span className="min-w-0">
+                      {r.concepto}
+                      {r.fecha && <span className="block text-xs text-muted-foreground">{fechaDelRenglon(r)}</span>}
+                    </span>
+                    <span className="whitespace-nowrap font-medium">{montoDe(r)}</span>
+                  </p>
+                ))}
+              </div>
+            )}
             {(ajustes.length > 0 || recibo.hasNextPage || parcial) && (
               <div className="mt-6 space-y-1" data-tour="staffpay-detail-adjustments">
                 <p className="text-sm font-medium">{t('period.periodAdjustments')}</p>
@@ -286,6 +338,17 @@ export function DesglosePersona({
                 {avisoParcial}
                 {/* Un recibo de más de una página puede traer sus ajustes después de las clases: se ofrecen, no se esconden. */}
                 {masRenglones}
+              </div>
+            )}
+            {pendientes && (
+              <div className="mt-6 space-y-1 rounded-lg border border-input p-3" data-tour="staffpay-detail-pending">
+                <p className="text-sm font-medium">{t('period.pendingTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('period.pendingHelp')}</p>
+                <ul className="space-y-1 text-sm">
+                  {pendientes.porDestino.map((d, i) => (
+                    <li key={i}>{lineaDePendiente(t, d, nombrePeriodo)}</li>
+                  ))}
+                </ul>
               </div>
             )}
             {recibo.isError && !recibo.data && (

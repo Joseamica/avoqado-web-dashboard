@@ -10,6 +10,10 @@
     "payouts": "Pagos"
   },
   "overview": {
+    "paidInStaffPay": "Las comisiones se pagan en el recibo de Pago al personal, junto con las clases y las propinas.",
+    "notInStaffPay": "Las comisiones se calculan aquí. Para pagarlas en un recibo, junto con las clases y las propinas, activa Pago al personal en esta sede.",
+    "askOwner": "Pídeselo al dueño del negocio.",
+    "goToStaffPay": "Ir a Pago al personal",
     "noConfigTitle": "Configura comisiones para tu equipo",
     "noConfigDescription": "Para ver el resumen de comisiones, primero necesitas crear una configuración. Define cuánto ganan tus empleados y cómo se calcula.",
     "goToConfig": "Ir a Configuración"
@@ -44,6 +48,7 @@
     }
   },
   "stats": {
+    "calculated": "Calculado",
     "totalEarned": "Total Ganado",
     "pending": "Pendiente",
     "paid": "Pagado",
@@ -83,6 +88,7 @@
     },
     "staff": {
       "title": "Empleados",
+      "onlyExcludeInFixed": "En un monto fijo todos ganan lo mismo por venta: aquí sólo puedes excluir a alguien. La tasa especial sólo aplica con comisión por porcentaje.",
       "allStaff": "Todos los empleados",
       "excludedCount": "{{count}} excluidos",
       "customCount": "{{count}} con tasa especial",
@@ -101,7 +107,11 @@
       "addException": "Agregar excepción",
       "addStaff": "Agregar empleado",
       "searchPlaceholder": "Buscar empleado...",
-      "noResults": "No se encontraron empleados"
+      "noResults": "No se encontraron empleados",
+      "restrictionUnavailable": "Limitar la comisión a personas elegidas todavía no está disponible en tu cuenta. Por ahora el esquema aplica a todo el equipo; puedes excluir a quien no deba cobrarla.",
+      "restrictionNotApplied": "No se creó el esquema: limitarlo a personas elegidas todavía no está disponible en tu cuenta. Elige «Todos los empleados» y excluye a quien no deba cobrarla.",
+      "restrictionNotAppliedKept": "El esquema se creó, pero aplica a TODO el equipo: limitarlo a personas elegidas todavía no está disponible en tu cuenta. Desactívalo o excluye a quien no deba cobrarla.",
+      "chooseAtLeastOne": "Elige al menos a una persona."
     },
     "calcBase": {
       "title": "Base de Cálculo",
@@ -135,6 +145,7 @@
     },
     "tiers": {
       "title": "Comisión por Niveles",
+      "onlyPercentage": "Sólo aplica con comisión por porcentaje",
       "enabledDesc": "{{count}} niveles configurados",
       "disabledDesc": "Tasa fija para todos",
       "enablePrompt": "Activa los niveles para dar mayor comisión a quien vende más.",
@@ -144,6 +155,7 @@
     },
     "roleRates": {
       "title": "Tasas por Rol",
+      "onlyPercentage": "Sólo aplica con comisión por porcentaje",
       "enabledDesc": "{{count}} roles configurados",
       "disabledDesc": "Misma tasa para todos los roles",
       "enablePrompt": "Activa tasas por rol para dar diferente comisión según el puesto.",
@@ -214,7 +226,17 @@
     "inactive": "Inactiva",
     "noConfigs": "No hay configuraciones de comisión",
     "noConfigsDescription": "Crea tu primera configuración para empezar a calcular comisiones",
-    "viewDetails": "Ver Detalles"
+    "viewDetails": "Ver Detalles",
+    "staffScope": {
+      "title": "¿A quién aplica?",
+      "all": "Todo el equipo",
+      "allDesc": "Todo el equipo gana esta comisión. Para excluir a alguien o darle una tasa especial, usa las excepciones de la ficha del esquema.",
+      "chosen": "Sólo personas elegidas",
+      "chosenDesc": "Sólo las personas que elijas ganan esta comisión.",
+      "remove": "Quitar a {{name}}",
+      "chosenTitle": "Sólo aplica a estas personas",
+      "count": "Sólo para personas elegidas: {{count}}"
+    }
   },
   "calcTypes": {
     "PERCENTAGE": "Porcentaje",
@@ -284,6 +306,7 @@
     "searchStaff": "Buscar empleado...",
     "noStaffFound": "No se encontraron empleados",
     "customRate": "Tasa Personalizada",
+    "onlyExcludeInFixed": "En un monto fijo todos ganan lo mismo por venta: aquí sólo puedes excluir a esta persona. La tasa personalizada sólo aplica con comisión por porcentaje.",
     "customRatePlaceholder": "Ej: 3.5",
     "customRateHint": "Tasa específica para este empleado (sobrescribe todo)",
     "customRateDescription": "Tasa específica para este empleado (sobrescribe todo)",
@@ -324,7 +347,10 @@
     "adjustmentAmount": "Monto del Ajuste",
     "adjustmentReason": "Razón del Ajuste",
     "noSummaries": "No hay resúmenes pendientes",
-    "noSummariesDescription": "Los resúmenes se generan automáticamente al final de cada período"
+    "noSummariesDescription": "Los resúmenes se generan automáticamente al final de cada período",
+    "calculatedNote": "Es lo calculado. Lo que se paga está en el recibo de Pago al personal.",
+    "showing": "Mostrando {{n}} de {{total}}",
+    "lastTwelveMonths": "Últimos 12 meses"
   },
   "status": {
     "DRAFT": "Borrador",
@@ -397,7 +423,7 @@
     "deleteTitle": "Eliminar Meta",
     "deleteConfirm": "¿Estás seguro de eliminar esta meta? Esta acción no se puede deshacer.",
     "noGoals": "No hay metas configuradas",
-    "noGoalsDescription": "Crea metas de ventas para motivar a tu equipo y trackear su progreso",
+    "noGoalsDescription": "Crea metas de ventas para motivar a tu equipo y dar seguimiento a su progreso",
     "venueGoal": "Meta de toda la sucursal",
     "selectStaff": "Seleccionar empleado...",
     "assignTo": "Asignar a",
@@ -531,6 +557,7 @@
       "fixedAmount": "Monto fijo",
       "ofEachSale": "de cada venta",
       "perTransaction": "por cada transacción",
+      "fixedAmountRange": "El monto fijo debe ser mayor que $0 y de hasta $999,999.99.",
       "fixedLabel": "Monto fijo",
       "exampleTitle": "Ejemplo con una venta de {{amount}}:",
       "exampleSale": "Venta:",
@@ -539,8 +566,13 @@
       "advanced": "Configuración avanzada",
       "advancedDesc": "Para negocios con reglas más complejas",
       "calculationBase": "Base de cálculo",
-      "includeTax": "Incluir IVA",
-      "taxExcludedHint": "La comisión se calculará sobre el monto sin IVA (16%)",
+      "taxBaseAction": "Calcular con IVA",
+      "taxBaseNowWithout": "Ahora: sin IVA",
+      "taxBaseNowWith": "Ahora: con IVA",
+      "taxBaseWith": "Con IVA",
+      "taxBaseWithout": "Sin IVA",
+      "taxBaseWithHint": "Se comisiona lo que pagó el cliente, con el IVA incluido.",
+      "taxBaseWithoutHint": "Recomendado. Se comisiona la venta sin IVA, separado con la tasa de cada producto (16 %, 8 %, o nada si es tasa 0 o exento), con la misma regla que tu contabilidad.",
       "includeTips": "Incluir propinas",
       "includeDiscount": "Base de la comisión",
       "commissionBase": "Base de la comisión",
@@ -548,6 +580,9 @@
       "commissionBaseList": "Precio de lista",
       "commissionBaseNetHint": "Recomendado. Se comisiona lo que el cliente pagó de verdad: los descuentos y las promociones bajan la comisión. La propina nunca cuenta.",
       "commissionBaseListHint": "Se comisiona el precio de catálogo aunque el negocio haya cobrado menos: los descuentos y las promociones NO bajan la comisión.",
+      "commissionBaseAction": "Calcular sobre el precio de lista",
+      "commissionBaseNowNet": "Ahora: lo realmente cobrado",
+      "commissionBaseNowList": "Ahora: precio de lista",
       "categories": "Categorías",
       "onlySpecificCategories": "Solo se calculará comisión sobre ventas de estas categorías",
       "selectCategories": "Seleccionar categorías...",
@@ -604,6 +639,7 @@
     "advanced": {
       "tiers": {
         "title": "Comisión por niveles",
+        "onlyPercentage": "Sólo aplica con comisión por porcentaje: cada nivel es un porcentaje de la venta, y en un monto fijo todos ganan el mismo monto por venta.",
         "desc": "Mientras más vende el empleado, mayor es su porcentaje de comisión.",
         "disabled": "Desactivado",
         "enabled": "Activado",
@@ -639,6 +675,7 @@
       },
       "roleRates": {
         "title": "Tasas diferentes por rol",
+        "onlyPercentage": "Sólo aplica con comisión por porcentaje: en un monto fijo todos ganan el mismo monto por venta.",
         "disabled": "Desactivado (todos ganan lo mismo)",
         "enabled": "Activado",
         "roleHeader": "Rol",
@@ -672,6 +709,7 @@
       "overrides": {
         "title": "Excepciones por empleado",
         "desc": "Define tasas personalizadas o excluye empleados específicos de esta configuración de comisiones.",
+        "onlyExcludeInFixed": "En un monto fijo todos ganan lo mismo por venta: aquí sólo puedes excluir a alguien. La tasa personalizada sólo aplica con comisión por porcentaje.",
         "addStaff": "Agregar empleado",
         "excluded": "Excluido de comisiones",
         "excludeLabel": "Excluir",

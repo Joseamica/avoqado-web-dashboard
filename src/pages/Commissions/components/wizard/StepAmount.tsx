@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { WizardData } from './CreateCommissionWizard'
 import type { CommissionCalcType } from '@/types/commission'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import BaseIvaSwitch from '../BaseIvaSwitch'
+import BaseComisionSwitch from '../BaseComisionSwitch'
 import LiveExample from './LiveExample'
 import CommissionAdvancedConfig from './CommissionAdvancedConfig'
 import CategoryFilter from './CategoryFilter'
+import { aCentavos, MONTO_FIJO_MAXIMO, montoFijoValido } from '../../tasaDelEsquema'
 
 interface StepAmountProps {
 	data: WizardData
@@ -23,8 +25,6 @@ interface StepAmountProps {
 
 export default function StepAmount({ data, updateData, onNext, onPrevious, hideNavigation }: StepAmountProps) {
 	const { t } = useTranslation('commissions')
-	const { venue } = useCurrentVenue()
-	const isMexico = venue?.country?.toLowerCase() === 'mexico' || venue?.country?.toLowerCase() === 'méxico' || venue?.country === 'MX'
 	const [advancedOpen, setAdvancedOpen] = useState(
 		data.tiersEnabled || data.roleRatesEnabled || data.limitsEnabled
 	)
@@ -58,23 +58,21 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 		setRateInput(normalized.toFixed(2))
 	}
 
-	// Handle fixed amount change
+	// Monto fijo en pesos con centavos, de más de $0 a $999,999.99 (D-FIJO). Lo que no cabe no se guarda y el campo lo dice.
+	const montoTecleado = fixedAmountInput.trim() === '' ? null : aCentavos(Number(fixedAmountInput))
+	const montoFueraDeRango = montoTecleado !== null && !montoFijoValido(montoTecleado)
+
 	const handleFixedAmountChange = (value: string) => {
 		setFixedAmountInput(value)
 		if (value === '') return
-		const num = Number(value)
-		if (Number.isNaN(num) || num < 0) return
+		const num = aCentavos(Number(value))
+		if (!montoFijoValido(num)) return
 		updateData({ fixedAmount: num })
 	}
 
 	const handleFixedAmountBlur = () => {
-		if (fixedAmountInput.trim() === '') {
-			setFixedAmountInput(String(data.fixedAmount))
-			return
-		}
-
-		const num = Number(fixedAmountInput)
-		if (Number.isNaN(num) || num < 0) {
+		const num = aCentavos(Number(fixedAmountInput))
+		if (fixedAmountInput.trim() === '' || !montoFijoValido(num)) {
 			setFixedAmountInput(String(data.fixedAmount))
 			return
 		}
@@ -186,8 +184,11 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 						</span>
 						<Input
 							type="number"
-							step="1"
-							min="0"
+							step="0.01"
+							min="0.01"
+							max={MONTO_FIJO_MAXIMO}
+							aria-label={t('wizard.step2.fixedAmount')}
+							aria-invalid={montoFueraDeRango}
 							value={fixedAmountInput}
 							onChange={(e) => handleFixedAmountChange(e.target.value)}
 							onBlur={handleFixedAmountBlur}
@@ -197,6 +198,7 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 					<p className="text-sm text-muted-foreground mt-2">
 						{t('wizard.step2.perTransaction')}
 					</p>
+					{montoFueraDeRango && <p className="text-sm text-destructive mt-1">{t('wizard.step2.fixedAmountRange')}</p>}
 				</div>
 			)}
 
@@ -209,23 +211,7 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 					{t('wizard.step2.calculationBase')}
 				</h3>
 				<div className="space-y-2.5">
-					<div className="flex items-center justify-between">
-						<div>
-							<Label htmlFor="includeTax" className="text-sm">
-								{t('wizard.step2.includeTax')}{isMexico ? ' (IVA 16%)' : ''}
-							</Label>
-							{isMexico && !data.includeTax && (
-								<p className="text-xs text-muted-foreground mt-0.5">
-									{t('wizard.step2.taxExcludedHint')}
-								</p>
-							)}
-						</div>
-						<Switch
-							id="includeTax"
-							checked={data.includeTax}
-							onCheckedChange={(checked) => updateData({ includeTax: checked })}
-						/>
-					</div>
+					<BaseIvaSwitch id="includeTax" checked={data.includeTax} onChange={checked => updateData({ includeTax: checked })} />
 					<div className="flex items-center justify-between">
 						<Label htmlFor="includeTips" className="text-sm">
 							{t('wizard.step2.includeTips')}
@@ -236,30 +222,13 @@ export default function StepAmount({ data, updateData, onNext, onPrevious, hideN
 							onCheckedChange={(checked) => updateData({ includeTips: checked })}
 						/>
 					</div>
-					{/* Base de la comisión. El interruptor NO dice "incluir descuentos":
-					    la etiqueta muestra SIEMPRE la base vigente y el texto de abajo
-					    explica qué pasa con descuentos y promociones. El campo que se
-					    guarda sigue siendo `includeDiscount` (compatibilidad de API). */}
-					<div className="flex items-start justify-between gap-4">
-						<div>
-							<Label htmlFor="includeDiscount" className="text-sm">
-								{t('wizard.step2.commissionBase')}:{' '}
-								{data.includeDiscount
-									? t('wizard.step2.commissionBaseList')
-									: t('wizard.step2.commissionBaseNet')}
-							</Label>
-							<p className="text-xs text-muted-foreground mt-0.5">
-								{data.includeDiscount
-									? t('wizard.step2.commissionBaseListHint')
-									: t('wizard.step2.commissionBaseNetHint')}
-							</p>
-						</div>
-						<Switch
-							id="includeDiscount"
-							checked={data.includeDiscount}
-							onCheckedChange={(checked) => updateData({ includeDiscount: checked })}
-						/>
-					</div>
+					{/* Base de la comisión: la etiqueta es la ACCIÓN y debajo dice cómo está ahora (ver BaseComisionSwitch). El campo
+					    que se guarda sigue siendo `includeDiscount` (compatibilidad de API). */}
+					<BaseComisionSwitch
+						id="includeDiscount"
+						checked={data.includeDiscount}
+						onChange={(checked) => updateData({ includeDiscount: checked })}
+					/>
 				</div>
 			</div>
 

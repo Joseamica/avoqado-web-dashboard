@@ -12,6 +12,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import type { AjusteClaseInput, PagoDeClaseDto } from '@/types/staffPay'
 import { useAccionDelModal } from '@/pages/StaffPay/accionDelModal'
 import { useFocoDeVuelta } from '@/pages/StaffPay/foco'
+import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
 import { A_MEDIO_ESCRIBIR, MONTO_MAXIMO, MONTO_VALIDO, mensajeLegible } from '@/pages/StaffPay/rangos'
 
 export type ModoAjuste = 'conteo' | 'monto' | 'excluir'
@@ -97,6 +98,17 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
     }
   }
 
+  // Cerrar la ventana: sin red el envío está EN PAUSA (C5) y cerrar lo quita de la cola de verdad (no sale al volver la red); el
+  // candado se suelta porque esa espera ya no termina.
+  const cerrar = () => {
+    if (guardar.isPaused) {
+      guardar.cancelarEnPausa()
+      enVuelo.current = false
+      setEnviando(false)
+    }
+    onClose()
+  }
+
   const foco = useFocoDeVuelta()
   const accion = useAccionDelModal(
     <Button type="button" className="cursor-pointer" disabled={!puedeGuardar} onClick={() => void enviar(nuevo, 'guardar')} data-tour="class-pay-adjust-save">
@@ -108,14 +120,15 @@ export function AjustePagoClaseModal({ sessionId, actual, modo, onClose }: Props
   return (
     <FullScreenModal
       open
-      onClose={onClose}
+      onClose={cerrar}
       title={t('adjust.title')}
       contentClassName="bg-muted/30"
       actions={accion.actions}
       onOpenAutoFocus={foco.onOpenAutoFocusPantallaCompleta}
       onCloseAutoFocus={foco.onCloseAutoFocus}
     >
-      <div className="max-w-xl mx-auto p-6">
+      <div className="max-w-xl mx-auto space-y-4 p-6">
+        {guardar.isPaused && <AvisoSinConexion texto={t('offline.willSendAdjustment')} dataTour="class-pay-adjust-offline" />}
         <section className="rounded-2xl border border-border/50 bg-card p-6 space-y-5">
           {origen && (
             <p role="note" className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">

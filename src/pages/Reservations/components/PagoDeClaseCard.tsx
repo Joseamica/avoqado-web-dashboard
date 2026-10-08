@@ -14,6 +14,7 @@ import { LiquidarDialog, MotivoPorResolver } from '@/pages/StaffPay/components/L
 import { porPersona, useCausaDiferencia } from '@/pages/StaffPay/diferencias'
 import { ANCLA_FOCO, soltarFocoAlAbrir } from '@/pages/StaffPay/foco'
 import { periodicidadDe, useNombrePeriodo } from '@/pages/StaffPay/useNombrePeriodo'
+import { textoDeRegla } from '@/pages/StaffPay/textoDeRegla'
 import { AjustePagoClaseModal, type ModoAjuste } from './AjustePagoClaseModal'
 
 /** Excepciones cuya salida está en la tabla de pagos (nivel, tabla o celda). */
@@ -23,18 +24,19 @@ const MODOS_DE_CONTEO = new Set(['BOOKED', 'ATTENDED'])
 const SALIDA_EN_LA_TABLA = new Set(['COACH_SIN_NIVEL', 'SIN_TABLA', 'SIN_MONTO_PARA_ESE_CONTEO'])
 
 /**
- * Tarjeta «Pago a la coach» dentro del detalle de la clase. Sólo lee de las rutas de pago: con el módulo apagado o sin
- * `staffpay:read` no se pinta ni se pide nada.
+ * Tarjeta «Pago a la coach» dentro del detalle de la clase. Sólo lee de las rutas de pago: sin el plan, sin activar pago
+ * al personal o sin `staffpay:read` no se pinta ni se pide nada.
  */
 export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId: string; conSeparador?: boolean }) {
   const { t } = useTranslation('staffPay')
   const { can } = useAccess()
   const { venueId, fullBasePath } = useCurrentVenue()
-  const { formatDate } = useVenueDateTime()
+  const { formatDate, formatCalendarDate } = useVenueDateTime()
   const puedeVer = can('staffpay:read')
   // Sin el permiso no se pregunta ni si el módulo está prendido: la API no le manda nada (spec §7.2).
   const { data: acceso } = useStaffPayAccess(puedeVer)
-  const habilitado = puedeVer && !!acceso?.enabled
+  // Decisión 9 del plan (fase 3): cuánto se le paga a alguien es dinero; sólo con el plan Y la activación.
+  const habilitado = puedeVer && !!acceso?.enabled && !!acceso?.activado
   const { data: p, isLoading, isError } = useClassPay(sessionId, habilitado)
   // Bloque B: la diferencia pendiente sólo existe si la clase está en un cierre o llegó tarde a uno. Se pide bajo la sede
   // de la clase, que en el calendario es la del URL.
@@ -74,6 +76,9 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const excluidaSinLineas = !!origen && p.estado === 'EXCLUIDA' && lineas.length === 0
   const congelada = origen?.estado === 'CLOSED'
   const conteoCorregido = p.ajuste?.payCountOverride != null && p.conteoCalculado != null && p.ajuste.payCountOverride !== p.conteoCalculado
+  // Cancelada tarde (spec §6.6): se paga la fila de 0 lugares. Un conteo corregido sigue en la fila pero no aplica: no se
+  // dicen lugares ni «el sistema contó» (pre-flight E4 #4).
+  const canceladaTarde = p.regla?.tipo === 'CANCELACION_TARDIA'
   const nombre = (x: { start: string; end: string }) => nombrePeriodo(x, periodicidadDe(x))
   const diferencia = debeRevisar ? dif.data : undefined
   // Por PERSONA, no el total: una sustitución de $480 por $480 suma cero y aun así a cada una le toca algo (Codex R1-19).
@@ -143,13 +148,34 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
         {p.estado === 'EXCLUIDA' && !excluidaSinLineas && (
           <p className="text-sm text-muted-foreground">{t('classCard.excluded', { reason: p.ajuste?.reason ?? '' })}</p>
         )}
+        {/* Su sede no estaba activa en pago al personal ese día (B11): no entra al recibo. La salida es activar la sede
+            desde ese día, en «Sedes»; aquí no hay ajuste que la arregle. */}
+        {p.estado === 'FUERA_DEL_SOBRE' && (
+          <div className="space-y-1">
+            {p.sede && (
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                {t('classCard.outOfEnvelope', { sede: p.sede.nombre, fecha: formatCalendarDate(p.sede.fecha) })}
+              </p>
+            )}
+            {p.montoSiEntrara != null && (
+              <p className="text-xs text-muted-foreground">{t('classCard.wouldPay', { monto: Currency(Number(p.montoSiEntrara)) })}</p>
+            )}
+            <Link
+              to={`${fullBasePath}/servicio-pago#sedes`}
+              className="text-xs font-medium underline underline-offset-2"
+              data-tour="class-pay-go-to-venues"
+            >
+              {t('classCard.goToVenues')}
+            </Link>
+          </div>
+        )}
         {valorable && (
           <>
             <p className="text-sm">
               {p.staffName ?? '—'}
               {p.payLevelName ? ` · ${p.payLevelName}` : ''}
             </p>
-            {p.conteo !== null && p.conteo !== undefined && (
+            {p.conteo !== null && p.conteo !== undefined && !canceladaTarde && (
               <p className="text-sm text-muted-foreground">
                 {/* El techo NO es el cupo de la clase: sólo se menciona cuando se rebasa («11 · se paga como 10»). */}
                 <span>{t('classCard.seats', { count: p.conteo })}</span>
@@ -157,9 +183,14 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
                 {p.countMode && MODOS_DE_CONTEO.has(p.countMode) && <span> · {t(`classCard.mode.${p.countMode}`)}</span>}
               </p>
             )}
-            {conteoCorregido && <p className="text-xs text-muted-foreground">{t('classCard.calculated', { count: p.conteoCalculado })}</p>}
+            {conteoCorregido && !canceladaTarde && (
+              <p className="text-xs text-muted-foreground">{t('classCard.calculated', { count: p.conteoCalculado })}</p>
+            )}
             {p.estado === 'OK' ? (
-              <p className="text-2xl font-bold">{Currency(Number(p.monto))}</p>
+              <>
+                <p className="text-2xl font-bold">{Currency(Number(p.monto))}</p>
+                {p.regla && <p className="text-xs text-muted-foreground">{textoDeRegla(t, p.regla)}</p>}
+              </>
             ) : (
               <div className="space-y-1">
                 <p className="text-sm text-amber-700 dark:text-amber-400">{t(`reasons.${p.motivo}`)}</p>
@@ -211,14 +242,26 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             )}
           </div>
         )}
-        {p.ajuste && p.estado !== 'EXCLUIDA' && (
-          <p className="text-xs text-muted-foreground">{t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}</p>
-        )}
+        {p.ajuste &&
+          p.estado !== 'EXCLUIDA' &&
+          (canceladaTarde && p.ajuste.payCountOverride != null ? (
+            // Cancelada tarde: el conteo corregido sigue guardado pero no mueve el pago (E4-fix); decirlo «Ajustado» engaña.
+            // El motivo de quien corrigió se conserva como dato (E5a-fix), sin volver a decir «Ajustado».
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              <p>{t('classCard.overrideNotApplied')}</p>
+              {p.ajuste.reason?.trim() && <p>{t('classCard.overrideReason', { reason: p.ajuste.reason.trim() })}</p>}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('classCard.adjusted', { reason: p.ajuste.reason ?? '' })}</p>
+          ))}
         {puedeAjustar && (
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={abrir(() => setModo('conteo'))}>
-              {t('classCard.fixCount')}
-            </Button>
+            {/* En una cancelada tarde el conteo no cambia el pago (se paga la fila de 0): no se ofrece corregirlo. */}
+            {!canceladaTarde && (
+              <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={abrir(() => setModo('conteo'))}>
+                {t('classCard.fixCount')}
+              </Button>
+            )}
             <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={abrir(() => setModo('monto'))}>
               {t('classCard.fixAmount')}
             </Button>

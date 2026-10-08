@@ -35,8 +35,15 @@ const fechaQueNoVale = (err: unknown, fecha: string) => {
  * La vigencia de una tabla o de un nivel (spec §7.1): la fecha, su simulación («cambia el pago de…») y el límite de los
  * periodos cerrados. El mínimo sale de la lista de periodos del módulo si ya está en caché (sin pedir nada) o del 400
  * `FECHA_EN_PERIODO_CERRADO` en cuanto la simulación lo devuelve; con una fecha cerrada no se deja confirmar.
+ * `simulacionEnPausa`: sin red la simulación queda EN PAUSA y se calcula sola al volver la red (E6a-fix4): `sinRed` lo dice, en
+ * vez de un «calculando…» sin fin.
  */
-export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Promise<SimulacionVigenciaDto>, clave: string) {
+export function useVigenciaSimulada(
+  hoy: string,
+  simular: (fecha: string) => Promise<SimulacionVigenciaDto>,
+  clave: string,
+  simulacionEnPausa = false,
+) {
   const [fecha, setFecha] = useState(hoy)
   const [efecto, setEfecto] = useState<SimulacionVigenciaDto | null>(null)
   const [calculando, setCalculando] = useState(false)
@@ -107,6 +114,8 @@ export function useVigenciaSimulada(hoy: string, simular: (fecha: string) => Pro
     setFecha,
     efecto,
     calculando,
+    /** La simulación espera a la red: se calculará cuando vuelva. */
+    sinRed: calculando && simulacionEnPausa,
     /** El mensaje del server (400) para ESTA fecha. */
     error,
     /** La fecha cae en un periodo cerrado de la lista en caché (se explica igual que el 400). */

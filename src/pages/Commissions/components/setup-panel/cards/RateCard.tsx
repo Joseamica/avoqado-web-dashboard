@@ -10,6 +10,7 @@ import type { CommissionSetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardValid } from '../useSetupReducer'
 import SetupCard from '../SetupCard'
+import { aCentavos, MONTO_FIJO_MAXIMO, montoFijoValido, textoDeTasa } from '../../../tasaDelEsquema'
 
 interface RateCardProps {
   state: CommissionSetupState
@@ -17,31 +18,39 @@ interface RateCardProps {
 }
 
 export default function RateCard({ state, dispatch }: RateCardProps) {
-  const { t } = useTranslation('commissions')
+  const { t, i18n } = useTranslation('commissions')
   const [open, setOpen] = useState(false)
   const [localRate, setLocalRate] = useState(() => (state.rate.defaultRate * 100).toFixed(2))
   const [localFixed, setLocalFixed] = useState(() => String(state.rate.fixedAmount))
+  const [montoFueraDeRango, setMontoFueraDeRango] = useState(false)
 
   const isValid = isCardValid(state, 'rate')
 
   const description = isValid
     ? state.rate.calcType === 'PERCENTAGE'
       ? `${(state.rate.defaultRate * 100).toFixed(1)}% ${t(`recipients.${state.rate.recipient}`)}`
-      : `$${state.rate.fixedAmount} ${t(`recipients.${state.rate.recipient}`)}`
+      : `${textoDeTasa('FIXED', state.rate.fixedAmount, i18n.language)} ${t(`recipients.${state.rate.recipient}`)}`
     : t('setup.rate.pending')
 
   const handleOpen = () => {
     setLocalRate((state.rate.defaultRate * 100).toFixed(2))
     setLocalFixed(String(state.rate.fixedAmount))
+    setMontoFueraDeRango(false)
     setOpen(true)
   }
 
   const handleSave = () => {
     const rateNum = localRate === '' ? 0 : Math.max(0, Math.min(100, Number(localRate)))
-    const fixedNum = localFixed === '' ? 0 : Math.max(0, Number(localFixed))
+    // Monto fijo en pesos con centavos, de más de $0 a $999,999.99 (D-FIJO): lo que no cabe no se guarda y el diálogo lo dice.
+    const fixedNum = aCentavos(Number(localFixed))
+    const fijoValido = localFixed.trim() !== '' && montoFijoValido(fixedNum)
+    if (state.rate.calcType === 'FIXED' && !fijoValido) {
+      setMontoFueraDeRango(true)
+      return
+    }
     dispatch({
       type: 'SET_RATE',
-      data: { defaultRate: rateNum / 100, fixedAmount: fixedNum },
+      data: { defaultRate: rateNum / 100, fixedAmount: fijoValido ? fixedNum : state.rate.fixedAmount },
     })
     setOpen(false)
   }
@@ -129,10 +138,16 @@ export default function RateCard({ state, dispatch }: RateCardProps) {
                   </span>
                   <Input
                     type="number"
-                    step="1"
-                    min="0"
+                    step="0.01"
+                    min="0.01"
+                    max={MONTO_FIJO_MAXIMO}
+                    aria-label={t('wizard.step2.fixedAmount')}
+                    aria-invalid={montoFueraDeRango}
                     value={localFixed}
-                    onChange={e => setLocalFixed(e.target.value)}
+                    onChange={e => {
+                      setLocalFixed(e.target.value)
+                      setMontoFueraDeRango(false)
+                    }}
                     className="text-center text-3xl font-bold h-16 pl-10"
                     autoFocus
                   />
@@ -140,6 +155,7 @@ export default function RateCard({ state, dispatch }: RateCardProps) {
                 <p className="text-sm text-muted-foreground mt-2">
                   {t('wizard.step2.perTransaction')}
                 </p>
+                {montoFueraDeRango && <p className="text-sm text-destructive mt-1">{t('wizard.step2.fixedAmountRange')}</p>}
               </div>
             )}
 

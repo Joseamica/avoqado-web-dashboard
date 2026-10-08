@@ -111,8 +111,10 @@ const prenderPermisos = () => {
   m.can.mockReturnValue(true)
   // Sin diferencia que revisar por default (como react-query deshabilitado).
   m.diff.mockReturnValue({ data: undefined, isLoading: false, isError: false })
-  // Igual que react-query: deshabilitado ⇒ sin datos.
-  m.access.mockImplementation((enabled = true) => ({ data: enabled ? { enabled: true } : undefined }))
+  // Igual que react-query: deshabilitado ⇒ sin datos. El acceso completo de la fase 3: plan Y activación.
+  m.access.mockImplementation((enabled = true) => ({
+    data: enabled ? { enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false } : undefined,
+  }))
 }
 
 describe('PagoDeClaseCard', () => {
@@ -169,6 +171,22 @@ describe('PagoDeClaseCard', () => {
     expect(m.access.mock.calls.every(([enabled]) => enabled === false)).toBe(true)
     expect(m.pay.mock.calls.every(([, enabled]) => enabled === false)).toBe(true)
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('con el plan pero sin activar pago al personal, la tarjeta no se pinta ni pide el pago (decisión 9)', () => {
+    m.access.mockImplementation((enabled = true) => ({ data: enabled ? { enabled: true, activado: false, startDate: null, propinasEncendidas: false } : undefined }))
+    m.pay.mockReturnValue({ data: undefined, isLoading: false, isError: false })
+    const { container } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(container).toBeEmptyDOMElement()
+    expect(m.pay).toHaveBeenCalledWith('s1', false)
+  })
+
+  it('sin activar tampoco pide la diferencia de la clase, aunque la caché traiga una que llegó tarde (pre-flight E3b #7)', () => {
+    m.access.mockImplementation((enabled = true) => ({ data: enabled ? { enabled: true, activado: false, startDate: null, propinasEncendidas: false } : undefined }))
+    m.pay.mockReturnValue({ data: pago({ llegoTarde: true }), isLoading: false, isError: false })
+    const { container } = conRouter(<PagoDeClaseCard sessionId="s1" />)
+    expect(container).toBeEmptyDOMElement()
+    expect(m.diff).toHaveBeenLastCalledWith('v1', 's1', false)
   })
 
   it('con «No se paga» prendido, un conteo inválido ya no bloquea guardar', () => {

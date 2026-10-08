@@ -246,7 +246,7 @@ export const PERMISSION_CATEGORIES = {
     ],
   },
   STAFF_PAY: {
-    label: 'Pago por servicio',
+    label: 'Pago al personal',
     permissions: ['staffpay:read', 'staffpay:manage', 'staffpay:close'],
   },
   GOALS: {

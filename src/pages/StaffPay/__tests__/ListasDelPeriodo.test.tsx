@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DesglosePersona } from '../components/DesglosePersona'
-import { ExcepcionesSheet, HuerfanasSheet } from '../components/ListasDelPeriodo'
+import { EstadoLista, ExcepcionesSheet, HuerfanasSheet } from '../components/ListasDelPeriodo'
 
 const m = vi.hoisted(() => ({ detail: vi.fn(), exceptions: vi.fn(), orphans: vi.fn(), receipt: vi.fn(), download: vi.fn() }))
 
@@ -277,6 +277,32 @@ describe('ExcepcionesSheet', () => {
     expect(fetchNextPage).toHaveBeenCalled()
   })
 
+  // E6a-fix F14, hermano del desglose abierto: la misma lista de cursor (sede e id) se pinta por fecha.
+  it('🔴 las excepciones van por fecha, no en el orden del cursor', () => {
+    m.exceptions.mockReturnValue(
+      q([
+        {
+          items: [
+            clase('c9', { estado: 'EXCEPCION', motivo: 'SIN_TABLA', monto: null, startsAt: '2026-10-09T13:00:00Z' }),
+            clase('c1', { estado: 'EXCEPCION', motivo: 'SIN_TABLA', monto: null, startsAt: '2026-10-01T13:00:00Z' }),
+            clase('c5', { estado: 'EXCEPCION', motivo: 'SIN_TABLA', monto: null, startsAt: '2026-10-05T13:00:00Z' }),
+          ],
+          nextCursor: null,
+        },
+      ]),
+    )
+    render(
+      <MemoryRouter>
+        <ExcepcionesSheet onClose={() => {}} />
+      </MemoryRouter>,
+    )
+    expect(screen.getAllByText(/^2026-10-0\dT/).map(el => el.textContent)).toEqual([
+      '2026-10-01T13:00:00Z',
+      '2026-10-05T13:00:00Z',
+      '2026-10-09T13:00:00Z',
+    ])
+  })
+
   it('cada excepción dice dónde se resuelve: la tabla lleva a la pestaña y cierra el panel; sin coach, al calendario', () => {
     const onClose = vi.fn()
     m.exceptions.mockReturnValue(
@@ -323,5 +349,18 @@ describe('HuerfanasSheet', () => {
     expect(screen.getByText('Yoga')).toBeInTheDocument()
     expect(screen.getByText('period.noGuest')).toBeInTheDocument()
     expect(screen.getByText(/period.shownOf/)).toHaveTextContent('"shown":1,"total":3')
+  })
+})
+
+// E6a-fix F11: un vacío sin nada que decir (el desglose sin clases pero con comisiones) no pinta ni un párrafo vacío.
+describe('EstadoLista', () => {
+  const props = { isLoading: false, isError: false, vacio: true, onRetry: vi.fn(), hasNextPage: false, isFetchingNextPage: false, onLoadMore: vi.fn() }
+  it('vacío con texto: lo dice', () => {
+    render(<EstadoLista {...props} textoVacio="Nada">{null}</EstadoLista>)
+    expect(screen.getByText('Nada')).toBeInTheDocument()
+  })
+  it('🔴 vacío con texto null: no pinta nada', () => {
+    const { container } = render(<EstadoLista {...props} textoVacio={null}>{<p>tabla</p>}</EstadoLista>)
+    expect(container).toBeEmptyDOMElement()
   })
 })

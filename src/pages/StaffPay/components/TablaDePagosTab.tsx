@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, CheckCircle2, Circle } from 'lucide-react'
@@ -17,9 +17,13 @@ import { useToast } from '@/hooks/use-toast'
 import { useCreateTable, useStaffPayAssignments, useStaffPayLevels, useStaffPayTables } from '@/hooks/useStaffPay'
 import { ampliar, cuadriculaDesdeCeldas, faltantes, rellenarHaciaAbajo, simular, type Cuadricula } from '../cuadricula'
 import { hoyEnSede } from '../hoyEnSede'
+import { erroresDeReglas, erroresVisibles, reglasDesdeVersion, reglasPayload, type ErrorRegla, type ReglasForm } from '../reglas'
+import { usePermisoDeConfigurar } from '../permisoDeConfigurar'
 import { AsignarNivelModal } from './AsignarNivelModal'
+import { AvisoSinConexion } from './AvisoSinConexion'
 import { NivelesSection } from './NivelesSection'
 import { PublicarTablaModal } from './PublicarTablaModal'
+import { ReglasDeClase } from './ReglasDeClase'
 
 const TECHO_DEFAULT = 10
 const TECHO_MAX = 500
@@ -42,6 +46,9 @@ export function TablaDePagosTab() {
     staleTime: 60_000,
   })
   const crearTabla = useCreateTable()
+  // Candado SÍNCRONO (revisión de E6b): `isPending` no alcanza a apagar «Crear la tabla» entre dos clics seguidos.
+  const creandoTabla = useRef(false)
+  const permisoNiveles = usePermisoDeConfigurar()
 
   const niveles = useMemo(() => qNiveles.data ?? [], [qNiveles.data])
   const asignaciones = qAsignaciones.data ?? []
@@ -55,6 +62,10 @@ export function TablaDePagosTab() {
   const [techoTexto, setTechoTexto] = useState<number | undefined>(TECHO_DEFAULT)
   const [max, setMax] = useState(TECHO_DEFAULT) // último techo válido: la cuadrícula no colapsa mientras se edita el campo
   const [grid, setGrid] = useState<Cuadricula>({})
+  const [reglas, setReglas] = useState<ReglasForm>(() => reglasDesdeVersion(null))
+  // Qué errores de las reglas ya se dicen: el de un campo que se dejó, o todos tras intentar guardar (E6a-fix F12).
+  const [tocados, setTocados] = useState<ReadonlySet<ErrorRegla>>(() => new Set())
+  const [mostrarReglas, setMostrarReglas] = useState(false)
   const [porAsignar, setPorAsignar] = useState<{ staffId: string; staffName: string; payLevelId: string; payLevelName: string } | null>(null)
   const [simLugares, setSimLugares] = useState<number | undefined>(8)
   const [simNivel, setSimNivel] = useState<string | undefined>(undefined)
@@ -66,6 +77,11 @@ export function TablaDePagosTab() {
     setTechoTexto(m)
     setMax(m)
     setGrid(cuadriculaDesdeCeldas(celdasVigentes ?? [], activos.map(n => n.id), m))
+    // Las reglas vienen ANIDADAS en `vigente.reglas` (D4): leerlas de `vigente` directo las daría por apagadas, y publicar
+    // sólo una celda las apagaría.
+    setReglas(reglasDesdeVersion(tabla?.vigente?.reglas))
+    setTocados(new Set())
+    setMostrarReglas(false)
   }, [tabla?.id, tabla?.vigente?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cambian los niveles (alta o archivo) → se conservan los montos sin guardar de los demás.
@@ -80,6 +96,8 @@ export function TablaDePagosTab() {
   const nivelSim = simNivel && activos.some(n => n.id === simNivel) ? simNivel : activos[0]?.id
   const sim = nivelSim ? simular(grid, nivelSim, simLugares ?? 0, max) : { monto: null, filaUsada: 0 }
   const faltan = faltantes(grid, max)
+  const erroresReglas = erroresDeReglas(reglas)
+  const reglasDichas = erroresVisibles(reglas, tocados, mostrarReglas)
   const nivelDe = (staffId: string) => asignaciones.find(a => a.staffId === staffId)
 
   // Elegir un nivel NO escribe: abre la confirmación con fecha y el efecto («cambia N clases») antes de guardar.
@@ -88,11 +106,24 @@ export function TablaDePagosTab() {
     const payLevelName = activos.find(n => n.id === payLevelId)?.name ?? ''
     setPorAsignar({ staffId, staffName, payLevelId, payLevelName })
   }
-  const crearTablaVacia = () =>
+  const crearTablaVacia = () => {
+    if (creandoTabla.current) return
+    creandoTabla.current = true
     crearTabla.mutate(
       { name: t('grid.title'), productIds: [] },
-      { onError: err => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' }) },
+      {
+        onError: err => toast({ title: mensajeDeError(err, t('errors.generic')), variant: 'destructive' }),
+        onSettled: () => {
+          creandoTabla.current = false
+        },
+      },
     )
+  }
+  // Cancelar el envío en pausa (C5) suelta también el candado: esa espera ya no termina.
+  const cancelarCrearTabla = () => {
+    crearTabla.cancelarEnPausa()
+    creandoTabla.current = false
+  }
   const fijarCelda = (payLevelId: string, count: number, raw: string) => {
     const n = raw === '' ? undefined : parseFloat(raw)
     const valor = n === undefined || Number.isNaN(n) ? undefined : n
@@ -177,7 +208,7 @@ export function TablaDePagosTab() {
                   <Select
                     value={nivelDe(m.staffId)?.payLevelId ?? ''}
                     onValueChange={payLevelId => pedirAsignacion(m.staffId, `${m.firstName} ${m.lastName}`.trim(), payLevelId)}
-                    disabled={activos.length === 0}
+                    disabled={activos.length === 0 || !permisoNiveles.puede}
                   >
                     <SelectTrigger className="w-48 cursor-pointer" aria-label={`${m.firstName} ${m.lastName}`}>
                       <SelectValue placeholder={t('who.noLevel')} />
@@ -187,6 +218,7 @@ export function TablaDePagosTab() {
                 </PermissionGate>
               </div>
             ))}
+            {permisoNiveles.falta && <p className="text-xs text-muted-foreground">{t('orgConfigPermission')}</p>}
           </>
         )}
       </section>
@@ -210,6 +242,10 @@ export function TablaDePagosTab() {
         {!tabla && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('grid.empty')}</p>
+            {/* Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola (no sale al volver la red). */}
+            {crearTabla.isPaused && (
+              <AvisoSinConexion texto={t('offline.willSendSave')} onCancelar={cancelarCrearTabla} dataTour="staffpay-table-create-offline" />
+            )}
             <PermissionGate permission="staffpay:manage">
               <Button className="cursor-pointer" disabled={crearTabla.isPending} onClick={crearTablaVacia} data-tour="staffpay-table-create">
                 {t('grid.create')}
@@ -258,6 +294,13 @@ export function TablaDePagosTab() {
                 <span>{t('grid.attended')} <span className="block text-muted-foreground">{t('grid.attendedHelp')}</span></span>
               </label>
             </fieldset>
+
+            <ReglasDeClase
+              reglas={reglas}
+              errores={reglasDichas}
+              onChange={setReglas}
+              onTocar={campo => setTocados(prev => new Set(prev).add(campo))}
+            />
 
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Label htmlFor="staffpay-techo">{t('grid.ceiling')}</Label>
@@ -322,7 +365,14 @@ export function TablaDePagosTab() {
             </div>
             <p className="text-xs text-muted-foreground">{t('grid.overCeiling', { max })}</p>
             <PermissionGate permission="staffpay:manage">
-              <Button className="cursor-pointer" disabled={techoInvalido} onClick={() => setPublicar(true)} data-tour="staffpay-publish">
+              <Button
+                className="cursor-pointer"
+                // Un error ya dicho apaga el botón; uno que todavía no se dice (regla recién prendida, sin tocar) deja pulsarlo
+                // para decirlo, sin abrir la publicación.
+                disabled={techoInvalido || reglasDichas.length > 0}
+                onClick={() => (erroresReglas.length > 0 ? setMostrarReglas(true) : setPublicar(true))}
+                data-tour="staffpay-publish"
+              >
                 {t('grid.publish')}
               </Button>
             </PermissionGate>
@@ -333,6 +383,7 @@ export function TablaDePagosTab() {
                 tableId={tabla.id}
                 maxCount={max}
                 grid={grid}
+                reglas={reglasPayload(reglas)}
                 hoy={hoyEnSede(venueTimezone)}
               />
             )}

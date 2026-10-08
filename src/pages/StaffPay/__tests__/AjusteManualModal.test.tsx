@@ -5,7 +5,7 @@ import { AjusteManualModal } from '../components/AjusteManualModal'
 import { hoyEnSede } from '../hoyEnSede'
 import { sumarMeses } from '../rangos'
 
-const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn(), reporte: vi.fn() }))
+const m = vi.hoisted(() => ({ add: vi.fn(), toast: vi.fn(), equipo: vi.fn(), reporte: vi.fn(), vistaPrevia: vi.fn(), acceso: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
@@ -17,8 +17,8 @@ vi.mock('@/components/ui/full-screen-modal', () => ({
 vi.mock('@tanstack/react-query', async orig => ({ ...(await orig<object>()), useQuery: () => m.equipo() }))
 // El combobox real (Popover + cmdk) no se deja manejar en jsdom: cada resultado es un botón.
 vi.mock('@/components/search-combobox', () => ({
-  SearchCombobox: ({ items, onSelect, value, onChange, inputId }: any) => (
-    <div>
+  SearchCombobox: ({ items, onSelect, value, onChange, inputId, listLabel }: any) => (
+    <div role="listbox" aria-label={listLabel}>
       <input id={inputId} value={value} onChange={e => onChange(e.target.value)} />
       {items.map((i: any) => (
         <button key={i.id} type="button" onClick={() => onSelect(i)}>
@@ -32,6 +32,8 @@ vi.mock('@/components/search-combobox', () => ({
 vi.mock('@/hooks/useStaffPay', () => ({
   useAddAdjustment: () => ({ mutateAsync: m.add, isPending: false }),
   useStaffPayReport: (...a: unknown[]) => m.reporte(...a),
+  useAdjustmentPreview: (...a: unknown[]) => m.vistaPrevia(...a),
+  useStaffPayAccess: () => ({ data: m.acceso() }),
 }))
 vi.mock('@/components/ui/select', () => import('@/test/nativeSelectShim'))
 
@@ -49,6 +51,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   m.equipo.mockReturnValue(CARLA)
   m.reporte.mockReturnValue({ data: undefined })
+  m.vistaPrevia.mockReturnValue({ data: undefined })
+  m.acceso.mockReturnValue(undefined)
 })
 
 describe('AjusteManualModal', () => {
@@ -115,6 +119,11 @@ describe('AjusteManualModal', () => {
     llenar()
     expect(screen.getByText(/manualAdjust\.summaryDeduction/)).toHaveTextContent('2026-11-01')
   })
+  // E6a-fix2 K5: la lista de personas se anunciaba «Suggestions» (la etiqueta de fábrica de cmdk).
+  it('🔴 la lista de personas tiene su nombre en el idioma del dashboard', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    expect(screen.getByRole('listbox')).toHaveAttribute('aria-label', 'manualAdjust.peopleList')
+  })
   it('el buscador de persona se llama «Persona» (label conectado al input)', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
     expect(screen.getByLabelText('manualAdjust.person')).toBeInstanceOf(HTMLInputElement)
@@ -173,11 +182,34 @@ describe('AjusteManualModal', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Máximo dos decimales')
     expect(m.toast).not.toHaveBeenCalled()
   })
+  // E6a-fix F10 (contrato con el server): ajustar un periodo anterior al inicio ⇒ 409 ANTES_DEL_INICIO con su mensaje.
+  it('un ajuste a un periodo anterior al inicio (409 ANTES_DEL_INICIO) dice el mensaje del servidor y no cierra', async () => {
+    const onOpenChange = vi.fn()
+    m.add.mockRejectedValue({
+      response: { status: 409, data: { code: 'ANTES_DEL_INICIO', message: 'Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior' } },
+    })
+    render(<AjusteManualModal open onOpenChange={onOpenChange} sedes={['v1']} />)
+    llenar()
+    fireEvent.click(screen.getByRole('button', { name: 'manualAdjust.save' }))
+    await waitFor(() =>
+      expect(m.toast).toHaveBeenCalledWith({ title: 'Pago al personal está activo desde el 1 sep 2026: ese periodo es anterior', variant: 'destructive' }),
+    )
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+  })
+
   it('un periodo de hace más de 12 meses no admite ajustes: se dice antes de guardar (A6)', () => {
     const vieja = sumarMeses(hoyEnSede('America/Mexico_City'), -13)
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha={vieja} />)
     llenar()
     expect(screen.getByRole('alert')).toHaveTextContent(/manualAdjust\.outOfRange/)
+    expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
+  })
+  // E6a-fix2 K4: el límite del ajuste también es el inicio de pago al personal; antes se ofrecían días que el servidor rechaza.
+  it('🔴 un periodo anterior al inicio de pago al personal no admite ajustes: se dice antes de guardar, con la fecha del inicio', () => {
+    m.acceso.mockReturnValue({ enabled: true, activado: true, startDate: '2026-09-01', propinasEncendidas: false })
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-08-15" />)
+    llenar()
+    expect(screen.getByRole('alert')).toHaveTextContent(/manualAdjust\.beforeStart.*2026-09-01/)
     expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeDisabled()
   })
   it('el 400 FECHA_FUERA_DE_RANGO también se explica en línea', async () => {
@@ -216,5 +248,89 @@ describe('AjusteManualModal', () => {
   it('desde la vista abierta (con sus sedes) no pide el periodo otra vez', () => {
     render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-10-01" etiqueta="octubre 2026" />)
     expect(m.reporte).not.toHaveBeenCalledWith(expect.anything(), true)
+  })
+
+  // ── E5a (B13): el aviso de devoluciones pendientes de la persona, antes de guardar ──
+  const vistaDe = (avisoPendientes: unknown, staffId = 's1') => ({
+    data: {
+      periodo: { start: '2026-10-01', end: '2026-10-31', estado: 'OPEN' },
+      staffId,
+      persona: 'Carla QA',
+      sede: 'v1',
+      sedeNombre: 'Wellness',
+      amount: '-150.00',
+      reason: 'Llegó tarde',
+      huella: 'h'.repeat(64),
+      avisoPendientes,
+    },
+  })
+  const destino = (tipo: 'AL_CERRAR' | 'PERIODO_POSTERIOR_A', start: string, end: string, total: string) => ({
+    seDescuenta: tipo === 'AL_CERRAR' ? { tipo, periodo: { start, end } } : { tipo, origen: { start, end } },
+    n: 1,
+    total,
+    porSede: [{ venueId: 'v1', n: 1, total }],
+  })
+
+  it('la vista previa del ajuste se pide sólo con el formulario completo, con lo que se guardaría', () => {
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-10-01" etiqueta="octubre 2026" />)
+    expect(m.vistaPrevia).toHaveBeenLastCalledWith(null, true)
+    // Persona y monto, sin motivo: el server lo rechazaría (motivo de 3+ letras), así que no se pide.
+    fireEvent.click(screen.getByRole('button', { name: /Carla QA/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'manualAdjust.deduction' }))
+    fireEvent.change(screen.getByLabelText('manualAdjust.amount'), { target: { value: '150' } })
+    fireEvent.change(screen.getByLabelText('manualAdjust.reason'), { target: { value: 'Ll' } })
+    expect(m.vistaPrevia).toHaveBeenLastCalledWith(null, true)
+    fireEvent.change(screen.getByLabelText('manualAdjust.reason'), { target: { value: 'Llegó tarde' } })
+    expect(m.vistaPrevia).toHaveBeenLastCalledWith({ sede: 'v1', staffId: 's1', amount: -150, reason: 'Llegó tarde', fecha: '2026-10-01' }, true)
+  })
+
+  it('con devoluciones pendientes de UN destino, avisa en el resumen que se descontarán solas', () => {
+    m.vistaPrevia.mockReturnValue(vistaDe({ n: 1, total: '-50.00', porDestino: [destino('AL_CERRAR', '2026-10-01', '2026-10-31', '-50.00')], items: [], truncado: false }))
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-10-01" etiqueta="octubre 2026" />)
+    llenar()
+    const aviso = screen.getByText(/manualAdjust\.pendingOne/)
+    expect(aviso).toHaveTextContent('Carla QA')
+    expect(aviso).toHaveTextContent('−$50.00')
+    expect(aviso).toHaveTextContent('period.pendingAtClose')
+    expect(aviso).toHaveTextContent('octubre de 2026')
+    // Avisa, no bloquea.
+    expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeEnabled()
+  })
+
+  it('con varios destinos, el total y una línea por destino', () => {
+    m.vistaPrevia.mockReturnValue(
+      vistaDe({
+        n: 2,
+        total: '-80.00',
+        porDestino: [destino('AL_CERRAR', '2026-10-01', '2026-10-31', '-50.00'), destino('PERIODO_POSTERIOR_A', '2026-09-01', '2026-09-30', '-30.00')],
+        items: [],
+        truncado: false,
+      }),
+    )
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} fecha="2026-10-01" etiqueta="octubre 2026" />)
+    llenar()
+    expect(screen.getByText(/manualAdjust\.pendingMany/)).toHaveTextContent('−$80.00')
+    const lineas = screen.getAllByText(/period\.pendingLine/)
+    expect(lineas).toHaveLength(2)
+    expect(lineas[1]).toHaveTextContent('period.pendingAfter')
+    expect(lineas[1]).toHaveTextContent('septiembre de 2026')
+  })
+
+  it('sin pendientes, si la vista previa falla o si es de OTRA persona (cambió la elección), no hay aviso y se puede guardar', () => {
+    m.vistaPrevia.mockReturnValue(vistaDe({ n: 0, total: '0.00', porDestino: [], items: [], truncado: false }))
+    const { unmount } = render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    llenar()
+    expect(screen.queryByText(/manualAdjust\.pending/)).toBeNull()
+    unmount()
+    m.vistaPrevia.mockReturnValue({ data: undefined, isError: true, error: { response: { status: 403 } } })
+    const otro = render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    llenar()
+    expect(screen.queryByText(/manualAdjust\.pending/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'manualAdjust.save' })).toBeEnabled()
+    otro.unmount()
+    m.vistaPrevia.mockReturnValue(vistaDe({ n: 1, total: '-50.00', porDestino: [destino('AL_CERRAR', '2026-10-01', '2026-10-31', '-50.00')], items: [], truncado: false }, 's2'))
+    render(<AjusteManualModal open onOpenChange={() => {}} sedes={['v1']} />)
+    llenar()
+    expect(screen.queryByText(/manualAdjust\.pending/)).toBeNull()
   })
 })

@@ -1,7 +1,12 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import i18next from 'i18next'
 import { beforeAll, describe, expect, it } from 'vitest'
 import es from '@/locales/es/staffPay.json'
 import en from '@/locales/en/staffPay.json'
+import { textoDeCuenta } from '../cuenta'
+import { cuandoSeDescuenta, lineaDePendiente } from '../pendientes'
+import { nombreVisible } from '../personaBorrada'
 
 /** Los textos de verdad (no las llaves): singular/plural, una sola palabra para «pagados» y nada de «Muy pronto». */
 const i18n = i18next.createInstance()
@@ -30,6 +35,27 @@ describe('textos de pago por servicio', () => {
   it('«Sólo quien llegó» explica qué falta, sin «Muy pronto» (QA defecto 17)', () => {
     for (const texto of [tEs('grid.attendedHelp'), tEn('grid.attendedHelp')]) expect(texto).not.toMatch(/muy pronto|coming soon/i)
     expect(tEs('grid.attendedHelp')).toMatch(/check-in quede registrado en el aparato; hoy se cuenta a quien reservó/)
+  })
+  // E6a-fix2 C2 y K2 (full-testing E6a): cada bloqueo por permiso dice qué permiso, con su nombre (nunca el código interno), y a
+  // quién pedírselo. El de propinas no lo decía; el de organización, además, dice que hace falta en TODAS las sedes.
+  it('🔴 los bloqueos de permiso nombran el permiso y a quién pedírselo, sin códigos internos', () => {
+    const bloqueos = ['tips.noPermission', 'orgPermission', 'activation.noPermission', 'closed.noPermission', 'period.closeNoPermission']
+    for (const k of bloqueos) {
+      expect(tEs(k), k).toContain('«Cerrar periodos y registrar pagos»')
+      expect(tEs(k), k).toContain('Pídeselo al dueño del negocio.')
+      expect(tEs(k), k).not.toMatch(/staffpay:/)
+      expect(tEn(k), k).toMatch(/Ask the business owner/)
+    }
+    expect(tEs('orgPermission')).toContain('en todas las sedes de la organización')
+  })
+  // E6a-fix3 C2: el bloqueo de las acciones de organización que piden «Configurar pago al personal» (niveles y asignaciones).
+  it('🔴 el bloqueo de configurar en todas las sedes nombra el permiso y a quién pedírselo, sin códigos internos', () => {
+    expect(tEs('orgConfigPermission')).toBe(
+      'Para esto necesitas el permiso «Configurar pago al personal» en todas las sedes de la organización. Pídeselo al dueño del negocio.',
+    )
+    expect(tEs('orgConfigPermission')).not.toMatch(/staffpay:/)
+    expect(tEn('orgConfigPermission')).toMatch(/Ask the business owner/)
+    expect(tEn('orgConfigPermission')).not.toMatch(/staffpay:/)
   })
   it('un ajuste del recibo dice que su fecha es la de captura (QA defecto 9)', () => {
     expect(tEs('period.capturedOn', { fecha: '3 oct 2026' })).toBe('3 oct 2026 (captura)')
@@ -114,5 +140,176 @@ describe('textos de pago por servicio', () => {
     expect(Object.keys(en.differences).sort()).toEqual(Object.keys(es.differences).sort())
     expect(Object.keys(en.differences.cause).sort()).toEqual(Object.keys(es.differences.cause).sort())
     for (const texto of [...Object.values(es.differences), ...Object.values(en.differences)]) expect(JSON.stringify(texto)).not.toMatch(/muy pronto|coming soon/i)
+  })
+  it('es y en tienen las mismas llaves en los grupos nuevos (todos los niveles)', () => {
+    const llaves = (o: unknown, pre = ''): string[] =>
+      o && typeof o === 'object' ? Object.entries(o).flatMap(([k, v]) => llaves(v, `${pre}${k}.`)) : [pre.slice(0, -1)]
+    // Sin el grupo, `llaves(undefined)` sale igual en los dos idiomas: primero se exige que exista.
+    for (const g of ['activation', 'tips', 'sedes', 'rules', 'period', 'manualAdjust', 'close'] as const) {
+      expect(llaves(es[g]).length).toBeGreaterThan(1)
+      expect(llaves(en[g]).sort()).toEqual(llaves(es[g]).sort())
+    }
+    expect(en.tabs).toHaveProperty('venues')
+    expect(es.tabs.venues).toBe('Sedes')
+    expect(llaves(en.classCard).sort()).toEqual(llaves(es.classCard).sort())
+  })
+  it('reglas de clase (E4): el motivo en la tarjeta, «menos de 1 h» con 0 h, y la clase fuera del sobre', () => {
+    expect(tEs('classCard.coverBonus', { horas: 3, monto: '+$100.00' })).toBe('Suplencia avisada 3 h antes: +$100.00')
+    expect(tEs('classCard.coverBonusUnderHour', { monto: '+$100.00' })).toBe('Suplencia avisada con menos de 1 h: +$100.00')
+    expect(tEs('classCard.lateCancel', { horas: 2 })).toBe('Cancelada 2 h antes: se paga el sueldo base')
+    expect(tEs('classCard.lateCancelUnderHour')).toBe('Cancelada con menos de 1 h de aviso: se paga el sueldo base')
+    expect(tEn('classCard.coverBonus', { horas: 3, monto: '+$100.00' })).toBe('Cover assigned 3 h before: +$100.00')
+    expect(tEn('classCard.lateCancelUnderHour')).toBe('Cancelled with less than 1 h notice: base pay applies')
+    expect(tEs('classCard.outOfEnvelope', { sede: 'Wellness', fecha: '20 oct 2026' })).toBe(
+      'La sede Wellness no estaba activa en pago al personal el 20 oct 2026: esta clase no entra al recibo.',
+    )
+    expect(tEs('classCard.wouldPay', { monto: '$570.00' })).toBe('Si la activas desde ese día, se pagarían $570.00.')
+    expect(tEs('classCard.goToVenues')).toBe('Ver sedes')
+    expect(tEs('rules.error.coverAmount', { max: '$100,000.00' })).toBe('El monto extra va de $0.01 a $100,000.00, con hasta dos decimales.')
+    expect(tEs('rules.error.lateHours', { max: 168 })).toBe('Las horas de la cancelación van de 1 a 168, sin decimales.')
+    // Ningún texto de la tarjeta dice «0 h antes».
+    for (const texto of [JSON.stringify(es.classCard), JSON.stringify(en.classCard)]) expect(texto).not.toMatch(/\b0 h\b/)
+  })
+  it('sedes: la cuenta se lee con singular, plural y lista natural; neto, y sin un tipo en cero (diseño r5.4)', () => {
+    const cuenta = (cl: number, co: number, pr: number, sv = 0) => ({
+      clases: { n: cl, total: `${cl * 500}.00`, pendientesDeValoracion: sv },
+      comisiones: { n: co, total: `${co * 30}.00` },
+      propinas: { n: pr, total: `${pr * 30}.00` },
+    })
+    expect(textoDeCuenta(tEs, cuenta(3, 41, 18), 'es')).toBe('3 clases ($1,500.00), 41 comisiones ($1,230.00) y 18 propinas ($540.00)')
+    expect(textoDeCuenta(tEn, cuenta(3, 41, 18), 'en')).toBe('3 classes ($1,500.00), 41 commissions ($1,230.00), and 18 tips ($540.00)')
+    expect(textoDeCuenta(tEs, cuenta(0, 1, 0), 'es')).toBe('1 comisión ($30.00)')
+    expect(textoDeCuenta(tEs, cuenta(1, 0, 0, 2), 'es')).toBe('1 clase ($500.00) y 2 clases que todavía no se pueden valorar')
+    expect(tEs('sedes.fuera.sinActivar', { desde: '1 oct 2026', cuenta: '41 comisiones ($1,230.00)' })).toBe(
+      'Lo que queda fuera desde el 1 oct 2026: 41 comisiones ($1,230.00). Actívala para que entre.',
+    )
+    // Concordancia: con UNA sola cosa ningún texto antepone un verbo plural a la cuenta («quedan fuera 1 comisión»).
+    const una = textoDeCuenta(tEs, cuenta(0, 1, 0), 'es')
+    const unaEn = textoDeCuenta(tEn, cuenta(0, 1, 0), 'en')
+    expect(tEs('sedes.fuera.antesDe', { desde: '1 oct', cuenta: una })).toBe('Lo que queda fuera, de antes del 1 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.dialogo.entran', { cuenta: una, fecha: '5 oct', sede: 'Roma' })).toBe(
+      'Lo que entra desde el 5 oct a las 00:00 (hora de Roma): 1 comisión ($30.00).',
+    )
+    expect(tEs('sedes.dialogo.quedanFuera', { cuenta: una, fecha: '5 oct' })).toBe('Lo que queda fuera, de antes del 5 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.dialogo.dejanDeEntrar', { cuenta: una, fecha: '5 oct' })).toBe('Lo que deja de entrar, de después del 5 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.dialogo.permanecen', { cuenta: una, fecha: '5 oct' })).toBe('Lo que sigue entrando hasta el 5 oct: 1 comisión ($30.00).')
+    expect(tEs('sedes.aviso.sinActivar', { sede: 'Roma', desde: '1 oct', cuenta: una })).toBe(
+      'Roma no está activa. Lo que queda fuera desde el 1 oct: 1 comisión ($30.00).',
+    )
+    expect(tEn('sedes.fuera.sinActivar', { desde: 'Oct 1', cuenta: unaEn })).toBe('What is left out since Oct 1: 1 commission ($30.00). Turn it on so it counts.')
+    expect(tEn('sedes.fuera.antesDe', { desde: 'Oct 1', cuenta: unaEn })).toBe('What is left out, from before Oct 1: 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.entran', { cuenta: unaEn, fecha: 'Oct 5', sede: 'Roma' })).toBe('What counts from Oct 5 at 00:00 (Roma time): 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.quedanFuera', { cuenta: unaEn, fecha: 'Oct 5' })).toBe('What is left out, from before Oct 5: 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.dejanDeEntrar', { cuenta: unaEn, fecha: 'Oct 5' })).toBe('What stops counting, from after Oct 5: 1 commission ($30.00).')
+    expect(tEn('sedes.dialogo.permanecen', { cuenta: unaEn, fecha: 'Oct 5' })).toBe('What still counts up to Oct 5: 1 commission ($30.00).')
+    expect(tEn('sedes.aviso.sinActivar', { sede: 'Roma', desde: 'Oct 1', cuenta: unaEn })).toBe('Roma is not active. What is left out since Oct 1: 1 commission ($30.00).')
+    // Una o varias sedes sin plan: el verbo concuerda.
+    expect(tEs('sedes.aviso.sinPlan', { sedes: 'Condesa', count: 1 })).toMatch(/^Condesa sigue activa sin plan/)
+    expect(tEs('sedes.aviso.sinPlan', { sedes: 'Condesa y Roma', count: 2 })).toMatch(/^Condesa y Roma siguen activas sin plan/)
+    expect(tEn('sedes.aviso.sinPlan', { sedes: 'Condesa and Roma', count: 2 })).toMatch(/^Condesa and Roma are still active/)
+    expect(tEs('sedes.aviso.mas', { count: 1 })).toBe('y 1 sede más')
+    // Nunca «de este periodo»: lo que está fuera puede venir de periodos anteriores sin cerrar (ruling progress.md:309).
+    for (const texto of [JSON.stringify(es.sedes), JSON.stringify(en.sedes)]) expect(texto).not.toMatch(/de este periodo|this period/i)
+    // E6a-fix F14 (QA H12): una sede trae clases, no sólo ventas: sus textos no dicen «vendido» (3 clases «vendidas»).
+    for (const texto of [JSON.stringify(es.sedes), JSON.stringify(en.sedes)]) expect(texto).not.toMatch(/vend|sold|sells?\b/i)
+    expect(tEs('sedes.dialogo.entranNada', { fecha: '7 oct' })).toBe('Todavía no hay nada desde el 7 oct: entra todo lo de ahora en adelante.')
+    expect(tEn('sedes.dialogo.entranNada', { fecha: 'Oct 7' })).toBe('There is nothing since Oct 7 yet: everything from now on counts.')
+  })
+
+  it('recibo de la fase 3 (E5a): persona dada de baja, total sin clases, tipos y devoluciones pendientes en español natural', () => {
+    expect(tEs('period.formerStaff')).toBe('Persona dada de baja')
+    expect(tEn('period.formerStaff')).toBe('Former staff member')
+    // El literal del server se traduce; un nombre real, no.
+    expect(nombreVisible(tEn, 'Persona dada de baja')).toBe('Former staff member')
+    expect(nombreVisible(tEn, '  ')).toBe('Former staff member')
+    expect(nombreVisible(tEn, null)).toBe('Former staff member')
+    expect(nombreVisible(tEn, 'Ana López')).toBe('Ana López')
+    expect(tEs('period.detailSummaryTotal', { total: '$730.00' })).toBe('Total $730.00')
+    expect(tEs('period.salesSection')).toBe('Comisiones y propinas')
+    expect(tEs('period.byType.COMISION')).toBe('Comisiones')
+    expect(tEn('period.byType.PROPINA')).toBe('Tips')
+    const nombre = (p: { start: string }) => (p.start === '2026-10-01' ? 'octubre de 2026' : 'septiembre de 2026')
+    const alCerrar = { seDescuenta: { tipo: 'AL_CERRAR' as const, periodo: { start: '2026-10-01', end: '2026-10-31' } }, n: 2, total: '-50.00', porSede: [] }
+    const despues = { seDescuenta: { tipo: 'PERIODO_POSTERIOR_A' as const, origen: { start: '2026-09-01', end: '2026-09-30' } }, n: 1, total: '-30.00', porSede: [] }
+    expect(lineaDePendiente(tEs, alCerrar, nombre)).toBe('−$50.00 se descontará solo al cerrar el periodo de octubre de 2026.')
+    expect(lineaDePendiente(tEs, despues, nombre)).toBe('−$30.00 se descontará solo al cerrar un periodo posterior al de septiembre de 2026 (ése ya se cerró).')
+    expect(lineaDePendiente(tEn, alCerrar, () => 'October 2026')).toBe('−$50.00 will be deducted automatically when the October 2026 period closes.')
+    expect(
+      tEs('manualAdjust.pendingOne', { persona: 'Carla QA', monto: '−$50.00', cuando: cuandoSeDescuenta(tEs, alCerrar.seDescuenta, nombre) }),
+    ).toBe('Carla QA tiene −$50.00 en devoluciones que se descontarán solas al cerrar el periodo de octubre de 2026. Si este ajuste es por eso, no lo registres.')
+    expect(tEs('manualAdjust.pendingMany', { persona: 'Carla QA', monto: '−$80.00' })).toBe(
+      'Carla QA tiene −$80.00 en devoluciones que se descontarán solas. Si este ajuste es por eso, no lo registres:',
+    )
+  })
+
+  it('cierre de la fase 3 (E5b): singular y plural, lo que congela, los avisos y nada de «Muy pronto»', () => {
+    expect(tEs('close.commissions', { count: 1 })).toBe('1 comisión')
+    expect(tEs('close.tips', { count: 230 })).toBe('230 propinas')
+    expect(tEs('close.classes', { count: 1 })).toBe('1 clase')
+    expect(tEn('close.commissions', { count: 41 })).toBe('41 commissions')
+    expect(tEs('close.tipsWithoutOwner', { count: 1, total: '$80.00' })).toMatch(/^1 propina sin persona \(\$80\.00\) no entra al recibo/)
+    expect(tEs('close.tipsWithoutOwner', { count: 3, total: '$240.00' })).toMatch(/^3 propinas sin persona \(\$240\.00\) no entran al recibo/)
+    expect(tEs('close.willFreezeSales', { count: 1, lista: '1 comisión', personas: '1 persona', sedes: 'Prado Norte', total: '$90.00' })).toBe(
+      'Se congela 1 comisión de 1 persona en Prado Norte: $90.00.',
+    )
+    expect(tEs('close.willFreezeSales', { count: 3, lista: '1 clase y 2 propinas', personas: '2 personas', sedes: 'Roma', total: '$600.00' })).toBe(
+      'Se congelan 1 clase y 2 propinas de 2 personas en Roma: $600.00.',
+    )
+    expect(tEs('close.reversals', { count: 1 })).toBe('Incluye 1 comisión anulada que se descuenta.')
+    // Resolución 16 (progress.md: «E5b debe decir cobros o devoluciones»), con el verbo que concuerda.
+    expect(tEs('close.commissionsToReview', { count: 1 })).toBe('1 cobro o devolución con comisión por revisar: no entra hasta resolverla.')
+    expect(tEs('close.commissionsToReview', { count: 2 })).toBe('2 cobros o devoluciones con comisión por revisar: no entran hasta resolverlas.')
+    expect(tEs('close.empty')).toBe('No hay nada que pagar en este periodo: se cierra en $0.')
+    // El bloqueo en rojo, según haya otra sede con plan (diseño r4.7), con el verbo que concuerda.
+    expect(tEs('close.block.SEDE_ACTIVA_SIN_PLAN_otras', { count: 1, sedes: 'Wellness' })).toBe(
+      'Wellness sigue activa en pago al personal y ya no tiene el plan. Desactívala indicando su último día: con eso se puede cerrar.',
+    )
+    expect(tEs('close.block.SEDE_ACTIVA_SIN_PLAN_otras', { count: 2, sedes: 'Wellness y Roma' })).toMatch(/^Wellness y Roma siguen activas .* Desactívalas/)
+    expect(tEs('close.block.SEDE_ACTIVA_SIN_PLAN_ninguna', { count: 1, sedes: 'Wellness' })).toBe(
+      'Wellness sigue activa en pago al personal y ya no tiene el plan. Renueva el plan para cerrar: desactivarla no libera el cierre.',
+    )
+    expect(tEn('close.block.SEDE_ACTIVA_SIN_PLAN_ninguna', { count: 2, sedes: 'Wellness and Roma' })).toMatch(/^Wellness and Roma are still active/)
+    expect(tEs('close.deactivateSede', { sede: 'Wellness' })).toBe('Desactivar Wellness')
+    // Por sede: «no entra en este cierre», nunca «de este periodo» (ruling progress.md:309: incluye sobrantes de cerrados).
+    expect(tEs('close.bySede.fuera', { cuenta: '1 comisión ($30.00)' })).toBe('No entra en este cierre: 1 comisión ($30.00).')
+    expect(tEs('close.bySede.entra', { cuenta: '3 clases ($1,500.00)' })).toBe('Entra: 3 clases ($1,500.00).')
+    expect(tEn('close.bySede.fuera', { cuenta: '1 commission ($30.00)' })).toBe('Not in this close: 1 commission ($30.00).')
+    for (const g of [es.close.bySede, en.close.bySede]) expect(JSON.stringify(g)).not.toMatch(/de este periodo|this period/i)
+    expect(tEs('close.pendingTitle')).toBe('Devoluciones que este cierre no descuenta')
+    for (const texto of [JSON.stringify(es), JSON.stringify(en)]) expect(texto).not.toMatch(/muy pronto|coming soon/i)
+  })
+
+  it('E4-fix: la cancelada tarde dice que el conteo corregido no aplica; sin permiso, las reglas dicen cuál falta', () => {
+    expect(tEs('classCard.overrideNotApplied')).toBe('El conteo corregido no aplica: la clase se canceló tarde y se paga el sueldo base.')
+    expect(tEn('classCard.overrideNotApplied')).toBe('The corrected count does not apply: the class was cancelled late and base pay applies.')
+    // E5a-fix: el motivo de la corrección se conserva como dato, sin decir «Ajustado».
+    expect(tEs('classCard.overrideReason', { reason: 'Llegaron 8' })).toBe('Motivo de la corrección: Llegaron 8')
+    expect(tEn('classCard.overrideReason', { reason: 'Llegaron 8' })).toBe('Reason for the correction: Llegaron 8')
+    for (const texto of [tEs('classCard.overrideReason', { reason: 'x' }), tEn('classCard.overrideReason', { reason: 'x' })])
+      expect(texto).not.toMatch(/ajustad|adjusted/i)
+    expect(tEs('rules.noPermission')).toBe('Para cambiar las reglas necesitas el permiso «Configurar pago al personal». Pídeselo al dueño del negocio.')
+    expect(tEn('rules.noPermission')).toMatch(/“Manage staff pay”/)
+  })
+})
+
+// G8 (guía E6c): la jerga interna «sobre» se colaba en textos para el cliente («nada de esta sede entra al sobre»). Para el dueño
+// es «recibo» o «pago al personal». Se revisan TODOS los textos visibles (es y en), no sólo los de este módulo; las llaves y los
+// nombres internos no cuentan.
+describe('sin la jerga «sobre» en textos visibles (G8)', () => {
+  const textos = (o: unknown): string[] =>
+    typeof o === 'string' ? [o] : o && typeof o === 'object' ? Object.values(o as Record<string, unknown>).flatMap(textos) : []
+  const deIdioma = (lang: 'es' | 'en') => {
+    const dir = join(process.cwd(), 'src', 'locales', lang)
+    return readdirSync(dir)
+      .filter(f => f.endsWith('.json'))
+      .flatMap(f => textos(JSON.parse(readFileSync(join(dir, f), 'utf8').replace(/^\uFEFF/, ''))).map(t => `${f}: ${t}`))
+  }
+  it('🔴 ningún texto en español dice «el/al/del/un… sobre» (el sobre de pago), ni en inglés «envelope»', () => {
+    expect(deIdioma('es').filter(t => /\b(al|del|el|un|los|su|este|ese|cada)\s+sobres?\b/i.test(t))).toEqual([])
+    expect(deIdioma('en').filter(t => /\benvelopes?\b/i.test(t))).toEqual([])
+  })
+  it('🔴 borrar la activación de una sede dice que nada de esa sede entra al recibo', () => {
+    expect(tEs('sedes.dialogo.borraActivacion')).toBe('Con esa fecha se borra la activación: nada de esta sede entra al recibo.')
+    expect(tEn('sedes.dialogo.borraActivacion')).toBe('With that date the activation is deleted: nothing from this location goes into the pay statement.')
   })
 })

@@ -3,35 +3,12 @@ import { useRouteError, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { FileQuestion, AlertTriangle, Home, ArrowLeft, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { clearChunkReloadGuard, isChunkLoadError, reloadForChunkError } from '@/lib/lazyWithRetry'
 
 interface ErrorPageProps {
   statusText?: string
   message?: string
   status?: number
-}
-
-/**
- * Detects the family of errors raised when a dynamically-imported chunk is
- * missing — the classic post-deploy failure where the browser still has the
- * old index.html referencing chunk hashes that no longer exist on the CDN.
- *
- * `lazyWithRetry` already handles the first occurrence of this by forcing a
- * reload; this page is the safety net for every subsequent hit (same session,
- * `chunk-reload-attempted` already set) and for lazy imports that forgot to
- * use the wrapper.
- */
-function isChunkLoadError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false
-  const asRecord = err as { message?: unknown; statusText?: unknown; name?: unknown }
-  const raw = [asRecord.message, asRecord.statusText].filter(v => typeof v === 'string').join(' ').toLowerCase()
-  const name = typeof asRecord.name === 'string' ? asRecord.name : ''
-  return (
-    raw.includes('failed to fetch dynamically imported module') ||
-    raw.includes('loading chunk') ||
-    raw.includes('loading css chunk') ||
-    raw.includes('dynamically imported module') ||
-    (name === 'SyntaxError' && raw.includes("unexpected token '<'"))
-  )
 }
 
 export default function ErrorPage() {
@@ -47,16 +24,12 @@ export default function ErrorPage() {
     console.error(error)
   }
 
-  // Chunk-load errors (stale deploy) — try one forced reload at mount if we
-  // haven't already attempted one this session. This rescues cases where a
-  // lazy import slipped through without `lazyWithRetry`.
+  // Chunk-load errors (stale deploy) — try one forced reload at mount (at most
+  // once per 30 s, see lazyWithRetry). This rescues cases where a lazy import
+  // slipped through without `lazyWithRetry`; within the window the page stays.
   const isChunkError = !is404 && isChunkLoadError(error)
   useEffect(() => {
-    if (!isChunkError) return
-    const RELOAD_KEY = 'chunk-reload-attempted'
-    if (sessionStorage.getItem(RELOAD_KEY)) return
-    sessionStorage.setItem(RELOAD_KEY, 'true')
-    window.location.reload()
+    if (isChunkError) reloadForChunkError()
   }, [isChunkError])
 
   // 404 - Page Not Found
@@ -143,7 +116,7 @@ export default function ErrorPage() {
             onClick={() => {
               // If we suspect a chunk error, clear the "already-reloaded" flag
               // so the reload below actually has a chance to fetch fresh chunks.
-              if (isChunkError) sessionStorage.removeItem('chunk-reload-attempted')
+              if (isChunkError) clearChunkReloadGuard()
               window.location.reload()
             }}
           >

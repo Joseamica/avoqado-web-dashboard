@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,7 +59,7 @@ export function CampoVigencia({
   const { t } = useTranslation('staffPay')
   const { formatCalendarDate } = useVenueDateTime()
   const nombrePeriodo = useNombrePeriodo()
-  const { fecha, setFecha, efecto, calculando, error, cerradoDeLista, fueraDeRango, minimo, maximo, atajo, periodicidad } = vigencia
+  const { fecha, setFecha, efecto, calculando, sinRed, error, cerradoDeLista, fueraDeRango, minimo, maximo, atajo, periodicidad } = vigencia
   const texto = useTextoDelEfecto(periodicidad)
   const frases = efecto ? texto(efecto) : null
   // El 400 del server manda; si no ha contestado, la lista en caché ya sabe que la fecha cae en un periodo cerrado.
@@ -104,7 +104,13 @@ export function CampoVigencia({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          {calculando
+          {sinRed ? (
+            // Sin red la simulación espera: se dice que se calculará sola, no un «calculando…» sin fin (E6a-fix4).
+            <span className="inline-flex items-start gap-2" data-tour="staffpay-vigencia-offline">
+              <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              {t('offline.willCalculate')}
+            </span>
+          ) : calculando
             ? textoCalculando
             : frases?.map((f, i) => (
                 <span key={i}>
