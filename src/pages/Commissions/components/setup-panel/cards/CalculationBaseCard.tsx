@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import BaseIvaSwitch from '../../BaseIvaSwitch'
+import BaseComisionSwitch from '../../BaseComisionSwitch'
 import type { CommissionSetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardTouched } from '../useSetupReducer'
@@ -71,25 +72,11 @@ export default function CalculationBaseCard({ state, dispatch }: CalculationBase
                 />
               </div>
 
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <Label className="text-sm">
-                    {t('wizard.step2.commissionBase')}:{' '}
-                    {includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet')}
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {includeDiscount
-                      ? t('wizard.step2.commissionBaseListHint')
-                      : t('wizard.step2.commissionBaseNetHint')}
-                  </p>
-                </div>
-                <Switch
-                  checked={includeDiscount}
-                  onCheckedChange={checked =>
-                    dispatch({ type: 'SET_CALCULATION_BASE', data: { includeDiscount: checked } })
-                  }
-                />
-              </div>
+              <BaseComisionSwitch
+                id="setup-includeDiscount"
+                checked={includeDiscount}
+                onChange={checked => dispatch({ type: 'SET_CALCULATION_BASE', data: { includeDiscount: checked } })}
+              />
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import BaseIvaSwitch from './BaseIvaSwitch'
+import BaseComisionSwitch from './BaseComisionSwitch'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionCalcType, CommissionConfig, TierPeriod } from '@/types/commission'
@@ -393,24 +394,12 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               </Label>
               <Switch id="edit-includeTips" checked={data.includeTips} onCheckedChange={checked => updateData({ includeTips: checked })} />
             </div>
-            {/* Base de la comisión — misma semántica que el asistente: la etiqueta
-                muestra la base vigente, no "incluir descuentos". */}
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <Label htmlFor="edit-includeDiscount" className="text-sm">
-                  {t('wizard.step2.commissionBase')}:{' '}
-                  {data.includeDiscount ? t('wizard.step2.commissionBaseList') : t('wizard.step2.commissionBaseNet')}
-                </Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {data.includeDiscount ? t('wizard.step2.commissionBaseListHint') : t('wizard.step2.commissionBaseNetHint')}
-                </p>
-              </div>
-              <Switch
-                id="edit-includeDiscount"
-                checked={data.includeDiscount}
-                onCheckedChange={checked => updateData({ includeDiscount: checked })}
-              />
-            </div>
+            {/* Base de la comisión — misma semántica que el asistente: la etiqueta es la ACCIÓN (ver BaseComisionSwitch). */}
+            <BaseComisionSwitch
+              id="edit-includeDiscount"
+              checked={data.includeDiscount}
+              onChange={checked => updateData({ includeDiscount: checked })}
+            />
             {/* Asistencia → comisiones (founder 2026-08-26): por esquema, nace apagada. Sólo
                 castiga RETARDO fuera de tolerancia; sin cuadrante o con el checador del venue
                 apagado no hace nada. El servidor exige el % al prenderla. */}
