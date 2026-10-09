@@ -230,7 +230,8 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   }, [busy])
 
   // Atrás del navegador, un enlace o cerrar la pestaña: el mismo «¿Salir sin guardar?» que cerrar el editor (D3).
-  const leaveGuard = useLeaveGuard({ dirty, saving: save.isPending, conflict })
+  // Recargar es como guardar: el borrador está por cambiar, «Atrás» espera en vez de preguntar de más (m2).
+  const leaveGuard = useLeaveGuard({ dirty, saving: busy, conflict })
   const askLeave = confirmClose || leaveGuard.asking
   const stay = () => {
     setConfirmClose(false)

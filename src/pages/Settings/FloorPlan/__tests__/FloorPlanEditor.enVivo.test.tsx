@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FloorPlanEditor } from '../FloorPlanEditor'
-import { publishFloorPlan } from '@/services/floorPlan.service'
+import { getFloorPlan, publishFloorPlan } from '@/services/floorPlan.service'
 import type { FloorPlanDto, PublishFloorPlanResult } from '../model/types'
 
 vi.mock('react-i18next', () => ({
@@ -102,5 +102,35 @@ describe('FloorPlanEditor — pasada en vivo', () => {
     // Para salir se vuelve a pedir, y como hay cambios, pregunta.
     await act(async () => router.navigate(-1))
     expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
+  })
+
+  // m2: «Atrás» mientras se recarga el plano preguntaba «¿Salir sin guardar?» de más (el borrador ya se iba a perder).
+  it('m2: Atrás durante la recarga espera: si llega el plano se va sola, y si falla pregunta', async () => {
+    const user = userEvent.setup()
+    let llega: (p: FloorPlanDto) => void = () => {}
+    let falla: (e: unknown) => void = () => {}
+    publish.mockRejectedValueOnce(conflicto()).mockRejectedValueOnce(conflicto())
+    vi.mocked(getFloorPlan)
+      .mockReturnValueOnce(new Promise(resolve => (llega = resolve)))
+      .mockReturnValueOnce(new Promise((_, reject) => (falla = reject)))
+    const { router } = renderEditor()
+    await girarMesa(user)
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await user.click(await screen.findByTestId('floor-plan-reload'))
+    await act(async () => router.navigate(-1))
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plano')
+    await act(async () => llega({ ...plan, fingerprint: 'cccccccccccccccc' }))
+    expect(await screen.findByText('otra página')).toBeInTheDocument()
+    // Otra vuelta, ahora la recarga falla: la salida que esperaba pregunta (el borrador sigue ahí).
+    await act(async () => router.navigate(1))
+    await girarMesa(user)
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await user.click(await screen.findByTestId('floor-plan-reload'))
+    await act(async () => router.navigate(-1))
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+    await act(async () => falla(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })))
+    expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plano')
   })
 })
