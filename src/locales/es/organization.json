@@ -242,7 +242,8 @@
     "visionGlobal": "Visión Global",
     "reports": "Reportes",
     "managers": "Supervisores",
-    "liveLocation": "Ubicación de TPVs"
+    "liveLocation": "Ubicación de TPVs",
+    "serviceCourses": "Tiempos de servicio"
   },
   "header": {
     "backToVenue": "Volver a Sucursal"

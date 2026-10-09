@@ -40,7 +40,16 @@ const ACCESS_OWNER_ONLY: FeatureAccess = {
 
 /** All staff roles with venue scope - for features everyone needs */
 const ACCESS_ALL_VENUE: FeatureAccess = {
-  allowedRoles: [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER, StaffRole.CASHIER, StaffRole.WAITER, StaffRole.KITCHEN, StaffRole.HOST, StaffRole.VIEWER],
+  allowedRoles: [
+    StaffRole.OWNER,
+    StaffRole.ADMIN,
+    StaffRole.MANAGER,
+    StaffRole.CASHIER,
+    StaffRole.WAITER,
+    StaffRole.KITCHEN,
+    StaffRole.HOST,
+    StaffRole.VIEWER,
+  ],
   dataScope: 'venue',
 }
 
@@ -434,6 +443,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       { path: 'promotions', element: 'Promotions' },
       { path: 'promotions/discounts', element: 'Discounts' },
       { path: 'promotions/coupons', element: 'Coupons' },
+      { path: 'menumaker/bundles', element: 'Bundles' },
       { path: 'promotions/bundles', element: 'Bundles' },
     ],
 

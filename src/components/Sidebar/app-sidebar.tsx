@@ -322,12 +322,43 @@ export function AppSidebar({
     const menuSubItems = [
       { title: t('menu:menumaker.nav.overview'), url: 'menumaker/overview', permission: 'menu:read' },
       { title: t('menu:menumaker.nav.menus'), url: 'menumaker/menus', permission: 'menu:read' },
-      { title: t('menu:menumaker.nav.categories'), url: 'menumaker/categories', permission: 'menu:read', keywords: ['secciones', 'grupos'] },
-      { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read', keywords: ['platillos', 'articulos', 'items'] },
+      {
+        title: t('menu:menumaker.nav.categories'),
+        url: 'menumaker/categories',
+        permission: 'menu:read',
+        keywords: ['secciones', 'grupos'],
+      },
+      {
+        title: t('menu:menumaker.nav.products'),
+        url: 'menumaker/products',
+        permission: 'menu:read',
+        keywords: ['platillos', 'articulos', 'items'],
+      },
+      ...(canWL('AVOQADO_PROMOTIONS')
+        ? [
+            {
+              title: t('sidebar:routes.bundles'),
+              url: 'menumaker/bundles',
+              permission: 'discounts:read',
+              premiumLocked: !hasFeatureAccess('PROMOTIONS'),
+              gatedFeature: 'PROMOTIONS',
+              keywords: ['combos', 'paquetes', 'bundle'],
+            },
+          ]
+        : []),
       { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
       { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
-      { title: t('sidebar:creditPacks'), url: 'menumaker/credit-packs', permission: 'creditPacks:read', keywords: ['creditos', 'paquetes', 'bundles', 'prepagados'] },
-    ].filter(item => !item.permission || can(item.permission)) as any[]
+      {
+        title: t('sidebar:creditPacks'),
+        url: 'menumaker/credit-packs',
+        permission: 'creditPacks:read',
+        keywords: ['creditos', 'paquetes', 'bundles', 'prepagados'],
+      },
+    ].filter(item => {
+      // Combos conserva su acceso de Promociones aunque el resto de Menú esté deshabilitado.
+      const featureCode = item.url === 'menumaker/bundles' ? 'AVOQADO_PROMOTIONS' : 'AVOQADO_MENU'
+      return canWL(featureCode) && (!item.permission || can(item.permission))
+    }) as any[]
 
     // ── Inventario ──
     // VISIBLE TEASER (like Facturación): the group is ALWAYS built so it stays
@@ -336,7 +367,12 @@ export function AppSidebar({
     // item is marked `premiumLocked` (👑/⭐ badge) when the venue's plan lacks
     // INVENTORY_TRACKING, and the inventory page shows the <FeatureGate> paywall.
     const inventorySubItems = [
-      { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read', keywords: ['stock', 'materia prima', 'almacen'] },
+      {
+        title: 'Resumen de existencias',
+        url: 'inventory/stock-overview',
+        permission: 'inventory:read',
+        keywords: ['stock', 'materia prima', 'almacen'],
+      },
       { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
       {
         title: t('inventory:wasteReports.navTitle', { defaultValue: 'Mermas' }),
@@ -344,20 +380,55 @@ export function AppSidebar({
         permission: 'inventory:read',
         keywords: ['merma', 'desperdicio', 'perdida', 'caducado', 'robo'],
       },
-      { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
-      { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
+      {
+        title: 'Pedidos',
+        url: 'inventory/purchase-orders',
+        permission: 'inventory:read',
+        keywords: ['ordenes de compra', 'abastecimiento'],
+      },
+      {
+        title: 'Proveedores',
+        url: 'inventory/suppliers',
+        permission: 'inventory:read',
+        keywords: ['suppliers', 'compras', 'abastecimiento'],
+      },
       {
         title: t('inventory:autoReorder.title', { defaultValue: 'Re-orden automático' }),
         url: 'inventory/auto-reorder',
         permission: 'inventory:read',
         keywords: ['auto reorder', 'reabastecimiento automatico', 'punto de reorden', 'orden automatica'],
       },
-      { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
-      { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
-      { title: 'Rentabilidad', url: 'inventory/profitability', permission: 'inventory:read', keywords: ['margen', 'precio', 'utilidad', 'rentabilidad', 'pricing', 'policy', 'política'] },
+      {
+        title: 'Ingredientes',
+        url: 'inventory/ingredients',
+        permission: 'inventory:read',
+        keywords: ['materia prima', 'insumos', 'materiales'],
+      },
+      {
+        title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }),
+        url: 'inventory/recipes',
+        permission: 'inventory:read',
+        keywords: ['preparaciones', 'formulas', 'costos'],
+      },
+      {
+        title: 'Rentabilidad',
+        url: 'inventory/profitability',
+        permission: 'inventory:read',
+        keywords: ['margen', 'precio', 'utilidad', 'rentabilidad', 'pricing', 'policy', 'política'],
+      },
       { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
-      { title: 'Conteos de inventario', url: 'inventory/stock-counts', permission: 'inventory:read', keywords: ['recuentos', 'conteo fisico', 'auditoria'] },
-      { title: 'Transferencias', url: 'inventory/transfers', permission: 'inventory:read', keywords: ['traslados', 'movimientos entre ubicaciones'] },
+      {
+        title: 'Conteos de inventario',
+        url: 'inventory/stock-counts',
+        permission: 'inventory:read',
+        keywords: ['recuentos', 'conteo fisico', 'auditoria'],
+      },
+      {
+        title: 'Transferencias',
+        url: 'inventory/transfers',
+        permission: 'inventory:read',
+        keywords: ['traslados', 'movimientos entre ubicaciones'],
+      },
       {
         title: t('inventory:interVenueTransfers.title', { defaultValue: 'Traslados entre sucursales' }),
         url: 'inventory/inter-venue-transfers',
@@ -407,7 +478,19 @@ export function AppSidebar({
         icon: Code2,
         permission: 'payment-link:read',
         locked: !hasKYCAccess,
-        keywords: ['ecommerce', 'e-commerce', 'widget', 'embebido', 'insertar', 'sitio web', 'cobrar en mi pagina', 'embed', 'checkout', 'stripe', 'mercado pago'],
+        keywords: [
+          'ecommerce',
+          'e-commerce',
+          'widget',
+          'embebido',
+          'insertar',
+          'sitio web',
+          'cobrar en mi pagina',
+          'embed',
+          'checkout',
+          'stripe',
+          'mercado pago',
+        ],
       },
       // Delivery — VISIBLE TEASER (Premium feature, Task 1 plan-catalog). Sales channel sibling of
       // E-commerce: single page (4 data-driven states, Task 6), not a whole subSidebar section. Navigates
@@ -420,7 +503,19 @@ export function AppSidebar({
         permission: 'delivery-channels:read',
         premiumLocked: !hasFeatureAccess('DELIVERY_CHANNELS'),
         gatedFeature: 'DELIVERY_CHANNELS',
-        keywords: ['delivery', 'domicilio', 'entrega', 'reparto', 'uber eats', 'rappi', 'didi', 'didi food', 'canales de entrega', 'pedidos a domicilio', 'deliverect'],
+        keywords: [
+          'delivery',
+          'domicilio',
+          'entrega',
+          'reparto',
+          'uber eats',
+          'rappi',
+          'didi',
+          'didi food',
+          'canales de entrega',
+          'pedidos a domicilio',
+          'deliverect',
+        ],
       },
       {
         title: t('sidebar:salesMenu.virtualTerminal', { defaultValue: 'Terminal Virtual' }),
@@ -464,7 +559,12 @@ export function AppSidebar({
     const reservationsSubItems = [
       { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
       { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
-      { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
+      {
+        title: t('sidebar:reservationsMenu.waitlist'),
+        url: 'reservations/waitlist',
+        permission: 'reservations:read',
+        keywords: ['lista de espera', 'fila'],
+      },
       // Pases — VISIBLE TEASER (Pro): se ve siempre con su ⭐ si el plan no lo cubre; la página pinta el <FeatureGate>.
       {
         title: t('sidebar:reservationsMenu.passes', { defaultValue: 'Pases (TotalPass · Wellhub)' }),
@@ -504,27 +604,74 @@ export function AppSidebar({
         title: t('sidebar:reservationsMenu.settingsGroup', { defaultValue: 'Ajustes' }),
         url: '#reservations-settings',
         items: [
-          { title: t('sidebar:reservationsMenu.general', { defaultValue: 'General' }), url: 'reservations/settings', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.branding', { defaultValue: 'Identidad de marca' }), url: 'reservations/branding', permission: 'reservations:read', keywords: ['marca', 'branding', 'color', 'logo', 'tipografía', 'apariencia', 'identidad'] },
-          { title: t('sidebar:reservationsMenu.communications', { defaultValue: 'Comunicaciones' }), url: 'reservations/communications', permission: 'reservations:read', comingSoon: true },
+          {
+            title: t('sidebar:reservationsMenu.general', { defaultValue: 'General' }),
+            url: 'reservations/settings',
+            permission: 'reservations:read',
+          },
+          {
+            title: t('sidebar:reservationsMenu.branding', { defaultValue: 'Identidad de marca' }),
+            url: 'reservations/branding',
+            permission: 'reservations:read',
+            keywords: ['marca', 'branding', 'color', 'logo', 'tipografía', 'apariencia', 'identidad'],
+          },
+          {
+            title: t('sidebar:reservationsMenu.communications', { defaultValue: 'Comunicaciones' }),
+            url: 'reservations/communications',
+            permission: 'reservations:read',
+            comingSoon: true,
+          },
         ],
       },
     ].filter(item => !item.permission || can(item.permission)) as any[]
 
     // ── Equipo ──
     const teamSubItems = [
-      { title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }), url: 'team', permission: 'teams:read', keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'] },
-      ...((activeVenue?.settings?.attendanceEnabled ?? true) ? [
-      { title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }), url: 'asistencia', permission: 'attendance:read', keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'] },
-      ] : []),
-      ...(activeVenue?.settings?.enableShifts ? [
-        { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
-      ] : []),
+      {
+        title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }),
+        url: 'team',
+        permission: 'teams:read',
+        keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'],
+      },
+      ...((activeVenue?.settings?.attendanceEnabled ?? true)
+        ? [
+            {
+              title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }),
+              url: 'asistencia',
+              permission: 'attendance:read',
+              keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'],
+            },
+          ]
+        : []),
+      ...(activeVenue?.settings?.enableShifts
+        ? [
+            {
+              title: t('sidebar:routes.shifts'),
+              url: 'shifts',
+              permission: 'shifts:read',
+              keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'],
+            },
+          ]
+        : []),
       // Commissions — VISIBLE TEASER (Premium feature). Normal venues always see it with a 👑 badge
       // (the commissions pages themselves show the <FeatureGate> paywall); white-label venues keep the
       // per-partner AVOQADO_COMMISSIONS toggle below. Never use checkFeatureAccess here — it can't tier-gate.
-      { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', premiumLocked: !hasFeatureAccess('COMMISSIONS'), gatedFeature: 'COMMISSIONS', keywords: ['propinas', 'bonos', 'metas', 'goals'] },
-      { title: t('sidebar:teamMenu.servicePay', { defaultValue: 'Pago al personal' }), url: 'servicio-pago', permission: 'staffpay:read', premiumLocked: !hasFeatureAccess('SERVICE_PAY'), gatedFeature: 'SERVICE_PAY', keywords: ['coach', 'instructor', 'tabulador', 'nómina', 'pago por clase', 'comisiones', 'propinas', 'recibo'] },
+      {
+        title: t('sidebar:routes.commissions'),
+        url: 'commissions',
+        permission: 'commissions:read',
+        premiumLocked: !hasFeatureAccess('COMMISSIONS'),
+        gatedFeature: 'COMMISSIONS',
+        keywords: ['propinas', 'bonos', 'metas', 'goals'],
+      },
+      {
+        title: t('sidebar:teamMenu.servicePay', { defaultValue: 'Pago al personal' }),
+        url: 'servicio-pago',
+        permission: 'staffpay:read',
+        premiumLocked: !hasFeatureAccess('SERVICE_PAY'),
+        gatedFeature: 'SERVICE_PAY',
+        keywords: ['coach', 'instructor', 'tabulador', 'nómina', 'pago por clase', 'comisiones', 'propinas', 'recibo'],
+      },
     ].filter(item => {
       if (item.permission && !can(item.permission)) return false
       if (isWhiteLabelVenue) {
@@ -597,7 +744,12 @@ export function AppSidebar({
       })
 
       if (canWL('AVOQADO_REVIEWS')) {
-        items.push({ title: t('sidebar:routes.reviews'), url: 'reviews', permission: 'reviews:read', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] })
+        items.push({
+          title: t('sidebar:routes.reviews'),
+          url: 'reviews',
+          permission: 'reviews:read',
+          keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'],
+        })
       }
 
       // Promotions dropdown — VISIBLE TEASER (Pro feature). Discounts + coupons stay
@@ -607,15 +759,21 @@ export function AppSidebar({
       const hasPromotionsFeature = hasFeatureAccess('PROMOTIONS')
       const promoItems = [
         {
-          title: t('sidebar:promotionsMenu.bundles'),
-          url: 'promotions/bundles',
+          title: t('sidebar:promotionsMenu.discounts'),
+          url: 'promotions/discounts',
           permission: 'discounts:read',
           premiumLocked: !hasPromotionsFeature,
           gatedFeature: 'PROMOTIONS',
-          keywords: ['combos', 'paquetes', '2x1', 'bundle', 'promo'],
+          keywords: ['ofertas', 'promociones'],
         },
-        { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['ofertas', 'promociones'] },
-        { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['codigos', 'vouchers'] },
+        {
+          title: t('sidebar:promotionsMenu.coupons'),
+          url: 'promotions/coupons',
+          permission: 'coupons:read',
+          premiumLocked: !hasPromotionsFeature,
+          gatedFeature: 'PROMOTIONS',
+          keywords: ['codigos', 'vouchers'],
+        },
         // Upsell "¿Algo más?" — se gatea con su PROPIO feature (UPSELL, PRO), no con
         // PROMOTIONS: son ventas distintas y un venue puede tener uno sin el otro.
         {
@@ -647,15 +805,76 @@ export function AppSidebar({
 
     // ── Reportes ──
     const reportsSubItems = [
-      { title: t('sidebar:availableBalance'), url: 'available-balance', icon: Wallet, permission: 'settlements:read', locked: !hasKYCAccess, premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'), gatedFeature: 'ADVANCED_REPORTS', keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'] },
-      { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', icon: HandCoins, permission: 'tpv-reports:pay-later-aging', keywords: ['pay later', 'fiado', 'deudas'] },
-      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
-      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'), gatedFeature: 'ADVANCED_REPORTS', keywords: ['reporte de productos', 'items vendidos'] },
-      { title: t('sidebar:reportsMenu.homeCharts', { defaultValue: 'Gráficas (Home)' }), url: 'reports/home-charts', icon: TrendingUp, permission: 'reports:read', keywords: ['dashboard', 'graficas', 'home legacy'] },
-      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Tag, permission: 'reports:read', keywords: ['categorias', 'familias de productos', 'ventas por categoria'] },
-      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', keywords: ['metodos de pago', 'efectivo', 'tarjeta', 'propinas', 'comisiones'] },
-      { title: t('sidebar:reportsMenu.refunds'), url: 'reports/refunds', icon: RefreshCw, permission: 'reports:read', keywords: ['reembolsos', 'devoluciones', 'refunds', 'dinero devuelto'] },
-      { title: t('sidebar:reportsMenu.promotions'), url: 'reports/promotions', icon: Tags, permission: 'reports:read', premiumLocked: !hasFeatureAccess('PROMOTIONS'), gatedFeature: 'PROMOTIONS', keywords: ['promociones', 'combos', 'bundles', '2x1', 'descuentos por promocion'] },
+      {
+        title: t('sidebar:availableBalance'),
+        url: 'available-balance',
+        icon: Wallet,
+        permission: 'settlements:read',
+        locked: !hasKYCAccess,
+        premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'),
+        gatedFeature: 'ADVANCED_REPORTS',
+        keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'],
+      },
+      {
+        title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }),
+        url: 'reports/pay-later-aging',
+        icon: HandCoins,
+        permission: 'tpv-reports:pay-later-aging',
+        keywords: ['pay later', 'fiado', 'deudas'],
+      },
+      {
+        title: t('sidebar:reportsMenu.salesSummary'),
+        url: 'reports/sales-summary',
+        icon: BarChart3,
+        permission: 'reports:read',
+        keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'],
+      },
+      {
+        title: t('sidebar:reportsMenu.salesByItem'),
+        url: 'reports/sales-by-item',
+        icon: Receipt,
+        permission: 'reports:read',
+        premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'),
+        gatedFeature: 'ADVANCED_REPORTS',
+        keywords: ['reporte de productos', 'items vendidos'],
+      },
+      {
+        title: t('sidebar:reportsMenu.homeCharts', { defaultValue: 'Gráficas (Home)' }),
+        url: 'reports/home-charts',
+        icon: TrendingUp,
+        permission: 'reports:read',
+        keywords: ['dashboard', 'graficas', 'home legacy'],
+      },
+      {
+        title: t('sidebar:reportsMenu.salesByCategory'),
+        url: 'reports/sales-by-category',
+        icon: Tag,
+        permission: 'reports:read',
+        keywords: ['categorias', 'familias de productos', 'ventas por categoria'],
+      },
+      {
+        title: t('sidebar:reportsMenu.paymentMethods'),
+        url: 'reports/payment-methods',
+        icon: CreditCard,
+        permission: 'reports:read',
+        keywords: ['metodos de pago', 'efectivo', 'tarjeta', 'propinas', 'comisiones'],
+      },
+      {
+        title: t('sidebar:reportsMenu.refunds'),
+        url: 'reports/refunds',
+        icon: RefreshCw,
+        permission: 'reports:read',
+        keywords: ['reembolsos', 'devoluciones', 'refunds', 'dinero devuelto'],
+      },
+      {
+        title: t('sidebar:reportsMenu.promotions'),
+        url: 'reports/promotions',
+        icon: Tags,
+        permission: 'reports:read',
+        premiumLocked: !hasFeatureAccess('PROMOTIONS'),
+        gatedFeature: 'PROMOTIONS',
+        keywords: ['promociones', 'combos', 'bundles', '2x1', 'descuentos por promocion'],
+      },
       { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', icon: Receipt, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', icon: Receipt, permission: 'reports:read', comingSoon: true },
@@ -676,7 +895,7 @@ export function AppSidebar({
     // renders in the sidebar and the page itself shows the upsell teaser.
     // The items still navigate NORMALLY to their url (NOT to kyc-required).
     const hasCfdiFeature = hasFeatureAccess('CFDI')
-    const facturacionSubItems = ([
+    const facturacionSubItems = [
       {
         title: t('sidebar:facturacionMenu.invoices'),
         url: 'cfdi',
@@ -693,7 +912,7 @@ export function AppSidebar({
         gatedFeature: 'CFDI',
         keywords: ['emisor', 'rfc', 'csd', 'certificado', 'comercios'],
       },
-    ].filter(item => !item.permission || can(item.permission)) as any[])
+    ].filter(item => !item.permission || can(item.permission)) as any[]
 
     // Contabilidad — el módulo completo (gerencial Capa A + fiscal Capa B + bancos).
     // Tier badges (teaser visible) — cada item espeja el <FeatureGate> de su página:
@@ -702,38 +921,203 @@ export function AppSidebar({
     //   • Capa B fiscal (catálogo / configuración / libro diario / balanza / reportes) → PREMIUM (CFDI 👑).
     // Para superadmin el badge igual se muestra (informativo) aunque tenga bypass — ver showTierBadge.
     const hasBankReconFeature = hasFeatureAccess('BANK_RECONCILIATION')
-    const contabilidadSubItems = ([
-      { title: t('sidebar:contabilidadMenu.readiness', { defaultValue: 'Preparación fiscal' }), url: 'contabilidad/preparacion', icon: ClipboardList, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['preparacion fiscal', 'onboarding', 'que me falta', 'csd', 'listo para facturar', 'checklist'] },
-      { title: t('sidebar:contabilidadMenu.income', { defaultValue: '¿Cuánto gané?' }), url: 'contabilidad/ingresos', icon: DollarSign, permission: 'accounting:read', keywords: ['cuanto gane', 'ingresos', 'estado de resultados', 'utilidad', 'ganancias'] },
-      { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', premiumLocked: !hasBankReconFeature, gatedFeature: 'BANK_RECONCILIATION', keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
-      { title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }), url: 'contabilidad/resumen', icon: TrendingUp, permission: 'accounting:read', keywords: ['resumen', 'negocio', 'portada', 'cuanto facture', 'como me fue'] },
-      { title: t('sidebar:contabilidadMenu.cfdiInbox', { defaultValue: 'Buzón de CFDIs' }), url: 'contabilidad/buzon', icon: Inbox, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['cfdi recibidos', 'gastos', 'proveedores'] },
-      { title: t('sidebar:contabilidadMenu.payable', { defaultValue: 'Cuentas por pagar' }), url: 'contabilidad/cuentas-por-pagar', icon: HandCoins, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['cuentas por pagar', 'proveedores', 'a quien le debo', 'antiguedad de saldos', 'cxp', 'deuda proveedores'] },
-      { title: t('sidebar:contabilidadMenu.banks', { defaultValue: 'Bancos y cajas' }), url: 'contabilidad/bancos', icon: Wallet, permission: 'accounting:read', keywords: ['bancos', 'cajas', 'efectivo', 'deposito', 'banco'] },
-      { title: t('sidebar:contabilidadMenu.chart', { defaultValue: 'Catálogo de cuentas' }), url: 'contabilidad/catalogo', icon: Landmark, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['catalogo', 'cuentas', 'codigo agrupador', 'sat'] },
-      { title: t('sidebar:contabilidadMenu.mapping', { defaultValue: 'Configuración contable' }), url: 'contabilidad/configuracion', icon: Settings2, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['configuracion contable', 'mapeo', 'cuentas', 'el sistema dicta', 'polizas'] },
-      { title: t('sidebar:contabilidadMenu.journal', { defaultValue: 'Libro diario · Pólizas' }), url: 'contabilidad/libro-diario', icon: BookOpen, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['polizas', 'libro diario', 'asientos', 'doble partida'] },
-      { title: t('sidebar:contabilidadMenu.trialBalance', { defaultValue: 'Balanza de comprobación' }), url: 'contabilidad/balanza', icon: Scale, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['balanza', 'comprobacion', 'saldos', 'cuadre', 'debe haber'] },
-      { title: t('sidebar:contabilidadMenu.taxes', { defaultValue: 'IVA en flujo · DIOT' }), url: 'contabilidad/impuestos', icon: Percent, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['iva', 'diot', 'impuestos', 'flujo de efectivo'] },
-      { title: t('sidebar:contabilidadMenu.isr', { defaultValue: 'ISR · Pago provisional' }), url: 'contabilidad/isr', icon: Percent, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['isr', 'pago provisional', 'resico', 'impuesto sobre la renta', 'declaracion'] },
-      { title: t('sidebar:contabilidadMenu.fixedAssets', { defaultValue: 'Activos fijos' }), url: 'contabilidad/activos-fijos', icon: Package, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['activos fijos', 'depreciacion', 'inversiones', 'deduccion de inversiones', 'activo', 'equipo', 'mobiliario'] },
-      { title: t('sidebar:contabilidadMenu.payroll', { defaultValue: 'Nómina' }), url: 'contabilidad/nomina', icon: Users, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['nomina', 'empleados', 'sueldos', 'salarios', 'imss', 'isr nomina', 'recibo de nomina'] },
-      { title: t('sidebar:contabilidadMenu.reports', { defaultValue: 'Reportes contables' }), url: 'contabilidad/reportes', icon: FileSpreadsheet, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['estado de resultados', 'balance general', 'reportes contables', 'auxiliares'] },
-    ].filter(item => !item.permission || can(item.permission)) as any[])
+    const contabilidadSubItems = [
+      {
+        title: t('sidebar:contabilidadMenu.readiness', { defaultValue: 'Preparación fiscal' }),
+        url: 'contabilidad/preparacion',
+        icon: ClipboardList,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['preparacion fiscal', 'onboarding', 'que me falta', 'csd', 'listo para facturar', 'checklist'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.income', { defaultValue: '¿Cuánto gané?' }),
+        url: 'contabilidad/ingresos',
+        icon: DollarSign,
+        permission: 'accounting:read',
+        keywords: ['cuanto gane', 'ingresos', 'estado de resultados', 'utilidad', 'ganancias'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }),
+        url: 'contabilidad/conciliacion',
+        icon: Upload,
+        permission: 'accounting:read',
+        premiumLocked: !hasBankReconFeature,
+        gatedFeature: 'BANK_RECONCILIATION',
+        keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }),
+        url: 'contabilidad/resumen',
+        icon: TrendingUp,
+        permission: 'accounting:read',
+        keywords: ['resumen', 'negocio', 'portada', 'cuanto facture', 'como me fue'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.cfdiInbox', { defaultValue: 'Buzón de CFDIs' }),
+        url: 'contabilidad/buzon',
+        icon: Inbox,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['cfdi recibidos', 'gastos', 'proveedores'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.payable', { defaultValue: 'Cuentas por pagar' }),
+        url: 'contabilidad/cuentas-por-pagar',
+        icon: HandCoins,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['cuentas por pagar', 'proveedores', 'a quien le debo', 'antiguedad de saldos', 'cxp', 'deuda proveedores'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.banks', { defaultValue: 'Bancos y cajas' }),
+        url: 'contabilidad/bancos',
+        icon: Wallet,
+        permission: 'accounting:read',
+        keywords: ['bancos', 'cajas', 'efectivo', 'deposito', 'banco'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.chart', { defaultValue: 'Catálogo de cuentas' }),
+        url: 'contabilidad/catalogo',
+        icon: Landmark,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['catalogo', 'cuentas', 'codigo agrupador', 'sat'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.mapping', { defaultValue: 'Configuración contable' }),
+        url: 'contabilidad/configuracion',
+        icon: Settings2,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['configuracion contable', 'mapeo', 'cuentas', 'el sistema dicta', 'polizas'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.journal', { defaultValue: 'Libro diario · Pólizas' }),
+        url: 'contabilidad/libro-diario',
+        icon: BookOpen,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['polizas', 'libro diario', 'asientos', 'doble partida'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.trialBalance', { defaultValue: 'Balanza de comprobación' }),
+        url: 'contabilidad/balanza',
+        icon: Scale,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['balanza', 'comprobacion', 'saldos', 'cuadre', 'debe haber'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.taxes', { defaultValue: 'IVA en flujo · DIOT' }),
+        url: 'contabilidad/impuestos',
+        icon: Percent,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['iva', 'diot', 'impuestos', 'flujo de efectivo'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.isr', { defaultValue: 'ISR · Pago provisional' }),
+        url: 'contabilidad/isr',
+        icon: Percent,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['isr', 'pago provisional', 'resico', 'impuesto sobre la renta', 'declaracion'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.fixedAssets', { defaultValue: 'Activos fijos' }),
+        url: 'contabilidad/activos-fijos',
+        icon: Package,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['activos fijos', 'depreciacion', 'inversiones', 'deduccion de inversiones', 'activo', 'equipo', 'mobiliario'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.payroll', { defaultValue: 'Nómina' }),
+        url: 'contabilidad/nomina',
+        icon: Users,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['nomina', 'empleados', 'sueldos', 'salarios', 'imss', 'isr nomina', 'recibo de nomina'],
+      },
+      {
+        title: t('sidebar:contabilidadMenu.reports', { defaultValue: 'Reportes contables' }),
+        url: 'contabilidad/reportes',
+        icon: FileSpreadsheet,
+        permission: 'accounting:read',
+        premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
+        keywords: ['estado de resultados', 'balance general', 'reportes contables', 'auxiliares'],
+      },
+    ].filter(item => !item.permission || can(item.permission)) as any[]
 
     // Bancos — hub de banca EN VIVO (distinto de Contabilidad→"Bancos y cajas", que es conciliación
     // contable). Todo gated financialConnections:manage (OWNER). Los que MUEVEN DINERO y aún no tienen
     // backend (SPEI externo, Dispersiones) van comingSoon → "Muy pronto" deshabilitado, nunca un flujo
     // que finja mover dinero. Beneficiarios/Reportes se navegan pero muestran su badge (Beta/Mock) dentro.
-    const bancosSubItems = ([
-      { title: t('sidebar:bancosMenu.overview', { defaultValue: 'Resumen' }), url: 'bancos', icon: Wallet, permission: 'financialConnections:manage', keywords: ['bancos', 'cuentas', 'saldo', 'saldos', 'resumen bancario'] },
-      { title: t('sidebar:bancosMenu.movements', { defaultValue: 'Movimientos' }), url: 'bancos/movimientos', icon: Receipt, permission: 'financialConnections:manage', keywords: ['movimientos', 'estado de cuenta', 'transacciones bancarias', 'spei recibidos'] },
-      { title: t('sidebar:bancosMenu.transfers', { defaultValue: 'Transferencias internas' }), url: 'bancos/transferencias', icon: HandCoins, permission: 'financialConnections:manage', keywords: ['traspaso', 'transferencia interna', 'entre cuentas', 'mover dinero'] },
-      { title: t('sidebar:bancosMenu.spei', { defaultValue: 'SPEI externo' }), url: 'bancos/spei', icon: CreditCard, permission: 'financialConnections:manage', keywords: ['spei', 'transferencia externa', 'enviar a clabe', 'otro banco'] },
-      { title: t('sidebar:bancosMenu.dispersions', { defaultValue: 'Dispersiones' }), url: 'bancos/dispersiones', icon: DollarSign, permission: 'financialConnections:manage', comingSoon: true, keywords: ['dispersion', 'pagos masivos', 'nomina', 'pagar empleados', 'lote'] },
-      { title: t('sidebar:bancosMenu.beneficiaries', { defaultValue: 'Beneficiarios' }), url: 'bancos/beneficiarios', icon: Users, permission: 'financialConnections:manage', keywords: ['beneficiarios', 'destinatarios', 'contactos', 'a quien le pago'] },
-      { title: t('sidebar:bancosMenu.reports', { defaultValue: 'Reportes' }), url: 'bancos/reportes', icon: BarChart3, permission: 'financialConnections:manage', keywords: ['reportes bancarios', 'cobrado', 'dispersado', 'comisiones', 'tendencia'] },
-    ].filter(item => !item.permission || can(item.permission)) as any[])
+    const bancosSubItems = [
+      {
+        title: t('sidebar:bancosMenu.overview', { defaultValue: 'Resumen' }),
+        url: 'bancos',
+        icon: Wallet,
+        permission: 'financialConnections:manage',
+        keywords: ['bancos', 'cuentas', 'saldo', 'saldos', 'resumen bancario'],
+      },
+      {
+        title: t('sidebar:bancosMenu.movements', { defaultValue: 'Movimientos' }),
+        url: 'bancos/movimientos',
+        icon: Receipt,
+        permission: 'financialConnections:manage',
+        keywords: ['movimientos', 'estado de cuenta', 'transacciones bancarias', 'spei recibidos'],
+      },
+      {
+        title: t('sidebar:bancosMenu.transfers', { defaultValue: 'Transferencias internas' }),
+        url: 'bancos/transferencias',
+        icon: HandCoins,
+        permission: 'financialConnections:manage',
+        keywords: ['traspaso', 'transferencia interna', 'entre cuentas', 'mover dinero'],
+      },
+      {
+        title: t('sidebar:bancosMenu.spei', { defaultValue: 'SPEI externo' }),
+        url: 'bancos/spei',
+        icon: CreditCard,
+        permission: 'financialConnections:manage',
+        keywords: ['spei', 'transferencia externa', 'enviar a clabe', 'otro banco'],
+      },
+      {
+        title: t('sidebar:bancosMenu.dispersions', { defaultValue: 'Dispersiones' }),
+        url: 'bancos/dispersiones',
+        icon: DollarSign,
+        permission: 'financialConnections:manage',
+        comingSoon: true,
+        keywords: ['dispersion', 'pagos masivos', 'nomina', 'pagar empleados', 'lote'],
+      },
+      {
+        title: t('sidebar:bancosMenu.beneficiaries', { defaultValue: 'Beneficiarios' }),
+        url: 'bancos/beneficiarios',
+        icon: Users,
+        permission: 'financialConnections:manage',
+        keywords: ['beneficiarios', 'destinatarios', 'contactos', 'a quien le pago'],
+      },
+      {
+        title: t('sidebar:bancosMenu.reports', { defaultValue: 'Reportes' }),
+        url: 'bancos/reportes',
+        icon: BarChart3,
+        permission: 'financialConnections:manage',
+        keywords: ['reportes bancarios', 'cobrado', 'dispersado', 'comisiones', 'tendencia'],
+      },
+    ].filter(item => !item.permission || can(item.permission)) as any[]
 
     // ===================================================================
     // Build Main Sidebar Items (triggers + direct links)
@@ -743,15 +1127,20 @@ export function AppSidebar({
     // Home
     if (can('home:read') && canWL('AVOQADO_DASHBOARD')) {
       mainItems.push({
-        title: t('sidebar:routes.home'), url: 'home', icon: Home,
+        title: t('sidebar:routes.home'),
+        url: 'home',
+        icon: Home,
         keywords: ['inicio', 'dashboard', 'resumen', 'panel'],
       })
     }
 
     // Menu / Carta
-    if (menuSubItems.length > 0 && canWL('AVOQADO_MENU')) {
+    if (menuSubItems.length > 0) {
       mainItems.push({
-        title: term('menu'), url: '#menu', icon: BookOpen, subSidebar: 'menu',
+        title: term('menu'),
+        url: '#menu',
+        icon: BookOpen,
+        subSidebar: 'menu',
         keywords: ['carta', 'menu', 'platillos'],
       })
     }
@@ -760,7 +1149,10 @@ export function AppSidebar({
     if (inventorySubItems.length > 0 && canWL('AVOQADO_INVENTORY')) {
       const hasInventoryFeature = hasFeatureAccess('INVENTORY_TRACKING')
       mainItems.push({
-        title: t('sidebar:routes.inventory'), url: '#inventory', icon: Package, subSidebar: 'inventory',
+        title: t('sidebar:routes.inventory'),
+        url: '#inventory',
+        icon: Package,
+        subSidebar: 'inventory',
         premiumLocked: !hasInventoryFeature,
         gatedFeature: 'INVENTORY_TRACKING',
         keywords: ['almacen', 'bodega', 'stock'],
@@ -770,7 +1162,10 @@ export function AppSidebar({
     // Ventas
     if (salesSubItems.length > 0) {
       mainItems.push({
-        title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }), url: '#sales', icon: ShoppingCart, subSidebar: 'sales',
+        title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }),
+        url: '#sales',
+        icon: ShoppingCart,
+        subSidebar: 'sales',
         keywords: ['pedidos', 'cobros', 'pagos', 'ventas', 'transacciones'],
       })
     }
@@ -781,7 +1176,10 @@ export function AppSidebar({
     // canFeature('BANKING_HUB')→false, así que se filtraría el paywall de Avoqado a un dashboard de marca ajena.
     if (bancosSubItems.length > 0 && !isWhiteLabelVenue) {
       mainItems.push({
-        title: t('sidebar:bancosMenu.title', { defaultValue: 'Bancos' }), url: '#bancos', icon: Landmark, subSidebar: 'bancos',
+        title: t('sidebar:bancosMenu.title', { defaultValue: 'Bancos' }),
+        url: '#bancos',
+        icon: Landmark,
+        subSidebar: 'bancos',
         premiumLocked: !hasFeatureAccess('BANKING_HUB'),
         gatedFeature: 'BANKING_HUB',
         keywords: ['bancos', 'banca', 'tesoreria', 'cuentas bancarias', 'saldo', 'movimientos', 'spei', 'transferencias', 'dispersiones'],
@@ -792,7 +1190,10 @@ export function AppSidebar({
     // the reservation pages show the <FeatureGate> paywall.
     if (reservationsSubItems.length > 0 && canWL('AVOQADO_RESERVATIONS')) {
       mainItems.push({
-        title: t('sidebar:routes.reservations'), url: '#reservations', icon: CalendarDays, subSidebar: 'reservations',
+        title: t('sidebar:routes.reservations'),
+        url: '#reservations',
+        icon: CalendarDays,
+        subSidebar: 'reservations',
         premiumLocked: !hasFeatureAccess('RESERVATIONS'),
         gatedFeature: 'RESERVATIONS',
         keywords: ['reservas', 'mesas', 'booking'],
@@ -802,7 +1203,9 @@ export function AppSidebar({
     // TPV (direct link, no sub-sidebar)
     if (can('tpv:read') && canWL('AVOQADO_TPVS')) {
       mainItems.push({
-        title: t('sidebar:routes.tpv'), url: 'devices', icon: Smartphone,
+        title: t('sidebar:routes.tpv'),
+        url: 'devices',
+        icon: Smartphone,
         keywords: ['terminal', 'punto de venta', 'pos', 'dispositivo'],
       })
     }
@@ -810,7 +1213,10 @@ export function AppSidebar({
     // Equipo
     if (teamSubItems.length > 0) {
       mainItems.push({
-        title: t('sidebar:teamMenu.title', { defaultValue: 'Equipo' }), url: '#team', icon: Users, subSidebar: 'team',
+        title: t('sidebar:teamMenu.title', { defaultValue: 'Equipo' }),
+        url: '#team',
+        icon: Users,
+        subSidebar: 'team',
         keywords: ['usuarios', 'empleados', 'personal', 'staff'],
       })
     }
@@ -818,7 +1224,10 @@ export function AppSidebar({
     // Clientes
     if (customersSubItems.length > 0) {
       mainItems.push({
-        title: t('sidebar:customersMenu.title'), url: '#customers', icon: Handshake, subSidebar: 'customers',
+        title: t('sidebar:customersMenu.title'),
+        url: '#customers',
+        icon: Handshake,
+        subSidebar: 'customers',
         keywords: ['consumidores', 'comensales', 'clientes'],
       })
     }
@@ -828,7 +1237,10 @@ export function AppSidebar({
     // (Ventas por Artículo) each show their own <FeatureGate feature="ADVANCED_REPORTS"> paywall.
     if (reportsSubItems.length > 0) {
       mainItems.push({
-        title: t('sidebar:reportsMenu.title', { defaultValue: 'Reportes' }), url: '#reports', icon: BarChart3, subSidebar: 'reports',
+        title: t('sidebar:reportsMenu.title', { defaultValue: 'Reportes' }),
+        url: '#reports',
+        icon: BarChart3,
+        subSidebar: 'reports',
         keywords: ['reportes', 'analytics', 'estadisticas'],
       })
     }
@@ -837,7 +1249,10 @@ export function AppSidebar({
     // on the group when the venue lacks the CFDI feature.
     if (facturacionSubItems.length > 0) {
       mainItems.push({
-        title: t('sidebar:facturacionMenu.title', { defaultValue: 'Facturación' }), url: '#facturacion', icon: Receipt, subSidebar: 'facturacion',
+        title: t('sidebar:facturacionMenu.title', { defaultValue: 'Facturación' }),
+        url: '#facturacion',
+        icon: Receipt,
+        subSidebar: 'facturacion',
         premiumLocked: !hasCfdiFeature,
         gatedFeature: 'CFDI',
         keywords: ['facturas', 'cfdi', 'facturacion', 'sat', 'comprobantes', 'fiscal'],
@@ -847,7 +1262,10 @@ export function AppSidebar({
     // Contabilidad — su propio collapsible (gerencial + fiscal + bancos), gateado por accounting:read.
     if (contabilidadSubItems.length > 0) {
       mainItems.push({
-        title: t('sidebar:contabilidadMenu.title', { defaultValue: 'Contabilidad' }), url: '#contabilidad', icon: Calculator, subSidebar: 'contabilidad',
+        title: t('sidebar:contabilidadMenu.title', { defaultValue: 'Contabilidad' }),
+        url: '#contabilidad',
+        icon: Calculator,
+        subSidebar: 'contabilidad',
         keywords: ['contabilidad', 'cuanto gane', 'iva', 'fiscal', 'conciliacion', 'estado de resultados', 'polizas', 'balanza', 'diot'],
       })
     }
@@ -861,9 +1279,26 @@ export function AppSidebar({
         url: 'settings',
         icon: Settings,
         keywords: [
-          'ajustes', 'configuracion', 'settings', 'cuenta', 'perfil', 'seguridad', 'idioma', 'tema',
-          'integraciones', 'integrations', 'stripe', 'google', 'pos',
-          'plan', 'suscripcion', 'facturacion', 'roles', 'permisos', 'bitacora', 'notificaciones',
+          'ajustes',
+          'configuracion',
+          'settings',
+          'cuenta',
+          'perfil',
+          'seguridad',
+          'idioma',
+          'tema',
+          'integraciones',
+          'integrations',
+          'stripe',
+          'google',
+          'pos',
+          'plan',
+          'suscripcion',
+          'facturacion',
+          'roles',
+          'permisos',
+          'bitacora',
+          'notificaciones',
         ],
       })
     }

@@ -147,6 +147,7 @@ const routeKeyMap: Record<string, string> = {
   'print-stations': 'sidebar:routes.printStations',
   'floor-plan': 'sidebar:routes.floorPlan',
   'receipt-layout': 'sidebar:routes.receiptLayout',
+  'service-courses': 'serviceCourses:title',
   'role-permissions': 'sidebar:routes.rolePermissions',
   'activity-log': 'sidebar:routes.activityLog',
   // Inventario (el modulo mas grande: 24 rutas). "Stock overview" salia asi, en ingles,
@@ -431,7 +432,12 @@ function DashboardContent() {
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Superadmin Navigation Button - only show for SUPERADMIN users */}
             {user?.role === StaffRole.SUPERADMIN && (
-              <Button variant="outline" size="sm" onClick={() => navigate('/superadmin')} className="flex items-center space-x-1 sm:space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/superadmin')}
+                className="flex items-center space-x-1 sm:space-x-2"
+              >
                 <Shield className="w-4 h-4" />
                 <span className="hidden sm:inline">{t('header.superadmin', { ns: 'superadmin' })}</span>
                 <ArrowLeft className="w-3 h-3 hidden sm:block" />
@@ -494,9 +500,7 @@ function DashboardContent() {
       />
 
       {/* Global keyboard shortcut (⌘⇧I) to toggle the impersonation picker / exit. */}
-      <ImpersonationShortcut
-        onTogglePicker={() => setImpersonationPickerOpen(prev => !prev)}
-      />
+      <ImpersonationShortcut onTogglePicker={() => setImpersonationPickerOpen(prev => !prev)} />
 
       {/* Whole-screen amber ring while impersonating — peripheral-vision reminder. */}
       <ImpersonationScreenRing />

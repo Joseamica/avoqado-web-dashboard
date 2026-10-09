@@ -6,7 +6,7 @@
  *  - publish rejected shows ALL server errors together
  *  - FREE tier sees the blurred FeatureGate paywall (not a redirect)
  *
- * Route requires `discounts:read` permission (venueRoutes.tsx: promotions/bundles ->
+ * Route requires `discounts:read` permission (venueRoutes.tsx: menumaker/bundles ->
  * PermissionProtectedRoute permission="discounts:read") — the default VENUE_ALPHA
  * fixture does NOT grant discounts:* permissions, so every test here uses a venue
  * override that adds them. Without discounts:read even the FREE-paywall test would
@@ -37,6 +37,88 @@ const VENUE_ALPHA_WITH_PROMOTIONS = {
 }
 
 test.describe('Promociones (combos y paquetes)', () => {
+  test('combos está en Menú, Promociones permanece en Clientes y el enlace anterior conserva query y hash', async ({ page }) => {
+    await setupApiMocks(page, {
+      venues: [
+        { ...VENUE_ALPHA_WITH_PROMOTIONS, permissions: [...VENUE_ALPHA_WITH_PROMOTIONS.permissions, 'coupons:read', 'upsells:read'] },
+      ],
+      planState: { hasPlan: true, state: 'active', planTier: 'PRO', grandfathered: false },
+    })
+    await setupPromotionMocks(page)
+
+    await page.goto('/venues/venue-alpha/promotions/bundles?from=bookmark#details')
+    await expect(page).toHaveURL(/\/venues\/venue-alpha\/menumaker\/bundles\?from=bookmark#details$/)
+    await expect(page.locator('a[data-sidebar="menu-button"]').filter({ hasText: 'Combos y paquetes' })).toHaveAttribute(
+      'href',
+      '/venues/venue-alpha/menumaker/bundles',
+    )
+
+    // Volver del submenú antes de abrir Clientes (el panel principal está fuera de pantalla).
+    await page.getByRole('button', { name: 'Menú', exact: true }).last().click()
+    await page.getByRole('button', { name: 'Clientes', exact: true }).click()
+    await page.getByRole('button', { name: 'Promociones', exact: true }).click()
+    await expect(page.getByRole('link', { name: 'Descuentos', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Códigos de Cupón', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Sugerencias al cobrar', exact: true })).toBeVisible()
+    await expect(page.locator('a[data-sidebar="menu-button"]').filter({ hasText: 'Combos y paquetes' })).not.toBeVisible()
+  })
+
+  test('la nueva ruta conserva acceso con discounts:read sin exigir menu:read', async ({ page }) => {
+    await setupApiMocks(page, {
+      venues: [{ ...VENUE_ALPHA, permissions: ['discounts:read'] }],
+      planState: { hasPlan: true, state: 'active', planTier: 'PRO', grandfathered: false },
+    })
+    await setupPromotionMocks(page)
+
+    await page.goto('/venues/venue-alpha/menumaker/bundles')
+    await expect(page.getByText('Combo del día')).toBeVisible()
+    await expect(page.locator('a[data-sidebar="menu-button"]').filter({ hasText: 'Combos y paquetes' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Productos', exact: true })).not.toBeVisible()
+  })
+
+  test('marca blanca mantiene combos disponible sin habilitar el resto del Menú', async ({ page }) => {
+    const venue = {
+      ...VENUE_ALPHA_WITH_PROMOTIONS,
+      modules: [
+        {
+          module: { id: 'mod-wl', code: 'WHITE_LABEL_DASHBOARD', name: 'White Label Dashboard' },
+          enabled: true,
+          config: { version: '1.0', theme: {}, navigation: { items: [] }, enabledFeatures: [{ code: 'AVOQADO_PROMOTIONS' }] },
+        },
+      ],
+    }
+    await setupApiMocks(page, {
+      venues: [venue],
+      planState: { hasPlan: true, state: 'active', planTier: 'PRO', grandfathered: false },
+    })
+    await setupPromotionMocks(page)
+    await page.route('**/api/v1/me/access*', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          userId: 'user-test-001',
+          venueId: venue.id,
+          organizationId: venue.organizationId,
+          role: 'OWNER',
+          corePermissions: venue.permissions,
+          whiteLabelEnabled: true,
+          enabledFeatures: ['AVOQADO_PROMOTIONS'],
+          featureAccess: { AVOQADO_PROMOTIONS: { allowed: true } },
+        }),
+      }),
+    )
+
+    await page.goto('/wl/venues/venue-alpha/promotions/bundles?from=bookmark#details')
+    await expect(page).toHaveURL(/\/wl\/venues\/venue-alpha\/menumaker\/bundles\?from=bookmark#details$/)
+    await expect(page.getByRole('button', { name: 'Menú', exact: true })).toHaveCount(2, { timeout: 3000 })
+    await expect(page.locator('a[data-sidebar="menu-button"]').filter({ hasText: 'Combos y paquetes' })).toHaveAttribute(
+      'href',
+      '/wl/venues/venue-alpha/menumaker/bundles',
+    )
+    await expect(page.getByRole('link', { name: 'Productos', exact: true })).not.toBeVisible()
+  })
+
   test('lista, crea y publica', async ({ page }) => {
     await setupApiMocks(page, {
       venues: [VENUE_ALPHA_WITH_PROMOTIONS, VENUE_BETA],
@@ -100,7 +182,10 @@ test.describe('Promociones (combos y paquetes)', () => {
     // Negative behavioral check: the blurred content sits behind
     // pointer-events-none (FeatureGate.tsx), so the create button underneath
     // must NOT be clickable — clicking it must never open the editor.
-    await page.locator('[data-tour="bundle-create"]').click({ timeout: 3000 }).catch(() => {})
+    await page
+      .locator('[data-tour="bundle-create"]')
+      .click({ timeout: 3000 })
+      .catch(() => {})
     await expect(page.locator('[data-tour="bundle-save"]')).not.toBeVisible()
   })
 })

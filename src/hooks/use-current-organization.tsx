@@ -56,7 +56,7 @@ interface UseCurrentOrganizationReturn {
  * navigate(`/wl/venues/${selectedVenue.slug}`)
  * ```
  */
-export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
+export const useCurrentOrganization = (options: { includeVenues?: boolean; fetchStats?: boolean } = {}): UseCurrentOrganizationReturn => {
   const params = useParams<{ orgId?: string; orgSlug?: string }>()
   const location = useLocation()
   const { user, isAuthenticated, staffInfo: _staffInfo, allVenues } = useAuth()
@@ -128,7 +128,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   } = useQuery({
     queryKey: ['organization', 'stats', orgId || orgSlugFromUrl],
     queryFn: () => getOrganizationStats(orgId!),
-    enabled: shouldFetch && !!orgId,
+    enabled: shouldFetch && !!orgId && options.fetchStats !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   })
@@ -137,7 +137,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   const { data: venues, isLoading: isLoadingVenues } = useQuery({
     queryKey: ['organization', 'venues', orgId || orgSlugFromUrl],
     queryFn: () => getOrganizationVenues(orgId!),
-    enabled: shouldFetch && !!orgId,
+    enabled: shouldFetch && !!orgId && options.includeVenues !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   })

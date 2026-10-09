@@ -19,7 +19,7 @@ import { Building2, Info, Loader2, Mail, Monitor, Phone, Receipt, Save, Settings
 import React, { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import OrgCommissionConfigSection from '@/pages/Commissions/components/OrgCommissionConfigSection'
 import OrgPayoutConfigSection from '@/pages/Commissions/components/OrgPayoutConfigSection'
@@ -110,6 +110,9 @@ const OrganizationSettings: React.FC = () => {
       </div>
 
       {/* Tabs */}
+      <Button variant="outline" asChild>
+        <Link to={`/organizations/${orgId}/settings/service-courses`}>{t('sidebar.serviceCourses')}</Link>
+      </Button>
       <Tabs value={activeOrgTab} onValueChange={v => setActiveOrgTab(v as any)}>
         <div className="border-b border-border">
           <nav className="flex items-center gap-6">

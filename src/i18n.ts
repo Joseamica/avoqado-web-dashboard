@@ -26,6 +26,8 @@ import merchantRoutingEs from '@/locales/es/merchantRouting.json'
 import merchantRoutingFr from '@/locales/fr/merchantRouting.json'
 import settingsEn from '@/locales/en/settings.json'
 import settingsEs from '@/locales/es/settings.json'
+import serviceCoursesEn from '@/locales/en/serviceCourses.json'
+import serviceCoursesEs from '@/locales/es/serviceCourses.json'
 import commonEn from '@/locales/en/common.json'
 import commonEs from '@/locales/es/common.json'
 import commonFr from '@/locales/fr/common.json'
@@ -833,3 +835,11 @@ sincronizarLangDelDocumento()
 i18n.on('languageChanged', sincronizarLangDelDocumento)
 
 export default i18n
+;(
+  [
+    ['en', serviceCoursesEn],
+    ['es', serviceCoursesEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'serviceCourses', bundle, true, true)
+})

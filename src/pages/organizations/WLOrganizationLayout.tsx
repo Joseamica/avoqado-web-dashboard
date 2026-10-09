@@ -20,14 +20,7 @@ import LanguageSwitcher from '@/components/language-switcher'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import WLOrgSidebar from './components/WLOrgSidebar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Store } from 'lucide-react'
@@ -49,6 +42,8 @@ const WLOrganizationLayout: React.FC = () => {
       venues: t('organization:breadcrumb.venues', { defaultValue: 'Tiendas' }),
       managers: t('organization:breadcrumb.managers', { defaultValue: 'Gerentes' }),
       reports: t('organization:breadcrumb.reports', { defaultValue: 'Reportes' }),
+      settings: t('organization:breadcrumb.settings'),
+      'service-courses': t('serviceCourses:title'),
     }
     return routeMap[segment.toLowerCase()] || segment
   }
@@ -111,7 +106,7 @@ const WLOrganizationLayout: React.FC = () => {
                   <SelectValue placeholder={t('organization:selectVenue', { defaultValue: 'Ir a tienda...' })} />
                 </SelectTrigger>
                 <SelectContent>
-                  {venues.map((venue) => (
+                  {venues.map(venue => (
                     <SelectItem key={venue.id} value={venue.slug}>
                       {venue.name}
                     </SelectItem>

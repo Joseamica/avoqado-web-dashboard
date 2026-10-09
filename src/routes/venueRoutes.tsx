@@ -109,6 +109,7 @@ import {
   PrintStations,
   FloorPlanSettings,
   ReceiptLayout,
+  VenueServiceCourses,
   TenderTypes,
   AreaTickets,
   ExternalSettlements,
@@ -741,14 +742,16 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Promotions - Combos y paquetes (BUNDLE/COMBO/2x1). Teaser visible: el
-    // permiso protege la ruta; el tier lo gatea <FeatureGate> DENTRO de la
+    // Catálogo - Combos y paquetes. Conserva el permiso y tier existentes.
+    // Ruta hermana de menumaker: no agrega menu:read al acceso discounts:read.
+    // El permiso protege la ruta; el tier lo gatea <FeatureGate> DENTRO de la
     // página para que FREE vea el candado y el upsell, no un redirect.
     {
-      path: 'promotions/bundles',
+      path: 'menumaker/bundles',
       element: <PermissionProtectedRoute permission="discounts:read" />,
       children: [{ index: true, element: <Bundles /> }],
     },
+    { path: 'promotions/bundles', element: <LegacyRedirect to="menumaker/bundles" preserveSearchAndHash /> },
 
     // Notifications
     { path: 'notifications', element: <Notifications /> },
@@ -883,6 +886,11 @@ export function createVenueRoutes(): RouteObject[] {
         },
         // Este local — diseño del ticket en papel (core/GRATIS, sin FeatureGate ni interruptor:
         // el único candado es el permiso. Los tres intérpretes lo consumen desde el servidor).
+        {
+          path: 'service-courses',
+          element: <PermissionProtectedRoute permission="settings:read" />,
+          children: [{ index: true, element: <VenueServiceCourses /> }],
+        },
         {
           path: 'receipt-layout',
           element: <PermissionProtectedRoute permission="receipt-layout:read" />,

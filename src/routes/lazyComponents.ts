@@ -256,6 +256,8 @@ export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organiz
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
 export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))
+export const OrganizationServiceCourses = lazyWithRetry(() => import('@/pages/Organization/OrganizationServiceCourses'))
+export const VenueServiceCourses = lazyWithRetry(() => import('@/pages/Settings/ServiceCourses'))
 export const OrganizationTerminals = lazyWithRetry(() => import('@/pages/Organization/OrganizationTerminals'))
 export const OrganizationActivityLog = lazyWithRetry(() => import('@/pages/Organization/OrganizationActivityLog'))
 
