@@ -142,6 +142,9 @@ describe('FloorCanvas', () => {
     expect(screen.queryByTestId('floor-canvas-open-legend')).not.toBeInTheDocument()
     rerender(<FloorCanvas {...props({ tables: [{ ...table, hasOpenOrder: true }] })} />)
     expect(screen.getByTestId('floor-canvas-open-legend')).toHaveTextContent('canvas.openOrderLegend')
+    // Con una herramienta en la mano, la instrucción tiene el lugar (a 1280 px la leyenda la recortaba).
+    rerender(<FloorCanvas {...props({ tables: [{ ...table, hasOpenOrder: true }], tool: 'table:SQUARE' })} />)
+    expect(screen.queryByTestId('floor-canvas-open-legend')).not.toBeInTheDocument()
   })
 
   // Pasada en vivo (9-oct): con «Cuadrada» en la mano el puntero era sólo una cruz; la mesa se ponía a ciegas.

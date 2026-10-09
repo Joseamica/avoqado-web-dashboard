@@ -441,8 +441,9 @@ export function FloorCanvas(props: FloorCanvasProps) {
             </button>
           ) : null}
         </div>
-        {/* El punto ámbar de las mesas no se explicaba en ningún lado (pasada en vivo, 9-oct): su leyenda, sólo si hay. */}
-        {tables.some(x => x.hasOpenOrder) && (
+        {/* El punto ámbar de las mesas no se explicaba en ningún lado (pasada en vivo, 9-oct): su leyenda, sólo si hay. Con
+            una herramienta en la mano manda la instrucción: a 1280 px la leyenda la recortaba. */}
+        {!hint && tables.some(x => x.hasOpenOrder) && (
           <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground" data-testid="floor-canvas-open-legend">
             <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-warning" />
             {t('canvas.openOrderLegend')}
