@@ -282,9 +282,7 @@ export interface StaffCommissionStats {
   total: number
 }
 
-// ============================================
-// Request DTOs (Create/Update Inputs)
-// ============================================
+// ===== Request DTOs (Create/Update Inputs) =====
 
 export interface CreateCommissionConfigInput {
   name: string
@@ -309,6 +307,7 @@ export interface CreateCommissionConfigInput {
   effectiveTo?: string | null
   priority?: number
   aggregationPeriod?: TierPeriod // Period for grouping commissions into summaries (payroll alignment)
+  tiers?: CreateCommissionTierInput[] // Con TIERED, los niveles en la MISMA llamada (formato de /tiers/batch): una sola transacción
 }
 
 export interface UpdateCommissionConfigInput {

@@ -36,6 +36,8 @@ vi.mock('@/hooks/use-role-config', () => {
   return { useRoleConfig: () => valor, default: () => valor }
 })
 vi.mock('@/hooks/useCommissions', () => ({
+  // El panel refresca con `commissionKeys.all` al crear (y si falla después de crear el esquema).
+  commissionKeys: { all: ['commissions'] },
   useUpdateCommissionConfig: () => ({ mutateAsync: m.editar, isPending: false }),
   useCreateCommissionConfig: () => ({ mutateAsync: m.crear, isPending: false }),
   useCreateOrgCommissionConfig: () => ({ mutateAsync: m.crear, isPending: false }),

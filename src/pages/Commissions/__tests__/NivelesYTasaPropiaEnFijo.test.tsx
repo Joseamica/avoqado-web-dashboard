@@ -42,6 +42,8 @@ vi.mock('@/hooks/use-role-config', () => {
   return { useRoleConfig: () => valor, default: () => valor }
 })
 vi.mock('@/hooks/useCommissions', () => ({
+  // El panel refresca con `commissionKeys.all` al crear (y si falla después de crear el esquema).
+  commissionKeys: { all: ['commissions'] },
   useCreateCommissionConfig: () => ({ mutateAsync: m.crear, isPending: false }),
   useCreateOrgCommissionConfig: () => ({ mutateAsync: m.crear, isPending: false }),
   useUpdateCommissionConfig: () => ({ mutateAsync: m.editar, isPending: false }),
@@ -157,15 +159,19 @@ describe('Niveles y tasa propia en un esquema de monto fijo (final-fijo-niveles)
       expect(m.crear.mock.calls[0][0]).toMatchObject({ calcType: 'FIXED', defaultRate: 10, useGoalAsTier: false, goalBonusRate: null })
     })
 
-    it('control: con porcentaje, los niveles siguen guardando TIERED con su tasa y creando los niveles', async () => {
+    it('🔴 con porcentaje, los niveles viajan DENTRO del esquema TIERED, en una sola llamada (ft-graves, D-NIVELES)', async () => {
       const ref = montar()
       abrirAvanzado()
       fireEvent.click(within(bloque('wizard.advanced.tiers.title')).getByRole('switch'))
       await act(async () => {
         await ref.current!.submit()
       })
-      expect(m.crear.mock.calls[0][0]).toMatchObject({ calcType: 'TIERED', defaultRate: 0.03 })
-      expect(m.crearNiveles).toHaveBeenCalledTimes(1)
+      expect(m.crear).toHaveBeenCalledTimes(1)
+      const cuerpo = m.crear.mock.calls[0][0] as { calcType: string; defaultRate: number; tiers: Array<Record<string, unknown>> }
+      expect(cuerpo).toMatchObject({ calcType: 'TIERED', defaultRate: 0.03 })
+      expect(cuerpo.tiers).toHaveLength(3)
+      expect(cuerpo.tiers[0]).toMatchObject({ tierLevel: 1, name: 'Bronce', rate: 0.02, period: 'MONTHLY' })
+      expect(m.crearNiveles).not.toHaveBeenCalled()
     })
 
     it('🔴 excepciones en un fijo: la tasa propia no viaja y la excepción que no excluye no se manda', async () => {
@@ -253,10 +259,12 @@ describe('Niveles y tasa propia en un esquema de monto fijo (final-fijo-niveles)
       expect(m.crearExcepcion.mock.calls[0][2]).toEqual({ staffId: 's-beto', customRate: null, excludeFromCommissions: true })
     })
 
-    it('control: con porcentaje manda los niveles y las dos excepciones como antes', async () => {
+    it('🔴 con porcentaje y niveles: un esquema TIERED con los niveles dentro (una llamada) y las dos excepciones', async () => {
       await crear('PERCENTAGE')
-      expect(m.crearAlta.mock.calls[0][1]).toMatchObject({ calcType: 'PERCENTAGE', defaultRate: 0.03 })
-      expect(m.crearNiveles).toHaveBeenCalledTimes(1)
+      // ft-graves D-NIVELES: antes mandaba PERCENTAGE y los niveles aparte; el server los rechazaba y dejaba un 3 % plano activo.
+      expect(m.crearAlta.mock.calls[0][1]).toMatchObject({ calcType: 'TIERED', defaultRate: 0.03 })
+      expect((m.crearAlta.mock.calls[0][1] as { tiers: unknown[] }).tiers).toHaveLength(3)
+      expect(m.crearNiveles).not.toHaveBeenCalled()
       await waitFor(() => expect(m.crearExcepcion).toHaveBeenCalledTimes(2))
       expect(m.crearExcepcion.mock.calls[0][2]).toEqual({ staffId: 's-ana', customRate: 0.05, excludeFromCommissions: false })
     })

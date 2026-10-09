@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useState } from 'react'
+import { useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
@@ -18,11 +18,11 @@ import CategoriesCard from './cards/CategoriesCard'
 import PeriodCard from './cards/PeriodCard'
 import TiersCard from './cards/TiersCard'
 import RoleRatesCard from './cards/RoleRatesCard'
-import { ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
+import { calcTypeAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import { aQuienAplicaAGuardar, restriccionEnElServidor } from '../../aQuienAplica'
 import LimitsCard from './cards/LimitsCard'
 import { finDelDiaEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../../fechasDeVigencia'
-import { useEnvioUnico, type Paso } from '../../envioUnico'
+import { quedoEnDuda, useEnvioUnico, type Paso } from '../../envioUnico'
 
 interface CommissionSetupPanelProps {
   open: boolean
@@ -49,19 +49,38 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
 
   // Un doble clic creaba dos esquemas (ft-graves, D-D1): candado síncrono + `Idempotency-Key` por paso de la operación.
   const envio = useEnvioUnico()
+  // ¿Ya quedó creado el esquema cuando algo falló? Sólo si no, se puede decir «no se creó nada».
+  const esquemaCreado = useRef(false)
   const createMutation = useMutation({
     mutationFn: async (paso: Paso) => {
       if (!venueId) throw new Error('No venue')
+      esquemaCreado.current = false
 
       // A quién aplica: «Sólo seleccionados» restringe en el servidor (`filterByStaff` + `staffIds`); ya no crea una excepción por
       // cada elegido, que no excluía a nadie (final-comisiones-viejas, D-ELEGIDOS).
       const aQuien = aQuienAplicaAGuardar(state.rate.calcType, state.staff.mode, state.staff.overrides, state.rate.defaultRate)
       if (aQuien.filterByStaff && restriccion === 'noDisponible') throw new Error(t('setup.staff.restrictionUnavailable'))
 
+      // Los niveles viajan DENTRO del esquema TIERED, en la misma llamada (ft-graves, D-NIVELES): antes iba PERCENTAGE y los
+      // niveles aparte; el server los rechazaba y quedaba un esquema plano ACTIVO. En un fijo no se ofrecen (final-fijo-niveles).
+      const niveles =
+        ofreceNiveles(state.rate.calcType) && state.tiers.enabled && state.tiers.items.length > 0
+          ? state.tiers.items.map(tier => ({
+              tierLevel: tier.level,
+              name: tier.name,
+              tierType: 'BY_AMOUNT' as const,
+              minThreshold: tier.minThreshold,
+              maxThreshold: tier.maxThreshold,
+              minThresholdType: tier.minThresholdType,
+              maxThresholdType: tier.maxThresholdType,
+              rate: tier.rate,
+              period: state.tiers.tierPeriod,
+            }))
+          : null
       const cuerpo = {
         name: state.name.value,
         recipient: state.rate.recipient,
-        calcType: state.rate.calcType,
+        calcType: calcTypeAGuardar(state.rate.calcType, !!niveles, false),
         defaultRate: state.rate.calcType === 'FIXED' ? state.rate.fixedAmount : state.rate.defaultRate,
         includeTax: state.calculationBase.includeTax,
         includeTips: state.calculationBase.includeTips,
@@ -78,8 +97,10 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
         roleRates: tasasPorRolAGuardar(state.rate.calcType, state.roleRates.enabled, state.roleRates.rates) ?? undefined,
         minAmount: state.limits.enabled ? state.limits.minAmount : undefined,
         maxAmount: state.limits.enabled ? state.limits.maxAmount : undefined,
+        ...(niveles ? { tiers: niveles } : {}),
       }
       const config = await paso('esquema', clave => commissionService.createConfig(venueId, cuerpo, clave))
+      esquemaCreado.current = true
 
       // 🔴 DINERO: un servidor que no sabe restringir ignora `filterByStaff` y el esquema le pagaría a TODO el equipo. Si no regresó
       // restringido, se quita (no tiene niveles, excepciones ni cálculos todavía) y se dice; nunca se deja fingiendo.
@@ -91,22 +112,6 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
           throw new Error(t('setup.staff.restrictionNotAppliedKept'))
         }
         throw new Error(t('setup.staff.restrictionNotApplied'))
-      }
-
-      // Los niveles son porcentajes: en un fijo no se ofrecen ni se crean (final-fijo-niveles).
-      if (ofreceNiveles(state.rate.calcType) && state.tiers.enabled && state.tiers.items.length > 0) {
-        const niveles = state.tiers.items.map(tier => ({
-          tierLevel: tier.level,
-          name: tier.name,
-          tierType: 'BY_AMOUNT' as const,
-          minThreshold: tier.minThreshold,
-          maxThreshold: tier.maxThreshold,
-          minThresholdType: tier.minThresholdType,
-          maxThresholdType: tier.maxThresholdType,
-          rate: tier.rate,
-          period: state.tiers.tierPeriod,
-        }))
-        await paso('niveles', clave => commissionService.createTiersBatch(venueId, config.id, niveles, clave))
       }
 
       // En un fijo sólo viajan las exclusiones, sin tasa propia (el servidor paga el monto fijo a todos los demás). Con «Sólo
@@ -124,8 +129,10 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
       onOpenChange(false)
     },
     onError: (err: any) => {
+      // Si el esquema sí se creó (falló algo después), que aparezca en la lista; si el server lo rechazó, no se guardó nada.
+      if (esquemaCreado.current) queryClient.invalidateQueries({ queryKey: commissionKeys.all })
       toast({
-        title: t('errors.createError'),
+        title: !esquemaCreado.current && !quedoEnDuda(err) ? t('errors.notCreated') : t('errors.createError'),
         description: err?.response?.data?.message || err?.message,
         variant: 'destructive',
       })

@@ -517,6 +517,7 @@
     "loadError": "Error al cargar las comisiones",
     "saveError": "Error al guardar la configuración",
     "createError": "Error al crear",
+    "notCreated": "No se creó el esquema: no se guardó nada",
     "updateError": "Error al actualizar",
     "deleteError": "Error al eliminar",
     "approveError": "Error al aprobar",

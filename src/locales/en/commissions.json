@@ -517,6 +517,7 @@
     "loadError": "Error loading commissions",
     "saveError": "Error saving configuration",
     "createError": "Error creating",
+    "notCreated": "The scheme wasn't created: nothing was saved",
     "updateError": "Error updating",
     "deleteError": "Error deleting",
     "approveError": "Error approving",

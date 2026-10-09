@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCreateCommissionConfig, useCreateOrgCommissionConfig } from '@/hooks/useCommissions'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -15,7 +15,7 @@ import StepAmount from './StepAmount'
 import StepConfirm from './StepConfirm'
 import { calcTypeAGuardar, excepcionesAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import { finDelDiaEnLaSede, hoyEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../../fechasDeVigencia'
-import { useEnvioUnico, type Paso } from '../../envioUnico'
+import { quedoEnDuda, useEnvioUnico, type Paso } from '../../envioUnico'
 
 // Override type for wizard (simplified from CreateCommissionOverrideInput)
 export interface WizardOverride {
@@ -160,6 +160,8 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
     const activeMutation = isOrgLevel ? createOrgConfigMutation : createConfigMutation
     // Un doble envío creaba dos esquemas (ft-graves, D-D1): candado síncrono + `Idempotency-Key` por paso de la operación.
     const envio = useEnvioUnico()
+    // ¿Ya quedó creado el esquema cuando algo falló? Sólo si no, se puede decir «no se creó nada».
+    const esquemaCreado = useRef(false)
 
     const updateData = (updates: Partial<WizardData>) => {
       setData(prev => ({ ...prev, ...updates }))
@@ -183,7 +185,7 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
         await envio.enviar(huella, paso => guardar(paso))
       } catch (error: any) {
         toast({
-          title: t('errors.saveError'),
+          title: !esquemaCreado.current && !quedoEnDuda(error) ? t('errors.notCreated') : t('errors.saveError'),
           description: error.response?.data?.message || tCommon('common.error'),
           variant: 'destructive',
         })
@@ -197,7 +199,11 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
       // Niveles o meta como nivel ⇒ TIERED, sólo con porcentaje. 🔴 Un fijo se guarda FIXED aunque traiga niveles o meta como nivel
       // prendidos de antes: como TIERED, el servidor leería el monto como tasa (final-fijo-niveles).
       const conNiveles = ofreceNiveles(data.calcType)
-      const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
+      // Los niveles viajan DENTRO del esquema TIERED, en la misma llamada (ft-graves, D-NIVELES), con su `period` (antes iba
+      // `tierPeriod`, que el server no lee).
+      const niveles =
+        conNiveles && data.tiersEnabled && data.tiers.length > 0 ? data.tiers.map(n => ({ ...n, period: data.tierPeriod })) : null
+      const finalCalcType = calcTypeAGuardar(data.calcType, !!niveles, data.useGoalAsTier)
       const metaComoNivel = conNiveles && data.useGoalAsTier
 
       const input: CreateCommissionConfigInput = {
@@ -220,18 +226,12 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
         effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
         effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : null,
         aggregationPeriod: data.aggregationPeriod,
+        ...(niveles ? { tiers: niveles } : {}),
       }
 
+      esquemaCreado.current = false
       const createdConfig = await paso('esquema', clave => activeMutation.mutateAsync({ ...input, clave }))
-
-      // Create tiers after config creation if enabled (nunca en un fijo: los niveles son porcentajes)
-      if (conNiveles && data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
-        const tiersWithPeriod = data.tiers.map(tier => ({
-          ...tier,
-          tierPeriod: data.tierPeriod,
-        }))
-        await paso('niveles', clave => commissionService.createTiersBatch(venueId, createdConfig.id, tiersWithPeriod, clave))
-      }
+      esquemaCreado.current = true
 
       // Create overrides after config creation if enabled. En un fijo sólo viajan las exclusiones, sin tasa propia.
       if (data.overridesEnabled && data.overrides.length > 0 && venueId && createdConfig?.id) {
