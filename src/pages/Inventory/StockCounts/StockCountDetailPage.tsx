@@ -223,6 +223,12 @@ export default function StockCountDetailPage() {
                           ))}
                         </div>
                       )}
+                      {/* El resumen del servidor sigue sumando las líneas retenidas: se dice aquí mismo. */}
+                      {summary.countedCount > 0 && noAplicadas > 0 && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {t('stockCounts.held.includedInDifference', { count: noAplicadas })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {summary.countedCount === 0 && <p className="mt-3 text-sm text-muted-foreground">{t('stockCounts.nothingCountedYet')}</p>}

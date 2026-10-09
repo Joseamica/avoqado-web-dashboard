@@ -1513,7 +1513,9 @@
       "DUDA_POR_REVISAR": "Hay una diferencia con Shopify por revisar; resuélvela primero",
       "reviewLink": "Ir a «Por revisar» de Shopify",
       "summary_one": "{{count}} línea no se aplicó",
-      "summary_other": "{{count}} líneas no se aplicaron"
+      "summary_other": "{{count}} líneas no se aplicaron",
+      "includedInDifference_one": "(incluye {{count}} no aplicada)",
+      "includedInDifference_other": "(incluye {{count}} no aplicadas)"
     }
   },
   "history": {

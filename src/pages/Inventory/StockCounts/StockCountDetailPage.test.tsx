@@ -346,6 +346,22 @@ describe('StockCountDetailPage — líneas que no se aplicaron por Shopify', () 
     expect(screen.getByText('2 líneas no se aplicaron')).toBeInTheDocument()
   })
 
+  it('la «Diferencia» del resumen avisa que incluye las líneas no aplicadas (singular y plural)', async () => {
+    const retenida = (id: string) => contada({ id, shopifyHeld: { at: '2026-10-08T15:00:00.000Z', motivo: 'ENVIO_EN_CAMINO' } })
+    get.mockResolvedValue({ success: true, data: completado([retenida('i1'), retenida('i2'), contada({ id: 'i3' })], 2) })
+    const { unmount } = renderPage()
+    expect(await screen.findByText('(incluye 2 no aplicadas)')).toBeInTheDocument()
+    // Vive en la casilla «Diferencia», no suelto en la pantalla.
+    // (La tabla también tiene una columna «Diferencia»: la casilla del resumen es el <div>.)
+    const casilla = screen.getAllByText(es.stockCounts.difference).find(e => e.tagName === 'DIV')
+    expect(casilla?.parentElement).toHaveTextContent('(incluye 2 no aplicadas)')
+    unmount()
+
+    get.mockResolvedValue({ success: true, data: completado([retenida('i1'), contada({ id: 'i2' })], 1) })
+    renderPage()
+    expect(await screen.findByText('(incluye 1 no aplicada)')).toBeInTheDocument()
+  })
+
   it('regresión: sin líneas retenidas (o un servidor que aún no manda el campo) no aparece nada nuevo', async () => {
     get.mockResolvedValue({ success: true, data: completado([contada({}), contada({ id: 'i2', shopifyHeld: undefined })], 0) })
     renderPage()
