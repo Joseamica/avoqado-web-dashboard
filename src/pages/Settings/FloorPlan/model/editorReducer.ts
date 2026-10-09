@@ -49,17 +49,83 @@ function clampTable(t: DraftTable, cols: number, rows: number): DraftTable {
   return { ...t, x: round6(clamp(t.x, e.w / 2, cols - e.w / 2)), y: round6(clamp(t.y, e.h / 2, rows - e.h / 2)) }
 }
 
-function clampElement(el: DraftElement, cols: number, rows: number): DraftElement {
-  if (el.type === 'WALL') {
-    return { ...el, x: clamp(el.x, 0, cols), y: clamp(el.y, 0, rows), x2: clamp(el.x2 ?? el.x, 0, cols), y2: clamp(el.y2 ?? el.y, 0, rows) }
+const isRect = (type: DraftElement['type']) => type === 'BAR_COUNTER' || type === 'SERVICE_AREA' || type === 'DOOR'
+
+/**
+ * Barras, zonas de servicio y puertas giran de a 90° INTERCAMBIANDO ancho y alto sobre el mismo centro: nunca guardan
+ * 90/270/45, así la caja que se guarda es la que se ve. Sólo la puerta guarda 180 (abre hacia el otro lado).
+ * Normaliza lo viejo (la PAX sí guardaba 90/270): 90 ⇒ lados intercambiados y 0; 270 ⇒ intercambiados y 0 (puerta: 180);
+ * cualquier otro giro que no sea 0/180 ⇒ 0.
+ */
+export function normalizeRectElement(el: DraftElement): DraftElement {
+  if (!isRect(el.type)) return el
+  const r = ((el.rotation % 360) + 360) % 360
+  if (r % 180 === 90) {
+    const w = el.w ?? 1
+    const h = el.h ?? 1
+    return { ...el, w: h, h: w, x: round6(el.x + w / 2 - h / 2), y: round6(el.y + h / 2 - w / 2), rotation: el.type === 'DOOR' && r === 270 ? 180 : 0 }
   }
+  const rotation = r === 0 || r === 180 ? r : 0
+  return rotation === el.rotation ? el : { ...el, rotation }
+}
+
+/**
+ * Pared: por eje, si su caja cabe se TRASLADA entera al lienzo (nunca se dobla ni se acorta); si es más larga que el
+ * lienzo, se apoya en el 0 y se recorta sobre su propia línea (conserva su dirección: 0°/45°/90° siguen siéndolo).
+ */
+function clampWall(el: DraftElement, cols: number, rows: number): DraftElement {
+  const shift = (a: number, b: number, size: number) => {
+    const lo = Math.min(a, b)
+    const hi = Math.max(a, b)
+    if (hi - lo > size) return -lo
+    return lo < 0 ? -lo : hi > size ? size - hi : 0
+  }
+  const ex = el.x2 ?? el.x
+  const ey = el.y2 ?? el.y
+  const sx = shift(el.x, ex, cols)
+  const sy = shift(el.y, ey, rows)
+  const x1 = el.x + sx
+  const y1 = el.y + sy
+  const x2 = ex + sx
+  const y2 = ey + sy
+  // Recorte de Liang–Barsky contra [0, cols] × [0, rows].
+  const dx = x2 - x1
+  const dy = y2 - y1
+  let t0 = 0
+  let t1 = 1
+  for (const [p, q] of [[-dx, x1], [dx, cols - x1], [-dy, y1], [dy, rows - y1]]) {
+    if (p === 0) {
+      if (q < 0) t0 = Infinity
+    } else if (p < 0) t0 = Math.max(t0, q / p)
+    else t1 = Math.min(t1, q / p)
+  }
+  if (t0 > t1) {
+    // Sólo si no cabe en NINGÚN eje (no lo produce el editor): último recurso, extremo por extremo.
+    return { ...el, x: clamp(x1, 0, cols), y: clamp(y1, 0, rows), x2: clamp(x2, 0, cols), y2: clamp(y2, 0, rows) }
+  }
+  const at = (t: number, a: number, b: number) => round6(t === 0 ? a : t === 1 ? b : a + t * (b - a))
+  return { ...el, x: at(t0, x1, x2), y: at(t0, y1, y2), x2: at(t1, x1, x2), y2: at(t1, y1, y2) }
+}
+
+function clampElement(el: DraftElement, cols: number, rows: number): DraftElement {
+  if (el.type === 'WALL') return clampWall(el, cols, rows)
   if (el.type === 'LABEL') return { ...el, x: clamp(el.x, 0, cols - 1), y: clamp(el.y, 0, rows - 1) }
-  const w = clamp(el.w ?? 1, 1, cols)
-  const h = clamp(el.h ?? 1, 1, rows)
-  const e = rotatedExtent(w, h, el.rotation)
-  const cx = clamp(el.x + w / 2, e.w / 2, cols - e.w / 2)
-  const cy = clamp(el.y + h / 2, e.h / 2, rows - e.h / 2)
-  return { ...el, w, h, x: round6(cx - w / 2), y: round6(cy - h / 2) }
+  // Barra, zona de servicio, puerta: giro 0 o 180, así que la caja sin girar ES la que se ve.
+  const n = normalizeRectElement(el)
+  const w = clamp(n.w ?? 1, 1, cols)
+  const h = clamp(n.h ?? 1, 1, rows)
+  return { ...n, w, h, x: round6(clamp(n.x, 0, cols - w)), y: round6(clamp(n.y, 0, rows - h)) }
+}
+
+/** Girar 90° una barra/zona/puerta: lados intercambiados sobre el mismo centro. Si parada no cabe en el área, no gira. */
+function rotateRect(el: DraftElement, cols: number, rows: number): DraftElement {
+  const n = normalizeRectElement(el)
+  const w = n.w ?? 1
+  const h = n.h ?? 1
+  if (h > cols || w > rows) return el
+  // La puerta recorre H0 → V0 → H180 → V180 → H0: al volver a quedar horizontal, abre hacia el otro lado.
+  const rotation = n.type === 'DOOR' ? (h >= w ? (n.rotation + 180) % 360 : n.rotation) : 0
+  return clampElement({ ...n, w: h, h: w, x: n.x + w / 2 - h / 2, y: n.y + h / 2 - w / 2, rotation }, cols, rows)
 }
 
 /** Cuánto se puede mover cada pieza sin salirse: [minDx, maxDx, minDy, maxDy]. */
@@ -85,12 +151,10 @@ function moveRange(doc: EditorDoc, keys: Set<string>): [number, number, number, 
     } else if (el.type === 'LABEL') {
       narrow(-el.x, cols - 1 - el.x, -el.y, rows - 1 - el.y)
     } else {
+      // Misma caja que clampElement: la sin girar (giro 0 o 180).
       const w = el.w ?? 1
       const h = el.h ?? 1
-      const e = rotatedExtent(w, h, el.rotation)
-      const cx = el.x + w / 2
-      const cy = el.y + h / 2
-      narrow(e.w / 2 - cx, cols - e.w / 2 - cx, e.h / 2 - cy, rows - e.h / 2 - cy)
+      narrow(-el.x, cols - w - el.x, -el.y, rows - h - el.y)
     }
   }
   return r
@@ -160,6 +224,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
               const g = gridFor(doc, action.patch.areaKey)
               next = { ...next, legacy: null, ...placeTable(g.cols / 2, g.rows / 2, next.shape, next.capacity, next.rotation, g.cols, g.rows) }
             }
+          } else if (next.x !== null && next.y !== null && (next.shape !== t.shape || next.capacity !== t.capacity || next.rotation !== t.rotation)) {
+            // Otra forma, otras personas u otro giro ⇒ otro tamaño: se vuelve a imantar para que sus bordes caigan en la cuadrícula.
+            const g = gridFor(doc, next.areaKey)
+            next = { ...next, ...placeTable(next.x, next.y, next.shape, next.capacity, next.rotation, g.cols, g.rows) }
           }
           const g = gridFor(doc, next.areaKey)
           return clampTable(next, g.cols, g.rows)
@@ -176,19 +244,18 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       })
     case 'ROTATE': {
       const keys = new Set(action.keys)
-      return commit(state, {
-        ...doc,
-        tables: doc.tables.map(t => {
-          if (!keys.has(t.key)) return t
-          const g = gridFor(doc, t.areaKey)
-          return clampTable({ ...t, rotation: (t.rotation + 45) % 360 }, g.cols, g.rows)
-        }),
-        elements: doc.elements.map(e => {
-          if (!keys.has(e.key) || e.type === 'WALL' || e.type === 'LABEL') return e
-          const g = gridFor(doc, e.areaKey)
-          return clampElement({ ...e, rotation: (e.rotation + 45) % 360 }, g.cols, g.rows)
-        }),
+      const tables = doc.tables.map(t => {
+        if (!keys.has(t.key)) return t
+        const g = gridFor(doc, t.areaKey)
+        return clampTable({ ...t, rotation: (t.rotation + 45) % 360 }, g.cols, g.rows)
       })
+      const elements = doc.elements.map(e => {
+        if (!keys.has(e.key) || !isRect(e.type)) return e
+        const g = gridFor(doc, e.areaKey)
+        return rotateRect(e, g.cols, g.rows)
+      })
+      if (tables.every((t, i) => t === doc.tables[i]) && elements.every((e, i) => e === doc.elements[i])) return state
+      return commit(state, { ...doc, tables, elements })
     }
     case 'DUPLICATE': {
       const tables: DraftTable[] = []
@@ -197,7 +264,13 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         const t = doc.tables.find(x => x.key === c.sourceKey)
         if (t) {
           const g = gridFor(doc, t.areaKey)
-          tables.push(clampTable({ ...t, key: c.key, id: undefined, number: c.number ?? t.number, hasOpenOrder: false, x: t.x === null ? null : t.x + 2, y: t.y === null ? null : t.y + 2 }, g.cols, g.rows))
+          tables.push(
+            clampTable(
+              { ...t, key: c.key, id: undefined, number: c.number ?? t.number, hasOpenOrder: false, legacy: null, x: t.x === null ? null : t.x + 2, y: t.y === null ? null : t.y + 2 },
+              g.cols,
+              g.rows,
+            ),
+          )
           continue
         }
         const e = doc.elements.find(x => x.key === c.sourceKey)
@@ -224,7 +297,30 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const area = { ...action.area, sortOrder: doc.areas.length }
       const incoming = new Map(action.tables.map(t => [t.key, t]))
       const tables = [...doc.tables.map(t => incoming.get(t.key) ?? t), ...action.tables.filter(t => !doc.tables.some(x => x.key === t.key))]
-      const elements = doc.elements.map(e => (e.areaKey === '' ? { ...e, areaKey: area.key } : e))
+      // Lo viejo sin área se convirtió con la cuadrícula ancha (40 × 25): se reescala a la del área nueva para que quede
+      // en el mismo lugar relativo, y se mete a su lienzo.
+      const g = gridOf(area.floorShape)
+      const wide = gridOf('WIDE')
+      const sx = (v: number) => round6((v * g.cols) / wide.cols)
+      const sy = (v: number) => round6((v * g.rows) / wide.rows)
+      const elements = doc.elements.map(e =>
+        e.areaKey === ''
+          ? clampElement(
+              {
+                ...e,
+                areaKey: area.key,
+                x: sx(e.x),
+                y: sy(e.y),
+                w: e.w === null ? null : sx(e.w),
+                h: e.h === null ? null : sy(e.h),
+                x2: e.x2 === null ? null : sx(e.x2),
+                y2: e.y2 === null ? null : sy(e.y2),
+              },
+              g.cols,
+              g.rows,
+            )
+          : e,
+      )
       return { ...commit(state, { areas: [...doc.areas, area], tables, elements }, []), activeAreaKey: area.key }
     }
     case 'UPDATE_AREA': {

@@ -65,3 +65,27 @@ describe('docToPayload', () => {
     expect(body.tables).toEqual([expect.objectContaining({ clientId: 'tmp-t', areaRef: 'tmp-a', positionX: 0.5, positionY: 0.5 })])
   })
 })
+
+describe('mapeo — ronda 1', () => {
+  it('normaliza puertas y barras viejas giradas: 90/270 intercambian lados en el mismo centro, lo demás vuelve a 0', () => {
+    const base = { areaId: 'a1', positionX: 0.25, positionY: 0.4, width: 0.075, height: 0.04, endX: null, endY: null, label: null, color: null }
+    const d = dtoToDoc({
+      ...dto,
+      elements: [
+        { ...base, id: 'd90', type: 'DOOR', rotation: 90 },
+        { ...base, id: 'd270', type: 'DOOR', rotation: 270 },
+        { ...base, id: 'b45', type: 'BAR_COUNTER', rotation: 45 },
+      ],
+    })
+    // 3×1 con esquina en (10, 10): centro (11.5, 10.5)
+    expect(d.elements[0]).toMatchObject({ x: 11, y: 9, w: 1, h: 3, rotation: 0 })
+    expect(d.elements[1]).toMatchObject({ x: 11, y: 9, w: 1, h: 3, rotation: 180 })
+    expect(d.elements[2]).toMatchObject({ x: 10, y: 10, w: 3, h: 1, rotation: 0 })
+  })
+
+  it('sin áreas, guardar con elementos viejos truena en vez de mandarlos a archivar', () => {
+    const doc = dtoToDoc({ ...dto, areas: [], tables: [] })
+    expect(doc.elements).toHaveLength(2)
+    expect(() => docToPayload(doc, 's', dto.fingerprint)).toThrow('docToPayload: hay elementos sin área')
+  })
+})

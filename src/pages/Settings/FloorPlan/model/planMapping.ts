@@ -1,3 +1,4 @@
+import { normalizeRectElement } from './editorReducer'
 import { clamp, gridOf, round6 } from './floorGeometry'
 import type { DraftArea, EditorDoc, FloorPlanDto, PublishFloorPlanBody } from './types'
 
@@ -32,7 +33,8 @@ export function dtoToDoc(dto: FloorPlanDto): EditorDoc {
     const g = grids.get(areaKey) ?? gridOf('WIDE')
     const sx = (v: number | null) => (v === null ? null : round6(v * g.cols))
     const sy = (v: number | null) => (v === null ? null : round6(v * g.rows))
-    return {
+    // Barras, zonas y puertas viejas giradas 90/270 se guardan como lados intercambiados (ver normalizeRectElement).
+    return normalizeRectElement({
       key: e.id,
       id: e.id,
       type: e.type,
@@ -46,7 +48,7 @@ export function dtoToDoc(dto: FloorPlanDto): EditorDoc {
       y2: sy(e.endY),
       label: e.label,
       color: e.color,
-    }
+    })
   })
   return { areas, tables, elements }
 }
@@ -59,6 +61,9 @@ export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: st
     return a.id ?? a.key
   }
   const n = (v: number, total: number) => round6(clamp(v / total, 0, 1))
+  // El servidor archiva lo que el plano omite: un elemento sin área nunca se descarta en silencio.
+  // (El editor no deja guardar mientras no haya áreas.)
+  if (doc.elements.some(e => !byKey.has(e.areaKey))) throw new Error('docToPayload: hay elementos sin área')
   return {
     saveId,
     baseFingerprint,
@@ -82,24 +87,22 @@ export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: st
         areaRef: area ? ref(area.key) : null,
       }
     }),
-    elements: doc.elements
-      .filter(e => byKey.has(e.areaKey))
-      .map(e => {
-        const g = gridOf((byKey.get(e.areaKey) as DraftArea).floorShape)
-        return {
-          ...(e.id ? { id: e.id } : { clientId: e.key }),
-          type: e.type,
-          areaRef: ref(e.areaKey),
-          positionX: n(e.x, g.cols),
-          positionY: n(e.y, g.rows),
-          width: e.w === null ? null : n(e.w, g.cols),
-          height: e.h === null ? null : n(e.h, g.rows),
-          rotation: e.rotation,
-          endX: e.x2 === null ? null : n(e.x2, g.cols),
-          endY: e.y2 === null ? null : n(e.y2, g.rows),
-          label: e.label,
-          color: e.color,
-        }
-      }),
+    elements: doc.elements.map(e => {
+      const g = gridOf((byKey.get(e.areaKey) as DraftArea).floorShape)
+      return {
+        ...(e.id ? { id: e.id } : { clientId: e.key }),
+        type: e.type,
+        areaRef: ref(e.areaKey),
+        positionX: n(e.x, g.cols),
+        positionY: n(e.y, g.rows),
+        width: e.w === null ? null : n(e.w, g.cols),
+        height: e.h === null ? null : n(e.h, g.rows),
+        rotation: e.rotation,
+        endX: e.x2 === null ? null : n(e.x2, g.cols),
+        endY: e.y2 === null ? null : n(e.y2, g.rows),
+        label: e.label,
+        color: e.color,
+      }
+    }),
   }
 }
