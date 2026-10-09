@@ -3,16 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import { Eye, Pencil, Plus, Redo2, Undo2 } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useToast } from '@/hooks/use-toast'
@@ -23,6 +13,7 @@ import { FloorCanvas } from './editor/FloorCanvas'
 import { IconAction } from './editor/IconAction'
 import { Inspector } from './editor/Inspector'
 import { NewAreaDialog } from './editor/NewAreaDialog'
+import { ConflictDialog, LeaveDialog } from './editor/EditorDialogs'
 import { DuplicateNumbersNotice, OpenOrdersNotice } from './editor/EditorNotices'
 import { ToolPalette } from './editor/ToolPalette'
 import { UnplacedTray } from './editor/UnplacedTray'
@@ -418,35 +409,8 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
         }}
       />
 
-      <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('editor.unsavedTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('editor.unsavedBody')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('editor.keepEditing')}</AlertDialogCancel>
-            <AlertDialogAction onClick={onClose} data-testid="floor-plan-discard">
-              {t('editor.unsavedConfirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={conflict} onOpenChange={setConflict}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('editor.conflictTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('editor.conflictBody')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('editor.keepEditing')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void reload()} data-testid="floor-plan-reload">
-              {t('editor.reload')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <LeaveDialog open={confirmClose} onStay={() => setConfirmClose(false)} onLeave={onClose} />
+      <ConflictDialog open={conflict} onStay={() => setConflict(false)} onReload={() => void reload()} />
     </FullScreenModal>
   )
 }
