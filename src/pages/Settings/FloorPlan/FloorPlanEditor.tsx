@@ -113,16 +113,24 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     },
     [],
   )
+  // El último aviso: un guardado nuevo lo quita. Antes «No se guardó: no hay conexión» seguía a la vista junto a
+  // «Plano guardado» o junto a «Alguien más cambió el plano» del reintento (pasada en vivo, 9-oct).
+  const lastNotice = useRef<{ dismiss: () => void } | null>(null)
   /**
    * Un aviso del editor. Mientras está a la vista, Radix le da a él el Esc (es la capa de arriba) y el editor no lo
    * recibía: tras «Plano guardado» hacían falta dos Esc para salir. Ahora ese Esc cierra el aviso Y sigue con lo que
    * haría el editor (soltar lo activo o cerrar).
    */
   const notify = useCallback(
-    (opts: { title: string; description?: string; variant?: 'default' | 'destructive' }) =>
-      void toast({ ...opts, onEscapeKeyDown: (e: KeyboardEvent) => escapeRef.current(e) }),
+    (opts: { title: string; description?: string; variant?: 'default' | 'destructive' }) => {
+      lastNotice.current = toast({ ...opts, onEscapeKeyDown: (e: KeyboardEvent) => escapeRef.current(e) }) ?? null
+    },
     [toast],
   )
+  const clearNotice = () => {
+    lastNotice.current?.dismiss()
+    lastNotice.current = null
+  }
 
   const { placeTool, createWall, duplicate, remove, createArea, restoreTables } = useEditorActions({
     doc,
@@ -148,6 +156,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     },
     onMutate: () => {
       locked.current = true
+      clearNotice()
     },
     onSettled: () => {
       locked.current = false
