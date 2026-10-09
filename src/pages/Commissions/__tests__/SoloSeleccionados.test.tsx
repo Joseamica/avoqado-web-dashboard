@@ -207,7 +207,9 @@ describe('«Sólo seleccionados» restringe de verdad (final-comisiones-viejas, 
       montar({ ...NUEVO, filterByStaff: true, staffIds: ['s-ana'] })
       expect(await screen.findByText('Ana Ruiz')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'config.staffScope.chosen' })).toHaveAttribute('aria-pressed', 'true')
-      expect(await guardar()).toMatchObject({ filterByStaff: true, staffIds: ['s-ana'] })
+      // ft-graves B1: sólo viaja lo que cambió. Cambiar el nombre no toca a las elegidas (no se mandan: el servidor las conserva).
+      fireEvent.change(screen.getByLabelText('config.name'), { target: { value: 'Otro nombre' } })
+      expect(await guardar()).toEqual({ name: 'Otro nombre' })
     })
 
     it('🔴 pasarlo a «Todo el equipo» manda filterByStaff: false y sin elegidos', async () => {
@@ -235,6 +237,7 @@ describe('«Sólo seleccionados» restringe de verdad (final-comisiones-viejas, 
       montar(VIEJO)
       expect(screen.getByText('setup.staff.restrictionUnavailable')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'config.staffScope.chosen' })).toBeNull()
+      fireEvent.change(screen.getByLabelText('config.name'), { target: { value: 'Otro nombre' } })
       const data = await guardar()
       expect(data).not.toHaveProperty('filterByStaff')
       expect(data).not.toHaveProperty('staffIds')

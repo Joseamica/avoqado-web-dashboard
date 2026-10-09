@@ -144,12 +144,19 @@ describe('Monto fijo en pesos (final-comisiones-viejas, D-FIJO)', () => {
       await waitFor(() => expect(m.editar).toHaveBeenCalled())
       return (m.editar.mock.calls[0][0] as { data: Record<string, unknown> }).data
     }
+    /** Sin cambios no se manda nada (el monto de antes sigue guardado). */
+    const guardarSinCambios = async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
+      await act(async () => {})
+      return m.editar.mock.calls.length === 0
+    }
 
     it('control: un fijo de $10 se guarda en pesos', async () => {
       montar()
       teclear('10')
       fireEvent.blur(campoDelMonto())
-      expect(await guardar()).toMatchObject({ calcType: 'FIXED', defaultRate: 10 })
+      // ft-graves B1: sólo viaja lo que cambió (el tipo sigue FIXED y no se manda).
+      expect(await guardar()).toEqual({ defaultRate: 10 })
     })
 
     it('🔴 más de $999,999.99 no se acepta: lo dice en el campo y se queda el monto de antes', async () => {
@@ -158,7 +165,8 @@ describe('Monto fijo en pesos (final-comisiones-viejas, D-FIJO)', () => {
       expect(screen.getByText(RANGO)).toBeInTheDocument()
       fireEvent.blur(campoDelMonto())
       expect(campoDelMonto()).toHaveValue(5)
-      expect((await guardar()).defaultRate).toBe(5)
+      // El monto de antes se queda: no hay nada que guardar (ft-graves B1, sólo lo que cambió).
+      expect(await guardarSinCambios()).toBe(true)
     })
 
     it('🔴 $0 no es un monto fijo', async () => {
@@ -166,7 +174,7 @@ describe('Monto fijo en pesos (final-comisiones-viejas, D-FIJO)', () => {
       teclear('0')
       expect(screen.getByText(RANGO)).toBeInTheDocument()
       fireEvent.blur(campoDelMonto())
-      expect((await guardar()).defaultRate).toBe(5)
+      expect(await guardarSinCambios()).toBe(true)
     })
 
     it('🔴 los pesos van con centavos: $12.345 se guarda como $12.35', async () => {
@@ -179,6 +187,8 @@ describe('Monto fijo en pesos (final-comisiones-viejas, D-FIJO)', () => {
     it('control: el 400 del servidor se pinta tal cual', async () => {
       m.editar.mockRejectedValueOnce(errorDelServidor('El monto fijo por venta debe ser mayor que $0.'))
       montar()
+      teclear('7')
+      fireEvent.blur(campoDelMonto())
       fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
       await waitFor(() =>
         expect(m.toast).toHaveBeenCalledWith(

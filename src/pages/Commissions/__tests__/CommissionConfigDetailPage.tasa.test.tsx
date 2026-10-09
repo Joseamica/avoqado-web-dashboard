@@ -17,6 +17,7 @@ vi.mock('@/hooks/useCommissions', () => ({
   useCommissionTiers: () => ({ data: [], isLoading: false }),
   useCommissionOverrides: () => ({ data: [], isLoading: false }),
   useDeleteCommissionConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateCommissionConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 vi.mock('@/services/menu.service', () => ({ getMenuCategories: vi.fn(async () => []) }))
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: { children: ReactNode }) => <>{children}</> }))

@@ -213,9 +213,15 @@ describe('Niveles y tasa propia en un esquema de monto fijo (final-fijo-niveles)
       expect(data).toMatchObject({ calcType: 'FIXED', defaultRate: 10, useGoalAsTier: false, goalBonusRate: null })
     })
 
-    it('control: un esquema por niveles que se queda en porcentaje sigue TIERED', async () => {
-      const data = await guardar({ ...base, calcType: 'TIERED', tiers: NIVELES }, false)
-      expect(data).toMatchObject({ calcType: 'TIERED', defaultRate: 0.03 })
+    it('control: un esquema por niveles que se queda en porcentaje sigue TIERED (no se manda ningún cambio de tipo)', async () => {
+      render(<EditConfigDialog open onOpenChange={() => {}} config={{ ...base, calcType: 'TIERED', tiers: NIVELES } as unknown as CommissionConfig} />, {
+        wrapper: envolver,
+      })
+      fireEvent.change(screen.getByLabelText('config.name'), { target: { value: 'Niveles' } })
+      fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
+      await waitFor(() => expect(m.editar).toHaveBeenCalled())
+      // ft-graves B1: sólo viaja lo que cambió; el tipo (TIERED) y la tasa se quedan como estaban.
+      expect((m.editar.mock.calls[0][0] as { data: Record<string, unknown> }).data).toEqual({ name: 'Niveles' })
     })
   })
 

@@ -1,4 +1,3 @@
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
@@ -21,7 +20,9 @@ import type { WizardData } from './wizard/CreateCommissionWizard'
 import LiveExample from './wizard/LiveExample'
 import AQuienAplicaEditor, { type AQuienAplica } from './AQuienAplicaEditor'
 import { servidorRestringePorPersona } from '../aQuienAplica'
-import { diaEnLaSede, finDelDiaEnLaSede, hoyEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
+import { diaEnLaSede, hoyEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
+import { cambiosAGuardar, camposBloqueadosQueCambian } from '../cambiosDelEsquema'
+import CandadoPorComisiones from './CandadoPorComisiones'
 
 interface EditConfigDialogProps {
   open: boolean
@@ -222,9 +223,11 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       const tasasPorRol = tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates)
       const roleRates = tasasPorRol ? Object.fromEntries(Object.entries(tasasPorRol).map(([key, value]) => [key, Number(value)])) : null
 
-      await updateConfigMutation.mutateAsync({
-        configId: config.id,
-        data: {
+      // Sólo lo que CAMBIÓ (ft-graves, B1): mandar tasa, tipo o quién recibe sin cambiarlos bloqueaba todo el esquema tras su
+      // primera venta. La vigencia va por día del negocio: el mismo día no se manda y su instante no se mueve (D-D2).
+      const cambios = cambiosAGuardar(
+        config,
+        {
           name: data.name,
           calcType: finalCalcType,
           recipient: data.recipient,
@@ -236,26 +239,28 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           includeTax: data.includeTax,
           filterByCategories: data.filterByCategories,
           categoryIds: data.filterByCategories ? data.categoryIds : [],
-          ...(restriccionDisponible
-            ? { filterByStaff: aQuien.soloElegidas, staffIds: aQuien.soloElegidas ? aQuien.staffIds : [] }
-            : {}),
+          ...(restriccionDisponible ? { filterByStaff: aQuien.soloElegidas, staffIds: aQuien.soloElegidas ? aQuien.staffIds : [] } : {}),
           useGoalAsTier: metaComoNivel,
           goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
           attendanceLinked: data.attendanceLinked,
           attendanceLatePenaltyRate: data.attendanceLinked ? data.attendanceLatePenaltyRate : null,
           roleRates,
-          effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : null,
-          effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : null,
+          desde: data.effectiveFrom || null,
+          hasta: data.customValidityEnabled ? data.effectiveTo : null,
           aggregationPeriod: data.aggregationPeriod,
           priority: data.priority,
-          active: config.active, // Keep existing active status
         },
-      })
-
-      toast({
-        title: t('success.configUpdated'),
-      })
-
+        zona,
+      )
+      if (Object.keys(cambios).length === 0) return onOpenChange(false)
+      // Con comisiones calculadas, la tasa, el tipo y quién recibe no cambian (el servidor también lo rechaza): se dice aquí mismo.
+      const bloqueado = isRateLocked ? camposBloqueadosQueCambian(cambios)[0] : undefined
+      if (bloqueado) {
+        toast({ title: t('config.lockedChange', { campo: t(`config.lockedFields.${bloqueado}`) }), variant: 'destructive' })
+        return
+      }
+      await updateConfigMutation.mutateAsync({ configId: config.id, data: cambios })
+      toast({ title: t('success.configUpdated') })
       onOpenChange(false)
     } catch (error: any) {
       toast({
@@ -281,18 +286,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       contentClassName="px-4 py-6"
     >
       <div className="mx-auto max-w-2xl space-y-6">
-        {/* Rate Locked Alert */}
-        {isRateLocked && (
-          <Alert className="border-amber-500/50 bg-amber-500/10">
-            <Lock className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-700 dark:text-amber-400">{t('config.rateLockedTitle')}</AlertTitle>
-            <AlertDescription className="text-amber-600 dark:text-amber-300">
-              {t('config.rateLockedDesc', { count: calculationsCount })}
-              <br />
-              <span className="font-medium">{t('config.rateLockedHint')}</span>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Con comisiones calculadas: tasa y tipo bloqueados, con su explicación y dos salidas (ft-graves, B1) */}
+        {isRateLocked && <CandadoPorComisiones config={config} onHecho={() => onOpenChange(false)} />}
 
         {/* Name Input */}
         <div className="space-y-2">
@@ -487,6 +482,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
               </div>
               <Switch
                 checked={data.useGoalAsTier}
+                disabled={isRateLocked}
                 onCheckedChange={checked => {
                   updateData({ useGoalAsTier: checked })
                   if (checked) updateData({ tiersEnabled: false })

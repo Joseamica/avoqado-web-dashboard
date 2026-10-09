@@ -92,6 +92,7 @@ describe('Tasas por rol en un esquema de monto fijo (duda 2 de la Parte 1b)', ()
     render(<EditConfigDialog open onOpenChange={() => {}} config={config} />, { wrapper: envolver })
     fireEvent.click(screen.getByRole('button', { name: 'actions.save' }))
     await waitFor(() => expect(m.mutateAsync).toHaveBeenCalled())
-    expect(m.mutateAsync.mock.calls[0][0]).toMatchObject({ configId: 'c1', data: { calcType: 'FIXED', defaultRate: 5, roleRates: null } })
+    // ft-graves B1: el editor manda sólo lo que cambió; aquí, limpiar las tasas por rol (tipo y monto no cambian y no viajan).
+    expect(m.mutateAsync.mock.calls[0][0]).toEqual({ configId: 'c1', data: { roleRates: null } })
   })
 })

@@ -103,9 +103,7 @@ export function useCreateCommissionConfig() {
 	})
 }
 
-/**
- * Hook for updating a commission config
- */
+/** Hook for updating a commission config. La lista lee los esquemas «efectivos»: también se refresca (desactivar lo saca de ahí). */
 export function useUpdateCommissionConfig() {
 	const { venueId } = useCurrentVenue()
 	const queryClient = useQueryClient()
@@ -116,6 +114,7 @@ export function useUpdateCommissionConfig() {
 		onSuccess: (_, { configId }) => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.configs(venueId) })
 			queryClient.invalidateQueries({ queryKey: commissionKeys.config(venueId, configId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectiveConfigs(venueId) })
 		},
 	})
 }

@@ -59,6 +59,7 @@ import { soloPersonasElegidas } from './aQuienAplica'
 import CommissionTierList from './components/CommissionTierList'
 import CommissionOverrideList from './components/CommissionOverrideList'
 import EditConfigDialog from './components/EditConfigDialog'
+import DesactivarEsquema from './components/DesactivarEsquema'
 import { fechaEnLaSede, useZonaDeLaSede } from './fechasDeVigencia'
 
 // Icons for calculation types
@@ -103,7 +104,6 @@ export default function CommissionConfigDetailPage() {
 	const { toast } = useToast()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
-
 	const [showEditDialog, setShowEditDialog] = useState(false)
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
@@ -146,10 +146,8 @@ export default function CommissionConfigDetailPage() {
 		return person ? `${person.firstName} ${person.lastName}` : id
 	}
 
-	// Format percentage
 	const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`
 
-	// Format currency
 	const formatCurrency = (amount: number | null) => {
 		if (amount === null) return '-'
 		return new Intl.NumberFormat(i18n.language === 'es' ? 'es-MX' : 'en-US', {
@@ -230,7 +228,7 @@ export default function CommissionConfigDetailPage() {
 		<FeatureGate feature="COMMISSIONS">
 		<div className="p-4 bg-background text-foreground">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
 				<div className="flex items-center gap-4">
 					<Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
 						<ArrowLeft className="h-5 w-5" />
@@ -253,13 +251,15 @@ export default function CommissionConfigDetailPage() {
 					</div>
 				</div>
 
-				<div className="flex items-center gap-2">
+				<div className="flex flex-wrap items-center gap-2">
 					<PermissionGate permission="commissions:update">
 						<Button variant="outline" onClick={() => setShowEditDialog(true)}>
 							<Pencil className="h-4 w-4 mr-2" />
 							{t('config.edit')}
 						</Button>
 					</PermissionGate>
+					{/* Desactivar (o reactivar) sin borrar: la salida para cambiar la tasa de un esquema con ventas (ft-graves, B1) */}
+					<DesactivarEsquema config={config} />
 					<PermissionGate permission="commissions:delete">
 						<Button
 							variant="ghost"

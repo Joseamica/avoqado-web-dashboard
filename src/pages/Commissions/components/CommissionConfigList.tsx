@@ -17,6 +17,7 @@ import { useDeleteCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import type { CommissionConfigSource, EffectiveCommissionConfig } from '@/types/commission'
 import CommissionConfigCard from './CommissionConfigCard'
+import EsquemasDesactivados from './EsquemasDesactivados'
 import { cn } from '@/lib/utils'
 
 // GlassCard component
@@ -93,19 +94,23 @@ export default function CommissionConfigList({
 
 	if (configs.length === 0) {
 		return (
-			<GlassCard className="p-12">
-				<div className="flex flex-col items-center justify-center text-center space-y-4">
-					<div className="p-4 rounded-full bg-muted">
-						<Settings2 className="h-8 w-8 text-muted-foreground" />
+			<div className="space-y-6">
+				<GlassCard className="p-12">
+					<div className="flex flex-col items-center justify-center text-center space-y-4">
+						<div className="p-4 rounded-full bg-muted">
+							<Settings2 className="h-8 w-8 text-muted-foreground" />
+						</div>
+						<div className="space-y-2">
+							<h3 className="text-lg font-semibold">{t('config.noConfigs')}</h3>
+							<p className="text-sm text-muted-foreground max-w-md">
+								{t('config.noConfigsDescription')}
+							</p>
+						</div>
 					</div>
-					<div className="space-y-2">
-						<h3 className="text-lg font-semibold">{t('config.noConfigs')}</h3>
-						<p className="text-sm text-muted-foreground max-w-md">
-							{t('config.noConfigsDescription')}
-						</p>
-					</div>
-				</div>
-			</GlassCard>
+				</GlassCard>
+				{/* Los desactivados no desaparecen en silencio (ft-graves, B1) */}
+				<EsquemasDesactivados />
+			</div>
 		)
 	}
 
@@ -133,6 +138,8 @@ export default function CommissionConfigList({
 					/>
 				))}
 			</div>
+
+			<EsquemasDesactivados />
 
 			{/* Revert Confirmation Dialog */}
 			<AlertDialog open={!!revertConfigId} onOpenChange={(open) => !open && setRevertConfigId(null)}>

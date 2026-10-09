@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils'
 import { esMontoFijo, textoDeTasa, usaTasasPorRol } from '../tasaDelEsquema'
 import { soloPersonasElegidas } from '../aQuienAplica'
 import { fechaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
+import DesactivarEsquema from './DesactivarEsquema'
 
 // GlassCard with hover effect
 const GlassCard: React.FC<{
@@ -354,6 +355,9 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 										</Tooltip>
 									</TooltipProvider>
 								</PermissionGate>
+
+								{/* Desactivar sin borrar (ft-graves, B1): deja de calcular y lo ya calculado se queda */}
+								<DesactivarEsquema config={config} variante="icono" />
 
 								<PermissionGate permission="commissions:delete">
 									<TooltipProvider>

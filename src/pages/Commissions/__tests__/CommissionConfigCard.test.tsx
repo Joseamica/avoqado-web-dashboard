@@ -12,7 +12,10 @@ import type { CommissionConfig } from '@/types/commission'
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
 vi.mock('@/hooks/use-role-config', () => ({ useRoleConfig: () => ({ getDisplayName: (r: string) => r }) }))
-vi.mock('@/hooks/useCommissions', () => ({ useDeleteCommissionConfig: () => ({ mutateAsync: vi.fn(), isPending: false }) }))
+vi.mock('@/hooks/useCommissions', () => ({
+  useDeleteCommissionConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateCommissionConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/services/menu.service', () => ({ getMenuCategories: vi.fn(async () => []) }))
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
