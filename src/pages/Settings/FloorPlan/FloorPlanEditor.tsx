@@ -26,6 +26,7 @@ import { NewAreaDialog } from './editor/NewAreaDialog'
 import { DuplicateNumbersNotice, OpenOrdersNotice } from './editor/EditorNotices'
 import { ToolPalette } from './editor/ToolPalette'
 import { UnplacedTray } from './editor/UnplacedTray'
+import { useKeyboardFocus } from './editor/useKeyboardFocus'
 import { WaiterPreview } from './editor/WaiterPreview'
 import { restorableNumbers, useEditorActions } from './editor/useEditorActions'
 import { MOD_KEY, TYPING, useEditorShortcuts, within } from './editor/useEditorShortcuts'
@@ -84,6 +85,8 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     const control = (e.target as HTMLElement).closest?.('button, [role="button"]')
     if (control instanceof HTMLElement && control === document.activeElement) control.blur()
   }
+  // Lo lleva el editor y no el lienzo: el lienzo se desmonta con la vista del mesero (m1 de 15-D).
+  const keyboardFocus = useKeyboardFocus()
   // `pointer-events-none` sólo frena el ratón: `inert` también saca del Tab lo que no se puede usar mientras se guarda.
   // (React 18 no conoce el atributo: se pone a mano.)
   const workspace = useRef<HTMLDivElement>(null)
@@ -362,6 +365,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
                   onCreateWall={createWall}
                   onPlaceTable={(key, x, y) => edit({ type: 'PLACE_TABLE', key, areaKey: activeArea.key, x, y })}
                   onToolDone={() => setTool('select')}
+                  keyboardFocus={keyboardFocus}
                 />
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-input bg-card px-6 text-center">

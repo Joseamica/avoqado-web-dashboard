@@ -121,6 +121,21 @@ describe('FloorPlanEditor — ola final', () => {
     expect(body.elements[0].positionX).toBeGreaterThan(0.1)
   })
 
+  // m1 de 15-D: el lienzo se desmonta con la vista del mesero; al volver olvidaba que el botón tenía el foco por teclado.
+  it('D6: ir y volver de la vista del mesero con Espacio, y el tercer Espacio sigue pulsando el botón (no mueve el plano)', async () => {
+    const user = userEvent.setup()
+    renderEditor({ ...withArea, tables: [mesa1] })
+    const vista = screen.getByRole('button', { name: 'editor.waiterView' })
+    for (let i = 0; i < 20 && document.activeElement !== vista; i++) await user.tab()
+    expect(vista).toHaveFocus()
+    await user.keyboard(' ')
+    expect(screen.getByTestId('floor-plan-waiter-preview')).toBeInTheDocument()
+    await user.keyboard(' ')
+    expect(screen.getByTestId('floor-canvas')).toBeInTheDocument()
+    await user.keyboard(' ')
+    expect(screen.getByTestId('floor-plan-waiter-preview')).toBeInTheDocument()
+  })
+
   it('D8: si TODAS las mesas de un número repetido tienen cuenta, «Ver cuáles» las selecciona (antes no seleccionaba nada)', async () => {
     const user = userEvent.setup()
     renderEditor({

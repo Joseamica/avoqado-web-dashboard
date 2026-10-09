@@ -156,4 +156,33 @@ describe('FloorCanvas', () => {
     expect(screen.getByTestId('floor-canvas').getAttribute('class')).toContain('cursor-grab')
     fireEvent.keyUp(menu, { code: 'Space' })
   })
+
+  // m2 de 15-D: «¿Salir sin guardar?» y «Nueva área» se abren encima del editor (fuera de su diálogo). Con el foco en uno de
+  // sus botones por el ratón, el lienzo tomaba Espacio para la mano y el botón no se pulsaba.
+  it('D7: Espacio es del botón de un diálogo encimado aunque tenga el foco por el ratón; en el diálogo del lienzo sigue siendo la mano', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <div role="dialog">
+          <button type="button">Acercar</button>
+          <FloorCanvas {...props()} />
+        </div>
+        <div role="alertdialog">
+          <button type="button">Seguir editando</button>
+        </div>
+      </>,
+    )
+    const canvas = screen.getByTestId('floor-canvas')
+    const seguir = screen.getByRole('button', { name: 'Seguir editando' })
+    await user.click(seguir)
+    expect(fireEvent.keyDown(seguir, { code: 'Space' })).toBe(true)
+    expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
+    fireEvent.keyUp(seguir, { code: 'Space' })
+    // El mismo caso dentro del diálogo del propio lienzo (el editor): sigue siendo la mano (I3).
+    const acercar = screen.getByRole('button', { name: 'Acercar' })
+    await user.click(acercar)
+    expect(fireEvent.keyDown(acercar, { code: 'Space' })).toBe(false)
+    expect(canvas.getAttribute('class')).toContain('cursor-grab')
+    fireEvent.keyUp(acercar, { code: 'Space' })
+  })
 })

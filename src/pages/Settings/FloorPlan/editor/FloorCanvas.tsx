@@ -1,8 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent as ReactDragEvent,
+  type MutableRefObject,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { MousePointerClick, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FloorDrawing } from './FloorDrawing'
+import { useKeyboardFocus } from './useKeyboardFocus'
 import { ZoomControls } from './ZoomControls'
 import { clampMoveDelta } from '../model/editorReducer'
 import {
@@ -37,6 +47,8 @@ export interface FloorCanvasProps {
   onCreateWall: (x1: number, y1: number, x2: number, y2: number) => void
   onPlaceTable: (key: string, x: number, y: number) => void
   onToolDone: () => void
+  /** Qué control tiene el foco por teclado (`useKeyboardFocus` del editor, que sobrevive a que el lienzo se desmonte). */
+  keyboardFocus?: MutableRefObject<EventTarget | null>
 }
 
 type Rect = { x: number; y: number; w: number; h: number }
@@ -59,6 +71,7 @@ const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null
 const SPACE_CONTROLS =
   'button, a[href], summary, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="slider"], [role="combobox"]'
 const controlOf = (target: EventTarget | null) => (target as HTMLElement | null)?.closest?.(SPACE_CONTROLS) ?? null
+const dialogOf = (target: EventTarget | null) => (target as HTMLElement | null)?.closest?.('[role="dialog"], [role="alertdialog"]') ?? null
 
 /** Cuadros por píxel en pantalla. Con `preserveAspectRatio="meet"` manda el lado más apretado. */
 function unitsPerPixel(view: ViewBox, el: Element): number {
@@ -103,8 +116,9 @@ export function FloorCanvas(props: FloorCanvasProps) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [spaceHeld, setSpaceHeld] = useState(false)
   const spacePan = useRef(false)
-  /** El elemento que recibió el foco por TECLADO (Tab, flechas…); `null` si el foco llegó por el ratón. */
-  const keyboardFocus = useRef<EventTarget | null>(null)
+  // Sin el del editor (el lienzo suelto, en sus pruebas), uno propio.
+  const ownKeyboardFocus = useKeyboardFocus(!props.keyboardFocus)
+  const keyboardFocus = props.keyboardFocus ?? ownKeyboardFocus
   const pinch = useRef(1)
   const selected = useMemo(() => new Set(selection), [selection])
   // H4: mesas encimadas (lo viejo de la PAX, o dos que se arrastraron una sobre otra). Se avisa; nunca se mueven solas.
@@ -138,29 +152,11 @@ export function FloorCanvas(props: FloorCanvasProps) {
   // Espacio = mano para mover el plano. Con el foco en un botón o interruptor la barra lo sigue accionando: no se le roba
   // el clic aunque el puntero esté sobre el plano (al tocar el plano el foco pasa al lienzo, y ahí sí es la mano).
   useEffect(() => {
-    // De dónde vino el foco: una tecla antes del foco = teclado; un toque de puntero = ratón.
-    let viaKeyboard = false
-    const onAnyKey = () => {
-      viaKeyboard = true
-    }
-    const onPointer = () => {
-      viaKeyboard = false
-    }
-    const onFocusIn = (e: FocusEvent) => {
-      keyboardFocus.current = viaKeyboard ? e.target : null
-    }
-    window.addEventListener('keydown', onAnyKey, true)
-    window.addEventListener('pointerdown', onPointer, true)
-    window.addEventListener('focusin', onFocusIn, true)
-    return () => {
-      window.removeEventListener('keydown', onAnyKey, true)
-      window.removeEventListener('pointerdown', onPointer, true)
-      window.removeEventListener('focusin', onFocusIn, true)
-    }
-  }, [])
-  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
+      // Un diálogo encima del editor («¿Salir sin guardar?», «Nueva área»): Espacio es de sus botones (m2 de 15-D).
+      const dialog = dialogOf(e.target)
+      if (dialog && !dialog.contains(svgRef.current)) return
       const control = controlOf(e.target)
       if (control && control === keyboardFocus.current) return
       e.preventDefault()
@@ -186,7 +182,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', blur)
     }
-  }, [])
+  }, [keyboardFocus])
 
   // Rueda: con Ctrl/⌘ (o pellizco en el trackpad) acerca; sin tecla desplaza.
   useEffect(() => {
