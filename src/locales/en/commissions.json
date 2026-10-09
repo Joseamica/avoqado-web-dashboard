@@ -209,9 +209,19 @@
     "deactivated": "“{{name}}” was deactivated",
     "reactivate": "Reactivate",
     "reactivateTitle": "Reactivate “{{name}}”?",
-    "reactivateDesc": "It calculates commissions again from now on. If another scheme replaced it, deactivate one of the two so they don't both pay.",
+    "reactivateDesc": "It calculates commissions again from now on.",
     "reactivateConfirm": "Reactivate",
     "reactivated": "“{{name}}” calculates commissions again",
+    "reactivateReplacedBy": "This scheme was replaced by “{{otro}}”.",
+    "reactivateNoOverlap": "It doesn't share categories with any active scheme.",
+    "overlap": {
+      "categories": "“{{a}}” and “{{b}}” share {{categorias}}: only “{{paga}}” pays, the one with the higher priority.",
+      "categoriesTie": "“{{a}}” and “{{b}}” share {{categorias}} and have the same priority ({{prioridad}}): raise the priority of the one that should pay.",
+      "general": "“{{a}}” and “{{b}}” are general (all categories): only “{{paga}}” pays, the one with the higher priority.",
+      "generalTie": "“{{a}}” and “{{b}}” are general and have the same priority ({{prioridad}}): raise the priority of the one that should pay.",
+      "nCategories": "{{count}} categories",
+      "more": "And {{count}} more."
+    },
     "toggleError": "It couldn't be changed. Check your connection and try again.",
     "duplicateWithChanges": "Duplicate with changes",
     "replace": {

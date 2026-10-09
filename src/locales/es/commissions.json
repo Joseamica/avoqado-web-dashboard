@@ -209,9 +209,19 @@
     "deactivated": "«{{name}}» quedó desactivado",
     "reactivate": "Reactivar",
     "reactivateTitle": "¿Reactivar «{{name}}»?",
-    "reactivateDesc": "Vuelve a calcular comisiones desde ahora. Si otro esquema lo reemplazó, desactiva uno de los dos para que no paguen doble.",
+    "reactivateDesc": "Vuelve a calcular comisiones desde ahora.",
     "reactivateConfirm": "Reactivar",
     "reactivated": "«{{name}}» volvió a calcular comisiones",
+    "reactivateReplacedBy": "Este esquema fue reemplazado por «{{otro}}».",
+    "reactivateNoOverlap": "No comparte categorías con ningún esquema activo.",
+    "overlap": {
+      "categories": "«{{a}}» y «{{b}}» comparten {{categorias}}: paga sólo «{{paga}}», el de mayor prioridad.",
+      "categoriesTie": "«{{a}}» y «{{b}}» comparten {{categorias}} y tienen la misma prioridad ({{prioridad}}): sube la prioridad del que deba pagar.",
+      "general": "«{{a}}» y «{{b}}» son generales (todas las categorías): paga sólo «{{paga}}», el de mayor prioridad.",
+      "generalTie": "«{{a}}» y «{{b}}» son generales y tienen la misma prioridad ({{prioridad}}): sube la prioridad del que deba pagar.",
+      "nCategories": "{{count}} categorías",
+      "more": "Y {{count}} más."
+    },
     "toggleError": "No se pudo cambiar. Revisa tu conexión e inténtalo otra vez.",
     "duplicateWithChanges": "Duplicar con cambios",
     "replace": {

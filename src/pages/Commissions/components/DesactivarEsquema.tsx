@@ -15,9 +15,10 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import type { CommissionConfig } from '@/types/commission'
+import { AvisoAlReactivar } from './AvisoDeSolapes'
 
 interface DesactivarEsquemaProps {
-  config: Pick<CommissionConfig, 'id' | 'name' | 'active'>
+  config: CommissionConfig
   /** `icono` para la fila de la lista; `boton` para la ficha y el editor. */
   variante?: 'boton' | 'icono'
   /** Al terminar (p. ej. cerrar el editor). */
@@ -84,6 +85,8 @@ export default function DesactivarEsquema({ config, variante = 'boton', onHecho 
           <AlertDialogHeader>
             <AlertDialogTitle>{t(`${prefijo}Title`, { name: config.name })}</AlertDialogTitle>
             <AlertDialogDescription>{t(`${prefijo}Desc`)}</AlertDialogDescription>
+            {/* Reactivar puede hacer que paguen dos: se dice con cuáles choca y cuál paga (ft-graves, D-REACTIVAR) */}
+            {!desactivar && abierto && <AvisoAlReactivar config={config} />}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actualizar.isPending}>{t('actions.cancel')}</AlertDialogCancel>

@@ -18,6 +18,8 @@ import { useToast } from '@/hooks/use-toast'
 import type { CommissionConfigSource, EffectiveCommissionConfig } from '@/types/commission'
 import CommissionConfigCard from './CommissionConfigCard'
 import EsquemasDesactivados from './EsquemasDesactivados'
+import { AvisoDeSolapes } from './AvisoDeSolapes'
+import { solapesEntre } from '../quienPaga'
 import { cn } from '@/lib/utils'
 
 // GlassCard component
@@ -55,18 +57,9 @@ export default function CommissionConfigList({
 
 	const configs = useMemo(() => effectiveConfigs || [], [effectiveConfigs])
 
-	// Compute whether any category appears in 2+ active configs
-	const hasCategoryOverlap = useMemo(() => {
-		const activeConfigs = configs.filter(({ config }) => config.active && config.filterByCategories && config.categoryIds?.length)
-		const seen = new Set<string>()
-		for (const { config } of activeConfigs) {
-			for (const id of config.categoryIds) {
-				if (seen.has(id)) return true
-				seen.add(id)
-			}
-		}
-		return false
-	}, [configs])
+	// Esquemas activos que se enciman (comparten categoría, o dos generales): paga sólo uno, el de mayor prioridad. Se dicen con
+	// nombres y cuál paga (ft-graves, D-REACTIVAR); antes era un texto genérico escrito a mano.
+	const solapes = useMemo(() => solapesEntre(configs.filter(({ config }) => config.active).map(({ config }) => config)), [configs])
 
 	const handleRevertToOrg = async () => {
 		if (!revertConfigId) return
@@ -116,11 +109,11 @@ export default function CommissionConfigList({
 
 	return (
 		<div className="space-y-6">
-			{hasCategoryOverlap && (
+			{solapes.length > 0 && (
 				<Alert className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
 					<AlertTriangle className="h-4 w-4 !text-amber-600 dark:!text-amber-400" />
 					<AlertDescription>
-						Una o más categorías están en más de un esquema; se pagará una sola vez, con el de mayor prioridad.
+						<AvisoDeSolapes solapes={solapes} />
 					</AlertDescription>
 				</Alert>
 			)}
