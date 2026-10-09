@@ -221,10 +221,10 @@
       "confirm": "“{{nuevo}}” ({{tasaNueva}}) replaces “{{anterior}}” ({{tasaAnterior}}) from today; the previous one is deactivated and stops paying.",
       "confirmButton": "Replace",
       "done": "“{{nuevo}}” replaced “{{anterior}}”",
-      "createError": "The new scheme couldn't be fully created; “{{anterior}}” is still active. Try again: it won't be duplicated.",
-      "originalStillActive": "The new one is active, but “{{anterior}}” is too",
-      "originalStillActiveHint": "Deactivate “{{anterior}}” so they don't both pay.",
-      "retryDeactivate": "Deactivate “{{anterior}}”"
+      "createError": "It couldn't be replaced: “{{anterior}}” is still active and nothing changed.",
+      "alreadyInactive": "“{{anterior}}” was no longer active: another change replaced or turned it off. We reloaded the schemes so you can see how they are.",
+      "noResponse": "The server didn't answer and we don't know whether it was replaced. Try again: if it already happened, it won't be duplicated.",
+      "tieredResetHint": "Since the new one uses tiers, each person's goal progress starts from zero today."
     },
     "inactiveSection": "Deactivated ({{count}})",
     "inactiveSectionHint": "They don't calculate new commissions. What they already calculated is paid as usual.",

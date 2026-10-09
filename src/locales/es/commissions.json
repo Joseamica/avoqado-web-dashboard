@@ -221,10 +221,10 @@
       "confirm": "«{{nuevo}}» ({{tasaNueva}}) reemplaza a «{{anterior}}» ({{tasaAnterior}}) desde hoy; el anterior se desactiva y deja de pagar.",
       "confirmButton": "Reemplazar",
       "done": "«{{nuevo}}» reemplazó a «{{anterior}}»",
-      "createError": "No se pudo crear completo el esquema nuevo; «{{anterior}}» sigue activo. Reintenta: no se duplica.",
-      "originalStillActive": "El nuevo ya está activo, pero «{{anterior}}» también",
-      "originalStillActiveHint": "Desactiva «{{anterior}}» para que no paguen los dos.",
-      "retryDeactivate": "Desactivar «{{anterior}}»"
+      "createError": "No se pudo reemplazar: «{{anterior}}» sigue activo y no cambió nada.",
+      "alreadyInactive": "«{{anterior}}» ya no estaba activo: otro cambio lo reemplazó o lo apagó. Recargamos los esquemas para que veas cómo quedaron.",
+      "noResponse": "No hubo respuesta del servidor y no sabemos si se reemplazó. Vuelve a intentarlo: si ya se había hecho, no se duplica.",
+      "tieredResetHint": "Como el nuevo es por niveles, el avance de la meta de cada persona empieza de cero desde hoy."
     },
     "inactiveSection": "Desactivados ({{count}})",
     "inactiveSectionHint": "No calculan comisiones nuevas. Lo que ya calcularon se paga normal.",

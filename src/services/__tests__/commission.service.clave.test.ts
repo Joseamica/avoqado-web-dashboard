@@ -23,6 +23,14 @@ describe('commissionService: Idempotency-Key al crear', () => {
     expect(cabecera()).toEqual({ 'Idempotency-Key': 'k1' })
   })
 
+  it('🔴 replaceConfig: UNA llamada a la copia con `replace: true`, los cambios y la clave (ft-graves, reemplazo atómico)', async () => {
+    await commissionService.replaceConfig('v1', 'c1', { name: 'Nuevo', calcType: 'PERCENTAGE', defaultRate: 0.12 }, 'k9')
+    expect(m.post).toHaveBeenCalledTimes(1)
+    expect(m.post.mock.calls[0][0]).toBe('/api/v1/dashboard/commissions/venues/v1/configs/c1/copy')
+    expect(m.post.mock.calls[0][1]).toEqual({ replace: true, name: 'Nuevo', calcType: 'PERCENTAGE', defaultRate: 0.12 })
+    expect(cabecera()).toEqual({ 'Idempotency-Key': 'k9' })
+  })
+
   it('sin clave, no manda cabecera (la petición de siempre)', async () => {
     await commissionService.createConfig('v1', { name: 'a' } as never)
     expect(m.post.mock.calls[0][2]).toBeUndefined()

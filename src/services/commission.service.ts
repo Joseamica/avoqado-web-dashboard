@@ -76,6 +76,18 @@ export const commissionService = {
 		return response.data.data
 	},
 
+	// REEMPLAZA un esquema en UNA transacción del servidor (ft-graves, «Duplicar con cambios»): crea el nuevo con estos cambios
+	// (lo demás, niveles y excepciones, lo copia del original) y desactiva el original. 409 `ESQUEMA_YA_INACTIVO` si ya no estaba activo.
+	async replaceConfig(
+		venueId: string,
+		configId: string,
+		cambios: Omit<UpdateCommissionConfigInput, 'active' | 'aggregationPeriod'>,
+		clave?: string,
+	): Promise<CommissionConfig & { reemplazado?: { id: string; active: boolean } }> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/copy`, { replace: true, ...cambios }, conClave(clave))
+		return response.data
+	},
+
 	// Delete a commission config (soft delete)
 	async deleteConfig(venueId: string, configId: string): Promise<{ message: string }> {
 		const response = await api.delete(`${BASE_URL}/venues/${venueId}/configs/${configId}`)
