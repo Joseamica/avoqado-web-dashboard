@@ -52,6 +52,20 @@ describe('FloorDrawing', () => {
     expect(screen.getByTestId('floor-table-1').getAttribute('transform')).toBe('rotate(0 13 10)')
   })
 
+  // Pasada en vivo (9-oct): al arrastrar la mesa 55 sobre la 66, la 55 quedaba DEBAJO (en SVG gana lo último dibujado).
+  it('lo seleccionado y lo que se arrastra se dibuja encima de las demás mesas', () => {
+    const tables = [t('55'), t('66', { x: 12 }), t('77', { x: 30 })]
+    const after = (a: string, b: string) =>
+      !!(screen.getByTestId(`floor-table-${a}`).compareDocumentPosition(screen.getByTestId(`floor-table-${b}`)) & Node.DOCUMENT_POSITION_PRECEDING)
+    const { unmount } = draw({ tables, selected: new Set(['t55']) })
+    expect(after('55', '66')).toBe(true)
+    expect(after('55', '77')).toBe(true)
+    expect(after('77', '66')).toBe(true) // el resto conserva su orden
+    unmount()
+    draw({ tables, ghost: { keys: new Set(['t66']), dx: 1, dy: 0 } })
+    expect(after('66', '77')).toBe(true)
+  })
+
   it('marca la mesa con cuenta abierta', () => {
     draw({ tables: [t('7', { hasOpenOrder: true })] })
     expect(screen.getByTestId('floor-open-order-7')).toBeInTheDocument()

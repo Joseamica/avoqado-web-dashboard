@@ -47,6 +47,11 @@ export const FloorDrawing = memo(function FloorDrawing({
   const gridId = `floor-grid-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const { cols, rows } = gridOf(area.floorShape)
   const offsetOf = (key: string): Offset => (ghost?.keys.has(key) ? { dx: ghost.dx, dy: ghost.dy } : NO_OFFSET)
+  // En SVG gana lo último que se dibuja: lo seleccionado y lo que se arrastra van al final. Antes una mesa arrastrada
+  // sobre otra quedaba DEBAJO, tapada por la vecina, y no se veía dónde iba (prueba en vivo, 9-oct).
+  const onTop = (key: string) => !!selected?.has(key) || !!ghost?.keys.has(key)
+  const placed = tables.filter(t => t.x !== null && t.y !== null)
+  const ordered = [...placed.filter(t => !onTop(t.key)), ...placed.filter(t => onTop(t.key))]
   return (
     <g>
       <defs>
@@ -61,19 +66,17 @@ export const FloorDrawing = memo(function FloorDrawing({
       {elements.map(el => (
         <ElementShape key={el.key} el={el} offset={offsetOf(el.key)} selected={!!selected?.has(el.key)} interactive={interactive} />
       ))}
-      {tables
-        .filter(t => t.x !== null && t.y !== null)
-        .map(t => (
-          <TableShape
-            key={t.key}
-            t={t}
-            offset={offsetOf(t.key)}
-            selected={!!selected?.has(t.key)}
-            busy={busyKeys?.has(t.key)}
-            warn={!!warnKeys?.has(t.key)}
-            interactive={interactive}
-          />
-        ))}
+      {ordered.map(t => (
+        <TableShape
+          key={t.key}
+          t={t}
+          offset={offsetOf(t.key)}
+          selected={!!selected?.has(t.key)}
+          busy={busyKeys?.has(t.key)}
+          warn={!!warnKeys?.has(t.key)}
+          interactive={interactive}
+        />
+      ))}
     </g>
   )
 })
