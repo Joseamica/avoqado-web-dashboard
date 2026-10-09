@@ -138,7 +138,9 @@ function TableShape({
             {t.capacity}p
           </text>
         )}
-        {t.hasOpenOrder && <circle data-testid={`floor-open-order-${t.number}`} cx={cx + dot.dx} cy={cy + dot.dy} r={0.38} className="fill-warning stroke-background" strokeWidth={0.1} />}
+        {/* En la vista del mesero no: ahí lo ocupado es de ejemplo, y un punto real de «cuenta abierta» sobre una mesa
+            pintada «Libre» se contradecía con la leyenda (pasada en vivo, 9-oct). */}
+        {t.hasOpenOrder && busy === undefined && <circle data-testid={`floor-open-order-${t.number}`} cx={cx + dot.dx} cy={cy + dot.dy} r={0.38} className="fill-warning stroke-background" strokeWidth={0.1} />}
       </g>
     </g>
   )

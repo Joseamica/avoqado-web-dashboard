@@ -110,6 +110,11 @@ describe('FloorDrawing', () => {
     expect(g.querySelector('path')).toHaveAttribute('d', 'M 10 3 L 10 0 A 3 3 0 0 1 13 3')
   })
 
+  it('en la vista del mesero no enseña el punto de cuenta abierta (lo ocupado ahí es de ejemplo)', () => {
+    draw({ tables: [t('1', { hasOpenOrder: true })], elements: [], busyKeys: new Set() })
+    expect(screen.queryByTestId('floor-open-order-1')).not.toBeInTheDocument()
+  })
+
   it('en la vista del mesero, libre y ocupada usan colores del tema que sí existen', () => {
     // `fill-success/20` y `stroke-success` no se generan: el @theme no registra --color-success (sólo --success).
     draw({ tables: [t('1'), t('4', { x: 20 })], elements: [], busyKeys: new Set(['t4']) })
