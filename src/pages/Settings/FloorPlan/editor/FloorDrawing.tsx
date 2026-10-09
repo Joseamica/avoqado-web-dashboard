@@ -31,6 +31,17 @@ const FREE_STROKE = 'stroke-(--success)'
 /** Tamaño de letra para que un nombre derecho quepa en su caja (~0.6 em por letra), sin pasar de 1.2 cuadros. */
 const fitLabel = (label: string, w: number, h: number) => Math.min(1.2, h * 0.45, (w * 0.9) / (0.6 * Math.max(1, label.length)))
 
+/**
+ * Letra del número de mesa: la de siempre, pero si el número es largo («Terraza 12», «FULLTEST-1») se achica hasta caber
+ * a lo ancho de la mesa (el texto va derecho aunque la mesa esté girada). Antes se salía de la mesa y tapaba a la de al
+ * lado (pasada en vivo, 9-oct). La negrita mide ~0.62 em por letra.
+ */
+function tableNumberSize(t: DraftTable, w: number, h: number): number {
+  const turn = ((t.rotation % 180) + 180) % 180
+  const across = t.shape === 'ROUND' ? w * 0.78 : (turn === 0 ? w : turn === 90 ? h : Math.min(w, h)) * 0.86
+  return Math.min(1.5, Math.min(w, h) * 0.42, across / (0.62 * Math.max(1, t.number.length)))
+}
+
 /** El plano en unidades de CUADRO (1 = un cuadro de la cuadrícula). Sin interacción: la pone FloorCanvas. */
 export const FloorDrawing = memo(function FloorDrawing({
   area,
@@ -128,7 +139,7 @@ function TableShape({
           y={Math.min(w, h) >= 4 ? cy - 0.35 : cy}
           textAnchor="middle"
           dominantBaseline="central"
-          fontSize={Math.min(1.5, Math.min(w, h) * 0.42)}
+          fontSize={tableNumberSize(t, w, h)}
           className="fill-foreground font-semibold"
         >
           {t.number}

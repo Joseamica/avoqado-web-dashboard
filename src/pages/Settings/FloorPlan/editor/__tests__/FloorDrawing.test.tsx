@@ -126,6 +126,17 @@ describe('FloorDrawing', () => {
     expect(busy?.getAttribute('class')).toContain('stroke-destructive')
   })
 
+  // Pasada en vivo (9-oct): «FULLTEST-1» y «' OR 1=1--» se salían de su mesa y tapaban a la vecina.
+  it('un número de mesa largo se achica para caber a lo ancho de su mesa; uno corto sigue igual', () => {
+    const size = (n: string) => Number(screen.getByText(n).getAttribute('font-size'))
+    draw({ tables: [t('Terraza 12'), t('7', { x: 30 }), t('VIP-03', { shape: 'ROUND', x: 20 }), t('Barra 4', { shape: 'RECTANGLE', capacity: 6, rotation: 90, x: 36 })], elements: [] })
+    expect(size('7')).toBeCloseTo(1.5, 5) // cuadrada de 4: la de siempre (min(1.5, 4 × 0.42))
+    expect(size('Terraza 12') * 0.62 * 'Terraza 12'.length).toBeLessThanOrEqual(4 * 0.86 + 1e-9)
+    expect(size('VIP-03') * 0.62 * 'VIP-03'.length).toBeLessThanOrEqual(4 * 0.78 + 1e-9)
+    // Larga de 6 (8 × 4) parada: a lo ancho se ven 4 cuadros, no 8.
+    expect(size('Barra 4') * 0.62 * 'Barra 4'.length).toBeLessThanOrEqual(4 * 0.86 + 1e-9)
+  })
+
   it('el nombre de una barra parada cabe a lo ancho de la barra', () => {
     const bar: DraftElement = { key: 'b1', type: 'BAR_COUNTER', areaKey: 'a1', x: 2, y: 2, w: 2, h: 10, rotation: 0, x2: null, y2: null, label: 'Barra', color: null }
     draw({ tables: [], elements: [bar] })
