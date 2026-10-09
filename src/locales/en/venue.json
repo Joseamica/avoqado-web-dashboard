@@ -437,6 +437,11 @@
           "title": "Passes (TotalPass · Wellhub)",
           "description": "TotalPass members book and check in to your classes (Wellhub, coming soon); you decide how many spots they get."
         },
+        "shopify": {
+          "title": "Shopify",
+          "description": "Your Shopify catalog flows into this location and stock stays in sync both ways.",
+          "pilot": "Pilot"
+        },
         "partner": "Partner",
         "haycash": {
           "title": "HayCash · Sales advance",

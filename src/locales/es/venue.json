@@ -437,6 +437,11 @@
           "title": "Pases (TotalPass · Wellhub)",
           "description": "Los socios de TotalPass reservan y hacen check-in en tus clases (Wellhub, muy pronto); tú decides cuántos lugares les das."
         },
+        "shopify": {
+          "title": "Shopify",
+          "description": "Tu catálogo de Shopify llega solo a esta sucursal y el stock se actualiza en los dos lados.",
+          "pilot": "Piloto"
+        },
         "partner": "Socio",
         "haycash": {
           "title": "HayCash · Adelanto de ventas",

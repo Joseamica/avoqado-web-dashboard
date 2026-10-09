@@ -1,0 +1,272 @@
+{
+  "page": {
+    "title": "Shopify",
+    "subtitle": "Comparte catálogo y stock entre tu tienda Shopify y esta sucursal.",
+    "readOnly": "Puedes ver el estado. Para conectar o cambiar la conexión, pídeselo al dueño o a un administrador.",
+    "staleOverview": "No pudimos actualizar el estado; lo que ves puede no estar al día."
+  },
+  "piloto": {
+    "title": "Shopify está en piloto",
+    "body": "El conector con Shopify se abre por ahora con un grupo de tiendas invitadas. Si te interesa, escríbenos y lo vemos contigo.",
+    "contact": "Escribir por WhatsApp",
+    "whatsappMessage": "Hola, me interesa sumarme al piloto del conector con Shopify.",
+    "askOwner": "Si te interesa, pídele al dueño del negocio que nos escriba."
+  },
+  "estado": {
+    "IMPORTANDO": "Trayendo tu catálogo",
+    "POR_APLICAR": "Lista para revisar",
+    "APLICANDO": "Aplicando",
+    "ACTIVA": "Conectada",
+    "PAUSADA": "Pausada",
+    "REVOCADA": "Sin permiso de Shopify"
+  },
+  "list": {
+    "loadMore": "Cargar más",
+    "total": "{{shown}} de {{total}}",
+    "staleError": "No pudimos actualizar esta lista; lo que ves puede no estar al día.",
+    "loadMoreError": "No pudimos cargar más resultados. Lo de arriba sigue siendo válido.",
+    "retryLoadMore": "Reintentar cargar más"
+  },
+  "connect": {
+    "title": "Conecta tu tienda Shopify",
+    "body": "Tu catálogo de Shopify llega solo a esta sucursal, y cada venta, devolución o pedido en línea se refleja en los dos lados.",
+    "domainLabel": "Dominio de tu tienda",
+    "domainPlaceholder": "mi-tienda.myshopify.com",
+    "domainHelp": "Lo ves en Shopify → Configuración → Dominios. Termina en .myshopify.com.",
+    "submit": "Conectar con Shopify",
+    "soloPilotoTitle": "Por ahora, sólo tiendas del piloto",
+    "soloPiloto": "El conector con Shopify está en piloto con algunas tiendas. Si quieres sumarte, escríbenos y te avisamos cuando abra para todos.",
+    "chooseLocation": "¿Qué ubicación de Shopify es esta sucursal?",
+    "chooseLocationHelp": "El stock de esa ubicación es el que se comparte con esta sucursal.",
+    "noLocations": "Tu tienda no tiene ubicaciones activas. Crea una en Shopify → Configuración → Ubicaciones y vuelve a conectar.",
+    "restart": "Volver a empezar",
+    "importing": "Trayendo tu catálogo de Shopify. Puedes cerrar esta página: sigue solo.",
+    "importedCount": "Variantes revisadas: {{n}}",
+    "importStopped": "La conexión se detuvo",
+    "importStoppedAskAdmin": "Pídele al dueño o a un administrador que la resuelva desde esta página.",
+    "importErrors": {
+      "CATALOGO_MUY_GRANDE": "Tu catálogo es muy grande para esta versión (más de 20,000 variantes). Escríbenos y lo vemos contigo, o cancela la conexión.",
+      "CATALOGO_MAESTRO": "El catálogo de esta organización lo administra el catálogo maestro: Shopify no puede crear productos aquí. Pide a quien administra el catálogo maestro que lo libere y vuelve a conectar, o cancela la conexión.",
+      "FALTA_PERMISO": "Shopify no le dio a Avoqado todos los permisos que necesita. Vuelve a dar permiso y acepta todos los que pide.",
+      "generic": "La importación se detuvo por un error. La reintentamos sola; si sigue así, escríbenos."
+    },
+    "callbackErrors": {
+      "FIRMA": "Shopify no firmó la respuesta. Vuelve a intentarlo.",
+      "INTENT": "No encontramos tu conexión. Vuelve a intentarlo.",
+      "USADO": "Ese enlace de Shopify ya se usó. Vuelve a conectar.",
+      "EXPIRADO": "Pasó demasiado tiempo. Vuelve a conectar.",
+      "TIENDA": "La tienda que autorizaste no es la que escribiste.",
+      "INTERCAMBIO": "Shopify no entregó el permiso. Vuelve a intentarlo.",
+      "DENEGADO": "No se dieron todos los permisos en Shopify. Sin ellos no podemos sincronizar.",
+      "generic": "No pudimos terminar la conexión con Shopify. Vuelve a intentarlo."
+    },
+    "reauthorized": "Listo: Shopify volvió a dar permiso. Seguimos sincronizando."
+  },
+  "preview": {
+    "title": "Así quedará tu stock",
+    "body": "Compara lo que tiene Avoqado hoy con cómo quedará al aplicar: lo que Shopify tenía al traer tu catálogo, con lo que se vendió mientras conectabas.",
+    "hoy": "Hoy en Avoqado",
+    "quedara": "Así quedará",
+    "enShopify": "Shopify al importar: {{qty}}",
+    "readOnly": "Tu catálogo ya llegó. Falta que el dueño o un administrador revise y aplique el stock.",
+    "resumen": "Emparejados: {{emparejados}} · Cambian: {{cambian}} · Nuevos: {{nuevos}} · Sin pareja: {{sinPareja}}",
+    "filtroLabel": "Qué productos ver",
+    "filtros": { "CAMBIAN": "Cambian", "NUEVOS": "Nuevos", "TODOS": "Todos" },
+    "nuevo": "Nuevo",
+    "empty": "Ningún producto con este filtro.",
+    "loadError": "No pudimos cargar la vista previa.",
+    "applyBlocked": "Para aplicar, primero tiene que cargar la vista previa.",
+    "apply": "Aplicar y sincronizar",
+    "applyTitle": "¿Aplicar el stock de Shopify y empezar a sincronizar?",
+    "applyBody": "Cada producto emparejado tomará el número que tenga Shopify en ese momento; puede no ser el de esta lista si alguien vende mientras tanto. Las ventas que hiciste mientras se conectaba se respetan. Después, cada venta, devolución o pedido en línea se reflejará en los dos lados.",
+    "applyConfirm": "Sí, aplicar",
+    "cancel": "Cancelar la conexión",
+    "cancelTitle": "¿Cancelar la conexión con Shopify?",
+    "cancelBody": "No se cambia ningún stock. Los productos que ya llegaron de Shopify se quedan en tu catálogo.",
+    "cancelConfirm": "Sí, cancelar",
+    "applying": "Aplicando: {{hechas}} de {{total}} productos",
+    "applyRequested": "Aplicando el stock de Shopify. Puedes cerrar esta página: sigue solo."
+  },
+  "status": {
+    "store": "Tienda",
+    "location": "Ubicación",
+    "matched": "Productos emparejados",
+    "pending": "Cambios en camino",
+    "stuck": "Cambios atorados",
+    "uncertain": "Envíos sin confirmar",
+    "delay": "Retraso",
+    "delayMinutes": "{{n}} min",
+    "lastReconcile": "Último cuadre",
+    "never": "Todavía no",
+    "resyncing": "Cuadre en curso…",
+    "resyncOnResume": "Se cuadrará al reanudar",
+    "retryAt": "Lo vuelve a intentar a las {{time}}",
+    "paused": "Pausada: este negocio ya no tiene acceso al conector con Shopify. Nada se manda ni se aplica; los cambios se siguen anotando y, al reactivarlo, comparamos todo.",
+    "pausedContact": "El acceso al piloto se activa caso por caso: escríbenos para reactivarlo.",
+    "pausedOther": "Pausada mientras se revisa el acceso. En cuanto esté vigente, comparamos todo y seguimos solos.",
+    "revoked": "Shopify retiró el permiso de Avoqado (alguien desinstaló la app o cambió sus permisos). Avoqado sigue vendiendo normal, pero el stock no se sincroniza.",
+    "reconnect": "Reconectar",
+    "reconnectAskAdmin": "Pídele al dueño o a un administrador que la reconecte.",
+    "resync": "Cuadrar ahora",
+    "resyncBlocked": "Para cuadrar, primero vuelve a dar permiso en Shopify: sin él no se puede leer el stock de la tienda.",
+    "resyncDone": "Listo: el cuadre quedó pedido; corre en cuanto le toque a esta sucursal, normalmente en un par de minutos.",
+    "disconnect": "Desconectar",
+    "disconnectTitle": "¿Desconectar Shopify?",
+    "disconnectBody": "Avoqado seguirá vendiendo normal, pero dejará de actualizar el stock en Shopify y al revés. Los cambios que no alcanzaron a salir se descartan.",
+    "disconnectConfirm": "Sí, desconectar",
+    "disconnected": "Shopify desconectado"
+  },
+  "avisos": {
+    "title": "¿Qué significa cada aviso?",
+    "intro": "Cuando algo necesita tu atención te avisamos en la campanita, y por correo en la mañana si quedó algo por revisar.",
+    "reauthorize": "Volver a dar permiso en Shopify",
+    "items": {
+      "REVOCADA": {
+        "title": "Shopify desconectó a Avoqado",
+        "body": "La tienda ya no le da acceso a Avoqado. Tus ventas siguen normales, pero el stock no se sincroniza. Reconéctala desde esta página."
+      },
+      "ATORADOS": {
+        "title": "Cambios de stock atorados",
+        "body": "Algunos cambios no llegaron a Shopify después de varios intentos. Aparecen en «Por revisar»: elige el número bueno en cada uno."
+      },
+      "RETRASO": {
+        "title": "Shopify va atrasado",
+        "body": "Hay cambios esperando más de 15 minutos para llegar a Shopify. Seguimos intentando solos; si no se resuelve, pasan a «Por revisar»."
+      },
+      "SOBREVENTA": {
+        "title": "Se vendió dos veces la misma pieza",
+        "body": "Un producto quedó en negativo porque se vendió en la tienda y en línea a la vez. Revisa la existencia física y, si hace falta, avísale al cliente del pedido en línea."
+      },
+      "POR_REVISAR": {
+        "title": "Hay stock por revisar",
+        "body": "El número de Avoqado y el de Shopify no coinciden y no supimos quién lo cambió. Elige el bueno en «Por revisar»."
+      },
+      "FALTA_PERMISO": {
+        "title": "Falta un permiso en Shopify",
+        "body": "Shopify no le deja a Avoqado cambiar el stock. Vuelve a dar permiso y acepta todos los permisos que pide."
+      },
+      "CONTEO_NO_APLICADO": {
+        "title": "Un conteo no se aplicó",
+        "body": "El conteo de un producto no se aplicó y su stock no cambió. Si había un cambio en camino a Shopify, vuelve a contarlo en unos minutos. Si el producto tiene una diferencia en «Por revisar», resuélvela primero y después vuelve a contarlo."
+      }
+    }
+  },
+  "review": {
+    "title": "Por revisar",
+    "intro": "En estos productos no supimos quién cambió el stock. Elige qué número es el bueno.",
+    "search": "Buscar producto o SKU",
+    "empty": "Todo cuadra con Shopify.",
+    "noMatches": "Ningún producto coincide con tu búsqueda.",
+    "loadError": "No pudimos cargar «Por revisar».",
+    "avoqado": "Avoqado: {{qty}}",
+    "shopify": "Shopify: {{qty}}",
+    "stuck": "Cambios que no llegaron a Shopify: {{n}}",
+    "suggested": "Sugerido",
+    "useAvoqado": "Usar el de Avoqado",
+    "useShopify": "Usar el de Shopify",
+    "resolved": "Listo: quedó igual en los dos lados.",
+    "savedChoice": "Elección guardada; se enviará a Shopify.",
+    "readOnlyResolve": "Para elegir un número necesitas el permiso de ajustar inventario.",
+    "inactiveResolve": "Mientras la conexión no esté activa no se puede resolver.",
+    "permissionResolve": "Shopify le quitó un permiso a Avoqado: vuelve a dar permiso en Shopify (arriba) para poder elegir.",
+    "elegiste": { "AVOQADO": "Elegiste el número de Avoqado.", "SHOPIFY": "Elegiste el número de Shopify." },
+    "envio": {
+      "PENDIENTE": "Elección guardada; se enviará a Shopify.",
+      "ATORADO": "Tu elección no pudo llegar a Shopify después de varios intentos. El cuadre la vuelve a poner aquí para que decidas otra vez.",
+      "ENVIADO": "Listo: tu elección ya está en Shopify."
+    },
+    "envioEnPausa": "En pausa: se enviará al reanudar.",
+    "reasons": {
+      "DIFERENCIA": "Los dos números no cuadran y no encontramos qué movimiento lo explica.",
+      "ATORADO": "Hay cambios que no pudieron llegar a Shopify.",
+      "INCIERTO": "Un envío a Shopify no se confirmó: no sabemos si llegó.",
+      "REACTIVADA": "El producto se volvió a emparejar y su stock no coincide con el de Shopify."
+    }
+  },
+  "issues": {
+    "title": "Productos sin pareja",
+    "intro": "Variantes de Shopify que no se pudieron ligar a un producto de esta sucursal. Cada una dice por qué y qué hacer.",
+    "search": "Buscar producto o SKU",
+    "reasonLabel": "Motivo",
+    "allReasons": "Todos los motivos",
+    "empty": "Todos los productos de Shopify están emparejados.",
+    "noMatches": "Nada coincide con tu búsqueda o filtro.",
+    "loadError": "No pudimos cargar los productos sin pareja.",
+    "reasonNames": {
+      "SIN_SKU": "Sin SKU",
+      "SKU_REPETIDO": "SKU repetido en Shopify",
+      "SKU_CHOCA": "SKU en uso",
+      "CODIGO_REPETIDO": "Código de barras en uso",
+      "IDENTIDAD_EN_CONFLICTO": "SKU y código no coinciden",
+      "PRODUCTO_ARCHIVADO": "Producto archivado",
+      "METODO_RECETA": "Producto con receta",
+      "TIPO_SIN_INVENTARIO": "No lleva inventario",
+      "SIN_INVENTARIO_EN_AVOQADO": "Sin inventario en Avoqado",
+      "UNIDAD_NO_PIEZA": "No se cuenta por pieza",
+      "SIN_PRECIO": "Sin precio en pesos",
+      "NIVEL_INEXISTENTE": "Sin stock en la ubicación",
+      "NO_RASTREADO": "Shopify no lleva su inventario",
+      "SIN_INVENTARIO": "Suspendida: sin inventario",
+      "ERROR_IMPORTACION": "No se pudo traer"
+    },
+    "reasons": {
+      "SIN_SKU": "Le falta el SKU en Shopify. Ponle uno y se empareja solo.",
+      "SKU_REPETIDO": "Otra variante de Shopify tiene el mismo SKU. Cámbialo en Shopify.",
+      "SKU_CHOCA": "El SKU ya lo usa otro producto de esta sucursal. Cambia uno de los dos.",
+      "CODIGO_REPETIDO": "El código de barras ya lo usa otro producto de esta sucursal.",
+      "IDENTIDAD_EN_CONFLICTO": "El SKU apunta a un producto y el código de barras a otro. Corrige uno de los dos.",
+      "PRODUCTO_ARCHIVADO": "Coincide con un producto archivado en Avoqado. Restáuralo o cambia el SKU.",
+      "METODO_RECETA": "Coincide con un producto que se controla por receta. El conector sólo liga productos contados por pieza.",
+      "TIPO_SIN_INVENTARIO": "Coincide con un producto que no lleva inventario, como un servicio.",
+      "SIN_INVENTARIO_EN_AVOQADO": "Coincide con un producto sin inventario en Avoqado. Actívale el inventario por pieza.",
+      "UNIDAD_NO_PIEZA": "Coincide con un producto que se mide en otra unidad (kilos, litros). Shopify sólo cuenta piezas.",
+      "SIN_PRECIO": "Entró sin precio en pesos: ponle precio en Avoqado para poder venderlo.",
+      "NIVEL_INEXISTENTE": "La variante no tiene stock en la ubicación elegida. Actívala en esa ubicación en Shopify.",
+      "NO_RASTREADO": "Shopify no lleva el inventario de esta variante. Activa «Rastrear cantidad» en Shopify.",
+      "SIN_INVENTARIO": "El producto se quedó sin inventario en Avoqado (por ejemplo, pasó a receta). Se reanuda solo cuando vuelva a tenerlo.",
+      "ERROR_IMPORTACION": "No pudimos traerla. La reintentamos solos."
+    }
+  },
+  "errors": {
+    "generic": "Algo salió mal. Vuelve a intentarlo.",
+    "loadError": "No pudimos cargar el estado de Shopify.",
+    "planRequired": "Este negocio ya no tiene acceso al piloto de Shopify. Escríbenos para reactivarlo.",
+    "forbidden": "No tienes permiso para hacer esto. Pídeselo al dueño o a un administrador.",
+    "codes": {
+      "SHOPIFY_SOLO_PILOTO": "El conector con Shopify está en piloto con algunas tiendas. Escríbenos si quieres sumarte.",
+      "SHOPIFY_DOMINIO_INVALIDO": "Escribe el dominio de tu tienda, el que termina en .myshopify.com.",
+      "SHOPIFY_SIN_CREDENCIALES": "La conexión con Shopify no está disponible en este momento. Escríbenos y lo revisamos.",
+      "SHOPIFY_REAUTORIZAR_SIN_TIENDA": "Esta sucursal ya no está conectada a una tienda Shopify. Conéctala de nuevo con «Conectar con Shopify».",
+      "CATALOG_GOVERNANCE_REQUIRED": "El catálogo de esta organización lo administra el catálogo maestro: Shopify no puede crear productos aquí. Pide a quien administra el catálogo maestro que lo libere.",
+      "SHOPIFY_INTENT_NO_EXISTE": "No encontramos esta conexión con Shopify. Vuelve a empezar.",
+      "SHOPIFY_INTENT_DE_OTRA_PERSONA": "Esta conexión la empezó otra persona. Vuelve a empezar con tu usuario.",
+      "SHOPIFY_INTENT_YA_USADO": "Esta conexión ya se usó. Vuelve a empezar para conectar otra vez.",
+      "SHOPIFY_INTENT_SIN_AUTORIZAR": "Shopify todavía no autoriza esta conexión. Vuelve a empezar y acepta los permisos en Shopify.",
+      "SHOPIFY_INTENT_EXPIRADO": "Pasó demasiado tiempo y la conexión venció. Vuelve a empezar.",
+      "SHOPIFY_DEMASIADAS_UBICACIONES": "Tu tienda tiene demasiadas ubicaciones para mostrarlas aquí. Escríbenos y lo vemos contigo.",
+      "SHOPIFY_YA_CONECTADA": "Esta sucursal ya está conectada a Shopify. Desconéctala primero para conectar otra tienda.",
+      "SHOPIFY_UBICACION_YA_LIGADA": "Esa ubicación de Shopify ya está ligada a otra sucursal. Elige otra ubicación.",
+      "SHOPIFY_TIENDA_DE_OTRA_EMPRESA": "Esa tienda de Shopify ya está conectada a otra empresa.",
+      "SHOPIFY_UBICACION_INVALIDA": "Esa ubicación no existe o está desactivada en tu tienda. Elige otra.",
+      "SHOPIFY_ENVIO_EN_CAMINO": "Todavía hay cambios de la conexión anterior en camino a Shopify. Espera un minuto y vuelve a elegir la ubicación.",
+      "SHOPIFY_SIN_CONEXION": "Esta sucursal no tiene una tienda Shopify conectada.",
+      "SHOPIFY_NO_EN_REVISION": "La vista previa todavía no está lista, o ya se aplicó.",
+      "SHOPIFY_NO_ACTIVA": "La conexión con Shopify no está activa: el cuadre corre solo cuando termine de conectarse o vuelva el permiso.",
+      "SHOPIFY_CANTIDAD_INVALIDA": "Las cantidades o la elección no son válidas. Recarga la lista y vuelve a elegir.",
+      "SHOPIFY_REVISION_NO_EXISTE": "Esa diferencia ya no existe. Recarga la lista.",
+      "SHOPIFY_REVISION_YA_RESUELTA": "Esa diferencia ya se resolvió.",
+      "SHOPIFY_REVISION_CAMBIO": "Las cantidades cambiaron mientras decidías. Revisa los números nuevos y vuelve a elegir.",
+      "SHOPIFY_SIN_PAREJA": "Ese producto ya no está ligado a Shopify. Recarga la lista.",
+      "SHOPIFY_PAREJA_SUSPENDIDA": "Este producto está suspendido en la conexión: revísalo en «Productos sin pareja».",
+      "SHOPIFY_SIN_NIVEL": "Shopify no lleva el inventario de este producto en esa ubicación. Actívalo en Shopify (con «Rastrear cantidad») y vuelve a elegir.",
+      "SHOPIFY_SIN_INVENTARIO": "Este producto ya no lleva existencias por cantidad en Avoqado. Vuelve a activarlas en su ficha y vuelve a elegir.",
+      "SHOPIFY_CAMBIOS_EN_CAMINO": "Todavía hay cambios de este producto en camino a Shopify. Espera un minuto y vuelve a intentar.",
+      "SHOPIFY_DIFERENCIA_NO_ENTERA": "Shopify sólo cuenta piezas enteras y este producto tiene decimales en Avoqado. Corrige su stock a piezas enteras y vuelve a elegir.",
+      "SHOPIFY_EN_PAUSA": "No se puede resolver: la conexión está en pausa o Shopify le quitó un permiso a Avoqado. Vuelve a dar permiso o reconéctala desde esta página.",
+      "SHOPIFY_SIN_PLAN": "Este negocio ya no tiene acceso al piloto de Shopify. Escríbenos para reactivarlo.",
+      "SHOPIFY_FALTA_PERMISO": "Shopify no le dio a Avoqado todos los permisos que necesita. Vuelve a dar permiso en Shopify y acepta todos los que pide.",
+      "SHOPIFY_NO_RESPONDE": "Shopify o nuestro sistema no respondieron a tiempo. Intenta en un minuto.",
+      "FEATURE_NO_SE_VENDE_SUELTA": "El conector con Shopify no está a la venta: por ahora es un piloto por invitación. Escríbenos si quieres sumarte."
+    }
+  }
+}
