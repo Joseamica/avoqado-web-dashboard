@@ -1,10 +1,10 @@
 import { useToast } from '@/hooks/use-toast'
 import { useTpvTour } from '@/hooks/useTpvTour'
-import { deleteTpv, getTpvs, sendTpvCommand as sendTpvCommandApi, type TpvListDevice } from '@/services/tpv.service'
+import { deleteTpv, generateActivationCode, getTpvs, sendTpvCommand as sendTpvCommandApi, type TpvListDevice } from '@/services/tpv.service'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ChevronDown, CreditCard, Loader2, Plus, Search, Settings2, ShoppingCart, Smartphone, X, Zap } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
@@ -48,7 +48,9 @@ import { terminalAPI } from '@/services/superadmin-terminals.service'
 import { StaffRole } from '@/types'
 import { TpvCommandType } from '@/types/tpv-commands'
 import { useTranslation } from 'react-i18next'
+import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
+import { getActivationRoute } from './deviceListPresentation'
 import {
   DeviceAppVersionCell,
   DeviceBatteryCell,
@@ -440,6 +442,32 @@ export default function Tpvs() {
   )
 
   // Delete mutation
+  // «Activar» de una terminal que ya tiene serie (la crea el superadmin, nace INACTIVE): código de
+  // activación. La serie sólo se pide a las compradas (PENDING_ACTIVATION). Ver getActivationRoute.
+  const [activationCodeData, setActivationCodeData] = useState<ComponentProps<typeof ActivationCodeDialog>['activationData']>(null)
+  const activationCodeMutation = useMutation({
+    mutationFn: (device: TpvListDevice) => generateActivationCode(venueId, device.id),
+    onSuccess: (data, device) => {
+      setActivationCodeData({
+        activationCode: data.activationCode,
+        expiresAt: data.expiresAt,
+        expiresIn: data.expiresIn,
+        serialNumber: device.serialNumber || '',
+        venueName: data.venueName || venue?.name || '',
+        venueId,
+        terminalId: device.id,
+      })
+      queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: tTpv('activation.generateError', { defaultValue: 'No se pudo generar el código' }),
+        description: error.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (terminalId: string) => deleteTpv(venueId, terminalId),
     onSuccess: () => {
@@ -674,8 +702,12 @@ export default function Tpvs() {
           detailTo={row.original.id}
           detailState={rowLinkState}
           onActivate={device => {
-            setSelectedTerminalForActivation(device.id)
-            setActivationModalOpen(true)
+            if (getActivationRoute(device) === 'bindSerial') {
+              setSelectedTerminalForActivation(device.id)
+              setActivationModalOpen(true)
+            } else {
+              activationCodeMutation.mutate(device)
+            }
           }}
           onRestart={setTerminalToRestart}
           onCommand={sendTpvCommand}
@@ -1000,6 +1032,12 @@ export default function Tpvs() {
             // Refresh the list
             queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
           }}
+        />
+
+        <ActivationCodeDialog
+          open={!!activationCodeData}
+          onOpenChange={open => !open && setActivationCodeData(null)}
+          activationData={activationCodeData}
         />
 
         <ActivateTerminalModal

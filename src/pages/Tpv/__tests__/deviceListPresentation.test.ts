@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getActivationRoute,
   getAppVersion,
   getDeviceBattery,
   getDeviceIdentifier,
@@ -175,6 +176,21 @@ describe('getDeviceListStatus — un solo pill de estado', () => {
     expect(getDeviceListStatus({ status: 'PENDING_ACTIVATION', lastHeartbeat: recent }, NOW).key).toBe('pendingActivation')
     expect(getDeviceListStatus({ status: 'RETIRED', lastHeartbeat: recent }, NOW).key).toBe('retired')
     expect(getDeviceListStatus({ status: 'MAINTENANCE', lastHeartbeat: recent }, NOW).key).toBe('maintenance')
+  })
+})
+
+describe('getActivationRoute — qué hace «Activar» en la lista', () => {
+  it('una terminal comprada (PENDING_ACTIVATION) pide su número de serie, como siempre', () => {
+    expect(getActivationRoute({ status: 'PENDING_ACTIVATION', serialNumber: null })).toBe('bindSerial')
+  })
+
+  it('🔴 una terminal creada por superadmin (INACTIVE, ya con serie) genera código: antes pedía la serie y el server la rechazaba', () => {
+    expect(getActivationRoute({ status: 'INACTIVE', serialNumber: 'AVQD-N860W175377' })).toBe('generateCode')
+  })
+
+  it('cualquier otro estado sin activar también genera código', () => {
+    expect(getActivationRoute({ status: 'ACTIVE', serialNumber: 'AVQD-1' })).toBe('generateCode')
+    expect(getActivationRoute({ status: 'MAINTENANCE', serialNumber: 'AVQD-1' })).toBe('generateCode')
   })
 })
 
