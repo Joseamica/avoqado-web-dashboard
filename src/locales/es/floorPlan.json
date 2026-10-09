@@ -117,6 +117,7 @@
   "newArea": {
     "titleFirst": "Crea tu primera área",
     "title": "Nueva área",
+    "description": "Ponle un nombre y elige su forma. Si quieres, te acomodamos las primeras mesas.",
     "name": "Nombre",
     "namePlaceholder": "Salón",
     "shape": "¿Qué forma tiene el lugar?",

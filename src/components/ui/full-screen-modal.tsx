@@ -32,6 +32,8 @@ interface FullScreenModalProps {
    */
   onOpenAutoFocus?: (event: Event) => void
   onCloseAutoFocus?: (event: Event) => void
+  /** Esc dentro del modal. `event.preventDefault()` evita que se cierre (un editor que usa Esc para soltar una herramienta). */
+  onEscapeKeyDown?: (event: KeyboardEvent) => void
 }
 
 export function FullScreenModal({
@@ -44,6 +46,7 @@ export function FullScreenModal({
   contentClassName,
   onOpenAutoFocus,
   onCloseAutoFocus,
+  onEscapeKeyDown,
 }: FullScreenModalProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -62,6 +65,7 @@ export function FullScreenModal({
           // Prevent auto-focus on first focusable element (we want natural flow)
           onOpenAutoFocus={onOpenAutoFocus ?? ((e) => e.preventDefault())}
           onCloseAutoFocus={onCloseAutoFocus}
+          onEscapeKeyDown={onEscapeKeyDown}
         >
           {/* Header */}
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-card px-4 border-b border-border/30">
