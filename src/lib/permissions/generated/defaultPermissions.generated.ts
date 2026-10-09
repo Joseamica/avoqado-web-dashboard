@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella dca157142fa2c69c.
- * ADMIN 110 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 130 · OWNER 116 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella 465d9de1994560a3.
+ * ADMIN 110 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 131 · OWNER 116 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -266,6 +266,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'tables:read',
     'tables:update',
     'tables:manage-all',
+    'tables:configure',
     'tpv:read',
     'tpv:create',
     'tpv:update',
@@ -533,4 +534,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'dca157142fa2c69c'
+export const DEFAULT_PERMISSIONS_DIGEST = '465d9de1994560a3'

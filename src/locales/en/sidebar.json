@@ -199,6 +199,7 @@
     "cfdi": "Invoicing",
     "paymentMethods": "Payment Methods",
     "printStations": "Print Stations",
+    "floorPlan": "Tables & floor plan",
     "tenderTypes": "Tender Types",
     "rolePermissions": "Roles & Permissions",
     "activityLog": "Activity Log",

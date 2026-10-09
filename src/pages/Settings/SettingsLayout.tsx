@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Bell,
   CreditCard,
+  LayoutGrid,
   Link2,
   Lock,
   Printer,
@@ -92,6 +93,17 @@ export default function SettingsLayout() {
           : []),
         ...(can('printers:read')
           ? [{ to: 'print-stations', label: t('hub.items.printStations'), icon: Printer, dataTour: 'settings-nav-print-stations' }]
+          : []),
+        ...(can('tables:read')
+          ? [
+              {
+                to: 'floor-plan',
+                label: t('hub.items.floorPlan'),
+                icon: LayoutGrid,
+                dataTour: 'settings-nav-floor-plan',
+                premiumLocked: !hasFeatureAccess('TABLE_SERVICE'),
+              },
+            ]
           : []),
         ...(can('receipt-layout:read')
           ? [{ to: 'receipt-layout', label: t('hub.items.receiptLayout'), icon: Receipt, dataTour: 'settings-nav-receipt-layout' }]

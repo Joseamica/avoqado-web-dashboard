@@ -1140,6 +1140,7 @@
       "FLOOR_ELEMENT_CREATED": "Elemento del plano creado",
       "FLOOR_ELEMENT_DELETED": "Elemento del plano eliminado",
       "FLOOR_ELEMENT_UPDATED": "Elemento del plano actualizado",
+      "FLOOR_PLAN_PUBLISHED": "Plano de mesas publicado",
       "FULFILLMENT_AREA_CREATED": "Área de servicio creada",
       "FULFILLMENT_AREA_UPDATED": "Área de servicio actualizada",
       "INTER_VENUE_TRANSFER_APPROVED": "Traspaso entre sucursales aprobado",

@@ -145,6 +145,7 @@ const routeKeyMap: Record<string, string> = {
   integrations: 'sidebar:routes.integrations',
   pases: 'sidebar:routes.passes',
   'print-stations': 'sidebar:routes.printStations',
+  'floor-plan': 'sidebar:routes.floorPlan',
   'receipt-layout': 'sidebar:routes.receiptLayout',
   'role-permissions': 'sidebar:routes.rolePermissions',
   'activity-log': 'sidebar:routes.activityLog',

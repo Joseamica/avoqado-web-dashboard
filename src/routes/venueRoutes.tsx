@@ -107,6 +107,7 @@ import {
   DeliveryPage,
   RolePermissions,
   PrintStations,
+  FloorPlanSettings,
   ReceiptLayout,
   TenderTypes,
   AreaTickets,
@@ -872,6 +873,13 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'print-stations',
           element: <PermissionProtectedRoute permission="printers:read" />,
           children: [{ index: true, element: <PrintStations /> }],
+        },
+        // Este local — plano de mesas (Servicio de mesas · PRO; el candado vive en la página para que
+        // un negocio en Gratis vea su plano con la explicación encima)
+        {
+          path: 'floor-plan',
+          element: <PermissionProtectedRoute permission="tables:read" />,
+          children: [{ index: true, element: <FloorPlanSettings /> }],
         },
         // Este local — diseño del ticket en papel (core/GRATIS, sin FeatureGate ni interruptor:
         // el único candado es el permiso. Los tres intérpretes lo consumen desde el servidor).
