@@ -1,3 +1,4 @@
+import { areaIn, keepExisting, markOpen, sameDoc, selectionIn } from './docHelpers'
 import { clamp, gridOf, placeTable, rotatedExtent, round6, tableSizeCells } from './floorGeometry'
 import type { DraftArea, DraftElement, DraftTable, EditorDoc } from './types'
 
@@ -43,6 +44,13 @@ export type EditorAction =
   | { type: 'REMOVE_AREA'; key: string }
   /** Regresa al borrador mesas que se habían quitado (tal como estaban en el plano guardado), y las deja seleccionadas. */
   | { type: 'RESTORE_TABLES'; tables: DraftTable[] }
+  /**
+   * El servidor dijo (422) que estas mesas tienen una cuenta abierta: se marcan en el borrador Y en todo el historial,
+   * para que deshacer no las regrese sin su marca (y Supr las pueda quitar otra vez). No es un cambio del usuario.
+   */
+  | { type: 'MARK_OPEN_ORDERS'; keys: string[] }
+  /** Abre la pestaña de esas piezas y las selecciona (p. ej. «Ver la nueva» de dos mesas con el mismo número). */
+  | { type: 'REVEAL'; keys: string[] }
   | { type: 'UNDO' }
   | { type: 'REDO' }
 
@@ -60,18 +68,6 @@ export function initEditorState(doc: EditorDoc, activeIndex = 0): EditorState {
   }
 }
 
-/** Mismo valor: igual, o el mismo objeto anidado (la posición vieja `legacy`) por contenido. */
-const sameValue = (a: unknown, b: unknown) =>
-  a === b || (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null && JSON.stringify(a) === JSON.stringify(b))
-function sameItem<T extends object>(a: T, b: T): boolean {
-  if (a === b) return true
-  const keys = Object.keys(a) as Array<keyof T>
-  return keys.length === Object.keys(b).length && keys.every(k => sameValue(a[k], b[k]))
-}
-const sameList = <T extends object>(a: T[], b: T[]) => a === b || (a.length === b.length && a.every((x, i) => sameItem(x, b[i])))
-/** El cambio no cambió nada (girar una barra cuadrada, la misma forma, el mismo lugar…): no merece un paso de deshacer. */
-const sameDoc = (a: EditorDoc, b: EditorDoc) => sameList(a.areas, b.areas) && sameList(a.tables, b.tables) && sameList(a.elements, b.elements)
-
 function commit(state: EditorState, doc: EditorDoc, selection: string[] = state.selection, activeAreaKey = state.activeAreaKey): EditorState {
   if (sameDoc(state.doc, doc)) {
     return selection === state.selection && activeAreaKey === state.activeAreaKey ? state : { ...state, selection, activeAreaKey }
@@ -80,10 +76,9 @@ function commit(state: EditorState, doc: EditorDoc, selection: string[] = state.
   return { ...state, doc, past: [...state.past.slice(-(HISTORY_LIMIT - 1)), entry], future: [], selection, activeAreaKey, dirty: true, burst: null }
 }
 
-/** La pestaña que se abre al deshacer/rehacer: la del cambio si sigue existiendo; si no, la abierta; si no, la primera. */
-function areaIn(doc: EditorDoc, preferred: string | null, current: string | null): string | null {
-  const has = (key: string | null) => key !== null && doc.areas.some(a => a.key === key)
-  return has(preferred) ? preferred : has(current) ? current : (doc.areas[0]?.key ?? null)
+/** Pestaña y selección al deshacer/rehacer: sólo queda seleccionado lo que sigue existiendo y se ve en esa pestaña. */
+function landOn(doc: EditorDoc, activeAreaKey: string | null, selection: string[]) {
+  return { activeAreaKey, selection: selectionIn(doc, keepExisting(doc, selection), activeAreaKey) }
 }
 
 const gridFor = (doc: EditorDoc, areaKey: string | null) => gridOf(doc.areas.find(a => a.key === areaKey)?.floorShape ?? 'WIDE')
@@ -215,11 +210,6 @@ function moveRange(doc: EditorDoc, keys: ReadonlySet<string>): [number, number, 
 export function clampMoveDelta(doc: EditorDoc, keys: ReadonlySet<string>, dx: number, dy: number): { dx: number; dy: number } {
   const [minDx, maxDx, minDy, maxDy] = moveRange(doc, keys)
   return { dx: minDx > maxDx ? 0 : clamp(dx, minDx, maxDx), dy: minDy > maxDy ? 0 : clamp(dy, minDy, maxDy) }
-}
-
-const keepExisting = (doc: EditorDoc, keys: string[]) => {
-  const all = new Set([...doc.tables.map(t => t.key), ...doc.elements.map(e => e.key)])
-  return keys.filter(k => all.has(k))
 }
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -425,7 +415,29 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         })
       if (!back.length) return state
       const area = back.find(t => t.areaKey !== null && t.x !== null)?.areaKey ?? state.activeAreaKey
-      return commit(state, { ...doc, tables: [...doc.tables, ...back] }, back.map(t => t.key), area)
+      const next = { ...doc, tables: [...doc.tables, ...back] }
+      // Se seleccionan las que se ven en la pestaña que se abre; las de otra área no (Supr las editaría a ciegas).
+      return commit(state, next, selectionIn(next, back.map(t => t.key), area), area)
+    }
+    case 'MARK_OPEN_ORDERS': {
+      const keys = new Set(action.keys)
+      const patch = (e: HistoryEntry) => {
+        const d = markOpen(e.doc, keys)
+        return d === e.doc ? e : { ...e, doc: d }
+      }
+      const marked = markOpen(doc, keys)
+      const past = state.past.map(patch)
+      const future = state.future.map(patch)
+      if (marked === doc && past.every((e, i) => e === state.past[i]) && future.every((e, i) => e === state.future[i])) return state
+      return { ...state, doc: marked, past, future }
+    }
+    case 'REVEAL': {
+      const keys = new Set(action.keys)
+      const first =
+        doc.tables.find(t => keys.has(t.key) && t.areaKey !== null && doc.areas.some(a => a.key === t.areaKey)) ??
+        doc.elements.find(e => keys.has(e.key) && doc.areas.some(a => a.key === e.areaKey))
+      const area = first?.areaKey ?? state.activeAreaKey
+      return { ...state, activeAreaKey: area, selection: selectionIn(doc, action.keys, area) }
     }
     case 'UNDO': {
       const entry = state.past[state.past.length - 1]
@@ -435,8 +447,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         doc: entry.doc,
         past: state.past.slice(0, -1),
         future: [{ ...entry, doc }, ...state.future],
-        selection: keepExisting(entry.doc, state.selection),
-        activeAreaKey: areaIn(entry.doc, entry.areaKey, state.activeAreaKey),
+        ...landOn(entry.doc, areaIn(entry.doc, entry.areaKey, state.activeAreaKey), state.selection),
         dirty: true,
         burst: null,
       }
@@ -449,8 +460,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         doc: entry.doc,
         past: [...state.past, { ...entry, doc }],
         future: state.future.slice(1),
-        selection: keepExisting(entry.doc, state.selection),
-        activeAreaKey: areaIn(entry.doc, entry.afterAreaKey, state.activeAreaKey),
+        ...landOn(entry.doc, areaIn(entry.doc, entry.afterAreaKey, state.activeAreaKey), state.selection),
         dirty: true,
         burst: null,
       }

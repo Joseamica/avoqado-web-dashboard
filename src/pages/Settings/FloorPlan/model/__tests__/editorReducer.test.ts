@@ -277,3 +277,45 @@ describe('editorReducer — pulido (tarea 15-D)', () => {
     expect(lost.doc.tables[1]).toMatchObject({ areaKey: null, x: null, y: null })
   })
 })
+
+describe('editorReducer — ronda de arreglo 1 (15-D)', () => {
+  const two: EditorDoc = {
+    areas: [
+      { key: 'a1', id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false },
+      { key: 'a2', id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, external: false },
+    ],
+    tables: [table('t1'), table('t2', { areaKey: 'a2' })],
+    elements: [],
+  }
+
+  it('I2: deshacer que cambia de pestaña no deja seleccionada una pieza de la otra área', () => {
+    const s = run(initEditorState(two), { type: 'MOVE', keys: ['t1'], dx: 2, dy: 0 }, { type: 'SET_ACTIVE_AREA', key: 'a2' }, { type: 'SELECT', keys: ['t2'] })
+    const undone = editorReducer(s, { type: 'UNDO' })
+    expect(undone.activeAreaKey).toBe('a1')
+    expect(undone.selection).toEqual([])
+    const redone = editorReducer({ ...undone, activeAreaKey: 'a2', selection: ['t2'] }, { type: 'REDO' })
+    expect(redone.activeAreaKey).toBe('a1')
+    expect(redone.selection).toEqual([])
+  })
+
+  it('I2: regresar mesas de dos áreas selecciona sólo las de la pestaña que se abre', () => {
+    const empty = { ...two, tables: [] }
+    const s = editorReducer(initEditorState(empty), { type: 'RESTORE_TABLES', tables: two.tables })
+    expect(s.activeAreaKey).toBe('a1')
+    expect(s.selection).toEqual(['t1'])
+  })
+
+  it('M3: MARK_OPEN_ORDERS marca la mesa en el borrador y en el historial, sin crear un paso', () => {
+    const removed = editorReducer(initEditorState(two), { type: 'REMOVE', keys: ['t2'] })
+    const marked = editorReducer(removed, { type: 'MARK_OPEN_ORDERS', keys: ['t2'] })
+    expect(marked.past).toHaveLength(1)
+    expect(editorReducer(marked, { type: 'UNDO' }).doc.tables.find(t => t.key === 't2')?.hasOpenOrder).toBe(true)
+    expect(editorReducer(marked, { type: 'MARK_OPEN_ORDERS', keys: ['t2'] })).toBe(marked)
+  })
+
+  it('REVEAL abre la pestaña de la pieza y la selecciona', () => {
+    const s = editorReducer(initEditorState(two), { type: 'REVEAL', keys: ['t2'] })
+    expect(s.activeAreaKey).toBe('a2')
+    expect(s.selection).toEqual(['t2'])
+  })
+})
