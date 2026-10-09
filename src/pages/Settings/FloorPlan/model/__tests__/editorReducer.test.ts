@@ -19,7 +19,7 @@ describe('editorReducer', () => {
     const s = run(initEditorState(doc()), { type: 'MOVE', keys: ['t1', 't2'], dx: 20, dy: 0 })
     // t2 (centro 30, mitad 2) sólo puede avanzar 8 → el grupo avanza 8
     expect(s.doc.tables.map(t => t.x)).toEqual([18, 38])
-    expect(s.dirty).toBe(true)
+    expect(s.past).toHaveLength(1)
   })
 
   it('deshacer y rehacer', () => {

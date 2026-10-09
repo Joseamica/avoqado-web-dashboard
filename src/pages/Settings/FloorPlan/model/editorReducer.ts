@@ -13,13 +13,13 @@ export interface HistoryEntry {
   afterAreaKey: string | null
 }
 
+/** Sin `dirty`: «Cambios sin guardar» se deriva del contenido contra lo guardado (`planContent`, m-a), no del historial. */
 export interface EditorState {
   doc: EditorDoc
   past: HistoryEntry[]
   future: HistoryEntry[]
   selection: string[]
   activeAreaKey: string | null
-  dirty: boolean
   /** Ráfaga en curso (flecha sostenida): los MOVE con `burst` y la misma etiqueta se juntan en un solo paso. */
   burst: string | null
 }
@@ -63,7 +63,6 @@ export function initEditorState(doc: EditorDoc, activeIndex = 0): EditorState {
     future: [],
     selection: [],
     activeAreaKey: doc.areas[activeIndex]?.key ?? doc.areas[0]?.key ?? null,
-    dirty: false,
     burst: null,
   }
 }
@@ -73,7 +72,7 @@ function commit(state: EditorState, doc: EditorDoc, selection: string[] = state.
     return selection === state.selection && activeAreaKey === state.activeAreaKey ? state : { ...state, selection, activeAreaKey }
   }
   const entry: HistoryEntry = { doc: state.doc, areaKey: state.activeAreaKey, afterAreaKey: activeAreaKey }
-  return { ...state, doc, past: [...state.past.slice(-(HISTORY_LIMIT - 1)), entry], future: [], selection, activeAreaKey, dirty: true, burst: null }
+  return { ...state, doc, past: [...state.past.slice(-(HISTORY_LIMIT - 1)), entry], future: [], selection, activeAreaKey, burst: null }
 }
 
 /** Pestaña y selección al deshacer/rehacer: sólo queda seleccionado lo que sigue existiendo y se ve en esa pestaña. */
@@ -245,7 +244,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       }
       const tag = `move:${[...keys].sort().join(',')}`
       // Flecha sostenida: la repetición reemplaza el plano dentro del mismo paso de deshacer (uno por ráfaga, no por tecla).
-      if (action.burst && state.burst === tag && state.past.length && !sameDoc(doc, next)) return { ...state, doc: next, future: [], dirty: true }
+      if (action.burst && state.burst === tag && state.past.length && !sameDoc(doc, next)) return { ...state, doc: next, future: [] }
       const committed = commit(state, next)
       return committed === state ? state : { ...committed, burst: tag }
     }
@@ -455,7 +454,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         past: state.past.slice(0, -1),
         future: [{ ...entry, doc }, ...state.future],
         ...landOn(entry.doc, areaIn(entry.doc, entry.areaKey, state.activeAreaKey), state.selection),
-        dirty: true,
         burst: null,
       }
     }
@@ -468,7 +466,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         past: [...state.past, { ...entry, doc }],
         future: state.future.slice(1),
         ...landOn(entry.doc, areaIn(entry.doc, entry.afterAreaKey, state.activeAreaKey), state.selection),
-        dirty: true,
         burst: null,
       }
     }

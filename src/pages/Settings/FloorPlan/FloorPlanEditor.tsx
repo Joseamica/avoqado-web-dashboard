@@ -26,7 +26,7 @@ import { duplicateNumbers, keysToRenumber } from './model/docHelpers'
 import { editorReducer, initEditorState, type EditorAction } from './model/editorReducer'
 import { gridOf } from './model/floorGeometry'
 import { roomLeft } from './model/limits'
-import { docToPayload, dtoToDoc } from './model/planMapping'
+import { docToPayload, dtoToDoc, planContent, sameContent } from './model/planMapping'
 import type { EditorDoc, FloorPlanDto, ToolId } from './model/types'
 
 export interface FloorPlanEditorProps {
@@ -49,7 +49,9 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   // El último plano que el servidor confirmó (al abrir, al guardar o al recargar): su huella va en el PUT, sus topes
   // limitan lo que se agrega, y de él se regresan las mesas que un 422 no dejó quitar.
   const [saved, setSaved] = useState(plan)
-  const savedTables = useMemo(() => dtoToDoc(saved).tables, [saved])
+  const savedDoc = useMemo(() => dtoToDoc(saved), [saved])
+  const savedTables = savedDoc.tables
+  const savedContent = useMemo(() => planContent(savedDoc), [savedDoc])
   const [tool, setTool] = useState<ToolId>('select')
   const [preview, setPreview] = useState(false)
   const [newAreaOpen, setNewAreaOpen] = useState(() => plan.areas.length === 0)
@@ -85,7 +87,12 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   // (React 18 no conoce el atributo: se pone a mano.)
   const workspace = useRef<HTMLDivElement>(null)
 
-  const { doc, selection, activeAreaKey, dirty } = state
+  const { doc, selection, activeAreaKey } = state
+  // m-a: «Cambios sin guardar» = lo que mandaría el PUT difiere de lo guardado (no «hubo historial»). Se recalcula sólo
+  // cuando cambia el borrador o lo guardado; arrastrar no cambia el borrador hasta soltar. Lo leen el punto y la leyenda,
+  // Guardar, cerrar, Atrás (useBlocker) y cerrar la pestaña (beforeunload).
+  const draftContent = useMemo(() => planContent(doc), [doc])
+  const dirty = useMemo(() => !sameContent(draftContent, savedContent), [draftContent, savedContent])
   const activeArea = doc.areas.find(a => a.key === activeAreaKey) ?? null
   const inPreview = preview && activeArea !== null
   // Elementos viejos sin área (la PAX los dibujaba antes de que hubiera áreas): sin un área que los reciba, el plano no

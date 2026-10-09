@@ -53,20 +53,20 @@ export function dtoToDoc(dto: FloorPlanDto): EditorDoc {
   return { areas, tables, elements }
 }
 
-/** Borrador → cuerpo del PUT (el plano COMPLETO deseado). */
-export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: string): PublishFloorPlanBody {
+type PlanParts = Pick<PublishFloorPlanBody, 'areas' | 'tables' | 'elements'>
+
+/**
+ * Lo que viaja en el PUT (sin folio ni huella). No truena con elementos sin área (les pone `areaRef: ''`): así también
+ * sirve para comparar borradores (`planContent`). Quien publica pasa antes por `docToPayload`, que sí los rechaza.
+ */
+function payloadParts(doc: EditorDoc): PlanParts {
   const byKey = new Map(doc.areas.map(a => [a.key, a]))
   const ref = (key: string) => {
-    const a = byKey.get(key) as DraftArea
-    return a.id ?? a.key
+    const a = byKey.get(key)
+    return a ? (a.id ?? a.key) : ''
   }
   const n = (v: number, total: number) => round6(clamp(v / total, 0, 1))
-  // El servidor archiva lo que el plano omite: un elemento sin área nunca se descarta en silencio.
-  // (El editor apaga Guardar mientras haya elementos sin área; un plano sin áreas y sin ellos sí se guarda.)
-  if (doc.elements.some(e => !byKey.has(e.areaKey))) throw new Error('docToPayload: hay elementos sin área')
   return {
-    saveId,
-    baseFingerprint,
     areas: doc.areas.map((a, i) => ({ ...(a.id ? { id: a.id } : { clientId: a.key }), name: a.name.trim(), floorShape: a.floorShape, sortOrder: i })),
     tables: doc.tables.map(t => {
       const area = t.areaKey !== null ? byKey.get(t.areaKey) : undefined
@@ -88,7 +88,7 @@ export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: st
       }
     }),
     elements: doc.elements.map(e => {
-      const g = gridOf((byKey.get(e.areaKey) as DraftArea).floorShape)
+      const g = gridOf(byKey.get(e.areaKey)?.floorShape ?? null)
       return {
         ...(e.id ? { id: e.id } : { clientId: e.key }),
         type: e.type,
@@ -106,3 +106,36 @@ export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: st
     }),
   }
 }
+
+/** Borrador → cuerpo del PUT (el plano COMPLETO deseado). */
+export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: string): PublishFloorPlanBody {
+  // El servidor archiva lo que el plano omite: un elemento sin área nunca se descarta en silencio.
+  // (El editor apaga Guardar mientras haya elementos sin área; un plano sin áreas y sin ellos sí se guarda.)
+  const areaKeys = new Set(doc.areas.map(a => a.key))
+  if (doc.elements.some(e => !areaKeys.has(e.areaKey))) throw new Error('docToPayload: hay elementos sin área')
+  return { saveId, baseFingerprint, ...payloadParts(doc) }
+}
+
+/** El contenido de un borrador tal como viajaría en el PUT: áreas en su orden; mesas y elementos por su referencia. */
+export interface PlanContent {
+  areas: string
+  tables: Map<string, string>
+  elements: Map<string, string>
+}
+
+const byRef = (rows: Array<{ id?: string; clientId?: string }>) => new Map(rows.map(r => [r.id ?? r.clientId ?? '', JSON.stringify(r)]))
+
+/**
+ * m-a: «Cambios sin guardar» = el borrador guardaría algo distinto de lo guardado. Se comparan EXACTAMENTE los campos
+ * del PUT (`payloadParts`), así que la marca de cuenta abierta (no viaja), deshacer hasta lo guardado o ir y volver al
+ * mismo lugar no cuentan. El orden de mesas y elementos no importa (van por referencia); el de las áreas sí (es su
+ * `sortOrder`). O(n): una vez por cambio del borrador, nunca por movimiento del puntero.
+ */
+export function planContent(doc: EditorDoc): PlanContent {
+  const p = payloadParts(doc)
+  return { areas: JSON.stringify(p.areas), tables: byRef(p.tables), elements: byRef(p.elements) }
+}
+
+const sameMap = (a: Map<string, string>, b: Map<string, string>) => a.size === b.size && [...a].every(([k, v]) => b.get(k) === v)
+
+export const sameContent = (a: PlanContent, b: PlanContent) => a.areas === b.areas && sameMap(a.tables, b.tables) && sameMap(a.elements, b.elements)

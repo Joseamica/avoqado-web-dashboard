@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { docToPayload, dtoToDoc } from '../planMapping'
+import { docToPayload, dtoToDoc, planContent, sameContent } from '../planMapping'
 import type { FloorPlanDto } from '../types'
 
 const dto: FloorPlanDto = {
@@ -97,5 +97,38 @@ describe('mapeo — ola final', () => {
     const doc = dtoToDoc(conCero)
     expect(doc.tables[0].capacity).toBe(0)
     expect(docToPayload(doc, 's', dto.fingerprint).tables[0]).toMatchObject({ id: 't1', capacity: 0 })
+  })
+})
+
+describe('planContent — ronda m-a', () => {
+  const same = (a: ReturnType<typeof dtoToDoc>, b: ReturnType<typeof dtoToDoc>) => sameContent(planContent(a), planContent(b))
+
+  it('la marca de cuenta abierta y el orden de mesas y elementos no cuentan: no viajan o no importan', () => {
+    const base = dtoToDoc(dto)
+    const otro = dtoToDoc(dto)
+    otro.tables = [...otro.tables].reverse().map(t => ({ ...t, hasOpenOrder: !t.hasOpenOrder }))
+    otro.elements = [...otro.elements].reverse()
+    expect(same(base, otro)).toBe(true)
+  })
+
+  it('cualquier campo que viaja en el PUT sí cuenta (y el orden de las áreas, que es su sortOrder)', () => {
+    const base = dtoToDoc(dto)
+    const movida = dtoToDoc(dto)
+    movida.tables[0] = { ...movida.tables[0], x: (movida.tables[0].x as number) + 1 }
+    expect(same(base, movida)).toBe(false)
+    const renombrada = dtoToDoc(dto)
+    renombrada.tables[0] = { ...renombrada.tables[0], number: '7' }
+    expect(same(base, renombrada)).toBe(false)
+    const areas = dtoToDoc(dto)
+    areas.areas = [...areas.areas].reverse()
+    expect(same(base, areas)).toBe(false)
+    const sinMesa = dtoToDoc(dto)
+    sinMesa.tables = sinMesa.tables.slice(1)
+    expect(same(base, sinMesa)).toBe(false)
+  })
+
+  it('compara también un plano con elementos viejos sin área (sin tronar como docToPayload)', () => {
+    const sinAreas = { ...dto, areas: [], tables: [] }
+    expect(same(dtoToDoc(sinAreas), dtoToDoc(sinAreas))).toBe(true)
   })
 })

@@ -257,3 +257,60 @@ describe('FloorPlanEditor — ola final', () => {
     expect(screen.getByText('inspector.many')).toBeInTheDocument()
   })
 })
+
+// m-a: «Cambios sin guardar» era «hubo historial desde que se cargó»: todo commit, deshacer o rehacer prendía `dirty`.
+// Ahora es «el borrador guardaría algo distinto de lo guardado» (los campos que viajan en el PUT).
+describe('FloorPlanEditor — ronda m-a: sin cambios = igual a lo guardado', () => {
+  /** Sin cambios pendientes: ni leyenda ni punto, Guardar apagado, y Atrás se va sin preguntar. */
+  async function sinCambios(router: ReturnType<typeof renderEditor>['router']) {
+    expect(screen.queryByTestId('floor-plan-unsaved')).not.toBeInTheDocument()
+    expect(screen.getByTestId('floor-plan-save')).toBeDisabled()
+    await act(async () => router.navigate(-1))
+    expect(await screen.findByText('otra página')).toBeInTheDocument()
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+  }
+
+  it('regresar la mesa tras un 422 no deja cambios pendientes (su única diferencia, la marca de cuenta, no viaja)', async () => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(
+      Object.assign(new Error('Unprocessable'), {
+        isAxiosError: true,
+        response: { status: 422, data: { code: 'TABLES_WITH_OPEN_ORDERS', message: 'x', details: { numbers: ['2'] } } },
+      }),
+    )
+    const { router } = renderEditor({ ...withArea, tables: dosAreas.tables })
+    seleccionar('floor-table-2')
+    await user.keyboard('{Delete}')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await user.click(await screen.findByTestId('floor-plan-restore-tables'))
+    expect(screen.getByTestId('floor-open-order-2')).toBeInTheDocument()
+    await sinCambios(router)
+  })
+
+  it('cambiar y deshacer no deja cambios pendientes ni detiene Atrás', async () => {
+    const user = userEvent.setup()
+    const { router } = renderEditor({ ...withArea, tables: [mesa1] })
+    seleccionar('floor-table-1')
+    await user.keyboard('r')
+    expect(screen.getByTestId('floor-plan-save')).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'editor.undo' }))
+    await sinCambios(router)
+  })
+
+  it('un cambio de verdad sigue pendiente; ir y volver al mismo lugar no lo es', async () => {
+    const user = userEvent.setup()
+    const { router } = renderEditor({ ...withArea, tables: [mesa1] })
+    seleccionar('floor-table-1')
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByTestId('floor-plan-unsaved')).toBeInTheDocument()
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.queryByTestId('floor-plan-unsaved')).not.toBeInTheDocument()
+    expect(screen.getByTestId('floor-plan-save')).toBeDisabled()
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByTestId('floor-plan-unsaved')).toBeInTheDocument()
+    expect(screen.getByTestId('floor-plan-save')).toBeEnabled()
+    await act(async () => router.navigate(-1))
+    expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plano')
+  })
+})

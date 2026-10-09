@@ -175,10 +175,13 @@ describe('FloorPlanEditor', () => {
 
   it('sin áreas sí se puede guardar si no queda nada sin área', async () => {
     const user = userEvent.setup()
-    renderEditor()
-    await crearArea(user, { blank: true })
-    await user.click(screen.getByRole('button', { name: 'editor.undo' }))
-    expect(screen.queryByTestId(/^floor-area-tab-/)).not.toBeInTheDocument()
+    // Borrar la única área deja un plano sin áreas DISTINTO del guardado. (Antes: crear un área y deshacerla; desde m-a
+    // eso vuelve a lo guardado y no deja nada que guardar.)
+    renderEditor(withArea)
+    await user.click(screen.getByRole('button', { name: 'areas.options' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'areas.delete' }))
+    await user.click(await screen.findByRole('button', { name: 'areas.deleteConfirm' }))
+    await waitFor(() => expect(screen.queryByTestId(/^floor-area-tab-/)).not.toBeInTheDocument())
     expect(screen.getByTestId('floor-plan-save')).toBeEnabled()
   })
 
