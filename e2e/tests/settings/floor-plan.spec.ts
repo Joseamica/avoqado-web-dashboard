@@ -5,7 +5,7 @@
  * recargar (la prueba es la tarjeta del área, no el aviso), y que cargando / error / vacío se distinguen. Además: el
  * arrastre llega al PUT, el 409 avisa en vez de pisar, el 422 dice qué mesas tienen cuenta abierta y las regresa, Esc
  * suelta la herramienta antes de cerrar (y con el aviso «Plano guardado» a la vista basta UN Esc para salir), y los
- * candados (permiso, plan Pro, pantalla angosta).
+ * candados (permiso, plan Pro, pantalla angosta). Y Atrás del navegador con cambios sin guardar pregunta antes de salir.
  *
  * Las respuestas son fingidas (`page.route`): prueban el navegador, no el servidor.
  * 🔴 Con el editor abierto, la página sigue debajo con las miniaturas de cada área, que también dibujan
@@ -291,6 +291,33 @@ test('Esc suelta la herramienta sin cerrar el editor; con nada activo, cierra', 
   await page.keyboard.press('Escape')
   await expect(lienzo(page)).toHaveCount(0)
   await expect(page.getByText('¿Salir sin guardar?')).toHaveCount(0)
+})
+
+// Codex P1-3: React Router desmontaba el editor sin pasar por «¿Salir sin guardar?» y el borrador se perdía.
+test('Atrás del navegador con cambios sin guardar pregunta antes de salir; «Seguir editando» se queda', async ({ page }) => {
+  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
+  await mockFloorPlan(page, salon([mesa('t1', '1')]))
+  await page.addInitScript(() => localStorage.setItem('lang', 'es'))
+  // Se entra por otra sección y se llega al plano con el menú: así Atrás es una navegación DENTRO de la app.
+  await page.goto('/venues/venue-alpha/settings/preferences')
+  await closeTanStackDevTools(page)
+  await page.locator('aside [data-tour="settings-nav-floor-plan"]').click()
+  await expect(page.getByRole('heading', { name: 'Mesas y plano' })).toBeVisible({ timeout: 15_000 })
+  await abrirEditor(page)
+  await mesaEnLienzo(page, '1').click()
+  await page.keyboard.press('r')
+  await page.evaluate(() => window.history.back())
+  await expect(page.getByText('¿Salir sin guardar?')).toBeVisible()
+  await expect(page).toHaveURL(/\/settings\/floor-plan$/)
+  await page.getByRole('button', { name: 'Seguir editando' }).click()
+  await expect(page.getByText('¿Salir sin guardar?')).toHaveCount(0)
+  await expect(lienzo(page)).toBeVisible()
+  await expect(page).toHaveURL(/\/settings\/floor-plan$/)
+  // Ahora sí: Atrás y «Salir sin guardar».
+  await page.evaluate(() => window.history.back())
+  await page.getByTestId('floor-plan-discard').click()
+  await expect(page).toHaveURL(/\/settings\/preferences$/)
+  await expect(lienzo(page)).toHaveCount(0)
 })
 
 test('sin «Configurar mesas y plano» el plano sólo se ve', async ({ page }) => {
