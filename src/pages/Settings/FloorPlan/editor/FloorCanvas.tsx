@@ -50,10 +50,15 @@ type Gesture =
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
-/** Controles que la barra espaciadora acciona con el teclado: con uno de ellos con el foco, la tecla es suya, no la mano. */
+/**
+ * Controles que la barra espaciadora acciona con el teclado. La tecla es del control sólo si llegó a él con el TECLADO;
+ * si el foco quedó ahí por el ratón (un clic, o Radix que lo regresa al cerrar un menú), Espacio es la mano. No se usa
+ * `:focus-visible`: el navegador lo prende en cuanto se aprieta una tecla, justo la que aquí se decide. Además el editor
+ * suelta el foco de los botones tocados con el ratón (`blurAfterPointerClick`).
+ */
 const SPACE_CONTROLS =
   'button, a[href], summary, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="slider"], [role="combobox"]'
-const isSpaceControl = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.(SPACE_CONTROLS)
+const controlOf = (target: EventTarget | null) => (target as HTMLElement | null)?.closest?.(SPACE_CONTROLS) ?? null
 
 /** Cuadros por píxel en pantalla. Con `preserveAspectRatio="meet"` manda el lado más apretado. */
 function unitsPerPixel(view: ViewBox, el: Element): number {
@@ -98,6 +103,8 @@ export function FloorCanvas(props: FloorCanvasProps) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [spaceHeld, setSpaceHeld] = useState(false)
   const spacePan = useRef(false)
+  /** El elemento que recibió el foco por TECLADO (Tab, flechas…); `null` si el foco llegó por el ratón. */
+  const keyboardFocus = useRef<EventTarget | null>(null)
   const pinch = useRef(1)
   const selected = useMemo(() => new Set(selection), [selection])
   // H4: mesas encimadas (lo viejo de la PAX, o dos que se arrastraron una sobre otra). Se avisa; nunca se mueven solas.
@@ -131,9 +138,31 @@ export function FloorCanvas(props: FloorCanvasProps) {
   // Espacio = mano para mover el plano. Con el foco en un botón o interruptor la barra lo sigue accionando: no se le roba
   // el clic aunque el puntero esté sobre el plano (al tocar el plano el foco pasa al lienzo, y ahí sí es la mano).
   useEffect(() => {
+    // De dónde vino el foco: una tecla antes del foco = teclado; un toque de puntero = ratón.
+    let viaKeyboard = false
+    const onAnyKey = () => {
+      viaKeyboard = true
+    }
+    const onPointer = () => {
+      viaKeyboard = false
+    }
+    const onFocusIn = (e: FocusEvent) => {
+      keyboardFocus.current = viaKeyboard ? e.target : null
+    }
+    window.addEventListener('keydown', onAnyKey, true)
+    window.addEventListener('pointerdown', onPointer, true)
+    window.addEventListener('focusin', onFocusIn, true)
+    return () => {
+      window.removeEventListener('keydown', onAnyKey, true)
+      window.removeEventListener('pointerdown', onPointer, true)
+      window.removeEventListener('focusin', onFocusIn, true)
+    }
+  }, [])
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
-      if (isSpaceControl(e.target)) return
+      const control = controlOf(e.target)
+      if (control && control === keyboardFocus.current) return
       e.preventDefault()
       spacePan.current = true
       setSpaceHeld(true)

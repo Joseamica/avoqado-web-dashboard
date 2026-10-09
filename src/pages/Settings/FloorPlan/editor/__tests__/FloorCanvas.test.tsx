@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { FloorCanvas, type FloorCanvasProps } from '../FloorCanvas'
 import type { DraftArea, DraftTable } from '../../model/types'
@@ -61,7 +62,7 @@ describe('FloorCanvas', () => {
     expect(screen.getByText('tools.placeHint')).toBeInTheDocument()
   })
 
-  it('Espacio pone la mano para mover el plano, pero no le roba la tecla a un botón con el foco', () => {
+  it('Espacio pone la mano para mover el plano, pero no le roba la tecla a un botón con el foco', async () => {
     render(
       <>
         <button type="button">Guardar</button>
@@ -69,8 +70,11 @@ describe('FloorCanvas', () => {
       </>,
     )
     const canvas = screen.getByTestId('floor-canvas')
-    // Sobre un botón: la barra lo sigue accionando (no se cancela) y no aparece la mano.
-    expect(fireEvent.keyDown(screen.getByRole('button', { name: 'Guardar' }), { code: 'Space' })).toBe(true)
+    // Sobre un botón al que se llegó con el TECLADO (Tab): la barra lo sigue accionando y no aparece la mano.
+    const guardar = screen.getByRole('button', { name: 'Guardar' })
+    await userEvent.tab()
+    expect(guardar).toHaveFocus()
+    expect(fireEvent.keyDown(guardar, { code: 'Space' })).toBe(true)
     expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
     // Sin un control con el foco: Espacio es la mano.
     expect(fireEvent.keyDown(document.body, { code: 'Space' })).toBe(false)
@@ -108,7 +112,7 @@ describe('FloorCanvas', () => {
     expect(onMove).not.toHaveBeenCalled()
   })
 
-  it('Espacio no le roba el clic a un botón con el foco aunque el puntero esté sobre el plano', () => {
+  it('Espacio no le roba el clic a un botón con el foco aunque el puntero esté sobre el plano', async () => {
     render(
       <>
         <button type="button">Guardar</button>
@@ -118,7 +122,10 @@ describe('FloorCanvas', () => {
     const canvas = screen.getByTestId('floor-canvas')
     fireEvent.pointerEnter(canvas)
     fireEvent.pointerMove(canvas)
-    expect(fireEvent.keyDown(screen.getByRole('button', { name: 'Guardar' }), { code: 'Space' })).toBe(true)
+    const guardar = screen.getByRole('button', { name: 'Guardar' })
+    await userEvent.tab() // foco por teclado (:focus-visible)
+    expect(guardar).toHaveFocus()
+    expect(fireEvent.keyDown(guardar, { code: 'Space' })).toBe(true)
     expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
   })
 
@@ -133,5 +140,20 @@ describe('FloorCanvas', () => {
   it('el lienzo tiene nombre accesible', () => {
     render(<FloorCanvas {...props()} />)
     expect(screen.getByRole('img', { name: 'canvas.label' })).toBe(screen.getByTestId('floor-canvas'))
+  })
+  it('I3: un botón que quedó con el foco por el RATÓN (sin :focus-visible) no se queda con Espacio: es la mano', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <button type="button">Menú</button>
+        <FloorCanvas {...props()} />
+      </>,
+    )
+    const menu = screen.getByRole('button', { name: 'Menú' })
+    await user.click(menu) // p. ej. Radix regresa el foco al disparador tras cerrar un menú con el ratón
+    expect(menu).toHaveFocus()
+    expect(fireEvent.keyDown(menu, { code: 'Space' })).toBe(false)
+    expect(screen.getByTestId('floor-canvas').getAttribute('class')).toContain('cursor-grab')
+    fireEvent.keyUp(menu, { code: 'Space' })
   })
 })
