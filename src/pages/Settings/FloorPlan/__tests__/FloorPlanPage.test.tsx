@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,7 +20,9 @@ let tienePro = true
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useVenueTier: () => ({ hasFeatureAccess: () => tienePro }) }))
 // El cartel de pago tiene su propia prueba; aquí sólo importa lo que la página pone adentro.
 vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
-vi.mock('../FloorPlanEditor', () => ({ FloorPlanEditor: () => <div data-testid="editor-abierto" /> }))
+vi.mock('../FloorPlanEditor', () => ({
+  FloorPlanEditor: ({ initialAreaKey }: { initialAreaKey?: string | null }) => <div data-testid="editor-abierto" data-area={initialAreaKey ?? ''} />,
+}))
 
 const get = vi.mocked(getFloorPlan)
 const LIMITS = { areas: 30, tables: 500, elements: 1500 }
@@ -121,12 +123,46 @@ describe('Configuración → Mesas y plano', () => {
     get.mockResolvedValue(conSalon)
     pintar()
     const salon = await screen.findByTestId('floor-plan-area-Salón')
-    expect(salon).toHaveTextContent('page.areaSummary:2/6')
+    // Plural de verdad (R7): «2 mesas · 6 lugares» sale de dos llaves con `count`, no de «{{tables}} mesas».
+    expect(salon).toHaveTextContent('page.areaSummary:page.tables:2/page.seats:6')
     expect(salon.querySelector('[data-testid="floor-table-1"]')).not.toBeNull()
     expect(screen.getByTestId('floor-plan-area-Terraza')).toHaveTextContent('page.fromPos')
     expect(screen.getByText('page.unplaced:1')).toBeInTheDocument()
     await userEvent.click(screen.getByTestId('floor-plan-edit-btn'))
     expect(screen.getByTestId('editor-abierto')).toBeInTheDocument()
+  })
+
+  it('tocar la tarjeta de un área abre el editor EN esa área; «Acomodarlas» lo abre en la primera', async () => {
+    get.mockResolvedValue(conSalon)
+    pintar()
+    await userEvent.click(await screen.findByTestId('floor-plan-area-Terraza'))
+    expect(screen.getByTestId('editor-abierto')).toHaveAttribute('data-area', 'a2')
+    await userEvent.click(screen.getByRole('button', { name: 'page.unplacedAction:1' }))
+    expect(screen.getByTestId('editor-abierto')).toHaveAttribute('data-area', '')
+  })
+
+  it('sin permiso para editar, la tarjeta no es un botón', async () => {
+    permisos = ['tables:read']
+    get.mockResolvedValue(conSalon)
+    pintar()
+    const salon = await screen.findByTestId('floor-plan-area-Salón')
+    expect(salon.tagName).not.toBe('BUTTON')
+    expect(screen.queryByRole('button', { name: /page.editAreaLabel/ })).not.toBeInTheDocument()
+  })
+
+  // Task 14: con la consulta en el modo por defecto, sin red TanStack la dejaba EN PAUSA y la página se quedaba cargando.
+  it('🔴 sin red (el navegador lo sabe) no se queda cargando: dice que no pudo y ofrece Reintentar', async () => {
+    get.mockRejectedValue(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    onlineManager.setOnline(false)
+    try {
+      pintar()
+      expect(await screen.findByTestId('floor-plan-error')).toBeInTheDocument()
+      expect(screen.queryByTestId('floor-plan-loading')).not.toBeInTheDocument()
+      expect(screen.getByTestId('floor-plan-retry')).toBeInTheDocument()
+      expect(get).toHaveBeenCalled()
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 
   it('un plano más grande que el editor se enseña con el aviso, pero no se abre a editar', async () => {

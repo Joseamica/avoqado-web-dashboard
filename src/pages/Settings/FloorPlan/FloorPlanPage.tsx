@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertCircle, LayoutGrid, Pencil, RotateCcw } from 'lucide-react'
+import { AlertCircle, ArrowRight, Inbox, LayoutGrid, Pencil, RotateCcw } from 'lucide-react'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
@@ -41,7 +42,8 @@ export default function FloorPlanSettings() {
   const { can } = useAccess()
   const { hasFeatureAccess } = useVenueTier()
   const wide = useWideScreen()
-  const [editing, setEditing] = useState(false)
+  // `false` = cerrado; `true` = abre en la primera área; un id = abre en esa área (la tarjeta que se tocó).
+  const [editing, setEditing] = useState<boolean | string>(false)
   const query = useQuery({
     queryKey: ['floor-plan', venueId],
     queryFn: () => getFloorPlan(venueId as string),
@@ -49,6 +51,9 @@ export default function FloorPlanSettings() {
     staleTime: 30_000,
     retry: 1,
     refetchOnWindowFocus: false,
+    // Sin red se INTENTA y falla con «No pudimos cargar el plano · Reintentar». Con el modo por defecto TanStack la
+    // dejaba en pausa: la página se quedaba cargando para siempre, igual que pasaba con Guardar (prueba real 9-oct).
+    networkMode: 'always',
   })
   const doc = useMemo(() => (query.data ? dtoToDoc(query.data) : null), [query.data])
   if (!venueId) return null
@@ -92,7 +97,7 @@ export default function FloorPlanSettings() {
       )}
 
       <FeatureGate feature="TABLE_SERVICE" requiredTier="PRO">
-        {query.isLoading ? (
+        {query.isPending ? (
           <div className="grid gap-4 sm:grid-cols-2" data-testid="floor-plan-loading">
             <Skeleton className="h-56 rounded-2xl" />
             <Skeleton className="h-56 rounded-2xl" />
@@ -124,16 +129,25 @@ export default function FloorPlanSettings() {
             )}
           </div>
         ) : (
-          doc && <AreaCards doc={doc} />
+          doc && <AreaCards doc={doc} onOpen={canEdit ? key => setEditing(key ?? true) : undefined} />
         )}
       </FeatureGate>
 
-      {editing && query.data && <FloorPlanEditor plan={query.data} venueId={venueId} venueName={venue?.name} onClose={() => setEditing(false)} />}
+      {editing && query.data && (
+        <FloorPlanEditor
+          plan={query.data}
+          venueId={venueId}
+          venueName={venue?.name}
+          initialAreaKey={typeof editing === 'string' ? editing : null}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </div>
   )
 }
 
-function AreaCards({ doc }: { doc: EditorDoc }) {
+/** Cada área con su miniatura. Si se puede editar, la tarjeta entera abre el editor EN esa área. */
+function AreaCards({ doc, onOpen }: { doc: EditorDoc; onOpen?: (areaKey: string | null) => void }) {
   const { t } = useTranslation('floorPlan')
   const unplaced = doc.tables.filter(x => x.areaKey === null).length
   return (
@@ -141,26 +155,74 @@ function AreaCards({ doc }: { doc: EditorDoc }) {
       <div className="grid gap-4 sm:grid-cols-2">
         {doc.areas.map(a => {
           const tables = doc.tables.filter(x => x.areaKey === a.key)
+          const seats = tables.reduce((s, x) => s + x.capacity, 0)
           const { cols, rows } = gridOf(a.floorShape)
-          return (
-            <div key={a.key} className="space-y-3 rounded-2xl border border-input bg-card p-4" data-testid={`floor-plan-area-${a.name}`}>
+          const body = (
+            <>
               <div className="rounded-xl bg-muted/40 p-2">
                 <svg viewBox={`-1 -1 ${cols + 2} ${rows + 2}`} preserveAspectRatio="xMidYMid meet" className="h-40 w-full" role="img" aria-label={a.name}>
                   <FloorDrawing area={a} tables={tables} elements={doc.elements.filter(e => e.areaKey === a.key)} showGrid={false} />
                 </svg>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-medium">{a.name}</p>
-                  <p className="text-sm text-muted-foreground">{t('page.areaSummary', { tables: tables.length, seats: tables.reduce((s, x) => s + x.capacity, 0) })}</p>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{a.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('page.areaSummary', { tables: t('page.tables', { count: tables.length }), seats: t('page.seats', { count: seats }) })}
+                  </p>
                 </div>
-                {a.external && <Badge variant="outline">{t('page.fromPos')}</Badge>}
+                <div className="flex shrink-0 items-center gap-2">
+                  {a.external && <Badge variant="outline">{t('page.fromPos')}</Badge>}
+                  {onOpen && (
+                    <span className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden>
+                      {t('page.editArea')}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
+                    </span>
+                  )}
+                </div>
               </div>
+            </>
+          )
+          const cardClass = 'space-y-3 rounded-2xl border border-input bg-card p-4 text-left'
+          return onOpen ? (
+            <button
+              key={a.key}
+              type="button"
+              onClick={() => onOpen(a.key)}
+              aria-label={t('page.editAreaLabel', { name: a.name })}
+              className={cn(
+                cardClass,
+                'group w-full cursor-pointer transition-colors hover:border-foreground/30 hover:bg-muted/20',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              )}
+              data-testid={`floor-plan-area-${a.name}`}
+              data-tour="floor-plan-area-card"
+            >
+              {body}
+            </button>
+          ) : (
+            <div key={a.key} className={cardClass} data-testid={`floor-plan-area-${a.name}`}>
+              {body}
             </div>
           )
         })}
       </div>
-      {unplaced > 0 && <p className="text-sm text-muted-foreground">{t('page.unplaced', { count: unplaced })}</p>}
+      {unplaced > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-input px-4 py-3" data-testid="floor-plan-unplaced-note">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted" aria-hidden>
+            <Inbox className="h-4 w-4 text-muted-foreground" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{t('page.unplaced', { count: unplaced })}</p>
+            <p className="text-sm text-muted-foreground">{t('page.unplacedHint', { count: unplaced })}</p>
+          </div>
+          {onOpen && (
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => onOpen(null)} data-tour="floor-plan-unplaced-place">
+              {t('page.unplacedAction', { count: unplaced })}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
