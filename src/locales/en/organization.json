@@ -1140,6 +1140,7 @@
       "FLOOR_ELEMENT_CREATED": "Floor element created",
       "FLOOR_ELEMENT_DELETED": "Floor element deleted",
       "FLOOR_ELEMENT_UPDATED": "Floor element updated",
+      "FLOOR_PLAN_PUBLISHED": "Floor plan published",
       "FULFILLMENT_AREA_CREATED": "Service area created",
       "FULFILLMENT_AREA_UPDATED": "Service area updated",
       "INTER_VENUE_TRANSFER_APPROVED": "Inter-venue transfer approved",
