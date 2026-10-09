@@ -44,8 +44,11 @@ export interface FloorPlanDto {
   overLimit: boolean
 }
 export interface PublishFloorPlanResult extends FloorPlanDto {
-  publicationId: string
+  /** `null` cuando el servidor no publicó nada: el plano enviado era igual al guardado (`unchanged`). */
+  publicationId: string | null
   replayed: boolean
+  /** El PUT no cambiaba nada (servidor dac8b2ef): 200 con el plano actual y sin publicación. Con m-a casi no ocurre. */
+  unchanged?: true
 }
 export interface PublishFloorPlanBody {
   saveId: string
