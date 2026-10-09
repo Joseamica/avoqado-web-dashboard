@@ -45,6 +45,8 @@
     "reloading": "Reloading…",
     "offline": "Not saved: no connection. Your changes are still here; try again.",
     "genericError": "The floor plan couldn't be saved.",
+    "sessionExpired": "Your session ended. Sign in again to save the floor plan.",
+    "planLocked": "Your plan no longer includes table service. Turn it on in Plan & billing to save the floor plan.",
     "noArea": "Create an area (dining room, patio, bar…) to start drawing.",
     "createArea": "Create area",
     "unsaved": "Unsaved changes",

@@ -173,7 +173,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
       // Sin respuesta del servidor = no llegó (red). Cualquier otra cosa que no venga del servidor es un error genérico.
       if (!isAxiosError(error)) return notify({ title: t('editor.genericError'), variant: 'destructive' })
       if (!error.response) return notify({ title: t('editor.offline'), variant: 'destructive' })
-      const data = (error.response.data ?? {}) as { code?: string; message?: string; details?: { numbers?: string[] } }
+      const data = (error.response.data ?? {}) as { code?: string; message?: string; featureCode?: string; details?: { numbers?: string[] } }
       if (error.response.status === 409 && data.code === 'FLOOR_PLAN_CHANGED') return setConflict(true)
       if (error.response.status === 422 && data.code === 'TABLES_WITH_OPEN_ORDERS') {
         const numbers = data.details?.numbers ?? []
@@ -182,7 +182,11 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
         dispatch({ type: 'MARK_OPEN_ORDERS', keys: savedTables.filter(x => named.has(x.number.trim())).map(x => x.key) })
         return setOpenOrders(numbers)
       }
-      notify({ title: t('editor.genericError'), description: data.message, variant: 'destructive' })
+      // 401 y 403 llegan con el texto del servidor en inglés («No authentication token provided», «This venue does not have
+      // access…»): se dice en el idioma del dashboard qué pasó y qué hacer (prueba en vivo, /full-testing).
+      const status = error.response.status
+      const why = status === 401 ? t('editor.sessionExpired') : status === 403 ? t(data.featureCode ? 'editor.planLocked' : 'page.noPermission') : data.message
+      notify({ title: t('editor.genericError'), description: why, variant: 'destructive' })
     },
   })
 

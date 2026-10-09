@@ -133,4 +133,19 @@ describe('FloorPlanEditor — pasada en vivo', () => {
     expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/plano')
   })
+
+  // /full-testing: sin cookie, con el permiso quitado o sin el plan, el aviso traía el texto del servidor en inglés.
+  it.each([
+    [401, { message: 'No authentication token provided' }, 'editor.sessionExpired'],
+    [403, { message: "Permission 'tables:configure' required", required: 'tables:configure' }, 'page.noPermission'],
+    [403, { message: 'This venue does not have access to the TABLE_SERVICE feature.', featureCode: 'TABLE_SERVICE' }, 'editor.planLocked'],
+    [500, { message: 'Algo salió mal en el servidor' }, 'Algo salió mal en el servidor'],
+  ])('un %i al guardar se explica en el idioma del dashboard', async (status, data, description) => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(Object.assign(new Error('x'), { isAxiosError: true, response: { status, data } }))
+    renderEditor()
+    await girarMesa(user)
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.genericError', description, variant: 'destructive' })))
+  })
 })

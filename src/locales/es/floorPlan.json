@@ -45,6 +45,8 @@
     "reloading": "Recargando…",
     "offline": "No se guardó: no hay conexión. Tus cambios siguen aquí; vuelve a intentarlo.",
     "genericError": "No se pudo guardar el plano.",
+    "sessionExpired": "Tu sesión se cerró. Inicia sesión otra vez para guardar el plano.",
+    "planLocked": "Tu plan ya no incluye el servicio de mesas. Actívalo en Plan y facturación para guardar el plano.",
     "noArea": "Crea un área (salón, terraza, barra…) para empezar a dibujar.",
     "createArea": "Crear área",
     "unsaved": "Cambios sin guardar",
