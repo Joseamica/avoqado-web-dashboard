@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Maximize, Minus, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MousePointerClick, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FloorDrawing } from './FloorDrawing'
+import { ZoomControls } from './ZoomControls'
 import { clampMoveDelta } from '../model/editorReducer'
 import {
   alignmentGuides,
@@ -19,6 +19,7 @@ import {
   type GuideLine,
   type ViewBox,
 } from '../model/floorGeometry'
+import { overlappingTables } from '../model/overlap'
 import type { DraftArea, DraftElement, DraftTable, EditorDoc, ToolId } from '../model/types'
 
 export const TOOL_DRAG_MIME = 'application/x-avoqado-floor-tool'
@@ -41,14 +42,15 @@ export interface FloorCanvasProps {
 type Rect = { x: number; y: number; w: number; h: number }
 type Gesture =
   /** `last`: el desplazamiento que ya se pintó; si no cambia, no se vuelve a pintar. */
-  | { kind: 'drag'; keys: string[]; keySet: Set<string>; startX: number; startY: number; moved: boolean; last: { dx: number; dy: number } | null }
+  /** `clicked`: la pieza bajo el puntero; un clic sin mover sobre una selección de varias la deja sola a ella. */
+  | { kind: 'drag'; keys: string[]; keySet: Set<string>; clicked: string; startX: number; startY: number; moved: boolean; last: { dx: number; dy: number } | null }
   /** `base`: lo que ya estaba seleccionado si se empezó con Shift (el recuadro SUMA en vez de reemplazar). */
   | { kind: 'marquee'; startX: number; startY: number; base: string[] }
   | { kind: 'pan'; clientX: number; clientY: number; view: ViewBox }
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
-/** Controles que la barra espaciadora acciona con el teclado: no se les roba la tecla (salvo con el puntero sobre el plano). */
+/** Controles que la barra espaciadora acciona con el teclado: con uno de ellos con el foco, la tecla es suya, no la mano. */
 const SPACE_CONTROLS =
   'button, a[href], summary, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="slider"], [role="combobox"]'
 const isSpaceControl = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.(SPACE_CONTROLS)
@@ -96,8 +98,11 @@ export function FloorCanvas(props: FloorCanvasProps) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [spaceHeld, setSpaceHeld] = useState(false)
   const spacePan = useRef(false)
-  const overCanvas = useRef(false)
+  const pinch = useRef(1)
   const selected = useMemo(() => new Set(selection), [selection])
+  // H4: mesas encimadas (lo viejo de la PAX, o dos que se arrastraron una sobre otra). Se avisa; nunca se mueven solas.
+  const overlap = useMemo(() => overlappingTables(tables), [tables])
+  const overlapKeys = useMemo(() => tables.filter(x => overlap.has(x.key)).map(x => x.key), [tables, overlap])
   // Lo que ve el lienzo, como documento: con él se recorta el arrastre igual que MOVE al soltar.
   const canvasDoc = useMemo<EditorDoc>(() => ({ areas: [area], tables, elements }), [area, tables, elements])
 
@@ -123,12 +128,12 @@ export function FloorCanvas(props: FloorCanvasProps) {
     return clampWallEnd(from.x, from.y, raw.x, raw.y, cols, rows)
   }
 
-  // Espacio = mano para mover el plano. Con el foco en un botón o interruptor, la barra lo sigue accionando
-  // (teclado) a menos que el puntero esté sobre el plano.
+  // Espacio = mano para mover el plano. Con el foco en un botón o interruptor la barra lo sigue accionando: no se le roba
+  // el clic aunque el puntero esté sobre el plano (al tocar el plano el foco pasa al lienzo, y ahí sí es la mano).
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
-      if (isSpaceControl(e.target) && !overCanvas.current) return
+      if (isSpaceControl(e.target)) return
       e.preventDefault()
       spacePan.current = true
       setSpaceHeld(true)
@@ -170,11 +175,34 @@ export function FloorCanvas(props: FloorCanvasProps) {
         })
       }
     }
+    // Safari no manda el pellizco del trackpad como rueda con Ctrl: manda `gesture*` con la escala acumulada.
+    type Gesture = Event & { scale: number; clientX: number; clientY: number }
+    const onGestureStart = (e: Event) => {
+      e.preventDefault()
+      pinch.current = 1
+    }
+    const onGestureChange = (e: Event) => {
+      const g = e as Gesture
+      e.preventDefault()
+      if (!g.scale) return
+      const at = toCell(g.clientX, g.clientY)
+      const factor = pinch.current / g.scale
+      pinch.current = g.scale
+      setView(v => zoomAround(v, at, factor, { cols, rows }))
+    }
     svg.addEventListener('wheel', onWheel, { passive: false })
-    return () => svg.removeEventListener('wheel', onWheel)
+    svg.addEventListener('gesturestart', onGestureStart)
+    svg.addEventListener('gesturechange', onGestureChange)
+    return () => {
+      svg.removeEventListener('wheel', onWheel)
+      svg.removeEventListener('gesturestart', onGestureStart)
+      svg.removeEventListener('gesturechange', onGestureChange)
+    }
   }, [toCell, cols, rows])
 
   const onPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
+    // El foco pasa al lienzo: así Espacio ya no es de un botón que se tocó antes, y el campo del inspector se guarda.
+    if (document.activeElement !== e.currentTarget) e.currentTarget.focus({ preventScroll: true })
     if (e.button === 1 || spaceHeld) {
       e.preventDefault()
       gesture.current = { kind: 'pan', clientX: e.clientX, clientY: e.clientY, view }
@@ -210,7 +238,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
       }
       const keys = selected.has(key) ? selection : [key]
       if (!selected.has(key)) props.onSelect(keys)
-      gesture.current = { kind: 'drag', keys, keySet: new Set(keys), startX: p.x, startY: p.y, moved: false, last: null }
+      gesture.current = { kind: 'drag', keys, keySet: new Set(keys), clicked: key, startX: p.x, startY: p.y, moved: false, last: null }
       e.currentTarget.setPointerCapture(e.pointerId)
       return
     }
@@ -265,6 +293,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
     const g = gesture.current
     gesture.current = null
     if (commit && g?.kind === 'drag' && g.moved) props.onMove(g.keys, delta.current.dx, delta.current.dy)
+    if (commit && g?.kind === 'drag' && !g.moved && g.keys.length > 1) props.onSelect([g.clicked])
     const box = marqueeBox.current
     if (commit && g?.kind === 'marquee' && box && (box.w > 0.5 || box.h > 0.5)) {
       const inside = (x: number, y: number) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h
@@ -293,33 +322,37 @@ export function FloorCanvas(props: FloorCanvasProps) {
 
   const wallPreview = tool === 'WALL' && wallStart && cursor ? wallEnd(wallStart, cursor) : null
 
+  const zoom = Math.round(((cols + 4) / view.w) * 100)
+  const hint = tool === 'select' ? null : tool === 'WALL' ? t('tools.wallHint') : t('tools.placeHint')
+
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-input bg-muted/40">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-input bg-muted/40">
       <svg
         ref={svgRef}
         data-testid="floor-canvas"
         data-tour="floor-plan-canvas"
+        role="img"
+        aria-label={t('canvas.label', { name: area.name })}
+        // Enfocable sólo con el ratón (no por Tab): al tocarlo, el foco deja el botón que se usó antes.
+        tabIndex={-1}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
         preserveAspectRatio="xMidYMid meet"
-        className={cn('h-full w-full touch-none select-none', spaceHeld ? 'cursor-grab' : tool === 'select' ? 'cursor-default' : 'cursor-crosshair')}
+        className={cn(
+          'min-h-0 w-full flex-1 touch-none select-none outline-none',
+          spaceHeld ? 'cursor-grab' : tool === 'select' ? 'cursor-default' : 'cursor-crosshair',
+        )}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={() => endGesture(true)}
         onPointerCancel={() => endGesture(false)}
-        onPointerEnter={() => {
-          overCanvas.current = true
-        }}
-        onPointerLeave={() => {
-          overCanvas.current = false
-          setCursor(null)
-        }}
+        onPointerLeave={() => setCursor(null)}
         onDoubleClick={() => setWallStart(null)}
         onDragOver={e => {
           if (e.dataTransfer.types.includes(TOOL_DRAG_MIME) || e.dataTransfer.types.includes(TABLE_DRAG_MIME)) e.preventDefault()
         }}
         onDrop={onDrop}
       >
-        <FloorDrawing area={area} tables={tables} elements={elements} selected={selected} ghost={ghost} interactive />
+        <FloorDrawing area={area} tables={tables} elements={elements} selected={selected} ghost={ghost} warnKeys={overlap} interactive />
         {guides.map((l, i) => (
           <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} className="stroke-primary" strokeWidth={0.08} strokeDasharray="0.35 0.25" />
         ))}
@@ -338,36 +371,33 @@ export function FloorCanvas(props: FloorCanvasProps) {
         {tool === 'WALL' && cursor && <circle cx={cursor.x} cy={cursor.y} r={0.25} className="fill-primary" />}
       </svg>
 
-      {tool !== 'select' && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-input bg-background/90 px-3 py-1 text-xs text-muted-foreground shadow-sm">
-          {tool === 'WALL' ? t('tools.wallHint') : t('tools.placeHint')}
+      {/* H1: la barra va DEBAJO del dibujo, no encima: ninguna esquina del área queda tapada por los botones. */}
+      <div className="flex h-12 shrink-0 items-center gap-3 border-t border-input bg-card px-3" data-testid="floor-canvas-bar">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+          {hint ? (
+            <p className="flex min-w-0 items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-foreground" aria-live="polite" data-testid="floor-canvas-hint">
+              <MousePointerClick className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">{hint}</span>
+            </p>
+          ) : overlapKeys.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => props.onSelect(overlapKeys)}
+              className="flex min-w-0 cursor-pointer items-center gap-2 rounded-full px-2 py-1 text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              data-testid="floor-canvas-overlap"
+            >
+              <TriangleAlert className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <span className="truncate">{t('canvas.overlap', { count: overlapKeys.length })}</span>
+              <span className="shrink-0 text-muted-foreground underline underline-offset-4">{t('canvas.overlapShow')}</span>
+            </button>
+          ) : null}
         </div>
-      )}
-
-      <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full border border-input bg-background/90 p-1 shadow-sm">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 cursor-pointer"
-          aria-label={t('canvas.zoomOut')}
-          onClick={() => setView(v => zoomAround(v, viewCenter(v), 1.25, { cols, rows }))}
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 cursor-pointer"
-          aria-label={t('canvas.zoomIn')}
-          onClick={() => setView(v => zoomAround(v, viewCenter(v), 0.8, { cols, rows }))}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 cursor-pointer" aria-label={t('canvas.fit')} onClick={() => setView(fitView(cols, rows))}>
-          <Maximize className="h-4 w-4" />
-        </Button>
+        <ZoomControls
+          zoom={zoom}
+          onZoomOut={() => setView(v => zoomAround(v, viewCenter(v), 1.25, { cols, rows }))}
+          onZoomIn={() => setView(v => zoomAround(v, viewCenter(v), 0.8, { cols, rows }))}
+          onFit={() => setView(fitView(cols, rows))}
+        />
       </div>
     </div>
   )

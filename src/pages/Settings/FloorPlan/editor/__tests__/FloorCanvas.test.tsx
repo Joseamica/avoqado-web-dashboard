@@ -5,7 +5,7 @@ import type { DraftArea, DraftTable } from '../../model/types'
 
 // i18n autocontenido: devuelve la llave, como el resto de las pruebas del repo.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'es' } }),
+  useTranslation: () => ({ t: (key: string, o?: { count?: number }) => (o?.count !== undefined ? `${key}:${o.count}` : key), i18n: { language: 'es' } }),
 }))
 
 // Arrastrar, recuadro y paredes necesitan `getScreenCTM`, que jsdom no tiene: los cubre Playwright (tarea 13).
@@ -77,5 +77,61 @@ describe('FloorCanvas', () => {
     expect(canvas.getAttribute('class')).toContain('cursor-grab')
     fireEvent.keyUp(document.body, { code: 'Space' })
     expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
+  })
+  it('H1: el zoom vive en una barra DEBAJO del dibujo (no encima de una esquina) y dice el porcentaje', () => {
+    render(<FloorCanvas {...props()} />)
+    const bar = screen.getByTestId('floor-canvas-bar')
+    expect(screen.getByTestId('floor-canvas').contains(bar)).toBe(false)
+    expect(bar).toContainElement(screen.getByRole('button', { name: 'canvas.zoomIn' }))
+    expect(screen.getByTestId('floor-canvas-zoom')).toHaveTextContent('100%')
+    fireEvent.click(screen.getByRole('button', { name: 'canvas.zoomIn' }))
+    expect(screen.getByTestId('floor-canvas-zoom')).toHaveTextContent('125%')
+  })
+
+  it('H4: avisa de mesas encimadas y al tocar el aviso las selecciona', () => {
+    const onSelect = vi.fn()
+    render(<FloorCanvas {...props({ tables: [table, { ...table, key: 't2', number: '2', x: 11 }], onSelect })} />)
+    fireEvent.click(screen.getByTestId('floor-canvas-overlap'))
+    expect(screen.getByTestId('floor-canvas-overlap')).toHaveTextContent('canvas.overlap:2')
+    expect(onSelect).toHaveBeenCalledWith(['t1', 't2'])
+    expect(screen.getByTestId('floor-table-2').querySelector('rect')?.getAttribute('class')).toContain('stroke-warning')
+  })
+
+  it('un clic sin mover sobre una pieza de una selección de varias la deja sola a ella', () => {
+    const onSelect = vi.fn()
+    const onMove = vi.fn()
+    Element.prototype.setPointerCapture = () => {}
+    render(<FloorCanvas {...props({ tables: [table, { ...table, key: 't2', number: '2', x: 30 }], selection: ['t1', 't2'], onSelect, onMove })} />)
+    fireEvent.pointerDown(screen.getByTestId('floor-table-2'), { button: 0, pointerId: 1 })
+    fireEvent.pointerUp(screen.getByTestId('floor-canvas'), { button: 0, pointerId: 1 })
+    expect(onSelect).toHaveBeenCalledWith(['t2'])
+    expect(onMove).not.toHaveBeenCalled()
+  })
+
+  it('Espacio no le roba el clic a un botón con el foco aunque el puntero esté sobre el plano', () => {
+    render(
+      <>
+        <button type="button">Guardar</button>
+        <FloorCanvas {...props()} />
+      </>,
+    )
+    const canvas = screen.getByTestId('floor-canvas')
+    fireEvent.pointerEnter(canvas)
+    fireEvent.pointerMove(canvas)
+    expect(fireEvent.keyDown(screen.getByRole('button', { name: 'Guardar' }), { code: 'Space' })).toBe(true)
+    expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
+  })
+
+  it('Safari: el pellizco del trackpad (gesturechange) acerca', () => {
+    render(<FloorCanvas {...props()} />)
+    const canvas = screen.getByTestId('floor-canvas')
+    fireEvent(canvas, Object.assign(new Event('gesturestart', { cancelable: true }), { scale: 1 }))
+    fireEvent(canvas, Object.assign(new Event('gesturechange', { cancelable: true }), { scale: 2, clientX: 0, clientY: 0 }))
+    expect(Number(canvas.getAttribute('viewBox')?.split(' ')[2])).toBeCloseTo(22, 5)
+  })
+
+  it('el lienzo tiene nombre accesible', () => {
+    render(<FloorCanvas {...props()} />)
+    expect(screen.getByRole('img', { name: 'canvas.label' })).toBe(screen.getByTestId('floor-canvas'))
   })
 })
