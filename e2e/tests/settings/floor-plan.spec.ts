@@ -3,8 +3,9 @@
  *
  * Cubre las tres pruebas obligatorias de `.claude/rules/testing-and-git.md`: guardar y VER la página cambiada SIN
  * recargar (la prueba es la tarjeta del área, no el aviso), y que cargando / error / vacío se distinguen. Además: el
- * arrastre llega al PUT, el 409 avisa en vez de pisar, el 422 dice qué mesas tienen cuenta abierta, Esc suelta la
- * herramienta antes de cerrar, y los candados (permiso, plan Pro, pantalla angosta).
+ * arrastre llega al PUT, el 409 avisa en vez de pisar, el 422 dice qué mesas tienen cuenta abierta y las regresa, Esc
+ * suelta la herramienta antes de cerrar (y con el aviso «Plano guardado» a la vista basta UN Esc para salir), y los
+ * candados (permiso, plan Pro, pantalla angosta).
  *
  * Las respuestas son fingidas (`page.route`): prueban el navegador, no el servidor.
  * 🔴 Con el editor abierto, la página sigue debajo con las miniaturas de cada área, que también dibujan
@@ -156,8 +157,9 @@ test('vacío → arranque rápido → guardar → la tarjeta del área aparece s
   }
   // Ya guardado: sin cambios pendientes, Guardar se apaga.
   await expect(page.getByTestId('floor-plan-save')).toBeDisabled()
-  // Cierra con la X del encabezado: Esc lo prueba aparte (y aquí lo tomaría primero el aviso de «Plano guardado»).
-  await page.getByRole('button', { name: 'Cerrar' }).click()
+  // Decisión 15-D: con el aviso «Plano guardado» a la vista, UN Esc cierra el aviso y el editor (antes hacían falta dos).
+  await expect(page.getByText(/Plano guardado/).first()).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect(lienzo(page)).toHaveCount(0)
   // 🔴 la prueba: la página cambió SIN recargar
   await expect(page.getByTestId('floor-plan-area-Salón')).toContainText('6 mesas · 24 lugares')
@@ -175,7 +177,8 @@ test('cargando, error y vacío se distinguen; Reintentar recupera', async ({ pag
   await expect(page.getByTestId('floor-plan-empty')).toHaveCount(0)
   await expect(page.getByTestId('floor-plan-error')).toHaveCount(0)
   soltar()
-  // El servidor falla (también el reintento automático): se DICE, no parece un salón vacío.
+  // El servidor falla dos veces (la consulta de la página reintenta una vez, `retry: 1`, y el GET fingido siempre da 500
+  // hasta `healGet`): sólo entonces se DICE, y no parece un salón vacío.
   await expect(page.getByTestId('floor-plan-error')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByTestId('floor-plan-empty')).toHaveCount(0)
   await expect(page.getByTestId('floor-plan-loading')).toHaveCount(0)
@@ -202,6 +205,9 @@ test('arrastrar una mesa la mueve y se guarda su nueva posición', async ({ page
   expect(puts[0].tables[0]).toMatchObject({ id: 't1', areaRef: 'a1' })
   expect(puts[0].tables[0].positionX).toBeGreaterThan(0.3)
   expect(puts[0].tables[0].positionY).toBeCloseTo(0.4, 1)
+  // Cierra con su botón (testid propio: «Cerrar» por nombre choca con el del aviso que queda a la vista).
+  await page.getByTestId('floor-editor-close').click()
+  await expect(lienzo(page)).toHaveCount(0)
 })
 
 test('si alguien más cambió el plano, avisa en vez de pisarlo', async ({ page }) => {
@@ -221,20 +227,31 @@ test('si alguien más cambió el plano, avisa en vez de pisarlo', async ({ page 
   expect(puts[0].tables[0]).toMatchObject({ id: 't1', rotation: 45 }) // la mesa gira de 45 en 45
 })
 
-test('una mesa con cuenta abierta no se puede quitar, y el 422 se explica', async ({ page }) => {
+test('una mesa con cuenta abierta no se puede quitar; el 422 se explica y «Regresar la mesa» la repone', async ({ page }) => {
   await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
-  await mockFloorPlan(page, salon([mesa('t4', '4', { hasOpenOrder: true }), mesa('t5', '5', { positionX: 0.6 })]), {
-    put: { status: 422, body: { message: 'x', code: 'TABLES_WITH_OPEN_ORDERS', details: { numbers: ['4'] } } },
+  // Carrera: la 5 estaba libre al abrir el editor, pero un mesero le abrió cuenta antes de guardar.
+  const { puts } = await mockFloorPlan(page, salon([mesa('t4', '4', { hasOpenOrder: true }), mesa('t5', '5', { positionX: 0.6 })]), {
+    put: { status: 422, body: { message: 'x', code: 'TABLES_WITH_OPEN_ORDERS', details: { numbers: ['5'] } } },
   })
   await abrir(page)
   await abrirEditor(page)
   await mesaEnLienzo(page, '4').click()
   await expect(page.getByTestId('floor-inspector-remove')).toBeDisabled()
+  // Supr tampoco quita la que tiene cuenta abierta.
+  await page.keyboard.press('Delete')
+  await expect(mesasEnLienzo(page)).toHaveCount(2)
   await mesaEnLienzo(page, '5').click()
   await page.keyboard.press('Delete')
   await expect(mesasEnLienzo(page)).toHaveCount(1)
   await page.getByTestId('floor-plan-save').click()
-  await expect(page.getByText(/No se pueden quitar mesas con cuenta abierta: 4/).first()).toBeVisible()
+  await expect.poll(() => puts.length).toBe(1)
+  expect(puts[0].tables.map((t: { id: string }) => t.id)).toEqual(['t4'])
+  const aviso = page.getByTestId('floor-plan-open-orders')
+  await expect(aviso).toContainText('La mesa 5 tiene una cuenta abierta')
+  await page.getByTestId('floor-plan-restore-tables').click()
+  await expect(aviso).toHaveCount(0)
+  await expect(mesasEnLienzo(page)).toHaveCount(2)
+  await expect(lienzo(page).getByTestId('floor-open-order-5')).toBeVisible()
 })
 
 test('Esc suelta la herramienta sin cerrar el editor; con nada activo, cierra', async ({ page }) => {
@@ -245,7 +262,8 @@ test('Esc suelta la herramienta sin cerrar el editor; con nada activo, cierra', 
   await page.getByTestId('floor-tool-WALL').click()
   await expect(page.getByTestId('floor-tool-WALL')).toHaveAttribute('aria-pressed', 'true')
   const canvas = (await lienzo(page).boundingBox())!
-  await page.mouse.click(canvas.x + canvas.width * 0.3, canvas.y + canvas.height * 0.3) // empieza una pared
+  // Una esquina vacía (la mesa 1 está a 0.25 × 0.4): el clic no cae sobre una pieza.
+  await page.mouse.click(canvas.x + canvas.width * 0.06, canvas.y + canvas.height * 0.08) // empieza una pared
   await page.keyboard.press('Escape')
   await expect(lienzo(page)).toBeVisible()
   await expect(page.getByTestId('floor-tool-WALL')).toHaveAttribute('aria-pressed', 'false')
