@@ -53,6 +53,22 @@ export function getDeviceRole(device: Pick<DeviceListInput, 'type'>): DeviceRole
   }
 }
 
+// ── Activar ───────────────────────────────────────────────────────────────────
+
+/**
+ * Hay dos caminos para activar y el botón sólo conocía uno:
+ * - `bindSerial`: terminal COMPRADA (orden de compra) → nace PENDING_ACTIVATION sin serie y se le
+ *   asigna la serie del aparato que llegó (`activateTerminal` sólo acepta ese estado).
+ * - `generateCode`: cualquier otra sin activar (p. ej. la que crea el superadmin con serie, que nace
+ *   INACTIVE) → código de 6 caracteres que se teclea en la terminal. Antes le pedía la serie otra vez
+ *   y el server respondía «is not in PENDING_ACTIVATION status».
+ */
+export type ActivationRoute = 'bindSerial' | 'generateCode'
+
+export function getActivationRoute(device: Pick<DeviceListInput, 'status' | 'serialNumber'>): ActivationRoute {
+  return device.status === 'PENDING_ACTIVATION' ? 'bindSerial' : 'generateCode'
+}
+
 // ── Sistema operativo ──────────────────────────────────────────────────────────
 
 export type DeviceSystem = 'android' | 'ios' | 'windows' | 'unknown'
