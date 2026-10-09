@@ -230,7 +230,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   }, [busy])
 
   // Atrás del navegador, un enlace o cerrar la pestaña: el mismo «¿Salir sin guardar?» que cerrar el editor (D3).
-  const leaveGuard = useLeaveGuard({ dirty, saving: save.isPending })
+  const leaveGuard = useLeaveGuard({ dirty, saving: save.isPending, conflict })
   const askLeave = confirmClose || leaveGuard.asking
   const stay = () => {
     setConfirmClose(false)

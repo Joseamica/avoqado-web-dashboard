@@ -3,7 +3,7 @@
  * líneas (R25). El editor vive dentro del router de datos, como en la app: así se prueba también la navegación.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -29,6 +29,7 @@ const plan: FloorPlanDto = {
   overLimit: false,
 }
 const saved = (): PublishFloorPlanResult => ({ ...plan, tables: [{ ...plan.tables[0], rotation: 45 }], fingerprint: 'bbbbbbbbbbbbbbbb', publicationId: 'p1', replayed: false })
+const conflicto = () => Object.assign(new Error('Conflict'), { isAxiosError: true, response: { status: 409, data: { code: 'FLOOR_PLAN_CHANGED', message: 'x' } } })
 const sinRed = () => Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })
 
 /** El editor en `/plano`, con `/otra` detrás en el historial (para «Atrás»). */
@@ -78,5 +79,28 @@ describe('FloorPlanEditor — pasada en vivo', () => {
     await user.click(screen.getByTestId('floor-plan-save'))
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.saved' })))
     expect(dismissals).toEqual(['editor.offline'])
+  })
+
+  // m1 (revisión de la ola final): Atrás durante el guardado espera; si llega un 409, se abrían DOS diálogos encimados
+  // («Alguien más cambió el plano» y «¿Salir sin guardar?»). Ahora el 409 cancela esa salida y queda uno solo.
+  it('m1: si el guardado que hacía esperar a «Atrás» trae un 409, sólo se ve el conflicto y la salida se cancela', async () => {
+    const user = userEvent.setup()
+    let falla: (e: unknown) => void = () => {}
+    publish.mockReturnValueOnce(new Promise((_, reject) => (falla = reject)))
+    const { router } = renderEditor()
+    await girarMesa(user)
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await waitFor(() => expect(publish).toHaveBeenCalledTimes(1))
+    await act(async () => router.navigate(-1))
+    await act(async () => falla(conflicto()))
+    expect(await screen.findByText('editor.conflictTitle')).toBeInTheDocument()
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'editor.keepEditing' }))
+    await waitFor(() => expect(screen.queryByText('editor.conflictTitle')).not.toBeInTheDocument())
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plano')
+    // Para salir se vuelve a pedir, y como hay cambios, pregunta.
+    await act(async () => router.navigate(-1))
+    expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
   })
 })
