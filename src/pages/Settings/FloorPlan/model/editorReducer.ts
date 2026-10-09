@@ -262,10 +262,15 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         [action.key],
       )
     }
-    case 'UPDATE_TABLE':
+    case 'UPDATE_TABLE': {
       // El inspector también guarda al desmontarse: si la pieza ya no existe, no se deja un paso de deshacer vacío.
-      if (!doc.tables.some(t => t.key === action.key)) return state
-      return commit(state, {
+      const table = doc.tables.find(t => t.key === action.key)
+      if (!table) return state
+      // D1: otra área ⇒ se abre su pestaña con la mesa seleccionada (se ve dónde quedó), y nada de otra área queda
+      // seleccionado (Supr lo quitaría sin que se vea). A «Sin acomodar» no se cambia: la bandeja sale en todas.
+      const dest = action.patch.areaKey
+      const active = typeof dest === 'string' && dest !== table.areaKey && doc.areas.some(a => a.key === dest) ? dest : state.activeAreaKey
+      const nextDoc: EditorDoc = {
         ...doc,
         tables: doc.tables.map(t => {
           if (t.key !== action.key) return t
@@ -284,7 +289,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           const g = gridFor(doc, next.areaKey)
           return clampTable(next, g.cols, g.rows)
         }),
-      })
+      }
+      return active === state.activeAreaKey ? commit(state, nextDoc) : commit(state, nextDoc, selectionIn(nextDoc, state.selection, active), active)
+    }
     case 'UPDATE_ELEMENT':
       if (!doc.elements.some(e => e.key === action.key)) return state
       return commit(state, {

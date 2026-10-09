@@ -319,3 +319,39 @@ describe('editorReducer — ronda de arreglo 1 (15-D)', () => {
     expect(s.selection).toEqual(['t2'])
   })
 })
+
+describe('editorReducer — ola final', () => {
+  const two: EditorDoc = {
+    areas: [
+      { key: 'a1', id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false },
+      { key: 'a2', id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, external: false },
+    ],
+    tables: [table('t1'), table('t2', { x: 30 })],
+    elements: [wall],
+  }
+
+  // Codex P1-1: la mesa se iba a Terraza pero el lienzo seguía en Salón con ella seleccionada; Shift+clic y Supr
+  // borraban también la que ya no se veía.
+  it('D1: cambiar de área desde el inspector abre la pestaña de destino con la mesa seleccionada, y nada de otra área', () => {
+    const s = run(initEditorState(two), { type: 'SELECT', keys: ['t1', 'w1'] }, { type: 'UPDATE_TABLE', key: 't1', patch: { areaKey: 'a2' } })
+    expect(s.doc.tables[0].areaKey).toBe('a2')
+    expect(s.activeAreaKey).toBe('a2')
+    expect(s.selection).toEqual(['t1'])
+    // Deshacer la regresa a Salón y abre Salón.
+    const undone = editorReducer(s, { type: 'UNDO' })
+    expect(undone.activeAreaKey).toBe('a1')
+    expect(undone.selection).toEqual(['t1'])
+  })
+
+  it('D1: mandarla a «Sin acomodar» deja la pestaña abierta (la bandeja sale en todas) y la mesa seleccionada', () => {
+    const s = run(initEditorState(two), { type: 'SELECT', keys: ['t1'] }, { type: 'UPDATE_TABLE', key: 't1', patch: { areaKey: null } })
+    expect(s.activeAreaKey).toBe('a1')
+    expect(s.selection).toEqual(['t1'])
+  })
+
+  it('D1: otro cambio de la mesa (personas) no cambia de pestaña ni de selección', () => {
+    const s = run(initEditorState(two), { type: 'SELECT', keys: ['t1', 'w1'] }, { type: 'UPDATE_TABLE', key: 't1', patch: { capacity: 6 } })
+    expect(s.activeAreaKey).toBe('a1')
+    expect(s.selection).toEqual(['t1', 'w1'])
+  })
+})

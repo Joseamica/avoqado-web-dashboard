@@ -3,7 +3,7 @@
  * líneas (R25). El editor vive dentro del router de datos, como en la app: así se prueba también la navegación.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -31,6 +31,18 @@ const withArea: FloorPlanDto = {
   overLimit: false,
 }
 const mesa1 = { id: 't1', number: '1', capacity: 4, shape: 'SQUARE' as const, rotation: 0, positionX: 0.5, positionY: 0.5, areaId: 'a1', hasOpenOrder: false }
+
+const dosAreas: FloorPlanDto = {
+  ...withArea,
+  areas: [...withArea.areas, { id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, externalId: null }],
+  tables: [mesa1, { ...mesa1, id: 't2', number: '2', positionX: 0.8 }],
+}
+
+/** Seleccionar en el lienzo: jsdom no tiene `getScreenCTM`, pero el clic sobre una pieza sí la elige. */
+function seleccionar(testId: string, shiftKey = false) {
+  fireEvent.pointerDown(screen.getByTestId(testId), { button: 0, pointerId: 1, shiftKey })
+  fireEvent.pointerUp(screen.getByTestId('floor-canvas'), { button: 0, pointerId: 1 })
+}
 
 /** El editor en `/plano`, con `/otra` detrás en el historial (para «Atrás»). */
 function renderEditor(plan: FloorPlanDto) {
@@ -60,6 +72,23 @@ beforeEach(() => {
 })
 
 describe('FloorPlanEditor — ola final', () => {
+  // Codex P1-1: la mesa se iba a Terraza, el lienzo seguía en Salón con ella seleccionada; Shift+clic en la 2 y Supr
+  // borraban las dos, incluida la que ya no se veía.
+  it('D1: cambiar la mesa de área desde el inspector abre esa pestaña con la mesa; lo de la otra área ya no queda a mano', async () => {
+    const user = userEvent.setup()
+    renderEditor(dosAreas)
+    seleccionar('floor-table-1')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'select' }), 'a2')
+    const lienzo = screen.getByTestId('floor-canvas')
+    expect(within(lienzo).getByTestId('floor-table-1')).toBeInTheDocument()
+    expect(within(lienzo).queryByTestId('floor-table-2')).not.toBeInTheDocument()
+    expect(screen.getByText('inspector.table:1')).toBeInTheDocument()
+    await user.keyboard('{Delete}')
+    // Supr quitó sólo la que se ve; la 2 sigue en Salón.
+    await user.click(screen.getByTestId('floor-area-tab-Salón'))
+    expect(within(screen.getByTestId('floor-canvas')).getByTestId('floor-table-2')).toBeInTheDocument()
+  })
+
   it('D8: si TODAS las mesas de un número repetido tienen cuenta, «Ver cuáles» las selecciona (antes no seleccionaba nada)', async () => {
     const user = userEvent.setup()
     renderEditor({
