@@ -112,7 +112,7 @@
     "resyncDone": "Done: the reconciliation is requested; it runs as soon as this location's turn comes, usually within a couple of minutes.",
     "disconnect": "Disconnect",
     "disconnectTitle": "Disconnect Shopify?",
-    "disconnectBody": "Avoqado will keep selling normally, but it will stop updating stock in Shopify and vice versa. Changes that had not gone out yet are discarded.",
+    "disconnectBody": "Avoqado will keep selling normally, but it will stop updating stock in Shopify and vice versa. Changes that had not gone out yet are discarded. Open differences in «To review» are closed without changing the stock of any product.",
     "disconnectConfirm": "Yes, disconnect",
     "disconnected": "Shopify disconnected"
   },

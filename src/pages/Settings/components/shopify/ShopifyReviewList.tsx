@@ -11,7 +11,6 @@ import {
   claveDelEnvio,
   enviosPuedenAvanzar,
   useInvalidateShopify,
-  useInvalidateShopifyListas,
   useInvalidateShopifyResumen,
   useShopifyEnviosEnCamino,
   useShopifyReviews,
@@ -44,7 +43,6 @@ export function ShopifyReviewList({
   const { hash } = useLocation()
   const fallo = useShopifyFallo(venueId)
   const invalidate = useInvalidateShopify()
-  const invalidarListas = useInvalidateShopifyListas()
   const invalidarResumen = useInvalidateShopifyResumen()
   const [busqueda, setBusqueda] = useState('')
   const q = useDebounce(busqueda.trim(), 300)
@@ -58,18 +56,19 @@ export function ShopifyReviewList({
   // estado actualizado y se funde por id. Sólo mientras la conexión puede avanzar (plan activo, ACTIVA, sin error permanente).
   const items = useShopifyEnviosEnCamino(venueId, cargadas, enviosPuedenAvanzar(overview))
 
-  // Requisito 8: cuando un envío sondeado PASA de «en camino» a ATORADO o ENVIADO cambió el buzón: se vuelven a pedir las
-  // listas (un atorado abre una revisión nueva) y el resumen (los conteos). Es un evento, no un sondeo: una vez por cambio.
+  // Requisito 8c (ruling del controlador): cuando un envío sondeado PASA de «en camino» a ATORADO o ENVIADO sólo cambian los
+  // conteos del resumen: la lista conserva esa misma fila RESUELTA con el mismo total (el sondeo ya la pintó), una DEAD_LETTER no
+  // abre una revisión nueva (la abre el siguiente cuadre, y la página ya vigila `cuadre.ultimo`/`pendiente`) y los productos
+  // sin pareja no dependen de los envíos. Se refresca SÓLO el resumen, una vez por cambio.
   const antes = useRef<Map<string, ShopifyEnvio | null> | null>(null)
   useEffect(() => {
     const previo = antes.current
     antes.current = new Map(items.map(i => [i.id, i.envio]))
     if (!previo) return
     if (items.some(i => previo.get(i.id) === 'PENDIENTE' && (i.envio === 'ATORADO' || i.envio === 'ENVIADO'))) {
-      void invalidarListas(venueId)
       void invalidarResumen(venueId)
     }
-  }, [items, venueId, invalidarListas, invalidarResumen])
+  }, [items, venueId, invalidarResumen])
 
   // L19: el hash no hace scroll solo porque la sección aparece DESPUÉS de cargar el resumen: se baja una vez, ya con la lista.
   const seccion = useRef<HTMLElement>(null)

@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { useInvalidateShopifyListas, useShopifyOverview } from '@/hooks/use-shopify'
+import { useInvalidateShopifyListas, useInvalidateShopifyResumen, useShopifyOverview } from '@/hooks/use-shopify'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { conexionDetenida, SHOPIFY_CALLBACK_ERRORS, SHOPIFY_FEATURE, type ShopifyEstado } from '@/types/shopify'
 import { ShopifyConnect, ShopifyPiloto } from './components/shopify/ShopifyConnect'
@@ -39,12 +39,13 @@ export default function ShopifyIntegration({ navegar = navegarDeVerdad }: { nave
 function PaginaShopify({ navegar }: { navegar: Navegar }) {
   const { t } = useTranslation('shopify')
   const { venueId } = useCurrentVenue()
-  const { can } = useAccess()
+  const { can, isLoading: permisosCargando } = useAccess()
   const { hasFeatureAccess, isResolved, isLoading: accesoCargando } = useVenueTier()
   const { toast } = useToast()
   const [params, setParams] = useSearchParams()
   const overview = useShopifyOverview(venueId ?? undefined)
   const invalidarListas = useInvalidateShopifyListas()
+  const invalidarResumen = useInvalidateShopifyResumen()
   const resumen = overview.data
   const connection = resumen?.connection ?? null
   const canManage = can('settings:manage')
@@ -103,9 +104,16 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
         ? t('review.permissionResolve')
         : null
 
-  const alVolverAEmpezar = () => setParams({}, { replace: true })
+  // «Volver a empezar» suelta el intent y relee el resumen: el asistente pudo morir porque la sucursal YA estaba conectada
+  // (RELEER) y el resumen en pantalla sigue diciendo «sin conexión».
+  const alVolverAEmpezar = () => {
+    setParams({}, { replace: true })
+    void invalidarResumen(venueId ?? undefined)
+  }
 
   function contenido() {
+    // Mientras los permisos cargan no se sabe si falta `inventory:read`: «cargando», nunca «No tienes permiso» por un instante.
+    if (permisosCargando) return <Cargando />
     if (!canRead) {
       return (
         <Alert className="border-input bg-muted/40">
@@ -151,7 +159,7 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
         <h1 className="text-2xl font-bold text-foreground">{t('page.title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('page.subtitle')}</p>
       </div>
-      {canRead && !canManage && (
+      {!permisosCargando && canRead && !canManage && (
         <Alert className="border-input bg-muted/40">
           <AlertDescription className="text-sm text-muted-foreground">{t('page.readOnly')}</AlertDescription>
         </Alert>

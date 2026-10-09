@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
 import { useToast } from '@/hooks/use-toast'
 import { claveDelCuadre, useInvalidateShopify, useInvalidateShopifyResumen, useShopifyProximoIntento } from '@/hooks/use-shopify'
@@ -176,7 +176,9 @@ export function ShopifyStatusCard({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => desconectar.mutate()}>{t('status.disconnectConfirm')}</AlertDialogAction>
+              <AlertDialogAction onClick={() => desconectar.mutate()} className={buttonVariants({ variant: 'destructive' })}>
+                {t('status.disconnectConfirm')}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

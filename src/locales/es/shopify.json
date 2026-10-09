@@ -112,7 +112,7 @@
     "resyncDone": "Listo: el cuadre quedó pedido; corre en cuanto le toque a esta sucursal, normalmente en un par de minutos.",
     "disconnect": "Desconectar",
     "disconnectTitle": "¿Desconectar Shopify?",
-    "disconnectBody": "Avoqado seguirá vendiendo normal, pero dejará de actualizar el stock en Shopify y al revés. Los cambios que no alcanzaron a salir se descartan.",
+    "disconnectBody": "Avoqado seguirá vendiendo normal, pero dejará de actualizar el stock en Shopify y al revés. Los cambios que no alcanzaron a salir se descartan. Las diferencias abiertas en «Por revisar» se cierran sin cambiar el stock de ningún producto.",
     "disconnectConfirm": "Sí, desconectar",
     "disconnected": "Shopify desconectado"
   },

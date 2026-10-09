@@ -5,9 +5,15 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SHOPIFY_ENVIOS, type ShopifyConnection, type ShopifyOverview, type ShopifyReview } from '@/types/shopify'
 
-const access = vi.hoisted(() => ({ allowed: [] as string[] }))
+const access = vi.hoisted(() => ({ allowed: [] as string[], cargando: false }))
 vi.mock('@/hooks/use-access', () => ({
-  useAccess: () => ({ can: (p: string) => access.allowed.includes(p), canFeature: () => true, role: 'ADMIN', isWhiteLabelEnabled: false }),
+  useAccess: () => ({
+    can: (p: string) => access.allowed.includes(p),
+    canFeature: () => true,
+    role: 'ADMIN',
+    isWhiteLabelEnabled: false,
+    isLoading: access.cargando,
+  }),
 }))
 // Mutable: la prueba de cambio de sucursal cambia el negocio sin desmontar la página (el Outlet real no lleva key).
 const venue = vi.hoisted(() => ({ id: 'v1' }))
@@ -138,6 +144,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   venue.id = 'v1'
   access.allowed = ['inventory:read', 'inventory:adjust', 'settings:manage']
+  access.cargando = false
   plan.granted = ['CHATBOT', 'SHOPIFY_INTEGRATION']
   Element.prototype.scrollIntoView = scrollIntoView
   svc.getShopifyOverview.mockResolvedValue(resumen(null))
@@ -269,6 +276,18 @@ describe('ShopifyIntegration — conectar', () => {
     expect(await screen.findByRole('button', { name: 'connect.restart' })).toBeEnabled()
   })
 
+  it('🔴 «Volver a empezar» también relee el resumen: si el asistente murió porque la sucursal YA estaba conectada, se ve la conexión', async () => {
+    svc.getShopifyOverview.mockResolvedValueOnce(resumen(null)).mockResolvedValue(resumen(conexion()))
+    svc.getShopifyLocations.mockRejectedValue(errorHttp(409, { code: 'SHOPIFY_YA_CONECTADA', message: 'ya' }))
+    renderPage('/?intent=intent-firmado')
+    expect(await screen.findByText('errors.codes.SHOPIFY_YA_CONECTADA')).toBeInTheDocument()
+    const antes = svc.getShopifyOverview.mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: 'connect.restart' }))
+    expect(await screen.findByText('status.store')).toBeInTheDocument()
+    expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThan(antes)
+    expect(screen.queryByPlaceholderText('connect.domainPlaceholder')).toBeNull()
+  })
+
   it('regreso con ?error=USADO: lo dice con su texto y limpia la URL', async () => {
     renderPage('/?error=USADO')
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'connect.callbackErrors.USADO' }))
@@ -327,6 +346,26 @@ describe('ShopifyIntegration — conectar', () => {
     expect(screen.getByText('page.readOnly')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('connect.domainPlaceholder')).toBeDisabled()
     expect(svc.startShopifyConnect).not.toHaveBeenCalled()
+  })
+
+  it('🔴 mientras los permisos cargan se ve «cargando»: ni «No tienes permiso» ni el aviso de sólo lectura destellan; al llegar, la página aparece', async () => {
+    access.allowed = []
+    access.cargando = true
+    const v = renderPage()
+    expect(screen.getByRole('status', { name: 'common:loading' })).toBeInTheDocument()
+    expect(screen.queryByText('errors.forbidden')).toBeNull()
+    expect(screen.queryByText('page.readOnly')).toBeNull()
+    expect(svc.getShopifyOverview).not.toHaveBeenCalled()
+    // Aunque el hook ya contestara `inventory:read` (caché) con el resto todavía cargando, el aviso de sólo lectura espera.
+    access.allowed = ['inventory:read']
+    v.rerender(v.tree())
+    expect(screen.queryByText('page.readOnly')).toBeNull()
+    access.allowed = ['inventory:read', 'inventory:adjust', 'settings:manage']
+    access.cargando = false
+    v.rerender(v.tree())
+    expect(await screen.findByPlaceholderText('connect.domainPlaceholder')).toBeInTheDocument()
+    expect(screen.queryByText('errors.forbidden')).toBeNull()
+    expect(screen.queryByText('page.readOnly')).toBeNull()
   })
 
   it('sin `inventory:read` no se muestra nada de la conexión: se dice que no tiene permiso', async () => {
@@ -595,7 +634,7 @@ describe('ShopifyIntegration — «Por revisar»', () => {
     },
   )
 
-  it('🔴 con varias páginas cargadas, el sondeo pregunta SÓLO por las elecciones en camino; las páginas se vuelven a pedir UNA vez cuando los envíos llegan, no en cada vuelta (R2-4, requisito 8)', async () => {
+  it('🔴 con varias páginas cargadas, el sondeo pregunta SÓLO por las elecciones en camino y las páginas se piden exactamente UNA vez; al llegar los envíos sólo se refresca el resumen (R2-4, ruling del requisito 8c)', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
     const servidor = new Map<string, ShopifyReview['envio']>([
       ['r1', 'PENDIENTE'],
@@ -626,8 +665,10 @@ describe('ShopifyIntegration — «Por revisar»', () => {
     // El siguiente ciclo (5 s) pregunta SÓLO por las dos en camino: llegan a Shopify y la pantalla lo dice.
     expect(await screen.findAllByText('review.envio.ENVIADO', {}, { timeout: 9000 })).toHaveLength(2)
     expect(svc.getShopifyReviewEnvios).toHaveBeenLastCalledWith('v1', ['r1', 'r2'])
-    // Y como llegaron (PENDIENTE → ENVIADO), las dos páginas se piden OTRA vez, una sola vez: 2 + 2.
-    await waitFor(() => expect(svc.listShopifyReviews).toHaveBeenCalledTimes(4))
+    // Y como llegaron (PENDIENTE → ENVIADO) se refresca el resumen (los conteos); las páginas NO se vuelven a pedir.
+    await waitFor(() => expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThan(1))
+    await new Promise(r => setTimeout(r, 300))
+    expect(svc.listShopifyReviews).toHaveBeenCalledTimes(2)
     expect(svc.getShopifyReviewEnvios.mock.calls.every(([, ids]) => (ids as string[]).length <= 50)).toBe(true)
   }, 15_000)
 
@@ -678,10 +719,10 @@ describe('ShopifyIntegration — «Por revisar»', () => {
       await waitFor(() => expect(svc.getShopifyReviewEnvios).toHaveBeenCalledTimes(3))
       expect(svc.getShopifyReviewEnvios.mock.calls[2][1]).toEqual(ids.slice(40, 50))
       expect(await screen.findAllByText('review.envio.ENVIADO')).toHaveLength(60)
-      // Ya no queda ninguna en camino: no se pregunta más. Las páginas sólo se pidieron al llegar los envíos (1 + 2 refrescos).
+      // Ya no queda ninguna en camino: no se pregunta más, y las páginas nunca se volvieron a pedir (ruling del requisito 8c).
       await act(() => vi.advanceTimersByTimeAsync(15_000))
       expect(svc.getShopifyReviewEnvios).toHaveBeenCalledTimes(3)
-      await waitFor(() => expect(svc.listShopifyReviews).toHaveBeenCalledTimes(3))
+      expect(svc.listShopifyReviews).toHaveBeenCalledTimes(1)
       expect(svc.getShopifyReviewEnvios.mock.calls.every(([, pedidos]) => (pedidos as string[]).length <= 50)).toBe(true)
     } finally {
       vi.useRealTimers()
@@ -702,6 +743,25 @@ describe('ShopifyIntegration — «Por revisar»', () => {
       expect(await screen.findByText('review.envioEnPausa')).toBeInTheDocument()
       expect(screen.queryByText('review.envio.PENDIENTE')).toBeNull()
       expect(svc.getShopifyReviewEnvios).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['ATORADO', 'ENVIADO'] as const)(
+    '🔴 ruling del requisito 8c: un envío que pasa de PENDIENTE a %s refresca SÓLO el resumen (una vez); la lista no se vuelve a pedir',
+    async nuevo => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
+      svc.listShopifyReviews.mockResolvedValue(pagina([{ ...REVISION, status: 'RESOLVED', choice: 'AVOQADO', envio: 'PENDIENTE' }]))
+      svc.getShopifyReviewEnvios.mockImplementation(async (_venueId: string, ids: string[]) => ({
+        items: ids.map(id => ({ id, status: 'RESOLVED', choice: 'AVOQADO', envio: nuevo })),
+      }))
+      renderPage()
+      expect(await screen.findByText(`review.envio.${nuevo}`)).toBeInTheDocument()
+      // El resumen: la primera carga y UN refresco por el cambio (nada lo sondea: no hay cuadre pedido ni cambios en camino).
+      await waitFor(() => expect(svc.getShopifyOverview).toHaveBeenCalledTimes(2))
+      await new Promise(r => setTimeout(r, 300))
+      expect(svc.getShopifyOverview).toHaveBeenCalledTimes(2)
+      expect(svc.listShopifyReviews).toHaveBeenCalledTimes(1)
+      expect(svc.listShopifyIssues).toHaveBeenCalledTimes(1)
     },
   )
 
@@ -916,6 +976,8 @@ describe('ShopifyIntegration — conexión activa, pausa y avisos', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'status.disconnect' }))
     expect(await screen.findByText('status.disconnectBody')).toBeInTheDocument()
     expect(svc.disconnectShopify).not.toHaveBeenCalled()
+    // Es una acción destructiva: el botón que confirma se pinta como tal.
+    expect(screen.getByRole('button', { name: 'status.disconnectConfirm' })).toHaveClass('bg-destructive')
     await userEvent.click(screen.getByRole('button', { name: 'status.disconnectConfirm' }))
     await waitFor(() => expect(svc.disconnectShopify).toHaveBeenCalledWith('v1'))
     expect(toast).toHaveBeenCalledWith({ title: 'status.disconnected' })

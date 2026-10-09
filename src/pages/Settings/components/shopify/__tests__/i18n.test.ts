@@ -143,6 +143,15 @@ describe('i18n del conector Shopify', () => {
     },
   )
 
+  it('🔴 «Desconectar» dice que las diferencias abiertas en «Por revisar» se cierran sin cambiar el stock de ningún producto', () => {
+    expect(String(valor(bundle('es', 'shopify'), 'status.disconnectBody'))).toContain(
+      'Las diferencias abiertas en «Por revisar» se cierran sin cambiar el stock de ningún producto.',
+    )
+    expect(String(valor(bundle('en', 'shopify'), 'status.disconnectBody'))).toContain(
+      'Open differences in «To review» are closed without changing the stock of any product.',
+    )
+  })
+
   it.each(IDIOMAS)('%s: la tarjeta de Integraciones tiene sus textos', lng => {
     const c = valor(bundle(lng, 'venue'), 'edit.integrations.catalog.shopify') as Record<string, string>
     expect(Object.keys(c).sort()).toEqual(['description', 'pilot', 'title'])
