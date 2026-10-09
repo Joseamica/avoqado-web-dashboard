@@ -5,7 +5,7 @@
     "edit": "Edit floor plan",
     "start": "Set up your dining room",
     "emptyTitle": "You haven't drawn your dining room yet",
-    "emptyBody": "In a minute you can place your tables, walls, bar and kitchen. Your team will see it the same way on the point of sale.",
+    "emptyBody": "In a minute you can place your tables, walls, bar and kitchen.",
     "loadError": "We couldn't load the floor plan.",
     "retry": "Retry",
     "areaSummary": "{{tables}} · {{seats}}",
@@ -87,7 +87,7 @@
   "tools": {
     "select": "Select",
     "tablesSection": "Tables",
-    "roomSection": "Room",
+    "roomSection": "Walls & more",
     "TABLE_SQUARE": "Square",
     "TABLE_ROUND": "Round",
     "TABLE_RECTANGLE": "Long",

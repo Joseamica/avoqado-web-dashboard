@@ -5,7 +5,7 @@
     "edit": "Editar plano",
     "start": "Arma tu salón",
     "emptyTitle": "Aún no dibujas tu salón",
-    "emptyBody": "En un minuto acomodas tus mesas, paredes, barra y cocina. Tu equipo lo verá igual en el punto de venta.",
+    "emptyBody": "En un minuto acomodas tus mesas, paredes, barra y cocina.",
     "loadError": "No pudimos cargar el plano.",
     "retry": "Reintentar",
     "areaSummary": "{{tables}} · {{seats}}",
@@ -87,7 +87,7 @@
   "tools": {
     "select": "Seleccionar",
     "tablesSection": "Mesas",
-    "roomSection": "Salón",
+    "roomSection": "Paredes y más",
     "TABLE_SQUARE": "Cuadrada",
     "TABLE_ROUND": "Redonda",
     "TABLE_RECTANGLE": "Larga",
