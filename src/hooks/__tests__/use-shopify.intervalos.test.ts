@@ -185,15 +185,21 @@ describe('«Lo vuelve a intentar a las HH:MM» (L6, Y3)', () => {
   const t = (k: string, v?: Record<string, unknown>) => `${k}|${v?.time}`
   // La hora la da `formatTime` de useVenueDateTime (zona del NEGOCIO); aquí sólo se comprueba que se use.
   const hora = (iso: string) => `hora(${iso})`
+  const ahora = Date.parse('2026-10-09T18:00:00.000Z')
   it('con próximo intento ⇒ el texto con la hora del negocio', () => {
-    expect(textoProximoIntento(c({ proximoIntento: '2026-10-09T18:05:00.000Z' }), hora, t)).toBe(
+    expect(textoProximoIntento(c({ proximoIntento: '2026-10-09T18:05:00.000Z' }), hora, t, ahora)).toBe(
       'status.retryAt|hora(2026-10-09T18:05:00.000Z)',
     )
   })
   it('sin próximo intento, sin conexión o detenida ⇒ nada', () => {
-    expect(textoProximoIntento(c(), hora, t)).toBeNull()
-    expect(textoProximoIntento(null, hora, t)).toBeNull()
-    expect(textoProximoIntento(revocada({ proximoIntento: '2026-10-09T18:05:00.000Z' }), hora, t)).toBeNull()
+    expect(textoProximoIntento(c(), hora, t, ahora)).toBeNull()
+    expect(textoProximoIntento(null, hora, t, ahora)).toBeNull()
+    expect(textoProximoIntento(revocada({ proximoIntento: '2026-10-09T18:05:00.000Z' }), hora, t, ahora)).toBeNull()
+  })
+  it('🔴 C7-M(4): una hora que YA pasó no se dice («lo vuelve a intentar a las 12:05» a las 12:10 miente); el sondeo traerá la nueva', () => {
+    expect(textoProximoIntento(c({ proximoIntento: '2026-10-09T17:59:00.000Z' }), hora, t, ahora)).toBeNull()
+    // justo ahora también cuenta como pasada: ya le toca
+    expect(textoProximoIntento(c({ proximoIntento: '2026-10-09T18:00:00.000Z' }), hora, t, ahora)).toBeNull()
   })
 })
 

@@ -1407,7 +1407,7 @@
       "SHIFT_DELETED": "Shift deleted",
       "SHIFT_OPENED": "Cash shift opened",
       "SHIFT_UPDATED": "Shift updated",
-      "SHOPIFY_APPLY_REQUESTED": "Shopify stock apply requested",
+      "SHOPIFY_APPLY_REQUESTED": "Applying the Shopify stock was requested",
       "SHOPIFY_CATALOG_IMPORTED": "Shopify catalog imported",
       "SHOPIFY_CONNECTED": "Shopify store connected",
       "SHOPIFY_CONNECT_STARTED": "Shopify connection started",

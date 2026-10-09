@@ -1407,7 +1407,7 @@
       "SHIFT_DELETED": "Turno eliminado",
       "SHIFT_OPENED": "Turno de caja abierto",
       "SHIFT_UPDATED": "Turno actualizado",
-      "SHOPIFY_APPLY_REQUESTED": "Aplicar el stock de Shopify solicitado",
+      "SHOPIFY_APPLY_REQUESTED": "Se pidió aplicar el stock de Shopify",
       "SHOPIFY_CATALOG_IMPORTED": "Catálogo de Shopify importado",
       "SHOPIFY_CONNECTED": "Tienda Shopify conectada",
       "SHOPIFY_CONNECT_STARTED": "Conexión con Shopify iniciada",

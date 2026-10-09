@@ -72,7 +72,10 @@ describe('qué texto y qué acción lleva cada error del servidor (L9, V3, T6, N
     ['SHOPIFY_FALTA_PERMISO', 'REAUTORIZAR'],
     ['SHOPIFY_EN_PAUSA', 'REAUTORIZAR'],
     ['SHOPIFY_SOLO_PILOTO', null],
-    ['SHOPIFY_NO_ACTIVA', null],
+    // C7-M(1): perder el acceso, que la conexión ya no esté activa o que ya exista otra ⇒ lo que se ve está viejo: se vuelve a leer.
+    ['SHOPIFY_NO_ACTIVA', 'RELEER'],
+    ['SHOPIFY_SIN_PLAN', 'RELEER'],
+    ['SHOPIFY_YA_CONECTADA', 'RELEER'],
     ['SHOPIFY_DIFERENCIA_NO_ENTERA', null],
     ['FEATURE_NO_SE_VENDE_SUELTA', null],
   ])('%s ⇒ su propio texto y la acción %s', (code, accion) => {
@@ -81,7 +84,7 @@ describe('qué texto y qué acción lleva cada error del servidor (L9, V3, T6, N
 
   it('🔴 sin plan (403 de checkFeatureAccess, en inglés) ⇒ el texto del piloto, nunca el mensaje del server', () => {
     const e = http(403, { error: 'Feature not available', message: 'Please subscribe', featureCode: 'SHOPIFY_INTEGRATION' })
-    expect(s.explicarErrorShopify(e)).toEqual({ clave: 'errors.planRequired', accion: null })
+    expect(s.explicarErrorShopify(e)).toEqual({ clave: 'errors.planRequired', accion: 'RELEER' })
   })
 
   it('🔴 SHOPIFY_SIN_PLAN (el server dice «actívalo») ⇒ también el texto del piloto (N2)', () => {

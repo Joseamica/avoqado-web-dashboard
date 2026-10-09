@@ -123,6 +123,26 @@ describe('i18n del conector Shopify', () => {
     expect(String(valor(bundle('en', 'shopify'), 'avisos.items.CONTEO_NO_APLICADO.body'))).toMatch(/minutes[\s\S]*«To review»/)
   })
 
+  it('🔴 C7-M: el texto de la importación dice «reintentamos solos» y la bitácora «Se pidió aplicar el stock de Shopify»', () => {
+    const es = bundle('es', 'shopify')
+    expect(String(valor(es, 'connect.importErrors.generic'))).toMatch(/La reintentamos solos;/)
+    expect(String(valor(bundle('es', 'organization'), 'activityLog.actions.SHOPIFY_APPLY_REQUESTED'))).toBe(
+      'Se pidió aplicar el stock de Shopify',
+    )
+    expect(String(valor(bundle('en', 'organization'), 'activityLog.actions.SHOPIFY_APPLY_REQUESTED'))).toBe(
+      'Applying the Shopify stock was requested',
+    )
+  })
+
+  it.each(IDIOMAS)(
+    '%s: apagado se explica y dice a quién pedirlo: sin permiso de ajustar inventario no se elige y se nombra al dueño o administrador',
+    lng => {
+      expect(String(valor(bundle(lng, 'shopify'), 'review.readOnlyResolve'))).toMatch(
+        lng === 'es' ? /dueño o a un administrador/ : /owner or an administrator/,
+      )
+    },
+  )
+
   it.each(IDIOMAS)('%s: la tarjeta de Integraciones tiene sus textos', lng => {
     const c = valor(bundle(lng, 'venue'), 'edit.integrations.catalog.shopify') as Record<string, string>
     expect(Object.keys(c).sort()).toEqual(['description', 'pilot', 'title'])

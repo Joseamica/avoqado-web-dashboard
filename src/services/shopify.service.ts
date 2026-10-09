@@ -109,6 +109,10 @@ const ACCIONES: Partial<Record<ShopifyErrorCode, ShopifyErrorAccion>> = {
   SHOPIFY_PAREJA_SUSPENDIDA: 'RELEER',
   SHOPIFY_NO_EN_REVISION: 'RELEER',
   SHOPIFY_SIN_CONEXION: 'RELEER',
+  // C7-M(1): sin acceso, conexión no activa o ya conectada ⇒ el resumen que se vio está viejo: se vuelve a leer.
+  SHOPIFY_NO_ACTIVA: 'RELEER',
+  SHOPIFY_SIN_PLAN: 'RELEER',
+  SHOPIFY_YA_CONECTADA: 'RELEER',
   SHOPIFY_FALTA_PERMISO: 'REAUTORIZAR',
   SHOPIFY_EN_PAUSA: 'REAUTORIZAR',
   SHOPIFY_NO_RESPONDE: 'REINTENTAR_LUEGO',
@@ -122,7 +126,8 @@ type RespuestaDeError = { response?: { status?: number; data?: unknown } }
 
 /**
  * Cómo se dice un error del conector. En orden:
- * 1. 403 del candado del plan (`featureCode`, mensaje en inglés que dice «subscribe») ⇒ el texto del piloto (N2).
+ * 1. 403 del candado del plan (`featureCode`, mensaje en inglés que dice «subscribe») ⇒ el texto del piloto (N2) y RELEER:
+ *    el acceso se perdió a media sesión, el resumen (`planActive`) ya no es el que se ve.
  * 2. Un código conocido ⇒ su texto (y su acción). `SHOPIFY_SIN_PLAN` también es texto de piloto, nunca «actívalo».
  * 3. Otro 403 (el del permiso del rol, en inglés) ⇒ texto propio de permiso.
  * 4. Un `SHOPIFY_*` nuevo o un 400 de validación ⇒ el mensaje del server, que es español.
@@ -132,7 +137,7 @@ export function explicarErrorShopify(e: unknown): ShopifyErrorVista {
   const r = (e as RespuestaDeError | null | undefined)?.response
   const data = (r?.data && typeof r.data === 'object' ? r.data : {}) as { code?: unknown; featureCode?: unknown }
   const code = typeof data.code === 'string' ? data.code : undefined
-  if (r?.status === 403 && data.featureCode === SHOPIFY_FEATURE) return { clave: 'errors.planRequired', accion: null }
+  if (r?.status === 403 && data.featureCode === SHOPIFY_FEATURE) return { clave: 'errors.planRequired', accion: 'RELEER' }
   if (code && (SHOPIFY_ERROR_CODES as readonly string[]).includes(code)) {
     return { clave: `errors.codes.${code}`, accion: ACCIONES[code as ShopifyErrorCode] ?? null }
   }

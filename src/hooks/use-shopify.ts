@@ -105,13 +105,17 @@ export function claveDelEnvio(item: ShopifyReview, o: ShopifyOverview | null | u
   return item.choice ? `review.elegiste.${item.choice}` : null
 }
 
-/** «Lo vuelve a intentar a las HH:MM» con la hora del NEGOCIO (`formatTime` de useVenueDateTime). Nada si no hay o está detenida. */
+/**
+ * «Lo vuelve a intentar a las HH:MM» con la hora del NEGOCIO (`formatTime` de useVenueDateTime). Nada si no hay, si está
+ * detenida o si esa hora YA pasó (el worker está por reintentar o el resumen aún no trae la nueva): decir una hora vieja miente.
+ */
 export function textoProximoIntento(
   c: ShopifyConnection | null | undefined,
   formatTime: (iso: string) => string,
   t: (clave: string, valores?: Record<string, unknown>) => string,
+  ahora: number = Date.now(),
 ): string | null {
-  if (!c?.proximoIntento || conexionDetenida(c)) return null
+  if (!c?.proximoIntento || conexionDetenida(c) || Date.parse(c.proximoIntento) <= ahora) return null
   return t('status.retryAt', { time: formatTime(c.proximoIntento) })
 }
 

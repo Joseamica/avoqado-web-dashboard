@@ -48,7 +48,7 @@
       "CATALOGO_MUY_GRANDE": "Tu catálogo es muy grande para esta versión (más de 20,000 variantes). Escríbenos y lo vemos contigo, o cancela la conexión.",
       "CATALOGO_MAESTRO": "El catálogo de esta organización lo administra el catálogo maestro: Shopify no puede crear productos aquí. Pide a quien administra el catálogo maestro que lo libere y vuelve a conectar, o cancela la conexión.",
       "FALTA_PERMISO": "Shopify no le dio a Avoqado todos los permisos que necesita. Vuelve a dar permiso y acepta todos los que pide.",
-      "generic": "La importación se detuvo por un error. La reintentamos sola; si sigue así, escríbenos."
+      "generic": "La importación se detuvo por un error. La reintentamos solos; si sigue así, escríbenos."
     },
     "callbackErrors": {
       "FIRMA": "Shopify no firmó la respuesta. Vuelve a intentarlo.",
@@ -166,7 +166,7 @@
     "useShopify": "Usar el de Shopify",
     "resolved": "Listo: quedó igual en los dos lados.",
     "savedChoice": "Elección guardada; se enviará a Shopify.",
-    "readOnlyResolve": "Para elegir un número necesitas el permiso de ajustar inventario.",
+    "readOnlyResolve": "Para elegir un número necesitas el permiso de ajustar inventario. Pídeselo al dueño o a un administrador.",
     "inactiveResolve": "Mientras la conexión no esté activa no se puede resolver.",
     "permissionResolve": "Shopify le quitó un permiso a Avoqado: vuelve a dar permiso en Shopify (arriba) para poder elegir.",
     "elegiste": { "AVOQADO": "Elegiste el número de Avoqado.", "SHOPIFY": "Elegiste el número de Shopify." },
@@ -188,6 +188,8 @@
     "intro": "Variantes de Shopify que no se pudieron ligar a un producto de esta sucursal. Cada una dice por qué y qué hacer.",
     "search": "Buscar producto o SKU",
     "reasonLabel": "Motivo",
+    "viewProduct": "Ver el producto",
+    "backToQuantity": "Volver a cantidad",
     "allReasons": "Todos los motivos",
     "empty": "Todos los productos de Shopify están emparejados.",
     "noMatches": "Nada coincide con tu búsqueda o filtro.",
