@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Circle, Copy, Minus, Plus, RectangleHorizontal, RotateCw, Square, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +35,19 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </div>
   )
+}
+
+/**
+ * Un campo del inspector guarda al salir de él (Enter, Tab o clic fuera). Pero un clic en el lienzo cambia la selección
+ * en `pointerdown`, y el inspector se desmonta ANTES de que llegue el `blur`: lo escrito se perdía. Esto guarda también
+ * al desmontarse, con la última versión de `commit` (que aplica las mismas reglas y no repite lo ya guardado).
+ */
+function useCommitOnUnmount(commit: () => void) {
+  const latest = useRef(commit)
+  useEffect(() => {
+    latest.current = commit
+  })
+  useEffect(() => () => latest.current(), [])
 }
 
 function Stepper({
@@ -102,7 +115,7 @@ export function Inspector(props: InspectorProps) {
           </Button>
           <Button variant="outline" className="w-full cursor-pointer" onClick={() => props.onDuplicate(allKeys())}>
             <Copy className="mr-2 h-4 w-4" />
-            {t('inspector.shortcutDuplicate')}
+            {t('inspector.duplicate')}
           </Button>
           <Button variant="ghost" className="w-full cursor-pointer text-destructive hover:text-destructive" onClick={() => props.onRemove(allKeys())}>
             <Trash2 className="mr-2 h-4 w-4" />
@@ -118,22 +131,30 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
   const { t } = useTranslation('floorPlan')
   const [number, setNumber] = useState(table.number)
   const [error, setError] = useState<string | null>(null)
-  useEffect(() => setNumber(table.number), [table.number])
+  // El último número guardado: lo que ya se guardó al salir del campo no se vuelve a guardar al desmontarse.
+  const saved = useRef(table.number)
+  useEffect(() => {
+    saved.current = table.number
+    setNumber(table.number)
+  }, [table.number])
 
-  const commitNumber = () => {
-    const n = number.trim()
-    if (!n) {
-      setError(t('inspector.numberRequired'))
-      setNumber(table.number)
-      return
-    }
-    if (n !== table.number && allNumbers.some(x => x.trim() === n)) {
-      setError(t('inspector.numberTaken', { number: n }))
-      return
-    }
-    setError(null)
-    if (n !== table.number) dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { number: n } })
+  /** Guarda si es válido; devuelve el motivo si no (vacío o repetido ⇒ no se guarda). */
+  const tryCommit = (value: string): string | null => {
+    const n = value.trim()
+    if (!n) return t('inspector.numberRequired')
+    if (n === saved.current) return null
+    if (allNumbers.some(x => x.trim() === n)) return t('inspector.numberTaken', { number: n })
+    saved.current = n
+    dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { number: n } })
+    return null
   }
+  const commitNumber = () => {
+    setError(tryCommit(number))
+    if (!number.trim()) setNumber(saved.current)
+  }
+  useCommitOnUnmount(() => {
+    tryCommit(number)
+  })
 
   return (
     <div className="space-y-5">
@@ -217,7 +238,7 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
       <div className="space-y-2 border-t border-input pt-4">
         <Button variant="outline" className="w-full cursor-pointer" onClick={() => onDuplicate([table.key])}>
           <Copy className="mr-2 h-4 w-4" />
-          {t('inspector.shortcutDuplicate')}
+          {t('inspector.duplicate')}
         </Button>
         <Button
           variant="ghost"
@@ -238,16 +259,30 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
 function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: InspectorProps & { element: DraftElement }) {
   const { t } = useTranslation('floorPlan')
   const [label, setLabel] = useState(element.label ?? '')
-  useEffect(() => setLabel(element.label ?? ''), [element.label])
+  const saved = useRef(element.label ?? '')
+  useEffect(() => {
+    saved.current = element.label ?? ''
+    setLabel(element.label ?? '')
+  }, [element.label])
   const named = element.type === 'LABEL' || element.type === 'SERVICE_AREA' || element.type === 'BAR_COUNTER'
   const sized = element.type === 'BAR_COUNTER' || element.type === 'SERVICE_AREA' || element.type === 'DOOR'
   // El ancho y el alto no pasan del lienzo de su área (el borrador los recorta igual; así el «+» se apaga en la orilla).
   const grid = gridOf(areas.find(a => a.key === element.areaKey)?.floorShape ?? 'WIDE')
-  const commitLabel = () => {
-    const v = label.trim()
-    if (element.type === 'LABEL' && !v) return setLabel(element.label ?? '')
-    if (v !== (element.label ?? '')) dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { label: v || null } })
+  /** Guarda si es válido; un letrero vacío no se guarda (devuelve false). */
+  const tryCommit = (value: string): boolean => {
+    const v = value.trim()
+    if (element.type === 'LABEL' && !v) return false
+    if (v === saved.current) return true
+    saved.current = v
+    dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { label: v || null } })
+    return true
   }
+  const commitLabel = () => {
+    if (!tryCommit(label)) setLabel(saved.current)
+  }
+  useCommitOnUnmount(() => {
+    if (named) tryCommit(label)
+  })
   return (
     <div className="space-y-5">
       <h3 className="text-base font-semibold">{t(toolLabelKey(element.type))}</h3>
@@ -300,7 +335,7 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
       <div className="space-y-2 border-t border-input pt-4">
         <Button variant="outline" className="w-full cursor-pointer" onClick={() => onDuplicate([element.key])}>
           <Copy className="mr-2 h-4 w-4" />
-          {t('inspector.shortcutDuplicate')}
+          {t('inspector.duplicate')}
         </Button>
         <Button variant="ghost" className="w-full cursor-pointer text-destructive hover:text-destructive" onClick={() => onRemove([element.key])}>
           <Trash2 className="mr-2 h-4 w-4" />

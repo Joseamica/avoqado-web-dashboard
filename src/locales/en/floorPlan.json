@@ -85,6 +85,7 @@
     "shortcutDelete": "Del: remove",
     "shortcutUndo": "Ctrl+Z: undo",
     "shortcutPan": "Space + drag: move the plan",
+    "duplicate": "Duplicate",
     "table": "Table {{number}}",
     "number": "Number",
     "numberTaken": "There's already a table {{number}}",

@@ -62,13 +62,22 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
   // Mientras el servidor contesta, el plano no se toca: al llegar la respuesta se carga el plano guardado, y lo que se
   // hubiera cambiado entretanto se perdería sin aviso.
   const saving = useRef(false)
-  const edit = useCallback((action: EditorAction) => {
-    if (!saving.current) dispatch(action)
+  /** Aplica un cambio al borrador; durante un guardado lo descarta y devuelve `false` (quien llama no debe fingir que se hizo). */
+  const edit = useCallback((action: EditorAction): boolean => {
+    if (saving.current) return false
+    dispatch(action)
+    return true
   }, [])
+  // `pointer-events-none` sólo frena el ratón: `inert` también saca del Tab lo que no se puede usar mientras se guarda.
+  // (React 18 no conoce el atributo: se pone a mano.)
+  const workspace = useRef<HTMLDivElement>(null)
 
   const { doc, selection, activeAreaKey, dirty } = state
   const activeArea = doc.areas.find(a => a.key === activeAreaKey) ?? null
   const inPreview = preview && activeArea !== null
+  // Elementos viejos sin área (la PAX los dibujaba antes de que hubiera áreas): sin un área que los reciba, el plano no
+  // se puede guardar — el servidor los archivaría. Sin ellos, un plano sin áreas sí se guarda.
+  const orphanElements = useMemo(() => doc.elements.some(e => !doc.areas.some(a => a.key === e.areaKey)), [doc])
   const areaTables = useMemo(() => doc.tables.filter(x => x.areaKey === activeAreaKey && x.x !== null), [doc.tables, activeAreaKey])
   const areaElements = useMemo(() => doc.elements.filter(e => e.areaKey === activeAreaKey), [doc.elements, activeAreaKey])
   const trayTables = useMemo(() => doc.tables.filter(x => x.areaKey === null || (x.areaKey === activeAreaKey && x.x === null)), [doc.tables, activeAreaKey])
@@ -182,8 +191,15 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
       const p = slots[slot++]
       return { ...a, areaKey: key, ...(p ? placeTable(p.x, p.y, a.shape, a.capacity, a.rotation, g.cols, g.rows) : { x: null, y: null }) }
     })
-    edit({ type: 'ADD_AREA', area: { key, name: req.name, floorShape: req.floorShape, sortOrder: doc.areas.length, external: false }, tables: [...created, ...moved] })
+    const added = edit({
+      type: 'ADD_AREA',
+      area: { key, name: req.name, floorShape: req.floorShape, sortOrder: doc.areas.length, external: false },
+      tables: [...created, ...moved],
+    })
+    // Si no se aplicó (había un guardado en curso), el diálogo sigue abierto con lo escrito: no se finge que se creó.
+    if (!added) return
     setNewAreaOpen(false)
+    setPreview(false)
   }
 
   const save = useMutation({
@@ -232,6 +248,10 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
       setConflict(false)
     }
   }
+
+  useEffect(() => {
+    workspace.current?.toggleAttribute('inert', save.isPending)
+  }, [save.isPending])
 
   // Atajos de teclado (no actúan mientras se escribe en un campo, ni sobre menús, listas o avisos).
   useEffect(() => {
@@ -285,7 +305,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
       return
     }
     // Esc primero suelta lo que esté activo; sólo con nada activo cierra (y con cambios, pregunta).
-    if (tool !== 'select' || selection.length || preview) {
+    if (tool !== 'select' || selection.length || inPreview) {
       e.preventDefault()
       setTool('select')
       dispatch({ type: 'SELECT', keys: [] })
@@ -342,19 +362,23 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
           <Button
             type="button"
             className="cursor-pointer"
-            // Sin áreas no se guarda: los elementos viejos sin área no tendrían dónde vivir y el servidor los archivaría.
-            disabled={!dirty || save.isPending || doc.areas.length === 0}
+            disabled={!dirty || save.isPending || orphanElements}
             onClick={() => save.mutate()}
             data-testid="floor-plan-save"
             data-tour="floor-plan-save"
           >
-            {dirty && !save.isPending && doc.areas.length > 0 && <span aria-hidden className="mr-2 h-2 w-2 rounded-full bg-warning" />}
+            {dirty && !save.isPending && !orphanElements && <span aria-hidden className="mr-2 h-2 w-2 rounded-full bg-warning" />}
             {t(save.isPending ? 'editor.saving' : 'editor.save')}
           </Button>
         </div>
       }
     >
-      <div className={cn('flex h-full min-h-0 flex-col gap-3 p-4', save.isPending && 'pointer-events-none')} aria-busy={save.isPending}>
+      <div
+        ref={workspace}
+        className={cn('flex h-full min-h-0 flex-col gap-3 p-4', save.isPending && 'pointer-events-none')}
+        aria-busy={save.isPending}
+        data-testid="floor-plan-workspace"
+      >
         <AreaTabs
           areas={doc.areas}
           activeKey={activeAreaKey}
@@ -400,14 +424,16 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
                   </Button>
                 </div>
               )}
-              <UnplacedTray
-                tables={trayTables}
-                onPlace={key => {
-                  if (!activeArea) return
-                  const g = gridOf(activeArea.floorShape)
-                  edit({ type: 'PLACE_TABLE', key, areaKey: activeArea.key, x: g.cols / 2, y: g.rows / 2 })
-                }}
-              />
+              {/* Sin un área abierta no hay dónde ponerlas: la bandeja aparece al crear o elegir una. */}
+              {activeArea && (
+                <UnplacedTray
+                  tables={trayTables}
+                  onPlace={key => {
+                    const g = gridOf(activeArea.floorShape)
+                    edit({ type: 'PLACE_TABLE', key, areaKey: activeArea.key, x: g.cols / 2, y: g.rows / 2 })
+                  }}
+                />
+              )}
             </div>
             <Inspector
               areas={doc.areas}

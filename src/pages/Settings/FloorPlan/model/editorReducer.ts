@@ -222,6 +222,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       )
     }
     case 'UPDATE_TABLE':
+      // El inspector también guarda al desmontarse: si la pieza ya no existe, no se deja un paso de deshacer vacío.
+      if (!doc.tables.some(t => t.key === action.key)) return state
       return commit(state, {
         ...doc,
         tables: doc.tables.map(t => {
@@ -243,6 +245,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         }),
       })
     case 'UPDATE_ELEMENT':
+      if (!doc.elements.some(e => e.key === action.key)) return state
       return commit(state, {
         ...doc,
         elements: doc.elements.map(e => {

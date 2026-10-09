@@ -85,6 +85,7 @@
     "shortcutDelete": "Supr: quitar",
     "shortcutUndo": "Ctrl+Z: deshacer",
     "shortcutPan": "Espacio + arrastrar: mover el plano",
+    "duplicate": "Copiar",
     "table": "Mesa {{number}}",
     "number": "Número",
     "numberTaken": "Ya hay una mesa {{number}}",

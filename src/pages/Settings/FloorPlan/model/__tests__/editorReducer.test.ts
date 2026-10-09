@@ -203,3 +203,11 @@ describe('editorReducer — ronda 1 de la tarea 10', () => {
     expect(normalizeRectElement(rect('d1', 'DOOR', { w: 3, h: 1, rotation: 180 })).rotation).toBe(180)
   })
 })
+
+describe('editorReducer — ronda 1 de la tarea 11', () => {
+  it('cambiar una pieza que ya no existe no deja un paso de deshacer (el inspector guarda al desmontarse)', () => {
+    const start = initEditorState(doc())
+    expect(editorReducer(start, { type: 'UPDATE_TABLE', key: 'nope', patch: { number: '9' } })).toBe(start)
+    expect(editorReducer(start, { type: 'UPDATE_ELEMENT', key: 'nope', patch: { label: 'x' } })).toBe(start)
+  })
+})
