@@ -210,6 +210,26 @@ test('arrastrar una mesa la mueve y se guarda su nueva posición', async ({ page
   await expect(lienzo(page)).toHaveCount(0)
 })
 
+test('tras tocar «Acercar» con el ratón, Espacio + arrastrar mueve el plano (no vuelve a acercar)', async ({ page }) => {
+  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
+  await mockFloorPlan(page, salon([mesa('t1', '1')]))
+  await abrir(page)
+  await abrirEditor(page)
+  await page.getByRole('button', { name: 'Acercar' }).click()
+  await expect(page.getByTestId('floor-canvas-zoom')).toHaveText('125%')
+  const antes = await lienzo(page).getAttribute('viewBox')
+  const caja = (await lienzo(page).boundingBox())!
+  await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  await page.keyboard.down('Space')
+  await page.mouse.down()
+  await page.mouse.move(caja.x + caja.width / 2 - 120, caja.y + caja.height / 2, { steps: 6 })
+  await page.mouse.up()
+  await page.keyboard.up('Space')
+  // Se movió la vista y el zoom no cambió: Espacio no volvió a accionar «Acercar».
+  await expect.poll(() => lienzo(page).getAttribute('viewBox')).not.toBe(antes)
+  await expect(page.getByTestId('floor-canvas-zoom')).toHaveText('125%')
+})
+
 test('si alguien más cambió el plano, avisa en vez de pisarlo', async ({ page }) => {
   await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
   const { puts } = await mockFloorPlan(page, salon([mesa('t1', '1')]), {
