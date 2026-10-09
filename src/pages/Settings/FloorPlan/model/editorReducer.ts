@@ -1,13 +1,26 @@
 import { clamp, gridOf, placeTable, rotatedExtent, round6, tableSizeCells } from './floorGeometry'
 import type { DraftArea, DraftElement, DraftTable, EditorDoc } from './types'
 
+/**
+ * Un paso de deshacer/rehacer: el plano al que se vuelve, la pestaña donde se hizo el cambio (`areaKey`) y la que quedó
+ * abierta justo después (`afterAreaKey`). Deshacer abre `areaKey` y rehacer `afterAreaKey`: así se VE lo que se deshizo,
+ * aunque mientras tanto se haya cambiado de pestaña.
+ */
+export interface HistoryEntry {
+  doc: EditorDoc
+  areaKey: string | null
+  afterAreaKey: string | null
+}
+
 export interface EditorState {
   doc: EditorDoc
-  past: EditorDoc[]
-  future: EditorDoc[]
+  past: HistoryEntry[]
+  future: HistoryEntry[]
   selection: string[]
   activeAreaKey: string | null
   dirty: boolean
+  /** Ráfaga en curso (flecha sostenida): los MOVE con `burst` y la misma etiqueta se juntan en un solo paso. */
+  burst: string | null
 }
 
 export type EditorAction =
@@ -16,7 +29,8 @@ export type EditorAction =
   | { type: 'SELECT'; keys: string[] }
   | { type: 'ADD_TABLE'; table: DraftTable }
   | { type: 'ADD_ELEMENT'; element: DraftElement }
-  | { type: 'MOVE'; keys: string[]; dx: number; dy: number }
+  /** `burst`: es la repetición de una tecla sostenida; se suma al paso anterior de la misma ráfaga. */
+  | { type: 'MOVE'; keys: string[]; dx: number; dy: number; burst?: boolean }
   | { type: 'PLACE_TABLE'; key: string; areaKey: string; x: number; y: number }
   | { type: 'UPDATE_TABLE'; key: string; patch: Partial<Pick<DraftTable, 'number' | 'capacity' | 'shape' | 'rotation' | 'areaKey'>> }
   | { type: 'UPDATE_ELEMENT'; key: string; patch: Partial<Pick<DraftElement, 'label' | 'w' | 'h' | 'rotation'>> }
@@ -27,17 +41,49 @@ export type EditorAction =
   | { type: 'UPDATE_AREA'; key: string; patch: Partial<Pick<DraftArea, 'name' | 'floorShape'>> }
   | { type: 'MOVE_AREA'; key: string; direction: -1 | 1 }
   | { type: 'REMOVE_AREA'; key: string }
+  /** Regresa al borrador mesas que se habían quitado (tal como estaban en el plano guardado), y las deja seleccionadas. */
+  | { type: 'RESTORE_TABLES'; tables: DraftTable[] }
   | { type: 'UNDO' }
   | { type: 'REDO' }
 
 const HISTORY_LIMIT = 100
 
 export function initEditorState(doc: EditorDoc, activeIndex = 0): EditorState {
-  return { doc, past: [], future: [], selection: [], activeAreaKey: doc.areas[activeIndex]?.key ?? doc.areas[0]?.key ?? null, dirty: false }
+  return {
+    doc,
+    past: [],
+    future: [],
+    selection: [],
+    activeAreaKey: doc.areas[activeIndex]?.key ?? doc.areas[0]?.key ?? null,
+    dirty: false,
+    burst: null,
+  }
 }
 
-function commit(state: EditorState, doc: EditorDoc, selection: string[] = state.selection): EditorState {
-  return { ...state, doc, past: [...state.past.slice(-(HISTORY_LIMIT - 1)), state.doc], future: [], selection, dirty: true }
+/** Mismo valor: igual, o el mismo objeto anidado (la posición vieja `legacy`) por contenido. */
+const sameValue = (a: unknown, b: unknown) =>
+  a === b || (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null && JSON.stringify(a) === JSON.stringify(b))
+function sameItem<T extends object>(a: T, b: T): boolean {
+  if (a === b) return true
+  const keys = Object.keys(a) as Array<keyof T>
+  return keys.length === Object.keys(b).length && keys.every(k => sameValue(a[k], b[k]))
+}
+const sameList = <T extends object>(a: T[], b: T[]) => a === b || (a.length === b.length && a.every((x, i) => sameItem(x, b[i])))
+/** El cambio no cambió nada (girar una barra cuadrada, la misma forma, el mismo lugar…): no merece un paso de deshacer. */
+const sameDoc = (a: EditorDoc, b: EditorDoc) => sameList(a.areas, b.areas) && sameList(a.tables, b.tables) && sameList(a.elements, b.elements)
+
+function commit(state: EditorState, doc: EditorDoc, selection: string[] = state.selection, activeAreaKey = state.activeAreaKey): EditorState {
+  if (sameDoc(state.doc, doc)) {
+    return selection === state.selection && activeAreaKey === state.activeAreaKey ? state : { ...state, selection, activeAreaKey }
+  }
+  const entry: HistoryEntry = { doc: state.doc, areaKey: state.activeAreaKey, afterAreaKey: activeAreaKey }
+  return { ...state, doc, past: [...state.past.slice(-(HISTORY_LIMIT - 1)), entry], future: [], selection, activeAreaKey, dirty: true, burst: null }
+}
+
+/** La pestaña que se abre al deshacer/rehacer: la del cambio si sigue existiendo; si no, la abierta; si no, la primera. */
+function areaIn(doc: EditorDoc, preferred: string | null, current: string | null): string | null {
+  const has = (key: string | null) => key !== null && doc.areas.some(a => a.key === key)
+  return has(preferred) ? preferred : has(current) ? current : (doc.areas[0]?.key ?? null)
 }
 
 const gridFor = (doc: EditorDoc, areaKey: string | null) => gridOf(doc.areas.find(a => a.key === areaKey)?.floorShape ?? 'WIDE')
@@ -198,7 +244,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const keys = new Set(action.keys)
       const { dx, dy } = clampMoveDelta(doc, keys, action.dx, action.dy)
       if (!dx && !dy) return state
-      return commit(state, {
+      const next: EditorDoc = {
         ...doc,
         tables: doc.tables.map(t => (keys.has(t.key) && t.x !== null && t.y !== null ? { ...t, x: round6(t.x + dx), y: round6(t.y + dy) } : t)),
         elements: doc.elements.map(e =>
@@ -206,7 +252,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
             ? { ...e, x: round6(e.x + dx), y: round6(e.y + dy), x2: e.x2 === null ? null : round6(e.x2 + dx), y2: e.y2 === null ? null : round6(e.y2 + dy) }
             : e,
         ),
-      })
+      }
+      const tag = `move:${[...keys].sort().join(',')}`
+      // Flecha sostenida: la repetición reemplaza el plano dentro del mismo paso de deshacer (uno por ráfaga, no por tecla).
+      if (action.burst && state.burst === tag && state.past.length && !sameDoc(doc, next)) return { ...state, doc: next, future: [], dirty: true }
+      const committed = commit(state, next)
+      return committed === state ? state : { ...committed, burst: tag }
     }
     case 'PLACE_TABLE': {
       const { cols, rows } = gridFor(doc, action.areaKey)
@@ -333,7 +384,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
             )
           : e,
       )
-      return { ...commit(state, { areas: [...doc.areas, area], tables, elements }, []), activeAreaKey: area.key }
+      return commit(state, { areas: [...doc.areas, area], tables, elements }, [], area.key)
     }
     case 'UPDATE_AREA': {
       const area = doc.areas.find(a => a.key === action.key)
@@ -360,20 +411,49 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const i = doc.areas.findIndex(a => a.key === action.key)
       if (i < 0) return state
       const areas = doc.areas.filter(a => a.key !== action.key).map((a, k) => ({ ...a, sortOrder: k }))
-      const next = commit(state, { ...doc, areas, elements: doc.elements.filter(e => e.areaKey !== action.key) }, [])
-      return { ...next, activeAreaKey: areas[Math.max(0, i - 1)]?.key ?? null }
+      return commit(state, { ...doc, areas, elements: doc.elements.filter(e => e.areaKey !== action.key) }, [], areas[Math.max(0, i - 1)]?.key ?? null)
+    }
+    case 'RESTORE_TABLES': {
+      const present = new Set(doc.tables.map(t => t.key))
+      const back = action.tables
+        .filter(t => !present.has(t.key))
+        .map(t => {
+          // Si su área ya no está en el borrador, vuelve «Sin acomodar»; si está, dentro de su lienzo (la forma pudo cambiar).
+          if (t.areaKey === null || !doc.areas.some(a => a.key === t.areaKey)) return { ...t, areaKey: null, x: null, y: null }
+          const g = gridFor(doc, t.areaKey)
+          return clampTable(t, g.cols, g.rows)
+        })
+      if (!back.length) return state
+      const area = back.find(t => t.areaKey !== null && t.x !== null)?.areaKey ?? state.activeAreaKey
+      return commit(state, { ...doc, tables: [...doc.tables, ...back] }, back.map(t => t.key), area)
     }
     case 'UNDO': {
-      const prev = state.past[state.past.length - 1]
-      if (!prev) return state
-      const activeAreaKey = prev.areas.some(a => a.key === state.activeAreaKey) ? state.activeAreaKey : (prev.areas[0]?.key ?? null)
-      return { ...state, doc: prev, past: state.past.slice(0, -1), future: [doc, ...state.future], selection: keepExisting(prev, state.selection), activeAreaKey, dirty: true }
+      const entry = state.past[state.past.length - 1]
+      if (!entry) return state
+      return {
+        ...state,
+        doc: entry.doc,
+        past: state.past.slice(0, -1),
+        future: [{ ...entry, doc }, ...state.future],
+        selection: keepExisting(entry.doc, state.selection),
+        activeAreaKey: areaIn(entry.doc, entry.areaKey, state.activeAreaKey),
+        dirty: true,
+        burst: null,
+      }
     }
     case 'REDO': {
-      const next = state.future[0]
-      if (!next) return state
-      const activeAreaKey = next.areas.some(a => a.key === state.activeAreaKey) ? state.activeAreaKey : (next.areas[0]?.key ?? null)
-      return { ...state, doc: next, past: [...state.past, doc], future: state.future.slice(1), selection: keepExisting(next, state.selection), activeAreaKey, dirty: true }
+      const entry = state.future[0]
+      if (!entry) return state
+      return {
+        ...state,
+        doc: entry.doc,
+        past: [...state.past, { ...entry, doc }],
+        future: state.future.slice(1),
+        selection: keepExisting(entry.doc, state.selection),
+        activeAreaKey: areaIn(entry.doc, entry.afterAreaKey, state.activeAreaKey),
+        dirty: true,
+        burst: null,
+      }
     }
   }
 }

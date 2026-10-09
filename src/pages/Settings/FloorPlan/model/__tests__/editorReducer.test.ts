@@ -211,3 +211,69 @@ describe('editorReducer — ronda 1 de la tarea 11', () => {
     expect(editorReducer(start, { type: 'UPDATE_ELEMENT', key: 'nope', patch: { label: 'x' } })).toBe(start)
   })
 })
+
+describe('editorReducer — pulido (tarea 15-D)', () => {
+  it('una flecha sostenida (burst) es un solo paso de deshacer; soltarla y volver a apretar es otro', () => {
+    const s = run(
+      initEditorState(doc()),
+      { type: 'MOVE', keys: ['t1'], dx: 1, dy: 0 },
+      { type: 'MOVE', keys: ['t1'], dx: 1, dy: 0, burst: true },
+      { type: 'MOVE', keys: ['t1'], dx: 1, dy: 0, burst: true },
+    )
+    expect(s.doc.tables[0].x).toBe(13)
+    expect(s.past).toHaveLength(1)
+    const again = run(s, { type: 'MOVE', keys: ['t1'], dx: 1, dy: 0 })
+    expect(again.past).toHaveLength(2)
+    expect(editorReducer(s, { type: 'UNDO' }).doc.tables[0].x).toBe(10)
+  })
+
+  it('una ráfaga de OTRA selección no se suma a la anterior', () => {
+    const s = run(initEditorState(doc()), { type: 'MOVE', keys: ['t1'], dx: 1, dy: 0 }, { type: 'MOVE', keys: ['t2'], dx: 1, dy: 0, burst: true })
+    expect(s.past).toHaveLength(2)
+  })
+
+  it('cambios que no cambian nada no dejan pasos vacíos: barra cuadrada girada, la misma forma, piezas que no existen', () => {
+    const start = initEditorState(oneArea('WIDE', [table('t1')], [rect('k1', 'SERVICE_AREA', { x: 4, y: 4, w: 6, h: 6 })]))
+    expect(editorReducer(start, { type: 'ROTATE', keys: ['k1'] })).toBe(start)
+    expect(editorReducer(start, { type: 'UPDATE_TABLE', key: 't1', patch: { shape: 'SQUARE' } })).toBe(start)
+    expect(editorReducer(start, { type: 'UPDATE_ELEMENT', key: 'k1', patch: { w: 6 } })).toBe(start)
+    expect(editorReducer(start, { type: 'UPDATE_AREA', key: 'a1', patch: { floorShape: 'WIDE' } })).toBe(start)
+    expect(editorReducer(start, { type: 'MOVE', keys: ['nope'], dx: 2, dy: 0 })).toBe(start)
+    expect(editorReducer(start, { type: 'ROTATE', keys: ['nope'] })).toBe(start)
+  })
+
+  it('deshacer abre la pestaña donde se hizo el cambio; rehacer, la que quedó después', () => {
+    const two: EditorDoc = {
+      areas: [
+        { key: 'a1', id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false },
+        { key: 'a2', id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, external: false },
+      ],
+      tables: [table('t1'), table('t2', { areaKey: 'a2' })],
+      elements: [],
+    }
+    let s = run(initEditorState(two), { type: 'MOVE', keys: ['t1'], dx: 2, dy: 0 }, { type: 'SET_ACTIVE_AREA', key: 'a2' })
+    s = editorReducer(s, { type: 'UNDO' })
+    expect(s.activeAreaKey).toBe('a1')
+    s = editorReducer({ ...s, activeAreaKey: 'a2' }, { type: 'REDO' })
+    expect(s.activeAreaKey).toBe('a1')
+    // Un área nueva: deshacer vuelve a la que estaba abierta; rehacer abre la nueva.
+    let n = editorReducer(initEditorState(two), { type: 'ADD_AREA', area: { key: 'tmp-a', name: 'Patio', floorShape: 'WIDE', sortOrder: 2, external: false }, tables: [] })
+    expect(n.activeAreaKey).toBe('tmp-a')
+    n = editorReducer(n, { type: 'UNDO' })
+    expect(n.activeAreaKey).toBe('a1')
+    n = editorReducer(n, { type: 'REDO' })
+    expect(n.activeAreaKey).toBe('tmp-a')
+  })
+
+  it('RESTORE_TABLES regresa las mesas que faltan, en su área y seleccionadas; las que ya están no se duplican', () => {
+    const removed = editorReducer(initEditorState(doc()), { type: 'REMOVE', keys: ['t2'] })
+    const s = editorReducer(removed, { type: 'RESTORE_TABLES', tables: [table('t1'), table('t2', { x: 30, hasOpenOrder: true })] })
+    expect(s.doc.tables.map(t => t.key)).toEqual(['t1', 't2'])
+    expect(s.doc.tables[1]).toMatchObject({ x: 30, y: 10, areaKey: 'a1', hasOpenOrder: true })
+    expect(s.selection).toEqual(['t2'])
+    expect(editorReducer(s, { type: 'RESTORE_TABLES', tables: [table('t2')] })).toBe(s)
+    // Si su área ya no existe en el borrador, vuelve «Sin acomodar».
+    const lost = editorReducer(removed, { type: 'RESTORE_TABLES', tables: [table('t2', { areaKey: 'gone' })] })
+    expect(lost.doc.tables[1]).toMatchObject({ areaKey: null, x: null, y: null })
+  })
+})
