@@ -58,12 +58,14 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   const [openOrders, setOpenOrders] = useState<string[] | null>(null)
   // El mismo folio mientras el borrador no cambie: un reintento tras un error de red no se confunde con «alguien más cambió».
   const attempt = useRef<{ doc: EditorDoc; saveId: string } | null>(null)
-  // Mientras el servidor contesta, el plano no se toca: al llegar la respuesta se carga el plano guardado, y lo que se
-  // hubiera cambiado entretanto se perdería sin aviso.
-  const saving = useRef(false)
-  /** Aplica un cambio al borrador; durante un guardado lo descarta y devuelve `false` (quien llama no debe fingir que se hizo). */
+  // Mientras el servidor contesta (al guardar o al recargar), el plano no se toca: al llegar la respuesta se carga el
+  // plano del servidor, y lo que se hubiera cambiado entretanto se perdería sin aviso.
+  const locked = useRef(false)
+  /** «Recargar el plano» tras un 409 en curso: como al guardar, el área de trabajo queda quieta (D2, Codex P1-2). */
+  const [reloading, setReloading] = useState(false)
+  /** Aplica un cambio al borrador; mientras se guarda o recarga lo descarta y devuelve `false` (no se finge que se hizo). */
   const edit = useCallback((action: EditorAction): boolean => {
-    if (saving.current) return false
+    if (locked.current) return false
     dispatch(action)
     return true
   }, [])
@@ -163,10 +165,10 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
       return publishFloorPlan(venueId, docToPayload(doc, attempt.current.saveId, saved.fingerprint))
     },
     onMutate: () => {
-      saving.current = true
+      locked.current = true
     },
     onSettled: () => {
-      saving.current = false
+      locked.current = false
     },
     onSuccess: result => {
       attempt.current = null
@@ -193,7 +195,24 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     },
   })
 
+  const busy = save.isPending || reloading
+  // El borrador de este render: la recarga compara contra él al llegar la respuesta.
+  const latestDoc = useRef(doc)
+  useEffect(() => {
+    latestDoc.current = doc
+  }, [doc])
+
+  /**
+   * Tras un 409: trae el plano de la otra persona y lo carga (se pierden los cambios, como dice el aviso). Mientras llega,
+   * el área de trabajo queda quieta: antes el aviso se cerraba, se seguía editando y el plano que llegaba borraba esas
+   * ediciones sin decir nada (D2). Y una respuesta nunca pisa un borrador que cambió después de pedirla. Si falla, se
+   * dice y el borrador se queda; el siguiente «Guardar» vuelve a ofrecer recargar.
+   */
   const reload = async () => {
+    setConflict(false)
+    setReloading(true)
+    locked.current = true
+    const asked = latestDoc.current
     try {
       const fresh = await queryClient.fetchQuery({
         queryKey: ['floor-plan', venueId],
@@ -201,24 +220,25 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
         staleTime: 0,
         networkMode: 'always',
       })
+      if (latestDoc.current !== asked) return notify({ title: t('page.loadError'), variant: 'destructive' })
       attempt.current = null
       setSaved(fresh)
       setOpenOrders(null)
       dispatch({ type: 'LOAD', doc: dtoToDoc(fresh) })
       setTool('select')
     } catch {
-      // El aviso de conflicto ya se cerró: el borrador sigue aquí y el siguiente «Guardar» lo vuelve a ofrecer.
       notify({ title: t('page.loadError'), variant: 'destructive' })
     } finally {
-      setConflict(false)
+      locked.current = false
+      setReloading(false)
     }
   }
 
   useEffect(() => {
-    workspace.current?.toggleAttribute('inert', save.isPending)
-  }, [save.isPending])
+    workspace.current?.toggleAttribute('inert', busy)
+  }, [busy])
 
-  useEditorShortcuts({ enabled: !(newAreaOpen || confirmClose || conflict || inPreview || save.isPending), selection, edit, duplicate, remove })
+  useEditorShortcuts({ enabled: !(newAreaOpen || confirmClose || conflict || inPreview || busy), selection, edit, duplicate, remove })
 
   // Cerrar la pestaña con cambios sin guardar también pregunta.
   useEffect(() => {
@@ -250,7 +270,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
       contentClassName="bg-muted/30"
       actions={
         <div className="flex items-center gap-2" onClickCapture={blurAfterPointerClick}>
-          {dirty && !save.isPending && (
+          {dirty && !busy && (
             <span className="mr-1 hidden text-xs text-muted-foreground xl:inline" data-testid="floor-plan-unsaved">
               {t('editor.unsaved')}
             </span>
@@ -258,7 +278,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
           <IconAction
             label={t('editor.undo')}
             shortcut={`${MOD_KEY} Z`}
-            disabled={!state.past.length || save.isPending}
+            disabled={!state.past.length || busy}
             onClick={() => edit({ type: 'UNDO' })}
             data-tour="floor-plan-undo"
           >
@@ -267,7 +287,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
           <IconAction
             label={t('editor.redo')}
             shortcut={`${MOD_KEY} ⇧ Z`}
-            disabled={!state.future.length || save.isPending}
+            disabled={!state.future.length || busy}
             onClick={() => edit({ type: 'REDO' })}
             data-tour="floor-plan-redo"
           >
@@ -287,21 +307,21 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
           <Button
             type="button"
             className="cursor-pointer"
-            disabled={!dirty || save.isPending || orphanElements || dupes.length > 0}
+            disabled={!dirty || busy || orphanElements || dupes.length > 0}
             onClick={() => save.mutate()}
             data-testid="floor-plan-save"
             data-tour="floor-plan-save"
           >
-            {dirty && !save.isPending && !orphanElements && !dupes.length && <span aria-hidden className="mr-2 h-2 w-2 rounded-full bg-warning" />}
-            {t(save.isPending ? 'editor.saving' : 'editor.save')}
+            {dirty && !busy && !orphanElements && !dupes.length && <span aria-hidden className="mr-2 h-2 w-2 rounded-full bg-warning" />}
+            {t(save.isPending ? 'editor.saving' : reloading ? 'editor.reloading' : 'editor.save')}
           </Button>
         </div>
       }
     >
       <div
         ref={workspace}
-        className={cn('flex h-full min-h-0 flex-col gap-3 p-4', save.isPending && 'pointer-events-none')}
-        aria-busy={save.isPending}
+        className={cn('flex h-full min-h-0 flex-col gap-3 p-4', busy && 'pointer-events-none')}
+        aria-busy={busy}
         onClickCapture={blurAfterPointerClick}
         data-testid="floor-plan-workspace"
       >

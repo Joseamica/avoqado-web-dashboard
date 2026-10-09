@@ -42,6 +42,7 @@
     "conflictTitle": "Alguien más cambió el plano",
     "conflictBody": "Mientras editabas, otra persona (o una terminal) guardó cambios. Recarga para verlos; tus cambios se perderán.",
     "reload": "Recargar el plano",
+    "reloading": "Recargando…",
     "offline": "No se guardó: no hay conexión. Tus cambios siguen aquí; vuelve a intentarlo.",
     "genericError": "No se pudo guardar el plano.",
     "noArea": "Crea un área (salón, terraza, barra…) para empezar a dibujar.",

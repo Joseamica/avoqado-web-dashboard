@@ -42,6 +42,7 @@
     "conflictTitle": "Someone else changed the floor plan",
     "conflictBody": "While you were editing, another person (or a terminal) saved changes. Reload to see them; your changes will be lost.",
     "reload": "Reload floor plan",
+    "reloading": "Reloading…",
     "offline": "Not saved: no connection. Your changes are still here; try again.",
     "genericError": "The floor plan couldn't be saved.",
     "noArea": "Create an area (dining room, patio, bar…) to start drawing.",

@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FloorPlanEditor } from '../FloorPlanEditor'
-import { publishFloorPlan } from '@/services/floorPlan.service'
+import { getFloorPlan, publishFloorPlan } from '@/services/floorPlan.service'
 import type { FloorPlanDto } from '../model/types'
 
 vi.mock('react-i18next', () => ({
@@ -39,6 +39,9 @@ const dosAreas: FloorPlanDto = {
   areas: [...withArea.areas, { id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, externalId: null }],
   tables: [mesa1, { ...mesa1, id: 't2', number: '2', positionX: 0.8 }],
 }
+
+const conflicto = () =>
+  Object.assign(new Error('Conflict'), { isAxiosError: true, response: { status: 409, data: { code: 'FLOOR_PLAN_CHANGED', message: 'x' } } })
 
 /** Seleccionar en el lienzo: jsdom no tiene `getScreenCTM`, pero el clic sobre una pieza sí la elige. */
 function seleccionar(testId: string, shiftKey = false) {
@@ -134,6 +137,48 @@ describe('FloorPlanEditor — ola final', () => {
     expect(screen.getByTestId('floor-canvas')).toBeInTheDocument()
     await user.keyboard(' ')
     expect(screen.getByTestId('floor-plan-waiter-preview')).toBeInTheDocument()
+  })
+
+  // Codex P1-2: el diálogo se cerraba al instante, se seguía editando, y al llegar el GET el LOAD borraba esas ediciones
+  // con dirty=false (sin aviso).
+  it('D2: «Recargar el plano» deja el área de trabajo quieta hasta que llega el plano; lo que se intente entretanto no se aplica', async () => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(conflicto())
+    let llega: (p: FloorPlanDto) => void = () => {}
+    vi.mocked(getFloorPlan).mockReturnValueOnce(new Promise(resolve => (llega = resolve)))
+    renderEditor({ ...withArea, tables: [mesa1] })
+    seleccionar('floor-table-1')
+    await user.keyboard('r')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await user.click(await screen.findByTestId('floor-plan-reload'))
+    const guardar = screen.getByTestId('floor-plan-save')
+    expect(screen.getByTestId('floor-plan-workspace')).toHaveAttribute('inert')
+    expect(guardar).toHaveTextContent('editor.reloading')
+    expect(guardar).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'editor.undo' })).toBeDisabled()
+    // Girar otra vez mientras llega: no se aplica (antes giraba, y el plano que llegaba lo borraba sin decir nada).
+    await user.keyboard('r')
+    expect(screen.getByText('45°')).toBeInTheDocument()
+    llega({ ...withArea, fingerprint: 'cccccccccccccccc', tables: [{ ...mesa1, number: '7' }] })
+    expect(await screen.findByTestId('floor-table-7')).toBeInTheDocument()
+    expect(screen.getByTestId('floor-plan-workspace')).not.toHaveAttribute('inert')
+    expect(guardar).toHaveTextContent('editor.save')
+    expect(guardar).toBeDisabled() // lo que se ve es lo guardado
+  })
+
+  it('D2: si la recarga falla, se dice, el área de trabajo vuelve y el borrador sigue ahí', async () => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(conflicto())
+    vi.mocked(getFloorPlan).mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    renderEditor({ ...withArea, tables: [mesa1] })
+    seleccionar('floor-table-1')
+    await user.keyboard('r')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await user.click(await screen.findByTestId('floor-plan-reload'))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'page.loadError', variant: 'destructive' })))
+    expect(screen.getByTestId('floor-plan-workspace')).not.toHaveAttribute('inert')
+    expect(screen.getByText('45°')).toBeInTheDocument()
+    expect(screen.getByTestId('floor-plan-save')).toBeEnabled()
   })
 
   it('D8: si TODAS las mesas de un número repetido tienen cuenta, «Ver cuáles» las selecciona (antes no seleccionaba nada)', async () => {
