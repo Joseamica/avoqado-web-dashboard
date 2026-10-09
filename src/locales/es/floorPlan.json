@@ -58,7 +58,8 @@
     "label": "Plano del área {{name}}",
     "overlap_one": "{{count}} mesa encimada",
     "overlap_other": "{{count}} mesas encimadas",
-    "overlapShow": "Ver cuáles"
+    "overlapShow": "Ver cuáles",
+    "openOrderLegend": "Cuenta abierta"
   },
   "areas": {
     "add": "Nueva área",

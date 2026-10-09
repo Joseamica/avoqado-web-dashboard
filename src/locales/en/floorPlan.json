@@ -58,7 +58,8 @@
     "label": "Floor plan of {{name}}",
     "overlap_one": "{{count}} overlapping table",
     "overlap_other": "{{count}} overlapping tables",
-    "overlapShow": "Show them"
+    "overlapShow": "Show them",
+    "openOrderLegend": "Open check"
   },
   "areas": {
     "add": "New area",

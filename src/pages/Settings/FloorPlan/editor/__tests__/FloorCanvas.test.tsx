@@ -137,6 +137,13 @@ describe('FloorCanvas', () => {
     expect(Number(canvas.getAttribute('viewBox')?.split(' ')[2])).toBeCloseTo(22, 5)
   })
 
+  it('explica el punto ámbar con una leyenda, sólo si alguna mesa del área tiene cuenta abierta', () => {
+    const { rerender } = render(<FloorCanvas {...props()} />)
+    expect(screen.queryByTestId('floor-canvas-open-legend')).not.toBeInTheDocument()
+    rerender(<FloorCanvas {...props({ tables: [{ ...table, hasOpenOrder: true }] })} />)
+    expect(screen.getByTestId('floor-canvas-open-legend')).toHaveTextContent('canvas.openOrderLegend')
+  })
+
   it('el lienzo tiene nombre accesible', () => {
     render(<FloorCanvas {...props()} />)
     expect(screen.getByRole('img', { name: 'canvas.label' })).toBe(screen.getByTestId('floor-canvas'))
