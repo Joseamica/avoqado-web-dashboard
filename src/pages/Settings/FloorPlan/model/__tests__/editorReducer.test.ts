@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { editorReducer, initEditorState, type EditorState } from '../editorReducer'
+import { clampMoveDelta, editorReducer, initEditorState, normalizeRectElement, type EditorState } from '../editorReducer'
 import { docToPayload, dtoToDoc } from '../planMapping'
 import type { DraftElement, DraftTable, EditorDoc, FloorPlanDto, FloorShape, PublishFloorPlanBody } from '../types'
 
@@ -181,5 +181,25 @@ describe('editorReducer — piezas que no se deforman ni se salen (ronda 1)', ()
     const start = initEditorState({ ...doc(), tables: [table('t9', { areaKey: null, x: null, y: null, legacy: { nx: 0.3, ny: 0.6 } })] })
     const s = editorReducer(start, { type: 'DUPLICATE', clones: [{ sourceKey: 't9', key: 'tmp-9', number: '10' }] })
     expect(s.doc.tables[1]).toMatchObject({ key: 'tmp-9', legacy: null, x: null, y: null })
+  })
+})
+
+describe('editorReducer — ronda 1 de la tarea 10', () => {
+  it('clampMoveDelta recorta el arrastre igual que MOVE: la vista previa del lienzo es lo que queda al soltar', () => {
+    const d = doc()
+    // t1: centro 10, mitad 2 → sólo puede ir 8 a la izquierda; con t2 (centro 30) el grupo sólo avanza 8 a la derecha.
+    expect(clampMoveDelta(d, new Set(['t1']), -20, 0)).toEqual({ dx: -8, dy: 0 })
+    expect(clampMoveDelta(d, new Set(['t1', 't2']), 20, 3)).toEqual({ dx: 8, dy: 3 })
+    const s = editorReducer(initEditorState(d), { type: 'MOVE', keys: ['t1', 't2'], dx: 20, dy: 3 })
+    expect(s.doc.tables.map(t => [t.x, t.y])).toEqual([
+      [18, 13],
+      [38, 13],
+    ])
+  })
+
+  it('barras y zonas de servicio no guardan 180 (su nombre nunca sale de cabeza); la puerta sí', () => {
+    expect(normalizeRectElement(rect('b1', 'BAR_COUNTER', { x: 4, y: 4, w: 6, h: 2, rotation: 180 }))).toMatchObject({ x: 4, y: 4, w: 6, h: 2, rotation: 0 })
+    expect(normalizeRectElement(rect('k1', 'SERVICE_AREA', { w: 5, h: 5, rotation: 180 })).rotation).toBe(0)
+    expect(normalizeRectElement(rect('d1', 'DOOR', { w: 3, h: 1, rotation: 180 })).rotation).toBe(180)
   })
 })

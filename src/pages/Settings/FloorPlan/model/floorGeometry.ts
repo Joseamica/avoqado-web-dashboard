@@ -78,6 +78,20 @@ export function snapWallEnd(x1: number, y1: number, x2: number, y2: number): { x
   return { x: x1 + Math.sign(cos) * k, y: y1 + Math.sign(sin) * k }
 }
 
+/**
+ * Final de una pared ya imantado, metido al lienzo SIN cambiar su ángulo: si se pasa de la orilla, se recorre hacia
+ * atrás sobre su propia línea (una diagonal sigue a 45°). Recortar cada eje por separado la torcía (10,20 → 18,28 en
+ * un área de 40 × 25 quedaba en 18,25: 32°). El principio ya debe estar dentro.
+ */
+export function clampWallEnd(x1: number, y1: number, x2: number, y2: number, cols: number, rows: number): { x: number; y: number } {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  // Cuánto del tramo cabe en cada eje (1 = todo); un eje que no avanza no limita.
+  const fit = (from: number, d: number, size: number) => (d > 0 ? (size - from) / d : d < 0 ? -from / d : Infinity)
+  const t = Math.max(0, Math.min(1, fit(x1, dx, cols), fit(y1, dy, rows)))
+  return { x: clamp(round6(x1 + dx * t), 0, cols), y: clamp(round6(y1 + dy * t), 0, rows) }
+}
+
 export interface Box {
   cx: number
   cy: number

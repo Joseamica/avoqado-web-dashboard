@@ -38,8 +38,9 @@ export const FloorDrawing = memo(function FloorDrawing({ area, tables, elements,
   return (
     <g>
       <defs>
-        <pattern id={gridId} width={1} height={1} patternUnits="userSpaceOnUse">
-          <circle cx={0} cy={0} r={0.07} className="fill-muted-foreground/40" />
+        {/* Punto entero al centro de cada mosaico, y el patrón corrido medio cuadro: cae en las esquinas de la cuadrícula. */}
+        <pattern id={gridId} x={-0.5} y={-0.5} width={1} height={1} patternUnits="userSpaceOnUse">
+          <circle cx={0.5} cy={0.5} r={0.07} className="fill-muted-foreground/40" />
         </pattern>
       </defs>
       <rect x={0} y={0} width={cols} height={rows} rx={0.4} className="fill-background" />

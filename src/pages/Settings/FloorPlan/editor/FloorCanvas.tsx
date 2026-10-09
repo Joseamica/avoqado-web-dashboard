@@ -4,8 +4,22 @@ import { Maximize, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { FloorDrawing } from './FloorDrawing'
-import { alignmentGuides, clamp, fitView, gridOf, rotatedExtent, snapWallEnd, tableSizeCells, zoomAround, type Box, type GuideLine, type ViewBox } from '../model/floorGeometry'
-import type { DraftArea, DraftElement, DraftTable, ToolId } from '../model/types'
+import { clampMoveDelta } from '../model/editorReducer'
+import {
+  alignmentGuides,
+  clamp,
+  clampWallEnd,
+  fitView,
+  gridOf,
+  rotatedExtent,
+  snapWallEnd,
+  tableSizeCells,
+  zoomAround,
+  type Box,
+  type GuideLine,
+  type ViewBox,
+} from '../model/floorGeometry'
+import type { DraftArea, DraftElement, DraftTable, EditorDoc, ToolId } from '../model/types'
 
 export const TOOL_DRAG_MIME = 'application/x-avoqado-floor-tool'
 export const TABLE_DRAG_MIME = 'application/x-avoqado-floor-table'
@@ -26,7 +40,8 @@ export interface FloorCanvasProps {
 
 type Rect = { x: number; y: number; w: number; h: number }
 type Gesture =
-  | { kind: 'drag'; keys: string[]; startX: number; startY: number; moved: boolean }
+  /** `last`: el desplazamiento que ya se pintó; si no cambia, no se vuelve a pintar. */
+  | { kind: 'drag'; keys: string[]; keySet: Set<string>; startX: number; startY: number; moved: boolean; last: { dx: number; dy: number } | null }
   /** `base`: lo que ya estaba seleccionado si se empezó con Shift (el recuadro SUMA en vez de reemplazar). */
   | { kind: 'marquee'; startX: number; startY: number; base: string[] }
   | { kind: 'pan'; clientX: number; clientY: number; view: ViewBox }
@@ -83,6 +98,8 @@ export function FloorCanvas(props: FloorCanvasProps) {
   const spacePan = useRef(false)
   const overCanvas = useRef(false)
   const selected = useMemo(() => new Set(selection), [selection])
+  // Lo que ve el lienzo, como documento: con él se recorta el arrastre igual que MOVE al soltar.
+  const canvasDoc = useMemo<EditorDoc>(() => ({ areas: [area], tables, elements }), [area, tables, elements])
 
   // Otra área (u otra forma): vista completa y sin pared a medias.
   useEffect(() => {
@@ -100,6 +117,11 @@ export function FloorCanvas(props: FloorCanvasProps) {
     return { x: p.x, y: p.y }
   }, [])
   const snapPoint = (p: { x: number; y: number }) => ({ x: clamp(Math.round(p.x), 0, cols), y: clamp(Math.round(p.y), 0, rows) })
+  /** Final de pared imantado a 0/45/90° y metido al lienzo sobre su propia línea. Lo usan la vista previa y el clic. */
+  const wallEnd = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    const raw = snapWallEnd(from.x, from.y, to.x, to.y)
+    return clampWallEnd(from.x, from.y, raw.x, raw.y, cols, rows)
+  }
 
   // Espacio = mano para mover el plano. Con el foco en un botón o interruptor, la barra lo sigue accionando
   // (teclado) a menos que el puntero esté sobre el plano.
@@ -167,8 +189,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
         setWallStart(s)
         return
       }
-      const raw = snapWallEnd(wallStart.x, wallStart.y, s.x, s.y)
-      const end = { x: clamp(raw.x, 0, cols), y: clamp(raw.y, 0, rows) }
+      const end = wallEnd(wallStart, s)
       if (Math.hypot(end.x - wallStart.x, end.y - wallStart.y) >= 1) {
         props.onCreateWall(wallStart.x, wallStart.y, end.x, end.y)
         setWallStart(end) // se encadena: la siguiente pared sale de aquí
@@ -189,7 +210,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
       }
       const keys = selected.has(key) ? selection : [key]
       if (!selected.has(key)) props.onSelect(keys)
-      gesture.current = { kind: 'drag', keys, startX: p.x, startY: p.y, moved: false }
+      gesture.current = { kind: 'drag', keys, keySet: new Set(keys), startX: p.x, startY: p.y, moved: false, last: null }
       e.currentTarget.setPointerCapture(e.pointerId)
       return
     }
@@ -227,9 +248,16 @@ export function FloorCanvas(props: FloorCanvasProps) {
       dy += res.dy
       lines = res.lines
     }
-    delta.current = { dx, dy }
+    // Igual que MOVE al soltar: lo que se ve mientras se arrastra es lo que queda.
+    const fit = clampMoveDelta(canvasDoc, g.keySet, dx, dy)
+    // Si la orilla corrigió un eje, la guía de ese eje ya no dice dónde queda la pieza.
+    if (fit.dx !== dx) lines = lines.filter(l => l.x1 !== l.x2)
+    if (fit.dy !== dy) lines = lines.filter(l => l.y1 !== l.y2)
+    if (g.last && g.last.dx === fit.dx && g.last.dy === fit.dy) return
+    g.last = fit
+    delta.current = fit
     setGuides(lines)
-    setGhost({ keys: new Set(g.keys), dx, dy })
+    setGhost({ keys: g.keySet, dx: fit.dx, dy: fit.dy })
   }
 
   /** Fin del gesto. `commit = false` (pointercancel) lo descarta: el sistema se llevó el puntero, nadie soltó nada. */
@@ -263,7 +291,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
     else if (dropped && dropped !== 'WALL' && dropped !== 'select') props.onPlaceTool(dropped, p.x, p.y)
   }
 
-  const wallPreview = tool === 'WALL' && wallStart && cursor ? snapWallEnd(wallStart.x, wallStart.y, cursor.x, cursor.y) : null
+  const wallPreview = tool === 'WALL' && wallStart && cursor ? wallEnd(wallStart, cursor) : null
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-input bg-muted/40">
@@ -300,8 +328,8 @@ export function FloorCanvas(props: FloorCanvasProps) {
           <line
             x1={wallStart.x}
             y1={wallStart.y}
-            x2={clamp(wallPreview.x, 0, cols)}
-            y2={clamp(wallPreview.y, 0, rows)}
+            x2={wallPreview.x}
+            y2={wallPreview.y}
             className="stroke-primary/60"
             strokeWidth={0.6}
             strokeLinecap="round"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   alignmentGuides,
+  clampWallEnd,
   fitView,
   gridOf,
   nextTableNumber,
@@ -72,6 +73,21 @@ describe('paredes', () => {
   })
   it('un clic sin moverse no hace pared', () => {
     expect(snapWallEnd(2, 2, 2.2, 2.1)).toEqual({ x: 2, y: 2 })
+  })
+  it('una diagonal que se pasa de la orilla se recorta sobre su propia línea: sigue a 45°', () => {
+    // Área ancha 40 × 25. Recortar cada eje por separado daba (18, 25): 32°.
+    const raw = snapWallEnd(10, 20, 20, 25)
+    expect(raw).toEqual({ x: 18, y: 28 })
+    expect(clampWallEnd(10, 20, raw.x, raw.y, 40, 25)).toEqual({ x: 15, y: 25 })
+    expect(clampWallEnd(3, 3, -2, -2, 40, 25)).toEqual({ x: 0, y: 0 })
+  })
+  it('una pared recta sólo se recorta en su eje', () => {
+    expect(clampWallEnd(5, 5, 50, 5, 40, 25)).toEqual({ x: 40, y: 5 })
+    expect(clampWallEnd(5, 5, 5, -3, 40, 25)).toEqual({ x: 5, y: 0 })
+  })
+  it('una pared que ya cabe no cambia', () => {
+    expect(clampWallEnd(2, 2, 6, 6, 40, 25)).toEqual({ x: 6, y: 6 })
+    expect(clampWallEnd(2, 2, 2, 20, 40, 25)).toEqual({ x: 2, y: 20 })
   })
 })
 

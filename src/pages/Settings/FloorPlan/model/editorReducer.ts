@@ -55,7 +55,7 @@ const isRect = (type: DraftElement['type']) => type === 'BAR_COUNTER' || type ==
  * Barras, zonas de servicio y puertas giran de a 90° INTERCAMBIANDO ancho y alto sobre el mismo centro: nunca guardan
  * 90/270/45, así la caja que se guarda es la que se ve. Sólo la puerta guarda 180 (abre hacia el otro lado).
  * Normaliza lo viejo (la PAX sí guardaba 90/270): 90 ⇒ lados intercambiados y 0; 270 ⇒ intercambiados y 0 (puerta: 180);
- * cualquier otro giro que no sea 0/180 ⇒ 0.
+ * cualquier otro giro ⇒ 0, salvo el 180 de una puerta.
  */
 export function normalizeRectElement(el: DraftElement): DraftElement {
   if (!isRect(el.type)) return el
@@ -65,7 +65,8 @@ export function normalizeRectElement(el: DraftElement): DraftElement {
     const h = el.h ?? 1
     return { ...el, w: h, h: w, x: round6(el.x + w / 2 - h / 2), y: round6(el.y + h / 2 - w / 2), rotation: el.type === 'DOOR' && r === 270 ? 180 : 0 }
   }
-  const rotation = r === 0 || r === 180 ? r : 0
+  // Sólo la puerta guarda 180 (abre hacia el otro lado); en barras y zonas 180 sólo voltearía su nombre de cabeza.
+  const rotation = el.type === 'DOOR' && r === 180 ? 180 : 0
   return rotation === el.rotation ? el : { ...el, rotation }
 }
 
@@ -129,7 +130,7 @@ function rotateRect(el: DraftElement, cols: number, rows: number): DraftElement 
 }
 
 /** Cuánto se puede mover cada pieza sin salirse: [minDx, maxDx, minDy, maxDy]. */
-function moveRange(doc: EditorDoc, keys: Set<string>): [number, number, number, number] {
+function moveRange(doc: EditorDoc, keys: ReadonlySet<string>): [number, number, number, number] {
   let r: [number, number, number, number] = [-Infinity, Infinity, -Infinity, Infinity]
   const narrow = (minX: number, maxX: number, minY: number, maxY: number) => {
     r = [Math.max(r[0], minX), Math.min(r[1], maxX), Math.max(r[2], minY), Math.min(r[3], maxY)]
@@ -160,6 +161,16 @@ function moveRange(doc: EditorDoc, keys: Set<string>): [number, number, number, 
   return r
 }
 
+/**
+ * El desplazamiento que de verdad se aplica al mover `keys`: el pedido, recortado para que nada se salga del lienzo
+ * (el grupo se detiene entero en la orilla). Lo usan MOVE y la vista previa del arrastre, así lo que se ve al
+ * arrastrar es lo que queda al soltar. Basta un documento con las piezas que se mueven y sus áreas.
+ */
+export function clampMoveDelta(doc: EditorDoc, keys: ReadonlySet<string>, dx: number, dy: number): { dx: number; dy: number } {
+  const [minDx, maxDx, minDy, maxDy] = moveRange(doc, keys)
+  return { dx: minDx > maxDx ? 0 : clamp(dx, minDx, maxDx), dy: minDy > maxDy ? 0 : clamp(dy, minDy, maxDy) }
+}
+
 const keepExisting = (doc: EditorDoc, keys: string[]) => {
   const all = new Set([...doc.tables.map(t => t.key), ...doc.elements.map(e => e.key)])
   return keys.filter(k => all.has(k))
@@ -185,9 +196,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     }
     case 'MOVE': {
       const keys = new Set(action.keys)
-      const [minDx, maxDx, minDy, maxDy] = moveRange(doc, keys)
-      const dx = minDx > maxDx ? 0 : clamp(action.dx, minDx, maxDx)
-      const dy = minDy > maxDy ? 0 : clamp(action.dy, minDy, maxDy)
+      const { dx, dy } = clampMoveDelta(doc, keys, action.dx, action.dy)
       if (!dx && !dy) return state
       return commit(state, {
         ...doc,
