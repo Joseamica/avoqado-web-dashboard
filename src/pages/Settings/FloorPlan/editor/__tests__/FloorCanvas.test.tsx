@@ -144,6 +144,23 @@ describe('FloorCanvas', () => {
     expect(screen.getByTestId('floor-canvas-open-legend')).toHaveTextContent('canvas.openOrderLegend')
   })
 
+  // Pasada en vivo (9-oct): con «Cuadrada» en la mano el puntero era sólo una cruz; la mesa se ponía a ciegas.
+  it('con una pieza de la paleta en la mano enseña dónde caería bajo el puntero; sin herramienta, no', () => {
+    const { rerender } = render(<FloorCanvas {...props({ tool: 'table:ROUND' })} />)
+    const canvas = screen.getByTestId('floor-canvas')
+    fireEvent.pointerMove(canvas, { clientX: 10, clientY: 10 })
+    const preview = screen.getByTestId('floor-place-preview')
+    // jsdom no tiene getScreenCTM: el puntero cae en (0, 0) y la mesa redonda de 4 (4 × 4) se mete al lienzo.
+    expect(preview.querySelector('circle')).toHaveAttribute('cx', '2')
+    rerender(<FloorCanvas {...props({ tool: 'BAR_COUNTER' })} />)
+    expect(screen.getByTestId('floor-place-preview').querySelector('rect')).toHaveAttribute('width', '8')
+    fireEvent.pointerLeave(canvas)
+    expect(screen.queryByTestId('floor-place-preview')).not.toBeInTheDocument()
+    fireEvent.pointerMove(canvas, { clientX: 10, clientY: 10 })
+    rerender(<FloorCanvas {...props({ tool: 'select' })} />)
+    expect(screen.queryByTestId('floor-place-preview')).not.toBeInTheDocument()
+  })
+
   it('el lienzo tiene nombre accesible', () => {
     render(<FloorCanvas {...props()} />)
     expect(screen.getByRole('img', { name: 'canvas.label' })).toBe(screen.getByTestId('floor-canvas'))

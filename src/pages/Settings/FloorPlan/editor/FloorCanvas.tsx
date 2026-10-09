@@ -30,6 +30,7 @@ import {
   type ViewBox,
 } from '../model/floorGeometry'
 import { overlappingTables } from '../model/overlap'
+import { placementOf } from '../model/placement'
 import type { DraftArea, DraftElement, DraftTable, EditorDoc, ToolId } from '../model/types'
 
 export const TOOL_DRAG_MIME = 'application/x-avoqado-floor-tool'
@@ -274,7 +275,11 @@ export function FloorCanvas(props: FloorCanvasProps) {
 
   const onPointerMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     const p = toCell(e.clientX, e.clientY)
-    if (tool === 'WALL') setCursor(snapPoint(p))
+    // Con una herramienta en la mano, el puntero imantado: punto de la pared o vista previa de la pieza (pasada en vivo).
+    if (tool !== 'select') {
+      const s = snapPoint(p)
+      setCursor(c => (c && c.x === s.x && c.y === s.y ? c : s))
+    }
     const g = gesture.current
     if (!g) return
     if (g.kind === 'pan') {
@@ -346,6 +351,8 @@ export function FloorCanvas(props: FloorCanvasProps) {
   }
 
   const wallPreview = tool === 'WALL' && wallStart && cursor ? wallEnd(wallStart, cursor) : null
+  // Dónde caería la pieza de la paleta con un clic aquí: antes se ponía a ciegas (sólo la cruz del puntero).
+  const placing = cursor && !spaceHeld ? placementOf(tool, cursor.x, cursor.y, cols, rows) : null
 
   const zoom = Math.round(((cols + 4) / view.w) * 100)
   const hint = tool === 'select' ? null : tool === 'WALL' ? t('tools.wallHint') : t('tools.placeHint')
@@ -394,6 +401,17 @@ export function FloorCanvas(props: FloorCanvasProps) {
           />
         )}
         {tool === 'WALL' && cursor && <circle cx={cursor.x} cy={cursor.y} r={0.25} className="fill-primary" />}
+        {placing && (
+          <g className="pointer-events-none fill-primary/10 stroke-primary/70" strokeWidth={0.12} strokeDasharray="0.4 0.3" data-testid="floor-place-preview">
+            {placing.kind === 'table' && placing.shape === 'ROUND' ? (
+              <circle cx={placing.x} cy={placing.y} r={placing.w / 2} />
+            ) : placing.kind === 'table' ? (
+              <rect x={placing.x - placing.w / 2} y={placing.y - placing.h / 2} width={placing.w} height={placing.h} rx={0.6} />
+            ) : (
+              <rect x={placing.x} y={placing.y} width={placing.w} height={placing.h} rx={0.3} />
+            )}
+          </g>
+        )}
       </svg>
 
       {/* H1: la barra va DEBAJO del dibujo, no encima: ninguna esquina del área queda tapada por los botones. */}

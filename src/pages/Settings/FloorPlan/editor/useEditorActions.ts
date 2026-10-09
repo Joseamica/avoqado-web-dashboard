@@ -2,12 +2,12 @@ import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { NewAreaRequest } from './NewAreaDialog'
 import type { EditorAction } from '../model/editorReducer'
-import { clamp, gridOf, nextTableNumber, nextTableNumbers, placeTable, quickStartLayout } from '../model/floorGeometry'
+import { gridOf, nextTableNumber, nextTableNumbers, placeTable, quickStartLayout } from '../model/floorGeometry'
 import type { PlanLimits } from '../model/limits'
+import { placementOf } from '../model/placement'
 import type { DraftArea, DraftTable, EditorDoc, TableShape, ToolId } from '../model/types'
 
 const newKey = () => `tmp-${crypto.randomUUID()}`
-const ELEMENT_SIZE = { BAR_COUNTER: { w: 8, h: 2 }, SERVICE_AREA: { w: 8, h: 6 }, DOOR: { w: 3, h: 1 } } as const
 
 export interface EditorActionsInput {
   doc: EditorDoc
@@ -33,22 +33,24 @@ export function useEditorActions({ doc, activeArea, allNumbers, edit, notify, ro
 
   const placeTool = useCallback(
     (toolId: ToolId, x: number, y: number) => {
-      if (!activeArea || toolId === 'select' || toolId === 'WALL') return
+      if (!activeArea) return
       const { cols, rows } = gridOf(activeArea.floorShape)
-      if (toolId.startsWith('table:')) {
+      // La misma cuenta que la vista previa bajo el puntero (FloorCanvas): lo que se vio es lo que queda.
+      const at = placementOf(toolId, x, y, cols, rows)
+      if (!at) return
+      if (at.kind === 'table') {
         if (room.tables <= 0) return full('tables')
-        const shape = toolId.slice(6) as TableShape
-        const capacity = shape === 'RECTANGLE' ? 6 : 4
         edit({
           type: 'ADD_TABLE',
           table: {
             key: newKey(),
             number: nextTableNumber(allNumbers),
-            capacity,
-            shape,
+            capacity: at.capacity,
+            shape: at.shape,
             rotation: 0,
             areaKey: activeArea.key,
-            ...placeTable(x, y, shape, capacity, 0, cols, rows),
+            x: at.x,
+            y: at.y,
             legacy: null,
             hasOpenOrder: false,
           },
@@ -63,8 +65,8 @@ export function useEditorActions({ doc, activeArea, allNumbers, edit, notify, ro
             key: newKey(),
             type: 'LABEL',
             areaKey: activeArea.key,
-            x: clamp(x, 0, cols - 1),
-            y: clamp(y, 0, rows - 1),
+            x: at.x,
+            y: at.y,
             w: null,
             h: null,
             rotation: 0,
@@ -76,18 +78,17 @@ export function useEditorActions({ doc, activeArea, allNumbers, edit, notify, ro
         })
         return
       }
-      const type = toolId as keyof typeof ELEMENT_SIZE
-      const { w, h } = ELEMENT_SIZE[type]
+      const type = toolId as 'BAR_COUNTER' | 'SERVICE_AREA' | 'DOOR'
       edit({
         type: 'ADD_ELEMENT',
         element: {
           key: newKey(),
           type,
           areaKey: activeArea.key,
-          x: clamp(Math.round(x - w / 2), 0, cols - w),
-          y: clamp(Math.round(y - h / 2), 0, rows - h),
-          w,
-          h,
+          x: at.x,
+          y: at.y,
+          w: at.w,
+          h: at.h,
           rotation: 0,
           x2: null,
           y2: null,
