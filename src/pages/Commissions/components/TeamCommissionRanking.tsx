@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Trophy, Medal, Award, User, TrendingUp, ExternalLink } from 'lucide-react'
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, startOfQuarter, endOfQuarter, subQuarters, parseISO, startOfDay, endOfDay } from 'date-fns'
+import { parseISO } from 'date-fns'
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,11 +19,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { useCommissionSummaries, useCommissionStats } from '@/hooks/useCommissions'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { rangosDelRanking, type PeriodFilter } from '../rangosDelRanking'
+import { useZonaDeLaSede } from '../fechasDeVigencia'
 import type { CommissionSummary } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
 // Period filter options
-type PeriodFilter = 'week' | 'biweek' | 'month' | 'quarter' | 'all'
 
 // Aggregated staff data for ranking
 interface StaffRankingData {
@@ -64,84 +65,6 @@ const RankBadge = ({ rank }: { rank: number }) => {
       <span className="text-sm font-semibold text-muted-foreground">{rank}</span>
     </div>
   )
-}
-
-// Calculate date ranges for each period filter
-function getDateRanges(periodFilter: PeriodFilter): { current: { start: Date; end: Date }; previous: { start: Date; end: Date } | null } {
-  const now = new Date()
-
-  switch (periodFilter) {
-    case 'week': {
-      const currentStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
-      const currentEnd = endOfWeek(now, { weekStartsOn: 1 })
-      const previousStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 })
-      const previousEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 })
-      return {
-        current: { start: currentStart, end: currentEnd },
-        previous: { start: previousStart, end: previousEnd },
-      }
-    }
-    case 'biweek': {
-      // Get current date's week number in the month (1-4)
-      const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 })
-      const monthStart = startOfMonth(now)
-      const daysSinceMonthStart = Math.floor((currentWeekStart.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24))
-      const isSecondHalf = daysSinceMonthStart >= 14
-
-      let currentStart: Date
-      let currentEnd: Date
-      let previousStart: Date
-      let previousEnd: Date
-
-      if (isSecondHalf) {
-        // Second half of the month (15th to end)
-        currentStart = new Date(now.getFullYear(), now.getMonth(), 16)
-        currentEnd = endOfMonth(now)
-        previousStart = new Date(now.getFullYear(), now.getMonth(), 1)
-        previousEnd = new Date(now.getFullYear(), now.getMonth(), 15)
-      } else {
-        // First half of the month (1st to 15th)
-        currentStart = new Date(now.getFullYear(), now.getMonth(), 1)
-        currentEnd = new Date(now.getFullYear(), now.getMonth(), 15)
-        // Previous is second half of last month
-        const lastMonth = subMonths(now, 1)
-        previousStart = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 16)
-        previousEnd = endOfMonth(lastMonth)
-      }
-      return {
-        current: { start: startOfDay(currentStart), end: endOfDay(currentEnd) },
-        previous: { start: startOfDay(previousStart), end: endOfDay(previousEnd) },
-      }
-    }
-    case 'month': {
-      const currentStart = startOfMonth(now)
-      const currentEnd = endOfMonth(now)
-      const lastMonth = subMonths(now, 1)
-      const previousStart = startOfMonth(lastMonth)
-      const previousEnd = endOfMonth(lastMonth)
-      return {
-        current: { start: currentStart, end: currentEnd },
-        previous: { start: previousStart, end: previousEnd },
-      }
-    }
-    case 'quarter': {
-      const currentStart = startOfQuarter(now)
-      const currentEnd = endOfQuarter(now)
-      const lastQuarter = subQuarters(now, 1)
-      const previousStart = startOfQuarter(lastQuarter)
-      const previousEnd = endOfQuarter(lastQuarter)
-      return {
-        current: { start: currentStart, end: currentEnd },
-        previous: { start: previousStart, end: previousEnd },
-      }
-    }
-    case 'all':
-    default:
-      return {
-        current: { start: new Date(0), end: now },
-        previous: null,
-      }
-  }
 }
 
 // Period filter content component
@@ -265,11 +188,13 @@ export default function TeamCommissionRanking() {
     }
   }, [periodFilter, t])
 
+  // Los periodos («esta semana», «este mes»…) se cortan en la zona del negocio, como los resúmenes del servidor (ft-graves).
+  const zona = useZonaDeLaSede()
   // Aggregate summaries by staff with period filtering
   const rankingData: StaffRankingData[] = useMemo(() => {
     if (!summaries || summaries.length === 0) return []
 
-    const dateRanges = getDateRanges(periodFilter)
+    const dateRanges = rangosDelRanking(periodFilter, zona)
 
     // Helper to check if a summary's period OVERLAPS with a date range
     // Commission summaries are typically monthly, so we check overlap not containment
@@ -343,7 +268,7 @@ export default function TeamCommissionRanking() {
       }))
 
     return sortedData
-  }, [summaries, periodFilter])
+  }, [summaries, periodFilter, zona])
 
   // Handle row click to navigate to staff profile
   const handleRowClick = (staffVenueId: string | null) => {
