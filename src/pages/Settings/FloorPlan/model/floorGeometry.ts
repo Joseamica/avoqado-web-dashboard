@@ -76,12 +76,20 @@ export function placeTable(x: number, y: number, shape: TableShape, capacity: nu
   return { x: clamp(snapCenter(x, e.w), e.w / 2, cols - e.w / 2), y: clamp(snapCenter(y, e.h), e.h / 2, rows - e.h / 2) }
 }
 
+/** Número de mesa que se lee como entero EXACTO: hasta 15 cifras `Number` no redondea (2^53 tiene 16). */
+const SMALL_INTEGER = /^\d{1,15}$/
+
+/**
+ * El siguiente número libre después del mayor de los números chicos. Los identificadores largos («9007199254740992»,
+ * «MESA-1») no cuentan: convertirlos con `Number` redondea, `+1` no cambiaba nada y el ciclo no terminaba (Codex
+ * P2-6). Entre los `n + 1` siguientes siempre hay uno libre (sólo hay `n` mesas), así que la búsqueda está acotada.
+ */
 export function nextTableNumber(numbers: readonly string[]): string {
   const taken = new Set(numbers.map(n => n.trim()))
-  const numeric = [...taken].filter(n => /^\d+$/.test(n)).map(Number)
-  let next = (numeric.length ? Math.max(...numeric) : 0) + 1
-  while (taken.has(String(next))) next++
-  return String(next)
+  let max = 0
+  for (const n of taken) if (SMALL_INTEGER.test(n)) max = Math.max(max, Number(n))
+  for (let i = 1; i <= taken.size; i++) if (!taken.has(String(max + i))) return String(max + i)
+  return String(max + taken.size + 1)
 }
 
 export function nextTableNumbers(numbers: readonly string[], count: number): string[] {

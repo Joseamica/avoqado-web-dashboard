@@ -64,6 +64,18 @@ describe('números de mesa', () => {
   it('reparte varios seguidos sin repetir', () => {
     expect(nextTableNumbers(['3'], 3)).toEqual(['4', '5', '6'])
   })
+  // Codex P2-6: con una mesa «9007199254740992», `+1` no cambia el número y el `while` no terminaba (pestaña congelada).
+  it('un número enorme no congela la búsqueda: sigue entre los números chicos', () => {
+    expect(nextTableNumber(['1', '9007199254740992'])).toBe('2')
+    expect(nextTableNumber(['99999999999999999999', '3'])).toBe('4')
+    expect(nextTableNumbers(['9007199254740993', '9007199254740992'], 2)).toEqual(['1', '2'])
+    // Hasta 15 cifras el número se lee exacto y se sigue de él.
+    expect(nextTableNumber(['999999999999999'])).toBe('1000000000000000')
+  })
+  it('la búsqueda da como mucho una vuelta por mesa (+1): siempre hay un libre', () => {
+    const many = Array.from({ length: 500 }, (_, i) => String(i + 1))
+    expect(nextTableNumber(many)).toBe('501')
+  })
 })
 
 describe('paredes', () => {
