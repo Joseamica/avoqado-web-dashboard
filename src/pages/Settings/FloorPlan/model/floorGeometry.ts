@@ -78,18 +78,42 @@ export function placeTable(x: number, y: number, shape: TableShape, capacity: nu
 
 /** Número de mesa que se lee como entero EXACTO: hasta 15 cifras `Number` no redondea (2^53 tiene 16). */
 const SMALL_INTEGER = /^\d{1,15}$/
+/** «M13», «Mesa 4», «T-2»: un prefijo que termina en algo que no es cifra, y un entero chico al final. */
+const PREFIXED = /^(.*\D)(\d{1,15})$/
 
 /**
- * El siguiente número libre después del mayor de los números chicos. Los identificadores largos («9007199254740992»,
- * «MESA-1») no cuentan: convertirlos con `Number` redondea, `+1` no cambiaba nada y el ciclo no terminaba (Codex
- * P2-6). Entre los `n + 1` siguientes siempre hay uno libre (sólo hay `n` mesas), así que la búsqueda está acotada.
+ * El prefijo con que se numeran las mesas del local: el de más mesas, si al menos dos lo comparten y le gana a los
+ * números sin prefijo. Si no, '' (números solos, como hasta ahora: «Barra» y «T1» no bastan para inventar un «T2»).
+ * Pasada en vivo (9-oct): en un local con M1…M13, la mesa nueva salía «1».
+ */
+function numberingPrefix(taken: ReadonlySet<string>): string {
+  const count = new Map<string, number>()
+  for (const n of taken) {
+    const prefix = SMALL_INTEGER.test(n) ? '' : PREFIXED.exec(n)?.[1]
+    if (prefix !== undefined) count.set(prefix, (count.get(prefix) ?? 0) + 1)
+  }
+  let best = ''
+  for (const [prefix, c] of count) if (prefix && c >= 2 && c > (count.get(best) ?? 0)) best = prefix
+  return best
+}
+
+/**
+ * El siguiente número libre después del mayor, con el prefijo con que el local numera sus mesas («M14» tras «M13»).
+ * Los identificadores largos («9007199254740992») no cuentan: convertirlos con `Number` redondea, `+1` no cambiaba
+ * nada y el ciclo no terminaba (Codex P2-6). Entre los `n + 1` siguientes siempre hay uno libre (sólo hay `n` mesas),
+ * así que la búsqueda está acotada.
  */
 export function nextTableNumber(numbers: readonly string[]): string {
   const taken = new Set(numbers.map(n => n.trim()))
+  const prefix = numberingPrefix(taken)
   let max = 0
-  for (const n of taken) if (SMALL_INTEGER.test(n)) max = Math.max(max, Number(n))
-  for (let i = 1; i <= taken.size; i++) if (!taken.has(String(max + i))) return String(max + i)
-  return String(max + taken.size + 1)
+  for (const n of taken) {
+    const m = prefix ? PREFIXED.exec(n) : null
+    const digits = prefix ? (m?.[1] === prefix ? m[2] : undefined) : SMALL_INTEGER.test(n) ? n : undefined
+    if (digits !== undefined) max = Math.max(max, Number(digits))
+  }
+  for (let i = 1; i <= taken.size; i++) if (!taken.has(`${prefix}${max + i}`)) return `${prefix}${max + i}`
+  return `${prefix}${max + taken.size + 1}`
 }
 
 export function nextTableNumbers(numbers: readonly string[], count: number): string[] {

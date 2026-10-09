@@ -83,6 +83,28 @@ describe('números de mesa', () => {
   })
 })
 
+// Pasada en vivo (9-oct): en un local con M1…M13 la mesa nueva salía «1» y había que renombrarla a mano.
+describe('números de mesa con el prefijo del local', () => {
+  it('sigue el prefijo que comparten las mesas del local', () => {
+    expect(nextTableNumber(['M1', 'M3', 'M4', 'M13', 'M9'])).toBe('M14')
+    expect(nextTableNumber(['Mesa 1', 'Mesa 2'])).toBe('Mesa 3')
+    expect(nextTableNumber(['T-1', 'T-2', 'Barra'])).toBe('T-3')
+    expect(nextTableNumbers(['M1', 'M2'], 2)).toEqual(['M3', 'M4'])
+  })
+  it('gana el patrón con más mesas; empatados, los números solos', () => {
+    expect(nextTableNumber(['M1', 'M2', '1'])).toBe('M3')
+    expect(nextTableNumber(['M1', 'M2', 'B1', 'B2', 'B3'])).toBe('B4')
+    expect(nextTableNumber(['M1', 'M2', '1', '2'])).toBe('3')
+  })
+  it('una sola mesa con prefijo no inventa el patrón', () => {
+    expect(nextTableNumber(['T1', '4'])).toBe('5')
+  })
+  it('salta los ocupados y no confunde un prefijo con otro que lo contiene', () => {
+    expect(nextTableNumber(['M1', 'M2', 'MM9', 'M3'])).toBe('M4')
+    expect(nextTableNumber(['M1', 'M2', 'M3 '])).toBe('M4')
+  })
+})
+
 describe('paredes', () => {
   it('se imantan a recto y diagonal', () => {
     expect(snapWallEnd(0, 0, 10, 1)).toEqual({ x: 10, y: 0 })
