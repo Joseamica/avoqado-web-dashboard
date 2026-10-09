@@ -203,6 +203,9 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
   }
 
   const save = useMutation({
+    // Online-only a propósito (spec §8): sin red se INTENTA y se avisa (también al recargar). Con el modo por defecto TanStack
+    // lo pausaba si el navegador sabe que no hay red: «Guardando…» sin fin y, al volver, publicaba solo (prueba real 9-oct).
+    networkMode: 'always',
     // async: si armar el cuerpo truena (no debería: Guardar se apaga sin áreas), es un error del guardado, no un crash.
     mutationFn: async () => {
       if (attempt.current?.doc !== doc) attempt.current = { doc, saveId: crypto.randomUUID() }
@@ -236,7 +239,12 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
 
   const reload = async () => {
     try {
-      const fresh = await queryClient.fetchQuery({ queryKey: ['floor-plan', venueId], queryFn: () => getFloorPlan(venueId), staleTime: 0 })
+      const fresh = await queryClient.fetchQuery({
+        queryKey: ['floor-plan', venueId],
+        queryFn: () => getFloorPlan(venueId),
+        staleTime: 0,
+        networkMode: 'always',
+      })
       attempt.current = null
       setBase(fresh.fingerprint)
       dispatch({ type: 'LOAD', doc: dtoToDoc(fresh) })

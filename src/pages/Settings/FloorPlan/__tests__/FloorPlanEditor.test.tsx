@@ -1,9 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FloorPlanEditor } from '../FloorPlanEditor'
-import { publishFloorPlan } from '@/services/floorPlan.service'
+import { getFloorPlan, publishFloorPlan } from '@/services/floorPlan.service'
 import type { FloorPlanDto, PublishFloorPlanResult } from '../model/types'
 
 vi.mock('react-i18next', () => ({
@@ -88,6 +88,49 @@ describe('FloorPlanEditor', () => {
     await user.click(screen.getByTestId('floor-plan-save'))
     await waitFor(() => expect(publish).toHaveBeenCalledTimes(2))
     expect(publish.mock.calls[1][1].saveId).toBe(publish.mock.calls[0][1].saveId)
+  })
+
+  // Prueba real del 9-oct (Task 14): con el navegador sin red (navigator.onLine = false), TanStack dejaba el guardado EN
+  // PAUSA antes de llamar al servidor: «Guardando…» para siempre, sin aviso y sin el tope de 45 s; y al volver la red
+  // publicaba solo, aunque la persona ya hubiera salido con «Salir sin guardar».
+  it('sin red (el navegador lo sabe), Guardar no se queda en pausa: intenta, avisa «sin conexión» y al volver la red no publica solo', async () => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    onlineManager.setOnline(false)
+    try {
+      renderEditor()
+      await crearArea(user, { blank: true })
+      await user.click(screen.getByTestId('floor-plan-save'))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.offline', variant: 'destructive' })))
+      expect(publish).toHaveBeenCalledTimes(1)
+      expect(screen.getByTestId('floor-plan-workspace')).not.toHaveAttribute('inert')
+      expect(screen.getByTestId('floor-plan-save')).toBeEnabled()
+    } finally {
+      onlineManager.setOnline(true)
+    }
+    // Volvió la red: nada se manda sin que la persona lo pida.
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(publish).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin red, «Recargar el plano» tras un 409 tampoco se queda en pausa: avisa que no se pudo cargar', async () => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(
+      Object.assign(new Error('Conflict'), { isAxiosError: true, response: { status: 409, data: { code: 'FLOOR_PLAN_CHANGED', message: 'x' } } }),
+    )
+    vi.mocked(getFloorPlan).mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    renderEditor()
+    await crearArea(user, { blank: true })
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await screen.findByText('editor.conflictTitle')
+    onlineManager.setOnline(false)
+    try {
+      await user.click(screen.getByTestId('floor-plan-reload'))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'page.loadError', variant: 'destructive' })))
+      expect(getFloorPlan).toHaveBeenCalledTimes(1)
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 
   it('un 409 muestra el aviso de cambio ajeno', async () => {
