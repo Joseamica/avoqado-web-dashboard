@@ -105,6 +105,7 @@
     "numberTaken": "There's already a table {{number}}",
     "numberRequired": "The table needs a number",
     "capacity": "Seats",
+    "capacityUnknown": "Not set",
     "fewer": "Fewer seats",
     "more": "More seats",
     "decrease": "Less",

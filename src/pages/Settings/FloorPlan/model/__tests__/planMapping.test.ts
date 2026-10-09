@@ -89,3 +89,13 @@ describe('mapeo — ronda 1', () => {
     expect(() => docToPayload(doc, 's', dto.fingerprint)).toThrow('docToPayload: hay elementos sin área')
   })
 })
+
+describe('mapeo — ola final', () => {
+  // R31: una mesa de SoftRestaurant con capacity 0 («sin dato») viaja tal cual: el servidor ya acepta 0–99.
+  it('0 personas se conserva de ida y de vuelta', () => {
+    const conCero = { ...dto, tables: [{ ...dto.tables[0], capacity: 0 }] }
+    const doc = dtoToDoc(conCero)
+    expect(doc.tables[0].capacity).toBe(0)
+    expect(docToPayload(doc, 's', dto.fingerprint).tables[0]).toMatchObject({ id: 't1', capacity: 0 })
+  })
+})

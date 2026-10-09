@@ -83,6 +83,7 @@ function Stepper({
   more,
   testId,
   tour,
+  unknown,
 }: {
   value: number
   min: number
@@ -92,6 +93,8 @@ function Stepper({
   more: string
   testId: string
   tour: string
+  /** Cómo se dice un 0 que no es un valor sino «sin dato» (R31); sin esto, el 0 se enseña tal cual. */
+  unknown?: string
 }) {
   return (
     <div className="flex items-center gap-2" data-testid={testId} data-tour={tour}>
@@ -99,7 +102,14 @@ function Stepper({
         <Minus className="h-4 w-4" />
       </Button>
       <span className="w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
-        {value}
+        {value === 0 && unknown ? (
+          <>
+            <span aria-hidden>—</span>
+            <span className="sr-only">{unknown}</span>
+          </>
+        ) : (
+          value
+        )}
       </span>
       <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={more} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
         <Plus className="h-4 w-4" />
@@ -229,10 +239,12 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
         )}
       </Field>
       <Field label={t('inspector.capacity')}>
+        {/* 0 = «sin dato» (mesas de SoftRestaurant, R31): se ve «—» y desde aquí sólo se puede subir; nunca se baja a 0. */}
         <Stepper
           value={table.capacity}
           min={1}
           max={99}
+          unknown={t('inspector.capacityUnknown')}
           less={t('inspector.fewer')}
           more={t('inspector.more')}
           testId="floor-inspector-capacity"

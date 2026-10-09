@@ -105,6 +105,7 @@
     "numberTaken": "Ya hay una mesa {{number}}",
     "numberRequired": "La mesa necesita un número",
     "capacity": "Personas",
+    "capacityUnknown": "Sin dato",
     "fewer": "Menos personas",
     "more": "Más personas",
     "decrease": "Menos",

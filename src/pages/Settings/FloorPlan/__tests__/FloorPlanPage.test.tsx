@@ -132,6 +132,12 @@ describe('Configuración → Mesas y plano', () => {
     expect(screen.getByTestId('editor-abierto')).toBeInTheDocument()
   })
 
+  it('R31: una mesa con 0 personas («sin dato») cuenta como mesa pero no suma lugares', async () => {
+    get.mockResolvedValue({ ...conSalon, tables: [mesa, { ...mesa, id: 't2', number: '2', capacity: 0 }] })
+    pintar()
+    expect(await screen.findByTestId('floor-plan-area-Salón')).toHaveTextContent('page.areaSummary:page.tables:2/page.seats:4')
+  })
+
   it('tocar la tarjeta de un área abre el editor EN esa área; «Acomodarlas» lo abre en la primera', async () => {
     get.mockResolvedValue(conSalon)
     pintar()

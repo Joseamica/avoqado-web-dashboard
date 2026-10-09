@@ -41,6 +41,11 @@ describe('reglas de dibujo (spec §4.3)', () => {
     expect(tableSizeCells(shape, capacity)).toEqual({ w, h })
   })
 
+  // R31: 0 personas = «sin dato» (lo trae la sincronización de SoftRestaurant): se dibuja con la medida más chica.
+  it('una mesa con 0 personas se dibuja como una de 2', () => {
+    for (const shape of ['SQUARE', 'ROUND', 'RECTANGLE'] as const) expect(tableSizeCells(shape, 0)).toEqual(tableSizeCells(shape, 2))
+  })
+
   it('girar 90° intercambia ancho y alto; 45° ocupa más', () => {
     expect(rotatedExtent(6, 4, 90)).toEqual({ w: 4, h: 6 })
     expect(rotatedExtent(4, 4, 45).w).toBeCloseTo(5.656854, 5)

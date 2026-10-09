@@ -3,11 +3,12 @@
  * líneas (R25). El editor vive dentro del router de datos, como en la app: así se prueba también la navegación.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FloorPlanEditor } from '../FloorPlanEditor'
+import { publishFloorPlan } from '@/services/floorPlan.service'
 import type { FloorPlanDto } from '../model/types'
 
 vi.mock('react-i18next', () => ({
@@ -21,6 +22,7 @@ vi.mock('@/services/floorPlan.service', () => ({ getFloorPlan: vi.fn(), publishF
 // Radix Select necesita pointer capture, que jsdom no tiene: un <select> nativo (aria-label «select»).
 vi.mock('@/components/ui/select', () => import('@/test/nativeSelectShim'))
 
+const publish = vi.mocked(publishFloorPlan)
 const LIMITS = { areas: 30, tables: 500, elements: 1500 }
 const withArea: FloorPlanDto = {
   fingerprint: 'aaaaaaaaaaaaaaaa',
@@ -87,6 +89,36 @@ describe('FloorPlanEditor — ola final', () => {
     // Supr quitó sólo la que se ve; la 2 sigue en Salón.
     await user.click(screen.getByTestId('floor-area-tab-Salón'))
     expect(within(screen.getByTestId('floor-canvas')).getByTestId('floor-table-2')).toBeInTheDocument()
+  })
+
+  // R31: la sincronización de SoftRestaurant crea mesas con capacity 0. El servidor ya acepta 0–99.
+  it('D4: una mesa con 0 personas se ve «sin dato» (—) en el inspector; con + pasa a 1, nunca vuelve a 0', async () => {
+    const user = userEvent.setup()
+    renderEditor({ ...withArea, tables: [{ ...mesa1, capacity: 0 }] })
+    seleccionar('floor-table-1')
+    const personas = screen.getByTestId('floor-inspector-capacity')
+    expect(personas).toHaveTextContent('—')
+    expect(personas).toHaveTextContent('inspector.capacityUnknown')
+    expect(personas).not.toHaveTextContent('0')
+    expect(within(personas).getByRole('button', { name: 'inspector.fewer' })).toBeDisabled()
+    await user.click(within(personas).getByRole('button', { name: 'inspector.more' }))
+    expect(personas).toHaveTextContent('1')
+    expect(within(personas).getByRole('button', { name: 'inspector.fewer' })).toBeDisabled()
+  })
+
+  it('D4: con una mesa en 0 que nadie tocó, mover una pared se guarda y la mesa viaja con 0', async () => {
+    const user = userEvent.setup()
+    const pared = { id: 'w1', type: 'WALL' as const, areaId: 'a1', positionX: 0.1, positionY: 0.1, width: null, height: null, rotation: 0, endX: 0.3, endY: 0.1, label: null, color: null }
+    const plan = { ...withArea, tables: [{ ...mesa1, capacity: 0 }], elements: [pared] }
+    publish.mockResolvedValueOnce({ ...plan, fingerprint: 'bbbbbbbbbbbbbbbb', publicationId: 'p1', replayed: false })
+    renderEditor(plan)
+    seleccionar('floor-element-w1')
+    await user.keyboard('{ArrowRight}')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await waitFor(() => expect(publish).toHaveBeenCalledTimes(1))
+    const body = publish.mock.calls[0][1]
+    expect(body.tables).toEqual([expect.objectContaining({ id: 't1', capacity: 0 })])
+    expect(body.elements[0].positionX).toBeGreaterThan(0.1)
   })
 
   it('D8: si TODAS las mesas de un número repetido tienen cuenta, «Ver cuáles» las selecciona (antes no seleccionaba nada)', async () => {
