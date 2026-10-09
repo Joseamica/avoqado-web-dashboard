@@ -29,7 +29,7 @@ import { UnplacedTray } from './editor/UnplacedTray'
 import { WaiterPreview } from './editor/WaiterPreview'
 import { restorableNumbers, useEditorActions } from './editor/useEditorActions'
 import { MOD_KEY, TYPING, useEditorShortcuts, within } from './editor/useEditorShortcuts'
-import { duplicateNumbers } from './model/docHelpers'
+import { duplicateNumbers, keysToRenumber } from './model/docHelpers'
 import { editorReducer, initEditorState, type EditorAction } from './model/editorReducer'
 import { gridOf } from './model/floorGeometry'
 import { roomLeft } from './model/limits'
@@ -104,13 +104,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   const room = useMemo(() => roomLeft(doc, saved.limits), [doc, saved.limits])
   // Dos mesas con el mismo número (p. ej. la que se regresó tras un 422 y una nueva que tomó su número): no se guarda.
   const dupes = useMemo(() => duplicateNumbers(doc.tables), [doc.tables])
-  const dupeKeysToFix = useMemo(() => {
-    const byKey = new Map(doc.tables.map(x => [x.key, x]))
-    return dupes.flatMap(g => {
-      const open = g.keys.filter(k => byKey.get(k)?.hasOpenOrder)
-      return open.length ? g.keys.filter(k => !open.includes(k)) : g.keys
-    })
-  }, [dupes, doc.tables])
+  const dupeKeysToFix = useMemo(() => keysToRenumber(dupes, doc.tables), [dupes, doc.tables])
 
   // Esc: primero suelta lo activo (herramienta, selección, vista del mesero); con nada activo, cierra (y con cambios,
   // pregunta). Dentro de un campo es del campo. Lo usan el modal y los avisos (ver `notify`).

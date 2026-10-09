@@ -58,3 +58,16 @@ export function duplicateNumbers(tables: readonly DraftTable[]): Array<{ number:
   }
   return [...byNumber].filter(([, keys]) => keys.length > 1).map(([number, keys]) => ({ number, keys }))
 }
+
+/**
+ * De cada grupo de números repetidos, las mesas a las que hay que cambiarles el número: las que NO tienen cuenta
+ * abierta («la nueva», p. ej. la que tomó el número de una que se regresó tras un 422). Si todas tienen cuenta, todas
+ * las del grupo: si no, «Ver cuáles» no seleccionaba nada (m3 de 15-D).
+ */
+export function keysToRenumber(groups: ReadonlyArray<{ keys: string[] }>, tables: readonly DraftTable[]): string[] {
+  const open = new Set(tables.filter(t => t.hasOpenOrder).map(t => t.key))
+  return groups.flatMap(g => {
+    const fresh = g.keys.filter(k => !open.has(k))
+    return fresh.length ? fresh : g.keys
+  })
+}
