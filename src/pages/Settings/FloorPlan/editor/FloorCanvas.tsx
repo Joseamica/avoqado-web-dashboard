@@ -72,7 +72,12 @@ const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null
 const SPACE_CONTROLS =
   'button, a[href], summary, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="slider"], [role="combobox"]'
 const controlOf = (target: EventTarget | null) => (target as HTMLElement | null)?.closest?.(SPACE_CONTROLS) ?? null
-const dialogOf = (target: EventTarget | null) => (target as HTMLElement | null)?.closest?.('[role="dialog"], [role="alertdialog"]') ?? null
+/**
+ * La capa encima del editor donde está el foco: un diálogo, o un menú o una lista de Radix (el menú «···» del área, el
+ * selector de área del inspector), que se dibujan fuera del diálogo del editor (m4).
+ */
+const dialogOf = (target: EventTarget | null) =>
+  (target as HTMLElement | null)?.closest?.('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]') ?? null
 
 /** Cuadros por píxel en pantalla. Con `preserveAspectRatio="meet"` manda el lado más apretado. */
 function unitsPerPixel(view: ViewBox, el: Element): number {
@@ -155,7 +160,8 @@ export function FloorCanvas(props: FloorCanvasProps) {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || isTyping(e.target)) return
-      // Un diálogo encima del editor («¿Salir sin guardar?», «Nueva área»): Espacio es de sus botones (m2 de 15-D).
+      // Un diálogo, menú o lista encima del editor («¿Salir sin guardar?», «Nueva área», «···»): Espacio es de sus
+      // botones y opciones (m2 de 15-D, m4).
       const dialog = dialogOf(e.target)
       if (dialog && !dialog.contains(svgRef.current)) return
       const control = controlOf(e.target)

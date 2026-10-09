@@ -209,4 +209,34 @@ describe('FloorCanvas', () => {
     expect(canvas.getAttribute('class')).toContain('cursor-grab')
     fireEvent.keyUp(acercar, { code: 'Space' })
   })
+
+  // m4: el menú «···» del área y el selector de área (Radix) se dibujan FUERA del diálogo del editor.
+  it('m4: Espacio es de la opción de un menú o una lista encimados aunque tenga el foco por el ratón', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <div role="dialog">
+          <FloorCanvas {...props()} />
+        </div>
+        <div role="menu">
+          <div role="menuitem" tabIndex={-1}>
+            Cambiar nombre
+          </div>
+        </div>
+        <div role="listbox">
+          <div role="option" aria-selected="false" tabIndex={-1}>
+            Terraza
+          </div>
+        </div>
+      </>,
+    )
+    const canvas = screen.getByTestId('floor-canvas')
+    for (const item of [screen.getByRole('menuitem'), screen.getByRole('option')]) {
+      await user.click(item)
+      expect(item).toHaveFocus()
+      expect(fireEvent.keyDown(item, { code: 'Space' })).toBe(true)
+      expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
+      fireEvent.keyUp(item, { code: 'Space' })
+    }
+  })
 })
