@@ -23,6 +23,7 @@ export function NewAreaDialog({
   first,
   existingNames,
   adoptCount,
+  maxTables,
   onCancel,
   onCreate,
 }: {
@@ -30,10 +31,13 @@ export function NewAreaDialog({
   first: boolean
   existingNames: string[]
   adoptCount: number
+  /** Mesas nuevas que todavía caben en el plano (el tope del servidor menos las que ya hay). */
+  maxTables: number
   onCancel: () => void
   onCreate: (req: NewAreaRequest) => void
 }) {
   const { t } = useTranslation('floorPlan')
+  const tableCap = Math.max(0, Math.min(60, maxTables))
   const [name, setName] = useState('')
   const [floorShape, setFloorShape] = useState<FloorShape>('WIDE')
   const [count, setCount] = useState<number | undefined>(6)
@@ -49,7 +53,7 @@ export function NewAreaDialog({
     if (open) {
       setName(first ? t('newArea.namePlaceholder') : '')
       setFloorShape('WIDE')
-      setCount(adoptCount > 0 ? 0 : 6)
+      setCount(adoptCount > 0 ? 0 : Math.min(6, tableCap))
       setCapacity(4)
       setAdopt(adoptCount > 0)
       setTouched(false)
@@ -68,7 +72,7 @@ export function NewAreaDialog({
     onCreate({
       name: trimmed,
       floorShape,
-      count: blank ? 0 : Math.min(60, count ?? 0),
+      count: blank ? 0 : Math.min(tableCap, count ?? 0),
       capacity: Math.min(20, Math.max(1, capacity ?? 4)),
       adopt: !blank && adopt,
     })
@@ -86,6 +90,7 @@ export function NewAreaDialog({
         const n = parseInt(raw, 10)
         set(raw === '' || Number.isNaN(n) ? undefined : Math.max(0, Math.min(max, n)))
       }}
+      disabled={max === 0}
       className="h-12 w-20 text-center text-base"
       data-testid={testId}
       data-tour={`floor-plan-${testId}`}
@@ -135,7 +140,8 @@ export function NewAreaDialog({
                   onClick={() => setFloorShape(s)}
                   data-testid={`new-area-shape-${s}`}
                   className={cn(
-                    'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 p-3 text-sm',
+                    'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 p-3 text-sm transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     floorShape === s ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                   )}
                 >
@@ -158,11 +164,16 @@ export function NewAreaDialog({
           <div className="space-y-2">
             <p className="text-sm font-medium">{t('newArea.tables')}</p>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              {numberInput(count, setCount, 60, 'new-area-count', t('newArea.tables'))}
+              {numberInput(count, setCount, tableCap, 'new-area-count', t('newArea.tables'))}
               <span className="text-muted-foreground">{t('newArea.tablesOf')}</span>
               {numberInput(capacity, setCapacity, 20, 'new-area-capacity', t('newArea.people'))}
               <span className="text-muted-foreground">{t('newArea.people')}</span>
             </div>
+            {tableCap < 60 && (
+              <p className="text-xs text-muted-foreground" data-testid="new-area-table-cap">
+                {tableCap === 0 ? t('newArea.noRoom') : t('newArea.room', { count: tableCap })}
+              </p>
+            )}
           </div>
           {adoptCount > 0 && (
             <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-input p-3 text-sm">

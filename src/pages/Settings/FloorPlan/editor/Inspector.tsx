@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Circle, Copy, Minus, Plus, RectangleHorizontal, RotateCw, Square, Trash2 } from 'lucide-react'
+import { Circle, Copy, Minus, MousePointerClick, Plus, RectangleHorizontal, RotateCw, Square, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { ShortcutList } from './ShortcutList'
 import { toolLabelKey } from './ToolPalette'
 import { gridOf } from '../model/floorGeometry'
 import type { EditorAction } from '../model/editorReducer'
@@ -28,14 +29,37 @@ const SHAPES: Array<{ id: TableShape; icon: typeof Square }> = [
 ]
 const UNPLACED = '__unplaced'
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * Un campo con su nombre. Con `htmlFor` el nombre es la `<label>` del campo de texto; si no, nombra al grupo (botones de
+ * más/menos, de forma…), para que el lector de pantalla diga «Personas, 6» y no sólo «6».
+ */
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
+  const id = useId()
+  if (htmlFor) {
+    return (
+      <div className="space-y-1.5">
+        <label htmlFor={htmlFor} className="block text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+        {children}
+      </div>
+    )
+  }
   return (
-    <div className="space-y-1.5">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+    <div className="space-y-1.5" role="group" aria-labelledby={id}>
+      <p id={id} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </p>
       {children}
     </div>
   )
 }
+
+/** Mismo botón de quitar en todos los casos: rojo, sin relleno, al final del panel. */
+const REMOVE_CLASS = 'w-full cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive'
+/** Botón de forma (cuadrada, redonda, larga): se ve elegido y con anillo de foco por teclado. */
+const SHAPE_CLASS =
+  'flex h-11 cursor-pointer items-center justify-center rounded-xl border border-input transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background'
 
 /**
  * Un campo del inspector guarda al salir de él (Enter, Tab o clic fuera). Pero un clic en el lienzo cambia la selección
@@ -58,6 +82,7 @@ function Stepper({
   less,
   more,
   testId,
+  tour,
 }: {
   value: number
   min: number
@@ -66,13 +91,16 @@ function Stepper({
   less: string
   more: string
   testId: string
+  tour: string
 }) {
   return (
-    <div className="flex items-center gap-2" data-testid={testId}>
+    <div className="flex items-center gap-2" data-testid={testId} data-tour={tour}>
       <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={less} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}>
         <Minus className="h-4 w-4" />
       </Button>
-      <span className="w-12 text-center text-lg font-semibold tabular-nums">{value}</span>
+      <span className="w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
+        {value}
+      </span>
       <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={more} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
         <Plus className="h-4 w-4" />
       </Button>
@@ -91,16 +119,15 @@ export function Inspector(props: InspectorProps) {
       data-testid="floor-plan-inspector"
     >
       {count === 0 && (
-        <div className="space-y-5">
-          <p className="text-sm text-muted-foreground">{t('inspector.nothing')}</p>
-          <div className="space-y-1.5 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">{t('inspector.shortcuts')}</p>
-            <p>{t('inspector.shortcutMove')}</p>
-            <p>{t('inspector.shortcutRotate')}</p>
-            <p>{t('inspector.shortcutDuplicate')}</p>
-            <p>{t('inspector.shortcutDelete')}</p>
-            <p>{t('inspector.shortcutUndo')}</p>
-            <p>{t('inspector.shortcutPan')}</p>
+        <div className="space-y-6">
+          <div className="flex gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted" aria-hidden>
+              <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+            </span>
+            <p className="text-sm leading-relaxed text-muted-foreground">{t('inspector.nothing')}</p>
+          </div>
+          <div className="border-t border-input pt-5">
+            <ShortcutList />
           </div>
         </div>
       )}
@@ -109,15 +136,21 @@ export function Inspector(props: InspectorProps) {
       {count > 1 && (
         <div className="space-y-3">
           <h3 className="text-base font-semibold">{t('inspector.many', { count })}</h3>
-          <Button variant="outline" className="w-full cursor-pointer" onClick={() => props.dispatch({ type: 'ROTATE', keys: allKeys() })}>
+          <p className="text-sm text-muted-foreground">{t('inspector.manyHint')}</p>
+          <Button
+            variant="outline"
+            className="h-11 w-full cursor-pointer"
+            onClick={() => props.dispatch({ type: 'ROTATE', keys: allKeys() })}
+            data-tour="floor-plan-inspector-rotate-all"
+          >
             <RotateCw className="mr-2 h-4 w-4" />
             {t('inspector.rotateAll')}
           </Button>
-          <Button variant="outline" className="w-full cursor-pointer" onClick={() => props.onDuplicate(allKeys())}>
+          <Button variant="outline" className="h-11 w-full cursor-pointer" onClick={() => props.onDuplicate(allKeys())} data-tour="floor-plan-inspector-duplicate">
             <Copy className="mr-2 h-4 w-4" />
             {t('inspector.duplicate')}
           </Button>
-          <Button variant="ghost" className="w-full cursor-pointer text-destructive hover:text-destructive" onClick={() => props.onRemove(allKeys())}>
+          <Button variant="ghost" className={REMOVE_CLASS} onClick={() => props.onRemove(allKeys())} data-tour="floor-plan-inspector-remove">
             <Trash2 className="mr-2 h-4 w-4" />
             {t('inspector.removeMany')}
           </Button>
@@ -129,6 +162,7 @@ export function Inspector(props: InspectorProps) {
 
 function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate }: InspectorProps & { table: DraftTable }) {
   const { t } = useTranslation('floorPlan')
+  const numberId = useId()
   const [number, setNumber] = useState(table.number)
   const [error, setError] = useState<string | null>(null)
   // El último número guardado: lo que ya se guardó al salir del campo no se vuelve a guardar al desmontarse.
@@ -142,7 +176,8 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
   const tryCommit = (value: string): string | null => {
     const n = value.trim()
     if (!n) return t('inspector.numberRequired')
-    if (n === saved.current) return null
+    // Contra lo guardado SIN espacios: un número viejo « 5» no es «otro número» ni choca consigo mismo.
+    if (n === saved.current.trim()) return null
     if (allNumbers.some(x => x.trim() === n)) return t('inspector.numberTaken', { number: n })
     saved.current = n
     dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { number: n } })
@@ -160,10 +195,17 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-semibold">{t('inspector.table', { number: table.number })}</h3>
-        {table.hasOpenOrder && <Badge variant="outline">{t('inspector.openOrder')}</Badge>}
+        {table.hasOpenOrder && (
+          // El mismo punto ámbar que la mesa en el plano: se reconoce de un vistazo.
+          <Badge variant="outline" className="gap-1.5" data-testid="floor-inspector-open-order">
+            <span className="h-2 w-2 rounded-full bg-warning" aria-hidden />
+            {t('inspector.openOrder')}
+          </Badge>
+        )}
       </div>
-      <Field label={t('inspector.number')}>
+      <Field label={t('inspector.number')} htmlFor={numberId}>
         <Input
+          id={numberId}
           value={number}
           maxLength={20}
           onChange={e => {
@@ -175,11 +217,16 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
             if (e.key === 'Enter') e.currentTarget.blur()
           }}
           aria-invalid={!!error}
+          aria-describedby={error ? `${numberId}-error` : undefined}
           className="h-11 text-base"
           data-testid="floor-inspector-number"
           data-tour="floor-plan-inspector-number"
         />
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && (
+          <p id={`${numberId}-error`} className="text-xs text-destructive" role="alert">
+            {error}
+          </p>
+        )}
       </Field>
       <Field label={t('inspector.capacity')}>
         <Stepper
@@ -189,11 +236,12 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
           less={t('inspector.fewer')}
           more={t('inspector.more')}
           testId="floor-inspector-capacity"
+          tour="floor-plan-inspector-capacity"
           onChange={capacity => dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { capacity } })}
         />
       </Field>
       <Field label={t('inspector.shape')}>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2" data-tour="floor-plan-inspector-shape">
           {SHAPES.map(({ id, icon: Icon }) => (
             <button
               key={id}
@@ -201,10 +249,7 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
               aria-pressed={table.shape === id}
               aria-label={t(toolLabelKey(`table:${id}` as ToolId))}
               onClick={() => dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { shape: id } })}
-              className={cn(
-                'flex h-11 cursor-pointer items-center justify-center rounded-xl border border-input',
-                table.shape === id ? 'border-foreground bg-foreground text-background' : 'hover:bg-muted',
-              )}
+              className={cn(SHAPE_CLASS, table.shape === id ? 'border-foreground bg-foreground text-background' : 'hover:bg-muted')}
             >
               <Icon className="h-4 w-4" />
             </button>
@@ -212,9 +257,15 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
         </div>
       </Field>
       <Field label={t('inspector.rotate')}>
-        <Button variant="outline" className="h-11 w-full cursor-pointer" onClick={() => dispatch({ type: 'ROTATE', keys: [table.key] })}>
+        <Button
+          variant="outline"
+          className="h-11 w-full cursor-pointer"
+          aria-label={t('inspector.rotateBy', { degrees: table.rotation })}
+          onClick={() => dispatch({ type: 'ROTATE', keys: [table.key] })}
+          data-tour="floor-plan-inspector-rotate"
+        >
           <RotateCw className="mr-2 h-4 w-4" />
-          {table.rotation}°
+          <span className="tabular-nums">{table.rotation}°</span>
         </Button>
       </Field>
       <Field label={t('inspector.area')}>
@@ -222,7 +273,7 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
           value={table.areaKey ?? UNPLACED}
           onValueChange={v => dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { areaKey: v === UNPLACED ? null : v } })}
         >
-          <SelectTrigger className="h-11">
+          <SelectTrigger className="h-11" aria-label={t('inspector.area')} data-tour="floor-plan-inspector-area">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -236,21 +287,27 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
         </Select>
       </Field>
       <div className="space-y-2 border-t border-input pt-4">
-        <Button variant="outline" className="w-full cursor-pointer" onClick={() => onDuplicate([table.key])}>
+        <Button variant="outline" className="h-11 w-full cursor-pointer" onClick={() => onDuplicate([table.key])} data-tour="floor-plan-inspector-duplicate">
           <Copy className="mr-2 h-4 w-4" />
           {t('inspector.duplicate')}
         </Button>
         <Button
           variant="ghost"
-          className="w-full cursor-pointer text-destructive hover:text-destructive"
+          className={REMOVE_CLASS}
           disabled={table.hasOpenOrder}
+          aria-describedby={table.hasOpenOrder ? `${numberId}-blocked` : undefined}
           onClick={() => onRemove([table.key])}
           data-testid="floor-inspector-remove"
+          data-tour="floor-plan-inspector-remove"
         >
           <Trash2 className="mr-2 h-4 w-4" />
           {t('inspector.remove')}
         </Button>
-        {table.hasOpenOrder && <p className="text-xs text-muted-foreground">{t('inspector.removeBlocked')}</p>}
+        {table.hasOpenOrder && (
+          <p id={`${numberId}-blocked`} className="text-xs leading-relaxed text-muted-foreground">
+            {t('inspector.removeBlocked')}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -258,6 +315,7 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
 
 function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: InspectorProps & { element: DraftElement }) {
   const { t } = useTranslation('floorPlan')
+  const labelId = useId()
   const [label, setLabel] = useState(element.label ?? '')
   const saved = useRef(element.label ?? '')
   useEffect(() => {
@@ -272,7 +330,8 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
   const tryCommit = (value: string): boolean => {
     const v = value.trim()
     if (element.type === 'LABEL' && !v) return false
-    if (v === saved.current) return true
+    // Contra lo guardado SIN espacios: deseleccionar un letrero viejo « Terraza » no es un cambio ni un paso de deshacer.
+    if (v === saved.current.trim()) return true
     saved.current = v
     dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { label: v || null } })
     return true
@@ -287,8 +346,9 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
     <div className="space-y-5">
       <h3 className="text-base font-semibold">{t(toolLabelKey(element.type))}</h3>
       {named && (
-        <Field label={t('inspector.label')}>
+        <Field label={t('inspector.label')} htmlFor={labelId}>
           <Input
+            id={labelId}
             value={label}
             maxLength={40}
             onChange={e => setLabel(e.target.value)}
@@ -298,6 +358,7 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
             }}
             className="h-11 text-base"
             data-testid="floor-inspector-label"
+            data-tour="floor-plan-inspector-label"
           />
         </Field>
       )}
@@ -311,6 +372,7 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
               less={t('inspector.decrease')}
               more={t('inspector.increase')}
               testId="floor-inspector-width"
+              tour="floor-plan-inspector-width"
               onChange={w => dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { w } })}
             />
           </Field>
@@ -322,22 +384,29 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
               less={t('inspector.decrease')}
               more={t('inspector.increase')}
               testId="floor-inspector-height"
+              tour="floor-plan-inspector-height"
               onChange={h => dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { h } })}
             />
           </Field>
           {/* Barras, zonas y puertas giran intercambiando ancho y alto: no guardan grados que enseñar (R13). */}
-          <Button variant="outline" className="h-11 w-full cursor-pointer" onClick={() => dispatch({ type: 'ROTATE', keys: [element.key] })} data-testid="floor-inspector-rotate">
+          <Button
+            variant="outline"
+            className="h-11 w-full cursor-pointer"
+            onClick={() => dispatch({ type: 'ROTATE', keys: [element.key] })}
+            data-testid="floor-inspector-rotate"
+            data-tour="floor-plan-inspector-rotate"
+          >
             <RotateCw className="mr-2 h-4 w-4" />
             {t('inspector.rotate')}
           </Button>
         </>
       )}
       <div className="space-y-2 border-t border-input pt-4">
-        <Button variant="outline" className="w-full cursor-pointer" onClick={() => onDuplicate([element.key])}>
+        <Button variant="outline" className="h-11 w-full cursor-pointer" onClick={() => onDuplicate([element.key])} data-tour="floor-plan-inspector-duplicate">
           <Copy className="mr-2 h-4 w-4" />
           {t('inspector.duplicate')}
         </Button>
-        <Button variant="ghost" className="w-full cursor-pointer text-destructive hover:text-destructive" onClick={() => onRemove([element.key])}>
+        <Button variant="ghost" className={REMOVE_CLASS} onClick={() => onRemove([element.key])} data-tour="floor-plan-inspector-remove">
           <Trash2 className="mr-2 h-4 w-4" />
           {t('inspector.removeElement')}
         </Button>

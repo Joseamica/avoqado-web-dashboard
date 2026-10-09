@@ -8,12 +8,23 @@
     "emptyBody": "In a minute you can place your tables, walls, bar and kitchen. Your team will see it the same way on the point of sale.",
     "loadError": "We couldn't load the floor plan.",
     "retry": "Retry",
-    "areaSummary": "{{tables}} tables · {{seats}} seats",
-    "unplaced": "{{count}} tables not placed",
+    "areaSummary": "{{tables}} · {{seats}}",
     "noPermission": "To change the floor plan, ask your admin for the “Configure tables and floor plan” permission.",
     "narrow": "To edit the floor plan, open it on a computer.",
     "overLimit": "This floor plan is larger than the editor allows. Write to us and we'll review it with you.",
-    "fromPos": "Synced from SoftRestaurant"
+    "fromPos": "Synced from SoftRestaurant",
+    "tables_one": "{{count}} table",
+    "tables_other": "{{count}} tables",
+    "seats_one": "{{count}} seat",
+    "seats_other": "{{count}} seats",
+    "unplaced_one": "{{count}} table not placed",
+    "unplaced_other": "{{count}} tables not placed",
+    "unplacedHint_one": "It has no area, so your team doesn’t see it on the floor plan.",
+    "unplacedHint_other": "They have no area, so your team doesn’t see them on the floor plan.",
+    "unplacedAction_one": "Place it",
+    "unplacedAction_other": "Place them",
+    "editArea": "Edit",
+    "editAreaLabel": "Edit the {{name}} area"
   },
   "editor": {
     "title": "Floor plan",
@@ -31,19 +42,25 @@
     "conflictTitle": "Someone else changed the floor plan",
     "conflictBody": "While you were editing, another person (or a terminal) saved changes. Reload to see them; your changes will be lost.",
     "reload": "Reload floor plan",
-    "openOrders": "Tables with an open check can't be removed: {{numbers}}. Close them first.",
     "offline": "Not saved: no connection. Your changes are still here; try again.",
     "genericError": "The floor plan couldn't be saved.",
-    "noArea": "Create an area to start drawing.",
-    "createArea": "Create area"
+    "noArea": "Create an area (dining room, patio, bar…) to start drawing.",
+    "createArea": "Create area",
+    "unsaved": "Unsaved changes",
+    "noAreaTitle": "No areas yet",
+    "orphans": "You have walls or items from before with no area. They move into the first area you create; until then you can’t save."
   },
   "canvas": {
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "fit": "Fit to screen"
+    "fit": "Fit to screen",
+    "label": "Floor plan of {{name}}",
+    "overlap_one": "{{count}} overlapping table",
+    "overlap_other": "{{count}} overlapping tables",
+    "overlapShow": "Show them"
   },
   "areas": {
-    "add": "Area",
+    "add": "New area",
     "rename": "Rename",
     "shape": "Room shape",
     "moveLeft": "Move left",
@@ -53,7 +70,10 @@
     "deleteTitle": "Delete “{{name}}”?",
     "deleteBody": "Its walls and elements will be deleted. It has no tables.",
     "deleteConfirm": "Delete",
-    "options": "Area options"
+    "options": "{{name}} area options",
+    "renameHint": "Double-click to rename",
+    "tableCount_one": "{{count}} table",
+    "tableCount_other": "{{count}} tables"
   },
   "shapes": {
     "WIDE": "Wide",
@@ -72,19 +92,13 @@
     "SERVICE_AREA": "Kitchen / Restroom",
     "DOOR": "Door",
     "LABEL": "Label",
-    "hint": "Drag onto the plan, or click here and then tap the plan.",
-    "placeHint": "Tap the plan where you want it. Esc to cancel.",
-    "wallHint": "Click where it starts and click where it ends. Double-click or Esc to finish."
+    "hint": "Drag a piece onto the plan, or click it and then click the plan.",
+    "placeHint": "Click the plan where you want to put it. Esc to cancel.",
+    "wallHint": "Click where it starts and click where it ends. Double-click or Esc to finish.",
+    "palette": "Tools"
   },
   "inspector": {
-    "nothing": "Tap a table or an element to change it.",
-    "shortcuts": "Shortcuts",
-    "shortcutMove": "Arrows: move (Shift: faster)",
-    "shortcutRotate": "R: rotate",
-    "shortcutDuplicate": "Ctrl+D: duplicate",
-    "shortcutDelete": "Del: remove",
-    "shortcutUndo": "Ctrl+Z: undo",
-    "shortcutPan": "Space + drag: move the plan",
+    "nothing": "Click a table or an item on the plan to change it.",
     "duplicate": "Duplicate",
     "table": "Table {{number}}",
     "number": "Number",
@@ -104,16 +118,20 @@
     "label": "Name",
     "width": "Width",
     "height": "Height",
-    "removeElement": "Remove",
-    "many": "{{count}} selected",
+    "removeElement": "Remove from plan",
     "rotateAll": "Rotate all",
     "removeMany": "Remove selected",
-    "openOrder": "Open check"
+    "openOrder": "Open check",
+    "many_one": "{{count}} selected",
+    "many_other": "{{count}} selected",
+    "manyHint": "What you do here applies to everything selected.",
+    "rotateBy": "Rotate 45° (now {{degrees}}°)"
   },
   "tray": {
-    "title": "Not placed",
-    "hint": "Drag them onto the plan or tap them to drop them in the center.",
-    "empty": "All tables are on the plan."
+    "hint": "Drag them onto the plan, or click one to put it in the middle.",
+    "title_one": "{{count}} table not placed",
+    "title_other": "{{count}} tables not placed",
+    "place": "Put table {{number}} on the plan"
   },
   "newArea": {
     "titleFirst": "Create your first area",
@@ -125,11 +143,15 @@
     "tables": "How many tables to start with?",
     "tablesOf": "tables of",
     "people": "seats",
-    "adopt": "Place my {{count}} existing tables",
     "create": "Create and arrange",
     "blank": "Start blank",
     "nameRequired": "Give it a name",
-    "nameTaken": "There's already an area with that name"
+    "nameTaken": "There's already an area with that name",
+    "adopt_one": "Place my existing table",
+    "adopt_other": "Place my {{count}} existing tables",
+    "room_one": "{{count}} more table fits on your plan.",
+    "room_other": "{{count}} more tables fit on your plan.",
+    "noRoom": "Your plan already has the maximum number of tables: start the area blank or place the ones you have."
   },
   "preview": {
     "title": "What your team will see",
@@ -143,5 +165,37 @@
     "SERVICE_AREA": "Kitchen",
     "BAR_COUNTER": "Bar",
     "LABEL": "Terrace"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "selectMany": "Select several",
+    "move": "Move",
+    "moveFast": "Move 5 squares",
+    "rotate": "Rotate",
+    "duplicate": "Copy",
+    "remove": "Remove",
+    "undo": "Undo",
+    "pan": "Move the plan"
+  },
+  "keys": {
+    "shift": "Shift",
+    "click": "click",
+    "delete": "Delete",
+    "space": "Space",
+    "drag": "drag"
+  },
+  "limits": {
+    "tables": "You reached the maximum of {{max}} tables.",
+    "elements": "You reached the maximum of {{max}} items (walls, bars, signs…).",
+    "areas": "You reached the maximum of {{max}} areas."
+  },
+  "openOrders": {
+    "title_one": "Table {{numbers}} has an open check",
+    "title_other": "Tables {{numbers}} have open checks",
+    "body_one": "Not saved: while its check is open it can’t be removed from the plan. Put it back, or close the check and save again.",
+    "body_other": "Not saved: while their checks are open they can’t be removed from the plan. Put them back, or close the checks and save again.",
+    "restore_one": "Put the table back",
+    "restore_other": "Put the tables back",
+    "dismiss": "Close notice"
   }
 }

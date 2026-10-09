@@ -34,6 +34,8 @@ interface FullScreenModalProps {
   onCloseAutoFocus?: (event: Event) => void
   /** Esc dentro del modal. `event.preventDefault()` evita que se cierre (un editor que usa Esc para soltar una herramienta). */
   onEscapeKeyDown?: (event: KeyboardEvent) => void
+  /** `data-testid` del botón de cerrar (para pruebas: «Cerrar» por nombre choca con el de un aviso abierto). */
+  closeButtonTestId?: string
 }
 
 export function FullScreenModal({
@@ -47,6 +49,7 @@ export function FullScreenModal({
   onOpenAutoFocus,
   onCloseAutoFocus,
   onEscapeKeyDown,
+  closeButtonTestId,
 }: FullScreenModalProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -76,6 +79,7 @@ export function FullScreenModal({
                 size="icon"
                 className="h-12 w-12 rounded-full"
                 data-tour="bundle-editor-close"
+                data-testid={closeButtonTestId}
               >
                 <X className="h-6 w-6" />
                 <span className="sr-only">Cerrar</span>

@@ -62,7 +62,7 @@ export function docToPayload(doc: EditorDoc, saveId: string, baseFingerprint: st
   }
   const n = (v: number, total: number) => round6(clamp(v / total, 0, 1))
   // El servidor archiva lo que el plano omite: un elemento sin área nunca se descarta en silencio.
-  // (El editor no deja guardar mientras no haya áreas.)
+  // (El editor apaga Guardar mientras haya elementos sin área; un plano sin áreas y sin ellos sí se guarda.)
   if (doc.elements.some(e => !byKey.has(e.areaKey))) throw new Error('docToPayload: hay elementos sin área')
   return {
     saveId,

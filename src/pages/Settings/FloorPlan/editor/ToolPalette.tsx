@@ -2,14 +2,17 @@ import { useTranslation } from 'react-i18next'
 import { Circle, DoorOpen, GalleryHorizontal, Minus, MousePointer2, RectangleHorizontal, Square, SquareDashed, Type, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TOOL_DRAG_MIME } from './FloorCanvas'
+import type { PlanLimits } from '../model/limits'
 import type { ToolId } from '../model/types'
 
 /** Llave de texto de cada herramienta (i18next usa ':' para namespaces: `table:SQUARE` no puede ser llave). */
 export const toolLabelKey = (id: ToolId) => `tools.${id.startsWith('table:') ? `TABLE_${id.slice(6)}` : id === 'select' ? 'select' : id}`
 
-const SECTIONS: Array<{ title: string; tools: Array<{ id: ToolId; icon: LucideIcon }> }> = [
+type Kind = 'tables' | 'elements'
+const SECTIONS: Array<{ title: string; kind: Kind; tools: Array<{ id: ToolId; icon: LucideIcon }> }> = [
   {
     title: 'tools.tablesSection',
+    kind: 'tables',
     tools: [
       { id: 'table:SQUARE', icon: Square },
       { id: 'table:ROUND', icon: Circle },
@@ -18,6 +21,7 @@ const SECTIONS: Array<{ title: string; tools: Array<{ id: ToolId; icon: LucideIc
   },
   {
     title: 'tools.roomSection',
+    kind: 'elements',
     tools: [
       { id: 'WALL', icon: Minus },
       { id: 'BAR_COUNTER', icon: GalleryHorizontal },
@@ -28,44 +32,69 @@ const SECTIONS: Array<{ title: string; tools: Array<{ id: ToolId; icon: LucideIc
   },
 ]
 
-export function ToolPalette({ tool, onTool, disabled }: { tool: ToolId; onTool: (tool: ToolId) => void; disabled: boolean }) {
+export interface ToolPaletteProps {
+  tool: ToolId
+  onTool: (tool: ToolId) => void
+  disabled: boolean
+  /** Cuánto cabe todavía; en 0 la sección se apaga y dice por qué. */
+  room: PlanLimits
+  limits: PlanLimits
+}
+
+export function ToolPalette({ tool, onTool, disabled, room, limits }: ToolPaletteProps) {
   const { t } = useTranslation('floorPlan')
-  const button = (id: ToolId, Icon: LucideIcon) => {
+  const button = (id: ToolId, Icon: LucideIcon, off: boolean) => {
     const active = tool === id
     return (
       <button
         key={id}
         type="button"
-        disabled={disabled}
-        draggable={!disabled && id !== 'WALL' && id !== 'select'}
+        disabled={off}
+        draggable={!off && id !== 'WALL' && id !== 'select'}
         onDragStart={e => {
           e.dataTransfer.setData(TOOL_DRAG_MIME, id)
           e.dataTransfer.effectAllowed = 'copy'
         }}
-        onClick={() => onTool(active && id !== 'select' ? 'select' : id)}
+        onClick={e => {
+          onTool(active && id !== 'select' ? 'select' : id)
+          // Con el ratón el foco no se queda en el botón: si no, Espacio (la mano del lienzo) lo volvería a accionar.
+          if (e.detail > 0) e.currentTarget.blur()
+        }}
         aria-pressed={active}
         data-testid={`floor-tool-${id}`}
         data-tour={`floor-plan-tool-${id.replace(':', '-').toLowerCase()}`}
+        // Ojo: ninguna clase con «card» aquí: `.dark [class*="card"]` (index.css) le pinta fondo y texto propios.
         className={cn(
-          'flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
+          'flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
           active ? 'bg-foreground text-background' : 'text-foreground hover:bg-muted',
-          disabled && 'cursor-not-allowed opacity-50',
+          off && 'cursor-not-allowed opacity-50 hover:bg-transparent',
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
+        <Icon className="h-4 w-4 shrink-0" aria-hidden />
         <span>{t(toolLabelKey(id))}</span>
       </button>
     )
   }
   return (
-    <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-input bg-card p-3" data-tour="floor-plan-palette">
-      {button('select', MousePointer2)}
-      {SECTIONS.map(s => (
-        <div key={s.title} className="space-y-1">
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t(s.title)}</p>
-          {s.tools.map(x => button(x.id, x.icon))}
-        </div>
-      ))}
+    <aside className="flex min-h-0 flex-col gap-5 overflow-y-auto rounded-2xl border border-input bg-card p-3" data-tour="floor-plan-palette" aria-label={t('tools.palette')}>
+      {button('select', MousePointer2, disabled)}
+      {SECTIONS.map(s => {
+        const full = room[s.kind] <= 0
+        return (
+          <div key={s.title} className="space-y-1" role="group" aria-labelledby={`floor-tools-${s.kind}`}>
+            <p id={`floor-tools-${s.kind}`} className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t(s.title)}
+            </p>
+            {s.tools.map(x => button(x.id, x.icon, disabled || full))}
+            {full && !disabled && (
+              <p className="px-3 pt-1 text-xs leading-relaxed text-muted-foreground" data-testid={`floor-tools-full-${s.kind}`}>
+                {t(`limits.${s.kind}`, { max: limits[s.kind] })}
+              </p>
+            )}
+          </div>
+        )
+      })}
       <p className="mt-auto px-3 text-xs leading-relaxed text-muted-foreground">{t('tools.hint')}</p>
     </aside>
   )

@@ -20,43 +20,49 @@ import { cn } from '@/lib/utils'
 import { getFloorPlan, publishFloorPlan } from '@/services/floorPlan.service'
 import { AreaTabs } from './editor/AreaTabs'
 import { FloorCanvas } from './editor/FloorCanvas'
+import { IconAction } from './editor/IconAction'
 import { Inspector } from './editor/Inspector'
-import { NewAreaDialog, type NewAreaRequest } from './editor/NewAreaDialog'
+import { NewAreaDialog } from './editor/NewAreaDialog'
+import { OpenOrdersBanner } from './editor/OpenOrdersBanner'
 import { ToolPalette } from './editor/ToolPalette'
 import { UnplacedTray } from './editor/UnplacedTray'
 import { WaiterPreview } from './editor/WaiterPreview'
+import { restorableNumbers, useEditorActions } from './editor/useEditorActions'
+import { MOD_KEY, TYPING, useEditorShortcuts, within } from './editor/useEditorShortcuts'
 import { editorReducer, initEditorState, type EditorAction } from './model/editorReducer'
-import { clamp, gridOf, nextTableNumber, nextTableNumbers, placeTable, quickStartLayout } from './model/floorGeometry'
+import { gridOf } from './model/floorGeometry'
+import { roomLeft } from './model/limits'
 import { docToPayload, dtoToDoc } from './model/planMapping'
-import type { DraftTable, EditorDoc, FloorPlanDto, TableShape, ToolId } from './model/types'
-
-const newKey = () => `tmp-${crypto.randomUUID()}`
-const ELEMENT_SIZE = { BAR_COUNTER: { w: 8, h: 2 }, SERVICE_AREA: { w: 8, h: 6 }, DOOR: { w: 3, h: 1 } } as const
-
-/** Campos donde las teclas son del texto: ni los atajos ni Esc del editor actúan ahí. */
-const TYPING = 'input, textarea, select, [contenteditable="true"]'
-/** Además, controles que ya usan flechas, Supr o letras (menús, listas, selects) y los avisos de confirmación. */
-const OWN_KEYS = `${TYPING}, [role="menu"], [role="listbox"], [role="combobox"], [aria-haspopup="menu"], [role="alertdialog"]`
-const within = (target: EventTarget | null, selector: string) => !!(target as HTMLElement | null)?.closest?.(selector)
+import type { EditorDoc, FloorPlanDto, ToolId } from './model/types'
 
 export interface FloorPlanEditorProps {
   plan: FloorPlanDto
   venueId: string
   venueName?: string
+  /** Pestaña que se abre primero (la tarjeta del área que se tocó en la página). */
+  initialAreaKey?: string | null
   onClose: () => void
 }
 
-export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlanEditorProps) {
+export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onClose }: FloorPlanEditorProps) {
   const { t } = useTranslation('floorPlan')
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const [state, dispatch] = useReducer(editorReducer, plan, p => initEditorState(dtoToDoc(p)))
-  const [base, setBase] = useState(plan.fingerprint)
+  const [state, dispatch] = useReducer(editorReducer, plan, p => {
+    const doc = dtoToDoc(p)
+    return initEditorState(doc, Math.max(0, doc.areas.findIndex(a => a.key === initialAreaKey)))
+  })
+  // El último plano que el servidor confirmó (al abrir, al guardar o al recargar): su huella va en el PUT, sus topes
+  // limitan lo que se agrega, y de él se regresan las mesas que un 422 no dejó quitar.
+  const [saved, setSaved] = useState(plan)
+  const savedTables = useMemo(() => dtoToDoc(saved).tables, [saved])
   const [tool, setTool] = useState<ToolId>('select')
   const [preview, setPreview] = useState(false)
   const [newAreaOpen, setNewAreaOpen] = useState(() => plan.areas.length === 0)
   const [confirmClose, setConfirmClose] = useState(false)
   const [conflict, setConflict] = useState(false)
+  /** Mesas que el servidor no dejó quitar (422 de cuenta abierta): el aviso se queda hasta regresarlas o cerrarlo. */
+  const [openOrders, setOpenOrders] = useState<string[] | null>(null)
   // El mismo folio mientras el borrador no cambie: un reintento tras un error de red no se confunde con «alguien más cambió».
   const attempt = useRef<{ doc: EditorDoc; saveId: string } | null>(null)
   // Mientras el servidor contesta, el plano no se toca: al llegar la respuesta se carga el plano guardado, y lo que se
@@ -85,131 +91,62 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
   const allNumbers = useMemo(() => doc.tables.map(x => x.number), [doc.tables])
   const selectedTables = useMemo(() => doc.tables.filter(x => selection.includes(x.key)), [doc.tables, selection])
   const selectedElements = useMemo(() => doc.elements.filter(e => selection.includes(e.key)), [doc.elements, selection])
+  const room = useMemo(() => roomLeft(doc, saved.limits), [doc, saved.limits])
 
-  const placeTool = useCallback(
-    (toolId: ToolId, x: number, y: number) => {
-      if (!activeArea || toolId === 'select' || toolId === 'WALL') return
-      const { cols, rows } = gridOf(activeArea.floorShape)
-      if (toolId.startsWith('table:')) {
-        const shape = toolId.slice(6) as TableShape
-        const capacity = shape === 'RECTANGLE' ? 6 : 4
-        edit({
-          type: 'ADD_TABLE',
-          table: {
-            key: newKey(),
-            number: nextTableNumber(allNumbers),
-            capacity,
-            shape,
-            rotation: 0,
-            areaKey: activeArea.key,
-            ...placeTable(x, y, shape, capacity, 0, cols, rows),
-            legacy: null,
-            hasOpenOrder: false,
-          },
-        })
-        return
-      }
-      if (toolId === 'LABEL') {
-        edit({
-          type: 'ADD_ELEMENT',
-          element: {
-            key: newKey(),
-            type: 'LABEL',
-            areaKey: activeArea.key,
-            x: clamp(x, 0, cols - 1),
-            y: clamp(y, 0, rows - 1),
-            w: null,
-            h: null,
-            rotation: 0,
-            x2: null,
-            y2: null,
-            label: t('elementDefaults.LABEL'),
-            color: null,
-          },
-        })
-        return
-      }
-      const type = toolId as keyof typeof ELEMENT_SIZE
-      const { w, h } = ELEMENT_SIZE[type]
-      edit({
-        type: 'ADD_ELEMENT',
-        element: {
-          key: newKey(),
-          type,
-          areaKey: activeArea.key,
-          x: clamp(Math.round(x - w / 2), 0, cols - w),
-          y: clamp(Math.round(y - h / 2), 0, rows - h),
-          w,
-          h,
-          rotation: 0,
-          x2: null,
-          y2: null,
-          label: type === 'DOOR' ? null : t(`elementDefaults.${type}`),
-          color: null,
-        },
-      })
-    },
-    [activeArea, allNumbers, edit, t],
-  )
-
-  const duplicate = useCallback(
-    (keys: string[]) => {
-      const numbers = [...allNumbers]
-      const clones = keys.map(sourceKey => {
-        const isTable = doc.tables.some(x => x.key === sourceKey)
-        const number = isTable ? nextTableNumber(numbers) : undefined
-        if (number) numbers.push(number)
-        return { sourceKey, key: newKey(), number }
-      })
-      edit({ type: 'DUPLICATE', clones })
-    },
-    [allNumbers, doc.tables, edit],
-  )
-
-  const remove = useCallback(
-    (keys: string[]) => {
-      if (saving.current) return
-      if (doc.tables.some(x => keys.includes(x.key) && x.hasOpenOrder)) toast({ title: t('inspector.removeBlocked') })
-      edit({ type: 'REMOVE', keys })
-    },
-    [doc.tables, edit, t, toast],
-  )
-
-  const createArea = (req: NewAreaRequest) => {
-    const key = newKey()
-    const g = gridOf(req.floorShape)
-    const tableShape: TableShape = req.capacity <= 4 ? 'SQUARE' : 'RECTANGLE'
-    const adopted = req.adopt ? doc.tables.filter(x => x.areaKey === null) : []
-    const slots = quickStartLayout(req.count + adopted.filter(a => !a.legacy).length, req.capacity, tableShape, req.floorShape)
-    let slot = 0
-    const created: DraftTable[] = nextTableNumbers(allNumbers, req.count).map(number => {
-      const p = slots[slot++]
-      return { key: newKey(), number, capacity: req.capacity, shape: tableShape, rotation: 0, areaKey: key, x: p?.x ?? null, y: p?.y ?? null, legacy: null, hasOpenOrder: false }
-    })
-    const moved: DraftTable[] = adopted.map(a => {
-      if (a.legacy) return { ...a, areaKey: key, legacy: null, ...placeTable(a.legacy.nx * g.cols, a.legacy.ny * g.rows, a.shape, a.capacity, a.rotation, g.cols, g.rows) }
-      const p = slots[slot++]
-      return { ...a, areaKey: key, ...(p ? placeTable(p.x, p.y, a.shape, a.capacity, a.rotation, g.cols, g.rows) : { x: null, y: null }) }
-    })
-    const added = edit({
-      type: 'ADD_AREA',
-      area: { key, name: req.name, floorShape: req.floorShape, sortOrder: doc.areas.length, external: false },
-      tables: [...created, ...moved],
-    })
-    // Si no se aplicó (había un guardado en curso), el diálogo sigue abierto con lo escrito: no se finge que se creó.
-    if (!added) return
-    setNewAreaOpen(false)
-    setPreview(false)
+  // Esc: primero suelta lo activo (herramienta, selección, vista del mesero); con nada activo, cierra (y con cambios,
+  // pregunta). Dentro de un campo es del campo. Lo usan el modal y los avisos (ver `notify`).
+  const escape = (target: EventTarget | null): 'field' | 'busy' | 'released' | 'close' => {
+    if (within(target, TYPING)) return 'field'
+    if (newAreaOpen || confirmClose || conflict) return 'busy'
+    if (tool !== 'select' || selection.length || inPreview) {
+      setTool('select')
+      dispatch({ type: 'SELECT', keys: [] })
+      setPreview(false)
+      return 'released'
+    }
+    return 'close'
   }
+  const requestClose = () => (dirty ? setConfirmClose(true) : onClose())
+  const escapeRef = useRef<(e: KeyboardEvent) => void>(() => {})
+  const lastEscape = useRef<KeyboardEvent | null>(null)
+  escapeRef.current = (e: KeyboardEvent) => {
+    // Radix entrega el mismo Esc dos veces si el aviso tiene el foco: se atiende una.
+    if (lastEscape.current === e) return
+    lastEscape.current = e
+    if (escape(e.target) === 'close') requestClose()
+  }
+  /**
+   * Un aviso del editor. Mientras está a la vista, Radix le da a él el Esc (es la capa de arriba) y el editor no lo
+   * recibía: tras «Plano guardado» hacían falta dos Esc para salir. Ahora ese Esc cierra el aviso Y sigue con lo que
+   * haría el editor (soltar lo activo o cerrar).
+   */
+  const notify = useCallback(
+    (opts: { title: string; description?: string; variant?: 'default' | 'destructive' }) =>
+      void toast({ ...opts, onEscapeKeyDown: (e: KeyboardEvent) => escapeRef.current(e) }),
+    [toast],
+  )
+
+  const { placeTool, createWall, duplicate, remove, createArea, restoreTables } = useEditorActions({
+    doc,
+    activeArea,
+    allNumbers,
+    edit,
+    notify,
+    room,
+    limits: saved.limits,
+    savedTables,
+  })
+  const restorable = useMemo(() => (openOrders ? restorableNumbers(openOrders, doc, savedTables) : []), [openOrders, doc, savedTables])
 
   const save = useMutation({
     // Online-only a propósito (spec §8): sin red se INTENTA y se avisa (también al recargar). Con el modo por defecto TanStack
     // lo pausaba si el navegador sabe que no hay red: «Guardando…» sin fin y, al volver, publicaba solo (prueba real 9-oct).
     networkMode: 'always',
-    // async: si armar el cuerpo truena (no debería: Guardar se apaga sin áreas), es un error del guardado, no un crash.
+    // async: si armar el cuerpo truena (no debería: Guardar se apaga mientras haya elementos sin área), es un error del
+    // guardado, no un crash.
     mutationFn: async () => {
       if (attempt.current?.doc !== doc) attempt.current = { doc, saveId: crypto.randomUUID() }
-      return publishFloorPlan(venueId, docToPayload(doc, attempt.current.saveId, base))
+      return publishFloorPlan(venueId, docToPayload(doc, attempt.current.saveId, saved.fingerprint))
     },
     onMutate: () => {
       saving.current = true
@@ -219,21 +156,20 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
     },
     onSuccess: result => {
       attempt.current = null
-      setBase(result.fingerprint)
+      setSaved(result)
+      setOpenOrders(null)
       dispatch({ type: 'LOAD', doc: dtoToDoc(result), activeIndex: Math.max(0, doc.areas.findIndex(a => a.key === activeAreaKey)) })
       queryClient.setQueryData(['floor-plan', venueId], result)
-      toast({ title: t('editor.saved') })
+      notify({ title: t('editor.saved') })
     },
     onError: error => {
       // Sin respuesta del servidor = no llegó (red). Cualquier otra cosa que no venga del servidor es un error genérico.
-      if (!isAxiosError(error)) return toast({ title: t('editor.genericError'), variant: 'destructive' })
-      if (!error.response) return toast({ title: t('editor.offline'), variant: 'destructive' })
+      if (!isAxiosError(error)) return notify({ title: t('editor.genericError'), variant: 'destructive' })
+      if (!error.response) return notify({ title: t('editor.offline'), variant: 'destructive' })
       const data = (error.response.data ?? {}) as { code?: string; message?: string; details?: { numbers?: string[] } }
       if (error.response.status === 409 && data.code === 'FLOOR_PLAN_CHANGED') return setConflict(true)
-      if (error.response.status === 422 && data.code === 'TABLES_WITH_OPEN_ORDERS') {
-        return toast({ title: t('editor.openOrders', { numbers: (data.details?.numbers ?? []).join(', ') }), variant: 'destructive' })
-      }
-      toast({ title: t('editor.genericError'), description: data.message, variant: 'destructive' })
+      if (error.response.status === 422 && data.code === 'TABLES_WITH_OPEN_ORDERS') return setOpenOrders(data.details?.numbers ?? [])
+      notify({ title: t('editor.genericError'), description: data.message, variant: 'destructive' })
     },
   })
 
@@ -246,12 +182,13 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
         networkMode: 'always',
       })
       attempt.current = null
-      setBase(fresh.fingerprint)
+      setSaved(fresh)
+      setOpenOrders(null)
       dispatch({ type: 'LOAD', doc: dtoToDoc(fresh) })
       setTool('select')
     } catch {
       // El aviso de conflicto ya se cerró: el borrador sigue aquí y el siguiente «Guardar» lo vuelve a ofrecer.
-      toast({ title: t('page.loadError'), variant: 'destructive' })
+      notify({ title: t('page.loadError'), variant: 'destructive' })
     } finally {
       setConflict(false)
     }
@@ -261,38 +198,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
     workspace.current?.toggleAttribute('inert', save.isPending)
   }, [save.isPending])
 
-  // Atajos de teclado (no actúan mientras se escribe en un campo, ni sobre menús, listas o avisos).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (within(e.target, OWN_KEYS)) return
-      if (newAreaOpen || confirmClose || conflict || inPreview || saving.current) return
-      const mod = e.metaKey || e.ctrlKey
-      const key = e.key.toLowerCase()
-      if (mod && key === 'z') {
-        e.preventDefault()
-        edit({ type: e.shiftKey ? 'REDO' : 'UNDO' })
-      } else if (mod && key === 'y') {
-        e.preventDefault()
-        edit({ type: 'REDO' })
-      } else if (mod && key === 'd') {
-        e.preventDefault()
-        if (selection.length) duplicate(selection)
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
-        e.preventDefault()
-        remove(selection)
-      } else if (key === 'r' && !mod && !e.altKey && selection.length) {
-        edit({ type: 'ROTATE', keys: selection })
-      } else if (e.key.startsWith('Arrow') && selection.length) {
-        e.preventDefault()
-        const step = e.shiftKey ? 5 : 1
-        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
-        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
-        edit({ type: 'MOVE', keys: selection, dx, dy })
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selection, duplicate, remove, edit, newAreaOpen, confirmClose, conflict, inPreview])
+  useEditorShortcuts({ enabled: !(newAreaOpen || confirmClose || conflict || inPreview || save.isPending), selection, edit, duplicate, remove })
 
   // Cerrar la pestaña con cambios sin guardar también pregunta.
   useEffect(() => {
@@ -305,20 +211,9 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [dirty])
 
-  const requestClose = () => (dirty ? setConfirmClose(true) : onClose())
   const onEscapeKeyDown = (e: KeyboardEvent) => {
-    // Esc dentro de un campo es del campo (p. ej. cancela el nombre nuevo de un área): nunca cierra el editor.
-    if (within(e.target, TYPING)) {
-      e.preventDefault()
-      return
-    }
-    // Esc primero suelta lo que esté activo; sólo con nada activo cierra (y con cambios, pregunta).
-    if (tool !== 'select' || selection.length || inPreview) {
-      e.preventDefault()
-      setTool('select')
-      dispatch({ type: 'SELECT', keys: [] })
-      setPreview(false)
-    }
+    // 'close' deja que el modal se cierre (y `onClose` del modal pregunta si hay cambios); lo demás no lo cierra.
+    if (escape(e.target) !== 'close') e.preventDefault()
   }
 
   return (
@@ -329,33 +224,35 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
       // Igual que el valor por defecto (no mover el foco al abrir), pero pasarlo le quita al contenedor el contorno de
       // foco: al hacer clic en el lienzo (que no recibe foco) el foco cae en el modal y lo enmarcaba en azul.
       onOpenAutoFocus={e => e.preventDefault()}
+      closeButtonTestId="floor-editor-close"
       title={t('editor.title')}
       subtitle={venueName}
       contentClassName="bg-muted/30"
       actions={
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="cursor-pointer"
-            aria-label={t('editor.undo')}
+          {dirty && !save.isPending && (
+            <span className="mr-1 hidden text-xs text-muted-foreground xl:inline" data-testid="floor-plan-unsaved">
+              {t('editor.unsaved')}
+            </span>
+          )}
+          <IconAction
+            label={t('editor.undo')}
+            shortcut={`${MOD_KEY} Z`}
             disabled={!state.past.length || save.isPending}
             onClick={() => edit({ type: 'UNDO' })}
+            data-tour="floor-plan-undo"
           >
             <Undo2 className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="cursor-pointer"
-            aria-label={t('editor.redo')}
+          </IconAction>
+          <IconAction
+            label={t('editor.redo')}
+            shortcut={`${MOD_KEY} ⇧ Z`}
             disabled={!state.future.length || save.isPending}
             onClick={() => edit({ type: 'REDO' })}
+            data-tour="floor-plan-redo"
           >
             <Redo2 className="h-4 w-4" />
-          </Button>
+          </IconAction>
           <Button
             type="button"
             variant={inPreview ? 'secondary' : 'outline'}
@@ -391,6 +288,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
           areas={doc.areas}
           activeKey={activeAreaKey}
           tableCount={tableCount}
+          maxAreas={saved.limits.areas}
           onSelect={key => dispatch({ type: 'SET_ACTIVE_AREA', key })}
           onAdd={() => setNewAreaOpen(true)}
           onRename={(key, name) => edit({ type: 'UPDATE_AREA', key, patch: { name } })}
@@ -398,11 +296,21 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
           onMove={(key, direction) => edit({ type: 'MOVE_AREA', key, direction })}
           onRemove={key => edit({ type: 'REMOVE_AREA', key })}
         />
+        {openOrders && (
+          <OpenOrdersBanner
+            numbers={openOrders}
+            canRestore={restorable.length > 0}
+            onRestore={() => {
+              if (restoreTables(openOrders)) setOpenOrders(null)
+            }}
+            onDismiss={() => setOpenOrders(null)}
+          />
+        )}
         {inPreview && activeArea ? (
           <WaiterPreview area={activeArea} tables={areaTables} elements={areaElements} />
         ) : (
           <div className="grid min-h-0 flex-1 grid-cols-[13rem_minmax(0,1fr)_18rem] gap-3">
-            <ToolPalette tool={tool} onTool={setTool} disabled={!activeArea} />
+            <ToolPalette tool={tool} onTool={setTool} disabled={!activeArea} room={room} limits={saved.limits} />
             <div className="flex min-h-0 flex-col gap-3">
               {activeArea ? (
                 <FloorCanvas
@@ -414,19 +322,17 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
                   onSelect={keys => dispatch({ type: 'SELECT', keys })}
                   onMove={(keys, dx, dy) => edit({ type: 'MOVE', keys, dx, dy })}
                   onPlaceTool={placeTool}
-                  onCreateWall={(x1, y1, x2, y2) =>
-                    edit({
-                      type: 'ADD_ELEMENT',
-                      element: { key: newKey(), type: 'WALL', areaKey: activeArea.key, x: x1, y: y1, w: null, h: null, rotation: 0, x2, y2, label: null, color: null },
-                    })
-                  }
+                  onCreateWall={createWall}
                   onPlaceTable={(key, x, y) => edit({ type: 'PLACE_TABLE', key, areaKey: activeArea.key, x, y })}
                   onToolDone={() => setTool('select')}
                 />
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-input bg-card">
-                  <p className="text-sm text-muted-foreground">{t('editor.noArea')}</p>
-                  <Button className="cursor-pointer" onClick={() => setNewAreaOpen(true)} data-tour="floor-plan-create-area">
+                <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-input bg-card px-6 text-center">
+                  <div className="space-y-1">
+                    <p className="text-base font-semibold">{t('editor.noAreaTitle')}</p>
+                    <p className="mx-auto max-w-sm text-sm text-muted-foreground">{t(orphanElements ? 'editor.orphans' : 'editor.noArea')}</p>
+                  </div>
+                  <Button className="cursor-pointer" onClick={() => setNewAreaOpen(true)} disabled={room.areas <= 0} data-tour="floor-plan-create-area">
                     <Plus className="mr-2 h-4 w-4" />
                     {t('editor.createArea')}
                   </Button>
@@ -461,8 +367,14 @@ export function FloorPlanEditor({ plan, venueId, venueName, onClose }: FloorPlan
         first={doc.areas.length === 0}
         existingNames={doc.areas.map(a => a.name)}
         adoptCount={doc.tables.filter(x => x.areaKey === null).length}
+        maxTables={room.tables}
         onCancel={() => setNewAreaOpen(false)}
-        onCreate={createArea}
+        onCreate={req => {
+          // Si no se aplicó (guardado en curso o sin lugar), el diálogo sigue abierto con lo escrito: no se finge que se creó.
+          if (!createArea(req)) return
+          setNewAreaOpen(false)
+          setPreview(false)
+        }}
       />
 
       <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>

@@ -31,6 +31,8 @@ export interface AreaTabsProps {
   areas: DraftArea[]
   activeKey: string | null
   tableCount: Record<string, number>
+  /** Tope de áreas del plano: al llegar, «Nueva área» se apaga y lo dice. */
+  maxAreas: number
   onSelect: (key: string) => void
   onAdd: () => void
   onRename: (key: string, name: string) => void
@@ -41,9 +43,12 @@ export interface AreaTabsProps {
 
 const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase('es-MX') === b.trim().toLocaleLowerCase('es-MX')
 
-export function AreaTabs({ areas, activeKey, tableCount, onSelect, onAdd, onRename, onShape, onMove, onRemove }: AreaTabsProps) {
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background'
+
+export function AreaTabs({ areas, activeKey, tableCount, maxAreas, onSelect, onAdd, onRename, onShape, onMove, onRemove }: AreaTabsProps) {
   const { t } = useTranslation('floorPlan')
-  const [editing, setEditing] = useState<{ key: string; name: string } | null>(null)
+  // `error`: por qué no se puede guardar ese nombre (vacío o repetido). El campo se queda abierto hasta corregirlo o Esc.
+  const [editing, setEditing] = useState<{ key: string; name: string; error?: string } | null>(null)
   // Enter cierra el campo y luego llega su `blur`: sin esto el nombre se guardaría dos veces (dos pasos de deshacer).
   const editingKey = useRef<string | null>(null)
   // El área que se va a borrar se conserva mientras el aviso se cierra, para que su nombre no parpadee vacío.
@@ -62,10 +67,16 @@ export function AreaTabs({ areas, activeKey, tableCount, onSelect, onAdd, onRena
     if (!editing || editingKey.current !== editing.key) return
     const name = editing.name.trim()
     const current = areas.find(a => a.key === editing.key)
-    const taken = areas.some(a => a.key !== editing.key && sameName(a.name, name))
-    if (name && !taken && current && current.name !== name) onRename(editing.key, name)
+    // Antes se descartaba en silencio: ahora se dice por qué y el campo sigue abierto.
+    const error = !name ? t('newArea.nameRequired') : areas.some(a => a.key !== editing.key && sameName(a.name, name)) ? t('newArea.nameTaken') : undefined
+    if (error) {
+      setEditing({ ...editing, error })
+      return
+    }
+    if (current && current.name !== name) onRename(editing.key, name)
     stopEditing()
   }
+  const atLimit = areas.length >= maxAreas
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-tour="floor-plan-areas">
@@ -75,26 +86,40 @@ export function AreaTabs({ areas, activeKey, tableCount, onSelect, onAdd, onRena
             const active = a.key === activeKey
             const tables = tableCount[a.key] ?? 0
             if (editing?.key === a.key) {
+              const errorId = `floor-area-rename-error-${i}`
               return (
-                <Input
-                  key={a.key}
-                  autoFocus
-                  value={editing.name}
-                  maxLength={60}
-                  aria-label={t('areas.rename')}
-                  onChange={e => setEditing({ key: a.key, name: e.target.value })}
-                  onBlur={commitRename}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') commitRename()
-                    if (e.key === 'Escape') {
-                      // El editor no se cierra con este Esc (ver FloorPlanEditor): sólo se cancela el cambio de nombre.
-                      e.stopPropagation()
-                      stopEditing()
-                    }
-                  }}
-                  className="h-8 w-40 rounded-full"
-                  data-testid="floor-area-rename"
-                />
+                <div key={a.key} className="relative">
+                  <Input
+                    autoFocus
+                    value={editing.name}
+                    maxLength={60}
+                    aria-label={t('areas.rename')}
+                    aria-invalid={!!editing.error}
+                    aria-describedby={editing.error ? errorId : undefined}
+                    onChange={e => setEditing({ key: a.key, name: e.target.value })}
+                    onBlur={commitRename}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitRename()
+                      if (e.key === 'Escape') {
+                        // El editor no se cierra con este Esc (ver FloorPlanEditor): sólo se cancela el cambio de nombre.
+                        e.stopPropagation()
+                        stopEditing()
+                      }
+                    }}
+                    className="h-8 w-44 rounded-full"
+                    data-testid="floor-area-rename"
+                  />
+                  {editing.error && (
+                    <p
+                      id={errorId}
+                      role="alert"
+                      className="absolute left-2 top-full z-10 mt-1.5 whitespace-nowrap rounded-md bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground shadow-md"
+                      data-testid="floor-area-rename-error"
+                    >
+                      {editing.error}
+                    </p>
+                  )}
+                </div>
               )
             }
             return (
@@ -103,15 +128,23 @@ export function AreaTabs({ areas, activeKey, tableCount, onSelect, onAdd, onRena
                   type="button"
                   onClick={() => onSelect(a.key)}
                   onDoubleClick={() => startEditing(a)}
+                  aria-pressed={active}
+                  title={t('areas.renameHint')}
                   data-testid={`floor-area-tab-${a.name}`}
-                  className={cn('cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium', !active && 'text-muted-foreground hover:text-foreground')}
+                  className={cn('cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium', FOCUS_RING, !active && 'text-muted-foreground hover:text-foreground')}
                 >
                   {a.name}
+                  <span className="sr-only">{t('areas.tableCount', { count: tables })}</span>
                 </button>
                 {active && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" aria-label={t('areas.options')} className="mr-1 cursor-pointer rounded-full p-1 hover:bg-background/20">
+                      <button
+                        type="button"
+                        aria-label={t('areas.options', { name: a.name })}
+                        className={cn('mr-0.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full hover:bg-background/20', FOCUS_RING)}
+                        data-tour="floor-plan-area-options"
+                      >
                         <Ellipsis className="h-4 w-4" />
                       </button>
                     </DropdownMenuTrigger>
@@ -159,10 +192,23 @@ export function AreaTabs({ areas, activeKey, tableCount, onSelect, onAdd, onRena
           })}
         </div>
       )}
-      <Button type="button" variant="outline" size="sm" className="cursor-pointer rounded-full border-dashed" onClick={onAdd} data-tour="floor-plan-add-area">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-9 cursor-pointer rounded-full border-dashed"
+        onClick={onAdd}
+        disabled={atLimit}
+        data-tour="floor-plan-add-area"
+      >
         <Plus className="mr-1 h-4 w-4" />
         {t('areas.add')}
       </Button>
+      {atLimit && (
+        <span className="text-xs text-muted-foreground" data-testid="floor-areas-full">
+          {t('limits.areas', { max: maxAreas })}
+        </span>
+      )}
       {areas.find(a => a.key === activeKey)?.external && <Badge variant="outline">{t('page.fromPos')}</Badge>}
 
       <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>

@@ -144,7 +144,7 @@ describe('FloorPlanEditor', () => {
     expect(await screen.findByText('editor.conflictTitle')).toBeInTheDocument()
   })
 
-  it('un 422 dice qué mesas tienen cuenta abierta; un error que no es de red no se disfraza de «sin conexión»', async () => {
+  it('un 422 dice qué mesas tienen cuenta abierta (aviso que se queda); un error que no es de red no se disfraza de «sin conexión»', async () => {
     const user = userEvent.setup()
     publish
       .mockRejectedValueOnce(
@@ -157,7 +157,9 @@ describe('FloorPlanEditor', () => {
     renderEditor()
     await crearArea(user, { blank: true })
     await user.click(screen.getByTestId('floor-plan-save'))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.openOrders:4, 7', variant: 'destructive' })))
+    expect(await screen.findByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:4, 7')
+    // 4 y 7 no estaban en el plano guardado (vacío): no hay nada que regresar, así que no se ofrece.
+    expect(screen.queryByTestId('floor-plan-restore-tables')).not.toBeInTheDocument()
     await user.click(screen.getByTestId('floor-plan-save'))
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.genericError', variant: 'destructive' })))
     expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.offline' }))
@@ -319,5 +321,135 @@ describe('FloorPlanEditor', () => {
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByTestId('new-area-name')).not.toBeInTheDocument())
     expect(screen.queryByTestId('floor-plan-unplaced')).not.toBeInTheDocument()
+  })
+  it('H2: tras un 422 de cuenta abierta, «Regresar las mesas» repone las que nombró el servidor tal como estaban, en un paso', async () => {
+    const user = userEvent.setup()
+    publish.mockRejectedValueOnce(
+      Object.assign(new Error('Unprocessable'), {
+        isAxiosError: true,
+        response: { status: 422, data: { code: 'TABLES_WITH_OPEN_ORDERS', message: 'x', details: { numbers: ['2'] } } },
+      }),
+    )
+    renderEditor(dosMesas)
+    seleccionarMesa('2')
+    await user.keyboard('{Delete}')
+    expect(screen.queryByTestId('floor-table-2')).not.toBeInTheDocument()
+    await user.click(screen.getByTestId('floor-plan-save'))
+    expect(await screen.findByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:2')
+    expect(publish.mock.calls[0][1].tables.map(t => t.id)).toEqual(['t1'])
+    await user.click(screen.getByTestId('floor-plan-restore-tables'))
+    expect(screen.queryByTestId('floor-plan-open-orders')).not.toBeInTheDocument()
+    // Donde estaba en el plano guardado (0.8 × 40 = 32; 0.5 × 25 = 12.5), con su punto de cuenta abierta y seleccionada.
+    expect(screen.getByTestId('floor-table-2')).toHaveAttribute('transform', 'rotate(0 32 12.5)')
+    expect(screen.getByTestId('floor-open-order-2')).toBeInTheDocument()
+    expect(screen.getByText('inspector.table:2')).toBeInTheDocument()
+    // Ya se sabe que tiene cuenta: Supr no la vuelve a quitar.
+    await user.keyboard('{Delete}')
+    expect(screen.getByTestId('floor-table-2')).toBeInTheDocument()
+    // Regresarla es UN paso de deshacer.
+    await user.click(screen.getByRole('button', { name: 'editor.undo' }))
+    expect(screen.queryByTestId('floor-table-2')).not.toBeInTheDocument()
+  })
+
+  it('Esc con un aviso a la vista (p. ej. «Plano guardado») lo cierra Y sigue con lo del editor: un solo Esc para salir', async () => {
+    const user = userEvent.setup()
+    publish.mockResolvedValueOnce({ ...withTable, tables: [{ ...mesa1, rotation: 45 }], fingerprint: 'cccccccccccccccc', publicationId: 'p2', replayed: false })
+    const { onClose } = renderEditor(withTable)
+    seleccionarMesa('1')
+    await user.keyboard('r')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'editor.saved' })))
+    const aviso = toast.mock.calls.find(([o]) => o.title === 'editor.saved')?.[0] as { onEscapeKeyDown: (e: KeyboardEvent) => void }
+    // Radix le da el Esc al aviso (es la capa de arriba). Antes el editor no se enteraba y hacían falta dos.
+    await user.click(screen.getByTestId('floor-tool-WALL'))
+    const primero = new KeyboardEvent('keydown', { key: 'Escape' })
+    aviso.onEscapeKeyDown(primero)
+    aviso.onEscapeKeyDown(primero) // el mismo Esc entregado dos veces (aviso con el foco) cuenta una sola vez
+    await waitFor(() => expect(screen.getByTestId('floor-tool-WALL')).toHaveAttribute('aria-pressed', 'false'))
+    expect(onClose).not.toHaveBeenCalled()
+    aviso.onEscapeKeyDown(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('con el plano en el tope (limits del servidor) no deja agregar más y lo dice', async () => {
+    const user = userEvent.setup()
+    renderEditor({ ...dosMesas, limits: { areas: 1, tables: 2, elements: 1 } })
+    expect(screen.getByTestId('floor-tool-table:SQUARE')).toBeDisabled()
+    expect(screen.getByTestId('floor-tools-full-tables')).toHaveTextContent('limits.tables')
+    expect(screen.getByTestId('floor-tool-WALL')).toBeDisabled()
+    expect(screen.getByTestId('floor-tools-full-elements')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'areas.add' })).toBeDisabled()
+    expect(screen.getByTestId('floor-areas-full')).toHaveTextContent('limits.areas')
+    seleccionarMesa('1')
+    await user.keyboard('{Control>}d{/Control}')
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'limits.tables' }))
+    expect(screen.getAllByTestId(/^floor-table-/)).toHaveLength(2)
+  })
+
+  it('renombrar un área con nombre vacío o repetido dice por qué y deja el campo abierto', async () => {
+    const user = userEvent.setup()
+    renderEditor({ ...withArea, areas: [...withArea.areas, { id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, externalId: null }] })
+    await user.dblClick(screen.getByTestId('floor-area-tab-Salón'))
+    const campo = screen.getByTestId('floor-area-rename')
+    await user.clear(campo)
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('floor-area-rename-error')).toHaveTextContent('newArea.nameRequired')
+    expect(screen.getByTestId('floor-area-rename')).toHaveAttribute('aria-invalid', 'true')
+    await user.type(campo, ' terraza ')
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('floor-area-rename-error')).toHaveTextContent('newArea.nameTaken')
+    expect(screen.queryByTestId('floor-area-tab-Salón')).not.toBeInTheDocument() // sigue editándose
+    await user.clear(campo)
+    await user.type(campo, 'Patio')
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('floor-area-tab-Patio')).toBeInTheDocument()
+    expect(screen.queryByTestId('floor-area-rename-error')).not.toBeInTheDocument()
+  })
+
+  it('un letrero o una mesa con espacios de más no cuentan como cambio al deseleccionarlos', async () => {
+    const user = userEvent.setup()
+    renderEditor({ ...dosMesas, tables: [{ ...mesa1, number: ' 1 ' }], elements: [{ ...letrero, label: ' Terraza ' }] })
+    seleccionar('floor-element-e1')
+    seleccionar('floor-table- 1') // (Testing Library recorta los espacios del testid)
+    // El número con el foco y luego fuera: antes chocaba consigo mismo («Ya hay una mesa 1»).
+    await user.click(screen.getByTestId('floor-inspector-number'))
+    await user.tab()
+    expect(screen.queryByText(/inspector.numberTaken/)).not.toBeInTheDocument()
+    seleccionar('floor-element-e1')
+    expect(screen.getByRole('button', { name: 'editor.undo' })).toBeDisabled()
+    expect(screen.getByTestId('floor-plan-save')).toBeDisabled()
+  })
+
+  it('una flecha sostenida es UN paso de deshacer, y deshacer vuelve a la pestaña donde se hizo el cambio', async () => {
+    const user = userEvent.setup()
+    const dosAreas: FloorPlanDto = {
+      ...withArea,
+      areas: [...withArea.areas, { id: 'a2', name: 'Terraza', floorShape: 'WIDE', sortOrder: 1, externalId: null }],
+      tables: [mesa1, { ...mesa1, id: 't2', number: '2', areaId: 'a2' }],
+    }
+    renderEditor(dosAreas)
+    seleccionarMesa('1')
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    for (let i = 0; i < 3; i++) fireEvent.keyDown(window, { key: 'ArrowRight', repeat: true })
+    expect(screen.getByTestId('floor-table-1')).toHaveAttribute('transform', 'rotate(0 24 12.5)')
+    // Otra pestaña; deshacer regresa a Salón para que se VEA lo que se deshizo.
+    await user.click(screen.getByTestId('floor-area-tab-Terraza'))
+    expect(screen.queryByTestId('floor-table-1')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'editor.undo' }))
+    expect(screen.getByTestId('floor-table-1')).toHaveAttribute('transform', 'rotate(0 20 12.5)')
+    expect(screen.getByRole('button', { name: 'editor.undo' })).toBeDisabled() // la ráfaga entera era un solo paso
+  })
+
+  it('deshacer/rehacer, el lienzo y el inspector tienen nombre y data-tour', () => {
+    renderEditor(withTable)
+    expect(screen.getByRole('button', { name: 'editor.undo' })).toHaveAttribute('data-tour', 'floor-plan-undo')
+    expect(screen.getByRole('button', { name: 'editor.redo' })).toHaveAttribute('data-tour', 'floor-plan-redo')
+    expect(screen.getByRole('img', { name: 'canvas.label' })).toBe(screen.getByTestId('floor-canvas'))
+    seleccionarMesa('1')
+    expect(screen.getByRole('button', { name: 'inspector.duplicate' })).toHaveAttribute('data-tour', 'floor-plan-inspector-duplicate')
+    expect(screen.getByTestId('floor-inspector-remove')).toHaveAttribute('data-tour', 'floor-plan-inspector-remove')
+    expect(screen.getByTestId('floor-inspector-capacity')).toHaveAttribute('data-tour', 'floor-plan-inspector-capacity')
+    // El campo del número tiene su etiqueta de verdad.
+    expect(screen.getByLabelText('inspector.number')).toBe(screen.getByTestId('floor-inspector-number'))
   })
 })

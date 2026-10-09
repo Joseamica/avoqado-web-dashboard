@@ -8,12 +8,23 @@
     "emptyBody": "En un minuto acomodas tus mesas, paredes, barra y cocina. Tu equipo lo verá igual en el punto de venta.",
     "loadError": "No pudimos cargar el plano.",
     "retry": "Reintentar",
-    "areaSummary": "{{tables}} mesas · {{seats}} lugares",
-    "unplaced": "{{count}} mesas sin acomodar",
+    "areaSummary": "{{tables}} · {{seats}}",
     "noPermission": "Para cambiar el plano pide a tu administrador el permiso «Configurar mesas y plano».",
     "narrow": "Para editar el plano, ábrelo en una computadora.",
     "overLimit": "Este plano es más grande de lo que el editor permite. Escríbenos y lo revisamos contigo.",
-    "fromPos": "Viene de SoftRestaurant"
+    "fromPos": "Viene de SoftRestaurant",
+    "tables_one": "{{count}} mesa",
+    "tables_other": "{{count}} mesas",
+    "seats_one": "{{count}} lugar",
+    "seats_other": "{{count}} lugares",
+    "unplaced_one": "{{count}} mesa sin acomodar",
+    "unplaced_other": "{{count}} mesas sin acomodar",
+    "unplacedHint_one": "No tiene área, así que tu equipo no la ve en el plano.",
+    "unplacedHint_other": "No tienen área, así que tu equipo no las ve en el plano.",
+    "unplacedAction_one": "Acomodarla",
+    "unplacedAction_other": "Acomodarlas",
+    "editArea": "Editar",
+    "editAreaLabel": "Editar el área {{name}}"
   },
   "editor": {
     "title": "Plano de mesas",
@@ -31,19 +42,25 @@
     "conflictTitle": "Alguien más cambió el plano",
     "conflictBody": "Mientras editabas, otra persona (o una terminal) guardó cambios. Recarga para verlos; tus cambios se perderán.",
     "reload": "Recargar el plano",
-    "openOrders": "No se pueden quitar mesas con cuenta abierta: {{numbers}}. Ciérralas primero.",
     "offline": "No se guardó: no hay conexión. Tus cambios siguen aquí; vuelve a intentarlo.",
     "genericError": "No se pudo guardar el plano.",
-    "noArea": "Crea un área para empezar a dibujar.",
-    "createArea": "Crear área"
+    "noArea": "Crea un área (salón, terraza, barra…) para empezar a dibujar.",
+    "createArea": "Crear área",
+    "unsaved": "Cambios sin guardar",
+    "noAreaTitle": "Todavía no hay áreas",
+    "orphans": "Tienes paredes o elementos de antes sin área. Se acomodan en la primera área que crees; hasta entonces no se puede guardar."
   },
   "canvas": {
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
-    "fit": "Ver todo"
+    "fit": "Ver todo",
+    "label": "Plano del área {{name}}",
+    "overlap_one": "{{count}} mesa encimada",
+    "overlap_other": "{{count}} mesas encimadas",
+    "overlapShow": "Ver cuáles"
   },
   "areas": {
-    "add": "Área",
+    "add": "Nueva área",
     "rename": "Cambiar nombre",
     "shape": "Forma del lugar",
     "moveLeft": "Mover a la izquierda",
@@ -53,7 +70,10 @@
     "deleteTitle": "¿Borrar «{{name}}»?",
     "deleteBody": "Se borran sus paredes y elementos. No tiene mesas.",
     "deleteConfirm": "Borrar",
-    "options": "Opciones del área"
+    "options": "Opciones del área {{name}}",
+    "renameHint": "Doble clic para cambiar el nombre",
+    "tableCount_one": "{{count}} mesa",
+    "tableCount_other": "{{count}} mesas"
   },
   "shapes": {
     "WIDE": "Ancho",
@@ -72,19 +92,13 @@
     "SERVICE_AREA": "Cocina / Baño",
     "DOOR": "Puerta",
     "LABEL": "Letrero",
-    "hint": "Arrastra al plano, o haz clic aquí y luego toca el plano.",
-    "placeHint": "Toca el plano donde quieras ponerlo. Esc para cancelar.",
-    "wallHint": "Clic donde empieza y clic donde termina. Doble clic o Esc para terminar."
+    "hint": "Arrastra una pieza al plano, o haz clic en ella y luego en el plano.",
+    "placeHint": "Haz clic en el plano donde quieras ponerla. Esc para cancelar.",
+    "wallHint": "Clic donde empieza y clic donde termina. Doble clic o Esc para terminar.",
+    "palette": "Herramientas"
   },
   "inspector": {
-    "nothing": "Toca una mesa o un elemento para cambiarlo.",
-    "shortcuts": "Atajos",
-    "shortcutMove": "Flechas: mover (Shift: más rápido)",
-    "shortcutRotate": "R: girar",
-    "shortcutDuplicate": "Ctrl+D: copiar",
-    "shortcutDelete": "Supr: quitar",
-    "shortcutUndo": "Ctrl+Z: deshacer",
-    "shortcutPan": "Espacio + arrastrar: mover el plano",
+    "nothing": "Haz clic en una mesa o un elemento del plano para cambiarlo.",
     "duplicate": "Copiar",
     "table": "Mesa {{number}}",
     "number": "Número",
@@ -104,16 +118,20 @@
     "label": "Nombre",
     "width": "Ancho",
     "height": "Alto",
-    "removeElement": "Quitar",
-    "many": "{{count}} seleccionados",
+    "removeElement": "Quitar del plano",
     "rotateAll": "Girar todos",
     "removeMany": "Quitar seleccionados",
-    "openOrder": "Cuenta abierta"
+    "openOrder": "Cuenta abierta",
+    "many_one": "{{count}} seleccionado",
+    "many_other": "{{count}} seleccionados",
+    "manyHint": "Lo que hagas aquí se aplica a todo lo seleccionado.",
+    "rotateBy": "Girar 45° (ahora {{degrees}}°)"
   },
   "tray": {
-    "title": "Sin acomodar",
-    "hint": "Arrástralas al plano o tócalas para ponerlas al centro.",
-    "empty": "Todas las mesas están en el plano."
+    "hint": "Arrástralas al plano, o haz clic en una para ponerla al centro.",
+    "title_one": "{{count}} mesa sin acomodar",
+    "title_other": "{{count}} mesas sin acomodar",
+    "place": "Poner la mesa {{number}} en el plano"
   },
   "newArea": {
     "titleFirst": "Crea tu primera área",
@@ -125,11 +143,15 @@
     "tables": "¿Cuántas mesas para empezar?",
     "tablesOf": "mesas de",
     "people": "personas",
-    "adopt": "Acomodar mis {{count}} mesas que ya existen",
     "create": "Crear y acomodar",
     "blank": "Empezar en blanco",
     "nameRequired": "Ponle un nombre",
-    "nameTaken": "Ya hay un área con ese nombre"
+    "nameTaken": "Ya hay un área con ese nombre",
+    "adopt_one": "Acomodar mi mesa que ya existe",
+    "adopt_other": "Acomodar mis {{count}} mesas que ya existen",
+    "room_one": "Cabe {{count}} mesa más en tu plano.",
+    "room_other": "Caben {{count}} mesas más en tu plano.",
+    "noRoom": "Tu plano ya tiene el máximo de mesas: crea el área en blanco o acomoda las que ya tienes."
   },
   "preview": {
     "title": "Así lo verá tu equipo",
@@ -143,5 +165,37 @@
     "SERVICE_AREA": "Cocina",
     "BAR_COUNTER": "Barra",
     "LABEL": "Terraza"
+  },
+  "shortcuts": {
+    "title": "Atajos de teclado",
+    "selectMany": "Elegir varias",
+    "move": "Mover",
+    "moveFast": "Mover 5 cuadros",
+    "rotate": "Girar",
+    "duplicate": "Copiar",
+    "remove": "Quitar",
+    "undo": "Deshacer",
+    "pan": "Mover el plano"
+  },
+  "keys": {
+    "shift": "Shift",
+    "click": "clic",
+    "delete": "Supr",
+    "space": "Espacio",
+    "drag": "arrastrar"
+  },
+  "limits": {
+    "tables": "Llegaste al máximo de {{max}} mesas.",
+    "elements": "Llegaste al máximo de {{max}} elementos (paredes, barras, letreros…).",
+    "areas": "Llegaste al máximo de {{max}} áreas."
+  },
+  "openOrders": {
+    "title_one": "La mesa {{numbers}} tiene una cuenta abierta",
+    "title_other": "Las mesas {{numbers}} tienen una cuenta abierta",
+    "body_one": "No se guardó: mientras su cuenta siga abierta no se puede quitar del plano. Regrésala, o cierra la cuenta y vuelve a guardar.",
+    "body_other": "No se guardó: mientras sus cuentas sigan abiertas no se pueden quitar del plano. Regrésalas, o cierra las cuentas y vuelve a guardar.",
+    "restore_one": "Regresar la mesa",
+    "restore_other": "Regresar las mesas",
+    "dismiss": "Cerrar aviso"
   }
 }
