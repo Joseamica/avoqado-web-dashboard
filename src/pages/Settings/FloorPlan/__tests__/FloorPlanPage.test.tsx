@@ -135,7 +135,10 @@ describe('Configuración → Mesas y plano', () => {
   it('tocar la tarjeta de un área abre el editor EN esa área; «Acomodarlas» lo abre en la primera', async () => {
     get.mockResolvedValue(conSalon)
     pintar()
-    await userEvent.click(await screen.findByTestId('floor-plan-area-Terraza'))
+    const terraza = await screen.findByTestId('floor-plan-area-Terraza')
+    // M5: ninguna clase con «card» (src/theme.css:78 `.dark [class*='card']` se comería el hover en oscuro).
+    expect(terraza.getAttribute('class')).not.toMatch(/card/)
+    await userEvent.click(terraza)
     expect(screen.getByTestId('editor-abierto')).toHaveAttribute('data-area', 'a2')
     await userEvent.click(screen.getByRole('button', { name: 'page.unplacedAction:1' }))
     expect(screen.getByTestId('editor-abierto')).toHaveAttribute('data-area', '')

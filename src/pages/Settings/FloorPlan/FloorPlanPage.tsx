@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, ArrowRight, Inbox, LayoutGrid, Pencil, RotateCcw } from 'lucide-react'
@@ -146,6 +146,8 @@ export default function FloorPlanSettings() {
   )
 }
 
+const AREA_SURFACE = { '--floor-area-surface': 'var(--card)' } as CSSProperties
+
 /** Cada área con su miniatura. Si se puede editar, la tarjeta entera abre el editor EN esa área. */
 function AreaCards({ doc, onOpen }: { doc: EditorDoc; onOpen?: (areaKey: string | null) => void }) {
   const { t } = useTranslation('floorPlan')
@@ -183,16 +185,19 @@ function AreaCards({ doc, onOpen }: { doc: EditorDoc; onOpen?: (areaKey: string 
               </div>
             </>
           )
-          const cardClass = 'space-y-3 rounded-2xl border border-input bg-card p-4 text-left'
+          // Sin ninguna clase que contenga «card»: `.dark [class*='card']` (src/theme.css:78, global y sin capa) se come en
+          // oscuro el fondo, el borde y el hover. El color de tarjeta llega por una variable propia.
+          const cardClass = 'space-y-3 rounded-2xl border border-input bg-(--floor-area-surface) p-4 text-left'
           return onOpen ? (
             <button
               key={a.key}
               type="button"
               onClick={() => onOpen(a.key)}
               aria-label={t('page.editAreaLabel', { name: a.name })}
+              style={AREA_SURFACE}
               className={cn(
                 cardClass,
-                'group w-full cursor-pointer transition-colors hover:border-foreground/30 hover:bg-muted/20',
+                'group w-full cursor-pointer transition-colors hover:border-foreground/30 hover:bg-muted/40',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               )}
               data-testid={`floor-plan-area-${a.name}`}
@@ -201,7 +206,7 @@ function AreaCards({ doc, onOpen }: { doc: EditorDoc; onOpen?: (areaKey: string 
               {body}
             </button>
           ) : (
-            <div key={a.key} className={cardClass} data-testid={`floor-plan-area-${a.name}`}>
+            <div key={a.key} style={AREA_SURFACE} className={cardClass} data-testid={`floor-plan-area-${a.name}`}>
               {body}
             </div>
           )
