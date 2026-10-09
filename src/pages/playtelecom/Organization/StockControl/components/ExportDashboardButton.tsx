@@ -41,6 +41,8 @@ interface Props {
   disabled?: boolean
 }
 
+const IN_HAND_STATES: Array<'PROMOTER_HELD' | 'PROMOTER_PENDING'> = ['PROMOTER_HELD', 'PROMOTER_PENDING']
+
 const COL_LABEL: Record<keyof ResponsibleCounts, string> = {
   assigned: 'Asignados',
   receptionApproved: 'Recepción aprobada',
@@ -92,18 +94,20 @@ export function ExportDashboardButton({ data, orgId, params, items, receivingVen
 
       // Mismos filtros que la tabla, y el mismo criterio de "en mano". Si la
       // pantalla ya no materializó todo el inventario (flujo nuevo), se recorren
-      // páginas acotadas sólo después de este clic.
+      // páginas acotadas sólo después de este clic. "En mano" = aceptado O
+      // pendiente de aceptar: el promotor sin TPV nunca acepta y sí trae los SIMs
+      // (mismo criterio que el servidor, `orgInventoryByResponsible.service`).
       const completeItems =
         items ??
         (await getAllOrgStockItemsForExport(orgId, {
           ...params,
-          custodyState: 'PROMOTER_HELD',
+          custodyStates: IN_HAND_STATES,
           categoryId: categoryId ?? undefined,
           registeredFromVenueId: receivingVenueId ?? undefined,
         }))
       const inHand = completeItems.filter(
         i =>
-          i.custodyState === 'PROMOTER_HELD' &&
+          IN_HAND_STATES.includes(i.custodyState as (typeof IN_HAND_STATES)[number]) &&
           (!receivingVenueId || i.registeredFromVenueId === receivingVenueId) &&
           (!categoryId || i.categoryId === categoryId),
       )
