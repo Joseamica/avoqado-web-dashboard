@@ -6,6 +6,7 @@ import {
   gridOf,
   nextTableNumber,
   nextTableNumbers,
+  openOrderDot,
   placeTable,
   quickStartLayout,
   rotatedExtent,
@@ -126,5 +127,26 @@ describe('zoom', () => {
     expect(z.w).toBe(22)
     expect(z.x + z.w / 2).toBeCloseTo(18 - (18 - (v.x + v.w / 2)) * 0.5, 5)
     expect(zoomAround(v, { x: 0, y: 0 }, 0.0001, { cols: 40, rows: 25 }).w).toBe(11)
+  })
+})
+
+describe('openOrderDot — el punto de cuenta abierta no gira con la mesa (H3)', () => {
+  it.each([0, 90, 180, 270])('mesa larga a %i°: siempre en la esquina de arriba a la derecha de lo que se ve', rotation => {
+    const { w, h } = tableSizeCells('RECTANGLE', 6)
+    const e = rotatedExtent(w, h, rotation)
+    const dot = openOrderDot('RECTANGLE', 6, rotation)
+    expect(dot.dx).toBeCloseTo(e.w / 2 - 0.45, 5)
+    expect(dot.dy).toBeCloseTo(-(e.h / 2 - 0.45), 5)
+  })
+
+  it('a 45° queda en la punta de arriba (la más arriba de las dos de la derecha), dentro de la mesa', () => {
+    const dot = openOrderDot('SQUARE', 4, 45)
+    expect(dot.dx).toBeCloseTo(0, 5)
+    expect(dot.dy).toBeLessThan(0)
+    expect(Math.abs(dot.dy)).toBeLessThan(Math.SQRT2 * 2)
+  })
+
+  it('la redonda lo tiene siempre en el mismo lugar', () => {
+    expect(openOrderDot('ROUND', 4, 135)).toEqual(openOrderDot('ROUND', 4, 0))
   })
 })

@@ -1,6 +1,6 @@
 import { memo, useId } from 'react'
 import { cn } from '@/lib/utils'
-import { gridOf, tableSizeCells } from '../model/floorGeometry'
+import { gridOf, openOrderDot, tableSizeCells } from '../model/floorGeometry'
 import type { DraftArea, DraftElement, DraftTable } from '../model/types'
 
 export interface FloorDrawingProps {
@@ -12,6 +12,8 @@ export interface FloorDrawingProps {
   busyKeys?: ReadonlySet<string>
   /** Arrastre en curso: sólo desplaza el dibujo; el borrador cambia al soltar. */
   ghost?: { keys: ReadonlySet<string>; dx: number; dy: number } | null
+  /** Mesas encimadas con otra: borde de advertencia (el dueño las separa; el editor no las mueve solo). */
+  warnKeys?: ReadonlySet<string>
   showGrid?: boolean
   interactive?: boolean
 }
@@ -30,7 +32,17 @@ const FREE_STROKE = 'stroke-(--success)'
 const fitLabel = (label: string, w: number, h: number) => Math.min(1.2, h * 0.45, (w * 0.9) / (0.6 * Math.max(1, label.length)))
 
 /** El plano en unidades de CUADRO (1 = un cuadro de la cuadrícula). Sin interacción: la pone FloorCanvas. */
-export const FloorDrawing = memo(function FloorDrawing({ area, tables, elements, selected, busyKeys, ghost, showGrid = true, interactive = false }: FloorDrawingProps) {
+export const FloorDrawing = memo(function FloorDrawing({
+  area,
+  tables,
+  elements,
+  selected,
+  busyKeys,
+  ghost,
+  warnKeys,
+  showGrid = true,
+  interactive = false,
+}: FloorDrawingProps) {
   // Único por instancia (la vista del mesero dibuja la misma área dos veces) y sin caracteres que rompan `url(#…)`.
   const gridId = `floor-grid-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const { cols, rows } = gridOf(area.floorShape)
@@ -52,27 +64,61 @@ export const FloorDrawing = memo(function FloorDrawing({ area, tables, elements,
       {tables
         .filter(t => t.x !== null && t.y !== null)
         .map(t => (
-          <TableShape key={t.key} t={t} offset={offsetOf(t.key)} selected={!!selected?.has(t.key)} busy={busyKeys?.has(t.key)} interactive={interactive} />
+          <TableShape
+            key={t.key}
+            t={t}
+            offset={offsetOf(t.key)}
+            selected={!!selected?.has(t.key)}
+            busy={busyKeys?.has(t.key)}
+            warn={!!warnKeys?.has(t.key)}
+            interactive={interactive}
+          />
         ))}
     </g>
   )
 })
 
-function TableShape({ t, offset, selected, busy, interactive }: { t: DraftTable; offset: Offset; selected: boolean; busy?: boolean; interactive: boolean }) {
+function TableShape({
+  t,
+  offset,
+  selected,
+  busy,
+  warn,
+  interactive,
+}: {
+  t: DraftTable
+  offset: Offset
+  selected: boolean
+  busy?: boolean
+  warn: boolean
+  interactive: boolean
+}) {
   const { w, h } = tableSizeCells(t.shape, t.capacity)
   const cx = (t.x as number) + offset.dx
   const cy = (t.y as number) + offset.dy
   const tone = busy === undefined ? 'fill-card' : busy ? 'fill-destructive/20' : FREE_FILL
-  const edge = selected ? 'stroke-primary' : busy === undefined ? 'stroke-border' : busy ? 'stroke-destructive' : FREE_STROKE
+  // Seleccionada manda; si no, encimada se avisa en ámbar (el mismo tono que el punto de cuenta abierta: «revísame»).
+  const edge = selected ? 'stroke-primary' : warn ? 'stroke-warning' : busy === undefined ? 'stroke-border' : busy ? 'stroke-destructive' : FREE_STROKE
   const shapeClass = cn(tone, edge)
+  const strokeWidth = selected ? 0.28 : warn ? 0.24 : 0.16
+  const dot = openOrderDot(t.shape, t.capacity, t.rotation)
   return (
     <g data-floor-key={t.key} data-testid={`floor-table-${t.number}`} transform={`rotate(${t.rotation} ${cx} ${cy})`} className={cn(interactive && 'cursor-move')}>
       {t.shape === 'ROUND' ? (
-        <circle cx={cx} cy={cy} r={w / 2} className={shapeClass} strokeWidth={selected ? 0.28 : 0.16} />
+        <circle cx={cx} cy={cy} r={w / 2} className={shapeClass} strokeWidth={strokeWidth} strokeDasharray={warn && !selected ? '0.5 0.3' : undefined} />
       ) : (
-        <rect x={cx - w / 2} y={cy - h / 2} width={w} height={h} rx={0.6} className={shapeClass} strokeWidth={selected ? 0.28 : 0.16} />
+        <rect
+          x={cx - w / 2}
+          y={cy - h / 2}
+          width={w}
+          height={h}
+          rx={0.6}
+          className={shapeClass}
+          strokeWidth={strokeWidth}
+          strokeDasharray={warn && !selected ? '0.5 0.3' : undefined}
+        />
       )}
-      {/* El texto se contra-gira para leerse siempre derecho. */}
+      {/* El texto y el punto de cuenta abierta se contra-giran: se leen derechos y el punto queda arriba a la derecha. */}
       <g transform={`rotate(${-t.rotation} ${cx} ${cy})`} className="pointer-events-none select-none">
         <text
           x={cx}
@@ -89,8 +135,8 @@ function TableShape({ t, offset, selected, busy, interactive }: { t: DraftTable;
             {t.capacity}p
           </text>
         )}
+        {t.hasOpenOrder && <circle data-testid={`floor-open-order-${t.number}`} cx={cx + dot.dx} cy={cy + dot.dy} r={0.38} className="fill-warning stroke-background" strokeWidth={0.1} />}
       </g>
-      {t.hasOpenOrder && <circle data-testid={`floor-open-order-${t.number}`} cx={cx + w / 2 - 0.45} cy={cy - h / 2 + 0.45} r={0.38} className="fill-warning" />}
     </g>
   )
 }

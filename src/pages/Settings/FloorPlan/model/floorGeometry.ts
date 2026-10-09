@@ -34,6 +34,32 @@ export function rotatedExtent(w: number, h: number, rotation: number): { w: numb
   return { w: round6(w * c + h * s), h: round6(w * s + h * c) }
 }
 
+/**
+ * Dónde va el punto de «cuenta abierta», como desplazamiento desde el centro de la mesa: siempre en la esquina de
+ * ARRIBA A LA DERECHA tal como se ve, sin importar el giro (antes giraba con la mesa y a 90° quedaba abajo).
+ * En una mesa cuadrada o larga es la esquina (metida 0.45 cuadros) que, ya girada, queda más arriba a la derecha; en
+ * una redonda, el mismo lugar siempre.
+ */
+export function openOrderDot(shape: TableShape, capacity: number, rotation: number): { dx: number; dy: number } {
+  const { w, h } = tableSizeCells(shape, capacity)
+  const inset = 0.45
+  if (shape === 'ROUND') return { dx: round6(w / 2 - inset), dy: round6(-(h / 2 - inset)) }
+  const r = (rotation * Math.PI) / 180
+  const cos = Math.cos(r)
+  const sin = Math.sin(r)
+  let best = { dx: 0, dy: 0, score: -Infinity }
+  for (const [sx, sy] of [[1, -1], [-1, -1], [-1, 1], [1, 1]]) {
+    const lx = sx * (w / 2 - inset)
+    const ly = sy * (h / 2 - inset)
+    const dx = round6(lx * cos - ly * sin)
+    const dy = round6(lx * sin + ly * cos)
+    const score = round6(dx - dy)
+    // Empate (una mesa a 45°: dos esquinas igual de «arriba a la derecha»): gana la de más arriba.
+    if (score > best.score + 1e-6 || (Math.abs(score - best.score) <= 1e-6 && dy < best.dy)) best = { dx, dy, score }
+  }
+  return { dx: best.dx, dy: best.dy }
+}
+
 /** Centro imantado para que los BORDES de la pieza caigan en la cuadrícula. */
 export function snapCenter(center: number, size: number): number {
   return round6(Math.round(center - size / 2) + size / 2)

@@ -57,6 +57,16 @@ describe('FloorDrawing', () => {
     expect(screen.getByTestId('floor-open-order-7')).toBeInTheDocument()
   })
 
+  it('H3: el punto de cuenta abierta de una mesa girada 90° sigue arriba a la derecha (no gira con ella)', () => {
+    // Larga de 6 (8 × 4) parada: se ve de 4 de ancho y 8 de alto con centro en (10, 10).
+    draw({ tables: [t('9', { shape: 'RECTANGLE', capacity: 6, rotation: 90, hasOpenOrder: true })] })
+    const dot = screen.getByTestId('floor-open-order-9')
+    // El punto vive en el grupo contra-girado: sus coordenadas ya son las de la pantalla.
+    expect(dot.parentElement?.getAttribute('transform')).toBe('rotate(-90 10 10)')
+    expect(Number(dot.getAttribute('cx'))).toBeCloseTo(10 + 2 - 0.45, 5)
+    expect(Number(dot.getAttribute('cy'))).toBeCloseTo(10 - 4 + 0.45, 5)
+  })
+
   it('la puerta parada (más alta que ancha) dibuja su abatimiento hacia un lado, sin girar', () => {
     draw({ tables: [], elements: [door({ w: 1, h: 3 })] })
     const g = screen.getByTestId('floor-element-d1')
