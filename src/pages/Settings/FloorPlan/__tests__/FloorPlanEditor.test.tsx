@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FloorPlanEditor } from '../FloorPlanEditor'
 import { getFloorPlan, publishFloorPlan } from '@/services/floorPlan.service'
@@ -30,11 +31,18 @@ const paredVieja = { ...letrero, id: 'w-old', type: 'WALL' as const, areaId: nul
 function renderEditor(plan: FloorPlanDto = empty) {
   const onClose = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  const { unmount } = render(
-    <QueryClientProvider client={qc}>
-      <FloorPlanEditor plan={plan} venueId="v1" onClose={onClose} />
-    </QueryClientProvider>,
-  )
+  // Dentro de un router de datos, como en la app: el editor detiene la navegación con cambios sin guardar (useBlocker).
+  const router = createMemoryRouter([
+    {
+      path: '/',
+      element: (
+        <QueryClientProvider client={qc}>
+          <FloorPlanEditor plan={plan} venueId="v1" onClose={onClose} />
+        </QueryClientProvider>
+      ),
+    },
+  ])
+  const { unmount } = render(<RouterProvider router={router} />)
   return { onClose, unmount }
 }
 

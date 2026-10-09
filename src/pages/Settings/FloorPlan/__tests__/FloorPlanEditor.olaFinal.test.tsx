@@ -3,13 +3,13 @@
  * líneas (R25). El editor vive dentro del router de datos, como en la app: así se prueba también la navegación.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FloorPlanEditor } from '../FloorPlanEditor'
 import { getFloorPlan, publishFloorPlan } from '@/services/floorPlan.service'
-import type { FloorPlanDto } from '../model/types'
+import type { FloorPlanDto, PublishFloorPlanResult } from '../model/types'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -179,6 +179,67 @@ describe('FloorPlanEditor — ola final', () => {
     expect(screen.getByTestId('floor-plan-workspace')).not.toHaveAttribute('inert')
     expect(screen.getByText('45°')).toBeInTheDocument()
     expect(screen.getByTestId('floor-plan-save')).toBeEnabled()
+  })
+
+  // Codex P1-3: React Router desmontaba el editor sin pasar por «¿Salir sin guardar?» y `beforeunload` no salta en una
+  // navegación interna: el borrador se perdía.
+  it('D3: Atrás con cambios sin guardar pregunta; «Seguir editando» y Esc se quedan con el borrador; «Salir sin guardar» se va', async () => {
+    const user = userEvent.setup()
+    const { router } = renderEditor({ ...withArea, tables: [mesa1] })
+    seleccionar('floor-table-1')
+    await user.keyboard('r')
+    await act(async () => router.navigate(-1))
+    expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plano')
+    await user.click(screen.getByRole('button', { name: 'editor.keepEditing' }))
+    await waitFor(() => expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument())
+    expect(router.state.location.pathname).toBe('/plano')
+    expect(screen.getByText('45°')).toBeInTheDocument()
+    await act(async () => router.navigate(-1))
+    await screen.findByText('editor.unsavedTitle')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument())
+    expect(screen.getByTestId('floor-canvas')).toBeInTheDocument()
+    await act(async () => router.navigate(-1))
+    await user.click(await screen.findByTestId('floor-plan-discard'))
+    expect(await screen.findByText('otra página')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/otra')
+  })
+
+  it('D3: sin cambios, Atrás se va sin preguntar', async () => {
+    const { router } = renderEditor({ ...withArea, tables: [mesa1] })
+    await act(async () => router.navigate(-1))
+    expect(await screen.findByText('otra página')).toBeInTheDocument()
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+  })
+
+  it('D3: mientras se guarda no se navega; si el guardado sale bien la salida sigue sola, y si falla pregunta', async () => {
+    const user = userEvent.setup()
+    let termina: (r: PublishFloorPlanResult) => void = () => {}
+    let falla: (e: unknown) => void = () => {}
+    publish.mockReturnValueOnce(new Promise(resolve => (termina = resolve))).mockReturnValueOnce(new Promise((_, reject) => (falla = reject)))
+    const plan = { ...withArea, tables: [mesa1] }
+    const { router } = renderEditor(plan)
+    seleccionar('floor-table-1')
+    await user.keyboard('r')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await waitFor(() => expect(publish).toHaveBeenCalledTimes(1))
+    await act(async () => router.navigate(-1))
+    expect(router.state.location.pathname).toBe('/plano')
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+    termina({ ...plan, tables: [{ ...mesa1, rotation: 45 }], fingerprint: 'bbbbbbbbbbbbbbbb', publicationId: 'p1', replayed: false })
+    expect(await screen.findByText('otra página')).toBeInTheDocument()
+    // Otra vuelta, ahora el guardado falla: la salida que esperaba pregunta.
+    await act(async () => router.navigate(1))
+    seleccionar('floor-table-1')
+    await user.keyboard('r')
+    await user.click(screen.getByTestId('floor-plan-save'))
+    await waitFor(() => expect(publish).toHaveBeenCalledTimes(2))
+    await act(async () => router.navigate(-1))
+    expect(screen.queryByText('editor.unsavedTitle')).not.toBeInTheDocument()
+    falla(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    expect(await screen.findByText('editor.unsavedTitle')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plano')
   })
 
   it('D8: si TODAS las mesas de un número repetido tienen cuenta, «Ver cuáles» las selecciona (antes no seleccionaba nada)', async () => {

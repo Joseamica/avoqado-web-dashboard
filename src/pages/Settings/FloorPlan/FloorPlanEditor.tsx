@@ -18,6 +18,7 @@ import { DuplicateNumbersNotice, OpenOrdersNotice } from './editor/EditorNotices
 import { ToolPalette } from './editor/ToolPalette'
 import { UnplacedTray } from './editor/UnplacedTray'
 import { useKeyboardFocus } from './editor/useKeyboardFocus'
+import { useLeaveGuard } from './editor/useLeaveGuard'
 import { WaiterPreview } from './editor/WaiterPreview'
 import { restorableNumbers, useEditorActions } from './editor/useEditorActions'
 import { MOD_KEY, TYPING, useEditorShortcuts, within } from './editor/useEditorShortcuts'
@@ -102,20 +103,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   const dupes = useMemo(() => duplicateNumbers(doc.tables), [doc.tables])
   const dupeKeysToFix = useMemo(() => keysToRenumber(dupes, doc.tables), [dupes, doc.tables])
 
-  // Esc: primero suelta lo activo (herramienta, selección, vista del mesero); con nada activo, cierra (y con cambios,
-  // pregunta). Dentro de un campo es del campo. Lo usan el modal y los avisos (ver `notify`).
-  const escape = (target: EventTarget | null): 'field' | 'busy' | 'released' | 'close' => {
-    if (within(target, TYPING)) return 'field'
-    if (newAreaOpen || confirmClose || conflict) return 'busy'
-    if (tool !== 'select' || selection.length || inPreview) {
-      setTool('select')
-      dispatch({ type: 'SELECT', keys: [] })
-      setPreview(false)
-      return 'released'
-    }
-    return 'close'
-  }
-  const requestClose = () => (dirty ? setConfirmClose(true) : onClose())
+  // El Esc del editor (lo arma `escape`, más abajo).
   const escapeRef = useRef<(e: KeyboardEvent) => void>(() => {})
   const lastEscape = useRef<KeyboardEvent | null>(null)
   // Un aviso puede quedar a la vista después de cerrar el editor: su Esc ya no debe llamar a este editor.
@@ -125,12 +113,6 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     },
     [],
   )
-  escapeRef.current = (e: KeyboardEvent) => {
-    // Radix entrega el mismo Esc dos veces si el aviso tiene el foco: se atiende una.
-    if (lastEscape.current === e) return
-    lastEscape.current = e
-    if (escape(e.target) === 'close') requestClose()
-  }
   /**
    * Un aviso del editor. Mientras está a la vista, Radix le da a él el Esc (es la capa de arriba) y el editor no lo
    * recibía: tras «Plano guardado» hacían falta dos Esc para salir. Ahora ese Esc cierra el aviso Y sigue con lo que
@@ -238,18 +220,36 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     workspace.current?.toggleAttribute('inert', busy)
   }, [busy])
 
-  useEditorShortcuts({ enabled: !(newAreaOpen || confirmClose || conflict || inPreview || busy), selection, edit, duplicate, remove })
+  // Atrás del navegador, un enlace o cerrar la pestaña: el mismo «¿Salir sin guardar?» que cerrar el editor (D3).
+  const leaveGuard = useLeaveGuard({ dirty, saving: save.isPending })
+  const askLeave = confirmClose || leaveGuard.asking
+  const stay = () => {
+    setConfirmClose(false)
+    leaveGuard.stay()
+  }
 
-  // Cerrar la pestaña con cambios sin guardar también pregunta.
-  useEffect(() => {
-    if (!dirty) return
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      e.returnValue = ''
+  useEditorShortcuts({ enabled: !(newAreaOpen || askLeave || conflict || inPreview || busy), selection, edit, duplicate, remove })
+
+  // Esc: primero suelta lo activo (herramienta, selección, vista del mesero); con nada activo, cierra (y con cambios,
+  // pregunta). Dentro de un campo es del campo. Lo usan el modal y los avisos (ver `notify`).
+  const escape = (target: EventTarget | null): 'field' | 'busy' | 'released' | 'close' => {
+    if (within(target, TYPING)) return 'field'
+    if (newAreaOpen || askLeave || conflict) return 'busy'
+    if (tool !== 'select' || selection.length || inPreview) {
+      setTool('select')
+      dispatch({ type: 'SELECT', keys: [] })
+      setPreview(false)
+      return 'released'
     }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [dirty])
+    return 'close'
+  }
+  const requestClose = () => (dirty ? setConfirmClose(true) : onClose())
+  escapeRef.current = (e: KeyboardEvent) => {
+    // Radix entrega el mismo Esc dos veces si el aviso tiene el foco: se atiende una.
+    if (lastEscape.current === e) return
+    lastEscape.current = e
+    if (escape(e.target) === 'close') requestClose()
+  }
 
   const onEscapeKeyDown = (e: KeyboardEvent) => {
     // 'close' deja que el modal se cierre (y `onClose` del modal pregunta si hay cambios); lo demás no lo cierra.
@@ -429,7 +429,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
         }}
       />
 
-      <LeaveDialog open={confirmClose} onStay={() => setConfirmClose(false)} onLeave={onClose} />
+      <LeaveDialog open={askLeave} onStay={stay} onLeave={leaveGuard.asking ? leaveGuard.leave : onClose} />
       <ConflictDialog open={conflict} onStay={() => setConflict(false)} onReload={() => void reload()} />
     </FullScreenModal>
   )
