@@ -197,5 +197,15 @@
     "restore_one": "Regresar la mesa",
     "restore_other": "Regresar las mesas",
     "dismiss": "Cerrar aviso"
+  },
+  "duplicates": {
+    "title_one": "Hay más de una mesa con el número {{numbers}}",
+    "title_other": "Hay números de mesa repetidos: {{numbers}}",
+    "bodyNew_one": "La nueva usa el número de la que tiene una cuenta abierta. Cámbiale el número a la nueva para poder guardar.",
+    "bodyNew_other": "Las nuevas usan los números de las que tienen una cuenta abierta. Cámbiales el número a las nuevas para poder guardar.",
+    "body_one": "Cámbiale el número a una de ellas para poder guardar.",
+    "body_other": "Cámbiales el número para que no se repitan y poder guardar.",
+    "showNew": "Ver la nueva",
+    "show": "Ver cuáles"
   }
 }

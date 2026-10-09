@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
@@ -23,12 +23,13 @@ import { FloorCanvas } from './editor/FloorCanvas'
 import { IconAction } from './editor/IconAction'
 import { Inspector } from './editor/Inspector'
 import { NewAreaDialog } from './editor/NewAreaDialog'
-import { OpenOrdersBanner } from './editor/OpenOrdersBanner'
+import { DuplicateNumbersNotice, OpenOrdersNotice } from './editor/EditorNotices'
 import { ToolPalette } from './editor/ToolPalette'
 import { UnplacedTray } from './editor/UnplacedTray'
 import { WaiterPreview } from './editor/WaiterPreview'
 import { restorableNumbers, useEditorActions } from './editor/useEditorActions'
 import { MOD_KEY, TYPING, useEditorShortcuts, within } from './editor/useEditorShortcuts'
+import { duplicateNumbers } from './model/docHelpers'
 import { editorReducer, initEditorState, type EditorAction } from './model/editorReducer'
 import { gridOf } from './model/floorGeometry'
 import { roomLeft } from './model/limits'
@@ -74,6 +75,15 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
     dispatch(action)
     return true
   }, [])
+  /**
+   * Un botón tocado con el RATÓN suelta el foco (`detail > 0`; con teclado es 0): si no, Espacio (la mano del lienzo) lo
+   * volvería a accionar. Así Espacio es de un botón sólo si llegó a él con el teclado. Vale para todo el editor.
+   */
+  const blurAfterPointerClick = (e: ReactMouseEvent) => {
+    if (e.detail === 0) return
+    const control = (e.target as HTMLElement).closest?.('button, [role="button"]')
+    if (control instanceof HTMLElement && control === document.activeElement) control.blur()
+  }
   // `pointer-events-none` sólo frena el ratón: `inert` también saca del Tab lo que no se puede usar mientras se guarda.
   // (React 18 no conoce el atributo: se pone a mano.)
   const workspace = useRef<HTMLDivElement>(null)
@@ -92,6 +102,15 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   const selectedTables = useMemo(() => doc.tables.filter(x => selection.includes(x.key)), [doc.tables, selection])
   const selectedElements = useMemo(() => doc.elements.filter(e => selection.includes(e.key)), [doc.elements, selection])
   const room = useMemo(() => roomLeft(doc, saved.limits), [doc, saved.limits])
+  // Dos mesas con el mismo número (p. ej. la que se regresó tras un 422 y una nueva que tomó su número): no se guarda.
+  const dupes = useMemo(() => duplicateNumbers(doc.tables), [doc.tables])
+  const dupeKeysToFix = useMemo(() => {
+    const byKey = new Map(doc.tables.map(x => [x.key, x]))
+    return dupes.flatMap(g => {
+      const open = g.keys.filter(k => byKey.get(k)?.hasOpenOrder)
+      return open.length ? g.keys.filter(k => !open.includes(k)) : g.keys
+    })
+  }, [dupes, doc.tables])
 
   // Esc: primero suelta lo activo (herramienta, selección, vista del mesero); con nada activo, cierra (y con cambios,
   // pregunta). Dentro de un campo es del campo. Lo usan el modal y los avisos (ver `notify`).
@@ -109,6 +128,13 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
   const requestClose = () => (dirty ? setConfirmClose(true) : onClose())
   const escapeRef = useRef<(e: KeyboardEvent) => void>(() => {})
   const lastEscape = useRef<KeyboardEvent | null>(null)
+  // Un aviso puede quedar a la vista después de cerrar el editor: su Esc ya no debe llamar a este editor.
+  useEffect(
+    () => () => {
+      escapeRef.current = () => {}
+    },
+    [],
+  )
   escapeRef.current = (e: KeyboardEvent) => {
     // Radix entrega el mismo Esc dos veces si el aviso tiene el foco: se atiende una.
     if (lastEscape.current === e) return
@@ -168,7 +194,13 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
       if (!error.response) return notify({ title: t('editor.offline'), variant: 'destructive' })
       const data = (error.response.data ?? {}) as { code?: string; message?: string; details?: { numbers?: string[] } }
       if (error.response.status === 409 && data.code === 'FLOOR_PLAN_CHANGED') return setConflict(true)
-      if (error.response.status === 422 && data.code === 'TABLES_WITH_OPEN_ORDERS') return setOpenOrders(data.details?.numbers ?? [])
+      if (error.response.status === 422 && data.code === 'TABLES_WITH_OPEN_ORDERS') {
+        const numbers = data.details?.numbers ?? []
+        const named = new Set(numbers.map(n => n.trim()))
+        // Ya se sabe que tienen cuenta: deshacer no debe regresarlas sin su marca (y sin que Supr las pueda quitar otra vez).
+        dispatch({ type: 'MARK_OPEN_ORDERS', keys: savedTables.filter(x => named.has(x.number.trim())).map(x => x.key) })
+        return setOpenOrders(numbers)
+      }
       notify({ title: t('editor.genericError'), description: data.message, variant: 'destructive' })
     },
   })
@@ -229,7 +261,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
       subtitle={venueName}
       contentClassName="bg-muted/30"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClickCapture={blurAfterPointerClick}>
           {dirty && !save.isPending && (
             <span className="mr-1 hidden text-xs text-muted-foreground xl:inline" data-testid="floor-plan-unsaved">
               {t('editor.unsaved')}
@@ -267,12 +299,12 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
           <Button
             type="button"
             className="cursor-pointer"
-            disabled={!dirty || save.isPending || orphanElements}
+            disabled={!dirty || save.isPending || orphanElements || dupes.length > 0}
             onClick={() => save.mutate()}
             data-testid="floor-plan-save"
             data-tour="floor-plan-save"
           >
-            {dirty && !save.isPending && !orphanElements && <span aria-hidden className="mr-2 h-2 w-2 rounded-full bg-warning" />}
+            {dirty && !save.isPending && !orphanElements && !dupes.length && <span aria-hidden className="mr-2 h-2 w-2 rounded-full bg-warning" />}
             {t(save.isPending ? 'editor.saving' : 'editor.save')}
           </Button>
         </div>
@@ -282,6 +314,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
         ref={workspace}
         className={cn('flex h-full min-h-0 flex-col gap-3 p-4', save.isPending && 'pointer-events-none')}
         aria-busy={save.isPending}
+        onClickCapture={blurAfterPointerClick}
         data-testid="floor-plan-workspace"
       >
         <AreaTabs
@@ -295,15 +328,25 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
           onShape={(key, floorShape) => edit({ type: 'UPDATE_AREA', key, patch: { floorShape } })}
           onMove={(key, direction) => edit({ type: 'MOVE_AREA', key, direction })}
           onRemove={key => edit({ type: 'REMOVE_AREA', key })}
+          onRenameRejected={reason => notify({ title: reason })}
         />
         {openOrders && (
-          <OpenOrdersBanner
+          <OpenOrdersNotice
             numbers={openOrders}
             canRestore={restorable.length > 0}
             onRestore={() => {
-              if (restoreTables(openOrders)) setOpenOrders(null)
+              // Lo que no se pudo regresar (no cupo, o no está en el plano guardado) se queda en el aviso.
+              const left = restoreTables(openOrders)
+              setOpenOrders(left.length ? left : null)
             }}
             onDismiss={() => setOpenOrders(null)}
+          />
+        )}
+        {dupes.length > 0 && (
+          <DuplicateNumbersNotice
+            numbers={dupes.map(g => g.number)}
+            newOneTaken={dupeKeysToFix.length < dupes.reduce((n, g) => n + g.keys.length, 0)}
+            onShow={() => dispatch({ type: 'REVEAL', keys: dupeKeysToFix })}
           />
         )}
         {inPreview && activeArea ? (

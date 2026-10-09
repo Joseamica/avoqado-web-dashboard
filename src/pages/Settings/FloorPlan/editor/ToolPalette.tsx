@@ -55,15 +55,12 @@ export function ToolPalette({ tool, onTool, disabled, room, limits }: ToolPalett
           e.dataTransfer.setData(TOOL_DRAG_MIME, id)
           e.dataTransfer.effectAllowed = 'copy'
         }}
-        onClick={e => {
-          onTool(active && id !== 'select' ? 'select' : id)
-          // Con el ratón el foco no se queda en el botón: si no, Espacio (la mano del lienzo) lo volvería a accionar.
-          if (e.detail > 0) e.currentTarget.blur()
-        }}
+        // Con el ratón el foco no se queda en el botón (lo suelta el editor entero, `blurAfterPointerClick`).
+        onClick={() => onTool(active && id !== 'select' ? 'select' : id)}
         aria-pressed={active}
         data-testid={`floor-tool-${id}`}
         data-tour={`floor-plan-tool-${id.replace(':', '-').toLowerCase()}`}
-        // Ojo: ninguna clase con «card» aquí: `.dark [class*="card"]` (index.css) le pinta fondo y texto propios.
+        // Ojo: ninguna clase con «card» aquí: `.dark [class*='card']` (src/theme.css:78) le pinta fondo y texto propios.
         className={cn(
           'flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',

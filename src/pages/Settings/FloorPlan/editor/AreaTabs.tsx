@@ -39,13 +39,15 @@ export interface AreaTabsProps {
   onShape: (key: string, shape: FloorShape) => void
   onMove: (key: string, direction: -1 | 1) => void
   onRemove: (key: string) => void
+  /** Al salir del campo con un nombre que no sirve: se cancela y se dice por qué (aviso breve). */
+  onRenameRejected?: (reason: string) => void
 }
 
 const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase('es-MX') === b.trim().toLocaleLowerCase('es-MX')
 
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background'
 
-export function AreaTabs({ areas, activeKey, tableCount, maxAreas, onSelect, onAdd, onRename, onShape, onMove, onRemove }: AreaTabsProps) {
+export function AreaTabs({ areas, activeKey, tableCount, maxAreas, onSelect, onAdd, onRename, onShape, onMove, onRemove, onRenameRejected }: AreaTabsProps) {
   const { t } = useTranslation('floorPlan')
   // `error`: por qué no se puede guardar ese nombre (vacío o repetido). El campo se queda abierto hasta corregirlo o Esc.
   const [editing, setEditing] = useState<{ key: string; name: string; error?: string } | null>(null)
@@ -63,14 +65,21 @@ export function AreaTabs({ areas, activeKey, tableCount, maxAreas, onSelect, onA
     editingKey.current = null
     setEditing(null)
   }
-  const commitRename = () => {
+  /**
+   * Antes un nombre vacío o repetido se descartaba en silencio. Con Enter se dice por qué y el campo sigue abierto (con el
+   * foco). Al SALIR del campo con un nombre que no sirve se regresa el nombre de antes y se avisa: un campo abierto sin
+   * foco haría que el siguiente Esc cerrara el editor en vez de cancelar el nombre.
+   */
+  const commitRename = (leaving: boolean) => {
     if (!editing || editingKey.current !== editing.key) return
     const name = editing.name.trim()
     const current = areas.find(a => a.key === editing.key)
-    // Antes se descartaba en silencio: ahora se dice por qué y el campo sigue abierto.
     const error = !name ? t('newArea.nameRequired') : areas.some(a => a.key !== editing.key && sameName(a.name, name)) ? t('newArea.nameTaken') : undefined
     if (error) {
-      setEditing({ ...editing, error })
+      if (leaving) {
+        stopEditing()
+        onRenameRejected?.(error)
+      } else setEditing({ ...editing, error })
       return
     }
     if (current && current.name !== name) onRename(editing.key, name)
@@ -97,9 +106,9 @@ export function AreaTabs({ areas, activeKey, tableCount, maxAreas, onSelect, onA
                     aria-invalid={!!editing.error}
                     aria-describedby={editing.error ? errorId : undefined}
                     onChange={e => setEditing({ key: a.key, name: e.target.value })}
-                    onBlur={commitRename}
+                    onBlur={() => commitRename(true)}
                     onKeyDown={e => {
-                      if (e.key === 'Enter') commitRename()
+                      if (e.key === 'Enter') commitRename(false)
                       if (e.key === 'Escape') {
                         // El editor no se cierra con este Esc (ver FloorPlanEditor): sólo se cancela el cambio de nombre.
                         e.stopPropagation()

@@ -197,5 +197,15 @@
     "restore_one": "Put the table back",
     "restore_other": "Put the tables back",
     "dismiss": "Close notice"
+  },
+  "duplicates": {
+    "title_one": "More than one table has number {{numbers}}",
+    "title_other": "Repeated table numbers: {{numbers}}",
+    "bodyNew_one": "The new one uses the number of the table with an open check. Change the new one’s number to save.",
+    "bodyNew_other": "The new ones use the numbers of the tables with open checks. Change the new ones’ numbers to save.",
+    "body_one": "Change the number of one of them to save.",
+    "body_other": "Change the numbers so they don’t repeat, then save.",
+    "showNew": "Show the new one",
+    "show": "Show them"
   }
 }

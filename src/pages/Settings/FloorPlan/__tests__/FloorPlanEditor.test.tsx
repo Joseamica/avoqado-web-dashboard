@@ -30,12 +30,12 @@ const paredVieja = { ...letrero, id: 'w-old', type: 'WALL' as const, areaId: nul
 function renderEditor(plan: FloorPlanDto = empty) {
   const onClose = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(
+  const { unmount } = render(
     <QueryClientProvider client={qc}>
       <FloorPlanEditor plan={plan} venueId="v1" onClose={onClose} />
     </QueryClientProvider>,
   )
-  return { onClose }
+  return { onClose, unmount }
 }
 
 async function crearArea(user: ReturnType<typeof userEvent.setup>, opts: { blank?: boolean } = {}) {
