@@ -412,7 +412,8 @@
       "catalog": {
         "status": {
           "connected": "Connected",
-          "available": "Available"
+          "available": "Available",
+          "loadError": "We could not load the status"
         },
         "manage": "Manage",
         "connect": "Connect",

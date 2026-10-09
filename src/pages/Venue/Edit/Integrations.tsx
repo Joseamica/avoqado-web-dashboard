@@ -126,7 +126,7 @@ export default function VenueIntegrations() {
   const { data: passesOverview } = usePassIntegrationsOverview(venueId ?? undefined)
 
   // Shopify: el resumen pide inventory:read y no lleva candado de plan (apagado se ve); sin dato no se inventa el punto de estado.
-  const { data: shopifyOverview } = useShopifyOverview(venueId ?? undefined)
+  const { data: shopifyOverview, isError: shopifyError } = useShopifyOverview(venueId ?? undefined)
 
   if (isLoading) {
     return (
@@ -162,21 +162,32 @@ export default function VenueIntegrations() {
   const banksConnected = bankConnections.some(c => c.status === 'CONNECTED')
   const passesConnected = passesOverview?.connections.some(c => c.status === 'ACTIVE') ?? false
   const shopifyConnection = shopifyOverview?.connection ?? null
-  const shopifyConnected = shopifyConnection?.estado === 'ACTIVA'
+  // `ACTIVA` con un error permanente (FALTA_PERMISO…) sigue siendo ACTIVA en el server pero NADA sincroniza: no es «Conectada».
+  const shopifyDetenida = !!shopifyConnection && conexionDetenida(shopifyConnection)
+  const shopifyConnected = shopifyConnection?.estado === 'ACTIVA' && !shopifyDetenida
+  // Cargando o con error SIN dato aún no sabemos si hay conexión: ni «Piloto por invitación» ni «Conectar» (dirían un estado que
+  // quizá es falso). Sin inventory:read el resumen ni se pide: ahí sí es el piloto, que es lo que la página explica.
+  const shopifyDesconocido = can('inventory:read') && !shopifyOverview
   // Sin conexión la etiqueta «Piloto por invitación» ya lo dice todo; con conexión, su estado con nombre (Conectada, Pausada,
   // Detenida…): nada de «Disponible» sobre una tienda que ya está ligada. `detenida` por error permanente de la importación
   // no es su fase (IMPORTANDO diría que sigue trayendo el catálogo).
-  const shopifyStatus = !shopifyConnection
-    ? undefined
-    : shopifyConnected
-      ? statusLabel(true)
-      : {
-          connected: false,
-          label:
-            conexionDetenida(shopifyConnection) && shopifyConnection.estado !== 'REVOCADA'
-              ? t('shopify:connect.importStopped')
-              : t(`shopify:estado.${shopifyConnection.estado}`),
-        }
+  const shopifyStatus = shopifyDesconocido
+    ? shopifyError
+      ? { connected: false, label: t('edit.integrations.catalog.status.loadError') }
+      : undefined
+    : !shopifyConnection
+      ? undefined
+      : shopifyConnected
+        ? statusLabel(true)
+        : {
+            connected: false,
+            label:
+              shopifyDetenida && shopifyConnection.estado !== 'REVOCADA'
+                ? t('shopify:connect.importStopped')
+                : t(`shopify:estado.${shopifyConnection.estado}`),
+          }
+  // CTA «Administrar» (neutro, lleva a la página que sí sabe el estado) salvo que se SEPA que no hay conexión.
+  const shopifyAdministrar = !!shopifyConnection || shopifyDesconocido
 
   return (
     <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6" data-tour="settings-integrations-page">
@@ -227,10 +238,10 @@ export default function VenueIntegrations() {
           icon={Store}
           title={t('edit.integrations.catalog.shopify.title')}
           description={t('edit.integrations.catalog.shopify.description')}
-          badge={shopifyConnection ? undefined : t('edit.integrations.catalog.shopify.pilot')}
+          badge={shopifyAdministrar ? undefined : t('edit.integrations.catalog.shopify.pilot')}
           status={shopifyStatus}
-          actionLabel={ctaLabel(!!shopifyConnection)}
-          actionVariant={shopifyConnection ? 'outline' : 'default'}
+          actionLabel={ctaLabel(shopifyAdministrar)}
+          actionVariant={shopifyAdministrar ? 'outline' : 'default'}
           onAction={() => navigate('shopify')}
           dataTour="integration-card-shopify"
         />

@@ -291,6 +291,12 @@ test.describe('Shopify — tarjeta con estado y entradas a la página', () => {
       conexion: { ...conexion(), fase: 'CONNECTING', estado: 'IMPORTANDO', importacion: { variantes: 10, error: 'FALTA_PERMISO' } },
       texto: 'The connection stopped',
     },
+    {
+      // 🔴 el server la deja en ACTIVA aunque un error permanente (FALTA_PERMISO) la tenga detenida: nada sincroniza, no es «Connected»
+      nombre: 'activa pero detenida',
+      conexion: { ...conexion(), importacion: { variantes: 120, error: 'FALTA_PERMISO' } },
+      texto: 'The connection stopped',
+    },
   ]
   for (const { nombre, conexion: c, texto } of ESTADOS) {
     test(`la tarjeta de una conexión ${nombre} dice «${texto}», sin «Pilot» ni oferta de plan`, async ({ page }) => {
@@ -298,6 +304,7 @@ test.describe('Shopify — tarjeta con estado y entradas a la página', () => {
       await page.goto('/venues/venue-alpha/settings/integrations')
       const tarjeta = page.locator('[data-tour="integration-card-shopify"]')
       await expect(tarjeta).toContainText(texto, { timeout: 15_000 })
+      if (texto !== 'Connected') await expect(tarjeta).not.toContainText('Connected')
       await expect(tarjeta).not.toContainText('Pilot')
       await expect(tarjeta).not.toContainText(/premium|upgrade|plan/i)
       await expect(tarjeta.getByRole('button', { name: 'Manage' })).toBeVisible()
@@ -312,6 +319,40 @@ test.describe('Shopify — tarjeta con estado y entradas a la página', () => {
     await expect(tarjeta).not.toContainText(/premium|upgrade/i)
     await tarjeta.getByRole('button').click()
     await expect(page.locator('[data-tour="shopify-integration-page"]').getByText('Shopify is in a pilot')).toBeVisible()
+  })
+
+  test('mientras el resumen carga la tarjeta no dice «Pilot» ni «Connect» (sería un estado falso); al llegar, dice la verdad', async ({
+    page,
+  }) => {
+    await preparar(page, { overview: () => SIN_CONEXION })
+    let liberar!: () => void
+    const puerta = new Promise<void>(r => (liberar = r))
+    // registrada DESPUÉS de `preparar` para ganar (LIFO): el resumen no contesta hasta que se libere
+    await page.route('**/api/v1/dashboard/venues/*/shopify', async route => {
+      await puerta
+      await route.fulfill(ok(SIN_CONEXION))
+    })
+    await page.goto('/venues/venue-alpha/settings/integrations')
+    const tarjeta = page.locator('[data-tour="integration-card-shopify"]')
+    await expect(tarjeta).toBeVisible({ timeout: 15_000 })
+    await expect(tarjeta).not.toContainText('Pilot')
+    await expect(tarjeta.getByRole('button', { name: 'Connect', exact: true })).toHaveCount(0)
+    await expect(tarjeta.getByRole('button', { name: 'Manage' })).toBeVisible()
+    liberar()
+    await expect(tarjeta).toContainText('Pilot by invitation')
+    await expect(tarjeta.getByRole('button', { name: 'Connect', exact: true })).toBeVisible()
+  })
+
+  test('si el resumen falla la tarjeta dice que no pudo cargar el estado, no «Pilot» ni «Connect»', async ({ page }) => {
+    await preparar(page, { overview: () => SIN_CONEXION })
+    await page.route('**/api/v1/dashboard/venues/*/shopify', route => route.fulfill(fallo(500)))
+    await page.goto('/venues/venue-alpha/settings/integrations')
+    const tarjeta = page.locator('[data-tour="integration-card-shopify"]')
+    await expect(tarjeta).toContainText('We could not load the status', { timeout: 15_000 })
+    await expect(tarjeta).not.toContainText('Pilot')
+    await expect(tarjeta).not.toContainText('Connected')
+    await expect(tarjeta.getByRole('button', { name: 'Connect', exact: true })).toHaveCount(0)
+    await expect(tarjeta.getByRole('button', { name: 'Manage' })).toBeVisible()
   })
 
   test('un MANAGER con inventory:read llega a la página por su URL (la ruta no pide ADMIN) y la ve en sólo lectura', async ({ page }) => {

@@ -412,7 +412,8 @@
       "catalog": {
         "status": {
           "connected": "Conectada",
-          "available": "Disponible"
+          "available": "Disponible",
+          "loadError": "No se pudo cargar el estado"
         },
         "manage": "Administrar",
         "connect": "Conectar",
