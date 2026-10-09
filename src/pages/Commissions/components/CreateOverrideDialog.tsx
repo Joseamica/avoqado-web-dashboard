@@ -46,6 +46,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { CommissionCalcType, CommissionOverride } from '@/types/commission'
 import { ofreceTasaPorPersona } from '../tasaDelEsquema'
 import { diaEnLaSede, finDelDiaEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
+import { useEnvioUnico, type Paso } from '../envioUnico'
 import { cn } from '@/lib/utils'
 
 const createOverrideSchema = z.object({
@@ -106,6 +107,8 @@ export default function CreateOverrideDialog({
 
 	const createOverrideMutation = useCreateCommissionOverride(configId)
 	const updateOverrideMutation = useUpdateCommissionOverride(configId)
+	// Un doble clic creaba dos excepciones (ft-graves, D-D1): candado síncrono + `Idempotency-Key`.
+	const envio = useEnvioUnico()
 
 	const form = useForm<OverrideFormData>({
 		resolver: zodResolver(createOverrideSchema),
@@ -154,32 +157,7 @@ export default function CreateOverrideDialog({
 
 	const onSubmit = async (data: OverrideFormData) => {
 		try {
-			const payload = {
-				staffId: data.staffId,
-				customRate: !soloExcluir && data.customRate !== null ? data.customRate / 100 : null,
-				excludeFromCommissions: data.excludeFromCommissions,
-				notes: data.notes || undefined,
-				effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
-				effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : undefined,
-				active: data.active,
-			}
-
-			if (isEditing && override) {
-				await updateOverrideMutation.mutateAsync({
-					overrideId: override.id,
-					data: payload,
-				})
-				toast({
-					title: t('success.overrideUpdated'),
-				})
-			} else {
-				await createOverrideMutation.mutateAsync(payload)
-				toast({
-					title: t('success.overrideCreated'),
-				})
-			}
-
-			onOpenChange(false)
+			await envio.enviar(`excepcion:${configId}:${override?.id ?? ''}:${JSON.stringify(data)}`, paso => guardar(data, paso))
 		} catch (error: any) {
 			toast({
 				title: isEditing ? t('errors.updateError') : t('errors.createError'),
@@ -189,7 +167,36 @@ export default function CreateOverrideDialog({
 		}
 	}
 
-	const isPending = createOverrideMutation.isPending || updateOverrideMutation.isPending
+	const guardar = async (data: OverrideFormData, paso: Paso) => {
+		const payload = {
+			staffId: data.staffId,
+			customRate: !soloExcluir && data.customRate !== null ? data.customRate / 100 : null,
+			excludeFromCommissions: data.excludeFromCommissions,
+			notes: data.notes || undefined,
+			effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
+			effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : undefined,
+			active: data.active,
+		}
+
+		if (isEditing && override) {
+			await updateOverrideMutation.mutateAsync({
+				overrideId: override.id,
+				data: payload,
+			})
+			toast({
+				title: t('success.overrideUpdated'),
+			})
+		} else {
+			await paso('excepcion', clave => createOverrideMutation.mutateAsync({ ...payload, clave }))
+			toast({
+				title: t('success.overrideCreated'),
+			})
+		}
+
+		onOpenChange(false)
+	}
+
+	const isPending = createOverrideMutation.isPending || updateOverrideMutation.isPending || envio.enviando
 	const excludeFromCommissions = form.watch('excludeFromCommissions')
 
 	return (

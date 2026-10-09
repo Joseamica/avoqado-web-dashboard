@@ -14,6 +14,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { useEnvioUnico, type Paso } from '../envioUnico'
 
 const tierTypes: TierType[] = ['BY_QUANTITY', 'BY_AMOUNT']
 const tierPeriods: TierPeriod[] = ['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']
@@ -50,6 +51,8 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
 
   const createTierMutation = useCreateCommissionTier(configId)
   const updateTierMutation = useUpdateCommissionTier(configId)
+  // Un doble clic creaba dos niveles (ft-graves, D-D1): candado síncrono + `Idempotency-Key`.
+  const envio = useEnvioUnico()
 
   const form = useForm<TierFormData>({
     resolver: zodResolver(createTierSchema),
@@ -87,35 +90,7 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
 
   const onSubmit = async (data: TierFormData) => {
     try {
-      const payload = {
-        tierLevel: data.tierLevel,
-        name: data.tierName,
-        tierType: data.tierType,
-        minThreshold: data.minThreshold,
-        maxThreshold: data.maxThreshold,
-        minThresholdType: data.minThresholdType,
-        maxThresholdType: data.maxThresholdType,
-        rate: data.rate / 100, // Convert percentage to decimal
-        period: data.tierPeriod,
-        active: data.active,
-      }
-
-      if (isEditing && tier) {
-        await updateTierMutation.mutateAsync({
-          tierId: tier.id,
-          data: payload,
-        })
-        toast({
-          title: t('success.tierUpdated'),
-        })
-      } else {
-        await createTierMutation.mutateAsync(payload)
-        toast({
-          title: t('success.tierCreated'),
-        })
-      }
-
-      onOpenChange(false)
+      await envio.enviar(`nivel:${configId}:${tier?.id ?? ''}:${JSON.stringify(data)}`, paso => guardar(data, paso))
     } catch (error: any) {
       toast({
         title: isEditing ? t('errors.updateError') : t('errors.createError'),
@@ -125,7 +100,39 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
     }
   }
 
-  const isPending = createTierMutation.isPending || updateTierMutation.isPending
+  const guardar = async (data: TierFormData, paso: Paso) => {
+    const payload = {
+      tierLevel: data.tierLevel,
+      name: data.tierName,
+      tierType: data.tierType,
+      minThreshold: data.minThreshold,
+      maxThreshold: data.maxThreshold,
+      minThresholdType: data.minThresholdType,
+      maxThresholdType: data.maxThresholdType,
+      rate: data.rate / 100, // Convert percentage to decimal
+      period: data.tierPeriod,
+      active: data.active,
+    }
+
+    if (isEditing && tier) {
+      await updateTierMutation.mutateAsync({
+        tierId: tier.id,
+        data: payload,
+      })
+      toast({
+        title: t('success.tierUpdated'),
+      })
+    } else {
+      await paso('nivel', clave => createTierMutation.mutateAsync({ ...payload, clave }))
+      toast({
+        title: t('success.tierCreated'),
+      })
+    }
+
+    onOpenChange(false)
+  }
+
+  const isPending = createTierMutation.isPending || updateTierMutation.isPending || envio.enviando
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

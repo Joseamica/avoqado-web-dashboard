@@ -52,6 +52,7 @@ import { teamService } from '@/services/team.service'
 import { useToast } from '@/hooks/use-toast'
 import type { SalesGoal, SalesGoalPeriod, SalesGoalType } from '@/types/commission'
 import { cn, includesNormalized } from '@/lib/utils'
+import { useEnvioUnico, type Paso } from '../envioUnico'
 
 const goalSchema = z.object({
 	goal: z.number({ invalid_type_error: 'La meta es requerida' }).min(1, 'La meta debe ser mayor a 0'),
@@ -64,6 +65,7 @@ type GoalFormData = z.infer<typeof goalSchema>
 
 // Special constant for venue-wide goal
 const VENUE_WIDE = '__VENUE_WIDE__'
+const ALGUNAS_FALLARON = Symbol('algunas metas fallaron')
 
 interface CreateGoalDialogProps {
 	open: boolean
@@ -106,6 +108,8 @@ export default function CreateGoalDialog({
 
 	const createGoalMutation = useCreateSalesGoal()
 	const updateGoalMutation = useUpdateSalesGoal()
+	// Un doble clic creaba dos metas (ft-graves, D-D1): candado síncrono + `Idempotency-Key` por meta.
+	const envio = useEnvioUnico()
 
 	const form = useForm<GoalFormData>({
 		resolver: zodResolver(goalSchema),
@@ -183,55 +187,10 @@ export default function CreateGoalDialog({
 
 	const onSubmit = async (data: GoalFormData) => {
 		try {
-			if (isEditing && goal) {
-				await updateGoalMutation.mutateAsync({
-					goalId: goal.id,
-					data: {
-						goal: data.goal,
-						goalType: data.goalType as SalesGoalType,
-						period: data.period as SalesGoalPeriod,
-						active: data.active,
-					},
-				})
-				toast({ title: t('success.goalUpdated') })
-			} else {
-				// Batch create: one goal per selected target
-				const targets = selectedIds.includes(VENUE_WIDE)
-					? [null] // venue-wide
-					: selectedIds // individual staff IDs
-
-				let created = 0
-				let errors = 0
-				for (const staffId of targets) {
-					try {
-						await createGoalMutation.mutateAsync({
-							staffId,
-							goal: data.goal,
-							goalType: data.goalType as SalesGoalType,
-							period: data.period as SalesGoalPeriod,
-						})
-						created++
-					} catch {
-						errors++
-					}
-				}
-
-				if (created > 0) {
-					toast({
-						title: targets.length === 1
-							? t('success.goalCreated')
-							: t('success.goalsCreatedBatch', { count: created }),
-					})
-				}
-				if (errors > 0) {
-					toast({
-						title: t('errors.someGoalsFailed', { count: errors }),
-						variant: 'destructive',
-					})
-				}
-			}
-			onOpenChange(false)
-		} catch {
+			await envio.enviar(`meta:${venueId}:${goal?.id ?? ''}:${JSON.stringify({ data, selectedIds })}`, paso => guardar(data, paso))
+		} catch (err) {
+			// Si algunas metas fallaron ya se dijo cuáles; el diálogo sigue abierto para reintentar (las creadas no se duplican).
+			if (err === ALGUNAS_FALLARON) return
 			toast({
 				title: isEditing ? t('errors.updateError') : t('errors.createError'),
 				variant: 'destructive',
@@ -239,7 +198,56 @@ export default function CreateGoalDialog({
 		}
 	}
 
-	const isLoading = createGoalMutation.isPending || updateGoalMutation.isPending
+	const guardar = async (data: GoalFormData, paso: Paso) => {
+		if (isEditing && goal) {
+			await updateGoalMutation.mutateAsync({
+				goalId: goal.id,
+				data: {
+					goal: data.goal,
+					goalType: data.goalType as SalesGoalType,
+					period: data.period as SalesGoalPeriod,
+					active: data.active,
+				},
+			})
+			toast({ title: t('success.goalUpdated') })
+		} else {
+			// Batch create: one goal per selected target
+			const targets = selectedIds.includes(VENUE_WIDE) ? [null] : selectedIds // la sede entera, o una meta por persona
+
+			let created = 0
+			let errors = 0
+			for (const staffId of targets) {
+				try {
+					await paso(`meta:${staffId ?? 'sede'}`, clave =>
+						createGoalMutation.mutateAsync({
+							staffId,
+							goal: data.goal,
+							goalType: data.goalType as SalesGoalType,
+							period: data.period as SalesGoalPeriod,
+							clave,
+						}),
+					)
+					created++
+				} catch {
+					errors++
+				}
+			}
+
+			if (created > 0) {
+				toast({ title: targets.length === 1 ? t('success.goalCreated') : t('success.goalsCreatedBatch', { count: created }) })
+			}
+			if (errors > 0) {
+				toast({
+					title: t('errors.someGoalsFailed', { count: errors }),
+					variant: 'destructive',
+				})
+				throw ALGUNAS_FALLARON
+			}
+		}
+		onOpenChange(false)
+	}
+
+	const isLoading = createGoalMutation.isPending || updateGoalMutation.isPending || envio.enviando
 	const canSubmit = selectedIds.length > 0
 
 	return (

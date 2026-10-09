@@ -15,6 +15,7 @@ import StepAmount from './StepAmount'
 import StepConfirm from './StepConfirm'
 import { calcTypeAGuardar, excepcionesAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import { finDelDiaEnLaSede, hoyEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../../fechasDeVigencia'
+import { useEnvioUnico, type Paso } from '../../envioUnico'
 
 // Override type for wizard (simplified from CreateCommissionOverrideInput)
 export interface WizardOverride {
@@ -157,6 +158,8 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
     const createConfigMutation = useCreateCommissionConfig()
     const createOrgConfigMutation = useCreateOrgCommissionConfig()
     const activeMutation = isOrgLevel ? createOrgConfigMutation : createConfigMutation
+    // Un doble envío creaba dos esquemas (ft-graves, D-D1): candado síncrono + `Idempotency-Key` por paso de la operación.
+    const envio = useEnvioUnico()
 
     const updateData = (updates: Partial<WizardData>) => {
       setData(prev => ({ ...prev, ...updates }))
@@ -175,66 +178,9 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
     }
 
     const handleSubmit = async () => {
+      const huella = `asistente:${isOrgLevel ? 'org' : 'sede'}:${venueId}:${JSON.stringify(data)}`
       try {
-        // For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
-        const effectiveRate = data.calcType === 'FIXED' ? data.fixedAmount : data.defaultRate
-
-        // Niveles o meta como nivel ⇒ TIERED, sólo con porcentaje. 🔴 Un fijo se guarda FIXED aunque traiga niveles o meta como nivel
-        // prendidos de antes: como TIERED, el servidor leería el monto como tasa (final-fijo-niveles).
-        const conNiveles = ofreceNiveles(data.calcType)
-        const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
-        const metaComoNivel = conNiveles && data.useGoalAsTier
-
-        const input: CreateCommissionConfigInput = {
-          name: data.name,
-          recipient: data.recipient,
-          calcType: finalCalcType,
-          defaultRate: effectiveRate,
-          minAmount: data.limitsEnabled ? data.minAmount : null,
-          maxAmount: data.limitsEnabled ? data.maxAmount : null,
-          includeTips: data.includeTips,
-          includeDiscount: data.includeDiscount,
-          includeTax: data.includeTax,
-          roleRates: tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates),
-          filterByCategories: data.filterByCategories,
-          categoryIds: data.filterByCategories ? data.categoryIds : [],
-          useGoalAsTier: metaComoNivel,
-          goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
-          priority: data.priority,
-          // El día del negocio, no el del navegador: «desde» su inicio, «hasta» incluido entero (ft-graves, D-D2).
-          effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
-          effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : null,
-          aggregationPeriod: data.aggregationPeriod,
-        }
-
-        const createdConfig = await activeMutation.mutateAsync(input)
-
-        // Create tiers after config creation if enabled (nunca en un fijo: los niveles son porcentajes)
-        if (conNiveles && data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
-          const tiersWithPeriod = data.tiers.map(tier => ({
-            ...tier,
-            tierPeriod: data.tierPeriod,
-          }))
-          await commissionService.createTiersBatch(venueId, createdConfig.id, tiersWithPeriod)
-        }
-
-        // Create overrides after config creation if enabled. En un fijo sólo viajan las exclusiones, sin tasa propia.
-        if (data.overridesEnabled && data.overrides.length > 0 && venueId && createdConfig?.id) {
-          const excepciones = excepcionesAGuardar(
-            data.calcType,
-            data.overrides.map(override => ({
-              staffId: override.staffId,
-              customRate: override.excludeFromCommissions ? null : override.customRate,
-              excluir: override.excludeFromCommissions,
-            })),
-          )
-          await Promise.all(excepciones.map(excepcion => commissionService.createOverride(venueId, createdConfig.id, excepcion)))
-        }
-
-        toast({
-          title: t('success.configCreated'),
-        })
-        onSuccess()
+        await envio.enviar(huella, paso => guardar(paso))
       } catch (error: any) {
         toast({
           title: t('errors.saveError'),
@@ -242,6 +188,72 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
           variant: 'destructive',
         })
       }
+    }
+
+    const guardar = async (paso: Paso) => {
+      // For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
+      const effectiveRate = data.calcType === 'FIXED' ? data.fixedAmount : data.defaultRate
+
+      // Niveles o meta como nivel ⇒ TIERED, sólo con porcentaje. 🔴 Un fijo se guarda FIXED aunque traiga niveles o meta como nivel
+      // prendidos de antes: como TIERED, el servidor leería el monto como tasa (final-fijo-niveles).
+      const conNiveles = ofreceNiveles(data.calcType)
+      const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
+      const metaComoNivel = conNiveles && data.useGoalAsTier
+
+      const input: CreateCommissionConfigInput = {
+        name: data.name,
+        recipient: data.recipient,
+        calcType: finalCalcType,
+        defaultRate: effectiveRate,
+        minAmount: data.limitsEnabled ? data.minAmount : null,
+        maxAmount: data.limitsEnabled ? data.maxAmount : null,
+        includeTips: data.includeTips,
+        includeDiscount: data.includeDiscount,
+        includeTax: data.includeTax,
+        roleRates: tasasPorRolAGuardar(data.calcType, data.roleRatesEnabled, data.roleRates),
+        filterByCategories: data.filterByCategories,
+        categoryIds: data.filterByCategories ? data.categoryIds : [],
+        useGoalAsTier: metaComoNivel,
+        goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
+        priority: data.priority,
+        // El día del negocio, no el del navegador: «desde» su inicio, «hasta» incluido entero (ft-graves, D-D2).
+        effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
+        effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : null,
+        aggregationPeriod: data.aggregationPeriod,
+      }
+
+      const createdConfig = await paso('esquema', clave => activeMutation.mutateAsync({ ...input, clave }))
+
+      // Create tiers after config creation if enabled (nunca en un fijo: los niveles son porcentajes)
+      if (conNiveles && data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
+        const tiersWithPeriod = data.tiers.map(tier => ({
+          ...tier,
+          tierPeriod: data.tierPeriod,
+        }))
+        await paso('niveles', clave => commissionService.createTiersBatch(venueId, createdConfig.id, tiersWithPeriod, clave))
+      }
+
+      // Create overrides after config creation if enabled. En un fijo sólo viajan las exclusiones, sin tasa propia.
+      if (data.overridesEnabled && data.overrides.length > 0 && venueId && createdConfig?.id) {
+        const excepciones = excepcionesAGuardar(
+          data.calcType,
+          data.overrides.map(override => ({
+            staffId: override.staffId,
+            customRate: override.excludeFromCommissions ? null : override.customRate,
+            excluir: override.excludeFromCommissions,
+          })),
+        )
+        await Promise.all(
+          excepciones.map(excepcion =>
+            paso(`excepcion:${excepcion.staffId}`, clave => commissionService.createOverride(venueId, createdConfig.id, excepcion, clave)),
+          ),
+        )
+      }
+
+      toast({
+        title: t('success.configCreated'),
+      })
+      onSuccess()
     }
 
     // Expose navigation methods to parent via ref
@@ -257,9 +269,9 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
         currentStep,
         totalSteps: 2,
         canSubmit: data.name.trim().length > 0,
-        isSubmitting: activeMutation.isPending,
+        isSubmitting: activeMutation.isPending || envio.enviando,
       })
-    }, [currentStep, data.name, activeMutation.isPending])
+    }, [currentStep, data.name, activeMutation.isPending, envio.enviando])
 
     return (
       <div className="space-y-6">
@@ -271,7 +283,7 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
             updateData={updateData}
             onPrevious={handlePrevious}
             onSubmit={handleSubmit}
-            isSubmitting={activeMutation.isPending}
+            isSubmitting={activeMutation.isPending || envio.enviando}
             hideNavigation={hideNavigation}
           />
         )}

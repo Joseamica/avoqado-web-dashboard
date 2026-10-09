@@ -89,15 +89,14 @@ export function useCommissionConfig(configId: string | undefined) {
 	})
 }
 
-/**
- * Hook for creating a commission config
- */
+/** Hook for creating a commission config */
 export function useCreateCommissionConfig() {
 	const { venueId } = useCurrentVenue()
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CreateCommissionConfigInput) => commissionService.createConfig(venueId!, data),
+		mutationFn: ({ clave, ...data }: CreateCommissionConfigInput & { clave?: string }) =>
+			commissionService.createConfig(venueId!, data, clave),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.configs(venueId) })
 		},
@@ -156,15 +155,14 @@ export function useCommissionTiers(configId: string | undefined, includeInactive
 	})
 }
 
-/**
- * Hook for creating a tier
- */
+/** Hook for creating a tier */
 export function useCreateCommissionTier(configId: string) {
 	const { venueId } = useCurrentVenue()
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CreateCommissionTierInput) => commissionService.createTier(venueId!, configId, data),
+		mutationFn: ({ clave, ...data }: CreateCommissionTierInput & { clave?: string }) =>
+			commissionService.createTier(venueId!, configId, data, clave),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.tiers(venueId, configId) })
 			queryClient.invalidateQueries({ queryKey: commissionKeys.config(venueId, configId) })
@@ -255,15 +253,14 @@ export function useCommissionOverrides(configId: string | undefined, includeInac
 	})
 }
 
-/**
- * Hook for creating an override
- */
+/** Hook for creating an override */
 export function useCreateCommissionOverride(configId: string) {
 	const { venueId } = useCurrentVenue()
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CreateCommissionOverrideInput) => commissionService.createOverride(venueId!, configId, data),
+		mutationFn: ({ clave, ...data }: CreateCommissionOverrideInput & { clave?: string }) =>
+			commissionService.createOverride(venueId!, configId, data, clave),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.overrides(venueId, configId) })
 			queryClient.invalidateQueries({ queryKey: commissionKeys.config(venueId, configId) })
@@ -518,7 +515,7 @@ export function useCreateSalesGoal() {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CreateSalesGoalInput) => commissionService.createSalesGoal(venueId!, data),
+		mutationFn: ({ clave, ...data }: CreateSalesGoalInput & { clave?: string }) => commissionService.createSalesGoal(venueId!, data, clave),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.goals(venueId) })
 		},
@@ -591,15 +588,14 @@ export function useOrgCommissionConfigs() {
 	})
 }
 
-/**
- * Hook for creating an org-level commission config
- */
+/** Hook for creating an org-level commission config */
 export function useCreateOrgCommissionConfig() {
 	const { venueId } = useCurrentVenue()
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (data: CreateCommissionConfigInput) => commissionService.createOrgConfig(venueId!, data),
+		mutationFn: ({ clave, ...data }: CreateCommissionConfigInput & { clave?: string }) =>
+			commissionService.createOrgConfig(venueId!, data, clave),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.orgConfigs(venueId) })
 			queryClient.invalidateQueries({ queryKey: commissionKeys.effectiveConfigs(venueId) })

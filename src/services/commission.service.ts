@@ -28,6 +28,10 @@ import type {
 
 const BASE_URL = '/api/v1/dashboard/commissions'
 
+// `Idempotency-Key` de lo que crea algo (ft-graves, D-D1): la misma clave + el mismo cuerpo devuelve lo ya creado, nunca un segundo.
+// Sin clave, la petición es la de siempre. El reintento de red de `api.ts` reenvía esta misma config, con la misma clave.
+const conClave = (clave?: string) => (clave ? { headers: { 'Idempotency-Key': clave } } : undefined)
+
 const normalizeArrayResponse = <T>(payload: unknown): T[] => {
 	if (Array.isArray(payload)) return (payload as T[]).filter(item => item != null)
 	if (payload && typeof payload === 'object') {
@@ -61,8 +65,8 @@ export const commissionService = {
 	},
 
 	// Create a new commission config
-	async createConfig(venueId: string, data: CreateCommissionConfigInput): Promise<CommissionConfig> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs`, data)
+	async createConfig(venueId: string, data: CreateCommissionConfigInput, clave?: string): Promise<CommissionConfig> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs`, data, conClave(clave))
 		return response.data
 	},
 
@@ -99,14 +103,14 @@ export const commissionService = {
 	},
 
 	// Create a new tier
-	async createTier(venueId: string, configId: string, data: CreateCommissionTierInput): Promise<CommissionTier> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/tiers`, data)
+	async createTier(venueId: string, configId: string, data: CreateCommissionTierInput, clave?: string): Promise<CommissionTier> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/tiers`, data, conClave(clave))
 		return response.data
 	},
 
 	// Create multiple tiers at once
-	async createTiersBatch(venueId: string, configId: string, tiers: CreateCommissionTierInput[]): Promise<CommissionTier[]> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/tiers/batch`, { tiers })
+	async createTiersBatch(venueId: string, configId: string, tiers: CreateCommissionTierInput[], clave?: string): Promise<CommissionTier[]> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/tiers/batch`, { tiers }, conClave(clave))
 		return response.data
 	},
 
@@ -149,8 +153,8 @@ export const commissionService = {
 	},
 
 	// Create a new override
-	async createOverride(venueId: string, configId: string, data: CreateCommissionOverrideInput): Promise<CommissionOverride> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/overrides`, data)
+	async createOverride(venueId: string, configId: string, data: CreateCommissionOverrideInput, clave?: string): Promise<CommissionOverride> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/configs/${configId}/overrides`, data, conClave(clave))
 		return response.data
 	},
 
@@ -305,8 +309,8 @@ export const commissionService = {
 	},
 
 	// Create a new sales goal
-	async createSalesGoal(venueId: string, data: CreateSalesGoalInput): Promise<SalesGoal> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/goals`, data)
+	async createSalesGoal(venueId: string, data: CreateSalesGoalInput, clave?: string): Promise<SalesGoal> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/goals`, data, conClave(clave))
 		return response.data
 	},
 
@@ -339,8 +343,8 @@ export const commissionService = {
 	},
 
 	// Create org-level commission config
-	async createOrgConfig(venueId: string, data: CreateCommissionConfigInput): Promise<CommissionConfig> {
-		const response = await api.post(`${BASE_URL}/venues/${venueId}/org-configs`, data)
+	async createOrgConfig(venueId: string, data: CreateCommissionConfigInput, clave?: string): Promise<CommissionConfig> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/org-configs`, data, conClave(clave))
 		return response.data?.data || response.data
 	},
 

@@ -22,6 +22,7 @@ import { ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import { aQuienAplicaAGuardar, restriccionEnElServidor } from '../../aQuienAplica'
 import LimitsCard from './cards/LimitsCard'
 import { finDelDiaEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../../fechasDeVigencia'
+import { useEnvioUnico, type Paso } from '../../envioUnico'
 
 interface CommissionSetupPanelProps {
   open: boolean
@@ -46,8 +47,10 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
     return { completed, total: REQUIRED_CARDS.length, ready: isRequiredComplete(state) }
   }, [state])
 
+  // Un doble clic creaba dos esquemas (ft-graves, D-D1): candado síncrono + `Idempotency-Key` por paso de la operación.
+  const envio = useEnvioUnico()
   const createMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (paso: Paso) => {
       if (!venueId) throw new Error('No venue')
 
       // A quién aplica: «Sólo seleccionados» restringe en el servidor (`filterByStaff` + `staffIds`); ya no crea una excepción por
@@ -55,7 +58,7 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
       const aQuien = aQuienAplicaAGuardar(state.rate.calcType, state.staff.mode, state.staff.overrides, state.rate.defaultRate)
       if (aQuien.filterByStaff && restriccion === 'noDisponible') throw new Error(t('setup.staff.restrictionUnavailable'))
 
-      const config = await commissionService.createConfig(venueId, {
+      const cuerpo = {
         name: state.name.value,
         recipient: state.rate.recipient,
         calcType: state.rate.calcType,
@@ -75,7 +78,8 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
         roleRates: tasasPorRolAGuardar(state.rate.calcType, state.roleRates.enabled, state.roleRates.rates) ?? undefined,
         minAmount: state.limits.enabled ? state.limits.minAmount : undefined,
         maxAmount: state.limits.enabled ? state.limits.maxAmount : undefined,
-      })
+      }
+      const config = await paso('esquema', clave => commissionService.createConfig(venueId, cuerpo, clave))
 
       // 🔴 DINERO: un servidor que no sabe restringir ignora `filterByStaff` y el esquema le pagaría a TODO el equipo. Si no regresó
       // restringido, se quita (no tiene niveles, excepciones ni cálculos todavía) y se dice; nunca se deja fingiendo.
@@ -91,27 +95,24 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
 
       // Los niveles son porcentajes: en un fijo no se ofrecen ni se crean (final-fijo-niveles).
       if (ofreceNiveles(state.rate.calcType) && state.tiers.enabled && state.tiers.items.length > 0) {
-        await commissionService.createTiersBatch(
-          venueId,
-          config.id,
-          state.tiers.items.map(tier => ({
-            tierLevel: tier.level,
-            name: tier.name,
-            tierType: 'BY_AMOUNT' as const,
-            minThreshold: tier.minThreshold,
-            maxThreshold: tier.maxThreshold,
-            minThresholdType: tier.minThresholdType,
-            maxThresholdType: tier.maxThresholdType,
-            rate: tier.rate,
-            period: state.tiers.tierPeriod,
-          })),
-        )
+        const niveles = state.tiers.items.map(tier => ({
+          tierLevel: tier.level,
+          name: tier.name,
+          tierType: 'BY_AMOUNT' as const,
+          minThreshold: tier.minThreshold,
+          maxThreshold: tier.maxThreshold,
+          minThresholdType: tier.minThresholdType,
+          maxThresholdType: tier.maxThresholdType,
+          rate: tier.rate,
+          period: state.tiers.tierPeriod,
+        }))
+        await paso('niveles', clave => commissionService.createTiersBatch(venueId, config.id, niveles, clave))
       }
 
       // En un fijo sólo viajan las exclusiones, sin tasa propia (el servidor paga el monto fijo a todos los demás). Con «Sólo
       // seleccionados», sólo la tasa especial de un elegido.
       for (const excepcion of aQuien.excepciones) {
-        await commissionService.createOverride(venueId, config.id, excepcion)
+        await paso(`excepcion:${excepcion.staffId}`, clave => commissionService.createOverride(venueId, config.id, excepcion, clave))
       }
 
       return config
@@ -146,10 +147,13 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
             {progress.completed} de {progress.total} {t('setup.requiredLabel')} ✓
           </p>
           <Button
-            onClick={() => createMutation.mutate()}
-            disabled={!progress.ready || createMutation.isPending}
+            onClick={() =>
+              // El error ya lo dice `onError`; la huella es TODO lo que se manda (otro cuerpo = otra operación).
+              void envio.enviar(`panel:${venueId}:${JSON.stringify(state)}`, paso => createMutation.mutateAsync(paso)).catch(() => {})
+            }
+            disabled={!progress.ready || createMutation.isPending || envio.enviando}
           >
-            {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {(createMutation.isPending || envio.enviando) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {t('setup.createButton')}
           </Button>
         </div>
