@@ -14,6 +14,7 @@ import type {
 import StepAmount from './StepAmount'
 import StepConfirm from './StepConfirm'
 import { calcTypeAGuardar, excepcionesAGuardar, ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
+import { finDelDiaEnLaSede, hoyEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../../fechasDeVigencia'
 
 // Override type for wizard (simplified from CreateCommissionOverrideInput)
 export interface WizardOverride {
@@ -80,9 +81,6 @@ export interface WizardData {
   priority: number
 }
 
-// Get today's date in ISO format (YYYY-MM-DD)
-const getTodayISO = () => new Date().toISOString().split('T')[0]
-
 const initialData: WizardData = {
   recipient: 'SERVER',
   defaultRate: 0.03, // 3%
@@ -117,7 +115,7 @@ const initialData: WizardData = {
   overrides: [],
   name: '',
   customValidityEnabled: false,
-  effectiveFrom: getTodayISO(),
+  effectiveFrom: '', // «hoy» en la zona del negocio, al montar (ft-graves, D-D2)
   effectiveTo: null,
   aggregationPeriod: 'MONTHLY', // Default to monthly (most common payroll alignment)
   priority: 1, // Default priority (higher = takes precedence when multiple configs exist)
@@ -153,7 +151,8 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
     const { toast } = useToast()
     const { venueId } = useCurrentVenue()
     const [currentStep, setCurrentStep] = useState(1)
-    const [data, setData] = useState<WizardData>(initialData)
+    const zona = useZonaDeLaSede()
+    const [data, setData] = useState<WizardData>(() => ({ ...initialData, effectiveFrom: hoyEnLaSede(zona) }))
 
     const createConfigMutation = useCreateCommissionConfig()
     const createOrgConfigMutation = useCreateOrgCommissionConfig()
@@ -186,9 +185,6 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
         const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
         const metaComoNivel = conNiveles && data.useGoalAsTier
 
-        // Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
-        const toISODateTime = (dateStr: string) => new Date(dateStr + 'T00:00:00').toISOString()
-
         const input: CreateCommissionConfigInput = {
           name: data.name,
           recipient: data.recipient,
@@ -205,8 +201,9 @@ const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardPr
           useGoalAsTier: metaComoNivel,
           goalBonusRate: metaComoNivel ? data.goalBonusRate : null,
           priority: data.priority,
-          effectiveFrom: toISODateTime(data.effectiveFrom),
-          effectiveTo: data.effectiveTo ? toISODateTime(data.effectiveTo) : null,
+          // El día del negocio, no el del navegador: «desde» su inicio, «hasta» incluido entero (ft-graves, D-D2).
+          effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
+          effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : null,
           aggregationPeriod: data.aggregationPeriod,
         }
 

@@ -27,6 +27,7 @@ import type { CommissionCalcType, CommissionOverride } from '@/types/commission'
 import { ofreceTasaPorPersona } from '../tasaDelEsquema'
 import { cn } from '@/lib/utils'
 import CreateOverrideDialog from './CreateOverrideDialog'
+import { fechaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
 
 // GlassCard component
 const GlassCard: React.FC<{
@@ -79,13 +80,9 @@ export default function CommissionOverrideList({
 	}
 
 	// Format date
-	const formatDate = (dateString: string | null) => {
-		if (!dateString) return '-'
-		return new Date(dateString).toLocaleDateString(
-			i18n.language === 'es' ? 'es-MX' : 'en-US',
-			{ month: 'short', day: 'numeric', year: 'numeric' }
-		)
-	}
+	// El día del negocio, no el del navegador (ft-graves, D-D2).
+	const zona = useZonaDeLaSede()
+	const formatDate = (dateString: string | null) => fechaEnLaSede(dateString, zona, i18n.language)
 
 	const handleDelete = async () => {
 		if (!deletingOverride) return

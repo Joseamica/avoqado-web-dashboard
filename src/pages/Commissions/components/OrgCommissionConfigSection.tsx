@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import type { CommissionConfig } from '@/types/commission'
 import { CreateCommissionWizard } from './wizard'
+import { fechaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
 
 export default function OrgCommissionConfigSection() {
 	const { t, i18n } = useTranslation('commissions')
@@ -49,6 +50,8 @@ export default function OrgCommissionConfigSection() {
 
 	const { data: orgConfigs, isLoading } = useOrgCommissionConfigs()
 	const deleteOrgConfigMutation = useDeleteOrgCommissionConfig()
+	// El día del negocio, no el del navegador (ft-graves, D-D2).
+	const zona = useZonaDeLaSede()
 
 	if (!can('commissions:org-manage')) return null
 
@@ -63,12 +66,7 @@ export default function OrgCommissionConfigSection() {
 		}).format(amount)
 	}
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString(
-			i18n.language === 'es' ? 'es-MX' : 'en-US',
-			{ month: 'short', day: 'numeric', year: 'numeric' }
-		)
-	}
+	const formatDate = (dateString: string) => fechaEnLaSede(dateString, zona, i18n.language)
 
 	const handleDelete = async () => {
 		if (!deleteConfigId) return

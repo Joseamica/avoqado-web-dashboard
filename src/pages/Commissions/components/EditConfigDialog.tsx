@@ -21,6 +21,7 @@ import type { WizardData } from './wizard/CreateCommissionWizard'
 import LiveExample from './wizard/LiveExample'
 import AQuienAplicaEditor, { type AQuienAplica } from './AQuienAplicaEditor'
 import { servidorRestringePorPersona } from '../aQuienAplica'
+import { diaEnLaSede, finDelDiaEnLaSede, hoyEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
 
 interface EditConfigDialogProps {
   open: boolean
@@ -28,15 +29,12 @@ interface EditConfigDialogProps {
   config: CommissionConfig
 }
 
-// Get today's date in ISO format (YYYY-MM-DD)
-const getTodayISO = () => new Date().toISOString().split('T')[0]
-
 export default function EditConfigDialog({ open, onOpenChange, config }: EditConfigDialogProps) {
   const { t } = useTranslation('commissions')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
-
-
+  // Las fechas se ven y se eligen en el día del NEGOCIO; la base guarda UTC (ft-graves, D-D2).
+  const zona = useZonaDeLaSede()
   const updateConfigMutation = useUpdateCommissionConfig()
 
   // Convert config to WizardData format for reusing wizard components
@@ -88,8 +86,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
         })) || [],
       name: cfg.name,
       customValidityEnabled: cfg.effectiveTo !== null,
-      effectiveFrom: cfg.effectiveFrom?.split('T')[0] || getTodayISO(),
-      effectiveTo: cfg.effectiveTo?.split('T')[0] || null,
+      effectiveFrom: diaEnLaSede(cfg.effectiveFrom, zona) || hoyEnLaSede(zona),
+      effectiveTo: diaEnLaSede(cfg.effectiveTo, zona),
       aggregationPeriod: (cfg.aggregationPeriod as TierPeriod) || 'MONTHLY',
       priority: cfg.priority || 1,
     }
@@ -215,12 +213,6 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
       const finalCalcType = calcTypeAGuardar(data.calcType, data.tiersEnabled, data.useGoalAsTier)
       const metaComoNivel = ofreceNiveles(data.calcType) && data.useGoalAsTier
 
-      // Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
-      const toISODateTime = (dateStr: string | null | undefined) => {
-        if (!dateStr) return null
-        return new Date(dateStr + 'T00:00:00').toISOString()
-      }
-
       // Ensure numeric values are numbers, not strings
       const minAmount = data.limitsEnabled && data.minAmount !== null ? Number(data.minAmount) : null
       const maxAmount = data.limitsEnabled && data.maxAmount !== null ? Number(data.maxAmount) : null
@@ -252,8 +244,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
           attendanceLinked: data.attendanceLinked,
           attendanceLatePenaltyRate: data.attendanceLinked ? data.attendanceLatePenaltyRate : null,
           roleRates,
-          effectiveFrom: toISODateTime(data.effectiveFrom),
-          effectiveTo: toISODateTime(data.effectiveTo),
+          effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : null,
+          effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : null,
           aggregationPeriod: data.aggregationPeriod,
           priority: data.priority,
           active: config.active, // Keep existing active status

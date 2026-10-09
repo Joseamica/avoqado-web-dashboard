@@ -45,6 +45,7 @@ import { teamService } from '@/services/team.service'
 import { useToast } from '@/hooks/use-toast'
 import type { CommissionCalcType, CommissionOverride } from '@/types/commission'
 import { ofreceTasaPorPersona } from '../tasaDelEsquema'
+import { diaEnLaSede, finDelDiaEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
 import { cn } from '@/lib/utils'
 
 const createOverrideSchema = z.object({
@@ -85,6 +86,8 @@ export default function CreateOverrideDialog({
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
 	const { venueId } = useCurrentVenue()
+	// Las fechas se ven y se eligen en el día del NEGOCIO; la base guarda UTC (ft-graves, D-D2).
+	const zona = useZonaDeLaSede()
 
 	const [staffSearchOpen, setStaffSearchOpen] = useState(false)
 	const [selectedStaff, setSelectedStaff] = useState<{ id: string; name: string } | null>(null)
@@ -111,8 +114,8 @@ export default function CreateOverrideDialog({
 			customRate: override?.customRate != null ? override.customRate * 100 : null,
 			excludeFromCommissions: override?.excludeFromCommissions ?? soloExcluir,
 			notes: override?.notes || '',
-			effectiveFrom: override?.effectiveFrom?.split('T')[0] || '',
-			effectiveTo: override?.effectiveTo?.split('T')[0] || '',
+			effectiveFrom: diaEnLaSede(override?.effectiveFrom, zona) ?? '',
+			effectiveTo: diaEnLaSede(override?.effectiveTo, zona) ?? '',
 			active: override?.active ?? true,
 		},
 	})
@@ -130,8 +133,8 @@ export default function CreateOverrideDialog({
 					customRate: override.customRate !== null ? override.customRate * 100 : null,
 					excludeFromCommissions: override.excludeFromCommissions,
 					notes: override.notes || '',
-					effectiveFrom: override.effectiveFrom?.split('T')[0] || '',
-					effectiveTo: override.effectiveTo?.split('T')[0] || '',
+					effectiveFrom: diaEnLaSede(override.effectiveFrom, zona) ?? '',
+					effectiveTo: diaEnLaSede(override.effectiveTo, zona) ?? '',
 					active: override.active ?? true,
 				})
 			} else {
@@ -147,7 +150,7 @@ export default function CreateOverrideDialog({
 				})
 			}
 		}
-	}, [open, override, form, soloExcluir])
+	}, [open, override, form, soloExcluir, zona])
 
 	const onSubmit = async (data: OverrideFormData) => {
 		try {
@@ -156,8 +159,8 @@ export default function CreateOverrideDialog({
 				customRate: !soloExcluir && data.customRate !== null ? data.customRate / 100 : null,
 				excludeFromCommissions: data.excludeFromCommissions,
 				notes: data.notes || undefined,
-				effectiveFrom: data.effectiveFrom || undefined,
-				effectiveTo: data.effectiveTo || undefined,
+				effectiveFrom: data.effectiveFrom ? inicioDelDiaEnLaSede(data.effectiveFrom, zona) : undefined,
+				effectiveTo: data.effectiveTo ? finDelDiaEnLaSede(data.effectiveTo, zona) : undefined,
 				active: data.active,
 			}
 

@@ -44,6 +44,7 @@ import type { CommissionConfig, CommissionCalcType, CommissionConfigSource } fro
 import { cn } from '@/lib/utils'
 import { esMontoFijo, textoDeTasa, usaTasasPorRol } from '../tasaDelEsquema'
 import { soloPersonasElegidas } from '../aQuienAplica'
+import { fechaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
 
 // GlassCard with hover effect
 const GlassCard: React.FC<{
@@ -127,12 +128,9 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 	const maxAmountLabel = config.maxAmount !== null ? formatCurrency(config.maxAmount) : tCommon('common.na')
 
 	// Format date
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString(
-			i18n.language === 'es' ? 'es-MX' : 'en-US',
-			{ month: 'short', day: 'numeric', year: 'numeric' }
-		)
-	}
+	// El día del negocio, no el del navegador (ft-graves, D-D2).
+	const zona = useZonaDeLaSede()
+	const formatDate = (dateString: string) => fechaEnLaSede(dateString, zona, i18n.language)
 
 	const handleDelete = async () => {
 		try {

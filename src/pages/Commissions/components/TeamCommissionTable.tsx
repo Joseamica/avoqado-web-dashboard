@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { MostrandoDeTotal, NotaDeLoCalculado } from './AvisosDeResumen'
+import { fechaEnLaSede, useZonaDeLaSede } from '../fechasDeVigencia'
 
 /**
  * Lo que el motor calculó por persona y periodo. Sin columna de estado (E6a-fix F9, QA H4): el estado de estos resúmenes es
@@ -42,13 +43,9 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
   }
 
   // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(i18n.language === 'es' ? 'es-MX' : 'en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  }
+  // Los periodos los corta el servidor en la zona del negocio: se leen en esa misma zona (ft-graves, D-D2).
+  const zona = useZonaDeLaSede()
+  const formatDate = (dateString: string) => fechaEnLaSede(dateString, zona, i18n.language)
 
   // Format period
   const formatPeriod = (start: string, end: string) => {

@@ -15,6 +15,8 @@ import type { CommissionConfig } from '@/types/commission'
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+// El editor lee la zona del negocio (ft-graves, D-D2).
+vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', venue: null }) }))
 vi.mock('@/hooks/useCommissions', () => ({ useUpdateCommissionConfig: () => ({ mutateAsync: vi.fn(), isPending: false }) }))
 vi.mock('../components/wizard/LiveExample', () => ({ default: () => null, TieredExample: () => null }))
 vi.mock('../components/wizard/CommissionAdvancedConfig', () => ({ default: () => null }))

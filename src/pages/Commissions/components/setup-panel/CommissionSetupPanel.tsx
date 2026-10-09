@@ -21,6 +21,7 @@ import RoleRatesCard from './cards/RoleRatesCard'
 import { ofreceNiveles, tasasPorRolAGuardar } from '../../tasaDelEsquema'
 import { aQuienAplicaAGuardar, restriccionEnElServidor } from '../../aQuienAplica'
 import LimitsCard from './cards/LimitsCard'
+import { finDelDiaEnLaSede, inicioDelDiaEnLaSede, useZonaDeLaSede } from '../../fechasDeVigencia'
 
 interface CommissionSetupPanelProps {
   open: boolean
@@ -31,6 +32,7 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
   const { t } = useTranslation('commissions')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
+  const zona = useZonaDeLaSede()
   const queryClient = useQueryClient()
   const [state, dispatch] = useReducer(setupReducer, undefined, initialState)
   // ¿El servidor sabe limitar un esquema a personas elegidas? Lo dicen los esquemas que ya devolvió (traen `filterByStaff`); si no
@@ -66,12 +68,9 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
         filterByStaff: aQuien.filterByStaff,
         staffIds: aQuien.staffIds,
         aggregationPeriod: state.period.aggregationPeriod,
-        effectiveFrom: state.name.effectiveFrom
-          ? new Date(`${state.name.effectiveFrom}T00:00:00`).toISOString()
-          : undefined,
-        effectiveTo: state.name.effectiveTo
-          ? new Date(`${state.name.effectiveTo}T23:59:59`).toISOString()
-          : undefined,
+        // El día del negocio, no el del navegador: «desde» su inicio, «hasta» incluido entero (ft-graves, D-D2).
+        effectiveFrom: state.name.effectiveFrom ? inicioDelDiaEnLaSede(state.name.effectiveFrom, zona) : undefined,
+        effectiveTo: state.name.effectiveTo ? finDelDiaEnLaSede(state.name.effectiveTo, zona) : undefined,
         priority: state.name.priority,
         roleRates: tasasPorRolAGuardar(state.rate.calcType, state.roleRates.enabled, state.roleRates.rates) ?? undefined,
         minAmount: state.limits.enabled ? state.limits.minAmount : undefined,

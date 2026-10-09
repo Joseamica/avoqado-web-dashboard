@@ -59,6 +59,7 @@ import { soloPersonasElegidas } from './aQuienAplica'
 import CommissionTierList from './components/CommissionTierList'
 import CommissionOverrideList from './components/CommissionOverrideList'
 import EditConfigDialog from './components/EditConfigDialog'
+import { fechaEnLaSede, useZonaDeLaSede } from './fechasDeVigencia'
 
 // Icons for calculation types
 const calcTypeIcons: Record<CommissionCalcType, React.ReactNode> = {
@@ -159,13 +160,9 @@ export default function CommissionConfigDetailPage() {
 	}
 
 	// Format date
-	const formatDate = (dateString: string | null) => {
-		if (!dateString) return '-'
-		return new Date(dateString).toLocaleDateString(
-			i18n.language === 'es' ? 'es-MX' : 'en-US',
-			{ month: 'long', day: 'numeric', year: 'numeric' }
-		)
-	}
+	// El día del negocio, no el del navegador (ft-graves, D-D2).
+	const zona = useZonaDeLaSede()
+	const formatDate = (dateString: string | null) => fechaEnLaSede(dateString, zona, i18n.language, 'largo')
 
 	const handleDelete = async () => {
 		if (!configId) return
