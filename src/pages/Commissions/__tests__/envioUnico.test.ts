@@ -1,6 +1,6 @@
 // ft-graves, D-D1: reglas de la clave de una operación que crea algo. La clave es de la OPERACIÓN, no del clic.
 import { act, renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { olvidarPendientes, quedoEnDuda, useEnvioUnico, type Paso } from '../envioUnico'
 
 const sinRespuesta = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
@@ -96,6 +96,57 @@ describe('useEnvioUnico', () => {
     const primero = await correr(montar(), 'h', ['esquema'], () => sinRespuesta())
     const segundo = await correr(montar(), 'h', ['esquema'])
     expect(segundo.esquema).toBe(primero.esquema)
+  })
+
+  describe('409 IDEMPOTENCY_IN_FLIGHT (el primer intento sigue en curso en el servidor)', () => {
+    const enCurso = () =>
+      Object.assign(new Error('409'), { response: { status: 409, data: { error: 'IDEMPOTENCY_IN_FLIGHT', message: 'en curso' } } })
+
+    it('🔴 reintenta solo, con la MISMA clave, hasta que el servidor contesta', async () => {
+      vi.useFakeTimers()
+      try {
+        const envio = montar()
+        const claves: string[] = []
+        let veces = 0
+        let resultado: unknown
+        await act(async () => {
+          const p = envio.current.enviar('h', paso =>
+            paso('esquema', async clave => {
+              claves.push(clave)
+              if (veces++ < 2) throw enCurso()
+              return 'creado'
+            }),
+          )
+          await vi.advanceTimersByTimeAsync(5000)
+          resultado = await p
+        })
+        expect(resultado).toBe('creado')
+        expect(claves).toHaveLength(3)
+        expect(new Set(claves).size).toBe(1)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('🔴 si sigue en curso tras los reintentos, queda en duda: el siguiente intento usa la misma clave', async () => {
+      vi.useFakeTimers()
+      try {
+        const envio = montar()
+        const claves: string[] = []
+        await act(async () => {
+          const p = envio.current
+            .enviar('h', paso => paso('esquema', async clave => (claves.push(clave), Promise.reject(enCurso()))))
+            .catch(() => {})
+          await vi.advanceTimersByTimeAsync(20000)
+          await p
+        })
+        vi.useRealTimers()
+        const despues = await correr(envio, 'h', ['esquema'])
+        expect(new Set([...claves, despues.esquema]).size).toBe(1)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 
   it('quedoEnDuda: sin respuesta o 5xx sí; 4xx no', () => {
