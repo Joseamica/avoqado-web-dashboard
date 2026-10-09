@@ -146,7 +146,14 @@ describe('openOrderDot — el punto de cuenta abierta no gira con la mesa (H3)',
     expect(Math.abs(dot.dy)).toBeLessThan(Math.SQRT2 * 2)
   })
 
-  it('la redonda lo tiene siempre en el mismo lugar', () => {
+  it('la redonda lo tiene siempre en el mismo lugar, arriba a la derecha y DENTRO del círculo (M7)', () => {
     expect(openOrderDot('ROUND', 4, 135)).toEqual(openOrderDot('ROUND', 4, 0))
+    for (const capacity of [2, 4, 6, 8]) {
+      const r = tableSizeCells('ROUND', capacity).w / 2
+      const dot = openOrderDot('ROUND', capacity, 0)
+      expect(dot.dx).toBeGreaterThan(0)
+      expect(dot.dy).toBeCloseTo(-dot.dx, 6)
+      expect(Math.hypot(dot.dx, dot.dy) + 0.38).toBeLessThanOrEqual(r)
+    }
   })
 })

@@ -38,12 +38,16 @@ export function rotatedExtent(w: number, h: number, rotation: number): { w: numb
  * Dónde va el punto de «cuenta abierta», como desplazamiento desde el centro de la mesa: siempre en la esquina de
  * ARRIBA A LA DERECHA tal como se ve, sin importar el giro (antes giraba con la mesa y a 90° quedaba abajo).
  * En una mesa cuadrada o larga es la esquina (metida 0.45 cuadros) que, ya girada, queda más arriba a la derecha; en
- * una redonda, el mismo lugar siempre.
+ * una redonda, siempre el mismo lugar del borde, por dentro.
  */
 export function openOrderDot(shape: TableShape, capacity: number, rotation: number): { dx: number; dy: number } {
   const { w, h } = tableSizeCells(shape, capacity)
   const inset = 0.45
-  if (shape === 'ROUND') return { dx: round6(w / 2 - inset), dy: round6(-(h / 2 - inset)) }
+  // Redonda: sobre el radio a 45° (arriba a la derecha), metido para que quede DENTRO del círculo.
+  if (shape === 'ROUND') {
+    const d = round6((w / 2 - inset) * Math.SQRT1_2)
+    return { dx: d, dy: -d }
+  }
   const r = (rotation * Math.PI) / 180
   const cos = Math.cos(r)
   const sin = Math.sin(r)
