@@ -81,6 +81,7 @@ import {
   Ecommerce,
   PaymentLinkSettings,
   PassIntegrations,
+  ShopifyIntegration,
   ReservationBranding,
   Payments,
   ProductId,
@@ -816,6 +817,15 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'integrations/pases',
           element: <PermissionProtectedRoute permission="reservations:read" />,
           children: [{ index: true, element: <PassIntegrations /> }],
+        },
+        // Conector Shopify — HERMANA de `integrations` con la URL /settings/integrations/shopify, a la que ligan los avisos de
+        // la campanita y el detalle del conteo (#por-revisar). Protegida por PERMISO, como la de pases: con inventory:read se ve
+        // en sólo lectura; resolver pide inventory:adjust y conectar settings:manage (los exige el server). El acceso al piloto
+        // lo decide la página con lo que concede el server (sin paywall: en la Fase 1 contratar un plan no da Shopify).
+        {
+          path: 'integrations/shopify',
+          element: <PermissionProtectedRoute permission="inventory:read" />,
+          children: [{ index: true, element: <ShopifyIntegration /> }],
         },
 
         // Este local — roles (URL unchanged: settings/role-permissions)

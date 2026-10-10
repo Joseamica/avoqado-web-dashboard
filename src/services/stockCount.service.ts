@@ -47,11 +47,18 @@ export interface StockCountItem {
   difference: number
   /** null = todavía no se ha contado. `counted` y `difference` no son datos sin esto. */
   countedAt: string | null
+  /**
+   * La línea se contó pero el conteo NO la aplicó por Shopify (hora ISO UTC + motivo): su diferencia no movió el stock.
+   * null = se aplicó. Opcional: un servidor anterior no lo manda.
+   */
+  shopifyHeld?: { at: string; motivo: 'ENVIO_EN_CAMINO' | 'DUDA_POR_REVISAR' } | null
 }
 
 /** Full stock count with items (detail endpoint) */
 export interface StockCountDetail extends StockCountRow {
   items: StockCountItem[]
+  /** Cuántas líneas no se aplicaron por Shopify. `summary` las sigue contando. Opcional: un servidor anterior no lo manda. */
+  noAplicadas?: number
 }
 
 export interface StockCountFilters {
@@ -82,23 +89,15 @@ export const stockCountService = {
     venueId: string,
     filters?: StockCountFilters,
   ): Promise<{ success: boolean; data: StockCountRow[]; pagination: Pagination }> => {
-    const { data } = await api.get(
-      `/api/v1/dashboard/venues/${venueId}/inventory/stock-counts`,
-      { params: filters },
-    )
+    const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/stock-counts`, { params: filters })
     return data
   },
 
   /**
    * Get a single stock count with its full item list.
    */
-  get: async (
-    venueId: string,
-    countId: string,
-  ): Promise<{ success: boolean; data: StockCountDetail }> => {
-    const { data } = await api.get(
-      `/api/v1/dashboard/venues/${venueId}/inventory/stock-counts/${countId}`,
-    )
+  get: async (venueId: string, countId: string): Promise<{ success: boolean; data: StockCountDetail }> => {
+    const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/stock-counts/${countId}`)
     return data
   },
 

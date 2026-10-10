@@ -1506,6 +1506,16 @@
       "confirm": "Sí, cancelar conteo",
       "success": "Conteo cancelado",
       "error": "No se pudo cancelar el conteo"
+    },
+    "held": {
+      "badge": "No se aplicó",
+      "ENVIO_EN_CAMINO": "Había un envío a Shopify en camino; vuelve a contar este producto en unos minutos",
+      "DUDA_POR_REVISAR": "Hay una diferencia con Shopify por revisar; resuélvela primero",
+      "reviewLink": "Ir a «Por revisar» de Shopify",
+      "summary_one": "{{count}} línea no se aplicó",
+      "summary_other": "{{count}} líneas no se aplicaron",
+      "includedInDifference_one": "(incluye {{count}} no aplicada)",
+      "includedInDifference_other": "(incluye {{count}} no aplicadas)"
     }
   },
   "history": {

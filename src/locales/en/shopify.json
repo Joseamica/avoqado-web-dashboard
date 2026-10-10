@@ -1,0 +1,279 @@
+{
+  "page": {
+    "title": "Shopify",
+    "subtitle": "Share catalog and stock between your Shopify store and this location.",
+    "readOnly": "You can see the status. To connect or change the connection, ask the owner or an administrator.",
+    "staleOverview": "We could not refresh the status; what you see may be out of date."
+  },
+  "piloto": {
+    "title": "Shopify is in a pilot",
+    "body": "For now, the Shopify connector opens to a group of invited stores. If you are interested, write to us and we will look at it with you.",
+    "contact": "Write on WhatsApp",
+    "whatsappMessage": "Hi, I would like to join the Shopify connector pilot.",
+    "askOwner": "If you are interested, ask the business owner to write to us."
+  },
+  "estado": {
+    "IMPORTANDO": "Bringing in your catalog",
+    "POR_APLICAR": "Ready to review",
+    "APLICANDO": "Applying",
+    "ACTIVA": "Connected",
+    "PAUSADA": "Paused",
+    "REVOCADA": "No Shopify permission"
+  },
+  "list": {
+    "loadMore": "Load more",
+    "total": "{{shown}} of {{total}}",
+    "staleError": "We could not refresh this list; what you see may be out of date.",
+    "loadMoreError": "We could not load more results. What is above is still valid.",
+    "retryLoadMore": "Retry loading more"
+  },
+  "connect": {
+    "title": "Connect your Shopify store",
+    "body": "Your Shopify catalog flows into this location on its own, and every sale, return or online order shows up on both sides.",
+    "domainLabel": "Your store domain",
+    "domainPlaceholder": "my-store.myshopify.com",
+    "domainHelp": "Find it in Shopify → Settings → Domains. It ends in .myshopify.com.",
+    "submit": "Connect with Shopify",
+    "soloPilotoTitle": "Pilot stores only, for now",
+    "soloPiloto": "The Shopify connector is in a pilot with a few stores. If you want to join, write to us and we will let you know when it opens to everyone.",
+    "chooseLocation": "Which Shopify location is this branch?",
+    "chooseLocationHelp": "The stock of that location is the one shared with this branch.",
+    "noLocations": "Your store has no active locations. Create one in Shopify → Settings → Locations and connect again.",
+    "restart": "Start over",
+    "importing": "Bringing in your Shopify catalog. You can close this page: it keeps going on its own.",
+    "importedCount": "Variants reviewed: {{n}}",
+    "importStopped": "The connection stopped",
+    "importStoppedAskAdmin": "Ask the owner or an administrator to sort it out from this page.",
+    "importErrors": {
+      "CATALOGO_MUY_GRANDE": "Your catalog is too large for this version (more than 20,000 variants). Write to us and we will work it out with you, or cancel the connection.",
+      "CATALOGO_MAESTRO": "This organization's catalog is managed by the master catalog, so Shopify cannot create products here. Ask whoever manages the master catalog to release it and connect again, or cancel the connection.",
+      "FALTA_PERMISO": "Shopify did not give Avoqado every permission it needs. Grant permission again and accept everything it asks for.",
+      "generic": "The import stopped because of an error. We retry it on our own; if it keeps happening, write to us."
+    },
+    "callbackErrors": {
+      "FIRMA": "Shopify did not sign the response. Try again.",
+      "INTENT": "We could not find your connection. Try again.",
+      "USADO": "That Shopify link was already used. Connect again.",
+      "EXPIRADO": "Too much time passed. Connect again.",
+      "TIENDA": "The store you authorized is not the one you typed.",
+      "INTERCAMBIO": "Shopify did not hand over the permission. Try again.",
+      "DENEGADO": "Not every permission was granted in Shopify. Without them we cannot sync.",
+      "generic": "We could not finish connecting to Shopify. Try again."
+    },
+    "reauthorized": "Done: Shopify granted permission again. Syncing continues."
+  },
+  "preview": {
+    "title": "This is how your stock will look",
+    "body": "Compare what Avoqado has today with how it will look when you apply: what Shopify had when your catalog came in, with what sold while you were connecting.",
+    "hoy": "Avoqado today",
+    "quedara": "Will be",
+    "enShopify": "Shopify at import: {{qty}}",
+    "readOnly": "Your catalog is in. The owner or an administrator still needs to review and apply the stock.",
+    "resumen": "Matched: {{emparejados}} · Changing: {{cambian}} · New: {{nuevos}} · Unmatched: {{sinPareja}}",
+    "filtroLabel": "Which products to show",
+    "filtros": { "CAMBIAN": "Changing", "NUEVOS": "New", "TODOS": "All" },
+    "nuevo": "New",
+    "empty": "No products with this filter.",
+    "loadError": "We could not load the preview.",
+    "applyBlocked": "The preview has to load before you can apply.",
+    "apply": "Apply and sync",
+    "applyTitle": "Apply the Shopify stock and start syncing?",
+    "applyBody": "Each matched product will take the number Shopify has at that moment; it may differ from this list if someone sells in the meantime. Sales you made while connecting are kept. From then on, every sale, return or online order will show up on both sides.",
+    "applyConfirm": "Yes, apply",
+    "cancel": "Cancel the connection",
+    "cancelTitle": "Cancel the Shopify connection?",
+    "cancelBody": "No stock changes. Products that already came in from Shopify stay in your catalog.",
+    "cancelConfirm": "Yes, cancel",
+    "cancelKeep": "Keep connecting",
+    "applying": "Applying: {{hechas}} of {{total}} products",
+    "applyRequested": "Applying the Shopify stock. You can close this page: it keeps going on its own."
+  },
+  "status": {
+    "store": "Store",
+    "location": "Location",
+    "matched": "Matched products",
+    "pending": "Changes on the way",
+    "stuck": "Stuck changes",
+    "uncertain": "Unconfirmed sends",
+    "delay": "Delay",
+    "delayMinutes": "{{n}} min",
+    "lastReconcile": "Last reconciliation",
+    "never": "Not yet",
+    "resyncing": "Reconciliation in progress…",
+    "resyncOnResume": "It will reconcile when it resumes",
+    "retryAt": "Retrying at {{time}}",
+    "paused": "Paused: this business no longer has access to the Shopify connector. Nothing is sent or applied; changes keep being recorded and, when it is reactivated, we compare everything.",
+    "pausedContact": "Pilot access is turned on case by case: write to us to reactivate it.",
+    "pausedOther": "Paused while access is checked. As soon as it is valid, we compare everything and continue on our own.",
+    "revoked": "Shopify removed Avoqado's permission (someone uninstalled the app or changed its permissions). Avoqado keeps selling normally, but stock is not synced.",
+    "reconnect": "Reconnect",
+    "reconnectAskAdmin": "Ask the owner or an administrator to reconnect it.",
+    "resync": "Reconcile now",
+    "resyncBlocked": "To reconcile, first grant permission in Shopify again: without it the store's stock cannot be read.",
+    "resyncDone": "Done: the reconciliation is requested; it runs as soon as this location's turn comes, usually within a couple of minutes.",
+    "disconnect": "Disconnect",
+    "disconnectTitle": "Disconnect Shopify?",
+    "disconnectBody": "Avoqado will keep selling normally, but it will stop updating stock in Shopify and vice versa. Changes that had not gone out yet are discarded. Open differences in «To review» are closed without changing the stock of any product.",
+    "disconnectConfirm": "Yes, disconnect",
+    "disconnected": "Shopify disconnected"
+  },
+  "avisos": {
+    "title": "What does each alert mean?",
+    "intro": "When something needs your attention we alert you in the bell, and by email in the morning if something is left to review.",
+    "reauthorize": "Grant permission in Shopify again",
+    "items": {
+      "REVOCADA": {
+        "title": "Shopify disconnected Avoqado",
+        "body": "The store no longer gives Avoqado access. Your sales keep working, but stock is not synced. Reconnect it from this page."
+      },
+      "ATORADOS": {
+        "title": "Stuck stock changes",
+        "body": "Some changes did not reach Shopify after several attempts. They appear in «To review»: pick the right number for each one."
+      },
+      "RETRASO": {
+        "title": "Shopify is behind",
+        "body": "Some changes have been waiting more than 15 minutes to reach Shopify. We keep retrying on our own; if it does not clear, they move to «To review»."
+      },
+      "SOBREVENTA": {
+        "title": "The same item sold twice",
+        "body": "A product went negative because it sold in the store and online at the same time. Check the physical stock and, if needed, let the online customer know."
+      },
+      "POR_REVISAR": {
+        "title": "Stock to review",
+        "body": "The Avoqado number and the Shopify number do not match and we could not tell who changed it. Pick the right one in «To review»."
+      },
+      "FALTA_PERMISO": {
+        "title": "A Shopify permission is missing",
+        "body": "Shopify does not let Avoqado change stock. Grant permission again and accept every permission it asks for."
+      },
+      "CONTEO_NO_APLICADO": {
+        "title": "A count was not applied",
+        "body": "A product's count was not applied and its stock did not change. If a change was on its way to Shopify, count it again in a few minutes. If the product has a difference in «To review», resolve it first and then count it again."
+      },
+      "BARRIDO_OMITIDO": {
+        "title": "We couldn't check your catalog",
+        "body": "Shopify didn't show us a large part of your products, but when we asked about each one they still exist (or we couldn't confirm it), so we didn't remove any. Your sales and stock keep syncing; you don't need to do anything. What you did delete in Shopify is removed little by little, as Shopify confirms each one."
+      }
+    }
+  },
+  "review": {
+    "title": "To review",
+    "intro": "We could not tell who changed the stock of these products. Pick which number is right.",
+    "search": "Search product or SKU",
+    "empty": "Everything matches Shopify.",
+    "noMatches": "No product matches your search.",
+    "loadError": "We could not load «To review».",
+    "avoqado": "Avoqado: {{qty}}",
+    "shopify": "Shopify: {{qty}}",
+    "stuck": "Changes that did not reach Shopify: {{n}}",
+    "suggested": "Suggested",
+    "useAvoqado": "Use Avoqado's",
+    "useShopify": "Use Shopify's",
+    "resolved": "Done: both sides match.",
+    "savedChoice": "Choice saved; it will be sent to Shopify.",
+    "readOnlyResolve": "To pick a number you need the adjust inventory permission. Ask the owner or an administrator for it.",
+    "inactiveResolve": "While the connection is not active it cannot be resolved.",
+    "permissionResolve": "Shopify removed a permission from Avoqado: grant permission in Shopify again (above) to be able to choose.",
+    "elegiste": { "AVOQADO": "You chose the Avoqado number.", "SHOPIFY": "You chose the Shopify number." },
+    "envio": {
+      "PENDIENTE": "Choice saved; it will be sent to Shopify.",
+      "ATORADO": "Your choice could not reach Shopify after several attempts. The reconciliation puts it back here so you can decide again.",
+      "ENVIADO": "Done: your choice is now in Shopify."
+    },
+    "envioEnPausa": "Paused: it will be sent when it resumes.",
+    "reasons": {
+      "DIFERENCIA": "The two numbers do not match and we found no movement that explains it.",
+      "ATORADO": "Some changes could not reach Shopify.",
+      "INCIERTO": "A send to Shopify was not confirmed: we do not know whether it arrived.",
+      "REACTIVADA": "The product was matched again and its stock differs from Shopify's."
+    }
+  },
+  "issues": {
+    "title": "Unmatched products",
+    "intro": "Shopify variants that could not be linked to a product of this location. Each one says why and what to do.",
+    "search": "Search product or SKU",
+    "reasonLabel": "Reason",
+    "viewProduct": "See the product",
+    "backToQuantity": "Back to quantity",
+    "allReasons": "All reasons",
+    "empty": "All Shopify products are matched.",
+    "noMatches": "Nothing matches your search or filter.",
+    "loadError": "We could not load the unmatched products.",
+    "reasonNames": {
+      "SIN_SKU": "No SKU",
+      "SKU_REPETIDO": "Duplicate SKU in Shopify",
+      "SKU_CHOCA": "SKU in use",
+      "CODIGO_REPETIDO": "Barcode in use",
+      "IDENTIDAD_EN_CONFLICTO": "SKU and barcode disagree",
+      "PRODUCTO_ARCHIVADO": "Archived product",
+      "METODO_RECETA": "Recipe product",
+      "TIPO_SIN_INVENTARIO": "No inventory",
+      "SIN_INVENTARIO_EN_AVOQADO": "No inventory in Avoqado",
+      "UNIDAD_NO_PIEZA": "Not counted by piece",
+      "SIN_PRECIO": "No peso price",
+      "NIVEL_INEXISTENTE": "No stock at the location",
+      "NO_RASTREADO": "Shopify does not track it",
+      "SIN_INVENTARIO": "Suspended: no inventory",
+      "ERROR_IMPORTACION": "Could not be brought in"
+    },
+    "reasons": {
+      "SIN_SKU": "It has no SKU in Shopify. Give it one and it matches on its own.",
+      "SKU_REPETIDO": "Another Shopify variant has the same SKU. Change it in Shopify.",
+      "SKU_CHOCA": "Another product of this location already uses the SKU. Change one of them.",
+      "CODIGO_REPETIDO": "Another product of this location already uses the barcode.",
+      "IDENTIDAD_EN_CONFLICTO": "The SKU points to one product and the barcode to another. Fix one of them.",
+      "PRODUCTO_ARCHIVADO": "It matches an archived product in Avoqado. Restore it or change the SKU.",
+      "METODO_RECETA": "It matches a product tracked by recipe. The connector only links products counted by piece.",
+      "TIPO_SIN_INVENTARIO": "It matches a product that does not carry inventory, such as a service.",
+      "SIN_INVENTARIO_EN_AVOQADO": "It matches a product without inventory in Avoqado. Turn on inventory by piece.",
+      "UNIDAD_NO_PIEZA": "It matches a product measured in another unit (kilos, liters). Shopify only counts pieces.",
+      "SIN_PRECIO": "It came in without a peso price: set a price in Avoqado to sell it.",
+      "NIVEL_INEXISTENTE": "The variant has no stock at the chosen location. Activate it at that location in Shopify.",
+      "NO_RASTREADO": "Shopify does not track this variant's inventory. Turn on «Track quantity» in Shopify.",
+      "SIN_INVENTARIO": "The product lost its inventory in Avoqado (for example, it moved to a recipe). It resumes on its own when it has inventory again.",
+      "ERROR_IMPORTACION": "We could not bring it in. We retry on our own."
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "loadError": "We could not load the Shopify status.",
+    "planRequired": "This business no longer has access to the Shopify pilot. Write to us to reactivate it.",
+    "forbidden": "You do not have permission to do this. Ask the owner or an administrator.",
+    "codes": {
+      "SHOPIFY_SOLO_PILOTO": "The Shopify connector is in a pilot with a few stores. Write to us if you want to join.",
+      "SHOPIFY_DOMINIO_INVALIDO": "Type your store domain, the one that ends in .myshopify.com.",
+      "SHOPIFY_SIN_CREDENCIALES": "The Shopify connection is not available right now. Write to us and we will look into it.",
+      "SHOPIFY_REAUTORIZAR_SIN_TIENDA": "This location is no longer connected to a Shopify store. Connect it again with «Connect with Shopify».",
+      "CATALOG_GOVERNANCE_REQUIRED": "This organization's catalog is managed by the master catalog, so Shopify cannot create products here. Ask whoever manages the master catalog to release it.",
+      "SHOPIFY_INTENT_NO_EXISTE": "We could not find this Shopify connection. Start over.",
+      "SHOPIFY_INTENT_DE_OTRA_PERSONA": "Someone else started this connection. Start over with your own user.",
+      "SHOPIFY_INTENT_YA_USADO": "This connection was already used. Start over to connect again.",
+      "SHOPIFY_INTENT_SIN_AUTORIZAR": "Shopify has not authorized this connection yet. Start over and accept the permissions in Shopify.",
+      "SHOPIFY_INTENT_EXPIRADO": "Too much time passed and the connection expired. Start over.",
+      "SHOPIFY_DEMASIADAS_UBICACIONES": "Your store has too many locations to show them here. Write to us and we will work it out with you.",
+      "SHOPIFY_YA_CONECTADA": "This location is already connected to Shopify. Disconnect it first to connect another store.",
+      "SHOPIFY_UBICACION_YA_LIGADA": "That Shopify location is already linked to another branch. Choose another location.",
+      "SHOPIFY_TIENDA_DE_OTRA_EMPRESA": "That Shopify store is already connected to another company.",
+      "SHOPIFY_UBICACION_INVALIDA": "That location does not exist or is turned off in your store. Choose another one.",
+      "SHOPIFY_ENVIO_EN_CAMINO": "Changes from the previous connection are still on their way to Shopify. Wait a minute and choose the location again.",
+      "SHOPIFY_SIN_CONEXION": "This location has no connected Shopify store.",
+      "SHOPIFY_NO_EN_REVISION": "The preview is not ready yet, or it was already applied.",
+      "SHOPIFY_NO_ACTIVA": "The Shopify connection is not active: reconciliation runs on its own once connecting finishes or permission comes back.",
+      "SHOPIFY_CANTIDAD_INVALIDA": "The quantities or the choice are not valid. Reload the list and choose again.",
+      "SHOPIFY_REVISION_NO_EXISTE": "That difference no longer exists. Reload the list.",
+      "SHOPIFY_REVISION_YA_RESUELTA": "That difference was already resolved.",
+      "SHOPIFY_REVISION_CAMBIO": "The quantities changed while you were deciding. Check the new numbers and choose again.",
+      "SHOPIFY_SIN_PAREJA": "That product is no longer linked to Shopify. Reload the list.",
+      "SHOPIFY_PAREJA_SUSPENDIDA": "This product is suspended in the connection: check it in «Unmatched products».",
+      "SHOPIFY_SIN_NIVEL": "Shopify does not track this product's inventory at that location. Turn it on in Shopify (with «Track quantity») and choose again.",
+      "SHOPIFY_SIN_INVENTARIO": "This product no longer tracks stock by quantity in Avoqado. Turn it back on in its product page and choose again.",
+      "SHOPIFY_CAMBIOS_EN_CAMINO": "There are still changes for this product on their way to Shopify. Wait a minute and try again.",
+      "SHOPIFY_DIFERENCIA_NO_ENTERA": "Shopify only counts whole pieces and this product has decimals in Avoqado. Fix its stock to whole pieces and choose again.",
+      "SHOPIFY_EN_PAUSA": "This cannot be resolved: the connection is paused or Shopify removed a permission from Avoqado. Grant permission again or reconnect it from this page.",
+      "SHOPIFY_SIN_PLAN": "This business no longer has access to the Shopify pilot. Write to us to reactivate it.",
+      "SHOPIFY_FALTA_PERMISO": "Shopify did not give Avoqado every permission it needs. Grant permission in Shopify again and accept every one it asks for.",
+      "SHOPIFY_NO_RESPONDE": "Shopify or our system did not answer in time. Try again in a minute.",
+      "FEATURE_NO_SE_VENDE_SUELTA": "The Shopify connector is not for sale: for now it is an invitation-only pilot. Write to us if you want to join."
+    }
+  }
+}
