@@ -148,7 +148,7 @@
       },
       "CONTEO_NO_APLICADO": {
         "title": "Un conteo no se aplicó",
-        "body": "El conteo de un producto no se aplicó y su stock no cambió. Si había un cambio en camino a Shopify, vuelve a contarlo en unos minutos. Si el producto tiene una diferencia en «Por revisar», resuélvela primero y después vuelve a contarlo."
+        "body": "El conteo de un producto no se aplicó y su stock no cambió. Si se estaba sincronizando con Shopify, vuelve a contarlo cuando termine. Si el producto tiene una diferencia en «Por revisar», resuélvela primero y después vuelve a contarlo."
       },
       "BARRIDO_OMITIDO": {
         "title": "No pudimos revisar tu catálogo",

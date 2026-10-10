@@ -148,7 +148,7 @@
       },
       "CONTEO_NO_APLICADO": {
         "title": "A count was not applied",
-        "body": "A product's count was not applied and its stock did not change. If a change was on its way to Shopify, count it again in a few minutes. If the product has a difference in «To review», resolve it first and then count it again."
+        "body": "A product's count was not applied and its stock did not change. If it was syncing with Shopify, count it again once it finishes. If the product has a difference in «To review», resolve it first and then count it again."
       },
       "BARRIDO_OMITIDO": {
         "title": "We couldn't check your catalog",

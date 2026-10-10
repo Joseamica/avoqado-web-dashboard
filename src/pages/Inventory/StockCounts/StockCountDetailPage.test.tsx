@@ -306,7 +306,7 @@ describe('StockCountDetailPage — líneas que no se aplicaron por Shopify', () 
       noAplicadas,
     })
 
-  it('ENVIO_EN_CAMINO: la línea dice «No se aplicó» y que se vuelva a contar en unos minutos, sin enlace', async () => {
+  it('ENVIO_EN_CAMINO: la línea dice «No se aplicó» y que se vuelva a contar cuando termine de sincronizarse, sin enlace', async () => {
     get.mockResolvedValue({
       success: true,
       data: completado(
@@ -318,7 +318,12 @@ describe('StockCountDetailPage — líneas que no se aplicaron por Shopify', () 
       ),
     })
     renderPage()
-    expect(await screen.findByText('Había un envío a Shopify en camino; vuelve a contar este producto en unos minutos')).toBeInTheDocument()
+    // Ronda 3: genérico. La retención también cubre una pareja sin iniciar o la conexión en revisión, sin nada «en camino».
+    expect(
+      await screen.findByText(
+        'Este producto se estaba sincronizando con Shopify cuando confirmaste el conteo; vuelve a contarlo cuando termine.',
+      ),
+    ).toBeInTheDocument()
     // Sólo la línea retenida lleva el aviso; la otra se aplicó.
     expect(screen.getAllByText('No se aplicó')).toHaveLength(1)
     expect(screen.queryByRole('link', { name: es.stockCounts.held.reviewLink })).not.toBeInTheDocument()

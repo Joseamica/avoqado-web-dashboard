@@ -1509,7 +1509,7 @@
     },
     "held": {
       "badge": "No se aplicó",
-      "ENVIO_EN_CAMINO": "Había un envío a Shopify en camino; vuelve a contar este producto en unos minutos",
+      "ENVIO_EN_CAMINO": "Este producto se estaba sincronizando con Shopify cuando confirmaste el conteo; vuelve a contarlo cuando termine.",
       "DUDA_POR_REVISAR": "Hay una diferencia con Shopify por revisar; resuélvela primero",
       "reviewLink": "Ir a «Por revisar» de Shopify",
       "summary_one": "{{count}} línea no se aplicó",

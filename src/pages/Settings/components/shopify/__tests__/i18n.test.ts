@@ -118,9 +118,13 @@ describe('i18n del conector Shopify', () => {
     expect(claves.filter(k => /\bplan\b|premium|\bsube\b/i.test(String(valor(b, k))))).toEqual([])
   })
 
-  it('🔴 L22: el aviso de un conteo no aplicado explica los DOS motivos (en camino ⇒ minutos; duda ⇒ «Por revisar» primero)', () => {
-    expect(String(valor(bundle('es', 'shopify'), 'avisos.items.CONTEO_NO_APLICADO.body'))).toMatch(/minutos[\s\S]*«Por revisar»/)
-    expect(String(valor(bundle('en', 'shopify'), 'avisos.items.CONTEO_NO_APLICADO.body'))).toMatch(/minutes[\s\S]*«To review»/)
+  it('🔴 L22: el aviso de un conteo no aplicado explica los DOS motivos (sincronizando ⇒ recontar al terminar; duda ⇒ «Por revisar» primero)', () => {
+    // Ronda 3: sin «minutos». La retención también cubre una pareja sin iniciar o una conexión en revisión, y eso puede tardar.
+    const es = String(valor(bundle('es', 'shopify'), 'avisos.items.CONTEO_NO_APLICADO.body'))
+    const en = String(valor(bundle('en', 'shopify'), 'avisos.items.CONTEO_NO_APLICADO.body'))
+    expect(es).toMatch(/sincronizando con Shopify, vuelve a contarlo cuando termine[\s\S]*«Por revisar»/)
+    expect(en).toMatch(/syncing with Shopify, count it again once it finishes[\s\S]*«To review»/)
+    expect(`${es} ${en}`).not.toMatch(/minutos|minutes/)
   })
 
   it('🔴 C7-M: el texto de la importación dice «reintentamos solos» y la bitácora «Se pidió aplicar el stock de Shopify»', () => {
