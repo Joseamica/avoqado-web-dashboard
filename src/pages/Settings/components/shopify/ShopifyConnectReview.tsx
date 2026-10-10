@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Loader2 } from 'lucide-react'
@@ -145,9 +145,19 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
   const fallo = useShopifyFallo(venueId)
   const invalidate = useInvalidateShopify()
   const [filtro, setFiltro] = useState<ConnectReviewFiltro>('CAMBIAN')
+  // W4: abre en la primera pestaña que tenga algo, en este orden: Cambian → Nuevos → Todos (en una primera conexión todo
+  // es «Nuevo» y «Cambian» sale vacía). Una sola vez, con el primer resumen: después manda lo que elija la persona.
+  const [elegidaSola, setElegidaSola] = useState(false)
   const q = useShopifyConnectReview(venueId, filtro, canManage)
   const items = useMemo(() => dedupe(q.data?.pages.flatMap(p => p.items) ?? [], i => i.variantLinkId), [q.data?.pages])
   const primera = q.data?.pages[0]
+  useEffect(() => {
+    if (elegidaSola || !primera || q.isPlaceholderData) return
+    setElegidaSola(true)
+    const r = primera.resumen
+    const inicial: ConnectReviewFiltro = r.cambian > 0 ? 'CAMBIAN' : r.nuevos > 0 ? 'NUEVOS' : 'TODOS'
+    if (inicial !== filtro) setFiltro(inicial)
+  }, [elegidaSola, primera, q.isPlaceholderData, filtro])
   // 🔴 N3: sólo con la vista previa de ESTA sucursal y ESTE filtro cargada bien. Cargando, error (también una actualización
   // fallida) o datos provisionales (`isPlaceholderData`, p. ej. al cambiar de filtro) ⇒ no se aplica.
   const listo = canManage && q.status === 'success' && !q.isPlaceholderData
@@ -187,7 +197,16 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
       {primera && <p className="text-sm text-foreground">{t('preview.resumen', primera.resumen)}</p>}
       <div className="flex flex-wrap gap-2" role="group" aria-label={t('preview.filtroLabel')}>
         {CONNECT_REVIEW_FILTROS.map(f => (
-          <Button key={f} size="sm" variant={filtro === f ? 'default' : 'outline'} aria-pressed={filtro === f} onClick={() => setFiltro(f)}>
+          <Button
+            key={f}
+            size="sm"
+            variant={filtro === f ? 'default' : 'outline'}
+            aria-pressed={filtro === f}
+            onClick={() => {
+              setElegidaSola(true) // lo que elige la persona gana sobre la elección automática
+              setFiltro(f)
+            }}
+          >
             {t(`preview.filtros.${f}`)}
           </Button>
         ))}

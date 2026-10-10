@@ -496,6 +496,31 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     await waitFor(() => expect(svc.applyShopifyConnect).toHaveBeenCalledWith('v1'))
   })
 
+  it('W4: en una primera conexión (nada «Cambian») abre en «Nuevos»; sin nuevos, en «Todos»; lo que elige la persona manda', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const sinCambios = { emparejados: 17, cambian: 0, nuevos: 17, sinPareja: 25 }
+    svc.getShopifyConnectReview.mockResolvedValue({ ...pagina([VISTA], 17, 20), resumen: sinCambios })
+    renderPage()
+    await waitFor(() => expect(svc.getShopifyConnectReview).toHaveBeenCalledWith('v1', { offset: 0, filtro: 'NUEVOS' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'preview.filtros.NUEVOS' })).toHaveAttribute('aria-pressed', 'true'))
+    // La persona vuelve a «Cambian»: se queda ahí aunque esté vacía (la elección automática es sólo la primera vez).
+    await userEvent.click(screen.getByRole('button', { name: 'preview.filtros.CAMBIAN' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'preview.filtros.CAMBIAN' })).toHaveAttribute('aria-pressed', 'true'))
+    await new Promise(r => setTimeout(r, 50))
+    expect(screen.getByRole('button', { name: 'preview.filtros.CAMBIAN' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('W4: sin cambios ni nuevos, abre en «Todos»', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([VISTA], 3, 20),
+      resumen: { emparejados: 3, cambian: 0, nuevos: 0, sinPareja: 0 },
+    })
+    renderPage()
+    await waitFor(() => expect(svc.getShopifyConnectReview).toHaveBeenCalledWith('v1', { offset: 0, filtro: 'TODOS' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'preview.filtros.TODOS' })).toHaveAttribute('aria-pressed', 'true'))
+  })
+
   it('🔴 vista previa todavía cargando: «Aplicar» deshabilitado y NO se manda nada; cancelar sí se puede (N3)', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
     svc.getShopifyConnectReview.mockReturnValue(new Promise(() => {}))
@@ -566,6 +591,28 @@ describe('ShopifyIntegration — importar y aplicar', () => {
 })
 
 describe('ShopifyIntegration — «Por revisar»', () => {
+  it('W5: un producto que se liga POR PRIMERA VEZ (ya existía en Avoqado) no dice «se volvió a emparejar»', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
+    svc.listShopifyReviews.mockResolvedValue(
+      pagina([
+        { ...REVISION, id: 'r1', reason: 'REACTIVADA', primeraVez: true },
+        { ...REVISION, id: 'r2', reason: 'REACTIVADA', primeraVez: false, product: { id: 'p2', name: 'Gorra', sku: 'GOR' } },
+      ]),
+    )
+    renderPage()
+    expect(await screen.findByText('review.primeraVez')).toBeInTheDocument()
+    // La que sí se volvió a emparejar (estaba suspendida) conserva su texto.
+    expect(screen.getAllByText('review.reasons.REACTIVADA')).toHaveLength(1)
+  })
+
+  it('W5 (regresión): un servidor que todavía no manda `primeraVez` muestra el texto de siempre', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
+    svc.listShopifyReviews.mockResolvedValue(pagina([{ ...REVISION, reason: 'REACTIVADA' }]))
+    renderPage()
+    expect(await screen.findByText('review.reasons.REACTIVADA')).toBeInTheDocument()
+    expect(screen.queryByText('review.primeraVez')).toBeNull()
+  })
+
   it('manda las cantidades que se VIERON y «Sugerido» queda fuera del botón', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
     svc.listShopifyReviews.mockResolvedValue(pagina([REVISION]))

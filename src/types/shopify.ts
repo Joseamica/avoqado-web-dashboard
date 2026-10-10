@@ -82,6 +82,11 @@ export interface ShopifyReview {
   envio: ShopifyEnvio | null
   createdAt: string
   product: { id: string; name: string; sku: string | null }
+  /**
+   * W5 (aditivo; un server anterior no lo manda): en una REACTIVADA, `true` = la pareja se ligó POR PRIMERA VEZ (el
+   * producto ya existía en Avoqado y acaba de aparecer en Shopify con el mismo SKU), no que «se volvió a emparejar».
+   */
+  primeraVez?: boolean
 }
 /** Estado vigente de una revisión para el sondeo acotado de «Por revisar» (Codex R2-4): sin cantidades ni producto. */
 export interface ShopifyReviewEnvio {

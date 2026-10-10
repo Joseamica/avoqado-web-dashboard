@@ -143,7 +143,10 @@ export function ShopifyReviewList({
                 <span className="font-medium text-foreground">{item.product.name}</span>
                 <span className="text-xs text-muted-foreground">{item.product.sku ?? '—'}</span>
               </div>
-              <p className="text-xs text-muted-foreground">{t(`review.reasons.${item.reason}`)}</p>
+              {/* W5: la primera vez que se liga no «se volvió a emparejar»: tiene su propio texto. */}
+              <p className="text-xs text-muted-foreground">
+                {item.reason === 'REACTIVADA' && item.primeraVez ? t('review.primeraVez') : t(`review.reasons.${item.reason}`)}
+              </p>
               <div className="flex gap-4 text-sm tabular-nums text-foreground">
                 <span>{t('review.avoqado', { qty: item.avoqadoQty })}</span>
                 <span>{t('review.shopify', { qty: item.shopifyQty })}</span>

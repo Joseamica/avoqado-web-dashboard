@@ -186,11 +186,12 @@
       "ATORADO": "Some changes could not reach Shopify.",
       "INCIERTO": "A send to Shopify was not confirmed: we do not know whether it arrived.",
       "REACTIVADA": "The product was matched again and its stock differs from Shopify's."
-    }
+    },
+    "primeraVez": "This product already existed in Avoqado and just showed up in Shopify with the same SKU; choose which number is right."
   },
   "issues": {
     "title": "Unmatched products",
-    "intro": "Shopify variants that could not be linked to a product of this location. Each one says why and what to do.",
+    "intro": "Shopify variants that could not be linked or can't be sold yet. Each one says why and what to do.",
     "search": "Search product or SKU",
     "reasonLabel": "Reason",
     "viewProduct": "See the product",
@@ -227,7 +228,7 @@
       "TIPO_SIN_INVENTARIO": "It matches a product that does not carry inventory, such as a service.",
       "SIN_INVENTARIO_EN_AVOQADO": "It matches a product without inventory in Avoqado. Turn on inventory by piece.",
       "UNIDAD_NO_PIEZA": "It matches a product measured in another unit (kilos, liters). Shopify only counts pieces.",
-      "SIN_PRECIO": "It came in without a peso price: set a price in Avoqado to sell it.",
+      "SIN_PRECIO": "It came in without a peso price: set its price and turn it on in Avoqado to sell it.",
       "NIVEL_INEXISTENTE": "The variant has no stock at the chosen location. Activate it at that location in Shopify.",
       "NO_RASTREADO": "Shopify does not track this variant's inventory. Turn on «Track quantity» in Shopify.",
       "SIN_INVENTARIO": "The product lost its inventory in Avoqado (for example, it moved to a recipe). It resumes on its own when it has inventory again.",

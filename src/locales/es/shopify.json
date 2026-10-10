@@ -186,11 +186,12 @@
       "ATORADO": "Hay cambios que no pudieron llegar a Shopify.",
       "INCIERTO": "Un envío a Shopify no se confirmó: no sabemos si llegó.",
       "REACTIVADA": "El producto se volvió a emparejar y su stock no coincide con el de Shopify."
-    }
+    },
+    "primeraVez": "Este producto ya existía en Avoqado y acaba de aparecer en Shopify con el mismo SKU; elige qué número es el bueno."
   },
   "issues": {
     "title": "Productos sin pareja",
-    "intro": "Variantes de Shopify que no se pudieron ligar a un producto de esta sucursal. Cada una dice por qué y qué hacer.",
+    "intro": "Variantes de Shopify que no se pudieron ligar o que todavía no se pueden vender. Cada una dice por qué y qué hacer.",
     "search": "Buscar producto o SKU",
     "reasonLabel": "Motivo",
     "viewProduct": "Ver el producto",
@@ -227,7 +228,7 @@
       "TIPO_SIN_INVENTARIO": "Coincide con un producto que no lleva inventario, como un servicio.",
       "SIN_INVENTARIO_EN_AVOQADO": "Coincide con un producto sin inventario en Avoqado. Actívale el inventario por pieza.",
       "UNIDAD_NO_PIEZA": "Coincide con un producto que se mide en otra unidad (kilos, litros). Shopify sólo cuenta piezas.",
-      "SIN_PRECIO": "Entró sin precio en pesos: ponle precio en Avoqado para poder venderlo.",
+      "SIN_PRECIO": "Entró sin precio en pesos: ponle precio y préndelo en Avoqado para venderlo.",
       "NIVEL_INEXISTENTE": "La variante no tiene stock en la ubicación elegida. Actívala en esa ubicación en Shopify.",
       "NO_RASTREADO": "Shopify no lleva el inventario de esta variante. Activa «Rastrear cantidad» en Shopify.",
       "SIN_INVENTARIO": "El producto se quedó sin inventario en Avoqado (por ejemplo, pasó a receta). Se reanuda solo cuando vuelva a tenerlo.",
