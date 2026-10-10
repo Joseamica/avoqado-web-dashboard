@@ -129,6 +129,10 @@ export function avisoDeError(t: Traducir, err: any): { title: string; descriptio
     case 422:
       return { title: error || t('globalInvoice.toast.validationTitle'), description: reasons?.length ? reasons.join(' · ') : message }
     case 502:
+      // Ronda QA (hermanos): el servidor marca `timbreEnDuda` cuando el PAC no contestó claro (pudo haberla timbrado): no es un rechazo,
+      // y el error crudo («fetch failed») no se enseña.
+      if (data?.timbreEnDuda === true)
+        return { title: t('globalInvoice.toast.pacNoAnswerTitle'), description: t('globalInvoice.toast.pacNoAnswerDescription') }
       return { title: t('globalInvoice.toast.pacRejectedTitle'), description: message || error }
     case 404:
       return { title: t('globalInvoice.toast.notFoundTitle'), description: error }

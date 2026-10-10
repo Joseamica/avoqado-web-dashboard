@@ -7,7 +7,7 @@
  *
  * Mutations toast on success/error (i18n) and invalidate the relevant keys.
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   hashKey,
   useInfiniteQuery,
@@ -22,17 +22,21 @@ import { useTranslation } from 'react-i18next'
 import { reintentarReporte, repetirAlVolver } from '@/components/accounting/errorDelReporte'
 import { apiErrorDescription, textoDelServidor } from '@/utils/apiError'
 import { triggerDownload } from '@/utils/export'
+import { conDudaConocida, olvidarCancelacionEnDuda, recordarCancelacionEnDuda } from '@/pages/Cfdi/cfdiListFilters'
 import { useCurrentVenue } from './use-current-venue'
 import { useToast } from './use-toast'
 import cfdiService, {
   type CancelCfdiRequest,
+  type CancelCfdiResponse,
   type CfdiListFilters,
   type CfdiReceptor,
+  type EleccionPorImporte,
   type FiscalConfig,
   type GlobalCfdiResult,
   type GlobalExcluidasPage,
   type IssueCfdiResponse,
   type MerchantConfig,
+  type RefundCreditNoteStatus,
   type UpsertEmisorRequest,
   type UpsertMerchantConfigRequest,
   type UploadCsdRequest,
@@ -466,6 +470,30 @@ export function useEmitGlobalComplementaria() {
 
 export const refundCreditNoteQueryKey = (venueId: string | null, refundId: string) => ['refund-credit-note', venueId, refundId]
 
+/** C2 · T10: cada cuánto vuelve a consultar la nota mientras espera el XML de la factura original. */
+export const ESPERA_DEL_XML_MS = 15_000
+/** C2 · T10 ronda 1 (M4): cuántas veces vuelve a consultar sola mientras espera el XML (≈2 min); después, «Volver a consultar». */
+export const MAX_CONSULTAS_EN_ESPERA = 8
+/**
+ * C2 · T10: la nota vuelve a consultar sola SÓLO mientras espera el XML de la factura original (`ESPERA_XML`: el servidor lo está pidiendo
+ * al PAC; normalmente tarda segundos). Con cualquier otro estado, no.
+ */
+export function intervaloDeLaNota(data: RefundCreditNoteStatus | undefined, respuestasEnEspera = 0): number | false {
+  // T10 ronda 1 (M4): con tope. `respuestasEnEspera` = respuestas ESPERA_XML seguidas ya recibidas; se vuelve a consultar sola hasta
+  // `MAX_CONSULTAS_EN_ESPERA` veces (≈2 min) y después la persona decide («Volver a consultar»).
+  if (data?.eligibility?.reason !== 'ESPERA_XML') return false
+  return respuestasEnEspera <= MAX_CONSULTAS_EN_ESPERA ? ESPERA_DEL_XML_MS : false
+}
+/**
+ * C2 · T10: qué errores se reintentan al pedir la nota. Un 403 es el plan apagado y un 404 el reembolso que no existe (no se arreglan
+ * repitiendo); la consulta puede tardar (repara el XML), así que tampoco se reintenta el corte del proxy (504/524). Lo demás, una vez.
+ */
+export function reintentarLaNota(failureCount: number, err: any): boolean {
+  const status = err?.response?.status
+  if (status === 403 || status === 404) return false
+  return reintentarReporte(1)(failureCount, err)
+}
+
 /**
  * Estado de la nota de crédito (CFDI de Egreso) de un reembolso.
  *
@@ -476,18 +504,36 @@ export const refundCreditNoteQueryKey = (venueId: string | null, refundId: strin
 export function useRefundCreditNote(refundId: string, options?: { enabled?: boolean }) {
   const { venueId } = useCurrentVenue()
   const enabled = options?.enabled ?? true
+  // T10 ronda 1 (M4): cuántas respuestas ESPERA_XML seguidas lleva (se reinicia con cualquier otra respuesta o con «Volver a consultar»).
+  const [enEspera, setEnEspera] = useState(0)
 
-  return useQuery({
+  const q = useQuery({
     queryKey: refundCreditNoteQueryKey(venueId, refundId),
     queryFn: () => cfdiService.getRefundCreditNote(venueId!, refundId),
     enabled: !!venueId && !!refundId && enabled,
-    retry: (failureCount, err: any) => {
-      const status = err?.response?.status
-      if (status === 403 || status === 404) return false
-      return failureCount < 1
-    },
+    retry: reintentarLaNota,
     staleTime: 30 * 1000,
+    // C2 · T10: mientras espera el XML, vuelve a consultar cada 15 s (sólo con la pestaña a la vista); y no se repite al volver a la
+    // ventana (la consulta puede tardar: repara el XML), ni al volver la red tras un corte del proxy. Ronda 1 (M4): con tope.
+    refetchInterval: query => intervaloDeLaNota(query.state.data, enEspera),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: repetirAlVolver,
   })
+  const esperandoXml = q.data?.eligibility?.reason === 'ESPERA_XML'
+  useEffect(() => {
+    setEnEspera(n => (esperandoXml ? n + 1 : 0))
+  }, [q.dataUpdatedAt, esperandoXml])
+  return {
+    ...q,
+    /** T10 ronda 1 (M4): ya no vuelve a consultar sola; la pantalla ofrece «Volver a consultar». */
+    esperaDelXmlAgotada: esperandoXml && enEspera > MAX_CONSULTAS_EN_ESPERA,
+    /** T10 ronda 1 (M4): una consulta ahora, y vuelve a esperar sola (otra vez con tope). */
+    volverAConsultar: () => {
+      setEnEspera(0)
+      void q.refetch()
+    },
+  }
 }
 
 /**
@@ -504,12 +550,23 @@ export function useEmitRefundCreditNote() {
   const { t } = useTranslation('cfdi')
 
   return useMutation({
-    mutationFn: (refundId: string) => cfdiService.emitRefundCreditNote(venueId!, refundId),
-    onSuccess: (data, refundId) => {
+    // C2 (Tarea 9): `{ refundId, eleccion }` para «acreditar por importe»; un `refundId` suelto es la emisión de siempre. T10 ronda 1 (M9):
+    // `{ refundId, huella }` es la emisión de siempre atada a la vista previa que se vio.
+    mutationFn: (v: string | { refundId: string; eleccion?: EleccionPorImporte; huella?: string }) =>
+      typeof v === 'string'
+        ? cfdiService.emitRefundCreditNote(venueId!, v)
+        : cfdiService.emitRefundCreditNote(venueId!, v.refundId, v.eleccion, v.huella),
+    // C2 · ronda QA (D2): también si falla. Tras un 502 la nota pudo quedar EN DUDA; recargada, el panel deja de ofrecer «Emitir» y dice
+    // que la nota está en espera de confirmación.
+    onSettled: (_data, _err, v) => {
+      const refundId = typeof v === 'string' ? v : v.refundId
       queryClient.invalidateQueries({ queryKey: refundCreditNoteQueryKey(venueId, refundId) })
       queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
+    },
+    onSuccess: data => {
       const cn = data?.creditNote
-      const folio = cn ? `${cn.serie ?? ''}${cn.folio ?? ''}` : ''
+      // C2 · ronda QA (D7): el folio como lo escribe la lista («A-7»).
+      const folio = cn ? [cn.serie, cn.folio].filter(Boolean).join('-') : ''
       toast({
         title: t('creditNote.toast.success', { defaultValue: 'Nota de crédito emitida' }),
         description: cn?.uuid
@@ -532,7 +589,11 @@ export function useReplaceCfdi() {
 
   return useMutation({
     mutationFn: ({ cfdiId }: { cfdiId: string }) => cfdiService.replaceCfdi(venueId!, cfdiId),
-    onSuccess: () => {
+    onSuccess: res => {
+      // C2 · ronda QA (D4): la cancelación de la ORIGINAL quedó en duda: la fila no dirá «enviando» mientras corre el reloj del servidor.
+      // Micro-ronda final (nit D4): sin `enDuda`, la de antes ya no aplica.
+      if (res?.enDuda) recordarCancelacionEnDuda(res.original?.id)
+      else olvidarCancelacionEnDuda(res?.original?.id)
       queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
     },
     // Sin toast ni manejo de error aquí: el diálogo los pinta con el detalle del desenlace.
@@ -566,12 +627,80 @@ export function useCancelCfdi() {
 
   return useMutation({
     mutationFn: ({ cfdiId, data }: { cfdiId: string; data: CancelCfdiRequest }) => cfdiService.cancelCfdi(venueId!, cfdiId, data),
-    onSuccess: () => {
+    onSuccess: (res, { cfdiId }) => {
+      // C2 · ronda QA (D4): «en duda» dicho aquí ⇒ la fila no dirá «enviando» de esta factura mientras corre el reloj del servidor.
+      // Micro-ronda final (nit D4): un intento nuevo sin `enDuda` borra la duda recordada.
+      if (res?.enDuda) recordarCancelacionEnDuda(res.cfdiId ?? cfdiId)
+      else olvidarCancelacionEnDuda(res?.cfdiId ?? cfdiId)
       queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
-      toast({ title: t('toast.cancelRequested') })
+      // C2 · T10 (M9 de la T2): un rechazo concluyente contesta 200 `REJECTED`; el aviso dice que NO quedó y por qué (el texto del
+      // servidor), nunca «Cancelación solicitada.».
+      if (res?.cancelStatus === 'REJECTED' || res?.estado === 'RECHAZADA') {
+        toast({
+          title: t('toast.cancelRejected'),
+          description: res?.motivoRechazoCancelacion || t('toast.cancelRejectedDetail'),
+          variant: 'destructive',
+        })
+        return
+      }
+      // C2: el servidor dice en qué quedó la cancelación. EN DUDA = el SAT no contestó claro: no se debe pedir otra vez (sólo consulta).
+      // Ronda 1 (I1): `enDuda` del servidor manda; `ENVIANDO` no afirma que el SAT la tiene (texto neutro).
+      const descripcion =
+        res?.enDuda || res?.estado === 'CANCELACION_EN_DUDA'
+          ? t('cancelacion.enDuda')
+          : res?.estado === 'EN_TRAMITE'
+            ? t('cancelacion.enTramite')
+            : res?.estado === 'ENVIANDO'
+              ? t('cancelacion.enviando')
+              : undefined
+      toast({ title: t('toast.cancelRequested'), ...(descripcion ? { description: descripcion } : {}) })
     },
     onError: (err: any) => {
       toast({ title: t('toast.cancelError'), description: apiErrorDescription(err), variant: 'destructive' })
+    },
+  })
+}
+
+/** C2 · T10 ronda 1 (I-1): el texto de «Consultamos al SAT» según cómo quedó la cancelación. */
+const TEXTO_DE_LA_CONSULTA: Record<string, string> = {
+  EN_TRAMITE: 'cancelacion.consulta.enTramite',
+  CANCELACION_EN_DUDA: 'cancelacion.consulta.enDuda',
+  ENVIANDO: 'cancelacion.consulta.enviando',
+  ANOTADA: 'cancelacion.consulta.enviando',
+  CANCELADA: 'cancelacion.consulta.cancelada',
+}
+
+/**
+ * C2 · T10 ronda 1 (I-1): «Consultar estado» de una cancelación pedida. Manda `{ soloConsultar: true }`: el servidor SÓLO consulta (GET al
+ * PAC si la cancelación está pedida) y nunca anota ni envía un intento nuevo — eso lo pide una persona con «Cancelar». El aviso es el de una
+ * consulta («Consultamos al SAT: …»), nunca «Cancelación solicitada.».
+ */
+export function useConsultarCancelacion() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation('cfdi')
+
+  return useMutation({
+    mutationFn: ({ cfdiId }: { cfdiId: string }): Promise<CancelCfdiResponse> =>
+      cfdiService.cancelCfdi(venueId!, cfdiId, { soloConsultar: true }),
+    onSuccess: (res, { cfdiId }) => {
+      queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
+      if (res?.estado === 'RECHAZADA' || res?.cancelStatus === 'REJECTED') {
+        toast({
+          title: t('cancelacion.consulta.rechazadaTitulo'),
+          description: res?.motivoRechazoCancelacion || t('toast.cancelRejectedDetail'),
+          variant: 'destructive',
+        })
+        return
+      }
+      // C2 · ronda QA (D4): si esta pestaña ya dijo «en duda» de esta factura, ENVIANDO se lee como en duda.
+      const estado = conDudaConocida({ id: res?.cfdiId ?? cfdiId, estadoCancelacion: res?.estado }).estadoCancelacion
+      const clave = (estado && TEXTO_DE_LA_CONSULTA[estado]) || 'cancelacion.consulta.sinCancelacion'
+      toast({ title: t('cancelacion.consulta.titulo'), description: t(clave) })
+    },
+    onError: (err: any) => {
+      toast({ title: t('cancelacion.consulta.error'), description: apiErrorDescription(err), variant: 'destructive' })
     },
   })
 }
