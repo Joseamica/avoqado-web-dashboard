@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
@@ -80,6 +80,8 @@ export default function StockCountDetailPage() {
   // Aquí no se resta nada — sumar `difference` de líneas sin contar reportaba la
   // bodega entera como faltante (Mindform, 2026-09-07).
   const summary = count?.summary
+  // Líneas contadas que el conteo NO aplicó por Shopify: el resumen las sigue contando, así que se dice aparte.
+  const noAplicadas = count?.noAplicadas ?? 0
 
   const cancelMutation = useMutation({
     mutationFn: () => stockCountService.cancel(venueId!, countId!),
@@ -221,9 +223,20 @@ export default function StockCountDetailPage() {
                           ))}
                         </div>
                       )}
+                      {/* El resumen del servidor sigue sumando las líneas retenidas: se dice aquí mismo. */}
+                      {summary.countedCount > 0 && noAplicadas > 0 && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {t('stockCounts.held.includedInDifference', { count: noAplicadas })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {summary.countedCount === 0 && <p className="mt-3 text-sm text-muted-foreground">{t('stockCounts.nothingCountedYet')}</p>}
+                  {noAplicadas > 0 && (
+                    <p className="mt-3 rounded-lg border border-warning-border bg-warning-muted p-3 text-sm font-medium text-warning-foreground">
+                      {t('stockCounts.held.summary', { count: noAplicadas })}
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -275,15 +288,41 @@ export default function StockCountDetailPage() {
                       filteredItems.map(item => {
                         const unidad = item.unit ? ` ${etiquetaDeUnidad(t, item.unit)}` : ''
                         const contada = item.countedAt !== null
+                        // Contada pero NO aplicada por Shopify: su diferencia no movió el stock (no se pinta como aplicada).
+                        const retenida = item.shopifyHeld ?? null
                         return (
                           <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.productName}</TableCell>
+                            <TableCell className="font-medium">
+                              {item.productName}
+                              {retenida && (
+                                <div className="mt-1 space-y-1 font-normal">
+                                  <Badge variant="outline" className="border-warning-border bg-warning-muted text-warning-foreground">
+                                    {t('stockCounts.held.badge')}
+                                  </Badge>
+                                  <p className="text-xs text-muted-foreground">
+                                    {retenida.motivo === 'DUDA_POR_REVISAR'
+                                      ? t('stockCounts.held.DUDA_POR_REVISAR')
+                                      : t('stockCounts.held.ENVIO_EN_CAMINO')}
+                                  </p>
+                                  {retenida.motivo === 'DUDA_POR_REVISAR' && (
+                                    <Link
+                                      to={`${fullBasePath}/settings/integrations/shopify#por-revisar`}
+                                      className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                                    >
+                                      {t('stockCounts.held.reviewLink')}
+                                    </Link>
+                                  )}
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell className="text-muted-foreground">{item.sku ?? '—'}</TableCell>
                             <TableCell className="text-right">{`${formatearCantidad(item.expected, locale)}${unidad}`}</TableCell>
                             <TableCell className={`text-right ${contada ? '' : 'text-muted-foreground'}`}>
                               {contada ? `${formatearCantidad(item.counted, locale)}${unidad}` : t('stockCounts.notCounted')}
                             </TableCell>
-                            <TableCell className={`text-right ${contada ? colorDeDiferencia(item.difference) : 'text-muted-foreground'}`}>
+                            <TableCell
+                              className={`text-right ${contada && !retenida ? colorDeDiferencia(item.difference) : 'text-muted-foreground'}`}
+                            >
                               {contada ? `${formatearDiferencia(item.difference, locale)}${unidad}` : t('stockCounts.notCounted')}
                             </TableCell>
                           </TableRow>

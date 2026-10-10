@@ -89,7 +89,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold text-foreground">{t('title')}</h3>
           <p className="text-sm text-muted-foreground">
-            {hasUnread ? t('unread_count', { count: unreadCount }) : t('none')}
+            {/* Al abrir se marcan como leídas: con avisos en la lista, «No hay notificaciones» mentía (C10). */}
+            {hasUnread ? t('unread_count', { count: unreadCount }) : notifications.length > 0 ? t('allRead') : t('none')}
           </p>
         </div>
 

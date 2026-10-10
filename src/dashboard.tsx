@@ -144,6 +144,7 @@ const routeKeyMap: Record<string, string> = {
   branding: 'sidebar:routes.branding',
   integrations: 'sidebar:routes.integrations',
   pases: 'sidebar:routes.passes',
+  shopify: 'sidebar:routes.shopify',
   'print-stations': 'sidebar:routes.printStations',
   'floor-plan': 'sidebar:routes.floorPlan',
   'receipt-layout': 'sidebar:routes.receiptLayout',

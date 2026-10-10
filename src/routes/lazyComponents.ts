@@ -171,6 +171,7 @@ export const AreaTickets = lazyWithRetry(() => import('@/pages/Settings/AreaTick
 export const ExternalSettlements = lazyWithRetry(() => import('@/pages/AreaTickets/ExternalSettlements'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
 export const PassIntegrations = lazyWithRetry(() => import('@/pages/Settings/PassIntegrations'))
+export const ShopifyIntegration = lazyWithRetry(() => import('@/pages/Settings/ShopifyIntegration'))
 
 // Google Calendar Sync — picker page the OAuth callback redirects to with ?session=<token>
 export const GoogleCalendarPicker = lazyWithRetry(() => import('@/pages/GoogleCalendar/Picker'))

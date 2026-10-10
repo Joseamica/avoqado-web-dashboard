@@ -39,6 +39,7 @@
   "markRead": "Marquer comme lue",
   "view_all": "Voir toutes les notifications",
   "none": "Aucune notification",
+  "allRead": "Toutes lues",
   "unread_count": "{{count}} non lue(s)",
   "unread_count_plural": "{{count}} non lues",
   "noneFound": "Aucune notification trouvée",

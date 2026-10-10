@@ -39,6 +39,7 @@
   "markRead": "Mark as read",
   "view_all": "View all notifications",
   "none": "No notifications",
+  "allRead": "All read",
   "unread_count": "{{count}} unread",
   "unread_count_plural": "{{count}} unread",
   "noneFound": "No notifications found",

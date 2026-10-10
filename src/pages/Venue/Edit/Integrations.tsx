@@ -5,7 +5,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, HandCoins, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Ticket, Trash2, Unlink } from 'lucide-react'
+import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, HandCoins, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Store, Ticket, Trash2, Unlink } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -37,6 +37,8 @@ import { HAYCASH_ONBOARDING_URL, openPartner } from '@/config/partners'
 import { financialConnectionAPI } from '@/services/financialConnection.service'
 import { getVenueChatStatus } from '@/services/venueChat.service'
 import { usePassIntegrationsOverview } from '@/hooks/use-passes'
+import { useShopifyOverview } from '@/hooks/use-shopify'
+import { conexionDetenida } from '@/types/shopify'
 import VenueChat from './VenueChat'
 
 interface VenueIntegrations {
@@ -123,6 +125,9 @@ export default function VenueIntegrations() {
   // él la subpágina explica la pausa); sin dato no se inventa el punto de estado.
   const { data: passesOverview } = usePassIntegrationsOverview(venueId ?? undefined)
 
+  // Shopify: el resumen pide inventory:read y no lleva candado de plan (apagado se ve); sin dato no se inventa el punto de estado.
+  const { data: shopifyOverview, isError: shopifyError } = useShopifyOverview(venueId ?? undefined)
+
   if (isLoading) {
     return (
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6">
@@ -156,6 +161,33 @@ export default function VenueIntegrations() {
   const ecommerceConnected = merchants.length > 0
   const banksConnected = bankConnections.some(c => c.status === 'CONNECTED')
   const passesConnected = passesOverview?.connections.some(c => c.status === 'ACTIVE') ?? false
+  const shopifyConnection = shopifyOverview?.connection ?? null
+  // `ACTIVA` con un error permanente (FALTA_PERMISO…) sigue siendo ACTIVA en el server pero NADA sincroniza: no es «Conectada».
+  const shopifyDetenida = !!shopifyConnection && conexionDetenida(shopifyConnection)
+  const shopifyConnected = shopifyConnection?.estado === 'ACTIVA' && !shopifyDetenida
+  // Cargando o con error SIN dato aún no sabemos si hay conexión: ni «Piloto por invitación» ni «Conectar» (dirían un estado que
+  // quizá es falso). Sin inventory:read el resumen ni se pide: ahí sí es el piloto, que es lo que la página explica.
+  const shopifyDesconocido = can('inventory:read') && !shopifyOverview
+  // Sin conexión la etiqueta «Piloto por invitación» ya lo dice todo; con conexión, su estado con nombre (Conectada, Pausada,
+  // Detenida…): nada de «Disponible» sobre una tienda que ya está ligada. `detenida` por error permanente de la importación
+  // no es su fase (IMPORTANDO diría que sigue trayendo el catálogo).
+  const shopifyStatus = shopifyDesconocido
+    ? shopifyError
+      ? { connected: false, label: t('edit.integrations.catalog.status.loadError') }
+      : undefined
+    : !shopifyConnection
+      ? undefined
+      : shopifyConnected
+        ? statusLabel(true)
+        : {
+            connected: false,
+            label:
+              shopifyDetenida && shopifyConnection.estado !== 'REVOCADA'
+                ? t('shopify:connect.importStopped')
+                : t(`shopify:estado.${shopifyConnection.estado}`),
+          }
+  // CTA «Administrar» (neutro, lleva a la página que sí sabe el estado) salvo que se SEPA que no hay conexión.
+  const shopifyAdministrar = !!shopifyConnection || shopifyDesconocido
 
   return (
     <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6" data-tour="settings-integrations-page">
@@ -198,6 +230,20 @@ export default function VenueIntegrations() {
           actionVariant={passesConnected ? 'outline' : 'default'}
           onAction={() => navigate('pases')}
           dataTour="integration-card-passes"
+        />
+
+        {/* Shopify — subpágina propia. Fase 1: piloto por invitación (nunca «Premium»: contratar no lo da); la tarjeta se ve aunque
+            el negocio no tenga acceso y lo dice en su etiqueta. */}
+        <IntegrationCard
+          icon={Store}
+          title={t('edit.integrations.catalog.shopify.title')}
+          description={t('edit.integrations.catalog.shopify.description')}
+          badge={shopifyAdministrar ? undefined : t('edit.integrations.catalog.shopify.pilot')}
+          status={shopifyStatus}
+          actionLabel={ctaLabel(shopifyAdministrar)}
+          actionVariant={shopifyAdministrar ? 'outline' : 'default'}
+          onAction={() => navigate('shopify')}
+          dataTour="integration-card-shopify"
         />
 
         {/* WhatsApp — chat con clientes (activación por QR, ex tab de Información del local) */}

@@ -1506,6 +1506,16 @@
       "confirm": "Yes, cancel count",
       "success": "Count cancelled",
       "error": "Could not cancel the count"
+    },
+    "held": {
+      "badge": "Not applied",
+      "ENVIO_EN_CAMINO": "This product was syncing with Shopify when you confirmed the count; count it again once it finishes.",
+      "DUDA_POR_REVISAR": "There is a difference with Shopify to review; resolve it first",
+      "reviewLink": "Go to Shopify «To review»",
+      "summary_one": "{{count}} line was not applied",
+      "summary_other": "{{count}} lines were not applied",
+      "includedInDifference_one": "(includes {{count}} line not applied)",
+      "includedInDifference_other": "(includes {{count}} lines not applied)"
     }
   },
   "history": {

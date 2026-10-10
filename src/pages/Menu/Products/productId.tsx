@@ -40,6 +40,7 @@ import {
   getTypeValidationRules,
   transformSkuToUppercase,
 } from '@/lib/validators/product'
+import { isCanonicalProductType, isLegacyProductType, PRODUCT_TYPES_EN_LA_FICHA, productTypeLabel } from '@/lib/product-types'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -56,7 +57,7 @@ import {
 // })
 
 export default function ProductId() {
-  const { t } = useTranslation('menu')
+  const { t, i18n } = useTranslation('menu')
   const { productId } = useParams()
   const { venue, venueId, venueSlug } = useCurrentVenue()
   const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
@@ -201,7 +202,7 @@ export default function ProductId() {
       name: '',
       description: '',
       price: '',
-      type: 'FOOD',
+      type: 'REGULAR',
       imageUrl: '',
       categoryId: '',
       modifierGroups: [],
@@ -311,7 +312,7 @@ export default function ProductId() {
       name: data.name || '',
       description: data.description || '',
       price: (data.price ?? '').toString(),
-      type: data.type || 'FOOD',
+      type: data.type || 'REGULAR',
       imageUrl: data.imageUrl || '',
       categoryId: categoryId,
       modifierGroups: mappedModifierGroups,
@@ -534,6 +535,14 @@ export default function ProductId() {
                   name="type"
                   rules={getTypeValidationRules(t)}
                   render={({ field }) => {
+                    // W1: los tipos alineados con Square, sin servicio con cita ni clase (los maneja «Servicios», y el alta
+                    // tampoco los ofrece). El tipo GUARDADO del producto siempre está entre las opciones: un servicio, una
+                    // clase o uno viejo (RETAIL, FOOD…) se muestra con su nombre y se conserva si nadie lo cambia. Un valor que
+                    // no es opción en el momento en que llega deja el select vacío (Radix lo borra) y el formulario no guarda
+                    // («El tipo es requerido»): por eso la opción sale de `data.type`, que ya está en el render en que el
+                    // formulario todavía no se llena, y no de `field.value`.
+                    const guardado = typeof data.type === 'string' ? data.type : ''
+                    const fueraDeLista = guardado && !(PRODUCT_TYPES_EN_LA_FICHA as string[]).includes(guardado) ? guardado : null
                     return (
                       <FormItem className="max-w-96">
                         <FormLabel>{t('products.create.type')}</FormLabel>
@@ -546,12 +555,20 @@ export default function ProductId() {
                           <SelectContent>
                             <SelectGroup>
                               <SelectLabel>{t('products.create.selectType')}</SelectLabel>
-                              <SelectItem value="FOOD">{t('products.create.types.food')}</SelectItem>
-                              <SelectItem value="BEVERAGE">{t('products.create.types.beverage')}</SelectItem>
-                              <SelectItem value="ALCOHOL">{t('products.create.types.alcohol')}</SelectItem>
-                              <SelectItem value="RETAIL">{t('products.create.types.retail')}</SelectItem>
-                              <SelectItem value="SERVICE">{t('products.create.types.service')}</SelectItem>
-                              <SelectItem value="OTHER">{t('products.create.types.other')}</SelectItem>
+                              {PRODUCT_TYPES_EN_LA_FICHA.map(code => (
+                                <SelectItem key={code} value={code}>
+                                  {productTypeLabel(code, i18n.language)}
+                                </SelectItem>
+                              ))}
+                              {fueraDeLista && (
+                                <SelectItem value={fueraDeLista}>
+                                  {isCanonicalProductType(fueraDeLista)
+                                    ? productTypeLabel(fueraDeLista, i18n.language)
+                                    : isLegacyProductType(fueraDeLista)
+                                      ? t(`products.create.types.${fueraDeLista.toLowerCase()}`)
+                                      : fueraDeLista}
+                                </SelectItem>
+                              )}
                             </SelectGroup>
                           </SelectContent>
                         </Select>
@@ -833,8 +850,8 @@ export default function ProductId() {
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Sugerir en promociones</FormLabel>
                         <FormDescription>
-                          Permite que este producto aparezca como sugerencia al cobrar, en la pantalla del
-                          cliente. Apagado, no lo sugiere nada ni nadie.
+                          Permite que este producto aparezca como sugerencia al cobrar, en la pantalla del cliente. Apagado, no lo sugiere
+                          nada ni nadie.
                         </FormDescription>
                       </div>
                       <FormControl>
