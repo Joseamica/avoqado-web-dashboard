@@ -63,6 +63,7 @@ import { PrintStationField } from '@/components/PrintStationField'
 import api from '@/api'
 import { cn, includesNormalized } from '@/lib/utils'
 import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
+import { PRODUCT_TYPE_LABELS } from '@/lib/product-types'
 
 // Icon mapping for product types
 const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
@@ -76,17 +77,7 @@ const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
   OTHER: Package,
 }
 
-// Product type labels
-const PRODUCT_TYPE_LABELS: Record<ProductType, { en: string; es: string }> = {
-  REGULAR: { en: 'Regular Item', es: 'Artículo Regular' },
-  FOOD_AND_BEV: { en: 'Food & Beverage', es: 'Bebidas y alimentos preparados' },
-  APPOINTMENTS_SERVICE: { en: 'Appointment/Service', es: 'Servicio con cita' },
-  CLASS: { en: 'Class / Workshop', es: 'Clase / Taller' },
-  EVENT: { en: 'Event', es: 'Evento' },
-  DIGITAL: { en: 'Digital Good', es: 'Producto Digital' },
-  DONATION: { en: 'Donation', es: 'Donación' },
-  OTHER: { en: 'Other', es: 'Otro' },
-}
+// Product type labels: los mismos de la ficha de edición (`@/lib/product-types`, W1).
 
 // Types that don't use inventory tracking
 const NO_INVENTORY_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS', 'DIGITAL', 'DONATION']
