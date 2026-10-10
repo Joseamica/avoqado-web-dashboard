@@ -21,28 +21,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { lineRefundAmount } from './refundAmount'
+import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
 type Tab = 'items' | 'amount'
 type ItemStep = 'select' | 'restock' | 'confirm'
 type Reason = 'RETURNED_GOODS' | 'ACCIDENTAL_CHARGE' | 'CANCELLED_ORDER' | 'FRAUDULENT_CHARGE' | 'OTHER'
-
-export interface RefundableItem {
-  id: string // orderItem id
-  productId: string | null
-  productName: string | null
-  quantity: number
-  unitPrice: number
-  total: number
-  /** Whether this product has inventory tracking enabled (for the restock step) */
-  trackInventory?: boolean
-  venueName?: string
-  /** Quantity already refunded across prior REFUND payments for this orderItemId */
-  priorRefundedQty?: number
-  /** Total amount already refunded for this orderItemId (decimal) */
-  priorRefundedAmount?: number
-}
 
 interface IssueRefundSheetProps {
   venueId: string
@@ -470,7 +454,7 @@ function ItemsSelectBody({
           const rawQty = refundQty[i.id] ?? remainingQty
           const qty = Math.min(Math.max(rawQty, 1), Math.max(1, remainingQty))
           const effectiveTotal = fullyRefunded
-            ? priorAmount || i.total // show what was actually refunded, not a prorated slice
+            ? priorAmount || (i.chargedTotal ?? i.total) // show what was actually refunded, not a prorated slice
             : lineRefundAmount(i, qty)
           const showStepper = selected && remainingQty > 1
 
@@ -613,7 +597,7 @@ function RestockBody({
                 <span className="font-medium">{i.productName}</span>
               </div>
             </div>
-            <span className="font-medium whitespace-nowrap">{Currency(i.total)}</span>
+            <span className="font-medium whitespace-nowrap">{Currency(i.chargedTotal ?? i.total)}</span>
           </label>
         ))}
       </div>

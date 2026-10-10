@@ -29,6 +29,7 @@ import {
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useEmitRefundCreditNote, useRefundCreditNote } from '@/hooks/use-cfdi'
+import type { AlternativaPorImporte, DesgloseDeNota, RedondeoDeNota } from '@/services/cfdi.service'
 import { Currency } from '@/utils/currency'
 import { Download, FileText, Lock } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -44,8 +45,9 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
   const { can } = useAccess()
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [porImporteOpen, setPorImporteOpen] = useState(false)
 
-  const { data, isLoading, error } = useRefundCreditNote(refundId)
+  const { data, isLoading, error, refetch, esperaDelXmlAgotada, volverAConsultar } = useRefundCreditNote(refundId)
   const emit = useEmitRefundCreditNote()
 
   // El local NO tiene la feature CFDI (403). Apagado se VE y se EXPLICA: se pinta el
@@ -78,16 +80,15 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
 
   // ── Ya emitida ──────────────────────────────────────────────────────────────
   if (creditNote && creditNote.status === 'STAMPED') {
-    const folio = `${creditNote.serie ?? ''}${creditNote.folio ?? ''}`
+    // C2 · ronda QA (D7): como lo escribe la lista de Facturas («A-7»).
+    const folio = [creditNote.serie, creditNote.folio].filter(Boolean).join('-')
     return (
       <Section>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">
-                {t('creditNote.issued', { defaultValue: 'Nota de crédito emitida' })}
-              </p>
+              <p className="text-sm font-medium text-foreground">{t('creditNote.issued', { defaultValue: 'Nota de crédito emitida' })}</p>
               <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                 {t('creditNote.badge', { defaultValue: 'CFDI de Egreso' })}
               </Badge>
@@ -120,15 +121,88 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
   }
 
   // ── No procede: se DICE por qué (nunca se esconde en silencio) ──────────────
+  // C2 (Tarea 9, P10): si por artículos falta evidencia de lo facturado, el servidor ofrece «acreditar por importe»; la persona lo elige
+  // viendo el importe y el reparto. Nunca se elige solo.
   if (!eligibility.eligible) {
+    const alternativa = preview?.alternativa
     return (
       <Section>
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">
-            {t('creditNote.title', { defaultValue: 'Nota de crédito (CFDI de Egreso)' })}
-          </p>
-          <p className="text-xs text-muted-foreground">{eligibility.message}</p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {t('creditNote.title', { defaultValue: 'Nota de crédito (CFDI de Egreso)' })}
+            </p>
+            {/* C2 · T10: mientras se recupera el XML de la original, el texto del plan (el panel vuelve a consultar cada 15 s); sin
+                `message` del servidor, el texto del motivo (N4). */}
+            {/* C2 · ronda QA (D2): la nota quedó EN DUDA (`recoveryOnly`): lo que está en espera es la NOTA. El texto del servidor
+                (`PROCESANDO`) habla de «la factura de esta venta» e invita a reintentar. */}
+            <p className="text-xs text-muted-foreground">
+              {data.recoveryOnly
+                ? t('creditNote.error.inDoubt')
+                : eligibility.reason === 'ESPERA_XML'
+                  ? t(esperaDelXmlAgotada ? 'creditNote.waitingXmlStopped' : 'creditNote.waitingXml')
+                  : (eligibility.message ?? (eligibility.reason ? t(`creditNote.reason.${eligibility.reason}`) : null))}
+            </p>
+            {/* C2 · ronda QA (D3): el aviso de la facturación apagada también en «Acreditar por importe» (como en la rama elegible). */}
+            {alternativa && preview?.avisoFacturacionApagada && (
+              <p className="text-xs text-muted-foreground">{preview.avisoFacturacionApagada}</p>
+            )}
+          </div>
+          {/* T10 ronda 1 (M4): la espera del XML ya no consulta sola (tope ≈2 min): la persona decide cuándo volver a preguntar. */}
+          {eligibility.reason === 'ESPERA_XML' && esperaDelXmlAgotada && (
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => volverAConsultar()}>
+              {t('creditNote.retryXml')}
+            </Button>
+          )}
+          {alternativa &&
+            (can('cfdi:issue') ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+                disabled={emit.isPending}
+                onClick={() => setPorImporteOpen(true)}
+              >
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                {t('creditNote.byAmount.button', { defaultValue: 'Acreditar por importe' })}
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {t('creditNote.noPermission', {
+                  defaultValue: 'No tienes permiso para facturar. Pídeselo a un administrador de este local.',
+                })}
+              </p>
+            ))}
         </div>
+        {alternativa && (
+          <PorImporteDialog
+            open={porImporteOpen}
+            onOpenChange={setPorImporteOpen}
+            alternativa={alternativa}
+            amountCents={preview?.amountToCreditCents ?? 0}
+            folio={preview?.facturaOriginal?.etiqueta ?? preview?.facturaOriginal?.folio ?? ''}
+            uuid={preview?.facturaOriginal?.uuid ?? ''}
+            esGlobal={preview?.facturaOriginal?.esGlobal === true}
+            receptor={preview?.receptor ?? null}
+            tipCents={preview?.tipRefundCents ?? 0}
+            pending={emit.isPending}
+            onConfirm={async () => {
+              try {
+                await emit.mutateAsync({ refundId, eleccion: { modalidad: 'POR_IMPORTE', huella: alternativa.huella } })
+                setPorImporteOpen(false)
+              } catch (err: any) {
+                const status = err?.response?.status
+                toast(avisoDelFallo(err, t))
+                // 409 (p. ej. «El reparto cambió desde la vista previa»): se cierra y se recarga la vista previa, para que la persona
+                // revise el reparto NUEVO antes de volver a confirmar.
+                if (status === 409) {
+                  setPorImporteOpen(false)
+                  void refetch()
+                }
+              }
+            }}
+          />
+        )}
       </Section>
     )
   }
@@ -136,7 +210,9 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
   // ── Se puede emitir ─────────────────────────────────────────────────────────
   const amount = (preview?.amountToCreditCents ?? 0) / 100
   const tipAmount = (preview?.tipRefundCents ?? 0) / 100
-  const folioOriginal = preview?.facturaOriginal?.folio ?? ''
+  // C2 · ronda QA (D7): con el formato de la lista si el servidor lo manda.
+  const folioOriginal = preview?.facturaOriginal?.etiqueta ?? preview?.facturaOriginal?.folio ?? ''
+  const esGlobal = preview?.facturaOriginal?.esGlobal === true
   const canIssue = can('cfdi:issue')
 
   return (
@@ -148,11 +224,23 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
           </p>
           <p className="text-xs text-muted-foreground">
             {t('creditNote.help', {
-              defaultValue:
-                'La factura original NO se cancela: se emite un comprobante nuevo relacionado a ella por el importe devuelto.',
+              defaultValue: 'La factura original NO se cancela: se emite un comprobante nuevo relacionado a ella por el importe devuelto.',
             })}
           </p>
+          {/* C2 · T10: la original es la factura global del periodo; la nota va a Público en General. */}
+          {esGlobal && <p className="text-xs font-medium text-foreground">{t('creditNote.global')}</p>}
+          {preview?.avisoFacturacionApagada && <p className="text-xs text-muted-foreground">{preview.avisoFacturacionApagada}</p>}
         </div>
+
+        {/* C2 · T10: lo que se acredita de cada tasa (total, base e IVA) y el redondeo que lleva, declarado. */}
+        {preview?.desglose && preview.desglose.length > 0 && (
+          <div className="space-y-1.5 rounded-lg border border-input p-3 text-xs">
+            <dl className="space-y-1.5" data-testid="desglose-de-la-nota">
+              <FilasDelDesglose desglose={preview.desglose} />
+            </dl>
+            <LineasDeRedondeo redondeo={preview.redondeo ?? []} />
+          </div>
+        )}
 
         {canIssue ? (
           <Button
@@ -202,7 +290,9 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
                   />
                   <Row label={t('creditNote.confirm.receptor', { defaultValue: 'Receptor' })} value={preview?.receptor?.nombre ?? '-'} />
                   <Row label={t('creditNote.confirm.rfc', { defaultValue: 'RFC' })} value={preview?.receptor?.rfc ?? '-'} mono />
+                  {preview?.desglose && <FilasDelDesglose desglose={preview.desglose} />}
                 </dl>
+                <LineasDeRedondeo redondeo={preview?.redondeo ?? []} />
                 {tipAmount > 0 && (
                   <p className="text-xs text-muted-foreground">
                     {t('creditNote.confirm.tipExcluded', {
@@ -228,20 +318,17 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
                 // Se evita el cierre automático para poder mantener el diálogo si falla.
                 e.preventDefault()
                 try {
-                  await emit.mutateAsync(refundId)
+                  // T10 ronda 1 (M9): con la huella de la vista previa que se vio (un servidor anterior no la manda: el POST de siempre).
+                  await emit.mutateAsync(preview?.huella ? { refundId, huella: preview.huella } : refundId)
                   setConfirmOpen(false)
                 } catch (err: any) {
                   const status = err?.response?.status
-                  const serverMessage = err?.response?.data?.error ?? err?.response?.data?.message
-                  const reasons: string[] | undefined = err?.response?.data?.reasons
-                  toast({
-                    variant: 'destructive',
-                    title:
-                      status === 502
-                        ? t('creditNote.error.pac', { defaultValue: 'El PAC rechazó el timbrado' })
-                        : t('creditNote.error.generic', { defaultValue: 'No se pudo emitir la nota de crédito' }),
-                    description: reasons?.length ? reasons.join(' · ') : serverMessage,
-                  })
+                  toast(avisoDelFallo(err, t))
+                  // T10 ronda 1 (M9): un 409 («La factura cambió…») cierra y recarga la vista previa, para revisar la nota NUEVA.
+                  if (status === 409) {
+                    setConfirmOpen(false)
+                    void refetch()
+                  }
                 }
               }}
             >
@@ -253,6 +340,188 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
         </AlertDialogContent>
       </AlertDialog>
     </Section>
+  )
+}
+
+/**
+ * El aviso de un POST de la nota que no timbró. C2 · ronda QA (D1): un 502 con `timbreEnDuda` NO es un rechazo: el PAC no contestó claro y
+ * la nota quedó en espera de confirmación (no se vuelve a emitir). Un 502 de rechazo lleva el porqué del PAC (`message`), no el mismo
+ * «El PAC rechazó el timbrado» del título dos veces.
+ */
+function avisoDelFallo(err: any, t: (key: string, opts?: Record<string, unknown>) => string) {
+  const status = err?.response?.status
+  const data = err?.response?.data ?? {}
+  if (status === 502 && data.timbreEnDuda)
+    return { variant: 'destructive' as const, title: t('creditNote.error.pacNoAnswer'), description: t('creditNote.error.inDoubt') }
+  const reasons: string[] | undefined = data.reasons
+  return {
+    variant: 'destructive' as const,
+    title:
+      status === 502
+        ? t('creditNote.error.pac', { defaultValue: 'El PAC rechazó el timbrado' })
+        : t('creditNote.error.generic', { defaultValue: 'No se pudo emitir la nota de crédito' }),
+    description: reasons?.length ? reasons.join(' · ') : status === 502 ? (data.message ?? data.error) : (data.error ?? data.message),
+  }
+}
+
+/** C2 (Tarea 9): el diálogo de «acreditar por importe»: el total, el reparto por tasa (base, IVA, total), el redondeo y el aviso. */
+function PorImporteDialog({
+  open,
+  onOpenChange,
+  alternativa,
+  amountCents,
+  folio,
+  uuid,
+  esGlobal,
+  receptor,
+  tipCents,
+  pending,
+  onConfirm,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  alternativa: AlternativaPorImporte
+  amountCents: number
+  folio: string
+  uuid: string
+  /** T9 ronda 1 (M-3): la original es la factura global; lo que queda es lo del ticket. */
+  esGlobal: boolean
+  receptor: { rfc: string; nombre: string } | null
+  tipCents: number
+  pending: boolean
+  onConfirm: () => Promise<void>
+}) {
+  const { t } = useTranslation('cfdi')
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('creditNote.byAmount.title', { defaultValue: 'Acreditar lo devuelto por importe' })}</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3 text-sm">
+              <p>
+                {esGlobal
+                  ? t('creditNote.byAmount.explainGlobal', {
+                      defaultValue:
+                        'Avoqado no puede comprobar cuánto se facturó de cada artículo de esta devolución. Puedes acreditar lo devuelto repartido por tasa en proporción a lo que queda de este ticket en la factura global.',
+                    })
+                  : t('creditNote.byAmount.explain', {
+                      defaultValue:
+                        'Avoqado no puede comprobar cuánto se facturó de cada artículo de esta devolución. Puedes acreditar lo devuelto repartido por tasa en proporción a lo que queda en la factura.',
+                    })}
+              </p>
+              <dl className="space-y-1.5 rounded-lg border border-input p-3 text-xs" data-testid="reparto-por-importe">
+                <Row label={t('creditNote.byAmount.total', { defaultValue: 'Total a acreditar' })} value={Currency(amountCents / 100)} />
+                <Row label={t('creditNote.confirm.relatedInvoice', { defaultValue: 'Factura relacionada' })} value={folio || '-'} />
+                {/* T9 ronda 1 (M-4): lo mismo que enseña el diálogo normal. */}
+                <Row label={t('creditNote.confirm.relatedUuid', { defaultValue: 'UUID relacionado' })} value={uuid || '-'} mono />
+                <Row label={t('creditNote.confirm.receptor', { defaultValue: 'Receptor' })} value={receptor?.nombre ?? '-'} />
+                <Row label={t('creditNote.confirm.rfc', { defaultValue: 'RFC' })} value={receptor?.rfc ?? '-'} mono />
+                <FilasDelDesglose desglose={alternativa.desglose} />
+              </dl>
+              {/* T9 ronda 1 (M-5): el ámbito. T10: el mismo texto que el diálogo normal (y «hasta N ¢» en el documento global, N4 de la T8). */}
+              <LineasDeRedondeo redondeo={alternativa.redondeo} />
+              {alternativa.aviso && <p className="text-xs font-medium text-foreground">{alternativa.aviso}</p>}
+              {tipCents > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {t('creditNote.confirm.tipExcluded', {
+                    tip: Currency(tipCents / 100),
+                    defaultValue: `La propina devuelta (${Currency(tipCents / 100)}) no entra: nunca formó parte de la factura.`,
+                  })}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t('creditNote.confirm.irreversible', {
+                  defaultValue: 'Esto es irreversible: deshacerlo obliga a cancelar la nota de crédito ante el SAT.',
+                })}
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="cursor-pointer">{t('creditNote.confirm.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
+          <AlertDialogAction
+            className="cursor-pointer"
+            disabled={pending}
+            onClick={async e => {
+              // Se evita el cierre automático: el diálogo se cierra al timbrar, o al recargar el reparto tras un 409.
+              e.preventDefault()
+              await onConfirm()
+            }}
+          >
+            {pending
+              ? t('creditNote.confirm.submitting', { defaultValue: 'Emitiendo…' })
+              : t('creditNote.byAmount.confirm', { defaultValue: 'Confirmar y emitir' })}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+/** C2 · T10: la tasa como la lee el dueño («IVA 16 %»); exento y no objeto, por su nombre. */
+const TASA: Partial<Record<string, string>> = { IVA_16: '16 %', IVA_8: '8 %', IVA_0: '0 %' }
+function useNombreDeLaTasa() {
+  const { t } = useTranslation('cfdi')
+  return (tratamiento: string) =>
+    TASA[tratamiento]
+      ? t('creditNote.breakdown', { tasa: TASA[tratamiento], defaultValue: `IVA ${TASA[tratamiento]}` })
+      : t(`creditNote.tratamiento.${tratamiento}`, { defaultValue: tratamiento })
+}
+
+/** C2 · T10: una fila por tratamiento: total (base + IVA). La usan el panel, la confirmación y «acreditar por importe». */
+function FilasDelDesglose({ desglose }: { desglose: DesgloseDeNota[] }) {
+  const { t } = useTranslation('cfdi')
+  const nombre = useNombreDeLaTasa()
+  return (
+    <>
+      {desglose.map(d => (
+        <Row
+          key={d.tratamiento}
+          label={nombre(d.tratamiento)}
+          value={t('creditNote.byAmount.row', {
+            total: Currency(d.cents / 100),
+            base: Currency(d.baseCents / 100),
+            iva: Currency(d.ivaCents / 100),
+            defaultValue: `${Currency(d.cents / 100)} (base ${Currency(d.baseCents / 100)} + IVA ${Currency(d.ivaCents / 100)})`,
+          })}
+        />
+      ))}
+    </>
+  )
+}
+
+/**
+ * C2 · T10 (P8, Codex C2-15): cada centavo de redondeo que lleva la nota, declarado: «Incluye 1 ¢ de redondeo del SAT en la base.» (o «en el
+ * IVA», o «en un artículo»), con su tasa delante y su ámbito detrás. 🔴 N4 de la T8: el del documento global es una COTA (la suma de las notas
+ * vivas; de más si una se cancela o se recaptura, nunca de menos) ⇒ «hasta N ¢ … (de la factura global)».
+ */
+function LineasDeRedondeo({ redondeo }: { redondeo: RedondeoDeNota[] }) {
+  const { t } = useTranslation('cfdi')
+  const nombre = useNombreDeLaTasa()
+  if (redondeo.length === 0) return null
+  const clave: Partial<Record<string, string>> = {
+    BASE: 'creditNote.roundingBase',
+    IVA: 'creditNote.roundingIva',
+    ARTICULO: 'creditNote.roundingArticle',
+  }
+  const ambito: Partial<Record<string, string>> = { TICKET: 'creditNote.roundingTicket', DOCUMENTO_GLOBAL: 'creditNote.roundingDocument' }
+  return (
+    <>
+      {redondeo.map((r, i) => {
+        const cents = r.ambito === 'DOCUMENTO_GLOBAL' ? t('creditNote.roundingUpTo', { cents: r.cents }) : r.cents
+        // T10 ronda 1 (M7): un componente que esta pantalla no conoce no se pinta como «en la base» (sería falso): el texto sin el dónde.
+        const texto = t(clave[r.componente] ?? 'creditNote.roundingGeneric', { cents })
+        // T10 ronda 1 (M7, nit): el ámbito va ANTES del punto («… en el IVA (de la factura global).»).
+        const donde = ambito[r.ambito] ? ` ${t(ambito[r.ambito]!)}` : ''
+        const conDonde = donde ? `${texto.replace(/\.$/, '')}${donde}.` : texto
+        return (
+          <p key={i} className="text-xs text-muted-foreground">
+            {`${nombre(r.tratamiento)}: ${conDonde}`}
+          </p>
+        )
+      })}
+    </>
   )
 }
 

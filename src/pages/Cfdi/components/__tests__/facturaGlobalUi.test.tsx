@@ -164,3 +164,16 @@ describe('rangoFiscal (I3)', () => {
     expect(rangoFiscal('2026-09-01T06:00:00.000Z', '2026-10-01T06:00:00.000Z', 'es')).toMatch(/^1 sept?\.? 2026 – 30 sept?\.? 2026$/)
   })
 })
+
+// Ronda QA (hermanos): la global que quedó EN DUDA (el PAC no contestó claro) no es «El PAC rechazó el timbrado de la factura global» ni el
+// error crudo («fetch failed»): el servidor manda `timbreEnDuda: true` en el 502 y el aviso lo dice así.
+describe('avisoDeError — ronda QA (hermanos): timbre en duda', () => {
+  it('🔴 502 con `timbreEnDuda` ⇒ «No hubo respuesta clara del PAC» y que no se vuelva a emitir, nunca «fetch failed»', () => {
+    const aviso = avisoDeError(
+      traducir,
+      conError(502, { error: 'El PAC rechazó el timbrado de la factura global', message: 'fetch failed', timbreEnDuda: true }),
+    )
+    expect(aviso).toEqual({ title: g.toast.pacNoAnswerTitle, description: g.toast.pacNoAnswerDescription })
+    expect(JSON.stringify(aviso)).not.toMatch(/fetch failed|rechaz/i)
+  })
+})

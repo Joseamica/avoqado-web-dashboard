@@ -70,6 +70,8 @@ interface AutofacturaStatus {
   cfdi: AutofacturaCfdi | null
   autofacturaAvailable?: boolean
   autofacturaUnavailable?: { kind: 'DISABLED' | 'FISCAL_BLOCK' }
+  /** C2 · T10 (opcional; sólo viene cuando es verdad): se pidió cancelar la factura y el SAT todavía no lo resuelve. Sigue vigente. */
+  cancelacionEnTramite?: boolean
 }
 
 type ResultState =
@@ -89,7 +91,9 @@ type ResultState =
  * ("DomicilioFiscalReceptor debe pertenecer al nombre asociado al RFC") mentions
  * RFC too, but the actionable field is the CP/name — so those are checked first.
  */
-function fieldForCfdiError(msg: string): { field: 'rfc' | 'razonSocial' | 'codigoPostal' | 'regimenFiscal' | 'usoCfdi'; hint: string } | null {
+function fieldForCfdiError(
+  msg: string,
+): { field: 'rfc' | 'razonSocial' | 'codigoPostal' | 'regimenFiscal' | 'usoCfdi'; hint: string } | null {
   const m = msg.toLowerCase()
   if (/domicilio|c[oó]digo postal|codigo postal/.test(m))
     return { field: 'codigoPostal', hint: 'Revisa tu código postal — debe ser el de tu domicilio fiscal registrado en el SAT.' }
@@ -156,8 +160,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     onError: (err: unknown) => {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
       const data = (axios.isAxiosError(err) ? err.response?.data : undefined) as
-        | { error?: string; code?: string; reasons?: string[]; message?: string }
-        | undefined
+        { error?: string; code?: string; reasons?: string[]; message?: string } | undefined
 
       switch (status) {
         case 422: {
@@ -327,6 +330,10 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
             <div className="space-y-1">
               <p className="text-sm font-medium">{t('autofactura.alreadyInvoiced')}</p>
               {folio && <p className="text-xs text-muted-foreground">{t('autofactura.success.folio', { folio })}</p>}
+              {/* C2 · T10: sólo lectura; la factura sigue vigente (y descargable) mientras el SAT resuelve la cancelación. */}
+              {statusData?.cancelacionEnTramite === true && (
+                <p className="text-xs text-muted-foreground">{t('autofactura.cancelPending')}</p>
+              )}
             </div>
           </div>
           {existingCfdi.pdfUrl ? (

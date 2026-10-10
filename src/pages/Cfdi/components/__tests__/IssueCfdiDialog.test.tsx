@@ -413,3 +413,30 @@ describe('IssueCfdiDialog — confirmar que el precio ya incluía IVA', () => {
     expect(es.issueDialog.errors.validation).toBe('No se pudo facturar:')
   })
 })
+
+// C2 · ronda QA (D1): con el PAC sin contestar, la factura quedó EN DUDA (el servidor manda `timbreEnDuda`): el aviso no dice «rechazó».
+describe('IssueCfdiDialog — 502: en duda no es rechazo (ronda QA, D1)', () => {
+  beforeEach(() => {
+    permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
+  })
+  it.each([
+    [
+      '🔴 en duda ⇒ «No hubo respuesta clara del PAC» y que no la vuelva a emitir (nunca «fetch failed»)',
+      { error: 'El PAC rechazó el timbrado', message: 'fetch failed', cfdiId: 'c1', timbreEnDuda: true },
+      es.issueDialog.errors.pacNoAnswer,
+      es.issueDialog.errors.pacNoAnswerDetail,
+    ],
+    [
+      'control — rechazo (o servidor viejo) ⇒ «rechazó» + el porqué del PAC',
+      { error: 'El PAC rechazó el timbrado', message: 'RFC del receptor inválido', cfdiId: 'c1' },
+      es.issueDialog.errors.pacRejected,
+      'RFC del receptor inválido',
+    ],
+  ])('%s', async (_caso, data, title, description) => {
+    svc.issueCfdiForOrder.mockRejectedValueOnce(errorHttp(502, data))
+    renderDialog()
+    llenarReceptor()
+    facturar()
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title, description, variant: 'destructive' }))
+  })
+})

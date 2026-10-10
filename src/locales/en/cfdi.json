@@ -32,7 +32,10 @@
     "VALIDATING": "Validating",
     "STAMPING": "Stamping",
     "VALIDATION_FAILED": "Invalid data",
-    "STAMP_FAILED": "Rejected by the SAT"
+    "STAMP_FAILED": "Rejected by the SAT",
+    "STAMP_IN_DOUBT": "Waiting for the PAC",
+    "CANCEL_SENDING": "Sending cancellation",
+    "CANCEL_IN_DOUBT": "Cancellation in doubt"
   },
   "statusGroup": {
     "STAMPED": "Stamped",
@@ -54,7 +57,9 @@
     "downloadPdf": "Download PDF",
     "cancel": "Cancel",
     "replace": "Correct amount (replace)",
-    "sendEmail": "Resend by email"
+    "sendEmail": "Resend by email",
+    "checkStatus": "Check status",
+    "finishReplace": "Finish the replacement"
   },
   "cancelDialog": {
     "title": "Cancel invoice",
@@ -100,9 +105,11 @@
     "errors": {
       "validation": "Could not invoice:",
       "pacRejected": "The PAC rejected the stamp.",
+      "pacNoAnswer": "No clear answer from the PAC",
+      "pacNoAnswerDetail": "The invoice is waiting for confirmation: the PAC may have stamped it. Do not issue it again; we confirm it with the PAC within a few minutes.",
       "conflict": "This bill already has an invoice or one is in progress.",
       "alreadyIssued": "This sale already has an invoice — no new one was issued.",
-      "cancelPending": "The cancellation of the previous invoice is still pending.",
+      "cancelPending": "The previous invoice is not cancelled yet.",
       "forbidden": "You can't invoice from here: either your user isn't allowed to issue invoices, or the business plan doesn't include invoicing (it comes with the Premium plan). Ask the business owner.",
       "notFound": "Could not determine who issues this sale's invoice.",
       "orderNotFound": "This sale does not belong to this business.",
@@ -176,7 +183,8 @@
     "fiscalBlock": {
       "title": "This bill can't be invoiced online",
       "subtitle": "Ask the business for your invoice directly."
-    }
+    },
+    "cancelPending": "The cancellation of this invoice is pending with the SAT; meanwhile it remains valid."
   },
   "config": {
     "title": "Invoicing settings",
@@ -308,6 +316,8 @@
       "inProcessTitle": "A global invoice is already in progress for this period.",
       "validationTitle": "Could not generate the global invoice",
       "pacRejectedTitle": "The PAC rejected the global invoice stamp",
+      "pacNoAnswerTitle": "No clear answer from the PAC",
+      "pacNoAnswerDescription": "The global invoice is awaiting confirmation: the PAC may have stamped it. Do not issue it again; we will confirm it with the PAC in a few minutes.",
       "notFoundTitle": "Fiscal issuer not found",
       "genericTitle": "Could not generate the global invoice",
       "uncertainTitle": "We don't know whether the global invoice was issued",
@@ -439,6 +449,27 @@
     "empty": "No matches in the SAT catalog.",
     "clear": "Clear selection"
   },
+  "cancelacion": {
+    "enDuda": "Cancellation in doubt: we are confirming it with the SAT (it can take up to 24 hours). Do not request it again; if you want to know now, press “Check status”: it only checks. If the SAT does not register it within 24 hours, it is closed and you can request it again.",
+    "enTramite": "The cancellation is still pending with the SAT: the invoice stays valid until it is resolved.",
+    "enviando": "Cancellation sent; waiting for the SAT response. The invoice stays valid in the meantime.",
+    "lista": {
+      "enviando": "Sending the cancellation to the SAT",
+      "enDuda": "Cancellation in doubt: we are confirming it with the SAT",
+      "enTramite": "Cancellation pending with the SAT",
+      "rechazada": "The SAT did not accept the cancellation; the invoice remains valid."
+    },
+    "consulta": {
+      "titulo": "We checked with the SAT",
+      "enTramite": "The cancellation is still pending with the SAT: the invoice stays valid until it is resolved.",
+      "enDuda": "There is no clear answer from the SAT yet; we keep confirming it (it can take up to 24 hours). Do not request it again.",
+      "enviando": "The cancellation is still being sent to the SAT; check again in a few minutes.",
+      "cancelada": "The invoice was cancelled.",
+      "sinCancelacion": "This invoice has no cancellation requested: it remains valid.",
+      "rechazadaTitulo": "We checked with the SAT: it was not cancelled",
+      "error": "Could not check the status"
+    }
+  },
   "toast": {
     "emisorSaved": "Issuer saved.",
     "emisorSaveError": "Could not save the issuer.",
@@ -461,7 +492,9 @@
     "replaceError": "Could not replace the invoice",
     "emailSent": "Invoice sent to {{destination}}",
     "emailSentRegistered": "Invoice sent to the customer's email",
-    "emailError": "The invoice could not be emailed"
+    "emailError": "The invoice could not be emailed",
+    "cancelRejected": "It was not cancelled",
+    "cancelRejectedDetail": "The invoice remains valid."
   },
   "creditNote": {
     "title": "Credit note (CFDI de Egreso)",
@@ -489,12 +522,78 @@
     },
     "error": {
       "pac": "The PAC rejected the stamping",
+      "pacNoAnswer": "No clear answer from the PAC",
+      "inDoubt": "The credit note is waiting for confirmation: the PAC may have stamped it. Do not issue it again; we confirm it with the PAC within a few minutes.",
       "generic": "Could not issue the credit note"
     },
     "toast": {
       "success": "Credit note issued",
       "successDetail": "{{folio}} · {{uuid}}"
-    }
+    },
+    "byAmount": {
+      "button": "Credit by amount",
+      "title": "Credit the refund by amount",
+      "explain": "Avoqado cannot verify how much was invoiced for each item in this refund. You can credit the refunded amount split by tax rate in proportion to what remains on the invoice.",
+      "confirm": "Confirm and issue",
+      "total": "Total to credit",
+      "row": "{{total}} (base {{base}} + VAT {{iva}})",
+      "rounding": "Declared rounding: {{cents}} ¢ of {{componente}} ({{tratamiento}}, {{ambito}}).",
+      "componente": {
+        "BASE": "base",
+        "IVA": "VAT",
+        "ARTICULO": "an item"
+      },
+      "explainGlobal": "Avoqado cannot verify how much was invoiced for each item in this refund. You can credit the refunded amount split by tax rate in proportion to what remains of this ticket in the global invoice.",
+      "ambito": {
+        "FACTURA": "invoice",
+        "TICKET": "ticket",
+        "DOCUMENTO_GLOBAL": "global document"
+      }
+    },
+    "tratamiento": {
+      "IVA_16": "VAT 16%",
+      "IVA_8": "VAT 8%",
+      "IVA_0": "VAT 0%",
+      "EXENTO": "VAT exempt",
+      "NO_OBJETO": "Not subject to VAT"
+    },
+    "global": "Global invoice (general public)",
+    "breakdown": "VAT {{tasa}}",
+    "roundingBase": "Includes {{cents}} ¢ of SAT rounding in the base.",
+    "roundingIva": "Includes {{cents}} ¢ of SAT rounding in the VAT.",
+    "roundingArticle": "Includes {{cents}} ¢ of SAT rounding in an item.",
+    "roundingUpTo": "up to {{cents}}",
+    "roundingDocument": "(of the global invoice)",
+    "roundingTicket": "(of the ticket in the global invoice)",
+    "waitingXml": "We are retrieving the invoice XML; try again in a few minutes.",
+    "reason": {
+      "NOT_A_REFUND": "This payment is not a refund, so it has no credit note.",
+      "REFUND_NOT_COMPLETED": "The refund is not complete yet; the credit note can be issued when it finishes.",
+      "NO_ORIGINAL_CFDI": "This sale has no stamped invoice, so there is nothing to credit with a credit note.",
+      "ORIGINAL_CANCELLED": "The original invoice is cancelled; a credit note does not apply to a cancelled invoice.",
+      "ORIGINAL_CANCEL_PENDING": "The original invoice has a cancellation requested; the credit note can be issued once it is resolved.",
+      "ORIGINAL_EN_SUSTITUCION": "The original invoice is being replaced; the credit note can be issued once that finishes.",
+      "TIP_ONLY": "This refund is only a tip, which was never part of the invoice: it has no credit note.",
+      "EXCEEDS_REMAINING": "There is nothing left to credit on the original invoice.",
+      "ORIGINAL_IVA_MIXTO": "The original invoice has several VAT rates; issue this credit note with your accountant.",
+      "ORIGINAL_ENTRADA_INVALIDA": "We could not read how the original invoice was built; contact support to review it.",
+      "ESPERA_XML": "We are retrieving the invoice XML; try again in a few minutes.",
+      "XML_IRRECUPERABLE": "The XML of the original invoice cannot be retrieved, so the credit note is not issued here. Contact support.",
+      "ARTICULO_SIN_EVIDENCIA": "We cannot verify how much was invoiced for a refunded item. You can credit the refund by amount.",
+      "ARTICULOS_NO_CUADRAN": "The refunded items do not add up to what was refunded; review the refund.",
+      "ARTICULO_EXCEDE_LO_FACTURADO": "The amount refunded for an item is more than what was invoiced for it.",
+      "CENTAVOS_DE_REDONDEO": "The refund collides with a few cents of rounding on the invoice; issue this credit note with your accountant.",
+      "SIN_MONTO_POR_ARTICULO": "This invoice did not record how much was invoiced for each item. You can credit the refund by amount.",
+      "REPARTO_DE_ENTREGA_INVALIDO": "The per-rate split of this delivery adjustment cannot be read; contact support.",
+      "IMPORTE_DEVUELTO_INVALIDO": "The refund amount is not valid for a credit note.",
+      "OCHO_SIN_REGLA": "This credit note would carry the 8% border VAT, which is not credited here yet; issue it with your accountant.",
+      "NO_CUADRA_CON_EL_PAC": "The credit note does not match the PAC rules to the cent; contact support.",
+      "MODALIDAD_NO_PERMITIDA": "This refund does have the per-item detail, so it is not credited by amount.",
+      "SIN_FORMA_DE_PAGO": "There is no valid payment form for the credit note; issue it with your accountant."
+    },
+    "waitingXmlStopped": "The invoice XML has not arrived yet. Check again in a few minutes.",
+    "retryXml": "Check again",
+    "roundingGeneric": "Includes {{cents}} ¢ of SAT rounding."
   },
   "manifiesto": {
     "pending": "Carta Manifiesto pending",
@@ -522,10 +621,26 @@
     "newInvoice": "New invoice",
     "cancelledOk": "The previous invoice was cancelled.",
     "cancelPending": "The previous invoice is STILL valid: its cancellation is pending at the SAT. Check back later; the new one is already valid.",
-    "cancelRejected": "The SAT did not accept cancelling the previous invoice, so it IS STILL VALID. The new one is stamped — contact support to resolve the cancellation.",
+    "cancelRejected": "The SAT did not accept cancelling the previous invoice, so it IS STILL VALID. The new one is stamped. If you still need it, request it again with “Finish the replacement” on the previous invoice's row.",
     "rejectedTitle": "Nothing was replaced",
     "rejectedIntro": "No invoice was stamped. Here is why:",
-    "close": "Close"
+    "close": "Close",
+    "cancelNotSent": "The previous invoice IS STILL VALID: its cancellation was not sent. To request it again, use “Finish the replacement” on the previous invoice's row (no other invoice is stamped).",
+    "cancelNotRequested": "The previous invoice IS STILL VALID: its cancellation could not be requested. Once you resolve it, use “Finish the replacement” on the previous invoice's row (no other invoice is stamped).",
+    "finishTitle": "Finish the replacement",
+    "finishDescription": "The corrected invoice {{folio}} is already stamped. What is left is asking the SAT to cancel this one (motive 01, pointing at the corrected one). No other invoice is stamped.",
+    "finishConfirm": "Request the cancellation",
+    "finishRequestedTitle": "Cancellation requested",
+    "finishDoneTitle": "Replacement finished",
+    "finishNotSentTitle": "The cancellation was not sent",
+    "finishRejectedTitle": "The SAT did not accept the cancellation",
+    "finishUnconfirmedTitle": "The cancellation could not be confirmed",
+    "cancelInDoubt": "The previous invoice IS STILL VALID for now: the SAT gave no clear answer and we are confirming its cancellation (it can take up to 24 hours). Do not request it again; if you want to know now, use “Check status” on the previous invoice's row.",
+    "cancelUnconfirmed": "The previous invoice IS STILL VALID: we could not confirm whether its cancellation was sent. Check the previous invoice's row; if it offers “Finish the replacement”, request it from there (no other invoice is stamped).",
+    "stampInDoubt": "The corrected invoice is in doubt: the PAC gave no clear answer and may have stamped it. Do not issue it again; check its status in the invoice list in a few minutes (it confirms itself).",
+    "stampRejected": "The PAC did not stamp the corrected invoice; the previous one is still valid. Check the sale's tax details before trying again.",
+    "genericError": "The invoice could not be replaced. Try again in a few minutes.",
+    "correctedInvoice": "Corrected invoice"
   },
   "sendEmailDialog": {
     "title": "Send invoice {{folio}} by email",

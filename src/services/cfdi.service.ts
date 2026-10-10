@@ -12,9 +12,99 @@ import api from '@/api'
 
 // ─── Nota de crédito (CFDI de EGRESO) por un reembolso ──────────────────────
 
-/** Por qué NO se puede emitir la nota de crédito de un reembolso. */
+/**
+ * Por qué NO se puede emitir la nota de crédito de un reembolso. C2 · T10 (N4 de la T3): la unión COMPLETA del servidor
+ * (`cfdiCreditNote.service.ts`, `CreditNoteBlockReason`), cada una con su texto en `creditNote.reason.*` (es/en). La pantalla pinta el
+ * `message` del servidor (en español, con folios y montos); el texto por motivo es el respaldo cuando no viene.
+ */
 export type CreditNoteBlockReason =
-  'NOT_A_REFUND' | 'REFUND_NOT_COMPLETED' | 'NO_ORIGINAL_CFDI' | 'ORIGINAL_CANCELLED' | 'TIP_ONLY' | 'EXCEEDS_REMAINING'
+  | 'NOT_A_REFUND'
+  | 'REFUND_NOT_COMPLETED'
+  | 'NO_ORIGINAL_CFDI'
+  | 'ORIGINAL_CANCELLED'
+  | 'ORIGINAL_CANCEL_PENDING'
+  | 'ORIGINAL_EN_SUSTITUCION'
+  | 'TIP_ONLY'
+  | 'EXCEEDS_REMAINING'
+  | 'ORIGINAL_IVA_MIXTO' // ya no se emite (C2): se conserva en el tipo
+  | 'ORIGINAL_ENTRADA_INVALIDA'
+  | 'ESPERA_XML'
+  | 'XML_IRRECUPERABLE'
+  | 'ARTICULO_SIN_EVIDENCIA'
+  | 'ARTICULOS_NO_CUADRAN'
+  | 'ARTICULO_EXCEDE_LO_FACTURADO'
+  | 'CENTAVOS_DE_REDONDEO'
+  // C2 (Tarea 9): la devolución por artículos no tiene evidencia de lo facturado (se puede «acreditar por importe»), o se eligió por importe
+  // cuando sí la había.
+  | 'SIN_MONTO_POR_ARTICULO'
+  | 'REPARTO_DE_ENTREGA_INVALIDO'
+  | 'IMPORTE_DEVUELTO_INVALIDO'
+  | 'OCHO_SIN_REGLA'
+  | 'NO_CUADRA_CON_EL_PAC'
+  | 'MODALIDAD_NO_PERMITIDA'
+  | 'SIN_FORMA_DE_PAGO'
+
+/** C2 · T10: todos los motivos (la prueba exige un texto es/en para cada uno). */
+export const MOTIVOS_DE_BLOQUEO_DE_NOTA: readonly CreditNoteBlockReason[] = [
+  'NOT_A_REFUND',
+  'REFUND_NOT_COMPLETED',
+  'NO_ORIGINAL_CFDI',
+  'ORIGINAL_CANCELLED',
+  'ORIGINAL_CANCEL_PENDING',
+  'ORIGINAL_EN_SUSTITUCION',
+  'TIP_ONLY',
+  'EXCEEDS_REMAINING',
+  'ORIGINAL_IVA_MIXTO',
+  'ORIGINAL_ENTRADA_INVALIDA',
+  'ESPERA_XML',
+  'XML_IRRECUPERABLE',
+  'ARTICULO_SIN_EVIDENCIA',
+  'ARTICULOS_NO_CUADRAN',
+  'ARTICULO_EXCEDE_LO_FACTURADO',
+  'CENTAVOS_DE_REDONDEO',
+  'SIN_MONTO_POR_ARTICULO',
+  'REPARTO_DE_ENTREGA_INVALIDO',
+  'IMPORTE_DEVUELTO_INVALIDO',
+  'OCHO_SIN_REGLA',
+  'NO_CUADRA_CON_EL_PAC',
+  'MODALIDAD_NO_PERMITIDA',
+  'SIN_FORMA_DE_PAGO',
+]
+
+/** C2: el tratamiento de IVA de un concepto de la nota. */
+export type TratamientoDeNota = 'IVA_16' | 'IVA_8' | 'IVA_0' | 'EXENTO' | 'NO_OBJETO'
+/** C2: lo que se acreditaría de un tratamiento (INTEGER CENTS). */
+export interface DesgloseDeNota {
+  tratamiento: TratamientoDeNota
+  cents: number
+  baseCents: number
+  ivaCents: number
+}
+/** C2 (P8): lo que la nota lleva de más, declarado por componente y ámbito (centavos de redondeo). */
+export interface RedondeoDeNota {
+  tratamiento: TratamientoDeNota
+  componente: 'BASE' | 'IVA' | 'ARTICULO'
+  cents: number
+  ambito: 'FACTURA' | 'TICKET' | 'DOCUMENTO_GLOBAL'
+  orderItemId?: string
+}
+/**
+ * C2 (Tarea 9, P10): la devolución por artículos se detuvo por falta de evidencia y el servidor ofrece «acreditar por importe»: lo
+ * devuelto repartido por tasa en proporción a lo que queda, con su redondeo y la HUELLA del reparto que se confirma.
+ */
+export interface AlternativaPorImporte {
+  modalidad: 'POR_IMPORTE'
+  desglose: DesgloseDeNota[]
+  redondeo: RedondeoDeNota[]
+  huella: string
+  /** Cuando se acreditaría dinero de un artículo que no aparece en la factura (p. ej. una cortesía). */
+  aviso?: string
+}
+/** C2 (Tarea 9): la elección «acreditar por importe» confirmada por una persona, con la huella del reparto que vio. */
+export interface EleccionPorImporte {
+  modalidad: 'POR_IMPORTE'
+  huella: string
+}
 
 export interface RefundCreditNote {
   id: string
@@ -35,14 +125,32 @@ export interface RefundCreditNote {
 export interface RefundCreditNoteStatus {
   /** La nota de crédito ya emitida (cualquier estado), o `null` si aún no se emite. */
   creditNote: RefundCreditNote | null
+  /** C2 · ronda QA (D2): la nota se envió al PAC y quedó EN DUDA; sólo se confirma (nunca se vuelve a emitir). Opcional en servidores viejos. */
+  recoveryOnly?: boolean
   /** El servidor decide si procede — y cuándo no, trae el texto en español. */
   eligibility: { eligible: boolean; reason: CreditNoteBlockReason | null; message: string | null }
   preview: {
-    facturaOriginal: { folio: string; uuid: string; totalCents: number } | null
+    /**
+     * `esGlobal` (C2 · T8, opcional): la original es la factura global en la que entró el ticket. `etiqueta` (C2 · ronda QA D7, opcional):
+     * el folio con el formato de la lista («A-7»); sin ella, `folio`.
+     */
+    facturaOriginal: { folio: string; etiqueta?: string; uuid: string; totalCents: number; esGlobal?: boolean } | null
     receptor: { rfc: string; nombre: string } | null
     /** INTEGER CENTS. Es la MERCANCÍA devuelta — la propina va aparte y NO se factura. */
     amountToCreditCents: number
     tipRefundCents: number
+    /** C2 (opcional): lo que se acreditaría por tratamiento (total, base e IVA), cuando es elegible. */
+    desglose?: DesgloseDeNota[]
+    /** C2 (opcional; P8): el redondeo que llevaría la nota, por componente y ámbito. */
+    redondeo?: RedondeoDeNota[]
+    /** C2 (opcional): el uso del CFDI de la nota (G02). */
+    usoCfdi?: string
+    /** C2 (opcional; G6): la facturación del comercio está apagada; la nota NO se bloquea (corrige una factura ya emitida). */
+    avisoFacturacionApagada?: string
+    /** C2 · T10 ronda 1 (M9, opcional): la huella de lo que se timbraría; la emisión normal la manda para atar lo que se vio. */
+    huella?: string
+    /** C2 (Tarea 9, opcional): la alternativa «acreditar por importe», cuando por artículos falta evidencia. */
+    alternativa?: AlternativaPorImporte
   } | null
 }
 
@@ -182,6 +290,18 @@ export interface Cfdi {
   /** Último intento: la fecha de una factura sin timbre (borrador o fallida). Opcional: servidores viejos no lo mandan. */
   updatedAt?: string
   cancelStatus: string | null
+  /**
+   * C2 · T10 (Codex C2-31): en qué va la cancelación, derivado por el servidor en CADA consulta (ENVIANDO pasa a CANCELACION_EN_DUDA sin
+   * que nadie escriba nada). Opcional: un servidor anterior no lo manda.
+   */
+  estadoCancelacion?: EstadoDeCancelacion
+  /** C2 · T10 (M9): por qué NO quedó la cancelación (sólo con `estadoCancelacion: 'RECHAZADA'`). */
+  motivoRechazoCancelacion?: string
+  /**
+   * C2 · ronda QA (D6, opcional): un `STAMP_FAILED` que el PAC NO rechazó: se envió y no hubo respuesta clara; la conciliación lo confirma.
+   * Sólo viene en `true`.
+   */
+  timbreEnDuda?: boolean
   xmlUrl: string | null
   pdfUrl: string | null
   globalPeriod: unknown
@@ -384,7 +504,16 @@ export interface PeriodoDeLaGlobal {
   /** Sólo con la principal timbrada o cancelada (Tarea 11); si no, `null`. */
   corregidasPendientes: CorregidasPendientes | null
   /** Las complementarias de la principal (Tarea 11). `motivo`: sólo en una `SIN_TIMBRAR` (p. ej. el rechazo del PAC; T11 ronda 1, m2). */
-  complementarias: Array<{ cfdiId: string; folio: string | null; estado: 'TIMBRADA' | 'CANCELADA' | 'SIN_TIMBRAR'; motivo?: string | null }>
+  complementarias: Array<{
+    cfdiId: string
+    folio: string | null
+    estado: 'TIMBRADA' | 'CANCELADA' | 'SIN_TIMBRAR'
+    motivo?: string | null
+    /** Ronda QA (hermanos, opcional): quedó EN DUDA (el PAC no contestó claro); no es un rechazo. */
+    timbreEnDuda?: true
+  }>
+  /** Ronda QA (hermanos, opcional): la principal SIN_TIMBRAR quedó EN DUDA (el PAC no contestó claro); no es un rechazo. */
+  timbreEnDuda?: true
 }
 
 /**
@@ -402,6 +531,8 @@ export interface GlobalDeOtraPeriodicidad {
   estado: 'APARTADA' | 'RECHAZADA' | 'DETENIDA'
   folio: string | null
   motivo: string | null
+  /** Ronda QA (hermanos, opcional): quedó EN DUDA (el PAC no contestó claro); no es un rechazo. */
+  timbreEnDuda?: true
   complementariaDe: string | null
 }
 
@@ -462,11 +593,14 @@ export interface GlobalComplementariaPreview {
 
 export type CancelMotivo = '01' | '02' | '03' | '04'
 
-export interface CancelCfdiRequest {
-  motivo: CancelMotivo
-  /** Required by SAT when motivo === '01' (substitutes another CFDI). */
-  substituteUuid?: string
-}
+export type CancelCfdiRequest =
+  | {
+      motivo: CancelMotivo
+      /** Required by SAT when motivo === '01' (substitutes another CFDI). */
+      substituteUuid?: string
+    }
+  /** C2 · T10 ronda 1 (I-1): «Consultar estado». El servidor SÓLO consulta: nunca anota ni envía un intento de cancelación. */
+  | { soloConsultar: true }
 
 export interface SendCfdiEmailResponse {
   folio: string
@@ -474,10 +608,20 @@ export interface SendCfdiEmailResponse {
   destination: string | null
 }
 
+/** C2: el estado derivado de la cancelación que manda el servidor (EN DUDA = enviada sin respuesta clara; sólo se consulta). */
+export type EstadoDeCancelacion = 'ANOTADA' | 'ENVIANDO' | 'EN_TRAMITE' | 'CANCELACION_EN_DUDA' | 'RECHAZADA' | 'CANCELADA' | null
+
 export interface CancelCfdiResponse {
-  cancelStatus: string
+  /** `null` sólo al consultar (`soloConsultar`) una factura sin cancelación pedida. */
+  cancelStatus: string | null
   cancelledAt: string
   cfdiId: string
+  /** C2: opcional (servidores anteriores no lo mandan). */
+  estado?: EstadoDeCancelacion
+  /** C2 ronda 1 (I1): el envío terminó sin respuesta clara; opcional. */
+  enDuda?: boolean
+  /** C2 · T10 (M9): por qué NO quedó (sólo con el rechazo); opcional. */
+  motivoRechazoCancelacion?: string
 }
 
 /**
@@ -502,6 +646,17 @@ export interface ReplaceCfdiResponse {
   cancelStatus: 'REQUESTED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | null
   cancelPendiente: boolean
   reasons?: string[]
+  /** C2 (M6 de la T2; opcional): por qué no se pudo PEDIR la cancelación de la original (p. ej. tiene una nota de crédito viva). */
+  cancelConflicto?: string
+  /** C2 (N3 de la T2; opcional): por qué no SALIÓ la cancelación de la original (p. ej. no se pudo consultar al SAT); no se envió nada. */
+  cancelAviso?: string
+  /** C2 · ola final (opcional): la cancelación de la original quedó EN DUDA (llega con `cancelStatus: 'REQUESTED'`); igual que en `/cancel`. */
+  enDuda?: boolean
+  /**
+   * C2 · ola final (opcional: servidores anteriores no lo mandan): ESTA petición anotó un intento nuevo de cancelar la original. `false` ⇒ el
+   * `cancelStatus` que llega (p. ej. un REJECTED) es de un intento anterior, no de esta petición.
+   */
+  cancelIntentoNuevo?: boolean
 }
 
 // ─── SAT catalog search (product/category fiscal keys) ──────────────────────
@@ -763,8 +918,21 @@ export const cfdiService = {
    * Errores: 409 regla de negocio (sin factura original, cancelada, sólo propina, importe
    * excedido, ya en proceso) · 422 validación previa · 502 el PAC rechazó · 403 sin plan.
    */
-  async emitRefundCreditNote(venueId: string, refundId: string): Promise<{ creditNote: RefundCreditNote }> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/refunds/${refundId}/credit-note`)
+  async emitRefundCreditNote(
+    venueId: string,
+    refundId: string,
+    eleccion?: EleccionPorImporte,
+    huella?: string,
+  ): Promise<{ creditNote: RefundCreditNote }> {
+    // C2 (Tarea 9): sin elección, el POST de siempre (sin body); con «por importe», la modalidad y la huella del reparto que se vio
+    // (409 «El reparto cambió…» si cambió desde la vista previa). T10 ronda 1 (M9): la emisión normal manda `{ huella }` de su vista previa
+    // (409 «La factura cambió…» si ya no es lo que se vio).
+    const url = `/api/v1/dashboard/venues/${venueId}/refunds/${refundId}/credit-note`
+    const response = eleccion
+      ? await api.post(url, { modalidad: eleccion.modalidad, huella: eleccion.huella })
+      : huella
+        ? await api.post(url, { huella })
+        : await api.post(url)
     return response.data?.data ?? response.data
   },
 
