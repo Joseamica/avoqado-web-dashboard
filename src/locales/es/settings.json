@@ -24,7 +24,8 @@
       "ecommerceChannels": "Comercios e-commerce",
       "merchantAccounts": "Cuentas merchant",
       "tenderTypes": "Tipos de pago",
-      "receiptLayout": "Diseño del ticket"
+      "receiptLayout": "Diseño del ticket",
+      "serviceCourses": "Tiempos de servicio"
     }
   },
   "preferences": {
@@ -209,7 +210,7 @@
       "orders": "Órdenes",
       "payments": "Pagos",
       "shifts": "Turnos",
-      "cash_drawer": "Cajón físico",
+      "cash_drawer": "Cajón de efectivo",
       "tpv": "Gestión de TPV",
       "inventory": "Inventario",
       "reviews": "Reseñas",

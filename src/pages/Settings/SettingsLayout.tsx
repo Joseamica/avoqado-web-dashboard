@@ -5,6 +5,7 @@ import {
   Bell,
   CreditCard,
   LayoutGrid,
+  Clock,
   Link2,
   Lock,
   Printer,
@@ -105,6 +106,17 @@ export default function SettingsLayout() {
               },
             ]
           : []),
+        ...(can('settings:read')
+          ? [
+              {
+                to: 'service-courses',
+                label: t('hub.items.serviceCourses'),
+                icon: Clock,
+                dataTour: 'settings-nav-service-courses',
+                premiumLocked: !hasFeatureAccess('TABLE_SERVICE'),
+              },
+            ]
+          : []),
         ...(can('receipt-layout:read')
           ? [{ to: 'receipt-layout', label: t('hub.items.receiptLayout'), icon: Receipt, dataTour: 'settings-nav-receipt-layout' }]
           : []),
@@ -161,7 +173,7 @@ export default function SettingsLayout() {
           <p
             className={cn(
               'px-2.5 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-wider',
-              group.superadmin ? 'bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent' : 'text-muted-foreground/70',
+              group.superadmin ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground/70',
             )}
           >
             {group.label}

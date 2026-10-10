@@ -42,6 +42,28 @@ export const OwnerProtectedRoute = () => {
   const isSuperAdmin = user.role === StaffRole.SUPERADMIN
   const isOwner = user.role === StaffRole.OWNER
 
+  // Service-course configuration uses the canonical organization membership.
+  // A branch OWNER is not necessarily the owner of its organization.
+  if (location.pathname.endsWith('/settings/service-courses')) {
+    const targetOrgId =
+      params.orgId ||
+      allVenues.find(v => {
+        const org = v.organization as (typeof v.organization & { slug?: string }) | undefined
+        return v.organizationId === params.orgSlug || org?.slug === params.orgSlug
+      })?.organizationId
+    const ownsTarget = !!targetOrgId && user.organizationMemberships?.some(m => m.organizationId === targetOrgId && m.role === 'OWNER')
+    if (isSuperAdmin || ownsTarget) return <Outlet />
+    return (
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t('routeProtection.accessDenied')}</AlertTitle>
+          <AlertDescription>{t('serviceCourses:organizationOwnerOnly')}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   // Must be OWNER or SUPERADMIN
   if (!isOwner && !isSuperAdmin) {
     return (
@@ -79,18 +101,19 @@ export const OwnerProtectedRoute = () => {
     ? ((ownerVenue.organization as (typeof ownerVenue.organization & { slug?: string }) | undefined)?.slug ?? null)
     : null
   const fallbackOrgIdentifier = ownerVenue
-    ? (isWhiteLabelOrgRoute ? (ownerOrgSlug || ownerVenue.organizationId) : ownerVenue.organizationId)
+    ? isWhiteLabelOrgRoute
+      ? ownerOrgSlug || ownerVenue.organizationId
+      : ownerVenue.organizationId
     : null
   const fallbackPath = fallbackOrgIdentifier
-    ? (isWhiteLabelOrgRoute ? `/wl/organizations/${fallbackOrgIdentifier}` : `/organizations/${fallbackOrgIdentifier}`)
+    ? isWhiteLabelOrgRoute
+      ? `/wl/organizations/${fallbackOrgIdentifier}`
+      : `/organizations/${fallbackOrgIdentifier}`
     : '/'
 
   // Check if user has a venue with OWNER role in the requested organization
   const isOwnerInRequestedOrg = allVenues.some(
-    venue =>
-      venue.role === StaffRole.OWNER &&
-      !!requestedOrgIdentifier &&
-      matchesRequestedOrganization(venue, requestedOrgIdentifier)
+    venue => venue.role === StaffRole.OWNER && !!requestedOrgIdentifier && matchesRequestedOrganization(venue, requestedOrgIdentifier),
   )
 
   if (requestedOrgIdentifier && !isOwnerInRequestedOrg) {
@@ -102,11 +125,7 @@ export const OwnerProtectedRoute = () => {
           <AlertDescription>{t('notYourOrganization')}</AlertDescription>
         </Alert>
         <div className="flex justify-center mt-4">
-          {fallbackOrgIdentifier ? (
-            <Navigate to={fallbackPath} replace />
-          ) : (
-            <Navigate to="/" replace />
-          )}
+          {fallbackOrgIdentifier ? <Navigate to={fallbackPath} replace /> : <Navigate to="/" replace />}
         </div>
       </div>
     )

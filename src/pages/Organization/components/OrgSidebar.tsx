@@ -30,6 +30,7 @@ import { StaffRole, Venue } from '@/types'
 import {
   BarChart3,
   Building2,
+  Clock,
   ChevronRight,
   ChevronsUpDown,
   Coins,
@@ -66,7 +67,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
   const { t } = useTranslation('organization')
   const navigate = useNavigate()
   const { orgId } = useParams<{ orgId: string }>()
-  const { organization, isOwner: _isOwner } = useCurrentOrganization()
+  const { organization, isOwner: _isOwner } = useCurrentOrganization({ includeVenues: false })
   const { user, allVenues } = useAuth()
   const { venue: _activeVenue, venueSlug: _venueSlug } = useCurrentVenue()
   const { isMobile } = useSidebar()
@@ -193,7 +194,10 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
             },
             {
               title: t('sidebar.configuration'),
-              items: [{ name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings }],
+              items: [
+                { name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings },
+                { name: t('sidebar.serviceCourses'), href: `/organizations/${orgId}/settings/service-courses`, icon: Clock },
+              ],
             },
             // White-label org config section (only shown for orgs with WL module)
             ...(isWhiteLabelOrg

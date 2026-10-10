@@ -242,7 +242,8 @@
     "visionGlobal": "Global Vision",
     "reports": "Reports",
     "managers": "Supervisors",
-    "liveLocation": "Terminal Location"
+    "liveLocation": "Terminal Location",
+    "serviceCourses": "Service courses"
   },
   "header": {
     "backToVenue": "Back to Venue"

@@ -29,6 +29,7 @@
     "test:onboarding": "vitest run src/test/payment-onboarding.test.ts",
     "pre-commit": "npm run lint && npm run typecheck && npm run test:run",
     "test:e2e": "playwright test",
+    "test:integration:service-courses": "playwright test e2e/tests/settings/service-courses.spec.ts --project=chromium --workers=1 --reporter=list",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "permissions:deps": "node scripts/regenerar-dependencias-permisos.mjs",

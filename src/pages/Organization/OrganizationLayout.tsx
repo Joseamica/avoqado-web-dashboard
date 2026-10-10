@@ -7,6 +7,7 @@ import LanguageSwitcher from '@/components/language-switcher'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { canManageOrganizationCourses } from '@/services/serviceCourses.service'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
@@ -22,14 +23,18 @@ const OrganizationLayout: React.FC<OrganizationLayoutProps> = ({ catalogOnly = f
   const { t } = useTranslation('organization')
   const location = useLocation()
   const { orgId } = useParams<{ orgId: string }>()
-  const { organization, masterCatalogMembership } = useCurrentOrganization()
+  const { organization, masterCatalogMembership } = useCurrentOrganization({ includeVenues: false })
   const { user, allVenues, isLoading: isAuthLoading } = useAuth()
 
   // Organization pages require OWNER or SUPERADMIN role IN THIS ORGANIZATION
   // SUPERADMIN can access any org, OWNER can only access their own org
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
   const isOwnerInThisOrg = allVenues.some(venue => venue.organizationId === orgId && venue.role === StaffRole.OWNER)
-  const canAccessOrg = catalogOnly ? Boolean(masterCatalogMembership) : isSuperadmin || isOwnerInThisOrg
+  const canAccessOrg = catalogOnly
+    ? Boolean(masterCatalogMembership)
+    : location.pathname.endsWith('/settings/service-courses') && orgId
+      ? canManageOrganizationCourses(user, orgId)
+      : isSuperadmin || isOwnerInThisOrg
 
   // Build breadcrumb from path
   const pathSegments = location.pathname.split('/').filter(segment => segment && segment !== 'organizations' && segment !== orgId)
@@ -41,6 +46,7 @@ const OrganizationLayout: React.FC<OrganizationLayoutProps> = ({ catalogOnly = f
       venues: t('breadcrumb.venues'),
       team: t('breadcrumb.team'),
       settings: t('breadcrumb.settings'),
+      'service-courses': t('serviceCourses:title'),
       analytics: t('breadcrumb.analytics'),
       terminals: t('breadcrumb.terminals'),
       'activity-log': t('breadcrumb.activityLog'),

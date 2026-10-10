@@ -530,19 +530,19 @@
   },
   "bundles": {
     "title": "Combos & bundles",
-    "subtitle": "Build combos, bundles and 2-for-1 deals priced to the cent. Publish them when ready and they show up on the POS.",
-    "create": "New promotion",
+    "subtitle": "Build the combos and bundles on your menu. Choose what they include and publish them to sell on the POS.",
+    "create": "New combo or bundle",
     "list": {
-      "emptyState": "No promotions yet",
-      "emptyStateDesc": "Create your first combo or 2-for-1. It saves as a draft and won't show on the POS until you publish it.",
-      "name": "Promotion",
+      "emptyState": "No combos or bundles yet",
+      "emptyStateDesc": "Create your first combo or bundle. It saves as a draft and appears on the POS when you publish it.",
+      "name": "Name",
       "mode": "Pricing type",
       "modeFixed": "Fixed price",
       "modePerUnit": "2-for-1 / NxM",
       "price": "Price",
       "status": "Status",
       "filterAll": "All",
-      "searchPlaceholder": "Search promotion…"
+      "searchPlaceholder": "Search combo or bundle…"
     },
     "status": {
       "DRAFT": "Draft",
@@ -577,8 +577,8 @@
       "confirm": "Delete"
     },
     "form": {
-      "createTitle": "New promotion",
-      "editTitle": "Edit promotion",
+      "createTitle": "New combo or bundle",
+      "editTitle": "Edit combo or bundle",
       "subtitle": "Saved as a draft. Publishing it is a separate step.",
       "save": "Save draft",
       "saving": "Saving…",
@@ -633,17 +633,17 @@
       "saveError": "Couldn't save the setting. Try again."
     },
     "activation": {
-      "bannerTitle": "First promotion?",
+      "bannerTitle": "First combo or bundle?",
       "bannerDesc": "We'll walk you through it: create, publish, and choose where it shows on the POS.",
-      "emptyTitle": "Here's how to turn on a promotion",
-      "step1": "Create the combo or 2-for-1 with the \"New promotion\" button — it saves as a draft.",
-      "step2": "Publish it from the row menu (⋯ → Publish). Only published promotions reach the POS.",
+      "emptyTitle": "Here's how to publish a combo or bundle",
+      "step1": "Create the combo or bundle with the \"New combo or bundle\" button — it saves as a draft.",
+      "step2": "Publish it from the row menu (⋯ → Publish). Only published combos and bundles reach the POS.",
       "step3": "Pick below where it shows on each POS screen. Terminals pick it up on their own — nothing to install.",
       "startGuide": "Start guide"
     },
     "tour": {
-      "welcomeTitle": "Promotions",
-      "welcomeDesc": "This is where your combos, bundles and 2-for-1s live. Nothing you do here charges differently until you publish.",
+      "welcomeTitle": "Combos & bundles",
+      "welcomeDesc": "Organize the combos and bundles you sell here. They save as drafts and reach the POS when you publish them.",
       "createTitle": "Create",
       "createDesc": "Everything starts as a draft: you can take your time building it.",
       "modeTitle": "How is it charged?",

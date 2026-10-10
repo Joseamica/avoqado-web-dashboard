@@ -24,7 +24,8 @@
       "ecommerceChannels": "E-commerce merchants",
       "merchantAccounts": "Merchant accounts",
       "tenderTypes": "Payment types",
-      "receiptLayout": "Receipt design"
+      "receiptLayout": "Receipt design",
+      "serviceCourses": "Service courses"
     }
   },
   "preferences": {

@@ -7,17 +7,7 @@
 
 import React, { useMemo } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Building2,
-  Store,
-  Users,
-  BarChart3,
-  ChevronsUpDown,
-  ChevronRight,
-  Receipt,
-  MapPin,
-} from 'lucide-react'
+import { LayoutDashboard, Building2, Store, Users, BarChart3, ChevronsUpDown, ChevronRight, Receipt, MapPin, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAuth } from '@/context/AuthContext'
@@ -49,7 +39,7 @@ import { cn } from '@/lib/utils'
 
 type WLOrgSidebarProps = React.ComponentProps<typeof Sidebar>
 
-const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
+const WLOrgSidebar: React.FC<WLOrgSidebarProps> = props => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
   const { organization, basePath, venues } = useCurrentOrganization()
@@ -59,49 +49,56 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
   const [dropdownOpen, setDropdownOpen] = React.useState(false)
 
   // Navigation items using dynamic basePath
-  const navigationItems = useMemo(() => [
-    {
-      title: t('organization:sidebar.overview', { defaultValue: 'General' }),
-      items: [
-        {
-          name: t('organization:sidebar.visionGlobal', { defaultValue: 'Visión Global' }),
-          href: basePath,
-          icon: LayoutDashboard,
-          end: true,
-        },
-        {
-          name: t('organization:sidebar.sales', { defaultValue: 'Ventas' }),
-          href: `${basePath}/sales`,
-          icon: Receipt,
-        },
-        {
-          name: t('organization:sidebar.reports', { defaultValue: 'Reportes' }),
-          href: `${basePath}/reports`,
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
-      title: t('organization:sidebar.management', { defaultValue: 'Gestión' }),
-      items: [
-        {
-          name: t('organization:sidebar.venues', { defaultValue: 'Tiendas' }),
-          href: `${basePath}/venues`,
-          icon: Store,
-        },
-        {
-          name: t('organization:sidebar.managers', { defaultValue: 'Gerentes' }),
-          href: `${basePath}/managers`,
-          icon: Users,
-        },
-        {
-          name: t('organization:sidebar.liveLocation', { defaultValue: 'Ubicación de TPVs' }),
-          href: `${basePath}/live-location`,
-          icon: MapPin,
-        },
-      ],
-    },
-  ], [t, basePath])
+  const navigationItems = useMemo(
+    () => [
+      {
+        title: t('organization:sidebar.overview', { defaultValue: 'General' }),
+        items: [
+          {
+            name: t('organization:sidebar.visionGlobal', { defaultValue: 'Visión Global' }),
+            href: basePath,
+            icon: LayoutDashboard,
+            end: true,
+          },
+          {
+            name: t('organization:sidebar.sales', { defaultValue: 'Ventas' }),
+            href: `${basePath}/sales`,
+            icon: Receipt,
+          },
+          {
+            name: t('organization:sidebar.reports', { defaultValue: 'Reportes' }),
+            href: `${basePath}/reports`,
+            icon: BarChart3,
+          },
+        ],
+      },
+      {
+        title: t('organization:sidebar.management', { defaultValue: 'Gestión' }),
+        items: [
+          {
+            name: t('organization:sidebar.venues', { defaultValue: 'Tiendas' }),
+            href: `${basePath}/venues`,
+            icon: Store,
+          },
+          {
+            name: t('organization:sidebar.managers', { defaultValue: 'Gerentes' }),
+            href: `${basePath}/managers`,
+            icon: Users,
+          },
+          {
+            name: t('organization:sidebar.liveLocation', { defaultValue: 'Ubicación de TPVs' }),
+            href: `${basePath}/live-location`,
+            icon: MapPin,
+          },
+        ],
+      },
+      {
+        title: t('organization:sidebar.configuration'),
+        items: [{ name: t('organization:sidebar.serviceCourses'), href: `${basePath}/settings/service-courses`, icon: Clock }],
+      },
+    ],
+    [t, basePath],
+  )
 
   // Navigate to venue in white-label mode
   const handleVenueClick = (slug: string) => {
@@ -159,9 +156,7 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
                   <span className="flex-1 font-medium">
                     {organization?.name || t('organization:myOrganization', { defaultValue: 'Mi Organización' })}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {t('common:venuesSwitcher.current', { defaultValue: 'Actual' })}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{t('common:venuesSwitcher.current', { defaultValue: 'Actual' })}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
 
@@ -169,12 +164,8 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                   {t('common:venuesSwitcher.title', { defaultValue: 'Tiendas' })}
                 </DropdownMenuLabel>
-                {venues.map((venue) => (
-                  <DropdownMenuItem
-                    key={venue.id}
-                    onClick={() => handleVenueClick(venue.slug)}
-                    className="gap-2 p-2 cursor-pointer"
-                  >
+                {venues.map(venue => (
+                  <DropdownMenuItem key={venue.id} onClick={() => handleVenueClick(venue.slug)} className="gap-2 p-2 cursor-pointer">
                     <Avatar className="flex justify-center items-center rounded-lg aspect-square size-6">
                       <AvatarImage src={venue?.logo || undefined} alt={`${venue?.name} Logo`} />
                       <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
@@ -189,22 +180,19 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
       </SidebarHeader>
 
       <SidebarContent>
-        {navigationItems.map((section) => (
+        {navigationItems.map(section => (
           <SidebarGroup key={section.title}>
             <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {section.items.map((item) => (
+                {section.items.map(item => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.href}
                         end={item.end}
                         className={({ isActive }) =>
-                          cn(
-                            'flex items-center gap-2',
-                            isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          )
+                          cn('flex items-center gap-2', isActive && 'bg-sidebar-accent text-sidebar-accent-foreground')
                         }
                       >
                         <item.icon className="size-4" />
@@ -221,23 +209,16 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
         {/* Quick Access to Venues */}
         {venues.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>
-              {t('organization:sidebar.quickAccess', { defaultValue: 'Acceso Rápido' })}
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>{t('organization:sidebar.quickAccess', { defaultValue: 'Acceso Rápido' })}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {venues.slice(0, 5).map((venue) => (
+                {venues.slice(0, 5).map(venue => (
                   <SidebarMenuItem key={venue.id}>
                     <SidebarMenuButton asChild>
-                      <NavLink
-                        to={`/wl/venues/${venue.slug}`}
-                        className="flex items-center gap-2"
-                      >
+                      <NavLink to={`/wl/venues/${venue.slug}`} className="flex items-center gap-2">
                         <Avatar className="h-4 w-4 rounded">
                           <AvatarImage src={venue.logo || undefined} alt={venue.name} />
-                          <AvatarFallback className="text-[10px]">
-                            {venue.name?.charAt(0).toUpperCase() || 'V'}
-                          </AvatarFallback>
+                          <AvatarFallback className="text-[10px]">{venue.name?.charAt(0).toUpperCase() || 'V'}</AvatarFallback>
                         </Avatar>
                         <span className="truncate">{venue.name}</span>
                       </NavLink>
@@ -247,10 +228,7 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
                 {venues.length > 5 && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <NavLink
-                        to={`${basePath}/venues`}
-                        className="flex items-center gap-2 text-primary"
-                      >
+                      <NavLink to={`${basePath}/venues`} className="flex items-center gap-2 text-primary">
                         <ChevronRight className="size-4" />
                         <span>
                           {t('organization:sidebar.viewAll', {

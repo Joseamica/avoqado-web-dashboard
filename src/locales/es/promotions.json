@@ -530,19 +530,19 @@
   },
   "bundles": {
     "title": "Combos y paquetes",
-    "subtitle": "Arma combos, paquetes y 2x1 con precio exacto al centavo. Publícalos cuando estén listos y aparecen en el POS.",
-    "create": "Nueva promoción",
+    "subtitle": "Arma los combos y paquetes de tu menú. Define qué incluyen y publícalos para venderlos en el POS.",
+    "create": "Nuevo combo o paquete",
     "list": {
-      "emptyState": "Sin promociones todavía",
-      "emptyStateDesc": "Crea tu primer combo o 2x1. Se guarda como borrador y no aparece en el POS hasta que lo publiques.",
-      "name": "Promoción",
+      "emptyState": "Sin combos ni paquetes todavía",
+      "emptyStateDesc": "Crea tu primer combo o paquete. Se guarda como borrador y aparece en el POS cuando lo publiques.",
+      "name": "Nombre",
       "mode": "Tipo de precio",
       "modeFixed": "Precio fijo",
       "modePerUnit": "2x1 / NxM",
       "price": "Precio",
       "status": "Estado",
       "filterAll": "Todas",
-      "searchPlaceholder": "Buscar promoción…"
+      "searchPlaceholder": "Buscar combo o paquete…"
     },
     "status": {
       "DRAFT": "Borrador",
@@ -577,9 +577,9 @@
       "confirm": "Borrar"
     },
     "form": {
-      "createTitle": "Nueva promoción",
-      "editTitle": "Editar promoción",
-      "subtitle": "Se guarda como borrador. Publicarla es un paso aparte.",
+      "createTitle": "Nuevo combo o paquete",
+      "editTitle": "Editar combo o paquete",
+      "subtitle": "Se guarda como borrador. Publicarlo es un paso aparte.",
       "save": "Guardar borrador",
       "saving": "Guardando…",
       "savedNew": "Borrador guardado. Publícalo cuando esté listo.",
@@ -633,17 +633,17 @@
       "saveError": "No se pudo guardar el ajuste. Intenta de nuevo."
     },
     "activation": {
-      "bannerTitle": "¿Primera promoción?",
+      "bannerTitle": "¿Primer combo o paquete?",
       "bannerDesc": "Te llevamos de la mano: crear, publicar y elegir dónde se ve en el POS.",
-      "emptyTitle": "Así se prende una promoción",
-      "step1": "Crea el combo o 2x1 con el botón \"Nueva promoción\" — se guarda como borrador.",
+      "emptyTitle": "Así publicas un combo o paquete",
+      "step1": "Crea el combo o paquete con el botón \"Nuevo combo o paquete\" — se guarda como borrador.",
       "step2": "Publícalo desde el menú de la fila (⋯ → Publicar). Sólo lo publicado llega al POS.",
       "step3": "Elige abajo dónde se ve en cada pantalla del POS. Las terminales lo toman solas: no hay que instalar nada.",
       "startGuide": "Iniciar guía"
     },
     "tour": {
-      "welcomeTitle": "Promociones",
-      "welcomeDesc": "Aquí viven tus combos, paquetes y 2x1. Nada de lo que hagas aquí cobra distinto hasta que publiques.",
+      "welcomeTitle": "Combos y paquetes",
+      "welcomeDesc": "Aquí organizas los combos y paquetes que vendes. Se guardan como borrador y llegan al POS cuando los publicas.",
       "createTitle": "Crear",
       "createDesc": "Todo empieza como borrador: puedes armarlo con calma.",
       "modeTitle": "¿Cómo se cobra?",
