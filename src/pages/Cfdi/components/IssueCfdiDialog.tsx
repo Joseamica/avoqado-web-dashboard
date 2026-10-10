@@ -156,13 +156,18 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
           return
         }
 
-        // 502 — PAC rejected the stamp.
+        // 502 — PAC rejected the stamp. C2 · ronda QA (D1): con `timbreEnDuda` el PAC NO rechazó: no contestó claro y la factura quedó en
+        // espera de confirmación (la conciliación la confirma); volver a emitir no ayuda.
         if (status === 502) {
-          toast({
-            title: t('issueDialog.errors.pacRejected'),
-            description: data.message || data.error || '',
-            variant: 'destructive',
-          })
+          toast(
+            data.timbreEnDuda
+              ? {
+                  title: t('issueDialog.errors.pacNoAnswer'),
+                  description: t('issueDialog.errors.pacNoAnswerDetail'),
+                  variant: 'destructive',
+                }
+              : { title: t('issueDialog.errors.pacRejected'), description: data.message || data.error || '', variant: 'destructive' },
+          )
           return
         }
 

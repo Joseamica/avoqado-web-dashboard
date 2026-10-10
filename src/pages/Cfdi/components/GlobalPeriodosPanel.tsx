@@ -162,7 +162,8 @@ export function GlobalPeriodosPanel({ emisor }: { emisor: Pick<Emisor, 'id' | 'c
               {(p.estado === 'SIN_TIMBRAR' || p.estado === 'SIN_GLOBAL') && p.motivo && (
                 <div className="rounded-md bg-muted/40 p-2 text-xs">
                   <p>{p.motivo}</p>
-                  <p className="mt-1 text-muted-foreground">{t('globalInvoice.periods.supportHint')}</p>
+                  {/* Ronda QA (hermanos): EN DUDA no se escala a soporte: el motivo del servidor ya dice que se confirma solo. */}
+                  {!p.timbreEnDuda && <p className="mt-1 text-muted-foreground">{t('globalInvoice.periods.supportHint')}</p>}
                 </div>
               )}
               {complementaria?.ayuda && <p className="text-xs text-muted-foreground">{complementaria.ayuda}</p>}

@@ -32,7 +32,10 @@
     "VALIDATING": "Validando",
     "STAMPING": "Timbrando",
     "VALIDATION_FAILED": "Datos con error",
-    "STAMP_FAILED": "Rechazada por el SAT"
+    "STAMP_FAILED": "Rechazada por el SAT",
+    "STAMP_IN_DOUBT": "En espera del PAC",
+    "CANCEL_SENDING": "Enviando cancelación",
+    "CANCEL_IN_DOUBT": "Cancelación en duda"
   },
   "statusGroup": {
     "STAMPED": "Timbrada",
@@ -54,7 +57,9 @@
     "downloadPdf": "Descargar PDF",
     "cancel": "Cancelar",
     "replace": "Corregir importe (sustituir)",
-    "sendEmail": "Reenviar por correo"
+    "sendEmail": "Reenviar por correo",
+    "checkStatus": "Consultar estado",
+    "finishReplace": "Terminar la sustitución"
   },
   "cancelDialog": {
     "title": "Cancelar factura",
@@ -100,9 +105,11 @@
     "errors": {
       "validation": "No se pudo facturar:",
       "pacRejected": "El PAC rechazó el timbrado.",
+      "pacNoAnswer": "No hubo respuesta clara del PAC",
+      "pacNoAnswerDetail": "La factura quedó en espera de confirmación: el PAC pudo haberla timbrado. No la vuelvas a emitir; la confirmamos con el PAC en unos minutos.",
       "conflict": "Esta cuenta ya tiene una factura o está en proceso.",
       "alreadyIssued": "Esta venta ya tiene factura — no se emitió una nueva.",
-      "cancelPending": "La cancelación de la factura anterior sigue en trámite.",
+      "cancelPending": "La factura anterior todavía no queda cancelada.",
       "forbidden": "No puedes facturar desde aquí: o tu usuario no tiene permiso para facturar, o el plan del negocio no incluye facturación (viene en el plan Premium). Pídeselo al dueño del negocio.",
       "notFound": "No se pudo determinar quién factura esta venta.",
       "orderNotFound": "Esta venta no es de este negocio.",
@@ -176,7 +183,8 @@
     "fiscalBlock": {
       "title": "Esta cuenta no se puede facturar en línea",
       "subtitle": "Pide tu factura directamente al negocio."
-    }
+    },
+    "cancelPending": "La cancelación de esta factura está en trámite ante el SAT; mientras tanto sigue vigente."
   },
   "config": {
     "title": "Configuración de facturación",
@@ -308,6 +316,8 @@
       "inProcessTitle": "Ya hay una factura global en proceso para este periodo.",
       "validationTitle": "No se pudo generar la factura global",
       "pacRejectedTitle": "El PAC rechazó el timbrado de la factura global",
+      "pacNoAnswerTitle": "No hubo respuesta clara del PAC",
+      "pacNoAnswerDescription": "La factura global quedó en espera de confirmación: el PAC pudo haberla timbrado. No la vuelvas a emitir; la confirmamos con el PAC en unos minutos.",
       "notFoundTitle": "Emisor fiscal no encontrado",
       "genericTitle": "No se pudo generar la factura global",
       "uncertainTitle": "No sabemos si se emitió la factura global",
@@ -439,6 +449,27 @@
     "empty": "Sin resultados en el catálogo del SAT.",
     "clear": "Quitar selección"
   },
+  "cancelacion": {
+    "enDuda": "Cancelación en duda: la estamos confirmando con el SAT (puede tardar hasta 24 horas). No la pidas otra vez; si quieres saber ya, pulsa «Consultar estado»: sólo consulta. Si en 24 horas el SAT no la registra, se cierra y podrás pedirla otra vez.",
+    "enTramite": "La cancelación sigue en trámite ante el SAT: la factura sigue vigente hasta que se resuelva.",
+    "enviando": "Cancelación enviada; esperando la respuesta del SAT. La factura sigue vigente mientras tanto.",
+    "lista": {
+      "enviando": "Enviando la cancelación al SAT",
+      "enDuda": "Cancelación en duda: la estamos confirmando con el SAT",
+      "enTramite": "Cancelación en trámite ante el SAT",
+      "rechazada": "El SAT no aceptó la cancelación; la factura sigue vigente."
+    },
+    "consulta": {
+      "titulo": "Consultamos al SAT",
+      "enTramite": "La cancelación sigue en trámite ante el SAT: la factura sigue vigente hasta que se resuelva.",
+      "enDuda": "Todavía no hay una respuesta clara del SAT; la seguimos confirmando (puede tardar hasta 24 horas). No la pidas otra vez.",
+      "enviando": "La cancelación todavía se está enviando al SAT; vuelve a consultar en unos minutos.",
+      "cancelada": "La factura quedó cancelada.",
+      "sinCancelacion": "Esta factura no tiene una cancelación pedida: sigue vigente.",
+      "rechazadaTitulo": "Consultamos al SAT: no quedó cancelada",
+      "error": "No se pudo consultar el estado"
+    }
+  },
   "toast": {
     "emisorSaved": "Emisor guardado.",
     "emisorSaveError": "No se pudo guardar el emisor.",
@@ -461,7 +492,9 @@
     "replaceError": "No se pudo sustituir la factura",
     "emailSent": "Factura enviada a {{destination}}",
     "emailSentRegistered": "Factura enviada al correo del cliente",
-    "emailError": "No se pudo enviar la factura por correo"
+    "emailError": "No se pudo enviar la factura por correo",
+    "cancelRejected": "No quedó cancelada",
+    "cancelRejectedDetail": "La factura sigue vigente."
   },
   "creditNote": {
     "title": "Nota de crédito (CFDI de Egreso)",
@@ -489,12 +522,78 @@
     },
     "error": {
       "pac": "El PAC rechazó el timbrado",
+      "pacNoAnswer": "No hubo respuesta clara del PAC",
+      "inDoubt": "La nota de crédito quedó en espera de confirmación: el PAC pudo haberla timbrado. No la vuelvas a emitir; la confirmamos con el PAC en unos minutos.",
       "generic": "No se pudo emitir la nota de crédito"
     },
     "toast": {
       "success": "Nota de crédito emitida",
       "successDetail": "{{folio}} · {{uuid}}"
-    }
+    },
+    "byAmount": {
+      "button": "Acreditar por importe",
+      "title": "Acreditar lo devuelto por importe",
+      "explain": "Avoqado no puede comprobar cuánto se facturó de cada artículo de esta devolución. Puedes acreditar lo devuelto repartido por tasa en proporción a lo que queda en la factura.",
+      "confirm": "Confirmar y emitir",
+      "total": "Total a acreditar",
+      "row": "{{total}} (base {{base}} + IVA {{iva}})",
+      "rounding": "Redondeo declarado: {{cents}} ¢ de {{componente}} ({{tratamiento}}, {{ambito}}).",
+      "componente": {
+        "BASE": "base",
+        "IVA": "IVA",
+        "ARTICULO": "un artículo"
+      },
+      "explainGlobal": "Avoqado no puede comprobar cuánto se facturó de cada artículo de esta devolución. Puedes acreditar lo devuelto repartido por tasa en proporción a lo que queda de este ticket en la factura global.",
+      "ambito": {
+        "FACTURA": "factura",
+        "TICKET": "ticket",
+        "DOCUMENTO_GLOBAL": "documento global"
+      }
+    },
+    "tratamiento": {
+      "IVA_16": "IVA 16 %",
+      "IVA_8": "IVA 8 %",
+      "IVA_0": "IVA 0 %",
+      "EXENTO": "Exento de IVA",
+      "NO_OBJETO": "No objeto de IVA"
+    },
+    "global": "Factura global (Público en General)",
+    "breakdown": "IVA {{tasa}}",
+    "roundingBase": "Incluye {{cents}} ¢ de redondeo del SAT en la base.",
+    "roundingIva": "Incluye {{cents}} ¢ de redondeo del SAT en el IVA.",
+    "roundingArticle": "Incluye {{cents}} ¢ de redondeo del SAT en un artículo.",
+    "roundingUpTo": "hasta {{cents}}",
+    "roundingDocument": "(de la factura global)",
+    "roundingTicket": "(del ticket en la factura global)",
+    "waitingXml": "Estamos recuperando el XML de la factura; vuelve a intentarlo en unos minutos.",
+    "reason": {
+      "NOT_A_REFUND": "Este pago no es una devolución, así que no lleva nota de crédito.",
+      "REFUND_NOT_COMPLETED": "La devolución todavía no se completa; la nota de crédito se podrá emitir cuando termine.",
+      "NO_ORIGINAL_CFDI": "Esta venta no tiene factura timbrada, así que no hay nada que acreditar con una nota de crédito.",
+      "ORIGINAL_CANCELLED": "La factura original está cancelada; una nota de crédito no aplica sobre una factura cancelada.",
+      "ORIGINAL_CANCEL_PENDING": "La factura original tiene una cancelación pedida; la nota de crédito se podrá emitir cuando se resuelva.",
+      "ORIGINAL_EN_SUSTITUCION": "La factura original se está sustituyendo; la nota de crédito se podrá emitir cuando termine.",
+      "TIP_ONLY": "Esta devolución es sólo de propina, que nunca formó parte de la factura: no lleva nota de crédito.",
+      "EXCEEDS_REMAINING": "Ya no queda nada por acreditar en la factura original.",
+      "ORIGINAL_IVA_MIXTO": "La factura original tiene varias tasas de IVA; haz esta nota de crédito con tu contador.",
+      "ORIGINAL_ENTRADA_INVALIDA": "No pudimos leer cómo se armó la factura original; escríbenos a soporte para revisarla.",
+      "ESPERA_XML": "Estamos recuperando el XML de la factura; vuelve a intentarlo en unos minutos.",
+      "XML_IRRECUPERABLE": "No se puede recuperar el XML de la factura original, así que la nota de crédito no se emite aquí. Escríbenos a soporte.",
+      "ARTICULO_SIN_EVIDENCIA": "No se puede comprobar cuánto se facturó de un artículo devuelto. Puedes acreditar lo devuelto por importe.",
+      "ARTICULOS_NO_CUADRAN": "Los artículos devueltos no suman lo que se devolvió; revisa la devolución.",
+      "ARTICULO_EXCEDE_LO_FACTURADO": "Lo devuelto de un artículo es más de lo que se facturó de él.",
+      "CENTAVOS_DE_REDONDEO": "La devolución choca con unos centavos de redondeo de la factura; haz esta nota de crédito con tu contador.",
+      "SIN_MONTO_POR_ARTICULO": "Esta factura no registró cuánto se facturó de cada artículo. Puedes acreditar lo devuelto por importe.",
+      "REPARTO_DE_ENTREGA_INVALIDO": "El reparto por tasa de este ajuste de entregas no se puede leer; escríbenos a soporte.",
+      "IMPORTE_DEVUELTO_INVALIDO": "El importe de la devolución no es válido para una nota de crédito.",
+      "OCHO_SIN_REGLA": "Esta nota tendría IVA al 8 % fronterizo, que todavía no se acredita aquí; hazla con tu contador.",
+      "NO_CUADRA_CON_EL_PAC": "La nota no cuadra al centavo con las reglas del PAC; escríbenos a soporte.",
+      "MODALIDAD_NO_PERMITIDA": "Esta devolución sí tiene el detalle por artículo, así que no se acredita por importe.",
+      "SIN_FORMA_DE_PAGO": "No hay una forma de pago válida para la nota de crédito; hazla con tu contador."
+    },
+    "waitingXmlStopped": "Todavía no llega el XML de la factura. Vuelve a consultar en unos minutos.",
+    "retryXml": "Volver a consultar",
+    "roundingGeneric": "Incluye {{cents}} ¢ de redondeo del SAT."
   },
   "manifiesto": {
     "pending": "Carta Manifiesto pendiente",
@@ -522,10 +621,26 @@
     "newInvoice": "Factura nueva",
     "cancelledOk": "La factura anterior quedó cancelada.",
     "cancelPending": "La factura anterior TODAVÍA está vigente: la cancelación quedó en trámite ante el SAT. Revísala más tarde; la nueva ya es válida.",
-    "cancelRejected": "El SAT no aceptó cancelar la factura anterior, así que SIGUE VIGENTE. La nueva ya está timbrada — contacta a soporte para resolver la cancelación.",
+    "cancelRejected": "El SAT no aceptó cancelar la factura anterior, así que SIGUE VIGENTE. La nueva ya está timbrada. Si la sigues necesitando, pídela otra vez con «Terminar la sustitución» en la fila de la factura anterior.",
     "rejectedTitle": "No se sustituyó nada",
     "rejectedIntro": "No se timbró ninguna factura. Por esto:",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "cancelNotSent": "La factura anterior SIGUE VIGENTE: no se envió su cancelación. Para pedirla otra vez usa «Terminar la sustitución» en la fila de la factura anterior (no se timbra otra factura).",
+    "cancelNotRequested": "La factura anterior SIGUE VIGENTE: no se pudo pedir su cancelación. Cuando lo resuelvas, usa «Terminar la sustitución» en la fila de la factura anterior (no se timbra otra factura).",
+    "finishTitle": "Terminar la sustitución",
+    "finishDescription": "La factura corregida {{folio}} ya está timbrada. Falta pedirle al SAT que cancele ésta (motivo 01, apuntando a la corregida). No se timbra otra factura.",
+    "finishConfirm": "Pedir la cancelación",
+    "finishRequestedTitle": "Cancelación pedida",
+    "finishDoneTitle": "Sustitución terminada",
+    "finishNotSentTitle": "La cancelación no salió",
+    "finishRejectedTitle": "El SAT no aceptó la cancelación",
+    "finishUnconfirmedTitle": "La cancelación no se pudo confirmar",
+    "cancelInDoubt": "La factura anterior SIGUE VIGENTE por ahora: no hubo una respuesta clara del SAT y estamos confirmando su cancelación (puede tardar hasta 24 horas). No la pidas otra vez; si quieres saber ya, usa «Consultar estado» en la fila de la factura anterior.",
+    "cancelUnconfirmed": "La factura anterior SIGUE VIGENTE: no se pudo confirmar si su cancelación salió. Revisa la fila de la factura anterior; si ofrece «Terminar la sustitución», pídela desde ahí (no se timbra otra factura).",
+    "stampInDoubt": "La factura corregida quedó en duda: el PAC no contestó claro y pudo haberla timbrado. No la vuelvas a emitir; consulta su estado en la lista de facturas en unos minutos (se confirma sola).",
+    "stampRejected": "El PAC no timbró la factura corregida; la anterior sigue vigente. Revisa los datos fiscales de la venta antes de intentarlo otra vez.",
+    "genericError": "No se pudo sustituir la factura. Intenta de nuevo en unos minutos.",
+    "correctedInvoice": "Factura corregida"
   },
   "sendEmailDialog": {
     "title": "Enviar la factura {{folio}} por correo",

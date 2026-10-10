@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { Download, FilePlus2, FileText, Mail, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
+import { Clock, Download, FilePlus2, FileText, Mail, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
 
 import DataTable from '@/components/data-table'
 import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
@@ -23,14 +23,24 @@ import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
-import { useCfdis, useDownloadCfdiFile } from '@/hooks/use-cfdi'
+import { useCfdis, useConsultarCancelacion, useDownloadCfdiFile } from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
 import { GlobalComplementariaDialog } from './components/GlobalComplementariaDialog'
 import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
 import { SendCfdiEmailDialog } from './components/SendCfdiEmailDialog'
-import { STATUS_GROUPS, estatusDelServidor, insigniaDeEstatus, mesEnCurso, sePuedeReenviar } from './cfdiListFilters'
+import {
+  STATUS_GROUPS,
+  estatusDelServidor,
+  conDudaConocida,
+  insigniaDeEstatus,
+  mesEnCurso,
+  sePuedeConsultarLaCancelacion,
+  sePuedeReenviar,
+  sePuedeTerminarLaSustitucion,
+  textoDeLaCancelacion,
+} from './cfdiListFilters'
 
 const FLOW_OPTIONS: CfdiFlow[] = ['STAFF_B', 'AUTOFACTURA_A', 'GLOBAL_C']
 
@@ -192,6 +202,8 @@ export default function CfdiList() {
 
   const { data, isLoading, isError } = useCfdis(filters, { enabled: hasCfdi })
   const download = useDownloadCfdiFile()
+  // C2 · T10 ronda 1 (I-1): «Consultar estado» manda `soloConsultar`: el servidor SÓLO consulta (nunca anota ni envía un intento nuevo).
+  const { mutate: consultarCancelacion, isPending: consultando } = useConsultarCancelacion()
   // When locked, feed the table sample rows so the teaser looks real behind the blur.
   const cfdis = hasCfdi ? (data?.cfdis ?? []) : SAMPLE_CFDIS
   const total = hasCfdi ? (data?.total ?? 0) : SAMPLE_CFDIS.length
@@ -251,8 +263,17 @@ export default function CfdiList() {
         id: 'status',
         header: t('columns.status'),
         cell: ({ row }) => {
-          const { clave, variante } = insigniaDeEstatus(row.original)
-          return <Badge variant={variante}>{t(`statusLabel.${clave}`, { defaultValue: clave })}</Badge>
+          // C2 · ronda QA (D4): si esta pestaña ya recibió «en duda» de esta factura, no dice «enviando» mientras corre el reloj del servidor.
+          const fila = conDudaConocida(row.original)
+          const { clave, variante } = insigniaDeEstatus(fila)
+          // C2 · T10 (C2-31, M9): en qué va la cancelación, derivado por el servidor en cada consulta (nunca se adivina aquí).
+          const nota = textoDeLaCancelacion(fila)
+          return (
+            <div className="flex flex-col items-start gap-1">
+              <Badge variant={variante}>{t(`statusLabel.${clave}`, { defaultValue: clave })}</Badge>
+              {nota && <span className="max-w-[260px] text-xs text-muted-foreground">{nota.literal ?? t(nota.clave)}</span>}
+            </div>
+          )
         },
       },
       {
@@ -269,13 +290,20 @@ export default function CfdiList() {
         header: '',
         cell: ({ row }) => {
           const cfdi = row.original
-          const canCancel = canConfigure && cfdi.status === 'STAMPED' && !cfdi.cancelStatus
+          // C2 · T10 (I3 de la T2): tras un RECHAZO (o una solicitud caducada) la factura sigue vigente y un intento nuevo lo pide una
+          // persona: «Cancelar» y «Sustituir» vuelven. Con la cancelación pedida, la salida es «Consultar estado» (sólo consulta).
+          const sinCancelacionViva = !cfdi.cancelStatus || cfdi.cancelStatus === 'REJECTED'
+          const canCancel = canConfigure && cfdi.status === 'STAMPED' && sinCancelacionViva
+          const canCheck = canConfigure && sePuedeConsultarLaCancelacion(cfdi)
+          // C2 · T10 ronda 1 (I-2): la sustituta ya está timbrada y la cancelación de ESTA (la original) no salió o no se pudo pedir. Abre el
+          // mismo diálogo de sustitución: el servidor sólo reanuda la cancelación (no timbra otra factura).
+          const canFinishReplace = canConfigure && sePuedeTerminarLaSustitucion(cfdi)
           // Sustituir sólo tiene sentido en una factura de VENTA vigente, ligada a una cuenta y que
           // no se haya corregido ya: el servidor reconstruye el documento desde esa cuenta.
           const canReplace =
             canConfigure &&
             cfdi.status === 'STAMPED' &&
-            !cfdi.cancelStatus &&
+            sinCancelacionViva &&
             !cfdi.isGlobal &&
             !!cfdi.orderId &&
             !(cfdi.replacedBy && cfdi.replacedBy.length > 0)
@@ -337,9 +365,31 @@ export default function CfdiList() {
                       </DropdownMenuItem>
                     </>
                   )}
+                  {canFinishReplace && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setReplaceTarget(cfdi)} data-tour="cfdi-finish-replace">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        {t('actions.finishReplace')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {canCheck && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        disabled={consultando}
+                        onClick={() => consultarCancelacion({ cfdiId: cfdi.id })}
+                        data-tour="cfdi-check-cancel-status"
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        {t('actions.checkStatus')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   {canCancel && (
                     <>
-                      {!canReplace && <DropdownMenuSeparator />}
+                      {!canReplace && !canFinishReplace && <DropdownMenuSeparator />}
                       <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setCancelTarget(cfdi)}>
                         <XCircle className="mr-2 h-4 w-4" />
                         {t('actions.cancel')}
@@ -353,7 +403,7 @@ export default function CfdiList() {
         },
       },
     ],
-    [t, formatDate, canConfigure, canIssue, download],
+    [t, formatDate, canConfigure, canIssue, download, consultarCancelacion, consultando],
   )
 
   return (

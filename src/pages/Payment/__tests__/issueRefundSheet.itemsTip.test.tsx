@@ -197,3 +197,84 @@ describe('IssueRefundSheet: casilla propina en el reembolso por artículos', () 
     expect(post.mock.calls[0][1]).not.toHaveProperty('tipRefundCents')
   })
 })
+
+// Decisión A (9-oct, IVA C2): con `chargedTotal` la hoja enseña, compara y suma lo COBRADO del renglón, no el bruto.
+// Café $80 −10 % = $72 y Pan $65 −10 % = $58.50: el cobro fue $130.50 de venta + $14.50 de propina.
+describe('IssueRefundSheet: lo que se devuelve por artículo es lo COBRADO (chargedTotal)', () => {
+  const conDescuento = [
+    { id: 'a', productId: 'pa', productName: 'Café', quantity: 1, unitPrice: 80, total: 80, chargedTotal: 72 },
+    { id: 'b', productId: 'pb', productName: 'Pan', quantity: 1, unitPrice: 65, total: 65, chargedTotal: 58.5 },
+  ]
+  const cobro = { orderItems: conDescuento, maxRefundable: 145, remainingSaleAmount: 130.5, remainingTipAmount: 14.5 }
+
+  beforeEach(() => {
+    post.mockReset()
+    post.mockResolvedValue({ data: {} })
+  })
+
+  it('cada renglón muestra lo cobrado; todo cabe en la venta que queda, la propina arranca marcada y se manda', async () => {
+    const user = userEvent.setup()
+    mount(cobro)
+    expect(screen.getByText('$72.00')).toBeInTheDocument()
+    expect(screen.getByText('$58.50')).toBeInTheDocument()
+    expect(screen.queryByText('$80.00')).toBeNull()
+    await user.click(screen.getByText('Café'))
+    await user.click(screen.getByText('Pan'))
+    // Con el bruto ($145) no cabía en la venta que queda ($130.50) y el botón se quedaba apagado.
+    expect(next()).toBeEnabled()
+    await user.click(next())
+    expect(screen.getByRole('checkbox')).toBeChecked()
+    expect(screen.getByText('Reembolso de $145.00')).toBeInTheDocument()
+    expect(screen.getByText('Incluye $14.50 de propina')).toBeInTheDocument()
+    await user.selectOptions(screen.getByRole('combobox'), 'OTHER')
+    await user.click(screen.getByRole('button', { name: 'Reembolsar' }))
+    await waitFor(() => expect(post).toHaveBeenCalled())
+    expect(post.mock.calls[0][1]).toMatchObject({
+      items: [
+        { orderItemId: 'a', quantity: 1 },
+        { orderItemId: 'b', quantity: 1 },
+      ],
+      tipRefundCents: 1450,
+    })
+  })
+
+  it('una parte (Pan) ⇒ el importe es lo cobrado ($58.50, no $65.00) y la propina arranca desmarcada', async () => {
+    const user = userEvent.setup()
+    mount(cobro)
+    await user.click(screen.getByText('Pan'))
+    await user.click(next())
+    expect(screen.getByRole('checkbox')).not.toBeChecked()
+    expect(screen.getByText('Reembolso de $58.50')).toBeInTheDocument()
+    await user.selectOptions(screen.getByRole('combobox'), 'OTHER')
+    await user.click(screen.getByRole('button', { name: 'Reembolsar' }))
+    await waitFor(() => expect(post).toHaveBeenCalled())
+    expect(post.mock.calls[0][1]).not.toHaveProperty('tipRefundCents')
+  })
+
+  it('el paso de reabastecer enseña lo cobrado del renglón', async () => {
+    const user = userEvent.setup()
+    mount({ ...cobro, orderItems: [{ ...conDescuento[0], trackInventory: true }, conDescuento[1]] })
+    await user.click(screen.getByText('Café'))
+    await user.click(next())
+    expect(screen.getByText('Seleccionar artículos para reabastecer')).toBeInTheDocument()
+    expect(screen.getByText('$72.00')).toBeInTheDocument()
+    expect(screen.queryByText('$80.00')).toBeNull()
+  })
+
+  it('un renglón ya devuelto sin importe previo registrado enseña lo cobrado, no el bruto', () => {
+    mount({ ...cobro, orderItems: [{ ...conDescuento[0], priorRefundedQty: 1, priorRefundedAmount: 0 }, conDescuento[1]] })
+    expect(screen.getByText('$72.00')).toBeInTheDocument()
+    expect(screen.queryByText('$80.00')).toBeNull()
+  })
+
+  it('una cortesía (cobró $0) sola muestra $0.00 y no deja avanzar', async () => {
+    const user = userEvent.setup()
+    mount({
+      ...cobro,
+      orderItems: [{ id: 'c', productId: 'pc', productName: 'Galleta', quantity: 1, unitPrice: 50, total: 50, chargedTotal: 0 }],
+    })
+    expect(screen.getByText('$0.00')).toBeInTheDocument()
+    await user.click(screen.getByText('Galleta'))
+    expect(next()).toBeDisabled()
+  })
+})

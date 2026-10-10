@@ -414,3 +414,22 @@ describe('GlobalPeriodosPanel', () => {
     expect(screen.getByTestId('excluidas').textContent).toBe(dia(4))
   })
 })
+
+// Ronda QA (hermanos): un periodo SIN_TIMBRAR cuya global quedó EN DUDA (`timbreEnDuda`): se ve el motivo del servidor (que ya dice «no la
+// vuelvas a emitir»), sin «escríbenos a soporte» (no hay nada que escalar: la conciliación la confirma sola).
+describe('GlobalPeriodosPanel — ronda QA (hermanos): timbre en duda', () => {
+  it('🔴 en duda ⇒ el motivo del servidor y SIN «escríbenos a soporte»; uno rechazado conserva el aviso de soporte', async () => {
+    const EN_DUDA = 'No hubo respuesta clara del PAC: la factura global quedó en espera de confirmación…'
+    m.getGlobalPeriodos.mockResolvedValue(
+      respuesta([
+        periodo(6, { estado: 'SIN_TIMBRAR', cfdiId: 'g6', motivo: EN_DUDA, timbreEnDuda: true }),
+        periodo(5, { estado: 'SIN_TIMBRAR', cfdiId: 'g5', motivo: 'CFDI40999' }),
+      ]),
+    )
+    pintar()
+    await screen.findByTestId(`periodo-${dia(6)}`)
+    expect(fila(6)).toHaveTextContent(EN_DUDA)
+    expect(fila(6)).not.toHaveTextContent(g.periods.supportHint)
+    expect(fila(5)).toHaveTextContent(g.periods.supportHint)
+  })
+})

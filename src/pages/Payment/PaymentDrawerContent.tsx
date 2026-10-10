@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { AddCustomerSheet, Customer, CustomerFormSheet } from './CustomerSheets'
 import { IssueRefundSheet } from './IssueRefundSheet'
 import { RefundCreditNotePanel } from './RefundCreditNotePanel'
+import { refundableItemsFromOrder } from './refundAmount'
 import { restanteTotal, saldosPorDevolver } from './refundTip'
 
 interface PaymentDrawerContentProps {
@@ -503,32 +504,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         remainingSaleAmount={saldos.venta}
         remainingTipAmount={saldos.propina}
         venueName={venue?.name}
-        orderItems={orderItems.map((item: any) => {
-          // Sum qty + amount already refunded for this orderItemId across
-          // all prior REFUND payments on this payment.
-          let priorRefundedQty = 0
-          let priorRefundedAmount = 0
-          refunds.forEach((r: any) => {
-            const refundedItems = (r.processorData as any)?.refundedItems ?? []
-            refundedItems.forEach((ri: any) => {
-              if (ri.orderItemId === item.id) {
-                priorRefundedQty += Number(ri.quantity) || 0
-                priorRefundedAmount += Number(ri.amount) || 0
-              }
-            })
-          })
-          return {
-            id: item.id,
-            productId: item.productId,
-            productName: item.productName || item.product?.name || null,
-            quantity: item.quantity,
-            unitPrice: Number(item.unitPrice) || 0,
-            total: Number(item.total) || 0,
-            trackInventory: !!item.product?.trackInventory,
-            priorRefundedQty,
-            priorRefundedAmount,
-          }
-        })}
+        orderItems={refundableItemsFromOrder(orderItems, refunds)}
         open={refundOpen}
         onOpenChange={setRefundOpen}
         onRefunded={() => setRefundOpen(false)}
