@@ -237,6 +237,18 @@ describe('ShopifyIntegration — conectar', () => {
     expect(svc.getShopifyLocations).toHaveBeenCalledWith('v1', 'intent-firmado')
   })
 
+  it('🔴 al confirmar la ubicación NO se vuelven a pedir las ubicaciones con el intent ya usado (C10: daba un 409 «Esta conexión ya se usó»)', async () => {
+    svc.getShopifyLocations.mockResolvedValue([{ id: 'gid://shopify/Location/1', name: 'Tienda México', countryCode: 'MX' }])
+    svc.confirmShopifyConnect.mockResolvedValue({ locationLinkId: 'l1' })
+    renderPage('/?intent=intent-firmado')
+    await userEvent.click(await screen.findByRole('button', { name: 'Tienda México' }))
+    await waitFor(() => expect(svc.confirmShopifyConnect).toHaveBeenCalledTimes(1))
+    // La confirmación invalida lo del conector: el resumen se vuelve a pedir, las ubicaciones del intent usado no.
+    await waitFor(() => expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2))
+    await new Promise(r => setTimeout(r, 50))
+    expect(svc.getShopifyLocations).toHaveBeenCalledTimes(1)
+  })
+
   it('🔴 requisito 1: dentro del asistente, un 403 SHOPIFY_FALTA_PERMISO (REAUTORIZAR) no ofrece «Volver a dar permiso» sino «Volver a empezar»', async () => {
     svc.getShopifyLocations.mockRejectedValue(errorHttp(403, { code: 'SHOPIFY_FALTA_PERMISO', message: 'falta' }))
     renderPage('/?intent=intent-firmado')
@@ -410,6 +422,19 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'preview.cancel' }))
     await userEvent.click(await screen.findByRole('button', { name: 'preview.cancelConfirm' }))
     await waitFor(() => expect(svc.disconnectShopify).toHaveBeenCalledWith('v1'))
+  })
+
+  it('🔴 el diálogo de «Cancelar la conexión» no tiene un botón «Cancelar» suelto: la salida dice «Seguir conectando» y no desconecta (C10)', async () => {
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(conexion({ fase: 'CONNECTING', estado: 'IMPORTANDO', importacion: { variantes: 0, error: 'CATALOGO_MUY_GRANDE' } })),
+    )
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'preview.cancel' }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(within(dialogo).queryByRole('button', { name: 'common:cancel' })).toBeNull()
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'preview.cancelKeep' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(svc.disconnectShopify).not.toHaveBeenCalled()
   })
 
   it('🔴 la organización encendió el catálogo maestro: se DETIENE, ofrece cancelar y escribirnos, sin «volver a dar permiso»', async () => {

@@ -277,10 +277,19 @@ export function useShopifyIssues(venueId: string | undefined, q: string, reason:
   })
 }
 
-/** Todo lo del conector (conectar, aplicar, desconectar, resolver; y la acción CONECTAR/RELEER de un error). */
+/**
+ * Todo lo del conector (conectar, aplicar, desconectar, resolver; y la acción CONECTAR/RELEER de un error), MENOS las
+ * ubicaciones: su intent es de un solo uso. Al confirmar, la página todavía tiene montada la consulta del intent ya usado;
+ * invalidarla la volvía a pedir y el servidor contestaba 409 «Esta conexión ya se usó» (C10, en vivo). Se releen sólo con
+ * su «Reintentar» explícito.
+ */
 export function useInvalidateShopify() {
   const qc = useQueryClient()
-  return useCallback((venueId: string | undefined) => qc.invalidateQueries({ queryKey: shopifyKeys.all(venueId) }), [qc])
+  return useCallback(
+    (venueId: string | undefined) =>
+      qc.invalidateQueries({ queryKey: shopifyKeys.all(venueId), predicate: q => q.queryKey[2] !== 'locations' }),
+    [qc],
+  )
 }
 
 /** Sólo el resumen: «Cuadrar ahora» (el cuadre corre después, en el worker). */

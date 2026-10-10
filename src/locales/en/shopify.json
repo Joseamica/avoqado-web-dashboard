@@ -84,6 +84,7 @@
     "cancelTitle": "Cancel the Shopify connection?",
     "cancelBody": "No stock changes. Products that already came in from Shopify stay in your catalog.",
     "cancelConfirm": "Yes, cancel",
+    "cancelKeep": "Keep connecting",
     "applying": "Applying: {{hechas}} of {{total}} products",
     "applyRequested": "Applying the Shopify stock. You can close this page: it keeps going on its own."
   },

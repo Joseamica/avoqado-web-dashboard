@@ -47,7 +47,8 @@ function CancelarConexion({ venueId, canManage }: { venueId: string; canManage: 
           <AlertDialogDescription>{t('preview.cancelBody')}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+          {/* Nunca un «Cancelar» suelto junto a «Sí, cancelar»: la salida dice qué pasa (C10). */}
+          <AlertDialogCancel>{t('preview.cancelKeep')}</AlertDialogCancel>
           <AlertDialogAction onClick={() => cancelar.mutate()}>{t('preview.cancelConfirm')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -84,6 +84,7 @@
     "cancelTitle": "¿Cancelar la conexión con Shopify?",
     "cancelBody": "No se cambia ningún stock. Los productos que ya llegaron de Shopify se quedan en tu catálogo.",
     "cancelConfirm": "Sí, cancelar",
+    "cancelKeep": "Seguir conectando",
     "applying": "Aplicando: {{hechas}} de {{total}} productos",
     "applyRequested": "Aplicando el stock de Shopify. Puedes cerrar esta página: sigue solo."
   },
