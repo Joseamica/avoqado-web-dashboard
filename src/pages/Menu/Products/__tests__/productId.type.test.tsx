@@ -117,22 +117,37 @@ describe('ficha de producto: el tipo (W1)', () => {
     expect(screen.queryByText('products.create.typeRequired')).not.toBeInTheDocument()
   })
 
-  it('ofrece los tipos del asistente de alta (alineados con Square), no la lista vieja', async () => {
+  it('ofrece los tipos alineados con Square, sin la lista vieja y SIN servicio con cita ni clase (los maneja «Servicios»)', async () => {
     svc.getProduct.mockResolvedValue(producto('REGULAR'))
     pintar()
     const tipo = await screen.findByRole('combobox', { name: 'products.create.type' })
     await waitFor(() => expect(tipo).toHaveTextContent('Artículo Regular'))
     await userEvent.click(tipo)
     const opciones = (await screen.findAllByRole('option')).map(o => o.textContent)
+    expect(opciones).toEqual(['Artículo Regular', 'Bebidas y alimentos preparados', 'Evento', 'Producto Digital', 'Donación', 'Otro'])
+  })
+
+  it.each([
+    ['APPOINTMENTS_SERVICE', 'Servicio con cita'],
+    ['CLASS', 'Clase / Taller'],
+  ])('un producto guardado como %s lo sigue mostrando, lo ofrece SÓLO a él y lo conserva al guardar', async (codigo, nombre) => {
+    svc.getProduct.mockResolvedValue({ ...producto(codigo), trackInventory: false, inventoryMethod: null })
+    pintar()
+    const tipo = await screen.findByRole('combobox', { name: 'products.create.type' })
+    await waitFor(() => expect(tipo).toHaveTextContent(nombre))
+    await guardarSinTocarElTipo()
+    await waitFor(() => expect(svc.updateProduct).toHaveBeenCalledTimes(1))
+    expect(svc.updateProduct.mock.calls[0][2]).toMatchObject({ type: codigo })
+    await userEvent.click(tipo)
+    const opciones = (await screen.findAllByRole('option')).map(o => o.textContent)
     expect(opciones).toEqual([
       'Artículo Regular',
       'Bebidas y alimentos preparados',
-      'Servicio con cita',
-      'Clase / Taller',
       'Evento',
       'Producto Digital',
       'Donación',
       'Otro',
+      nombre,
     ])
   })
 

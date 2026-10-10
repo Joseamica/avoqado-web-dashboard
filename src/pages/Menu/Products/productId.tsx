@@ -40,7 +40,7 @@ import {
   getTypeValidationRules,
   transformSkuToUppercase,
 } from '@/lib/validators/product'
-import { isCanonicalProductType, isLegacyProductType, PRODUCT_TYPES_CANONICAL, productTypeLabel } from '@/lib/product-types'
+import { isCanonicalProductType, isLegacyProductType, PRODUCT_TYPES_EN_LA_FICHA, productTypeLabel } from '@/lib/product-types'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -535,13 +535,14 @@ export default function ProductId() {
                   name="type"
                   rules={getTypeValidationRules(t)}
                   render={({ field }) => {
-                    // W1: los tipos del asistente de alta (Square). El tipo GUARDADO del producto siempre está entre las
-                    // opciones: si es uno viejo (RETAIL, FOOD…) se muestra con su nombre de siempre y se conserva si nadie lo
-                    // cambia. Un valor que no es opción en el momento en que llega deja el select vacío (Radix lo borra) y el
-                    // formulario no guarda («El tipo es requerido»): por eso la opción sale de `data.type`, que ya está en el
-                    // render en que el formulario todavía no se llena, y no de `field.value`.
+                    // W1: los tipos alineados con Square, sin servicio con cita ni clase (los maneja «Servicios», y el alta
+                    // tampoco los ofrece). El tipo GUARDADO del producto siempre está entre las opciones: un servicio, una
+                    // clase o uno viejo (RETAIL, FOOD…) se muestra con su nombre y se conserva si nadie lo cambia. Un valor que
+                    // no es opción en el momento en que llega deja el select vacío (Radix lo borra) y el formulario no guarda
+                    // («El tipo es requerido»): por eso la opción sale de `data.type`, que ya está en el render en que el
+                    // formulario todavía no se llena, y no de `field.value`.
                     const guardado = typeof data.type === 'string' ? data.type : ''
-                    const fueraDeLista = guardado && !isCanonicalProductType(guardado) ? guardado : null
+                    const fueraDeLista = guardado && !(PRODUCT_TYPES_EN_LA_FICHA as string[]).includes(guardado) ? guardado : null
                     return (
                       <FormItem className="max-w-96">
                         <FormLabel>{t('products.create.type')}</FormLabel>
@@ -554,16 +555,18 @@ export default function ProductId() {
                           <SelectContent>
                             <SelectGroup>
                               <SelectLabel>{t('products.create.selectType')}</SelectLabel>
-                              {PRODUCT_TYPES_CANONICAL.map(code => (
+                              {PRODUCT_TYPES_EN_LA_FICHA.map(code => (
                                 <SelectItem key={code} value={code}>
                                   {productTypeLabel(code, i18n.language)}
                                 </SelectItem>
                               ))}
                               {fueraDeLista && (
                                 <SelectItem value={fueraDeLista}>
-                                  {isLegacyProductType(fueraDeLista)
-                                    ? t(`products.create.types.${fueraDeLista.toLowerCase()}`)
-                                    : fueraDeLista}
+                                  {isCanonicalProductType(fueraDeLista)
+                                    ? productTypeLabel(fueraDeLista, i18n.language)
+                                    : isLegacyProductType(fueraDeLista)
+                                      ? t(`products.create.types.${fueraDeLista.toLowerCase()}`)
+                                      : fueraDeLista}
                                 </SelectItem>
                               )}
                             </SelectGroup>

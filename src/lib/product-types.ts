@@ -1,11 +1,16 @@
 /**
- * Los tipos de producto alineados con Square (enero 2026, `ProductType` del server): los que ofrece el asistente de alta
- * (`ProductWizardDialog`) y la ficha de edición (`pages/Menu/Products/productId.tsx`). UNA sola lista y UNOS solos
- * nombres para los dos: la ficha no conocía `REGULAR` y obligaba a elegir un tipo viejo para poder guardar (W1, 10-oct).
+ * Los tipos de producto alineados con Square (enero 2026, `ProductType` del server) y sus nombres: la MISMA fuente para el
+ * asistente de alta (`ProductWizardDialog`, que muestra el tipo elegido con estos nombres) y la ficha de edición
+ * (`pages/Menu/Products/productId.tsx`). La ficha no conocía `REGULAR` y obligaba a elegir un tipo viejo para guardar (W1).
+ *
+ * Qué se OFRECE no es lo mismo en los dos: el alta elige el tipo en `ProductTypeSelectorModal`, que pide la lista al server
+ * (filtrada por la industria del negocio) y quita servicio con cita y clase, porque esos se crean y se manejan en
+ * «Servicios». La ficha ofrece la lista fija de abajo sin esos dos (`PRODUCT_TYPES_EN_LA_FICHA`); un producto que YA es
+ * servicio o clase los sigue viendo como su tipo guardado.
  */
 import type { ProductType } from '@/services/inventory.service'
 
-/** En el orden en que se ofrecen. */
+/** Los canónicos, en el orden en que se muestran. */
 export const PRODUCT_TYPES_CANONICAL: ProductType[] = [
   'REGULAR',
   'FOOD_AND_BEV',
@@ -16,6 +21,12 @@ export const PRODUCT_TYPES_CANONICAL: ProductType[] = [
   'DONATION',
   'OTHER',
 ]
+
+/** Los que maneja la pestaña «Servicios» (el alta tampoco los ofrece como artículo). */
+export const SERVICE_PRODUCT_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS']
+
+/** Lo que la ficha ofrece a cualquier producto: los canónicos sin servicio con cita ni clase. */
+export const PRODUCT_TYPES_EN_LA_FICHA: ProductType[] = PRODUCT_TYPES_CANONICAL.filter(t => !SERVICE_PRODUCT_TYPES.includes(t))
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, { en: string; es: string }> = {
   REGULAR: { en: 'Regular Item', es: 'Artículo Regular' },
