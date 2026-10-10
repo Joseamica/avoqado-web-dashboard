@@ -29,7 +29,8 @@ behind a paywall. **This is the one client that already enforces tiers** — wir
   `getTierForFeature()` → FeatureGate upsell). Route guards: `FeatureProtectedRoute` / `ModuleProtectedRoute`.
 - **Backend (authoritative):** `avoqado-server/src/services/access/basePlan.service.ts` +
   `avoqado-server/src/middlewares/checkFeatureAccess.middleware.ts`. Obligatory gating questions:
-  `avoqado-server/.claude/rules/feature-gating.md`. PREMIUM-only codes today: `CFDI`, `INVENTORY_TRACKING`.
+  `avoqado-server/.claude/rules/feature-gating.md`. PREMIUM-only codes: read `PREMIUM_ONLY_CODES` in `basePlan.service.ts` —
+  never trust a copy in a doc (this line listed only 2 of them until 9-oct-2026).
 - **Enforcement status:** ✅ this is still the ONLY client enforcing tiers; iOS/Android mirror the codes by exact name (mismatch = silent).
 - **Activación (regla completa en `../CLAUDE.md`): aquí vive el switch canónico y la UI de apagado.** Un feature que el cliente debe activar
   y no tiene pantalla de activación en este repo está **incompleto** — un `UPDATE` en Postgres no cuenta como switch. Apagado se ve y se
@@ -69,6 +70,8 @@ npm run pre-commit   # lint + typecheck + full vitest suite
 ```
 
 Database: see `.env` for connection credentials (never commit credentials).
+
+**Cross-machine build checks:** `avq-verify` excludes `.env` from the Alienware snapshot; Vite embeds its `VITE_*` values, so different inputs change asset hashes. Compare with the same explicit public test values on both machines and run `npx tsc -b` separately; never transmit private `.env` values. A test-config build does not validate production configuration. Confirmed 9-oct-2026: run `9qUKoj` differed, controlled run `Roo1e8` matched.
 
 ## Project Structure
 
@@ -222,44 +225,5 @@ See `.claude/rules/testing-and-git.md` for full checklist. Minimum:
 - [ ] Tested in light + dark modes
 - [ ] Tested with multiple roles
 
-## 🔴 CRITICAL — Keep the Avoqado MCP in sync
-
-The Avoqado MCP (`avoqado-server/scripts/mcp/`) is a **first-class interface**: it exposes
-the platform's data and actions to AI agents (internal ops today, customer-facing tomorrow).
-It must never fall behind the platform.
-
-**Whenever you add or change a feature, Prisma model, service, endpoint, permission, or any
-capability the MCP should expose, you MUST add or update the matching MCP tool in
-`avoqado-server/scripts/mcp/` as part of the SAME change — never "later".** A capability that
-exists but isn't reachable through the MCP is unfinished. Treat the MCP like permissions: kept
-in lockstep, never an afterthought.
-
-## 🔴 CRITICAL — Keep the sales presentation in sync
-
-The partner sales presentation (`~/Documents/Programming/Avoqado-HQ/operations/marketing/platform-presentation/`)
-is the canonical "what Avoqado does" document — third parties sell from it. It must never fall
-behind the platform.
-
-**Whenever you add, change, or remove a customer-visible capability (feature, module, product,
-payment method, supported sector, tier packaging), you MUST update BOTH deliverables as part of
-the SAME change — never "later":** the full deck (`avoqado-presentacion-v2.html`) AND the one-pager
-(`avoqado-one-pager-v2.html`) — plus the client one-pager (`avoqado-one-pager-cliente.html`).
-**Editing the HTML is only HALF the change.** You MUST then **regenerate the PDF of each** with the
-Chrome-headless HTML→PDF command in that folder's `README.md` — the PDF is the file partners actually
-open and send, so an HTML edit WITHOUT a freshly regenerated PDF is an INCOMPLETE change.
-Updating only one deliverable, or editing HTML without regenerating its PDF, is incomplete. Internal
-refactors and bugfixes with no customer-visible impact are exempt.
-
----
-
-## Fetching Asana task attachments / screenshots
-
-When given an Asana task URL, you **can** see its screenshots and attachments — don't claim you can't.
-
-- `mcp__asana__*` reads task text/comments but **not** files; the `mcp__claude_ai_Asana__` connector is often unauthorized. Don't stop there — use the Asana Personal Access Token directly (it's what powers the `asana` MCP server):
-  1. Read the token (use it, **never print or commit the value**): key `ASANA_ACCESS_TOKEN` under `mcpServers.asana.env` in `~/.claude.json`. Example:
-     `TOKEN=$(python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.claude.json')))['mcpServers']['asana']['env']['ASANA_ACCESS_TOKEN'])")`
-  2. List attachments + signed URLs (task GID = the long number after `/task/` in the URL):
-     `curl -s -H "Authorization: Bearer $TOKEN" "https://app.asana.com/api/1.0/tasks/<GID>/attachments?opt_fields=name,download_url,created_at"`
-  3. `curl` each `download_url` (pre-signed, needs no auth) to a temp file in the scratchpad, then Read the image. Inline description images are attachments too, so this returns all of them — not just the ones embedded in the text.
-- If slide/screenshot text is unreadable after Read downscales a large image, crop it into regions with PIL and upscale (LANCZOS) before re-reading.
+> Reglas del workspace que aplican aquí también (MCP en sync, presentación de ventas, adjuntos de Asana, tier, sin red…):
+> `../AGENTS.md` y `../CLAUDE.md`, que cargan siempre al abrir desde `Avoqado/`. Copias quitadas el 9-oct-2026 (fase 2b).

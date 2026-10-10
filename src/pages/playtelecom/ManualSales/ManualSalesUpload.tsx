@@ -114,10 +114,10 @@ export default function ManualSalesUpload() {
         errors: previewResult.error.length,
       }
     } catch (err) {
-      // Never fail silently. Parse errors and backend validation rejections must surface:
-      // the /manual-sales/preview middleware 400s the ENTIRE batch on any invalid row (naming
-      // the offending field), so a swallowed rejection leaves the operator staring at a dead
-      // "Cargar" button with no preview and no status — the exact bug reported in prod.
+      // Never fail silently. Parse errors and backend rejections must surface: a swallowed
+      // rejection leaves the operator staring at a dead "Cargar" button with no preview and
+      // no status. (A row with a blank required cell no longer 400s the batch — since
+      // 8-oct-2026 the server returns it in `error` with its own motivo.)
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         (err as Error)?.message ||

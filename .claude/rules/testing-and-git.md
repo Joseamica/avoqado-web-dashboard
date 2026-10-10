@@ -41,7 +41,9 @@ Always verify features work correctly across roles:
 - **Never kill or restart dev servers manually** — Vite and nodemon auto-reload on file save
 - **Never use `pkill`, `kill`, or restart commands** on dev servers
 - Include `Co-Authored-By` when AI assists with commits
-- **ONLY allowed Co-Authored-By**: `Claude Opus 4.6 (1M context) <noreply@anthropic.com>` — NEVER use `claude-flow`, `ruv@ruv.net`, or any other Co-Authored-By identity
+- **Co-Authored-By**: use the trailer the harness dictates for the model in use (`Claude <model> <noreply@anthropic.com>`) — never
+  pin a model name here, it goes stale with every release (this line said `Opus 4.6` until 9-oct-2026). NEVER use `claude-flow`,
+  `ruv@ruv.net`, or any other Co-Authored-By identity
 
 ## Temporary Files
 
