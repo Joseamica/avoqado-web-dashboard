@@ -149,6 +149,10 @@
       "CONTEO_NO_APLICADO": {
         "title": "Un conteo no se aplicó",
         "body": "El conteo de un producto no se aplicó y su stock no cambió. Si había un cambio en camino a Shopify, vuelve a contarlo en unos minutos. Si el producto tiene una diferencia en «Por revisar», resuélvela primero y después vuelve a contarlo."
+      },
+      "BARRIDO_OMITIDO": {
+        "title": "No pudimos revisar tu catálogo",
+        "body": "Shopify no nos mostró buena parte de tus productos, pero al preguntarle uno por uno siguen existiendo (o no pudimos confirmarlo), así que no dimos de baja ninguno. Tus ventas y el stock se siguen sincronizando; no tienes que hacer nada. Lo que sí borraste en Shopify se da de baja poco a poco, conforme Shopify confirma cada uno."
       }
     }
   },

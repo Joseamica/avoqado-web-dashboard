@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { SHOPIFY_ENVIOS, type ShopifyConnection, type ShopifyOverview, type ShopifyReview } from '@/types/shopify'
+import { SHOPIFY_AVISOS, SHOPIFY_ENVIOS, type ShopifyConnection, type ShopifyOverview, type ShopifyReview } from '@/types/shopify'
 
 const access = vi.hoisted(() => ({ allowed: [] as string[], cargando: false }))
 vi.mock('@/hooks/use-access', () => ({
@@ -1009,12 +1009,14 @@ describe('ShopifyIntegration — conexión activa, pausa y avisos', () => {
     expect(await screen.findByRole('button', { name: 'connect.submit' })).toBeInTheDocument()
   })
 
-  it('explica los siete avisos de la campanita y deja volver a dar permiso (FALTA_PERMISO)', async () => {
+  it('explica cada aviso de la campanita (incluido BARRIDO_OMITIDO del servidor) y deja volver a dar permiso (FALTA_PERMISO)', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
     svc.reauthorizeShopify.mockResolvedValue({ url: 'https://mi-tienda.myshopify.com/admin/oauth/authorize?state=p' })
     renderPage()
     expect(await screen.findByText('avisos.title')).toBeInTheDocument()
-    for (const aviso of ['REVOCADA', 'ATORADOS', 'RETRASO', 'SOBREVENTA', 'POR_REVISAR', 'FALTA_PERMISO', 'CONTEO_NO_APLICADO']) {
+    // La lista del servidor (`ShopifyAviso`, notify.service): uno que falte aquí llega a la campanita sin explicación en la página.
+    expect(SHOPIFY_AVISOS).toContain('BARRIDO_OMITIDO')
+    for (const aviso of SHOPIFY_AVISOS) {
       expect(screen.getByText(`avisos.items.${aviso}.title`)).toBeInTheDocument()
       expect(screen.getByText(`avisos.items.${aviso}.body`)).toBeInTheDocument()
     }

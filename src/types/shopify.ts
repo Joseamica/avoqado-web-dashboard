@@ -203,4 +203,5 @@ export const SHOPIFY_AVISOS = [
   'POR_REVISAR',
   'FALTA_PERMISO',
   'CONTEO_NO_APLICADO',
+  'BARRIDO_OMITIDO',
 ] as const

@@ -149,6 +149,10 @@
       "CONTEO_NO_APLICADO": {
         "title": "A count was not applied",
         "body": "A product's count was not applied and its stock did not change. If a change was on its way to Shopify, count it again in a few minutes. If the product has a difference in «To review», resolve it first and then count it again."
+      },
+      "BARRIDO_OMITIDO": {
+        "title": "We couldn't check your catalog",
+        "body": "Shopify didn't show us a large part of your products, but when we asked about each one they still exist (or we couldn't confirm it), so we didn't remove any. Your sales and stock keep syncing; you don't need to do anything. What you did delete in Shopify is removed little by little, as Shopify confirms each one."
       }
     }
   },
