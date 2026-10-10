@@ -74,12 +74,32 @@ export interface ReceiptCustomer {
   email?: string
 }
 
+/**
+ * Totales del comprobante de UN cobro, congelados por el servidor al crear el recibo (IVA por producto, plan 7, D3). Pesos,
+ * magnitudes. Siempre: subtotal − discount + serviceCharge + addedTax + tip = total.
+ */
+export interface ReceiptTicketTotals {
+  kind: 'COBRO' | 'DEVOLUCION'
+  desglosado: boolean
+  /** Desglosado: la mercancía BRUTA (antes del descuento). Sin desglose: lo cobrado sin propina. */
+  subtotal: number
+  /** Descuento en pesos; sólo existe si desglosa y es > 0 (plan 7, A7-R6). */
+  discount?: number
+  serviceCharge: number
+  /** El IVA que la venta cobró APARTE. 0 = el precio ya lo traía (la norma) o no hay desglose. */
+  addedTax: number
+  tip: number
+  total: number
+}
+
 export interface UnifiedReceiptData {
   payment: ReceiptPayment
   venue: ReceiptVenue
   order: ReceiptOrder
   processedBy?: ReceiptProcessedBy
   customer?: ReceiptCustomer
+  /** Aditivo (plan 7 de IVA). Ausente en recibos viejos: el visor muestra lo cobrado sin desglose. */
+  ticketTotals?: ReceiptTicketTotals | null
 }
 
 // Full receipt with metadata

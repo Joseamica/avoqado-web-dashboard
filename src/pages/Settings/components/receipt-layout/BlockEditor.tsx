@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import type { ReceiptBlock } from '@/services/receiptLayout.service'
-import { BLOCK_CATALOG, type BlockOption } from './blockCatalog'
+import { BLOCK_CATALOG, INTERRUPTORES_FIJOS, type BlockOption } from './blockCatalog'
 import { MAX_CARACTERES, MAX_RENGLONES, revisarTexto } from './textoImprimible'
 
 interface BlockEditorProps {
@@ -141,20 +141,32 @@ export function BlockEditor({ block, onChange, readOnly = false }: BlockEditorPr
 
           {conmutadores.length > 0 && (
             <div className="space-y-3">
-              {conmutadores.map(opcion => (
-                <div key={opcion} className="flex items-center justify-between gap-3">
-                  <Label htmlFor={`${opcion}-${block.type}`} className="cursor-pointer text-sm font-normal">
-                    {t(`editor.${opcion}`)}
-                  </Label>
-                  <Switch
-                    id={`${opcion}-${block.type}`}
-                    data-testid={`block-switch-${opcion}`}
-                    checked={v[opcion] !== false}
-                    disabled={readOnly}
-                    onCheckedChange={checked => set({ [opcion]: checked })}
-                  />
-                </div>
-              ))}
+              {conmutadores.map(opcion => {
+                // A7-R7: la propina y los descuentos cobrados no se apagan; se ven prendidos aunque la plantilla guarde `false`.
+                const fijo = INTERRUPTORES_FIJOS.has(opcion)
+                return (
+                  <div key={opcion} className="flex items-center justify-between gap-3">
+                    <Label
+                      htmlFor={`${opcion}-${block.type}`}
+                      className={cn('text-sm font-normal', fijo ? 'cursor-default' : 'cursor-pointer')}
+                    >
+                      {t(`editor.${opcion}`)}
+                    </Label>
+                    <Switch
+                      id={`${opcion}-${block.type}`}
+                      data-testid={`block-switch-${opcion}`}
+                      checked={fijo || v[opcion] !== false}
+                      disabled={readOnly || fijo}
+                      onCheckedChange={checked => set({ [opcion]: checked })}
+                    />
+                  </div>
+                )
+              })}
+              {conmutadores.some(o => INTERRUPTORES_FIJOS.has(o)) && (
+                <p className="text-xs text-muted-foreground" data-testid="editor-always-tip-discount">
+                  {t('editor.alwaysTipDiscount')}
+                </p>
+              )}
             </div>
           )}
 

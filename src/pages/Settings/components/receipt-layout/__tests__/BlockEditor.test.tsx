@@ -68,6 +68,20 @@ describe('BlockEditor', () => {
     expect(screen.queryByTestId('block-switch-showTotal')).toBeNull()
   })
 
+  it('🔴 A7-R7: la propina y los descuentos cobrados no se apagan (el ticket dejaría de sumar): fijos, prendidos y explicados', async () => {
+    // La plantilla «Citas y servicios» guarda `showTip: false`; aun así se ven prendidos y no se pueden tocar.
+    const onChange = render1({ type: 'totals', showSubtotal: true, showTax: true, showDiscount: false, showTip: false })
+    for (const fijo of ['showTip', 'showDiscount']) {
+      expect(screen.getByTestId(`block-switch-${fijo}`)).toHaveAttribute('aria-checked', 'true')
+      expect(screen.getByTestId(`block-switch-${fijo}`)).toBeDisabled()
+    }
+    expect(screen.getByTestId('editor-always-tip-discount')).toHaveTextContent('alwaysTipDiscount')
+    await userEvent.click(screen.getByTestId('block-switch-showTip'))
+    expect(onChange).not.toHaveBeenCalled()
+    // Los demás del bloque siguen siendo del dueño.
+    expect(screen.getByTestId('block-switch-showSubtotal')).toBeEnabled()
+  })
+
   it('🔴 la autorización del cobro sale siempre, y el panel explica por qué', () => {
     render1({ type: 'payment', showChange: true, showCardLastFour: true })
     expect(screen.getByTestId('editor-always-prints')).toHaveTextContent('alwaysAuth')

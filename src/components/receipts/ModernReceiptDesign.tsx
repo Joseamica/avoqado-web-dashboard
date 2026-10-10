@@ -34,6 +34,7 @@ import { ReceiptUrls } from '@/constants/receipt'
 import type { UnifiedReceiptData, DigitalReceipt } from '@/types/receipt'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
+import { totalesDelRecibo } from '@/components/receipts/totalesDelRecibo'
 
 // Component Props
 interface ModernReceiptDesignProps {
@@ -187,6 +188,13 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} />
 
   const { payment, venue, order, processedBy, customer } = data
+  // IVA por producto, plan 7 (D3; r1 #2, #8, #9; A7-R6): el visor NO calcula IVA. Los totales los congela el servidor; sin ellos
+  // (recibo viejo), lo cobrado en ESE pago sin desglose. Una devolución va en magnitudes aunque quien abre el visor no pase `isRefund`.
+  const totales = totalesDelRecibo(data)
+  // T5 ronda 1: el tipo congelado decide TODO el visor (encabezado, método de pago, pie y totales); `?refund=true` sólo respalda a un
+  // recibo viejo que no lo trae. Una devolución nunca dice «Pago completado».
+  const tipoCongelado = data.ticketTotals && typeof data.ticketTotals.total === 'number' ? data.ticketTotals.kind : null
+  const esDevolucion = tipoCongelado ? tipoCongelado === 'DEVOLUCION' : isRefund || totales.kind === 'DEVOLUCION'
   const venueTimezone = (venue as { timezone?: string })?.timezone || 'America/Mexico_City'
 
   // Format helpers
@@ -308,16 +316,16 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
       <div className="receipt-container container mx-auto p-3 sm:p-6 max-w-2xl">
         <div ref={receiptRef} className="space-y-4">
           {/* Header Card */}
-          <Card className={`overflow-hidden border-0 shadow-lg ${isRefund ? 'bg-linear-to-br from-red-50 dark:from-red-950/30 to-card/50 border-red-200 dark:border-red-800' : 'bg-linear-to-br from-card to-card/50'}`}>
+          <Card className={`overflow-hidden border-0 shadow-lg ${esDevolucion ? 'bg-linear-to-br from-red-50 dark:from-red-950/30 to-card/50 border-red-200 dark:border-red-800' : 'bg-linear-to-br from-card to-card/50'}`}>
             <div className="relative">
               {/* Decorative background pattern */}
-              <div className={`absolute inset-0 ${isRefund ? 'opacity-10' : 'opacity-5'}`}>
+              <div className={`absolute inset-0 ${esDevolucion ? 'opacity-10' : 'opacity-5'}`}>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,currentColor_1px,transparent_1px)] bg-size-[16px_16px]" />
               </div>
 
               <CardContent className="p-6 sm:p-8 text-center relative">
                 {/* Refund Badge - Top Left */}
-                {isRefund && (
+                {esDevolucion && (
                   <div className="absolute top-4 left-4">
                     <Badge className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 font-semibold">
                       <RotateCcw className="w-3 h-3 mr-1" />
@@ -491,46 +499,64 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between text-base">
                   <span className="text-muted-foreground">{t('receipt.labels.subtotal')}</span>
-                  <span className="font-medium">{formatCurrency(order?.subtotal)}</span>
+                  <span className="font-medium">{formatCurrency(totales.subtotal)}</span>
                 </div>
 
-                <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">{t('receipt.labels.taxes')}</span>
-                  <span className="font-medium">{formatCurrency(order?.taxAmount)}</span>
-                </div>
+                {/* A7-R6: en negativo, como el papel, el HTML y el correo */}
+                {(totales.discount ?? 0) > 0 && (
+                  <div className="flex justify-between text-base">
+                    <span className="text-muted-foreground">{t('receipt.labels.discount')}</span>
+                    <span className="font-medium">{formatCurrency(-(totales.discount ?? 0))}</span>
+                  </div>
+                )}
+
+                {totales.serviceCharge > 0 && (
+                  <div className="flex justify-between text-base">
+                    <span className="text-muted-foreground">{t('receipt.labels.serviceCharge')}</span>
+                    <span className="font-medium">{formatCurrency(totales.serviceCharge)}</span>
+                  </div>
+                )}
+
+                {totales.addedTax > 0 ? (
+                  <div className="flex justify-between text-base">
+                    <span className="text-muted-foreground">{t('receipt.labels.addedTax')}</span>
+                    <span className="font-medium">{formatCurrency(totales.addedTax)}</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t('receipt.labels.taxIncludedWhenApplies')}</p>
+                )}
 
                 <div className="flex justify-between text-base">
                   <span className="text-muted-foreground">{t('receipt.labels.tips')}</span>
-                  <span className="font-medium text-green-600">{formatCurrency(payment?.tipAmount)}</span>
+                  <span className="font-medium text-green-600">{formatCurrency(totales.tip)}</span>
                 </div>
 
                 {/* <Separator /> */}
 
                 <div className={`flex justify-between items-center text-xl font-bold p-4 rounded-xl ${
-                  isRefund
+                  esDevolucion
                     ? 'bg-linear-to-r from-red-100 dark:from-red-950/50 to-red-50 dark:to-red-950/30'
                     : 'bg-linear-to-r from-primary/10 to-primary/5'
                 }`}>
                   <div className="flex flex-col items-start">
-                    <span>{isRefund ? t('receipt.labels.totalRefunded', { defaultValue: t('receipt.labels.totalPaid') }) : t('receipt.labels.totalPaid')}</span>
-                    {isRefund && (
+                    <span>{esDevolucion ? t('receipt.labels.totalRefunded', { defaultValue: t('receipt.labels.totalPaid') }) : t('receipt.labels.totalPaid')}</span>
+                    {esDevolucion && (
                       <span className="text-xs font-normal text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
                         <RotateCcw className="w-3 h-3" />
                         {t('types.refund')}
                       </span>
                     )}
                   </div>
-                  <span className={isRefund ? 'text-red-600 dark:text-red-400' : 'text-primary'}>
-                    {isRefund ? '−' : ''}{Currency(Math.abs((payment?.amount ?? 0) + (payment?.tipAmount ?? 0)))}
-                  </span>
+                  {/* Sin «−» (Codex r2, #2): la devolución la dicen la etiqueta, el ícono y el color */}
+                  <span className={esDevolucion ? 'text-red-600 dark:text-red-400' : 'text-primary'}>{Currency(totales.total)}</span>
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className={`p-4 rounded-xl ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/30 to-red-50/50 dark:to-red-950/20' : payment?.method === 'CRYPTOCURRENCY' ? 'bg-linear-to-r from-orange-50 dark:from-orange-950/30 to-orange-50/50 dark:to-orange-950/20' : 'bg-linear-to-r from-muted/50 to-muted/30'}`}>
+              <div className={`p-4 rounded-xl ${esDevolucion ? 'bg-linear-to-r from-red-50 dark:from-red-950/30 to-red-50/50 dark:to-red-950/20' : payment?.method === 'CRYPTOCURRENCY' ? 'bg-linear-to-r from-orange-50 dark:from-orange-950/30 to-orange-50/50 dark:to-orange-950/20' : 'bg-linear-to-r from-muted/50 to-muted/30'}`}>
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full shadow-sm flex items-center justify-center ${isRefund ? 'bg-red-100 dark:bg-red-900/50' : payment?.method === 'CRYPTOCURRENCY' ? 'bg-orange-100 dark:bg-orange-900/50' : 'bg-background'}`}>
-                    {isRefund ? (
+                  <div className={`w-12 h-12 rounded-full shadow-sm flex items-center justify-center ${esDevolucion ? 'bg-red-100 dark:bg-red-900/50' : payment?.method === 'CRYPTOCURRENCY' ? 'bg-orange-100 dark:bg-orange-900/50' : 'bg-background'}`}>
+                    {esDevolucion ? (
                       <RotateCcw className="w-6 h-6 text-red-600 dark:text-red-400" />
                     ) : payment?.method === 'CRYPTOCURRENCY' ? (
                       <Bitcoin className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -543,9 +569,9 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       {formatPaymentMethod(payment?.method || '', payment?.cardBrand, payment?.maskedPan, payment?.processorData)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className={`w-2 h-2 rounded-full ${isRefund ? 'bg-red-500' : payment?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-amber-500'}`} />
-                      <span className={`text-sm ${isRefund ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
-                        {isRefund
+                      <div className={`w-2 h-2 rounded-full ${esDevolucion ? 'bg-red-500' : payment?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                      <span className={`text-sm ${esDevolucion ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                        {esDevolucion
                           ? t('receipt.paymentStatus.REFUND_COMPLETED', { defaultValue: 'Refund completed' })
                           : payment?.status === 'COMPLETED'
                           ? t('receipt.paymentStatus.COMPLETED')
@@ -614,15 +640,17 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
             </CardContent>
           </Card>
 
-          {/* Autofactura (CFDI self-invoice) — public view only, injected by the page */}
-          {autofacturaSlot}
-          {reviewSlot}
+          {/* Autofactura (CFDI self-invoice) — public view only, injected by the page. Ola del 7a (I-2): nunca en una devolución,
+              decidida con la MISMA regla del visor (tipo congelado; si no hay, `?refund=true` o el importe negativo): la liga del
+              correo y de WhatsApp no trae `?refund=true`, y «Facturar» timbraría un INGRESO de la venta original. */}
+          {!esDevolucion && autofacturaSlot}
+          {!esDevolucion && reviewSlot}
 
           {/* Footer */}
-          <Card className={`border-0 shadow-lg ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/20 to-transparent' : 'bg-linear-to-r from-primary/5 to-transparent'}`}>
+          <Card className={`border-0 shadow-lg ${esDevolucion ? 'bg-linear-to-r from-red-50 dark:from-red-950/20 to-transparent' : 'bg-linear-to-r from-primary/5 to-transparent'}`}>
             <CardContent className="p-6 text-center">
               <div className="space-y-3">
-                {isRefund ? (
+                {esDevolucion ? (
                   <>
                     <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
                       <RotateCcw className="w-5 h-5" />
