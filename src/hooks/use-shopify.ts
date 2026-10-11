@@ -14,7 +14,7 @@
  * componentes (`key={venueId}`), así que `keepPreviousData` nunca muestra filas de otra sucursal (N12).
  */
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useIsMutating, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useAccess } from '@/hooks/use-access'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -43,11 +43,21 @@ export const shopifyKeys = {
   overview: (venueId: string | undefined) => ['shopify', venueId, 'overview'] as const,
   locations: (venueId: string | undefined, intent: string | null) => ['shopify', venueId, 'locations', intent] as const,
   connectReview: (venueId: string | undefined, filtro: ConnectReviewFiltro) => ['shopify', venueId, 'connect-review', filtro] as const,
+  connectReviewAll: (venueId: string | undefined) => ['shopify', venueId, 'connect-review'] as const,
   reviewsAll: (venueId: string | undefined) => ['shopify', venueId, 'reviews'] as const,
   reviews: (venueId: string | undefined, q: string) => ['shopify', venueId, 'reviews', q] as const,
   reviewEnvios: (venueId: string | undefined) => ['shopify', venueId, 'review-envios'] as const,
   issuesAll: (venueId: string | undefined) => ['shopify', venueId, 'issues'] as const,
   issues: (venueId: string | undefined, q: string, reason: ShopifyIssueReason | null) => ['shopify', venueId, 'issues', q, reason] as const,
+}
+
+/**
+ * Llaves de las MUTACIONES del conector (no son consultas: `useInvalidateShopify` no las toca). Cuelgan de ['shopify', venueId]
+ * para que `useIsMutating` las vea por sucursal. `guardarElecciones` es la de D1: tanto «Usar el de …» de UN producto como
+ * «… en los que faltan» pasan por `saveShopifyConnectChoices` con ESTA llave, y «Aplicar» las espera (Codex P1).
+ */
+export const shopifyMutationKeys = {
+  guardarElecciones: (venueId: string | undefined) => ['shopify', venueId, 'guardar-elecciones'] as const,
 }
 
 /** Consultas pesadas: locales a estas queries, nunca en el QueryClient compartido. */
@@ -296,6 +306,23 @@ export function useInvalidateShopify() {
 export function useInvalidateShopifyResumen() {
   const qc = useQueryClient()
   return useCallback((venueId: string | undefined) => qc.invalidateQueries({ queryKey: shopifyKeys.overview(venueId) }), [qc])
+}
+
+/** D1: sólo la vista previa (todas sus pestañas): tras elegir, o cuando la aplicación regresa a la vista previa. */
+export function useInvalidateShopifyVistaPrevia() {
+  const qc = useQueryClient()
+  return useCallback((venueId: string | undefined) => qc.invalidateQueries({ queryKey: shopifyKeys.connectReviewAll(venueId) }), [qc])
+}
+
+/**
+ * D1 (Codex P1): ¿hay guardados de elección EN CAMINO en esta sucursal? Se comparte entre todas las filas y los botones «en los
+ * que faltan» (cada uno tiene su propia mutación, pero la llave es la misma), así que «Aplicar» lo sabe aunque el guardado
+ * lo haya empezado otro componente. Cuenta mientras la mutación esté pendiente, y las mutaciones de elección terminan DESPUÉS de
+ * volver a leer la vista previa (su `onSuccess` devuelve la invalidación): quien lo usa para apagar «Aplicar» no se habilita
+ * con la vista previa vieja.
+ */
+export function useGuardandoElecciones(venueId: string | undefined): boolean {
+  return useIsMutating({ mutationKey: shopifyMutationKeys.guardarElecciones(venueId) }) > 0
 }
 
 /** Las dos listas que cambia un cuadre: al terminar el cuadre pedido. */

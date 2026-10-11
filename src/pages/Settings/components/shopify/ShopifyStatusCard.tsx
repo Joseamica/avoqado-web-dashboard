@@ -16,7 +16,13 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
 import { useToast } from '@/hooks/use-toast'
-import { claveDelCuadre, useInvalidateShopify, useInvalidateShopifyResumen, useShopifyProximoIntento } from '@/hooks/use-shopify'
+import {
+  claveDelCuadre,
+  enviosPuedenAvanzar,
+  useInvalidateShopify,
+  useInvalidateShopifyResumen,
+  useShopifyProximoIntento,
+} from '@/hooks/use-shopify'
 import { disconnectShopify, reauthorizeShopify, resyncShopify } from '@/services/shopify.service'
 import { conexionDetenida, esErrorPermanente, SHOPIFY_AVISOS, type ShopifyConnection, type ShopifyOverview } from '@/types/shopify'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -139,6 +145,9 @@ export function ShopifyStatusCard({
       {fila(t('status.matched'), c.emparejados)}
       {/* Z2: detenida, lo que está en camino no avanza: no se pinta como progreso. */}
       {!detenida && fila(t('status.pending'), c.pendientes)}
+      {/* D1 (spec, punto 4): lo que va en camino —también los ajustes de «Usar el de Avoqado»— se dice «pendiente de
+          sincronizar» hasta que Shopify lo confirma; sólo si de verdad avanza (en pausa o detenida no sale nada). */}
+      {enviosPuedenAvanzar(overview) && c.pendientes > 0 && <p className="text-xs text-muted-foreground">{t('status.pendingSync')}</p>}
       {c.atorados > 0 && fila(t('status.stuck'), c.atorados)}
       {c.inciertos > 0 && fila(t('status.uncertain'), c.inciertos)}
       {!detenida &&

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -44,7 +44,7 @@ vi.mock('react-i18next', () => ({
     t: (k: string, o?: Record<string, unknown>) => (o ? [k, ...Object.values(o).filter(v => typeof v !== 'object')].join(' ') : k),
   }),
 }))
-// Las 13 llamadas del servicio se mockean; lo demás (`explicarErrorShopify`, `textoDeErrorShopify`) es el REAL de C7: así los textos
+// Las 14 llamadas del servicio se mockean; lo demás (`explicarErrorShopify`, `textoDeErrorShopify`) es el REAL de C7: así los textos
 // y las acciones de los errores salen del mapa de verdad y no de uno inventado por la prueba (requisito 2 de C7 → C8).
 const svc = vi.hoisted(() => ({
   getShopifyOverview: vi.fn(),
@@ -54,6 +54,7 @@ const svc = vi.hoisted(() => ({
   confirmShopifyConnect: vi.fn(),
   getShopifyConnectReview: vi.fn(),
   applyShopifyConnect: vi.fn(),
+  saveShopifyConnectChoices: vi.fn(),
   disconnectShopify: vi.fn(),
   resyncShopify: vi.fn(),
   listShopifyReviews: vi.fn(),
@@ -122,6 +123,7 @@ const VISTA = {
   quedara: '4',
 }
 const RESUMEN_VISTA = { emparejados: 30, cambian: 30, nuevos: 2, sinPareja: 1 }
+const VISTA_CONEXION = { linkId: 'l1', generation: 1, tokenVersion: 1 }
 const errorHttp = (status: number, data: Record<string, unknown>) => Object.assign(new Error('http'), { response: { status, data } })
 const ESPERA_REINTENTO = { timeout: 4000 } // las consultas pesadas reintentan 1 vez (retry: 1) antes de mostrar el error
 const navegar = vi.fn()
@@ -485,6 +487,7 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     expect(screen.getByText('4')).toBeInTheDocument()
     expect(screen.getByText('preview.enShopify 5')).toBeInTheDocument()
     expect(screen.getByText('preview.quedara')).toBeInTheDocument()
+    expect(screen.queryAllByRole('radio')).toHaveLength(0) // un servidor sin D1 se ve como antes
     await userEvent.click(screen.getByRole('button', { name: 'list.loadMore' }))
     await waitFor(() => expect(svc.getShopifyConnectReview).toHaveBeenCalledWith('v1', { offset: 20, filtro: 'CAMBIAN' }))
     await userEvent.click(screen.getByRole('button', { name: 'preview.filtros.TODOS' }))
@@ -494,6 +497,139 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     expect(await screen.findByText('preview.applyBody')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'preview.applyConfirm' }))
     await waitFor(() => expect(svc.applyShopifyConnect).toHaveBeenCalledWith('v1'))
+  })
+
+  it('🔴 D1: un producto que ya tenías y no coincide pide elegir: los dos números, el resultado de cada opción y nada marcado; «Aplicar» espera a que elijas en todos', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIDE], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 0 })
+    renderPage()
+    expect(await screen.findByText('preview.ambos 5 6')).toBeInTheDocument()
+    const [avoqado, shopify] = screen.getAllByRole('radio')
+    expect(avoqado).toHaveTextContent('preview.usarAvoqado')
+    expect(avoqado).toHaveTextContent('preview.quedanEnLosDos 5')
+    expect(shopify).toHaveTextContent('preview.usarShopify')
+    expect(shopify).toHaveTextContent('preview.quedanEnLosDos 6')
+    expect(avoqado).toHaveAttribute('aria-checked', 'false')
+    expect(shopify).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByText('preview.porDecidir 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'preview.apply' })).toBeDisabled()
+    // Elige: viaja con los números y la conexión que VIO; la vista previa se vuelve a pedir y ya no falta nada.
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([{ ...DECIDE, eleccion: 'AVOQADO' }], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 0 },
+      conexion: VISTA_CONEXION,
+    })
+    await userEvent.click(avoqado)
+    await waitFor(() =>
+      expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', {
+        vista: VISTA_CONEXION,
+        elecciones: [{ variantLinkId: 'vl1', choice: 'AVOQADO', expectedAvoqadoQty: '5', expectedShopifyQty: 6 }],
+      }),
+    )
+    await waitFor(() => expect(screen.getAllByRole('radio')[0]).toHaveAttribute('aria-checked', 'true'))
+    expect(screen.queryByText('preview.porDecidir 1')).toBeNull()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'preview.apply' })).toBeEnabled())
+  })
+
+  it('🔴 D1: «en los que faltan» manda UNA opción para los que faltan (también páginas sin abrir) y dice cuántos son; nada viene marcado', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIDE], 40, 20),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 40 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 40, porDecidir: 0 })
+    renderPage()
+    expect(await screen.findByText('preview.todosAyuda 40')).toBeInTheDocument()
+    expect(screen.getAllByRole('radio').every(r => r.getAttribute('aria-checked') === 'false')).toBe(true)
+    const antes = svc.getShopifyConnectReview.mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: 'preview.todosAvoqado' }))
+    await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', { vista: VISTA_CONEXION, todos: 'AVOQADO' }))
+    await waitFor(() => expect(svc.getShopifyConnectReview.mock.calls.length).toBeGreaterThan(antes))
+    // La otra opción viaja igual de explícita.
+    await userEvent.click(screen.getByRole('button', { name: 'preview.todosShopify' }))
+    await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenLastCalledWith('v1', { vista: VISTA_CONEXION, todos: 'SHOPIFY' }))
+  })
+
+  it('D1: si «Usar Avoqado en los que faltan» no alcanzó a todos (se salta los de piezas con decimales), lo dice sin alarma y los deja pendientes', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIDE], 3),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 3 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 2 })
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'preview.todosAvoqado' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'preview.todosQuedaron 1 2' })))
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+    expect(screen.getByRole('button', { name: 'preview.apply' })).toBeDisabled()
+  })
+
+  it('D1: con todo elegido no hay botones «en los que faltan» ni contador, y «Aplicar» queda habilitado', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const ELEGIDO = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: 'SHOPIFY' }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([ELEGIDO], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 0 },
+      conexion: VISTA_CONEXION,
+    })
+    renderPage()
+    expect(await screen.findByText('preview.ambos 5 6')).toBeInTheDocument()
+    expect(screen.getAllByRole('radio')[1]).toHaveAttribute('aria-checked', 'true')
+    expect(screen.queryByRole('button', { name: 'preview.todosAvoqado' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'preview.todosShopify' })).toBeNull()
+    expect(screen.queryByText(/preview\.porDecidir/)).toBeNull()
+    expect(screen.queryByText('preview.todosQuedaronDetalle')).toBeNull() // sin productos por elegir no hay nada que explicar
+    await waitFor(() => expect(screen.getByRole('button', { name: 'preview.apply' })).toBeEnabled())
+  })
+
+  it('🔴 D1: si los números o la conexión cambiaron al elegir (409), lo dice y vuelve a pedir la vista previa', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIDE], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+      conexion: VISTA_CONEXION,
+    })
+    for (const code of ['SHOPIFY_REVISION_CAMBIO', 'SHOPIFY_CONEXION_CAMBIO']) {
+      svc.saveShopifyConnectChoices.mockRejectedValueOnce(errorHttp(409, { code, message: 'cambió' }))
+    }
+    renderPage()
+    await screen.findByText('preview.ambos 5 6')
+    for (const code of ['SHOPIFY_REVISION_CAMBIO', 'SHOPIFY_CONEXION_CAMBIO']) {
+      const antes = svc.getShopifyConnectReview.mock.calls.length
+      await userEvent.click(screen.getAllByRole('radio')[1])
+      await waitFor(() =>
+        expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: `errors.codes.${code}` })),
+      )
+      await waitFor(() => expect(svc.getShopifyConnectReview.mock.calls.length).toBeGreaterThan(antes))
+    }
+  })
+
+  it('D1: «Aplicar» con decisiones que faltan (422, una venta las invalidó) lo dice y vuelve a leer la vista previa', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([VISTA], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 0 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.applyShopifyConnect.mockRejectedValue(errorHttp(422, { code: 'SHOPIFY_FALTAN_DECISIONES', message: 'faltan' }))
+    renderPage()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'preview.apply' })).toBeEnabled())
+    const antes = svc.getShopifyConnectReview.mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: 'preview.apply' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'preview.applyConfirm' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'errors.codes.SHOPIFY_FALTAN_DECISIONES' })))
+    await waitFor(() => expect(svc.getShopifyConnectReview.mock.calls.length).toBeGreaterThan(antes))
   })
 
   it('W4: en una primera conexión (nada «Cambian») abre en «Nuevos»; sin nuevos, en «Todos»; lo que elige la persona manda', async () => {
@@ -587,6 +723,360 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: ['shopify', 'v1', 'reviews'] }))
     expect(invalidar).toHaveBeenCalledWith({ queryKey: ['shopify', 'v1', 'issues'] })
     expect(await screen.findByText('status.store')).toBeInTheDocument()
+  })
+
+  it('🔴 D1: si la aplicación regresa a «Así quedará» (APLICANDO → POR_APLICAR) lo dice en la página y vuelve a pedir la vista previa', async () => {
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(conexion({ fase: 'REVIEWING', estado: 'APLICANDO', aplicacion: { hechas: 10, total: 30 } })),
+    )
+    const { client } = renderPage()
+    expect(await screen.findByText('preview.applying 10 30')).toBeInTheDocument()
+    const invalidar = vi.spyOn(client, 'invalidateQueries')
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([VISTA], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+      conexion: { linkId: 'l1', generation: 1, tokenVersion: 1 },
+    })
+    await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'overview'] }))
+    await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: ['shopify', 'v1', 'connect-review'] }))
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'preview.devuelta' }))
+    expect(await screen.findByText('preview.porDecidir 1')).toBeInTheDocument()
+  })
+
+  it('D1: el regreso a la vista previa avisa UNA sola vez (un resumen que se repite en POR_APLICAR no vuelve a avisar ni a pedir la vista previa)', async () => {
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(conexion({ fase: 'REVIEWING', estado: 'APLICANDO', aplicacion: { hechas: 10, total: 30 } })),
+    )
+    svc.getShopifyConnectReview.mockResolvedValue({ ...pagina([VISTA], 1), resumen: RESUMEN_VISTA })
+    const { client } = renderPage()
+    expect(await screen.findByText('preview.applying 10 30')).toBeInTheDocument()
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'overview'] }))
+    expect(await screen.findByText('Camisa · M')).toBeInTheDocument()
+    const invalidar = vi.spyOn(client, 'invalidateQueries')
+    await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'overview'] }))
+    await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'overview'] }))
+    expect(toast.mock.calls.filter(([a]) => a?.title === 'preview.devuelta')).toHaveLength(1)
+    expect(invalidar.mock.calls.filter(([a]) => JSON.stringify(a?.queryKey) === '["shopify","v1","connect-review"]')).toHaveLength(0)
+  })
+
+  it('🔴 D1: quien NO tiene `settings:manage` no recibe el aviso de «regresó a la vista previa» (no puede elegir ni aplicar), pero la vista previa sí se vuelve a leer', async () => {
+    access.allowed = ['inventory:read', 'inventory:adjust']
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(conexion({ fase: 'REVIEWING', estado: 'APLICANDO', aplicacion: { hechas: 10, total: 30 } })),
+    )
+    const { client } = renderPage()
+    expect(await screen.findByText('preview.applying 10 30')).toBeInTheDocument()
+    const invalidar = vi.spyOn(client, 'invalidateQueries')
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'overview'] }))
+    await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: ['shopify', 'v1', 'connect-review'] }))
+    expect(await screen.findByText('preview.readOnly')).toBeInTheDocument() // ya está en la vista previa, de sólo lectura
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'preview.devuelta' }))
+    expect(toast).not.toHaveBeenCalled()
+  })
+
+  it('D1: llegar a la vista previa sin venir de «aplicando» (la primera carga, o venir de importar) no dice que «regresó»', async () => {
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(conexion({ fase: 'CONNECTING', estado: 'IMPORTANDO', importacion: { variantes: 40, error: null } })),
+    )
+    svc.getShopifyConnectReview.mockResolvedValue({ ...pagina([VISTA], 1), resumen: RESUMEN_VISTA })
+    const { client } = renderPage()
+    expect(await screen.findByText('connect.importing')).toBeInTheDocument()
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'overview'] }))
+    expect(await screen.findByText('Camisa · M')).toBeInTheDocument()
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'preview.devuelta' }))
+  })
+
+  it('D1: la explicación de los decimales está SIEMPRE a la vista mientras falten productos por elegir (sin tocar nada), como línea de ayuda de los botones', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIDE], 3),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 3 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 2 })
+    renderPage()
+    await screen.findByText('preview.todosAyuda 3')
+    // Primera pintada, ningún clic: la persona que volvió a la página (o a la que la aplicación regresó a la vista previa) la ve igual.
+    const ayuda = screen.getByText('preview.todosQuedaronDetalle')
+    expect(ayuda).toBeInTheDocument()
+    expect(ayuda).toHaveAttribute('role', 'status') // se anuncia igual que la línea de «faltan por elegir»
+    expect(ayuda).toHaveClass('text-muted-foreground')
+    // Debajo de los botones de «en los que faltan», no antes.
+    const botones = screen.getByRole('button', { name: 'preview.todosShopify' })
+    expect(botones.compareDocumentPosition(ayuda) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // El clic no la duplica ni la mueve, y el aviso emergente se conserva.
+    await userEvent.click(screen.getByRole('button', { name: 'preview.todosAvoqado' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'preview.todosQuedaron 1 2' })))
+    expect(screen.getAllByText('preview.todosQuedaronDetalle')).toHaveLength(1)
+    // Elegir «Shopify» en los que faltan ya no deja a nadie sin elegir: la línea se va con los botones.
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 2, porDecidir: 0 })
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([{ ...DECIDE, eleccion: 'SHOPIFY' }], 3),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 0 },
+      conexion: VISTA_CONEXION,
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'preview.todosShopify' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'preview.todosAvoqado' })).toBeNull())
+    expect(screen.queryByText('preview.todosQuedaronDetalle')).toBeNull()
+  })
+
+  it('D1: «Avoqado en los que faltan» que SÍ alcanzó a todos no deja aviso emergente ni línea de decimales', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIDE], 2),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 2 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 2, porDecidir: 0 })
+    renderPage()
+    const avoqado = await screen.findByRole('button', { name: 'preview.todosAvoqado' })
+    // Ya se eligieron todos: lo que el servidor devuelve al releer.
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([{ ...DECIDE, eleccion: 'AVOQADO' }], 2),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 0 },
+      conexion: VISTA_CONEXION,
+    })
+    await userEvent.click(avoqado)
+    await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalled())
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'preview.todosAvoqado' })).toBeNull())
+    expect(screen.queryByText('preview.todosQuedaronDetalle')).toBeNull()
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining('preview.todosQuedaron') }))
+  })
+
+  it('D1: en «Nuevos» con productos por elegir, una línea manda a «Cambian» (donde se elige); en «Cambian» y en «Todos» no sale', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const NUEVO = { ...VISTA, nuevo: true }
+    svc.getShopifyConnectReview.mockImplementation(async (_v: string, { filtro }: { filtro: string }) => ({
+      ...pagina([filtro === 'NUEVOS' ? NUEVO : VISTA], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 2 },
+      conexion: VISTA_CONEXION,
+    }))
+    renderPage()
+    await screen.findByText('preview.porDecidir 2')
+    expect(screen.getByRole('button', { name: 'preview.filtros.CAMBIAN' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('preview.eligeEnCambian')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'preview.filtros.NUEVOS' }))
+    expect(await screen.findByText('preview.eligeEnCambian')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'preview.filtros.TODOS' })) // en «Todos» sí están las decisiones
+    await waitFor(() => expect(screen.queryByText('preview.eligeEnCambian')).toBeNull())
+  })
+
+  it('D1: sin nada por elegir, «Nuevos» no manda a ningún lado', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([{ ...VISTA, nuevo: true }], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 0 },
+      conexion: VISTA_CONEXION,
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'preview.filtros.NUEVOS' }))
+    await waitFor(() => expect(svc.getShopifyConnectReview).toHaveBeenCalledWith('v1', { offset: 0, filtro: 'NUEVOS' }))
+    expect(await screen.findByText('Camisa · M')).toBeInTheDocument()
+    expect(screen.queryByText(/preview\.porDecidir/)).toBeNull()
+    expect(screen.queryByText('preview.eligeEnCambian')).toBeNull()
+  })
+
+  it('D1: el texto de «quedan N en los dos» recibe también `count`, para que 1 se lea en singular («Queda 1»)', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const UNA = { ...VISTA, avoqadoQty: '1', shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([UNA], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+      conexion: VISTA_CONEXION,
+    })
+    renderPage()
+    const [avoqado, shopify] = await screen.findAllByRole('radio')
+    expect(avoqado).toHaveTextContent('preview.quedanEnLosDos 1 1') // {count, qty}: el singular lo decide `count`
+    expect(shopify).toHaveTextContent('preview.quedanEnLosDos 6 6')
+  })
+
+  // Prueba en vivo (D1/B): con stock de Avoqado en decimales («49.5») «Usar el de Avoqado» prometía «Quedan 49.5 en los dos», y
+  // al tocarla el servidor contestaba 422 SHOPIFY_DIFERENCIA_NO_ENTERA. «Apagado se ve y se explica»: la opción sale apagada de
+  // entrada, con su razón; la decisión sale del TEXTO del stock (sin números flotantes). El caso raro «A entero, pendiente con
+  // decimales» lo sigue cubriendo el 422 del servidor.
+  it('🔴 D1: con stock de Avoqado en decimales, «Usar el de Avoqado» sale apagada con su razón (no promete un resultado imposible) y tocarla no manda nada; «Usar el de Shopify» sigue activa', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIMALES = { ...VISTA, avoqadoQty: '49.5', shopifyQty: 50, quedara: '50', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIMALES], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 0 })
+    renderPage()
+    const [avoqado, shopify] = await screen.findAllByRole('radio')
+    expect(avoqado).toBeDisabled()
+    expect(avoqado).toHaveAttribute('aria-disabled', 'true')
+    expect(avoqado).toHaveTextContent('preview.usarAvoqado')
+    expect(avoqado).toHaveTextContent('preview.avoqadoConDecimales') // la razón, en lugar de «Quedan 49.5 en los dos»
+    expect(avoqado).not.toHaveTextContent('preview.quedanEnLosDos')
+    expect(shopify).toBeEnabled()
+    expect(shopify).not.toHaveAttribute('aria-disabled', 'true')
+    expect(shopify).toHaveTextContent('preview.quedanEnLosDos 50 50')
+    await userEvent.click(avoqado)
+    expect(svc.saveShopifyConnectChoices).not.toHaveBeenCalled()
+    // Shopify, en cambio, se guarda como siempre.
+    await userEvent.click(shopify)
+    await waitFor(() =>
+      expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', {
+        vista: VISTA_CONEXION,
+        elecciones: [{ variantLinkId: 'vl1', choice: 'SHOPIFY', expectedAvoqadoQty: '49.5', expectedShopifyQty: 50 }],
+      }),
+    )
+  })
+
+  it.each(['50', '50.000', '50.0'])(
+    'D1: con stock de Avoqado entero («%s») «Usar el de Avoqado» sigue activa y dice cuántas quedan',
+    async qty => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const ENTERO = { ...VISTA, avoqadoQty: qty, shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+      svc.getShopifyConnectReview.mockResolvedValue({
+        ...pagina([ENTERO], 1),
+        resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+        conexion: VISTA_CONEXION,
+      })
+      svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 0 })
+      renderPage()
+      const [avoqado] = await screen.findAllByRole('radio')
+      expect(avoqado).toBeEnabled()
+      expect(avoqado).not.toHaveAttribute('aria-disabled', 'true')
+      expect(avoqado).toHaveTextContent('preview.quedanEnLosDos')
+      expect(avoqado).not.toHaveTextContent('preview.avoqadoConDecimales')
+      await userEvent.click(avoqado)
+      await waitFor(() =>
+        expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', {
+          vista: VISTA_CONEXION,
+          elecciones: [{ variantLinkId: 'vl1', choice: 'AVOQADO', expectedAvoqadoQty: qty, expectedShopifyQty: 6 }],
+        }),
+      )
+    },
+  )
+
+  // Codex (auditoría D1/B, P1): «Aplicar» no sabía de los guardados en camino. Con «Usar el de Avoqado» ya guardado y nada
+  // pendiente, «Aplicar» estaba habilitado: tocar «Usar el de Shopify» y apretar «Aplicar» antes de que el guardado llegara
+  // aplicaba la elección VIEJA, y el guardado tardío chocaba con la conexión ya aplicando.
+  describe('🔴 D1 (Codex P1): «Aplicar» espera a los guardados de elección en camino', () => {
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true }
+    /** Una promesa que la prueba resuelve a mano: la petición «se queda colgada» hasta entonces. */
+    const diferida = <T,>() => {
+      let resolver!: (v: T) => void
+      let rechazar!: (e: unknown) => void
+      const promesa = new Promise<T>((res, rej) => {
+        resolver = res
+        rechazar = rej
+      })
+      return { promesa, resolver, rechazar }
+    }
+    const vistaPrevia = (eleccion: 'AVOQADO' | 'SHOPIFY' | null, porDecidir = 0) => ({
+      ...pagina([{ ...DECIDE, eleccion }], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir },
+      conexion: VISTA_CONEXION,
+    })
+    const aplicar = () => screen.getByRole('button', { name: 'preview.apply' })
+
+    it('guardado colgado: «Aplicar» se apaga (con su razón), sigue apagado mientras se vuelve a leer la vista previa y sólo entonces se habilita', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      const relectura = diferida<ReturnType<typeof vistaPrevia>>()
+      svc.getShopifyConnectReview
+        .mockResolvedValueOnce(vistaPrevia('AVOQADO'))
+        .mockImplementationOnce(() => relectura.promesa)
+        .mockResolvedValue(vistaPrevia('SHOPIFY')) // lo que lea «Aplicar» al terminar (invalida la conexión)
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      svc.applyShopifyConnect.mockResolvedValue({ solicitado: true })
+      renderPage()
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+
+      // Toca «Usar el de Shopify»: el guardado queda en camino.
+      await userEvent.click(screen.getAllByRole('radio')[1])
+      await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledTimes(1))
+      await waitFor(() => expect(aplicar()).toBeDisabled())
+      expect(screen.getByText('preview.guardando')).toBeInTheDocument()
+      await userEvent.click(aplicar()) // un clic sobre un botón apagado no abre el diálogo ni aplica
+      expect(screen.queryByText('preview.applyBody')).toBeNull()
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+
+      // El guardado llega, pero la vista previa todavía no se vuelve a leer: sigue apagado.
+      await act(async () => guardado.resolver({ guardadas: 1, porDecidir: 0 }))
+      await waitFor(() => expect(svc.getShopifyConnectReview).toHaveBeenCalledTimes(2))
+      expect(aplicar()).toBeDisabled()
+      expect(screen.getByText('preview.guardando')).toBeInTheDocument()
+
+      // La vista previa regresa con la elección nueva: se habilita y ya no dice «Guardando».
+      await act(async () => relectura.resolver(vistaPrevia('SHOPIFY')))
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+      expect(screen.getAllByRole('radio')[1]).toHaveAttribute('aria-checked', 'true')
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+      await userEvent.click(aplicar())
+      await userEvent.click(await screen.findByRole('button', { name: 'preview.applyConfirm' }))
+      await waitFor(() => expect(svc.applyShopifyConnect).toHaveBeenCalledTimes(1))
+    })
+
+    it('con el diálogo de «Aplicar» ya abierto: un guardado en camino apaga también «Sí, aplicar», y no aplica hasta que termina', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      svc.getShopifyConnectReview.mockResolvedValueOnce(vistaPrevia('AVOQADO')).mockResolvedValue(vistaPrevia('SHOPIFY'))
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      svc.applyShopifyConnect.mockResolvedValue({ solicitado: true })
+      renderPage()
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      const shopify = screen.getAllByRole('radio')[1]
+      await userEvent.click(aplicar())
+      const confirmar = await screen.findByRole('button', { name: 'preview.applyConfirm' })
+      expect(confirmar).toBeEnabled()
+
+      // Con el diálogo abierto llega un guardado (el diálogo es modal: se dispara el evento directo, sin puntero).
+      fireEvent.click(shopify)
+      await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledTimes(1))
+      await waitFor(() => expect(confirmar).toBeDisabled())
+      fireEvent.click(confirmar)
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+
+      await act(async () => guardado.resolver({ guardadas: 1, porDecidir: 0 }))
+      await waitFor(() => expect(confirmar).toBeEnabled())
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+    })
+
+    it('«en los que faltan» también cuenta: mientras se guarda dice por qué «Aplicar» espera, y se habilita al volver la vista previa sin faltantes', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      svc.getShopifyConnectReview.mockResolvedValueOnce(vistaPrevia(null, 1)).mockResolvedValue(vistaPrevia('AVOQADO', 0))
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      renderPage()
+      await userEvent.click(await screen.findByRole('button', { name: 'preview.todosAvoqado' }))
+      await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', { vista: VISTA_CONEXION, todos: 'AVOQADO' }))
+      expect(screen.getByText('preview.guardando')).toBeInTheDocument()
+      expect(aplicar()).toBeDisabled()
+      await act(async () => guardado.resolver({ guardadas: 1, porDecidir: 0 }))
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+    })
+
+    it('un guardado que FALLA libera «Aplicar» (no se queda apagado para siempre) una vez que la vista previa se vuelve a leer', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      svc.getShopifyConnectReview.mockResolvedValue(vistaPrevia('AVOQADO'))
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      renderPage()
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      await userEvent.click(screen.getAllByRole('radio')[1])
+      await waitFor(() => expect(aplicar()).toBeDisabled())
+      // Se rechaza con un 409 (RELEER): se dice y se vuelve a leer la vista previa.
+      const antes = svc.getShopifyConnectReview.mock.calls.length
+      await act(async () => guardado.rechazar(errorHttp(409, { code: 'SHOPIFY_REVISION_CAMBIO', message: 'cambió' })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })))
+      await waitFor(() => expect(svc.getShopifyConnectReview.mock.calls.length).toBeGreaterThan(antes))
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+    })
   })
 })
 
@@ -962,6 +1452,22 @@ describe('ShopifyIntegration — «Productos sin pareja» (L8, Z8)', () => {
 })
 
 describe('ShopifyIntegration — conexión activa, pausa y avisos', () => {
+  it('D1: con cambios en camino y la conexión avanzando dice «pendiente de sincronizar»; sin nada en camino o en pausa, no', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ conteos: { ...CONTEOS, pendientes: 2 } })))
+    const primera = renderPage()
+    expect(await screen.findByText('status.pendingSync')).toBeInTheDocument()
+    primera.unmount()
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
+    const segunda = renderPage()
+    expect(await screen.findByText('status.store')).toBeInTheDocument()
+    expect(screen.queryByText('status.pendingSync')).toBeNull()
+    segunda.unmount()
+    svc.getShopifyOverview.mockResolvedValue(resumen(pausada({ conteos: { ...CONTEOS, pendientes: 2 } })))
+    renderPage()
+    expect(await screen.findByText('status.store')).toBeInTheDocument()
+    expect(screen.queryByText('status.pendingSync')).toBeNull()
+  })
+
   it('pausada: lo explica SIN ofrecer comprar Premium, sin paywall y sin botones de resolver (N2)', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(pausada(), false))
     svc.listShopifyReviews.mockResolvedValue(pagina([REVISION]))

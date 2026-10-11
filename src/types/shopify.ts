@@ -141,10 +141,21 @@ export interface ShopifyConnectReviewItem {
   nuevo: boolean
   /** «Así quedará»: lo que deja «Aplicar» = lo de Shopify al importar + los cambios de la caja aún en camino (una venta resta). */
   quedara: string | null
+  /** D1 (aditivo; un server anterior no lo manda): hay que elegir qué número se queda. Sin preselección. */
+  requiereDecision?: boolean
+  /** La elección guardada que sigue en pie; null = falta (o la anterior dejó de valer porque cambió un número). */
+  eleccion?: ShopifyChoice | null
 }
 export interface ShopifyConnectReview extends Pagina<ShopifyConnectReviewItem> {
-  resumen: { emparejados: number; cambian: number; nuevos: number; sinPareja: number }
+  /** `porDecidir` (D1, aditivo): cuántos faltan por elegir en TODA la vista previa, no sólo en la página cargada. */
+  resumen: { emparejados: number; cambian: number; nuevos: number; sinPareja: number; porDecidir?: number }
+  /** D1: la conexión que se está viendo; se manda al elegir y el servidor la compara (una pantalla vieja no guarda). */
+  conexion?: ShopifyVistaConexion | null
 }
+/** D1: la conexión que la pantalla VIO (enlace, generación y credencial). Se manda tal cual: el servidor es estricto. */
+export type ShopifyVistaConexion = { linkId: string; generation: number; tokenVersion: number }
+/** D1: lo que se manda al elegir en un producto: la opción y los números que el dueño VIO. */
+export type ShopifyConnectChoice = { variantLinkId: string; choice: ShopifyChoice; expectedAvoqadoQty: string; expectedShopifyQty: number }
 export interface ShopifyLocation {
   id: string
   name: string
@@ -177,6 +188,8 @@ export const SHOPIFY_ERROR_CODES = [
   'SHOPIFY_SIN_CONEXION',
   'SHOPIFY_NO_EN_REVISION',
   'SHOPIFY_NO_ACTIVA',
+  'SHOPIFY_FALTAN_DECISIONES',
+  'SHOPIFY_CONEXION_CAMBIO',
   // resolver
   'SHOPIFY_CANTIDAD_INVALIDA',
   'SHOPIFY_REVISION_NO_EXISTE',
