@@ -5,7 +5,8 @@
     "empty": "Aún no hay facturas emitidas.",
     "emptyHint": "Las facturas aparecerán aquí cuando se emitan a tus clientes.",
     "loadError": "No se pudieron cargar las facturas.",
-    "replacedByBadge": "Sustituida por {{folio}}"
+    "replacedByBadge": "Sustituida por {{folio}}",
+    "creditNoteBadge": "Nota de crédito"
   },
   "columns": {
     "folio": "Serie-Folio",
@@ -183,6 +184,10 @@
     "fiscalBlock": {
       "title": "Esta cuenta no se puede facturar en línea",
       "subtitle": "Pide tu factura directamente al negocio."
+    },
+    "stampInDoubt": {
+      "title": "Tu factura se está procesando",
+      "subtitle": "Vuelve a abrir este recibo en unos minutos para descargarla."
     },
     "cancelPending": "La cancelación de esta factura está en trámite ante el SAT; mientras tanto sigue vigente."
   },

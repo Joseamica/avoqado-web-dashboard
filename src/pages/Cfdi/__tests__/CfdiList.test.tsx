@@ -346,3 +346,45 @@ describe('CfdiList · C2 · ronda QA: timbre en duda (D6) y la duda ya conocida 
     expect(within(fila('otra')).getByText(es.cancelacion.lista.enviando)).toBeInTheDocument()
   })
 })
+
+// ─── C2-pulido (G3 de la guía): una nota de crédito (CFDI de EGRESO) se distingue y su menú no ofrece lo que no aplica a un egreso ─────
+// La A-107/A-108 de la guía salían como «Personal · Timbrada» sin marca, y «Corregir importe (sustituir)» sobre ellas acababa en un 500 del
+// servidor. Un egreso sí se descarga, se reenvía (va al correo de la factura original) y se cancela (el SAT lo exige antes que la original).
+describe('CfdiList · C2-pulido · G3: la nota de crédito en la lista', () => {
+  const individual = (over: Partial<Cfdi>) =>
+    factura({ isGlobal: false, flow: 'STAFF_B', orderId: 'o1', globalPeriod: null, complementariaDe: null, ...over })
+  const NOTA = es.list.creditNoteBadge
+  const SUSTITUIR = es.actions.replace
+  const TERMINAR = es.actions.finishReplace
+
+  beforeEach(() => {
+    m.permisos = ['cfdi:configure', 'cfdi:issue']
+  })
+
+  it('🔴 `type: EGRESO` ⇒ insignia «Nota de crédito»; sin «Corregir importe» ni «Terminar la sustitución»; sí descargar, reenviar y cancelar', () => {
+    const sustituta = { id: 's1', uuid: 'U-S', serie: 'A', folio: '16', status: 'STAMPED', totalCents: 100 }
+    m.filas = [
+      individual({ id: 'nota', type: 'EGRESO' }),
+      individual({ id: 'notaRechazada', type: 'EGRESO', cancelStatus: 'REJECTED', replacedBy: [sustituta] as any }),
+    ]
+    render(<CfdiList />)
+    expect(NOTA).toBe('Nota de crédito')
+    for (const id of ['nota', 'notaRechazada']) {
+      expect(within(fila(id)).getByText(NOTA)).toBeInTheDocument()
+      expect(within(fila(id)).queryByRole('button', { name: SUSTITUIR })).not.toBeInTheDocument()
+      expect(within(fila(id)).queryByRole('button', { name: TERMINAR })).not.toBeInTheDocument()
+      expect(within(fila(id)).getByRole('button', { name: es.actions.downloadXml })).toBeInTheDocument()
+      expect(within(fila(id)).getByRole('button', { name: es.actions.sendEmail })).toBeInTheDocument()
+      expect(within(fila(id)).getByRole('button', { name: es.actions.cancel })).toBeInTheDocument()
+    }
+  })
+
+  it('control — una factura de venta (`INGRESO`, o un servidor que manda otra letra) no lleva la insignia y sí ofrece «Corregir importe»', () => {
+    m.filas = [individual({ id: 'venta', type: 'INGRESO' }), individual({ id: 'vieja', type: 'I' })]
+    render(<CfdiList />)
+    for (const id of ['venta', 'vieja']) {
+      expect(within(fila(id)).queryByText(NOTA)).not.toBeInTheDocument()
+      expect(within(fila(id)).getByRole('button', { name: SUSTITUIR })).toBeInTheDocument()
+    }
+  })
+})

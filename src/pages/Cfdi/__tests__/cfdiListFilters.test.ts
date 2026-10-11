@@ -23,7 +23,18 @@ import {
 
 describe('estatusDelServidor — grupos de la pantalla → estatus reales', () => {
   it('cada grupo se traduce a estatus que el servidor SÍ conoce', () => {
-    const validos = ['DRAFT', 'VALIDATING', 'VALIDATION_FAILED', 'STAMPING', 'STAMPED', 'STAMP_FAILED', 'CANCEL_REQUESTED', 'CANCELLED']
+    // C2-pulido (G7): el servidor 7a conoce `STAMP_IN_DOUBT` (uno anterior responde 400: lo cubre `cfdi.list.service.test.ts`).
+    const validos = [
+      'DRAFT',
+      'VALIDATING',
+      'VALIDATION_FAILED',
+      'STAMPING',
+      'STAMPED',
+      'STAMP_FAILED',
+      'STAMP_IN_DOUBT',
+      'CANCEL_REQUESTED',
+      'CANCELLED',
+    ]
     for (const g of STATUS_GROUPS) for (const s of estatusDelServidor([g])) expect(validos).toContain(s)
   })
 
@@ -34,6 +45,15 @@ describe('estatusDelServidor — grupos de la pantalla → estatus reales', () =
 
   it('sin grupos ⇒ sin filtro', () => {
     expect(estatusDelServidor([])).toEqual([])
+  })
+
+  // C2-pulido (G7): la factura EN DUDA (el PAC no contestó claro) es una espera, no un error: va en «En proceso». «Con error» ya no la
+  // trae (el servidor la separa de `STAMP_FAILED`).
+  it('🔴 G7: «En proceso» incluye las EN DUDA (`STAMP_IN_DOUBT`)', () => {
+    expect(estatusDelServidor(['IN_PROGRESS'])).toEqual(['DRAFT', 'VALIDATING', 'STAMPING', 'STAMP_IN_DOUBT'])
+  })
+  it('control — G7: «Con error» sigue siendo VALIDATION_FAILED + STAMP_FAILED (sin el valor nuevo)', () => {
+    expect(estatusDelServidor(['FAILED'])).toEqual(['VALIDATION_FAILED', 'STAMP_FAILED'])
   })
 })
 

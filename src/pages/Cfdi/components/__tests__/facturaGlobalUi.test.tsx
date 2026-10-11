@@ -19,6 +19,7 @@ const m = vi.hoisted(() => ({ toast: vi.fn() }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 
 import { avisoDeError, rangoFiscal, totalExcluidas, useAvisoDeLaGlobal } from '../facturaGlobalUi'
+import { DURACION_AVISO_LARGO_MS } from '../issueCfdiErrors'
 
 const g = es.globalInvoice
 const timbrada = {
@@ -173,7 +174,27 @@ describe('avisoDeError — ronda QA (hermanos): timbre en duda', () => {
       traducir,
       conError(502, { error: 'El PAC rechazó el timbrado de la factura global', message: 'fetch failed', timbreEnDuda: true }),
     )
-    expect(aviso).toEqual({ title: g.toast.pacNoAnswerTitle, description: g.toast.pacNoAnswerDescription })
+    // C2-pulido (G5), cambia A PROPÓSITO: además dice que es una ESPERA (`enEspera`), para que el toast y el diálogo lo pinten ámbar.
+    expect(aviso).toEqual({ title: g.toast.pacNoAnswerTitle, description: g.toast.pacNoAnswerDescription, enEspera: true })
     expect(JSON.stringify(aviso)).not.toMatch(/fetch failed|rechaz/i)
+  })
+})
+
+// C2-pulido (G5, hermano de «facturar»): la global EN DUDA («No hubo respuesta clara del PAC») es una espera: ámbar, no rojo. Un rechazo
+// del PAC sigue en rojo.
+describe('useAvisoDeLaGlobal — C2-pulido · G5: en duda es espera, no error', () => {
+  const aviso = () => renderHook(() => useAvisoDeLaGlobal()).result.current
+  it('🔴 502 con `timbreEnDuda` ⇒ variante `warning`; un 502 de rechazo ⇒ `destructive`', () => {
+    aviso().avisarError(conError(502, { error: 'El PAC rechazó el timbrado de la factura global', timbreEnDuda: true }))
+    expect(m.toast.mock.calls[0][0]).toMatchObject({ title: g.toast.pacNoAnswerTitle, variant: 'warning' })
+    aviso().avisarError(conError(502, { error: 'El PAC rechazó el timbrado de la factura global', message: 'RFC inválido' }))
+    expect(m.toast.mock.calls[1][0]).toMatchObject({ title: g.toast.pacRejectedTitle, variant: 'destructive' })
+  })
+  // C2-pulido (M2): la espera trae una instrucción («no la vuelvas a emitir») ⇒ dura lo de los avisos largos; el rechazo, lo de siempre.
+  it('🔴 M2: en duda ⇒ `duration` de aviso largo; un 502 de rechazo, sin `duration` (como siempre)', () => {
+    aviso().avisarError(conError(502, { error: 'El PAC rechazó el timbrado de la factura global', timbreEnDuda: true }))
+    expect(m.toast.mock.calls[0][0]).toMatchObject({ variant: 'warning', duration: DURACION_AVISO_LARGO_MS })
+    aviso().avisarError(conError(502, { error: 'El PAC rechazó el timbrado de la factura global', message: 'RFC inválido' }))
+    expect(m.toast.mock.calls[1][0]).not.toHaveProperty('duration')
   })
 })

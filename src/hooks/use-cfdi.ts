@@ -23,6 +23,7 @@ import { reintentarReporte, repetirAlVolver } from '@/components/accounting/erro
 import { apiErrorDescription, textoDelServidor } from '@/utils/apiError'
 import { triggerDownload } from '@/utils/export'
 import { conDudaConocida, olvidarCancelacionEnDuda, recordarCancelacionEnDuda } from '@/pages/Cfdi/cfdiListFilters'
+import { DURACION_AVISO_LARGO_MS } from '@/pages/Cfdi/components/issueCfdiErrors'
 import { useCurrentVenue } from './use-current-venue'
 import { useToast } from './use-toast'
 import cfdiService, {
@@ -645,15 +646,20 @@ export function useCancelCfdi() {
       }
       // C2: el servidor dice en qué quedó la cancelación. EN DUDA = el SAT no contestó claro: no se debe pedir otra vez (sólo consulta).
       // Ronda 1 (I1): `enDuda` del servidor manda; `ENVIANDO` no afirma que el SAT la tiene (texto neutro).
-      const descripcion =
-        res?.enDuda || res?.estado === 'CANCELACION_EN_DUDA'
+      const enDuda = res?.enDuda || res?.estado === 'CANCELACION_EN_DUDA'
+      const descripcion = enDuda
           ? t('cancelacion.enDuda')
           : res?.estado === 'EN_TRAMITE'
             ? t('cancelacion.enTramite')
             : res?.estado === 'ENVIANDO'
               ? t('cancelacion.enviando')
               : undefined
-      toast({ title: t('toast.cancelRequested'), ...(descripcion ? { description: descripcion } : {}) })
+      // C2-pulido (m1 de la revisión): el «en duda» trae una instrucción (consulta su estado): dura lo que los demás avisos de espera.
+      toast({
+        title: t('toast.cancelRequested'),
+        ...(descripcion ? { description: descripcion } : {}),
+        ...(enDuda ? { duration: DURACION_AVISO_LARGO_MS } : {}),
+      })
     },
     onError: (err: any) => {
       toast({ title: t('toast.cancelError'), description: apiErrorDescription(err), variant: 'destructive' })
@@ -697,7 +703,11 @@ export function useConsultarCancelacion() {
       // C2 · ronda QA (D4): si esta pestaña ya dijo «en duda» de esta factura, ENVIANDO se lee como en duda.
       const estado = conDudaConocida({ id: res?.cfdiId ?? cfdiId, estadoCancelacion: res?.estado }).estadoCancelacion
       const clave = (estado && TEXTO_DE_LA_CONSULTA[estado]) || 'cancelacion.consulta.sinCancelacion'
-      toast({ title: t('cancelacion.consulta.titulo'), description: t(clave) })
+      toast({
+        title: t('cancelacion.consulta.titulo'),
+        description: t(clave),
+        ...(estado === 'CANCELACION_EN_DUDA' ? { duration: DURACION_AVISO_LARGO_MS } : {}),
+      })
     },
     onError: (err: any) => {
       toast({ title: t('cancelacion.consulta.error'), description: apiErrorDescription(err), variant: 'destructive' })

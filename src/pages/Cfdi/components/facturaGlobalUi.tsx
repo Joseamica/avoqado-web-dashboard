@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { CorregidasPendientes, GlobalCfdiAlreadyStamped, GlobalCfdiResult, GlobalPeriod } from '@/services/cfdi.service'
 import { textoDelServidor } from '@/utils/apiError'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { DURACION_AVISO_LARGO_MS } from './issueCfdiErrors'
 
 /** La `t` de i18next, tipada como la usan los demás ayudantes puros del repo (`IvaPorTasa`, `ReferralCard`). */
 export type Traducir = (key: string, options?: Record<string, unknown>) => string
@@ -110,7 +111,7 @@ const SIN_SABER = [502, 503, 504, 524]
  * minuto y volver a abrir la pantalla. No nombra el botón «Actualizar» de los periodos: la complementaria también se emite desde la lista
  * de facturas, donde ese botón no existe (ola final, M3).
  */
-export function avisoDeError(t: Traducir, err: any): { title: string; description?: string } {
+export function avisoDeError(t: Traducir, err: any): { title: string; description?: string; enEspera?: true } {
   const status: number | undefined = err?.response?.status
   const data = err?.response?.data ?? {}
   const delServidor = textoDelServidor(err)
@@ -130,9 +131,13 @@ export function avisoDeError(t: Traducir, err: any): { title: string; descriptio
       return { title: error || t('globalInvoice.toast.validationTitle'), description: reasons?.length ? reasons.join(' · ') : message }
     case 502:
       // Ronda QA (hermanos): el servidor marca `timbreEnDuda` cuando el PAC no contestó claro (pudo haberla timbrado): no es un rechazo,
-      // y el error crudo («fetch failed») no se enseña.
+      // y el error crudo («fetch failed») no se enseña. C2-pulido (G5): `enEspera` ⇒ quien lo pinta lo pone en ámbar, no en rojo.
       if (data?.timbreEnDuda === true)
-        return { title: t('globalInvoice.toast.pacNoAnswerTitle'), description: t('globalInvoice.toast.pacNoAnswerDescription') }
+        return {
+          title: t('globalInvoice.toast.pacNoAnswerTitle'),
+          description: t('globalInvoice.toast.pacNoAnswerDescription'),
+          enEspera: true,
+        }
       return { title: t('globalInvoice.toast.pacRejectedTitle'), description: message || error }
     case 404:
       return { title: t('globalInvoice.toast.notFoundTitle'), description: error }
@@ -206,7 +211,9 @@ export function useAvisoDeLaGlobal() {
   }
 
   const avisarError = (err: any, opts: { onVerExcluidas?: () => void } = {}) => {
-    toast({ ...avisoDeError(t, err), variant: 'destructive' })
+    const { enEspera, ...aviso } = avisoDeError(t, err)
+    // C2-pulido (M2): la espera trae una instrucción («no la vuelvas a emitir») ⇒ dura lo de los avisos largos.
+    toast(enEspera ? { ...aviso, variant: 'warning', duration: DURACION_AVISO_LARGO_MS } : { ...aviso, variant: 'destructive' })
     // M8: un 422 (VALIDATION_FAILED) también trae los conteos; es cuando más hace falta ver cuáles quedaron fuera.
     const data = err?.response?.data
     if (data && typeof data === 'object') avisarExcluidas(data, opts.onVerExcluidas)

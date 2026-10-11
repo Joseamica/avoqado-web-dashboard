@@ -20,7 +20,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, CheckCircle2, Download, Loader2, Mail, MessageCircle, Receipt as ReceiptIcon } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Download, Loader2, Mail, MessageCircle, Receipt as ReceiptIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -64,12 +64,13 @@ function isStamped(cfdi: AutofacturaCfdi | null | undefined): cfdi is Autofactur
  * GET status. `autofacturaUnavailable` is OPTIONAL (older servers don't send it) and only comes when
  * `autofacturaAvailable` is false: DISABLED = the merchant doesn't offer it; FISCAL_BLOCK = the merchant
  * enabled it but THIS sale can't be invoiced to the cent. The reasons are written for the merchant and
- * never reach this public page.
+ * never reach this public page. C2-pulido · G1: TIMBRE_EN_DUDA (nuevo y opcional) = la factura de la venta
+ * quedó en duda en el PAC: se está procesando. Un `kind` que este recibo no conozca se trata como «no disponible».
  */
 interface AutofacturaStatus {
   cfdi: AutofacturaCfdi | null
   autofacturaAvailable?: boolean
-  autofacturaUnavailable?: { kind: 'DISABLED' | 'FISCAL_BLOCK' }
+  autofacturaUnavailable?: { kind: 'DISABLED' | 'FISCAL_BLOCK' | 'TIMBRE_EN_DUDA' }
   /** C2 · T10 (opcional; sólo viene cuando es verdad): se pidió cancelar la factura y el SAT todavía no lo resuelve. Sigue vigente. */
   cancelacionEnTramite?: boolean
 }
@@ -134,6 +135,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   // false until we know, so we don't flash a CTA the admin disabled).
   const autofacturaAvailable = statusData?.autofacturaAvailable ?? false
   const fiscalBlock = statusData?.autofacturaUnavailable?.kind === 'FISCAL_BLOCK'
+  const stampInDoubt = statusData?.autofacturaUnavailable?.kind === 'TIMBRE_EN_DUDA'
 
   const form = useForm<AutofacturaReceptorFormValues>({
     resolver: zodResolver(autofacturaReceptorSchema),
@@ -418,6 +420,22 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
 
   // If the status GET itself failed, stay silent rather than block the receipt.
   if (isStatusError) return null
+
+  // ── C2-pulido · G1: la factura de la venta quedó EN DUDA en el PAC (pudo haberla timbrado) → una ESPERA, no el formulario ──
+  // Mismo texto que el 409 `TIMBRE_EN_DUDA` del POST. Cuando se confirma timbrada, el GET la enseña para descargar (arriba).
+  if (!autofacturaAvailable && stampInDoubt) {
+    return (
+      <Card className="border-input shadow-sm" data-tour="autofactura-stamp-in-doubt">
+        <CardContent className="space-y-3 p-6 text-center">
+          <Clock className="mx-auto h-6 w-6 text-amber-500" />
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">{t('autofactura.stampInDoubt.title')}</h2>
+            <p className="text-sm text-muted-foreground">{t('autofactura.stampInDoubt.subtitle')}</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   // ── The merchant DID enable self-invoicing, but this sale can't be invoiced to the cent ──
   // Say so and tell them to ask the business for the invoice, instead of vanishing: a customer who was promised

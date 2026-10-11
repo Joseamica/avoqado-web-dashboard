@@ -36,7 +36,7 @@ export function GlobalComplementariaDialog({ emisorId, principalId, onOpenChange
   const { avisarResultado } = useAvisoDeLaGlobal()
   const preview = useGlobalComplementariaPreview(emisorId, principalId)
   const emitir = useEmitGlobalComplementaria()
-  const [error, setError] = useState<{ title: string; description?: string } | null>(null)
+  const [error, setError] = useState<ReturnType<typeof avisoDeError> | null>(null)
   const [verExcluidas, setVerExcluidas] = useState(false)
 
   const open = !!principalId
@@ -117,7 +117,15 @@ export function GlobalComplementariaDialog({ emisorId, principalId, onOpenChange
           {puedeEmitir && <p className="text-xs text-muted-foreground">{t('globalInvoice.complementaryDialog.irreversible')}</p>}
 
           {error && (
-            <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <div
+              role="alert"
+              className={
+                // C2-pulido (G5): la complementaria EN DUDA es una espera (ámbar), no un error.
+                error.enEspera
+                  ? 'rounded-lg border border-warning-border bg-warning-muted p-3 text-sm text-warning-foreground'
+                  : 'rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'
+              }
+            >
               <p className="font-medium">{error.title}</p>
               {error.description && <p className="mt-1">{error.description}</p>}
             </div>

@@ -165,7 +165,18 @@ export function ReplaceCfdiDialog({ cfdi, onOpenChange }: ReplaceCfdiDialogProps
                 </div>
               )}
 
-              {errorTexto && <p className="text-sm text-destructive">{errorTexto}</p>}
+              {errorTexto && (
+                <p
+                  className={
+                    // C2-pulido (M1, hermano de G5): la corregida EN DUDA es una espera (ámbar), no un error; los errores reales, en rojo.
+                    corregidaEnDuda
+                      ? 'rounded-lg border border-warning-border bg-warning-muted p-3 text-sm text-warning-foreground'
+                      : 'text-sm text-destructive'
+                  }
+                >
+                  {errorTexto}
+                </p>
+              )}
             </div>
 
             <AlertDialogFooter>
