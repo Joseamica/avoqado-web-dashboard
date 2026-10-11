@@ -658,7 +658,7 @@ export function useCancelCfdi() {
       toast({
         title: t('toast.cancelRequested'),
         ...(descripcion ? { description: descripcion } : {}),
-        ...(enDuda ? { duration: DURACION_AVISO_LARGO_MS } : {}),
+        ...(enDuda ? { variant: 'warning' as const, duration: DURACION_AVISO_LARGO_MS } : {}),
       })
     },
     onError: (err: any) => {
@@ -706,7 +706,7 @@ export function useConsultarCancelacion() {
       toast({
         title: t('cancelacion.consulta.titulo'),
         description: t(clave),
-        ...(estado === 'CANCELACION_EN_DUDA' ? { duration: DURACION_AVISO_LARGO_MS } : {}),
+        ...(estado === 'CANCELACION_EN_DUDA' ? { variant: 'warning' as const, duration: DURACION_AVISO_LARGO_MS } : {}),
       })
     },
     onError: (err: any) => {
