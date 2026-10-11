@@ -63,6 +63,7 @@ vi.mock('../receptor-fields', () => ({
 }))
 
 import { IssueCfdiDialog } from '../IssueCfdiDialog'
+import { DURACION_AVISO_LARGO_MS } from '../issueCfdiErrors'
 
 const RECEPTOR = {
   rfc: 'MAV010101AB1',
@@ -425,18 +426,25 @@ describe('IssueCfdiDialog — 502: en duda no es rechazo (ronda QA, D1)', () => 
       { error: 'El PAC rechazó el timbrado', message: 'fetch failed', cfdiId: 'c1', timbreEnDuda: true },
       es.issueDialog.errors.pacNoAnswer,
       es.issueDialog.errors.pacNoAnswerDetail,
+      // C2-pulido (G5), cambia A PROPÓSITO: «en espera» no es un error ⇒ ámbar (`warning`), no rojo.
+      'warning',
+      // C2-pulido (M2), cambia A PROPÓSITO: trae una instrucción («No la vuelvas a emitir…») ⇒ dura lo de los avisos largos.
+      { duration: DURACION_AVISO_LARGO_MS },
     ],
     [
       'control — rechazo (o servidor viejo) ⇒ «rechazó» + el porqué del PAC',
       { error: 'El PAC rechazó el timbrado', message: 'RFC del receptor inválido', cfdiId: 'c1' },
       es.issueDialog.errors.pacRejected,
       'RFC del receptor inválido',
+      'destructive',
+      // control (M2): el rechazo dura lo de siempre (sin `duration`).
+      {},
     ],
-  ])('%s', async (_caso, data, title, description) => {
+  ])('%s', async (_caso, data, title, description, variant, extra) => {
     svc.issueCfdiForOrder.mockRejectedValueOnce(errorHttp(502, data))
     renderDialog()
     llenarReceptor()
     facturar()
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title, description, variant: 'destructive' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title, description, variant, ...extra }))
   })
 })

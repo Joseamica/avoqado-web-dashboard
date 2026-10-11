@@ -228,6 +228,12 @@ export default function CfdiList() {
           return (
             <div className="flex flex-col">
               <span className="font-medium">{[row.original.serie, row.original.folio].filter(Boolean).join('-') || '—'}</span>
+              {/* C2-pulido (G3): una nota de crédito no se confunde con una factura de venta. */}
+              {row.original.type === 'EGRESO' && (
+                <Badge variant="outline" className="w-fit whitespace-nowrap text-[10px]">
+                  {t('list.creditNoteBadge')}
+                </Badge>
+              )}
               {sustituta && (
                 <span className="text-xs text-amber-600 dark:text-amber-400">
                   {t('list.replacedByBadge', {
@@ -297,11 +303,15 @@ export default function CfdiList() {
           const canCheck = canConfigure && sePuedeConsultarLaCancelacion(cfdi)
           // C2 · T10 ronda 1 (I-2): la sustituta ya está timbrada y la cancelación de ESTA (la original) no salió o no se pudo pedir. Abre el
           // mismo diálogo de sustitución: el servidor sólo reanuda la cancelación (no timbra otra factura).
-          const canFinishReplace = canConfigure && sePuedeTerminarLaSustitucion(cfdi)
+          // C2-pulido (G3): una nota de crédito (EGRESO) también tiene `orderId` y queda STAMPED, pero no se sustituye (el servidor la
+          // rechaza): sí se descarga, se reenvía y se cancela.
+          const esNotaDeCredito = cfdi.type === 'EGRESO'
+          const canFinishReplace = canConfigure && !esNotaDeCredito && sePuedeTerminarLaSustitucion(cfdi)
           // Sustituir sólo tiene sentido en una factura de VENTA vigente, ligada a una cuenta y que
           // no se haya corregido ya: el servidor reconstruye el documento desde esa cuenta.
           const canReplace =
             canConfigure &&
+            !esNotaDeCredito &&
             cfdi.status === 'STAMPED' &&
             sinCancelacionViva &&
             !cfdi.isGlobal &&

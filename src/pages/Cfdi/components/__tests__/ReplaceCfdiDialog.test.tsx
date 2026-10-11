@@ -378,6 +378,28 @@ describe('ReplaceCfdiDialog — micro-ronda final: los errores dicen lo que pas�
     expect(screen.getByRole('alertdialog')).toHaveTextContent(es.replaceDialog.genericError)
     expect(screen.getByRole('alertdialog')).not.toHaveTextContent('Request failed')
   })
+  // C2-pulido · M1 (hermano de G5): la corregida EN DUDA es una ESPERA ⇒ caja ámbar (la `warning` de la ronda 1), no letra roja. Un rechazo
+  // del PAC (y cualquier error real) sigue en rojo.
+  it('🔴 M1: 502 con `timbreEnDuda` ⇒ el aviso va en ámbar (`warning`), no en `text-destructive`', () => {
+    fallar(502, { ...sustitutaEnDuda, timbreEnDuda: true })
+    render(<ReplaceCfdiDialog cfdi={factura} onOpenChange={() => {}} />)
+    confirmar()
+    const aviso = screen.getByText(es.replaceDialog.stampInDoubt)
+    expect(aviso).toHaveClass('bg-warning-muted', 'text-warning-foreground', 'border-warning-border')
+    expect(aviso).not.toHaveClass('text-destructive')
+  })
+  it('control — M1: el rechazo del PAC (502 sin `timbreEnDuda`) y un 409 siguen en rojo', () => {
+    fallar(502, { status: 'STAMP_FAILED', sustituta: { id: 's1' }, cancelPendiente: true })
+    const { unmount } = render(<ReplaceCfdiDialog cfdi={factura} onOpenChange={() => {}} />)
+    confirmar()
+    expect(screen.getByText(es.replaceDialog.stampRejected)).toHaveClass('text-destructive')
+    expect(screen.getByText(es.replaceDialog.stampRejected)).not.toHaveClass('text-warning-foreground')
+    unmount()
+    fallar(409, { error: 'Sustitución en proceso para esta factura' })
+    render(<ReplaceCfdiDialog cfdi={factura} onOpenChange={() => {}} />)
+    confirmar()
+    expect(screen.getByText('Sustitución en proceso para esta factura')).toHaveClass('text-destructive')
+  })
   it('control — un 409 con texto del servidor enseña ese texto', () => {
     fallar(409, { error: 'Sustitución en proceso para esta factura' })
     render(<ReplaceCfdiDialog cfdi={factura} onOpenChange={() => {}} />)

@@ -15,6 +15,7 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
 
 import { useCancelCfdi, useConsultarCancelacion, useReplaceCfdi } from './use-cfdi'
 import { conDudaConocida, olvidarCancelacionesEnDuda, recordarCancelacionEnDuda } from '@/pages/Cfdi/cfdiListFilters'
+import { DURACION_AVISO_LARGO_MS } from '@/pages/Cfdi/components/issueCfdiErrors'
 
 const conCliente = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
@@ -37,6 +38,8 @@ describe('C2 · useCancelCfdi dice en qué quedó la cancelación', () => {
     expect(await cancelarCon({ cancelStatus: 'REQUESTED', cfdiId: 'c1', estado: 'CANCELACION_EN_DUDA' })).toEqual({
       title: 'toast.cancelRequested',
       description: 'cancelacion.enDuda',
+      variant: 'warning', // QA web D1: espera, no error ni aviso neutro
+      duration: DURACION_AVISO_LARGO_MS, // C2-pulido m1: el «en duda» trae una instrucción
     })
   })
 
@@ -59,6 +62,8 @@ describe('C2 · useCancelCfdi dice en qué quedó la cancelación', () => {
     expect(await cancelarCon({ cancelStatus: 'REQUESTED', cfdiId: 'c1', estado: 'ENVIANDO', enDuda: true })).toEqual({
       title: 'toast.cancelRequested',
       description: 'cancelacion.enDuda',
+      variant: 'warning', // QA web D1: espera, no error ni aviso neutro
+      duration: DURACION_AVISO_LARGO_MS, // C2-pulido m1: el «en duda» trae una instrucción
     })
   })
 
@@ -130,6 +135,7 @@ describe('C2 · T10 ronda 1 (I-1) · useConsultarCancelacion', () => {
     expect(await consultarCon({ cancelStatus: 'REQUESTED', cfdiId: 'c1', estado })).toEqual({
       title: 'cancelacion.consulta.titulo',
       description: descripcion,
+      ...(estado === 'CANCELACION_EN_DUDA' ? { variant: 'warning', duration: DURACION_AVISO_LARGO_MS } : {}),
     })
   })
   it('🔴 RECHAZADA (la lista no se había refrescado) ⇒ aviso destructivo de consulta con el porqué del servidor', async () => {
@@ -208,7 +214,12 @@ describe('C2 · ronda QA (D4) · la duda que ya se dijo', () => {
       await consultar.result.current.mutateAsync({ cfdiId: 'd2' })
     })
     const llamadas = m.toast.mock.calls
-    expect(llamadas[llamadas.length - 1]?.[0]).toEqual({ title: 'cancelacion.consulta.titulo', description: 'cancelacion.consulta.enDuda' })
+    expect(llamadas[llamadas.length - 1]?.[0]).toEqual({
+      title: 'cancelacion.consulta.titulo',
+      description: 'cancelacion.consulta.enDuda',
+      variant: 'warning',
+      duration: DURACION_AVISO_LARGO_MS,
+    })
   })
 })
 

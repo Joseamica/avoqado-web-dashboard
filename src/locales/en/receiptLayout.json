@@ -161,6 +161,7 @@
     },
     "alwaysTotal": "The TOTAL always prints: the law requires the customer to see it.",
     "alwaysAuth": "The authorization and reference always print: they're the proof of a card payment.",
+    "alwaysTipDiscount": "Tips and discounts charged always appear on the receipt so it adds up.",
     "showOrderType": "Show the sale type",
     "showModifiers": "Show modifiers",
     "showNotes": "Show notes",

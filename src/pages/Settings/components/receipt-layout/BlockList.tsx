@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { ReceiptBlock } from '@/services/receiptLayout.service'
-import { BLOCK_CATALOG, LOCK_BADGE, LOCK_TOOLTIP_KEY } from './blockCatalog'
+import { BLOCK_CATALOG, INTERRUPTORES_FIJOS, LOCK_BADGE, LOCK_TOOLTIP_KEY } from './blockCatalog'
 
 interface BlockListProps {
   blocks: ReceiptBlock[]
@@ -171,9 +171,10 @@ function resumen(block: ReceiptBlock, t: (k: string, o?: Record<string, unknown>
   if (Array.isArray(v.lines)) partes.push(t('summary.lines', { count: v.lines.length }))
   if (typeof v.caption === 'string' && v.caption) partes.push(`«${v.caption}»`)
 
-  // Los interruptores apagados son lo interesante: lo prendido es el default.
+  // Los interruptores apagados son lo interesante: lo prendido es el default. La propina y los descuentos no cuentan: se
+  // imprimen igual si se cobraron (A7-R7), y decir «sin propina» le mentiría al dueño.
   const apagados = Object.entries(v)
-    .filter(([k, val]) => k.startsWith('show') && val === false)
+    .filter(([k, val]) => k.startsWith('show') && val === false && !INTERRUPTORES_FIJOS.has(k))
     .map(([k]) => t(`summary.off.${k}`))
   partes.push(...apagados)
 

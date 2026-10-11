@@ -170,6 +170,13 @@ export const LOCK_TOOLTIP_KEY: Record<LockClass, string> = {
 /** La letra del candado. El estado NUNCA se comunica sólo con color (WCAG + `.impeccable.md`). */
 export const LOCK_BADGE: Record<LockClass, string> = { legal: 'L', operativo: 'O', plataforma: 'P' }
 
+/**
+ * 🔴 A7-R7 (IVA, plan 7a): la propina y los descuentos COBRADOS salen siempre en el ticket, igual que el cargo y el IVA agregado,
+ * porque son parte de la suma (subtotal − descuento + cargo + IVA agregado + propina = TOTAL). Sus interruptores ya no apagan
+ * nada: el editor los muestra fijos y el resumen no dice «sin propina». Square y Toast tampoco dejan ocultar la propina cobrada.
+ */
+export const INTERRUPTORES_FIJOS: ReadonlySet<string> = new Set<BlockOption>(['showDiscount', 'showTip'])
+
 /** Los valores por default del servidor, para cuando se agrega un bloque nuevo. */
 export const BLOCK_DEFAULTS: Record<string, Record<string, unknown>> = {
   logo: { size: 'M', align: 'center' },

@@ -42,6 +42,7 @@ vi.mock('@/hooks/use-cfdi', () => ({
 vi.mock('@/api', () => ({ default: { post: m.post, get: vi.fn() } }))
 
 import { RefundCreditNotePanel } from '../RefundCreditNotePanel'
+import { DURACION_AVISO_LARGO_MS } from '@/pages/Cfdi/components/issueCfdiErrors'
 import cfdiService, { MOTIVOS_DE_BLOQUEO_DE_NOTA } from '@/services/cfdi.service'
 import en from '@/locales/en/cfdi.json'
 
@@ -406,9 +407,12 @@ describe('RefundCreditNotePanel — C2 · ronda QA', () => {
     await emitir()
     await waitFor(() =>
       expect(m.toast).toHaveBeenCalledWith({
-        variant: 'destructive',
+        // C2-pulido (G5), cambia A PROPÓSITO: es una espera, no un error ⇒ ámbar, no rojo.
+        variant: 'warning',
         title: es.creditNote.error.pacNoAnswer,
         description: es.creditNote.error.inDoubt,
+        // C2-pulido (M2), cambia A PROPÓSITO: trae una instrucción («no la vuelvas a emitir») ⇒ dura lo de los avisos largos.
+        duration: DURACION_AVISO_LARGO_MS,
       }),
     )
   })
@@ -434,9 +438,12 @@ describe('RefundCreditNotePanel — C2 · ronda QA', () => {
     fireEvent.click(screen.getByRole('button', { name: es.creditNote.byAmount.confirm }))
     await waitFor(() =>
       expect(m.toast).toHaveBeenCalledWith({
-        variant: 'destructive',
+        // C2-pulido (G5), cambia A PROPÓSITO: es una espera, no un error ⇒ ámbar, no rojo.
+        variant: 'warning',
         title: es.creditNote.error.pacNoAnswer,
         description: es.creditNote.error.inDoubt,
+        // C2-pulido (M2), cambia A PROPÓSITO: trae una instrucción («no la vuelvas a emitir») ⇒ dura lo de los avisos largos.
+        duration: DURACION_AVISO_LARGO_MS,
       }),
     )
   })
@@ -485,5 +492,40 @@ describe('RefundCreditNotePanel — C2 · ronda QA', () => {
     render(<RefundCreditNotePanel refundId="r1" />)
     fireEvent.click(screen.getByRole('button', { name: es.creditNote.byAmount.button }))
     expect(within(screen.getByTestId('reparto-por-importe')).getByText('F-12')).toBeInTheDocument()
+  })
+})
+
+// ─── C2-pulido (G4 de la guía): el panel «Nota de crédito emitida» con PDF/XML no se desacomoda ─────────────────────────────────────────
+// En el drawer (1440 px) la insignia «CFDI de Egreso» se partía en dos renglones fuera de su píldora y el UUID dejaba una «C» sola: los
+// botones le quitaban el ancho al texto. Los botones van en su propio renglón y la insignia no se parte.
+describe('RefundCreditNotePanel — C2-pulido · G4: nota emitida con PDF/XML', () => {
+  it('🔴 la insignia no se parte y los botones van en su renglón (nunca al lado del texto)', () => {
+    m.data = {
+      creditNote: {
+        id: 'n1',
+        status: 'STAMPED',
+        uuid: '8542B880-34FC-45C0-8E02-3B2A26BC7CCC',
+        serie: 'A',
+        folio: '107',
+        totalCents: 26000,
+        xmlUrl: 'https://x/n1.xml',
+        pdfUrl: 'https://x/n1.pdf',
+      },
+      eligibility: { eligible: false, reason: null, message: 'Este reembolso ya tiene su nota de crédito timbrada.' },
+      preview: null,
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.badge).className).toContain('whitespace-nowrap')
+    const titulo = screen.getByText(es.creditNote.issued)
+    const uuid = screen.getByText('8542B880-34FC-45C0-8E02-3B2A26BC7CCC')
+    expect(uuid.className).toContain('break-all')
+    for (const nombre of [es.creditNote.pdf, es.creditNote.xml]) {
+      const boton = screen.getByRole('link', { name: nombre })
+      // El primer contenedor que tiene al botón Y al texto apila (no es un renglón flex): el texto conserva todo el ancho.
+      let comun = boton.parentElement!
+      while (!comun.contains(titulo)) comun = comun.parentElement!
+      expect(comun.contains(uuid)).toBe(true)
+      expect(comun.classList.contains('flex') && !comun.classList.contains('flex-col')).toBe(false)
+    }
   })
 })

@@ -810,20 +810,32 @@ export const cfdiService = {
 
   // ── CFDI list + actions ────────────────────────────────────────────────
   async getCfdis(venueId: string, filters: CfdiListFilters = {}): Promise<CfdiListResponse> {
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/cfdi`, {
-      params: {
-        // Varios valores van separados por coma: el servidor los acepta así, y no depende de cómo cada
-        // cliente HTTP serialice un arreglo en la URL.
-        ...(filters.status && filters.status.length > 0 && { status: [filters.status].flat().join(',') }),
-        ...(filters.flow && filters.flow.length > 0 && { flow: [filters.flow].flat().join(',') }),
-        ...(filters.isGlobal !== undefined && { isGlobal: filters.isGlobal }),
-        ...(filters.receptorRfc && { receptorRfc: filters.receptorRfc }),
-        ...(filters.from && { from: filters.from }),
-        ...(filters.to && { to: filters.to }),
-        ...(filters.page && { page: filters.page }),
-        ...(filters.pageSize && { pageSize: filters.pageSize }),
-      },
-    })
+    const pedir = (status: string[]) =>
+      api.get(`/api/v1/dashboard/venues/${venueId}/cfdi`, {
+        params: {
+          // Varios valores van separados por coma: el servidor los acepta así, y no depende de cómo cada
+          // cliente HTTP serialice un arreglo en la URL.
+          ...(status.length > 0 && { status: status.join(',') }),
+          ...(filters.flow && filters.flow.length > 0 && { flow: [filters.flow].flat().join(',') }),
+          ...(filters.isGlobal !== undefined && { isGlobal: filters.isGlobal }),
+          ...(filters.receptorRfc && { receptorRfc: filters.receptorRfc }),
+          ...(filters.from && { from: filters.from }),
+          ...(filters.to && { to: filters.to }),
+          ...(filters.page && { page: filters.page }),
+          ...(filters.pageSize && { pageSize: filters.pageSize }),
+        },
+      })
+    const status = [filters.status ?? []].flat()
+    let response
+    try {
+      response = await pedir(status)
+    } catch (err: any) {
+      // C2-pulido (G7): `STAMP_IN_DOUBT` es nuevo; un servidor anterior lo rechaza con 400 («El estado del CFDI no es válido»). Se pide
+      // otra vez SIN él (lo que pedía «En proceso» antes): la lista sale como antes en vez de vaciarse con un error.
+      const sinDuda = status.filter(s => s !== 'STAMP_IN_DOUBT')
+      if (err?.response?.status !== 400 || sinDuda.length === status.length || sinDuda.length === 0) throw err
+      response = await pedir(sinDuda)
+    }
     const data = response.data?.data ?? response.data
     return {
       cfdis: data?.cfdis ?? [],
