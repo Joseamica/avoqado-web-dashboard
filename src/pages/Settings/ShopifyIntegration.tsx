@@ -97,13 +97,15 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
     const cuadreTermino = (antes.pendiente && !cuadrePendiente) || antes.ultimo !== (cuadreUltimo ?? null)
     const aplicacionTermino = antes.estado === 'APLICANDO' && estado === 'ACTIVA'
     if (cuadreTermino || aplicacionTermino) void invalidarListas(venueId ?? undefined)
-    // D1: la aplicación regresó a «Así quedará tu stock» (cambió un número ya elegido): se dice en la página y se vuelve a
-    // leer la vista previa, que puede seguir en caché de antes de aplicar. (No hay aviso de campanita: recorte de la auditoría.)
+    // D1: la aplicación regresó a «Así quedará tu stock» (cambió un número ya elegido): se vuelve a leer la vista previa, que
+    // puede seguir en caché de antes de aplicar, y se dice en la página SÓLO a quien puede actuar (elegir y aplicar de nuevo
+    // pide `settings:manage`; quien sólo lee no puede, y el aviso le mandaría a algo que no puede hacer). (No hay aviso de
+    // campanita: recorte de la auditoría.)
     if (antes.estado === 'APLICANDO' && estado === 'POR_APLICAR') {
-      toast({ title: t('preview.devuelta') })
+      if (canManage) toast({ title: t('preview.devuelta') })
       void invalidarVistaPrevia(venueId ?? undefined)
     }
-  }, [estado, cuadrePendiente, cuadreUltimo, invalidarListas, invalidarVistaPrevia, toast, t, venueId])
+  }, [estado, cuadrePendiente, cuadreUltimo, invalidarListas, invalidarVistaPrevia, toast, t, venueId, canManage])
 
   // Sin permiso de Shopify, B contesta 403 SHOPIFY_FALTA_PERMISO la primera vez y 409 SHOPIFY_EN_PAUSA después: en cuanto el
   // resumen trae la marca, no se ofrece elegir y se dice por qué. Sin el permiso del usuario, los botones se ven deshabilitados.

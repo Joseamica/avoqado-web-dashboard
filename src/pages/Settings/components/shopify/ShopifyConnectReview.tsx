@@ -212,17 +212,12 @@ function ElegirLosQueFaltan({ venueId, vista, porDecidir }: { venueId: string; v
   const { toast } = useToast()
   const fallo = useShopifyFallo(venueId)
   const invalidarVista = useInvalidateShopifyVistaPrevia()
-  // El aviso emergente se va a los 5 s y la persona se queda con productos sin elegir sin saber por qué: el último resultado
-  // de «Avoqado» que dejó productos pendientes se guarda y su explicación se queda en la página mientras falte elegir (este
-  // componente sólo existe con `porDecidir > 0`, así que se va solo cuando ya no falta nada).
-  const [dejoPendientes, setDejoPendientes] = useState(false)
   const elegir = useMutation({
     mutationFn: (todos: ShopifyChoice) => saveShopifyConnectChoices(venueId, { vista, todos }),
     onSuccess: async (r, todos) => {
       // Que no queden callados: si «Avoqado» dejó productos sin elegir, se dice por qué (no es una falla: se eligen aparte).
-      const dejo = todos === 'AVOQADO' && r.porDecidir > 0
-      setDejoPendientes(dejo)
-      if (dejo) {
+      // El aviso emergente se va a los 5 s; la explicación que se queda es la línea de ayuda de abajo (siempre visible).
+      if (todos === 'AVOQADO' && r.porDecidir > 0) {
         toast({
           title: t('preview.todosQuedaron', { guardadas: r.guardadas, porDecidir: r.porDecidir }),
           description: t('preview.todosQuedaronDetalle'),
@@ -243,7 +238,12 @@ function ElegirLosQueFaltan({ venueId, vista, porDecidir }: { venueId: string; v
           {t('preview.todosShopify')}
         </Button>
       </div>
-      {dejoPendientes && <p className="text-xs text-muted-foreground">{t('preview.todosQuedaronDetalle')}</p>}
+      {/* La regla de los decimales se queda a la vista mientras falte elegir (este componente sólo existe con `porDecidir > 0`):
+          no depende de haber tocado «Avoqado» en ESTA visita, así que no se pierde al salir y volver ni cuando la aplicación
+          regresa a la vista previa. */}
+      <p role="status" className="text-xs text-muted-foreground">
+        {t('preview.todosQuedaronDetalle')}
+      </p>
     </div>
   )
 }
