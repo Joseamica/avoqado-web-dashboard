@@ -3,7 +3,7 @@
  *
  * Es la clase de defecto que sólo se ve MIRANDO la pantalla —y el que ya cosechó este repo:
  * una miga de pan en inglés sobre un dashboard en español, un botón sin `t()`, 26 acentos
- * faltantes—. Aquí se caza antes: la prueba lee las claves DEL CÓDIGO y las busca en los tres
+ * faltantes—. Aquí se caza antes: la prueba lee las claves DEL CÓDIGO y las busca en los
  * idiomas, incluidos los prefijos dinámicos (`t(\`summary.align.${a}\`)`).
  */
 import fs from 'fs'
@@ -11,7 +11,9 @@ import path from 'path'
 import { describe, expect, it } from 'vitest'
 
 const RAIZ = path.resolve(__dirname, '../../../../..')
-const IDIOMAS = ['es', 'en', 'fr'] as const
+// El francés ya no se soporta (founder, 28-sep-2026; `.claude/rules/critical-warnings.md`): no se agregan claves en fr y una clave
+// que le falte no es defecto. Se revisan es y en.
+const IDIOMAS = ['es', 'en'] as const
 
 const bundle = (lng: string) =>
   JSON.parse(fs.readFileSync(path.join(RAIZ, 'locales', lng, 'receiptLayout.json'), 'utf-8')) as Record<string, unknown>
@@ -134,14 +136,13 @@ describe('i18n del diseñador de tickets', () => {
     expect(unos.filter(k => !otros.has(k))).toEqual([])
   })
 
-  it('🔴 los tres idiomas tienen exactamente las MISMAS claves: ninguno se queda atrás', () => {
+  it('🔴 es y en tienen exactamente las MISMAS claves: ninguno se queda atrás', () => {
     const aplanar = (o: Record<string, unknown>, p = ''): string[] =>
       Object.entries(o).flatMap(([k, v]) =>
         typeof v === 'object' && v !== null ? aplanar(v as Record<string, unknown>, `${p}${k}.`) : [`${p}${k}`],
       )
-    const [es, en, fr] = IDIOMAS.map(l => aplanar(bundle(l)).sort())
+    const [es, en] = IDIOMAS.map(l => aplanar(bundle(l)).sort())
     expect(en).toEqual(es)
-    expect(fr).toEqual(es)
   })
 
   it('🔴 ningún texto quedó vacío ni con un escape sin resolver', () => {

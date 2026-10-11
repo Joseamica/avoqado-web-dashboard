@@ -198,4 +198,29 @@ describe('GlobalComplementariaDialog', () => {
     await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent(g.complementaryDialog.limitReached))
     expect(screen.queryByRole('button', { name: g.complementaryDialog.issue })).not.toBeInTheDocument()
   })
+
+  // C2-pulido (G5, hermano): la complementaria EN DUDA (502 + `timbreEnDuda`) es una espera: el aviso del diálogo va en ámbar, no en rojo.
+  it('🔴 G5: un 502 con `timbreEnDuda` se dice en ámbar (espera); un 400 sigue en rojo', async () => {
+    m.getGlobalComplementariaPreview.mockResolvedValue(vista())
+    m.emitGlobalComplementaria.mockRejectedValue({
+      response: {
+        status: 502,
+        data: { error: 'El PAC rechazó el timbrado de la factura global', message: 'fetch failed', timbreEnDuda: true },
+      },
+    })
+    pintar()
+    fireEvent.click(await screen.findByRole('button', { name: g.complementaryDialog.issue }))
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent(g.toast.pacNoAnswerTitle)
+    expect(aviso.className).toContain('bg-warning-muted')
+    expect(aviso.className).not.toContain('bg-destructive')
+  })
+  it('control — G5: un 400 al emitir sigue en rojo', async () => {
+    m.getGlobalComplementariaPreview.mockResolvedValue(vista())
+    m.emitGlobalComplementaria.mockRejectedValue({ response: { status: 400, data: { error: 'No se puede.' } } })
+    pintar()
+    fireEvent.click(await screen.findByRole('button', { name: g.complementaryDialog.issue }))
+    const aviso = await screen.findByRole('alert')
+    expect(aviso.className).toContain('bg-destructive')
+  })
 })

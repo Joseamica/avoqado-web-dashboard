@@ -15,7 +15,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { EMPTY_RECEPTOR, receptorSchema, type ReceptorFormValues } from './receptor-catalog'
 import { ReceptorFields } from './receptor-fields'
-import { avisoDeErrorAlFacturar } from './issueCfdiErrors'
+import { avisoDeErrorAlFacturar, DURACION_AVISO_LARGO_MS } from './issueCfdiErrors'
 
 /** Lo que se le manda a «Facturar»: la venta y el receptor tal como se capturó en ese intento. */
 interface IntentoDeFacturar {
@@ -157,14 +157,16 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
         }
 
         // 502 — PAC rejected the stamp. C2 · ronda QA (D1): con `timbreEnDuda` el PAC NO rechazó: no contestó claro y la factura quedó en
-        // espera de confirmación (la conciliación la confirma); volver a emitir no ayuda.
+        // espera de confirmación (la conciliación la confirma); volver a emitir no ayuda. C2-pulido (G5): por eso va en ámbar, no en rojo.
         if (status === 502) {
           toast(
             data.timbreEnDuda
               ? {
                   title: t('issueDialog.errors.pacNoAnswer'),
                   description: t('issueDialog.errors.pacNoAnswerDetail'),
-                  variant: 'destructive',
+                  variant: 'warning',
+                  // C2-pulido (M2): trae una instrucción («No la vuelvas a emitir…»): dura lo de los avisos largos.
+                  duration: DURACION_AVISO_LARGO_MS,
                 }
               : { title: t('issueDialog.errors.pacRejected'), description: data.message || data.error || '', variant: 'destructive' },
           )

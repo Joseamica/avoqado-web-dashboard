@@ -107,4 +107,15 @@ describe('BlockList', () => {
     render(<BlockList {...props()} />)
     expect(screen.getByTestId('block-row-logo')).toHaveTextContent('summary.size.M')
   })
+
+  it('🔴 A7-R7: el resumen no dice «sin propina» ni «sin descuentos»: el ticket los imprime igual si se cobraron', () => {
+    const conTotalesApagados = bloques.map(b =>
+      b.type === 'totals' ? { ...b, showSubtotal: false, showDiscount: false, showTip: false } : b,
+    )
+    render(<BlockList {...props()} blocks={conTotalesApagados} />)
+    const renglon = screen.getByTestId('block-row-totals')
+    expect(renglon).toHaveTextContent('summary.off.showSubtotal')
+    expect(renglon).not.toHaveTextContent('summary.off.showTip')
+    expect(renglon).not.toHaveTextContent('summary.off.showDiscount')
+  })
 })

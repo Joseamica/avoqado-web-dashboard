@@ -29,6 +29,7 @@ import {
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useEmitRefundCreditNote, useRefundCreditNote } from '@/hooks/use-cfdi'
+import { DURACION_AVISO_LARGO_MS } from '@/pages/Cfdi/components/issueCfdiErrors'
 import type { AlternativaPorImporte, DesgloseDeNota, RedondeoDeNota } from '@/services/cfdi.service'
 import { Currency } from '@/utils/currency'
 import { Download, FileText, Lock } from 'lucide-react'
@@ -84,12 +85,14 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
     const folio = [creditNote.serie, creditNote.folio].filter(Boolean).join('-')
     return (
       <Section>
-        <div className="flex items-start justify-between gap-3">
+        {/* C2-pulido (G4): los botones van en su propio renglón; al lado le quitaban el ancho al texto (insignia partida, UUID con una
+            letra sola en el drawer). */}
+        <div className="space-y-3">
           <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
               <p className="text-sm font-medium text-foreground">{t('creditNote.issued', { defaultValue: 'Nota de crédito emitida' })}</p>
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+              <Badge variant="outline" className="h-5 shrink-0 whitespace-nowrap px-1.5 text-[10px]">
                 {t('creditNote.badge', { defaultValue: 'CFDI de Egreso' })}
               </Badge>
             </div>
@@ -97,24 +100,26 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
             <p className="break-all font-mono text-[11px] text-muted-foreground">{creditNote.uuid}</p>
             <p className="text-xs text-muted-foreground">{Currency(creditNote.totalCents / 100)}</p>
           </div>
-          <div className="flex shrink-0 gap-2">
-            {creditNote.pdfUrl && (
-              <Button asChild variant="outline" size="sm" className="cursor-pointer">
-                <a href={creditNote.pdfUrl} target="_blank" rel="noreferrer">
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {t('creditNote.pdf', { defaultValue: 'PDF' })}
-                </a>
-              </Button>
-            )}
-            {creditNote.xmlUrl && (
-              <Button asChild variant="outline" size="sm" className="cursor-pointer">
-                <a href={creditNote.xmlUrl} target="_blank" rel="noreferrer">
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {t('creditNote.xml', { defaultValue: 'XML' })}
-                </a>
-              </Button>
-            )}
-          </div>
+          {(creditNote.pdfUrl || creditNote.xmlUrl) && (
+            <div className="flex flex-wrap gap-2">
+              {creditNote.pdfUrl && (
+                <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                  <a href={creditNote.pdfUrl} target="_blank" rel="noreferrer">
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    {t('creditNote.pdf', { defaultValue: 'PDF' })}
+                  </a>
+                </Button>
+              )}
+              {creditNote.xmlUrl && (
+                <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                  <a href={creditNote.xmlUrl} target="_blank" rel="noreferrer">
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    {t('creditNote.xml', { defaultValue: 'XML' })}
+                  </a>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </Section>
     )
@@ -351,8 +356,14 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
 function avisoDelFallo(err: any, t: (key: string, opts?: Record<string, unknown>) => string) {
   const status = err?.response?.status
   const data = err?.response?.data ?? {}
+  // C2-pulido (G5): es una espera, no un error ⇒ ámbar. (M2): trae una instrucción («no la vuelvas a emitir») ⇒ dura lo de los avisos largos.
   if (status === 502 && data.timbreEnDuda)
-    return { variant: 'destructive' as const, title: t('creditNote.error.pacNoAnswer'), description: t('creditNote.error.inDoubt') }
+    return {
+      variant: 'warning' as const,
+      title: t('creditNote.error.pacNoAnswer'),
+      description: t('creditNote.error.inDoubt'),
+      duration: DURACION_AVISO_LARGO_MS,
+    }
   const reasons: string[] | undefined = data.reasons
   return {
     variant: 'destructive' as const,

@@ -29,6 +29,8 @@ const toastVariants = cva(
       variant: {
         default: "border bg-background text-foreground",
         destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
+        // Una espera (p. ej. «No hubo respuesta clara del PAC»): no es un error, pero hay que leerlo.
+        warning: "warning group border-warning-border bg-warning-muted text-warning-foreground",
       },
     },
     defaultVariants: {

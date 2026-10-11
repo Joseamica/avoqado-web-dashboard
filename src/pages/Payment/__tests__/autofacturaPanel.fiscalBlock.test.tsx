@@ -67,3 +67,49 @@ describe('AutofacturaPanel: autofactura habilitada pero esta venta no se puede t
     expect(screen.queryByText('autofactura.fiscalBlock.title')).not.toBeInTheDocument()
   })
 })
+
+// C2-pulido · G1: la factura de la venta quedó EN DUDA (el PAC no contestó claro y pudo haberla timbrado). El servidor ya no ofrece el
+// formulario y lo dice con `autofacturaUnavailable.kind: 'TIMBRE_EN_DUDA'` (nuevo y opcional): el recibo lo pinta como una ESPERA, en ámbar,
+// con el mismo texto que ya da el 409 del POST («Tu factura se está procesando…»).
+describe('AutofacturaPanel — C2-pulido · G1: la factura de la venta en duda', () => {
+  beforeEach(() => {
+    get.mockReset()
+  })
+
+  it('🔴 TIMBRE_EN_DUDA ⇒ tarjeta ámbar «se está procesando», sin el botón de facturar ni el texto del bloqueo fiscal', async () => {
+    get.mockResolvedValue({
+      data: {
+        cfdi: { uuid: null, status: 'STAMP_FAILED' },
+        autofacturaAvailable: false,
+        autofacturaUnavailable: { kind: 'TIMBRE_EN_DUDA' },
+      },
+    })
+    const { container, contestado } = mount()
+    await contestado()
+    await vi.waitFor(() => expect(screen.queryByText('autofactura.stampInDoubt.title')).toBeInTheDocument())
+    expect(screen.getByText('autofactura.stampInDoubt.subtitle')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="autofactura-stamp-in-doubt"] .text-amber-500')).not.toBeNull()
+    expect(screen.queryByText('autofactura.cta.button')).not.toBeInTheDocument()
+    expect(screen.queryByText('autofactura.fiscalBlock.title')).not.toBeInTheDocument()
+  })
+
+  it('control — un `kind` que este recibo no conoce (servidor más nuevo): igual que hoy, no enseña nada', async () => {
+    get.mockResolvedValue({ data: { cfdi: null, autofacturaAvailable: false, autofacturaUnavailable: { kind: 'OTRO_MOTIVO_NUEVO' } } })
+    const { container, contestado } = mount()
+    await contestado()
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('control — ya timbrada (la duda se resolvió): manda la descarga, no la espera', async () => {
+    get.mockResolvedValue({
+      data: {
+        cfdi: { uuid: 'u-1', status: 'STAMPED', pdfUrl: 'p' },
+        autofacturaAvailable: false,
+        autofacturaUnavailable: { kind: 'TIMBRE_EN_DUDA' },
+      },
+    })
+    mount()
+    expect(await screen.findByText('autofactura.alreadyInvoiced')).toBeInTheDocument()
+    expect(screen.queryByText('autofactura.stampInDoubt.title')).not.toBeInTheDocument()
+  })
+})

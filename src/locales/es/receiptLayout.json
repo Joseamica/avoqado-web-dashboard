@@ -161,6 +161,7 @@
     },
     "alwaysTotal": "El TOTAL siempre se imprime: es lo que la ley pide que el cliente vea.",
     "alwaysAuth": "La autorización y la referencia del cobro siempre se imprimen: son el comprobante del pago con tarjeta.",
+    "alwaysTipDiscount": "La propina y los descuentos cobrados siempre aparecen en el ticket para que sume.",
     "showOrderType": "Mostrar el tipo de venta",
     "showModifiers": "Mostrar los modificadores",
     "showNotes": "Mostrar las notas",

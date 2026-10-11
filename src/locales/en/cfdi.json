@@ -5,7 +5,8 @@
     "empty": "No invoices issued yet.",
     "emptyHint": "Invoices will appear here once they are issued to your customers.",
     "loadError": "Could not load invoices.",
-    "replacedByBadge": "Replaced by {{folio}}"
+    "replacedByBadge": "Replaced by {{folio}}",
+    "creditNoteBadge": "Credit note"
   },
   "columns": {
     "folio": "Series-Folio",
@@ -183,6 +184,10 @@
     "fiscalBlock": {
       "title": "This bill can't be invoiced online",
       "subtitle": "Ask the business for your invoice directly."
+    },
+    "stampInDoubt": {
+      "title": "Your invoice is being processed",
+      "subtitle": "Open this receipt again in a few minutes to download it."
     },
     "cancelPending": "The cancellation of this invoice is pending with the SAT; meanwhile it remains valid."
   },

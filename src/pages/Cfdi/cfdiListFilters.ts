@@ -16,7 +16,9 @@ export type StatusGroup = (typeof STATUS_GROUPS)[number]
 const ESTATUS_POR_GRUPO: Record<StatusGroup, string[]> = {
   STAMPED: ['STAMPED'],
   CANCELLED: ['CANCELLED'],
-  IN_PROGRESS: ['DRAFT', 'VALIDATING', 'STAMPING'],
+  // C2-pulido (G7): la EN DUDA (el PAC no contestó claro; se confirma sola) es una espera, no un error. Valor nuevo del servidor 7a; con
+  // uno anterior, `cfdiService.getCfdis` lo vuelve a pedir sin él.
+  IN_PROGRESS: ['DRAFT', 'VALIDATING', 'STAMPING', 'STAMP_IN_DOUBT'],
   FAILED: ['VALIDATION_FAILED', 'STAMP_FAILED'],
 }
 
