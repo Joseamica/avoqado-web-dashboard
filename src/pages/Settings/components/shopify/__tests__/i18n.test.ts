@@ -4,6 +4,7 @@
  */
 import fs from 'fs'
 import path from 'path'
+import i18next from 'i18next'
 import { describe, expect, it } from 'vitest'
 import {
   CONNECT_REVIEW_FILTROS,
@@ -47,6 +48,8 @@ const DINAMICAS: Record<string, readonly string[]> = {
 }
 /** Claves que devuelven las funciones de `use-shopify` y `shopify.service` (el lint no las ve). */
 const DE_LOS_AYUDANTES = [
+  'status.pendingSync',
+  'preview.devuelta',
   'status.resyncing',
   'status.resyncOnResume',
   'status.retryAt',
@@ -62,8 +65,10 @@ const DE_LOS_AYUDANTES = [
  */
 const ACCIONES_DE_AUDITORIA = [
   'SHOPIFY_APPLY_REQUESTED',
+  'SHOPIFY_APPLY_RETURNED',
   'SHOPIFY_CATALOG_IMPORTED',
   'SHOPIFY_CONNECTED',
+  'SHOPIFY_CONNECT_CHOICES_SAVED',
   'SHOPIFY_CONNECT_STARTED',
   'SHOPIFY_CREDENTIAL_RENEWED',
   'SHOPIFY_DISCONNECTED',
@@ -83,6 +88,7 @@ const ACCIONES_DE_AUDITORIA = [
   'SHOPIFY_STORE_REVOKED',
   'SHOPIFY_SYNC_STARTED',
   'MCP_SHOPIFY_CONNECT_APPLIED',
+  'MCP_SHOPIFY_CONNECT_CHOICES_SAVED',
   'MCP_SHOPIFY_DISCONNECTED',
   'MCP_SHOPIFY_RESYNC',
   'MCP_SHOPIFY_REVIEW_RESOLVED',
@@ -164,5 +170,40 @@ describe('i18n del conector Shopify', () => {
   it.each(IDIOMAS)('🔴 %s: cada acción de auditoría de Shopify tiene su etiqueta en la bitácora (L16)', lng => {
     const etiquetas = valor(bundle(lng, 'organization'), 'activityLog.actions') as Record<string, string>
     expect(ACCIONES_DE_AUDITORIA.filter(a => !etiquetas[a]?.trim())).toEqual([])
+  })
+
+  it.each(IDIOMAS)('%s: «quedan N en los dos» tiene singular y plural con el i18next real (1 no se lee «Quedan 1»)', async lng => {
+    const i18n = i18next.createInstance()
+    await i18n.init({
+      lng,
+      fallbackLng: false,
+      ns: ['shopify'],
+      defaultNS: 'shopify',
+      resources: { [lng]: { shopify: bundle(lng, 'shopify') } },
+      interpolation: { escapeValue: false },
+    })
+    const uno = i18n.t('preview.quedanEnLosDos', { count: 1, qty: '1' })
+    const varios = i18n.t('preview.quedanEnLosDos', { count: 5, qty: '5' })
+    expect(uno).toBe(lng === 'es' ? 'Queda 1 en los dos' : '1 on both sides')
+    expect(varios).toBe(lng === 'es' ? 'Quedan 5 en los dos' : '5 on both sides')
+  })
+
+  it.each(IDIOMAS)('%s: la vista previa manda a «Cambian» (donde se elige) y nombra la pestaña como se llama en pantalla', lng => {
+    const b = bundle(lng, 'shopify')
+    const cambian = String(valor(b, 'preview.filtros.CAMBIAN'))
+    expect(String(valor(b, 'preview.eligeEnCambian'))).toContain(`«${cambian}»`)
+  })
+
+  it('🔴 D1: la bitácora nombra las acciones nuevas de la elección por producto y el stock inicial ya no dice «tomado de Shopify» (ahora también registra «Usar el de Avoqado»)', () => {
+    const es = valor(bundle('es', 'organization'), 'activityLog.actions') as Record<string, string>
+    const en = valor(bundle('en', 'organization'), 'activityLog.actions') as Record<string, string>
+    expect(es.SHOPIFY_STOCK_INITIALIZED).toBe('Stock inicial de la sincronización con Shopify')
+    expect(en.SHOPIFY_STOCK_INITIALIZED).toBe('Initial stock for the Shopify sync')
+    expect(es.SHOPIFY_CONNECT_CHOICES_SAVED).toBe('Elección de stock al conectar Shopify guardada')
+    expect(es.MCP_SHOPIFY_CONNECT_CHOICES_SAVED).toBe('Elecciones de stock de Shopify guardadas desde el asistente')
+    expect(es.SHOPIFY_APPLY_RETURNED).toBe('La aplicación de Shopify volvió a la vista previa para elegir otra vez')
+    expect(en.SHOPIFY_CONNECT_CHOICES_SAVED).toBe('Stock choice for the Shopify connection saved')
+    expect(en.MCP_SHOPIFY_CONNECT_CHOICES_SAVED).toBe('Shopify stock choices saved from the assistant')
+    expect(en.SHOPIFY_APPLY_RETURNED).toBe('Shopify apply went back to the preview to choose again')
   })
 })

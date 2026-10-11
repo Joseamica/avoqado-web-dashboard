@@ -147,6 +147,9 @@ export function ShopifyImportDetenida({
   )
 }
 
+/** Las piezas que quedan, como número, sólo para escoger singular o plural («Queda 1» / «Quedan 5»); lo que se PINTA es el texto del servidor. */
+const piezas = (qty: string) => (Number.isFinite(Number(qty)) ? Number(qty) : 0)
+
 /**
  * D1: «Usar el de Avoqado» / «Usar el de Shopify» de UN producto, sin nada marcado hasta que se elige. Cada opción dice cuántas
  * piezas quedan en los dos lados. Se guarda al tocar, con la conexión y los números que se VIERON (si cambiaron, 409 RELEER y
@@ -191,7 +194,7 @@ function EleccionDeProducto({ venueId, vista, item }: { venueId: string; vista: 
           className="h-auto flex-col items-start gap-0.5 py-1.5"
         >
           <span>{o.label}</span>
-          <span className="text-xs font-normal opacity-80">{t('preview.quedanEnLosDos', { qty: o.queda })}</span>
+          <span className="text-xs font-normal opacity-80">{t('preview.quedanEnLosDos', { count: piezas(o.queda), qty: o.queda })}</span>
         </Button>
       ))}
     </div>
@@ -209,11 +212,17 @@ function ElegirLosQueFaltan({ venueId, vista, porDecidir }: { venueId: string; v
   const { toast } = useToast()
   const fallo = useShopifyFallo(venueId)
   const invalidarVista = useInvalidateShopifyVistaPrevia()
+  // El aviso emergente se va a los 5 s y la persona se queda con productos sin elegir sin saber por qué: el último resultado
+  // de «Avoqado» que dejó productos pendientes se guarda y su explicación se queda en la página mientras falte elegir (este
+  // componente sólo existe con `porDecidir > 0`, así que se va solo cuando ya no falta nada).
+  const [dejoPendientes, setDejoPendientes] = useState(false)
   const elegir = useMutation({
     mutationFn: (todos: ShopifyChoice) => saveShopifyConnectChoices(venueId, { vista, todos }),
     onSuccess: async (r, todos) => {
       // Que no queden callados: si «Avoqado» dejó productos sin elegir, se dice por qué (no es una falla: se eligen aparte).
-      if (todos === 'AVOQADO' && r.porDecidir > 0) {
+      const dejo = todos === 'AVOQADO' && r.porDecidir > 0
+      setDejoPendientes(dejo)
+      if (dejo) {
         toast({
           title: t('preview.todosQuedaron', { guardadas: r.guardadas, porDecidir: r.porDecidir }),
           description: t('preview.todosQuedaronDetalle'),
@@ -234,6 +243,7 @@ function ElegirLosQueFaltan({ venueId, vista, porDecidir }: { venueId: string; v
           {t('preview.todosShopify')}
         </Button>
       </div>
+      {dejoPendientes && <p className="text-xs text-muted-foreground">{t('preview.todosQuedaronDetalle')}</p>}
     </div>
   )
 }
@@ -313,6 +323,8 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
           </Button>
         ))}
       </div>
+      {/* D1: «Nuevos» no trae decisiones (esos productos toman Shopify): con decisiones pendientes se dice dónde se eligen. */}
+      {filtro === 'NUEVOS' && porDecidir > 0 && <p className="text-sm text-muted-foreground">{t('preview.eligeEnCambian')}</p>}
       {/* D1: con decisiones pendientes, la opción para los que faltan (también en las páginas que no se abrieron). */}
       {vistaConexion && porDecidir > 0 && <ElegirLosQueFaltan venueId={venueId} vista={vistaConexion} porDecidir={porDecidir} />}
       <ListaPaginada

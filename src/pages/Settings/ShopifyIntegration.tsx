@@ -5,7 +5,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { useInvalidateShopifyListas, useInvalidateShopifyResumen, useShopifyOverview } from '@/hooks/use-shopify'
+import {
+  useInvalidateShopifyListas,
+  useInvalidateShopifyResumen,
+  useInvalidateShopifyVistaPrevia,
+  useShopifyOverview,
+} from '@/hooks/use-shopify'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { conexionDetenida, SHOPIFY_CALLBACK_ERRORS, SHOPIFY_FEATURE, type ShopifyEstado } from '@/types/shopify'
 import { ShopifyConnect, ShopifyPiloto } from './components/shopify/ShopifyConnect'
@@ -45,6 +50,7 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
   const [params, setParams] = useSearchParams()
   const overview = useShopifyOverview(venueId ?? undefined)
   const invalidarListas = useInvalidateShopifyListas()
+  const invalidarVistaPrevia = useInvalidateShopifyVistaPrevia()
   const invalidarResumen = useInvalidateShopifyResumen()
   const resumen = overview.data
   const connection = resumen?.connection ?? null
@@ -91,7 +97,13 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
     const cuadreTermino = (antes.pendiente && !cuadrePendiente) || antes.ultimo !== (cuadreUltimo ?? null)
     const aplicacionTermino = antes.estado === 'APLICANDO' && estado === 'ACTIVA'
     if (cuadreTermino || aplicacionTermino) void invalidarListas(venueId ?? undefined)
-  }, [estado, cuadrePendiente, cuadreUltimo, invalidarListas, venueId])
+    // D1: la aplicación regresó a «Así quedará tu stock» (cambió un número ya elegido): se dice en la página y se vuelve a
+    // leer la vista previa, que puede seguir en caché de antes de aplicar. (No hay aviso de campanita: recorte de la auditoría.)
+    if (antes.estado === 'APLICANDO' && estado === 'POR_APLICAR') {
+      toast({ title: t('preview.devuelta') })
+      void invalidarVistaPrevia(venueId ?? undefined)
+    }
+  }, [estado, cuadrePendiente, cuadreUltimo, invalidarListas, invalidarVistaPrevia, toast, t, venueId])
 
   // Sin permiso de Shopify, B contesta 403 SHOPIFY_FALTA_PERMISO la primera vez y 409 SHOPIFY_EN_PAUSA después: en cuanto el
   // resumen trae la marca, no se ofrece elegir y se dice por qué. Sin el permiso del usuario, los botones se ven deshabilitados.

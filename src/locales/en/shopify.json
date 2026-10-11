@@ -95,17 +95,21 @@
     "todosAyuda_other": "{{count}} products still to choose, including those on pages you didn't open. What you already chose doesn't change.",
     "todosQuedaron": "Saved: {{guardadas}} · Still to choose: {{porDecidir}}",
     "todosQuedaronDetalle": "Using Avoqado skips products with decimals in their stock (Shopify only counts whole pieces): for those, choose Shopify or fix their stock.",
-    "quedanEnLosDos": "{{qty}} on both sides",
+    "quedanEnLosDos_one": "{{qty}} on both sides",
+    "quedanEnLosDos_other": "{{qty}} on both sides",
     "ambos": "Avoqado: {{avoqado}} · Shopify: {{shopify}}",
     "eleccionLabel": "Which number stays for {{name}}",
     "porDecidir_one": "«Apply and sync» turns on once you choose for the product that is left.",
-    "porDecidir_other": "«Apply and sync» turns on once you choose for the {{count}} products that are left."
+    "porDecidir_other": "«Apply and sync» turns on once you choose for the {{count}} products that are left.",
+    "eligeEnCambian": "The products that ask you to choose are in «Changing»: open it to choose which number stays.",
+    "devuelta": "The stock of some products changed while applying. Choose again where it's asked and apply once more."
   },
   "status": {
     "store": "Store",
     "location": "Location",
     "matched": "Matched products",
     "pending": "Changes on the way",
+    "pendingSync": "Pending sync with Shopify. It confirms on its own; you don't need to do anything.",
     "stuck": "Stuck changes",
     "uncertain": "Unconfirmed sends",
     "delay": "Delay",

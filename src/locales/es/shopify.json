@@ -95,17 +95,21 @@
     "todosAyuda_other": "Faltan {{count}} productos por elegir, también en las páginas que no abriste. Lo que ya elegiste no cambia.",
     "todosQuedaron": "Guardadas: {{guardadas}} · Por elegir: {{porDecidir}}",
     "todosQuedaronDetalle": "Con Avoqado se saltan los productos con decimales en su stock (Shopify sólo cuenta piezas enteras): en ésos elige Shopify o corrige su stock.",
-    "quedanEnLosDos": "Quedan {{qty}} en los dos",
+    "quedanEnLosDos_one": "Queda {{qty}} en los dos",
+    "quedanEnLosDos_other": "Quedan {{qty}} en los dos",
     "ambos": "Avoqado: {{avoqado}} · Shopify: {{shopify}}",
     "eleccionLabel": "Qué número se queda en {{name}}",
     "porDecidir_one": "«Aplicar y sincronizar» se habilita cuando elijas en el producto que falta.",
-    "porDecidir_other": "«Aplicar y sincronizar» se habilita cuando elijas en los {{count}} productos que faltan."
+    "porDecidir_other": "«Aplicar y sincronizar» se habilita cuando elijas en los {{count}} productos que faltan.",
+    "eligeEnCambian": "Los productos que piden elegir están en «Cambian»: ábrela para elegir qué número se queda.",
+    "devuelta": "Cambió el stock de algunos productos mientras se aplicaba. Vuelve a elegir en los que lo piden y aplica otra vez."
   },
   "status": {
     "store": "Tienda",
     "location": "Ubicación",
     "matched": "Productos emparejados",
     "pending": "Cambios en camino",
+    "pendingSync": "Pendiente de sincronizar con Shopify. Se confirma solo; no tienes que hacer nada.",
     "stuck": "Cambios atorados",
     "uncertain": "Envíos sin confirmar",
     "delay": "Retraso",
