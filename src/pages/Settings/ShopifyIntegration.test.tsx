@@ -896,6 +896,68 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     expect(shopify).toHaveTextContent('preview.quedanEnLosDos 6 6')
   })
 
+  // Prueba en vivo (D1/B): con stock de Avoqado en decimales («49.5») «Usar el de Avoqado» prometía «Quedan 49.5 en los dos», y
+  // al tocarla el servidor contestaba 422 SHOPIFY_DIFERENCIA_NO_ENTERA. «Apagado se ve y se explica»: la opción sale apagada de
+  // entrada, con su razón; la decisión sale del TEXTO del stock (sin números flotantes). El caso raro «A entero, pendiente con
+  // decimales» lo sigue cubriendo el 422 del servidor.
+  it('🔴 D1: con stock de Avoqado en decimales, «Usar el de Avoqado» sale apagada con su razón (no promete un resultado imposible) y tocarla no manda nada; «Usar el de Shopify» sigue activa', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+    const DECIMALES = { ...VISTA, avoqadoQty: '49.5', shopifyQty: 50, quedara: '50', requiereDecision: true, eleccion: null }
+    svc.getShopifyConnectReview.mockResolvedValue({
+      ...pagina([DECIMALES], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+      conexion: VISTA_CONEXION,
+    })
+    svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 0 })
+    renderPage()
+    const [avoqado, shopify] = await screen.findAllByRole('radio')
+    expect(avoqado).toBeDisabled()
+    expect(avoqado).toHaveAttribute('aria-disabled', 'true')
+    expect(avoqado).toHaveTextContent('preview.usarAvoqado')
+    expect(avoqado).toHaveTextContent('preview.avoqadoConDecimales') // la razón, en lugar de «Quedan 49.5 en los dos»
+    expect(avoqado).not.toHaveTextContent('preview.quedanEnLosDos')
+    expect(shopify).toBeEnabled()
+    expect(shopify).not.toHaveAttribute('aria-disabled', 'true')
+    expect(shopify).toHaveTextContent('preview.quedanEnLosDos 50 50')
+    await userEvent.click(avoqado)
+    expect(svc.saveShopifyConnectChoices).not.toHaveBeenCalled()
+    // Shopify, en cambio, se guarda como siempre.
+    await userEvent.click(shopify)
+    await waitFor(() =>
+      expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', {
+        vista: VISTA_CONEXION,
+        elecciones: [{ variantLinkId: 'vl1', choice: 'SHOPIFY', expectedAvoqadoQty: '49.5', expectedShopifyQty: 50 }],
+      }),
+    )
+  })
+
+  it.each(['50', '50.000', '50.0'])(
+    'D1: con stock de Avoqado entero («%s») «Usar el de Avoqado» sigue activa y dice cuántas quedan',
+    async qty => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const ENTERO = { ...VISTA, avoqadoQty: qty, shopifyQty: 6, quedara: '6', requiereDecision: true, eleccion: null }
+      svc.getShopifyConnectReview.mockResolvedValue({
+        ...pagina([ENTERO], 1),
+        resumen: { ...RESUMEN_VISTA, porDecidir: 1 },
+        conexion: VISTA_CONEXION,
+      })
+      svc.saveShopifyConnectChoices.mockResolvedValue({ guardadas: 1, porDecidir: 0 })
+      renderPage()
+      const [avoqado] = await screen.findAllByRole('radio')
+      expect(avoqado).toBeEnabled()
+      expect(avoqado).not.toHaveAttribute('aria-disabled', 'true')
+      expect(avoqado).toHaveTextContent('preview.quedanEnLosDos')
+      expect(avoqado).not.toHaveTextContent('preview.avoqadoConDecimales')
+      await userEvent.click(avoqado)
+      await waitFor(() =>
+        expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', {
+          vista: VISTA_CONEXION,
+          elecciones: [{ variantLinkId: 'vl1', choice: 'AVOQADO', expectedAvoqadoQty: qty, expectedShopifyQty: 6 }],
+        }),
+      )
+    },
+  )
+
   // Codex (auditoría D1/B, P1): «Aplicar» no sabía de los guardados en camino. Con «Usar el de Avoqado» ya guardado y nada
   // pendiente, «Aplicar» estaba habilitado: tocar «Usar el de Shopify» y apretar «Aplicar» antes de que el guardado llegara
   // aplicaba la elección VIEJA, y el guardado tardío chocaba con la conexión ya aplicando.

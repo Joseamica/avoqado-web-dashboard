@@ -98,6 +98,7 @@
     "todosQuedaronDetalle": "Con Avoqado se saltan los productos con decimales en su stock (Shopify sólo cuenta piezas enteras): en ésos elige Shopify o corrige su stock.",
     "quedanEnLosDos_one": "Queda {{qty}} en los dos",
     "quedanEnLosDos_other": "Quedan {{qty}} en los dos",
+    "avoqadoConDecimales": "No se puede: Shopify sólo cuenta piezas enteras",
     "ambos": "Avoqado: {{avoqado}} · Shopify: {{shopify}}",
     "eleccionLabel": "Qué número se queda en {{name}}",
     "porDecidir_one": "«Aplicar y sincronizar» se habilita cuando elijas en el producto que falta.",

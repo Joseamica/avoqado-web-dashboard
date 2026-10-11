@@ -157,6 +157,15 @@ export function ShopifyImportDetenida({
 const piezas = (qty: string) => (Number.isFinite(Number(qty)) ? Number(qty) : 0)
 
 /**
+ * ¿El stock de Avoqado trae decimales («49.5»)? Se decide del TEXTO que manda el servidor, sin números flotantes: un dígito que
+ * no es cero después del punto. «50», «50.000» y «50.0» son enteros. Shopify sólo cuenta piezas enteras, así que «Usar el de
+ * Avoqado» no puede dejar «Quedan 49.5 en los dos»; el servidor lo rechazaría con 422 SHOPIFY_DIFERENCIA_NO_ENTERA, y mejor se
+ * dice de entrada («apagado se ve y se explica»). Sólo cubre «Avoqado trae decimales»: el caso raro de «A entero y lo pendiente
+ * con decimales» lo sigue cubriendo ese 422 (no se calcula aquí).
+ */
+const TIENE_DECIMALES = /\.\d*[1-9]/
+
+/**
  * D1: «Usar el de Avoqado» / «Usar el de Shopify» de UN producto, sin nada marcado hasta que se elige. Cada opción dice cuántas
  * piezas quedan en los dos lados. Se guarda al tocar, con la conexión y los números que se VIERON (si cambiaron, 409 RELEER y
  * se vuelve a leer); mientras se guarda, las dos se apagan (un doble clic no manda dos).
@@ -179,9 +188,9 @@ function EleccionDeProducto({ venueId, vista, item }: { venueId: string; vista: 
     onSuccess: () => invalidarVista(venueId),
     onError: fallo,
   })
-  const opciones: Array<{ choice: ShopifyChoice; label: string; queda: string }> = [
-    { choice: 'AVOQADO', label: t('preview.usarAvoqado'), queda: item.avoqadoQty },
-    { choice: 'SHOPIFY', label: t('preview.usarShopify'), queda: item.quedara ?? '—' },
+  const opciones: Array<{ choice: ShopifyChoice; label: string; queda: string; apagada: boolean }> = [
+    { choice: 'AVOQADO', label: t('preview.usarAvoqado'), queda: item.avoqadoQty, apagada: TIENE_DECIMALES.test(item.avoqadoQty) },
+    { choice: 'SHOPIFY', label: t('preview.usarShopify'), queda: item.quedara ?? '—', apagada: false },
   ]
   return (
     <div
@@ -198,12 +207,17 @@ function EleccionDeProducto({ venueId, vista, item }: { venueId: string; vista: 
           role="radio"
           aria-checked={item.eleccion === o.choice}
           variant={item.eleccion === o.choice ? 'default' : 'outline'}
-          disabled={elegir.isPending}
+          disabled={elegir.isPending || o.apagada}
+          aria-disabled={o.apagada || undefined}
           onClick={() => elegir.mutate(o.choice)}
           className="h-auto flex-col items-start gap-0.5 py-1.5"
         >
           <span>{o.label}</span>
-          <span className="text-xs font-normal opacity-80">{t('preview.quedanEnLosDos', { count: piezas(o.queda), qty: o.queda })}</span>
+          {o.apagada ? (
+            <span className="text-xs font-normal text-muted-foreground">{t('preview.avoqadoConDecimales')}</span>
+          ) : (
+            <span className="text-xs font-normal opacity-80">{t('preview.quedanEnLosDos', { count: piezas(o.queda), qty: o.queda })}</span>
+          )}
         </Button>
       ))}
     </div>

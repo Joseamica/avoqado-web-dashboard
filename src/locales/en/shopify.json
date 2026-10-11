@@ -98,6 +98,7 @@
     "todosQuedaronDetalle": "Using Avoqado skips products with decimals in their stock (Shopify only counts whole pieces): for those, choose Shopify or fix their stock.",
     "quedanEnLosDos_one": "{{qty}} on both sides",
     "quedanEnLosDos_other": "{{qty}} on both sides",
+    "avoqadoConDecimales": "Not possible: Shopify only counts whole pieces",
     "ambos": "Avoqado: {{avoqado}} · Shopify: {{shopify}}",
     "eleccionLabel": "Which number stays for {{name}}",
     "porDecidir_one": "«Apply and sync» turns on once you choose for the product that is left.",
