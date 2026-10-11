@@ -76,6 +76,7 @@
     "empty": "No products with this filter.",
     "loadError": "We could not load the preview.",
     "applyBlocked": "The preview has to load before you can apply.",
+    "guardando": "Saving your choice…",
     "apply": "Apply and sync",
     "applyTitle": "Apply the Shopify stock and start syncing?",
     "applyBody": "Products you weren't asked about take the number Shopify has at that moment; the ones you chose keep your choice. Sales you made while connecting are kept. If a number changes before it applies, the page comes back to this list so you can choose again. From then on, every sale, return or online order will show up on both sides.",

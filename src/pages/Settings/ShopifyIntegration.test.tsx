@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -894,6 +894,127 @@ describe('ShopifyIntegration — importar y aplicar', () => {
     const [avoqado, shopify] = await screen.findAllByRole('radio')
     expect(avoqado).toHaveTextContent('preview.quedanEnLosDos 1 1') // {count, qty}: el singular lo decide `count`
     expect(shopify).toHaveTextContent('preview.quedanEnLosDos 6 6')
+  })
+
+  // Codex (auditoría D1/B, P1): «Aplicar» no sabía de los guardados en camino. Con «Usar el de Avoqado» ya guardado y nada
+  // pendiente, «Aplicar» estaba habilitado: tocar «Usar el de Shopify» y apretar «Aplicar» antes de que el guardado llegara
+  // aplicaba la elección VIEJA, y el guardado tardío chocaba con la conexión ya aplicando.
+  describe('🔴 D1 (Codex P1): «Aplicar» espera a los guardados de elección en camino', () => {
+    const DECIDE = { ...VISTA, avoqadoQty: '5', shopifyQty: 6, quedara: '6', requiereDecision: true }
+    /** Una promesa que la prueba resuelve a mano: la petición «se queda colgada» hasta entonces. */
+    const diferida = <T,>() => {
+      let resolver!: (v: T) => void
+      let rechazar!: (e: unknown) => void
+      const promesa = new Promise<T>((res, rej) => {
+        resolver = res
+        rechazar = rej
+      })
+      return { promesa, resolver, rechazar }
+    }
+    const vistaPrevia = (eleccion: 'AVOQADO' | 'SHOPIFY' | null, porDecidir = 0) => ({
+      ...pagina([{ ...DECIDE, eleccion }], 1),
+      resumen: { ...RESUMEN_VISTA, porDecidir },
+      conexion: VISTA_CONEXION,
+    })
+    const aplicar = () => screen.getByRole('button', { name: 'preview.apply' })
+
+    it('guardado colgado: «Aplicar» se apaga (con su razón), sigue apagado mientras se vuelve a leer la vista previa y sólo entonces se habilita', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      const relectura = diferida<ReturnType<typeof vistaPrevia>>()
+      svc.getShopifyConnectReview
+        .mockResolvedValueOnce(vistaPrevia('AVOQADO'))
+        .mockImplementationOnce(() => relectura.promesa)
+        .mockResolvedValue(vistaPrevia('SHOPIFY')) // lo que lea «Aplicar» al terminar (invalida la conexión)
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      svc.applyShopifyConnect.mockResolvedValue({ solicitado: true })
+      renderPage()
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+
+      // Toca «Usar el de Shopify»: el guardado queda en camino.
+      await userEvent.click(screen.getAllByRole('radio')[1])
+      await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledTimes(1))
+      await waitFor(() => expect(aplicar()).toBeDisabled())
+      expect(screen.getByText('preview.guardando')).toBeInTheDocument()
+      await userEvent.click(aplicar()) // un clic sobre un botón apagado no abre el diálogo ni aplica
+      expect(screen.queryByText('preview.applyBody')).toBeNull()
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+
+      // El guardado llega, pero la vista previa todavía no se vuelve a leer: sigue apagado.
+      await act(async () => guardado.resolver({ guardadas: 1, porDecidir: 0 }))
+      await waitFor(() => expect(svc.getShopifyConnectReview).toHaveBeenCalledTimes(2))
+      expect(aplicar()).toBeDisabled()
+      expect(screen.getByText('preview.guardando')).toBeInTheDocument()
+
+      // La vista previa regresa con la elección nueva: se habilita y ya no dice «Guardando».
+      await act(async () => relectura.resolver(vistaPrevia('SHOPIFY')))
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+      expect(screen.getAllByRole('radio')[1]).toHaveAttribute('aria-checked', 'true')
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+      await userEvent.click(aplicar())
+      await userEvent.click(await screen.findByRole('button', { name: 'preview.applyConfirm' }))
+      await waitFor(() => expect(svc.applyShopifyConnect).toHaveBeenCalledTimes(1))
+    })
+
+    it('con el diálogo de «Aplicar» ya abierto: un guardado en camino apaga también «Sí, aplicar», y no aplica hasta que termina', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      svc.getShopifyConnectReview.mockResolvedValueOnce(vistaPrevia('AVOQADO')).mockResolvedValue(vistaPrevia('SHOPIFY'))
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      svc.applyShopifyConnect.mockResolvedValue({ solicitado: true })
+      renderPage()
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      const shopify = screen.getAllByRole('radio')[1]
+      await userEvent.click(aplicar())
+      const confirmar = await screen.findByRole('button', { name: 'preview.applyConfirm' })
+      expect(confirmar).toBeEnabled()
+
+      // Con el diálogo abierto llega un guardado (el diálogo es modal: se dispara el evento directo, sin puntero).
+      fireEvent.click(shopify)
+      await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledTimes(1))
+      await waitFor(() => expect(confirmar).toBeDisabled())
+      fireEvent.click(confirmar)
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+
+      await act(async () => guardado.resolver({ guardadas: 1, porDecidir: 0 }))
+      await waitFor(() => expect(confirmar).toBeEnabled())
+      expect(svc.applyShopifyConnect).not.toHaveBeenCalled()
+    })
+
+    it('«en los que faltan» también cuenta: mientras se guarda dice por qué «Aplicar» espera, y se habilita al volver la vista previa sin faltantes', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      svc.getShopifyConnectReview.mockResolvedValueOnce(vistaPrevia(null, 1)).mockResolvedValue(vistaPrevia('AVOQADO', 0))
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      renderPage()
+      await userEvent.click(await screen.findByRole('button', { name: 'preview.todosAvoqado' }))
+      await waitFor(() => expect(svc.saveShopifyConnectChoices).toHaveBeenCalledWith('v1', { vista: VISTA_CONEXION, todos: 'AVOQADO' }))
+      expect(screen.getByText('preview.guardando')).toBeInTheDocument()
+      expect(aplicar()).toBeDisabled()
+      await act(async () => guardado.resolver({ guardadas: 1, porDecidir: 0 }))
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+    })
+
+    it('un guardado que FALLA libera «Aplicar» (no se queda apagado para siempre) una vez que la vista previa se vuelve a leer', async () => {
+      svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ fase: 'REVIEWING', estado: 'POR_APLICAR' })))
+      const guardado = diferida<{ guardadas: number; porDecidir: number }>()
+      svc.getShopifyConnectReview.mockResolvedValue(vistaPrevia('AVOQADO'))
+      svc.saveShopifyConnectChoices.mockImplementation(() => guardado.promesa)
+      renderPage()
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      await userEvent.click(screen.getAllByRole('radio')[1])
+      await waitFor(() => expect(aplicar()).toBeDisabled())
+      // Se rechaza con un 409 (RELEER): se dice y se vuelve a leer la vista previa.
+      const antes = svc.getShopifyConnectReview.mock.calls.length
+      await act(async () => guardado.rechazar(errorHttp(409, { code: 'SHOPIFY_REVISION_CAMBIO', message: 'cambió' })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })))
+      await waitFor(() => expect(svc.getShopifyConnectReview.mock.calls.length).toBeGreaterThan(antes))
+      await waitFor(() => expect(aplicar()).toBeEnabled())
+      expect(screen.queryByText('preview.guardando')).toBeNull()
+    })
   })
 })
 

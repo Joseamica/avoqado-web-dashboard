@@ -19,7 +19,13 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
 import { useToast } from '@/hooks/use-toast'
-import { useInvalidateShopify, useInvalidateShopifyVistaPrevia, useShopifyConnectReview } from '@/hooks/use-shopify'
+import {
+  shopifyMutationKeys,
+  useGuardandoElecciones,
+  useInvalidateShopify,
+  useInvalidateShopifyVistaPrevia,
+  useShopifyConnectReview,
+} from '@/hooks/use-shopify'
 import { applyShopifyConnect, disconnectShopify, reauthorizeShopify, saveShopifyConnectChoices } from '@/services/shopify.service'
 import {
   CONNECT_REVIEW_FILTROS,
@@ -160,6 +166,7 @@ function EleccionDeProducto({ venueId, vista, item }: { venueId: string; vista: 
   const fallo = useShopifyFallo(venueId)
   const invalidarVista = useInvalidateShopifyVistaPrevia()
   const elegir = useMutation({
+    mutationKey: shopifyMutationKeys.guardarElecciones(venueId),
     mutationFn: (choice: ShopifyChoice) =>
       saveShopifyConnectChoices(venueId, {
         vista,
@@ -167,6 +174,8 @@ function EleccionDeProducto({ venueId, vista, item }: { venueId: string; vista: 
           { variantLinkId: item.variantLinkId, choice, expectedAvoqadoQty: item.avoqadoQty, expectedShopifyQty: item.shopifyQty ?? 0 },
         ],
       }),
+    // Se DEVUELVE la invalidación: la mutación sigue pendiente hasta que la vista previa se vuelve a leer, y «Aplicar» espera
+    // a las dos cosas (Codex P1). Sin el `return`, se habilitaba con la elección vieja todavía en pantalla.
     onSuccess: () => invalidarVista(venueId),
     onError: fallo,
   })
@@ -213,6 +222,7 @@ function ElegirLosQueFaltan({ venueId, vista, porDecidir }: { venueId: string; v
   const fallo = useShopifyFallo(venueId)
   const invalidarVista = useInvalidateShopifyVistaPrevia()
   const elegir = useMutation({
+    mutationKey: shopifyMutationKeys.guardarElecciones(venueId),
     mutationFn: (todos: ShopifyChoice) => saveShopifyConnectChoices(venueId, { vista, todos }),
     onSuccess: async (r, todos) => {
       // Que no queden callados: si «Avoqado» dejó productos sin elegir, se dice por qué (no es una falla: se eligen aparte).
@@ -270,9 +280,16 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
     const inicial: ConnectReviewFiltro = r.cambian > 0 ? 'CAMBIAN' : r.nuevos > 0 ? 'NUEVOS' : 'TODOS'
     if (inicial !== filtro) setFiltro(inicial)
   }, [elegidaSola, primera, q.isPlaceholderData, filtro])
+  // 🔴 Codex P1: un guardado de elección en camino (de una fila o de «… en los que faltan», en cualquier página) también
+  // espera: el servidor aplicaría la elección VIEJA y el guardado tardío chocaría con la conexión ya aplicando. Y mientras la
+  // vista previa se vuelve a leer (sin contar «Cargar más», que no la cambia), lo que se ve puede ser lo de antes del guardado.
+  const guardando = useGuardandoElecciones(venueId)
+  const releyendo = q.isFetching && !q.isFetchingNextPage
   // 🔴 N3: sólo con la vista previa de ESTA sucursal y ESTE filtro cargada bien. Cargando, error (también una actualización
   // fallida) o datos provisionales (`isPlaceholderData`, p. ej. al cambiar de filtro) ⇒ no se aplica.
-  const listo = canManage && q.status === 'success' && !q.isPlaceholderData
+  const listo = canManage && q.status === 'success' && !q.isPlaceholderData && !releyendo
+  // Un solo candado para abrir el diálogo Y para confirmar dentro de él.
+  const puedeAplicar = listo && porDecidir === 0 && !guardando
   const apply = useMutation({
     mutationFn: () => applyShopifyConnect(venueId),
     onSuccess: () => invalidate(venueId),
@@ -370,7 +387,14 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
           ))}
         </ul>
       </ListaPaginada>
-      {!listo && <p className="text-xs text-muted-foreground">{t('preview.applyBlocked')}</p>}
+      {/* Apagado se explica: guardando una elección (la razón que se puede esperar) o, si no, la vista previa que falta. */}
+      {guardando ? (
+        <p role="status" className="text-xs text-muted-foreground" data-tour="shopify-guardando">
+          {t('preview.guardando')}
+        </p>
+      ) : (
+        !listo && <p className="text-xs text-muted-foreground">{t('preview.applyBlocked')}</p>
+      )}
       {/* D1: el servidor también lo exige (422), incluidas las páginas que no se abrieron. */}
       {porDecidir > 0 && (
         <p role="status" className="text-sm font-medium text-foreground" data-tour="shopify-por-decidir">
@@ -380,7 +404,7 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
       <div className="flex flex-wrap gap-2 pt-2">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button disabled={!listo || porDecidir > 0 || apply.isPending} data-tour="shopify-apply">
+            <Button disabled={!puedeAplicar || apply.isPending} data-tour="shopify-apply">
               {t('preview.apply')}
             </Button>
           </AlertDialogTrigger>
@@ -391,8 +415,8 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-              {/* Doble candado: si la vista previa falla con el diálogo abierto, confirmar tampoco aplica. */}
-              <AlertDialogAction disabled={!listo || porDecidir > 0} onClick={() => listo && porDecidir === 0 && apply.mutate()}>
+              {/* Doble candado: si la vista previa falla (o llega un guardado de elección) con el diálogo abierto, confirmar tampoco aplica. */}
+              <AlertDialogAction disabled={!puedeAplicar} onClick={() => puedeAplicar && apply.mutate()}>
                 {t('preview.applyConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>

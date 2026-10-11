@@ -76,6 +76,7 @@
     "empty": "Ningún producto con este filtro.",
     "loadError": "No pudimos cargar la vista previa.",
     "applyBlocked": "Para aplicar, primero tiene que cargar la vista previa.",
+    "guardando": "Guardando tu elección…",
     "apply": "Aplicar y sincronizar",
     "applyTitle": "¿Aplicar el stock de Shopify y empezar a sincronizar?",
     "applyBody": "Los productos que no te pidieron elegir toman el número que tenga Shopify en ese momento; en los que elegiste, se queda tu elección. Las ventas que hiciste mientras se conectaba se respetan. Si un número cambia antes de aplicarse, la página regresa a esta lista para que vuelvas a elegir. Después, cada venta, devolución o pedido en línea se reflejará en los dos lados.",
