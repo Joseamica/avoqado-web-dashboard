@@ -18,9 +18,17 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
-import { useInvalidateShopify, useShopifyConnectReview } from '@/hooks/use-shopify'
-import { applyShopifyConnect, disconnectShopify, reauthorizeShopify } from '@/services/shopify.service'
-import { CONNECT_REVIEW_FILTROS, type ConnectReviewFiltro, type ShopifyConnection } from '@/types/shopify'
+import { useToast } from '@/hooks/use-toast'
+import { useInvalidateShopify, useInvalidateShopifyVistaPrevia, useShopifyConnectReview } from '@/hooks/use-shopify'
+import { applyShopifyConnect, disconnectShopify, reauthorizeShopify, saveShopifyConnectChoices } from '@/services/shopify.service'
+import {
+  CONNECT_REVIEW_FILTROS,
+  type ConnectReviewFiltro,
+  type ShopifyChoice,
+  type ShopifyConnectReviewItem,
+  type ShopifyConnection,
+  type ShopifyVistaConexion,
+} from '@/types/shopify'
 import { ListaPaginada } from './ShopifyListStates'
 import { dedupe, type Navegar, useShopifyFallo } from './shopify.helpers'
 
@@ -139,6 +147,97 @@ export function ShopifyImportDetenida({
   )
 }
 
+/**
+ * D1: «Usar el de Avoqado» / «Usar el de Shopify» de UN producto, sin nada marcado hasta que se elige. Cada opción dice cuántas
+ * piezas quedan en los dos lados. Se guarda al tocar, con la conexión y los números que se VIERON (si cambiaron, 409 RELEER y
+ * se vuelve a leer); mientras se guarda, las dos se apagan (un doble clic no manda dos).
+ */
+function EleccionDeProducto({ venueId, vista, item }: { venueId: string; vista: ShopifyVistaConexion; item: ShopifyConnectReviewItem }) {
+  const { t } = useTranslation('shopify')
+  const fallo = useShopifyFallo(venueId)
+  const invalidarVista = useInvalidateShopifyVistaPrevia()
+  const elegir = useMutation({
+    mutationFn: (choice: ShopifyChoice) =>
+      saveShopifyConnectChoices(venueId, {
+        vista,
+        elecciones: [
+          { variantLinkId: item.variantLinkId, choice, expectedAvoqadoQty: item.avoqadoQty, expectedShopifyQty: item.shopifyQty ?? 0 },
+        ],
+      }),
+    onSuccess: () => invalidarVista(venueId),
+    onError: fallo,
+  })
+  const opciones: Array<{ choice: ShopifyChoice; label: string; queda: string }> = [
+    { choice: 'AVOQADO', label: t('preview.usarAvoqado'), queda: item.avoqadoQty },
+    { choice: 'SHOPIFY', label: t('preview.usarShopify'), queda: item.quedara ?? '—' },
+  ]
+  return (
+    <div
+      role="radiogroup"
+      aria-label={t('preview.eleccionLabel', { name: item.name })}
+      className="flex flex-wrap gap-2"
+      data-tour="shopify-decision"
+    >
+      {opciones.map(o => (
+        <Button
+          key={o.choice}
+          type="button"
+          size="sm"
+          role="radio"
+          aria-checked={item.eleccion === o.choice}
+          variant={item.eleccion === o.choice ? 'default' : 'outline'}
+          disabled={elegir.isPending}
+          onClick={() => elegir.mutate(o.choice)}
+          className="h-auto flex-col items-start gap-0.5 py-1.5"
+        >
+          <span>{o.label}</span>
+          <span className="text-xs font-normal opacity-80">{t('preview.quedanEnLosDos', { qty: o.queda })}</span>
+        </Button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * D1: la misma opción para los productos que FALTAN por elegir, en todas las páginas (el servidor la guarda producto por
+ * producto). Sólo llena los que no tienen elección: lo que se eligió a mano se queda como está, y «Avoqado» se salta los de
+ * stock con decimales (Shopify sólo cuenta piezas enteras), que siguen pendientes. También es una elección explícita: ningún
+ * botón viene marcado. Después se puede cambiar cualquiera.
+ */
+function ElegirLosQueFaltan({ venueId, vista, porDecidir }: { venueId: string; vista: ShopifyVistaConexion; porDecidir: number }) {
+  const { t } = useTranslation('shopify')
+  const { toast } = useToast()
+  const fallo = useShopifyFallo(venueId)
+  const invalidarVista = useInvalidateShopifyVistaPrevia()
+  const elegir = useMutation({
+    mutationFn: (todos: ShopifyChoice) => saveShopifyConnectChoices(venueId, { vista, todos }),
+    onSuccess: async (r, todos) => {
+      // Que no queden callados: si «Avoqado» dejó productos sin elegir, se dice por qué (no es una falla: se eligen aparte).
+      if (todos === 'AVOQADO' && r.porDecidir > 0) {
+        toast({
+          title: t('preview.todosQuedaron', { guardadas: r.guardadas, porDecidir: r.porDecidir }),
+          description: t('preview.todosQuedaronDetalle'),
+        })
+      }
+      await invalidarVista(venueId)
+    },
+    onError: fallo,
+  })
+  return (
+    <div className="space-y-2" data-tour="shopify-decision-todos">
+      <p className="text-sm text-foreground">{t('preview.todosAyuda', { count: porDecidir })}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" disabled={elegir.isPending} onClick={() => elegir.mutate('AVOQADO')}>
+          {t('preview.todosAvoqado')}
+        </Button>
+        <Button type="button" size="sm" variant="outline" disabled={elegir.isPending} onClick={() => elegir.mutate('SHOPIFY')}>
+          {t('preview.todosShopify')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 /** REVIEWING sin aplicar: la vista previa real (12 bis.3), paginada y filtrada en el servidor. */
 export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; canManage: boolean }) {
   const { t } = useTranslation('shopify')
@@ -151,6 +250,9 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
   const q = useShopifyConnectReview(venueId, filtro, canManage)
   const items = useMemo(() => dedupe(q.data?.pages.flatMap(p => p.items) ?? [], i => i.variantLinkId), [q.data?.pages])
   const primera = q.data?.pages[0]
+  // D1: cuántos faltan por elegir en TODA la vista previa (no sólo en la página cargada) y la conexión que se está viendo.
+  const porDecidir = primera?.resumen.porDecidir ?? 0
+  const vistaConexion = primera?.conexion ?? null
   useEffect(() => {
     if (elegidaSola || !primera || q.isPlaceholderData) return
     setElegidaSola(true)
@@ -211,6 +313,8 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
           </Button>
         ))}
       </div>
+      {/* D1: con decisiones pendientes, la opción para los que faltan (también en las páginas que no se abrieron). */}
+      {vistaConexion && porDecidir > 0 && <ElegirLosQueFaltan venueId={venueId} vista={vistaConexion} porDecidir={porDecidir} />}
       <ListaPaginada
         q={q}
         cuantos={items.length}
@@ -225,30 +329,46 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
         </div>
         <ul className="divide-y divide-border rounded-lg border border-input">
           {items.map(i => (
-            <li key={i.variantLinkId} className="flex items-center justify-between gap-3 p-3 text-sm">
-              <div className="min-w-0">
-                <p className="truncate font-medium text-foreground">{i.name}</p>
-                <p className="text-xs text-muted-foreground">{i.sku ?? '—'}</p>
-                {/* Lo de Shopify al importar es dato secundario: sólo se enseña cuando no es lo que quedará. */}
-                {i.shopifyQty != null && i.quedara !== String(i.shopifyQty) && (
-                  <p className="text-xs text-muted-foreground">{t('preview.enShopify', { qty: i.shopifyQty })}</p>
+            <li key={i.variantLinkId} className="space-y-2 p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-foreground">{i.name}</p>
+                  <p className="text-xs text-muted-foreground">{i.sku ?? '—'}</p>
+                  {/* Lo de Shopify al importar es dato secundario: sólo se enseña cuando no es lo que quedará. */}
+                  {!i.requiereDecision && i.shopifyQty != null && i.quedara !== String(i.shopifyQty) && (
+                    <p className="text-xs text-muted-foreground">{t('preview.enShopify', { qty: i.shopifyQty })}</p>
+                  )}
+                </div>
+                {i.requiereDecision ? (
+                  // D1: con una decisión pendiente no hay un «así quedará» único: se enseñan los dos números.
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {t('preview.ambos', { avoqado: i.avoqadoQty, shopify: i.shopifyQty ?? '—' })}
+                  </span>
+                ) : (
+                  <div className="flex shrink-0 items-center gap-2 tabular-nums">
+                    {i.nuevo && <Badge variant="secondary">{t('preview.nuevo')}</Badge>}
+                    <span className="text-muted-foreground">{i.avoqadoQty}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    <span className="font-medium text-foreground">{i.quedara ?? '—'}</span>
+                  </div>
                 )}
               </div>
-              <div className="flex shrink-0 items-center gap-2 tabular-nums">
-                {i.nuevo && <Badge variant="secondary">{t('preview.nuevo')}</Badge>}
-                <span className="text-muted-foreground">{i.avoqadoQty}</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
-                <span className="font-medium text-foreground">{i.quedara ?? '—'}</span>
-              </div>
+              {i.requiereDecision && vistaConexion && <EleccionDeProducto venueId={venueId} vista={vistaConexion} item={i} />}
             </li>
           ))}
         </ul>
       </ListaPaginada>
       {!listo && <p className="text-xs text-muted-foreground">{t('preview.applyBlocked')}</p>}
+      {/* D1: el servidor también lo exige (422), incluidas las páginas que no se abrieron. */}
+      {porDecidir > 0 && (
+        <p role="status" className="text-sm font-medium text-foreground" data-tour="shopify-por-decidir">
+          {t('preview.porDecidir', { count: porDecidir })}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2 pt-2">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button disabled={!listo || apply.isPending} data-tour="shopify-apply">
+            <Button disabled={!listo || porDecidir > 0 || apply.isPending} data-tour="shopify-apply">
               {t('preview.apply')}
             </Button>
           </AlertDialogTrigger>
@@ -260,7 +380,7 @@ export function ShopifyConnectReview({ venueId, canManage }: { venueId: string; 
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
               {/* Doble candado: si la vista previa falla con el diálogo abierto, confirmar tampoco aplica. */}
-              <AlertDialogAction disabled={!listo} onClick={() => listo && apply.mutate()}>
+              <AlertDialogAction disabled={!listo || porDecidir > 0} onClick={() => listo && porDecidir === 0 && apply.mutate()}>
                 {t('preview.applyConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>

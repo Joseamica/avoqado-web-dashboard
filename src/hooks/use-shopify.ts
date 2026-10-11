@@ -43,6 +43,7 @@ export const shopifyKeys = {
   overview: (venueId: string | undefined) => ['shopify', venueId, 'overview'] as const,
   locations: (venueId: string | undefined, intent: string | null) => ['shopify', venueId, 'locations', intent] as const,
   connectReview: (venueId: string | undefined, filtro: ConnectReviewFiltro) => ['shopify', venueId, 'connect-review', filtro] as const,
+  connectReviewAll: (venueId: string | undefined) => ['shopify', venueId, 'connect-review'] as const,
   reviewsAll: (venueId: string | undefined) => ['shopify', venueId, 'reviews'] as const,
   reviews: (venueId: string | undefined, q: string) => ['shopify', venueId, 'reviews', q] as const,
   reviewEnvios: (venueId: string | undefined) => ['shopify', venueId, 'review-envios'] as const,
@@ -296,6 +297,12 @@ export function useInvalidateShopify() {
 export function useInvalidateShopifyResumen() {
   const qc = useQueryClient()
   return useCallback((venueId: string | undefined) => qc.invalidateQueries({ queryKey: shopifyKeys.overview(venueId) }), [qc])
+}
+
+/** D1: sólo la vista previa (todas sus pestañas): tras elegir, o cuando la aplicación regresa a la vista previa. */
+export function useInvalidateShopifyVistaPrevia() {
+  const qc = useQueryClient()
+  return useCallback((venueId: string | undefined) => qc.invalidateQueries({ queryKey: shopifyKeys.connectReviewAll(venueId) }), [qc])
 }
 
 /** Las dos listas que cambia un cuadre: al terminar el cuadre pedido. */

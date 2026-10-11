@@ -13,6 +13,7 @@ import {
   type ConnectReviewFiltro,
   type Pagina,
   type ShopifyChoice,
+  type ShopifyConnectChoice,
   type ShopifyConnectReview,
   type ShopifyErrorCode,
   type ShopifyIssue,
@@ -22,6 +23,7 @@ import {
   type ShopifyResolveResult,
   type ShopifyReview,
   type ShopifyReviewEnvio,
+  type ShopifyVistaConexion,
 } from '@/types/shopify'
 
 /** Página del server: ≤ 50; 20 cabe en pantalla con «Cargar más». */
@@ -55,6 +57,15 @@ export const getShopifyConnectReview = async (
 
 export const applyShopifyConnect = async (venueId: string): Promise<{ solicitado: true }> =>
   (await api.post(`${base(venueId)}/connect/apply`)).data.data
+
+/**
+ * D1: guarda la elección de productos (o una para todos los que faltan) con la conexión y los números que el dueño VIO; si
+ * ya cambiaron, 409 SHOPIFY_REVISION_CAMBIO o SHOPIFY_CONEXION_CAMBIO (RELEER). Se manda `elecciones` O `todos`, nunca los dos.
+ */
+export const saveShopifyConnectChoices = async (
+  venueId: string,
+  body: { vista: ShopifyVistaConexion; elecciones?: ShopifyConnectChoice[]; todos?: ShopifyChoice },
+): Promise<{ guardadas: number; porDecidir: number }> => (await api.post(`${base(venueId)}/connect/choices`, body)).data.data
 
 /** `desconectado: false` = no había nada que desconectar (L17). */
 export const disconnectShopify = async (venueId: string): Promise<{ desconectado: boolean }> =>
@@ -108,6 +119,9 @@ const ACCIONES: Partial<Record<ShopifyErrorCode, ShopifyErrorAccion>> = {
   SHOPIFY_SIN_PAREJA: 'RELEER',
   SHOPIFY_PAREJA_SUSPENDIDA: 'RELEER',
   SHOPIFY_NO_EN_REVISION: 'RELEER',
+  // D1: faltan decisiones (una venta invalidó una) o la conexión que se veía ya no es la vigente ⇒ se vuelve a leer la lista.
+  SHOPIFY_FALTAN_DECISIONES: 'RELEER',
+  SHOPIFY_CONEXION_CAMBIO: 'RELEER',
   SHOPIFY_SIN_CONEXION: 'RELEER',
   // C7-M(1): sin acceso, conexión no activa o ya conectada ⇒ el resumen que se vio está viejo: se vuelve a leer.
   SHOPIFY_NO_ACTIVA: 'RELEER',

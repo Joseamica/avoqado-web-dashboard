@@ -41,6 +41,15 @@ describe('servicio del conector Shopify', () => {
     expect(mockGet).toHaveBeenCalledWith(`${B}/reviews/envios`, { params: { ids: 'r1,r2' } })
   })
 
+  it('D1: guardar una elección manda a su ruta la conexión y los números que se VIERON; «en todos», una opción', async () => {
+    const vista = { linkId: 'l1', generation: 1, tokenVersion: 1 }
+    const elecciones = [{ variantLinkId: 'vl1', choice: 'AVOQADO' as const, expectedAvoqadoQty: '5', expectedShopifyQty: 6 }]
+    await expect(s.saveShopifyConnectChoices('v1', { vista, elecciones })).resolves.toBe('ok')
+    expect(mockPost).toHaveBeenCalledWith(`${B}/connect/choices`, { vista, elecciones })
+    await s.saveShopifyConnectChoices('v1', { vista, todos: 'SHOPIFY' })
+    expect(mockPost).toHaveBeenLastCalledWith(`${B}/connect/choices`, { vista, todos: 'SHOPIFY' })
+  })
+
   it('resolver manda la elección con las cantidades que se vieron', async () => {
     await s.resolveShopifyReview('v1', 'r1', { choice: 'AVOQADO', expectedAvoqadoQty: '5', expectedShopifyQty: 4 })
     expect(mockPost).toHaveBeenCalledWith(`${B}/reviews/r1/resolve`, { choice: 'AVOQADO', expectedAvoqadoQty: '5', expectedShopifyQty: 4 })
