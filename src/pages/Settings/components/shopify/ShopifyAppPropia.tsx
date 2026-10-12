@@ -105,6 +105,9 @@ export function ShopifyAppPropia({
           onChange={e => setClientId(e.target.value)}
           autoComplete="off"
           spellCheck={false}
+          data-1p-ignore
+          data-lpignore="true"
+          data-bwignore
         />
       </div>
       <div className="space-y-1">
@@ -115,8 +118,13 @@ export function ShopifyAppPropia({
           value={clientSecret}
           disabled={!canManage}
           onChange={e => setClientSecret(e.target.value)}
-          autoComplete="off"
+          // Chrome ignora "off" en un password; "new-password" evita que rellene la contraseña de Avoqado aquí y que ofrezca guardar
+          // el secret. Los data-* piden lo mismo a los gestores de contraseñas (1Password, LastPass, Bitwarden).
+          autoComplete="new-password"
           spellCheck={false}
+          data-1p-ignore
+          data-lpignore="true"
+          data-bwignore
         />
         <p className="text-xs text-muted-foreground">{t('connect.appPropia.clientSecretHelp')}</p>
       </div>

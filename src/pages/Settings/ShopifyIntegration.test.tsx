@@ -424,7 +424,16 @@ describe('ShopifyIntegration — conectar con la app de la tienda (5a)', () => {
     expect(screen.getByText(SHOPIFY_PERMISOS_APP.join(','))).toBeInTheDocument()
     const secret = screen.getByLabelText('connect.appPropia.clientSecretLabel')
     expect(secret).toHaveAttribute('type', 'password')
-    expect(secret).toHaveAttribute('autocomplete', 'off')
+    // Chrome ignora autocomplete="off" en un password y, con un campo de texto + uno de contraseña, lo trata como un inicio de sesión:
+    // podría rellenar el correo y la contraseña de Avoqado aquí (y mandar esa contraseña a Shopify) u ofrecer guardar las llaves.
+    expect(secret).toHaveAttribute('autocomplete', 'new-password')
+    const clientId = screen.getByLabelText('connect.appPropia.clientIdLabel')
+    expect(clientId).toHaveAttribute('autocomplete', 'off')
+    for (const campo of [clientId, secret]) {
+      expect(campo).toHaveAttribute('data-1p-ignore')
+      expect(campo).toHaveAttribute('data-lpignore', 'true')
+      expect(campo).toHaveAttribute('data-bwignore')
+    }
     const conectar = screen.getByRole('button', { name: 'connect.appPropia.submit' })
     expect(conectar).toBeDisabled()
     await llenarLlaves()
