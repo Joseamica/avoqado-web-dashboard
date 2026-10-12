@@ -124,6 +124,7 @@
     "width": "Width",
     "height": "Height",
     "removeElement": "Remove from plan",
+    "wallEdit": "Drag the dots at its ends to lengthen, shorten or turn it.",
     "rotateAll": "Rotate all",
     "removeMany": "Remove selected",
     "openOrder": "Open check",

@@ -177,6 +177,44 @@ describe('editorReducer — piezas que no se deforman ni se salen (ronda 1)', ()
     expect(s.doc.elements[1]).toMatchObject({ key: 'tmp-w', x: 30, y: 7, x2: 40, y2: 7 })
   })
 
+  describe('mover la punta de una pared', () => {
+    it('mueve sólo la punta que se arrastra y deja la otra donde estaba', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 15, y: 0 })
+      expect(s.doc.elements[0]).toMatchObject({ x: 0, y: 0, x2: 15, y2: 0 })
+      expect(s.past).toHaveLength(1)
+    })
+
+    it('la punta de inicio también se mueve', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'start', x: 4, y: 0 })
+      expect(s.doc.elements[0]).toMatchObject({ x: 4, y: 0, x2: 10, y2: 0 })
+    })
+
+    it('se imanta a 0/45/90° desde la otra punta', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 9, y: 2 })
+      expect(s.doc.elements[0]).toMatchObject({ x2: 9, y2: 0 })
+    })
+
+    it('no se sale del lienzo: se detiene en la orilla sobre su propia línea', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 55, y: 0 }) // ancha: 40 × 25
+      expect(s.doc.elements[0]).toMatchObject({ x2: 40, y2: 0 })
+    })
+
+    it('una pared de menos de un cuadro no se acepta: queda como estaba, sin paso de deshacer', () => {
+      const start = initEditorState(doc())
+      expect(editorReducer(start, { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 0, y: 0 })).toBe(start)
+    })
+
+    it('deshacer regresa la pared completa', () => {
+      const moved = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 15, y: 0 })
+      expect(editorReducer(moved, { type: 'UNDO' }).doc.elements[0]).toMatchObject({ x2: 10, y2: 0 })
+    })
+
+    it('sólo aplica a paredes', () => {
+      const start = initEditorState({ ...doc(), elements: [{ ...wall, key: 'b1', type: 'BAR_COUNTER', w: 8, h: 2, x2: null, y2: null }] })
+      expect(editorReducer(start, { type: 'MOVE_WALL_END', key: 'b1', end: 'end', x: 15, y: 0 })).toBe(start)
+    })
+  })
+
   it('copiar una mesa de la bandeja no copia su posición vieja', () => {
     const start = initEditorState({ ...doc(), tables: [table('t9', { areaKey: null, x: null, y: null, legacy: { nx: 0.3, ny: 0.6 } })] })
     const s = editorReducer(start, { type: 'DUPLICATE', clones: [{ sourceKey: 't9', key: 'tmp-9', number: '10' }] })

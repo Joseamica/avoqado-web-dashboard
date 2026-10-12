@@ -357,6 +357,7 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
   return (
     <div className="space-y-5">
       <h3 className="text-base font-semibold">{t(toolLabelKey(element.type))}</h3>
+      {element.type === 'WALL' && <p className="text-sm leading-relaxed text-muted-foreground">{t('inspector.wallEdit')}</p>}
       {named && (
         <Field label={t('inspector.label')} htmlFor={labelId}>
           <Input

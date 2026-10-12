@@ -210,6 +210,48 @@ test('arrastrar una mesa la mueve y se guarda su nueva posición', async ({ page
   await expect(lienzo(page)).toHaveCount(0)
 })
 
+test('una pared se edita jalando sus puntas; barras en «L» y paredes en la orilla quedan dentro del lienzo', async ({ page }) => {
+  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
+  const el = (id: string, type: string, extra: Record<string, unknown>) => ({
+    id, type, areaId: 'a1', width: null, height: null, rotation: 0, endX: null, endY: null, label: null, color: null, ...extra,
+  })
+  // Área ancha de 40 × 25: la pared va de (10, 5) a (20, 5); la de abajo, pegada a la orilla; la barra en «L» en (5, 12).
+  const plan = {
+    ...salon([mesa('t1', '1', { positionX: 0.7, positionY: 0.6 })]),
+    elements: [
+      el('w1', 'WALL', { positionX: 0.25, positionY: 0.2, endX: 0.5, endY: 0.2 }),
+      el('w2', 'WALL', { positionX: 0, positionY: 1, endX: 1, endY: 1 }),
+      el('b1', 'BAR_COUNTER', { positionX: 0.125, positionY: 0.48, width: 0.2, height: 0.08 }),
+      el('b2', 'BAR_COUNTER', { positionX: 0.125, positionY: 0.56, width: 0.05, height: 0.24 }),
+    ],
+  }
+  const { puts } = await mockFloorPlan(page, plan)
+  await abrir(page)
+  await abrirEditor(page)
+  await page.screenshot({ path: test.info().outputPath('plano-antes.png') })
+  // Clic sobre la pared: queda seleccionada y aparecen sus dos puntas.
+  const pared = (await lienzo(page).getByTestId('floor-element-w1').boundingBox())!
+  await page.mouse.click(pared.x + pared.width / 2, pared.y + pared.height / 2)
+  const punta = lienzo(page).getByTestId('floor-wall-handle-end')
+  await expect(punta).toBeVisible()
+  await expect(page.getByText('Arrastra las bolitas de sus puntas')).toBeVisible()
+  const p = (await punta.boundingBox())!
+  await page.mouse.move(p.x + p.width / 2, p.y + p.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(p.x + p.width / 2 + 180, p.y + p.height / 2, { steps: 10 })
+  await page.mouse.up()
+  // Se ve más larga antes de guardar.
+  await expect.poll(async () => (await lienzo(page).getByTestId('floor-element-w1').boundingBox())!.width).toBeGreaterThan(pared.width + 100)
+  await page.screenshot({ path: test.info().outputPath('plano-despues.png') })
+  await page.getByTestId('floor-plan-save').click()
+  await expect.poll(() => puts.length).toBe(1)
+  const w1 = puts[0].elements.find((e: any) => e.id === 'w1')
+  expect(w1.positionX).toBeCloseTo(0.25, 5) // la otra punta no se movió
+  expect(w1.positionY).toBeCloseTo(0.2, 5)
+  expect(w1.endX).toBeGreaterThan(0.6)
+  expect(w1.endY).toBeCloseTo(0.2, 5) // sigue derecha (imantada a 0°)
+})
+
 test('tras tocar «Acercar» con el ratón, Espacio + arrastrar mueve el plano (no vuelve a acercar)', async ({ page }) => {
   await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
   await mockFloorPlan(page, salon([mesa('t1', '1')]))

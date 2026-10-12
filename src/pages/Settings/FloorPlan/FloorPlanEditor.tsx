@@ -395,6 +395,7 @@ export function FloorPlanEditor({ plan, venueId, venueName, initialAreaKey, onCl
                   onMove={(keys, dx, dy) => edit({ type: 'MOVE', keys, dx, dy })}
                   onPlaceTool={placeTool}
                   onCreateWall={createWall}
+                  onMoveWallEnd={(key, end, x, y) => edit({ type: 'MOVE_WALL_END', key, end, x, y })}
                   onPlaceTable={(key, x, y) => edit({ type: 'PLACE_TABLE', key, areaKey: activeArea.key, x, y })}
                   onToolDone={() => setTool('select')}
                   keyboardFocus={keyboardFocus}

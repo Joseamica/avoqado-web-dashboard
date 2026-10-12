@@ -124,6 +124,7 @@
     "width": "Ancho",
     "height": "Alto",
     "removeElement": "Quitar del plano",
+    "wallEdit": "Arrastra las bolitas de sus puntas para alargarla, acortarla o girarla.",
     "rotateAll": "Girar todos",
     "removeMany": "Quitar seleccionados",
     "openOrder": "Cuenta abierta",

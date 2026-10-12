@@ -1,5 +1,5 @@
 import { areaIn, keepExisting, markOpen, sameDoc, selectionIn } from './docHelpers'
-import { clamp, gridOf, placeTable, rotatedExtent, round6, tableSizeCells } from './floorGeometry'
+import { clamp, clampWallEnd, gridOf, placeTable, rotatedExtent, round6, snapWallEnd, tableSizeCells } from './floorGeometry'
 import type { DraftArea, DraftElement, DraftTable, EditorDoc } from './types'
 
 /**
@@ -35,6 +35,8 @@ export type EditorAction =
   | { type: 'PLACE_TABLE'; key: string; areaKey: string; x: number; y: number }
   | { type: 'UPDATE_TABLE'; key: string; patch: Partial<Pick<DraftTable, 'number' | 'capacity' | 'shape' | 'rotation' | 'areaKey'>> }
   | { type: 'UPDATE_ELEMENT'; key: string; patch: Partial<Pick<DraftElement, 'label' | 'w' | 'h' | 'rotation'>> }
+  /** Arrastrar una punta de la pared: la otra se queda; se imanta a 0/45/90° desde ella y no sale del lienzo. */
+  | { type: 'MOVE_WALL_END'; key: string; end: 'start' | 'end'; x: number; y: number }
   | { type: 'ROTATE'; keys: string[] }
   | { type: 'DUPLICATE'; clones: Array<{ sourceKey: string; key: string; number?: string }> }
   | { type: 'REMOVE'; keys: string[] }
@@ -301,6 +303,18 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           return clampElement({ ...e, ...action.patch }, g.cols, g.rows)
         }),
       })
+    case 'MOVE_WALL_END': {
+      const wall = doc.elements.find(e => e.key === action.key && e.type === 'WALL')
+      if (!wall) return state
+      const { cols, rows } = gridFor(doc, wall.areaKey)
+      const fixed = action.end === 'end' ? { x: wall.x, y: wall.y } : { x: wall.x2 ?? wall.x, y: wall.y2 ?? wall.y }
+      const snapped = snapWallEnd(fixed.x, fixed.y, action.x, action.y)
+      const moved = clampWallEnd(fixed.x, fixed.y, snapped.x, snapped.y, cols, rows)
+      // Menos de un cuadro no es pared: lo mismo que pide el lápiz al dibujarla.
+      if (Math.hypot(moved.x - fixed.x, moved.y - fixed.y) < 1) return state
+      const patch = action.end === 'end' ? { x2: moved.x, y2: moved.y } : { x: moved.x, y: moved.y }
+      return commit(state, { ...doc, elements: doc.elements.map(e => (e.key === wall.key ? { ...e, ...patch } : e)) })
+    }
     case 'ROTATE': {
       const keys = new Set(action.keys)
       const tables = doc.tables.map(t => {

@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { FloorCanvas, type FloorCanvasProps } from '../FloorCanvas'
-import type { DraftArea, DraftTable } from '../../model/types'
+import type { DraftArea, DraftElement, DraftTable } from '../../model/types'
 
 // i18n autocontenido: devuelve la llave, como el resto de las pruebas del repo.
 vi.mock('react-i18next', () => ({
@@ -15,6 +15,8 @@ vi.mock('react-i18next', () => ({
 const area: DraftArea = { key: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false }
 const table: DraftTable = { key: 't1', number: '1', capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, hasOpenOrder: false }
 
+const wall: DraftElement = { key: 'w1', type: 'WALL', areaKey: 'a1', x: 10, y: 5, w: null, h: null, rotation: 0, x2: 20, y2: 5, label: null, color: null }
+
 const props = (extra: Partial<FloorCanvasProps> = {}): FloorCanvasProps => ({
   area,
   tables: [table],
@@ -25,6 +27,7 @@ const props = (extra: Partial<FloorCanvasProps> = {}): FloorCanvasProps => ({
   onMove: () => {},
   onPlaceTool: () => {},
   onCreateWall: () => {},
+  onMoveWallEnd: () => {},
   onPlaceTable: () => {},
   onToolDone: () => {},
   ...extra,
@@ -241,5 +244,51 @@ describe('FloorCanvas', () => {
       expect(canvas.getAttribute('class')).not.toContain('cursor-grab')
       fireEvent.keyUp(item, { code: 'Space' })
     }
+  })
+
+  describe('puntas de una pared', () => {
+    it('una pared sola seleccionada muestra sus dos puntas, donde empieza y donde termina', () => {
+      render(<FloorCanvas {...props({ elements: [wall], selection: ['w1'] })} />)
+      expect(screen.getByTestId('floor-wall-handle-start')).toHaveAttribute('cx', '10')
+      expect(screen.getByTestId('floor-wall-handle-end')).toHaveAttribute('cx', '20')
+    })
+
+    it('sin selección, con varias piezas o con una herramienta en la mano, no hay puntas', () => {
+      const { rerender } = render(<FloorCanvas {...props({ elements: [wall] })} />)
+      expect(screen.queryByTestId('floor-wall-handles')).toBeNull()
+      rerender(<FloorCanvas {...props({ elements: [wall], selection: ['w1', 't1'] })} />)
+      expect(screen.queryByTestId('floor-wall-handles')).toBeNull()
+      rerender(<FloorCanvas {...props({ elements: [wall], selection: ['w1'], tool: 'WALL' })} />)
+      expect(screen.queryByTestId('floor-wall-handles')).toBeNull()
+    })
+
+    it('tocar una punta sin arrastrar no cambia la pared ni la arrastra entera', () => {
+      const onMoveWallEnd = vi.fn()
+      const onMove = vi.fn()
+      render(<FloorCanvas {...props({ elements: [wall], selection: ['w1'], onMoveWallEnd, onMove })} />)
+      fireEvent.pointerDown(screen.getByTestId('floor-wall-handle-end'), { button: 0, pointerId: 1 })
+      fireEvent.pointerUp(screen.getByTestId('floor-canvas'), { button: 0, pointerId: 1 })
+      expect(onMoveWallEnd).not.toHaveBeenCalled()
+      expect(onMove).not.toHaveBeenCalled()
+    })
+
+    it('arrastrar la punta avisa al soltar con la punta imantada y metida al lienzo; la otra no se mueve', () => {
+      const onMoveWallEnd = vi.fn()
+      render(<FloorCanvas {...props({ elements: [wall], selection: ['w1'], onMoveWallEnd })} />)
+      fireEvent.pointerDown(screen.getByTestId('floor-wall-handle-end'), { button: 0, pointerId: 1 })
+      // jsdom no tiene getScreenCTM: el puntero cae en (0, 0). Desde (10, 5) eso imanta a 45° y se detiene en la orilla de arriba.
+      fireEvent.pointerMove(screen.getByTestId('floor-canvas'), { clientX: 0, clientY: 0, pointerId: 1 })
+      fireEvent.pointerUp(screen.getByTestId('floor-canvas'), { button: 0, pointerId: 1 })
+      expect(onMoveWallEnd).toHaveBeenCalledWith('w1', 'end', 5, 0)
+    })
+
+    it('con el lápiz de pared, doble clic sobre una pared suelta el lápiz y la deja seleccionada para editarla', () => {
+      const onToolDone = vi.fn()
+      const onSelect = vi.fn()
+      render(<FloorCanvas {...props({ elements: [wall], tool: 'WALL', onToolDone, onSelect })} />)
+      fireEvent.doubleClick(screen.getByTestId('floor-element-w1'))
+      expect(onToolDone).toHaveBeenCalled()
+      expect(onSelect).toHaveBeenCalledWith(['w1'])
+    })
   })
 })
