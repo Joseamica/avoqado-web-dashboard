@@ -170,9 +170,10 @@ describe('i18n del conector Shopify', () => {
     lng => {
       const b = bundle(lng, 'shopify')
       const boton = String(valor(b, 'avisos.reauthorize'))
-      const nombrado = /«([^»]+)»/.exec(String(valor(b, 'connect.appPropia.faltaPermiso')))?.[1] ?? ''
-      expect(nombrado).not.toBe('')
-      expect(boton.startsWith(nombrado)).toBe(true)
+      // El texto también nombra pantallas de Shopify («New version», «Scopes», «Release»): basta con que uno sea el botón.
+      const nombrados = [...String(valor(b, 'connect.appPropia.faltaPermiso')).matchAll(/«([^»]+)»/g)].map(m => m[1])
+      expect(nombrados.length).toBeGreaterThan(0)
+      expect(nombrados.some(n => boton.startsWith(n))).toBe(true)
       expect(String(valor(b, 'connect.appPropia.revocarAnterior'))).toMatch(lng === 'es' ? /revoca el anterior/ : /revoke the previous one/)
     },
   )

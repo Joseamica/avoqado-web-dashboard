@@ -63,13 +63,13 @@
     "reauthorized": "Done: Shopify granted permission again. Syncing continues.",
     "appPropia": {
       "title": "Connect with your store's app",
-      "body": "Your store connects through an app you create in Shopify. It takes a few minutes and you don't install anything in Avoqado.",
+      "body": "Your store connects through an app you create in Shopify. It takes a few minutes and you don't install anything in Avoqado. Shopify's screens are in English: here is what to tap.",
       "pasos": {
-        "1": "Go to dev.shopify.com with your store's owner account and tap «Create app». Name it «Avoqado».",
-        "2": "In the app version, uncheck «Embed app in Shopify admin» and add these 7 permissions:",
-        "3": "Release the version («Release» button).",
-        "4": "Install the app on your store with «Install app» and approve the permissions.",
-        "5": "In the app's «Settings», copy the Client ID and the Client Secret.",
+        "1": "Go to dev.shopify.com with your store's owner account. Tap «Create app» and choose «Create app manually».",
+        "2": "Name it «Avoqado», uncheck «Embed app in Shopify admin» and paste these 7 permissions in «Scopes»:",
+        "3": "Tap «Create app», at the top right.",
+        "4": "Tap «Install app», choose your store and approve the permissions with «Install».",
+        "5": "On the same page, under «Credentials», copy the Client ID and the Client secret.",
         "6": "Paste them below and tap «Connect»."
       },
       "copiar": "Copy the permissions",
@@ -78,7 +78,7 @@
       "clientSecretLabel": "Client Secret",
       "clientSecretHelp": "It is stored encrypted and nobody sees it again, not even in Avoqado.",
       "revocarAnterior": "If you created a new Client Secret in Shopify, revoke the previous one there so your stock keeps syncing.",
-      "faltaPermiso": "Your Shopify app is missing a permission. Add it in your app's version, release it and approve it on your store; then tap «Grant permission».",
+      "faltaPermiso": "Your Shopify app is missing a permission. On dev.shopify.com open your app, tap «New version», add the permission in «Scopes» and tap «Release»; if Shopify asks, approve it on your store. Then tap «Grant permission in Shopify again».",
       "submit": "Connect",
       "cancel": "Back"
     }

@@ -63,13 +63,13 @@
     "reauthorized": "Listo: Shopify volvió a dar permiso. Seguimos sincronizando.",
     "appPropia": {
       "title": "Conecta con la app de tu tienda",
-      "body": "Tu tienda se conecta con una app que creas tú en Shopify. Son unos minutos y no instalas nada en Avoqado.",
+      "body": "Tu tienda se conecta con una app que creas tú en Shopify. Son unos minutos y no instalas nada en Avoqado. Las pantallas de Shopify están en inglés: aquí te decimos qué tocar.",
       "pasos": {
-        "1": "Entra a dev.shopify.com con la cuenta dueña de tu tienda y toca «Crear app». Ponle de nombre «Avoqado».",
-        "2": "En la versión de la app, quita «Incrustar la app en el admin de Shopify» y agrega estos 7 permisos:",
-        "3": "Publica la versión (botón «Release»).",
-        "4": "Instala la app en tu tienda con «Install app» y aprueba los permisos.",
-        "5": "En «Configuración» de la app copia el Client ID y el Client Secret.",
+        "1": "Entra a dev.shopify.com con la cuenta dueña de tu tienda. Toca «Create app» y elige «Create app manually».",
+        "2": "Ponle de nombre «Avoqado», quita la casilla «Embed app in Shopify admin» y en «Scopes» pega estos 7 permisos:",
+        "3": "Toca «Create app», arriba a la derecha.",
+        "4": "Toca «Install app», elige tu tienda y aprueba los permisos con «Install».",
+        "5": "En la misma página, en «Credentials», copia el Client ID y el Client secret.",
         "6": "Pégalos aquí abajo y toca «Conectar»."
       },
       "copiar": "Copiar los permisos",
@@ -78,7 +78,7 @@
       "clientSecretLabel": "Client Secret",
       "clientSecretHelp": "Se guarda cifrado y nadie lo vuelve a ver, ni en Avoqado.",
       "revocarAnterior": "Si creaste un Client Secret nuevo en Shopify, revoca el anterior allá para que el stock siga sincronizándose.",
-      "faltaPermiso": "A tu app de Shopify le falta un permiso. Agrégalo en la versión de tu app, publícala y apruébala en tu tienda; después toca «Volver a dar permiso».",
+      "faltaPermiso": "A tu app de Shopify le falta un permiso. En dev.shopify.com abre tu app, toca «New version», agrega el permiso en «Scopes» y toca «Release»; si Shopify te lo pide, apruébalo en tu tienda. Después toca «Volver a dar permiso en Shopify».",
       "submit": "Conectar",
       "cancel": "Volver"
     }
