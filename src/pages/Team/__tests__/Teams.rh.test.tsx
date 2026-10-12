@@ -4,13 +4,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TeamMember } from '@/services/team.service'
 import { StaffRole } from '@/types'
 import type { Asignacion, Puesto } from '@/types/rh'
 import Teams from '../Teams'
 
 const m = vi.hoisted(() => ({
+  venueId: 'v1',
   getTeamMembers: vi.fn(),
   rol: 'OWNER' as string,
   puestos: [] as unknown[],
@@ -44,7 +45,7 @@ vi.mock('react-i18next', async () => {
   }
 })
 vi.mock('@/api', () => ({ default: { get: async () => ({ data: {} }) } }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
+vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: m.venueId, fullBasePath: '/venues/demo' }) }))
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ staffInfo: { role: m.rol }, activeVenue: { timezone: 'America/Mexico_City' } }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 vi.mock('@/hooks/use-role-config', () => ({ useRoleConfig: () => ({ getDisplayName: (r: string) => `rol:${r}`, getColor: () => undefined }) }))
@@ -117,14 +118,15 @@ const pagina = (data: TeamMember[], totalCount: number, currentPage = 1) => ({
 
 function montar() {
   const cliente = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } })
-  const vista = render(
+  const arbol = () => (
     <QueryClientProvider client={cliente}>
       <MemoryRouter>
         <Teams />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
-  return { cliente, ...vista }
+  const vista = render(arbol())
+  return { cliente, ...vista, volverAPintar: () => vista.rerender(arbol()) }
 }
 const filas = () => screen.getAllByRole('row').slice(1)
 const fila = (nombre: string) => filas().find(f => within(f).queryByText(nombre)) as HTMLElement
@@ -137,8 +139,13 @@ const ultimaLista = () => {
   return listas[listas.length - 1]
 }
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 beforeEach(() => {
   m.rol = 'OWNER'
+  m.venueId = 'v1'
   m.puestos = [puesto({}), puesto({ id: 'p-mesero', name: 'Meseros', color: null, personasVigentes: 6 })]
   // La lista de verdad depende de los filtros; el total SIN filtros (pageSize 1) son 14 personas.
   m.getTeamMembers.mockImplementation(async (_v: string, page: number, size: number, search?: string, positionId?: string) => {
@@ -310,7 +317,113 @@ describe('Personas: lo que no cambia', () => {
   it('un fallo de red no se ve como «no hay gente»: aparece el aviso con «Reintentar ahora»', async () => {
     m.getTeamMembers.mockRejectedValue(new Error('network'))
     montar()
-    expect(await screen.findByText(/problemas para conectar con el servidor/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reintentar ahora' })).toBeInTheDocument()
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent(/problemas para conectar con el servidor/)
+    expect(within(aviso).getByRole('button', { name: 'Reintentar ahora' })).toBeInTheDocument()
+  })
+})
+
+describe('Personas: el número sin filtro, sin arrastre entre sucursales y el debounce', () => {
+  // Servidor falso: con búsqueda sólo regresa 1 persona (total 1); sin ella el total son 14 (la petición de una fila).
+  const buscar = async (texto: string) => {
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar...' }))
+    fireEvent.change(screen.getByPlaceholderText('Buscar por nombre o correo'), { target: { value: texto } })
+  }
+
+  it.each([
+    ['un negocio CON puestos', true],
+    ['un negocio SIN puestos', false],
+  ])('🔴 con una búsqueda activa la pestaña «Miembros» sigue diciendo el total sin filtro (14), no el de la búsqueda (%s)', async (_n, conPuestos) => {
+    if (!conPuestos) m.puestos = []
+    montar()
+    await screen.findByText('Ana López')
+    expect(screen.getByRole('button', { name: /Miembros\s*14/ })).toBeInTheDocument()
+
+    await buscar('ana')
+    await screen.findByText('Anabel Ruiz') // la lista de la búsqueda trae total 1…
+    // …y la pestaña no se contagia: pide aparte el total sin filtro (una fila)
+    await waitFor(() => expect(screen.getByRole('button', { name: /Miembros\s*14/ })).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Miembros\s*1$/ })).not.toBeInTheDocument()
+  })
+
+  it('si el total sin filtro tarda o falla, la fila de chips no desaparece: «Todos · —» sigue quitando el filtro de puesto', async () => {
+    const base = m.getTeamMembers.getMockImplementation() as (...a: unknown[]) => Promise<unknown>
+    m.getTeamMembers.mockImplementation(async (...a: unknown[]) => {
+      if (a[2] === 1) throw new Error('network')
+      return base(...a)
+    })
+    montar()
+    await screen.findByText('Ana López')
+    expect(await screen.findByRole('button', { name: 'Todos · 14' })).toBeInTheDocument() // sin filtro sale de la lista misma
+
+    fireEvent.click(screen.getByRole('button', { name: 'Coaches · 4' }))
+    await screen.findByText('Coach Solo')
+    const todos = await screen.findByRole('button', { name: 'Todos · —' }) // el total filtrado (4) NO se hace pasar por el de todos
+    expect(todos).toBeInTheDocument()
+    fireEvent.click(todos)
+    expect(screen.getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true')
+    await screen.findByText('Ana López')
+  })
+
+  it('🔴 al cambiar de sucursal no se ven las filas de la anterior y el puesto, la búsqueda y la página no se arrastran', async () => {
+    const base = m.getTeamMembers.getMockImplementation() as (...a: unknown[]) => Promise<unknown>
+    let liberarV2: () => void = () => {}
+    m.getTeamMembers.mockImplementation(async (...a: unknown[]) => {
+      // la lista de la sucursal 2 tarda: mientras llega NO puede verse la de la 1
+      if (a[0] === 'v2' && a[2] === 20) {
+        await new Promise<void>(r => (liberarV2 = r))
+        return pagina([miembro({ id: 'z1', staffId: 'z1', firstName: 'Viviana', lastName: 'Dos' })], 1)
+      }
+      return base(...a)
+    })
+    const { volverAPintar } = montar()
+    await screen.findByText('Ana López')
+    fireEvent.click(await screen.findByRole('button', { name: 'Coaches · 4' }))
+    await screen.findByText('Coach Solo')
+    await buscar('ana')
+    await waitFor(() => expect(ultimaLista()).toEqual(['v1', 1, 20, 'ana', 'p-coach'])) // puesto + búsqueda de la sucursal 1
+
+    m.venueId = 'v2'
+    volverAPintar()
+    expect(screen.queryByText('Coach Solo')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Buscar por nombre o correo')).not.toBeInTheDocument()
+    await waitFor(() => expect(llamadas().some(c => c[0] === 'v2' && c[2] === 20)).toBe(true))
+    // lo que se le pide a la sucursal 2: página 1, sin búsqueda y sin puesto
+    expect(llamadas().filter(c => c[0] === 'v2' && c[2] === 20)).toEqual([['v2', 1, 20, undefined, undefined]])
+
+    await act(async () => liberarV2())
+    expect(await screen.findByText('Viviana Dos')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('🔴 el debounce es de 300 ms: a los 299 no se pide nada, a los 300 sí', async () => {
+    montar()
+    await screen.findByText('Ana López')
+    vi.useFakeTimers()
+    await buscar('ana')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(299)
+    })
+    expect(llamadas().some(c => c[3] === 'ana')).toBe(false)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+    expect(llamadas().some(c => c[3] === 'ana')).toBe(true)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50) // deja que react-query reparta la respuesta antes de volver al reloj de verdad
+    })
+    vi.useRealTimers()
+    await screen.findByText('Anabel Ruiz')
+  })
+
+  it('el texto de la búsqueda se manda sin espacios en las orillas y «   » no es una búsqueda', async () => {
+    montar()
+    await screen.findByText('Ana López')
+    await buscar('   ')
+    await new Promise(r => setTimeout(r, 400))
+    expect(llamadas().every(c => !c[3])).toBe(true)
+
+    fireEvent.change(screen.getByPlaceholderText('Buscar por nombre o correo'), { target: { value: '  ana  ' } })
+    await waitFor(() => expect(ultimaLista()).toEqual(['v1', 1, 20, 'ana', undefined]))
   })
 })

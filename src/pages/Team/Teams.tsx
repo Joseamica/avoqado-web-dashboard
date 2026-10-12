@@ -1,5 +1,5 @@
 import api from '@/api'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, MoreHorizontal, Pencil, UserMinus, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef } from 'react'
@@ -63,6 +63,13 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 // `src/hooks/useTeamInvitationTour.ts` y actualiza los selectores
 // `data-tour="team-*"` y los textos de los steps en paralelo.
 export default function Teams() {
+  const { venueId } = useCurrentVenue()
+  // Al cambiar de sucursal la ruta es la misma y React conserva el componente: sin esto se arrastrarían a la sucursal nueva el
+  // puesto elegido, la búsqueda, la página, los filtros y hasta los diálogos abiertos de la anterior. Con `key` nace limpio.
+  return <TeamsContent key={venueId} />
+}
+
+function TeamsContent() {
   const { venueId, fullBasePath } = useCurrentVenue()
 
   // Misma llave que Ajustes → Editar negocio: comparten caché, y el invalidate de
@@ -164,7 +171,8 @@ export default function Teams() {
   const [salesFilter, setSalesFilter] = useState<AmountFilter | null>(null)
   const [tipsFilter, setTipsFilter] = useState<AmountFilter | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  // Sin espacios en las orillas: «   » no es una búsqueda, y teclear un espacio al final no reinicia el debounce.
+  const debouncedSearchTerm = useDebounce(searchTerm.trim(), 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   // Puesto elegido en los chips ('' = Todos). La búsqueda y el puesto los resuelve el SERVIDOR; el resto de filtros, todavía no.
   const [positionId, setPositionId] = useState('')
@@ -281,19 +289,21 @@ export default function Teams() {
     [roleOptions],
   )
 
-  // Fetch team members. Búsqueda y puesto van al servidor; `keepPreviousData` evita que cada tecla deje la tabla en «cargando»
+  // Fetch team members. Búsqueda y puesto van al servidor; conservar los datos anteriores (placeholderData) evita que cada tecla deje la tabla en «cargando»
   // (la tabla desmontaría el buscador y en Android se cerraría el teclado).
   const {
     data: teamData,
     isLoading: isLoadingTeam,
     isError: isTeamError,
+    isPlaceholderData,
     refetch: refetchTeam,
   } = useQuery({
     queryKey: teamMembersQueryKey,
     queryFn: () =>
       teamService.getTeamMembers(venueId, pagination.pageIndex + 1, pagination.pageSize, debouncedSearchTerm || undefined, positionId || undefined),
     enabled: !!venueId,
-    placeholderData: keepPreviousData,
+    // Sólo conserva lo anterior si era de ESTA sucursal (defensa extra: el `key` de arriba ya reinicia el componente).
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[1] === venueId ? prev : undefined),
     refetchOnWindowFocus: false,
     staleTime: 30_000,
     retry: 1,
@@ -305,20 +315,28 @@ export default function Teams() {
   const positionColors = useMemo(() => new Map((positions ?? []).map(p => [p.id, p.color])), [positions])
   const hasPositions = !!positions && positions.length > 0
 
-  // «Todos · N» es toda la gente, no lo que deja el filtro: con búsqueda o puesto puestos, el total de la respuesta es el filtrado,
-  // así que se pide aparte (una fila basta, sólo interesa el total). Sólo en negocios con puestos: sin chips no se necesita.
+  // «Todos · N» y el número de la pestaña «Miembros» son toda la gente, no lo que deja el filtro: con búsqueda o puesto puestos, el
+  // total de la respuesta es el filtrado, así que se pide aparte (una fila basta, sólo interesa el total). Sólo hace falta si hay
+  // chips o un filtro puesto; sin ellos el total de la lista misma ya es el de todos.
   const hasServerFilter = !!debouncedSearchTerm || !!positionId
   const { data: unfilteredData } = useQuery({
     queryKey: ['team-members', venueId, 'total'],
     queryFn: () => teamService.getTeamMembers(venueId, 1, 1),
-    enabled: !!venueId && hasPositions,
+    enabled: !!venueId && (hasPositions || hasServerFilter),
     staleTime: 30_000,
     retry: 1,
     refetchOnWindowFocus: false,
   })
-  const everyoneCount = unfilteredData?.meta.totalCount ?? (hasServerFilter ? undefined : teamData?.meta.totalCount)
+  // Sin filtro (y sin datos prestados de uno anterior) el total de la lista es el de todos y siempre está fresco. Con filtro, el de
+  // la consulta aparte; mientras llega (o si falla) NO se muestra el filtrado como si fuera el de todos: queda sin número.
+  const everyoneCount =
+    !hasServerFilter && !isPlaceholderData
+      ? teamData?.meta.totalCount
+      : (unfilteredData?.meta.totalCount ?? (hasServerFilter ? undefined : teamData?.meta.totalCount))
   const positionChips = [
-    { id: '', label: tRh('people.filterAll', { count: everyoneCount ?? 0 }), color: null as string | null },
+    // Sin número («—») si aún no se sabe o la consulta falló: la fila nunca desaparece, así siempre se puede quitar el filtro.
+    // (i18next tipa `count` como número; «—» sólo se interpola, no pluraliza.)
+    { id: '', label: tRh('people.filterAll', { count: everyoneCount ?? ('—' as unknown as number) }), color: null as string | null },
     ...(positions ?? []).map(p => ({ id: p.id, label: `${p.name} · ${p.personasVigentes}`, color: p.color })),
   ]
 
@@ -930,7 +948,7 @@ export default function Teams() {
               }`}
             >
               {t('tabs.members')}
-              <span className="ml-1.5 text-xs opacity-60">{teamData?.meta.totalCount || 0}</span>
+              {everyoneCount !== undefined && <span className="ml-1.5 text-xs opacity-60">{everyoneCount}</span>}
               {activeTeamTab === 'members' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
@@ -963,7 +981,7 @@ export default function Teams() {
 
         <TabsContent value="members" data-tour="team-members-table" className="space-y-4">
           {/* Chips por puesto: «Todos · N» y uno por puesto con su gente vigente. Sin puestos no hay nada que filtrar. */}
-          {hasPositions && everyoneCount !== undefined && (
+          {hasPositions && (
             <div className="flex flex-wrap gap-2">
               {positionChips.map(chip => (
                 <button
@@ -993,7 +1011,10 @@ export default function Teams() {
 
           {/* Un fallo de red no puede verse como «no hay gente» */}
           {isTeamError && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
+            >
               <span>{tCommon('errors.serverUnavailableDescription')}</span>
               <Button variant="outline" size="sm" onClick={() => refetchTeam()}>
                 {tCommon('errors.retryNow')}
