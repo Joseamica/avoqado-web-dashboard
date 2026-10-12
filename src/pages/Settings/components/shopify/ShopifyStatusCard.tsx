@@ -77,7 +77,7 @@ export function ShopifyStatusCard({
     onError: fallo,
   })
   // 5a: con la app de la tienda, «Reconectar» y «Volver a dar permiso» son volver a pegar sus llaves (REAUTHORIZE) en el mismo
-  // bloque de conectar, no un viaje a Shopify por OAuth.
+  // bloque de conectar, no un viaje a Shopify por OAuth. Con el bloque abierto, los botones que lo abren se apagan (un bloque a la vez).
   const llaves = useLlavesDeLaTienda(connection)
   const pedirPermiso = () => (llaves.esComercio ? llaves.abrir() : reautorizar.mutate())
   const c = connection.conteos
@@ -117,7 +117,7 @@ export function ShopifyStatusCard({
             size="sm"
             className="col-start-2 mt-2 justify-self-start"
             onClick={pedirPermiso}
-            disabled={!canManage || reautorizar.isPending}
+            disabled={!canManage || reautorizar.isPending || llaves.abierto}
             data-tour="shopify-reconnect"
           >
             {t('status.reconnect')}
@@ -136,7 +136,7 @@ export function ShopifyStatusCard({
                 size="sm"
                 className="col-start-2 mt-2 justify-self-start"
                 onClick={pedirPermiso}
-                disabled={!canManage || reautorizar.isPending}
+                disabled={!canManage || reautorizar.isPending || llaves.abierto}
               >
                 {t('avisos.reauthorize')}
               </Button>
@@ -236,7 +236,13 @@ export function ShopifyStatusCard({
               <p className="font-medium text-foreground">{t(`avisos.items.${a}.title`)}</p>
               <p className="text-muted-foreground">{t(`avisos.items.${a}.body`)}</p>
               {a === 'FALTA_PERMISO' && (
-                <Button variant="outline" size="sm" className="mt-1" onClick={pedirPermiso} disabled={!canManage || reautorizar.isPending}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-1"
+                  onClick={pedirPermiso}
+                  disabled={!canManage || reautorizar.isPending || llaves.abierto}
+                >
                   {t('avisos.reauthorize')}
                 </Button>
               )}

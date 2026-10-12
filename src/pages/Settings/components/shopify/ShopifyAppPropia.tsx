@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Copy, Loader2 } from 'lucide-react'
@@ -44,6 +44,14 @@ export function ShopifyAppPropia({
   const invalidate = useInvalidateShopify()
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
+  const reautoriza = purpose === 'REAUTHORIZE'
+  const clientIdRef = useRef<HTMLInputElement>(null)
+  // «Reconectar», «Volver a dar permiso» y «Cambiar llaves» abren el bloque abajo de la tarjeta: se trae a la vista con el cursor en el
+  // Client ID, para que el dueño vea que se abrió (jsdom no implementa `scrollIntoView`).
+  useEffect(() => {
+    const el = clientIdRef.current
+    if (reautoriza && el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' })
+  }, [reautoriza])
   const completas = !!clientId.trim() && !!clientSecret.trim()
   const conectar = useMutation({
     // Un error de axios lleva el cuerpo de la petición (con el secret): al desmontar el bloque la caché no lo conserva.
@@ -100,6 +108,8 @@ export function ShopifyAppPropia({
         <Label htmlFor="shopify-client-id">{t('connect.appPropia.clientIdLabel')}</Label>
         <Input
           id="shopify-client-id"
+          ref={clientIdRef}
+          autoFocus={reautoriza}
           value={clientId}
           disabled={!canManage}
           onChange={e => setClientId(e.target.value)}

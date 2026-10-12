@@ -87,7 +87,6 @@ describe('servicio del conector Shopify', () => {
       'SHOPIFY_APP_OTRA_ORGANIZACION',
       'SHOPIFY_TIENDA_NO_EXISTE',
       'SHOPIFY_APP_RECHAZADA',
-      'SHOPIFY_APP_FALTAN_PERMISOS',
     ]) {
       expect(s.explicarErrorShopify(e(422, code))).toEqual({ clave: `errors.codes.${code}`, accion: null })
     }
@@ -97,6 +96,23 @@ describe('servicio del conector Shopify', () => {
     })
     expect(s.explicarErrorShopify(e(409, 'SHOPIFY_USA_APP_PROPIA'))).toEqual({ clave: 'errors.codes.SHOPIFY_USA_APP_PROPIA', accion: null })
     expect(s.explicarErrorShopify(e(503, 'SHOPIFY_NO_RESPONDE')).accion).toBe('REINTENTAR_LUEGO')
+  })
+
+  it('🔴 fix final (I4): faltan permisos ⇒ el texto del servidor, que nombra los permisos que faltan; sin texto, el fijo', () => {
+    const delServidor =
+      'A tu app le faltan estos permisos: read_orders, read_fulfillments. Agrégalos a tu app, publica una versión y apruébala en tu tienda; después vuelve a conectar.'
+    const conTexto = { response: { status: 422, data: { code: 'SHOPIFY_APP_FALTAN_PERMISOS', message: delServidor } } }
+    expect(s.explicarErrorShopify(conTexto)).toEqual({
+      clave: 'errors.codes.SHOPIFY_APP_FALTAN_PERMISOS',
+      texto: delServidor,
+      accion: null,
+    })
+    const t = (k: string) => `t:${k}`
+    expect(s.textoDeErrorShopify(t, conTexto)).toBe(delServidor)
+    expect(s.textoDeErrorShopify(t, conTexto)).toContain('read_orders, read_fulfillments')
+    const sinTexto = { response: { status: 422, data: { code: 'SHOPIFY_APP_FALTAN_PERMISOS' } } }
+    expect(s.explicarErrorShopify(sinTexto)).toEqual({ clave: 'errors.codes.SHOPIFY_APP_FALTAN_PERMISOS', accion: null })
+    expect(s.textoDeErrorShopify(t, sinTexto)).toBe('t:errors.codes.SHOPIFY_APP_FALTAN_PERMISOS')
   })
 })
 

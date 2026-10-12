@@ -162,6 +162,7 @@ type RespuestaDeError = { response?: { status?: number; data?: unknown } }
  * 1. 403 del candado del plan (`featureCode`, mensaje en inglés que dice «subscribe») ⇒ el texto del piloto (N2) y RELEER:
  *    el acceso se perdió a media sesión, el resumen (`planActive`) ya no es el que se ve.
  * 2. Un código conocido ⇒ su texto (y su acción). `SHOPIFY_SIN_PLAN` también es texto de piloto, nunca «actívalo».
+ *    `SHOPIFY_APP_FALTAN_PERMISOS` lleva el texto del server, que nombra los permisos que faltan (la clave queda de respaldo).
  * 3. Otro 403 (el del permiso del rol, en inglés) ⇒ texto propio de permiso.
  * 4. Un `SHOPIFY_*` nuevo o un 400 de validación ⇒ el mensaje del server, que es español.
  * 5. Lo demás (5xx, HTML de un 502, sin red, código ajeno) ⇒ el genérico, nunca la jerga de axios (Z6).
@@ -172,7 +173,10 @@ export function explicarErrorShopify(e: unknown): ShopifyErrorVista {
   const code = typeof data.code === 'string' ? data.code : undefined
   if (r?.status === 403 && data.featureCode === SHOPIFY_FEATURE) return { clave: 'errors.planRequired', accion: 'RELEER' }
   if (code && (SHOPIFY_ERROR_CODES as readonly string[]).includes(code)) {
-    return { clave: `errors.codes.${code}`, accion: ACCIONES[code as ShopifyErrorCode] ?? null }
+    const vista: ShopifyErrorVista = { clave: `errors.codes.${code}`, accion: ACCIONES[code as ShopifyErrorCode] ?? null }
+    // Faltan permisos: el texto del server nombra CUÁLES (la clave fija no puede); sin texto, la clave.
+    const texto = code === 'SHOPIFY_APP_FALTAN_PERMISOS' ? textoDelServidor(e) : undefined
+    return texto ? { ...vista, texto } : vista
   }
   if (r?.status === 403) return { clave: 'errors.forbidden', accion: null }
   const delServidor = code?.startsWith('SHOPIFY_') || r?.status === 400 ? textoDelServidor(e) : undefined

@@ -129,32 +129,36 @@ export function ShopifyImportDetenida({
   })
   // 5a: con la app de la tienda, volver a dar permiso es pegar otra vez sus llaves (REAUTHORIZE) en el bloque de siempre.
   const llaves = useLlavesDeLaTienda(connection)
+  // El bloque de llaves va DESPUÉS de la alerta y no dentro: un formulario dentro de `role="alert"` se leería entero como alerta.
   return (
-    <section role="alert" className="space-y-3 rounded-xl border border-destructive/40 p-4" data-tour="shopify-import-stopped">
-      <p className="font-medium text-foreground">{t('connect.importStopped')}</p>
-      <p className="text-sm text-muted-foreground">{t(`connect.importErrors.${error}`)}</p>
-      <div className="flex flex-wrap gap-2">
-        {error === 'FALTA_PERMISO' ? (
-          <Button
-            onClick={() => (llaves.esComercio ? llaves.abrir() : reautorizar.mutate())}
-            disabled={!canManage || reautorizar.isPending || llaves.abierto}
-            data-tour="shopify-reauthorize"
-          >
-            {t('avisos.reauthorize')}
-          </Button>
-        ) : canManage ? (
-          <Button asChild variant="outline">
-            <a href={salesWhatsAppLink(t('piloto.whatsappMessage'))} target="_blank" rel="noreferrer">
+    <>
+      <section role="alert" className="space-y-3 rounded-xl border border-destructive/40 p-4" data-tour="shopify-import-stopped">
+        <p className="font-medium text-foreground">{t('connect.importStopped')}</p>
+        <p className="text-sm text-muted-foreground">{t(`connect.importErrors.${error}`)}</p>
+        <div className="flex flex-wrap gap-2">
+          {error === 'FALTA_PERMISO' ? (
+            <Button
+              onClick={() => (llaves.esComercio ? llaves.abrir() : reautorizar.mutate())}
+              disabled={!canManage || reautorizar.isPending || llaves.abierto}
+              data-tour="shopify-reauthorize"
+            >
+              {t('avisos.reauthorize')}
+            </Button>
+          ) : canManage ? (
+            <Button asChild variant="outline">
+              <a href={salesWhatsAppLink(t('piloto.whatsappMessage'))} target="_blank" rel="noreferrer">
+                {t('piloto.contact')}
+              </a>
+            </Button>
+          ) : (
+            <Button variant="outline" disabled>
               {t('piloto.contact')}
-            </a>
-          </Button>
-        ) : (
-          <Button variant="outline" disabled>
-            {t('piloto.contact')}
-          </Button>
-        )}
-        <CancelarConexion venueId={venueId} canManage={canManage} />
-      </div>
+            </Button>
+          )}
+          <CancelarConexion venueId={venueId} canManage={canManage} />
+        </div>
+        {!canManage && <p className="text-sm text-muted-foreground">{t('connect.importStoppedAskAdmin')}</p>}
+      </section>
       {llaves.abierto && (
         <ShopifyAppPropia
           venueId={venueId}
@@ -165,8 +169,7 @@ export function ShopifyImportDetenida({
           onCancelar={llaves.cerrar}
         />
       )}
-      {!canManage && <p className="text-sm text-muted-foreground">{t('connect.importStoppedAskAdmin')}</p>}
-    </section>
+    </>
   )
 }
 

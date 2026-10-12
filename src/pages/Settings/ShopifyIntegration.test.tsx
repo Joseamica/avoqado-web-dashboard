@@ -1839,6 +1839,41 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     expect(navegar).not.toHaveBeenCalled()
   })
 
+  it('🔴 fix final (I3a): «Reconectar» abre el bloque con el foco en el Client ID y lo trae a la vista', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ estado: 'REVOCADA' })))
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'status.reconnect' }))
+    const clientId = await screen.findByLabelText('connect.appPropia.clientIdLabel')
+    expect(clientId).toHaveFocus()
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' })
+    expect(scrollIntoView.mock.contexts).toContain(clientId)
+  })
+
+  it('🔴 fix final (I3b): con el bloque abierto se apagan los botones que lo abren («Reconectar» y «Volver a dar permiso»); «Cancelar» los vuelve a habilitar', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ estado: 'REVOCADA' })))
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'status.reconnect' }))
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'status.reconnect' })).toBeDisabled()
+    for (const b of screen.getAllByRole('button', { name: 'avisos.reauthorize' })) expect(b).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'status.cambiarLlaves' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.cancel' }))
+    expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+    expect(screen.getByRole('button', { name: 'status.reconnect' })).toBeEnabled()
+    for (const b of screen.getAllByRole('button', { name: 'avisos.reauthorize' })) expect(b).toBeEnabled()
+  })
+
+  it('🔴 fix final (I3b): marca FALTA_PERMISO en una tienda activa con su app: con el bloque abierto, los dos «Volver a dar permiso» se apagan', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ importacion: { variantes: 120, error: 'FALTA_PERMISO' } })))
+    renderPage()
+    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    await userEvent.click(screen.getAllByRole('button', { name: 'avisos.reauthorize' })[0])
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    const botones = screen.getAllByRole('button', { name: 'avisos.reauthorize' })
+    expect(botones).toHaveLength(2)
+    for (const b of botones) expect(b).toBeDisabled()
+  })
+
   it('REVOCADA y el server rechaza las llaves: lo dice, el bloque se queda abierto con el Client ID y no va a Shopify', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ estado: 'REVOCADA' })))
     svc.connectShopifyOwnApp.mockRejectedValue(errorHttp(422, { code: 'SHOPIFY_APP_SECRET_INVALIDO', message: 'malo' }))
@@ -1912,6 +1947,10 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'avisos.reauthorize' }))
     expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'avisos.reauthorize' })).toBeDisabled() // un bloque a la vez
+    // Fix final (I3c): el bloque de llaves va DESPUÉS de la alerta, no dentro: un lector de pantalla no lee el formulario como alerta.
+    expect(screen.getByText('connect.appPropia.title').closest('[role="alert"]')).toBeNull()
+    expect(screen.getByLabelText('connect.appPropia.clientIdLabel').closest('[role="alert"]')).toBeNull()
+    expect(screen.getByText('connect.importStopped').closest('[role="alert"]')).not.toBeNull()
     await llenarLlaves()
     await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
     await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
