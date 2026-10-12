@@ -30,13 +30,19 @@ export function usePayOverview(staffId?: string, enabled = true) {
 }
 
 /**
- * Un puesto nuevo, editado o archivado, o una asignación, cambia lo que leen las pantallas de RH (`['rh', sede]`) y la lista
- * del equipo (`['team-members', sede, …]`, que trae `currentAssignments`): se refrescan las dos y sólo de ESTA sede.
+ * Un puesto nuevo, editado o archivado, o una asignación, cambia lo que leen las pantallas de RH (`['rh', sede]`), la lista
+ * del equipo (`['team-members', sede, …]`, que trae `currentAssignments`) y la ficha (`['team-member', sede, miembro]`,
+ * TeamId.tsx): se refrescan las tres y sólo de ESTA sede.
  */
 function useInvalidarRh() {
   const qc = useQueryClient()
   const { venueId } = useCurrentVenue()
-  return () => Promise.all([qc.invalidateQueries({ queryKey: rhKeys.all(venueId) }), qc.invalidateQueries({ queryKey: ['team-members', venueId] })])
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: rhKeys.all(venueId) }),
+      qc.invalidateQueries({ queryKey: ['team-members', venueId] }),
+      qc.invalidateQueries({ queryKey: ['team-member', venueId] }),
+    ])
 }
 // Mismo patrón que pago al personal: sin red la mutación queda en pausa y `cancelarEnPausa` la saca de la cola (E6a-fix2 C5).
 export function useCreatePosition() {

@@ -41,6 +41,16 @@ describe('RH: capa de datos', () => {
     expect(estado(rhKeys.positions('v2', {}))).toBe(false)
   })
 
+  it('🔴 asignar refresca también la ficha de la persona ([team-member, sede, miembro]), sólo de ESTA sede', async () => {
+    m.assign.mockResolvedValue({ id: 'a1' })
+    const { result, cliente } = montar(() => useAssignPosition())
+    cliente.setQueryData(['team-member', 'v1', 'sv1'], { id: 'sv1' })
+    cliente.setQueryData(['team-member', 'v2', 'sv1'], { id: 'sv1' })
+    await act(() => result.current.mutateAsync({ staffId: 's1', body: { positionId: 'p1' } }))
+    await waitFor(() => expect(cliente.getQueryState(['team-member', 'v1', 'sv1'])?.isInvalidated).toBe(true))
+    expect(cliente.getQueryState(['team-member', 'v2', 'sv1'])?.isInvalidated).toBe(false)
+  })
+
   it('usePositions no pide nada sin sede, y con sede manda los filtros tal cual', async () => {
     m.venueId = null
     const sinSede = montar(() => usePositions({ includeArchived: true }))

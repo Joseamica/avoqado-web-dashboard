@@ -86,6 +86,22 @@
     "liveClassLevel": "Class pay level",
     "liveNoLevel": "No class pay level",
     "liveTips": "Tips: they go to whoever served the check; if nobody, to whoever took the payment.",
-    "phase1bNote": "Salary, hours and bonus are coming soon."
+    "phase1bNote": "Salary, hours and bonus are coming soon.",
+    "current": "Current positions",
+    "assigned": "Position assigned",
+    "changeTitle": "Change position or relationship",
+    "changeHelp": "The change applies from this date. If it is the same day the current version started, it replaces it instead of creating another one.",
+    "changed": "Change saved",
+    "changeAria": "Change the position «{{name}}»",
+    "endAria": "End the position «{{name}}»",
+    "endConfirm": "«{{name}}» will no longer be current. Choose their last day in this position; it stays in their history.",
+    "ended": "Position ended",
+    "changeRole": "Change role",
+    "notNow": "Not now",
+    "noPositions": "There are no active positions. Create them in Positions.",
+    "liveNoCommissions": "No commission scheme applies to them.",
+    "liveError": "Could not load how they are paid.",
+    "receiptsText": "Their service pay receipts are in Staff pay, under Periods. The receipt with salary and hours is coming soon.",
+    "receiptsLink": "Open Staff pay"
   }
 }

@@ -86,6 +86,22 @@
     "liveClassLevel": "Nivel de pago por clase",
     "liveNoLevel": "Sin nivel de pago por clase",
     "liveTips": "Propinas: van a quien atendió la cuenta; si nadie, a quien cobró.",
-    "phase1bNote": "Sueldo, horas y bono llegan pronto."
+    "phase1bNote": "Sueldo, horas y bono llegan pronto.",
+    "current": "Puestos vigentes",
+    "assigned": "Puesto asignado",
+    "changeTitle": "Cambiar puesto o relación",
+    "changeHelp": "Lo nuevo aplica desde esta fecha. Si es el mismo día en que empezó la versión actual, la reemplaza en vez de crear otra.",
+    "changed": "Cambio guardado",
+    "changeAria": "Cambiar el puesto «{{name}}»",
+    "endAria": "Terminar el puesto «{{name}}»",
+    "endConfirm": "«{{name}}» deja de estar vigente. Elige su último día con este puesto; queda en su historial.",
+    "ended": "Puesto terminado",
+    "changeRole": "Cambiar rol",
+    "notNow": "Ahora no",
+    "noPositions": "No hay puestos activos. Créalos en Puestos.",
+    "liveNoCommissions": "No le aplica ningún esquema de comisión.",
+    "liveError": "No se pudo cargar cómo se le paga.",
+    "receiptsText": "Sus recibos de pago por servicio están en Pago al personal, en Periodos. El recibo con sueldo y horas llega pronto.",
+    "receiptsLink": "Abrir Pago al personal"
   }
 }
