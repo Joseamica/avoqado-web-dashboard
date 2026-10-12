@@ -98,6 +98,26 @@ describe('servicio del conector Shopify', () => {
     expect(s.explicarErrorShopify(e(503, 'SHOPIFY_NO_RESPONDE')).accion).toBe('REINTENTAR_LUEGO')
   })
 
+  it('🔴 Codex C5: un rechazo de las llaves en el asistente (ubicaciones o confirmar: no hay formulario de llaves a la vista) ⇒ «Volver a empezar»; con el formulario, sin acción', () => {
+    const e = (status: number, code: string) => ({ response: { status, data: { code, message: 'del servidor' } } })
+    const asistente = { sinFormularioDeLlaves: true }
+    for (const code of [
+      'SHOPIFY_APP_SECRET_INVALIDO',
+      'SHOPIFY_APP_CLIENT_ID_INVALIDO',
+      'SHOPIFY_APP_OTRA_ORGANIZACION',
+      'SHOPIFY_APP_RECHAZADA',
+      'SHOPIFY_TIENDA_NO_EXISTE',
+      'SHOPIFY_APP_FALTAN_PERMISOS',
+    ]) {
+      expect(s.explicarErrorShopify(e(422, code), asistente)).toMatchObject({ clave: `errors.codes.${code}`, accion: 'VOLVER_A_EMPEZAR' })
+      expect(s.explicarErrorShopify(e(422, code)).accion).toBeNull()
+    }
+    // El contexto sólo toca esos rechazos: lo demás conserva su acción.
+    expect(s.explicarErrorShopify(e(503, 'SHOPIFY_NO_RESPONDE'), asistente).accion).toBe('REINTENTAR_LUEGO')
+    expect(s.explicarErrorShopify(e(409, 'SHOPIFY_ENVIO_EN_CAMINO'), asistente).accion).toBe('REINTENTAR_LUEGO')
+    expect(s.explicarErrorShopify(e(403, 'SHOPIFY_FALTA_PERMISO'), asistente).accion).toBe('REAUTORIZAR')
+  })
+
   it('🔴 fix final (I4): faltan permisos ⇒ el texto del servidor, que nombra los permisos que faltan; sin texto, el fijo', () => {
     const delServidor =
       'A tu app le faltan estos permisos: read_orders, read_fulfillments. Agrégalos a tu app, publica una versión y apruébala en tu tienda; después vuelve a conectar.'
@@ -125,6 +145,8 @@ describe('qué texto y qué acción lleva cada error del servidor (L9, V3, T6, N
     ['SHOPIFY_INTENT_EXPIRADO', 'VOLVER_A_EMPEZAR'],
     ['SHOPIFY_INTENT_YA_USADO', 'VOLVER_A_EMPEZAR'],
     ['SHOPIFY_INTENT_NO_EXISTE', 'VOLVER_A_EMPEZAR'],
+    // Codex C2: un intent abierto antes de «Cambiar llaves» ya no sirve ⇒ empezar de nuevo con las llaves de hoy.
+    ['SHOPIFY_LLAVES_CAMBIARON', 'VOLVER_A_EMPEZAR'],
     ['SHOPIFY_REVISION_CAMBIO', 'RELEER'],
     ['SHOPIFY_REVISION_YA_RESUELTA', 'RELEER'],
     ['SHOPIFY_NO_RESPONDE', 'REINTENTAR_LUEGO'],

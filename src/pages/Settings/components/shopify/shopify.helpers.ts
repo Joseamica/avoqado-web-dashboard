@@ -1,4 +1,7 @@
-/** Piezas sin JSX de la pantalla de Shopify: la navegación inyectable, el manejo de un error del servidor y la unión de páginas. */
+/**
+ * Piezas sin JSX de la pantalla de Shopify: la navegación inyectable, el manejo de un error del servidor, la unión de páginas, el bloque
+ * de llaves de la app de la tienda (`useLlavesDeLaTienda`) y el texto de una importación detenida (`claveDeImportacionDetenida`).
+ */
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/use-toast'
@@ -52,3 +55,10 @@ export function useLlavesDeLaTienda(connection: ShopifyConnection) {
   const [abierto, setAbierto] = useState(false)
   return { esComercio: connection.metodo === 'APP_DEL_COMERCIO', abierto, abrir: () => setAbierto(true), cerrar: () => setAbierto(false) }
 }
+
+/**
+ * Codex C6: el texto de una importación detenida. A la app de la tienda le falta el permiso en SU versión (agregarlo, publicarla y
+ * aprobarla), no un «acepta todo» de OAuth; lo demás, el de siempre.
+ */
+export const claveDeImportacionDetenida = (error: string | null, esComercio: boolean): string =>
+  esComercio && error === 'FALTA_PERMISO' ? 'connect.appPropia.faltaPermiso' : `connect.importErrors.${error}`

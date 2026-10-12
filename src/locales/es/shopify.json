@@ -77,6 +77,8 @@
       "clientIdLabel": "Client ID",
       "clientSecretLabel": "Client Secret",
       "clientSecretHelp": "Se guarda cifrado y nadie lo vuelve a ver, ni en Avoqado.",
+      "revocarAnterior": "Si creaste un Client Secret nuevo en Shopify, revoca el anterior allá para que el stock siga sincronizándose.",
+      "faltaPermiso": "A tu app de Shopify le falta un permiso. Agrégalo en la versión de tu app, publícala y apruébala en tu tienda; después toca «Volver a dar permiso».",
       "submit": "Conectar",
       "cancel": "Volver"
     }
@@ -324,7 +326,8 @@
       "SHOPIFY_APP_OTRA_ORGANIZACION": "Esa app no es de la misma organización de Shopify que tu tienda. Créala con la cuenta dueña de la tienda.",
       "SHOPIFY_TIENDA_NO_EXISTE": "Shopify no encuentra esa tienda. Revisa el dominio: termina en .myshopify.com.",
       "SHOPIFY_APP_RECHAZADA": "Shopify rechazó las llaves de tu app. Revisa que la app esté instalada en tu tienda y vuelve a intentar.",
-      "SHOPIFY_APP_FALTAN_PERMISOS": "A tu app le faltan permisos. Agrega los 7 de la lista, publica una versión, apruébala en tu tienda y vuelve a conectar."
+      "SHOPIFY_APP_FALTAN_PERMISOS": "A tu app le faltan permisos. Agrega los 7 de la lista, publica una versión, apruébala en tu tienda y vuelve a conectar.",
+      "SHOPIFY_LLAVES_CAMBIARON": "Las llaves de esta tienda cambiaron mientras conectabas; vuelve a empezar."
     }
   }
 }

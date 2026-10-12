@@ -27,7 +27,7 @@ import { disconnectShopify, reauthorizeShopify, resyncShopify } from '@/services
 import { conexionDetenida, esErrorPermanente, SHOPIFY_AVISOS, type ShopifyConnection, type ShopifyOverview } from '@/types/shopify'
 import { useVenueDateTime } from '@/utils/datetime'
 import { ShopifyAppPropia } from './ShopifyAppPropia'
-import { type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
+import { claveDeImportacionDetenida, type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
 
 /**
  * El resumen de la conexión (ACTIVA · PAUSADA · REVOCADA) con sus acciones. Todo botón se VE aunque falte `settings:manage`
@@ -129,7 +129,7 @@ export function ShopifyStatusCard({
           dice con su salida. */}
       {detenida && connection.estado !== 'REVOCADA' && esErrorPermanente(connection.importacion.error) && (
         <Alert variant="destructive">
-          <AlertDescription>{t(`connect.importErrors.${connection.importacion.error}`)}</AlertDescription>
+          <AlertDescription>{t(claveDeImportacionDetenida(connection.importacion.error, llaves.esComercio))}</AlertDescription>
           {connection.importacion.error === 'FALTA_PERMISO' && (
             <>
               <Button

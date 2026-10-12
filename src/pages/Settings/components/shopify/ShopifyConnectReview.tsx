@@ -37,7 +37,7 @@ import {
 } from '@/types/shopify'
 import { ShopifyAppPropia } from './ShopifyAppPropia'
 import { ListaPaginada } from './ShopifyListStates'
-import { dedupe, type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
+import { claveDeImportacionDetenida, dedupe, type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
 
 /** «Cancelar la conexión» = desconectar, sin candado de plan: siempre se puede salir. Sin `settings:manage` se ve deshabilitado. */
 function CancelarConexion({ venueId, canManage }: { venueId: string; canManage: boolean }) {
@@ -134,7 +134,7 @@ export function ShopifyImportDetenida({
     <>
       <section role="alert" className="space-y-3 rounded-xl border border-destructive/40 p-4" data-tour="shopify-import-stopped">
         <p className="font-medium text-foreground">{t('connect.importStopped')}</p>
-        <p className="text-sm text-muted-foreground">{t(`connect.importErrors.${error}`)}</p>
+        <p className="text-sm text-muted-foreground">{t(claveDeImportacionDetenida(error, llaves.esComercio))}</p>
         <div className="flex flex-wrap gap-2">
           {error === 'FALTA_PERMISO' ? (
             <Button

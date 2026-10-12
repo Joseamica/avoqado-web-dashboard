@@ -58,6 +58,7 @@ const DE_LOS_AYUDANTES = [
   'errors.generic',
   'errors.planRequired',
   'errors.forbidden',
+  'connect.appPropia.faltaPermiso', // claveDeImportacionDetenida (Codex C6)
 ]
 
 /**
@@ -162,6 +163,18 @@ describe('i18n del conector Shopify', () => {
       'Open differences in «To review» are closed without changing the stock of any product.',
     )
   })
+
+  it.each(IDIOMAS)(
+    '🔴 %s: Codex C6/C4: el permiso que falta a la app de la tienda nombra el botón que está en pantalla, y lo de revocar el secret anterior lo dice',
+    lng => {
+      const b = bundle(lng, 'shopify')
+      const boton = String(valor(b, 'avisos.reauthorize'))
+      const nombrado = /«([^»]+)»/.exec(String(valor(b, 'connect.appPropia.faltaPermiso')))?.[1] ?? ''
+      expect(nombrado).not.toBe('')
+      expect(boton.startsWith(nombrado)).toBe(true)
+      expect(String(valor(b, 'connect.appPropia.revocarAnterior'))).toMatch(lng === 'es' ? /revoca el anterior/ : /revoke the previous one/)
+    },
+  )
 
   it.each(IDIOMAS)('%s: la tarjeta de Integraciones tiene sus textos', lng => {
     const c = valor(bundle(lng, 'venue'), 'edit.integrations.catalog.shopify') as Record<string, string>

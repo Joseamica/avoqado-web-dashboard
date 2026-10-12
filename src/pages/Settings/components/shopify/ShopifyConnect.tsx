@@ -48,7 +48,8 @@ export function ShopifyPiloto({ canManage }: { canManage: boolean }) {
  *
  * Los errores salen del mapa de C7 (`explicarErrorShopify`), con su acción:
  * - VOLVER_A_EMPEZAR / REAUTORIZAR dentro del asistente ⇒ «Volver a empezar» (suelta el intent: un OAuth nuevo). Volver a dar
- *   permiso sólo tiene sentido con una conexión, y aquí todavía no la hay.
+ *   permiso sólo tiene sentido con una conexión, y aquí todavía no la hay. Las llaves de la app de la tienda que Shopify rechaza aquí
+ *   también (Codex C5): no hay bloque donde corregirlas.
  * - REINTENTAR_LUEGO ⇒ se dice y el intent se CONSERVA (T6): sigue la misma ubicación a un toque; nada se reintenta solo.
  * - 5a: `SHOPIFY_USA_APP_PROPIA` (la tienda conecta con SU app) ⇒ bajo el dominio, ya fijo, el bloque de llaves; su intent sigue la
  *   ubicación de siempre (`onIntent`).
@@ -97,7 +98,9 @@ export function ShopifyConnect({
       await invalidate(venueId)
     },
     onError: (e: unknown) => {
-      const accion = fallo(e)
+      fallo(e)
+      // Codex C5: aquí no hay bloque de llaves; si Shopify las rechaza al renovar la llave del intent, se empieza de nuevo.
+      const { accion } = explicarErrorShopify(e, { sinFormularioDeLlaves: true })
       if (accion && accion !== 'REINTENTAR_LUEGO') setReinicio(textoDeErrorShopify(t, e))
     },
   })
@@ -115,7 +118,7 @@ export function ShopifyConnect({
     }
     if (locations.isLoading) return <Cargando />
     if (locations.isError) {
-      const reintentable = explicarErrorShopify(locations.error).accion === 'REINTENTAR_LUEGO'
+      const reintentable = explicarErrorShopify(locations.error, { sinFormularioDeLlaves: true }).accion === 'REINTENTAR_LUEGO'
       return (
         <Alert variant="destructive">
           <AlertDescription>{textoDeErrorShopify(t, locations.error)}</AlertDescription>

@@ -130,6 +130,8 @@ const ACCIONES: Partial<Record<ShopifyErrorCode, ShopifyErrorAccion>> = {
   SHOPIFY_INTENT_YA_USADO: 'VOLVER_A_EMPEZAR',
   SHOPIFY_INTENT_SIN_AUTORIZAR: 'VOLVER_A_EMPEZAR',
   SHOPIFY_INTENT_EXPIRADO: 'VOLVER_A_EMPEZAR',
+  // Codex C2: el intent nació antes de que otra sucursal cambiara las llaves; con las de hoy se empieza de nuevo.
+  SHOPIFY_LLAVES_CAMBIARON: 'VOLVER_A_EMPEZAR',
   SHOPIFY_REVISION_CAMBIO: 'RELEER',
   SHOPIFY_REVISION_YA_RESUELTA: 'RELEER',
   SHOPIFY_REVISION_NO_EXISTE: 'RELEER',
@@ -152,6 +154,18 @@ const ACCIONES: Partial<Record<ShopifyErrorCode, ShopifyErrorAccion>> = {
   SHOPIFY_ENVIO_EN_CAMINO: 'REINTENTAR_LUEGO',
   // 5a: las llaves de la app de la tienda se corrigen en el mismo bloque (sin acción extra); `SHOPIFY_NO_RESPONDE` ya reintenta luego.
 }
+/**
+ * Codex C5: Shopify rechazó las llaves de la app de la tienda. Con el bloque de llaves a la vista se corrigen ahí (sin acción); en el
+ * asistente (ubicaciones o confirmar, cuando la llave del intent se renueva) no hay formulario: se empieza de nuevo y se vuelven a pegar.
+ */
+const LLAVES_RECHAZADAS: ReadonlySet<ShopifyErrorCode> = new Set<ShopifyErrorCode>([
+  'SHOPIFY_APP_SECRET_INVALIDO',
+  'SHOPIFY_APP_CLIENT_ID_INVALIDO',
+  'SHOPIFY_APP_OTRA_ORGANIZACION',
+  'SHOPIFY_APP_RECHAZADA',
+  'SHOPIFY_TIENDA_NO_EXISTE',
+  'SHOPIFY_APP_FALTAN_PERMISOS',
+])
 
 /** Clave relativa al namespace `shopify`; `texto` (si viene) es el mensaje en español del server y gana sobre la clave. */
 export type ShopifyErrorVista = { clave: string; texto?: string; accion: ShopifyErrorAccion | null }
@@ -166,14 +180,18 @@ type RespuestaDeError = { response?: { status?: number; data?: unknown } }
  * 3. Otro 403 (el del permiso del rol, en inglés) ⇒ texto propio de permiso.
  * 4. Un `SHOPIFY_*` nuevo o un 400 de validación ⇒ el mensaje del server, que es español.
  * 5. Lo demás (5xx, HTML de un 502, sin red, código ajeno) ⇒ el genérico, nunca la jerga de axios (Z6).
+ * `sinFormularioDeLlaves` (Codex C5): el error llegó donde no hay bloque de llaves (ubicaciones, confirmar); un rechazo de las llaves
+ * lleva entonces «Volver a empezar».
  */
-export function explicarErrorShopify(e: unknown): ShopifyErrorVista {
+export function explicarErrorShopify(e: unknown, o: { sinFormularioDeLlaves?: boolean } = {}): ShopifyErrorVista {
   const r = (e as RespuestaDeError | null | undefined)?.response
   const data = (r?.data && typeof r.data === 'object' ? r.data : {}) as { code?: unknown; featureCode?: unknown }
   const code = typeof data.code === 'string' ? data.code : undefined
   if (r?.status === 403 && data.featureCode === SHOPIFY_FEATURE) return { clave: 'errors.planRequired', accion: 'RELEER' }
   if (code && (SHOPIFY_ERROR_CODES as readonly string[]).includes(code)) {
-    const vista: ShopifyErrorVista = { clave: `errors.codes.${code}`, accion: ACCIONES[code as ShopifyErrorCode] ?? null }
+    const conocido = code as ShopifyErrorCode
+    const accion = o.sinFormularioDeLlaves && LLAVES_RECHAZADAS.has(conocido) ? 'VOLVER_A_EMPEZAR' : (ACCIONES[conocido] ?? null)
+    const vista: ShopifyErrorVista = { clave: `errors.codes.${code}`, accion }
     // Faltan permisos: el texto del server nombra CUÁLES (la clave fija no puede); sin texto, la clave.
     const texto = code === 'SHOPIFY_APP_FALTAN_PERMISOS' ? textoDelServidor(e) : undefined
     return texto ? { ...vista, texto } : vista

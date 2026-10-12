@@ -312,6 +312,24 @@ describe('ShopifyIntegration — conectar', () => {
     expect(await screen.findByRole('button', { name: 'connect.restart' })).toBeEnabled()
   })
 
+  it.each([
+    [422, 'SHOPIFY_APP_SECRET_INVALIDO'], // Codex C5: la llave del intent se renovó al confirmar y Shopify rechazó sus llaves
+    [422, 'SHOPIFY_APP_RECHAZADA'],
+    [409, 'SHOPIFY_LLAVES_CAMBIARON'], // Codex C2: otra sucursal cambió las llaves con este asistente abierto
+  ])(
+    '🔴 Codex C5/C2: confirmar y el server dice %s %s (aquí no hay formulario de llaves) ⇒ lo dice y ofrece «Volver a empezar», que suelta el intent',
+    async (status, code) => {
+      svc.getShopifyLocations.mockResolvedValue([{ id: 'gid://shopify/Location/1', name: 'Tienda México', countryCode: 'MX' }])
+      svc.confirmShopifyConnect.mockRejectedValue(errorHttp(status, { code, message: 'del servidor' }))
+      renderPage('/?intent=intent-firmado')
+      await userEvent.click(await screen.findByRole('button', { name: 'Tienda México' }))
+      expect(await screen.findByRole('button', { name: 'connect.restart' })).toBeEnabled()
+      expect(screen.getByText(`errors.codes.${code}`)).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'connect.restart' }))
+      expect(await screen.findByPlaceholderText('connect.domainPlaceholder')).toBeInTheDocument()
+    },
+  )
+
   it('🔴 «Volver a empezar» también relee el resumen: si el asistente murió porque la sucursal YA estaba conectada, se ve la conexión', async () => {
     svc.getShopifyOverview.mockResolvedValueOnce(resumen(null)).mockResolvedValue(resumen(conexion()))
     svc.getShopifyLocations.mockRejectedValue(errorHttp(409, { code: 'SHOPIFY_YA_CONECTADA', message: 'ya' }))
@@ -333,6 +351,7 @@ describe('ShopifyIntegration — conectar', () => {
   it('regreso con ?reautorizada=1: avisa que Shopify volvió a dar permiso', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
     renderPage('/?reautorizada=1')
+    // El regreso del OAuth del piloto no lleva lo de revocar el secret anterior (eso es de la app de la tienda, Codex C4).
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
   })
 
@@ -421,6 +440,8 @@ describe('ShopifyIntegration — conectar con la app de la tienda (5a)', () => {
     expect(screen.getByPlaceholderText('connect.domainPlaceholder')).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'connect.submit' })).toBeNull()
     for (const p of ['1', '2', '3', '4', '5', '6']) expect(screen.getByText(`connect.appPropia.pasos.${p}`)).toBeInTheDocument()
+    // Codex C4: lo de revocar el secret anterior es sólo de «Cambiar llaves» (REAUTHORIZE), no de una conexión nueva.
+    expect(screen.queryByText('connect.appPropia.revocarAnterior')).toBeNull()
     expect(screen.getByText(SHOPIFY_PERMISOS_APP.join(','))).toBeInTheDocument()
     const secret = screen.getByLabelText('connect.appPropia.clientSecretLabel')
     expect(secret).toHaveAttribute('type', 'password')
@@ -1794,10 +1815,14 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     expect(await screen.findByText('status.metodoComercio abcd')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'status.cambiarLlaves' }))
     expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    // Codex C4: Shopify firma los avisos con el secret más viejo sin revocar: el bloque lo dice antes de guardar y el aviso de éxito, después.
+    expect(screen.getByText('connect.appPropia.revocarAnterior')).toBeInTheDocument()
     await llenarLlaves()
     await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
     await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized', description: 'connect.appPropia.revocarAnterior' }),
+    )
     await waitFor(() => expect(screen.queryByText('connect.appPropia.title')).toBeNull())
     expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2)
     expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
@@ -1832,7 +1857,9 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     // El dominio sale de la conexión (no se teclea) y el propósito es REAUTHORIZE, no CONNECT.
     await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
     expect(svc.connectShopifyOwnApp).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized', description: 'connect.appPropia.revocarAnterior' }),
+    )
     await waitFor(() => expect(screen.queryByText('connect.appPropia.title')).toBeNull())
     expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2)
     expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
@@ -1866,7 +1893,9 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
   it('🔴 fix final (I3b): marca FALTA_PERMISO en una tienda activa con su app: con el bloque abierto, los dos «Volver a dar permiso» se apagan', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ importacion: { variantes: 120, error: 'FALTA_PERMISO' } })))
     renderPage()
-    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    // Codex C6 (también la marca permanente de la tarjeta): el texto de la app de la tienda, no el de OAuth.
+    expect(await screen.findByText('connect.appPropia.faltaPermiso')).toBeInTheDocument()
+    expect(screen.queryByText('connect.importErrors.FALTA_PERMISO')).toBeNull()
     await userEvent.click(screen.getAllByRole('button', { name: 'avisos.reauthorize' })[0])
     expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
     const botones = screen.getAllByRole('button', { name: 'avisos.reauthorize' })
@@ -1886,7 +1915,7 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     expect(screen.getByText('connect.appPropia.title')).toBeInTheDocument()
     expect(screen.getByLabelText('connect.appPropia.clientIdLabel')).toHaveValue('cid_123')
     expect(screen.getByLabelText('connect.appPropia.clientSecretLabel')).toHaveValue('')
-    expect(toast).not.toHaveBeenCalledWith({ title: 'connect.reauthorized' })
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'connect.reauthorized' }))
     expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
     expect(navegar).not.toHaveBeenCalled()
   })
@@ -1920,7 +1949,7 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ importacion: { variantes: 120, error: 'FALTA_PERMISO' } })))
     svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
     renderPage()
-    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    expect(await screen.findByText('connect.appPropia.faltaPermiso')).toBeInTheDocument()
     // [0] = la alerta de la marca permanente, [1] = el de la lista de avisos.
     const botones = screen.getAllByRole('button', { name: 'avisos.reauthorize' })
     expect(botones).toHaveLength(2)
@@ -1943,7 +1972,9 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     )
     svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
     renderPage()
-    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    // Codex C6: a la app de la tienda le falta el permiso en SU versión; no es el «acepta todo» de OAuth.
+    expect(await screen.findByText('connect.appPropia.faltaPermiso')).toBeInTheDocument()
+    expect(screen.queryByText('connect.importErrors.FALTA_PERMISO')).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'avisos.reauthorize' }))
     expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'avisos.reauthorize' })).toBeDisabled() // un bloque a la vez
@@ -1955,7 +1986,9 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
     await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
     // Éxito (`onListo`): avisa, relee el resumen y cierra el bloque; «Volver a dar permiso» vuelve a estar disponible.
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized', description: 'connect.appPropia.revocarAnterior' }),
+    )
     await waitFor(() => expect(screen.queryByText('connect.appPropia.title')).toBeNull())
     expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2)
     expect(screen.getByRole('button', { name: 'avisos.reauthorize' })).toBeEnabled()
@@ -1969,6 +2002,8 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     )
     svc.reauthorizeShopify.mockResolvedValue({ url: 'https://mi-tienda.myshopify.com/admin/oauth/authorize?state=i' })
     renderPage()
+    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    expect(screen.queryByText('connect.appPropia.faltaPermiso')).toBeNull()
     await userEvent.click(await screen.findByRole('button', { name: 'avisos.reauthorize' }))
     await waitFor(() => expect(navegar).toHaveBeenCalledWith('https://mi-tienda.myshopify.com/admin/oauth/authorize?state=i'))
     expect(screen.queryByText('connect.appPropia.title')).toBeNull()

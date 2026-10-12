@@ -77,6 +77,8 @@
       "clientIdLabel": "Client ID",
       "clientSecretLabel": "Client Secret",
       "clientSecretHelp": "It is stored encrypted and nobody sees it again, not even in Avoqado.",
+      "revocarAnterior": "If you created a new Client Secret in Shopify, revoke the previous one there so your stock keeps syncing.",
+      "faltaPermiso": "Your Shopify app is missing a permission. Add it in your app's version, release it and approve it on your store; then tap «Grant permission».",
       "submit": "Connect",
       "cancel": "Back"
     }
@@ -324,7 +326,8 @@
       "SHOPIFY_APP_OTRA_ORGANIZACION": "That app is not in the same Shopify organization as your store. Create it with the store's owner account.",
       "SHOPIFY_TIENDA_NO_EXISTE": "Shopify cannot find that store. Check the domain: it ends in .myshopify.com.",
       "SHOPIFY_APP_RECHAZADA": "Shopify rejected your app's keys. Check that the app is installed on your store and try again.",
-      "SHOPIFY_APP_FALTAN_PERMISOS": "Your app is missing permissions. Add the 7 in the list, release a version, approve it on your store and connect again."
+      "SHOPIFY_APP_FALTAN_PERMISOS": "Your app is missing permissions. Add the 7 in the list, release a version, approve it on your store and connect again.",
+      "SHOPIFY_LLAVES_CAMBIARON": "This store's keys changed while you were connecting; start over."
     }
   }
 }

@@ -17,7 +17,8 @@ const PERMISOS = SHOPIFY_PERMISOS_APP.join(',')
 /**
  * 5a, «Conecta con la app de tu tienda» (spec §6): los 6 pasos en pantalla con los permisos para copiar, el Client ID, el Client
  * Secret (oculto y sin autocompletar) y «Conectar». El dominio viene fijo. CONNECT devuelve el intent y sigue la ubicación de
- * siempre (`onIntent`); REAUTHORIZE («Cambiar llaves» o «Reconectar») cambia las llaves en el acto (`onListo`). Un error se dice con
+ * siempre (`onIntent`); REAUTHORIZE («Cambiar llaves» o «Reconectar») cambia las llaves en el acto (`onListo`) y avisa, antes y después,
+ * que un Client Secret nuevo pide revocar el anterior en Shopify (firma los avisos con el más viejo sin revocar). Un error se dice con
  * el texto del mapa de C7 y el bloque se queda con el Client ID para corregirlo. El secret vive sólo en el estado de este bloque
  * (se vacía en cuanto termina la petición, con éxito o con error): no se guarda en el navegador ni se registra.
  */
@@ -59,7 +60,8 @@ export function ShopifyAppPropia({
     mutationFn: () => connectShopifyOwnApp(venueId, purpose, { shopDomain, clientId, clientSecret }),
     onSuccess: async r => {
       if ('intent' in r) return onIntent?.(r.intent)
-      toast({ title: t('connect.reauthorized') })
+      // Codex C4: Shopify firma los avisos con el secret más viejo que siga sin revocar; con uno nuevo, el viejo se revoca allá.
+      toast({ title: t('connect.reauthorized'), description: t('connect.appPropia.revocarAnterior') })
       await invalidate(venueId)
       onListo?.()
     },
@@ -137,6 +139,11 @@ export function ShopifyAppPropia({
           data-bwignore
         />
         <p className="text-xs text-muted-foreground">{t('connect.appPropia.clientSecretHelp')}</p>
+        {reautoriza && (
+          <p className="text-xs text-muted-foreground" data-tour="shopify-app-propia-revocar-anterior">
+            {t('connect.appPropia.revocarAnterior')}
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={!canManage || !completas || conectar.isPending} data-tour="shopify-app-propia-submit">
