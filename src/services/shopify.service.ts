@@ -40,6 +40,24 @@ export const startShopifyConnect = async (venueId: string, shopDomain: string): 
 export const reauthorizeShopify = async (venueId: string): Promise<{ url: string }> =>
   (await api.post(`${base(venueId)}/reauthorize/start`)).data.data
 
+/**
+ * 5a: conectar (`CONNECT` ⇒ `{ intent }`, y sigue la ubicación de siempre) o cambiar las llaves (`REAUTHORIZE` ⇒
+ * `{ reautorizada: true }`) con la app que la tienda creó en su Dev Dashboard. El secret sólo viaja en este cuerpo: nada lo
+ * devuelve ni se guarda en el navegador.
+ */
+export const connectShopifyOwnApp = async (
+  venueId: string,
+  purpose: 'CONNECT' | 'REAUTHORIZE',
+  llaves: { shopDomain: string; clientId: string; clientSecret: string },
+): Promise<{ intent: string } | { reautorizada: true }> =>
+  (
+    await api.post(`${base(venueId)}/${purpose === 'CONNECT' ? 'connect' : 'reauthorize'}/credentials`, {
+      shopDomain: llaves.shopDomain.trim().toLowerCase(),
+      clientId: llaves.clientId.trim(),
+      clientSecret: llaves.clientSecret.trim(),
+    })
+  ).data.data
+
 export const getShopifyLocations = async (venueId: string, intent: string): Promise<ShopifyLocation[]> =>
   (await api.get(`${base(venueId)}/connect/locations`, { params: { intent } })).data.data
 
@@ -132,6 +150,7 @@ const ACCIONES: Partial<Record<ShopifyErrorCode, ShopifyErrorAccion>> = {
   SHOPIFY_NO_RESPONDE: 'REINTENTAR_LUEGO',
   SHOPIFY_CAMBIOS_EN_CAMINO: 'REINTENTAR_LUEGO',
   SHOPIFY_ENVIO_EN_CAMINO: 'REINTENTAR_LUEGO',
+  // 5a: las llaves de la app de la tienda se corrigen en el mismo bloque (sin acción extra); `SHOPIFY_NO_RESPONDE` ya reintenta luego.
 }
 
 /** Clave relativa al namespace `shopify`; `texto` (si viene) es el mensaje en español del server y gana sobre la clave. */

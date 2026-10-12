@@ -41,6 +41,10 @@ export interface ShopifyConnection {
   cuadre: { pendiente: boolean; ultimo: string | null }
   /** Cuándo lo vuelve a intentar el worker tras una unidad fallida (ISO, `nextWorkAt`); null sin espera o detenida (Y3, Z1). */
   proximoIntento: string | null
+  /** 5a (aditivo; un server anterior no lo manda): con qué app se conectó la tienda: la del piloto o la que creó la tienda. */
+  metodo?: 'PILOTO' | 'APP_DEL_COMERCIO'
+  /** 5a: los 4 últimos caracteres del Client ID de la app de la tienda (no es secreto); null en el piloto. */
+  clientIdTerminacion?: string | null
 }
 /** `connection: null` = nunca conectada o desconectada. */
 export interface ShopifyOverview {
@@ -184,6 +188,15 @@ export const SHOPIFY_ERROR_CODES = [
   'SHOPIFY_TIENDA_DE_OTRA_EMPRESA',
   'SHOPIFY_UBICACION_INVALIDA',
   'SHOPIFY_ENVIO_EN_CAMINO',
+  // conectar con la app de la tienda (5a)
+  'SHOPIFY_USA_APP_PROPIA',
+  'SHOPIFY_APP_PROPIA_SIN_INVITACION',
+  'SHOPIFY_APP_SECRET_INVALIDO',
+  'SHOPIFY_APP_CLIENT_ID_INVALIDO',
+  'SHOPIFY_APP_OTRA_ORGANIZACION',
+  'SHOPIFY_TIENDA_NO_EXISTE',
+  'SHOPIFY_APP_RECHAZADA',
+  'SHOPIFY_APP_FALTAN_PERMISOS',
   // aplicar, cuadrar
   'SHOPIFY_SIN_CONEXION',
   'SHOPIFY_NO_EN_REVISION',
@@ -209,6 +222,20 @@ export const SHOPIFY_ERROR_CODES = [
   'FEATURE_NO_SE_VENDE_SUELTA',
 ] as const
 export type ShopifyErrorCode = (typeof SHOPIFY_ERROR_CODES)[number]
+
+/**
+ * 5a: los 7 permisos que pide el conector (los mismos de `SHOPIFY_SCOPES` del server): el dueño los copia a su app en el Dev
+ * Dashboard. Shopify puede devolver sólo el de escritura (`write_x` implica `read_x`); el server lo entiende.
+ */
+export const SHOPIFY_PERMISOS_APP = [
+  'read_products',
+  'write_products',
+  'read_inventory',
+  'write_inventory',
+  'read_locations',
+  'read_orders',
+  'read_fulfillments',
+] as const
 
 /** `?error=` con el que regresa el callback de OAuth (B). Uno desconocido se dice con el texto genérico. */
 export const SHOPIFY_CALLBACK_ERRORS = ['FIRMA', 'INTENT', 'USADO', 'EXPIRADO', 'TIENDA', 'INTERCAMBIO', 'DENEGADO'] as const

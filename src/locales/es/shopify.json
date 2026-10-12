@@ -60,7 +60,26 @@
       "DENEGADO": "No se dieron todos los permisos en Shopify. Sin ellos no podemos sincronizar.",
       "generic": "No pudimos terminar la conexión con Shopify. Vuelve a intentarlo."
     },
-    "reauthorized": "Listo: Shopify volvió a dar permiso. Seguimos sincronizando."
+    "reauthorized": "Listo: Shopify volvió a dar permiso. Seguimos sincronizando.",
+    "appPropia": {
+      "title": "Conecta con la app de tu tienda",
+      "body": "Tu tienda se conecta con una app que creas tú en Shopify. Son unos minutos y no instalas nada en Avoqado.",
+      "pasos": {
+        "1": "Entra a dev.shopify.com con la cuenta dueña de tu tienda y toca «Crear app». Ponle de nombre «Avoqado».",
+        "2": "En la versión de la app, quita «Incrustar la app en el admin de Shopify» y agrega estos 7 permisos:",
+        "3": "Publica la versión (botón «Release»).",
+        "4": "Instala la app en tu tienda con «Install app» y aprueba los permisos.",
+        "5": "En «Configuración» de la app copia el Client ID y el Client Secret.",
+        "6": "Pégalos aquí abajo y toca «Conectar»."
+      },
+      "copiar": "Copiar los permisos",
+      "copiados": "Permisos copiados",
+      "clientIdLabel": "Client ID",
+      "clientSecretLabel": "Client Secret",
+      "clientSecretHelp": "Se guarda cifrado y nadie lo vuelve a ver, ni en Avoqado.",
+      "submit": "Conectar",
+      "cancel": "Volver"
+    }
   },
   "preview": {
     "title": "Así quedará tu stock",
@@ -134,7 +153,9 @@
     "disconnectTitle": "¿Desconectar Shopify?",
     "disconnectBody": "Avoqado seguirá vendiendo normal, pero dejará de actualizar el stock en Shopify y al revés. Los cambios que no alcanzaron a salir se descartan. Las diferencias abiertas en «Por revisar» se cierran sin cambiar el stock de ningún producto.",
     "disconnectConfirm": "Sí, desconectar",
-    "disconnected": "Shopify desconectado"
+    "disconnected": "Shopify desconectado",
+    "metodoComercio": "Conectada con la app de tu tienda (…{{fin}})",
+    "cambiarLlaves": "Cambiar llaves"
   },
   "avisos": {
     "title": "¿Qué significa cada aviso?",
@@ -295,7 +316,15 @@
       "SHOPIFY_SIN_PLAN": "Este negocio ya no tiene acceso al piloto de Shopify. Escríbenos para reactivarlo.",
       "SHOPIFY_FALTA_PERMISO": "Shopify no le dio a Avoqado todos los permisos que necesita. Vuelve a dar permiso en Shopify y acepta todos los que pide.",
       "SHOPIFY_NO_RESPONDE": "Shopify o nuestro sistema no respondieron a tiempo. Intenta en un minuto.",
-      "FEATURE_NO_SE_VENDE_SUELTA": "El conector con Shopify no está a la venta: por ahora es un piloto por invitación. Escríbenos si quieres sumarte."
+      "FEATURE_NO_SE_VENDE_SUELTA": "El conector con Shopify no está a la venta: por ahora es un piloto por invitación. Escríbenos si quieres sumarte.",
+      "SHOPIFY_USA_APP_PROPIA": "Esta tienda se conecta con una app que creas en tu Shopify: pega su Client ID y su Client Secret.",
+      "SHOPIFY_APP_PROPIA_SIN_INVITACION": "Conectar con la app de tu tienda todavía es por invitación. Escríbenos y la activamos para tu negocio.",
+      "SHOPIFY_APP_SECRET_INVALIDO": "Shopify no reconoce ese Client Secret. Cópialo otra vez desde tu app y pégalo completo.",
+      "SHOPIFY_APP_CLIENT_ID_INVALIDO": "Shopify no encuentra una app con ese Client ID. Cópialo otra vez desde tu app.",
+      "SHOPIFY_APP_OTRA_ORGANIZACION": "Esa app no es de la misma organización de Shopify que tu tienda. Créala con la cuenta dueña de la tienda.",
+      "SHOPIFY_TIENDA_NO_EXISTE": "Shopify no encuentra esa tienda. Revisa el dominio: termina en .myshopify.com.",
+      "SHOPIFY_APP_RECHAZADA": "Shopify rechazó las llaves de tu app. Revisa que la app esté instalada en tu tienda y vuelve a intentar.",
+      "SHOPIFY_APP_FALTAN_PERMISOS": "A tu app le faltan permisos. Agrega los 7 de la lista, publica una versión, apruébala en tu tienda y vuelve a conectar."
     }
   }
 }

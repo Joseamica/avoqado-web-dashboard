@@ -62,6 +62,42 @@ describe('servicio del conector Shopify', () => {
     await s.resyncShopify('v1')
     expect(mockPost.mock.calls.map(c => c[0])).toEqual([`${B}/reauthorize/start`, `${B}/connect/apply`, `${B}/disconnect`, `${B}/resync`])
   })
+
+  it('5a: conectar con la app de la tienda manda dominio y llaves recortados a la ruta de su propósito', async () => {
+    const llaves = { shopDomain: '  Mi-Tienda.myshopify.com ', clientId: ' cid ', clientSecret: ' shpss_x ' }
+    await expect(s.connectShopifyOwnApp('v1', 'CONNECT', llaves)).resolves.toBe('ok')
+    expect(mockPost).toHaveBeenCalledWith(`${B}/connect/credentials`, {
+      shopDomain: 'mi-tienda.myshopify.com',
+      clientId: 'cid',
+      clientSecret: 'shpss_x',
+    })
+    await s.connectShopifyOwnApp('v1', 'REAUTHORIZE', llaves)
+    expect(mockPost).toHaveBeenLastCalledWith(`${B}/reauthorize/credentials`, {
+      shopDomain: 'mi-tienda.myshopify.com',
+      clientId: 'cid',
+      clientSecret: 'shpss_x',
+    })
+  })
+
+  it('🔴 5a: los códigos nuevos tienen su texto; las llaves malas no traen acción (se corrigen en el mismo bloque) y la invitación que falta no se confunde con un 403 de permiso', () => {
+    const e = (status: number, code: string) => ({ response: { status, data: { code, message: 'del servidor' } } })
+    for (const code of [
+      'SHOPIFY_APP_SECRET_INVALIDO',
+      'SHOPIFY_APP_CLIENT_ID_INVALIDO',
+      'SHOPIFY_APP_OTRA_ORGANIZACION',
+      'SHOPIFY_TIENDA_NO_EXISTE',
+      'SHOPIFY_APP_RECHAZADA',
+      'SHOPIFY_APP_FALTAN_PERMISOS',
+    ]) {
+      expect(s.explicarErrorShopify(e(422, code))).toEqual({ clave: `errors.codes.${code}`, accion: null })
+    }
+    expect(s.explicarErrorShopify(e(403, 'SHOPIFY_APP_PROPIA_SIN_INVITACION'))).toEqual({
+      clave: 'errors.codes.SHOPIFY_APP_PROPIA_SIN_INVITACION',
+      accion: null,
+    })
+    expect(s.explicarErrorShopify(e(409, 'SHOPIFY_USA_APP_PROPIA'))).toEqual({ clave: 'errors.codes.SHOPIFY_USA_APP_PROPIA', accion: null })
+    expect(s.explicarErrorShopify(e(503, 'SHOPIFY_NO_RESPONDE')).accion).toBe('REINTENTAR_LUEGO')
+  })
 })
 
 /** Un error de axios como lo arma el manejador global del server: `{ message, code? }`. */

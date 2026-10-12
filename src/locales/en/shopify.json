@@ -60,7 +60,26 @@
       "DENEGADO": "Not every permission was granted in Shopify. Without them we cannot sync.",
       "generic": "We could not finish connecting to Shopify. Try again."
     },
-    "reauthorized": "Done: Shopify granted permission again. Syncing continues."
+    "reauthorized": "Done: Shopify granted permission again. Syncing continues.",
+    "appPropia": {
+      "title": "Connect with your store's app",
+      "body": "Your store connects through an app you create in Shopify. It takes a few minutes and you don't install anything in Avoqado.",
+      "pasos": {
+        "1": "Go to dev.shopify.com with your store's owner account and tap «Create app». Name it «Avoqado».",
+        "2": "In the app version, uncheck «Embed app in Shopify admin» and add these 7 permissions:",
+        "3": "Release the version («Release» button).",
+        "4": "Install the app on your store with «Install app» and approve the permissions.",
+        "5": "In the app's «Settings», copy the Client ID and the Client Secret.",
+        "6": "Paste them below and tap «Connect»."
+      },
+      "copiar": "Copy the permissions",
+      "copiados": "Permissions copied",
+      "clientIdLabel": "Client ID",
+      "clientSecretLabel": "Client Secret",
+      "clientSecretHelp": "It is stored encrypted and nobody sees it again, not even in Avoqado.",
+      "submit": "Connect",
+      "cancel": "Back"
+    }
   },
   "preview": {
     "title": "This is how your stock will look",
@@ -134,7 +153,9 @@
     "disconnectTitle": "Disconnect Shopify?",
     "disconnectBody": "Avoqado will keep selling normally, but it will stop updating stock in Shopify and vice versa. Changes that had not gone out yet are discarded. Open differences in «To review» are closed without changing the stock of any product.",
     "disconnectConfirm": "Yes, disconnect",
-    "disconnected": "Shopify disconnected"
+    "disconnected": "Shopify disconnected",
+    "metodoComercio": "Connected with your store's app (…{{fin}})",
+    "cambiarLlaves": "Change keys"
   },
   "avisos": {
     "title": "What does each alert mean?",
@@ -295,7 +316,15 @@
       "SHOPIFY_SIN_PLAN": "This business no longer has access to the Shopify pilot. Write to us to reactivate it.",
       "SHOPIFY_FALTA_PERMISO": "Shopify did not give Avoqado every permission it needs. Grant permission in Shopify again and accept every one it asks for.",
       "SHOPIFY_NO_RESPONDE": "Shopify or our system did not answer in time. Try again in a minute.",
-      "FEATURE_NO_SE_VENDE_SUELTA": "The Shopify connector is not for sale: for now it is an invitation-only pilot. Write to us if you want to join."
+      "FEATURE_NO_SE_VENDE_SUELTA": "The Shopify connector is not for sale: for now it is an invitation-only pilot. Write to us if you want to join.",
+      "SHOPIFY_USA_APP_PROPIA": "This store connects with an app you create in your Shopify: paste its Client ID and Client Secret.",
+      "SHOPIFY_APP_PROPIA_SIN_INVITACION": "Connecting with your store's app is invitation-only for now. Write to us and we will turn it on for your business.",
+      "SHOPIFY_APP_SECRET_INVALIDO": "Shopify does not recognize that Client Secret. Copy it again from your app and paste it whole.",
+      "SHOPIFY_APP_CLIENT_ID_INVALIDO": "Shopify cannot find an app with that Client ID. Copy it again from your app.",
+      "SHOPIFY_APP_OTRA_ORGANIZACION": "That app is not in the same Shopify organization as your store. Create it with the store's owner account.",
+      "SHOPIFY_TIENDA_NO_EXISTE": "Shopify cannot find that store. Check the domain: it ends in .myshopify.com.",
+      "SHOPIFY_APP_RECHAZADA": "Shopify rejected your app's keys. Check that the app is installed on your store and try again.",
+      "SHOPIFY_APP_FALTAN_PERMISOS": "Your app is missing permissions. Add the 7 in the list, release a version, approve it on your store and connect again."
     }
   }
 }

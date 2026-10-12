@@ -45,6 +45,7 @@ const DINAMICAS: Record<string, readonly string[]> = {
   'connect.callbackErrors': [...SHOPIFY_CALLBACK_ERRORS, 'generic'],
   'connect.importErrors': [...IMPORT_ERRORS_PERMANENTES, 'generic'],
   'avisos.items': SHOPIFY_AVISOS.flatMap(a => [`${a}.title`, `${a}.body`]),
+  'connect.appPropia.pasos': ['1', '2', '3', '4', '5', '6'],
 }
 /** Claves que devuelven las funciones de `use-shopify` y `shopify.service` (el lint no las ve). */
 const DE_LOS_AYUDANTES = [
@@ -206,4 +207,14 @@ describe('i18n del conector Shopify', () => {
     expect(en.MCP_SHOPIFY_CONNECT_CHOICES_SAVED).toBe('Shopify stock choices saved from the assistant')
     expect(en.SHOPIFY_APPLY_RETURNED).toBe('Shopify apply went back to the preview to choose again')
   })
+
+  it.each(IDIOMAS)(
+    '🔴 %s: 5a, el bloque de la app de la tienda trae sus 6 pasos en orden y la tarjeta dice la terminación del Client ID',
+    lng => {
+      const b = bundle(lng, 'shopify')
+      expect(Object.keys(valor(b, 'connect.appPropia.pasos') as Record<string, string>)).toEqual(['1', '2', '3', '4', '5', '6'])
+      expect(String(valor(b, 'status.metodoComercio'))).toContain('(…{{fin}})')
+      expect(String(valor(b, 'status.cambiarLlaves')).trim()).not.toBe('')
+    },
+  )
 })
