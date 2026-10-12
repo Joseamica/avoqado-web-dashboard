@@ -554,9 +554,13 @@ export function createVenueRoutes(): RouteObject[] {
           children: [{ path: 'asistencia', element: <Attendance /> }],
         },
         // RH · Puestos (fase 1a, gratis: sin candado de plan). Misma regla: en white-label no existe (el sidebar tampoco lo muestra).
+        // `rh` solo (el enlace «RH» de la miga de pan) no es una página: manda a Puestos.
         {
           element: <PermissionProtectedRoute permission="teams:read" />,
-          children: [{ path: 'rh/puestos', element: <PuestosPage /> }],
+          children: [
+            { path: 'rh', element: <Navigate to="puestos" replace /> },
+            { path: 'rh/puestos', element: <PuestosPage /> },
+          ],
         },
       ],
     },

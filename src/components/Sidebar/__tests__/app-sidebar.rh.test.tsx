@@ -4,13 +4,13 @@
 // `AppSidebar` y sus listas son los de verdad. Los textos son los reales de es/rh.json y es/sidebar.json.
 import { cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { RouteObject } from 'react-router-dom'
+import { Navigate, type RouteObject } from 'react-router-dom'
 import { createVenueRoutes } from '@/routes/venueRoutes'
 import { NotWhiteLabelRoute } from '@/routes/NotWhiteLabelRoute'
 import { PermissionProtectedRoute } from '@/routes/PermissionProtectedRoute'
 import { AppSidebar } from '../app-sidebar'
 
-type Item = { title: string; url: string; subSidebar?: string; permission?: string; premiumLocked?: boolean; gatedFeature?: string }
+type Item = { title: string; url: string; subSidebar?: string; permission?: string; premiumLocked?: boolean; gatedFeature?: string; keywords?: string[] }
 
 const m = vi.hoisted(() => ({
   captured: null as null | { items: Item[]; subSidebarSections: Record<string, Item[]> },
@@ -111,6 +111,15 @@ describe('Menú «RH» (fase 1a)', () => {
     expect(puestos.gatedFeature).toBeUndefined()
   })
 
+  it('Personas y Puestos se encuentran en la paleta de comandos escribiendo «rh»', () => {
+    const { secciones } = menu()
+    const personas = secciones.team.find(i => i.url === 'team')!
+    const puestos = secciones.team.find(i => i.url === 'rh/puestos')!
+
+    expect(personas.keywords).toContain('rh')
+    expect(puestos.keywords).toContain('rh')
+  })
+
   it('sin teams:read no aparece Puestos', () => {
     m.denied = 'teams:read'
     const { secciones } = menu()
@@ -168,12 +177,24 @@ describe('Menú «RH» (fase 1a)', () => {
 })
 
 describe('Ruta rh/puestos (fase 1a)', () => {
-  it('vive dentro de NotWhiteLabelRoute y pide teams:read', () => {
-    const bloque = createVenueRoutes().find(r => (r.element as { type?: unknown } | undefined)?.type === NotWhiteLabelRoute)!
-    const guardas = (bloque.children ?? []) as RouteObject[]
-    const guarda = guardas.find(g => g.children?.some(h => h.path === 'rh/puestos'))!
+  // Se buscan TODOS los bloques NotWhiteLabelRoute (hoy hay más de uno), no sólo el primero.
+  const guardas = () =>
+    createVenueRoutes()
+      .filter(r => (r.element as { type?: unknown } | undefined)?.type === NotWhiteLabelRoute)
+      .flatMap(b => (b.children ?? []) as RouteObject[])
+  const guarda = () => guardas().find(g => g.children?.some(h => h.path === 'rh/puestos'))!
 
-    expect((guarda.element as { type: unknown }).type).toBe(PermissionProtectedRoute)
-    expect((guarda.element as { props: { permission: string } }).props.permission).toBe('teams:read')
+  it('vive dentro de NotWhiteLabelRoute y pide teams:read', () => {
+    expect((guarda().element as { type: unknown }).type).toBe(PermissionProtectedRoute)
+    expect((guarda().element as { props: { permission: string } }).props.permission).toBe('teams:read')
+  })
+
+  it('/rh (la miga «RH») redirige a Puestos, bajo la MISMA guarda que la página', () => {
+    const redireccion = guarda().children!.find(h => h.path === 'rh')!
+    const el = redireccion.element as { type: unknown; props: { to: string; replace: boolean } }
+
+    expect(el.type).toBe(Navigate)
+    expect(el.props.to).toBe('puestos')
+    expect(el.props.replace).toBe(true)
   })
 })

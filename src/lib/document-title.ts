@@ -279,6 +279,14 @@ const resolveVenueTitle = ({ sidebarT, commonT, menuT }: RouteTitleTranslators, 
     return commonT('notifications.preferences', { defaultValue: 'Notification Preferences' })
   }
 
+  // RH (fase 1a): `rh/puestos` es de una sola pantalla y `rh` solo redirige a ella. El espacio `rh` se pide con prefijo porque este
+  // traductor está atado a `sidebar`; el paquete `rh` se carga en i18n.ts.
+  if (section === 'rh') {
+    return subsection === 'puestos'
+      ? sidebarT('rh:menu.positions', { defaultValue: 'Positions' })
+      : sidebarT('rh:menu.title', { defaultValue: 'HR' })
+  }
+
   return baseRouteMap[section] ?? humanizePathSegment(section)
 }
 

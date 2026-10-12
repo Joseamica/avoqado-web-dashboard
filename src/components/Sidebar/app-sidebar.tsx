@@ -646,14 +646,14 @@ export function AppSidebar({
         title: t('rh:menu.people', { defaultValue: 'Personas' }),
         url: 'team',
         permission: 'teams:read',
-        keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'],
+        keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos', 'rh'],
       },
       // Puestos — fase 1a es GRATIS: sin candado de plan (ni premiumLocked ni gatedFeature).
       {
         title: t('rh:menu.positions', { defaultValue: 'Puestos' }),
         url: 'rh/puestos',
         permission: 'teams:read',
-        keywords: ['puestos', 'cargos', 'coach', 'barista', 'recursos humanos'],
+        keywords: ['puestos', 'cargos', 'coach', 'barista', 'recursos humanos', 'rh'],
       },
       ...((activeVenue?.settings?.attendanceEnabled ?? true)
         ? [
