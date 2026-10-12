@@ -25,19 +25,21 @@ const VUELVE_A_LEER: ReadonlySet<ShopifyErrorAccion> = new Set(['CONECTAR', 'REL
  * jerga de axios) y, si lo que se veía quedó viejo, se vuelve a leer todo lo de la sucursal. Devuelve la acción para que
  * quien llamó decida lo suyo (p. ej. el asistente de conexión ofrece «Volver a empezar»). El resumen se invalida también con
  * `planRequired`, `SIN_PLAN`, `NO_ACTIVA`, `YA_CONECTADA`, `EN_PAUSA` y `FALTA_PERMISO`: todas son RELEER o REAUTORIZAR.
+ * `esComercio` (5a): dónde se conoce la conexión (`connection.metodo === 'APP_DEL_COMERCIO'`) el permiso que falta se dice con el
+ * texto de la app de la tienda; donde no se conoce, queda el de siempre.
  */
-export function useShopifyFallo(venueId: string | undefined) {
+export function useShopifyFallo(venueId: string | undefined, esComercio = false) {
   const { t } = useTranslation('shopify')
   const { toast } = useToast()
   const invalidate = useInvalidateShopify()
   return useCallback(
     (e: unknown): ShopifyErrorAccion | null => {
-      toast({ variant: 'destructive', title: textoDeErrorShopify(t, e) })
+      toast({ variant: 'destructive', title: textoDeErrorShopify(t, e, { esComercio }) })
       const { accion } = explicarErrorShopify(e)
       if (accion && VUELVE_A_LEER.has(accion)) void invalidate(venueId)
       return accion
     },
-    [t, toast, invalidate, venueId],
+    [t, toast, invalidate, venueId, esComercio],
   )
 }
 
@@ -62,3 +64,7 @@ export function useLlavesDeLaTienda(connection: ShopifyConnection) {
  */
 export const claveDeImportacionDetenida = (error: string | null, esComercio: boolean): string =>
   esComercio && error === 'FALTA_PERMISO' ? 'connect.appPropia.faltaPermiso' : `connect.importErrors.${error}`
+
+/** 5a: el cuerpo del aviso «Falta un permiso» de la campanita; con la app de la tienda, el mismo texto que la importación detenida. */
+export const claveDelCuerpoDeAviso = (aviso: string, esComercio: boolean): string =>
+  esComercio && aviso === 'FALTA_PERMISO' ? 'connect.appPropia.faltaPermiso' : `avisos.items.${aviso}.body`

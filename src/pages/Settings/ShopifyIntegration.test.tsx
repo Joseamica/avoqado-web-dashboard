@@ -1702,6 +1702,8 @@ describe('ShopifyIntegration — conexión activa, pausa y avisos', () => {
       expect(screen.getByText(`avisos.items.${aviso}.title`)).toBeInTheDocument()
       expect(screen.getByText(`avisos.items.${aviso}.body`)).toBeInTheDocument()
     }
+    // 5a: el aviso de la del piloto es el de OAuth; el texto de la app de la tienda no aparece.
+    expect(screen.queryByText('connect.appPropia.faltaPermiso')).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'avisos.reauthorize' }))
     await waitFor(() => expect(navegar).toHaveBeenCalledWith('https://mi-tienda.myshopify.com/admin/oauth/authorize?state=p'))
   })
@@ -1893,8 +1895,8 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
   it('🔴 fix final (I3b): marca FALTA_PERMISO en una tienda activa con su app: con el bloque abierto, los dos «Volver a dar permiso» se apagan', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ importacion: { variantes: 120, error: 'FALTA_PERMISO' } })))
     renderPage()
-    // Codex C6 (también la marca permanente de la tarjeta): el texto de la app de la tienda, no el de OAuth.
-    expect(await screen.findByText('connect.appPropia.faltaPermiso')).toBeInTheDocument()
+    // Codex C6 (también la marca permanente de la tarjeta): el texto de la app de la tienda, no el de OAuth. Sale en la alerta y en el aviso.
+    expect(await screen.findAllByText('connect.appPropia.faltaPermiso')).toHaveLength(2)
     expect(screen.queryByText('connect.importErrors.FALTA_PERMISO')).toBeNull()
     await userEvent.click(screen.getAllByRole('button', { name: 'avisos.reauthorize' })[0])
     expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
@@ -1949,7 +1951,7 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ importacion: { variantes: 120, error: 'FALTA_PERMISO' } })))
     svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
     renderPage()
-    expect(await screen.findByText('connect.appPropia.faltaPermiso')).toBeInTheDocument()
+    expect(await screen.findAllByText('connect.appPropia.faltaPermiso')).toHaveLength(2) // la alerta y el aviso
     // [0] = la alerta de la marca permanente, [1] = el de la lista de avisos.
     const botones = screen.getAllByRole('button', { name: 'avisos.reauthorize' })
     expect(botones).toHaveLength(2)
@@ -2007,5 +2009,34 @@ describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'avisos.reauthorize' }))
     await waitFor(() => expect(navegar).toHaveBeenCalledWith('https://mi-tienda.myshopify.com/admin/oauth/authorize?state=i'))
     expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+  })
+
+  it('🔴 el aviso «Falta un permiso» de la campanita: con su app dice el texto de SU app; la del piloto conserva el de OAuth', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda()))
+    const v = renderPage()
+    expect(await screen.findByText('avisos.items.FALTA_PERMISO.title')).toBeInTheDocument()
+    expect(screen.getByText('connect.appPropia.faltaPermiso')).toBeInTheDocument()
+    expect(screen.queryByText('avisos.items.FALTA_PERMISO.body')).toBeNull()
+    // Los demás avisos no cambian.
+    expect(screen.getByText('avisos.items.POR_REVISAR.body')).toBeInTheDocument()
+    v.unmount()
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ metodo: 'PILOTO', clientIdTerminacion: null })))
+    renderPage()
+    expect(await screen.findByText('avisos.items.FALTA_PERMISO.body')).toBeInTheDocument()
+    expect(screen.queryByText('connect.appPropia.faltaPermiso')).toBeNull()
+  })
+
+  it('🔴 un 403 SHOPIFY_FALTA_PERMISO al cuadrar o al resolver, en una tienda con su app, avisa con el texto de SU app (no el de OAuth)', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda()))
+    svc.listShopifyReviews.mockResolvedValue(pagina([REVISION]))
+    svc.resyncShopify.mockRejectedValue(errorHttp(403, { code: 'SHOPIFY_FALTA_PERMISO', message: 'falta' }))
+    svc.resolveShopifyReview.mockRejectedValue(errorHttp(403, { code: 'SHOPIFY_FALTA_PERMISO', message: 'falta' }))
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'status.resync' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'connect.appPropia.faltaPermiso' }))
+    toast.mockClear()
+    await userEvent.click(await screen.findByRole('button', { name: 'review.useShopify' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'connect.appPropia.faltaPermiso' }))
+    expect(toast).not.toHaveBeenCalledWith({ variant: 'destructive', title: 'errors.codes.SHOPIFY_FALTA_PERMISO' })
   })
 })

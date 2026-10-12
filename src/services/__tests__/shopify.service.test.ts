@@ -213,4 +213,15 @@ describe('qué texto y qué acción lleva cada error del servidor (L9, V3, T6, N
     expect(s.textoDeErrorShopify(t, http(409, { message: 'Del server', code: 'SHOPIFY_X' }))).toBe('Del server')
     expect(s.textoDeErrorShopify(t, new Error('Network Error'))).toBe('t:errors.generic')
   })
+
+  it('🔴 SHOPIFY_FALTA_PERMISO en una tienda con su app (`esComercio`) dice el texto de SU app; sin la marca (piloto) sigue el de OAuth', () => {
+    const t = (k: string) => `t:${k}`
+    const falta = http(403, { code: 'SHOPIFY_FALTA_PERMISO', message: 'falta' })
+    expect(s.explicarErrorShopify(falta, { esComercio: true })).toEqual({ clave: 'connect.appPropia.faltaPermiso', accion: 'REAUTORIZAR' })
+    expect(s.textoDeErrorShopify(t, falta, { esComercio: true })).toBe('t:connect.appPropia.faltaPermiso')
+    expect(s.explicarErrorShopify(falta, { esComercio: false })).toEqual({ clave: 'errors.codes.SHOPIFY_FALTA_PERMISO', accion: 'REAUTORIZAR' })
+    expect(s.textoDeErrorShopify(t, falta)).toBe('t:errors.codes.SHOPIFY_FALTA_PERMISO')
+    // Sólo ese código cambia: los demás errores de una tienda con su app conservan su texto.
+    expect(s.textoDeErrorShopify(t, http(409, { code: 'SHOPIFY_NO_ACTIVA' }), { esComercio: true })).toBe('t:errors.codes.SHOPIFY_NO_ACTIVA')
+  })
 })

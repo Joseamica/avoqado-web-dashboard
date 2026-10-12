@@ -27,7 +27,7 @@ import { disconnectShopify, reauthorizeShopify, resyncShopify } from '@/services
 import { conexionDetenida, esErrorPermanente, SHOPIFY_AVISOS, type ShopifyConnection, type ShopifyOverview } from '@/types/shopify'
 import { useVenueDateTime } from '@/utils/datetime'
 import { ShopifyAppPropia } from './ShopifyAppPropia'
-import { claveDeImportacionDetenida, type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
+import { claveDeImportacionDetenida, claveDelCuerpoDeAviso, type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
 
 /**
  * El resumen de la conexión (ACTIVA · PAUSADA · REVOCADA) con sus acciones. Todo botón se VE aunque falte `settings:manage`
@@ -52,7 +52,7 @@ export function ShopifyStatusCard({
   const { formatDateTime } = useVenueDateTime()
   const invalidate = useInvalidateShopify()
   const invalidarResumen = useInvalidateShopifyResumen()
-  const fallo = useShopifyFallo(venueId)
+  const fallo = useShopifyFallo(venueId, connection.metodo === 'APP_DEL_COMERCIO')
   const proximoIntento = useShopifyProximoIntento(connection)
   const planActive = overview.planActive
   const detenida = conexionDetenida(connection)
@@ -234,7 +234,7 @@ export function ShopifyStatusCard({
           {SHOPIFY_AVISOS.map(a => (
             <li key={a}>
               <p className="font-medium text-foreground">{t(`avisos.items.${a}.title`)}</p>
-              <p className="text-muted-foreground">{t(`avisos.items.${a}.body`)}</p>
+              <p className="text-muted-foreground">{t(claveDelCuerpoDeAviso(a, llaves.esComercio))}</p>
               {a === 'FALTA_PERMISO' && (
                 <Button
                   variant="outline"

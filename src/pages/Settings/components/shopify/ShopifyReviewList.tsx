@@ -41,7 +41,7 @@ export function ShopifyReviewList({
   const { t } = useTranslation('shopify')
   const { toast } = useToast()
   const { hash } = useLocation()
-  const fallo = useShopifyFallo(venueId)
+  const fallo = useShopifyFallo(venueId, overview?.connection?.metodo === 'APP_DEL_COMERCIO')
   const invalidate = useInvalidateShopify()
   const invalidarResumen = useInvalidateShopifyResumen()
   const [busqueda, setBusqueda] = useState('')

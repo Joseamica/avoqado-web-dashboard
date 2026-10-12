@@ -182,8 +182,10 @@ type RespuestaDeError = { response?: { status?: number; data?: unknown } }
  * 5. Lo demás (5xx, HTML de un 502, sin red, código ajeno) ⇒ el genérico, nunca la jerga de axios (Z6).
  * `sinFormularioDeLlaves` (Codex C5): el error llegó donde no hay bloque de llaves (ubicaciones, confirmar); un rechazo de las llaves
  * lleva entonces «Volver a empezar».
+ * `esComercio` (5a): la tienda está conectada con SU app; a esa app le falta el permiso en su versión (agregarlo, publicarla y
+ * aprobarla), no un «acepta todo» de OAuth: `SHOPIFY_FALTA_PERMISO` dice entonces el texto de la app de la tienda.
  */
-export function explicarErrorShopify(e: unknown, o: { sinFormularioDeLlaves?: boolean } = {}): ShopifyErrorVista {
+export function explicarErrorShopify(e: unknown, o: { sinFormularioDeLlaves?: boolean; esComercio?: boolean } = {}): ShopifyErrorVista {
   const r = (e as RespuestaDeError | null | undefined)?.response
   const data = (r?.data && typeof r.data === 'object' ? r.data : {}) as { code?: unknown; featureCode?: unknown }
   const code = typeof data.code === 'string' ? data.code : undefined
@@ -191,7 +193,8 @@ export function explicarErrorShopify(e: unknown, o: { sinFormularioDeLlaves?: bo
   if (code && (SHOPIFY_ERROR_CODES as readonly string[]).includes(code)) {
     const conocido = code as ShopifyErrorCode
     const accion = o.sinFormularioDeLlaves && LLAVES_RECHAZADAS.has(conocido) ? 'VOLVER_A_EMPEZAR' : (ACCIONES[conocido] ?? null)
-    const vista: ShopifyErrorVista = { clave: `errors.codes.${code}`, accion }
+    const clave = o.esComercio && conocido === 'SHOPIFY_FALTA_PERMISO' ? 'connect.appPropia.faltaPermiso' : `errors.codes.${code}`
+    const vista: ShopifyErrorVista = { clave, accion }
     // Faltan permisos: el texto del server nombra CUÁLES (la clave fija no puede); sin texto, la clave.
     const texto = code === 'SHOPIFY_APP_FALTAN_PERMISOS' ? textoDelServidor(e) : undefined
     return texto ? { ...vista, texto } : vista
@@ -202,7 +205,7 @@ export function explicarErrorShopify(e: unknown, o: { sinFormularioDeLlaves?: bo
 }
 
 /** El texto listo para pintar; `t` es el de `useTranslation('shopify')`. */
-export const textoDeErrorShopify = (t: (clave: string) => string, e: unknown): string => {
-  const v = explicarErrorShopify(e)
+export const textoDeErrorShopify = (t: (clave: string) => string, e: unknown, o: { esComercio?: boolean } = {}): string => {
+  const v = explicarErrorShopify(e, o)
   return v.texto ?? t(v.clave)
 }
