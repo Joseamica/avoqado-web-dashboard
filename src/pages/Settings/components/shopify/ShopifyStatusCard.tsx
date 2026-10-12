@@ -26,7 +26,8 @@ import {
 import { disconnectShopify, reauthorizeShopify, resyncShopify } from '@/services/shopify.service'
 import { conexionDetenida, esErrorPermanente, SHOPIFY_AVISOS, type ShopifyConnection, type ShopifyOverview } from '@/types/shopify'
 import { useVenueDateTime } from '@/utils/datetime'
-import { type Navegar, useShopifyFallo } from './shopify.helpers'
+import { ShopifyAppPropia } from './ShopifyAppPropia'
+import { type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
 
 /**
  * El resumen de la conexión (ACTIVA · PAUSADA · REVOCADA) con sus acciones. Todo botón se VE aunque falte `settings:manage`
@@ -75,6 +76,10 @@ export function ShopifyStatusCard({
     },
     onError: fallo,
   })
+  // 5a: con la app de la tienda, «Reconectar» y «Volver a dar permiso» son volver a pegar sus llaves (REAUTHORIZE) en el mismo
+  // bloque de conectar, no un viaje a Shopify por OAuth.
+  const llaves = useLlavesDeLaTienda(connection)
+  const pedirPermiso = () => (llaves.esComercio ? llaves.abrir() : reautorizar.mutate())
   const c = connection.conteos
   // Z3/L7: «en curso» sólo si de verdad corre; pausada o sin acceso, el pedido espera («se cuadrará al reanudar»).
   const claveCuadre = claveDelCuadre(overview)
@@ -111,7 +116,7 @@ export function ShopifyStatusCard({
           <Button
             size="sm"
             className="col-start-2 mt-2 justify-self-start"
-            onClick={() => reautorizar.mutate()}
+            onClick={pedirPermiso}
             disabled={!canManage || reautorizar.isPending}
             data-tour="shopify-reconnect"
           >
@@ -130,7 +135,7 @@ export function ShopifyStatusCard({
               <Button
                 size="sm"
                 className="col-start-2 mt-2 justify-self-start"
-                onClick={() => reautorizar.mutate()}
+                onClick={pedirPermiso}
                 disabled={!canManage || reautorizar.isPending}
               >
                 {t('avisos.reauthorize')}
@@ -142,6 +147,11 @@ export function ShopifyStatusCard({
       )}
       {fila(t('status.store'), connection.shopDomain)}
       {fila(t('status.location'), connection.locationName)}
+      {llaves.esComercio && (
+        <p className="text-sm text-muted-foreground" data-tour="shopify-metodo">
+          {t('status.metodoComercio', { fin: connection.clientIdTerminacion ?? '' })}
+        </p>
+      )}
       {fila(t('status.matched'), c.emparejados)}
       {/* Z2: detenida, lo que está en camino no avanza: no se pinta como progreso. */}
       {!detenida && fila(t('status.pending'), c.pendientes)}
@@ -172,6 +182,17 @@ export function ShopifyStatusCard({
             {t('status.resync')}
           </Button>
         )}
+        {llaves.esComercio && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={llaves.abrir}
+            disabled={!canManage || llaves.abierto}
+            data-tour="shopify-cambiar-llaves"
+          >
+            {t('status.cambiarLlaves')}
+          </Button>
+        )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" size="sm" disabled={!canManage || desconectar.isPending} data-tour="shopify-disconnect">
@@ -192,6 +213,16 @@ export function ShopifyStatusCard({
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      {llaves.abierto && (
+        <ShopifyAppPropia
+          venueId={venueId}
+          shopDomain={connection.shopDomain}
+          purpose="REAUTHORIZE"
+          canManage={canManage}
+          onListo={llaves.cerrar}
+          onCancelar={llaves.cerrar}
+        />
+      )}
       {connection.estado === 'ACTIVA' && connection.importacion.error === 'FALTA_PERMISO' && (
         <p className="text-xs text-muted-foreground">{t('status.resyncBlocked')}</p>
       )}
@@ -205,13 +236,7 @@ export function ShopifyStatusCard({
               <p className="font-medium text-foreground">{t(`avisos.items.${a}.title`)}</p>
               <p className="text-muted-foreground">{t(`avisos.items.${a}.body`)}</p>
               {a === 'FALTA_PERMISO' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-1"
-                  onClick={() => reautorizar.mutate()}
-                  disabled={!canManage || reautorizar.isPending}
-                >
+                <Button variant="outline" size="sm" className="mt-1" onClick={pedirPermiso} disabled={!canManage || reautorizar.isPending}>
                   {t('avisos.reauthorize')}
                 </Button>
               )}

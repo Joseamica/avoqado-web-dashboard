@@ -35,8 +35,9 @@ import {
   type ShopifyConnection,
   type ShopifyVistaConexion,
 } from '@/types/shopify'
+import { ShopifyAppPropia } from './ShopifyAppPropia'
 import { ListaPaginada } from './ShopifyListStates'
-import { dedupe, type Navegar, useShopifyFallo } from './shopify.helpers'
+import { dedupe, type Navegar, useLlavesDeLaTienda, useShopifyFallo } from './shopify.helpers'
 
 /** «Cancelar la conexión» = desconectar, sin candado de plan: siempre se puede salir. Sin `settings:manage` se ve deshabilitado. */
 function CancelarConexion({ venueId, canManage }: { venueId: string; canManage: boolean }) {
@@ -126,13 +127,19 @@ export function ShopifyImportDetenida({
     onSuccess: d => navegar(d.url),
     onError: fallo,
   })
+  // 5a: con la app de la tienda, volver a dar permiso es pegar otra vez sus llaves (REAUTHORIZE) en el bloque de siempre.
+  const llaves = useLlavesDeLaTienda(connection)
   return (
     <section role="alert" className="space-y-3 rounded-xl border border-destructive/40 p-4" data-tour="shopify-import-stopped">
       <p className="font-medium text-foreground">{t('connect.importStopped')}</p>
       <p className="text-sm text-muted-foreground">{t(`connect.importErrors.${error}`)}</p>
       <div className="flex flex-wrap gap-2">
         {error === 'FALTA_PERMISO' ? (
-          <Button onClick={() => reautorizar.mutate()} disabled={!canManage || reautorizar.isPending} data-tour="shopify-reauthorize">
+          <Button
+            onClick={() => (llaves.esComercio ? llaves.abrir() : reautorizar.mutate())}
+            disabled={!canManage || reautorizar.isPending || llaves.abierto}
+            data-tour="shopify-reauthorize"
+          >
             {t('avisos.reauthorize')}
           </Button>
         ) : canManage ? (
@@ -148,6 +155,16 @@ export function ShopifyImportDetenida({
         )}
         <CancelarConexion venueId={venueId} canManage={canManage} />
       </div>
+      {llaves.abierto && (
+        <ShopifyAppPropia
+          venueId={venueId}
+          shopDomain={connection.shopDomain}
+          purpose="REAUTHORIZE"
+          canManage={canManage}
+          onListo={llaves.cerrar}
+          onCancelar={llaves.cerrar}
+        />
+      )}
       {!canManage && <p className="text-sm text-muted-foreground">{t('connect.importStoppedAskAdmin')}</p>}
     </section>
   )

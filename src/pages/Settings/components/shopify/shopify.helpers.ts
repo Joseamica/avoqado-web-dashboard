@@ -1,9 +1,10 @@
 /** Piezas sin JSX de la pantalla de Shopify: la navegación inyectable, el manejo de un error del servidor y la unión de páginas. */
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/use-toast'
 import { useInvalidateShopify } from '@/hooks/use-shopify'
 import { explicarErrorShopify, textoDeErrorShopify, type ShopifyErrorAccion } from '@/services/shopify.service'
+import type { ShopifyConnection } from '@/types/shopify'
 
 /** jsdom no deja redefinir `window.location` (índice v2 §6, Codex #36): la ida a Shopify entra por aquí y la prueba la inyecta. */
 export type Navegar = (url: string) => void
@@ -40,4 +41,14 @@ export function useShopifyFallo(venueId: string | undefined) {
 /** Une las páginas de «Cargar más» sin repetir: una fila puede cambiar de página entre una petición y otra. */
 export function dedupe<X>(xs: X[], key: (x: X) => string): X[] {
   return [...new Map(xs.map(x => [key(x), x])).values()]
+}
+
+/**
+ * 5a: con la app de la tienda, «Cambiar llaves», «Reconectar» y «Volver a dar permiso» son pegar otra vez sus llaves
+ * (REAUTHORIZE) en el bloque de conectar, no un viaje a Shopify por OAuth. `abierto` = el bloque está a la vista. La tienda del
+ * piloto (`metodo` ausente o `PILOTO`) no cambia: `esComercio` es falso y sigue por OAuth.
+ */
+export function useLlavesDeLaTienda(connection: ShopifyConnection) {
+  const [abierto, setAbierto] = useState(false)
+  return { esComercio: connection.metodo === 'APP_DEL_COMERCIO', abierto, abrir: () => setAbierto(true), cerrar: () => setAbierto(false) }
 }

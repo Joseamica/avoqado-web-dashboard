@@ -1782,3 +1782,156 @@ describe('ShopifyIntegration — conexión activa, pausa y avisos', () => {
     expect(screen.queryByText('Gorra · Única')).toBeNull()
   })
 })
+
+describe('ShopifyIntegration — tienda conectada con su app (5a)', () => {
+  const deLaTienda = (o: Partial<ShopifyConnection> = {}) => conexion({ metodo: 'APP_DEL_COMERCIO', clientIdTerminacion: 'abcd', ...o })
+  const LLAVES = { shopDomain: 'mi-tienda.myshopify.com', clientId: 'cid_123', clientSecret: 'shpss_secreto' }
+
+  it('🔴 dice «Conectada con la app de tu tienda (…abcd)» y «Cambiar llaves» abre el bloque con el dominio fijo; al guardar avisa, relee y no va a Shopify', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda()))
+    svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
+    renderPage()
+    expect(await screen.findByText('status.metodoComercio abcd')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'status.cambiarLlaves' }))
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
+    await waitFor(() => expect(screen.queryByText('connect.appPropia.title')).toBeNull())
+    expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('«Cambiar llaves» se apaga mientras el bloque está abierto (un bloque a la vez); «Cancelar» lo cierra y lo vuelve a habilitar sin pedir nada', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda()))
+    renderPage()
+    const cambiar = await screen.findByRole('button', { name: 'status.cambiarLlaves' })
+    expect(cambiar).toBeEnabled()
+    await userEvent.click(cambiar)
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'status.cambiarLlaves' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.cancel' }))
+    expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+    expect(screen.getByRole('button', { name: 'status.cambiarLlaves' })).toBeEnabled()
+    expect(svc.connectShopifyOwnApp).not.toHaveBeenCalled()
+  })
+
+  it('🔴 REVOCADA: «Reconectar» abre el mismo bloque (REAUTHORIZE) y no va a Shopify por OAuth; al guardar las llaves avisa, relee y cierra el bloque', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ estado: 'REVOCADA' })))
+    svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
+    renderPage()
+    expect(await screen.findByText('status.revoked')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'status.reconnect' }))
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    // El dominio sale de la conexión (no se teclea) y el propósito es REAUTHORIZE, no CONNECT.
+    await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
+    expect(svc.connectShopifyOwnApp).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
+    await waitFor(() => expect(screen.queryByText('connect.appPropia.title')).toBeNull())
+    expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('REVOCADA y el server rechaza las llaves: lo dice, el bloque se queda abierto con el Client ID y no va a Shopify', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ estado: 'REVOCADA' })))
+    svc.connectShopifyOwnApp.mockRejectedValue(errorHttp(422, { code: 'SHOPIFY_APP_SECRET_INVALIDO', message: 'malo' }))
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'status.reconnect' }))
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'errors.codes.SHOPIFY_APP_SECRET_INVALIDO' }))
+    expect(screen.getByText('connect.appPropia.title')).toBeInTheDocument()
+    expect(screen.getByLabelText('connect.appPropia.clientIdLabel')).toHaveValue('cid_123')
+    expect(screen.getByLabelText('connect.appPropia.clientSecretLabel')).toHaveValue('')
+    expect(toast).not.toHaveBeenCalledWith({ title: 'connect.reauthorized' })
+    expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('la del piloto no cambia: sin la línea del método ni «Cambiar llaves»', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ metodo: 'PILOTO', clientIdTerminacion: null })))
+    renderPage()
+    expect(await screen.findByText('status.store')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'status.cambiarLlaves' })).toBeNull()
+    expect(screen.queryByText(/status\.metodoComercio/)).toBeNull()
+  })
+
+  it('🔴 la del piloto, REVOCADA y con la marca `metodo: PILOTO`, sigue yendo a Shopify por OAuth al reconectar', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(conexion({ metodo: 'PILOTO', clientIdTerminacion: null, estado: 'REVOCADA' })))
+    svc.reauthorizeShopify.mockResolvedValue({ url: 'https://mi-tienda.myshopify.com/admin/oauth/authorize?state=r' })
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'status.reconnect' }))
+    await waitFor(() => expect(navegar).toHaveBeenCalledWith('https://mi-tienda.myshopify.com/admin/oauth/authorize?state=r'))
+    expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+    expect(svc.connectShopifyOwnApp).not.toHaveBeenCalled()
+  })
+
+  it('sin `settings:manage`: «Cambiar llaves» se ve, deshabilitado', async () => {
+    access.allowed = ['inventory:read']
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda()))
+    renderPage()
+    expect(await screen.findByRole('button', { name: 'status.cambiarLlaves' })).toBeDisabled()
+  })
+
+  it('🔴 marca permanente FALTA_PERMISO en una tienda ya activa con su app: el «Volver a dar permiso» de la alerta y el de los avisos abren el bloque (REAUTHORIZE), no OAuth', async () => {
+    svc.getShopifyOverview.mockResolvedValue(resumen(deLaTienda({ importacion: { variantes: 120, error: 'FALTA_PERMISO' } })))
+    svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
+    renderPage()
+    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    // [0] = la alerta de la marca permanente, [1] = el de la lista de avisos.
+    const botones = screen.getAllByRole('button', { name: 'avisos.reauthorize' })
+    expect(botones).toHaveLength(2)
+    await userEvent.click(botones[0])
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.cancel' }))
+    expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+    await userEvent.click(screen.getAllByRole('button', { name: 'avisos.reauthorize' })[1])
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
+    expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('🔴 ruling P2-5: la importación se detuvo por un permiso en una tienda con su app: «Volver a dar permiso» abre el bloque de llaves (REAUTHORIZE, el dominio de la tienda), no OAuth', async () => {
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(deLaTienda({ fase: 'CONNECTING', estado: 'IMPORTANDO', importacion: { variantes: 10, error: 'FALTA_PERMISO' } })),
+    )
+    svc.connectShopifyOwnApp.mockResolvedValue({ reautorizada: true })
+    renderPage()
+    expect(await screen.findByText('connect.importErrors.FALTA_PERMISO')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'avisos.reauthorize' }))
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'avisos.reauthorize' })).toBeDisabled() // un bloque a la vez
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    await waitFor(() => expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'REAUTHORIZE', LLAVES))
+    // Éxito (`onListo`): avisa, relee el resumen y cierra el bloque; «Volver a dar permiso» vuelve a estar disponible.
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.reauthorized' }))
+    await waitFor(() => expect(screen.queryByText('connect.appPropia.title')).toBeNull())
+    expect(svc.getShopifyOverview.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByRole('button', { name: 'avisos.reauthorize' })).toBeEnabled()
+    expect(svc.reauthorizeShopify).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('la importación detenida de la del piloto: «Volver a dar permiso» sigue yendo a Shopify por `navegar`', async () => {
+    svc.getShopifyOverview.mockResolvedValue(
+      resumen(conexion({ fase: 'CONNECTING', estado: 'IMPORTANDO', importacion: { variantes: 10, error: 'FALTA_PERMISO' } })),
+    )
+    svc.reauthorizeShopify.mockResolvedValue({ url: 'https://mi-tienda.myshopify.com/admin/oauth/authorize?state=i' })
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'avisos.reauthorize' }))
+    await waitFor(() => expect(navegar).toHaveBeenCalledWith('https://mi-tienda.myshopify.com/admin/oauth/authorize?state=i'))
+    expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+  })
+})
