@@ -124,6 +124,9 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
     setParams({}, { replace: true })
     void invalidarResumen(venueId ?? undefined)
   }
+  // 5a: con la app de la tienda no hay viaje a Shopify: el intent llega en la respuesta y se pone en la URL, como al volver del
+  // OAuth; de ahí sigue la ubicación de siempre.
+  const alTenerIntent = (i: string) => setParams({ intent: i }, { replace: true })
 
   function contenido() {
     // Mientras los permisos cargan no se sabe si falta `inventory:read`: «cargando», nunca «No tienes permiso» por un instante.
@@ -138,13 +141,33 @@ function PaginaShopify({ navegar }: { navegar: Navegar }) {
     if (!venueId || (overview.isLoading && !resumen) || (!connection && !intent && accesoCargando)) return <Cargando />
     if (overview.isError && !resumen)
       return <ErrorConReintento texto={t('errors.loadError')} onRetry={() => overview.refetch()} cargando={overview.isFetching} />
+    // `key`: cada intent y cada regreso al dominio montan un asistente limpio. Los dos caen en la misma posición del árbol, y sin
+    // ella el `reinicio` de un intent vencido seguía ahí al volver a empezar y tapaba la ubicación del intent siguiente.
     if (intent)
-      return <ShopifyConnect venueId={venueId} intent={intent} canManage={canManage} navegar={navegar} onDone={alVolverAEmpezar} />
+      return (
+        <ShopifyConnect
+          key={intent}
+          venueId={venueId}
+          intent={intent}
+          canManage={canManage}
+          navegar={navegar}
+          onDone={alVolverAEmpezar}
+          onIntent={alTenerIntent}
+        />
+      )
     if (!connection) {
       return sinAcceso ? (
         <ShopifyPiloto canManage={canManage} />
       ) : (
-        <ShopifyConnect venueId={venueId} intent={null} canManage={canManage} navegar={navegar} onDone={alVolverAEmpezar} />
+        <ShopifyConnect
+          key="sin-intent"
+          venueId={venueId}
+          intent={null}
+          canManage={canManage}
+          navegar={navegar}
+          onDone={alVolverAEmpezar}
+          onIntent={alTenerIntent}
+        />
       )
     }
     const enCurso = connection.estado === 'IMPORTANDO' || connection.estado === 'APLICANDO' || connection.estado === 'POR_APLICAR'

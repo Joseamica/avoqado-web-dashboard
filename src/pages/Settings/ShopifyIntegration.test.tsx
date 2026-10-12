@@ -3,7 +3,14 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { SHOPIFY_AVISOS, SHOPIFY_ENVIOS, type ShopifyConnection, type ShopifyOverview, type ShopifyReview } from '@/types/shopify'
+import {
+  SHOPIFY_AVISOS,
+  SHOPIFY_ENVIOS,
+  SHOPIFY_PERMISOS_APP,
+  type ShopifyConnection,
+  type ShopifyOverview,
+  type ShopifyReview,
+} from '@/types/shopify'
 
 const access = vi.hoisted(() => ({ allowed: [] as string[], cargando: false }))
 vi.mock('@/hooks/use-access', () => ({
@@ -44,12 +51,13 @@ vi.mock('react-i18next', () => ({
     t: (k: string, o?: Record<string, unknown>) => (o ? [k, ...Object.values(o).filter(v => typeof v !== 'object')].join(' ') : k),
   }),
 }))
-// Las 14 llamadas del servicio se mockean; lo demás (`explicarErrorShopify`, `textoDeErrorShopify`) es el REAL de C7: así los textos
+// Las 15 llamadas del servicio se mockean; lo demás (`explicarErrorShopify`, `textoDeErrorShopify`) es el REAL de C7: así los textos
 // y las acciones de los errores salen del mapa de verdad y no de uno inventado por la prueba (requisito 2 de C7 → C8).
 const svc = vi.hoisted(() => ({
   getShopifyOverview: vi.fn(),
   startShopifyConnect: vi.fn(),
   reauthorizeShopify: vi.fn(),
+  connectShopifyOwnApp: vi.fn(),
   getShopifyLocations: vi.fn(),
   confirmShopifyConnect: vi.fn(),
   getShopifyConnectReview: vi.fn(),
@@ -140,6 +148,20 @@ function renderPage(path = '/') {
   )
   const view = render(tree())
   return { ...view, client, tree }
+}
+
+/** 5a: las llaves que pega el dueño en el bloque de la app de su tienda. */
+async function llenarLlaves() {
+  await userEvent.type(screen.getByLabelText('connect.appPropia.clientIdLabel'), 'cid_123')
+  await userEvent.type(screen.getByLabelText('connect.appPropia.clientSecretLabel'), 'shpss_secreto')
+}
+/** 5a: «Conectar» con el dominio y el server contesta que esta tienda se conecta con SU app. */
+async function abrirAppPropia(dominio = 'Mi-Tienda.myshopify.com') {
+  svc.startShopifyConnect.mockRejectedValue(errorHttp(409, { code: 'SHOPIFY_USA_APP_PROPIA', message: 'usa tu app' }))
+  renderPage()
+  await userEvent.type(await screen.findByPlaceholderText('connect.domainPlaceholder'), dominio)
+  await userEvent.click(screen.getByRole('button', { name: 'connect.submit' }))
+  expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
 }
 
 beforeEach(() => {
@@ -388,6 +410,83 @@ describe('ShopifyIntegration — conectar', () => {
     expect(await screen.findByText('errors.forbidden')).toBeInTheDocument()
     expect(svc.getShopifyOverview).not.toHaveBeenCalled()
     expect(screen.queryByPlaceholderText('connect.domainPlaceholder')).toBeNull()
+  })
+})
+
+describe('ShopifyIntegration — conectar con la app de la tienda (5a)', () => {
+  it('🔴 SHOPIFY_USA_APP_PROPIA abre el bloque bajo el dominio (ya fijo): 6 pasos, los permisos, el secret oculto y sin autocompletar; con el intent sigue la ubicación de siempre', async () => {
+    svc.connectShopifyOwnApp.mockResolvedValue({ intent: 'intent-app-propia' })
+    svc.getShopifyLocations.mockResolvedValue([{ id: 'gid://shopify/Location/1', name: 'Tienda México', countryCode: 'MX' }])
+    await abrirAppPropia()
+    expect(screen.getByPlaceholderText('connect.domainPlaceholder')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'connect.submit' })).toBeNull()
+    for (const p of ['1', '2', '3', '4', '5', '6']) expect(screen.getByText(`connect.appPropia.pasos.${p}`)).toBeInTheDocument()
+    expect(screen.getByText(SHOPIFY_PERMISOS_APP.join(','))).toBeInTheDocument()
+    const secret = screen.getByLabelText('connect.appPropia.clientSecretLabel')
+    expect(secret).toHaveAttribute('type', 'password')
+    expect(secret).toHaveAttribute('autocomplete', 'off')
+    const conectar = screen.getByRole('button', { name: 'connect.appPropia.submit' })
+    expect(conectar).toBeDisabled()
+    await llenarLlaves()
+    await userEvent.click(conectar)
+    await waitFor(() =>
+      expect(svc.connectShopifyOwnApp).toHaveBeenCalledWith('v1', 'CONNECT', {
+        shopDomain: 'mi-tienda.myshopify.com',
+        clientId: 'cid_123',
+        clientSecret: 'shpss_secreto',
+      }),
+    )
+    expect(await screen.findByRole('button', { name: 'Tienda México' })).toBeInTheDocument()
+    expect(svc.getShopifyLocations).toHaveBeenCalledWith('v1', 'intent-app-propia')
+    expect(navegar).not.toHaveBeenCalled()
+    expect(toast).not.toHaveBeenCalled()
+  })
+
+  it('«Copiar los permisos» copia los 7 de una vez y lo dice', async () => {
+    await abrirAppPropia()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    fireEvent.click(screen.getByRole('button', { name: 'connect.appPropia.copiar' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'connect.appPropia.copiados' }))
+    expect(writeText).toHaveBeenCalledWith(
+      'read_products,write_products,read_inventory,write_inventory,read_locations,read_orders,read_fulfillments',
+    )
+  })
+
+  it('🔴 llaves que Shopify rechaza: lo dice con su texto y el bloque se queda con lo escrito para corregirlo; «Volver» deja cambiar el dominio', async () => {
+    svc.connectShopifyOwnApp.mockRejectedValue(errorHttp(422, { code: 'SHOPIFY_APP_SECRET_INVALIDO', message: 'malo' }))
+    await abrirAppPropia()
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'errors.codes.SHOPIFY_APP_SECRET_INVALIDO' }))
+    expect(screen.getByText('connect.appPropia.title')).toBeInTheDocument()
+    expect(screen.getByLabelText('connect.appPropia.clientIdLabel')).toHaveValue('cid_123')
+    // El secret no se queda en el estado cuando la petición terminó (también si falló): se vuelve a pegar.
+    expect(screen.getByLabelText('connect.appPropia.clientSecretLabel')).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'Tienda México' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.cancel' }))
+    expect(screen.queryByText('connect.appPropia.title')).toBeNull()
+    expect(screen.getByPlaceholderText('connect.domainPlaceholder')).toBeEnabled()
+  })
+
+  it('🔴 ruling P2-6: dos intentos seguidos sin salir de la página: el «Volver a empezar» de un intent vencido no se queda pegado al intent nuevo', async () => {
+    svc.getShopifyLocations.mockResolvedValue([{ id: 'gid://shopify/Location/1', name: 'Tienda México', countryCode: 'MX' }])
+    svc.confirmShopifyConnect.mockRejectedValueOnce(errorHttp(409, { code: 'SHOPIFY_INTENT_EXPIRADO', message: 'venció' }))
+    renderPage('/?intent=intent-1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Tienda México' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'connect.restart' }))
+    // Segundo intento, sin desmontar la página: con la app de la tienda, el intent nuevo llega en la respuesta.
+    svc.startShopifyConnect.mockRejectedValue(errorHttp(409, { code: 'SHOPIFY_USA_APP_PROPIA', message: 'usa tu app' }))
+    svc.connectShopifyOwnApp.mockResolvedValue({ intent: 'intent-2' })
+    await userEvent.type(await screen.findByPlaceholderText('connect.domainPlaceholder'), 'mi-tienda.myshopify.com')
+    await userEvent.click(screen.getByRole('button', { name: 'connect.submit' }))
+    expect(await screen.findByText('connect.appPropia.title')).toBeInTheDocument()
+    await llenarLlaves()
+    await userEvent.click(screen.getByRole('button', { name: 'connect.appPropia.submit' }))
+    expect(await screen.findByRole('button', { name: 'Tienda México' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'connect.restart' })).toBeNull()
+    expect(screen.queryByText('errors.codes.SHOPIFY_INTENT_EXPIRADO')).toBeNull()
+    expect(svc.getShopifyLocations).toHaveBeenLastCalledWith('v1', 'intent-2')
   })
 })
 

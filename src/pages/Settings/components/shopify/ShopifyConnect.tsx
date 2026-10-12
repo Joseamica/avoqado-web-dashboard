@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
 import { useInvalidateShopify, useShopifyLocations } from '@/hooks/use-shopify'
 import { confirmShopifyConnect, explicarErrorShopify, startShopifyConnect, textoDeErrorShopify } from '@/services/shopify.service'
+import { ShopifyAppPropia } from './ShopifyAppPropia'
 import { Cargando } from './ShopifyListStates'
 import { dominioValido, type Navegar, useShopifyFallo } from './shopify.helpers'
 
@@ -49,6 +50,8 @@ export function ShopifyPiloto({ canManage }: { canManage: boolean }) {
  * - VOLVER_A_EMPEZAR / REAUTORIZAR dentro del asistente ⇒ «Volver a empezar» (suelta el intent: un OAuth nuevo). Volver a dar
  *   permiso sólo tiene sentido con una conexión, y aquí todavía no la hay.
  * - REINTENTAR_LUEGO ⇒ se dice y el intent se CONSERVA (T6): sigue la misma ubicación a un toque; nada se reintenta solo.
+ * - 5a: `SHOPIFY_USA_APP_PROPIA` (la tienda conecta con SU app) ⇒ bajo el dominio, ya fijo, el bloque de llaves; su intent sigue la
+ *   ubicación de siempre (`onIntent`).
  */
 export function ShopifyConnect({
   venueId,
@@ -56,18 +59,22 @@ export function ShopifyConnect({
   canManage,
   navegar,
   onDone,
+  onIntent,
 }: {
   venueId: string
   intent: string | null
   canManage: boolean
   navegar: Navegar
   onDone: () => void
+  onIntent: (intent: string) => void
 }) {
   const { t } = useTranslation('shopify')
   const fallo = useShopifyFallo(venueId)
   const invalidate = useInvalidateShopify()
   const [domain, setDomain] = useState('')
   const [soloPiloto, setSoloPiloto] = useState(false)
+  /** 5a: el dominio, ya fijo, con que se abrió el bloque de la app de la tienda; null = sin bloque. */
+  const [appPropia, setAppPropia] = useState<string | null>(null)
   /** El texto del error que obliga a empezar de nuevo (el intent ya no sirve). */
   const [reinicio, setReinicio] = useState<string | null>(null)
   const locations = useShopifyLocations(venueId, intent)
@@ -76,7 +83,12 @@ export function ShopifyConnect({
   const start = useMutation({
     mutationFn: () => startShopifyConnect(venueId, domain),
     onSuccess: d => navegar(d.url),
-    onError: (e: unknown) => (explicarErrorShopify(e).clave === 'errors.codes.SHOPIFY_SOLO_PILOTO' ? setSoloPiloto(true) : fallo(e)),
+    onError: (e: unknown) => {
+      const { clave } = explicarErrorShopify(e)
+      if (clave === 'errors.codes.SHOPIFY_SOLO_PILOTO') return setSoloPiloto(true)
+      if (clave === 'errors.codes.SHOPIFY_USA_APP_PROPIA') return setAppPropia(domain.trim().toLowerCase())
+      fallo(e)
+    },
   })
   const confirm = useMutation({
     mutationFn: (locationId: string) => confirmShopifyConnect(venueId, { intent: intent!, locationId }),
@@ -151,50 +163,64 @@ export function ShopifyConnect({
   }
 
   return (
-    <form
-      className="space-y-4 rounded-xl border border-input p-4"
-      onSubmit={e => {
-        e.preventDefault()
-        if (canManage && valido) start.mutate()
-      }}
-      data-tour="shopify-connect-form"
-    >
-      <div>
-        <p className="font-medium text-foreground">{t('connect.title')}</p>
-        <p className="text-sm text-muted-foreground">{t('connect.body')}</p>
-      </div>
-      {soloPiloto && (
-        <Alert>
-          <AlertTitle>{t('connect.soloPilotoTitle')}</AlertTitle>
-          {/* El texto del piloto sale del mapa de errores, sin hablar de plan (N2). */}
-          <AlertDescription>{t('errors.codes.SHOPIFY_SOLO_PILOTO')}</AlertDescription>
-        </Alert>
-      )}
-      <div className="space-y-1">
-        <Label htmlFor="shopify-domain">{t('connect.domainLabel')}</Label>
-        <Input
-          id="shopify-domain"
-          value={domain}
-          disabled={!canManage}
-          onChange={e => {
-            setDomain(e.target.value)
-            setSoloPiloto(false)
-          }}
-          placeholder={t('connect.domainPlaceholder')}
-          autoComplete="off"
-          aria-invalid={!!domain.trim() && !valido}
-          data-tour="shopify-connect-domain"
-        />
-        {domain.trim() && !valido ? (
-          <p className="text-xs text-destructive">{t('errors.codes.SHOPIFY_DOMINIO_INVALIDO')}</p>
-        ) : (
-          <p className="text-xs text-muted-foreground">{t('connect.domainHelp')}</p>
+    <div className="space-y-4">
+      <form
+        className="space-y-4 rounded-xl border border-input p-4"
+        onSubmit={e => {
+          e.preventDefault()
+          if (canManage && valido && !appPropia) start.mutate()
+        }}
+        data-tour="shopify-connect-form"
+      >
+        <div>
+          <p className="font-medium text-foreground">{t('connect.title')}</p>
+          <p className="text-sm text-muted-foreground">{t('connect.body')}</p>
+        </div>
+        {soloPiloto && (
+          <Alert>
+            <AlertTitle>{t('connect.soloPilotoTitle')}</AlertTitle>
+            {/* El texto del piloto sale del mapa de errores, sin hablar de plan (N2). */}
+            <AlertDescription>{t('errors.codes.SHOPIFY_SOLO_PILOTO')}</AlertDescription>
+          </Alert>
         )}
-      </div>
-      <Button type="submit" disabled={!canManage || start.isPending || !valido} data-tour="shopify-connect-submit">
-        {start.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {t('connect.submit')}
-      </Button>
-    </form>
+        <div className="space-y-1">
+          <Label htmlFor="shopify-domain">{t('connect.domainLabel')}</Label>
+          <Input
+            id="shopify-domain"
+            value={domain}
+            disabled={!canManage || !!appPropia}
+            onChange={e => {
+              setDomain(e.target.value)
+              setSoloPiloto(false)
+            }}
+            placeholder={t('connect.domainPlaceholder')}
+            autoComplete="off"
+            aria-invalid={!!domain.trim() && !valido}
+            data-tour="shopify-connect-domain"
+          />
+          {domain.trim() && !valido ? (
+            <p className="text-xs text-destructive">{t('errors.codes.SHOPIFY_DOMINIO_INVALIDO')}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('connect.domainHelp')}</p>
+          )}
+        </div>
+        {!appPropia && (
+          <Button type="submit" disabled={!canManage || start.isPending || !valido} data-tour="shopify-connect-submit">
+            {start.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('connect.submit')}
+          </Button>
+        )}
+      </form>
+      {appPropia && (
+        <ShopifyAppPropia
+          venueId={venueId}
+          shopDomain={appPropia}
+          purpose="CONNECT"
+          canManage={canManage}
+          onIntent={onIntent}
+          onCancelar={() => setAppPropia(null)}
+        />
+      )}
+    </div>
   )
 }
