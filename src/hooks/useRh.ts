@@ -10,9 +10,12 @@ export const rhKeys = {
   assignments: (venueId?: string | null, staffId?: string, page = 0) => [...rhKeys.all(venueId), 'assignments', staffId, page] as const,
   payOverview: (venueId?: string | null, staffId?: string) => [...rhKeys.all(venueId), 'pay-overview', staffId] as const,
 }
-/** Los «Cómo se le paga hoy» de UNA persona en TODAS las sedes: el nivel de pago de clase es de la organización, no de la sede. */
-export const esPayOverviewDe = (staffId: string) => (q: { queryKey: readonly unknown[] }) =>
-  q.queryKey[0] === 'rh' && q.queryKey[2] === 'pay-overview' && q.queryKey[3] === staffId
+/**
+ * Los «Cómo se le paga hoy» de UNA persona (sin `staffId`: de todas) en TODAS las sedes: el nivel de pago de clase es de la
+ * organización, no de la sede.
+ */
+export const esPayOverviewDe = (staffId?: string) => (q: { queryKey: readonly unknown[] }) =>
+  q.queryKey[0] === 'rh' && q.queryKey[2] === 'pay-overview' && (staffId === undefined || q.queryKey[3] === staffId)
 const pesado = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
 
 export function usePositions(o: { includeArchived?: boolean; limit?: number; offset?: number } = {}, enabled = true) {

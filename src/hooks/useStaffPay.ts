@@ -273,10 +273,11 @@ export function useCreateLevel() {
   const mutacion = useMutation({ mutationKey, mutationFn: (name: string) => staffPayService.createLevel(venueId!, name), onSuccess: inv })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
+/** Renombrar o archivar un nivel cambia el nombre que muestra «Cómo se le paga hoy» de RH: se refrescan todos los abiertos. */
 export function useUpdateLevel() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
   const mutationKey = [...staffPayKeys.all(venueId), 'update-level']
-  const mutacion = useMutation({ mutationKey, mutationFn: (p: { levelId: string; name?: string; archived?: boolean }) => staffPayService.updateLevel(venueId!, p.levelId, p), onSuccess: inv })
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: { levelId: string; name?: string; archived?: boolean }) => staffPayService.updateLevel(venueId!, p.levelId, p), onSuccess: () => Promise.all([inv(), qc.invalidateQueries({ predicate: esPayOverviewDe() })]) })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 /**
