@@ -1,4 +1,8 @@
 // RH fase 1a: puestos y asignaciones (espejo de la API `/api/v1/dashboard/venues/:venueId/rh`).
+import { StaffRole } from '@/types'
+
+/** Roles que un puesto puede sugerir. El servidor rechaza SUPERADMIN al crear o editar un puesto: el formulario no debe ofrecerlo. */
+export const ROLES_SUGERIBLES: StaffRole[] = Object.values(StaffRole).filter(r => r !== StaffRole.SUPERADMIN)
 export type WorkRelation = 'EMPLEADO_NOMINA' | 'ASIMILADO' | 'INDEPENDIENTE_FACTURA' | 'RENTA_SILLA'
 export type PayComponentKind = 'SALARY' | 'HOURLY' | 'BONUS_FIXED' | 'CHAIR_RENT' | 'BONUS_CONDITIONAL'
 export interface Puesto { id: string; name: string; color: string | null; icon: string | null; suggestedRole: string; suggestedRelation: WorkRelation | null; tracksAttendanceDefault: boolean; componentKinds: PayComponentKind[]; archivedAt: string | null; personasVigentes: number }
