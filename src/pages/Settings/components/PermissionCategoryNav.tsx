@@ -127,6 +127,7 @@ interface PermissionCategoryNavProps {
 }
 
 function StatusBadge({ status }: { status: CategoryStatus }) {
+  const { t } = useTranslation('settings')
   if (status === 'active') {
     return (
       <Badge
@@ -143,7 +144,7 @@ function StatusBadge({ status }: { status: CategoryStatus }) {
         variant="outline"
         className="shrink-0 whitespace-nowrap text-[10px] px-1.5 py-0 h-[18px] border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
       >
-        Partial
+        {t('rolePermissions.statusPartial', 'Partial')}
       </Badge>
     )
   }
