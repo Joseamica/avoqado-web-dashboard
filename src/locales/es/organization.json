@@ -1415,6 +1415,7 @@
       "SHIFT_UPDATED": "Turno actualizado",
       "SHOPIFY_APPLY_REQUESTED": "Se pidió aplicar el stock de Shopify",
       "SHOPIFY_APPLY_RETURNED": "La aplicación de Shopify volvió a la vista previa para elegir otra vez",
+      "SHOPIFY_AVISOS_DE_PEDIDOS_NO_DISPONIBLES": "Shopify: la tienda va sin avisos de pedidos",
       "SHOPIFY_CATALOG_IMPORTED": "Catálogo de Shopify importado",
       "SHOPIFY_CONNECTED": "Tienda Shopify conectada",
       "SHOPIFY_CONNECT_CHOICES_SAVED": "Elección de stock al conectar Shopify guardada",

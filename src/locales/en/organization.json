@@ -1415,6 +1415,7 @@
       "SHIFT_UPDATED": "Shift updated",
       "SHOPIFY_APPLY_REQUESTED": "Applying the Shopify stock was requested",
       "SHOPIFY_APPLY_RETURNED": "Shopify apply went back to the preview to choose again",
+      "SHOPIFY_AVISOS_DE_PEDIDOS_NO_DISPONIBLES": "Shopify: store has no order notifications",
       "SHOPIFY_CATALOG_IMPORTED": "Shopify catalog imported",
       "SHOPIFY_CONNECTED": "Shopify store connected",
       "SHOPIFY_CONNECT_CHOICES_SAVED": "Stock choice for the Shopify connection saved",
