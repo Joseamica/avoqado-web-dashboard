@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { FilterPill, FilterPillBar, CheckboxFilterContent, ColumnCustomizer, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/hooks/use-access'
@@ -56,6 +57,9 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
+// Columnas de RH: en marca blanca no se pintan (ni se ofrecen en «Columnas»).
+const COLUMNAS_RH = ['position', 'checks', 'relation']
+
 // ⚠️ COHERENCIA con tours interactivos:
 // Esta página tiene un tour driver.js (`useTeamInvitationTour`) que guía al
 // usuario a invitar a su primer miembro. Si modificas la UI/UX (botón de
@@ -70,7 +74,10 @@ export default function Teams() {
 }
 
 function TeamsContent() {
-  const { venueId, fullBasePath } = useCurrentVenue()
+  const { venueId, fullBasePath, isWhiteLabelMode } = useCurrentVenue()
+  // Misma regla que TeamId (y que oculta Pago al personal en el menú): en marca blanca todo /rh responde 403 (spec §5.3).
+  const { isWhiteLabelEnabled } = useWhiteLabelConfig()
+  const rhApagado = isWhiteLabelMode || isWhiteLabelEnabled
 
   // Misma llave que Ajustes → Editar negocio: comparten caché, y el invalidate de
   // AsistenciaSettings refresca las dos pantallas.
@@ -312,10 +319,10 @@ function TeamsContent() {
   })
 
   // Puestos del negocio para los chips (con cuántas personas lo tienen vigente) y el color de cada chip de la tabla.
-  const { data: positionsData } = usePositions({ limit: 100 })
+  const { data: positionsData } = usePositions({ limit: 100 }, !rhApagado)
   const positions = positionsData?.data
   const positionColors = useMemo(() => new Map((positions ?? []).map(p => [p.id, p.color])), [positions])
-  const hasPositions = !!positions && positions.length > 0
+  const hasPositions = !rhApagado && !!positions && positions.length > 0
 
   // «Todos · N» y el número de la pestaña «Miembros» son toda la gente, no lo que deja el filtro: con búsqueda o puesto puestos, el
   // total de la respuesta es el filtrado, así que se pide aparte (una fila basta, sólo interesa el total). Sólo hace falta si hay
@@ -847,9 +854,10 @@ function TeamsContent() {
       const colId = col.id || (col as { accessorKey?: string }).accessorKey
       // Always show actions column
       if (colId === 'actions') return true
+      if (rhApagado && COLUMNAS_RH.includes(colId as string)) return false
       return visibleColumns.includes(colId as string)
     })
-  }, [teamColumns, visibleColumns])
+  }, [teamColumns, visibleColumns, rhApagado])
 
   // Column options for the column customizer
   const columnOptions = useMemo(
@@ -863,8 +871,8 @@ function TeamsContent() {
       { id: 'totalSales', label: t('columns.totalSales'), visible: visibleColumns.includes('totalSales') },
       { id: 'totalTips', label: t('columns.totalTips'), visible: visibleColumns.includes('totalTips') },
       { id: 'totalOrders', label: t('columns.totalOrders'), visible: visibleColumns.includes('totalOrders') },
-    ],
-    [t, tRh, visibleColumns],
+    ].filter(c => !(rhApagado && COLUMNAS_RH.includes(c.id))),
+    [t, tRh, visibleColumns, rhApagado],
   )
 
   return (

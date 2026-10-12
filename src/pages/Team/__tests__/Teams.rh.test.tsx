@@ -16,6 +16,10 @@ const m = vi.hoisted(() => ({
   rol: 'OWNER' as string,
   puestos: [] as unknown[],
   updateTeamMember: vi.fn(),
+  modoMarcaBlanca: false,
+  marcaBlanca: false,
+  // El `enabled` con que Teams llamó a usePositions en cada pintada (false = no hay petición de puestos).
+  puestosEnabled: [] as boolean[],
 }))
 
 // Textos reales de es/*.json (el espacio de nombres por omisión es `common`). Un traductor estable por espacio: Teams los usa en
@@ -46,7 +50,10 @@ vi.mock('react-i18next', async () => {
   }
 })
 vi.mock('@/api', () => ({ default: { get: async () => ({ data: {} }) } }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: m.venueId, fullBasePath: '/venues/demo' }) }))
+vi.mock('@/hooks/use-current-venue', () => ({
+  useCurrentVenue: () => ({ venueId: m.venueId, fullBasePath: '/venues/demo', isWhiteLabelMode: m.modoMarcaBlanca }),
+}))
+vi.mock('@/hooks/useWhiteLabelConfig', () => ({ useWhiteLabelConfig: () => ({ isWhiteLabelEnabled: m.marcaBlanca }) }))
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ staffInfo: { role: m.rol }, activeVenue: { timezone: 'America/Mexico_City' } }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 vi.mock('@/hooks/use-role-config', () => ({ useRoleConfig: () => ({ getDisplayName: (r: string) => `rol:${r}`, getColor: () => undefined }) }))
@@ -56,7 +63,11 @@ vi.mock('@/services/features.service', () => ({ getVenueSeatStatus: async () => 
 // `useInvalidarConteosDePuesto` es el de verdad (se prueba que activar/desactivar refresca [rh, sede]); los puestos se fingen.
 vi.mock('@/hooks/useRh', async importOriginal => ({
   ...(await importOriginal<typeof import('@/hooks/useRh')>()),
-  usePositions: () => ({ data: { data: m.puestos, total: m.puestos.length, hasMore: false } }),
+  // Como el de verdad: con `enabled` en false no hay petición ni datos.
+  usePositions: (_o?: unknown, enabled = true) => {
+    m.puestosEnabled.push(enabled)
+    return { data: enabled ? { data: m.puestos, total: m.puestos.length, hasMore: false } : undefined }
+  },
 }))
 vi.mock('@/services/team.service', () => ({
   default: {
@@ -152,6 +163,9 @@ afterEach(() => {
 beforeEach(() => {
   m.rol = 'OWNER'
   m.venueId = 'v1'
+  m.modoMarcaBlanca = false
+  m.marcaBlanca = false
+  m.puestosEnabled = []
   m.puestos = [puesto({}), puesto({ id: 'p-mesero', name: 'Meseros', color: null, personasVigentes: 6 })]
   // La lista de verdad depende de los filtros; el total SIN filtros (pageSize 1) son 14 personas.
   m.getTeamMembers.mockImplementation(async (_v: string, page: number, size: number, search?: string, positionId?: string) => {
@@ -306,6 +320,39 @@ describe('Personas: columnas Puesto, Checa y Relación', () => {
     await screen.findByText('Ana López')
     for (const h of ['Nombre', 'Rol', 'Estado', 'Ventas Totales', 'Propinas Totales', 'Órdenes Totales', 'Puesto', 'Checa', 'Relación'])
       expect(screen.getByRole('columnheader', { name: new RegExp(h) })).toBeInTheDocument()
+  })
+})
+
+describe('Personas: marca blanca (módulo WHITE_LABEL_DASHBOARD) apaga todo el RH', () => {
+  it('🔴 un negocio normal sí pide los puestos y pinta Puesto / Checa / Relación y los chips', async () => {
+    montar()
+    await screen.findByText('Ana López')
+    expect(m.puestosEnabled.every(e => e === true)).toBe(true)
+    for (const h of ['Puesto', 'Checa', 'Relación']) expect(columna(h)).toBeGreaterThanOrEqual(0)
+    expect(await screen.findByRole('button', { name: 'Coaches · 4' })).toBeInTheDocument()
+  })
+
+  it.each([
+    ['modo marca blanca de la sesión', { modoMarcaBlanca: true }],
+    ['módulo WHITE_LABEL_DASHBOARD del negocio', { marcaBlanca: true }],
+  ])('🔴 con %s: sin columnas Puesto / Checa / Relación, sin chips y sin pedir los puestos (el servidor contesta 403)', async (_n, flags) => {
+    Object.assign(m, flags)
+    montar()
+    await screen.findByText('Ana López')
+    for (const h of ['Puesto', 'Checa', 'Relación']) expect(columna(h)).toBe(-1)
+    // lo demás de la tabla sigue
+    for (const h of ['Nombre', 'Rol', 'Estado', 'Ventas Totales']) expect(columna(h)).toBeGreaterThanOrEqual(0)
+    // ni «Sin puesto», ni «Sin definir», ni chips
+    expect(screen.queryByText('Sin puesto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sin definir')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Todos ·/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Coaches ·/ })).not.toBeInTheDocument()
+    // ninguna pintada pidió los puestos, y tampoco la petición de una fila que sólo sirve para el número de «Todos»
+    expect(m.puestosEnabled.length).toBeGreaterThan(0)
+    expect(m.puestosEnabled.every(e => e === false)).toBe(true)
+    expect(llamadas().some(c => c[2] === 1)).toBe(false)
+    // la lista se pide como siempre, sin puesto
+    expect(llamadas()[0]).toEqual(['v1', 1, 20, undefined, undefined])
   })
 })
 
