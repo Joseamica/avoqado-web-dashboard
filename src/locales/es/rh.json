@@ -32,6 +32,8 @@
     "add": "+ {{name}}",
     "empty": "Todavía no hay puestos. Crea el primero o agrega uno sugerido.",
     "archiveConfirm": "«{{name}}» dejará de aparecer para asignar. Quien ya lo tiene lo conserva en su historial.",
+    "actions": "Acciones",
+    "cancelSend": "Cancelar envío",
     "permissions": "Permisos",
     "yes": "Sí",
     "no": "No",

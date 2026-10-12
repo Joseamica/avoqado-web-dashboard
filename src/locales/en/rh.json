@@ -32,6 +32,8 @@
     "add": "+ {{name}}",
     "empty": "There are no positions yet. Create the first one or add a suggested one.",
     "archiveConfirm": "\"{{name}}\" will no longer appear when assigning. Anyone who already has it keeps it in their history.",
+    "actions": "Actions",
+    "cancelSend": "Cancel send",
     "permissions": "Permissions",
     "yes": "Yes",
     "no": "No",

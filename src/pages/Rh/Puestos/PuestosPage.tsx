@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Archive, Loader2, Pencil, Plus } from 'lucide-react'
 import {
@@ -21,6 +21,7 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { useAccess } from '@/hooks/use-access'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
+import { textoDelServidor } from '@/utils/apiError'
 import { useArchivePosition, usePositions, usePositionSuggestions } from '@/hooks/useRh'
 import { useUltimoNoNulo } from '@/pages/StaffPay/alCerrar'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
@@ -31,18 +32,18 @@ import { SugeridosChips } from './components/SugeridosChips'
 /** Puestos por página (el servidor impone su propio tope de 100). */
 const LIMITE = 50
 
-const mensajeDe = (err: unknown): string | undefined => (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-
 interface FilasProps {
   verArchivados: boolean
   puedeEditar: boolean
   columnas: number
+  /** Hay un archivado en vuelo o en pausa: «Archivar» se apaga (un segundo clic se perdería en silencio). */
+  archivando: boolean
   nombreDeRol: (rol: string) => string
   onEditar: (p: Puesto) => void
   onArchivar: (p: Puesto) => void
 }
 
-function FilaDePuesto({ puesto: p, puedeEditar, nombreDeRol, onEditar, onArchivar }: Omit<FilasProps, 'verArchivados' | 'columnas'> & { puesto: Puesto }) {
+function FilaDePuesto({ puesto: p, puedeEditar, archivando, nombreDeRol, onEditar, onArchivar }: Omit<FilasProps, 'verArchivados' | 'columnas'> & { puesto: Puesto }) {
   const { t } = useTranslation('rh')
   return (
     <TableRow>
@@ -66,7 +67,7 @@ function FilaDePuesto({ puesto: p, puedeEditar, nombreDeRol, onEditar, onArchiva
               <Button variant="ghost" size="icon" className="h-11 w-11 cursor-pointer" aria-label={t('positions.editAria', { name: p.name })} onClick={() => onEditar(p)}>
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-11 w-11 cursor-pointer" aria-label={t('positions.archiveAria', { name: p.name })} onClick={() => onArchivar(p)}>
+              <Button variant="ghost" size="icon" className="h-11 w-11 cursor-pointer" aria-label={t('positions.archiveAria', { name: p.name })} disabled={archivando} onClick={() => onArchivar(p)}>
                 <Archive className="h-4 w-4" />
               </Button>
             </div>
@@ -88,7 +89,7 @@ function FilasDePagina({ offset, ...props }: FilasProps & { offset: number }) {
           {q.isError ? (
             <span role="alert" className="flex flex-wrap items-center gap-3 text-sm">
               {t('positions.loadError')}
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void q.refetch()}>
+              <Button variant="outline" className="h-11 cursor-pointer" onClick={() => void q.refetch()}>
                 {t('positions.retry')}
               </Button>
             </span>
@@ -132,7 +133,7 @@ export default function PuestosPage() {
   const primera = usePositions({ includeArchived: verArchivados, limit: LIMITE, offset: 0 })
   const ultima = usePositions({ includeArchived: verArchivados, limit: LIMITE, offset: (paginas - 1) * LIMITE })
   const total = primera.data?.total ?? 0
-  const mostrados = (paginas - 1) * LIMITE + (ultima.data?.data.length ?? 0)
+  const mostrados = Math.min((paginas - 1) * LIMITE + (ultima.data?.data.length ?? 0), total)
   const cargandoMas = paginas > 1 && ultima.isLoading
   const hayMas = !!ultima.data?.hasMore
 
@@ -142,13 +143,17 @@ export default function PuestosPage() {
     setPaginas(1)
   }
 
-  const archivarConfirmado = () => {
+  const archivarConfirmado = (e: MouseEvent) => {
     const p = porArchivar
-    if (!p || archivando.current) return
+    // Respaldo del candado: si ya hay uno en vuelo, el diálogo NO se cierra como si hubiera archivado (los botones ya van apagados).
+    if (!p || archivando.current) {
+      e.preventDefault()
+      return
+    }
     archivando.current = true
     archivar.mutate(p.id, {
       onSuccess: () => toast({ title: t('positions.archivedToast') }),
-      onError: err => toast({ title: mensajeDe(err) ?? t('positions.errorGeneric'), variant: 'destructive' }),
+      onError: err => toast({ title: textoDelServidor(err) ?? t('positions.errorGeneric'), variant: 'destructive' }),
       onSettled: () => {
         archivando.current = false
       },
@@ -162,10 +167,12 @@ export default function PuestosPage() {
   }
 
   const columnas = puedeEditar ? 6 : 5
+  const ocupado = archivar.isPending || archivar.isPaused
   const filas: FilasProps = {
     verArchivados,
     puedeEditar,
     columnas,
+    archivando: ocupado,
     nombreDeRol: getDisplayName,
     onEditar: p => abrir({ puesto: p }),
     onArchivar: setPorArchivar,
@@ -194,21 +201,31 @@ export default function PuestosPage() {
         </div>
       </div>
 
-      {archivar.isPaused && <AvisoSinConexion texto={t('positions.offlineArchive')} onCancelar={cancelarArchivado} dataTour="rh-positions-archive-offline" />}
+      {archivar.isPaused && (
+        <div className="flex flex-wrap items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <AvisoSinConexion texto={t('positions.offlineArchive')} dataTour="rh-positions-archive-offline" />
+          </div>
+          <Button variant="outline" className="h-11 cursor-pointer" onClick={cancelarArchivado}>
+            {t('positions.cancelSend')}
+          </Button>
+        </div>
+      )}
 
       {puedeEditar && <SugeridosChips sugeridos={sugeridos.data?.data ?? []} onElegir={s => abrir({ name: s.name, suggestedRole: s.suggestedRole })} />}
 
-      {primera.isLoading ? (
+      {!primera.data && !primera.isError ? (
+        // Cargando (o sin red / consulta apagada, que aún no es un fallo): esqueleto, nunca «no se pudo cargar».
         <div className="space-y-2" aria-busy="true">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
-      ) : !primera.data ? (
-        // Un fallo de red NO se ve como «no hay puestos».
+      ) : primera.isError && !primera.data ? (
+        // Un fallo de verdad se dice como fallo, y no como «no hay puestos».
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 p-4 text-sm">
           {t('positions.loadError')}
-          <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void primera.refetch()}>
+          <Button variant="outline" className="h-11 cursor-pointer" onClick={() => void primera.refetch()}>
             {t('positions.retry')}
           </Button>
         </div>
@@ -225,7 +242,11 @@ export default function PuestosPage() {
                   <TableHead>{t('positions.suggestedRelation')}</TableHead>
                   <TableHead>{t('people.checks')}</TableHead>
                   <TableHead>{t('positions.people')}</TableHead>
-                  {puedeEditar && <TableHead />}
+                  {puedeEditar && (
+                    <TableHead>
+                      <span className="sr-only">{t('positions.actions')}</span>
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -257,7 +278,7 @@ export default function PuestosPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="h-11 cursor-pointer">{t('positions.cancel')}</AlertDialogCancel>
-            <AlertDialogAction className="h-11 cursor-pointer" onClick={archivarConfirmado}>
+            <AlertDialogAction className="h-11 cursor-pointer" disabled={ocupado} onClick={archivarConfirmado}>
               {t('positions.archive')}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -16,11 +16,13 @@ const m = vi.hoisted(() => ({
   crearHook: vi.fn(),
   actualizarHook: vi.fn(),
   archivarHook: vi.fn(),
+  // Roles apagados en este negocio (no es un vi.fn: `mockReset` lo borraría).
+  inactivos: [] as string[],
 }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: unknown) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: m.toast }) }))
-vi.mock('@/hooks/use-role-config', () => ({ useRoleConfig: () => ({ getDisplayName: (r: string) => `rol:${r}` }) }))
+vi.mock('@/hooks/use-role-config', () => ({ useRoleConfig: () => ({ getDisplayName: (r: string) => `rol:${r}`, isRoleActive: (r: string) => !m.inactivos.includes(r) }) }))
 vi.mock('@/hooks/useRh', () => ({
   usePositions: (o: unknown) => m.positions(o),
   usePositionSuggestions: (enabled?: boolean) => m.sugeridos(enabled),
@@ -65,6 +67,7 @@ let actualizar: Mutacion
 let archivar: Mutacion
 
 beforeEach(() => {
+  m.inactivos = []
   m.can.mockImplementation(() => true)
   m.positions.mockReturnValue(pagina([puesto()]))
   m.sugeridos.mockReturnValue({ data: { data: [{ name: 'Recepcionista', suggestedRole: 'CASHIER' }] } })
@@ -252,8 +255,38 @@ describe('PuestosPage', () => {
     render(<PuestosPage />)
     expect(screen.getByText('positions.loadError')).toBeInTheDocument()
     expect(screen.queryByText('positions.empty')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'positions.retry' }))
+    const reintentar = screen.getByRole('button', { name: 'positions.retry' })
+    expect(reintentar).toHaveClass('h-11') // 44 px
+    fireEvent.click(reintentar)
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('una primera carga en pausa (sin red) o apagada NO dice «no se pudo cargar»: muestra el esqueleto', () => {
+    m.positions.mockReturnValue({ data: undefined, isLoading: false, isError: false, isFetching: false, fetchStatus: 'paused', refetch: vi.fn() })
+    const { container } = render(<PuestosPage />)
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()
+    expect(screen.queryByText('positions.loadError')).toBeNull()
+    expect(screen.queryByText('positions.empty')).toBeNull()
+  })
+
+  it('el «Reintentar» de una página siguiente que falla también mide 44 px', () => {
+    m.positions.mockImplementation(({ offset }: { offset: number }) =>
+      offset === 0 ? pagina([puesto()], 51, true) : { data: undefined, isLoading: false, isError: true, isFetching: false, refetch: vi.fn() },
+    )
+    render(<PuestosPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'positions.loadMore' }))
+    expect(screen.getByRole('button', { name: 'positions.retry' })).toHaveClass('h-11')
+  })
+
+  it('«Mostrando X de Y» nunca pasa del total', () => {
+    m.positions.mockReturnValue(pagina([puesto({ id: 'a' }), puesto({ id: 'b', name: 'Cajero' })], 1, false))
+    render(<PuestosPage />)
+    expect(screen.getByText('positions.shown:{"shown":1,"total":1}')).toBeInTheDocument()
+  })
+
+  it('la columna de acciones tiene su etiqueta para lectores de pantalla', () => {
+    render(<PuestosPage />)
+    expect(screen.getByRole('columnheader', { name: 'positions.actions' })).toBeInTheDocument()
   })
 
   it('sin red el guardado queda en pausa: se avisa, y cerrar la ventana lo saca de la cola', () => {
@@ -263,5 +296,69 @@ describe('PuestosPage', () => {
     expect(screen.getByText('positions.offlineSave')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'cerrar-modal' }))
     expect(crear.cancelarEnPausa).toHaveBeenCalled()
+  })
+
+  it('guardar dos veces seguidas (doble clic o Enter) manda UN solo createPosition', async () => {
+    crear.mutateAsync.mockReturnValue(new Promise(() => {})) // sigue en vuelo
+    render(<PuestosPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'positions.add:{"name":"Recepcionista"}' }))
+    const guardar = screen.getByRole('button', { name: 'positions.save' })
+    fireEvent.click(guardar)
+    fireEvent.click(guardar)
+    const form = screen.getByLabelText('positions.name').closest('form')!
+    fireEvent.submit(form) // Enter en el campo no pasa por el botón apagado
+    fireEvent.submit(form)
+    await waitFor(() => expect(crear.mutateAsync).toHaveBeenCalledTimes(1))
+  })
+
+  it('con un archivado en vuelo, «Archivar» de TODAS las filas se apaga: un segundo clic no se pierde en silencio', () => {
+    m.positions.mockReturnValue(pagina([puesto({ id: 'a', name: 'Mesero' }), puesto({ id: 'b', name: 'Cajero' })]))
+    const { rerender } = render(<PuestosPage />)
+    for (const b of screen.getAllByRole('button', { name: /positions\.archiveAria/ })) expect(b).toBeEnabled()
+    archivar.isPending = true
+    rerender(<PuestosPage />)
+    const botones = screen.getAllByRole('button', { name: /positions\.archiveAria/ })
+    expect(botones).toHaveLength(2)
+    for (const b of botones) expect(b).toBeDisabled()
+    // Editar sigue disponible.
+    for (const b of screen.getAllByRole('button', { name: /positions\.editAria/ })) expect(b).toBeEnabled()
+  })
+
+  it('sin red el archivado queda en pausa: se avisa, «Archivar» se apaga y «Cancelar envío» lo saca de la cola', () => {
+    archivar.isPaused = true
+    archivar.isPending = true
+    render(<PuestosPage />)
+    expect(screen.getByText('positions.offlineArchive')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /positions\.archiveAria/ })).toBeDisabled()
+    const cancelar = screen.getByRole('button', { name: 'positions.cancelSend' })
+    expect(cancelar).toHaveClass('h-11')
+    fireEvent.click(cancelar)
+    expect(archivar.cancelarEnPausa).toHaveBeenCalled()
+  })
+
+  it('el selector de rol ofrece sólo los roles activos del negocio, pero al editar conserva el del puesto', () => {
+    m.inactivos = ['KITCHEN', 'HOST']
+    m.positions.mockReturnValue(pagina([puesto({ suggestedRole: 'HOST' })]))
+    const { unmount } = render(<PuestosPage />)
+    abrirCrear()
+    const alCrear = within(campo('suggestedRole')).getAllByRole('option').map(o => (o as HTMLOptionElement).value)
+    expect(alCrear).toContain('WAITER')
+    expect(alCrear).not.toContain('KITCHEN')
+    expect(alCrear).not.toContain('HOST')
+    unmount()
+    render(<PuestosPage />)
+    fireEvent.click(screen.getByRole('button', { name: /positions\.editAria/ }))
+    const alEditar = within(campo('suggestedRole')).getAllByRole('option').map(o => (o as HTMLOptionElement).value)
+    expect(alEditar).toContain('HOST') // el del puesto sigue visible
+    expect(alEditar).not.toContain('KITCHEN')
+    expect(campo('suggestedRole')).toHaveValue('HOST')
+  })
+
+  it('un error del servidor con {error} (en vez de {message}) también se muestra tal cual', async () => {
+    crear.mutateAsync.mockRejectedValue({ response: { data: { error: 'El nombre es obligatorio' } } })
+    render(<PuestosPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'positions.add:{"name":"Recepcionista"}' }))
+    fireEvent.click(screen.getByRole('button', { name: 'positions.save' }))
+    expect(await screen.findByText('El nombre es obligatorio')).toBeInTheDocument()
   })
 })

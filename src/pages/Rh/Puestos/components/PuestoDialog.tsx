@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { textoDelServidor } from '@/utils/apiError'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useCreatePosition, useUpdatePosition } from '@/hooks/useRh'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
@@ -25,9 +26,6 @@ const RELACIONES: WorkRelation[] = ['EMPLEADO_NOMINA', 'ASIMILADO', 'INDEPENDIEN
 /** «Sin definir» manda `null` (el Select de Radix no admite un valor vacío). */
 const SIN_DEFINIR = 'none'
 
-/** El servidor ya contesta 400/409 en español: se muestra tal cual. */
-const mensajeDe = (err: unknown): string | undefined => (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-
 interface Props {
   open: boolean
   datos: DatosPuestoDialog
@@ -37,7 +35,7 @@ interface Props {
 export function PuestoDialog({ open, datos, onClose }: Props) {
   const { t } = useTranslation('rh')
   const { toast } = useToast()
-  const { getDisplayName } = useRoleConfig()
+  const { getDisplayName, isRoleActive } = useRoleConfig()
   const crear = useCreatePosition()
   const actualizar = useUpdatePosition()
   const { puesto } = datos
@@ -51,6 +49,9 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
   // Candado SÍNCRONO: el estado no alcanza a apagar «Guardar» entre dos clics seguidos.
   const enVuelo = useRef(false)
 
+  // Sólo los roles activos del negocio; el que ya trae el puesto (o el chip) se queda visible aunque se haya apagado.
+  const rolInicial = puesto?.suggestedRole ?? datos.suggestedRole
+  const rolesOfrecidos = ROLES_SUGERIBLES.filter(r => isRoleActive(r) || r === rolInicial)
   const valido = name.trim() !== '' && rol !== ''
   const enPausa = crear.isPaused || actualizar.isPaused
 
@@ -82,7 +83,8 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
       toast({ title: t(puesto ? 'positions.updated' : 'positions.created') })
       onClose()
     } catch (err) {
-      setError(mensajeDe(err) ?? t('positions.errorGeneric'))
+      // El servidor ya contesta 400/409 en español: se muestra tal cual.
+      setError(textoDelServidor(err) ?? t('positions.errorGeneric'))
     } finally {
       enVuelo.current = false
       setGuardando(false)
@@ -127,7 +129,7 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
                 <SelectValue placeholder={t('positions.rolePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                {ROLES_SUGERIBLES.map(r => (
+                {rolesOfrecidos.map(r => (
                   <SelectItem key={r} value={r}>
                     {getDisplayName(r)}
                   </SelectItem>
@@ -159,8 +161,8 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
             </Label>
           </div>
           {relacion === 'INDEPENDIENTE_FACTURA' && checa && (
-            <p role="status" className="flex items-start gap-2 rounded-lg border border-amber-500/40 p-3 text-sm">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p role="status" className="flex items-start gap-2 rounded-lg border border-warning-border bg-warning-muted p-3 text-sm text-warning-foreground">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{t('relation.independentAttendanceWarning')}</span>
             </p>
           )}
