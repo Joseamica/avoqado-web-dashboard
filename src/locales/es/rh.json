@@ -102,6 +102,9 @@
     "liveNoCommissions": "No le aplica ningún esquema de comisión.",
     "liveError": "No se pudo cargar cómo se le paga.",
     "receiptsText": "Sus recibos de pago por servicio están en Pago al personal, en Periodos. El recibo con sueldo y horas llega pronto.",
-    "receiptsLink": "Abrir Pago al personal"
+    "receiptsLink": "Abrir Pago al personal",
+    "liveNoPermissionCommissions": "Sin permiso para ver comisiones",
+    "liveNoPermissionClassLevel": "Sin permiso para ver el pago por clase",
+    "positionsOffline": "Sin conexión: los puestos se cargan cuando vuelva la red."
   }
 }

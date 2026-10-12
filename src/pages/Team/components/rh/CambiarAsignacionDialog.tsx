@@ -35,7 +35,10 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
   const [error, setError] = useState<string | null>(null)
   const enVuelo = useRef(false)
 
-  const valido = positionId !== '' && fecha !== '' && fecha <= hoy
+  // Sin cambios no hay nada que guardar (el servidor devolvería la misma). La fecha no puede ser anterior al inicio de esta versión
+  // (el mismo día sí: la reemplaza).
+  const sinCambios = positionId === a.positionId && relacion === a.relation
+  const valido = !sinCambios && positionId !== '' && fecha !== '' && fecha >= a.effectiveFrom && fecha <= hoy
 
   const cerrar = () => {
     if (cambiar.isPaused) {
@@ -95,7 +98,7 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
         <section className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">
           <CampoPuesto value={positionId} onChange={setPositionId} puestos={lista} total={puestos.data?.total ?? 0} />
           <CampoRelacion value={relacion} onChange={setRelacion} />
-          <CampoFecha value={fecha} onChange={setFecha} hoy={hoy} nota={t('profile.changeHelp')} />
+          <CampoFecha value={fecha} onChange={setFecha} hoy={hoy} min={a.effectiveFrom} nota={t('profile.changeHelp')} />
           {relacion === 'INDEPENDIENTE_FACTURA' && a.tracksAttendance && <AvisoIndependiente />}
         </section>
       </form>

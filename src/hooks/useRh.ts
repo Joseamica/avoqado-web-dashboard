@@ -45,6 +45,8 @@ function useInvalidarRh() {
     ])
 }
 // Mismo patrón que pago al personal: sin red la mutación queda en pausa y `cancelarEnPausa` la saca de la cola (E6a-fix2 C5).
+// Asignar, cambiar y terminar refrescan también al FALLAR (`onSettled`): un 409/400 casi siempre dice que la pantalla está vieja
+// (otra pestaña ya cambió la asignación). Una en pausa sólo se asienta cuando por fin se resuelve.
 export function useCreatePosition() {
   const { venueId } = useCurrentVenue(); const qc = useQueryClient(); const inv = useInvalidarRh()
   const mutationKey = [...rhKeys.all(venueId), 'create-position']
@@ -66,18 +68,18 @@ export function useArchivePosition() {
 export function useAssignPosition() {
   const { venueId } = useCurrentVenue(); const qc = useQueryClient(); const inv = useInvalidarRh()
   const mutationKey = [...rhKeys.all(venueId), 'assign']
-  const mutacion = useMutation({ mutationKey, mutationFn: (v: { staffId: string; body: Parameters<typeof rhService.assign>[2] }) => rhService.assign(venueId!, v.staffId, v.body), onSuccess: inv })
+  const mutacion = useMutation({ mutationKey, mutationFn: (v: { staffId: string; body: Parameters<typeof rhService.assign>[2] }) => rhService.assign(venueId!, v.staffId, v.body), onSettled: inv })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useChangeAssignment() {
   const { venueId } = useCurrentVenue(); const qc = useQueryClient(); const inv = useInvalidarRh()
   const mutationKey = [...rhKeys.all(venueId), 'change']
-  const mutacion = useMutation({ mutationKey, mutationFn: (v: { assignmentId: string; body: Parameters<typeof rhService.change>[2] }) => rhService.change(venueId!, v.assignmentId, v.body), onSuccess: inv })
+  const mutacion = useMutation({ mutationKey, mutationFn: (v: { assignmentId: string; body: Parameters<typeof rhService.change>[2] }) => rhService.change(venueId!, v.assignmentId, v.body), onSettled: inv })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useEndAssignment() {
   const { venueId } = useCurrentVenue(); const qc = useQueryClient(); const inv = useInvalidarRh()
   const mutationKey = [...rhKeys.all(venueId), 'end']
-  const mutacion = useMutation({ mutationKey, mutationFn: (v: { assignmentId: string; fecha?: string }) => rhService.end(venueId!, v.assignmentId, v.fecha), onSuccess: inv })
+  const mutacion = useMutation({ mutationKey, mutationFn: (v: { assignmentId: string; fecha?: string }) => rhService.end(venueId!, v.assignmentId, v.fecha), onSettled: inv })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }

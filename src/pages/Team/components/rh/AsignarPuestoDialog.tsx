@@ -7,6 +7,7 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useAssignPosition, usePositions } from '@/hooks/useRh'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
@@ -74,8 +75,33 @@ export function CampoRelacion({ value, onChange }: { value: WorkRelation | null;
   )
 }
 
-/** Fecha civil de la sede: hoy o pasada, nunca futura (el servidor rechaza futuras y periodos cerrados). */
-export function CampoFecha({ value, onChange, hoy, nota }: { value: string; onChange: (v: string) => void; hoy: string; nota?: string }) {
+/** Un fallo de carga se dice como fallo (nunca como lista vacía) y se puede reintentar. `type="button"`: vive dentro de formularios. */
+export function ErrorConReintento({ texto, onReintentar }: { texto: string; onReintentar: () => void }) {
+  const { t } = useTranslation('rh')
+  return (
+    <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 p-4 text-sm">
+      {texto}
+      <Button type="button" variant="outline" className="h-11 cursor-pointer" onClick={onReintentar}>
+        {t('positions.retry')}
+      </Button>
+    </div>
+  )
+}
+
+/** Fecha civil de la sede: hoy o pasada, nunca futura (el servidor rechaza futuras y periodos cerrados). `min`: no antes de… */
+export function CampoFecha({
+  value,
+  onChange,
+  hoy,
+  min,
+  nota,
+}: {
+  value: string
+  onChange: (v: string) => void
+  hoy: string
+  min?: string
+  nota?: string
+}) {
   const { t } = useTranslation('rh')
   return (
     <div className="space-y-2">
@@ -84,6 +110,7 @@ export function CampoFecha({ value, onChange, hoy, nota }: { value: string; onCh
         id="rh-asignar-fecha"
         type="date"
         className="h-12 text-base"
+        min={min}
         max={hoy}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -200,10 +227,21 @@ export function AsignarPuestoDialog({ open, staffId, hoy, onClose, onAsignado }:
           </p>
         )}
         <section className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">
-          {puestos.data && lista.length === 0 ? (
+          {!puestos.data ? (
+            // Sin datos: fallo, sin red (consulta en pausa) o cargando. Nunca un select vacío que parezca «no hay puestos».
+            puestos.isError ? (
+              <ErrorConReintento texto={t('positions.loadError')} onReintentar={() => void puestos.refetch()} />
+            ) : puestos.fetchStatus === 'paused' ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t('profile.positionsOffline')}
+              </p>
+            ) : (
+              <Skeleton className="h-12 w-full" aria-busy="true" />
+            )
+          ) : lista.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('profile.noPositions')}</p>
           ) : (
-            <CampoPuesto value={positionId} onChange={elegirPuesto} puestos={lista} total={puestos.data?.total ?? 0} />
+            <CampoPuesto value={positionId} onChange={elegirPuesto} puestos={lista} total={puestos.data.total} />
           )}
           <CampoRelacion value={relacion} onChange={setRelacion} />
           <CampoFecha value={fecha} onChange={setFecha} hoy={hoy} />

@@ -249,10 +249,13 @@ export default function TeamId() {
     [
       { value: 'summary', visible: true },
       { value: 'positionAndPay', visible: !rhApagado || can('commissions:read') || (!isWhiteLabelMode && can('staffpay:read')) },
-      { value: 'attendance', visible: !isWhiteLabelMode && (attendanceOn ?? true) && can('attendance:read') },
+      { value: 'attendance', visible: !!venueId && !!memberDetails.id && !isWhiteLabelMode && (attendanceOn ?? true) && can('attendance:read') },
       // Pago al personal no existe en marca blanca (el menú lo oculta con la misma regla).
       { value: 'receipts', visible: !rhApagado && can('staffpay:read') },
-      { value: 'documents', visible: STAFF_DOCUMENTS_ENABLED && !isWhiteLabelMode && can('staff-documents:read') },
+      {
+        value: 'documents',
+        visible: STAFF_DOCUMENTS_ENABLED && !!venueId && !!venueSlug && !!memberDetails.staffId && !isWhiteLabelMode && can('staff-documents:read'),
+      },
     ] as Array<{ value: TabValue; visible: boolean }>
   ).filter(p => p.visible)
   const tabActiva: TabValue = pestanas.some(p => p.value === activeTab) ? activeTab : 'summary'
@@ -414,11 +417,13 @@ export default function TeamId() {
       {/* ─── Tabs ───────────────────────────────────────── */}
       <Tabs value={tabActiva} onValueChange={v => cambiarTab(v as TabValue)}>
         <div className="border-b border-border mb-6 overflow-x-auto">
-          <nav className="flex items-center gap-6">
+          <nav role="tablist" className="flex items-center gap-6">
             {pestanas.map(p => (
               <button
                 key={p.value}
                 type="button"
+                role="tab"
+                aria-selected={tabActiva === p.value}
                 onClick={() => cambiarTab(p.value)}
                 className={`relative inline-flex min-h-11 items-end pb-3 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
                   tabActiva === p.value ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
@@ -553,6 +558,7 @@ export default function TeamId() {
           ) : (
             <PuestoYPagoTab
               staffId={memberDetails.staffId}
+              vigentes={memberDetails.currentAssignments ?? []}
               sede={memberDetails.venue.name}
               rolActual={memberDetails.role}
               onCambiarRol={canEdit && can('teams:update') ? () => setShowEditDialog(true) : undefined}

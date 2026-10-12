@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Asignacion, Puesto } from '@/types/rh'
 import { hoyEnSede } from '@/pages/StaffPay/hoyEnSede'
 import TeamId from '../TeamId'
@@ -23,7 +23,6 @@ const m = vi.hoisted(() => ({
   marcaBlanca: false,
   modoMarcaBlanca: false,
   getTeamMember: vi.fn(),
-  history: vi.fn(),
   historial: vi.fn(),
   resumen: vi.fn(),
   positions: vi.fn(),
@@ -60,13 +59,13 @@ vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({
     formatDate: (d: unknown) => String(d),
     formatCalendarDate: (d: string) => d,
-    venueTimezone: 'America/Mexico_City',
+    // UTC+14: el día de la sede casi nunca coincide con el del navegador (ni con UTC), así que no puede pasar por casualidad.
+    venueTimezone: 'Pacific/Kiritimati',
   }),
 }))
 vi.mock('@/services/team.service', () => ({
   default: { getTeamMember: (...a: unknown[]) => m.getTeamMember(...a), getDeactivationImpact: () => Promise.resolve({}) },
 }))
-vi.mock('@/services/rh.service', () => ({ rhService: { history: (...a: unknown[]) => m.history(...a) } }))
 vi.mock('@/hooks/useRh', () => ({
   rhKeys: { all: (v?: string | null) => ['rh', v] },
   useStaffAssignments: (s?: string, p?: number) => m.historial(s, p),
@@ -171,7 +170,6 @@ beforeEach(() => {
   m.marcaBlanca = false
   m.modoMarcaBlanca = false
   m.getTeamMember.mockResolvedValue(miembro())
-  m.history.mockResolvedValue(pagina<Asignacion>([]))
   m.historial.mockReturnValue(consulta(pagina<Asignacion>([])))
   m.resumen.mockReturnValue(consulta({ comisiones: [], nivelDeClase: null, propinas: { regla: 'ATIENDE_LUEGO_COBRA' } }))
   m.positions.mockReturnValue(consulta(pagina([puesto()])))
@@ -181,6 +179,9 @@ beforeEach(() => {
   m.asignarHook.mockReturnValue(asignar)
   m.cambiarHook.mockReturnValue(cambiar)
   m.terminarHook.mockReturnValue(terminar)
+})
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 async function montar() {
@@ -196,13 +197,11 @@ async function montar() {
   )
   await screen.findByRole('heading', { name: 'Ana Ruiz' })
 }
-const pestanas = () =>
-  within(screen.getByRole('navigation'))
-    .getAllByRole('button')
-    .map(b => b.textContent)
-const abrirPestana = (clave: string) => fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: clave }))
+const pestanas = () => screen.getAllByRole('tab').map(b => b.textContent)
+const abrirPestana = (clave: string) => fireEvent.click(screen.getByRole('tab', { name: clave }))
 const campo = (nombre: string) => screen.getByRole('combobox', { name: nombre }) as HTMLSelectElement
-const hoy = hoyEnSede('America/Mexico_City')
+const hoy = hoyEnSede('Pacific/Kiritimati')
+const conPuestos = (currentAssignments: Asignacion[]) => m.getTeamMember.mockResolvedValue(miembro({ currentAssignments }))
 
 describe('Ficha de la persona en pestañas (RH 1a)', () => {
   it('las pestañas son, en orden, Resumen · Puesto y pago · Asistencia y turnos · Recibos · Documentos', async () => {
@@ -214,6 +213,10 @@ describe('Ficha de la persona en pestañas (RH 1a)', () => {
       'profile.tabs.receipts',
       'profile.tabs.documents',
     ])
+    expect(screen.getByRole('tab', { name: 'profile.tabs.summary' })).toHaveAttribute('aria-selected', 'true')
+    abrirPestana('profile.tabs.receipts')
+    expect(screen.getByRole('tab', { name: 'profile.tabs.receipts' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'profile.tabs.summary' })).toHaveAttribute('aria-selected', 'false')
   })
 
   it('«Resumen» es la de entrada y conserva el contenido de rendimiento de hoy', async () => {
@@ -261,24 +264,41 @@ describe('Ficha de la persona en pestañas (RH 1a)', () => {
     expect(screen.getByTestId('seccion-comisiones')).toBeInTheDocument()
   })
 
-  it('asignar con la relación sin tocar manda relation: null, con la fecha de hoy de la sede y sin fechas futuras', async () => {
+  it('asignar con la relación sin tocar manda relation: null, con la fecha de hoy DE LA SEDE y sin fechas futuras', async () => {
+    // 12-oct 11:00 UTC: en Kiritimati (UTC+14) ya es 13-oct; en el navegador (de UTC-12 a UTC+12) todavía no.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-12T11:00:00Z'))
+    const hoyKiritimati = '2026-10-13'
     await montar()
     abrirPestana('profile.tabs.positionAndPay')
     fireEvent.click(screen.getByRole('button', { name: 'profile.assign' }))
     const fecha = screen.getByLabelText('profile.date')
-    expect(fecha).toHaveValue(hoy)
-    expect(fecha).toHaveAttribute('max', hoy)
+    expect(fecha).toHaveValue(hoyKiritimati)
+    expect(fecha).toHaveAttribute('max', hoyKiritimati)
     expect(within(campo('relation')).getAllByRole('option')[1]).toHaveValue('none')
     fireEvent.change(campo('positionId'), { target: { value: 'p1' } })
     fireEvent.click(screen.getByRole('button', { name: 'positions.save' }))
     await waitFor(() =>
       expect(asignar.mutateAsync).toHaveBeenCalledWith({
         staffId: 's1',
-        body: { positionId: 'p1', relation: null, fecha: hoy, tracksAttendance: true },
+        body: { positionId: 'p1', relation: null, fecha: hoyKiritimati, tracksAttendance: true },
       }),
     )
     // Sólo los puestos activos se ofrecen para asignar.
     expect(m.positions).toHaveBeenCalledWith(expect.not.objectContaining({ includeArchived: true }), true)
+  })
+
+  it.each([
+    ['falla', { data: undefined, isError: true, fetchStatus: 'idle', refetch: vi.fn() }, 'positions.loadError'],
+    ['sin red', { data: undefined, isError: false, fetchStatus: 'paused', refetch: vi.fn() }, 'profile.positionsOffline'],
+  ])('si la lista de puestos %s, lo dice (no un select vacío)', async (_n, estado, texto) => {
+    m.positions.mockReturnValue(estado)
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(screen.getByRole('button', { name: 'profile.assign' }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'positionId' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'positions.save' })).toBeDisabled()
   })
 
   it('el 409/400 del servidor se muestra tal cual', async () => {
@@ -320,29 +340,36 @@ describe('Ficha de la persona en pestañas (RH 1a)', () => {
     ['ruta /wl/', () => (m.modoMarcaBlanca = true)],
   ])('en marca blanca (%s) no aparecen ni «Asignar puesto» ni la relación, y no se pide nada de RH', async (_n, prender) => {
     prender()
-    m.history.mockResolvedValue(pagina([asignacion()]))
+    conPuestos([asignacion()])
     await montar()
     abrirPestana('profile.tabs.positionAndPay')
     expect(screen.queryByRole('button', { name: 'profile.assign' })).toBeNull()
     expect(screen.queryByText('relation.none')).toBeNull()
     expect(screen.queryByText(/people\.relation/)).toBeNull()
-    expect(m.history).not.toHaveBeenCalled()
+    expect(m.historial).not.toHaveBeenCalled()
     expect(m.resumen).not.toHaveBeenCalled()
+    expect(m.positions).not.toHaveBeenCalled()
   })
 
-  it('muestra los puestos vigentes con relación «Sin definir», checa y sede; Cambiar manda la relación elegida', async () => {
-    m.history.mockResolvedValue(pagina([asignacion(), asignacion({ id: 'a0', effectiveTo: '2026-08-31' })]))
+  it('muestra los vigentes del servidor con relación «Sin definir», checa y sede; Cambiar manda la relación elegida', async () => {
+    conPuestos([asignacion(), asignacion({ id: 'a2', positionId: 'p2', positionName: 'Cajero', effectiveTo: hoy })])
     await montar()
     abrirPestana('profile.tabs.positionAndPay')
     const tarjeta = (await screen.findByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' })).closest('li')!
     expect(within(tarjeta).getByText('relation.none')).toBeInTheDocument()
     expect(within(tarjeta).getByText(/Centro/)).toBeInTheDocument()
     expect(within(tarjeta).getByText('positions.yes')).toBeInTheDocument()
-    // La terminada no es vigente: no tiene botones.
+    // La que termina hoy sigue vigente hoy: se ve «hasta …», pero ya no se cambia ni se termina.
+    const cajero = screen.getByText('Cajero').closest('li')!
+    expect(within(cajero).getByText(new RegExp(`profile\\.until:\\{"date":"${hoy}"\\}`))).toBeInTheDocument()
+    expect(within(cajero).queryByRole('button')).toBeNull()
     expect(screen.getAllByRole('button', { name: /profile\.changeAria/ })).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' }))
     expect(campo('positionId')).toHaveValue('p1')
+    // Sin cambios no se puede guardar; la fecha no puede ir antes del inicio de esta versión.
+    expect(screen.getByRole('button', { name: 'positions.save' })).toBeDisabled()
+    expect(screen.getByLabelText('profile.date')).toHaveAttribute('min', '2026-09-01')
     fireEvent.change(campo('relation'), { target: { value: 'ASIMILADO' } })
     fireEvent.click(screen.getByRole('button', { name: 'positions.save' }))
     await waitFor(() =>
@@ -353,19 +380,71 @@ describe('Ficha de la persona en pestañas (RH 1a)', () => {
     )
   })
 
-  it('un puesto vigente viejo detrás de muchas versiones nuevas de otro puesto sí aparece (no se toma sólo la primera página)', async () => {
-    m.history.mockImplementation((_v: string, _s: string, p: number) =>
-      Promise.resolve(
-        p === 0
-          ? pagina([asignacion({ id: 'c1', positionName: 'Cajero', effectiveTo: '2026-10-01' })], 101, true)
-          : pagina([asignacion({ id: 'm1', positionName: 'Mesero', effectiveFrom: '2024-01-01' })], 101, false),
-      ),
+  it('el 409 de Cambiar («Esta asignación cambió…») se muestra tal cual', async () => {
+    cambiar.mutateAsync.mockRejectedValue({
+      response: { status: 409, data: { message: 'Esta asignación cambió mientras la editabas. Recarga e inténtalo de nuevo.' } },
+    })
+    conPuestos([asignacion()])
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(await screen.findByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' }))
+    fireEvent.change(campo('relation'), { target: { value: 'ASIMILADO' } })
+    fireEvent.click(screen.getByRole('button', { name: 'positions.save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esta asignación cambió mientras la editabas. Recarga e inténtalo de nuevo.')
+  })
+
+  it('Terminar confirma con el último día (hoy de la sede por default) y manda la fecha', async () => {
+    conPuestos([asignacion()])
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(await screen.findByRole('button', { name: 'profile.endAria:{"name":"Mesero"}' }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(within(dialogo).getByText('profile.endConfirm:{"name":"Mesero"}')).toBeInTheDocument()
+    expect(within(dialogo).getByLabelText('profile.date')).toHaveValue(hoy)
+    expect(terminar.mutateAsync).not.toHaveBeenCalled()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'profile.end' }))
+    await waitFor(() => expect(terminar.mutateAsync).toHaveBeenCalledWith({ assignmentId: 'a1', fecha: hoy }))
+    expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'profile.ended' }))
+  })
+
+  it('el 400 de Terminar se muestra tal cual y el diálogo no se cierra', async () => {
+    terminar.mutateAsync.mockRejectedValue({ response: { status: 400, data: { message: 'Esa asignación ya terminó.' } } })
+    conPuestos([asignacion()])
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(await screen.findByRole('button', { name: 'profile.endAria:{"name":"Mesero"}' }))
+    const dialogo = await screen.findByRole('alertdialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'profile.end' }))
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Esa asignación ya terminó.')
+  })
+
+  it('«Cómo se le paga hoy» dice cuando no hay permiso (no esconde el bloque)', async () => {
+    m.resumen.mockReturnValue(consulta({ comisiones: null, nivelDeClase: 'SIN_PERMISO', propinas: { regla: 'ATIENDE_LUEGO_COBRA' } }))
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    expect(screen.getByText('profile.liveNoPermissionCommissions')).toBeInTheDocument()
+    expect(screen.getByText('profile.liveNoPermissionClassLevel')).toBeInTheDocument()
+    expect(screen.queryByText('profile.liveCommissions')).toBeNull()
+    expect(screen.getByText('profile.liveTips')).toBeInTheDocument()
+  })
+
+  it('«Cómo se le paga hoy» con permiso lista comisiones (excluida / tasa personal) y el nivel de clase', async () => {
+    m.resumen.mockReturnValue(
+      consulta({
+        comisiones: [
+          { configId: 'c1', nombre: 'Ventas', alcance: 'SEDE', excluida: true, tasaPersonal: null },
+          { configId: 'c2', nombre: 'Servicios', alcance: 'ORGANIZACION', excluida: false, tasaPersonal: 0.035 },
+        ],
+        nivelDeClase: { nombre: 'Coach A', desde: '2026-09-01' },
+        propinas: { regla: 'ATIENDE_LUEGO_COBRA' },
+      }),
     )
     await montar()
     abrirPestana('profile.tabs.positionAndPay')
-    expect(await screen.findByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' })).toBeInTheDocument()
-    expect(m.history).toHaveBeenCalledWith('v1', 's1', 1, 100)
-    expect(screen.queryByRole('button', { name: 'profile.changeAria:{"name":"Cajero"}' })).toBeNull()
+    expect(screen.getByText(/profile\.liveExcluded/)).toBeInTheDocument()
+    expect(screen.getByText(/profile\.liveCustomRate:\{"rate":3\.5\}/)).toBeInTheDocument()
+    expect(screen.getByText(/Coach A/)).toBeInTheDocument()
+    expect(screen.queryByText('profile.liveNoPermissionCommissions')).toBeNull()
   })
 
   it('el historial va de 20 en 20 con «Cargar más»', async () => {

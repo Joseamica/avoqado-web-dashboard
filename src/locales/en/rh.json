@@ -102,6 +102,9 @@
     "liveNoCommissions": "No commission scheme applies to them.",
     "liveError": "Could not load how they are paid.",
     "receiptsText": "Their service pay receipts are in Staff pay, under Periods. The receipt with salary and hours is coming soon.",
-    "receiptsLink": "Open Staff pay"
+    "receiptsLink": "Open Staff pay",
+    "liveNoPermissionCommissions": "No permission to see commissions",
+    "liveNoPermissionClassLevel": "No permission to see class pay",
+    "positionsOffline": "Offline: positions will load when the connection is back."
   }
 }

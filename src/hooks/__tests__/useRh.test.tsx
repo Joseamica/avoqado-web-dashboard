@@ -4,12 +4,16 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { rhKeys, useAssignPosition, usePositions } from '../useRh'
+import { rhKeys, useAssignPosition, useChangeAssignment, usePositions } from '../useRh'
 
-const m = vi.hoisted(() => ({ venueId: 'v1' as string | null, positions: vi.fn(), assign: vi.fn() }))
+const m = vi.hoisted(() => ({ venueId: 'v1' as string | null, positions: vi.fn(), assign: vi.fn(), change: vi.fn() }))
 vi.mock('../use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: m.venueId }) }))
 vi.mock('@/services/rh.service', () => ({
-  rhService: { positions: (...a: unknown[]) => m.positions(...a), assign: (...a: unknown[]) => m.assign(...a) },
+  rhService: {
+    positions: (...a: unknown[]) => m.positions(...a),
+    assign: (...a: unknown[]) => m.assign(...a),
+    change: (...a: unknown[]) => m.change(...a),
+  },
 }))
 
 function montar<R>(usar: () => R) {
@@ -49,6 +53,16 @@ describe('RH: capa de datos', () => {
     await act(() => result.current.mutateAsync({ staffId: 's1', body: { positionId: 'p1' } }))
     await waitFor(() => expect(cliente.getQueryState(['team-member', 'v1', 'sv1'])?.isInvalidated).toBe(true))
     expect(cliente.getQueryState(['team-member', 'v2', 'sv1'])?.isInvalidated).toBe(false)
+  })
+
+  it('🔴 un choque (409 «Esta asignación cambió…») también refresca: la ficha deja de mostrar la versión vieja', async () => {
+    m.change.mockRejectedValue({ response: { status: 409, data: { message: 'Esta asignación cambió mientras la editabas.' } } })
+    const { result, cliente } = montar(() => useChangeAssignment())
+    cliente.setQueryData(['team-member', 'v1', 'sv1'], { id: 'sv1' })
+    cliente.setQueryData(rhKeys.assignments('v1', 's1', 0), { data: [], total: 0, hasMore: false })
+    await act(() => result.current.mutateAsync({ assignmentId: 'a1', body: { relation: null } }).catch(() => undefined))
+    await waitFor(() => expect(cliente.getQueryState(['team-member', 'v1', 'sv1'])?.isInvalidated).toBe(true))
+    expect(cliente.getQueryState(rhKeys.assignments('v1', 's1', 0))?.isInvalidated).toBe(true)
   })
 
   it('usePositions no pide nada sin sede, y con sede manda los filtros tal cual', async () => {

@@ -1,6 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
 import { Loader2, Plus } from 'lucide-react'
 import {
   AlertDialog,
@@ -15,52 +14,23 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PermissionGate } from '@/components/PermissionGate'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
-import { rhKeys, useEndAssignment, usePayOverview, useStaffAssignments } from '@/hooks/useRh'
-import { rhService } from '@/services/rh.service'
+import { useEndAssignment, usePayOverview, useStaffAssignments } from '@/hooks/useRh'
 import { useUltimoNoNulo } from '@/pages/StaffPay/alCerrar'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
 import { hoyEnSede } from '@/pages/StaffPay/hoyEnSede'
 import { textoDelServidor } from '@/utils/apiError'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { Asignacion, Puesto } from '@/types/rh'
-import { AsignarPuestoDialog, AvisoIndependiente, CampoFecha } from './AsignarPuestoDialog'
+import { AsignarPuestoDialog, AvisoIndependiente, CampoFecha, ErrorConReintento } from './AsignarPuestoDialog'
 import { CambiarAsignacionDialog } from './CambiarAsignacionDialog'
-
-/**
- * Los puestos vigentes (sin fin) de la persona. El historial va por fecha de inicio: una vigente vieja puede quedar detrás de
- * muchas versiones nuevas de otro puesto, así que «las abiertas de la primera página» no es el conjunto. Se recorre de 100 en
- * 100 (el tope del servidor) hasta el final, deduplicando por id.
- * ponytail: una petición hasta 100 versiones por persona; si alguien junta cientos, que GET /team/:id mande currentAssignments.
- */
-async function asignacionesAbiertas(venueId: string, staffId: string): Promise<Asignacion[]> {
-  const abiertas = new Map<string, Asignacion>()
-  for (let page = 0; ; page++) {
-    const p = await rhService.history(venueId, staffId, page, 100)
-    for (const a of p.data) if (a.effectiveTo === null) abiertas.set(a.id, a)
-    if (!p.hasMore || p.data.length === 0) return [...abiertas.values()]
-  }
-}
 
 const tasa = (x: number) => Number((x * 100).toFixed(2))
 
 function Relacion({ a }: { a: Asignacion }) {
   const { t } = useTranslation('rh')
   return a.relation ? <span>{t(`relation.${a.relation}`)}</span> : <span className="text-muted-foreground">{t('relation.none')}</span>
-}
-
-function ErrorConReintento({ texto, onReintentar }: { texto: string; onReintentar: () => void }) {
-  const { t } = useTranslation('rh')
-  return (
-    <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 p-4 text-sm">
-      {texto}
-      <Button variant="outline" className="h-11 cursor-pointer" onClick={onReintentar}>
-        {t('positions.retry')}
-      </Button>
-    </div>
-  )
 }
 
 /** Una página del historial (su propia consulta: cada «Cargar más» suma una y todas se refrescan tras asignar o cambiar). */
@@ -97,6 +67,11 @@ function PaginaDeHistorial({ staffId, page }: { staffId: string; page: number })
 
 interface Props {
   staffId: string
+  /**
+   * Puestos vigentes HOY (fin inclusivo), calculados por el servidor en GET /team/:id con la misma regla que la lista de Personas.
+   * Se refrescan con la ficha (`['team-member', sede]`) tras asignar, cambiar o terminar.
+   */
+  vigentes: Asignacion[]
   /** Nombre de la sede: la ficha es de una sede y sus puestos también. */
   sede: string
   rolActual: string
@@ -107,22 +82,13 @@ interface Props {
 }
 
 /** Pestaña «Puesto y pago» (spec RH §6). Sólo se monta fuera de marca blanca: ahí todo /rh responde 403. */
-export function PuestoYPagoTab({ staffId, sede, rolActual, onCambiarRol, children }: Props) {
+export function PuestoYPagoTab({ staffId, vigentes, sede, rolActual, onCambiarRol, children }: Props) {
   const { t } = useTranslation('rh')
   const { toast } = useToast()
-  const { venueId } = useCurrentVenue()
   const { venueTimezone, formatCalendarDate } = useVenueDateTime()
   const { getDisplayName } = useRoleConfig()
   const hoy = hoyEnSede(venueTimezone)
 
-  const vigentes = useQuery({
-    queryKey: [...rhKeys.all(venueId), 'vigentes', staffId],
-    queryFn: () => asignacionesAbiertas(venueId!, staffId),
-    enabled: !!venueId,
-    staleTime: 30_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  })
   const resumen = usePayOverview(staffId)
   const [paginas, setPaginas] = useState(1)
   const primera = useStaffAssignments(staffId, 0)
@@ -176,8 +142,7 @@ export function PuestoYPagoTab({ staffId, sede, rolActual, onCambiarRol, childre
     }
   }
 
-  const abiertas = vigentes.data ?? []
-  const independienteQueCheca = abiertas.some(a => a.relation === 'INDEPENDIENTE_FACTURA' && a.tracksAttendance)
+  const independienteQueCheca = vigentes.some(a => a.relation === 'INDEPENDIENTE_FACTURA' && a.tracksAttendance)
 
   return (
     <div className="space-y-6">
@@ -209,22 +174,17 @@ export function PuestoYPagoTab({ staffId, sede, rolActual, onCambiarRol, childre
 
         {independienteQueCheca && <AvisoIndependiente />}
 
-        {!vigentes.data ? (
-          vigentes.isError ? (
-            <ErrorConReintento texto={t('positions.loadError')} onReintentar={() => void vigentes.refetch()} />
-          ) : (
-            <Skeleton className="h-20 w-full" />
-          )
-        ) : abiertas.length === 0 ? (
+        {vigentes.length === 0 ? (
           <p className="rounded-xl border border-input p-4 text-sm text-muted-foreground">{t('people.noPosition')}</p>
         ) : (
           <ul className="space-y-3">
-            {abiertas.map(a => (
+            {vigentes.map(a => (
               <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-input p-4">
                 <div className="min-w-0 space-y-1">
                   <p className="font-medium">{a.positionName}</p>
                   <p className="text-sm text-muted-foreground">
                     {sede} · {t('profile.since', { date: formatCalendarDate(a.effectiveFrom) })}
+                    {a.effectiveTo && ` · ${t('profile.until', { date: formatCalendarDate(a.effectiveTo) })}`}
                   </p>
                   <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                     <span>
@@ -235,26 +195,29 @@ export function PuestoYPagoTab({ staffId, sede, rolActual, onCambiarRol, childre
                     </span>
                   </p>
                 </div>
-                <PermissionGate permission="teams:update">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="h-11 cursor-pointer"
-                      aria-label={t('profile.changeAria', { name: a.positionName })}
-                      onClick={() => setCambiando({ clave: ++clave.current, asignacion: a })}
-                    >
-                      {t('profile.change')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-11 cursor-pointer"
-                      aria-label={t('profile.endAria', { name: a.positionName })}
-                      onClick={() => abrirTerminar(a)}
-                    >
-                      {t('profile.end')}
-                    </Button>
-                  </div>
-                </PermissionGate>
+                {/* Sólo la abierta se cambia o se termina; la que termina hoy ya no (el servidor diría «ya terminó»). */}
+                {a.effectiveTo === null && (
+                  <PermissionGate permission="teams:update">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="h-11 cursor-pointer"
+                        aria-label={t('profile.changeAria', { name: a.positionName })}
+                        onClick={() => setCambiando({ clave: ++clave.current, asignacion: a })}
+                      >
+                        {t('profile.change')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-11 cursor-pointer"
+                        aria-label={t('profile.endAria', { name: a.positionName })}
+                        onClick={() => abrirTerminar(a)}
+                      >
+                        {t('profile.end')}
+                      </Button>
+                    </div>
+                  </PermissionGate>
+                )}
               </li>
             ))}
           </ul>
@@ -275,8 +238,10 @@ export function PuestoYPagoTab({ staffId, sede, rolActual, onCambiarRol, childre
             )
           ) : (
             <>
-              {/* `null` = quien mira no tiene commissions:read (lo decide el servidor). */}
-              {resumen.data.comisiones && (
+              {/* `null` = quien mira no tiene commissions:read (lo decide el servidor): se dice, no se esconde. */}
+              {resumen.data.comisiones === null ? (
+                <p className="text-muted-foreground">{t('profile.liveNoPermissionCommissions')}</p>
+              ) : (
                 <div className="space-y-1">
                   <p className="font-medium">{t('profile.liveCommissions')}</p>
                   {resumen.data.comisiones.length === 0 ? (
@@ -302,7 +267,9 @@ export function PuestoYPagoTab({ staffId, sede, rolActual, onCambiarRol, childre
                   )}
                 </div>
               )}
-              {resumen.data.nivelDeClase !== 'SIN_PERMISO' && (
+              {resumen.data.nivelDeClase === 'SIN_PERMISO' ? (
+                <p className="text-muted-foreground">{t('profile.liveNoPermissionClassLevel')}</p>
+              ) : (
                 <div className="space-y-1">
                   <p className="font-medium">{t('profile.liveClassLevel')}</p>
                   {resumen.data.nivelDeClase ? (
