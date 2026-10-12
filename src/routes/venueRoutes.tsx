@@ -158,6 +158,7 @@ import {
   MerchantRoutingRules,
   TeamId,
   Teams,
+  PuestosPage,
   Attendance,
   TerminalOrderDetail,
   Tpv,
@@ -551,6 +552,11 @@ export function createVenueRoutes(): RouteObject[] {
         {
           element: <PermissionProtectedRoute permission="attendance:read" />,
           children: [{ path: 'asistencia', element: <Attendance /> }],
+        },
+        // RH · Puestos (fase 1a, gratis: sin candado de plan). Misma regla: en white-label no existe (el sidebar tampoco lo muestra).
+        {
+          element: <PermissionProtectedRoute permission="teams:read" />,
+          children: [{ path: 'rh/puestos', element: <PuestosPage /> }],
         },
       ],
     },
