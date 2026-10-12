@@ -1,0 +1,70 @@
+{
+  "menu": {
+    "title": "RH",
+    "people": "Personas",
+    "positions": "Puestos",
+    "attendance": "Asistencia y turnos",
+    "commissions": "Comisiones",
+    "staffPay": "Pago al personal"
+  },
+  "relation": {
+    "none": "Sin definir",
+    "EMPLEADO_NOMINA": "Empleado de nómina",
+    "ASIMILADO": "Asimilado a salarios",
+    "INDEPENDIENTE_FACTURA": "Independiente con factura (honorarios o RESICO)",
+    "RENTA_SILLA": "Renta de silla o cabina",
+    "help": "Opcional. «Sin definir»: Avoqado calcula lo que gana y anota cómo le pagas; no calcula impuestos ni timbra. La eliges cuando quieras.",
+    "independentAttendanceWarning": "Registrar la jornada de alguien independiente puede usarse como prueba de relación laboral. Conviene registrar sólo sus clases."
+  },
+  "positions": {
+    "title": "Puestos",
+    "subtitle": "Cada puesto trae sus valores por defecto. No cambia permisos: el rol se cambia aparte.",
+    "create": "Crear puesto",
+    "edit": "Editar puesto",
+    "archive": "Archivar",
+    "archived": "Archivado",
+    "name": "Nombre del puesto",
+    "suggestedRole": "Permisos sugeridos (rol)",
+    "suggestedRelation": "Relación sugerida",
+    "tracksAttendance": "Checa entrada y salida",
+    "people": "Personas",
+    "suggestionsTitle": "Sugeridos para tu giro. No son obligatorios: agrega los que uses.",
+    "add": "+ {{name}}",
+    "empty": "Todavía no hay puestos. Crea el primero o agrega uno sugerido.",
+    "archiveConfirm": "«{{name}}» dejará de aparecer para asignar. Quien ya lo tiene lo conserva en su historial."
+  },
+  "people": {
+    "filterAll": "Todos · {{count}}",
+    "position": "Puesto",
+    "relation": "Relación",
+    "checks": "Checa",
+    "noPosition": "Sin puesto",
+    "search": "Buscar por nombre o correo"
+  },
+  "profile": {
+    "tabs": {
+      "summary": "Resumen",
+      "positionAndPay": "Puesto y pago",
+      "attendance": "Asistencia y turnos",
+      "receipts": "Recibos",
+      "documents": "Documentos"
+    },
+    "assign": "Asignar puesto",
+    "change": "Cambiar",
+    "end": "Terminar",
+    "since": "Desde {{date}}",
+    "until": "hasta {{date}}",
+    "date": "Fecha",
+    "dateHelp": "Hoy o una fecha pasada. No puede caer en un periodo de pago ya cerrado.",
+    "history": "Historial",
+    "changeRoleOffer": "Su rol actual es {{current}}. ¿Cambiarlo a {{suggested}}?",
+    "liveTitle": "Cómo se le paga hoy",
+    "liveCommissions": "Comisiones que le aplican",
+    "liveExcluded": "excluida de este esquema",
+    "liveCustomRate": "tasa personal {{rate}} %",
+    "liveClassLevel": "Nivel de pago por clase",
+    "liveNoLevel": "Sin nivel de pago por clase",
+    "liveTips": "Propinas: van a quien atendió la cuenta; si nadie, a quien cobró.",
+    "phase1bNote": "Sueldo, horas y bono llegan pronto."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "menu": {
+    "title": "HR",
+    "people": "People",
+    "positions": "Positions",
+    "attendance": "Attendance and shifts",
+    "commissions": "Commissions",
+    "staffPay": "Staff pay"
+  },
+  "relation": {
+    "none": "Not set",
+    "EMPLEADO_NOMINA": "Payroll employee",
+    "ASIMILADO": "Salary-equivalent (asimilado a salarios)",
+    "INDEPENDIENTE_FACTURA": "Independent with invoice (honorarios or RESICO)",
+    "RENTA_SILLA": "Chair or booth rental",
+    "help": "Optional. \"Not set\": Avoqado calculates what they earn and records how you pay them; it does not calculate taxes or stamp invoices. You can choose it whenever you want.",
+    "independentAttendanceWarning": "Recording the work hours of an independent contractor can be used as evidence of an employment relationship. It is better to record only their classes."
+  },
+  "positions": {
+    "title": "Positions",
+    "subtitle": "Each position comes with its own defaults. It does not change permissions: the role is changed separately.",
+    "create": "Create position",
+    "edit": "Edit position",
+    "archive": "Archive",
+    "archived": "Archived",
+    "name": "Position name",
+    "suggestedRole": "Suggested permissions (role)",
+    "suggestedRelation": "Suggested relationship",
+    "tracksAttendance": "Clocks in and out",
+    "people": "People",
+    "suggestionsTitle": "Suggested for your business type. None are required: add the ones you use.",
+    "add": "+ {{name}}",
+    "empty": "There are no positions yet. Create the first one or add a suggested one.",
+    "archiveConfirm": "\"{{name}}\" will no longer appear when assigning. Anyone who already has it keeps it in their history."
+  },
+  "people": {
+    "filterAll": "All · {{count}}",
+    "position": "Position",
+    "relation": "Relationship",
+    "checks": "Clocks in",
+    "noPosition": "No position",
+    "search": "Search by name or email"
+  },
+  "profile": {
+    "tabs": {
+      "summary": "Summary",
+      "positionAndPay": "Position and pay",
+      "attendance": "Attendance and shifts",
+      "receipts": "Receipts",
+      "documents": "Documents"
+    },
+    "assign": "Assign position",
+    "change": "Change",
+    "end": "End",
+    "since": "Since {{date}}",
+    "until": "until {{date}}",
+    "date": "Date",
+    "dateHelp": "Today or a past date. It cannot fall in a pay period that is already closed.",
+    "history": "History",
+    "changeRoleOffer": "Their current role is {{current}}. Change it to {{suggested}}?",
+    "liveTitle": "How they are paid today",
+    "liveCommissions": "Commissions that apply to them",
+    "liveExcluded": "excluded from this scheme",
+    "liveCustomRate": "personal rate {{rate}} %",
+    "liveClassLevel": "Class pay level",
+    "liveNoLevel": "No class pay level",
+    "liveTips": "Tips: they go to whoever served the check; if nobody, to whoever took the payment.",
+    "phase1bNote": "Salary, hours and bonus are coming soon."
+  }
+}
