@@ -177,7 +177,8 @@
     "unsavedChanges": "Unsaved Changes",
     "unsavedChangesMessage": "You have unsaved changes that will be lost if you continue. Do you want to discard these changes?",
     "unsavedChangesWarning": "You have unsaved changes",
-    "wildcardActive": "This role has wildcard permissions (*:*) granting full access to all features.",
+    "wildcardActive": "Grants full access to every feature of the business.",
+    "statusPartial": "Partial",
     "modifyingOwnRole": "You are modifying permissions for your own role. Critical permissions cannot be removed to prevent self-lockout.",
     "legend": "Legend",
     "legendEnabled": "Permission enabled",
@@ -712,6 +713,7 @@
     "impliedByTooltip": "This permission comes bundled with another one the role keeps. To remove it, remove that one too."
   },
   "roleDisplayNames": {
+    "appearanceDesc": "Name, description and label color",
     "infoAlert": "Customize how role names appear in your venue. This only affects the display name, not the actual permissions.",
     "unsavedChanges": "You have unsaved changes",
     "noChanges": "No changes",

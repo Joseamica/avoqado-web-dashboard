@@ -177,7 +177,8 @@
     "unsavedChanges": "Cambios sin Guardar",
     "unsavedChangesMessage": "Tienes cambios sin guardar que se perderán si continúas. ¿Deseas descartar estos cambios?",
     "unsavedChangesWarning": "Tienes cambios sin guardar",
-    "wildcardActive": "Este rol tiene permisos comodín (*:*) que otorgan acceso completo a todas las funciones.",
+    "wildcardActive": "Da acceso completo a todas las funciones del negocio.",
+    "statusPartial": "Parcial",
     "modifyingOwnRole": "Estás modificando permisos para tu propio rol. Los permisos críticos no se pueden eliminar para evitar auto-bloqueo.",
     "legend": "Leyenda",
     "legendEnabled": "Permiso habilitado",
@@ -749,6 +750,7 @@
     "copied": "Copiado al portapapeles"
   },
   "roleDisplayNames": {
+    "appearanceDesc": "Nombre, descripción y color de la etiqueta",
     "infoAlert": "Personaliza cómo se muestran los nombres de los roles en tu establecimiento. Esto solo afecta el nombre mostrado, no los permisos reales.",
     "unsavedChanges": "Tienes cambios sin guardar",
     "noChanges": "Sin cambios",
@@ -770,7 +772,7 @@
     "displayName": "Nombre a Mostrar",
     "description": "Descripción",
     "descriptionPlaceholder": "Breve descripción de este rol...",
-    "badgeColor": "Color del Badge",
+    "badgeColor": "Color de la etiqueta",
     "defaultColor": "Color predeterminado",
     "preview": "Vista Previa",
     "hideRole": "Ocultar este rol de los selectores",

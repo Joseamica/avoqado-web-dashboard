@@ -94,8 +94,8 @@
     }
   },
   "header": {
-    "title": "Miembros del Equipo",
-    "subtitle": "Gestiona tu equipo e invita nuevos miembros",
+    "title": "Personas",
+    "subtitle": "Tu gente en esta sucursal: invítala, dale su puesto y decide qué puede hacer",
     "inviteButton": "Invitar Miembro",
     "inviteDialog": {
       "title": "Invitar Nuevo Miembro",
