@@ -4,7 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { rhKeys, useAssignPosition, useChangeAssignment, usePositions } from '../useRh'
+import { rhKeys, useAssignPosition, useChangeAssignment, useInvalidarConteosDePuesto, usePositions } from '../useRh'
 
 const m = vi.hoisted(() => ({ venueId: 'v1' as string | null, positions: vi.fn(), assign: vi.fn(), change: vi.fn() }))
 vi.mock('../use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: m.venueId }) }))
@@ -63,6 +63,16 @@ describe('RH: capa de datos', () => {
     await act(() => result.current.mutateAsync({ assignmentId: 'a1', body: { relation: null } }).catch(() => undefined))
     await waitFor(() => expect(cliente.getQueryState(['team-member', 'v1', 'sv1'])?.isInvalidated).toBe(true))
     expect(cliente.getQueryState(rhKeys.assignments('v1', 's1', 0))?.isInvalidated).toBe(true)
+  })
+
+  it('🔴 activar/desactivar/dar de baja refresca los conteos por puesto: todo [rh, sede] de ESTA sede, sin tocar otra sede', async () => {
+    const { result, cliente } = montar(() => useInvalidarConteosDePuesto())
+    cliente.setQueryData(rhKeys.positions('v1', { limit: 100 }), { data: [], total: 0, hasMore: false })
+    cliente.setQueryData(rhKeys.positions('v2', { limit: 100 }), { data: [], total: 0, hasMore: false })
+    const estado = (k: readonly unknown[]) => cliente.getQueryState(k)?.isInvalidated
+    await act(() => result.current())
+    expect(estado(rhKeys.positions('v1', { limit: 100 }))).toBe(true)
+    expect(estado(rhKeys.positions('v2', { limit: 100 }))).toBe(false)
   })
 
   it('usePositions no pide nada sin sede, y con sede manda los filtros tal cual', async () => {

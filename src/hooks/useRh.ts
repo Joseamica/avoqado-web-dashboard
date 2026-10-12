@@ -10,6 +10,9 @@ export const rhKeys = {
   assignments: (venueId?: string | null, staffId?: string, page = 0) => [...rhKeys.all(venueId), 'assignments', staffId, page] as const,
   payOverview: (venueId?: string | null, staffId?: string) => [...rhKeys.all(venueId), 'pay-overview', staffId] as const,
 }
+/** Los «Cómo se le paga hoy» de UNA persona en TODAS las sedes: el nivel de pago de clase es de la organización, no de la sede. */
+export const esPayOverviewDe = (staffId: string) => (q: { queryKey: readonly unknown[] }) =>
+  q.queryKey[0] === 'rh' && q.queryKey[2] === 'pay-overview' && q.queryKey[3] === staffId
 const pesado = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
 
 export function usePositions(o: { includeArchived?: boolean; limit?: number; offset?: number } = {}, enabled = true) {
@@ -43,6 +46,15 @@ function useInvalidarRh() {
       qc.invalidateQueries({ queryKey: ['team-members', venueId] }),
       qc.invalidateQueries({ queryKey: ['team-member', venueId] }),
     ])
+}
+/**
+ * Activar, desactivar o dar de baja a una persona cambia cuántas personas vigentes tiene cada puesto (los chips de Personas y
+ * `personasVigentes` del catálogo de Puestos, que cuelgan de `['rh', sede]`). Devuelve la función que los refresca.
+ */
+export function useInvalidarConteosDePuesto() {
+  const qc = useQueryClient()
+  const { venueId } = useCurrentVenue()
+  return () => qc.invalidateQueries({ queryKey: rhKeys.all(venueId) })
 }
 // Mismo patrón que pago al personal: sin red la mutación queda en pausa y `cancelarEnPausa` la saca de la cola (E6a-fix2 C5).
 // Asignar, cambiar y terminar refrescan también al FALLAR (`onSettled`): un 409/400 casi siempre dice que la pantalla está vieja

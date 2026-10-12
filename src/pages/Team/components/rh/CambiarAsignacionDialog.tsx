@@ -8,7 +8,7 @@ import { useChangeAssignment, usePositions } from '@/hooks/useRh'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
 import { textoDelServidor } from '@/utils/apiError'
 import type { Asignacion, Puesto, WorkRelation } from '@/types/rh'
-import { AvisoIndependiente, CampoFecha, CampoPuesto, CampoRelacion, LIMITE_PUESTOS } from './AsignarPuestoDialog'
+import { AvisoIndependiente, CampoFecha, CampoPuesto, CampoRelacion, LIMITE_PUESTOS, PuestosSinDatos } from './AsignarPuestoDialog'
 
 interface Props {
   open: boolean
@@ -96,7 +96,8 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
           </p>
         )}
         <section className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">
-          <CampoPuesto value={positionId} onChange={setPositionId} puestos={lista} total={puestos.data?.total ?? 0} />
+          {/* Sin catálogo (fallo, sin red o cargando) se dice, con «Reintentar»: la relación y la fecha se pueden cambiar igual. */}
+          {puestos.data ? <CampoPuesto value={positionId} onChange={setPositionId} puestos={lista} total={puestos.data.total} /> : <PuestosSinDatos q={puestos} />}
           <CampoRelacion value={relacion} onChange={setRelacion} />
           <CampoFecha value={fecha} onChange={setFecha} hoy={hoy} min={a.effectiveFrom} nota={t('profile.changeHelp')} />
           {relacion === 'INDEPENDIENTE_FACTURA' && a.tracksAttendance && <AvisoIndependiente />}

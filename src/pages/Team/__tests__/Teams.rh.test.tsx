@@ -15,6 +15,7 @@ const m = vi.hoisted(() => ({
   getTeamMembers: vi.fn(),
   rol: 'OWNER' as string,
   puestos: [] as unknown[],
+  updateTeamMember: vi.fn(),
 }))
 
 // Textos reales de es/*.json (el espacio de nombres por omisión es `common`). Un traductor estable por espacio: Teams los usa en
@@ -52,11 +53,16 @@ vi.mock('@/hooks/use-role-config', () => ({ useRoleConfig: () => ({ getDisplayNa
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('@/hooks/useTeamInvitationTour', () => ({ useTeamInvitationTour: () => {} }))
 vi.mock('@/services/features.service', () => ({ getVenueSeatStatus: async () => ({ allowed: true }) }))
-vi.mock('@/hooks/useRh', () => ({ usePositions: () => ({ data: { data: m.puestos, total: m.puestos.length, hasMore: false } }) }))
+// `useInvalidarConteosDePuesto` es el de verdad (se prueba que activar/desactivar refresca [rh, sede]); los puestos se fingen.
+vi.mock('@/hooks/useRh', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/useRh')>()),
+  usePositions: () => ({ data: { data: m.puestos, total: m.puestos.length, hasMore: false } }),
+}))
 vi.mock('@/services/team.service', () => ({
   default: {
     getTeamMembers: (...a: unknown[]) => m.getTeamMembers(...a),
     getPendingInvitations: async () => ({ data: [] }),
+    updateTeamMember: (...a: unknown[]) => m.updateTeamMember(...a),
   },
 }))
 vi.mock('../AsistenciaSettings', () => ({ default: () => null }))
@@ -243,6 +249,18 @@ describe('Personas: filtro por puesto', () => {
     await screen.findByText('Ana López')
     expect(screen.getByRole('button', { name: 'Todos · 14' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByText('Coach Solo')).not.toBeInTheDocument()
+  })
+
+  it('🔴 desactivar a una persona refresca [rh, sede] (los chips vuelven a pedir sus conteos), sólo de ESTA sede', async () => {
+    m.updateTeamMember.mockResolvedValue({ data: miembro({ active: false }) })
+    const { cliente } = montar()
+    await screen.findByText('Ana López')
+    cliente.setQueryData(['rh', 'v1', 'positions', { limit: 100 }], { data: [], total: 0, hasMore: false })
+    cliente.setQueryData(['rh', 'v2', 'positions', { limit: 100 }], { data: [], total: 0, hasMore: false })
+    fireEvent.click(within(fila('Ana López')).getByRole('switch'))
+    await waitFor(() => expect(m.updateTeamMember).toHaveBeenCalledWith('v1', 'm1', { active: false }))
+    await waitFor(() => expect(cliente.getQueryState(['rh', 'v1', 'positions', { limit: 100 }])?.isInvalidated).toBe(true))
+    expect(cliente.getQueryState(['rh', 'v2', 'positions', { limit: 100 }])?.isInvalidated).toBe(false)
   })
 
   it('un negocio sin puestos no pinta la fila de chips', async () => {

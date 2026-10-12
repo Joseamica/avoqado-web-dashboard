@@ -29,6 +29,7 @@ const m = vi.hoisted(() => ({
   asignarHook: vi.fn(),
   cambiarHook: vi.fn(),
   terminarHook: vi.fn(),
+  quitarMiembro: vi.fn(),
   toast: vi.fn(),
 }))
 
@@ -64,10 +65,15 @@ vi.mock('@/utils/datetime', () => ({
   }),
 }))
 vi.mock('@/services/team.service', () => ({
-  default: { getTeamMember: (...a: unknown[]) => m.getTeamMember(...a), getDeactivationImpact: () => Promise.resolve({}) },
+  default: {
+    getTeamMember: (...a: unknown[]) => m.getTeamMember(...a),
+    getDeactivationImpact: () => Promise.resolve({}),
+    removeTeamMember: (...a: unknown[]) => m.quitarMiembro(...a),
+  },
 }))
-vi.mock('@/hooks/useRh', () => ({
-  rhKeys: { all: (v?: string | null) => ['rh', v] },
+// `useInvalidarConteosDePuesto` y `rhKeys` son los de verdad (se prueba que la ficha refresca [rh, sede]); lo demás se finge.
+vi.mock('@/hooks/useRh', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/useRh')>()),
   useStaffAssignments: (s?: string, p?: number) => m.historial(s, p),
   usePayOverview: (s?: string, e?: boolean) => m.resumen(s, e),
   usePositions: (o: unknown, e?: boolean) => m.positions(o, e),
@@ -185,7 +191,7 @@ afterEach(() => {
 })
 
 async function montar() {
-  const cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={cliente}>
       <MemoryRouter initialEntries={['/venues/centro/team/sv1']}>
@@ -196,6 +202,7 @@ async function montar() {
     </QueryClientProvider>,
   )
   await screen.findByRole('heading', { name: 'Ana Ruiz' })
+  return cliente
 }
 const pestanas = () => screen.getAllByRole('tab').map(b => b.textContent)
 const abrirPestana = (clave: string) => fireEvent.click(screen.getByRole('tab', { name: clave }))
@@ -299,6 +306,48 @@ describe('Ficha de la persona en pestañas (RH 1a)', () => {
     expect(screen.getByText(texto)).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: 'positionId' })).toBeNull()
     expect(screen.getByRole('button', { name: 'positions.save' })).toBeDisabled()
+  })
+
+  it.each([
+    ['falla', { data: undefined, isError: true, fetchStatus: 'idle', refetch: vi.fn() }, 'positions.loadError'],
+    ['sin red', { data: undefined, isError: false, fetchStatus: 'paused', refetch: vi.fn() }, 'profile.positionsOffline'],
+  ])('🔴 Cambiar: si la lista de puestos %s, lo dice (no ofrece sólo el puesto actual) y la relación se puede cambiar igual', async (_n, estado, texto) => {
+    m.positions.mockReturnValue(estado)
+    conPuestos([asignacion()])
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(await screen.findByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'positionId' })).toBeNull()
+    // Cambiar sólo la relación no necesita el catálogo: manda el puesto de siempre.
+    fireEvent.change(campo('relation'), { target: { value: 'ASIMILADO' } })
+    fireEvent.click(screen.getByRole('button', { name: 'positions.save' }))
+    await waitFor(() =>
+      expect(cambiar.mutateAsync).toHaveBeenCalledWith({ assignmentId: 'a1', body: { positionId: 'p1', relation: 'ASIMILADO', fecha: hoy } }),
+    )
+  })
+
+  it('🔴 Cambiar: «Reintentar» vuelve a pedir los puestos', async () => {
+    const refetch = vi.fn()
+    m.positions.mockReturnValue({ data: undefined, isError: true, fetchStatus: 'idle', refetch })
+    conPuestos([asignacion()])
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(await screen.findByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' }))
+    fireEvent.click(screen.getByRole('button', { name: 'positions.retry' }))
+    expect(refetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 dar de baja a una persona refresca [rh, sede] (chips «Coaches · 4» y el catálogo de Puestos), sólo de ESTA sede', async () => {
+    m.quitarMiembro.mockResolvedValue({})
+    const cliente = await montar()
+    cliente.setQueryData(['rh', 'v1', 'positions', {}], pagina([puesto()]))
+    cliente.setQueryData(['rh', 'v2', 'positions', {}], pagina([puesto()]))
+    fireEvent.click(screen.getByRole('button', { name: 'actions.deactivate' }))
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'dialogs.deactivateConfirm' }))
+    await waitFor(() => expect(m.quitarMiembro).toHaveBeenCalledWith('v1', 'sv1'))
+    await waitFor(() => expect(cliente.getQueryState(['rh', 'v1', 'positions', {}])?.isInvalidated).toBe(true))
+    expect(cliente.getQueryState(['rh', 'v2', 'positions', {}])?.isInvalidated).toBe(false)
   })
 
   it('el 409/400 del servidor se muestra tal cual', async () => {

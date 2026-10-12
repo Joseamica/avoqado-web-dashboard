@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
+import { useInvalidarConteosDePuesto } from '@/hooks/useRh'
 import teamService from '@/services/team.service'
 import { canViewSuperadminInfo, getRoleBadgeColor } from '@/utils/role-permissions'
 import { useTranslation } from 'react-i18next'
@@ -61,6 +62,8 @@ export default function TeamId() {
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
+  // Dar de baja, borrar o editar (rol/activo) cambia las personas vigentes por puesto (chips de Personas y catálogo de Puestos).
+  const refrescarConteosDePuesto = useInvalidarConteosDePuesto()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
   const { t: tRh } = useTranslation('rh')
@@ -108,6 +111,7 @@ export default function TeamId() {
     mutationFn: () => teamService.removeTeamMember(venueId, memberId!),
     onSuccess: () => {
       toast({ title: t('toasts.memberRemovedTitle'), description: t('toasts.memberRemovedDesc', { firstName: memberDetails?.firstName || '', lastName: memberDetails?.lastName || '' }) })
+      refrescarConteosDePuesto()
       navigate(-1)
     },
     onError: (error: any) => {
@@ -120,6 +124,7 @@ export default function TeamId() {
     onSuccess: result => {
       toast({ title: t('toasts.memberHardDeletedTitle'), description: t('toasts.memberHardDeletedDesc', { firstName: memberDetails?.firstName || '', lastName: memberDetails?.lastName || '', count: Object.values(result.deletedRecords).reduce((a: number, b: number) => a + b, 0) }) })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+      refrescarConteosDePuesto()
       navigate(-1)
     },
     onError: (error: any) => {
@@ -176,6 +181,7 @@ export default function TeamId() {
     setShowEditDialog(false)
     queryClient.invalidateQueries({ queryKey: ['team-member', venueId, memberId] })
     queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+    refrescarConteosDePuesto()
   }
 
   // ── Loading / Error States ─────────────────────────────

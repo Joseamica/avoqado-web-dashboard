@@ -15,7 +15,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/hooks/use-access'
-import { usePositions } from '@/hooks/useRh'
+import { useInvalidarConteosDePuesto, usePositions } from '@/hooks/useRh'
 import { useTeamInvitationTour } from '@/hooks/useTeamInvitationTour'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation, type PaginatedTeamResponse } from '@/services/team.service'
@@ -83,6 +83,8 @@ function TeamsContent() {
   const { staffInfo } = useAuth()
   const { can } = useAccess()
   const queryClient = useQueryClient()
+  // Activar, desactivar o dar de baja cambia las personas vigentes por puesto (chips «Coaches · 4»).
+  const refrescarConteosDePuesto = useInvalidarConteosDePuesto()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
@@ -361,6 +363,7 @@ function TeamsContent() {
       })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
       queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
+      refrescarConteosDePuesto()
       setRemovingMember(null)
     },
     onError: (error: any) => {
@@ -450,6 +453,7 @@ function TeamsContent() {
 
       // Activating/deactivating changes the active seat count → refresh the gate.
       queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
+      refrescarConteosDePuesto()
 
       toast({
         title: updatedMember.active ? t('toasts.memberActivatedTitle') : t('toasts.memberDeactivatedTitle'),
@@ -1187,6 +1191,7 @@ function TeamsContent() {
               onSuccess={() => {
                 setEditingMember(null)
                 queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+                refrescarConteosDePuesto()
               }}
             />
           </DialogContent>

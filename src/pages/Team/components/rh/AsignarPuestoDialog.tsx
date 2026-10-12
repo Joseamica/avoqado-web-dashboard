@@ -88,6 +88,19 @@ export function ErrorConReintento({ texto, onReintentar }: { texto: string; onRe
   )
 }
 
+/** Sin catálogo de puestos: fallo, sin red (consulta en pausa) o cargando. Nunca un select vacío que parezca «no hay puestos». */
+export function PuestosSinDatos({ q }: { q: { isError: boolean; fetchStatus: string; refetch: () => unknown } }) {
+  const { t } = useTranslation('rh')
+  if (q.isError) return <ErrorConReintento texto={t('positions.loadError')} onReintentar={() => void q.refetch()} />
+  if (q.fetchStatus === 'paused')
+    return (
+      <p role="status" className="text-sm text-muted-foreground">
+        {t('profile.positionsOffline')}
+      </p>
+    )
+  return <Skeleton className="h-12 w-full" aria-busy="true" />
+}
+
 /** Fecha civil de la sede: hoy o pasada, nunca futura (el servidor rechaza futuras y periodos cerrados). `min`: no antes de… */
 export function CampoFecha({
   value,
@@ -228,16 +241,7 @@ export function AsignarPuestoDialog({ open, staffId, hoy, onClose, onAsignado }:
         )}
         <section className="space-y-5 rounded-2xl border border-border/50 bg-card p-6">
           {!puestos.data ? (
-            // Sin datos: fallo, sin red (consulta en pausa) o cargando. Nunca un select vacío que parezca «no hay puestos».
-            puestos.isError ? (
-              <ErrorConReintento texto={t('positions.loadError')} onReintentar={() => void puestos.refetch()} />
-            ) : puestos.fetchStatus === 'paused' ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t('profile.positionsOffline')}
-              </p>
-            ) : (
-              <Skeleton className="h-12 w-full" aria-busy="true" />
-            )
+            <PuestosSinDatos q={puestos} />
           ) : lista.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('profile.noPositions')}</p>
           ) : (
