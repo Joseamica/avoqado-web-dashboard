@@ -4,6 +4,7 @@ import { useCurrentVenue } from './use-current-venue'
 import { conCancelarEnPausa } from './staffPayPausa'
 import { useDebounce } from './useDebounce'
 import { commissionKeys } from './useCommissions'
+import { esPayOverviewDe } from './useRh'
 import { staffPayService } from '@/services/staffPay.service'
 import type { AjusteClaseInput, AjusteManualInput, AjustePreviewQuery, CeldaDto, LiquidarInput, PreviewLiquidacionDto } from '@/types/staffPay'
 import type { ReglasPayload } from '@/pages/StaffPay/reglas'
@@ -272,17 +273,22 @@ export function useCreateLevel() {
   const mutacion = useMutation({ mutationKey, mutationFn: (name: string) => staffPayService.createLevel(venueId!, name), onSuccess: inv })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
+/** Renombrar o archivar un nivel cambia el nombre que muestra «Cómo se le paga hoy» de RH: se refrescan todos los abiertos. */
 export function useUpdateLevel() {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
   const mutationKey = [...staffPayKeys.all(venueId), 'update-level']
-  const mutacion = useMutation({ mutationKey, mutationFn: (p: { levelId: string; name?: string; archived?: boolean }) => staffPayService.updateLevel(venueId!, p.levelId, p), onSuccess: inv })
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: { levelId: string; name?: string; archived?: boolean }) => staffPayService.updateLevel(venueId!, p.levelId, p), onSuccess: () => Promise.all([inv(), qc.invalidateQueries({ predicate: esPayOverviewDe() })]) })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
-/** `simulacion`: la vista previa («cambia el pago de N clases») no escribe y lleva su propia llave: no se mezcla con el envío en pausa. */
+/**
+ * `simulacion`: la vista previa («cambia el pago de N clases») no escribe y lleva su propia llave: no se mezcla con el envío en pausa.
+ * 🔴 Al asignar también se refresca «Cómo se le paga hoy» de RH (`['rh', sede, 'pay-overview', persona]`) en TODAS las sedes: el nivel
+ * es de la organización y esa ficha vive en otra llave que `staff-pay`.
+ */
 export function useAssignLevel(simulacion = false) {
   const { venueId } = useCurrentVenue(); const inv = useInvalidarTodo(); const qc = useQueryClient()
   const mutationKey = [...staffPayKeys.all(venueId), simulacion ? 'assign-level-simulation' : 'assign-level']
-  const mutacion = useMutation({ mutationKey, mutationFn: (p: { staffId: string; payLevelId: string; effectiveFrom: string; simular?: boolean }) => staffPayService.assign(venueId!, p), onSuccess: (_d, p) => { if (!p.simular) inv() } })
+  const mutacion = useMutation({ mutationKey, mutationFn: (p: { staffId: string; payLevelId: string; effectiveFrom: string; simular?: boolean }) => staffPayService.assign(venueId!, p), onSuccess: (_d, p) => { if (p.simular) return; inv(); void qc.invalidateQueries({ predicate: esPayOverviewDe(p.staffId) }) } })
   return conCancelarEnPausa(mutacion, qc, mutationKey)
 }
 export function useCreateTable() {

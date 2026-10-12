@@ -459,6 +459,18 @@ export function AppSidebar({
         permission: 'orders:read',
         keywords: ['ordenes', 'comandas', 'tickets'],
       },
+      // «Turnos» de caja: los cortes viven con Ventas; no es RH (fase 1a lo sacó del grupo de personal). Misma URL, permiso y
+      // condición enableShifts de siempre.
+      ...(activeVenue?.settings?.enableShifts
+        ? [
+            {
+              title: t('sidebar:routes.shifts'),
+              url: 'shifts',
+              permission: 'shifts:read',
+              keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'],
+            },
+          ]
+        : []),
       {
         title: t('sidebar:salesMenu.paymentLinks', { defaultValue: 'Ligas de Pago' }),
         url: '#payment-links',
@@ -549,6 +561,7 @@ export function AppSidebar({
       if (isWhiteLabelVenue) {
         if (item.url === 'payments' && !canWL('AVOQADO_PAYMENTS')) return false
         if (item.url === 'orders' && !canWL('AVOQADO_ORDERS')) return false
+        if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
         if (item.url === '#payment-links' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
         if (item.url === 'ecommerce' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
       }
@@ -625,31 +638,30 @@ export function AppSidebar({
       },
     ].filter(item => !item.permission || can(item.permission)) as any[]
 
-    // ── Equipo ──
+    // ── RH (antes «Equipo») ──
+    // Personas · Puestos · Asistencia y turnos · Comisiones · Pago al personal. Documentos no lleva entrada propia en la fase 1a:
+    // vive como pestaña de la ficha de la persona (todavía no existe una página de lista).
     const teamSubItems = [
       {
-        title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }),
+        title: t('rh:menu.people', { defaultValue: 'Personas' }),
         url: 'team',
         permission: 'teams:read',
-        keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'],
+        keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos', 'rh'],
+      },
+      // Puestos — fase 1a es GRATIS: sin candado de plan (ni premiumLocked ni gatedFeature).
+      {
+        title: t('rh:menu.positions', { defaultValue: 'Puestos' }),
+        url: 'rh/puestos',
+        permission: 'teams:read',
+        keywords: ['puestos', 'cargos', 'coach', 'barista', 'recursos humanos', 'rh'],
       },
       ...((activeVenue?.settings?.attendanceEnabled ?? true)
         ? [
             {
-              title: t('sidebar:teamMenu.attendance', { defaultValue: 'Asistencia' }),
+              title: t('rh:menu.attendance', { defaultValue: 'Asistencia y turnos' }),
               url: 'asistencia',
               permission: 'attendance:read',
               keywords: ['checador', 'reloj checador', 'entradas', 'salidas', 'horas', 'asistencia', 'faltas', 'retardos'],
-            },
-          ]
-        : []),
-      ...(activeVenue?.settings?.enableShifts
-        ? [
-            {
-              title: t('sidebar:routes.shifts'),
-              url: 'shifts',
-              permission: 'shifts:read',
-              keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'],
             },
           ]
         : []),
@@ -657,7 +669,7 @@ export function AppSidebar({
       // (the commissions pages themselves show the <FeatureGate> paywall); white-label venues keep the
       // per-partner AVOQADO_COMMISSIONS toggle below. Never use checkFeatureAccess here — it can't tier-gate.
       {
-        title: t('sidebar:routes.commissions'),
+        title: t('rh:menu.commissions', { defaultValue: 'Comisiones' }),
         url: 'commissions',
         permission: 'commissions:read',
         premiumLocked: !hasFeatureAccess('COMMISSIONS'),
@@ -665,7 +677,7 @@ export function AppSidebar({
         keywords: ['propinas', 'bonos', 'metas', 'goals'],
       },
       {
-        title: t('sidebar:teamMenu.servicePay', { defaultValue: 'Pago al personal' }),
+        title: t('rh:menu.staffPay', { defaultValue: 'Pago al personal' }),
         url: 'servicio-pago',
         permission: 'staffpay:read',
         premiumLocked: !hasFeatureAccess('SERVICE_PAY'),
@@ -678,7 +690,7 @@ export function AppSidebar({
         if (item.url === 'team' && !canWL('AVOQADO_TEAM')) return false
         if (item.url === 'asistencia') return false
         if (item.url === 'servicio-pago') return false
-        if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
+        if (item.url === 'rh/puestos') return false
         if (item.url === 'commissions' && !canWL('AVOQADO_COMMISSIONS')) return false
       }
       return true
@@ -1210,17 +1222,6 @@ export function AppSidebar({
       })
     }
 
-    // Equipo
-    if (teamSubItems.length > 0) {
-      mainItems.push({
-        title: t('sidebar:teamMenu.title', { defaultValue: 'Equipo' }),
-        url: '#team',
-        icon: Users,
-        subSidebar: 'team',
-        keywords: ['usuarios', 'empleados', 'personal', 'staff'],
-      })
-    }
-
     // Clientes
     if (customersSubItems.length > 0) {
       mainItems.push({
@@ -1242,6 +1243,18 @@ export function AppSidebar({
         icon: BarChart3,
         subSidebar: 'reports',
         keywords: ['reportes', 'analytics', 'estadisticas'],
+      })
+    }
+
+    // RH (antes «Equipo») — después de lo del día a día y antes de lo administrativo (spec F5). La clave '#team' / 'team' se queda
+    // igual para no perder lo que un superadmin ya ocultó (hiddenSidebarItems guarda esa URL).
+    if (teamSubItems.length > 0) {
+      mainItems.push({
+        title: t('rh:menu.title', { defaultValue: 'RH' }),
+        url: '#team',
+        icon: Users,
+        subSidebar: 'team',
+        keywords: ['usuarios', 'empleados', 'personal', 'staff', 'rh', 'recursos humanos'],
       })
     }
 

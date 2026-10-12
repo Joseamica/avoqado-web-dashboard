@@ -116,6 +116,8 @@ const routeKeyMap: Record<string, string> = {
   team: 'sidebar:routes.teams',
   commissions: 'sidebar:routes.commissions',
   'servicio-pago': 'sidebar:teamMenu.servicePay',
+  rh: 'rh:menu.title',
+  puestos: 'rh:menu.positions',
   // Dinero
   refunds: 'sidebar:routes.refunds',
   disputes: 'sidebar:routes.disputes',

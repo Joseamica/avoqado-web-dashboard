@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3,
@@ -21,15 +21,19 @@ import { useAuth } from '@/context/AuthContext'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
+import { useInvalidarConteosDePuesto } from '@/hooks/useRh'
 import teamService from '@/services/team.service'
 import { canViewSuperadminInfo, getRoleBadgeColor } from '@/utils/role-permissions'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import { PermissionGate } from '@/components/PermissionGate'
+import { useAccess } from '@/hooks/use-access'
+import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { StaffDocuments } from './components/StaffDocuments'
 import { WorkScheduleSection } from './components/WorkScheduleSection'
 import { NivelDePagoSection } from './components/NivelDePagoSection'
+import { PuestoYPagoTab } from './components/rh/PuestoYPagoTab'
 
 // Se prende cuando la subida vaya por el servidor a un prefijo privado (opción B, 26-ago).
 const STAFF_DOCUMENTS_ENABLED = true
@@ -37,23 +41,37 @@ const STAFF_DOCUMENTS_ENABLED = true
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import TeamCommissionSection from './components/TeamCommissionSection'
 
-type TabValue = 'performance' | 'commissions'
+// Ficha única (RH 1a, spec §6). La pestaña vive en el hash de la URL (ui-patterns: «URL Hash-Based Tabs»).
+const TABS = ['summary', 'positionAndPay', 'attendance', 'receipts', 'documents'] as const
+type TabValue = (typeof TABS)[number]
+const tabDelHash = (hash: string): TabValue => {
+  const h = hash.replace('#', '')
+  return (TABS as readonly string[]).includes(h) ? (h as TabValue) : 'summary'
+}
 
 export default function TeamId() {
-  const { venueId, venueSlug, isWhiteLabelMode, venue } = useCurrentVenue()
+  const { venueId, venueSlug, isWhiteLabelMode, venue, fullBasePath } = useCurrentVenue()
+  // Misma regla que oculta Pago al personal en el menú (módulo WHITE_LABEL_DASHBOARD): ahí todo /rh responde 403 (spec §5.3).
+  const { isWhiteLabelEnabled } = useWhiteLabelConfig()
+  const rhApagado = isWhiteLabelMode || isWhiteLabelEnabled
+  const { can } = useAccess()
+  const location = useLocation()
   const attendanceOn = venue?.settings?.attendanceEnabled
   const { memberId } = useParams<{ memberId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
+  // Dar de baja, borrar o editar (rol/activo) cambia las personas vigentes por puesto (chips de Personas y catálogo de Puestos).
+  const refrescarConteosDePuesto = useInvalidarConteosDePuesto()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
+  const { t: tRh } = useTranslation('rh')
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
   const { formatDate } = useVenueDateTime()
   const { getDisplayName: getCustomRoleDisplayName } = useRoleConfig()
 
-  const [activeTab, setActiveTab] = useState<TabValue>('performance')
+  const [activeTab, setActiveTab] = useState<TabValue>(() => tabDelHash(location.hash))
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false)
@@ -93,6 +111,7 @@ export default function TeamId() {
     mutationFn: () => teamService.removeTeamMember(venueId, memberId!),
     onSuccess: () => {
       toast({ title: t('toasts.memberRemovedTitle'), description: t('toasts.memberRemovedDesc', { firstName: memberDetails?.firstName || '', lastName: memberDetails?.lastName || '' }) })
+      refrescarConteosDePuesto()
       navigate(-1)
     },
     onError: (error: any) => {
@@ -105,6 +124,7 @@ export default function TeamId() {
     onSuccess: result => {
       toast({ title: t('toasts.memberHardDeletedTitle'), description: t('toasts.memberHardDeletedDesc', { firstName: memberDetails?.firstName || '', lastName: memberDetails?.lastName || '', count: Object.values(result.deletedRecords).reduce((a: number, b: number) => a + b, 0) }) })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+      refrescarConteosDePuesto()
       navigate(-1)
     },
     onError: (error: any) => {
@@ -161,6 +181,7 @@ export default function TeamId() {
     setShowEditDialog(false)
     queryClient.invalidateQueries({ queryKey: ['team-member', venueId, memberId] })
     queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+    refrescarConteosDePuesto()
   }
 
   // ── Loading / Error States ─────────────────────────────
@@ -213,6 +234,41 @@ export default function TeamId() {
   const canHardDelete = isSuperadmin || staffInfo?.role === StaffRole.OWNER
   const hasActivity = memberDetails.totalSales > 0 || memberDetails.totalOrders > 0
   const avgTicket = memberDetails.totalOrders > 0 ? memberDetails.totalSales / memberDetails.totalOrders : 0
+
+  // Lo que ya vivía en la ficha se muda a «Puesto y pago» con su candado y su condición de marca blanca de siempre.
+  const piezasDePago = (
+    <>
+      {/* Nivel de pago por servicio. Tras staffpay:read; la sección no se pinta si el módulo está apagado. Oculto en WL. */}
+      {venueId && memberDetails.staffId && !isWhiteLabelMode && (
+        <PermissionGate permission="staffpay:read">
+          <NivelDePagoSection staffId={memberDetails.staffId} staffName={`${memberDetails.firstName} ${memberDetails.lastName}`.trim()} />
+        </PermissionGate>
+      )}
+      {/* La que antes era la pestaña «Comisiones». */}
+      <PermissionGate permission="commissions:read">
+        <TeamCommissionSection staffId={memberDetails.staffId} />
+      </PermissionGate>
+    </>
+  )
+  // Una pestaña sin nada que mostrar no se ofrece (mismas condiciones que su contenido).
+  const pestanas = (
+    [
+      { value: 'summary', visible: true },
+      { value: 'positionAndPay', visible: !rhApagado || can('commissions:read') || (!isWhiteLabelMode && can('staffpay:read')) },
+      { value: 'attendance', visible: !!venueId && !!memberDetails.id && !isWhiteLabelMode && (attendanceOn ?? true) && can('attendance:read') },
+      // Pago al personal no existe en marca blanca (el menú lo oculta con la misma regla).
+      { value: 'receipts', visible: !rhApagado && can('staffpay:read') },
+      {
+        value: 'documents',
+        visible: STAFF_DOCUMENTS_ENABLED && !!venueId && !!venueSlug && !!memberDetails.staffId && !isWhiteLabelMode && can('staff-documents:read'),
+      },
+    ] as Array<{ value: TabValue; visible: boolean }>
+  ).filter(p => p.visible)
+  const tabActiva: TabValue = pestanas.some(p => p.value === activeTab) ? activeTab : 'summary'
+  const cambiarTab = (v: TabValue) => {
+    setActiveTab(v)
+    navigate(`${location.pathname}${location.search}#${v}`, { replace: true })
+  }
 
   return (
     <div className="p-6">
@@ -365,36 +421,30 @@ export default function TeamId() {
       </div>
 
       {/* ─── Tabs ───────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)}>
-        <div className="border-b border-border mb-6">
-          <nav className="flex items-center gap-6">
-            <button
-              type="button"
-              onClick={() => setActiveTab('performance')}
-              className={`relative pb-3 text-sm font-medium transition-colors cursor-pointer ${
-                activeTab === 'performance' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {t('detail.tabs.performance', { defaultValue: 'Rendimiento' })}
-              {activeTab === 'performance' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
-            </button>
-            <PermissionGate permission="commissions:read">
+      <Tabs value={tabActiva} onValueChange={v => cambiarTab(v as TabValue)}>
+        <div className="border-b border-border mb-6 overflow-x-auto">
+          <nav role="tablist" className="flex items-center gap-6">
+            {pestanas.map(p => (
               <button
+                key={p.value}
                 type="button"
-                onClick={() => setActiveTab('commissions')}
-                className={`relative pb-3 text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === 'commissions' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                role="tab"
+                aria-selected={tabActiva === p.value}
+                onClick={() => cambiarTab(p.value)}
+                className={`relative inline-flex min-h-11 items-end pb-3 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  tabActiva === p.value ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
+                data-tour={`member-tab-${p.value}`}
               >
-                {t('detail.tabs.commissions', { defaultValue: 'Comisiones' })}
-                {activeTab === 'commissions' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
+                {tRh(`profile.tabs.${p.value}`)}
+                {tabActiva === p.value && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
               </button>
-            </PermissionGate>
+            ))}
           </nav>
         </div>
 
-        {/* ─── Performance Tab ────────────────────────── */}
-        <TabsContent value="performance">
+        {/* ─── Resumen (el rendimiento de siempre) ────── */}
+        <TabsContent value="summary">
           {hasActivity ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
@@ -507,11 +557,56 @@ export default function TeamId() {
           )}
         </TabsContent>
 
-        {/* ─── Commissions Tab ────────────────────────── */}
-        <TabsContent value="commissions">
-          <PermissionGate permission="commissions:read">
-            <TeamCommissionSection staffId={memberDetails.staffId} />
+        {/* ─── Puesto y pago: puestos, relación y pago en vivo (fuera de marca blanca) + nivel y comisiones de siempre ─── */}
+        <TabsContent value="positionAndPay">
+          {rhApagado ? (
+            <div className="space-y-6">{piezasDePago}</div>
+          ) : (
+            <PuestoYPagoTab
+              staffId={memberDetails.staffId}
+              vigentes={memberDetails.currentAssignments ?? []}
+              sede={memberDetails.venue.name}
+              rolActual={memberDetails.role}
+              onCambiarRol={canEdit && can('teams:update') ? () => setShowEditDialog(true) : undefined}
+            >
+              {piezasDePago}
+            </PuestoYPagoTab>
+          )}
+        </TabsContent>
+
+        {/* Cuadrante laboral (fase 2). Opcional siempre; nunca en el alta. Oculto en WL y si el
+            negocio apagó asistencia. */}
+        <TabsContent value="attendance">
+          {venueId && memberDetails.id && !isWhiteLabelMode && (attendanceOn ?? true) && (
+            <PermissionGate permission="attendance:read">
+              <WorkScheduleSection venueId={venueId} staffVenueId={memberDetails.id} />
+            </PermissionGate>
+          )}
+        </TabsContent>
+
+        {/* Recibos: hoy viven en Pago al personal › Periodos (esa página no preselecciona persona). El recibo unificado es 1b. */}
+        <TabsContent value="receipts">
+          <PermissionGate permission="staffpay:read">
+            <Card className="border-input">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
+                <p className="text-sm text-muted-foreground">{tRh('profile.receiptsText')}</p>
+                <Button asChild variant="outline" className="h-11 cursor-pointer">
+                  <Link to={`${fullBasePath}/servicio-pago#periodos`}>{tRh('profile.receiptsLink')}</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </PermissionGate>
+        </TabsContent>
+
+        {/* Expediente. Vive tras `staff-documents:read`: un gerente ve al equipo pero NO esto.
+            En white-label NO: PT no usa expediente y el detalle de miembro es compartido.
+            Sube por el SERVIDOR a un prefijo privado; se abre con URL firmada que caduca. */}
+        <TabsContent value="documents">
+          {STAFF_DOCUMENTS_ENABLED && venueId && venueSlug && memberDetails.staffId && !isWhiteLabelMode && (
+            <PermissionGate permission="staff-documents:read">
+              <StaffDocuments venueId={venueId} staffId={memberDetails.staffId} />
+            </PermissionGate>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -569,38 +664,6 @@ export default function TeamId() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      )}
-
-      {/* Expediente. Vive tras `staff-documents:read`: un gerente ve al equipo pero NO esto. */}
-      {/* Cuadrante laboral (fase 2). Opcional siempre; nunca en el alta. Oculto en WL y si el
-          negocio apagó asistencia. */}
-      {venueId && memberDetails.id && !isWhiteLabelMode && (attendanceOn ?? true) && (
-        <div className="mb-8">
-          <PermissionGate permission="attendance:read">
-            <WorkScheduleSection venueId={venueId} staffVenueId={memberDetails.id} />
-          </PermissionGate>
-        </div>
-      )}
-
-      {/* Nivel de pago por servicio. Tras staffpay:read; la sección no se pinta si el módulo está apagado. Oculto en WL. */}
-      {venueId && memberDetails.staffId && !isWhiteLabelMode && (
-        <PermissionGate permission="staffpay:read">
-          <NivelDePagoSection
-            className="mb-8"
-            staffId={memberDetails.staffId}
-            staffName={`${memberDetails.firstName} ${memberDetails.lastName}`.trim()}
-          />
-        </PermissionGate>
-      )}
-
-      {/* En white-label NO: PT no usa expediente y el detalle de miembro es compartido.
-          Sube por el SERVIDOR a un prefijo privado; se abre con URL firmada que caduca. */}
-      {STAFF_DOCUMENTS_ENABLED && venueId && venueSlug && memberDetails.staffId && !isWhiteLabelMode && (
-        <div className="mb-8">
-          <PermissionGate permission="staff-documents:read">
-            <StaffDocuments venueId={venueId} staffId={memberDetails.staffId} />
-          </PermissionGate>
-        </div>
       )}
 
       {/* ─── Hard Delete Dialog ────────────────────────── */}

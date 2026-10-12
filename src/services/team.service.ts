@@ -1,5 +1,6 @@
 import api from '@/api'
 import { StaffRole } from '@/types'
+import type { Asignacion } from '@/types/rh'
 
 // Team Member interfaces
 export interface TeamMember {
@@ -19,6 +20,8 @@ export interface TeamMember {
   averageRating: number
   permissionSetId: string | null
   permissionSetName: string | null
+  /** Puestos vigentes (RH 1a). Opcional: servidores anteriores a RH no lo mandan. */
+  currentAssignments?: Asignacion[]
 }
 
 export interface TeamMemberDetails extends TeamMember {
@@ -124,7 +127,14 @@ export interface InviteTeamMemberResponse {
 // Team Management Service
 export const teamService = {
   // Get team members with pagination and search
-  async getTeamMembers(venueId: string, page: number = 1, pageSize: number = 10, search?: string): Promise<PaginatedTeamResponse> {
+  // `search` (4º argumento) es texto de búsqueda — AjusteManualModal lo usa así —; `positionId` (5º) filtra por puesto (RH 1a).
+  async getTeamMembers(
+    venueId: string,
+    page: number = 1,
+    pageSize: number = 10,
+    search?: string,
+    positionId?: string,
+  ): Promise<PaginatedTeamResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
       pageSize: pageSize.toString(),
@@ -132,6 +142,10 @@ export const teamService = {
 
     if (search) {
       params.append('search', search)
+    }
+
+    if (positionId) {
+      params.append('positionId', positionId)
     }
 
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/team?${params}`)

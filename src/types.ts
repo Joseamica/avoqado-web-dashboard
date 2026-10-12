@@ -1,5 +1,6 @@
 // Import VenueStatus from superadmin types (single source of truth)
 import { VenueStatus } from './types/superadmin'
+import type { Asignacion } from './types/rh'
 
 // Re-export for convenience
 export { VenueStatus }
@@ -1863,6 +1864,8 @@ export interface TeamMember {
   averageRating: number
   permissionSetId: string | null
   permissionSetName: string | null
+  /** Puestos vigentes (RH 1a). Opcional: servidores anteriores a RH no lo mandan. */
+  currentAssignments?: Asignacion[]
 }
 
 export interface TeamMemberDetails extends TeamMember {

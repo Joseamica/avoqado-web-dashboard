@@ -2,7 +2,7 @@ import api from '@/api'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, MoreHorizontal, Pencil, UserMinus, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
@@ -12,9 +12,11 @@ import { Switch } from '@/components/ui/switch'
 import { FilterPill, FilterPillBar, CheckboxFilterContent, ColumnCustomizer, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/hooks/use-access'
+import { useInvalidarConteosDePuesto, usePositions } from '@/hooks/useRh'
 import { useTeamInvitationTour } from '@/hooks/useTeamInvitationTour'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation, type PaginatedTeamResponse } from '@/services/team.service'
@@ -23,6 +25,7 @@ import { TeamMember, StaffRole } from '@/types'
 import { filterSuperadminFromTeam, getRoleBadgeColor, canViewSuperadminInfo } from '@/utils/role-permissions'
 import { Currency } from '@/utils/currency'
 import { canModifyRole, canDeactivateTeamMember } from '@/lib/permissions/roleHierarchy'
+import { cn } from '@/lib/utils'
 
 import {
   AlertDialog,
@@ -54,6 +57,9 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
+// Columnas de RH: en marca blanca no se pintan (ni se ofrecen en «Columnas»).
+const COLUMNAS_RH = ['position', 'checks', 'relation']
+
 // ⚠️ COHERENCIA con tours interactivos:
 // Esta página tiene un tour driver.js (`useTeamInvitationTour`) que guía al
 // usuario a invitar a su primer miembro. Si modificas la UI/UX (botón de
@@ -61,7 +67,17 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 // `src/hooks/useTeamInvitationTour.ts` y actualiza los selectores
 // `data-tour="team-*"` y los textos de los steps en paralelo.
 export default function Teams() {
-  const { venueId, fullBasePath } = useCurrentVenue()
+  const { venueId } = useCurrentVenue()
+  // Al cambiar de sucursal la ruta es la misma y React conserva el componente: sin esto se arrastrarían a la sucursal nueva el
+  // puesto elegido, la búsqueda, la página, los filtros y hasta los diálogos abiertos de la anterior. Con `key` nace limpio.
+  return <TeamsContent key={venueId} />
+}
+
+function TeamsContent() {
+  const { venueId, fullBasePath, isWhiteLabelMode } = useCurrentVenue()
+  // Misma regla que TeamId (y que oculta Pago al personal en el menú): en marca blanca todo /rh responde 403 (spec §5.3).
+  const { isWhiteLabelEnabled } = useWhiteLabelConfig()
+  const rhApagado = isWhiteLabelMode || isWhiteLabelEnabled
 
   // Misma llave que Ajustes → Editar negocio: comparten caché, y el invalidate de
   // AsistenciaSettings refresca las dos pantallas.
@@ -74,9 +90,12 @@ export default function Teams() {
   const { staffInfo } = useAuth()
   const { can } = useAccess()
   const queryClient = useQueryClient()
+  // Activar, desactivar o dar de baja cambia las personas vigentes por puesto (chips «Coaches · 4»).
+  const refrescarConteosDePuesto = useInvalidarConteosDePuesto()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
+  const { t: tRh } = useTranslation('rh')
   const { formatDate } = useVenueDateTime()
 
   // ─── Free-plan seat cap ────────────────────────────────────────────────────
@@ -161,19 +180,37 @@ export default function Teams() {
   const [salesFilter, setSalesFilter] = useState<AmountFilter | null>(null)
   const [tipsFilter, setTipsFilter] = useState<AmountFilter | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  // Sin espacios en las orillas: «   » no es una búsqueda, y teclear un espacio al final no reinicia el debounce.
+  const debouncedSearchTerm = useDebounce(searchTerm.trim(), 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  // Puesto elegido en los chips ('' = Todos). La búsqueda y el puesto los resuelve el SERVIDOR; el resto de filtros, todavía no.
+  const [positionId, setPositionId] = useState('')
   const [activeTeamTab, setActiveTeamTab] = useState<'members' | 'invitations' | 'asistencia'>('members')
 
-  const teamMembersQueryKey = ['team-members', venueId, pagination.pageIndex, pagination.pageSize] as const
+  // La llave cuelga de ['team-members', sede]: las mutaciones de RH y de equipo invalidan ese prefijo.
+  const teamMembersQueryKey = ['team-members', venueId, pagination.pageIndex, pagination.pageSize, debouncedSearchTerm, positionId] as const
 
   // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(['firstName', 'role', 'active', 'totalSales', 'totalTips', 'totalOrders'])
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    'firstName',
+    'role',
+    'position',
+    'checks',
+    'relation',
+    'active',
+    'totalSales',
+    'totalTips',
+    'totalOrders',
+  ])
 
-  // Reset pagination when filters change
-  useEffect(() => {
+  // Al cambiar un filtro o la búsqueda se vuelve a la página 1 ANTES de pedir: si fuera en un efecto, la primera petición
+  // saldría con la página vieja (p. ej. la 3 de una búsqueda que sólo tiene una).
+  const filtrosKey = JSON.stringify([statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm, positionId])
+  const [filtrosPrevios, setFiltrosPrevios] = useState(filtrosKey)
+  if (filtrosKey !== filtrosPrevios) {
+    setFiltrosPrevios(filtrosKey)
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm])
+  }
 
   // Helper function to format amount filter label
   const getAmountFilterLabel = useCallback(
@@ -210,6 +247,7 @@ export default function Teams() {
     setSalesFilter(null)
     setTipsFilter(null)
     setSearchTerm('')
+    setPositionId('')
   }, [])
 
   // Count active filters
@@ -220,8 +258,9 @@ export default function Teams() {
     if (salesFilter) count++
     if (tipsFilter) count++
     if (debouncedSearchTerm) count++
+    if (positionId) count++
     return count
-  }, [statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm])
+  }, [statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm, positionId])
 
   // Filter options for checkboxes
   const statusOptions = useMemo(
@@ -259,12 +298,56 @@ export default function Teams() {
     [roleOptions],
   )
 
-  // Fetch team members
-  const { data: teamData, isLoading: isLoadingTeam } = useQuery({
+  // Fetch team members. Búsqueda y puesto van al servidor; conservar los datos anteriores (placeholderData) evita que cada tecla deje la tabla en «cargando»
+  // (la tabla desmontaría el buscador y en Android se cerraría el teclado).
+  const {
+    data: teamData,
+    isLoading: isLoadingTeam,
+    isError: isTeamError,
+    isPlaceholderData,
+    refetch: refetchTeam,
+  } = useQuery({
     queryKey: teamMembersQueryKey,
-    queryFn: () => teamService.getTeamMembers(venueId, pagination.pageIndex + 1, pagination.pageSize),
-    refetchOnWindowFocus: true,
+    queryFn: () =>
+      teamService.getTeamMembers(venueId, pagination.pageIndex + 1, pagination.pageSize, debouncedSearchTerm || undefined, positionId || undefined),
+    enabled: !!venueId,
+    // Sólo conserva lo anterior si era de ESTA sucursal (defensa extra: el `key` de arriba ya reinicia el componente).
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[1] === venueId ? prev : undefined),
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+    retry: 1,
   })
+
+  // Puestos del negocio para los chips (con cuántas personas lo tienen vigente) y el color de cada chip de la tabla.
+  const { data: positionsData } = usePositions({ limit: 100 }, !rhApagado)
+  const positions = positionsData?.data
+  const positionColors = useMemo(() => new Map((positions ?? []).map(p => [p.id, p.color])), [positions])
+  const hasPositions = !rhApagado && !!positions && positions.length > 0
+
+  // «Todos · N» y el número de la pestaña «Miembros» son toda la gente, no lo que deja el filtro: con búsqueda o puesto puestos, el
+  // total de la respuesta es el filtrado, así que se pide aparte (una fila basta, sólo interesa el total). Sólo hace falta si hay
+  // chips o un filtro puesto; sin ellos el total de la lista misma ya es el de todos.
+  const hasServerFilter = !!debouncedSearchTerm || !!positionId
+  const { data: unfilteredData } = useQuery({
+    queryKey: ['team-members', venueId, 'total'],
+    queryFn: () => teamService.getTeamMembers(venueId, 1, 1),
+    enabled: !!venueId && (hasPositions || hasServerFilter),
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+  // Sin filtro (y sin datos prestados de uno anterior) el total de la lista es el de todos y siempre está fresco. Con filtro, el de
+  // la consulta aparte; mientras llega (o si falla) NO se muestra el filtrado como si fuera el de todos: queda sin número.
+  const everyoneCount =
+    !hasServerFilter && !isPlaceholderData
+      ? teamData?.meta.totalCount
+      : (unfilteredData?.meta.totalCount ?? (hasServerFilter ? undefined : teamData?.meta.totalCount))
+  const positionChips = [
+    // Sin número («—») si aún no se sabe o la consulta falló: la fila nunca desaparece, así siempre se puede quitar el filtro.
+    // (i18next tipa `count` como número; «—» sólo se interpola, no pluraliza.)
+    { id: '', label: tRh('people.filterAll', { count: everyoneCount ?? ('—' as unknown as number) }), color: null as string | null },
+    ...(positions ?? []).map(p => ({ id: p.id, label: `${p.name} · ${p.personasVigentes}`, color: p.color })),
+  ]
 
   // Fetch pending invitations
   const { data: invitationsData, isLoading: isLoadingInvitations } = useQuery({
@@ -287,6 +370,7 @@ export default function Teams() {
       })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
       queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
+      refrescarConteosDePuesto()
       setRemovingMember(null)
     },
     onError: (error: any) => {
@@ -376,6 +460,7 @@ export default function Teams() {
 
       // Activating/deactivating changes the active seat count → refresh the gate.
       queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
+      refrescarConteosDePuesto()
 
       toast({
         title: updatedMember.active ? t('toasts.memberActivatedTitle') : t('toasts.memberDeactivatedTitle'),
@@ -410,7 +495,7 @@ export default function Teams() {
   // Filter team members to hide superadmins from non-superadmin users
   // CRITICAL: Must be memoized to prevent infinite re-render loop
   // filterSuperadminFromTeam() returns new array for non-SUPERADMIN roles
-  // Also applies client-side filters (status, role, sales, tips, search)
+  // Also applies client-side filters (status, role, sales, tips). La búsqueda y el puesto ya los filtró el servidor.
   const filteredTeamMembers = useMemo(() => {
     let result = filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role)
 
@@ -465,36 +550,13 @@ export default function Teams() {
       })
     }
 
-    // Apply search filter (using debouncedSearchTerm)
-    if (debouncedSearchTerm) {
-      const q = debouncedSearchTerm.toLowerCase()
-      result = result.filter(member => {
-        const name = `${member.firstName} ${member.lastName}`.toLowerCase()
-        const email = (member.email || '').toLowerCase()
-        const role = (member.role || '').toString().toLowerCase()
-        return name.includes(q) || email.includes(q) || role.includes(q)
-      })
-    }
-
     return result
-  }, [teamData?.data, staffInfo?.role, statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm])
+  }, [teamData?.data, staffInfo?.role, statusFilter, roleFilter, salesFilter, tipsFilter])
 
   const filteredInvitations = useMemo(
     () => filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role),
     [invitationsData?.data, staffInfo?.role],
   )
-
-  // Client-side search like Payments page - wrapped in useCallback to prevent recreation
-  const _handleMemberSearch = useCallback((search: string, rows: TeamMember[]) => {
-    if (!search) return rows
-    const q = search.toLowerCase()
-    return rows.filter(m => {
-      const name = `${m.firstName} ${m.lastName}`.toLowerCase()
-      const email = (m.email || '').toLowerCase()
-      const role = (m.role || '').toString().toLowerCase()
-      return name.includes(q) || email.includes(q) || role.includes(q)
-    })
-  }, [])
 
   const handleInvitationSearch = useCallback((search: string, rows: Invitation[]) => {
     if (!search) return rows
@@ -541,6 +603,60 @@ export default function Teams() {
             {getRoleDisplayName(row.original.role, staffInfo?.role)}
           </Badge>
         ),
+      },
+      {
+        id: 'position',
+        header: tRh('people.position'),
+        cell: ({ row }) => {
+          const asignaciones = row.original.currentAssignments ?? []
+          if (asignaciones.length === 0) return <span className="text-sm text-muted-foreground">{tRh('people.noPosition')}</span>
+          return (
+            <div className="flex flex-wrap gap-1">
+              {asignaciones.map(a => {
+                const color = positionColors.get(a.positionId)
+                return (
+                  <Badge key={a.id} variant="outline" className="gap-1.5 px-2 font-normal text-foreground">
+                    <span
+                      aria-hidden
+                      className="size-2 shrink-0 rounded-full bg-muted-foreground/40"
+                      style={color ? { backgroundColor: color } : undefined}
+                    />
+                    {a.positionName}
+                  </Badge>
+                )
+              })}
+            </div>
+          )
+        },
+      },
+      {
+        id: 'checks',
+        header: tRh('people.checks'),
+        // Sí si alguna asignación vigente checa entrada y salida; «—» si todavía no tiene puesto.
+        cell: ({ row }) => {
+          const asignaciones = row.original.currentAssignments ?? []
+          if (asignaciones.length === 0) return <span className="text-sm text-muted-foreground">—</span>
+          return <span className="text-sm">{asignaciones.some(a => a.tracksAttendance) ? tCommon('yes') : tCommon('no')}</span>
+        },
+      },
+      {
+        id: 'relation',
+        header: tRh('people.relation'),
+        // La relación es opcional: null se dice «Sin definir» (gris), nunca otra cosa.
+        cell: ({ row }) => {
+          const asignaciones = row.original.currentAssignments ?? []
+          if (asignaciones.length === 0) return <span className="text-sm text-muted-foreground">—</span>
+          const relaciones = [...new Set(asignaciones.map(a => a.relation))]
+          return (
+            <div className="flex flex-col gap-0.5 text-sm">
+              {relaciones.map(r => (
+                <span key={r ?? 'none'} className={cn(!r && 'text-muted-foreground')}>
+                  {tRh(r ? `relation.${r}` : 'relation.none')}
+                </span>
+              ))}
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'active',
@@ -630,11 +746,13 @@ export default function Teams() {
     [
       t,
       tCommon,
+      tRh,
       i18n.language,
       staffInfo?.role,
       getRoleDisplayName,
       getRoleBadgeColorWithCustom,
       getRoleBadgeStyle,
+      positionColors,
       canToggleMember,
       canDeactivateMember,
       toggleMemberStatusMutation,
@@ -736,21 +854,25 @@ export default function Teams() {
       const colId = col.id || (col as { accessorKey?: string }).accessorKey
       // Always show actions column
       if (colId === 'actions') return true
+      if (rhApagado && COLUMNAS_RH.includes(colId as string)) return false
       return visibleColumns.includes(colId as string)
     })
-  }, [teamColumns, visibleColumns])
+  }, [teamColumns, visibleColumns, rhApagado])
 
   // Column options for the column customizer
   const columnOptions = useMemo(
     () => [
       { id: 'firstName', label: t('columns.name'), visible: visibleColumns.includes('firstName') },
       { id: 'role', label: t('columns.role'), visible: visibleColumns.includes('role') },
+      { id: 'position', label: tRh('people.position'), visible: visibleColumns.includes('position') },
+      { id: 'checks', label: tRh('people.checks'), visible: visibleColumns.includes('checks') },
+      { id: 'relation', label: tRh('people.relation'), visible: visibleColumns.includes('relation') },
       { id: 'active', label: t('columns.status'), visible: visibleColumns.includes('active') },
       { id: 'totalSales', label: t('columns.totalSales'), visible: visibleColumns.includes('totalSales') },
       { id: 'totalTips', label: t('columns.totalTips'), visible: visibleColumns.includes('totalTips') },
       { id: 'totalOrders', label: t('columns.totalOrders'), visible: visibleColumns.includes('totalOrders') },
-    ],
-    [t, visibleColumns],
+    ].filter(c => !(rhApagado && COLUMNAS_RH.includes(c.id))),
+    [t, tRh, visibleColumns, rhApagado],
   )
 
   return (
@@ -838,7 +960,7 @@ export default function Teams() {
               }`}
             >
               {t('tabs.members')}
-              <span className="ml-1.5 text-xs opacity-60">{teamData?.meta.totalCount || 0}</span>
+              {everyoneCount !== undefined && <span className="ml-1.5 text-xs opacity-60">{everyoneCount}</span>}
               {activeTeamTab === 'members' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
@@ -870,6 +992,48 @@ export default function Teams() {
         </div>
 
         <TabsContent value="members" data-tour="team-members-table" className="space-y-4">
+          {/* Chips por puesto: «Todos · N» y uno por puesto con su gente vigente. Sin puestos no hay nada que filtrar. */}
+          {hasPositions && (
+            <div className="flex flex-wrap gap-2">
+              {positionChips.map(chip => (
+                <button
+                  key={chip.id || 'all'}
+                  type="button"
+                  aria-pressed={positionId === chip.id}
+                  onClick={() => setPositionId(chip.id)}
+                  className={cn(
+                    'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    positionId === chip.id
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-border bg-muted/60 text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {chip.id && (
+                    <span
+                      aria-hidden
+                      className="size-2 shrink-0 rounded-full bg-muted-foreground/40"
+                      style={chip.color ? { backgroundColor: chip.color } : undefined}
+                    />
+                  )}
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Un fallo de red no puede verse como «no hay gente» */}
+          {isTeamError && (
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
+            >
+              <span>{tCommon('errors.serverUnavailableDescription')}</span>
+              <Button variant="outline" size="sm" onClick={() => refetchTeam()}>
+                {tCommon('errors.retryNow')}
+              </Button>
+            </div>
+          )}
+
           {/* Results count */}
           {(activeFiltersCount > 0 || debouncedSearchTerm) && (
             <div className="text-sm text-muted-foreground">
@@ -888,7 +1052,7 @@ export default function Teams() {
             pagination={pagination}
             setPagination={setPagination}
             tableId="team:members"
-            rowCount={filteredTeamMembers.length}
+            rowCount={teamData?.meta.totalCount ?? 0}
             enableSearch={false}
             clickableRow={row => ({ to: row.id })}
             tableTabLeft={
@@ -901,7 +1065,7 @@ export default function Teams() {
                         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="text"
-                          placeholder={tCommon('search')}
+                          placeholder={tRh('people.search')}
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
                           className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
@@ -924,6 +1088,7 @@ export default function Teams() {
                     <Button
                       variant={searchTerm ? 'secondary' : 'ghost'}
                       size="icon"
+                      aria-label={tCommon('search')}
                       className="h-7 w-7 rounded-full"
                       onClick={() => setIsSearchOpen(true)}
                     >
@@ -1034,6 +1199,7 @@ export default function Teams() {
               onSuccess={() => {
                 setEditingMember(null)
                 queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+                refrescarConteosDePuesto()
               }}
             />
           </DialogContent>

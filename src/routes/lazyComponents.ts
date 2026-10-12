@@ -47,6 +47,8 @@ export const Reviews = lazyWithRetry(() => import('@/pages/Review/Reviews'))
 export const Teams = lazyWithRetry(() => import('@/pages/Team/Teams'))
 export const Attendance = lazyWithRetry(() => import('@/pages/Attendance/Attendance'))
 export const TeamId = lazyWithRetry(() => import('@/pages/Team/TeamId'))
+// RH (fase 1a): catálogo de puestos
+export const PuestosPage = lazyWithRetry(() => import('@/pages/Rh/Puestos/PuestosPage'))
 export const VenueEditLayout = lazyWithRetry(() => import('@/pages/Venue/VenueEditLayout'))
 export const BasicInfo = lazyWithRetry(() => import('@/pages/Venue/Edit/BasicInfo'))
 export const ContactImages = lazyWithRetry(() => import('@/pages/Venue/Edit/ContactImages'))
