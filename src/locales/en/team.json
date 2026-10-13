@@ -94,8 +94,8 @@
     }
   },
   "header": {
-    "title": "Team Members",
-    "subtitle": "Manage your team and invite new members",
+    "title": "People",
+    "subtitle": "Your people at this location: invite them, give them a position and decide what they can do",
     "inviteButton": "Invite Member",
     "inviteDialog": {
       "title": "Invite Team Member",

@@ -12,6 +12,7 @@ import { User, Venue, SessionVenue, StaffRole } from '@/types'
 import { identifyUser, resetUser } from '@/lib/posthog'
 import { resolvePostLoginRedirect } from '@/lib/pendingInvitation'
 import { FEATURE_ROUTE_MAP } from '@/hooks/useWhiteLabelConfig'
+import { pageForOtherVenue } from '@/utils/pageForOtherVenue'
 
 // Tipos y la Interfaz del Contexto
 type LoginData = { email: string; password: string; venueSlug?: string }
@@ -921,6 +922,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             pagePart = getVenueDefaultPage(newVenue)
           }
         }
+
+        // El id de una ficha (persona, orden, producto…) es de la sucursal anterior: se queda en su lista.
+        // Import dinámico: router.tsx importa (vía root.tsx) este archivo.
+        const { default: router } = await import('@/routes/router')
+        pagePart = pageForOtherVenue(router.routes, basePath, pagePart) || getVenueDefaultPage(newVenue)
 
         const newPath = `${basePath}/${pagePart}`
         navigate(newPath, { replace: true })

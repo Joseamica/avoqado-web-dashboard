@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { clampMoveDelta, editorReducer, initEditorState, normalizeRectElement, type EditorState } from '../editorReducer'
+import { sizeFits } from '../floorGeometry'
 import { docToPayload, dtoToDoc } from '../planMapping'
 import type { DraftElement, DraftTable, EditorDoc, FloorPlanDto, FloorShape, PublishFloorPlanBody } from '../types'
 
 const table = (key: string, extra: Partial<DraftTable> = {}): DraftTable => ({
-  key, id: key, number: key.replace('t', ''), capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, hasOpenOrder: false, ...extra,
+  key, id: key, number: key.replace('t', ''), capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, w: null, h: null, hasOpenOrder: false, ...extra,
 })
 const wall: DraftElement = { key: 'w1', id: 'w1', type: 'WALL', areaKey: 'a1', x: 0, y: 0, w: null, h: null, rotation: 0, x2: 10, y2: 0, label: null, color: null }
 const doc = (): EditorDoc => ({
@@ -175,6 +176,44 @@ describe('editorReducer — piezas que no se deforman ni se salen (ronda 1)', ()
     const start = initEditorState(oneArea('WIDE', [], [{ ...wall, x: 30, y: 5, x2: 40, y2: 5 }]))
     const s = editorReducer(start, { type: 'DUPLICATE', clones: [{ sourceKey: 'w1', key: 'tmp-w' }] })
     expect(s.doc.elements[1]).toMatchObject({ key: 'tmp-w', x: 30, y: 7, x2: 40, y2: 7 })
+  })
+
+  describe('mover la punta de una pared', () => {
+    it('mueve sólo la punta que se arrastra y deja la otra donde estaba', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 15, y: 0 })
+      expect(s.doc.elements[0]).toMatchObject({ x: 0, y: 0, x2: 15, y2: 0 })
+      expect(s.past).toHaveLength(1)
+    })
+
+    it('la punta de inicio también se mueve', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'start', x: 4, y: 0 })
+      expect(s.doc.elements[0]).toMatchObject({ x: 4, y: 0, x2: 10, y2: 0 })
+    })
+
+    it('se imanta a 0/45/90° desde la otra punta', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 9, y: 2 })
+      expect(s.doc.elements[0]).toMatchObject({ x2: 9, y2: 0 })
+    })
+
+    it('no se sale del lienzo: se detiene en la orilla sobre su propia línea', () => {
+      const s = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 55, y: 0 }) // ancha: 40 × 25
+      expect(s.doc.elements[0]).toMatchObject({ x2: 40, y2: 0 })
+    })
+
+    it('una pared de menos de un cuadro no se acepta: queda como estaba, sin paso de deshacer', () => {
+      const start = initEditorState(doc())
+      expect(editorReducer(start, { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 0, y: 0 })).toBe(start)
+    })
+
+    it('deshacer regresa la pared completa', () => {
+      const moved = editorReducer(initEditorState(doc()), { type: 'MOVE_WALL_END', key: 'w1', end: 'end', x: 15, y: 0 })
+      expect(editorReducer(moved, { type: 'UNDO' }).doc.elements[0]).toMatchObject({ x2: 10, y2: 0 })
+    })
+
+    it('sólo aplica a paredes', () => {
+      const start = initEditorState({ ...doc(), elements: [{ ...wall, key: 'b1', type: 'BAR_COUNTER', w: 8, h: 2, x2: null, y2: null }] })
+      expect(editorReducer(start, { type: 'MOVE_WALL_END', key: 'b1', end: 'end', x: 15, y: 0 })).toBe(start)
+    })
   })
 
   it('copiar una mesa de la bandeja no copia su posición vieja', () => {
@@ -353,5 +392,190 @@ describe('editorReducer — ola final', () => {
     const s = run(initEditorState(two), { type: 'SELECT', keys: ['t1', 'w1'] }, { type: 'UPDATE_TABLE', key: 't1', patch: { capacity: 6 } })
     expect(s.activeAreaKey).toBe('a1')
     expect(s.selection).toEqual(['t1', 'w1'])
+  })
+})
+
+describe('editorReducer — tamaño libre (spec 2026-10-12)', () => {
+  const larga = (extra: Partial<DraftTable> = {}) => table('t1', { shape: 'RECTANGLE', capacity: 4, ...extra }) // 6 × 4 automática
+  const una = (t: DraftTable) => initEditorState({ ...doc(), tables: [t] })
+  const update = (s: EditorState, patch: Partial<DraftTable>) => editorReducer(s, { type: 'UPDATE_TABLE', key: 't1', patch })
+
+  it('poner ancho y alto los guarda, la vuelve a imantar y deshacer los quita', () => {
+    const s = update(una(larga()), { w: 3, h: 4 })
+    expect(s.doc.tables[0]).toMatchObject({ w: 3, h: 4, x: 10.5, y: 10 })
+    expect(editorReducer(s, { type: 'UNDO' }).doc.tables[0]).toMatchObject({ w: null, h: null, x: 10, y: 10 })
+  })
+
+  it('una mesa sin área («Sin acomodar») ignora ancho y alto: queda IGUAL', () => {
+    const s0 = una(larga({ areaKey: null, x: null, y: null }))
+    expect(update(s0, { w: 3, h: 4 })).toBe(s0)
+  })
+
+  // Review Focus 2
+  it('si llega un solo lado, el otro sale del tamaño que se ve (nunca uno solo)', () => {
+    expect(update(una(larga()), { w: 3 }).doc.tables[0]).toMatchObject({ w: 3, h: 4 })
+  })
+
+  it('de 2 cuadros al lado del área: el máximo exacto se acepta; fuera de rango, la mesa queda IGUAL', () => {
+    expect(update(una(larga()), { w: 40, h: 25 }).doc.tables[0]).toMatchObject({ w: 40, h: 25, x: 20, y: 12.5 })
+    const s0 = una(larga())
+    expect(update(s0, { w: 1, h: 4 })).toBe(s0)
+    expect(update(s0, { w: 41, h: 4 })).toBe(s0)
+  })
+
+  // Auditoría, punto 3: «+ Alto» en una 30 × 5 a 45° pedía 30 × 6 y el ajuste devolvía 29 × 6. Un + que no cabe no hace nada.
+  it('un + que ya girada no cabe deja la mesa IGUAL: no achica el otro lado ni crea paso de deshacer', () => {
+    const s0 = una(larga({ w: 30, h: 5, rotation: 45, x: 20, y: 12.5 }))
+    const s1 = update(s0, { w: 30, h: 6 })
+    expect(s1).toBe(s0)
+    expect(s1.past).toHaveLength(0)
+  })
+
+  it('cambiar la forma vuelve a automático; cambiar las personas no lo toca', () => {
+    const chica = update(una(larga()), { w: 3, h: 4 })
+    expect(update(chica, { capacity: 8 }).doc.tables[0]).toMatchObject({ capacity: 8, w: 3, h: 4 })
+    expect(update(chica, { shape: 'ROUND' }).doc.tables[0]).toMatchObject({ shape: 'ROUND', w: null, h: null })
+  })
+
+  // Codex C1 (12-oct): una 40 × 4 que un editor viejo (o la PAX) giró 90° ya girada no cabe; cambiarle el número la
+  // achicaba a 25 × 2 y así se guardaba. Editar número o personas conserva ancho y alto TAL CUAL.
+  it('cambiar el número o las personas no toca el tamaño: la 40 × 4 girada 90° por otro editor sigue 40 × 4 y así se guarda', () => {
+    const cargada = dtoToDoc({
+      fingerprint: '0123456789abcdef',
+      overLimit: false,
+      limits: { areas: 30, tables: 500, elements: 1500 },
+      areas: [{ id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, externalId: null }],
+      tables: [
+        { id: 't1', number: '1', capacity: 4, shape: 'RECTANGLE', rotation: 90, positionX: 0.5, positionY: 0.5, areaId: 'a1', hasOpenOrder: false, width: 1, height: 0.16 },
+      ],
+      elements: [],
+    })
+    const s0 = initEditorState(cargada)
+    expect(s0.doc.tables[0]).toMatchObject({ w: 40, h: 4, rotation: 90 })
+    const renombrada = update(s0, { number: '7' })
+    expect(renombrada.doc.tables[0]).toMatchObject({ number: '7', w: 40, h: 4, rotation: 90 })
+    const conPersonas = update(renombrada, { capacity: 8 })
+    expect(conPersonas.doc.tables[0]).toMatchObject({ capacity: 8, w: 40, h: 4, rotation: 90 })
+    expect(docToPayload(conPersonas.doc, 's', '0123456789abcdef').tables[0]).toMatchObject({ number: '7', capacity: 8, width: 1, height: 0.16 })
+  })
+
+  it('redonda y cuadrada: un solo lado; un pedido con lados distintos no se aplica', () => {
+    expect(update(una(table('t1')), { w: 5, h: 5 }).doc.tables[0]).toMatchObject({ w: 5, h: 5 })
+    const s0 = una(table('t1'))
+    expect(update(s0, { w: 6, h: 3 })).toBe(s0)
+  })
+
+  // Codex C2: el «+» de una redonda girada se topaba en 17 (se medía como cuadrado girado); crece hasta el lado del área.
+  it('una redonda girada crece hasta el lado del área: de 20 a 25 a 45° en 40 × 25, con centro Y = 12.5', () => {
+    const s = update(una(table('t1', { shape: 'ROUND', w: 20, h: 20, rotation: 45, x: 20, y: 12.5 })), { w: 25, h: 25 })
+    expect(s.doc.tables[0]).toMatchObject({ w: 25, h: 25, rotation: 45, x: 20.5, y: 12.5 })
+  })
+
+  it('«Automático» (los dos null) la regresa a la regla de personas', () => {
+    const chica = update(una(larga()), { w: 3, h: 4 })
+    expect(update(chica, { w: null, h: null }).doc.tables[0]).toMatchObject({ w: null, h: null })
+  })
+
+  // Review Focus 3
+  it('llevada a un área de otra forma o con el área achicada: conserva sus cuadros, metidos al área', () => {
+    const terraza = { key: 'a2', id: 'a2', name: 'Terraza', floorShape: 'TALL' as const, sortOrder: 1, external: false }
+    const dos: EditorDoc = { ...doc(), areas: [...doc().areas, terraza], tables: [larga({ w: 30, h: 4 })] }
+    const movida = editorReducer(initEditorState(dos), { type: 'UPDATE_TABLE', key: 't1', patch: { areaKey: 'a2' } })
+    expect(movida.doc.tables[0]).toMatchObject({ areaKey: 'a2', w: 25, h: 4, x: 12.5, y: 20 }) // larga: 25 de ancho
+    const achicada = editorReducer(una(larga({ w: 30, h: 4, x: 20 })), { type: 'UPDATE_AREA', key: 'a1', patch: { floorShape: 'TALL' } })
+    expect(achicada.doc.tables[0]).toMatchObject({ w: 25, h: 4, x: 12.5, y: 10 })
+  })
+
+  // Review Focus 3 · auditoría, punto 1: antes se veía 4 × 40, el PUT recortaba 40/25 a 1 y al recargar salía 4 × 25.
+  it('una 4 × 40 girada 90° pasada de un área cuadrada a una ancha: se ve 4 × 25, y así se guarda y se recarga', () => {
+    const patio = { key: 'c1', id: 'c1', name: 'Patio', floorShape: 'SQUARE' as const, sortOrder: 1, external: false }
+    const start = initEditorState({ ...doc(), areas: [...doc().areas, patio], tables: [larga({ areaKey: 'c1', w: 4, h: 40, rotation: 90, x: 20, y: 20 })] })
+    const movida = editorReducer(start, { type: 'UPDATE_TABLE', key: 't1', patch: { areaKey: 'a1' } }) // Salón: ancha 40 × 25
+    expect(movida.doc.tables[0]).toMatchObject({ areaKey: 'a1', w: 4, h: 25, rotation: 90 })
+    const put = docToPayload(movida.doc, 's', '0123456789abcdef').tables[0]
+    expect(put).toMatchObject({ width: 0.1, height: 1 })
+    const recargada = dtoToDoc({
+      fingerprint: '0123456789abcdef',
+      overLimit: false,
+      limits: { areas: 30, tables: 500, elements: 1500 },
+      areas: [{ id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, externalId: null }],
+      tables: [
+        { id: 't1', number: '1', capacity: 4, shape: 'RECTANGLE', rotation: 90, positionX: put.positionX, positionY: put.positionY, areaId: 'a1', hasOpenOrder: false, width: put.width, height: put.height },
+      ],
+      elements: [],
+    })
+    expect(recargada.tables[0]).toMatchObject({ w: 4, h: 25 })
+  })
+
+  // Codex, ronda 2: la proporción sola (× 0.7014) daba 28 × 2 —el 1.4 sube al mínimo 2— y girada 60° medía 25.248711 de
+  // alto en un área de 25. Con el lado corto fijo en 2 se achica el largo hasta que quepa: 27 × 0.866 + 2 × 0.5 = 24.38.
+  it('una 40 × 2 girada 60° cuyo área pasa de cuadrada a ancha: queda 27 × 2 dentro del área, y así se guarda y se recarga', () => {
+    const start = initEditorState({ ...doc(), areas: [{ ...doc().areas[0], floorShape: 'SQUARE' }], tables: [larga({ w: 40, h: 2, rotation: 60, x: 20, y: 20 })] })
+    const s = editorReducer(start, { type: 'UPDATE_AREA', key: 'a1', patch: { floorShape: 'WIDE' } }) // 40 × 25
+    const t = s.doc.tables[0]
+    expect(t).toMatchObject({ w: 27, h: 2, rotation: 60, x: 20, y: 12.808657 }) // y: 25 − 24.382686 / 2, pegada abajo
+    expect(sizeFits(t, 40, 25)).toBe(true)
+    const put = docToPayload(s.doc, 's', '0123456789abcdef').tables[0]
+    expect(put).toMatchObject({ width: 0.675, height: 0.08 }) // 27/40 y 2/25
+    const recargada = dtoToDoc({
+      fingerprint: '0123456789abcdef',
+      overLimit: false,
+      limits: { areas: 30, tables: 500, elements: 1500 },
+      areas: [{ id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, externalId: null }],
+      tables: [
+        { id: 't1', number: '1', capacity: 4, shape: 'RECTANGLE', rotation: 60, positionX: put.positionX, positionY: put.positionY, areaId: 'a1', hasOpenOrder: false, width: put.width, height: put.height },
+      ],
+      elements: [],
+    })
+    expect(recargada.tables[0]).toMatchObject({ w: 27, h: 2 })
+    // Estable: volver a guardar lo recargado manda el mismo tamaño.
+    expect(docToPayload(recargada, 's', '0123456789abcdef').tables[0]).toMatchObject({ width: 0.675, height: 0.08 })
+  })
+
+  // Review Focus 4
+  it('copiar una mesa con tamaño propio la copia con su tamaño', () => {
+    const chica = update(una(larga()), { w: 3, h: 4 })
+    const s = editorReducer(chica, { type: 'DUPLICATE', clones: [{ sourceKey: 't1', key: 'tmp-1', number: '2' }] })
+    expect(s.doc.tables[1]).toMatchObject({ key: 'tmp-1', w: 3, h: 4 })
+  })
+
+  it('girar: con tamaño propio gira igual; si ya girada no cabe, no gira (nunca se achica sola)', () => {
+    const chica = update(una(larga()), { w: 3, h: 4 })
+    expect(editorReducer(chica, { type: 'ROTATE', keys: ['t1'] }).doc.tables[0]).toMatchObject({ rotation: 45, w: 3, h: 4 })
+    // 40 × 40 no cabe en un área ancha (40 × 25) en ningún giro.
+    const enorme = una(larga({ w: 40, h: 40, x: 20, y: 12 }))
+    expect(editorReducer(enorme, { type: 'ROTATE', keys: ['t1'] })).toBe(enorme)
+  })
+
+  // Ola final F2
+  it('girar: si el paso de 45° no cabe pero otro giro sí, salta al primero que cabe (25 × 20 llega a 90°)', () => {
+    const s = editorReducer(una(larga({ w: 25, h: 20, x: 20, y: 12 })), { type: 'ROTATE', keys: ['t1'] })
+    expect(s.doc.tables[0]).toMatchObject({ rotation: 90, w: 25, h: 20 })
+    expect(s.past.length).toBe(1)
+  })
+
+  it('girar: una mesa que no cabe en ningún giro no cambia y no deja paso de deshacer', () => {
+    const base = una(larga({ w: 40, h: 40, x: 20, y: 12 }))
+    const s = editorReducer(base, { type: 'ROTATE', keys: ['t1'] })
+    expect(s).toBe(base)
+    expect(s.past.length).toBe(0)
+  })
+
+  // Codex C3: un giro que deja el MISMO dibujo (larga +180°, cuadrada +90°, redonda cualquiera) sólo cambiaba el contador
+  // y el historial; se salta, y si no queda otro que quepa, no gira ni deja paso de deshacer.
+  it('girar se salta los giros que dejan el mismo dibujo: la larga 40 × 25 ya no «gira» a 180° y una redonda no gira', () => {
+    const llena = una(larga({ w: 40, h: 25, x: 20, y: 12.5 }))
+    expect(editorReducer(llena, { type: 'ROTATE', keys: ['t1'] })).toBe(llena)
+    const redonda = una(table('t1', { shape: 'ROUND' }))
+    expect(editorReducer(redonda, { type: 'ROTATE', keys: ['t1'] })).toBe(redonda)
+    // La cuadrada sigue de 45 en 45: a 45° se ve distinta, y de 45° a 90° también.
+    const cuadrada = editorReducer(una(table('t1')), { type: 'ROTATE', keys: ['t1'] })
+    expect(cuadrada.doc.tables[0].rotation).toBe(45)
+    expect(editorReducer(cuadrada, { type: 'ROTATE', keys: ['t1'] }).doc.tables[0].rotation).toBe(90)
+  })
+
+  it('a «Sin acomodar» vuelve a automático (sin área no hay cuadrícula con qué medirla)', () => {
+    const chica = update(una(larga()), { w: 3, h: 4 })
+    expect(update(chica, { areaKey: null }).doc.tables[0]).toMatchObject({ areaKey: null, x: null, y: null, w: null, h: null })
   })
 })

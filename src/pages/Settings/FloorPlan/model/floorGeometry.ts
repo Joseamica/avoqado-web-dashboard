@@ -1,4 +1,4 @@
-import type { FloorShape, TableShape } from './types'
+import type { DraftTable, FloorShape, TableShape } from './types'
 
 // Reglas de dibujo del plano (spec §4.3). Android, iOS y la PAX las copiarán por valor en su fase:
 // si cambias una, cambia también la prueba que las fija.
@@ -26,6 +26,104 @@ export function tableSizeCells(shape: TableShape, capacity: number): { w: number
   return { w: side, h: side }
 }
 
+/** Lo que decide el tamaño y la caja de una mesa. */
+export type SizedTable = Pick<DraftTable, 'shape' | 'capacity' | 'rotation' | 'w' | 'h'>
+
+/** Lado mínimo de una mesa con tamaño propio, en cuadros (spec 2026-10-12). */
+export const MIN_TABLE_SIDE = 2
+
+/**
+ * LA conversión del tamaño guardado (0–1 de cada eje de su área) a cuadros enteros (spec 2026-10-12). Idéntica, con este
+ * nombre y esta fórmula, en Android e iOS (`FloorGeometry.customSizeCells`) y en el MCP (`tables.ts`):
+ *   w = clamp(floor(width × cols + 0.5), 2, cols) · h = clamp(floor(height × rows + 0.5), 2, rows)
+ *   redonda y cuadrada: los dos = min(w, h) · si falta uno: null (automático).
+ * `Math.floor(x + 0.5)` y no `Math.round`: así el mismo double da el mismo entero en las cuatro.
+ */
+export function customSizeCells(
+  shape: TableShape,
+  width: number | null | undefined,
+  height: number | null | undefined,
+  cols: number,
+  rows: number,
+): { w: number; h: number } | null {
+  if (width == null || height == null) return null
+  const w = clamp(Math.floor(width * cols + 0.5), MIN_TABLE_SIDE, cols)
+  const h = clamp(Math.floor(height * rows + 0.5), MIN_TABLE_SIDE, rows)
+  if (shape === 'RECTANGLE') return { w, h }
+  const side = Math.min(w, h)
+  return { w: side, h: side }
+}
+
+/**
+ * Tamaño de una mesa en cuadros: el propio si trae los dos lados (spec 2026-10-12); si no, el automático por forma y
+ * personas. Redonda y cuadrada usan UN lado, el menor (el editor guarda los dos iguales; la PAX pudo cambiarle la forma).
+ * Android e iOS lo copian por valor (`FloorGeometry.tableSize`).
+ */
+export function tableSize(t: Pick<DraftTable, 'shape' | 'capacity' | 'w' | 'h'>): { w: number; h: number } {
+  if (t.w === null || t.h === null) return tableSizeCells(t.shape, t.capacity)
+  if (t.shape === 'RECTANGLE') return { w: t.w, h: t.h }
+  const side = Math.min(t.w, t.h)
+  return { w: side, h: side }
+}
+
+/**
+ * ¿El tamaño propio vale TAL CUAL en su área? Cuadros enteros de 2 al lado de SU eje (así se guarda: 0–1 de cada eje), un
+ * solo lado en redonda y cuadrada, y la mesa YA GIRADA cabe en el lienzo. Automático: siempre. Lo usan los botones + y −:
+ * un pedido que no vale deja la mesa igual (nunca se achica otro lado para hacerle sitio).
+ */
+export function sizeFits(t: SizedTable, cols: number, rows: number): boolean {
+  if (t.w === null || t.h === null) return true
+  const onAxis = (v: number, max: number) => Number.isInteger(v) && v >= MIN_TABLE_SIDE && v <= max
+  if (!onAxis(t.w, cols) || !onAxis(t.h, rows) || (t.shape !== 'RECTANGLE' && t.w !== t.h)) return false
+  const e = tableExtent(t)
+  return e.w <= cols && e.h <= rows
+}
+
+/**
+ * El giro que da «Girar»: el primero (+45, +90, …) que CAMBIA el dibujo y ya girada cabe en el área; `null` si ninguno.
+ * Se salta el que deja la misma huella —larga +180°; cuadrada (o larga de lados iguales) +90/+180/+270; redonda, todos—:
+ * sólo cambiaba el contador de grados y dejaba un paso de deshacer vacío (Codex C3). Lo usan el reductor y el inspector.
+ */
+export function nextRotation(t: SizedTable, cols: number, rows: number): number | null {
+  const { w, h } = tableSize(t)
+  const same = t.shape === 'ROUND' ? 45 : w === h ? 90 : 180
+  for (let step = 1; step <= 7; step++) {
+    if ((45 * step) % same === 0) continue
+    const rotation = (t.rotation + 45 * step) % 360
+    if (sizeFits({ ...t, rotation }, cols, rows)) return rotation
+  }
+  return null
+}
+
+/**
+ * La mesa con su tamaño propio metido a OTRA área (cambio de área, de forma del área, poner o copiar). Tres pasos:
+ * 1) cada lado a su eje, como se guarda: entero, de 2 al lado del área (redonda y cuadrada: un solo lado, el menor);
+ * 2) si ya girada no cabe en el lienzo, se achica ENTERA en proporción (no se deforma);
+ * 3) si el mínimo de 2 subió el lado corto por encima de su proporción y girada aún se sale, se achica el lado largo de
+ *    cuadro en cuadro hasta que quepa (Codex, ronda 2: 40 × 2 a 60° de un área cuadrada a una ancha daba 28 × 2, que
+ *    girada mide 25.25 de alto; sale 27 × 2).
+ * Así lo que se ve es lo que se guarda y se recarga. Sin tamaño propio o si ya vale, devuelve la MISMA mesa.
+ */
+export function withFittedSize<T extends SizedTable>(t: T, cols: number, rows: number): T {
+  if (t.w === null || t.h === null) return t
+  const one = t.shape !== 'RECTANGLE'
+  let w = clamp(Math.floor((one ? Math.min(t.w, t.h) : t.w) + 0.5), MIN_TABLE_SIDE, one ? Math.min(cols, rows) : cols)
+  let h = one ? w : clamp(Math.floor(t.h + 0.5), MIN_TABLE_SIDE, rows)
+  const e = tableExtent({ ...t, w, h })
+  const k = Math.min(1, cols / e.w, rows / e.h)
+  if (k < 1) {
+    w = Math.max(MIN_TABLE_SIDE, Math.floor(w * k + 1e-9))
+    h = one ? w : Math.max(MIN_TABLE_SIDE, Math.floor(h * k + 1e-9))
+  }
+  // Una 2 × 2 cabe girada en cualquier área (el lado más corto es 25), así que el ciclo siempre termina dentro.
+  while (!sizeFits({ ...t, w, h }, cols, rows) && Math.max(w, h) > MIN_TABLE_SIDE) {
+    if (one) w = h = w - 1
+    else if (w >= h) w--
+    else h--
+  }
+  return w === t.w && h === t.h ? t : { ...t, w, h }
+}
+
 /** Caja que ocupa una pieza girada (para que no se salga del lienzo). */
 export function rotatedExtent(w: number, h: number, rotation: number): { w: number; h: number } {
   const r = (rotation * Math.PI) / 180
@@ -35,20 +133,29 @@ export function rotatedExtent(w: number, h: number, rotation: number): { w: numb
 }
 
 /**
+ * Caja que ocupa una mesa ya girada, con su tamaño (propio o automático). La redonda es un círculo: diámetro × diámetro a
+ * cualquier giro; medirla como cuadrado girado la recorría y la topaba sin razón (Codex C2). Android e iOS: `FloorLayout`.
+ */
+export function tableExtent(t: SizedTable): { w: number; h: number } {
+  const { w, h } = tableSize(t)
+  return t.shape === 'ROUND' ? { w, h } : rotatedExtent(w, h, t.rotation)
+}
+
+/**
  * Dónde va el punto de «cuenta abierta», como desplazamiento desde el centro de la mesa: siempre en la esquina de
  * ARRIBA A LA DERECHA tal como se ve, sin importar el giro (antes giraba con la mesa y a 90° quedaba abajo).
  * En una mesa cuadrada o larga es la esquina (metida 0.45 cuadros) que, ya girada, queda más arriba a la derecha; en
  * una redonda, siempre el mismo lugar del borde, por dentro.
  */
-export function openOrderDot(shape: TableShape, capacity: number, rotation: number): { dx: number; dy: number } {
-  const { w, h } = tableSizeCells(shape, capacity)
+export function openOrderDot(t: SizedTable): { dx: number; dy: number } {
+  const { w, h } = tableSize(t)
   const inset = 0.45
   // Redonda: sobre el radio a 45° (arriba a la derecha), metido para que quede DENTRO del círculo.
-  if (shape === 'ROUND') {
+  if (t.shape === 'ROUND') {
     const d = round6((w / 2 - inset) * Math.SQRT1_2)
     return { dx: d, dy: -d }
   }
-  const r = (rotation * Math.PI) / 180
+  const r = (t.rotation * Math.PI) / 180
   const cos = Math.cos(r)
   const sin = Math.sin(r)
   let best = { dx: 0, dy: 0, score: -Infinity }
@@ -69,10 +176,9 @@ export function snapCenter(center: number, size: number): number {
   return round6(Math.round(center - size / 2) + size / 2)
 }
 
-/** Centro final de una mesa puesta en (x, y): imantada y dentro del lienzo. */
-export function placeTable(x: number, y: number, shape: TableShape, capacity: number, rotation: number, cols: number, rows: number) {
-  const { w, h } = tableSizeCells(shape, capacity)
-  const e = rotatedExtent(w, h, rotation)
+/** Centro final de una mesa puesta en (x, y): imantada y dentro del lienzo, con su tamaño (propio o automático). */
+export function placeTable(x: number, y: number, t: SizedTable, cols: number, rows: number) {
+  const e = tableExtent(t)
   return { x: clamp(snapCenter(x, e.w), e.w / 2, cols - e.w / 2), y: clamp(snapCenter(y, e.h), e.h / 2, rows - e.h / 2) }
 }
 

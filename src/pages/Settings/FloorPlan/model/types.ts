@@ -19,6 +19,9 @@ export interface FloorPlanTableDto {
   positionX: number | null
   positionY: number | null
   areaId: string | null
+  /** Tamaño propio (spec 2026-10-12), 0–1 de la cuadrícula de su área; null o ausente (servidor de antes) = automático. */
+  width?: number | null
+  height?: number | null
   hasOpenOrder: boolean
 }
 export interface FloorPlanElementDto {
@@ -63,6 +66,8 @@ export interface PublishFloorPlanBody {
     rotation: number
     positionX: number | null
     positionY: number | null
+    width: number | null
+    height: number | null
     areaRef: string | null
   }>
   elements: Array<{
@@ -106,6 +111,9 @@ export interface DraftTable {
   y: number | null
   /** Posición vieja de una mesa sin área (la dibujó la PAX en su lienzo global). Se conserva tal cual al guardar. */
   legacy: { nx: number; ny: number } | null
+  /** Tamaño propio en cuadros enteros de su área (spec 2026-10-12); null = automático. Van juntos. Sin área, siempre null. */
+  w: number | null
+  h: number | null
   hasOpenOrder: boolean
 }
 export interface DraftElement {

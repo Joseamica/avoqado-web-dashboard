@@ -5,7 +5,7 @@ import type { DraftArea, DraftElement, DraftTable } from '../../model/types'
 
 const area: DraftArea = { key: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false }
 const t = (number: string, extra: Partial<DraftTable> = {}): DraftTable => ({
-  key: `t${number}`, number, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, hasOpenOrder: false, ...extra,
+  key: `t${number}`, number, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, w: null, h: null, hasOpenOrder: false, ...extra,
 })
 const wall: DraftElement = { key: 'w1', type: 'WALL', areaKey: 'a1', x: 0, y: 0, w: null, h: null, rotation: 0, x2: 10, y2: 0, label: null, color: null }
 const kitchen: DraftElement = { key: 'k1', type: 'SERVICE_AREA', areaKey: 'a1', x: 30, y: 1, w: 8, h: 6, rotation: 0, x2: null, y2: null, label: 'Cocina', color: null }
@@ -39,6 +39,18 @@ describe('FloorDrawing', () => {
     expect(screen.getByTestId('floor-table-1')).toBeInTheDocument()
     expect(screen.queryByTestId('floor-table-2')).not.toBeInTheDocument()
     expect(screen.getByTestId('floor-table-3')).toHaveAttribute('transform', 'rotate(45 20 10)')
+  })
+
+  it('una mesa con tamaño propio se dibuja con él; la redonda con el lado menor (spec 2026-10-12)', () => {
+    render(
+      <svg>
+        <FloorDrawing area={area} tables={[t('1', { shape: 'RECTANGLE', w: 3, h: 2 }), t('2', { shape: 'ROUND', x: 20, w: 5, h: 3 })]} elements={[]} />
+      </svg>,
+    )
+    const mesa = screen.getByTestId('floor-table-1').querySelector('rect')
+    expect(mesa).toHaveAttribute('width', '3')
+    expect(mesa).toHaveAttribute('height', '2')
+    expect(screen.getByTestId('floor-table-2').querySelector('circle')).toHaveAttribute('r', '1.5')
   })
 
   it('dibuja paredes y áreas de servicio con su nombre', () => {
@@ -143,5 +155,41 @@ describe('FloorDrawing', () => {
     const fontSize = Number(screen.getByText('Barra').getAttribute('font-size'))
     // ~0.6 em por letra: 5 letras deben caber en 2 cuadros de ancho.
     expect(fontSize * 0.6 * 'Barra'.length).toBeLessThanOrEqual(2)
+  })
+
+  describe('paredes y barras', () => {
+    const bar = (key: string, x: number, y: number, w: number, h: number): DraftElement => ({
+      key, type: 'BAR_COUNTER', areaKey: 'a1', x, y, w, h, rotation: 0, x2: null, y2: null, label: null, color: null,
+    })
+
+    it('todo el plano se recorta al área: una pared pegada a la orilla no se sale del lienzo', () => {
+      const { container } = draw({ elements: [{ ...wall, x: 0, y: 25, x2: 40, y2: 25 }] })
+      const clip = container.querySelector('clipPath rect')
+      expect(clip).toHaveAttribute('width', '40')
+      expect(clip).toHaveAttribute('height', '25')
+      const clipped = screen.getByTestId('floor-element-w1').closest('g[clip-path]')
+      expect(clipped?.getAttribute('clip-path')).toBe(`url(#${container.querySelector('clipPath')?.id})`)
+      expect(screen.getByTestId('floor-table-1').closest('g[clip-path]')).toBe(clipped)
+    })
+
+    it('dos barras que forman una «L» van sólidas, con esquinas rectas y en la misma capa (una sola pieza a la vista)', () => {
+      draw({ elements: [bar('b1', 5, 5, 8, 2), bar('b2', 5, 7, 2, 6)] })
+      const rects = ['b1', 'b2'].map(k => screen.getByTestId(`floor-element-${k}`).querySelector('rect'))
+      for (const r of rects) {
+        expect(r).not.toHaveAttribute('rx')
+        expect(r?.getAttribute('class')).toContain('fill-foreground')
+        expect(r?.getAttribute('class')).not.toContain('/85')
+      }
+      const layer = screen.getByTestId('floor-element-b1').parentElement
+      expect(layer).toBe(screen.getByTestId('floor-element-b2').parentElement)
+      expect(layer).toHaveAttribute('opacity', '0.85')
+    })
+
+    it('por capas: la zona al fondo, la puerta encima de la pared donde va', () => {
+      const { container } = draw({ elements: [door({}), wall, kitchen] })
+      const order = [...container.querySelectorAll('[data-floor-key]')].map(n => n.getAttribute('data-floor-key'))
+      expect(order.indexOf('k1')).toBeLessThan(order.indexOf('w1'))
+      expect(order.indexOf('w1')).toBeLessThan(order.indexOf('d1'))
+    })
   })
 })

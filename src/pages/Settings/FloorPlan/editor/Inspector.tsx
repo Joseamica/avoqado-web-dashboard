@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { ShortcutList } from './ShortcutList'
 import { toolLabelKey } from './ToolPalette'
-import { gridOf } from '../model/floorGeometry'
+import { gridOf, MIN_TABLE_SIDE, nextRotation, sizeFits, tableSize } from '../model/floorGeometry'
 import type { EditorAction } from '../model/editorReducer'
 import type { DraftArea, DraftElement, DraftTable, TableShape, ToolId } from '../model/types'
 
@@ -81,6 +81,8 @@ function Stepper({
   onChange,
   less,
   more,
+  canLess,
+  canMore,
   testId,
   tour,
   unknown,
@@ -91,6 +93,9 @@ function Stepper({
   onChange: (v: number) => void
   less: string
   more: string
+  /** Si el siguiente valor no cabe en el área (mesa girada), el botón se apaga aunque el número esté dentro de min/max. */
+  canLess?: boolean
+  canMore?: boolean
   testId: string
   tour: string
   /** Cómo se dice un 0 que no es un valor sino «sin dato» (R31); sin esto, el 0 se enseña tal cual. */
@@ -98,7 +103,7 @@ function Stepper({
 }) {
   return (
     <div className="flex items-center gap-2" data-testid={testId} data-tour={tour}>
-      <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={less} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}>
+      <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={less} disabled={value <= min || canLess === false} onClick={() => onChange(Math.max(min, value - 1))}>
         <Minus className="h-4 w-4" />
       </Button>
       <span className="w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
@@ -111,7 +116,7 @@ function Stepper({
           value
         )}
       </span>
-      <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={more} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
+      <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={more} disabled={value >= max || canMore === false} onClick={() => onChange(Math.min(max, value + 1))}>
         <Plus className="h-4 w-4" />
       </Button>
     </div>
@@ -201,6 +206,16 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
     tryCommit(number)
   })
 
+  // Tamaño (spec 2026-10-12): cuadros enteros, de 2 al lado del área. Sin área («Sin acomodar») no hay con qué medir.
+  const area = areas.find(a => a.key === table.areaKey)
+  const grid = gridOf(area?.floorShape ?? 'WIDE')
+  const size = tableSize(table)
+  const custom = table.w !== null && table.h !== null
+  const fits = (w: number, h: number) => sizeFits({ ...table, w, h }, grid.cols, grid.rows)
+  // «Girar» sólo si algún giro cambia el dibujo y deja la mesa dentro del área (el mismo que toma el reductor).
+  const canRotate = nextRotation(table, grid.cols, grid.rows) !== null
+  const setSize = (w: number | null, h: number | null) => dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { w, h } })
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
@@ -268,11 +283,71 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
           ))}
         </div>
       </Field>
+      {area &&
+        (table.shape === 'RECTANGLE' ? (
+          <>
+            <Field label={t('inspector.width')}>
+              <Stepper
+                value={size.w}
+                min={MIN_TABLE_SIDE}
+                max={grid.cols}
+                less={t('inspector.decreaseWidth')}
+                more={t('inspector.increaseWidth')}
+                canLess={fits(size.w - 1, size.h)}
+                canMore={fits(size.w + 1, size.h)}
+                testId="floor-inspector-width"
+                tour="floor-plan-inspector-width"
+                onChange={w => setSize(w, size.h)}
+              />
+            </Field>
+            <Field label={t('inspector.height')}>
+              <Stepper
+                value={size.h}
+                min={MIN_TABLE_SIDE}
+                max={grid.rows}
+                less={t('inspector.decreaseHeight')}
+                more={t('inspector.increaseHeight')}
+                canLess={fits(size.w, size.h - 1)}
+                canMore={fits(size.w, size.h + 1)}
+                testId="floor-inspector-height"
+                tour="floor-plan-inspector-height"
+                onChange={h => setSize(size.w, h)}
+              />
+            </Field>
+          </>
+        ) : (
+          <Field label={t('inspector.size')}>
+            <Stepper
+              value={size.w}
+              min={MIN_TABLE_SIDE}
+              max={Math.min(grid.cols, grid.rows)}
+              less={t('inspector.decreaseSize')}
+              more={t('inspector.increaseSize')}
+              canLess={fits(size.w - 1, size.w - 1)}
+              canMore={fits(size.w + 1, size.w + 1)}
+              testId="floor-inspector-size"
+              tour="floor-plan-inspector-size"
+              onChange={s => setSize(s, s)}
+            />
+          </Field>
+        ))}
+      {area && custom && (
+        <Button
+          variant="outline"
+          className="h-11 w-full cursor-pointer"
+          onClick={() => setSize(null, null)}
+          data-testid="floor-inspector-size-auto"
+          data-tour="floor-plan-inspector-size-auto"
+        >
+          {t('inspector.sizeAuto')}
+        </Button>
+      )}
       <Field label={t('inspector.rotate')}>
         <Button
           variant="outline"
           className="h-11 w-full cursor-pointer"
           aria-label={t('inspector.rotateBy', { degrees: table.rotation })}
+          disabled={!canRotate}
           onClick={() => dispatch({ type: 'ROTATE', keys: [table.key] })}
           data-tour="floor-plan-inspector-rotate"
         >
@@ -357,6 +432,7 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
   return (
     <div className="space-y-5">
       <h3 className="text-base font-semibold">{t(toolLabelKey(element.type))}</h3>
+      {element.type === 'WALL' && <p className="text-sm leading-relaxed text-muted-foreground">{t('inspector.wallEdit')}</p>}
       {named && (
         <Field label={t('inspector.label')} htmlFor={labelId}>
           <Input
@@ -381,8 +457,8 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
               value={element.w ?? 1}
               min={1}
               max={grid.cols}
-              less={t('inspector.decrease')}
-              more={t('inspector.increase')}
+              less={t('inspector.decreaseWidth')}
+              more={t('inspector.increaseWidth')}
               testId="floor-inspector-width"
               tour="floor-plan-inspector-width"
               onChange={w => dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { w } })}
@@ -393,8 +469,8 @@ function ElementFields({ element, areas, dispatch, onRemove, onDuplicate }: Insp
               value={element.h ?? 1}
               min={1}
               max={grid.rows}
-              less={t('inspector.decrease')}
-              more={t('inspector.increase')}
+              less={t('inspector.decreaseHeight')}
+              more={t('inspector.increaseHeight')}
               testId="floor-inspector-height"
               tour="floor-plan-inspector-height"
               onChange={h => dispatch({ type: 'UPDATE_ELEMENT', key: element.key, patch: { h } })}

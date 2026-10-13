@@ -1,4 +1,4 @@
-import { rotatedExtent, tableSizeCells } from './floorGeometry'
+import { tableExtent, tableSize } from './floorGeometry'
 import type { DraftTable } from './types'
 
 type Pt = { x: number; y: number }
@@ -8,7 +8,7 @@ const TOLERANCE = 0.25
 
 /** Contorno de la mesa ya girada: rectángulo (4 esquinas) o, la redonda, un polígono de 16 lados. */
 function outline(t: DraftTable): Pt[] {
-  const { w, h } = tableSizeCells(t.shape, t.capacity)
+  const { w, h } = tableSize(t)
   const cx = t.x as number
   const cy = t.y as number
   if (t.shape === 'ROUND') {
@@ -67,8 +67,7 @@ export function overlappingTables(tables: readonly DraftTable[]): Set<string> {
   const placed = tables
     .filter(t => t.x !== null && t.y !== null)
     .map(t => {
-      const s = tableSizeCells(t.shape, t.capacity)
-      const e = rotatedExtent(s.w, s.h, t.rotation)
+      const e = tableExtent(t)
       return { t, minX: (t.x as number) - e.w / 2, maxX: (t.x as number) + e.w / 2, minY: (t.y as number) - e.h / 2, maxY: (t.y as number) + e.h / 2 }
     })
     .sort((a, b) => a.minX - b.minX)

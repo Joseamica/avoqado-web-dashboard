@@ -21,9 +21,8 @@ import {
   clampWallEnd,
   fitView,
   gridOf,
-  rotatedExtent,
   snapWallEnd,
-  tableSizeCells,
+  tableExtent,
   zoomAround,
   type Box,
   type GuideLine,
@@ -46,6 +45,8 @@ export interface FloorCanvasProps {
   onMove: (keys: string[], dx: number, dy: number) => void
   onPlaceTool: (tool: ToolId, x: number, y: number) => void
   onCreateWall: (x1: number, y1: number, x2: number, y2: number) => void
+  /** Soltar la punta de una pared ya imantada y metida al lienzo; la otra punta no se mueve. */
+  onMoveWallEnd: (key: string, end: WallEnd, x: number, y: number) => void
   onPlaceTable: (key: string, x: number, y: number) => void
   onToolDone: () => void
   /** Qué control tiene el foco por teclado (`useKeyboardFocus` del editor, que sobrevive a que el lienzo se desmonte). */
@@ -53,15 +54,28 @@ export interface FloorCanvasProps {
 }
 
 type Rect = { x: number; y: number; w: number; h: number }
+type WallEnd = 'start' | 'end'
 type Gesture =
   /** `last`: el desplazamiento que ya se pintó; si no cambia, no se vuelve a pintar. */
   /** `clicked`: la pieza bajo el puntero; un clic sin mover sobre una selección de varias la deja sola a ella. */
-  | { kind: 'drag'; keys: string[]; keySet: Set<string>; clicked: string; startX: number; startY: number; moved: boolean; last: { dx: number; dy: number } | null }
+  | {
+      kind: 'drag'
+      keys: string[]
+      keySet: Set<string>
+      clicked: string
+      startX: number
+      startY: number
+      moved: boolean
+      last: { dx: number; dy: number } | null
+    }
   /** `base`: lo que ya estaba seleccionado si se empezó con Shift (el recuadro SUMA en vez de reemplazar). */
   | { kind: 'marquee'; startX: number; startY: number; base: string[] }
   | { kind: 'pan'; clientX: number; clientY: number; view: ViewBox }
+  /** Arrastrar una punta de pared: `fixed` es la otra, la que no se mueve. */
+  | { kind: 'wallEnd'; key: string; end: WallEnd; fixed: { x: number; y: number }; moved: boolean }
 
-const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
+const isTyping = (target: EventTarget | null) =>
+  !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
 /**
  * Controles que la barra espaciadora acciona con el teclado. La tecla es del control sólo si llegó a él con el TECLADO;
@@ -87,8 +101,7 @@ function unitsPerPixel(view: ViewBox, el: Element): number {
 const viewCenter = (v: ViewBox) => ({ x: v.x + v.w / 2, y: v.y + v.h / 2 })
 
 function tableBox(t: DraftTable, dx = 0, dy = 0): Box {
-  const s = tableSizeCells(t.shape, t.capacity)
-  const e = rotatedExtent(s.w, s.h, t.rotation)
+  const e = tableExtent(t)
   return { cx: (t.x as number) + dx, cy: (t.y as number) + dy, w: e.w, h: e.h }
 }
 
@@ -119,6 +132,9 @@ export function FloorCanvas(props: FloorCanvasProps) {
   const [guides, setGuides] = useState<GuideLine[]>([])
   const [marquee, setMarquee] = useState<Rect | null>(null)
   const [wallStart, setWallStart] = useState<{ x: number; y: number } | null>(null)
+  // Punta de pared que se arrastra: se dibuja ahí mientras tanto; el borrador cambia al soltar (como el arrastre de piezas).
+  const [wallDrag, setWallDrag] = useState<{ key: string; end: WallEnd; x: number; y: number } | null>(null)
+  const wallDragRef = useRef<{ x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [spaceHeld, setSpaceHeld] = useState(false)
   const spacePan = useRef(false)
@@ -262,6 +278,16 @@ export function FloorCanvas(props: FloorCanvasProps) {
       props.onToolDone()
       return
     }
+    const handle = (e.target as Element).closest?.('[data-wall-handle]')
+    const handleWall = handle ? elements.find(el => el.key === handle.getAttribute('data-wall-key') && el.type === 'WALL') : undefined
+    if (handle && handleWall) {
+      const end = handle.getAttribute('data-wall-handle') as WallEnd
+      const fixed =
+        end === 'end' ? { x: handleWall.x, y: handleWall.y } : { x: handleWall.x2 ?? handleWall.x, y: handleWall.y2 ?? handleWall.y }
+      gesture.current = { kind: 'wallEnd', key: handleWall.key, end, fixed, moved: false }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
     const key = (e.target as Element).closest?.('[data-floor-key]')?.getAttribute('data-floor-key') ?? null
     if (key) {
       if (e.shiftKey) {
@@ -291,6 +317,17 @@ export function FloorCanvas(props: FloorCanvasProps) {
     if (g.kind === 'pan') {
       const k = unitsPerPixel(g.view, e.currentTarget)
       setView({ ...g.view, x: g.view.x - (e.clientX - g.clientX) * k, y: g.view.y - (e.clientY - g.clientY) * k })
+      return
+    }
+    if (g.kind === 'wallEnd') {
+      const to = wallEnd(g.fixed, snapPoint(p))
+      // Menos de un cuadro no es pared: la punta se queda en el último lugar válido.
+      if (Math.hypot(to.x - g.fixed.x, to.y - g.fixed.y) < 1) return
+      const last = wallDragRef.current
+      if (last && last.x === to.x && last.y === to.y) return
+      g.moved = true
+      wallDragRef.current = to
+      setWallDrag({ key: g.key, end: g.end, ...to })
       return
     }
     if (g.kind === 'marquee') {
@@ -329,6 +366,10 @@ export function FloorCanvas(props: FloorCanvasProps) {
     const g = gesture.current
     gesture.current = null
     if (commit && g?.kind === 'drag' && g.moved) props.onMove(g.keys, delta.current.dx, delta.current.dy)
+    const dragged = wallDragRef.current
+    if (commit && g?.kind === 'wallEnd' && g.moved && dragged) props.onMoveWallEnd(g.key, g.end, dragged.x, dragged.y)
+    wallDragRef.current = null
+    setWallDrag(null)
     if (commit && g?.kind === 'drag' && !g.moved && g.keys.length > 1) props.onSelect([g.clicked])
     const box = marqueeBox.current
     if (commit && g?.kind === 'marquee' && box && (box.w > 0.5 || box.h > 0.5)) {
@@ -357,6 +398,23 @@ export function FloorCanvas(props: FloorCanvasProps) {
   }
 
   const wallPreview = tool === 'WALL' && wallStart && cursor ? wallEnd(wallStart, cursor) : null
+  // La pared con la punta que se arrastra en su lugar nuevo (vista previa).
+  const shownElements = useMemo(
+    () =>
+      wallDrag
+        ? elements.map(el =>
+            el.key !== wallDrag.key
+              ? el
+              : wallDrag.end === 'end'
+                ? { ...el, x2: wallDrag.x, y2: wallDrag.y }
+                : { ...el, x: wallDrag.x, y: wallDrag.y },
+          )
+        : elements,
+    [elements, wallDrag],
+  )
+  // Puntas editables: una sola pared seleccionada, con la flecha en la mano.
+  const editableWall =
+    tool === 'select' && selection.length === 1 ? shownElements.find(el => el.key === selection[0] && el.type === 'WALL') : undefined
   // Dónde caería la pieza de la paleta con un clic aquí: antes se ponía a ciegas (sólo la cruz del puntero).
   const placing = cursor && !spaceHeld ? placementOf(tool, cursor.x, cursor.y, cols, rows) : null
 
@@ -384,17 +442,59 @@ export function FloorCanvas(props: FloorCanvasProps) {
         onPointerUp={() => endGesture(true)}
         onPointerCancel={() => endGesture(false)}
         onPointerLeave={() => setCursor(null)}
-        onDoubleClick={() => setWallStart(null)}
+        onDoubleClick={e => {
+          setWallStart(null)
+          // Doble clic sobre una pared: se suelta el lápiz y queda seleccionada, con sus puntas para editarla.
+          const key = (e.target as Element).closest?.('[data-floor-key]')?.getAttribute('data-floor-key')
+          if (tool === 'WALL' && key && elements.some(el => el.key === key && el.type === 'WALL')) {
+            props.onToolDone()
+            props.onSelect([key])
+          }
+        }}
         onDragOver={e => {
           if (e.dataTransfer.types.includes(TOOL_DRAG_MIME) || e.dataTransfer.types.includes(TABLE_DRAG_MIME)) e.preventDefault()
         }}
         onDrop={onDrop}
       >
-        <FloorDrawing area={area} tables={tables} elements={elements} selected={selected} ghost={ghost} warnKeys={overlap} interactive />
+        <FloorDrawing
+          area={area}
+          tables={tables}
+          elements={shownElements}
+          selected={selected}
+          ghost={ghost}
+          warnKeys={overlap}
+          interactive
+        />
+        {editableWall && (
+          <g data-testid="floor-wall-handles">
+            {(['start', 'end'] as const).map(end => (
+              <circle
+                key={end}
+                data-wall-handle={end}
+                data-wall-key={editableWall.key}
+                data-testid={`floor-wall-handle-${end}`}
+                cx={end === 'start' ? editableWall.x : (editableWall.x2 ?? editableWall.x)}
+                cy={end === 'start' ? editableWall.y : (editableWall.y2 ?? editableWall.y)}
+                r={0.55}
+                className="cursor-grab fill-background stroke-primary"
+                strokeWidth={0.18}
+              />
+            ))}
+          </g>
+        )}
         {guides.map((l, i) => (
           <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} className="stroke-primary" strokeWidth={0.08} strokeDasharray="0.35 0.25" />
         ))}
-        {marquee && <rect x={marquee.x} y={marquee.y} width={marquee.w} height={marquee.h} className="fill-primary/10 stroke-primary" strokeWidth={0.06} />}
+        {marquee && (
+          <rect
+            x={marquee.x}
+            y={marquee.y}
+            width={marquee.w}
+            height={marquee.h}
+            className="fill-primary/10 stroke-primary"
+            strokeWidth={0.06}
+          />
+        )}
         {wallStart && wallPreview && (
           <line
             x1={wallStart.x}
@@ -408,7 +508,12 @@ export function FloorCanvas(props: FloorCanvasProps) {
         )}
         {tool === 'WALL' && cursor && <circle cx={cursor.x} cy={cursor.y} r={0.25} className="fill-primary" />}
         {placing && (
-          <g className="pointer-events-none fill-primary/10 stroke-primary/70" strokeWidth={0.12} strokeDasharray="0.4 0.3" data-testid="floor-place-preview">
+          <g
+            className="pointer-events-none fill-primary/10 stroke-primary/70"
+            strokeWidth={0.12}
+            strokeDasharray="0.4 0.3"
+            data-testid="floor-place-preview"
+          >
             {placing.kind === 'table' && placing.shape === 'ROUND' ? (
               <circle cx={placing.x} cy={placing.y} r={placing.w / 2} />
             ) : placing.kind === 'table' ? (
@@ -424,7 +529,11 @@ export function FloorCanvas(props: FloorCanvasProps) {
       <div className="flex h-12 shrink-0 items-center gap-3 border-t border-input bg-card px-3" data-testid="floor-canvas-bar">
         <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
           {hint ? (
-            <p className="flex min-w-0 items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-foreground" aria-live="polite" data-testid="floor-canvas-hint">
+            <p
+              className="flex min-w-0 items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-foreground"
+              aria-live="polite"
+              data-testid="floor-canvas-hint"
+            >
               <MousePointerClick className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">{hint}</span>
             </p>

@@ -1,5 +1,5 @@
-import { areaIn, keepExisting, markOpen, sameDoc, selectionIn } from './docHelpers'
-import { clamp, gridOf, placeTable, rotatedExtent, round6, tableSizeCells } from './floorGeometry'
+import { areaIn, clampWall, keepExisting, markOpen, sameDoc, selectionIn } from './docHelpers'
+import { clamp, clampWallEnd, gridOf, nextRotation, placeTable, round6, sizeFits, snapWallEnd, tableExtent, tableSize, withFittedSize } from './floorGeometry'
 import type { DraftArea, DraftElement, DraftTable, EditorDoc } from './types'
 
 /**
@@ -33,8 +33,10 @@ export type EditorAction =
   /** `burst`: es la repetición de una tecla sostenida; se suma al paso anterior de la misma ráfaga. */
   | { type: 'MOVE'; keys: string[]; dx: number; dy: number; burst?: boolean }
   | { type: 'PLACE_TABLE'; key: string; areaKey: string; x: number; y: number }
-  | { type: 'UPDATE_TABLE'; key: string; patch: Partial<Pick<DraftTable, 'number' | 'capacity' | 'shape' | 'rotation' | 'areaKey'>> }
+  | { type: 'UPDATE_TABLE'; key: string; patch: Partial<Pick<DraftTable, 'number' | 'capacity' | 'shape' | 'rotation' | 'areaKey' | 'w' | 'h'>> }
   | { type: 'UPDATE_ELEMENT'; key: string; patch: Partial<Pick<DraftElement, 'label' | 'w' | 'h' | 'rotation'>> }
+  /** Arrastrar una punta de la pared: la otra se queda; se imanta a 0/45/90° desde ella y no sale del lienzo. */
+  | { type: 'MOVE_WALL_END'; key: string; end: 'start' | 'end'; x: number; y: number }
   | { type: 'ROTATE'; keys: string[] }
   | { type: 'DUPLICATE'; clones: Array<{ sourceKey: string; key: string; number?: string }> }
   | { type: 'REMOVE'; keys: string[] }
@@ -82,12 +84,15 @@ function landOn(doc: EditorDoc, activeAreaKey: string | null, selection: string[
 
 const gridFor = (doc: EditorDoc, areaKey: string | null) => gridOf(doc.areas.find(a => a.key === areaKey)?.floorShape ?? 'WIDE')
 
-function clampTable(t: DraftTable, cols: number, rows: number): DraftTable {
+/** Mete el centro de la mesa al lienzo SIN tocar su tamaño (editar número, personas o girar: Codex C1). */
+function clampPosition(t: DraftTable, cols: number, rows: number): DraftTable {
   if (t.x === null || t.y === null) return t
-  const { w, h } = tableSizeCells(t.shape, t.capacity)
-  const e = rotatedExtent(w, h, t.rotation)
+  const e = tableExtent(t)
   return { ...t, x: round6(clamp(t.x, e.w / 2, cols - e.w / 2)), y: round6(clamp(t.y, e.h / 2, rows - e.h / 2)) }
 }
+
+/** Con el tamaño metido al área (`withFittedSize`): SÓLO al poner, copiar o cambiar la forma del área. */
+const clampTable = (t: DraftTable, cols: number, rows: number) => clampPosition(withFittedSize(t, cols, rows), cols, rows)
 
 const isRect = (type: DraftElement['type']) => type === 'BAR_COUNTER' || type === 'SERVICE_AREA' || type === 'DOOR'
 
@@ -108,44 +113,6 @@ export function normalizeRectElement(el: DraftElement): DraftElement {
   // Sólo la puerta guarda 180 (abre hacia el otro lado); en barras y zonas 180 sólo voltearía su nombre de cabeza.
   const rotation = el.type === 'DOOR' && r === 180 ? 180 : 0
   return rotation === el.rotation ? el : { ...el, rotation }
-}
-
-/**
- * Pared: por eje, si su caja cabe se TRASLADA entera al lienzo (nunca se dobla ni se acorta); si es más larga que el
- * lienzo, se apoya en el 0 y se recorta sobre su propia línea (conserva su dirección: 0°/45°/90° siguen siéndolo).
- */
-function clampWall(el: DraftElement, cols: number, rows: number): DraftElement {
-  const shift = (a: number, b: number, size: number) => {
-    const lo = Math.min(a, b)
-    const hi = Math.max(a, b)
-    if (hi - lo > size) return -lo
-    return lo < 0 ? -lo : hi > size ? size - hi : 0
-  }
-  const ex = el.x2 ?? el.x
-  const ey = el.y2 ?? el.y
-  const sx = shift(el.x, ex, cols)
-  const sy = shift(el.y, ey, rows)
-  const x1 = el.x + sx
-  const y1 = el.y + sy
-  const x2 = ex + sx
-  const y2 = ey + sy
-  // Recorte de Liang–Barsky contra [0, cols] × [0, rows].
-  const dx = x2 - x1
-  const dy = y2 - y1
-  let t0 = 0
-  let t1 = 1
-  for (const [p, q] of [[-dx, x1], [dx, cols - x1], [-dy, y1], [dy, rows - y1]]) {
-    if (p === 0) {
-      if (q < 0) t0 = Infinity
-    } else if (p < 0) t0 = Math.max(t0, q / p)
-    else t1 = Math.min(t1, q / p)
-  }
-  if (t0 > t1) {
-    // Sólo si no cabe en NINGÚN eje (no lo produce el editor): último recurso, extremo por extremo.
-    return { ...el, x: clamp(x1, 0, cols), y: clamp(y1, 0, rows), x2: clamp(x2, 0, cols), y2: clamp(y2, 0, rows) }
-  }
-  const at = (t: number, a: number, b: number) => round6(t === 0 ? a : t === 1 ? b : a + t * (b - a))
-  return { ...el, x: at(t0, x1, x2), y: at(t0, y1, y2), x2: at(t1, x1, x2), y2: at(t1, y1, y2) }
 }
 
 function clampElement(el: DraftElement, cols: number, rows: number): DraftElement {
@@ -178,8 +145,7 @@ function moveRange(doc: EditorDoc, keys: ReadonlySet<string>): [number, number, 
   for (const t of doc.tables) {
     if (!keys.has(t.key) || t.x === null || t.y === null) continue
     const { cols, rows } = gridFor(doc, t.areaKey)
-    const s = tableSizeCells(t.shape, t.capacity)
-    const e = rotatedExtent(s.w, s.h, t.rotation)
+    const e = tableExtent(t)
     narrow(e.w / 2 - t.x, cols - e.w / 2 - t.x, e.h / 2 - t.y, rows - e.h / 2 - t.y)
   }
   for (const el of doc.elements) {
@@ -250,21 +216,19 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     }
     case 'PLACE_TABLE': {
       const { cols, rows } = gridFor(doc, action.areaKey)
-      return commit(
-        state,
-        {
-          ...doc,
-          tables: doc.tables.map(t =>
-            t.key === action.key ? { ...t, areaKey: action.areaKey, legacy: null, ...placeTable(action.x, action.y, t.shape, t.capacity, t.rotation, cols, rows) } : t,
-          ),
-        },
-        [action.key],
-      )
+      // Con tamaño propio, primero se mete al área (pudo venir de una de otra forma) y luego se imanta donde cayó.
+      const place = (t: DraftTable) => {
+        const fitted = withFittedSize({ ...t, areaKey: action.areaKey, legacy: null }, cols, rows)
+        return { ...fitted, ...placeTable(action.x, action.y, fitted, cols, rows) }
+      }
+      return commit(state, { ...doc, tables: doc.tables.map(t => (t.key === action.key ? place(t) : t)) }, [action.key])
     }
     case 'UPDATE_TABLE': {
       // El inspector también guarda al desmontarse: si la pieza ya no existe, no se deja un paso de deshacer vacío.
       const table = doc.tables.find(t => t.key === action.key)
       if (!table) return state
+      // Sin área no hay cuadrícula con qué medir: un tamaño no se pone (el inspector tampoco lo ofrece).
+      if (table.areaKey === null && (action.patch.w !== undefined || action.patch.h !== undefined)) return state
       // D1: otra área ⇒ se abre su pestaña con la mesa seleccionada (se ve dónde quedó), y nada de otra área queda
       // seleccionado (Supr lo quitaría sin que se vea). A «Sin acomodar» no se cambia: la bandeja sale en todas.
       const dest = action.patch.areaKey
@@ -274,19 +238,41 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         tables: doc.tables.map(t => {
           if (t.key !== action.key) return t
           let next: DraftTable = { ...t, ...action.patch }
-          if (action.patch.areaKey !== undefined && action.patch.areaKey !== t.areaKey) {
-            if (action.patch.areaKey === null) next = { ...next, x: null, y: null }
-            else {
-              const g = gridFor(doc, action.patch.areaKey)
-              next = { ...next, legacy: null, ...placeTable(g.cols / 2, g.rows / 2, next.shape, next.capacity, next.rotation, g.cols, g.rows) }
+          // Otra forma ⇒ vuelve a automático (spec 2026-10-12 §2). Las personas no tocan un tamaño propio.
+          if (next.shape !== t.shape) next = { ...next, w: null, h: null }
+          else if (next.w !== t.w || next.h !== t.h) {
+            // Ancho y alto van juntos: si llega uno solo, el otro sale del tamaño que se ve.
+            if ((next.w === null) !== (next.h === null)) {
+              const s = tableSize(t)
+              next = { ...next, w: next.w ?? s.w, h: next.h ?? s.h }
             }
-          } else if (next.x !== null && next.y !== null && (next.shape !== t.shape || next.capacity !== t.capacity || next.rotation !== t.rotation)) {
-            // Otra forma, otras personas u otro giro ⇒ otro tamaño: se vuelve a imantar para que sus bordes caigan en la cuadrícula.
+            // Un + o − que no vale TAL CUAL (fuera de su eje, o ya girada no cabe) deja la mesa IGUAL: no se achica el otro
+            // lado y, como el plano no cambia, no hay paso de deshacer (auditoría del plan, punto 3).
             const g = gridFor(doc, next.areaKey)
-            next = { ...next, ...placeTable(next.x, next.y, next.shape, next.capacity, next.rotation, g.cols, g.rows) }
+            if (!sizeFits(next, g.cols, g.rows)) return t
           }
+          if (action.patch.areaKey !== undefined && action.patch.areaKey !== t.areaKey) {
+            // Sin área no hay cuadrícula con qué medir la mesa: vuelve a automático.
+            if (action.patch.areaKey === null) next = { ...next, x: null, y: null, w: null, h: null }
+            else {
+              // Otra área: AQUÍ sí se ajusta solo (por eje y, si girada no cabe, entera en proporción).
+              const g = gridFor(doc, action.patch.areaKey)
+              const fitted = withFittedSize({ ...next, legacy: null }, g.cols, g.rows)
+              next = { ...fitted, ...placeTable(g.cols / 2, g.rows / 2, fitted, g.cols, g.rows) }
+            }
+          } else if (
+            next.x !== null &&
+            next.y !== null &&
+            (next.shape !== t.shape || next.capacity !== t.capacity || next.rotation !== t.rotation || next.w !== t.w || next.h !== t.h)
+          ) {
+            // Otra forma, otras personas, otro giro u otro tamaño (ya validado): se vuelve a imantar a la cuadrícula.
+            const g = gridFor(doc, next.areaKey)
+            next = { ...next, ...placeTable(next.x, next.y, next, g.cols, g.rows) }
+          }
+          // Sin `withFittedSize`: el cambio de área ya lo ajustó arriba, y un número o unas personas nuevas conservan el
+          // tamaño TAL CUAL aunque ya girada no quepa (venía así de otro editor o de la PAX; Codex C1).
           const g = gridFor(doc, next.areaKey)
-          return clampTable(next, g.cols, g.rows)
+          return clampPosition(next, g.cols, g.rows)
         }),
       }
       return active === state.activeAreaKey ? commit(state, nextDoc) : commit(state, nextDoc, selectionIn(nextDoc, state.selection, active), active)
@@ -301,12 +287,26 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           return clampElement({ ...e, ...action.patch }, g.cols, g.rows)
         }),
       })
+    case 'MOVE_WALL_END': {
+      const wall = doc.elements.find(e => e.key === action.key && e.type === 'WALL')
+      if (!wall) return state
+      const { cols, rows } = gridFor(doc, wall.areaKey)
+      const fixed = action.end === 'end' ? { x: wall.x, y: wall.y } : { x: wall.x2 ?? wall.x, y: wall.y2 ?? wall.y }
+      const snapped = snapWallEnd(fixed.x, fixed.y, action.x, action.y)
+      const moved = clampWallEnd(fixed.x, fixed.y, snapped.x, snapped.y, cols, rows)
+      // Menos de un cuadro no es pared: lo mismo que pide el lápiz al dibujarla.
+      if (Math.hypot(moved.x - fixed.x, moved.y - fixed.y) < 1) return state
+      const patch = action.end === 'end' ? { x2: moved.x, y2: moved.y } : { x: moved.x, y: moved.y }
+      return commit(state, { ...doc, elements: doc.elements.map(e => (e.key === wall.key ? { ...e, ...patch } : e)) })
+    }
     case 'ROTATE': {
       const keys = new Set(action.keys)
       const tables = doc.tables.map(t => {
         if (!keys.has(t.key)) return t
         const g = gridFor(doc, t.areaKey)
-        return clampTable({ ...t, rotation: (t.rotation + 45) % 360 }, g.cols, g.rows)
+        // Un tamaño propio nunca se achica solo: el PRIMER giro que cambia el dibujo y ya girada cabe; si ninguno, no gira.
+        const rotation = nextRotation(t, g.cols, g.rows)
+        return rotation === null ? t : clampPosition({ ...t, rotation }, g.cols, g.rows)
       })
       const elements = doc.elements.map(e => {
         if (!keys.has(e.key) || !isRect(e.type)) return e
@@ -415,7 +415,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         .filter(t => !present.has(t.key))
         .map(t => {
           // Si su área ya no está en el borrador, vuelve «Sin acomodar»; si está, dentro de su lienzo (la forma pudo cambiar).
-          if (t.areaKey === null || !doc.areas.some(a => a.key === t.areaKey)) return { ...t, areaKey: null, x: null, y: null }
+          if (t.areaKey === null || !doc.areas.some(a => a.key === t.areaKey)) return { ...t, areaKey: null, x: null, y: null, w: null, h: null }
           const g = gridFor(doc, t.areaKey)
           return clampTable(t, g.cols, g.rows)
         })

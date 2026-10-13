@@ -3,7 +3,7 @@ import { overlappingTables } from '../overlap'
 import type { DraftTable } from '../types'
 
 const t = (key: string, x: number, y: number, extra: Partial<DraftTable> = {}): DraftTable => ({
-  key, number: key, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x, y, legacy: null, hasOpenOrder: false, ...extra,
+  key, number: key, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x, y, legacy: null, w: null, h: null, hasOpenOrder: false, ...extra,
 })
 
 describe('overlappingTables (H4: mesas viejas de la PAX encimadas)', () => {
