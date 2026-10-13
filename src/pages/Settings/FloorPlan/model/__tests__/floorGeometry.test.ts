@@ -253,6 +253,8 @@ describe('tamaño libre de la mesa (spec 2026-10-12)', () => {
     ['cuadrada con lados distintos', propia('SQUARE', 6, 4), 40, 25, { w: 4, h: 4 }],
     ['redonda más ancha que un área larga', propia('ROUND', 30, 30), 25, 40, { w: 25, h: 25 }],
     ['cuadrada de 25 girada 45° en un área larga', propia('SQUARE', 25, 25, 45), 25, 40, { w: 17, h: 17 }],
+    // Codex C2: un círculo girado es el mismo círculo; antes se medía como cuadrado girado y quedaba en 17.
+    ['redonda de 30 girada 45° en un área larga: mide su diámetro', propia('ROUND', 30, 30, 45), 25, 40, { w: 25, h: 25 }],
     // Codex, ronda 2: la proporción (× 0.7014) daba 28 × 2 (el 1.4 sube al mínimo 2) y girada medía 25.248711 de alto.
     // Con el lado corto fijo en 2 se achica el largo hasta que quepa: 27 × 0.866 + 2 × 0.5 = 24.38 ≤ 25.
     ['larga de 40 × 2 girada 60° en un área ancha: el mínimo 2 no la saca', propia('RECTANGLE', 40, 2, 60), 40, 25, { w: 27, h: 2 }],
@@ -261,6 +263,16 @@ describe('tamaño libre de la mesa (spec 2026-10-12)', () => {
     expect(r).toMatchObject(esperado)
     // Lo que devuelve SIEMPRE vale tal cual en esa área (de 2 al lado de su eje y, girada, dentro).
     expect(sizeFits(r, cols, rows)).toBe(true)
+  })
+
+  // Codex C2 (mismo nombre en Android e iOS): la de 25 a 45° se medía 35.36 × 35.36 y se recorría a Y = 7.32, medio fuera.
+  it('una redonda girada se mide por su diámetro y no se recorre: la de 25 a 45° en 40 × 25 cabe con centro Y = 12.5', () => {
+    const redonda = propia('ROUND', 25, 25, 45)
+    expect(sizeFits(redonda, 40, 25)).toBe(true)
+    expect(withFittedSize(redonda, 40, 25)).toBe(redonda)
+    expect(placeTable(20.5, 12.5, redonda, 40, 25)).toEqual({ x: 20.5, y: 12.5 })
+    // Larga y cuadrada siguen con la caja girada.
+    expect(sizeFits(propia('SQUARE', 25, 25, 45), 40, 25)).toBe(false)
   })
 
   it('placeTable y el punto de cuenta abierta usan el tamaño propio', () => {

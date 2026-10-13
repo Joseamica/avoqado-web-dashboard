@@ -437,10 +437,38 @@ describe('editorReducer — tamaño libre (spec 2026-10-12)', () => {
     expect(update(chica, { shape: 'ROUND' }).doc.tables[0]).toMatchObject({ shape: 'ROUND', w: null, h: null })
   })
 
+  // Codex C1 (12-oct): una 40 × 4 que un editor viejo (o la PAX) giró 90° ya girada no cabe; cambiarle el número la
+  // achicaba a 25 × 2 y así se guardaba. Editar número o personas conserva ancho y alto TAL CUAL.
+  it('cambiar el número o las personas no toca el tamaño: la 40 × 4 girada 90° por otro editor sigue 40 × 4 y así se guarda', () => {
+    const cargada = dtoToDoc({
+      fingerprint: '0123456789abcdef',
+      overLimit: false,
+      limits: { areas: 30, tables: 500, elements: 1500 },
+      areas: [{ id: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, externalId: null }],
+      tables: [
+        { id: 't1', number: '1', capacity: 4, shape: 'RECTANGLE', rotation: 90, positionX: 0.5, positionY: 0.5, areaId: 'a1', hasOpenOrder: false, width: 1, height: 0.16 },
+      ],
+      elements: [],
+    })
+    const s0 = initEditorState(cargada)
+    expect(s0.doc.tables[0]).toMatchObject({ w: 40, h: 4, rotation: 90 })
+    const renombrada = update(s0, { number: '7' })
+    expect(renombrada.doc.tables[0]).toMatchObject({ number: '7', w: 40, h: 4, rotation: 90 })
+    const conPersonas = update(renombrada, { capacity: 8 })
+    expect(conPersonas.doc.tables[0]).toMatchObject({ capacity: 8, w: 40, h: 4, rotation: 90 })
+    expect(docToPayload(conPersonas.doc, 's', '0123456789abcdef').tables[0]).toMatchObject({ number: '7', capacity: 8, width: 1, height: 0.16 })
+  })
+
   it('redonda y cuadrada: un solo lado; un pedido con lados distintos no se aplica', () => {
     expect(update(una(table('t1')), { w: 5, h: 5 }).doc.tables[0]).toMatchObject({ w: 5, h: 5 })
     const s0 = una(table('t1'))
     expect(update(s0, { w: 6, h: 3 })).toBe(s0)
+  })
+
+  // Codex C2: el «+» de una redonda girada se topaba en 17 (se medía como cuadrado girado); crece hasta el lado del área.
+  it('una redonda girada crece hasta el lado del área: de 20 a 25 a 45° en 40 × 25, con centro Y = 12.5', () => {
+    const s = update(una(table('t1', { shape: 'ROUND', w: 20, h: 20, rotation: 45, x: 20, y: 12.5 })), { w: 25, h: 25 })
+    expect(s.doc.tables[0]).toMatchObject({ w: 25, h: 25, rotation: 45, x: 20.5, y: 12.5 })
   })
 
   it('«Automático» (los dos null) la regresa a la regla de personas', () => {
@@ -531,6 +559,19 @@ describe('editorReducer — tamaño libre (spec 2026-10-12)', () => {
     const s = editorReducer(base, { type: 'ROTATE', keys: ['t1'] })
     expect(s).toBe(base)
     expect(s.past.length).toBe(0)
+  })
+
+  // Codex C3: un giro que deja el MISMO dibujo (larga +180°, cuadrada +90°, redonda cualquiera) sólo cambiaba el contador
+  // y el historial; se salta, y si no queda otro que quepa, no gira ni deja paso de deshacer.
+  it('girar se salta los giros que dejan el mismo dibujo: la larga 40 × 25 ya no «gira» a 180° y una redonda no gira', () => {
+    const llena = una(larga({ w: 40, h: 25, x: 20, y: 12.5 }))
+    expect(editorReducer(llena, { type: 'ROTATE', keys: ['t1'] })).toBe(llena)
+    const redonda = una(table('t1', { shape: 'ROUND' }))
+    expect(editorReducer(redonda, { type: 'ROTATE', keys: ['t1'] })).toBe(redonda)
+    // La cuadrada sigue de 45 en 45: a 45° se ve distinta, y de 45° a 90° también.
+    const cuadrada = editorReducer(una(table('t1')), { type: 'ROTATE', keys: ['t1'] })
+    expect(cuadrada.doc.tables[0].rotation).toBe(45)
+    expect(editorReducer(cuadrada, { type: 'ROTATE', keys: ['t1'] }).doc.tables[0].rotation).toBe(90)
   })
 
   it('a «Sin acomodar» vuelve a automático (sin área no hay cuadrícula con qué medirla)', () => {

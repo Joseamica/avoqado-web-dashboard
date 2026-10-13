@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { ShortcutList } from './ShortcutList'
 import { toolLabelKey } from './ToolPalette'
-import { gridOf, MIN_TABLE_SIDE, sizeFits, tableSize } from '../model/floorGeometry'
+import { gridOf, MIN_TABLE_SIDE, nextRotation, sizeFits, tableSize } from '../model/floorGeometry'
 import type { EditorAction } from '../model/editorReducer'
 import type { DraftArea, DraftElement, DraftTable, TableShape, ToolId } from '../model/types'
 
@@ -212,8 +212,8 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
   const size = tableSize(table)
   const custom = table.w !== null && table.h !== null
   const fits = (w: number, h: number) => sizeFits({ ...table, w, h }, grid.cols, grid.rows)
-  // «Girar» sólo si algún giro (+45 … +315) deja la mesa dentro del área (el reductor toma el primero que cabe).
-  const canRotate = [1, 2, 3, 4, 5, 6, 7].some(k => sizeFits({ ...table, w: size.w, h: size.h, rotation: (table.rotation + 45 * k) % 360 }, grid.cols, grid.rows))
+  // «Girar» sólo si algún giro cambia el dibujo y deja la mesa dentro del área (el mismo que toma el reductor).
+  const canRotate = nextRotation(table, grid.cols, grid.rows) !== null
   const setSize = (w: number | null, h: number | null) => dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { w, h } })
 
   return (

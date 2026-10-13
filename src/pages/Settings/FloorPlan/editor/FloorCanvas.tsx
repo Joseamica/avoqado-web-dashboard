@@ -21,9 +21,8 @@ import {
   clampWallEnd,
   fitView,
   gridOf,
-  rotatedExtent,
   snapWallEnd,
-  tableSize,
+  tableExtent,
   zoomAround,
   type Box,
   type GuideLine,
@@ -102,8 +101,7 @@ function unitsPerPixel(view: ViewBox, el: Element): number {
 const viewCenter = (v: ViewBox) => ({ x: v.x + v.w / 2, y: v.y + v.h / 2 })
 
 function tableBox(t: DraftTable, dx = 0, dy = 0): Box {
-  const s = tableSize(t)
-  const e = rotatedExtent(s.w, s.h, t.rotation)
+  const e = tableExtent(t)
   return { cx: (t.x as number) + dx, cy: (t.y as number) + dy, w: e.w, h: e.h }
 }
 

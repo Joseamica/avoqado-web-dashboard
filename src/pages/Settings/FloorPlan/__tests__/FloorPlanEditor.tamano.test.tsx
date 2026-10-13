@@ -128,6 +128,19 @@ describe('FloorPlanEditor — tamaño libre de la mesa', () => {
     expect(screen.getByRole('button', { name: /inspector.rotateBy/ })).toBeEnabled()
   })
 
+  // Codex C3: si ningún giro que cabe cambia el dibujo, «Girar» se apaga (antes sólo cambiaba el contador de grados).
+  it('«Girar» se apaga en la larga 40 × 25: a 180° se ve igual y ningún otro giro cabe', () => {
+    renderEditor(plan({ width: 1, height: 1 }))
+    seleccionar('floor-table-1')
+    expect(screen.getByRole('button', { name: /inspector.rotateBy/ })).toBeDisabled()
+  })
+
+  it('«Girar» se apaga en una redonda: un círculo girado se ve igual', () => {
+    renderEditor(plan({ shape: 'ROUND' }))
+    seleccionar('floor-table-1')
+    expect(screen.getByRole('button', { name: /inspector.rotateBy/ })).toBeDisabled()
+  })
+
   it('una mesa girada que no cabe: sus dos botones apagados; «Girar» sigue (a 180° sí cabe) y «Automático» también', () => {
     renderEditor(plan({ rotation: 45, width: 1, height: 1 }))
     seleccionar('floor-table-1')

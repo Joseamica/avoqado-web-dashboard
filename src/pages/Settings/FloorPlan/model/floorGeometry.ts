@@ -75,8 +75,24 @@ export function sizeFits(t: SizedTable, cols: number, rows: number): boolean {
   if (t.w === null || t.h === null) return true
   const onAxis = (v: number, max: number) => Number.isInteger(v) && v >= MIN_TABLE_SIDE && v <= max
   if (!onAxis(t.w, cols) || !onAxis(t.h, rows) || (t.shape !== 'RECTANGLE' && t.w !== t.h)) return false
-  const e = rotatedExtent(t.w, t.h, t.rotation)
+  const e = tableExtent(t)
   return e.w <= cols && e.h <= rows
+}
+
+/**
+ * El giro que da «Girar»: el primero (+45, +90, …) que CAMBIA el dibujo y ya girada cabe en el área; `null` si ninguno.
+ * Se salta el que deja la misma huella —larga +180°; cuadrada (o larga de lados iguales) +90/+180/+270; redonda, todos—:
+ * sólo cambiaba el contador de grados y dejaba un paso de deshacer vacío (Codex C3). Lo usan el reductor y el inspector.
+ */
+export function nextRotation(t: SizedTable, cols: number, rows: number): number | null {
+  const { w, h } = tableSize(t)
+  const same = t.shape === 'ROUND' ? 45 : w === h ? 90 : 180
+  for (let step = 1; step <= 7; step++) {
+    if ((45 * step) % same === 0) continue
+    const rotation = (t.rotation + 45 * step) % 360
+    if (sizeFits({ ...t, rotation }, cols, rows)) return rotation
+  }
+  return null
 }
 
 /**
@@ -93,7 +109,7 @@ export function withFittedSize<T extends SizedTable>(t: T, cols: number, rows: n
   const one = t.shape !== 'RECTANGLE'
   let w = clamp(Math.floor((one ? Math.min(t.w, t.h) : t.w) + 0.5), MIN_TABLE_SIDE, one ? Math.min(cols, rows) : cols)
   let h = one ? w : clamp(Math.floor(t.h + 0.5), MIN_TABLE_SIDE, rows)
-  const e = rotatedExtent(w, h, t.rotation)
+  const e = tableExtent({ ...t, w, h })
   const k = Math.min(1, cols / e.w, rows / e.h)
   if (k < 1) {
     w = Math.max(MIN_TABLE_SIDE, Math.floor(w * k + 1e-9))
@@ -114,6 +130,15 @@ export function rotatedExtent(w: number, h: number, rotation: number): { w: numb
   const c = Math.abs(Math.cos(r))
   const s = Math.abs(Math.sin(r))
   return { w: round6(w * c + h * s), h: round6(w * s + h * c) }
+}
+
+/**
+ * Caja que ocupa una mesa ya girada, con su tamaño (propio o automático). La redonda es un círculo: diámetro × diámetro a
+ * cualquier giro; medirla como cuadrado girado la recorría y la topaba sin razón (Codex C2). Android e iOS: `FloorLayout`.
+ */
+export function tableExtent(t: SizedTable): { w: number; h: number } {
+  const { w, h } = tableSize(t)
+  return t.shape === 'ROUND' ? { w, h } : rotatedExtent(w, h, t.rotation)
 }
 
 /**
@@ -153,8 +178,7 @@ export function snapCenter(center: number, size: number): number {
 
 /** Centro final de una mesa puesta en (x, y): imantada y dentro del lienzo, con su tamaño (propio o automático). */
 export function placeTable(x: number, y: number, t: SizedTable, cols: number, rows: number) {
-  const { w, h } = tableSize(t)
-  const e = rotatedExtent(w, h, t.rotation)
+  const e = tableExtent(t)
   return { x: clamp(snapCenter(x, e.w), e.w / 2, cols - e.w / 2), y: clamp(snapCenter(y, e.h), e.h / 2, rows - e.h / 2) }
 }
 
