@@ -61,6 +61,8 @@ function echo(body: any): Plan {
       rotation: t.rotation,
       positionX: t.positionX,
       positionY: t.positionY,
+      width: t.width ?? null,
+      height: t.height ?? null,
       areaId: t.areaRef,
       hasOpenOrder: false,
     })),
@@ -208,6 +210,41 @@ test('arrastrar una mesa la mueve y se guarda su nueva posición', async ({ page
   // Cierra con su botón (testid propio: «Cerrar» por nombre choca con el del aviso que queda a la vista).
   await page.getByTestId('floor-editor-close').click()
   await expect(lienzo(page)).toHaveCount(0)
+})
+
+test('una mesa larga de 4 se achica, el PUT lleva su tamaño, al volver a entrar sigue igual y «Automático» la regresa', async ({ page }, testInfo) => {
+  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
+  const { puts } = await mockFloorPlan(page, salon([mesa('t1', '1', { shape: 'RECTANGLE' })]))
+  await abrir(page)
+  await abrirEditor(page)
+  const antes = (await mesaEnLienzo(page, '1').boundingBox())!
+  await mesaEnLienzo(page, '1').click()
+  const ancho = page.getByTestId('floor-inspector-width')
+  await expect(ancho).toContainText('6')
+  for (let i = 0; i < 3; i++) await ancho.getByRole('button', { name: 'Menos', exact: true }).click()
+  await expect(ancho).toContainText('3')
+  // Se VE más chica antes de guardar (6 → 3 cuadros de ancho).
+  await expect.poll(async () => (await mesaEnLienzo(page, '1').boundingBox())!.width).toBeLessThan(antes.width * 0.7)
+  await page.screenshot({ path: testInfo.outputPath('inspector-tamano.png') })
+  await page.getByTestId('floor-plan-save').click()
+  await expect.poll(() => puts.length).toBe(1)
+  // Salón es ancha (40 × 25): 3 / 40 y 4 / 25.
+  expect(puts[0].tables[0].width).toBeCloseTo(0.075, 6)
+  expect(puts[0].tables[0].height).toBeCloseTo(0.16, 6)
+
+  // Volver a entrar (el servidor fingido devuelve lo publicado): sigue de 3.
+  await abrir(page)
+  await abrirEditor(page)
+  await mesaEnLienzo(page, '1').click()
+  await expect(page.getByTestId('floor-inspector-width')).toContainText('3')
+
+  // «Automático» la regresa a 6 × 4 y el PUT manda null.
+  await page.getByTestId('floor-inspector-size-auto').click()
+  await expect(page.getByTestId('floor-inspector-width')).toContainText('6')
+  await expect(page.getByTestId('floor-inspector-size-auto')).toHaveCount(0)
+  await page.getByTestId('floor-plan-save').click()
+  await expect.poll(() => puts.length).toBe(2)
+  expect(puts[1].tables[0]).toMatchObject({ width: null, height: null })
 })
 
 test('una pared se edita jalando sus puntas; barras en «L» y paredes en la orilla quedan dentro del lienzo', async ({ page }) => {

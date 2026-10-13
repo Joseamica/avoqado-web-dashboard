@@ -123,6 +123,8 @@
     "label": "Nombre",
     "width": "Ancho",
     "height": "Alto",
+    "size": "Tamaño",
+    "sizeAuto": "Automático (por personas)",
     "removeElement": "Quitar del plano",
     "wallEdit": "Arrastra las bolitas de sus puntas para alargarla, acortarla o girarla.",
     "rotateAll": "Girar todos",

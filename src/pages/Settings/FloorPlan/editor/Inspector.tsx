@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { ShortcutList } from './ShortcutList'
 import { toolLabelKey } from './ToolPalette'
-import { gridOf } from '../model/floorGeometry'
+import { gridOf, MIN_TABLE_SIDE, tableSize } from '../model/floorGeometry'
 import type { EditorAction } from '../model/editorReducer'
 import type { DraftArea, DraftElement, DraftTable, TableShape, ToolId } from '../model/types'
 
@@ -201,6 +201,13 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
     tryCommit(number)
   })
 
+  // Tamaño (spec 2026-10-12): cuadros enteros, de 2 al lado del área. Sin área («Sin acomodar») no hay con qué medir.
+  const area = areas.find(a => a.key === table.areaKey)
+  const grid = gridOf(area?.floorShape ?? 'WIDE')
+  const size = tableSize(table)
+  const custom = table.w !== null && table.h !== null
+  const setSize = (w: number | null, h: number | null) => dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { w, h } })
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
@@ -268,6 +275,59 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
           ))}
         </div>
       </Field>
+      {area &&
+        (table.shape === 'RECTANGLE' ? (
+          <>
+            <Field label={t('inspector.width')}>
+              <Stepper
+                value={size.w}
+                min={MIN_TABLE_SIDE}
+                max={grid.cols}
+                less={t('inspector.decrease')}
+                more={t('inspector.increase')}
+                testId="floor-inspector-width"
+                tour="floor-plan-inspector-width"
+                onChange={w => setSize(w, size.h)}
+              />
+            </Field>
+            <Field label={t('inspector.height')}>
+              <Stepper
+                value={size.h}
+                min={MIN_TABLE_SIDE}
+                max={grid.rows}
+                less={t('inspector.decrease')}
+                more={t('inspector.increase')}
+                testId="floor-inspector-height"
+                tour="floor-plan-inspector-height"
+                onChange={h => setSize(size.w, h)}
+              />
+            </Field>
+          </>
+        ) : (
+          <Field label={t('inspector.size')}>
+            <Stepper
+              value={size.w}
+              min={MIN_TABLE_SIDE}
+              max={Math.min(grid.cols, grid.rows)}
+              less={t('inspector.decrease')}
+              more={t('inspector.increase')}
+              testId="floor-inspector-size"
+              tour="floor-plan-inspector-size"
+              onChange={s => setSize(s, s)}
+            />
+          </Field>
+        ))}
+      {area && custom && (
+        <Button
+          variant="outline"
+          className="h-11 w-full cursor-pointer"
+          onClick={() => setSize(null, null)}
+          data-testid="floor-inspector-size-auto"
+          data-tour="floor-plan-inspector-size-auto"
+        >
+          {t('inspector.sizeAuto')}
+        </Button>
+      )}
       <Field label={t('inspector.rotate')}>
         <Button
           variant="outline"

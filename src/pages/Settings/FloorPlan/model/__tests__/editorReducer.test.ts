@@ -406,6 +406,11 @@ describe('editorReducer — tamaño libre (spec 2026-10-12)', () => {
     expect(editorReducer(s, { type: 'UNDO' }).doc.tables[0]).toMatchObject({ w: null, h: null, x: 10, y: 10 })
   })
 
+  it('una mesa sin área («Sin acomodar») ignora ancho y alto: queda IGUAL', () => {
+    const s0 = una(larga({ areaKey: null, x: null, y: null }))
+    expect(update(s0, { w: 3, h: 4 })).toBe(s0)
+  })
+
   // Review Focus 2
   it('si llega un solo lado, el otro sale del tamaño que se ve (nunca uno solo)', () => {
     expect(update(una(larga()), { w: 3 }).doc.tables[0]).toMatchObject({ w: 3, h: 4 })

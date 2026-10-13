@@ -226,6 +226,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       // El inspector también guarda al desmontarse: si la pieza ya no existe, no se deja un paso de deshacer vacío.
       const table = doc.tables.find(t => t.key === action.key)
       if (!table) return state
+      // Sin área no hay cuadrícula con qué medir: un tamaño no se pone (el inspector tampoco lo ofrece).
+      if (table.areaKey === null && (action.patch.w !== undefined || action.patch.h !== undefined)) return state
       // D1: otra área ⇒ se abre su pestaña con la mesa seleccionada (se ve dónde quedó), y nada de otra área queda
       // seleccionado (Supr lo quitaría sin que se vea). A «Sin acomodar» no se cambia: la bandeja sale en todas.
       const dest = action.patch.areaKey
