@@ -301,10 +301,13 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const tables = doc.tables.map(t => {
         if (!keys.has(t.key)) return t
         const g = gridFor(doc, t.areaKey)
-        const turned = { ...t, rotation: (t.rotation + 45) % 360 }
-        // Un tamaño propio que ya girado no cabe en el área no gira (como barras y zonas): nunca se achica solo.
-        if (!sizeFits(turned, g.cols, g.rows)) return t
-        return clampTable(turned, g.cols, g.rows)
+        // Un tamaño propio nunca se achica solo: se toma el PRIMER giro (+45, +90, …) que ya girada cabe en el área;
+        // si ninguno cabe, no gira.
+        for (let step = 1; step <= 7; step++) {
+          const turned = { ...t, rotation: (t.rotation + 45 * step) % 360 }
+          if (sizeFits(turned, g.cols, g.rows)) return clampTable(turned, g.cols, g.rows)
+        }
+        return t
       })
       const elements = doc.elements.map(e => {
         if (!keys.has(e.key) || !isRect(e.type)) return e

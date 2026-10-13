@@ -514,8 +514,23 @@ describe('editorReducer — tamaño libre (spec 2026-10-12)', () => {
   it('girar: con tamaño propio gira igual; si ya girada no cabe, no gira (nunca se achica sola)', () => {
     const chica = update(una(larga()), { w: 3, h: 4 })
     expect(editorReducer(chica, { type: 'ROTATE', keys: ['t1'] }).doc.tables[0]).toMatchObject({ rotation: 45, w: 3, h: 4 })
-    const enorme = una(larga({ w: 40, h: 4, x: 20, y: 12 }))
+    // 40 × 40 no cabe en un área ancha (40 × 25) en ningún giro.
+    const enorme = una(larga({ w: 40, h: 40, x: 20, y: 12 }))
     expect(editorReducer(enorme, { type: 'ROTATE', keys: ['t1'] })).toBe(enorme)
+  })
+
+  // Ola final F2
+  it('girar: si el paso de 45° no cabe pero otro giro sí, salta al primero que cabe (25 × 20 llega a 90°)', () => {
+    const s = editorReducer(una(larga({ w: 25, h: 20, x: 20, y: 12 })), { type: 'ROTATE', keys: ['t1'] })
+    expect(s.doc.tables[0]).toMatchObject({ rotation: 90, w: 25, h: 20 })
+    expect(s.past.length).toBe(1)
+  })
+
+  it('girar: una mesa que no cabe en ningún giro no cambia y no deja paso de deshacer', () => {
+    const base = una(larga({ w: 40, h: 40, x: 20, y: 12 }))
+    const s = editorReducer(base, { type: 'ROTATE', keys: ['t1'] })
+    expect(s).toBe(base)
+    expect(s.past.length).toBe(0)
   })
 
   it('a «Sin acomodar» vuelve a automático (sin área no hay cuadrícula con qué medirla)', () => {

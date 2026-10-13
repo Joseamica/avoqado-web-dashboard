@@ -221,7 +221,7 @@ test('una mesa larga de 4 se achica, el PUT lleva su tamaño, al volver a entrar
   await mesaEnLienzo(page, '1').click()
   const ancho = page.getByTestId('floor-inspector-width')
   await expect(ancho).toContainText('6')
-  for (let i = 0; i < 3; i++) await ancho.getByRole('button', { name: 'Menos', exact: true }).click()
+  for (let i = 0; i < 3; i++) await ancho.getByRole('button', { name: 'Menos ancho', exact: true }).click()
   await expect(ancho).toContainText('3')
   // Se VE más chica antes de guardar (6 → 3 cuadros de ancho).
   await expect.poll(async () => (await mesaEnLienzo(page, '1').boundingBox())!.width).toBeLessThan(antes.width * 0.7)

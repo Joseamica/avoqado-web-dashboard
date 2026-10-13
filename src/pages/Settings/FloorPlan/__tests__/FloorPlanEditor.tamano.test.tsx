@@ -67,7 +67,7 @@ describe('FloorPlanEditor — tamaño libre de la mesa', () => {
     expect(ancho).toHaveTextContent('6')
     expect(screen.getByTestId('floor-inspector-height')).toHaveTextContent('4')
     expect(screen.queryByTestId('floor-inspector-size-auto')).not.toBeInTheDocument()
-    await user.click(within(ancho).getByRole('button', { name: 'inspector.decrease' }))
+    await user.click(within(ancho).getByRole('button', { name: 'inspector.decreaseWidth' }))
     expect(screen.getByTestId('floor-inspector-width')).toHaveTextContent('5')
     await user.click(screen.getByTestId('floor-inspector-size-auto'))
     expect(screen.getByTestId('floor-inspector-width')).toHaveTextContent('6')
@@ -81,7 +81,7 @@ describe('FloorPlanEditor — tamaño libre de la mesa', () => {
     expect(screen.queryByTestId('floor-inspector-width')).not.toBeInTheDocument()
     const tamano = screen.getByTestId('floor-inspector-size')
     expect(tamano).toHaveTextContent('4')
-    await user.click(within(tamano).getByRole('button', { name: 'inspector.increase' }))
+    await user.click(within(tamano).getByRole('button', { name: 'inspector.increaseSize' }))
     expect(screen.getByTestId('floor-inspector-size')).toHaveTextContent('5')
     await user.click(within(screen.getByTestId('floor-plan-inspector')).getByRole('button', { name: 'tools.TABLE_SQUARE' }))
     expect(screen.getByTestId('floor-inspector-size')).toHaveTextContent('4')
@@ -94,7 +94,7 @@ describe('FloorPlanEditor — tamaño libre de la mesa', () => {
     publish.mockResolvedValueOnce({ ...p, fingerprint: 'bbbbbbbbbbbbbbbb', publicationId: 'p1', replayed: false })
     renderEditor(p)
     seleccionar('floor-table-1')
-    await user.click(within(screen.getByTestId('floor-inspector-width')).getByRole('button', { name: 'inspector.decrease' }))
+    await user.click(within(screen.getByTestId('floor-inspector-width')).getByRole('button', { name: 'inspector.decreaseWidth' }))
     await user.click(screen.getByTestId('floor-plan-save'))
     await waitFor(() => expect(publish).toHaveBeenCalledTimes(1))
     // Salón es ancha (40 × 25): 5 / 40 y 4 / 25.
@@ -105,12 +105,36 @@ describe('FloorPlanEditor — tamaño libre de la mesa', () => {
     const user = userEvent.setup()
     renderEditor(plan())
     seleccionar('floor-table-1')
-    await user.click(within(screen.getByTestId('floor-inspector-width')).getByRole('button', { name: 'inspector.decrease' }))
+    await user.click(within(screen.getByTestId('floor-inspector-width')).getByRole('button', { name: 'inspector.decreaseWidth' }))
     expect(screen.getByTestId('floor-inspector-size-auto')).toBeInTheDocument()
     await user.selectOptions(within(screen.getByTestId('floor-plan-inspector')).getByRole('combobox'), '__unplaced')
     expect(screen.getByTestId('floor-plan-inspector')).toBeInTheDocument()
     for (const id of ['floor-inspector-width', 'floor-inspector-height', 'floor-inspector-size', 'floor-inspector-size-auto']) {
       expect(screen.queryByTestId(id)).not.toBeInTheDocument()
     }
+  })
+
+  // Ola final F1 y F2
+  it('«+»/«−» se apagan cuando el siguiente tamaño no cabe con la mesa girada', () => {
+    // 25 × 10 girada 90° en un área ancha (40 × 25): ocupa 10 de ancho × 25 de alto, el área entera de alto.
+    renderEditor(plan({ rotation: 90, width: 0.625, height: 0.4 }))
+    seleccionar('floor-table-1')
+    const ancho = screen.getByTestId('floor-inspector-width')
+    expect(within(ancho).getByRole('button', { name: 'inspector.increaseWidth' })).toBeDisabled()
+    expect(within(ancho).getByRole('button', { name: 'inspector.decreaseWidth' })).toBeEnabled()
+    const alto = screen.getByTestId('floor-inspector-height')
+    expect(within(alto).getByRole('button', { name: 'inspector.increaseHeight' })).toBeEnabled()
+    expect(within(alto).getByRole('button', { name: 'inspector.decreaseHeight' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /inspector.rotateBy/ })).toBeEnabled()
+  })
+
+  it('una mesa girada que no cabe: sus dos botones apagados; «Girar» sigue (a 180° sí cabe) y «Automático» también', () => {
+    renderEditor(plan({ rotation: 45, width: 1, height: 1 }))
+    seleccionar('floor-table-1')
+    const ancho = screen.getByTestId('floor-inspector-width')
+    expect(within(ancho).getByRole('button', { name: 'inspector.increaseWidth' })).toBeDisabled()
+    expect(within(ancho).getByRole('button', { name: 'inspector.decreaseWidth' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /inspector.rotateBy/ })).toBeEnabled()
+    expect(screen.getByTestId('floor-inspector-size-auto')).toBeEnabled()
   })
 })
