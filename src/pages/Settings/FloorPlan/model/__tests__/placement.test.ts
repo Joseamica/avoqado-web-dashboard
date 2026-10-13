@@ -12,7 +12,7 @@ describe('placementOf (lo que se ve bajo el puntero = lo que se crea)', () => {
     expect(newTableCapacity('RECTANGLE')).toBe(6)
     expect(newTableCapacity('SQUARE')).toBe(4)
     const p = placementOf('table:RECTANGLE', 39, 24, 40, 25)
-    expect(p).toEqual({ kind: 'table', shape: 'RECTANGLE', capacity: 6, ...placeTable(39, 24, 'RECTANGLE', 6, 0, 40, 25), ...tableSizeCells('RECTANGLE', 6) })
+    expect(p).toEqual({ kind: 'table', shape: 'RECTANGLE', capacity: 6, ...placeTable(39, 24, { shape: 'RECTANGLE', capacity: 6, rotation: 0, w: null, h: null }, 40, 25), ...tableSizeCells('RECTANGLE', 6) })
   })
 
   it('barra, cocina y puerta: su caja centrada en el puntero y metida al lienzo', () => {

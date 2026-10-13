@@ -1,5 +1,5 @@
 import { normalizeRectElement } from './editorReducer'
-import { clamp, gridOf, round6 } from './floorGeometry'
+import { clamp, customSizeCells, gridOf, round6, tableSize } from './floorGeometry'
 import type { DraftArea, EditorDoc, FloorPlanDto, PublishFloorPlanBody } from './types'
 
 /** Plano del servidor (normalizado 0–1) → borrador del editor (cuadros de cada área). */
@@ -13,6 +13,9 @@ export function dtoToDoc(dto: FloorPlanDto): EditorDoc {
   const tables = dto.tables.map(t => {
     const g = t.areaId ? grids.get(t.areaId) : undefined
     const placed = !!g && t.positionX !== null && t.positionY !== null
+    // Tamaño propio en cuadros de SU área con LA conversión compartida (spec 2026-10-12): la misma que Android, iOS y el MCP.
+    // Sin área no hay cuadrícula: automático.
+    const size = g ? customSizeCells(t.shape, t.width, t.height, g.cols, g.rows) : null
     return {
       key: t.id,
       id: t.id,
@@ -24,6 +27,8 @@ export function dtoToDoc(dto: FloorPlanDto): EditorDoc {
       x: placed ? round6((t.positionX as number) * g!.cols) : null,
       y: placed ? round6((t.positionY as number) * g!.rows) : null,
       legacy: !g && t.positionX !== null && t.positionY !== null ? { nx: t.positionX, ny: t.positionY } : null,
+      w: size?.w ?? null,
+      h: size?.h ?? null,
       hasOpenOrder: t.hasOpenOrder,
     }
   })
@@ -77,6 +82,8 @@ function payloadParts(doc: EditorDoc): PlanParts {
           : !area && t.legacy
             ? { positionX: t.legacy.nx, positionY: t.legacy.ny }
             : { positionX: null, positionY: null }
+      // Tamaño propio normalizado a SU área, como los elementos (redonda y cuadrada: un solo lado). null = automático.
+      const size = g && t.w !== null && t.h !== null ? tableSize(t) : null
       return {
         ...(t.id ? { id: t.id } : { clientId: t.key }),
         number: t.number.trim(),
@@ -84,6 +91,8 @@ function payloadParts(doc: EditorDoc): PlanParts {
         shape: t.shape,
         rotation: t.rotation,
         ...position,
+        width: size ? n(size.w, g!.cols) : null,
+        height: size ? n(size.h, g!.rows) : null,
         areaRef: area ? ref(area.key) : null,
       }
     }),

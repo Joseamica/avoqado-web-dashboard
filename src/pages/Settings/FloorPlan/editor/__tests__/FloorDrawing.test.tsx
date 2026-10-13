@@ -5,7 +5,7 @@ import type { DraftArea, DraftElement, DraftTable } from '../../model/types'
 
 const area: DraftArea = { key: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false }
 const t = (number: string, extra: Partial<DraftTable> = {}): DraftTable => ({
-  key: `t${number}`, number, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, hasOpenOrder: false, ...extra,
+  key: `t${number}`, number, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, w: null, h: null, hasOpenOrder: false, ...extra,
 })
 const wall: DraftElement = { key: 'w1', type: 'WALL', areaKey: 'a1', x: 0, y: 0, w: null, h: null, rotation: 0, x2: 10, y2: 0, label: null, color: null }
 const kitchen: DraftElement = { key: 'k1', type: 'SERVICE_AREA', areaKey: 'a1', x: 30, y: 1, w: 8, h: 6, rotation: 0, x2: null, y2: null, label: 'Cocina', color: null }
@@ -39,6 +39,18 @@ describe('FloorDrawing', () => {
     expect(screen.getByTestId('floor-table-1')).toBeInTheDocument()
     expect(screen.queryByTestId('floor-table-2')).not.toBeInTheDocument()
     expect(screen.getByTestId('floor-table-3')).toHaveAttribute('transform', 'rotate(45 20 10)')
+  })
+
+  it('una mesa con tamaño propio se dibuja con él; la redonda con el lado menor (spec 2026-10-12)', () => {
+    render(
+      <svg>
+        <FloorDrawing area={area} tables={[t('1', { shape: 'RECTANGLE', w: 3, h: 2 }), t('2', { shape: 'ROUND', x: 20, w: 5, h: 3 })]} elements={[]} />
+      </svg>,
+    )
+    const mesa = screen.getByTestId('floor-table-1').querySelector('rect')
+    expect(mesa).toHaveAttribute('width', '3')
+    expect(mesa).toHaveAttribute('height', '2')
+    expect(screen.getByTestId('floor-table-2').querySelector('circle')).toHaveAttribute('r', '1.5')
   })
 
   it('dibuja paredes y áreas de servicio con su nombre', () => {

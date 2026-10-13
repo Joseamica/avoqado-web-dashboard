@@ -59,7 +59,7 @@ describe('docToPayload', () => {
   it('lo nuevo viaja con clientId y referencia áreas nuevas por su clave', () => {
     const doc = dtoToDoc({ ...dto, areas: [], tables: [], elements: [] })
     doc.areas.push({ key: 'tmp-a', name: ' Barra ', floorShape: 'SQUARE', sortOrder: 0, external: false })
-    doc.tables.push({ key: 'tmp-t', number: '9', capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'tmp-a', x: 20, y: 20, legacy: null, hasOpenOrder: false })
+    doc.tables.push({ key: 'tmp-t', number: '9', capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'tmp-a', x: 20, y: 20, legacy: null, w: null, h: null, hasOpenOrder: false })
     const body = docToPayload(doc, 's', dto.fingerprint)
     expect(body.areas).toEqual([{ clientId: 'tmp-a', name: 'Barra', floorShape: 'SQUARE', sortOrder: 0 }])
     expect(body.tables).toEqual([expect.objectContaining({ clientId: 'tmp-t', areaRef: 'tmp-a', positionX: 0.5, positionY: 0.5 })])
@@ -130,5 +130,36 @@ describe('planContent — ronda m-a', () => {
   it('compara también un plano con elementos viejos sin área (sin tronar como docToPayload)', () => {
     const sinAreas = { ...dto, areas: [], tables: [] }
     expect(same(dtoToDoc(sinAreas), dtoToDoc(sinAreas))).toBe(true)
+  })
+})
+
+describe('mapeo — tamaño libre (spec 2026-10-12)', () => {
+  const conTamano: FloorPlanDto = {
+    ...dto,
+    tables: [
+      { ...dto.tables[0], shape: 'RECTANGLE', width: 0.075, height: 0.16 }, // Salón (ancha 40 × 25): 3 × 4
+      { ...dto.tables[2], positionX: 0.5, positionY: 0.5, shape: 'ROUND', width: 0.2, height: 0.125 }, // Terraza (larga 25 × 40): 5 × 5
+      { ...dto.tables[1], width: 0.5, height: 0.5 }, // sin área: no hay cuadrícula ⇒ automática
+      // El caso fijo de `customSizeCells` (el mismo en Android, iOS y el MCP): la PAX la pasó a Terraza (larga 25 × 40).
+      { ...dto.tables[2], id: 't4', number: '4', positionX: 0.2, positionY: 0.2, shape: 'RECTANGLE', width: 0.05, height: 0.08 },
+    ],
+  }
+
+  it('ancho y alto (0–1 de SU área) → cuadros enteros con customSizeCells; sin área o sin los dos, automático', () => {
+    expect(dtoToDoc(conTamano).tables.map(t => [t.key, t.w, t.h])).toEqual([
+      ['t1', 3, 4],
+      ['t3', 5, 5],
+      ['t2', null, null],
+      ['t4', 2, 3],
+    ])
+    expect(dtoToDoc(dto).tables.every(t => t.w === null && t.h === null)).toBe(true)
+  })
+
+  it('ida y vuelta: el PUT lleva el 0–1 de lo que se VE; automático viaja null', () => {
+    const body = docToPayload(dtoToDoc(conTamano), 's', dto.fingerprint)
+    expect(body.tables.find(t => t.id === 't1')).toMatchObject({ width: 0.075, height: 0.16 })
+    expect(body.tables.find(t => t.id === 't3')).toMatchObject({ width: 0.2, height: 0.125 }) // 5/25 y 5/40
+    expect(body.tables.find(t => t.id === 't2')).toMatchObject({ width: null, height: null })
+    expect(body.tables.find(t => t.id === 't4')).toMatchObject({ width: 0.08, height: 0.075 }) // 2/25 y 3/40: lo que se ve
   })
 })

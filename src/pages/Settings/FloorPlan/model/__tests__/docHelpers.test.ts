@@ -3,7 +3,7 @@ import { duplicateNumbers, keysToRenumber } from '../docHelpers'
 import type { DraftTable } from '../types'
 
 const t = (key: string, number: string, hasOpenOrder = false): DraftTable => ({
-  key, number, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, hasOpenOrder,
+  key, number, capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, w: null, h: null, hasOpenOrder,
 })
 
 describe('duplicateNumbers', () => {

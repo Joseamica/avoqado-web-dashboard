@@ -1,6 +1,6 @@
 import { memo, useId } from 'react'
 import { cn } from '@/lib/utils'
-import { gridOf, openOrderDot, tableSizeCells } from '../model/floorGeometry'
+import { gridOf, openOrderDot, tableSize } from '../model/floorGeometry'
 import type { DraftArea, DraftElement, DraftTable } from '../model/types'
 
 export interface FloorDrawingProps {
@@ -132,7 +132,7 @@ function TableShape({
   warn: boolean
   interactive: boolean
 }) {
-  const { w, h } = tableSizeCells(t.shape, t.capacity)
+  const { w, h } = tableSize(t)
   const cx = (t.x as number) + offset.dx
   const cy = (t.y as number) + offset.dy
   const tone = busy === undefined ? 'fill-card' : busy ? 'fill-destructive/20' : FREE_FILL
@@ -148,7 +148,7 @@ function TableShape({
           : FREE_STROKE
   const shapeClass = cn(tone, edge)
   const strokeWidth = selected ? 0.28 : warn ? 0.24 : 0.16
-  const dot = openOrderDot(t.shape, t.capacity, t.rotation)
+  const dot = openOrderDot(t)
   return (
     <g
       data-floor-key={t.key}

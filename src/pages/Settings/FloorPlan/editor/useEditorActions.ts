@@ -52,6 +52,8 @@ export function useEditorActions({ doc, activeArea, allNumbers, edit, notify, ro
             x: at.x,
             y: at.y,
             legacy: null,
+            w: null,
+            h: null,
             hasOpenOrder: false,
           },
         })
@@ -154,12 +156,12 @@ export function useEditorActions({ doc, activeArea, allNumbers, edit, notify, ro
       let slot = 0
       const created: DraftTable[] = nextTableNumbers(allNumbers, count).map(number => {
         const p = slots[slot++]
-        return { key: newKey(), number, capacity: req.capacity, shape: tableShape, rotation: 0, areaKey: key, x: p?.x ?? null, y: p?.y ?? null, legacy: null, hasOpenOrder: false }
+        return { key: newKey(), number, capacity: req.capacity, shape: tableShape, rotation: 0, areaKey: key, x: p?.x ?? null, y: p?.y ?? null, legacy: null, w: null, h: null, hasOpenOrder: false }
       })
       const moved: DraftTable[] = adopted.map(a => {
-        if (a.legacy) return { ...a, areaKey: key, legacy: null, ...placeTable(a.legacy.nx * g.cols, a.legacy.ny * g.rows, a.shape, a.capacity, a.rotation, g.cols, g.rows) }
+        if (a.legacy) return { ...a, areaKey: key, legacy: null, ...placeTable(a.legacy.nx * g.cols, a.legacy.ny * g.rows, a, g.cols, g.rows) }
         const p = slots[slot++]
-        return { ...a, areaKey: key, ...(p ? placeTable(p.x, p.y, a.shape, a.capacity, a.rotation, g.cols, g.rows) : { x: null, y: null }) }
+        return { ...a, areaKey: key, ...(p ? placeTable(p.x, p.y, a, g.cols, g.rows) : { x: null, y: null }) }
       })
       return edit({
         type: 'ADD_AREA',

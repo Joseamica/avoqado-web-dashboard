@@ -13,7 +13,7 @@ vi.mock('react-i18next', () => ({
 // Aquí sólo lo que no depende de coordenadas de pantalla.
 
 const area: DraftArea = { key: 'a1', name: 'Salón', floorShape: 'WIDE', sortOrder: 0, external: false }
-const table: DraftTable = { key: 't1', number: '1', capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, hasOpenOrder: false }
+const table: DraftTable = { key: 't1', number: '1', capacity: 4, shape: 'SQUARE', rotation: 0, areaKey: 'a1', x: 10, y: 10, legacy: null, w: null, h: null, hasOpenOrder: false }
 
 const wall: DraftElement = { key: 'w1', type: 'WALL', areaKey: 'a1', x: 10, y: 5, w: null, h: null, rotation: 0, x2: 20, y2: 5, label: null, color: null }
 

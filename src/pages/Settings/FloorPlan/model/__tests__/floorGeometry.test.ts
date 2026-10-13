@@ -4,16 +4,26 @@ import {
   clampWallEnd,
   fitView,
   gridOf,
+  MIN_TABLE_SIDE,
+  customSizeCells,
   nextTableNumber,
   nextTableNumbers,
   openOrderDot,
   placeTable,
   quickStartLayout,
   rotatedExtent,
+  sizeFits,
   snapWallEnd,
+  tableSize,
   tableSizeCells,
+  withFittedSize,
   zoomAround,
 } from '../floorGeometry'
+import type { TableShape } from '../types'
+
+/** Una mesa automática (sin tamaño propio), como la miden `placeTable` y `openOrderDot`. */
+const auto = (shape: TableShape, capacity: number, rotation = 0) => ({ shape, capacity, rotation, w: null, h: null })
+const propia = (shape: TableShape, w: number | null, h: number | null, rotation = 0) => ({ shape, capacity: 4, rotation, w, h })
 
 describe('reglas de dibujo (spec §4.3)', () => {
   it('cada forma de área tiene su cuadrícula; null es ANCHO', () => {
@@ -54,9 +64,9 @@ describe('reglas de dibujo (spec §4.3)', () => {
 
 describe('placeTable', () => {
   it('imanta los bordes a la cuadrícula y no deja salir la mesa del lienzo', () => {
-    expect(placeTable(10.3, 7.8, 'SQUARE', 4, 0, 40, 25)).toEqual({ x: 10, y: 8 }) // 4×4: bordes en 8 y 12
-    expect(placeTable(10.3, 7.8, 'SQUARE', 2, 0, 40, 25)).toEqual({ x: 10.5, y: 7.5 }) // 3×3: bordes en 9 y 12
-    expect(placeTable(39, 24, 'RECTANGLE', 8, 0, 40, 25)).toEqual({ x: 35, y: 23 }) // 10×4 pegada a la orilla
+    expect(placeTable(10.3, 7.8, auto('SQUARE', 4), 40, 25)).toEqual({ x: 10, y: 8 }) // 4×4: bordes en 8 y 12
+    expect(placeTable(10.3, 7.8, auto('SQUARE', 2), 40, 25)).toEqual({ x: 10.5, y: 7.5 }) // 3×3: bordes en 9 y 12
+    expect(placeTable(39, 24, auto('RECTANGLE', 8), 40, 25)).toEqual({ x: 35, y: 23 }) // 10×4 pegada a la orilla
   })
 })
 
@@ -173,26 +183,88 @@ describe('openOrderDot — el punto de cuenta abierta no gira con la mesa (H3)',
   it.each([0, 90, 180, 270])('mesa larga a %i°: siempre en la esquina de arriba a la derecha de lo que se ve', rotation => {
     const { w, h } = tableSizeCells('RECTANGLE', 6)
     const e = rotatedExtent(w, h, rotation)
-    const dot = openOrderDot('RECTANGLE', 6, rotation)
+    const dot = openOrderDot(auto('RECTANGLE', 6, rotation))
     expect(dot.dx).toBeCloseTo(e.w / 2 - 0.45, 5)
     expect(dot.dy).toBeCloseTo(-(e.h / 2 - 0.45), 5)
   })
 
   it('a 45° queda en la punta de arriba (la más arriba de las dos de la derecha), dentro de la mesa', () => {
-    const dot = openOrderDot('SQUARE', 4, 45)
+    const dot = openOrderDot(auto('SQUARE', 4, 45))
     expect(dot.dx).toBeCloseTo(0, 5)
     expect(dot.dy).toBeLessThan(0)
     expect(Math.abs(dot.dy)).toBeLessThan(Math.SQRT2 * 2)
   })
 
   it('la redonda lo tiene siempre en el mismo lugar, arriba a la derecha y DENTRO del círculo (M7)', () => {
-    expect(openOrderDot('ROUND', 4, 135)).toEqual(openOrderDot('ROUND', 4, 0))
+    expect(openOrderDot(auto('ROUND', 4, 135))).toEqual(openOrderDot(auto('ROUND', 4)))
     for (const capacity of [2, 4, 6, 8]) {
       const r = tableSizeCells('ROUND', capacity).w / 2
-      const dot = openOrderDot('ROUND', capacity, 0)
+      const dot = openOrderDot(auto('ROUND', capacity))
       expect(dot.dx).toBeGreaterThan(0)
       expect(dot.dy).toBeCloseTo(-dot.dx, 6)
       expect(Math.hypot(dot.dx, dot.dy) + 0.38).toBeLessThanOrEqual(r)
     }
+  })
+})
+
+describe('tamaño libre de la mesa (spec 2026-10-12)', () => {
+  // LA conversión 0–1 → cuadros. El caso 0.05 × 0.08 en un área larga es el MISMO en Android, iOS y el MCP.
+  it('customSizeCells: floor(x + 0.5), de 2 al lado de su eje; redonda y cuadrada, el menor; sin los dos, null', () => {
+    expect(customSizeCells('RECTANGLE', 0.05, 0.08, 25, 40)).toEqual({ w: 2, h: 3 }) // 1.25 → 1 → mínimo 2; 3.2 → 3
+    expect(customSizeCells('RECTANGLE', 0.075, 0.16, 40, 25)).toEqual({ w: 3, h: 4 }) // 3.0000000000000004 → 3
+    expect(customSizeCells('ROUND', 0.15, 0.16, 40, 25)).toEqual({ w: 4, h: 4 }) // 6 × 4 → el menor
+    expect(customSizeCells('RECTANGLE', 0.01, 1.5, 40, 25)).toEqual({ w: 2, h: 25 }) // fuera de rango: a [2, eje]
+    expect(customSizeCells('RECTANGLE', 0.075, null, 40, 25)).toBeNull()
+    expect(customSizeCells('RECTANGLE', undefined, undefined, 40, 25)).toBeNull()
+  })
+
+  it('sizeFits: vale TAL CUAL sólo si son enteros de 2 al lado de su eje, un solo lado en redonda/cuadrada, y girada cabe', () => {
+    expect(sizeFits(propia('RECTANGLE', null, null), 40, 25)).toBe(true)
+    expect(sizeFits(propia('RECTANGLE', 30, 5, 45), 40, 25)).toBe(true) // 35 × 0.707 = 24.7 ≤ 25
+    expect(sizeFits(propia('RECTANGLE', 30, 6, 45), 40, 25)).toBe(false) // el «+ Alto» de la auditoría: 25.5 > 25
+    expect(sizeFits(propia('RECTANGLE', 1, 4), 40, 25)).toBe(false)
+    expect(sizeFits(propia('RECTANGLE', 41, 4), 40, 25)).toBe(false)
+    expect(sizeFits(propia('RECTANGLE', 3.5, 4), 40, 25)).toBe(false)
+    expect(sizeFits(propia('ROUND', 5, 4), 40, 25)).toBe(false)
+  })
+
+  it('tableSize: el propio si trae los dos lados; si no, el automático; redonda y cuadrada usan el lado menor', () => {
+    expect(tableSize(propia('RECTANGLE', null, null))).toEqual({ w: 6, h: 4 })
+    expect(tableSize(propia('RECTANGLE', 3, null))).toEqual({ w: 6, h: 4 })
+    expect(tableSize(propia('RECTANGLE', 3, 2))).toEqual({ w: 3, h: 2 })
+    expect(tableSize(propia('ROUND', 6, 4))).toEqual({ w: 4, h: 4 })
+    expect(tableSize(propia('SQUARE', 5, 5))).toEqual({ w: 5, h: 5 })
+  })
+
+  it('withFittedSize: sin tamaño propio, o si ya cabe, devuelve la MISMA mesa', () => {
+    const a = propia('RECTANGLE', null, null)
+    const b = propia('RECTANGLE', 3, 2)
+    expect(withFittedSize(a, 40, 25)).toBe(a)
+    expect(withFittedSize(b, 40, 25)).toBe(b)
+  })
+
+  it.each([
+    ['larga más chica que 2', propia('RECTANGLE', 1, 0.4), 40, 25, { w: MIN_TABLE_SIDE, h: MIN_TABLE_SIDE }],
+    ['larga más grande que el área: cada lado a su eje', propia('RECTANGLE', 50, 30), 40, 25, { w: 40, h: 25 }],
+    // Auditoría: primero por eje (h=40 no cabe en 25 filas aunque girada se vea acostada) y así se guarda tal cual.
+    ['4 × 40 girada 90° que viene de un área cuadrada, en una ancha', propia('RECTANGLE', 4, 40, 90), 40, 25, { w: 4, h: 25 }],
+    // Por eje cabe (40 ≤ 40, 4 ≤ 25) pero girada mide 40 de alto: se achica ENTERA en proporción (× 0.625).
+    ['larga de 40 girada 90° en un área ancha', propia('RECTANGLE', 40, 4, 90), 40, 25, { w: 25, h: 2 }],
+    ['cuadrada con lados distintos', propia('SQUARE', 6, 4), 40, 25, { w: 4, h: 4 }],
+    ['redonda más ancha que un área larga', propia('ROUND', 30, 30), 25, 40, { w: 25, h: 25 }],
+    ['cuadrada de 25 girada 45° en un área larga', propia('SQUARE', 25, 25, 45), 25, 40, { w: 17, h: 17 }],
+    // Codex, ronda 2: la proporción (× 0.7014) daba 28 × 2 (el 1.4 sube al mínimo 2) y girada medía 25.248711 de alto.
+    // Con el lado corto fijo en 2 se achica el largo hasta que quepa: 27 × 0.866 + 2 × 0.5 = 24.38 ≤ 25.
+    ['larga de 40 × 2 girada 60° en un área ancha: el mínimo 2 no la saca', propia('RECTANGLE', 40, 2, 60), 40, 25, { w: 27, h: 2 }],
+  ] as const)('withFittedSize: %s', (_, t, cols, rows, esperado) => {
+    const r = withFittedSize(t, cols, rows)
+    expect(r).toMatchObject(esperado)
+    // Lo que devuelve SIEMPRE vale tal cual en esa área (de 2 al lado de su eje y, girada, dentro).
+    expect(sizeFits(r, cols, rows)).toBe(true)
+  })
+
+  it('placeTable y el punto de cuenta abierta usan el tamaño propio', () => {
+    expect(placeTable(10.3, 7.8, propia('RECTANGLE', 3, 2), 40, 25)).toEqual({ x: 10.5, y: 8 }) // 3×2: bordes en 9-12 y 7-9
+    expect(openOrderDot(propia('RECTANGLE', 3, 2))).toEqual({ dx: 1.05, dy: -0.55 })
   })
 })

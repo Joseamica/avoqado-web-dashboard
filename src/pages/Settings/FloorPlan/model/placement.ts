@@ -23,7 +23,7 @@ export function placementOf(tool: ToolId, x: number, y: number, cols: number, ro
   if (tool.startsWith('table:')) {
     const shape = tool.slice(6) as TableShape
     const capacity = newTableCapacity(shape)
-    return { kind: 'table', shape, capacity, ...placeTable(x, y, shape, capacity, 0, cols, rows), ...tableSizeCells(shape, capacity) }
+    return { kind: 'table', shape, capacity, ...placeTable(x, y, { shape, capacity, rotation: 0, w: null, h: null }, cols, rows), ...tableSizeCells(shape, capacity) }
   }
   if (tool === 'LABEL') return { kind: 'box', x: clamp(x, 0, cols - 1), y: clamp(y, 0, rows - 1), ...LABEL_BOX }
   const { w, h } = NEW_ELEMENT_SIZE[tool as keyof typeof NEW_ELEMENT_SIZE]
