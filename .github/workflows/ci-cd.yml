@@ -1,22 +1,10 @@
-name: 🌐 Avoqado Dashboard CI/CD Pipeline (Optimized)
+# ⚠️ PRUEBA DE COSTO EN UBICLOUD (12-oct-2026) — rama desechable, NO FUSIONAR.
+# Sólo corre en ramas ci/ubicloud-**; sin jobs de deploy; permisos de sólo lectura.
+name: 🧪 PRUEBA Ubicloud — 5 · Dashboard en Standard
 
 on:
   push:
-    # 'ci/**' = carril de verificación por sesión (regla del workspace, 8-oct-2026): corre TODAS las pruebas y nunca
-    # publica (los deploys sólo corren en main). La concurrencia es por rama: un carril no cancela a otro ni a develop.
-    branches: [main, develop, 'ci/**']
-  pull_request:
-    branches: [main, develop]
-    types: [opened, synchronize, reopened, ready_for_review] # Skip draft
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - production
+    branches: ['ci/ubicloud-**']
 
 # Cancel outdated workflow runs
 concurrency:
@@ -26,8 +14,6 @@ concurrency:
 permissions:
   contents: read
   actions: read
-  pull-requests: write
-  issues: write
 
 env:
   NODE_VERSION: '20'
@@ -45,7 +31,7 @@ jobs:
   # 🧪 Quality Gate: Test, lint and build
   test-and-build:
     name: 🧪 Test, Lint & Build
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-4
     # Skip draft PRs
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     outputs:
@@ -56,6 +42,9 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v6
+
+      - name: 🔎 Máquina (para la medición)
+        run: echo "nproc=$(nproc) mem=$(free -g | awk '/Mem:/{print $2}')GB cpu=$(lscpu | sed -n 's/^Model name:[[:space:]]*//p')" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -150,151 +139,3 @@ jobs:
           name: dashboard-build-${{ github.sha }}
           path: dist/
           retention-days: 7
-
-  # 🏭 Deploy to Production Environment
-  deploy-production:
-    name: 🏭 Deploy to Production
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    if: |
-      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
-    environment:
-      name: production
-      url: https://dashboardv2.avoqado.io
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v6
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: 📦 Cache node_modules
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
-            ${{ runner.os }}-node-
-
-      - name: 📦 Install dependencies
-        run: npm ci --prefer-offline
-
-      # 🔴 Stripe: producción cobra en modo REAL, así que el dashboard necesita la llave pública REAL — la misma
-      # STRIPE_PUBLISHABLE_KEY que tiene el servidor en Render. La llave de pruebas del bloque `env` de arriba es sólo
-      # para CI/demo: con ella el formulario de tarjeta no carga (Stripe responde 400 a un SetupIntent real) y el botón
-      # de pagar se quedaba girando. Pasó en producción del 9-feb al 28-sep de 2026. Es pública por diseño (va en el
-      # bundle), por eso vive aquí como las demás llaves públicas.
-      - name: 🔐 Stripe key must be LIVE in production
-        env:
-          VITE_STRIPE_PUBLISHABLE_KEY: 'pk_live_ng36HpQnpUfxlfWQ69VC79B3004HA2xzRX'
-        run: |
-          case "$VITE_STRIPE_PUBLISHABLE_KEY" in
-            pk_live_*) echo "Stripe publishable key: live" ;;
-            *) echo "::error::VITE_STRIPE_PUBLISHABLE_KEY no es pk_live_ — el pago con tarjeta no cargaría en producción"; exit 1 ;;
-          esac
-
-      - name: 🏗️ Build for Production
-        run: npm run build
-        env:
-          VITE_STRIPE_PUBLISHABLE_KEY: 'pk_live_ng36HpQnpUfxlfWQ69VC79B3004HA2xzRX'
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.avoqado.io' }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
-          # MUST match the backend's ENABLE_VENUE_BASE_SUBSCRIPTION (Render), which is ON.
-          # Vite inlines this at BUILD time: when it is unset, SetupWizard.tsx evaluates
-          # `undefined === 'true'` → false, drops the PlanStep from SETUP_STEPS, and the
-          # wizard submits /v2/complete with no plan — which the backend rejects with
-          # "Falta elegir tu plan" and no step to go back to. That is exactly what happened:
-          # this var was never defined here, so from 2026-05-27 to 2026-07-27 NOT ONE
-          # organization could finish onboarding. Never flip one side alone.
-          VITE_ENABLE_VENUE_BASE_SUBSCRIPTION: ${{ vars.VITE_ENABLE_VENUE_BASE_SUBSCRIPTION || 'true' }}
-
-      - name: 🏭 Deploy to Cloudflare Pages (Production)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name avoqado-web-dashboard
-
-      # ✅ Production health check (non-blocking due to Cloudflare WAF)
-      - name: 🏥 Production health verification
-        continue-on-error: true
-        run: |
-          echo "🏥 Performing production health checks..."
-          echo "ℹ️ Note: Cloudflare WAF may block automated health checks"
-          for i in {1..5}; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L -A "GitHub-Actions-HealthCheck" https://dashboard.avoqado.io)
-            echo "⏳ Attempt $i/5... HTTP $HTTP_CODE"
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Production deployment successful!"
-
-              # Quick security header check
-              HEADERS=$(curl -s -I -L -A "GitHub-Actions-HealthCheck" https://dashboard.avoqado.io)
-              echo "$HEADERS" | grep -qi "strict-transport-security" && echo "🔒 HSTS: ✅"
-              echo "$HEADERS" | grep -qi "x-frame-options" && echo "🛡️ X-Frame-Options: ✅"
-
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "⚠️ Production health check inconclusive (Cloudflare WAF may be blocking)"
-          echo "📍 Manual verification: https://dashboard.avoqado.io"
-          exit 0
-
-      - name: 📢 Production deployment summary
-        if: success()
-        run: |
-          echo "🎉 ✅ 🏭 PRODUCTION DEPLOYMENT SUCCESSFUL! 🏭 ✅ 🎉"
-          echo "🌐 URL: https://dashboardv2.avoqado.io"
-          echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
-          echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
-          echo "🚀 Commit: ${{ github.sha }}"
-
-  # 👀 PR Preview and Quality Report
-  deploy-preview:
-    name: 👀 PR Preview & Quality Report
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-    needs: test-and-build
-
-    steps:
-      - name: 💬 Enhanced PR Comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
-
-            const buildTime = '${{ needs.test-and-build.outputs.build-time }}';
-            const version = '${{ needs.test-and-build.outputs.version }}';
-            const buildSize = '${{ needs.test-and-build.outputs.build-size }}';
-
-            const body = [
-              '## 🌐 Build Successful! ✅',
-              '',
-              '### 📊 Build Summary',
-              '- **Branch**: `' + pr.head.ref + '`',
-              '- **Commit**: `' + context.sha.substring(0, 7) + '`',
-              '- **Version**: `' + version + '`',
-              '- **Build size**: `' + buildSize + '`',
-              '- **Built at**: `' + buildTime + '`',
-              '',
-              '### ✅ Quality Checks',
-              '- ESLint, i18n, TypeScript, Build and Playwright E2E all passed!',
-              '',
-              '🎯 **Ready for review!**'
-            ].join('\n');
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
