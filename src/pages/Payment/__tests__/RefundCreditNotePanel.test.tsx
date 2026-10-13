@@ -287,7 +287,9 @@ describe('RefundCreditNotePanel — C2 · T10 · la espera del XML y los motivos
     expect(screen.getByText('Ya no queda nada de la F12.')).toBeInTheDocument()
   })
   it('control — N4: cada motivo del servidor tiene su texto en es y en en (los textos se agregaron antes de las pruebas)', () => {
-    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toHaveLength(23)
+    // C3 · T8 (M12), cambio A PROPÓSITO: 24 con `EXTRAIDA_SIN_FACTURA` (la venta se sacó de la global y su factura aún no está timbrada).
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toHaveLength(24)
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toContain('EXTRAIDA_SIN_FACTURA')
     for (const r of MOTIVOS_DE_BLOQUEO_DE_NOTA) {
       expect([r, typeof (es.creditNote.reason as Record<string, string>)[r]]).toEqual([r, 'string'])
       expect([r, typeof (en.creditNote.reason as Record<string, string>)[r]]).toEqual([r, 'string'])

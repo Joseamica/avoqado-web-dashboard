@@ -24,6 +24,8 @@ export type CreditNoteBlockReason =
   | 'ORIGINAL_CANCELLED'
   | 'ORIGINAL_CANCEL_PENDING'
   | 'ORIGINAL_EN_SUSTITUCION'
+  // C3 (T5 del servidor, M12): el ticket de la global ya se sacó de ella y su factura del cliente aún no está timbrada.
+  | 'EXTRAIDA_SIN_FACTURA'
   | 'TIP_ONLY'
   | 'EXCEEDS_REMAINING'
   | 'ORIGINAL_IVA_MIXTO' // ya no se emite (C2): se conserva en el tipo
@@ -52,6 +54,7 @@ export const MOTIVOS_DE_BLOQUEO_DE_NOTA: readonly CreditNoteBlockReason[] = [
   'ORIGINAL_CANCELLED',
   'ORIGINAL_CANCEL_PENDING',
   'ORIGINAL_EN_SUSTITUCION',
+  'EXTRAIDA_SIN_FACTURA',
   'TIP_ONLY',
   'EXCEEDS_REMAINING',
   'ORIGINAL_IVA_MIXTO',
@@ -323,7 +326,22 @@ export interface Cfdi {
    * (servidor anterior) ⇒ no se sabe y la fila no ofrece «Emitir complementaria».
    */
   complementariaDe?: string | null
+  /**
+   * C3 (opcional: un servidor anterior no lo manda): la nota de crédito que SACÓ un ticket de la factura global para facturarlo aparte
+   * («extracción de la global»).
+   */
+  esExtraccion?: boolean
+  /**
+   * C3: en una extracción timbrada y viva, en qué va la factura del cliente de esa venta. `TIMBRADA`; `EN_PROCESO` = se está confirmando
+   * con el SAT (no se vuelve a pedir); `FALTA` = no hay ninguna viva: hay que volver a facturar la venta. `null` en las demás filas.
+   */
+  facturaDelCliente?: FacturaDelCliente | null
+  /** C3: `true` sólo con `facturaDelCliente: 'FALTA'`. */
+  facturaDelClientePendiente?: boolean
 }
+
+/** C3: en qué va la factura del cliente de una venta sacada de la factura global. */
+export type FacturaDelCliente = 'TIMBRADA' | 'EN_PROCESO' | 'FALTA'
 
 export interface CfdiListFilters {
   /** Uno o varios estatus del servidor (viajan separados por coma). */
@@ -342,6 +360,15 @@ export interface CfdiListResponse {
   total: number
   page: number
   pageSize: number
+}
+
+/**
+ * C3 (ola final, I-1): las ventas que se sacaron de la factura global (nota de extracción timbrada) y NO tienen factura del cliente
+ * (`total`), y las que ya van en camino (`enProceso`, aparte: no están en `total`). Un servidor anterior no tiene la ruta.
+ */
+export interface ExtraccionesPendientes {
+  total: number
+  enProceso: number
 }
 
 // ─── Issue a CFDI for an order (Flow B — "Facturar una cuenta") ──────────────
@@ -413,6 +440,10 @@ export interface PriceContractPreview {
 export interface IssueCfdiValidationError {
   error: string
   reasons: string[]
+  /**
+   * El CFDI que quedó con el error. 🔴 C3: si lo que falló fue SACAR la venta de la factura global, es el de la NOTA DE EXTRACCIÓN, no el
+   * de la factura del cliente: no se trata como la factura del cliente.
+   */
   cfdiId?: string
   priceContract?: PriceContractPreview
 }
@@ -843,6 +874,12 @@ export const cfdiService = {
       page: data?.page ?? filters.page ?? 1,
       pageSize: data?.pageSize ?? filters.pageSize ?? 20,
     }
+  },
+
+  async getExtraccionesPendientes(venueId: string): Promise<ExtraccionesPendientes> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/cfdi/extracciones-pendientes`)
+    const data = response.data?.data ?? response.data
+    return { total: Number(data?.total) || 0, enProceso: Number(data?.enProceso) || 0 }
   },
 
   async getCfdi(venueId: string, cfdiId: string): Promise<Cfdi> {

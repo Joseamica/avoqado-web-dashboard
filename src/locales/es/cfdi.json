@@ -6,7 +6,16 @@
     "emptyHint": "Las facturas aparecerán aquí cuando se emitan a tus clientes.",
     "loadError": "No se pudieron cargar las facturas.",
     "replacedByBadge": "Sustituida por {{folio}}",
-    "creditNoteBadge": "Nota de crédito"
+    "creditNoteBadge": "Nota de crédito",
+    "extraccion": "Extracción de la global",
+    "facturaDelClientePendiente": "Falta la factura del cliente: vuelve a facturar la venta.",
+    "facturaDelClienteEnProceso": "La factura del cliente se está confirmando con el SAT.",
+    "extraccionesPendientes": {
+      "aviso": "{{count}} ventas se sacaron de tu factura global pero su factura del cliente no salió. Revísalas y vuelve a facturarlas.",
+      "aviso_one": "1 venta se sacó de tu factura global pero su factura del cliente no salió. Revísala y vuelve a facturarla.",
+      "enProceso": "Además, {{count}} se están procesando.",
+      "enProceso_one": "Además, 1 se está procesando."
+    }
   },
   "columns": {
     "folio": "Serie-Folio",
@@ -578,6 +587,7 @@
       "ORIGINAL_CANCELLED": "La factura original está cancelada; una nota de crédito no aplica sobre una factura cancelada.",
       "ORIGINAL_CANCEL_PENDING": "La factura original tiene una cancelación pedida; la nota de crédito se podrá emitir cuando se resuelva.",
       "ORIGINAL_EN_SUSTITUCION": "La factura original se está sustituyendo; la nota de crédito se podrá emitir cuando termine.",
+      "EXTRAIDA_SIN_FACTURA": "Esta venta se está facturando aparte; emite la nota de crédito cuando su factura esté timbrada.",
       "TIP_ONLY": "Esta devolución es sólo de propina, que nunca formó parte de la factura: no lleva nota de crédito.",
       "EXCEEDS_REMAINING": "Ya no queda nada por acreditar en la factura original.",
       "ORIGINAL_IVA_MIXTO": "La factura original tiene varias tasas de IVA; haz esta nota de crédito con tu contador.",

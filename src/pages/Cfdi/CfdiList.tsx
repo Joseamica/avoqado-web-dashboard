@@ -23,10 +23,11 @@ import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
-import { useCfdis, useConsultarCancelacion, useDownloadCfdiFile } from '@/hooks/use-cfdi'
+import { useCfdis, useConsultarCancelacion, useDownloadCfdiFile, useExtraccionesPendientes } from '@/hooks/use-cfdi'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
+import { ExtraccionesPendientesAviso } from './components/ExtraccionesPendientesAviso'
 import { GlobalComplementariaDialog } from './components/GlobalComplementariaDialog'
 import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
 import { SendCfdiEmailDialog } from './components/SendCfdiEmailDialog'
@@ -201,6 +202,8 @@ export default function CfdiList() {
   }, [statusFilter, flowFilter, debouncedReceptorRfc, dateRange])
 
   const { data, isLoading, isError } = useCfdis(filters, { enabled: hasCfdi })
+  // C3 (ola final, I-1): ventas sacadas de la global sin factura del cliente. Aviso accesorio: si no responde, no aparece.
+  const { data: extraccionesPendientes } = useExtraccionesPendientes({ enabled: hasCfdi })
   const download = useDownloadCfdiFile()
   // C2 · T10 ronda 1 (I-1): «Consultar estado» manda `soloConsultar`: el servidor SÓLO consulta (nunca anota ni envía un intento nuevo).
   const { mutate: consultarCancelacion, isPending: consultando } = useConsultarCancelacion()
@@ -228,11 +231,19 @@ export default function CfdiList() {
           return (
             <div className="flex flex-col">
               <span className="font-medium">{[row.original.serie, row.original.folio].filter(Boolean).join('-') || '—'}</span>
-              {/* C2-pulido (G3): una nota de crédito no se confunde con una factura de venta. */}
+              {/* C2-pulido (G3): una nota de crédito no se confunde con una factura de venta. C3: la que sacó un ticket de la
+                  factura global se nombra así. */}
               {row.original.type === 'EGRESO' && (
                 <Badge variant="outline" className="w-fit whitespace-nowrap text-[10px]">
-                  {t('list.creditNoteBadge')}
+                  {t(row.original.esExtraccion ? 'list.extraccion' : 'list.creditNoteBadge')}
                 </Badge>
+              )}
+              {/* C3 (Codex C3-10): «falta» sólo sin ninguna factura del cliente viva; viva sin timbrar = se está confirmando (no se repite). */}
+              {row.original.facturaDelCliente === 'FALTA' && (
+                <span className="max-w-[260px] text-xs text-amber-600 dark:text-amber-400">{t('list.facturaDelClientePendiente')}</span>
+              )}
+              {row.original.facturaDelCliente === 'EN_PROCESO' && (
+                <span className="max-w-[260px] text-xs text-muted-foreground">{t('list.facturaDelClienteEnProceso')}</span>
               )}
               {sustituta && (
                 <span className="text-xs text-amber-600 dark:text-amber-400">
@@ -423,6 +434,10 @@ export default function CfdiList() {
           <h1 className="text-2xl font-bold tracking-tight">{t('list.title')}</h1>
           <p className="text-muted-foreground mt-1">{t('list.description')}</p>
         </div>
+
+        {hasCfdi && extraccionesPendientes && (
+          <ExtraccionesPendientesAviso total={extraccionesPendientes.total} enProceso={extraccionesPendientes.enProceso} />
+        )}
 
         {hasCfdi && isError && (
           <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
