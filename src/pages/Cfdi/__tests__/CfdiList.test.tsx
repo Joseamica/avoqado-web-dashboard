@@ -23,6 +23,7 @@ const m = vi.hoisted(() => ({
   permisos: ['cfdi:configure', 'cfdi:issue'] as string[],
   consultar: vi.fn(),
   consultando: false,
+  extracciones: undefined as { total: number; enProceso: number } | undefined,
 }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.permisos.includes(p) }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: true }) }))
@@ -33,6 +34,8 @@ vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (d: 
 vi.mock('@/hooks/use-cfdi', () => ({
   useCfdis: () => ({ data: { cfdis: m.filas, total: m.filas.length }, isLoading: false, isError: false }),
   useDownloadCfdiFile: () => ({ mutate: () => {} }),
+  // C3 (ola final, I-1): el aviso de ventas sacadas de la global sin factura del cliente.
+  useExtraccionesPendientes: () => ({ data: m.extracciones }),
   // C2 · T10 ronda 1 (I-1): «Consultar estado» tiene su propia mutación (`soloConsultar`): nunca la de cancelar.
   useCancelCfdi: () => ({ mutate: vi.fn(), isPending: false }),
   useConsultarCancelacion: () => ({ mutate: m.consultar, isPending: m.consultando }),
@@ -386,5 +389,89 @@ describe('CfdiList · C2-pulido · G3: la nota de crédito en la lista', () => {
       expect(within(fila(id)).queryByText(NOTA)).not.toBeInTheDocument()
       expect(within(fila(id)).getByRole('button', { name: SUSTITUIR })).toBeInTheDocument()
     }
+  })
+})
+
+// ─── C3 · Tarea 8 (Codex C3-6/C3-10): la nota que sacó un ticket de la factura global dice en qué va la factura del cliente ─────────────
+// «Falta» sólo cuando NO hay ninguna factura del cliente viva; si hay una viva sin timbrar (envío incierto, sustitución en curso) se está
+// confirmando con el SAT y NO se vuelve a pedir.
+describe('CfdiList · C3 · T8: la extracción de la global y la factura del cliente', () => {
+  const extraccion = (over: Partial<Cfdi>) =>
+    factura({
+      isGlobal: false,
+      flow: 'STAFF_B',
+      orderId: 'o1',
+      globalPeriod: null,
+      complementariaDe: null,
+      type: 'EGRESO',
+      esExtraccion: true,
+      ...over,
+    })
+  const EXTRACCION = es.list.extraccion
+  const FALTA = es.list.facturaDelClientePendiente
+  const EN_PROCESO = es.list.facturaDelClienteEnProceso
+
+  beforeEach(() => {
+    m.permisos = ['cfdi:configure', 'cfdi:issue']
+  })
+
+  it('🔴 la fila de la extracción dice «Extracción de la global» (no «Nota de crédito») y, según la factura del cliente, falta o se está confirmando', () => {
+    m.filas = [
+      extraccion({ id: 'falta', facturaDelCliente: 'FALTA', facturaDelClientePendiente: true }),
+      extraccion({ id: 'proceso', facturaDelCliente: 'EN_PROCESO', facturaDelClientePendiente: false }),
+      extraccion({ id: 'timbrada', facturaDelCliente: 'TIMBRADA', facturaDelClientePendiente: false }),
+    ]
+    render(<CfdiList />)
+    expect([EXTRACCION, FALTA, EN_PROCESO]).toEqual([
+      'Extracción de la global',
+      'Falta la factura del cliente: vuelve a facturar la venta.',
+      'La factura del cliente se está confirmando con el SAT.',
+    ])
+    for (const id of ['falta', 'proceso', 'timbrada']) {
+      expect(within(fila(id)).getByText(EXTRACCION)).toBeInTheDocument()
+      expect(within(fila(id)).queryByText(es.list.creditNoteBadge)).not.toBeInTheDocument()
+    }
+    expect(within(fila('falta')).getByText(FALTA)).toBeInTheDocument()
+    expect(within(fila('falta')).queryByText(EN_PROCESO)).not.toBeInTheDocument()
+    expect(within(fila('proceso')).getByText(EN_PROCESO)).toBeInTheDocument()
+    expect(within(fila('proceso')).queryByText(FALTA)).not.toBeInTheDocument()
+    for (const texto of [FALTA, EN_PROCESO]) expect(within(fila('timbrada')).queryByText(texto)).not.toBeInTheDocument()
+  })
+
+  it('control — una nota de crédito normal sigue diciendo «Nota de crédito», y un servidor anterior (sin los campos) no pinta avisos', () => {
+    m.filas = [
+      extraccion({ id: 'nota', esExtraccion: false, facturaDelCliente: null, facturaDelClientePendiente: false }),
+      extraccion({ id: 'viejo', esExtraccion: undefined }),
+    ]
+    render(<CfdiList />)
+    for (const id of ['nota', 'viejo']) {
+      expect(within(fila(id)).getByText(es.list.creditNoteBadge)).toBeInTheDocument()
+      expect(within(fila(id)).queryByText(EXTRACCION)).not.toBeInTheDocument()
+      for (const texto of [FALTA, EN_PROCESO]) expect(within(fila(id)).queryByText(texto)).not.toBeInTheDocument()
+    }
+  })
+})
+
+describe('CfdiList · aviso de ventas sacadas de la global sin factura del cliente (C3, I-1)', () => {
+  beforeEach(() => {
+    m.filas = []
+    m.extracciones = undefined
+  })
+
+  it('🔴 sin pendientes (0) o sin respuesta del servidor no se ve el aviso', () => {
+    m.extracciones = { total: 0, enProceso: 0 }
+    const { rerender } = render(<CfdiList />)
+    expect(screen.queryByTestId('aviso-extracciones-pendientes')).not.toBeInTheDocument()
+    m.extracciones = undefined
+    rerender(<CfdiList />)
+    expect(screen.queryByTestId('aviso-extracciones-pendientes')).not.toBeInTheDocument()
+  })
+
+  it('🔴 con N pendientes la página de Facturación lo dice con el número', () => {
+    m.extracciones = { total: 2, enProceso: 3 }
+    render(<CfdiList />)
+    const aviso = screen.getByTestId('aviso-extracciones-pendientes')
+    expect(aviso).toHaveTextContent('2 ventas se sacaron de tu factura global')
+    expect(aviso).toHaveTextContent('Además, 3 se están procesando.')
   })
 })

@@ -53,3 +53,17 @@ describe('cfdiService.getCfdis — C2-pulido · G7: `STAMP_IN_DOUBT` con un serv
     expect(m.get).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('cfdiService.getExtraccionesPendientes — C3 (ola final, I-1)', () => {
+  beforeEach(() => {
+    m.get.mockReset()
+  })
+
+  it('pide la ruta del venue y devuelve sólo { total, enProceso } (números, 0 si falta)', async () => {
+    m.get.mockResolvedValueOnce({ data: { total: 3, enProceso: 1 } })
+    await expect(cfdiService.getExtraccionesPendientes('v1')).resolves.toEqual({ total: 3, enProceso: 1 })
+    expect(m.get).toHaveBeenCalledWith(`${RUTA}/extracciones-pendientes`)
+    m.get.mockResolvedValueOnce({ data: { data: {} } })
+    await expect(cfdiService.getExtraccionesPendientes('v1')).resolves.toEqual({ total: 0, enProceso: 0 })
+  })
+})

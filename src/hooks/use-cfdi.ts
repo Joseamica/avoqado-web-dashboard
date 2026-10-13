@@ -230,6 +230,24 @@ export function useCfdis(filters: CfdiListFilters, options?: { enabled?: boolean
 }
 
 /**
+ * C3 (ola final, I-1): cuántas ventas se sacaron de la factura global y no tienen factura del cliente. Es un aviso accesorio: si el
+ * servidor no responde (o es anterior y no tiene la ruta) no se reintenta ni se avisa de nada, simplemente no aparece. La llave cuelga de
+ * `['cfdis', venueId]`: lo que ya refresca la lista (emitir, sustituir, cancelar) también refresca este aviso.
+ */
+export function useExtraccionesPendientes(options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+  const enabled = options?.enabled ?? true
+
+  return useQuery({
+    queryKey: ['cfdis', venueId, 'extracciones-pendientes'],
+    queryFn: () => cfdiService.getExtraccionesPendientes(venueId!),
+    enabled: !!venueId && enabled,
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+}
+
+/**
  * Emit a CFDI for an order — Flow B "Facturar una cuenta".
  *
  * On success (201) we toast the serie-folio + UUID and invalidate the CFDI list

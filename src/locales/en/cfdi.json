@@ -6,7 +6,16 @@
     "emptyHint": "Invoices will appear here once they are issued to your customers.",
     "loadError": "Could not load invoices.",
     "replacedByBadge": "Replaced by {{folio}}",
-    "creditNoteBadge": "Credit note"
+    "creditNoteBadge": "Credit note",
+    "extraccion": "Taken out of the global invoice",
+    "facturaDelClientePendiente": "The customer's invoice is missing: invoice the sale again.",
+    "facturaDelClienteEnProceso": "The customer's invoice is being confirmed with the SAT.",
+    "extraccionesPendientes": {
+      "aviso": "{{count}} sales were taken out of your global invoice but the customer's invoice didn't go through. Review them and invoice them again.",
+      "aviso_one": "1 sale was taken out of your global invoice but the customer's invoice didn't go through. Review it and invoice it again.",
+      "enProceso": "Also, {{count}} are being processed.",
+      "enProceso_one": "Also, 1 is being processed."
+    }
   },
   "columns": {
     "folio": "Series-Folio",
@@ -578,6 +587,7 @@
       "ORIGINAL_CANCELLED": "The original invoice is cancelled; a credit note does not apply to a cancelled invoice.",
       "ORIGINAL_CANCEL_PENDING": "The original invoice has a cancellation requested; the credit note can be issued once it is resolved.",
       "ORIGINAL_EN_SUSTITUCION": "The original invoice is being replaced; the credit note can be issued once that finishes.",
+      "EXTRAIDA_SIN_FACTURA": "This sale is being invoiced separately; issue the credit note once its invoice is stamped.",
       "TIP_ONLY": "This refund is only a tip, which was never part of the invoice: it has no credit note.",
       "EXCEEDS_REMAINING": "There is nothing left to credit on the original invoice.",
       "ORIGINAL_IVA_MIXTO": "The original invoice has several VAT rates; issue this credit note with your accountant.",
