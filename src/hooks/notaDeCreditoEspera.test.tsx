@@ -8,10 +8,14 @@ import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const m = vi.hoisted(() => ({ getRefundCreditNote: vi.fn(), emitRefundCreditNote: vi.fn() }))
+const m = vi.hoisted(() => ({ getRefundCreditNote: vi.fn(), emitRefundCreditNote: vi.fn(), issueCfdiForOrder: vi.fn() }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 vi.mock('@/services/cfdi.service', () => ({
-  default: { getRefundCreditNote: m.getRefundCreditNote, emitRefundCreditNote: m.emitRefundCreditNote },
+  default: {
+    getRefundCreditNote: m.getRefundCreditNote,
+    emitRefundCreditNote: m.emitRefundCreditNote,
+    issueCfdiForOrder: m.issueCfdiForOrder,
+  },
 }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
@@ -22,6 +26,7 @@ import {
   intervaloDeLaNota,
   reintentarLaNota,
   useEmitRefundCreditNote,
+  useIssueCfdi,
   useRefundCreditNote,
 } from './use-cfdi'
 
@@ -39,6 +44,14 @@ describe('C2 · T10 · la nota que espera el XML', () => {
     expect(intervaloDeLaNota(lista as any)).toBe(false)
     expect(intervaloDeLaNota({ ...lista, eligibility: { eligible: false, reason: 'XML_IRRECUPERABLE', message: 'x' } } as any)).toBe(false)
     expect(intervaloDeLaNota(undefined)).toBe(false)
+  })
+  it('🔴 F6 (N6, H3): una nota automática RECUPERANDO y una en duda (`recoveryOnly`) también consultan solas (mismo intervalo, mismo tope); REQUIERE_INTERVENCION, no', () => {
+    const automatica = (estado: string) => ({ ...lista, automatica: { estado } })
+    const enDuda = { ...lista, recoveryOnly: true, eligibility: { eligible: false, reason: null, message: 'x' } }
+    expect(intervaloDeLaNota(automatica('RECUPERANDO') as any)).toBe(ESPERA_DEL_XML_MS)
+    expect(intervaloDeLaNota(enDuda as any)).toBe(ESPERA_DEL_XML_MS)
+    expect(intervaloDeLaNota(automatica('RECUPERANDO') as any, MAX_CONSULTAS_EN_ESPERA + 1)).toBe(false)
+    expect(intervaloDeLaNota(automatica('REQUIERE_INTERVENCION') as any)).toBe(false)
   })
   it('🔴 reintentarLaNota: nunca 403/404 ni 504/524 (consulta que puede tardar); los demás, una vez', () => {
     for (const status of [403, 404, 504, 524]) expect([status, reintentarLaNota(0, { response: { status } })]).toEqual([status, false])
@@ -181,5 +194,29 @@ describe('C2 · ronda QA (D2) · useEmitRefundCreditNote recarga la nota tambié
     })
     expect(invalidar).toHaveBeenCalledWith({ queryKey: ['refund-credit-note', 'v1', 'r9'] })
     expect(invalidar).toHaveBeenCalledWith({ queryKey: ['cfdis', 'v1'] })
+  })
+})
+
+// F6 · Codex código r1 (P3-3): una factura NETA (`DESCONTADAS`) no trae notas; el panel del reembolso que ya se había consultado («sin
+// factura», NO_ORIGINAL_CFDI, que no consulta solo) tiene que volver a preguntar, no esperar a que venza su caché.
+describe('F6 · useIssueCfdi refresca el estado de las devoluciones', () => {
+  const sinFactura = { creditNote: null, eligibility: { eligible: false, reason: 'NO_ORIGINAL_CFDI', message: 'x' }, preview: null }
+  const facturar = async (respuesta: Record<string, unknown>) => {
+    m.issueCfdiForOrder.mockResolvedValue({ cfdi: { id: 'c1', serie: 'A', folio: '1', uuid: 'U' }, ...respuesta })
+    const qc = new QueryClient()
+    qc.setQueryData(['refund-credit-note', 'v1', 'r1'], sinFactura)
+    const { result } = renderHook(() => useIssueCfdi(), {
+      wrapper: ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>,
+    })
+    await act(async () => {
+      await result.current.mutateAsync({ orderId: 'o1', receptor: {} as any })
+    })
+    return qc.getQueryState(['refund-credit-note', 'v1', 'r1'])?.isInvalidated
+  }
+  it('🔴 una factura neta (DESCONTADAS, sin notas) invalida el estado anterior en caché', async () =>
+    expect(await facturar({ devoluciones: 'DESCONTADAS' })).toBe(true))
+  it('control — con notas de devolución también (como antes); sin devoluciones, no se toca', async () => {
+    expect(await facturar({ devoluciones: 'CON_NOTA', notasDeDevolucion: [{ refundPaymentId: 'r1', status: 'STAMPED' }] })).toBe(true)
+    expect(await facturar({})).toBe(false)
   })
 })

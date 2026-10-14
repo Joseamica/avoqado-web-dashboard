@@ -79,6 +79,54 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
 
   const { creditNote, eligibility, preview } = data
 
+  // F6 (H3, R4-1; ruling B6): mientras la nota no esté timbrada (la rama timbrada sale abajo) Y haya algo que esperar —una nota automática,
+  // una en duda (`recoveryOnly`), el XML de la factura, la nota de artículos, o «por importe» (P10) detenido—, «Volver a consultar» está
+  // siempre, también cuando la pantalla no espera sola, porque el job o una persona la pueden destrabar en cualquier momento y la ventana no
+  // se refresca al enfocarla. Sin nada que esperar (un reembolso normal elegible sin nota automática, TIP_ONLY…), como hoy: sin botón. Que la
+  // pantalla dejó de consultar sola se dice SÓLO cuando de verdad se agotó su espera (la del XML ya lo dice `waitingXmlStopped`). Sin
+  // consulta indefinida.
+  // Fix ronda 1 (ruling T10-d): una nota que SÍ salió y se canceló no espera nada; basta su motivo (ni botón ni aviso de la automática).
+  const notaCancelada = eligibility.reason === 'NOTA_CANCELADA'
+  const porImporteDetenido =
+    (eligibility.reason === 'ARTICULO_SIN_EVIDENCIA' || eligibility.reason === 'SIN_MONTO_POR_ARTICULO') && !preview?.alternativa
+  const hayAlgoQueEsperar =
+    (!!data.automatica && !notaCancelada) ||
+    !!data.recoveryOnly ||
+    eligibility.reason === 'ESPERA_XML' ||
+    eligibility.reason === 'ESPERA_NOTA_DE_ARTICULOS' ||
+    porImporteDetenido
+  const consultarOtraVez = hayAlgoQueEsperar && (
+    <div className="space-y-1">
+      {esperaDelXmlAgotada && eligibility.reason !== 'ESPERA_XML' && (
+        <p className="text-xs text-muted-foreground">{t('creditNote.esperaAgotada')}</p>
+      )}
+      <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => volverAConsultar()}>
+        {t('creditNote.retryXml')}
+      </Button>
+    </div>
+  )
+  // F6 (R7, N6): la nota tenía que salir sola con la factura; se dice si sale sola o requiere a alguien. Ámbar: es lo que falta, no un error.
+  // Ningún texto promete lo que no hay: «…puedes emitirla ya» sólo con el botón «Emitir nota» (elegible y con `cfdi:issue`, ruling T10-c);
+  // RECUPERANDO sin elegibilidad es la espera del XML (ruling 1). «Abajo dice qué revisar» sólo con algo abajo: en la rama elegible, el
+  // rechazo del PAC (`lastError`, T9-b; fix ronda 1); en «no procede», el motivo.
+  const motivoDelPac = eligibility.eligible && data.automatica?.estado === 'REQUIERE_INTERVENCION' ? creditNote?.lastError : null
+  const llaveDeLaAutomatica =
+    data.automatica?.estado === 'RECUPERANDO'
+      ? !eligibility.eligible
+        ? 'recuperandoEsperaXml'
+        : can('cfdi:issue')
+          ? 'recuperando'
+          : 'recuperandoSinBoton'
+      : eligibility.eligible && !motivoDelPac
+        ? 'requiereSinMotivo'
+        : 'requiere'
+  const avisoDeLaAutomatica = data.automatica && !notaCancelada && (
+    <>
+      <p className="text-xs text-amber-600 dark:text-amber-400">{t(`creditNote.automatica.${llaveDeLaAutomatica}`)}</p>
+      {motivoDelPac && <p className="text-xs text-muted-foreground">{motivoDelPac}</p>}
+    </>
+  )
+
   // ── Ya emitida ──────────────────────────────────────────────────────────────
   if (creditNote && creditNote.status === 'STAMPED') {
     // C2 · ronda QA (D7): como lo escribe la lista de Facturas («A-7»).
@@ -137,6 +185,7 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
             <p className="text-sm font-medium text-foreground">
               {t('creditNote.title', { defaultValue: 'Nota de crédito (CFDI de Egreso)' })}
             </p>
+            {avisoDeLaAutomatica}
             {/* C2 · T10: mientras se recupera el XML de la original, el texto del plan (el panel vuelve a consultar cada 15 s); sin
                 `message` del servidor, el texto del motivo (N4). */}
             {/* C2 · ronda QA (D2): la nota quedó EN DUDA (`recoveryOnly`): lo que está en espera es la NOTA. El texto del servidor
@@ -146,19 +195,18 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
                 ? t('creditNote.error.inDoubt')
                 : eligibility.reason === 'ESPERA_XML'
                   ? t(esperaDelXmlAgotada ? 'creditNote.waitingXmlStopped' : 'creditNote.waitingXml')
-                  : (eligibility.message ?? (eligibility.reason ? t(`creditNote.reason.${eligibility.reason}`) : null))}
+                  : eligibility.reason === 'VENTA_DEVUELTA_COMPLETA'
+                    ? // F6 (D1): texto fijo, sin folios ni montos; va en el idioma de la pantalla (el del servidor es sólo en español).
+                      t('creditNote.reason.VENTA_DEVUELTA_COMPLETA')
+                    : (eligibility.message ?? (eligibility.reason ? t(`creditNote.reason.${eligibility.reason}`) : null))}
             </p>
             {/* C2 · ronda QA (D3): el aviso de la facturación apagada también en «Acreditar por importe» (como en la rama elegible). */}
             {alternativa && preview?.avisoFacturacionApagada && (
               <p className="text-xs text-muted-foreground">{preview.avisoFacturacionApagada}</p>
             )}
           </div>
-          {/* T10 ronda 1 (M4): la espera del XML ya no consulta sola (tope ≈2 min): la persona decide cuándo volver a preguntar. */}
-          {eligibility.reason === 'ESPERA_XML' && esperaDelXmlAgotada && (
-            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => volverAConsultar()}>
-              {t('creditNote.retryXml')}
-            </Button>
-          )}
+          {/* T10 ronda 1 (M4) y F6 (H3, R4-1): la persona decide cuándo volver a preguntar. */}
+          {consultarOtraVez}
           {alternativa &&
             (can('cfdi:issue') ? (
               <Button
@@ -227,6 +275,7 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
           <p className="text-sm font-medium text-foreground">
             {t('creditNote.title', { defaultValue: 'Nota de crédito (CFDI de Egreso)' })}
           </p>
+          {avisoDeLaAutomatica}
           <p className="text-xs text-muted-foreground">
             {t('creditNote.help', {
               defaultValue: 'La factura original NO se cancela: se emite un comprobante nuevo relacionado a ella por el importe devuelto.',
@@ -247,6 +296,7 @@ export function RefundCreditNotePanel({ refundId }: RefundCreditNotePanelProps) 
           </div>
         )}
 
+        {consultarOtraVez}
         {canIssue ? (
           <Button
             variant="outline"

@@ -176,7 +176,7 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
         // 409 — la venta ya tiene factura vigente, la cancelación anterior sigue en trámite, o hay otra
         // emisión en curso. El texto del servidor dice cuál factura y qué hacer; el título, cuál caso es.
         if (status === 409) {
-          toast({ ...avisoDeErrorAlFacturar(409, data, t), variant: 'destructive' })
+          toast({ variant: 'destructive', ...avisoDeErrorAlFacturar(409, data, t) }) // el aviso puede traer la suya (D2: ámbar)
           return
         }
 

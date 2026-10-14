@@ -277,6 +277,21 @@ describe('RefundCreditNotePanel — C2 · T10 · la espera del XML y los motivos
     render(<RefundCreditNotePanel refundId="r1" />)
     expect(screen.getByText(es.creditNote.reason.XML_IRRECUPERABLE)).toBeInTheDocument()
   })
+  // F6 (pulido D1): una venta devuelta COMPLETA sin factura ya no se puede facturar; el panel no puede mandar a «facturar la venta».
+  it('🔴 D1: VENTA_DEVUELTA_COMPLETA ⇒ «ya no se factura por separado» (el texto del dashboard, en su idioma), sin Emitir ni «facturar la venta»', () => {
+    m.data = {
+      creditNote: null,
+      eligibility: { eligible: false, reason: 'VENTA_DEVUELTA_COMPLETA', message: 'TEXTO EN ESPAÑOL DEL SERVIDOR' },
+      preview: null,
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(es.creditNote.reason.VENTA_DEVUELTA_COMPLETA).toBe('Esta venta se devolvió completa: ya no se factura por separado.')
+    expect(en.creditNote.reason.VENTA_DEVUELTA_COMPLETA).toBe('This sale was fully refunded: it is no longer invoiced on its own.')
+    expect(screen.getByText(es.creditNote.reason.VENTA_DEVUELTA_COMPLETA)).toBeInTheDocument()
+    expect(screen.queryByText('TEXTO EN ESPAÑOL DEL SERVIDOR')).not.toBeInTheDocument()
+    expect(screen.queryByText(/primero se factura/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
   it('control — con `message` del servidor manda el del servidor (trae folios y montos)', () => {
     m.data = {
       creditNote: null,
@@ -288,8 +303,14 @@ describe('RefundCreditNotePanel — C2 · T10 · la espera del XML y los motivos
   })
   it('control — N4: cada motivo del servidor tiene su texto en es y en en (los textos se agregaron antes de las pruebas)', () => {
     // C3 · T8 (M12), cambio A PROPÓSITO: 24 con `EXTRAIDA_SIN_FACTURA` (la venta se sacó de la global y su factura aún no está timbrada).
-    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toHaveLength(24)
+    // F6 (T10), cambio A PROPÓSITO: 27 con `DESCONTADA_EN_LA_FACTURA`, `ESPERA_NOTA_DE_ARTICULOS` y `NOTA_CANCELADA`.
+    // F6 (pulido D1), cambio A PROPÓSITO: 28 con `VENTA_DEVUELTA_COMPLETA` (sin factura y la venta ya se devolvió completa).
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toHaveLength(28)
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toContain('VENTA_DEVUELTA_COMPLETA')
     expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toContain('EXTRAIDA_SIN_FACTURA')
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toContain('DESCONTADA_EN_LA_FACTURA')
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toContain('ESPERA_NOTA_DE_ARTICULOS')
+    expect(MOTIVOS_DE_BLOQUEO_DE_NOTA).toContain('NOTA_CANCELADA')
     for (const r of MOTIVOS_DE_BLOQUEO_DE_NOTA) {
       expect([r, typeof (es.creditNote.reason as Record<string, string>)[r]]).toEqual([r, 'string'])
       expect([r, typeof (en.creditNote.reason as Record<string, string>)[r]]).toEqual([r, 'string'])
@@ -365,11 +386,14 @@ describe('RefundCreditNotePanel — C2 · T10 ronda 1', () => {
     fireEvent.click(screen.getByRole('button', { name: es.creditNote.retryXml }))
     expect(m.volverAConsultar).toHaveBeenCalledTimes(1)
   })
-  it('control — M4: mientras consulta sola, el texto de espera y sin botón', () => {
+  // F6 (T10, H3, R4-1), cambio A PROPÓSITO: antes «sin botón»; ahora «Volver a consultar» está siempre que la nota no esté timbrada y haya
+  // algo que esperar (ruling B6), sin decir que dejó de consultar.
+  it('control — M4: mientras consulta sola, el texto de espera, el botón (siempre que no esté timbrada) y nada de "dejó de consultar"', () => {
     m.data = { creditNote: null, eligibility: { eligible: false, reason: 'ESPERA_XML', message: 'x' }, preview: null }
     render(<RefundCreditNotePanel refundId="r1" />)
     expect(screen.getByText(es.creditNote.waitingXml)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: es.creditNote.retryXml })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: es.creditNote.retryXml })).toBeInTheDocument()
+    expect(screen.queryByText(es.creditNote.waitingXmlStopped)).not.toBeInTheDocument()
   })
 })
 
@@ -529,5 +553,166 @@ describe('RefundCreditNotePanel — C2-pulido · G4: nota emitida con PDF/XML', 
       expect(comun.contains(uuid)).toBe(true)
       expect(comun.classList.contains('flex') && !comun.classList.contains('flex-col')).toBe(false)
     }
+  })
+})
+
+// ─── F6 (T10): la nota automática de una factura por el total ─────────────────────────────────────────────────────────────────────────
+describe('RefundCreditNotePanel — F6: la nota automática de una factura por el total', () => {
+  it('🔴 R7: RECUPERANDO (elegible: el job la emite) ⇒ su aviso ámbar en la rama que la ofrece', () => {
+    m.data = {
+      creditNote: null,
+      recoveryOnly: false,
+      eligibility: { eligible: true, reason: null, message: null },
+      preview: null,
+      automatica: { estado: 'RECUPERANDO' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    const aviso = screen.getByText(es.creditNote.automatica.recuperando)
+    expect(aviso).toBeInTheDocument()
+    expect(aviso.className).toContain('text-amber-600')
+  })
+  it('🔴 ruling 1 del controlador: RECUPERANDO + ESPERA_XML (rama sin «Emitir nota») ⇒ su texto propio, sin «puedes emitirla ya»; elegible ⇒ el de B6 con el botón', () => {
+    m.data = {
+      creditNote: null,
+      recoveryOnly: false,
+      eligibility: { eligible: false, reason: 'ESPERA_XML', message: 'x' },
+      preview: null,
+      automatica: { estado: 'RECUPERANDO' },
+    }
+    const esperaXml = render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.automatica.recuperandoEsperaXml).className).toContain('text-amber-600')
+    expect(screen.queryByText(es.creditNote.automatica.recuperando)).not.toBeInTheDocument()
+    expect(screen.queryByText(/puedes emitirla ya/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: es.creditNote.cta })).not.toBeInTheDocument()
+    esperaXml.unmount()
+    m.data = { ...m.data, eligibility: { eligible: true, reason: null, message: null } }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.automatica.recuperando)).toBeInTheDocument()
+    expect(screen.queryByText(es.creditNote.automatica.recuperandoEsperaXml)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: es.creditNote.cta })).toBeInTheDocument()
+  })
+  it('control — paridad es/en de los avisos de la nota automática', () => {
+    expect(Object.keys(en.creditNote.automatica).sort()).toEqual(Object.keys(es.creditNote.automatica).sort())
+    expect(Object.keys(es.creditNote.automatica).sort()).toEqual([
+      'recuperando',
+      'recuperandoEsperaXml',
+      'recuperandoSinBoton',
+      'requiere',
+      'requiereSinMotivo',
+    ])
+    for (const k of Object.keys(es.creditNote.automatica) as Array<keyof typeof es.creditNote.automatica>)
+      expect([k, typeof en.creditNote.automatica[k]]).toEqual([k, 'string'])
+    expect(es.creditNote.automatica.recuperandoEsperaXml).toBe('Esta nota sale sola con su factura en cuanto llegue su XML.')
+    expect(en.creditNote.automatica.recuperandoEsperaXml).toBe('This note goes out on its own with its invoice once its XML arrives.')
+  })
+  it('🔴 H4: REQUIERE_INTERVENCION ⇒ aviso neutral encima del motivo, que dice qué devolución revisar', () => {
+    m.data = {
+      creditNote: null,
+      recoveryOnly: false,
+      eligibility: {
+        eligible: false,
+        reason: 'ESPERA_NOTA_DE_ARTICULOS',
+        message: 'Primero tiene que salir la nota por $58.00. Revisa esa devolución.',
+      },
+      preview: null,
+      automatica: { estado: 'REQUIERE_INTERVENCION' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.automatica.requiere)).toBeInTheDocument()
+    expect(screen.getByText(/Revisa esa devolución/)).toBeInTheDocument()
+    expect(es.creditNote.automatica.requiere).not.toMatch(/no hace falta/i)
+  })
+  it('🔴 N6: su nota se canceló ⇒ se dice por qué y NO se ofrece «Emitir nota de crédito»', () => {
+    m.data = {
+      creditNote: { id: 'n1', status: 'CANCELLED' },
+      recoveryOnly: false,
+      eligibility: { eligible: false, reason: 'NOTA_CANCELADA', message: 'La nota de crédito de esta devolución se canceló.' },
+      preview: null,
+      automatica: { estado: 'REQUIERE_INTERVENCION' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText('La nota de crédito de esta devolución se canceló.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: es.creditNote.cta })).not.toBeInTheDocument()
+    // Fix ronda 1 (ruling T10-d): la nota SÍ salió y se canceló: nada que esperar ni «todavía no sale»; basta el motivo.
+    expect(screen.queryByRole('button', { name: es.creditNote.retryXml })).not.toBeInTheDocument()
+    expect(screen.queryByText(es.creditNote.automatica.requiere)).not.toBeInTheDocument()
+    expect(screen.queryByText(/todavía no sale/)).not.toBeInTheDocument()
+  })
+  it('🔴 fix ronda 1 (Important): elegible + REQUIERE_INTERVENCION (el PAC la rechazó, T9-b) ⇒ el motivo del PAC (`lastError`) bajo el aviso', () => {
+    m.data = {
+      creditNote: { id: 'n1', status: 'STAMP_FAILED', lastError: 'el SAT rechazó la nota' },
+      recoveryOnly: false,
+      eligibility: { eligible: true, reason: null, message: null },
+      preview: null,
+      automatica: { estado: 'REQUIERE_INTERVENCION' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.automatica.requiere)).toBeInTheDocument()
+    expect(screen.getByText('el SAT rechazó la nota')).toBeInTheDocument()
+  })
+  it('🔴 fix ronda 1: elegible + REQUIERE_INTERVENCION SIN `lastError` ⇒ un aviso que no dice «abajo dice qué revisar»', () => {
+    m.data = {
+      creditNote: { id: 'n1', status: 'STAMP_FAILED', lastError: null },
+      recoveryOnly: false,
+      eligibility: { eligible: true, reason: null, message: null },
+      preview: null,
+      automatica: { estado: 'REQUIERE_INTERVENCION' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.automatica.requiereSinMotivo)).toBeInTheDocument()
+    expect(screen.queryByText(/abajo dice/)).not.toBeInTheDocument()
+  })
+  it('🔴 fix ronda 1 (ruling T10-c): elegible + RECUPERANDO SIN `cfdi:issue` (no hay botón) ⇒ no ofrece «puedes emitirla ya»', () => {
+    m.permisos = []
+    m.data = {
+      creditNote: null,
+      recoveryOnly: false,
+      eligibility: { eligible: true, reason: null, message: null },
+      preview: null,
+      automatica: { estado: 'RECUPERANDO' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByText(es.creditNote.noPermission)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: es.creditNote.cta })).not.toBeInTheDocument()
+    expect(screen.queryByText(/puedes emitirla ya/)).not.toBeInTheDocument()
+    expect(screen.getByText(es.creditNote.automatica.recuperandoSinBoton)).toBeInTheDocument()
+  })
+  it('control — sin `automatica`, el panel de siempre', () => {
+    m.data = { creditNote: null, recoveryOnly: false, eligibility: { eligible: false, reason: 'TIP_ONLY', message: null }, preview: null }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.queryByText(es.creditNote.automatica.recuperando)).not.toBeInTheDocument()
+  })
+  it('control (ruling B6) — sin nada que esperar (TIP_ONLY, o elegible sin nota automática) NO se ofrece «Volver a consultar»', () => {
+    m.data = { creditNote: null, recoveryOnly: false, eligibility: { eligible: false, reason: 'TIP_ONLY', message: null }, preview: null }
+    const tip = render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.queryByRole('button', { name: es.creditNote.retryXml })).not.toBeInTheDocument()
+    tip.unmount()
+    m.data = {
+      creditNote: null,
+      recoveryOnly: false,
+      eligibility: { eligible: true, reason: null, message: null },
+      preview: {
+        facturaOriginal: { folio: 'F12', uuid: 'UUID-1', totalCents: 11600 },
+        receptor: null,
+        amountToCreditCents: 5800,
+        tipRefundCents: 0,
+      },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByRole('button', { name: es.creditNote.cta })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: es.creditNote.retryXml })).not.toBeInTheDocument()
+  })
+  it('🔴 B6: con nota automática en la rama elegible, «Volver a consultar» está junto a «Emitir nota de crédito»', () => {
+    m.data = {
+      creditNote: null,
+      recoveryOnly: false,
+      eligibility: { eligible: true, reason: null, message: null },
+      preview: null,
+      automatica: { estado: 'RECUPERANDO' },
+    }
+    render(<RefundCreditNotePanel refundId="r1" />)
+    expect(screen.getByRole('button', { name: es.creditNote.cta })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: es.creditNote.retryXml }))
+    expect(m.volverAConsultar).toHaveBeenCalledTimes(1)
   })
 })

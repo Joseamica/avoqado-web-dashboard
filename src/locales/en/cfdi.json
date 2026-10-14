@@ -10,6 +10,7 @@
     "extraccion": "Taken out of the global invoice",
     "facturaDelClientePendiente": "The customer's invoice is missing: invoice the sale again.",
     "facturaDelClienteEnProceso": "The customer's invoice is being confirmed with the SAT.",
+    "notasDeDevolucionPendientes": "Refund credit notes missing: {{count}}",
     "extraccionesPendientes": {
       "aviso": "{{count}} sales were taken out of your global invoice but the customer's invoice didn't go through. Review them and invoice them again.",
       "aviso_one": "1 sale was taken out of your global invoice but the customer's invoice didn't go through. Review it and invoice it again.",
@@ -110,7 +111,12 @@
     "submit": "Issue invoice",
     "toast": {
       "success": "Invoice issued successfully.",
-      "successDetail": "Folio {{folio}} · UUID {{uuid}}"
+      "successDetail": "Folio {{folio}} · UUID {{uuid}}",
+      "successNet": "The invoice only includes what the customer kept: the refund is already deducted.",
+      "successWithNote_one": "The refund's credit note was issued too.",
+      "successWithNote_other": "The refunds' credit notes were issued too.",
+      "notePending": "The invoice was issued; refund credit notes still missing: {{count}}",
+      "notePendingDetail": "Folio {{folio}}. Invoicing shows which ones are missing; each refund payment shows why."
     },
     "errors": {
       "validation": "Could not invoice:",
@@ -120,6 +126,8 @@
       "conflict": "This bill already has an invoice or one is in progress.",
       "alreadyIssued": "This sale already has an invoice — no new one was issued.",
       "cancelPending": "The previous invoice is not cancelled yet.",
+      "saleRefunded": "This sale was fully refunded",
+      "saleRefundedDetail": "There is nothing to invoice.",
       "forbidden": "You can't invoice from here: either your user isn't allowed to issue invoices, or the business plan doesn't include invoicing (it comes with the Premium plan). Ask the business owner.",
       "notFound": "Could not determine who issues this sale's invoice.",
       "orderNotFound": "This sale does not belong to this business.",
@@ -588,6 +596,10 @@
       "ORIGINAL_CANCEL_PENDING": "The original invoice has a cancellation requested; the credit note can be issued once it is resolved.",
       "ORIGINAL_EN_SUSTITUCION": "The original invoice is being replaced; the credit note can be issued once that finishes.",
       "EXTRAIDA_SIN_FACTURA": "This sale is being invoiced separately; issue the credit note once its invoice is stamped.",
+      "DESCONTADA_EN_LA_FACTURA": "This refund is already deducted in the sale's invoice: it needs no credit note.",
+      "ESPERA_NOTA_DE_ARTICULOS": "The item refund's credit note for this sale has to go out first.",
+      "NOTA_CANCELADA": "This refund's credit note was cancelled, and a refund admits only one note. Ask support to review this sale.",
+      "VENTA_DEVUELTA_COMPLETA": "This sale was fully refunded: it is no longer invoiced on its own.",
       "TIP_ONLY": "This refund is only a tip, which was never part of the invoice: it has no credit note.",
       "EXCEEDS_REMAINING": "There is nothing left to credit on the original invoice.",
       "ORIGINAL_IVA_MIXTO": "The original invoice has several VAT rates; issue this credit note with your accountant.",
@@ -608,6 +620,14 @@
     },
     "waitingXmlStopped": "The invoice XML has not arrived yet. Check again in a few minutes.",
     "retryXml": "Check again",
+    "esperaAgotada": "This screen stopped checking by itself. Check again in a few minutes.",
+    "automatica": {
+      "recuperando": "This note goes out on its own with its invoice; if you prefer, you can issue it now.",
+      "recuperandoEsperaXml": "This note goes out on its own with its invoice once its XML arrives.",
+      "recuperandoSinBoton": "This note goes out on its own with its invoice.",
+      "requiere": "This note was supposed to go out by itself with its invoice and hasn't yet; below is what to review:",
+      "requiereSinMotivo": "This note was supposed to go out by itself with its invoice and hasn't yet."
+    },
     "roundingGeneric": "Includes {{cents}} ¢ of SAT rounding."
   },
   "manifiesto": {

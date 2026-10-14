@@ -364,6 +364,9 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
               </p>
             )}
           </div>
+          {/* F6 (Codex código r1, P2-2): abierto con el id de una DEVOLUCIÓN (el enlace de un pendiente en Facturas), no hay tarjetas de
+              devoluciones de este pago: la nota de crédito de ESTE reembolso va aquí. */}
+          {payment.type === 'REFUND' && <RefundCreditNotePanel refundId={payment.id} />}
         </div>
 
         {/* Line items card */}

@@ -10,6 +10,8 @@ export interface AvisoFacturar {
   title: string
   description: string
   duration?: number
+  /** Sólo cuando el aviso NO es un error (el diálogo pinta el resto en rojo). */
+  variant?: 'warning'
 }
 
 export function avisoDeErrorAlFacturar(
@@ -30,6 +32,10 @@ function elegirAviso(status: 409 | 404, data: { code?: string; error?: string },
       return { title: t('issueDialog.errors.alreadyIssued'), description, duration: DURACION_AVISO_LARGO_MS }
     if (data.code === 'CFDI_CANCEL_PENDING')
       return { title: t('issueDialog.errors.cancelPending'), description, duration: DURACION_AVISO_LARGO_MS }
+    // F6: el texto es del dashboard (el título ya dice lo del founder; el del servidor lo repetiría). D2: una venta devuelta completa es una
+    // situación normal, no un error: ámbar, nunca rojo.
+    if (data.code === 'CFDI_VENTA_DEVUELTA')
+      return { title: t('issueDialog.errors.saleRefunded'), description: t('issueDialog.errors.saleRefundedDetail'), variant: 'warning' }
     return { title: t('issueDialog.errors.conflict'), description }
   }
   // 404: la venta no es de este negocio ≠ no se sabe quién la factura.

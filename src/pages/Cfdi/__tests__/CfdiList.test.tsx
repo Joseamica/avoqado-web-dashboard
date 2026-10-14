@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ReactNode } from 'react'
 import { render, screen, fireEvent, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import es from '@/locales/es/cfdi.json'
 import type { Cfdi } from '@/services/cfdi.service'
 
@@ -28,7 +29,7 @@ const m = vi.hoisted(() => ({
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.permisos.includes(p) }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: true }) }))
 vi.mock('@/hooks/use-current-venue', () => ({
-  useCurrentVenue: () => ({ venueId: 'v1', venue: { timezone: 'America/Mexico_City' } }),
+  useCurrentVenue: () => ({ venueId: 'v1', venue: { timezone: 'America/Mexico_City' }, fullBasePath: '/venues/demo' }),
 }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (d: string) => `fecha(${d})` }) }))
 vi.mock('@/hooks/use-cfdi', () => ({
@@ -473,5 +474,79 @@ describe('CfdiList · aviso de ventas sacadas de la global sin factura del clien
     const aviso = screen.getByTestId('aviso-extracciones-pendientes')
     expect(aviso).toHaveTextContent('2 ventas se sacaron de tu factura global')
     expect(aviso).toHaveTextContent('Además, 3 se están procesando.')
+  })
+})
+
+describe('CfdiList — F6: la factura por el total con notas automáticas que faltan', () => {
+  beforeEach(() => {
+    m.extracciones = undefined
+  })
+
+  it('🔴 R7/N10: la fila dice cuántas faltan (ámbar) y, desplegada, un enlace por devolución que se reconoce por su importe', () => {
+    m.filas = [
+      factura({
+        id: 'f1',
+        type: 'INGRESO',
+        isGlobal: false,
+        flow: 'STAFF_B',
+        orderId: 'o1',
+        globalPeriod: null,
+        status: 'STAMPED',
+        serie: 'F',
+        folio: '9',
+        uuid: 'U-1',
+        receptorNombre: 'CLIENTE',
+        receptorRfc: 'EKU9003173C9',
+        totalCents: 11600,
+        stampedAt: '2026-10-13T12:00:00.000Z',
+        updatedAt: '2026-10-13T12:00:00.000Z',
+        notasDeDevolucionPendientes: [
+          { refundPaymentId: 'r1', importeCents: 5000, fecha: '2026-10-10T15:00:00.000Z' },
+          { refundPaymentId: 'r2', importeCents: 3000, fecha: '2026-10-11T15:00:00.000Z' },
+        ],
+      }),
+    ]
+    render(
+      <MemoryRouter>
+        <CfdiList />
+      </MemoryRouter>,
+    )
+    const resumen = within(fila('f1')).getByText(traducir('list.notasDeDevolucionPendientes', { count: 2 }))
+    expect(resumen).toBeInTheDocument()
+    // Lo que falta, en ámbar (nunca rojo).
+    expect(resumen.closest('details')?.className).toContain('text-amber-600')
+    const enlaces = within(fila('f1'))
+      .getAllByRole('link', { hidden: true })
+      .filter(a => a.getAttribute('href')?.includes('/payments/'))
+    expect(enlaces.map(a => a.getAttribute('href'))).toEqual(['/venues/demo/payments/r1', '/venues/demo/payments/r2'])
+    expect(enlaces[0]).toHaveTextContent('50.00')
+    expect(enlaces[1]).toHaveTextContent('30.00')
+  })
+
+  it('control — sin `notasDeDevolucionPendientes` (o vacías), la fila de siempre', () => {
+    m.filas = [
+      factura({ id: 'f2', type: 'INGRESO', isGlobal: false, flow: 'STAFF_B', orderId: 'o2', globalPeriod: null }),
+      factura({
+        id: 'f3',
+        type: 'INGRESO',
+        isGlobal: false,
+        flow: 'STAFF_B',
+        orderId: 'o3',
+        globalPeriod: null,
+        notasDeDevolucionPendientes: [],
+      }),
+    ]
+    render(
+      <MemoryRouter>
+        <CfdiList />
+      </MemoryRouter>,
+    )
+    for (const id of ['f2', 'f3']) {
+      const aPagos = within(fila(id))
+        .queryAllByRole('link', { hidden: true })
+        .filter(a => a.getAttribute('href')?.includes('/payments/'))
+      expect([id, aPagos]).toEqual([id, []])
+      expect(within(fila(id)).queryByText(/Notas de crédito de devoluciones que faltan/)).not.toBeInTheDocument()
+    }
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { DateTime } from 'luxon'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { Clock, Download, FilePlus2, FileText, Mail, MoreHorizontal, RefreshCw, Search, X, XCircle } from 'lucide-react'
@@ -145,7 +146,7 @@ export default function CfdiList() {
   const { t } = useTranslation('cfdi')
   const { can } = useAccess()
   const { formatDate } = useVenueDateTime()
-  const { venue } = useCurrentVenue()
+  const { venue, fullBasePath } = useCurrentVenue()
   const tz = venue?.timezone ?? 'America/Mexico_City'
 
   // Format a venue-local JS Date (start/end of day from the DateRangePicker) as
@@ -244,6 +245,23 @@ export default function CfdiList() {
               )}
               {row.original.facturaDelCliente === 'EN_PROCESO' && (
                 <span className="max-w-[260px] text-xs text-muted-foreground">{t('list.facturaDelClienteEnProceso')}</span>
+              )}
+              {/* F6 (R7, N10): la factura por el total con notas automáticas que faltan; desplegada, un enlace por devolución (fecha e importe). */}
+              {!!row.original.notasDeDevolucionPendientes?.length && (
+                <details className="max-w-[260px] text-xs text-amber-600 dark:text-amber-400">
+                  <summary className="cursor-pointer">
+                    {t('list.notasDeDevolucionPendientes', { count: row.original.notasDeDevolucionPendientes.length })}
+                  </summary>
+                  {row.original.notasDeDevolucionPendientes.map(n => (
+                    <Link
+                      key={n.refundPaymentId}
+                      to={`${fullBasePath}/payments/${n.refundPaymentId}`}
+                      className="block underline underline-offset-2"
+                    >
+                      {formatDate(n.fecha)} · {Currency(n.importeCents / 100)}
+                    </Link>
+                  ))}
+                </details>
               )}
               {sustituta && (
                 <span className="text-xs text-amber-600 dark:text-amber-400">
@@ -424,7 +442,7 @@ export default function CfdiList() {
         },
       },
     ],
-    [t, formatDate, canConfigure, canIssue, download, consultarCancelacion, consultando],
+    [t, formatDate, canConfigure, canIssue, download, consultarCancelacion, consultando, fullBasePath],
   )
 
   return (

@@ -268,9 +268,31 @@ export function useIssueCfdi() {
       queryClient.invalidateQueries({ queryKey: ['cfdis', venueId] })
       const cfdi = data?.cfdi
       const folio = cfdi ? `${cfdi.serie}-${cfdi.folio}` : ''
+      const notas = data?.notasDeDevolucion ?? []
+      // F6: las notas de las devoluciones salieron (o no) con la factura: el panel de cada pago se refresca. Una factura NETA no trae notas
+      // y también cambia esos paneles (de «sin factura» a «descontada en la factura»; Codex código r1, P3-3).
+      if (notas.length || data?.devoluciones === 'DESCONTADAS') queryClient.invalidateQueries({ queryKey: ['refund-credit-note', venueId] })
+      const pendientes = notas.filter(n => n.status !== 'STAMPED').length
+      if (pendientes) {
+        // N10: lo que falta, no un error: ámbar y largo, con CUÁNTAS y dónde verlas; el motivo de cada una vive en el pago de su devolución.
+        toast({
+          title: t('issueDialog.toast.notePending', { count: pendientes }),
+          description: t('issueDialog.toast.notePendingDetail', { folio }),
+          variant: 'warning',
+          duration: DURACION_AVISO_LARGO_MS,
+        })
+        return
+      }
+      const extra =
+        data?.devoluciones === 'DESCONTADAS'
+          ? t('issueDialog.toast.successNet')
+          : notas.length
+            ? t('issueDialog.toast.successWithNote', { count: notas.length }) // plural: una nota o varias (D3)
+            : ''
       toast({
         title: t('issueDialog.toast.success'),
-        description: cfdi ? t('issueDialog.toast.successDetail', { folio, uuid: cfdi.uuid }) : undefined,
+        description: cfdi ? [t('issueDialog.toast.successDetail', { folio, uuid: cfdi.uuid }), extra].filter(Boolean).join(' ') : undefined,
+        ...(extra ? { duration: DURACION_AVISO_LARGO_MS } : {}),
       })
     },
     // Error handling is intentionally left to the caller (status-specific UX).
@@ -494,13 +516,19 @@ export const ESPERA_DEL_XML_MS = 15_000
 /** C2 · T10 ronda 1 (M4): cuántas veces vuelve a consultar sola mientras espera el XML (≈2 min); después, «Volver a consultar». */
 export const MAX_CONSULTAS_EN_ESPERA = 8
 /**
+ * F6 (N6, H3): ¿la nota está en una espera que se resuelve sola? El XML que se está pidiendo, una nota automática que el job emitirá, o una
+ * nota enviada y en duda (`recoveryOnly`: la confirma la conciliación).
+ */
+const enEsperaQueSeResuelveSola = (data: RefundCreditNoteStatus | undefined) =>
+  !!data?.recoveryOnly || data?.eligibility?.reason === 'ESPERA_XML' || data?.automatica?.estado === 'RECUPERANDO'
+/**
  * C2 · T10: la nota vuelve a consultar sola SÓLO mientras espera el XML de la factura original (`ESPERA_XML`: el servidor lo está pidiendo
- * al PAC; normalmente tarda segundos). Con cualquier otro estado, no.
+ * al PAC; normalmente tarda segundos) o, F6, mientras una nota automática o en duda se resuelve sola. Con cualquier otro estado, no.
  */
 export function intervaloDeLaNota(data: RefundCreditNoteStatus | undefined, respuestasEnEspera = 0): number | false {
-  // T10 ronda 1 (M4): con tope. `respuestasEnEspera` = respuestas ESPERA_XML seguidas ya recibidas; se vuelve a consultar sola hasta
+  // T10 ronda 1 (M4): con tope. `respuestasEnEspera` = respuestas en espera seguidas ya recibidas; se vuelve a consultar sola hasta
   // `MAX_CONSULTAS_EN_ESPERA` veces (≈2 min) y después la persona decide («Volver a consultar»).
-  if (data?.eligibility?.reason !== 'ESPERA_XML') return false
+  if (!enEsperaQueSeResuelveSola(data)) return false
   return respuestasEnEspera <= MAX_CONSULTAS_EN_ESPERA ? ESPERA_DEL_XML_MS : false
 }
 /**
@@ -523,7 +551,7 @@ export function reintentarLaNota(failureCount: number, err: any): boolean {
 export function useRefundCreditNote(refundId: string, options?: { enabled?: boolean }) {
   const { venueId } = useCurrentVenue()
   const enabled = options?.enabled ?? true
-  // T10 ronda 1 (M4): cuántas respuestas ESPERA_XML seguidas lleva (se reinicia con cualquier otra respuesta o con «Volver a consultar»).
+  // T10 ronda 1 (M4): cuántas respuestas en espera seguidas lleva (se reinicia con cualquier otra respuesta o con «Volver a consultar»).
   const [enEspera, setEnEspera] = useState(0)
 
   const q = useQuery({
@@ -539,13 +567,13 @@ export function useRefundCreditNote(refundId: string, options?: { enabled?: bool
     refetchOnWindowFocus: false,
     refetchOnReconnect: repetirAlVolver,
   })
-  const esperandoXml = q.data?.eligibility?.reason === 'ESPERA_XML'
+  const esperandoXml = enEsperaQueSeResuelveSola(q.data)
   useEffect(() => {
     setEnEspera(n => (esperandoXml ? n + 1 : 0))
   }, [q.dataUpdatedAt, esperandoXml])
   return {
     ...q,
-    /** T10 ronda 1 (M4): ya no vuelve a consultar sola; la pantalla ofrece «Volver a consultar». */
+    /** T10 ronda 1 (M4): la espera —del XML, de la nota automática o de la nota en duda— ya no consulta sola; la pantalla lo dice. */
     esperaDelXmlAgotada: esperandoXml && enEspera > MAX_CONSULTAS_EN_ESPERA,
     /** T10 ronda 1 (M4): una consulta ahora, y vuelve a esperar sola (otra vez con tope). */
     volverAConsultar: () => {

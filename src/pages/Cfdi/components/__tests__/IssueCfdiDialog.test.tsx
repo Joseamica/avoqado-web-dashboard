@@ -20,10 +20,14 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { UseFormReturn } from 'react-hook-form'
 import es from '@/locales/es/cfdi.json'
+import en from '@/locales/en/cfdi.json'
 import type { PriceContractPreview } from '@/services/cfdi.service'
 
 const traducir = (key: string, opts?: Record<string, unknown>) => {
-  const raw = key.split('.').reduce<any>((o, k) => o?.[k], es as any)
+  const get = (k: string) => k.split('.').reduce<any>((o, p) => o?.[p], es as any)
+  // i18next: con `count`, la forma plural de la llave (`_one` / `_other`, la regla de es) gana si existe.
+  const plural = typeof opts?.count === 'number' ? get(`${key}_${opts.count === 1 ? 'one' : 'other'}`) : undefined
+  const raw = typeof plural === 'string' ? plural : get(key)
   if (typeof raw !== 'string') return key
   return raw.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => String(opts?.[k] ?? ''))
 }
@@ -446,5 +450,102 @@ describe('IssueCfdiDialog — 502: en duda no es rechazo (ronda QA, D1)', () => 
     llenarReceptor()
     facturar()
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title, description, variant, ...extra }))
+  })
+})
+
+// D2 del /full-testing: «Esta venta se devolvió completa» es una situación normal, no un error: salía en rojo.
+describe('IssueCfdiDialog — 409: venta devuelta completa no es un error (F6, D2)', () => {
+  beforeEach(() => {
+    permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
+  })
+  it.each([
+    [
+      '🔴 CFDI_VENTA_DEVUELTA ⇒ aviso ÁMBAR (no destructivo) con el texto del dashboard',
+      { code: 'CFDI_VENTA_DEVUELTA', error: 'Esta venta se devolvió completa: no hay nada que facturar.' },
+      es.issueDialog.errors.saleRefunded,
+      es.issueDialog.errors.saleRefundedDetail,
+      'warning',
+    ],
+    [
+      'control — ya tiene factura vigente ⇒ sigue en rojo',
+      { code: 'CFDI_ALREADY_ISSUED', error: 'Esta venta ya tiene la factura F-1 vigente.' },
+      es.issueDialog.errors.alreadyIssued,
+      'Esta venta ya tiene la factura F-1 vigente.',
+      'destructive',
+    ],
+  ])('%s', async (_caso, data, title, description, variant) => {
+    svc.issueCfdiForOrder.mockRejectedValueOnce(errorHttp(409, data))
+    renderDialog()
+    llenarReceptor()
+    facturar()
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title, description, variant })))
+  })
+})
+
+describe('IssueCfdiDialog — F6: la factura de una venta con devolución', () => {
+  beforeEach(() => {
+    permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
+  })
+  const emitida = { id: 'c1', uuid: 'U-1', serie: 'F', folio: '9', status: 'STAMPED', xmlUrl: null, pdfUrl: null }
+  async function facturarCon(respuesta: Record<string, unknown>) {
+    svc.issueCfdiForOrder.mockResolvedValue(respuesta)
+    renderDialog()
+    llenarReceptor()
+    facturar()
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1))
+    return toast.mock.calls[0][0]
+  }
+  it('🔴 N10: notas automáticas PENDIENTES ⇒ aviso ÁMBAR largo con CUÁNTAS faltan y el folio; el motivo de cada una vive en su pago', async () => {
+    const aviso = await facturarCon({
+      cfdi: emitida,
+      devoluciones: 'CON_NOTA',
+      notasDeDevolucion: [
+        { refundPaymentId: 'r1', status: 'PENDIENTE', motivo: 'Falta el XML de la factura.' },
+        { refundPaymentId: 'r2', status: 'PENDIENTE', motivo: 'Falta el XML de la factura.' },
+      ],
+    })
+    expect(aviso).toMatchObject({
+      title: es.issueDialog.toast.notePending.replace('{{count}}', '2'),
+      variant: 'warning',
+      duration: DURACION_AVISO_LARGO_MS,
+    })
+    expect(aviso.description).toContain('F-9')
+    expect(aviso.description).not.toContain('Falta el XML') // ni concatenados ni repetidos
+    expect(aviso.description).not.toMatch(/reintentamos/i)
+  })
+  it('las notas salieron ⇒ el éxito lo dice', async () => {
+    const aviso = await facturarCon({
+      cfdi: emitida,
+      devoluciones: 'CON_NOTA',
+      notasDeDevolucion: [{ refundPaymentId: 'r1', status: 'STAMPED', folio: 'NC-3' }],
+    })
+    expect(aviso.title).toBe(es.issueDialog.toast.success)
+    expect(aviso.description).toContain('También se emitió la nota de crédito de la devolución.')
+  })
+  // D3 del /full-testing: con 2 notas el aviso decía «la nota de crédito de la devolución», en singular.
+  it('🔴 D3: varias notas salieron ⇒ el éxito lo dice en PLURAL (es y en); con una, en singular', async () => {
+    const dos = await facturarCon({
+      cfdi: emitida,
+      devoluciones: 'CON_NOTA',
+      notasDeDevolucion: [
+        { refundPaymentId: 'r1', status: 'STAMPED', folio: 'NC-3' },
+        { refundPaymentId: 'r2', status: 'STAMPED', folio: 'NC-4' },
+      ],
+    })
+    expect(dos.description).toContain('También se emitieron las notas de crédito de las devoluciones.')
+    expect(dos.description).not.toContain('la nota de crédito de la devolución')
+    const t = en.issueDialog.toast as Record<string, string>
+    expect(t.successWithNote_one).toBe("The refund's credit note was issued too.")
+    expect(t.successWithNote_other).toBe("The refunds' credit notes were issued too.")
+  })
+  it('🔴 la factura salió sólo con lo que el cliente se quedó ⇒ el éxito lo explica (el total es menor que la venta a propósito)', async () => {
+    const aviso = await facturarCon({ cfdi: emitida, devoluciones: 'DESCONTADAS' })
+    expect(aviso.title).toBe(es.issueDialog.toast.success)
+    expect(aviso.description).toContain(es.issueDialog.toast.successNet)
+    expect(aviso.duration).toBe(DURACION_AVISO_LARGO_MS)
+  })
+  it('control — sin devoluciones, el aviso de éxito de siempre', async () => {
+    const aviso = await facturarCon({ cfdi: emitida })
+    expect(aviso).toEqual({ title: es.issueDialog.toast.success, description: 'Folio F-9 · UUID U-1' })
   })
 })
