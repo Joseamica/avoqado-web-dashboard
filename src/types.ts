@@ -898,6 +898,10 @@ export interface Product {
    * al cobrar. Es un VETO — en false no lo sugiere ninguna capa, ni la IA.
    */
   upsellEnabled?: boolean
+  /** IVA por producto (plan 6b): 'IVA_16' | 'IVA_0' | 'EXENTO' | 'IVA_8' | 'BLOQUEADO_…' (por revisar). El servidor ya lo manda. */
+  ivaTratamiento?: string
+  /** El producto tuvo un ajuste de Uber (regla C): su IVA ya no se puede cambiar. */
+  ajusteDeliveryAlgunaVez?: boolean
 
   // Display
   imageUrl: string | null

@@ -22,6 +22,9 @@ const svc = vi.hoisted(() => ({
   getMenuCategories: vi.fn(),
   getModifierGroups: vi.fn(),
   deleteProduct: vi.fn(),
+  // IVA por producto (6b): la ficha ahora lee el estado del IVA; la clave es una función plana (no vi.fn).
+  getIvaPorProducto: vi.fn(),
+  IVA_QUERY_KEY: (venueId: string) => ['iva-por-producto', venueId] as const,
 }))
 vi.mock('@/services/menu.service', () => svc)
 vi.mock('@/services/inventory.service', () => ({ recipesApi: { get: vi.fn() } }))
@@ -101,6 +104,14 @@ async function guardarSinTocarElTipo() {
 }
 
 beforeEach(() => {
+  svc.getIvaPorProducto.mockResolvedValue({
+    encendido: false,
+    habilitadoAt: null,
+    contabilidad: false,
+    bloqueos: [],
+    avisos: [],
+    facturasSinSello: [],
+  })
   svc.getMenuCategories.mockResolvedValue([{ id: 'c1', name: 'Ropa' }])
   svc.getModifierGroups.mockResolvedValue([])
   svc.updateProduct.mockResolvedValue({})

@@ -195,6 +195,27 @@ export const updateProduct = async (venueId: string, productId: string, productD
   return (response.data?.data ?? response.data) as Product
 }
 
+/** IVA por producto (plan 6b): estado del negocio — encendido o apagado, bloqueos y avisos. Informativo; la decisión es al guardar. */
+export type BloqueoIva = { codigo: string; mensaje: string; comoArreglar: string }
+export type AvisoIva = { codigo: 'APARATO_VIEJO' | 'POS_SIN_IDENTIDAD'; mensaje: string }
+export type EstadoIvaPorProducto = {
+  encendido: boolean
+  habilitadoAt: string | null
+  contabilidad: boolean
+  bloqueos: BloqueoIva[]
+  avisos: AvisoIva[]
+  /** Sólo cuando hay más avisos que los que trae `avisos` (el servidor manda a lo más 20). */
+  avisosTotal?: number
+  facturasSinSello: Array<{ cfdiId: string; folio: string; motivo: string }>
+  /** El servidor lo manda cuando ya hubo una revisión del negocio (opcional: versiones viejas del servidor no lo traen). */
+  revisado?: boolean
+}
+export const IVA_QUERY_KEY = (venueId: string) => ['iva-por-producto', venueId] as const
+export const getIvaPorProducto = async (venueId: string): Promise<EstadoIvaPorProducto> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/iva-por-producto`)
+  return (response.data?.data ?? response.data) as EstadoIvaPorProducto
+}
+
 /**
  * Delete a product
  */

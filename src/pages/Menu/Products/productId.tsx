@@ -4,6 +4,8 @@ import {
   getMenuCategories,
   getModifierGroups,
   deleteProduct as deleteProductService,
+  IVA_QUERY_KEY,
+  type BloqueoIva,
 } from '@/services/menu.service'
 import { recipesApi } from '@/services/inventory.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
@@ -41,6 +43,15 @@ import {
   transformSkuToUppercase,
 } from '@/lib/validators/product'
 import { isCanonicalProductType, isLegacyProductType, PRODUCT_TYPES_EN_LA_FICHA, productTypeLabel } from '@/lib/product-types'
+import { AvisoAparatosIva } from '@/pages/Menu/Products/components/AvisoAparatosIva'
+import {
+  bloqueosDelError,
+  esperaDelIva,
+  ConfirmarEncendidoIva,
+  SelectorIva,
+  useEstadoIva,
+  type TratamientoElegible,
+} from '@/pages/Menu/Products/components/SelectorIva'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -75,6 +86,11 @@ export default function ProductId() {
   const [trackInventory, setTrackInventory] = useState<boolean>(false)
   const [inventoryMethod, setInventoryMethod] = useState<'QUANTITY' | 'RECIPE' | null>(null)
 
+  // IVA por producto (6b): lo elegido (sólo si el dueño lo tocó), los bloqueos del 409 y el guardado en espera del aviso de primer encendido
+  const [iva, setIva] = useState<TratamientoElegible | undefined>()
+  const [bloqueosIva, setBloqueosIva] = useState<BloqueoIva[] | undefined>()
+  const [porConfirmarIva, setPorConfirmarIva] = useState<any>(null)
+
   // Traemos la información del producto
   const { data, isLoading } = useQuery({
     queryKey: ['product', venueId, productId],
@@ -95,6 +111,11 @@ export default function ProductId() {
     queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId,
   })
+
+  const estadoIva = useEstadoIva(venueId)
+  const ivaCambio = iva !== undefined && iva !== data?.ivaTratamiento
+  // Un estado que no dice `encendido: true` (apagado, cargando o con error) nunca se salta el aviso del primer encendido.
+  const pideAvisoIva = ivaCambio && iva !== 'IVA_16' && estadoIva.data?.encendido !== true
 
   // Fetch recipe data if product has RECIPE inventory method
   const { data: recipeData } = useQuery({
@@ -137,6 +158,8 @@ export default function ProductId() {
         // Inventory tracking configuration
         trackInventory: trackInventory,
         inventoryMethod: trackInventory ? inventoryMethod : null,
+        // IVA por producto (6b): sólo si el dueño lo cambió (reenviar el mismo IVA no es un cambio)
+        ...(iva && iva !== data?.ivaTratamiento ? { ivaTratamiento: iva } : {}),
       }
 
       // Add unit if tracking inventory
@@ -158,13 +181,23 @@ export default function ProductId() {
         description: t('products.detail.toasts.savedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] }) // Refetch product data
+      setIva(undefined)
+      setBloqueosIva(undefined)
+      queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId!) })
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
+      const bloqueos = bloqueosDelError(error)
+      setBloqueosIva(bloqueos)
       toast({
         title: t('products.detail.toasts.saveError'),
-        description: error.message || t('products.detail.toasts.saveErrorDesc'),
-        variant: 'destructive',
+        // Con bloqueos del IVA, el toast manda a la lista de junto al selector (el texto del servidor termina en «…esto:» sin la lista).
+        // Si no, el texto del servidor primero (un 403 de «sólo dueño»), no el genérico de Axios.
+        description: bloqueos
+          ? t('iva.bloqueos.toast')
+          : error.response?.data?.message || error.message || t('products.detail.toasts.saveErrorDesc'),
+        // Los bloqueos de encender el IVA son algo por resolver (ámbar en la lista) y «hay facturas en proceso» es una espera: no van en rojo.
+        variant: bloqueos || esperaDelIva(error) ? 'default' : 'destructive',
       })
     },
   })
@@ -348,6 +381,10 @@ export default function ProductId() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues: any) {
+    if (pideAvisoIva) {
+      setPorConfirmarIva(formValues) // el guardado espera el «Continuar» del aviso del primer encendido
+      return
+    }
     saveProduct.mutate(formValues)
   }
 
@@ -401,7 +438,7 @@ export default function ProductId() {
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
             size="sm"
-            disabled={!form.formState.isDirty || saveProduct.isPending}
+            disabled={!(form.formState.isDirty || ivaCambio) || saveProduct.isPending}
           >
             {saveProduct.isPending ? t('products.detail.saving') : t('modifiers.forms.save')}
           </LoadingButton>
@@ -443,6 +480,8 @@ export default function ProductId() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="container mx-auto pt-6 pb-20 px-4 grow overflow-auto">
           <div className="max-w-4xl">
+            {/* IVA por producto (6b, §5.5): aviso fijo de aparatos viejos, sólo con el IVA encendido */}
+            <AvisoAparatosIva venueId={venueId!} className="mb-4" />
             {/* Details Section */}
             {currentTab === 'details' && (
               <div className="space-y-6">
@@ -529,6 +568,17 @@ export default function ProductId() {
                       </FormItem>
                     )
                   }}
+                />
+                <SelectorIva
+                  venueId={venueId!}
+                  actual={data?.ivaTratamiento}
+                  ajusteDeliveryAlgunaVez={data?.ajusteDeliveryAlgunaVez}
+                  value={iva}
+                  onChange={v => {
+                    setIva(v)
+                    setBloqueosIva(undefined)
+                  }}
+                  bloqueos={bloqueosIva}
                 />
                 <FormField
                   control={form.control}
@@ -1133,6 +1183,16 @@ export default function ProductId() {
           </div>
         </form>
       </Form>
+
+      {/* Primer encendido del IVA por producto (decisión del founder, 12-oct): sin «Continuar» no se guarda */}
+      <ConfirmarEncendidoIva
+        open={porConfirmarIva !== null}
+        onContinuar={() => {
+          saveProduct.mutate(porConfirmarIva)
+          setPorConfirmarIva(null)
+        }}
+        onCancelar={() => setPorConfirmarIva(null)}
+      />
 
       {/* Product Wizard Dialog */}
       <ProductWizardDialog

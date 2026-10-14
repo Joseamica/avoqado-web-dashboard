@@ -1019,5 +1019,34 @@
       "title": "🎉 All set!",
       "description": "You now know how to create recipe-based products. Each sale deducts ingredients automatically and you'll be alerted when any drops below its minimum."
     }
+  },
+  "iva": {
+    "label": "VAT",
+    "opciones": {
+      "IVA_16": "16% (standard)",
+      "IVA_0": "0% — unprepared food such as coffee beans or fruit, medicine",
+      "EXENTO": "Exempt — e.g. medical services, tuition"
+    },
+    "ayuda": "The price does not change. Sales that are already invoiced, or being invoiced, stay as they are; all others will be invoiced with this VAT.",
+    "porRevisar": "Needs review: choose the correct VAT",
+    "deshabilitado": {
+      "delivery": "Create a new product with the correct VAT",
+      "contabilidad": "This business already keeps its books in Avoqado (journal entries or closed periods) and accounting does not yet handle a VAT other than 16%. That is why this product stays at 16% VAT. Write to us at hola@avoqado.io if you need it."
+    },
+    "aviso": {
+      "titulo": "Some devices print VAT incorrectly",
+      "accion": "Update the app on each device to the latest version. Sales keep working in the meantime.",
+      "mas": "and {{count}} more"
+    },
+    "bloqueos": {
+      "titulo": "To sell products with a VAT other than 16%, this needs to be resolved first:",
+      "toast": "To use this VAT rate, resolve what appears next to the selector."
+    },
+    "confirmar": {
+      "titulo": "Turn on VAT per product?",
+      "cuerpo": "This is your business's first product with a VAT other than 16%. When you save, Avoqado reviews your business and turns on VAT per product. Automatic accounting for your whole organization (journal entries and period closes) is paused and cannot be resumed from the dashboard today. The price of your products does not change.",
+      "continuar": "Continue",
+      "cancelar": "Cancel"
+    }
   }
 }

@@ -1014,5 +1014,34 @@
       "title": "🎉 ¡Listo!",
       "description": "Ya sabes crear productos basados en recetas. Cada venta descontará los ingredientes automáticamente y te avisaremos cuando alguno baje del mínimo."
     }
+  },
+  "iva": {
+    "label": "IVA",
+    "opciones": {
+      "IVA_16": "16 % (normal)",
+      "IVA_0": "0 % — alimentos sin preparar como café en grano o fruta, medicinas",
+      "EXENTO": "Exento — p. ej. servicios médicos, colegiaturas"
+    },
+    "ayuda": "El precio no cambia. Las ventas ya facturadas, o en proceso de facturarse, se quedan como están; las demás se facturarán con este IVA.",
+    "porRevisar": "Por revisar: elige el IVA correcto",
+    "deshabilitado": {
+      "delivery": "Crea un producto nuevo con el IVA correcto",
+      "contabilidad": "Este negocio ya lleva contabilidad en Avoqado (pólizas o periodos cerrados) y la contabilidad todavía no maneja IVA distinto de 16 %. Por eso este producto se queda en IVA 16 %. Escríbenos a hola@avoqado.io si lo necesitas."
+    },
+    "aviso": {
+      "titulo": "Hay aparatos que imprimen el IVA de forma incorrecta",
+      "accion": "Actualiza la app de cada aparato a la última versión. Mientras tanto, las ventas siguen funcionando.",
+      "mas": "y {{count}} más"
+    },
+    "bloqueos": {
+      "titulo": "Para vender productos con un IVA distinto de 16 % falta resolver esto:",
+      "toast": "Para usar este IVA falta resolver lo que aparece junto al selector."
+    },
+    "confirmar": {
+      "titulo": "¿Encender el IVA por producto?",
+      "cuerpo": "Es el primer producto de tu negocio con un IVA distinto de 16 %. Al guardar, Avoqado revisa tu negocio y enciende el IVA por producto. La contabilidad automática de toda tu organización (pólizas y cierres de periodo) queda en pausa y hoy no se puede reanudar desde el dashboard. El precio de tus productos no cambia.",
+      "continuar": "Continuar",
+      "cancelar": "Cancelar"
+    }
   }
 }

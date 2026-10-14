@@ -457,14 +457,6 @@
     "defaultProductKey": "Default SAT product code",
     "defaultUnitKey": "Default SAT unit code",
     "inheritHint": "Products in this category inherit these codes when they don't have their own.",
-    "objetoImp": "Tax object",
-    "objetoImpHint": "Indicates whether the product is subject to taxes per the SAT.",
-    "objetoImpOptions": {
-      "01": "01 - Not subject to tax",
-      "02": "02 - Subject to tax",
-      "03": "03 - Subject, breakdown not required",
-      "04": "04 - Subject, no tax charged"
-    },
     "searchPlaceholder": "Search by code or description…",
     "typeToSearch": "Type to search the SAT catalog.",
     "loading": "Searching…",

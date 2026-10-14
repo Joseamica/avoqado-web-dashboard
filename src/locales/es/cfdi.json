@@ -457,14 +457,6 @@
     "defaultProductKey": "Clave de producto SAT por defecto",
     "defaultUnitKey": "Clave de unidad SAT por defecto",
     "inheritHint": "Los productos de esta categoría heredarán estas claves cuando no tengan una propia.",
-    "objetoImp": "Objeto de impuesto",
-    "objetoImpHint": "Indica si el producto causa impuestos ante el SAT.",
-    "objetoImpOptions": {
-      "01": "01 - No objeto de impuesto",
-      "02": "02 - Sí objeto de impuesto",
-      "03": "03 - Sí objeto, no obligado al desglose",
-      "04": "04 - Sí objeto, no causa impuesto"
-    },
     "searchPlaceholder": "Busca por clave o descripción…",
     "typeToSearch": "Escribe para buscar en el catálogo del SAT.",
     "loading": "Buscando…",

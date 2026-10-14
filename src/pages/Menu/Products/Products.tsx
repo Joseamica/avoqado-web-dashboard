@@ -61,6 +61,7 @@ import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { AvisoAparatosIva } from '@/pages/Menu/Products/components/AvisoAparatosIva'
 import { matchesLegacyProductSearch } from '@/services/menu.service'
 import { ProductTypeSelectorModal } from '@/pages/Inventory/components/ProductTypeSelectorModal'
 import { type ProductType } from '@/services/inventory.service'
@@ -808,6 +809,8 @@ export default function Products() {
 
   return (
     <div className="p-4">
+      {/* IVA por producto (6b, §5.5): aviso fijo de aparatos viejos, sólo con el IVA encendido. Vive en la página, no en el diálogo. */}
+      <AvisoAparatosIva venueId={venueId!} className="mb-4" />
 
       {/* Discovery banner for first-time admins — dismissable */}
       <TourDiscoveryBanner

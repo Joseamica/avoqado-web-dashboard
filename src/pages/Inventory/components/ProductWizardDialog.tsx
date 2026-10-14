@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -28,7 +27,15 @@ import {
   type InventoryMethod,
   type ProductType,
 } from '@/services/inventory.service'
-import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
+import { getMenuCategories, getModifierGroups, IVA_QUERY_KEY, type BloqueoIva } from '@/services/menu.service'
+import {
+  bloqueosDelError,
+  esperaDelIva,
+  ConfirmarEncendidoIva,
+  SelectorIva,
+  useEstadoIva,
+  type TratamientoElegible,
+} from '@/pages/Menu/Products/components/SelectorIva'
 import {
   Loader2,
   Check,
@@ -117,16 +124,10 @@ interface Step1FormData {
   // CFDI feature; products inherit their category's keys when left empty.
   satProductKey?: string | null
   satUnitKey?: string | null
-  objetoImp?: ObjetoImp
   // Optional print-station override — where this item's kitchen/service ticket
   // prints. null (or omitted) inherits from the product's category.
   printStationId?: string | null
 }
-
-/** SAT "ObjetoImp" — whether the product is subject to tax. */
-type ObjetoImp = '01' | '02' | '03' | '04'
-
-const OBJETO_IMP_OPTIONS: ObjetoImp[] = ['02', '01', '03', '04']
 
 interface Step2FormData {
   useInventory: boolean
@@ -224,6 +225,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const { t, i18n } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
   const { t: tCfdi } = useTranslation('cfdi')
+  const { t: tMenu } = useTranslation('menu') // el texto del toast de los bloqueos del IVA vive con el selector (menu.json)
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   // Recipe-based products belong to the advanced-inventory feature (INVENTORY_TRACKING = Premium 👑),
   // exactly like the Recipes page. Free venues without an explicit grant cannot build recipe products.
@@ -260,6 +262,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [categorySearch, setCategorySearch] = useState('')
   const [modifierGroupSearch, setModifierGroupSearch] = useState('')
 
+  // IVA por producto (6b), sólo en modo edición: lo elegido (si el dueño lo tocó), los bloqueos del 409 y el guardado en espera
+  // del aviso de primer encendido. `resetWizard` los limpia: un IVA elegido y abandonado no viaja en otro guardado.
+  const [iva, setIva] = useState<TratamientoElegible | undefined>()
+  const [bloqueosIva, setBloqueosIva] = useState<BloqueoIva[] | undefined>()
+  const [porConfirmarIva, setPorConfirmarIva] = useState<Step1FormData | null>(null)
+
   // Step 1 Form
   const step1Form = useForm<Step1FormData>({
     defaultValues: {
@@ -274,7 +282,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       gtin: '',
       satProductKey: null,
       satUnitKey: null,
-      objetoImp: '02',
       printStationId: null,
     },
   })
@@ -608,6 +615,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const handleWizardComplete = () => {
     queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueId] })
+    queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId) }) // el primer encendido pudo prender el IVA por producto
 
     if (onSuccess && createdProductId) {
       onSuccess(createdProductId)
@@ -631,6 +639,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setAdvancedRecipeOpen(false)
     setHasLoadedExistingData(false)
     setHasLoadedProductDetails(false)
+    setIva(undefined)
+    setBloqueosIva(undefined)
+    setPorConfirmarIva(null)
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
@@ -661,7 +672,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       // SAT fiscal codes (CFDI) — prefill so the picker shows the saved key.
       step1Form.setValue('satProductKey', (existingProduct as any).satProductKey ?? null)
       step1Form.setValue('satUnitKey', (existingProduct as any).satUnitKey ?? null)
-      step1Form.setValue('objetoImp', ((existingProduct as any).objetoImp as ObjetoImp) || '02')
 
       // Print-station override — prefill so the selector shows the saved station.
       step1Form.setValue('printStationId', (existingProduct as any).printStationId ?? null)
@@ -852,14 +862,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       ...(trimmedSku ? { sku: trimmedSku } : {}),
       ...(trimmedGtin ? { gtin: trimmedGtin } : {}),
       // SAT fiscal codes (CFDI). Only sent for CFDI venues; null clears so the
-      // product falls back to its category's keys. ObjetoImp always has a value.
+      // product falls back to its category's keys.
       ...(hasCfdi
         ? {
             satProductKey: data.satProductKey || null,
             satUnitKey: data.satUnitKey || null,
-            objetoImp: data.objetoImp || '02',
           }
         : {}),
+      // IVA por producto (6b): UNA sola vez, aquí — lo llevan las dos ediciones (sin inventario y con inventario/`updateProductFirst`);
+      // el PUT de inventario no. Sólo si cambió; en el alta no (el producto nace al 16 %).
+      ...(mode === 'edit' && iva && iva !== existingProduct?.ivaTratamiento ? { ivaTratamiento: iva } : {}),
       // Print-station override. null clears it so the product falls back to
       // its category's station. Always sent (unlike SKU/CFDI) since undefined
       // vs null both mean "no override" here — sending null is harmless.
@@ -906,6 +918,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
             queryClient.invalidateQueries({ queryKey: ['product-detail', venueId, productId] })
             queryClient.invalidateQueries({ queryKey: ['product-wizard-progress', venueId, productId] })
+            queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId) })
 
             toast({
               title: t('wizard.success'),
@@ -921,10 +934,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             }
           })
           .catch((error: any) => {
+            const bloqueos = bloqueosDelError(error)
+            setBloqueosIva(bloqueos)
             toast({
               title: tCommon('error'),
-              description: error.response?.data?.message || 'Failed to update product',
-              variant: 'destructive',
+              // Con bloqueos del IVA, el toast manda a la lista de junto al selector (el texto del servidor termina en «…esto:» sin la lista).
+              description: bloqueos ? tMenu('iva.bloqueos.toast') : error.response?.data?.message || 'Failed to update product',
+              variant: bloqueos || esperaDelIva(error) ? 'default' : 'destructive', // bloqueos y esperas del IVA: nunca en rojo
             })
           })
         return
@@ -958,10 +974,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           try {
             await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, productData)
           } catch (error: any) {
+            const bloqueos = bloqueosDelError(error)
+            setBloqueosIva(bloqueos)
             toast({
               title: tCommon('error'),
-              description: error.response?.data?.message || 'Failed to update product',
-              variant: 'destructive',
+              description: bloqueos ? tMenu('iva.bloqueos.toast') : error.response?.data?.message || 'Failed to update product',
+              variant: bloqueos || esperaDelIva(error) ? 'default' : 'destructive',
             })
             throw error
           }
@@ -1082,6 +1100,19 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }
   }
 
+  // IVA por producto (6b): un estado que no dice `encendido: true` (apagado, cargando o con error) nunca se salta el aviso del
+  // primer encendido — «Guardar» lo abre y sólo «Continuar» deja seguir.
+  const estadoIva = useEstadoIva(mode === 'edit' && open ? venueId : null)
+  const ivaCambio = mode === 'edit' && iva !== undefined && iva !== existingProduct?.ivaTratamiento
+  const pideAvisoIva = ivaCambio && iva !== 'IVA_16' && estadoIva.data?.encendido !== true
+  const handleStep1Intercept = (data: Step1FormData) => {
+    if (pideAvisoIva) {
+      setPorConfirmarIva(data)
+      return
+    }
+    handleStep1Submit(data)
+  }
+
   const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending
 
   // True while edit-mode wizard is fetching the product to prefill the form.
@@ -1185,7 +1216,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             </div>
           ) : (
             /* Single step wizard - product configuration form */
-            <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Submit)}>
+            <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Intercept)}>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left Column - Main Form (both create and edit modes) */}
                 <div className="lg:col-span-8 space-y-6">
@@ -1250,6 +1281,23 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           <p className="text-xs text-muted-foreground mt-1">{t('wizard.step1.soldByWeightDesc')}</p>
                         )}
                       </div>
+
+                      {/* IVA por producto (6b): sólo al editar; el alta nace al 16 %. Del mismo ancho y alto (h-12) que el precio y los demás campos. */}
+                      {mode === 'edit' && (
+                        <SelectorIva
+                          venueId={venueId}
+                          actual={existingProduct?.ivaTratamiento}
+                          ajusteDeliveryAlgunaVez={existingProduct?.ajusteDeliveryAlgunaVez}
+                          value={iva}
+                          onChange={v => {
+                            setIva(v)
+                            setBloqueosIva(undefined)
+                          }}
+                          bloqueos={bloqueosIva}
+                          className="max-w-none"
+                          triggerClassName="h-12 text-base"
+                        />
+                      )}
 
                       {/* Venta por peso (charcutería/granel) */}
                       <div className="flex items-center justify-between rounded-lg border p-4">
@@ -2062,27 +2110,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             onChange={key => step1Form.setValue('satUnitKey', key, { shouldDirty: true })}
                           />
                         </div>
-
-                        {/* ObjetoImp */}
-                        <div className="space-y-1.5">
-                          <Label className="text-sm font-medium">{tCfdi('satKeys.objetoImp')}</Label>
-                          <Select
-                            value={step1Form.watch('objetoImp') || '02'}
-                            onValueChange={value => step1Form.setValue('objetoImp', value as ObjetoImp, { shouldDirty: true })}
-                          >
-                            <SelectTrigger className="h-12 text-base">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {OBJETO_IMP_OPTIONS.map(option => (
-                                <SelectItem key={option} value={option}>
-                                  {tCfdi(`satKeys.objetoImpOptions.${option}`)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground">{tCfdi('satKeys.objetoImpHint')}</p>
-                        </div>
                       </div>
                     </section>
                   )}
@@ -2451,6 +2478,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           )}
         </div>
       </FullScreenModal>
+
+      {/* Primer encendido del IVA por producto (decisión del founder, 12-oct): sin «Continuar» no se guarda */}
+      <ConfirmarEncendidoIva
+        open={porConfirmarIva !== null}
+        onContinuar={() => {
+          if (porConfirmarIva) handleStep1Submit(porConfirmarIva)
+          setPorConfirmarIva(null)
+        }}
+        onCancelar={() => setPorConfirmarIva(null)}
+      />
 
       {/* Conversion Dialog */}
       {conversionDirection && (
