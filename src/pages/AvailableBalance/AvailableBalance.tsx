@@ -39,7 +39,7 @@ import { getExpectedCash } from '@/services/cashCloseout.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Banknote, Calculator, ChevronRight, Clock, CreditCard } from 'lucide-react'
+import { AlertCircle, Banknote, Calculator, ChevronRight, Clock, CreditCard, Download } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -48,6 +48,7 @@ import { CardTypeBreakdownStrip } from './CardTypeBreakdownStrip'
 import { NextDepositHero } from './NextDepositHero'
 import { SettlementWeekStrip } from '@/components/settlement/SettlementWeekStrip'
 import { SettlementTimelineTable } from './SettlementTimelineTable'
+import { SettlementReportDialog } from './SettlementReportDialog'
 
 // Tab filter type
 type TabValue = 'all' | 'cards' | 'cash'
@@ -70,6 +71,7 @@ function AvailableBalanceContent() {
 
   // Simulation dialog state
   const [showSimulationDialog, setShowSimulationDialog] = useState(false)
+  const [showReportDialog, setShowReportDialog] = useState(false)
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null)
   const [simulationLoading, setSimulationLoading] = useState(false)
 
@@ -378,10 +380,16 @@ function AvailableBalanceContent() {
           />
           <p className="text-sm text-muted-foreground mt-1">{t('description')}</p>
         </div>
-        <Button variant="outline" onClick={() => setShowSimulationDialog(true)} className="gap-2">
-          <Calculator className="h-4 w-4" />
-          {t('simulate.button')}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowReportDialog(true)} className="gap-2" data-tour="settlement-report-btn">
+            <Download className="h-4 w-4" />
+            {t('settlementReport.button')}
+          </Button>
+          <Button variant="outline" onClick={() => setShowSimulationDialog(true)} className="gap-2">
+            <Calculator className="h-4 w-4" />
+            {t('simulate.button')}
+          </Button>
+        </div>
       </div>
 
       {/* Stripe-style underline tabs */}
@@ -568,6 +576,8 @@ function AvailableBalanceContent() {
           </GlassCard>
         </Collapsible>
       )}
+
+      <SettlementReportDialog key={venueId} open={showReportDialog} onClose={() => setShowReportDialog(false)} venueId={venueId ?? ''} venueTimezone={venueTimezone} />
 
       {/* Simulation Dialog */}
       <Dialog open={showSimulationDialog} onOpenChange={handleCloseSimulation}>

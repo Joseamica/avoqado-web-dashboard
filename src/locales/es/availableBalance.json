@@ -171,5 +171,108 @@
       "confidenceMedium": "Medio",
       "confidenceLow": "Bajo"
     }
+  },
+
+  "settlementReport": {
+    "button": "Descargar reporte",
+    "title": "Descargar reporte",
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "report": {
+      "title": "Reporte",
+      "transactions": "Transacciones",
+      "transactionsHint": "Un renglón por cobro con tarjeta",
+      "deposits": "Dispersiones",
+      "depositsHint": "Un renglón por día de depósito"
+    },
+    "dates": {
+      "title": "Fechas",
+      "from": "Desde",
+      "to": "Hasta",
+      "basis": "Filtrar por",
+      "charge": "Fecha del cobro",
+      "deposit": "Fecha del depósito",
+      "thisMonth": "Este mes",
+      "lastMonth": "Mes pasado",
+      "last30": "Últimos 30 días"
+    },
+    "filters": {
+      "title": "Filtros",
+      "summary": "terminal, tarjeta, marca, operación",
+      "active": "{{count}} seleccionados",
+      "terminal": "Terminal",
+      "noTerminal": "Sin terminal",
+      "searchTerminal": "Buscar terminal",
+      "loadMore": "Cargar más",
+      "loadingTerminals": "Cargando terminales…",
+      "noTerminals": "Sin terminales",
+      "terminalsError": "No pudimos cargar las terminales.",
+      "cardType": "Tipo de tarjeta",
+      "brand": "Marca",
+      "operation": "Operación"
+    },
+    "cardTypes": {
+      "DEBIT": "Débito",
+      "CREDIT": "Crédito",
+      "AMEX": "Amex",
+      "INTERNATIONAL": "Internacional",
+      "OTHER": "Otra",
+      "NONE": "Sin tipo"
+    },
+    "operations": {
+      "SALE": "Venta",
+      "REFUND": "Devolución",
+      "TIP_REFUND": "Devolución de propina"
+    },
+    "columns": {
+      "title": "Columnas",
+      "summary": "{{count}} de {{total}}",
+      "required": "Obligatoria",
+      "venue": "Negocio",
+      "folio": "Folio",
+      "fechaCobro": "Fecha del cobro",
+      "terminal": "Terminal",
+      "autorizacion": "Código de autorización",
+      "ultimos4": "Tarjeta",
+      "tipoTarjeta": "Tipo de tarjeta",
+      "operacion": "Operación",
+      "marca": "Marca",
+      "consumo": "Consumo",
+      "propina": "Propina",
+      "propinas": "Propinas",
+      "total": "Total",
+      "comision": "Comisión",
+      "ivaComision": "IVA comisión",
+      "totalComision": "Total comisión",
+      "montoADepositar": "Monto a depositar",
+      "fechaDeposito": "Fecha de depósito (estimada)",
+      "periodo": "Periodo de cobros",
+      "depositoNeto": "Depósito neto"
+    },
+    "format": {
+      "title": "Formato",
+      "xlsx": "Excel",
+      "xlsxHint": "Con formato, hasta 5,000 cobros.",
+      "csv": "CSV",
+      "csvHint": "Ligero, hasta 10,000 cobros. Abre en Excel."
+    },
+    "estimated": "≈ {{formatted}} cobros por revisar",
+    "note": "Las fechas de depósito son estimadas con las reglas de tu procesador. Avoqado no ve tu cuenta bancaria.",
+    "block": {
+      "rangoLargo": "Elige 92 días o menos.",
+      "demasiados": "Son {{formatted}} cobros. Acorta las fechas o usa filtros.",
+      "demasiadosExcel": "Son {{formatted}} cobros: para más de 5,000 usa CSV, que abre en Excel igual.",
+      "contando": "Contando cobros…",
+      "errorConteo": "No pudimos contar los cobros. Intenta de nuevo.",
+      "rangoInvertido": "La fecha final no puede ser anterior a la inicial.",
+      "fechasVacias": "Elige las dos fechas.",
+      "cambiarCsv": "Cambiar a CSV"
+    },
+    "download": "Descargar",
+    "success": "Reporte descargado",
+    "error": "No se pudo generar el reporte",
+    "brands": {
+      "OTHER": "Otra"
+    }
   }
 }
