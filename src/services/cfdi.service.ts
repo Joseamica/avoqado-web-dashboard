@@ -26,6 +26,12 @@ export type CreditNoteBlockReason =
   | 'ORIGINAL_EN_SUSTITUCION'
   // C3 (T5 del servidor, M12): el ticket de la global ya se sacó de ella y su factura del cliente aún no está timbrada.
   | 'EXTRAIDA_SIN_FACTURA'
+  // F6: la factura ya descontó este reembolso; por importe, espera la nota de artículos de su factura; o su nota se canceló.
+  | 'DESCONTADA_EN_LA_FACTURA'
+  | 'ESPERA_NOTA_DE_ARTICULOS'
+  | 'NOTA_CANCELADA'
+  // F6 (pulido D1): sin factura y la venta ya se devolvió COMPLETA: F6 no la factura, así que tampoco lleva nota.
+  | 'VENTA_DEVUELTA_COMPLETA'
   | 'TIP_ONLY'
   | 'EXCEEDS_REMAINING'
   | 'ORIGINAL_IVA_MIXTO' // ya no se emite (C2): se conserva en el tipo
@@ -55,6 +61,10 @@ export const MOTIVOS_DE_BLOQUEO_DE_NOTA: readonly CreditNoteBlockReason[] = [
   'ORIGINAL_CANCEL_PENDING',
   'ORIGINAL_EN_SUSTITUCION',
   'EXTRAIDA_SIN_FACTURA',
+  'DESCONTADA_EN_LA_FACTURA',
+  'ESPERA_NOTA_DE_ARTICULOS',
+  'NOTA_CANCELADA',
+  'VENTA_DEVUELTA_COMPLETA',
   'TIP_ONLY',
   'EXCEEDS_REMAINING',
   'ORIGINAL_IVA_MIXTO',
@@ -155,6 +165,8 @@ export interface RefundCreditNoteStatus {
     /** C2 (Tarea 9, opcional): la alternativa «acreditar por importe», cuando por artículos falta evidencia. */
     alternativa?: AlternativaPorImporte
   } | null
+  /** F6 (R7, N6). */
+  automatica?: { estado: 'RECUPERANDO' | 'REQUIERE_INTERVENCION' }
 }
 
 // ─── Emisor (the fiscal issuer / "RFC emisor") ──────────────────────────────
@@ -338,6 +350,8 @@ export interface Cfdi {
   facturaDelCliente?: FacturaDelCliente | null
   /** C3: `true` sólo con `facturaDelCliente: 'FALTA'`. */
   facturaDelClientePendiente?: boolean
+  /** F6 (R7, N10): devoluciones cuya nota automática aún no sale. */
+  notasDeDevolucionPendientes?: NotaPendienteDeLaFila[]
 }
 
 /** C3: en qué va la factura del cliente de una venta sacada de la factura global. */
@@ -405,9 +419,28 @@ export interface IssuedCfdi {
   pdfUrl: string | null
 }
 
+/** F6: cómo se facturó una venta que ya tenía devoluciones (aditivo). */
+export type DevolucionesDeLaFactura = 'DESCONTADAS' | 'CON_NOTA'
+/** F6: la nota de crédito automática de un reembolso; `PENDIENTE` = no salió todavía (su motivo, en el pago de la devolución). */
+export interface NotaDeDevolucion {
+  refundPaymentId: string
+  status: 'STAMPED' | 'PENDIENTE'
+  folio?: string
+  motivo?: string
+}
+/** F6 (N10): una devolución cuya nota automática falta, como la lista la reconoce. */
+export interface NotaPendienteDeLaFila {
+  refundPaymentId: string
+  importeCents: number
+  fecha: string
+}
+
 /** 201 success body. */
 export interface IssueCfdiResponse {
   cfdi: IssuedCfdi
+  /** F6: `DESCONTADAS` = la factura salió sólo con lo que el cliente se quedó; `CON_NOTA` = por el total, con sus notas. */
+  devoluciones?: DevolucionesDeLaFactura
+  notasDeDevolucion?: NotaDeDevolucion[]
 }
 
 /**

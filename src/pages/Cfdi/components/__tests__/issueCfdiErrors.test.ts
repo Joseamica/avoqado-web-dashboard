@@ -45,6 +45,28 @@ describe('avisoDeErrorAlFacturar', () => {
     expect(a.title).toBe(es.issueDialog.errors.conflict)
     expect(a.duration).toBeUndefined()
   })
+
+  it('🔴 F6: 409 venta devuelta completa ⇒ «Esta venta se devolvió completa» con el detalle del dashboard (no el título genérico)', () => {
+    const a = avisoDeErrorAlFacturar(
+      409,
+      { code: 'CFDI_VENTA_DEVUELTA', error: 'Esta venta se devolvió completa: no hay nada que facturar.' },
+      t,
+    )
+    expect(a.title).toBe(es.issueDialog.errors.saleRefunded)
+    expect(a.description).toBe(es.issueDialog.errors.saleRefundedDetail)
+    expect(a.title).not.toBe(es.issueDialog.errors.conflict)
+  })
+
+  it('🔴 F6 D2: sólo la venta devuelta completa va en ámbar (no es un error); los demás avisos no traen variante propia (el diálogo los pinta en rojo)', () => {
+    expect(avisoDeErrorAlFacturar(409, { code: 'CFDI_VENTA_DEVUELTA', error: 'x' }, t).variant).toBe('warning')
+    for (const a of [
+      avisoDeErrorAlFacturar(409, { code: 'CFDI_ALREADY_ISSUED', error: 'x' }, t),
+      avisoDeErrorAlFacturar(409, { code: 'CFDI_CANCEL_PENDING', error: 'x' }, t),
+      avisoDeErrorAlFacturar(409, { error: 'CFDI en proceso para esta orden' }, t),
+      avisoDeErrorAlFacturar(404, { code: 'ORDER_NOT_FOUND', error: 'x' }, t),
+    ])
+      expect(a.variant).toBeUndefined()
+  })
 })
 
 describe('avisoDeErrorAlFacturar · sin repetir el título', () => {
