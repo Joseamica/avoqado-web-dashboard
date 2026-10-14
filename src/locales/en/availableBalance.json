@@ -168,5 +168,108 @@
       "confidenceMedium": "Medium",
       "confidenceLow": "Low"
     }
+  },
+
+  "settlementReport": {
+    "button": "Download report",
+    "title": "Download report",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "report": {
+      "title": "Report",
+      "transactions": "Transactions",
+      "transactionsHint": "One row per card payment",
+      "deposits": "Deposits",
+      "depositsHint": "One row per deposit day"
+    },
+    "dates": {
+      "title": "Dates",
+      "from": "From",
+      "to": "To",
+      "basis": "Filter by",
+      "charge": "Charge date",
+      "deposit": "Deposit date",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "last30": "Last 30 days"
+    },
+    "filters": {
+      "title": "Filters",
+      "summary": "terminal, card, brand, operation",
+      "active": "{{count}} selected",
+      "terminal": "Terminal",
+      "noTerminal": "No terminal",
+      "searchTerminal": "Search terminal",
+      "loadMore": "Load more",
+      "loadingTerminals": "Loading terminals…",
+      "noTerminals": "No terminals",
+      "terminalsError": "We couldn't load the terminals.",
+      "cardType": "Card type",
+      "brand": "Brand",
+      "operation": "Operation"
+    },
+    "cardTypes": {
+      "DEBIT": "Debit",
+      "CREDIT": "Credit",
+      "AMEX": "Amex",
+      "INTERNATIONAL": "International",
+      "OTHER": "Other",
+      "NONE": "No type"
+    },
+    "operations": {
+      "SALE": "Sale",
+      "REFUND": "Refund",
+      "TIP_REFUND": "Tip refund"
+    },
+    "columns": {
+      "title": "Columns",
+      "summary": "{{count}} of {{total}}",
+      "required": "Required",
+      "venue": "Business",
+      "folio": "Folio",
+      "fechaCobro": "Charge date",
+      "terminal": "Terminal",
+      "autorizacion": "Authorization code",
+      "ultimos4": "Card",
+      "tipoTarjeta": "Card type",
+      "operacion": "Operation",
+      "marca": "Brand",
+      "consumo": "Subtotal",
+      "propina": "Tip",
+      "propinas": "Tips",
+      "total": "Total",
+      "comision": "Fee",
+      "ivaComision": "Fee VAT",
+      "totalComision": "Total fee",
+      "montoADepositar": "Amount to deposit",
+      "fechaDeposito": "Deposit date (estimated)",
+      "periodo": "Charge period",
+      "depositoNeto": "Net deposit"
+    },
+    "format": {
+      "title": "Format",
+      "xlsx": "Excel",
+      "xlsxHint": "Formatted, up to 5,000 payments.",
+      "csv": "CSV",
+      "csvHint": "Lightweight, up to 10,000 payments. Opens in Excel."
+    },
+    "estimated": "≈ {{formatted}} payments to review",
+    "note": "Deposit dates are estimated with your processor's rules. Avoqado can't see your bank account.",
+    "block": {
+      "rangoLargo": "Pick 92 days or fewer.",
+      "demasiados": "That's {{formatted}} payments. Shorten the dates or use filters.",
+      "demasiadosExcel": "That's {{formatted}} payments: above 5,000 use CSV, which opens in Excel just the same.",
+      "contando": "Counting payments…",
+      "errorConteo": "We couldn't count the payments. Try again.",
+      "rangoInvertido": "The end date can't be before the start date.",
+      "fechasVacias": "Pick both dates.",
+      "cambiarCsv": "Switch to CSV"
+    },
+    "download": "Download",
+    "success": "Report downloaded",
+    "error": "The report could not be generated",
+    "brands": {
+      "OTHER": "Other"
+    }
   }
 }
