@@ -385,6 +385,7 @@
         "NO_CUADRA": "no cuadra con lo cobrado",
         "CORREGIDA_DESPUES": "corregida después de timbrar",
         "YA_EXTRAIDO": "ya está en una nota de extracción",
+        "DEVUELTA": "devuelta completa",
         "OTRO": "otro motivo",
         "SIN_TERMINAL": "cobrada fuera de la terminal"
       },

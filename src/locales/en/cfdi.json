@@ -385,6 +385,7 @@
         "NO_CUADRA": "does not match what was charged",
         "CORREGIDA_DESPUES": "fixed after stamping",
         "YA_EXTRAIDO": "already in an extraction note",
+        "DEVUELTA": "fully refunded",
         "OTRO": "other reason",
         "SIN_TERMINAL": "charged outside the terminal"
       },
