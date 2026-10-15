@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -58,6 +59,7 @@ import {
   Sparkles,
   Receipt,
   Crown,
+  Layers,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
@@ -71,6 +73,15 @@ import api from '@/api'
 import { cn, includesNormalized } from '@/lib/utils'
 import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
 import { PRODUCT_TYPE_LABELS } from '@/lib/product-types'
+import { VenueTierBadge } from '@/components/venue-tier-badge'
+import { VARIANTES_INICIALES, VariantsSection, type ValorVariantes } from '@/features/product-variants/components/VariantsSection'
+import { filaParaServidor, limpiarOpciones, validarFilas, validarOpciones } from '@/features/product-variants/combinations'
+import { mensajeDeVariantes } from '@/features/product-variants/errors'
+import { VariantNotice } from '@/features/product-variants/components/VariantNotice'
+import { sinCamposDelPadre } from '@/features/product-variants/families'
+import { useInvalidarCatalogo } from '@/features/product-variants/hooks'
+import { createProductGroup } from '@/services/productGroups.service'
+import { ALLOWED_GROUP_TYPES, type CreateGroupBody } from '@/types/productGroup'
 
 // Icon mapping for product types
 const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
@@ -382,6 +393,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     enabled: !!venueId && !!productId && mode === 'edit' && open,
   })
+  // Otras pantallas abren el asistente por id: si es una variante, nombre, descripción, categoría, foto, extras, impresora, claves SAT e
+  // IVA son del padre — se ven deshabilitados y NO se mandan (deshabilitar no basta: `description: ''` cuenta como cambio ⇒ 409).
+  const esVariante = mode === 'edit' && !!existingProduct?.productGroupId
 
   // Fetch full recipe data - always try to load in edit mode (recipe existence overrides inventoryMethod)
   const { data: existingRecipeData } = useQuery({
@@ -465,6 +479,34 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         description: error.response?.data?.message || t('wizard.error'),
         variant: 'destructive',
       })
+    },
+  })
+
+  // Producto con variantes (Tarea 5): sólo en el alta y en los tipos que admiten familia. Con el plan sin resolver, la casilla
+  // sale apagada (nunca se abre lo de pago con estado desconocido); en Gratis, además, con la etiqueta Pro.
+  const { t: tv } = useTranslation('variants')
+  const accesoVariantes = useTierFeatureAccess('PRODUCT_VARIANTS')
+  const puedeVariantes = accesoVariantes.hasAccess && accesoVariantes.isResolved
+  const tipoAdmiteVariantes = (ALLOWED_GROUP_TYPES as readonly string[]).includes(String(effectiveProductType ?? ''))
+  const [conVariantes, setConVariantes] = useState(false)
+  const [variantes, setVariantes] = useState<ValorVariantes>(VARIANTES_INICIALES)
+  const conVariantesActiva = mode === 'create' && tipoAdmiteVariantes && conVariantes
+  const enviando = useRef(false) // isPending no cambia entre dos clics del mismo instante
+  const invalidarCatalogo = useInvalidarCatalogo()
+  const crearFamilia = useMutation({
+    mutationFn: (body: CreateGroupBody) => createProductGroup(venueId!, body),
+    onSuccess: () => {
+      toast({ title: tv('alta.creada') })
+      handleWizardComplete() // el mismo cierre que el alta normal (invalida ['products', venueId], lo mismo que useInvalidarCatalogo)
+    },
+    onError: error => {
+      // Tras CUALQUIER error se relee: el reintento automático de src/api.ts pudo haber creado la familia (409 nombre ya usado).
+      void invalidarCatalogo(venueId!)
+      if (handleMasterCatalogError(error)) return
+      toast({ title: tCommon('error'), description: mensajeDeVariantes(error, tv), variant: 'destructive' })
+    },
+    onSettled: () => {
+      enviando.current = false
     },
   })
 
@@ -642,6 +684,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setIva(undefined)
     setBloqueosIva(undefined)
     setPorConfirmarIva(null)
+    setConVariantes(false) // el asistente sigue montado al cerrarse: el siguiente alta arranca sin la casilla
+    setVariantes(VARIANTES_INICIALES)
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
@@ -841,12 +885,44 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // Extract modifier group IDs from the form
     const modifierGroupIds = Array.isArray(data.modifierGroups) ? data.modifierGroups.map(m => m.value) : []
 
+    // Producto con variantes: se crea la FAMILIA (nunca el producto suelto). Precio, SKU, código y existencias van por variante;
+    // sin IVA (nace al 16 %, P4).
+    if (conVariantesActiva) {
+      if (enviando.current) return
+      // El server exige la categoría. Toast y no setError: categoryId no está registrado, el error nunca se borraría y el form se atoraría.
+      if (!data.categoryId) {
+        toast({ title: t('wizard.step1.categoryRequired'), variant: 'destructive' })
+        return
+      }
+      const opciones = limpiarOpciones(variantes.opciones)
+      const problema = validarOpciones(opciones) ?? validarFilas(data.name, variantes.filas, variantes.conInventario)
+      if (problema) {
+        toast({ title: tv(`validacion.${problema.code}`, problema), variant: 'destructive' })
+        return
+      }
+      enviando.current = true
+      crearFamilia.mutate({
+        name: data.name.trim(),
+        categoryId: data.categoryId,
+        type: String(effectiveProductType),
+        ...(data.description?.trim() ? { description: data.description.trim() } : {}),
+        ...(finalImageUrl?.trim() ? { imageUrl: finalImageUrl } : {}),
+        printStationId: data.printStationId ?? null,
+        ...(hasCfdi ? { satProductKey: data.satProductKey || null, satUnitKey: data.satUnitKey || null } : {}),
+        modifierGroupIds,
+        trackInventory: variantes.conInventario,
+        options: opciones,
+        variants: variantes.filas.filter(f => f.incluida).map(f => filaParaServidor(f, variantes.conInventario)),
+      })
+      return
+    }
+
     // Create product data without imageUrl field initially
     const needsCategory = effectiveProductType ? !NO_CATEGORY_TYPES.includes(effectiveProductType as ProductType) : true
     const needsModifiers = effectiveProductType ? !NO_MODIFIER_GROUP_TYPES.includes(effectiveProductType as ProductType) : true
     const trimmedSku = data.sku?.trim()
     const trimmedGtin = data.gtin?.trim()
-    const productData: any = {
+    let productData: any = {
       name: data.name,
       description: data.description,
       price: data.price,
@@ -882,6 +958,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     if (finalImageUrl && finalImageUrl.trim() !== '') {
       productData.imageUrl = finalImageUrl
     }
+    if (esVariante) productData = sinCamposDelPadre(productData)
 
     setStep1Data(productData)
 
@@ -1113,7 +1190,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     handleStep1Submit(data)
   }
 
-  const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending
+  const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending || crearFamilia.isPending
 
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
@@ -1217,6 +1294,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           ) : (
             /* Single step wizard - product configuration form */
             <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Intercept)}>
+              {esVariante && (
+                <div className="mb-6">
+                  <VariantNotice
+                    product={existingProduct}
+                    onOpenFamily={() => {
+                      onOpenChange(false)
+                      navigate(`${fullBasePath}/menumaker/products?familia=${existingProduct.productGroupId}`)
+                    }}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left Column - Main Form (both create and edit modes) */}
                 <div className="lg:col-span-8 space-y-6">
@@ -1253,97 +1341,136 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           {...step1Form.register('name', { required: true })}
                           placeholder={t('wizard.step1.namePlaceholder')}
                           className="h-12 text-base"
+                          disabled={esVariante}
                         />
                         {step1Form.formState.errors.name && (
                           <p className="text-xs text-destructive mt-1">{t('wizard.step1.nameRequired')}</p>
                         )}
                       </div>
 
-                      {/* Price */}
-                      <div data-tour="product-wizard-price">
-                        <FieldLabel htmlFor="price" label={t('wizard.step1.price')} required />
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
-                          <Input
-                            id="price"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            {...step1Form.register('price', { required: true, valueAsNumber: true, min: 0 })}
-                            placeholder="0.00"
-                            className="h-12 text-base pl-8"
+                      {/* Producto con variantes (Tarea 5): sólo en el alta y en los tipos que admiten familia; antes del precio */}
+                      {mode === 'create' && tipoAdmiteVariantes && (
+                        <div
+                          className="flex items-start gap-3 rounded-lg border border-input p-4"
+                          data-tour="product-wizard-variants-toggle"
+                        >
+                          <Checkbox
+                            id="producto-con-variantes"
+                            checked={conVariantes}
+                            disabled={!puedeVariantes || crearFamilia.isPending}
+                            onCheckedChange={v => {
+                              // El precio va por variante: sale del form (conserva lo tecleado) y no depende de que RHF salte un campo
+                              // desmontado. Al desmarcar, el campo se vuelve a registrar con `required`.
+                              if (v === true) step1Form.unregister('price', { keepValue: true, keepDefaultValue: true })
+                              setConVariantes(v === true)
+                            }}
+                            className="mt-0.5"
                           />
+                          <div className="space-y-1">
+                            <Label htmlFor="producto-con-variantes" className="flex items-center gap-2 text-base">
+                              {tv('alta.casilla')}
+                              {accesoVariantes.isResolved && !accesoVariantes.hasAccess && <VenueTierBadge tier="PRO" />}
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              {accesoVariantes.isResolved && !accesoVariantes.hasAccess
+                                ? tv('alta.casillaBloqueada')
+                                : tv('alta.casillaAyuda')}
+                            </p>
+                          </div>
                         </div>
-                        {step1Form.formState.errors.price && (
-                          <p className="text-xs text-destructive mt-1">{t('wizard.step1.priceRequired')}</p>
-                        )}
-                        {step1Form.watch('soldByWeight') && (
-                          <p className="text-xs text-muted-foreground mt-1">{t('wizard.step1.soldByWeightDesc')}</p>
-                        )}
-                      </div>
-
-                      {/* IVA por producto (6b): sólo al editar; el alta nace al 16 %. Del mismo ancho y alto (h-12) que el precio y los demás campos. */}
-                      {mode === 'edit' && (
-                        <SelectorIva
-                          venueId={venueId}
-                          actual={existingProduct?.ivaTratamiento}
-                          ajusteDeliveryAlgunaVez={existingProduct?.ajusteDeliveryAlgunaVez}
-                          value={iva}
-                          onChange={v => {
-                            setIva(v)
-                            setBloqueosIva(undefined)
-                          }}
-                          bloqueos={bloqueosIva}
-                          className="max-w-none"
-                          triggerClassName="h-12 text-base"
-                        />
                       )}
 
-                      {/* Venta por peso (charcutería/granel) */}
-                      <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FieldLabel htmlFor="soldByWeight" label={t('wizard.step1.soldByWeight')} />
-                          <p className="text-xs text-muted-foreground">{t('wizard.step1.soldByWeightDesc')}</p>
-                        </div>
-                        <Switch
-                          id="soldByWeight"
-                          checked={!!step1Form.watch('soldByWeight')}
-                          onCheckedChange={checked => step1Form.setValue('soldByWeight', checked, { shouldDirty: true })}
-                        />
-                      </div>
+                      {/* Con variantes, precio, venta por peso, SKU y código van por variante (el IVA es sólo de la edición: aquí no cambia nada) */}
+                      {!conVariantesActiva && (
+                        <>
+                          {/* Price */}
+                          <div data-tour="product-wizard-price">
+                            <FieldLabel htmlFor="price" label={t('wizard.step1.price')} required />
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
+                              <Input
+                                id="price"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                {...step1Form.register('price', { required: true, valueAsNumber: true, min: 0 })}
+                                placeholder="0.00"
+                                className="h-12 text-base pl-8"
+                              />
+                            </div>
+                            {step1Form.formState.errors.price && (
+                              <p className="text-xs text-destructive mt-1">{t('wizard.step1.priceRequired')}</p>
+                            )}
+                            {step1Form.watch('soldByWeight') && (
+                              <p className="text-xs text-muted-foreground mt-1">{t('wizard.step1.soldByWeightDesc')}</p>
+                            )}
+                          </div>
 
-                      {/* SKU + GTIN — both optional. SKU auto-generated if empty. */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="product-wizard-codes">
-                        <div data-tour="product-wizard-sku">
-                          <FieldLabel
-                            htmlFor="sku"
-                            label="SKU"
-                            tooltip="Código interno del producto. Si lo dejas vacío, se genera automáticamente."
-                          />
-                          <Input
-                            id="sku"
-                            {...step1Form.register('sku')}
-                            placeholder="Auto-generado si se deja vacío"
-                            className="h-12 text-base"
-                            autoComplete="off"
-                          />
-                        </div>
-                        <div data-tour="product-wizard-gtin">
-                          <FieldLabel
-                            htmlFor="gtin"
-                            label="GTIN / Código de barras"
-                            tooltip="Código de barras universal (UPC/EAN). Opcional."
-                          />
-                          <Input
-                            id="gtin"
-                            {...step1Form.register('gtin')}
-                            placeholder="Opcional"
-                            className="h-12 text-base"
-                            autoComplete="off"
-                            inputMode="numeric"
-                          />
-                        </div>
-                      </div>
+                          {/* IVA por producto (6b): sólo al editar; el alta nace al 16 %. Del mismo ancho y alto (h-12) que el precio y los demás campos. */}
+                          {mode === 'edit' && (
+                            <SelectorIva
+                              venueId={venueId}
+                              actual={existingProduct?.ivaTratamiento}
+                              ajusteDeliveryAlgunaVez={existingProduct?.ajusteDeliveryAlgunaVez}
+                              value={iva}
+                              onChange={v => {
+                                setIva(v)
+                                setBloqueosIva(undefined)
+                              }}
+                              bloqueos={bloqueosIva}
+                              disabled={esVariante}
+                              className="max-w-none"
+                              triggerClassName="h-12 text-base"
+                            />
+                          )}
+
+                          {/* Venta por peso (charcutería/granel) */}
+                          <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FieldLabel htmlFor="soldByWeight" label={t('wizard.step1.soldByWeight')} />
+                              <p className="text-xs text-muted-foreground">{t('wizard.step1.soldByWeightDesc')}</p>
+                            </div>
+                            <Switch
+                              id="soldByWeight"
+                              checked={!!step1Form.watch('soldByWeight')}
+                              onCheckedChange={checked => step1Form.setValue('soldByWeight', checked, { shouldDirty: true })}
+                            />
+                          </div>
+
+                          {/* SKU + GTIN — both optional. SKU auto-generated if empty. */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="product-wizard-codes">
+                            <div data-tour="product-wizard-sku">
+                              <FieldLabel
+                                htmlFor="sku"
+                                label="SKU"
+                                tooltip="Código interno del producto. Si lo dejas vacío, se genera automáticamente."
+                              />
+                              <Input
+                                id="sku"
+                                {...step1Form.register('sku')}
+                                placeholder="Auto-generado si se deja vacío"
+                                className="h-12 text-base"
+                                autoComplete="off"
+                              />
+                            </div>
+                            <div data-tour="product-wizard-gtin">
+                              <FieldLabel
+                                htmlFor="gtin"
+                                label="GTIN / Código de barras"
+                                tooltip="Código de barras universal (UPC/EAN). Opcional."
+                              />
+                              <Input
+                                id="gtin"
+                                {...step1Form.register('gtin')}
+                                placeholder="Opcional"
+                                className="h-12 text-base"
+                                autoComplete="off"
+                                inputMode="numeric"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
 
                       {/* Description */}
                       <div>
@@ -1358,10 +1485,32 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           placeholder={t('wizard.step1.descriptionPlaceholder')}
                           rows={4}
                           className="text-base resize-none"
+                          disabled={esVariante}
                         />
                       </div>
                     </div>
                   </section>
+
+                  {/* Variantes (Tarea 5). Vive dentro del <form>: Enter en un campo de la sección no guarda el asistente (los botones sí actúan). */}
+                  {conVariantesActiva && (
+                    <section
+                      data-tour="product-wizard-variants"
+                      className="bg-card rounded-2xl border border-border/50 p-6"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault()
+                      }}
+                    >
+                      <SectionHeader icon={Layers} title={tv('alta.seccion')} className="mb-2" />
+                      <p className="text-sm text-muted-foreground mb-6">{tv('alta.seccionAyuda')}</p>
+                      <VariantsSection
+                        venueId={venueId!}
+                        nombrePadre={step1Form.watch('name') ?? ''}
+                        value={variantes}
+                        onChange={setVariantes}
+                        disabled={crearFamilia.isPending}
+                      />
+                    </section>
+                  )}
 
                   {/* Image Upload Section */}
                   <section className="bg-card rounded-2xl border border-border/50 p-6">
@@ -1383,7 +1532,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           />
                         </div>
                         <div className="flex justify-between">
-                          <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+                          <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading || esVariante}>
                             {tCommon('cancel')}
                           </Button>
                           <Button
@@ -1392,7 +1541,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               handleCropConfirm()
                               step1Form.setValue('imageUrl', imageUrl, { shouldDirty: true })
                             }}
-                            disabled={uploading}
+                            disabled={uploading || esVariante}
                           >
                             {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {t('wizard.step1.confirm')}
@@ -1413,7 +1562,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             variant="secondary"
                             type="button"
                             size="sm"
-                            disabled={uploading}
+                            disabled={uploading || esVariante}
                             className="w-32"
                             onClick={() => {
                               const fileInput = document.createElement('input')
@@ -1433,7 +1582,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             variant="destructive"
                             type="button"
                             size="sm"
-                            disabled={uploading}
+                            disabled={uploading || esVariante}
                             className="w-32"
                             onClick={handleDeleteImage}
                           >
@@ -1449,8 +1598,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     ) : (
                       /* Upload Zone */
                       <div
-                        className="relative flex flex-col items-center justify-center h-40 border-2 border-border border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                        className={cn(
+                          'relative flex flex-col items-center justify-center h-40 border-2 border-border border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer',
+                          esVariante && 'pointer-events-none opacity-50',
+                        )}
+                        aria-disabled={esVariante || undefined}
                         onClick={() => {
+                          if (esVariante) return
                           const fileInput = document.createElement('input')
                           fileInput.type = 'file'
                           fileInput.accept = 'image/*'
@@ -1525,8 +1679,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     </section>
                   )}
 
-                  {/* Inventory Selection Section - hidden for non-inventoriable types */}
-                  {!NO_INVENTORY_TYPES.includes(effectiveProductType as ProductType) && (
+                  {/* Inventory Selection Section - hidden for non-inventoriable types (and with variants: stock goes per variant) */}
+                  {!NO_INVENTORY_TYPES.includes(effectiveProductType as ProductType) && !conVariantesActiva && (
                     <section className="bg-card rounded-2xl border border-border/50 p-6">
                       <SectionHeader icon={Package} title={t('wizard.step2.title', { defaultValue: 'Inventario' })} className="mb-4" />
 
@@ -2066,6 +2220,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                         }}
                         placeholder={t('wizard.step1.categoryPlaceholder')}
                         isLoading={isCategoriesLoading}
+                        disabled={esVariante}
                       />
                       {step1Form.formState.errors.categoryId && (
                         <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
@@ -2079,6 +2234,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     namespace="inventory"
                     value={step1Form.watch('printStationId')}
                     onChange={val => step1Form.setValue('printStationId', val, { shouldDirty: true })}
+                    disabled={esVariante}
                   />
 
                   {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
@@ -2096,6 +2252,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             venueId={venueId}
                             value={step1Form.watch('satProductKey') ?? null}
                             onChange={key => step1Form.setValue('satProductKey', key, { shouldDirty: true })}
+                            disabled={esVariante}
                           />
                           <p className="text-xs text-muted-foreground">{tCfdi('satKeys.productKeyHint')}</p>
                         </div>
@@ -2108,6 +2265,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             venueId={venueId}
                             value={step1Form.watch('satUnitKey') ?? null}
                             onChange={key => step1Form.setValue('satUnitKey', key, { shouldDirty: true })}
+                            disabled={esVariante}
                           />
                         </div>
                       </div>
@@ -2144,6 +2302,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             }}
                             placeholder={t('wizard.step1.selectModifierGroups')}
                             isLoading={isModifierGroupsLoading}
+                            disabled={esVariante}
                           />
                         ) : (
                           <p className="text-xs text-muted-foreground italic">
@@ -2184,6 +2343,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                                  disabled={esVariante}
                                   onClick={() => {
                                     const currentValues = step1Form.watch('modifierGroups') || []
                                     step1Form.setValue(
@@ -2231,7 +2391,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             <p className="font-semibold text-sm truncate">
                               {step1Form.watch('name') || t('wizard.preview.productName', { defaultValue: 'Nombre del producto' })}
                             </p>
-                            {step1Form.watch('price') > 0 && (
+                            {!conVariantesActiva && step1Form.watch('price') > 0 && (
                               <p className="text-sm text-muted-foreground">{Currency(step1Form.watch('price'))}</p>
                             )}
                           </div>
@@ -2391,8 +2551,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           </div>
                         )}
 
-                        {/* Inventory Status */}
-                        {step2Form.watch('useInventory') && (
+                        {/* Inventory Status (with variants, stock goes per variant) */}
+                        {!conVariantesActiva && step2Form.watch('useInventory') && (
                           <div className="pt-2 border-t border-dashed space-y-2">
                             {step2Form.watch('inventoryMethod') === 'RECIPE' ? (
                               <>

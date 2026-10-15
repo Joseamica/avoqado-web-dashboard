@@ -69,15 +69,17 @@ function StationSelect({
   onChange,
   stations,
   inherit = false,
+  disabled = false,
 }: {
   value: string | null
   onChange: (value: string | null) => void
   stations: PrintStation[]
   inherit?: boolean
+  disabled?: boolean
 }) {
   const { t } = useTranslation('printStations')
   return (
-    <Select value={value ?? NULL_OPT} onValueChange={v => onChange(v === NULL_OPT ? null : v)}>
+    <Select value={value ?? NULL_OPT} onValueChange={v => onChange(v === NULL_OPT ? null : v)} disabled={disabled}>
       <SelectTrigger className="w-56">
         <SelectValue />
       </SelectTrigger>
@@ -106,6 +108,7 @@ function CategoryProducts({
   onEdit: (id: string, original: string | null, value: string | null) => void
 }) {
   const { t } = useTranslation('printStations')
+  const { t: tv } = useTranslation('variants')
   const [filter, setFilter] = useState({ search: '', page: 1 })
   const search = useDebounce(filter.search, 300)
   // The page resets in the same interaction as search; a pending debounce never sends the old page.
@@ -139,10 +142,19 @@ function CategoryProducts({
       ) : (
         query.data?.products.map(product => (
           <div key={product.id} data-testid={`routing-product-${product.id}`} className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">{product.name}</span>
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">{product.name}</span>
+              {/* Variantes: la impresora es del padre; aquí no se cambia (el server rechazaría TODO el guardado con 409). */}
+              {product.productGroupId && (
+                <span className="text-xs text-muted-foreground">
+                  {tv('variante.seCambiaDesde', { familia: product.productGroupName ?? '' })}
+                </span>
+              )}
+            </div>
             <StationSelect
               stations={stations}
               inherit
+              disabled={!!product.productGroupId}
               value={product.id in draft ? draft[product.id].value : product.printStationId}
               onChange={value => onEdit(product.id, product.printStationId, value)}
             />

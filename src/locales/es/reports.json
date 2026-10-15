@@ -853,6 +853,10 @@
     "noData": "Sin datos de ventas para este período",
     "insidePromotion": "{{units}} dentro de «{{name}}»",
     "insidePromotions": "Vendido dentro de {{n}} promociones",
+    "familia": "Familia",
+    "variantes_one": "{{count}} variante",
+    "variantes_other": "{{count}} variantes",
+    "verVariantes": "Ver variantes de {{name}}",
     "chart": {
       "title": "Ventas por período"
     },

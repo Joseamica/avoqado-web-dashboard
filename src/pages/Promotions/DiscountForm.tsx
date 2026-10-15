@@ -36,7 +36,7 @@ export default function DiscountForm() {
   })
 
   // Fetch form data options
-  const { productOptions, categoryOptions, customerGroupOptions, dayOptions, isLoading: isLoadingOptions } = useDiscountFormData(venueId)
+  const { products, categoryOptions, customerGroupOptions, dayOptions, isLoading: isLoadingOptions } = useDiscountFormData(venueId)
 
   // Form setup
   const form = useForm<CreateDiscountRequest & { active: boolean }>({
@@ -228,7 +228,7 @@ export default function DiscountForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 pb-8 space-y-6 max-w-4xl">
           <DiscountFormFields
             form={form}
-            productOptions={productOptions}
+            products={products}
             categoryOptions={categoryOptions}
             customerGroupOptions={customerGroupOptions}
             dayOptions={dayOptions}

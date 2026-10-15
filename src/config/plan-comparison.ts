@@ -69,6 +69,7 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
     rows: [
       { key: 'inventoryBasic', values: TODOS },
       { key: 'priceLabels', codes: ['PRICE_LABELS'] },
+      { key: 'productVariants', codes: ['PRODUCT_VARIANTS'] },
       { key: 'inventoryFifo', codes: ['INVENTORY_TRACKING'] },
       { key: 'autoReorder', codes: ['AUTO_REORDER'] },
       { key: 'serialized', codes: ['SERIALIZED_INVENTORY'] },

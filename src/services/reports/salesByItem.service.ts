@@ -54,6 +54,12 @@ export interface ItemSalesMetrics {
    * ausente si el producto nunca se vendió en promoción.
    */
   promotionName?: string | null
+  /**
+   * Familia (padre) ACTUAL de la variante: el renglón sigue siendo por variante y con el nombre de la venta, y la
+   * familia viaja aparte. `null` en un producto suelto; el server sólo la manda con `groupBy = 'none'`.
+   */
+  productGroupId?: string | null
+  productGroupName?: string | null
 }
 
 export interface TimePeriodItemMetrics {

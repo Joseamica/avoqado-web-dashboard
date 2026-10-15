@@ -4,8 +4,11 @@ import { useMemo } from 'react'
 
 import { getMenuCategories, getProducts } from '@/services/menu.service'
 import customerService from '@/services/customer.service'
+import type { Product } from '@/types'
 
 const DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6]
+// Referencia estable mientras carga: los selectores memorizan sobre la lista.
+const SIN_PRODUCTOS: Product[] = []
 
 export function useDiscountFormData(venueId: string | undefined) {
   const { t } = useTranslation('promotions')
@@ -61,6 +64,8 @@ export function useDiscountFormData(venueId: string | undefined) {
   }, [t])
 
   return {
+    /** La lista cruda (con su familia) para los selectores que ofrecen «toda la familia». */
+    products: products ?? SIN_PRODUCTOS,
     productOptions,
     categoryOptions,
     customerGroupOptions,

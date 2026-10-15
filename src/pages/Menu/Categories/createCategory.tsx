@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 
 export default function CreateCategory() {
   const { t } = useTranslation('menu')
+  const { t: tv } = useTranslation('variants')
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -228,10 +229,13 @@ export default function CreateCategory() {
                 <FormControl>
                   <MultipleSelector
                     {...field}
+                    // Una variante cambia de categoría desde su familia (el server rechaza el movimiento con 409): sale deshabilitada.
                     options={(products ?? []).map(product => ({
-                      label: product.name,
+                      label: product.productGroupId
+                        ? `${product.name} (${tv('variante.seCambiaDesde', { familia: product.productGroupName ?? '' })})`
+                        : product.name,
                       value: product.id,
-                      disabled: false,
+                      disable: !!product.productGroupId,
                     }))}
                     hidePlaceholderWhenSelected
                     placeholder={t('forms.labels.selectProducts')}

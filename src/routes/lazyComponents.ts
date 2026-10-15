@@ -22,6 +22,7 @@ export const MenuMakerLayout = lazyWithRetry(() => import('@/pages/Menu/MenuMake
 export const CreateMenu = lazyWithRetry(() => import('@/pages/Menu/Menus/createMenu'))
 export const Menus = lazyWithRetry(() => import('@/pages/Menu/Menus/Menus'))
 export const ModifierGroups = lazyWithRetry(() => import('@/pages/Menu/Modifiers/ModifierGroups'))
+export const ProductOptions = lazyWithRetry(() => import('@/pages/Menu/ProductOptions/ProductOptions'))
 export const CreateModifierGroup = lazyWithRetry(() => import('@/pages/Menu/Modifiers/createModifierGroup'))
 export const MenuOverview = lazyWithRetry(() => import('@/pages/Menu/MenuOverview'))
 export const CreateProduct = lazyWithRetry(() => import('@/pages/Menu/Products/createProduct'))

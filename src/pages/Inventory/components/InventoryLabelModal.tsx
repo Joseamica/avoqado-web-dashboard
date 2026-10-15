@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +21,7 @@ import { labelService, LABEL_TYPES, type BarcodeFormat } from '@/services/label.
 import type { Product, MenuCategory } from '@/types'
 import { CheckCircle2, Download, Loader2, Printer, Search, Star, Trash2, FolderOpen } from 'lucide-react'
 import { includesNormalized } from '@/lib/utils'
+import { sugerenciasDeFamilia, variantesParaAgregar, type Familia } from '@/features/product-variants/families'
 
 interface InventoryLabelModalProps {
   open: boolean
@@ -42,6 +44,7 @@ const BARCODE_OPTIONS: { value: BarcodeFormat; label: string }[] = [
 
 export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelModalProps) {
   const { toast } = useToast()
+  const { t } = useTranslation('variants')
 
   // Label config state
   const [labelType, setLabelType] = useState('avery-5160')
@@ -98,6 +101,12 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
     enabled: open,
   })
 
+  // Primero «toda la familia» (sólo las que todavía tienen variantes por agregar), luego los productos; entre las dos, tope de 8.
+  const familySuggestions = useMemo(
+    () => sugerenciasDeFamilia(productSearch, products, items.map(i => i.productId)).slice(0, 8),
+    [productSearch, products, items],
+  )
+
   // Product search suggestions
   const suggestions = useMemo(() => {
     if (!productSearch.trim()) return []
@@ -110,8 +119,8 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
             includesNormalized(p.sku ?? '', productSearch) ||
             includesNormalized(p.gtin ?? '', productSearch)),
       )
-      .slice(0, 8)
-  }, [productSearch, products, items])
+      .slice(0, 8 - familySuggestions.length)
+  }, [productSearch, products, items, familySuggestions.length])
 
   // Filtered categories for dialog
   const filteredCategories = useMemo(() => {
@@ -129,6 +138,13 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
       ...prev,
       { productId: product.id, name: product.name, sku: product.sku, quantity: 1 },
     ])
+    setProductSearch('')
+    setShowSuggestions(false)
+  }
+
+  const addFamily = (family: Familia<Product>) => {
+    const missing = variantesParaAgregar(family, items.map(i => i.productId))
+    setItems(prev => [...prev, ...missing.map(p => ({ productId: p.id, name: p.name, sku: p.sku, quantity: 1 }))])
     setProductSearch('')
     setShowSuggestions(false)
   }
@@ -419,8 +435,18 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
                   className="pl-10"
                 />
               </div>
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && familySuggestions.length + suggestions.length > 0 && (
                 <div className="absolute z-20 mt-1 w-full rounded-md border border-border/40 bg-popover shadow-md max-h-60 overflow-y-auto">
+                  {familySuggestions.map((family, i) => (
+                    <button
+                      key={family.groupId}
+                      data-tour={`labels-family-suggestion-${i}`}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent font-medium"
+                      onMouseDown={() => addFamily(family)}
+                    >
+                      {t('selector.todaLaFamilia', { name: family.name, count: family.variantes.length })}
+                    </button>
+                  ))}
                   {suggestions.map(product => (
                     <button
                       key={product.id}

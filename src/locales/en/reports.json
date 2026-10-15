@@ -853,6 +853,10 @@
     "noData": "No sales data for this period",
     "insidePromotion": "{{units}} inside \"{{name}}\"",
     "insidePromotions": "Sold inside {{n}} promotions",
+    "familia": "Family",
+    "variantes_one": "{{count}} variant",
+    "variantes_other": "{{count}} variants",
+    "verVariantes": "Show variants of {{name}}",
     "chart": {
       "title": "Sales by Period"
     },

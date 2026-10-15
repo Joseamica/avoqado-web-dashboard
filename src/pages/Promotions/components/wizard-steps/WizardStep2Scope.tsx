@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { Target, ShoppingCart, Tag, Users, Package, Info, Plus } from 'lucide-react'
 
 import MultipleSelector, { Option } from '@/components/multi-selector'
+import { ProductMultiSelect } from '@/features/product-variants/components/ProductMultiSelect'
+import type { ProductoConFamilia } from '@/features/product-variants/families'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -16,12 +18,12 @@ import { cn } from '@/lib/utils'
 
 interface WizardStep2ScopeProps {
   form: UseFormReturn<any>
-  productOptions: Option[]
+  products: ProductoConFamilia[]
   categoryOptions: Option[]
   customerGroupOptions: Option[]
 }
 
-export function WizardStep2Scope({ form, productOptions, categoryOptions, customerGroupOptions }: WizardStep2ScopeProps) {
+export function WizardStep2Scope({ form, products, categoryOptions, customerGroupOptions }: WizardStep2ScopeProps) {
   const { t } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
 
@@ -147,15 +149,10 @@ export function WizardStep2Scope({ form, productOptions, categoryOptions, custom
             <FormItem>
               <FormLabel>{t('discounts.form.fields.targetItems')}</FormLabel>
               <FormControl>
-                <MultipleSelector
-                  value={
-                    field.value?.map((id: string) => {
-                      const product = productOptions.find((p: any) => p.value === id)
-                      return product || { value: id, label: id }
-                    }) || []
-                  }
-                  onChange={newValue => field.onChange(newValue.map((opt: Option) => opt.value))}
-                  options={productOptions}
+                <ProductMultiSelect
+                  productos={products}
+                  value={field.value ?? []}
+                  onChange={field.onChange}
                   placeholder={t('discounts.form.placeholders.selectProducts')}
                   emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
                   footer={
@@ -347,15 +344,10 @@ export function WizardStep2Scope({ form, productOptions, categoryOptions, custom
                 <FormItem>
                   <FormLabel>{t('discounts.bogo.buyFrom')}</FormLabel>
                   <FormControl>
-                    <MultipleSelector
-                      value={
-                        field.value?.map((id: string) => {
-                          const product = productOptions.find((p: any) => p.value === id)
-                          return product || { value: id, label: id }
-                        }) || []
-                      }
-                      onChange={newValue => field.onChange(newValue.map((opt: Option) => opt.value))}
-                      options={productOptions}
+                    <ProductMultiSelect
+                      productos={products}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
                       placeholder={t('discounts.form.placeholders.selectProducts')}
                       emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
                       footer={
@@ -381,15 +373,10 @@ export function WizardStep2Scope({ form, productOptions, categoryOptions, custom
                 <FormItem>
                   <FormLabel>{t('discounts.bogo.getFrom')}</FormLabel>
                   <FormControl>
-                    <MultipleSelector
-                      value={
-                        field.value?.map((id: string) => {
-                          const product = productOptions.find((p: any) => p.value === id)
-                          return product || { value: id, label: id }
-                        }) || []
-                      }
-                      onChange={newValue => field.onChange(newValue.map((opt: Option) => opt.value))}
-                      options={productOptions}
+                    <ProductMultiSelect
+                      productos={products}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
                       placeholder={t('discounts.form.placeholders.selectProducts')}
                       emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
                       footer={

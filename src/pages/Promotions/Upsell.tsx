@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Eye, Info, Lightbulb, Loader2, MessageSquare, Plus, Sparkles, Store, Tag, Trash2, Users, Wifi, X, Zap } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -19,6 +20,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { Currency } from '@/utils/currency'
+import { OpcionesDeProducto } from '@/features/product-variants/components/OpcionesDeProducto'
+import { expandirSeleccion, familiaDeIds, PREFIJO_FAMILIA, valorDeFamilia } from '@/features/product-variants/families'
 import { getProducts } from '@/services/menu.service'
 import { suggestabilityOf, coversAllRequiredGroups } from '@/lib/upsell/suggestability'
 import { resolveSuggestionPreview, chosenPreviewModifiers } from '@/lib/upsell/preview'
@@ -280,9 +283,10 @@ function SectionHeader({ icon: Icon, title }: { icon: typeof Store; title: strin
 	)
 }
 
-function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
+export function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
 	const queryClient = useQueryClient()
 	const { toast } = useToast()
+	const { t } = useTranslation('variants')
 
 	const [triggerType, setTriggerType] = useState<UpsellTriggerType>('ALWAYS')
 	const [triggerProductIds, setTriggerProductIds] = useState<string[]>([])
@@ -306,6 +310,9 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 		() => (products ?? []).map((p: any) => ({ ...p, suggestability: suggestabilityOf(p) })),
 		[products],
 	)
+	// Variantes: los dos selectores agrupan cada familia (`OpcionesDeProducto`); el disparador además ofrece «toda la familia»
+	// (lo guardado sigue siendo por variante). Sin familias, los dos se ven como siempre.
+	const familiaDisparador = useMemo(() => familiaDeIds(triggerProductIds, anotados), [triggerProductIds, anotados])
 	const productoElegido = anotados.find((p: any) => p.id === suggestedProductId)
 	const gruposObligatorios = (productoElegido?.modifierGroups ?? []).filter((g: any) => g.group?.required)
 
@@ -355,6 +362,13 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 	// Catálogo vacío ≠ catálogo cargando: se separan para no pintar el callejón
 	// sin salida antes de tiempo.
 	const sinProductos = !loadingProducts && (products ?? []).length === 0
+
+	const itemSugerido = (p: any) => (
+		<SelectItem key={p.id} value={p.id} disabled={p.suggestability.blocked && !p.suggestability.resolvable}>
+			{p.name}
+			{p.suggestability.label && <span className="ml-2 text-xs text-muted-foreground">{p.suggestability.label}</span>}
+		</SelectItem>
+	)
 
 	// El botón "Crear" vive en el encabezado del modal, así que dispara este
 	// formulario por `form=` + `type="submit"` — igual que `ProductWizardDialog`.
@@ -420,16 +434,27 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 									{triggerType === 'PRODUCT' && (
 										<div className="space-y-2">
 											<Label htmlFor="upsell-trigger-product">Producto que dispara</Label>
-											<Select value={triggerProductIds[0] ?? ''} onValueChange={v => setTriggerProductIds([v])}>
+											<Select
+												value={familiaDisparador ? valorDeFamilia(familiaDisparador) : (triggerProductIds[0] ?? '')}
+												onValueChange={v => setTriggerProductIds(v.startsWith(PREFIJO_FAMILIA) ? expandirSeleccion([v], anotados) : [v])}
+											>
 												<SelectTrigger id="upsell-trigger-product" className="h-12" data-tour="upsell-rule-trigger-product">
 													<SelectValue placeholder="Elige un producto" />
 												</SelectTrigger>
 												<SelectContent>
-													{(products ?? []).map((p: any) => (
-														<SelectItem key={p.id} value={p.id}>
-															{p.name}
-														</SelectItem>
-													))}
+													<OpcionesDeProducto
+														productos={anotados}
+														item={(p: any) => (
+															<SelectItem key={p.id} value={p.id}>
+																{p.name}
+															</SelectItem>
+														)}
+														inicioDeFamilia={f => (
+															<SelectItem value={valorDeFamilia(f.groupId)}>
+																{t('selector.todaLaFamilia', { name: f.name, count: f.variantes.length })}
+															</SelectItem>
+														)}
+													/>
 												</SelectContent>
 											</Select>
 										</div>
@@ -459,14 +484,7 @@ function CreateRuleDialog({ venueId, open, onOpenChange }: { venueId: string; op
 												<SelectValue placeholder="Elige un producto">{productoElegido?.name}</SelectValue>
 											</SelectTrigger>
 											<SelectContent>
-												{anotados.map((p: any) => (
-													<SelectItem key={p.id} value={p.id} disabled={p.suggestability.blocked && !p.suggestability.resolvable}>
-														{p.name}
-														{p.suggestability.label && (
-															<span className="ml-2 text-xs text-muted-foreground">{p.suggestability.label}</span>
-														)}
-													</SelectItem>
-												))}
+												<OpcionesDeProducto productos={anotados} item={itemSugerido} />
 											</SelectContent>
 										</Select>
 										<p className="text-xs text-muted-foreground">

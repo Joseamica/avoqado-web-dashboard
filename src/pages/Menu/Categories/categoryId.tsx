@@ -15,17 +15,19 @@ import { ArrowLeft, Receipt } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { PrintStationField } from '@/components/PrintStationField'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
+import { textoDelServidor } from '@/utils/apiError'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
   const { t: tCfdi } = useTranslation('cfdi')
+  const { t: tv } = useTranslation('variants')
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   const { categoryId } = useParams()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
@@ -64,6 +66,8 @@ export default function CategoryId() {
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
   })
+  // Una variante cambia de categoría desde su familia (el server rechaza moverla con 409): no se agrega ni se quita desde aquí.
+  const idsDeVariantes = useMemo(() => new Set((products ?? []).filter(p => p.productGroupId).map(p => p.id)), [products])
   const from = (location.state as any)?.from || '/'
 
   const saveCategory = useMutation({
@@ -80,7 +84,7 @@ export default function CategoryId() {
     onError: (error: any) => {
       toast({
         title: t('forms.messages.saveError'),
-        description: error.message || t('forms.messages.saveErrorDesc'),
+        description: textoDelServidor(error) ?? t('forms.messages.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -389,11 +393,18 @@ export default function CategoryId() {
                         <FormLabel>{t('forms.labels.addProductsToCategory')}</FormLabel>
                         <FormControl>
                           <MultiSelectCombobox
-                            options={(products ?? []).map((product: any) => ({
-                              label: product.name,
+                            options={(products ?? []).map(product => ({
+                              label: product.productGroupId
+                                ? `${product.name} (${tv('variante.seCambiaDesde', { familia: product.productGroupName ?? '' })})`
+                                : product.name,
                               value: product.id,
+                              disabled: !!product.productGroupId,
                             }))}
-                            selected={(field.value || []).map((p: any) => ({ label: p.label, value: p.value }))}
+                            selected={(field.value || []).map((p: any) => ({
+                              label: p.label,
+                              value: p.value,
+                              disabled: idsDeVariantes.has(p.value),
+                            }))}
                             onChange={value => field.onChange(value)}
                             placeholder={t('forms.labels.selectProducts')}
                             emptyText={t('forms.labels.noMoreProducts')}

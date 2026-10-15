@@ -26,7 +26,7 @@ import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ImageIcon, Package, Store, Beef } from 'lucide-react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -52,6 +52,10 @@ import {
   useEstadoIva,
   type TratamientoElegible,
 } from '@/pages/Menu/Products/components/SelectorIva'
+import { VariantNotice } from '@/features/product-variants/components/VariantNotice'
+import { sinCamposDelPadre } from '@/features/product-variants/families'
+import { codigoDelError } from '@/features/product-variants/errors'
+import { useInvalidarCatalogo } from '@/features/product-variants/hooks'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -70,7 +74,7 @@ import {
 export default function ProductId() {
   const { t, i18n } = useTranslation('menu')
   const { productId } = useParams()
-  const { venue, venueId, venueSlug } = useCurrentVenue()
+  const { venue, venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
   const queryClient = useQueryClient()
   const location = useLocation()
@@ -91,12 +95,28 @@ export default function ProductId() {
   const [bloqueosIva, setBloqueosIva] = useState<BloqueoIva[] | undefined>()
   const [porConfirmarIva, setPorConfirmarIva] = useState<any>(null)
 
+  // Codex C4: si otra sesión volvió variante este producto con la ficha abierta, guardar da 409 PRODUCT_FIELD_OWNED_BY_GROUP. Se relee
+  // la ficha (pasa a modo variante) y el catálogo. En el error sólo queda esta marca: al llegar la ficha nueva se conserva lo que el
+  // formulario tenga EN ESE MOMENTO (el dueño pudo seguir tecleando mientras recargaba), y el inventario sólo si el dueño lo cambió
+  // respecto de la ficha de antes del 409 (si otra sesión lo activó, no se pisa).
+  const invalidarCatalogo = useInvalidarCatalogo()
+  const conservarTrasConflicto = useRef<{
+    fichaAntes: unknown
+    trackInventory: boolean
+    inventoryMethod: 'QUANTITY' | 'RECIPE' | null
+  } | null>(null)
+  // El efecto que adopta la ficha no depende del inventario elegido: lo lee de aquí para no usar un valor de un render viejo.
+  const inventarioElegido = useRef({ trackInventory, inventoryMethod })
+  inventarioElegido.current = { trackInventory, inventoryMethod }
+
   // Traemos la información del producto
   const { data, isLoading } = useQuery({
     queryKey: ['product', venueId, productId],
     queryFn: () => getProduct(venueId!, productId!),
     enabled: !!venueId && !!productId,
   })
+  // Una variante (talla/color): nombre, descripción, categoría, tipo, foto, IVA y extras son del padre — se ven, no se editan ni se mandan.
+  const esVariante = !!data?.productGroupId
 
   // Traemos las categorías disponibles para el selector
   const { data: categories } = useQuery({
@@ -173,7 +193,7 @@ export default function ProductId() {
         payload.unit = 'KILOGRAM'
       }
 
-      return await updateProduct(venueId!, productId!, payload)
+      return await updateProduct(venueId!, productId!, esVariante ? sinCamposDelPadre(payload) : payload)
     },
     onSuccess: () => {
       toast({
@@ -187,6 +207,15 @@ export default function ProductId() {
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
+      if (codigoDelError(error) === 'PRODUCT_FIELD_OWNED_BY_GROUP') {
+        conservarTrasConflicto.current = {
+          fichaAntes: data,
+          trackInventory: data?.trackInventory || false,
+          inventoryMethod: data?.inventoryMethod || null,
+        }
+        setIva(undefined) // el IVA es del padre: en una variante ni se elige ni se manda
+        void invalidarCatalogo(venueId!)
+      }
       const bloqueos = bloqueosDelError(error)
       setBloqueosIva(bloqueos)
       toast({
@@ -333,6 +362,20 @@ export default function ProductId() {
 
     const categoryId = data.categoryId ?? data.category?.id ?? ''
 
+    // Tras el 409 de «ahora es variante» (Codex C4): lo tecleado AHORA (antes del reset, que lo borra), sólo con la ficha nueva.
+    const marca = conservarTrasConflicto.current
+    const conservar = marca && marca.fichaAntes !== data ? marca : null
+    const tecleado = conservar
+      ? Object.fromEntries(
+          Object.entries(form.getValues() as Record<string, unknown>).filter(
+            // el inventario elegido es estado del componente (abajo); el formulario sólo lo refleja
+            ([k]) => k !== 'trackInventory' && k !== 'inventoryMethod' && form.getFieldState(k as any).isDirty,
+          ),
+        )
+      : {}
+    const inventario = inventarioElegido.current
+    if (conservar) conservarTrasConflicto.current = null
+
     // Sync inventory state
     const hasInventory = data.trackInventory || false
     const method = data.inventoryMethod || null
@@ -361,6 +404,21 @@ export default function ProductId() {
       costPerUnit: data.cost?.toString() || '',
       reorderPoint: data.inventory?.minimumStock?.toString() || '10',
     })
+
+    // …y vuelve, menos los campos del padre si ahora es variante. El inventario, sólo si el dueño lo cambió antes del 409.
+    if (conservar) {
+      const { modifierGroups: _extras, ...sinExtras } = tecleado // en el formulario, `modifierGroupIds` se llama así
+      const campos = data.productGroupId ? sinCamposDelPadre(sinExtras) : tecleado
+      for (const [campo, valor] of Object.entries(campos)) form.setValue(campo as any, valor as any, { shouldDirty: true })
+      // Una sola elección: si cambió cualquiera de los dos, se reponen los dos. Y se marca en el formulario: el efecto que lo marca corrió
+      // ANTES de este `reset` (que borra la marca) y el estado no cambia de valor, así que no vuelve a correr («Guardar» quedaba apagado).
+      if (inventario.trackInventory !== conservar.trackInventory || inventario.inventoryMethod !== conservar.inventoryMethod) {
+        setTrackInventory(inventario.trackInventory)
+        setInventoryMethod(inventario.inventoryMethod)
+        form.setValue('trackInventory', inventario.trackInventory, { shouldDirty: true })
+        form.setValue('inventoryMethod', inventario.inventoryMethod, { shouldDirty: true })
+      }
+    }
   }, [data, categories, modifierGroups, form, productId, setCustomSegment])
 
   // Esta función podría ser para borrar la imagen en el servidor.
@@ -482,6 +540,14 @@ export default function ProductId() {
           <div className="max-w-4xl">
             {/* IVA por producto (6b, §5.5): aviso fijo de aparatos viejos, sólo con el IVA encendido */}
             <AvisoAparatosIva venueId={venueId!} className="mb-4" />
+            {esVariante && (
+              <div className="mb-4">
+                <VariantNotice
+                  product={data}
+                  onOpenFamily={() => navigate(`${fullBasePath}/menumaker/products?familia=${data.productGroupId}`)}
+                />
+              </div>
+            )}
             {/* Details Section */}
             {currentTab === 'details' && (
               <div className="space-y-6">
@@ -526,12 +592,14 @@ export default function ProductId() {
                 <FormField
                   control={form.control}
                   name="name"
-                  rules={getNameValidationRules(t)}
+                  // Una variante no valida el nombre (QA ALTO-1): es del padre («Playera QA Pro · S · Azul · Corta» pasa de 30), no se edita
+                  // ni se manda. Las reglas en `undefined` (no `{}`) apagan las que el campo ya tenía si la ficha pasa a variante abierta.
+                  rules={esVariante ? { required: false, minLength: undefined, maxLength: undefined } : getNameValidationRules(t)}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('forms.name')}</FormLabel>
                       <FormControl>
-                        <Input placeholder={t('products.create.namePlaceholder')} className="max-w-96" {...field} />
+                        <Input placeholder={t('products.create.namePlaceholder')} className="max-w-96" {...field} disabled={esVariante} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -545,7 +613,12 @@ export default function ProductId() {
                     <FormItem>
                       <FormLabel>{t('products.create.descriptionOptional')}</FormLabel>
                       <FormControl>
-                        <Textarea placeholder={t('products.create.descriptionPlaceholder')} className="max-w-96" {...field} />
+                        <Textarea
+                          placeholder={t('products.create.descriptionPlaceholder')}
+                          className="max-w-96"
+                          {...field}
+                          disabled={esVariante}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -579,6 +652,7 @@ export default function ProductId() {
                     setBloqueosIva(undefined)
                   }}
                   bloqueos={bloqueosIva}
+                  disabled={esVariante}
                 />
                 <FormField
                   control={form.control}
@@ -596,7 +670,7 @@ export default function ProductId() {
                     return (
                       <FormItem className="max-w-96">
                         <FormLabel>{t('products.create.type')}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={esVariante}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder={t('products.create.typePlaceholder')} />
@@ -653,7 +727,12 @@ export default function ProductId() {
                                 />
                               </div>
                               <div className="flex justify-between mt-4">
-                                <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+                                <Button
+                                  variant="outline"
+                                  type="button"
+                                  onClick={() => setImageForCrop(null)}
+                                  disabled={uploading || esVariante}
+                                >
                                   {t('forms.buttons.cancel')}
                                 </Button>
                                 <Button
@@ -662,7 +741,7 @@ export default function ProductId() {
                                     handleCropConfirm()
                                     form.setValue('imageUrl', imageUrl, { shouldDirty: true })
                                   }}
-                                  disabled={uploading}
+                                  disabled={uploading || esVariante}
                                 >
                                   {t('products.create.confirm')}
                                 </Button>
@@ -696,7 +775,7 @@ export default function ProductId() {
                                   <Button
                                     variant="outline"
                                     type="button"
-                                    disabled={uploading}
+                                    disabled={uploading || esVariante}
                                     onClick={() => {
                                       // Simulamos un click en un input "file" invisible
                                       // o podrías usar un <Input type="file" hidden /> con ref
@@ -715,7 +794,12 @@ export default function ProductId() {
                                   >
                                     {t('products.create.replace')}
                                   </Button>
-                                  <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
+                                  <Button
+                                    variant="destructive"
+                                    type="button"
+                                    disabled={uploading || esVariante}
+                                    onClick={handleDeleteImage}
+                                  >
                                     {t('products.create.delete')}
                                   </Button>
                                 </div>
@@ -746,7 +830,7 @@ export default function ProductId() {
                                   <Button
                                     variant="outline"
                                     type="button"
-                                    disabled={uploading}
+                                    disabled={uploading || esVariante}
                                     onClick={() => {
                                       // Simulamos un click en un input "file" invisible
                                       // o podrías usar un <Input type="file" hidden /> con ref
@@ -765,7 +849,12 @@ export default function ProductId() {
                                   >
                                     {t('products.create.replace')}
                                   </Button>
-                                  <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
+                                  <Button
+                                    variant="destructive"
+                                    type="button"
+                                    disabled={uploading || esVariante}
+                                    onClick={handleDeleteImage}
+                                  >
                                     {t('products.create.delete')}
                                   </Button>
                                 </div>
@@ -791,7 +880,7 @@ export default function ProductId() {
                                     }
                                   }}
                                   className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer "
-                                  disabled={uploading}
+                                  disabled={uploading || esVariante}
                                 />
 
                                 {/* Texto que se ve (debajo del input invisible) */}
@@ -811,7 +900,7 @@ export default function ProductId() {
                                 <div className="absolute bottom-0 flex mt-2 space-x-2">
                                   <Button
                                     type="button"
-                                    disabled={uploading}
+                                    disabled={uploading || esVariante}
                                     onClick={() => {
                                       // Puedes forzar a que se abra el input file manualmente
                                       const fileInput = document.createElement('input')
@@ -853,6 +942,7 @@ export default function ProductId() {
                             form.clearErrors('categoryId')
                           }}
                           value={field.value || ''}
+                          disabled={esVariante}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder={t('products.create.categoryPlaceholder')} />
@@ -1172,6 +1262,7 @@ export default function ProductId() {
                           options={modifierGroups?.map(mg => ({ label: mg.name, value: mg.id, disabled: false })) || []}
                           hidePlaceholderWhenSelected
                           placeholder={t('products.create.selectGroups')}
+                          disabled={esVariante}
                         />
                       </FormControl>
                       <FormMessage />
