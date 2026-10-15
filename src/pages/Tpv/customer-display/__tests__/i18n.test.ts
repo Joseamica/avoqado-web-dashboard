@@ -6,6 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { describe, expect, it } from 'vitest'
 import { CLAVE_DEL_HISTORIAL } from '../estado'
+import { MOMENTOS, MOTIVOS_DE_IMAGEN, MUESTRAS_DE_COLOR } from '../model'
 
 const LOCALES = path.resolve(__dirname, '../../../../locales')
 const bundle = (lng: string) =>
@@ -16,7 +17,12 @@ const aplanar = (o: Record<string, unknown>, p = ''): string[] =>
   )
 const valor = (o: unknown, ruta: string) => ruta.split('.').reduce((n: any, k) => n?.[k], o)
 
-const DINAMICAS: string[] = [...Object.values(CLAVE_DEL_HISTORIAL)]
+const DINAMICAS: string[] = [
+  ...Object.values(CLAVE_DEL_HISTORIAL),
+  ...MOMENTOS.map(m => `preview.moments.${m}`),
+  ...MUESTRAS_DE_COLOR.map(m => `editor.colors.${m.clave}`),
+  ...MOTIVOS_DE_IMAGEN.map(m => `editor.logoErrors.${m}`),
+]
 const PLURALES: string[] = ['status.imagesPending', 'status.imagesFailed']
 
 describe('i18n customerDisplay', () => {
