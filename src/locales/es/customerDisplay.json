@@ -151,8 +151,8 @@
   },
   "card": {
     "new": "Nuevo",
-    "noReadPermission": "Pídele a tu gerente o administrador que te dé acceso para ver la pantalla del cliente.",
-    "readOnly": "Sólo puedes ver este diseño. Para cambiarlo, pídeselo a tu gerente o administrador.",
+    "noReadPermission": "Tu rol no tiene acceso a la pantalla del cliente de este dispositivo. Pídeselo al dueño del negocio.",
+    "readOnly": "Sólo puedes ver este diseño. Para editarlo, pídele permiso al dueño del negocio.",
     "loadError": "No pudimos cargar la pantalla del cliente.",
     "retry": "Reintentar",
     "designOwn": "Diseño propio",

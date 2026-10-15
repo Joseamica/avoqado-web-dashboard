@@ -376,4 +376,76 @@ describe('CustomerDisplayEditor — ronda 1 de la revisión de B3', () => {
     expect(vi.mocked(previewCustomerDisplay).mock.calls.some(c => c[2].logoAssetId === 'tarde')).toBe(false)
     expect(guardarBtn()).toBeDisabled() // nada cambió respecto a lo recargado
   })
+
+  it('🔴 dos subidas retenidas: la vieja resuelve DESPUÉS de que empezó la nueva y NO apaga el indicador; sólo la nueva lo apaga', async () => {
+    vi.mocked(medirImagen).mockResolvedValue({ ancho: 800, alto: 800 })
+    const vieja = retenida<CustomerDisplayAsset>()
+    const nueva = retenida<CustomerDisplayAsset>()
+    vi.mocked(uploadCustomerDisplayLogo).mockReturnValueOnce(vieja.promesa).mockReturnValueOnce(nueva.promesa)
+    const user = userEvent.setup()
+    await pintar()
+    await user.type(bienvenida(), 'Hola') // hay un cambio: sin subida en vuelo, «Guardar» estaría prendido
+    await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
+    const entrada = screen.getByTestId('customer-display-logo-input')
+    await user.upload(entrada, new File([new Uint8Array(10)], 'vieja.png', { type: 'image/png' }))
+    await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalledTimes(1))
+    await user.upload(entrada, new File([new Uint8Array(10)], 'nueva.png', { type: 'image/png' }))
+    await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('editor.logoUploading')).toBeInTheDocument()
+    expect(guardarBtn()).toBeDisabled()
+
+    await act(async () =>
+      vieja.resolver({ assetId: 'vieja', url: 'https://storage.googleapis.com/b/v.png', sha256: 'h', width: 800, height: 800 }),
+    )
+    // Su resultado ya no aplica y su `finally` no es de la subida que sigue en vuelo.
+    expect(screen.getByText('editor.logoUploading')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'editor.logoVenue' })).toBeDisabled()
+    expect(guardarBtn()).toBeDisabled()
+
+    await act(async () =>
+      nueva.resolver({ assetId: 'nueva', url: 'https://storage.googleapis.com/b/n.png', sha256: 'h', width: 800, height: 800 }),
+    )
+    await waitFor(() => expect(guardarBtn()).toBeEnabled())
+    expect(screen.queryByText('editor.logoUploading')).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'editor.logoVenue' })).toBeEnabled()
+    await waitFor(() => expect(vi.mocked(previewCustomerDisplay).mock.lastCall?.[2]).toMatchObject({ logoAssetId: 'nueva' }))
+    expect(vi.mocked(previewCustomerDisplay).mock.calls.some(c => c[2].logoAssetId === 'vieja')).toBe(false)
+  })
+
+  it('🔴 «Recargar lo guardado» con una subida en vuelo: el indicador se apaga al recargar, sin esperar a que la subida termine', async () => {
+    vi.mocked(saveCustomerDisplay).mockRejectedValueOnce(
+      conflicto('CUSTOMER_DISPLAY_CONFLICT', 'Alguien más guardó este diseño mientras lo editabas.'),
+    )
+    vi.mocked(getCustomerDisplay).mockResolvedValue(
+      vistaDePrueba({ editToken: 'd1:5', design: { ...DISENO_DE_FABRICA, welcomeText: 'De otra persona' } }),
+    )
+    vi.mocked(medirImagen).mockResolvedValue({ ancho: 800, alto: 800 })
+    const subida = retenida<CustomerDisplayAsset>()
+    vi.mocked(uploadCustomerDisplayLogo).mockReturnValue(subida.promesa)
+    const user = userEvent.setup()
+    await pintar()
+    await user.type(bienvenida(), 'Mío')
+    await user.click(guardarBtn())
+    await screen.findByText('Alguien más guardó este diseño mientras lo editabas.')
+    await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
+    await user.upload(screen.getByTestId('customer-display-logo-input'), new File([new Uint8Array(10)], 'logo.png', { type: 'image/png' }))
+    await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: 'editor.reload' }))
+    await waitFor(() => expect(bienvenida()).toHaveValue('De otra persona'))
+    // La subida SIGUE retenida: lo recargado ya la descartó, así que nada debe quedar «subiendo».
+    expect(screen.getByRole('radio', { name: 'editor.logoVenue' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'editor.factory' })).toBeEnabled()
+    await user.type(bienvenida(), '!')
+    expect(guardarBtn()).toBeEnabled()
+
+    await act(async () =>
+      subida.resolver({ assetId: 'tarde', url: 'https://storage.googleapis.com/b/t.png', sha256: 'h', width: 800, height: 800 }),
+    )
+    expect(screen.getByRole('radio', { name: 'editor.logoVenue' })).toBeChecked()
+    expect(guardarBtn()).toBeEnabled()
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 400))
+    })
+    expect(vi.mocked(previewCustomerDisplay).mock.calls.some(c => c[2].logoAssetId === 'tarde')).toBe(false)
+  })
 })

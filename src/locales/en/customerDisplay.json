@@ -151,8 +151,8 @@
   },
   "card": {
     "new": "New",
-    "noReadPermission": "Ask your manager or administrator for access to view the customer display.",
-    "readOnly": "You can only view this design. To change it, ask your manager or administrator.",
+    "noReadPermission": "Your role doesn't have access to this device's customer display. Ask the business owner.",
+    "readOnly": "You can only view this design. To edit it, ask the business owner for permission.",
     "loadError": "We couldn't load the customer display.",
     "retry": "Retry",
     "designOwn": "Custom design",

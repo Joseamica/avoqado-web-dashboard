@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config'
  *   - never needs the emulator to be up for the normal (mocked-API) suite/CI
  *
  * Run with: `npm run test:storage-rules` (spins up the emulator via
- * `firebase emulators:exec`, see package.json + storage-rules-tests/README.md).
+ * `firebase emulators:exec`, see package.json).
  */
 export default defineConfig({
   test: {

@@ -84,7 +84,10 @@ async function guardarYResponder(conteos: { terminalsUpdated?: number; terminals
   await user.click(screen.getByRole('button', { name: 'playtelecom:tpvConfig.saveSync' }))
 }
 
-beforeEach(() => vi.mocked(tpvSettingsService.getVenueSettings).mockResolvedValue({ ...BASE }))
+beforeEach(() => {
+  toast.mockClear()
+  vi.mocked(tpvSettingsService.getVenueSettings).mockResolvedValue({ ...BASE })
+})
 
 describe('TpvConfiguration — a cuántas terminales llegó el guardado', () => {
   it('🔴 si NINGUNA terminal recibió el cambio, lo dice fuerte (no «guardado» a secas)', async () => {

@@ -109,9 +109,15 @@ export function CustomerDisplayEditor({
   const [preguntandoSalida, setPreguntandoSalida] = useState(false)
   const [preguntandoFabrica, setPreguntandoFabrica] = useState(false)
   // Cada subida lleva su número; cambiar de logo o tomar otra base lo invalida (defensa extra: la UI ya bloquea, Codex #6).
+  // 🔴 El número manda sobre el RESULTADO y sobre el INDICADOR «subiendo»: una subida descartada no toca ni uno ni otro.
   const subidaVigente = useRef(0)
 
   const cambiar = (parcial: Partial<BorradorDelEditor>) => setBorrador(b => ({ ...b, ...parcial }))
+  /** Descarta la subida en vuelo (si hay): su resultado ya no aplica y, como su `finally` tampoco apagará el indicador, se apaga aquí. */
+  const descartarSubida = () => {
+    subidaVigente.current += 1
+    setSubiendoLogo(false)
+  }
   const cuerpo = useMemo(() => aCuerpoDeGuardado(borrador), [borrador])
   const vista = useFichaPreview({ venueId, terminalId, cuerpo, fichaInicial: view.ficha, assetRejectedInicial: view.assetRejected })
   const momentos = momentosVisibles(pasos)
@@ -127,7 +133,7 @@ export function CustomerDisplayEditor({
     void queryClient.invalidateQueries({ queryKey: clavesDeLaPantalla.dispositivos(venueId) })
   }
   const tomarBase = (design: CustomerDisplayDesign, editToken: string) => {
-    subidaVigente.current += 1
+    descartarSubida()
     setBase({ editToken, design })
     setBorrador(aBorrador(design))
     setHex(design.accentColor ?? '')
@@ -280,7 +286,7 @@ export function CustomerDisplayEditor({
     cambiar({ accentColor: color })
   }
   const alCambiarModoDeLogo = (modo: 'negocio' | 'propio') => {
-    subidaVigente.current += 1
+    descartarSubida()
     setModoDeLogo(modo)
     setErrorDeLogo(null)
     cambiar({ logoAssetId: modo === 'negocio' ? null : ultimoLogoPropio })
@@ -308,7 +314,9 @@ export function CustomerDisplayEditor({
     } catch (error) {
       if (mia === subidaVigente.current) setErrorDeLogo(mensajeDelServidor(error, t('editor.logoUploadError')))
     } finally {
-      setSubiendoLogo(false)
+      // Sólo la subida vigente apaga el indicador: la que perdió contra una más nueva lo apagaría (y habilitaría «Guardar»)
+      // con la nueva todavía en vuelo. Si la descartó «Recargar lo guardado», ya lo apagó `descartarSubida`.
+      if (mia === subidaVigente.current) setSubiendoLogo(false)
     }
   }
 
