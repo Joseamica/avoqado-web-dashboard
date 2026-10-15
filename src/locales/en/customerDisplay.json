@@ -190,7 +190,7 @@
     "savedTips": "Saved: tip percentages.",
     "saveError": "The change couldn't be saved.",
     "uncertainTitle": "We don't know if it was saved",
-    "uncertain": "We don't know if the change was saved: checking what the device has now.",
+    "uncertain": "We don't know if the change was saved: checking what was actually saved.",
     "unconfirmed": "Unconfirmed"
   }
 }

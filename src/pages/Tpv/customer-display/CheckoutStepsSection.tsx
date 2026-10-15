@@ -85,7 +85,8 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
       // relectura termina (TanStack espera esta promesa), y mientras tanto cada paso se ve «sin confirmar». Si la relectura
       // también falla, se dice que no se pudieron cargar. Nunca se reenvía solo.
       if (resultadoIncierto(error)) {
-        toast({ variant: 'destructive', title: t('steps.uncertainTitle'), description: t('steps.uncertain') })
+        // Tono de AVISO (como el editor y copiar), no rojo: no es un error confirmado, es «no sabemos todavía».
+        toast({ variant: 'warning', title: t('steps.uncertainTitle'), description: t('steps.uncertain') })
         return queryClient.resetQueries({ queryKey: clave, exact: true })
       }
       // Rechazo CONFIRMADO (400/401/403/404/409/422/429 que no vienen del reintento): el server no cambió nada ⇒ vuelve lo
@@ -153,6 +154,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
             className="cursor-pointer"
             onClick={() => void pasos.refetch()}
             disabled={pasos.isFetching}
+            data-tour="customer-display-steps-retry"
           >
             {t('card.retry')}
           </Button>
@@ -186,6 +188,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
                             aria-label={t('steps.tipRemove', { percent: p })}
                             disabled={guardar.isPending}
                             onClick={() => quitar(p)}
+                            data-tour="customer-display-steps-tip-remove"
                           >
                             <X className="h-3 w-3" aria-hidden="true" />
                           </button>
@@ -239,7 +242,8 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
               )}
 
               {fila.clave === 'showReceiptScreen' && reciboNecesitaActualizar(deviceType, versionCode) && (
-                <p className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                // Mismo texto de aviso que la tarjeta: tokens semánticos (en oscuro, el ámbar; `warning-foreground` es casi blanco).
+                <p className="mt-1.5 flex items-start gap-1.5 text-xs text-warning-foreground dark:text-warning">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {t('steps.receiptNeedsUpdate')}
                 </p>

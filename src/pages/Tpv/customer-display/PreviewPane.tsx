@@ -51,7 +51,8 @@ export function PreviewPane({
             aria-pressed={momento === m}
             onClick={() => onMomento(m)}
             className={cn(
-              'cursor-pointer rounded-full border px-3 py-1 text-sm',
+              // Sin `rounded-full`: dentro de FullScreenModal todo <button> queda con 0.5rem (index.css, `[data-fsm-content] button`).
+              'cursor-pointer border px-3 py-1 text-sm',
               momento === m ? 'border-foreground font-medium text-foreground' : 'border-input text-muted-foreground hover:text-foreground',
             )}
             data-tour={`customer-display-preview-moment-${m}`}

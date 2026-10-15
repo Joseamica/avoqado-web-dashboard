@@ -411,7 +411,7 @@ describe('CopyDesignDialog', () => {
     expect(screen.getByRole('checkbox', { name: 'Barra' })).toBeDisabled()
     expect(screen.getByRole('checkbox', { name: 'Barra' })).not.toBeChecked()
     expect(screen.getByRole('button', { name: 'copy.submitEmpty' })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await user.click(screen.getByRole('button', { name: 'common:close' })) // la X de FullScreenModal, ya traducida
     expect(onClose).not.toHaveBeenCalled()
     await act(async () => {
       lecturaDeBarra.resolver(vistaDe('barra', server.disenos.barra, server.tokens.barra))

@@ -59,7 +59,7 @@ export function BrandFields({ borrador, onCambio, bloqueado, logo, hex, onHex, h
         <div className="flex">
           {/* Esquinas de 0.5rem y no de píldora: dentro de FullScreenModal todo <button> queda así (index.css,
               `[data-fsm-content] button`), y una cápsula con botones cuadrados por dentro se ve rota. */}
-          <div className="inline-flex rounded-lg border border-border bg-muted/60 p-1" role="group" aria-label={t('editor.theme')}>
+          <div className="inline-flex rounded-lg border border-input bg-muted/60 p-1" role="group" aria-label={t('editor.theme')}>
             {(['LIGHT', 'DARK'] as const).map(tema => (
               <button
                 key={tema}

@@ -107,7 +107,7 @@ describe('CheckoutStepsSection', () => {
     servicio.getSettings.mockReturnValue(get.promesa)
     await user.click(propina)
     // Título propio: «No se pudo guardar» + «no sabemos si se guardó» se contradecían (revisión B5).
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'steps.uncertainTitle', description: 'steps.uncertain' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'warning', title: 'steps.uncertainTitle', description: 'steps.uncertain' }))
     // Mientras no se sepa, los pasos NO se presentan como conocidos (ni el valor viejo ni el supuesto).
     await waitFor(() => expect(screen.queryByRole('switch', { name: 'steps.tip' })).not.toBeInTheDocument())
     // El server SÍ lo había guardado:

@@ -20,10 +20,18 @@ import { esDisenoDeFabrica } from './model'
 import { useCustomerDisplay, usePasosDelCobro } from './queries'
 import { TabletPreview } from './TabletPreview'
 
+/**
+ * Texto de aviso suelto sobre la tarjeta (sin fondo de aviso), con los tokens semánticos del editor y de copiar: en claro, el
+ * tono oscuro del aviso; en oscuro, el ámbar, porque ahí `warning-foreground` es casi blanco (va SOBRE `bg-warning-muted`).
+ */
+const TEXTO_DE_AVISO = 'text-warning-foreground dark:text-warning'
+
 const COLOR_DEL_HISTORIAL: Partial<Record<Historial['tipo'], string>> = {
-  pendiente: 'text-amber-600 dark:text-amber-400',
-  recibido: 'text-amber-600 dark:text-amber-400',
+  pendiente: TEXTO_DE_AVISO,
+  recibido: TEXTO_DE_AVISO,
   noSoportado: 'text-destructive',
+  // El tema todavía no registra un token de éxito para Tailwind (`--success` existe en index.css, pero no `--color-success`
+  // en `@theme`, así que `text-success` no genera nada): se queda el verde de la paleta.
   mostrado: 'text-emerald-600 dark:text-emerald-400',
 }
 
@@ -77,6 +85,7 @@ export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName
           className="cursor-pointer"
           onClick={() => void pantalla.refetch()}
           disabled={pantalla.isFetching}
+          data-tour="customer-display-card-retry"
         >
           {t('card.retry')}
         </Button>
@@ -120,7 +129,7 @@ export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName
           </p>
           {estado.promosPidenActualizar && <p className="text-xs text-muted-foreground">{t('status.promosNeedUpdate')}</p>}
           {estado.avisoDeInstalaciones && (
-            <p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <p className={cn('flex items-start gap-1.5 text-xs', TEXTO_DE_AVISO)}>
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {t('status.installationWarning')}
             </p>
@@ -141,7 +150,7 @@ export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName
           </p>
           <div className="flex flex-wrap items-center gap-2 text-xs">
             {pantalla.isError && (
-              <span role="status" className="text-amber-600 dark:text-amber-400">
+              <span role="status" className={TEXTO_DE_AVISO}>
                 {t('status.refreshError')}
               </span>
             )}

@@ -190,7 +190,7 @@
     "savedTips": "Guardado: porcentajes de propina.",
     "saveError": "No se pudo guardar el cambio.",
     "uncertainTitle": "No sabemos si se guardó",
-    "uncertain": "No sabemos si el cambio se guardó: estamos revisando lo que quedó en el dispositivo.",
+    "uncertain": "No sabemos si el cambio se guardó: estamos revisando lo que quedó guardado.",
     "unconfirmed": "Sin confirmar"
   }
 }
