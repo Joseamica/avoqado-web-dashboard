@@ -1,0 +1,25 @@
+{
+  "status": {
+    "appWithoutDesigns": "Abre la app actualizada en este dispositivo para usar tu diseño. Puedes prepararlo desde ya.",
+    "noAck": "La pantalla todavía no confirma este diseño.",
+    "pending": "Pendiente: la pantalla todavía no muestra el último diseño.",
+    "received": "La pantalla recibió este diseño, pero todavía no confirma que lo guardó.",
+    "unsupported": "La app de este dispositivo no puede mostrar este diseño: actualízala.",
+    "kiosk": "Guardado · el dispositivo está en modo kiosco ({{date}})",
+    "shown": "Mostrado el {{date}}",
+    "stored": "Guardado en el dispositivo el {{date}}, aún no se ha mostrado",
+    "imagesPending_one": "· {{count}} imagen descargándose",
+    "imagesPending_other": "· {{count}} imágenes descargándose",
+    "imagesFailed_one": "· {{count}} no se pudo mostrar",
+    "imagesFailed_other": "· {{count}} no se pudieron mostrar",
+    "promosNeedUpdate": "Actualiza la app para mostrar promos.",
+    "installationWarning": "Dos instalaciones parecen usar la identidad de este aparato. ¿Copiaste la app a otra tablet?",
+    "heartbeat": "Aparato activo · {{ago}}",
+    "noHeartbeat": "Todavía no hay señal del aparato.",
+    "displayDetected": "2ª pantalla detectada ({{date}})",
+    "displayAbsent": "No detectamos segunda pantalla. Si le conectas una, aquí aparecerá.",
+    "displayUnknown": "No sabemos si tiene segunda pantalla: abre la app en el aparato.",
+    "refreshError": "No pudimos actualizar el estado; se muestra lo último que sabemos.",
+    "refresh": "Actualizar estado"
+  }
+}

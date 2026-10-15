@@ -1,0 +1,25 @@
+{
+  "status": {
+    "appWithoutDesigns": "Open the updated app on this device to use your design. You can prepare it now.",
+    "noAck": "The display hasn't confirmed this design yet.",
+    "pending": "Pending: the display isn't showing the latest design yet.",
+    "received": "The display received this design but hasn't confirmed it saved it yet.",
+    "unsupported": "The app on this device can't show this design: update it.",
+    "kiosk": "Saved · the device is in kiosk mode ({{date}})",
+    "shown": "Shown on {{date}}",
+    "stored": "Saved on the device on {{date}}, not shown yet",
+    "imagesPending_one": "· {{count}} image downloading",
+    "imagesPending_other": "· {{count}} images downloading",
+    "imagesFailed_one": "· {{count}} couldn't be shown",
+    "imagesFailed_other": "· {{count}} couldn't be shown",
+    "promosNeedUpdate": "Update the app to show promos.",
+    "installationWarning": "Two installations seem to use this device's identity. Did you copy the app to another tablet?",
+    "heartbeat": "Device active · {{ago}}",
+    "noHeartbeat": "No signal from the device yet.",
+    "displayDetected": "2nd display detected ({{date}})",
+    "displayAbsent": "We didn't detect a second display. If you connect one, it will show up here.",
+    "displayUnknown": "We don't know if it has a second display: open the app on the device.",
+    "refreshError": "We couldn't refresh the status; showing the last known one.",
+    "refresh": "Refresh status"
+  }
+}
