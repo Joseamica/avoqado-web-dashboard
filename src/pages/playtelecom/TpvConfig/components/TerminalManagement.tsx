@@ -77,8 +77,9 @@ function isInMaintenance(terminal: Terminal): boolean {
 export function TerminalManagement() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
-  const { role } = useAccess()
-  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN'
+  // Borrar de fábrica lo decide el PERMISO del venue (el mismo que exige el servidor), no el nombre del rol.
+  const { can } = useAccess()
+  const canFactoryReset = can('tpv-factory-reset:execute')
   const venueId = activeVenue?.id
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -536,7 +537,7 @@ export function TerminalManagement() {
                         <FileText className="w-4 h-4 mr-2" />
                         {t('playtelecom:tpvConfig.terminals.exportLogs', { defaultValue: 'Exportar Datos' })}
                       </DropdownMenuItem>
-                      {isOwnerPlus && (
+                      {canFactoryReset && (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

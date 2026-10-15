@@ -98,6 +98,7 @@ function abrirCajon() {
         onClose={() => undefined}
         onCommand={() => undefined}
         onEditMerchants={() => undefined}
+        onMigrate={() => undefined}
       />
     </QueryClientProvider>,
   )
@@ -106,18 +107,21 @@ function abrirCajon() {
 
 const BORRADO = 'terminals.actions.factoryReset'
 const COMERCIOS = 'terminals.drawer.merchantsEdit'
+// «Migrar a otra sucursal» (ronda 3): el servidor lo exige con requireOrgOwner; la página deja entrar a más gente.
+const MIGRAR = 'terminals.actions.migrate'
 
 describe('OrgTerminalDrawer · acciones del dueño de la organización', () => {
   beforeEach(() => {
     usuario = null
   })
 
-  it('el dueño de la organización ve «Borrar de fábrica» y «Editar comercios»', () => {
+  it('el dueño de la organización ve «Borrar de fábrica», «Editar comercios» y «Migrar»', () => {
     usuario = { role: 'ADMIN' as User['role'], organizationMemberships: [membresia(ORG, 'OWNER')] }
     abrirCajon()
 
     expect(screen.getByText(BORRADO)).toBeInTheDocument()
     expect(screen.getByText(COMERCIOS)).toBeInTheDocument()
+    expect(screen.getByText(MIGRAR)).toBeInTheDocument()
   })
 
   it.each([
@@ -134,6 +138,7 @@ describe('OrgTerminalDrawer · acciones del dueño de la organización', () => {
 
     expect(screen.queryByText(BORRADO)).not.toBeInTheDocument()
     expect(screen.queryByText(COMERCIOS)).not.toBeInTheDocument()
+    expect(screen.queryByText(MIGRAR)).not.toBeInTheDocument()
     // Lo demás del cajón no cambia.
     expect(screen.getByText('terminals.actions.restart')).toBeInTheDocument()
   })
@@ -144,5 +149,6 @@ describe('OrgTerminalDrawer · acciones del dueño de la organización', () => {
 
     expect(screen.getByText(BORRADO)).toBeInTheDocument()
     expect(screen.getByText(COMERCIOS)).toBeInTheDocument()
+    expect(screen.getByText(MIGRAR)).toBeInTheDocument()
   })
 })
