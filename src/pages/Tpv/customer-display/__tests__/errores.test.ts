@@ -31,4 +31,24 @@ describe('errores de la pantalla del cliente', () => {
     for (const s of [500, 502, 503, 504, 524, 408, 418]) expect(resultadoIncierto(conEstado(s)), String(s)).toBe(true)
     for (const s of [400, 401, 403, 404, 409, 422, 429]) expect(resultadoIncierto(conEstado(s)), String(s)).toBe(false)
   })
+  describe('🔴 reintento automático de `src/api.ts` (marca `config._retry`): el PRIMER intento pudo haber guardado', () => {
+    const reintentado = <T extends object>(error: T, retry: unknown = true) => Object.assign(error, { config: { _retry: retry } })
+    it('un 409 de un reintento es INCIERTO: el token cambió por nuestra propia escritura perdida', () => {
+      expect(resultadoIncierto(reintentado(error409('CUSTOMER_DISPLAY_CONFLICT')))).toBe(true)
+      expect(resultadoIncierto(reintentado(error409('CUSTOMER_DISPLAY_BUSY')))).toBe(true)
+    })
+    it('un 429 de un reintento es INCIERTO: el primero pudo pasar y el segundo topar el límite', () => {
+      expect(resultadoIncierto(reintentado(conEstado(429)))).toBe(true)
+    })
+    it('un 409 SIN reintento sigue siendo un conflicto confirmado', () => {
+      const sinReintento = error409('CUSTOMER_DISPLAY_CONFLICT')
+      expect(resultadoIncierto(sinReintento)).toBe(false)
+      expect(claseDeConflicto(sinReintento)).toBe('conflicto')
+      expect(resultadoIncierto(reintentado(error409('CUSTOMER_DISPLAY_CONFLICT'), false))).toBe(false)
+      expect(resultadoIncierto(reintentado(conEstado(429), 'true'))).toBe(false) // sólo el `true` que pone api.ts
+    })
+    it('el resto de los rechazos de un reintento siguen confirmados (el mismo cuerpo también se habría rechazado)', () => {
+      for (const s of [400, 401, 403, 404, 422]) expect(resultadoIncierto(reintentado(conEstado(s))), String(s)).toBe(false)
+    })
+  })
 })
