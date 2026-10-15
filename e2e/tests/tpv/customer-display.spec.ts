@@ -9,6 +9,8 @@
  * Y lo que pidió Codex (F1 r1): restablecer y ver el resultado, y una reconsulta fallida con el borrador abierto. Más lo
  * que cambiaron las rondas de arreglo: un guardado de respuesta perdida (aviso «No pudimos confirmar» o se da por hecho
  * si el server ya lo tiene), «Sin confirmar» en los pasos, el tope de 6 porcentajes y «Cargar más» bloqueado mientras carga.
+ * Y lo del arreglo final (Codex F1 código): la RED de verdad en los pasos (la escritura se aplica, su respuesta se aborta y el
+ * reintento automático de `src/api.ts` recibe 409/429), y un error de fondo de la PÁGINA del aparato con el editor abierto.
  */
 import { test, expect, type Page, type Route } from '@playwright/test'
 
@@ -122,8 +124,14 @@ const PERMITIDAS = [
  *  - 'aplicado-sin-respuesta': guarda de verdad y contesta 500 (la respuesta se perdió pero el cambio SÍ quedó).
  */
 type ModoDeGuardado = 'ok' | 'conflicto' | 'perdido' | 'aplicado-sin-respuesta'
-/** Qué hace el server con el PUT de los pasos del cobro, y con la relectura que le sigue. */
-type ModoDePasos = 'ok' | 'perdido' | 'perdido-y-no-relee'
+/**
+ * Qué hace el server con el PUT de los pasos del cobro, y con la relectura que le sigue:
+ *  - '5xx': contesta 500 SIN aplicar nada (un 5xx no prueba nada: se relee);
+ *  - '5xx-y-no-relee': lo mismo, y la relectura también falla;
+ *  - 'aplicado-sin-red': el PRIMER PUT se aplica y su respuesta se pierde en la RED (`route.abort('failed')`); el reintento
+ *    automático de `src/api.ts` (1 s después) recibe `respuestaDelReintento` (409 o 429), que tampoco prueba nada.
+ */
+type ModoDePasos = 'ok' | '5xx' | '5xx-y-no-relee' | 'aplicado-sin-red'
 
 interface Escenario {
   permisos?: string[]
@@ -142,7 +150,11 @@ interface Escenario {
   pasos?: ModoDePasos
   /** Espera de la relectura de los pasos que sigue a un guardado incierto (para ver «Sin confirmar»). */
   demoraDeLaRelecturaDePasos?: number
+  /** Con `pasos: 'aplicado-sin-red'`: lo que recibe el reintento automático. */
+  respuestaDelReintento?: 409 | 429
   tipSuggestions?: number[]
+  /** Cuántas RELECTURAS del detalle del aparato (`GET .../tpv/:id`, la consulta de la página) fallan con 500. La primera nunca. */
+  fallasDelAparato?: number
 }
 
 /** El escenario de la prueba en curso: el `afterEach` de abajo le exige cero llamadas inesperadas. */
@@ -183,6 +195,8 @@ async function preparar(page: Page, esc: Escenario = {}) {
     tokensDeDestino: { 'dev-barra': 'factory', 'dev-caja-2': 'factory', 'dev-mostrador': 'factory' } as Record<string, string>,
     llamadasALaVista: 0,
     llamadasADestinos: 0,
+    llamadasAlAparato: 0,
+    fallasDelAparato: esc.fallasDelAparato ?? 0,
     fallasDeLaVista: esc.fallasDeLaVista ?? 0,
     modosDeGuardado: [...(esc.guardados ?? [])],
     guardados: [] as Array<{ expectedEditToken: string; design: Partial<Diseno> }>,
@@ -226,41 +240,45 @@ async function preparar(page: Page, esc: Escenario = {}) {
   })
 
   // El detalle del dispositivo (`GET .../tpv/:id`): una caja POS_ANDROID con segunda pantalla.
-  await page.route(`**${rutaDeVenue(`tpv/${CAJA_1}`)}`, route =>
-    route.request().method() !== 'GET'
-      ? route.fallback()
-      : json(route, {
-          id: CAJA_1,
-          name: 'Caja 1',
-          serialNumber: null,
-          type: 'POS_ANDROID',
-          status: 'ACTIVE',
-          venueId: VENUE_ID,
-          lastHeartbeat: new Date().toISOString(),
-          brand: 'SUNMI',
-          model: 'Sunmi D3',
-          version: '2.24.0',
-          systemInfo: { osVersion: 'Android 11', batteryLevel: 90 },
-          activatedAt: null,
-          isLocked: false,
-          selfRegistered: true,
-          customerDisplayInverted: false,
-          customerDisplayRequest: null,
-          capabilities: {
-            requiresActivation: false,
-            canManagePaymentConfiguration: false,
-            canAcceptTerminalPaymentRequests: false,
-            customerDisplay: {
-              presence: 'SUPPORTED',
-              invertibility: 'UNSUPPORTED',
-              canRequestInversion: false,
-              observedAt: '2026-10-14T16:00:00.000Z',
-              stale: false,
-            },
-            supportedRemoteCommands: [],
-          },
-        }),
-  )
+  await page.route(`**${rutaDeVenue(`tpv/${CAJA_1}`)}`, route => {
+    if (route.request().method() !== 'GET') return route.fallback()
+    estado.llamadasAlAparato += 1
+    if (estado.llamadasAlAparato > 1 && estado.fallasDelAparato > 0) {
+      estado.fallasDelAparato -= 1
+      return json(route, ERROR_500, 500)
+    }
+    return json(route, {
+      id: CAJA_1,
+      name: 'Caja 1',
+      serialNumber: null,
+      type: 'POS_ANDROID',
+      status: 'ACTIVE',
+      venueId: VENUE_ID,
+      lastHeartbeat: new Date().toISOString(),
+      brand: 'SUNMI',
+      model: 'Sunmi D3',
+      version: '2.24.0',
+      systemInfo: { osVersion: 'Android 11', batteryLevel: 90 },
+      activatedAt: null,
+      isLocked: false,
+      selfRegistered: true,
+      customerDisplayInverted: false,
+      customerDisplayRequest: null,
+      capabilities: {
+        requiresActivation: false,
+        canManagePaymentConfiguration: false,
+        canAcceptTerminalPaymentRequests: false,
+        customerDisplay: {
+          presence: 'SUPPORTED',
+          invertibility: 'UNSUPPORTED',
+          canRequestInversion: false,
+          observedAt: '2026-10-14T16:00:00.000Z',
+          stale: false,
+        },
+        supportedRemoteCommands: [],
+      },
+    })
+  })
 
   await page.route(
     url => url.pathname === rutaDeLaPantalla(),
@@ -338,14 +356,26 @@ async function preparar(page: Page, esc: Escenario = {}) {
         const cambio = req.postDataJSON() as Record<string, unknown>
         estado.intentosDeAjustes += 1
         estado.cambiosDeAjustes.push(cambio)
-        if (esc.pasos === 'perdido' || esc.pasos === 'perdido-y-no-relee') return json(route, ERROR_500, 500)
+        if (esc.pasos === '5xx' || esc.pasos === '5xx-y-no-relee') return json(route, ERROR_500, 500)
+        if (esc.pasos === 'aplicado-sin-red') {
+          if (estado.intentosDeAjustes === 1) {
+            Object.assign(estado.ajustes, cambio) // se APLICA…
+            return route.abort('failed') // …y su respuesta se pierde en la red
+          }
+          const status = esc.respuestaDelReintento ?? 409
+          return json(
+            route,
+            status === 429 ? { message: 'Demasiadas solicitudes. Intenta de nuevo en un momento.' } : { message: 'Otro cambio se cruzó.' },
+            status,
+          )
+        }
         Object.assign(estado.ajustes, cambio)
         return json(route, estado.ajustes)
       }
       // Tras un guardado incierto, la relectura: lenta (para ver «Sin confirmar») o caída (para ver que el error sale pronto).
       if (estado.intentosDeAjustes > 0) {
         if (esc.demoraDeLaRelecturaDePasos) await new Promise(r => setTimeout(r, esc.demoraDeLaRelecturaDePasos))
-        if (esc.pasos === 'perdido-y-no-relee') return json(route, ERROR_500, 500)
+        if (esc.pasos === '5xx-y-no-relee') return json(route, ERROR_500, 500)
       }
       return json(route, estado.ajustes)
     },
@@ -488,10 +518,8 @@ test.describe('Pantalla del cliente — escribir y ver el cambio', () => {
     expect(estado.cambiosDeAjustes.at(-1)).toEqual({ tipSuggestions: [10, 15, 20, 25, 30] })
   })
 
-  test('un guardado de pasos cuya respuesta se pierde dice «Sin confirmar», relee y enseña lo que el servidor SÍ tiene', async ({
-    page,
-  }) => {
-    const estado = await preparar(page, { pasos: 'perdido', demoraDeLaRelecturaDePasos: 1_500 })
+  test('un guardado de pasos que recibe un 5xx dice «Sin confirmar», relee y enseña lo que el servidor SÍ tiene', async ({ page }) => {
+    const estado = await preparar(page, { pasos: '5xx', demoraDeLaRelecturaDePasos: 1_500 })
     await abrirDetalle(page)
     const pasos = pasosDelCobro(page)
     const estrellas = pasos.getByRole('switch', { name: 'Calificar con estrellas' })
@@ -508,13 +536,45 @@ test.describe('Pantalla del cliente — escribir y ver el cambio', () => {
     await expect(pasos.getByText('Sin confirmar')).toHaveCount(0)
     await expect(estrellas).toHaveAttribute('aria-checked', 'true')
     await expect(estrellas).toBeEnabled()
-    expect(estado.intentosDeAjustes).toBe(1) // nunca se reenvía solo
+    expect(estado.intentosDeAjustes).toBe(1) // un 5xx no se reenvía solo (sólo un error de RED se reintenta, en src/api.ts)
   })
+
+  for (const status of [409, 429] as const) {
+    test(`RED: la escritura de un paso se aplica, su respuesta se pierde y el reintento automático recibe ${status} ⇒ relee, enseña lo aplicado y NUNCA hay un tercer envío`, async ({
+      page,
+    }) => {
+      const estado = await preparar(page, { pasos: 'aplicado-sin-red', respuestaDelReintento: status, demoraDeLaRelecturaDePasos: 1_500 })
+      await abrirDetalle(page)
+      const pasos = pasosDelCobro(page)
+      const estrellas = pasos.getByRole('switch', { name: es.steps.review })
+      await expect(estrellas).toHaveAttribute('aria-checked', 'true')
+      await estrellas.click()
+
+      // El primer PUT se aplicó y su respuesta se abortó; `src/api.ts` lo repitió solo una vez (1 s después) y recibió el 409 o
+      // el 429. Ése NO prueba que «no se guardó» (lo provocó nuestra propia primera escritura): es INCIERTO.
+      await expect.poll(() => estado.intentosDeAjustes).toBe(2)
+      await expect(page.getByText(es.steps.uncertainTitle, { exact: true })).toBeVisible()
+      await expect(pasos.getByText(es.steps.unconfirmed)).toHaveCount(3)
+      await expect(pasos.getByRole('switch')).toHaveCount(0)
+      await expect(page.getByText(es.steps.saveError, { exact: true })).toHaveCount(0)
+
+      // Al releer manda el SERVIDOR: el cambio SÍ quedó (apagado), y no se volvió al valor de antes.
+      await expect(pasos.getByText(es.steps.unconfirmed)).toHaveCount(0)
+      await expect(estrellas).toHaveAttribute('aria-checked', 'false')
+      await expect(estrellas).toBeEnabled()
+
+      // Ningún tercer envío: ni la mutación ni la relectura vuelven a escribir.
+      await page.waitForTimeout(2_500)
+      expect(estado.intentosDeAjustes).toBe(2)
+      expect(estado.peticiones.filter(p => p === `PUT ${RUTA_DE_LOS_PASOS}`)).toHaveLength(2)
+      expect(estado.cambiosDeAjustes).toEqual([{ showReviewScreen: false }, { showReviewScreen: false }])
+    })
+  }
 
   test('si tras un guardado incierto la relectura de los pasos también falla, el error sale pronto (un reintento, no tres) y se puede reintentar', async ({
     page,
   }) => {
-    await preparar(page, { pasos: 'perdido-y-no-relee' })
+    await preparar(page, { pasos: '5xx-y-no-relee' })
     await abrirDetalle(page)
     const pasos = pasosDelCobro(page)
     await pasos.getByRole('switch', { name: 'Ofrecer recibo' }).click()
@@ -700,6 +760,34 @@ test.describe('Pantalla del cliente — foco, conflicto y salida', () => {
     await expect(page.getByTestId('customer-display-card')).toContainText(
       'No pudimos actualizar el estado; se muestra lo último que sabemos.',
     )
+  })
+})
+
+const AVISO_DE_LA_PAGINA = 'No pudimos actualizar los datos de este dispositivo; se muestran los últimos.'
+
+test.describe('Pantalla del cliente — error de fondo de la PÁGINA del aparato', () => {
+  test('🔴 si la reconsulta del aparato falla con el editor abierto, el editor y su borrador siguen; al cerrarlo, la página avisa (Codex F1 #1)', async ({
+    page,
+  }) => {
+    // Todas las relecturas fallan: la consulta de la página agota sus 3 reintentos (1 s + 2 s + 4 s) y queda en error CON datos.
+    const estado = await preparar(page, { fallasDelAparato: 99 })
+    await abrirDetalle(page)
+    const editor = await abrirEditor(page)
+    await editor.getByLabel('Al llegar').fill('Borrador que no se pierde')
+    // Volver a la pestaña (el foco) hace que TanStack reconsulte el detalle del aparato, como un `tpv_status_update` del socket.
+    await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')))
+    // La consulta de la página queda en error CON datos: el aviso aparece (debajo del editor, que ocupa la pantalla)…
+    // Antes del arreglo, en este punto la página entera cambiaba a «Error al cargar el terminal» y el editor desaparecía.
+    await expect(page.getByText(AVISO_DE_LA_PAGINA)).toBeAttached({ timeout: 15_000 })
+    expect(estado.llamadasAlAparato).toBe(1 + 1 + 3)
+    // …y el editor y su borrador siguen.
+    await expect(editor).toBeVisible()
+    await expect(editor.getByLabel('Al llegar')).toHaveValue('Borrador que no se pierde')
+    await page.getByTestId('customer-display-editor-close').click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Salir sin guardar' }).click()
+    await expect(page.getByText(AVISO_DE_LA_PAGINA)).toBeVisible()
+    await expect(page.getByTestId('customer-display-card')).toBeVisible()
+    await expect(page.getByText('Error al cargar el terminal')).toHaveCount(0)
   })
 })
 

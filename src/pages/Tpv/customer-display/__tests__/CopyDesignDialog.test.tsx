@@ -4,7 +4,7 @@
  * nunca re-copiando sola. Varias pruebas RETIENEN respuestas: así se mira el diálogo mientras espera.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -109,6 +109,14 @@ const dosPaginas = () =>
       : { total: 4, nextCursor: 'caja-1', devices: [fila('barra', { name: 'Barra' }), fila('caja-1', { name: 'Caja 1' })] },
   )
 const renglon = (nombre: string) => screen.getByRole('checkbox', { name: nombre }).closest('label') as HTMLElement
+/**
+ * Marca casillas SÓLO como preparación (lo que se prueba es lo que pasa después, no el clic): un `click` directo por casilla.
+ * Veinte `user.click` (cada uno con su secuencia completa de puntero y foco) pasaban de 5 s en una máquina cargada.
+ * Donde lo que se afirma ES la interacción —el clic que llega al tope, el que intenta el 21º—, se usa `userEvent`.
+ */
+const marcar = (nombres: string[]) => {
+  for (const nombre of nombres) fireEvent.click(screen.getByRole('checkbox', { name: nombre }))
+}
 async function elegirBarraYCaja2(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('checkbox', { name: 'Barra' }))
   await user.click(screen.getByRole('button', { name: 'copy.loadMore' }))
@@ -483,14 +491,18 @@ describe('CopyDesignDialog', () => {
     const user = userEvent.setup()
     pintar()
     await screen.findByRole('checkbox', { name: 'p00' })
-    for (const f of pagina1) await user.click(screen.getByRole('checkbox', { name: f.name }))
+    marcar(pagina1.map(f => f.name))
+    pagina1.forEach(f => expect(screen.getByRole('checkbox', { name: f.name })).toBeChecked())
     await user.click(screen.getByRole('button', { name: 'copy.loadMore' }))
     // Mientras llega la segunda página, lo elegido sigue ahí.
     expect(await screen.findByRole('button', { name: 'copy.loadingMore' })).toBeDisabled()
     expect(screen.getByRole('checkbox', { name: 'p00' })).toBeChecked()
     await act(async () => segunda.resolver({ total: 26, nextCursor: null, devices: pagina2 }))
     expect(await screen.findByText('copy.counter {"shown":25,"total":25}')).toBeInTheDocument()
-    for (const f of pagina2.slice(0, 5)) await user.click(screen.getByRole('checkbox', { name: f.name }))
+    marcar(pagina2.slice(0, 4).map(f => f.name))
+    // El 20º, con un clic de verdad: es el que cierra el tope.
+    await user.click(screen.getByRole('checkbox', { name: 'q04' }))
+    expect(screen.getByRole('checkbox', { name: 'q04' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'q05' })).toBeDisabled()
     expect(screen.getByText('copy.limit {"max":20}')).toBeInTheDocument()
     await user.click(screen.getByRole('checkbox', { name: 'q05' }))
@@ -504,7 +516,8 @@ describe('CopyDesignDialog', () => {
       ...pagina1.map(f => ({ terminalId: f.id, editToken: f.editToken })),
       ...pagina2.slice(0, 5).map(f => ({ terminalId: f.id, editToken: f.editToken })),
     ])
-  })
+    // 15 s y no los 5 s de vitest: 20+ clics con userEvent van lentos en una máquina cargada (el Alienware pasó de 5 s).
+  }, 15_000)
 
   it('🔴 sin Pro, un destino que CONSERVA sus imágenes y su interruptor de promos tras la copia cuenta como «ya lo tiene» (la regla del server)', async () => {
     const server = servidorConMemoria()
@@ -615,10 +628,17 @@ describe('CopyDesignDialog', () => {
     const user = userEvent.setup()
     pintar()
     await screen.findByRole('checkbox', { name: 'd00' })
-    for (let i = 0; i < 20; i++) await user.click(screen.getByRole('checkbox', { name: `d${String(i).padStart(2, '0')}` }))
+    marcar(Array.from({ length: 19 }, (_, i) => `d${String(i).padStart(2, '0')}`))
+    expect(screen.getByRole('checkbox', { name: 'd20' })).toBeEnabled() // con 19, todavía se puede
+    // El 20º, con un clic de verdad: es el que cierra el tope.
+    await user.click(screen.getByRole('checkbox', { name: 'd19' }))
+    expect(screen.getByRole('checkbox', { name: 'd19' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'd20' })).toBeDisabled()
     expect(screen.getByText('copy.limit {"max":20}')).toBeInTheDocument()
-  })
+    await user.click(screen.getByRole('checkbox', { name: 'd20' }))
+    expect(screen.getByRole('checkbox', { name: 'd20' })).not.toBeChecked()
+    // 15 s y no los 5 s de vitest: 20 clics con userEvent van lentos en una máquina cargada (el Alienware pasó de 5 s).
+  }, 15_000)
 
   it('el renglón completo marca y desmarca (no sólo la casilla)', async () => {
     dosPaginas()
