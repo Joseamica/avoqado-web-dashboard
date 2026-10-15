@@ -45,6 +45,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { PermissionGate } from '@/components/PermissionGate'
+import { useAccess } from '@/hooks/use-access'
 import { sendTpvCommand } from '@/services/tpv.service'
 import { terminalAPI, AppUpdate } from '@/services/superadmin-terminals.service'
 import {
@@ -103,7 +104,6 @@ interface RemoteCommandPanelProps {
   isInMaintenance?: boolean
   activationPending: boolean
   isSuperadmin?: boolean // true if current user is SUPERADMIN
-  isOwnerPlus?: boolean // true if current user is OWNER or SUPERADMIN
   venueId: string
   currentVersion?: string // Current TPV version (e.g., "1.3.1") for downgrade detection
   currentVersionCode?: number // Current TPV versionCode (e.g., 45) for downgrade detection
@@ -143,7 +143,6 @@ function RemoteCommandPanelContent({
   isInMaintenance = false,
   activationPending,
   isSuperadmin = false,
-  isOwnerPlus = false,
   venueId,
   currentVersion,
   currentVersionCode,
@@ -151,6 +150,9 @@ function RemoteCommandPanelContent({
 }: RemoteCommandPanelProps) {
   const { t } = useTranslation(['tpv', 'common'])
   const { toast } = useToast()
+  // Borrar de fábrica lo decide el PERMISO del venue (el mismo que exige el servidor), no el nombre del rol:
+  // un negocio puede quitárselo al dueño o dárselo a un ADMIN.
+  const { can } = useAccess()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
   const supportedCommandSet = useMemo(
@@ -358,7 +360,7 @@ function RemoteCommandPanelContent({
         TpvCommandType.SYNC_DATA,
         TpvCommandType.REFRESH_MENU,
         TpvCommandType.EXPORT_LOGS,
-        ...(isOwnerPlus || isSuperadmin ? [TpvCommandType.FACTORY_RESET] : []),
+        ...(can('tpv-factory-reset:execute') ? [TpvCommandType.FACTORY_RESET] : []),
       ].filter(command => supportedCommandSet.has(command)),
     },
   ]

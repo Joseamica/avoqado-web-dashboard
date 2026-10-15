@@ -7,6 +7,8 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import { getTerminalStatusInfo } from '@/lib/terminal-status'
 import { canHardDeleteDevice, canSendCommand, getDeviceActionPolicy } from '@/pages/Tpv/deviceCapabilities'
+import { useAuth } from '@/context/AuthContext'
+import { isOrganizationOwner } from '@/lib/permissions/organizationOwner'
 import {
   getOrgTerminalById,
   getOrgAppVersions,
@@ -97,6 +99,11 @@ export function OrgTerminalDrawer({
   const terminal: OrgTerminal | null = fromCache ?? fetched ?? null
   const actionPolicy = getDeviceActionPolicy(terminal?.capabilities, terminal?.activatedAt)
   const supportsCommand = (command: TpvCommandType) => canSendCommand(terminal?.capabilities, command)
+  // Borrar de fábrica y cambiar el comercio son del DUEÑO DE LA ORGANIZACIÓN: el servidor los rechaza a
+  // cualquier otro (requireOrgOwner). La página deja entrar también al OWNER de una sucursal, así que aquí se
+  // pregunta lo mismo que el servidor.
+  const { user } = useAuth()
+  const esDuenoDeLaOrg = isOrganizationOwner(user, orgId)
 
   // Infer the build environment from the terminal's version suffix
   // ("2.4.2-sandbox" → SANDBOX, otherwise PRODUCTION) so we list the right
@@ -355,7 +362,7 @@ export function OrgTerminalDrawer({
               {actionPolicy.canConfigurePayments && <section>
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('terminals.drawer.merchants')}</h3>
-                  {onEditMerchants && (
+                  {onEditMerchants && esDuenoDeLaOrg && (
                     <Button variant="ghost" size="sm" className="h-7 text-xs cursor-pointer" onClick={() => onEditMerchants(terminal)}>
                       {t('terminals.drawer.merchantsEdit')}
                     </Button>
@@ -391,7 +398,9 @@ export function OrgTerminalDrawer({
                         hide this for everyone, even SUPERADMIN. Authorization is already enforced
                         at the org route level (OrganizationLayout: SUPERADMIN or OWNER-in-this-org)
                         and by the backend (requireOrgOwner). `onMigrate` is only wired in that
-                        gated context. */}
+                        gated context. Factory reset goes further: OrganizationLayout also lets in
+                        the OWNER of a single branch, and the backend rejects them, so it asks the
+                        same question as the server (isOrganizationOwner). */}
                     {onGrantAccess && (
                       <Button
                         variant="outline"
@@ -414,7 +423,7 @@ export function OrgTerminalDrawer({
                         {t('terminals.actions.migrate', { defaultValue: 'Migrar a otra sucursal' })}
                       </Button>
                     )}
-                    {supportsCommand(TpvCommandType.FACTORY_RESET) && (
+                    {esDuenoDeLaOrg && supportsCommand(TpvCommandType.FACTORY_RESET) && (
                       <Button
                         variant="outline"
                         size="sm"
