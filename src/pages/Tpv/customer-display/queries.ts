@@ -26,13 +26,23 @@ export const clavesDeLaPantalla = {
 const CONSULTA_ACOTADA = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
 
 export function useCustomerDisplay(venueId: string, terminalId: string, enabled: boolean) {
-  const [montadaDesde] = useState(() => Date.now())
+  // La ventana del refresco acotado (30 min) cuenta desde el montaje y VUELVE A EMPEZAR cada vez que cambia el diseño
+  // (`editToken`: guardar, copiar hacia esta caja, restablecer): un diseño nuevo hay que volver a verlo llegar a la tablet,
+  // aunque la tarjeta lleve más de 30 min abierta (revisión final M1). TanStack recalcula el intervalo con cada dato nuevo.
+  const ventana = useRef<{ token: string | null; desde: number }>({ token: null, desde: Date.now() })
   return useQuery({
     queryKey: clavesDeLaPantalla.vista(venueId, terminalId),
     queryFn: () => getCustomerDisplay(venueId, terminalId),
     enabled,
     ...CONSULTA_ACOTADA,
-    refetchInterval: query => intervaloDeRefresco(query.state.data, montadaDesde, Date.now()),
+    refetchInterval: query => {
+      const token = query.state.data?.editToken ?? null
+      if (token !== null && token !== ventana.current.token) {
+        // El PRIMER token no abre otra ventana: la del montaje ya cuenta desde antes de que llegara.
+        ventana.current = { token, desde: ventana.current.token === null ? ventana.current.desde : Date.now() }
+      }
+      return intervaloDeRefresco(query.state.data, ventana.current.desde, Date.now())
+    },
   })
 }
 

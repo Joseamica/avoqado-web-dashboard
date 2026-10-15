@@ -430,7 +430,8 @@
       "venueOrTpvUndefined": "El ID del Venue o TPV no está definido",
       "updateFailed": "Error al actualizar el terminal",
       "loadError": "Error al cargar el terminal",
-      "tpvIdUndefined": "El ID del TPV no está definido"
+      "tpvIdUndefined": "El ID del TPV no está definido",
+      "refreshError": "No pudimos actualizar los datos de este dispositivo; se muestran los últimos."
     },
     "toast": {
       "updateSuccess": "Terminal actualizado",

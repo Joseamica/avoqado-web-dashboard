@@ -18,6 +18,8 @@ export interface CustomerDisplaySectionProps {
   customerDisplayInverted: boolean
   customerDisplayRequest?: DisplayModeRequest | null
   canUpdateDevice: boolean
+  /** El latido de la página (el del encabezado, refrescado por socket): la tarjeta lo usa en vez de su foto (Codex #3). */
+  lastHeartbeat?: string | null
 }
 
 /**
@@ -45,7 +47,13 @@ export function CustomerDisplaySection(props: CustomerDisplaySectionProps) {
       </div>
 
       {superficie === 'diseno' && (
-        <CustomerDisplayCard venueId={props.venueId} terminalId={props.terminalId} deviceName={props.deviceName} venueName={props.venueName} />
+        <CustomerDisplayCard
+          venueId={props.venueId}
+          terminalId={props.terminalId}
+          deviceName={props.deviceName}
+          venueName={props.venueName}
+          latidoVigente={props.lastHeartbeat}
+        />
       )}
       {superficie === 'soloPasos' && <p className="text-sm text-muted-foreground">{t('card.ipadNoDisplay')}</p>}
 

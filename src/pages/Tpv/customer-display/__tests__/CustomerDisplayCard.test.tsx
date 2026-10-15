@@ -55,15 +55,19 @@ function vista(extra: Partial<CustomerDisplayView> = {}, device: Partial<Custome
 }
 const CLAVE = ['customer-display', 'v1', 't1']
 const FALLA = { response: { status: 500, data: { message: 'Ocurrió un error inesperado en el servidor.' } } }
-function pintar() {
+function pintar(extra: { latidoVigente?: string | null } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
+  const tarjeta = (p: { latidoVigente?: string | null }) => (
     <QueryClientProvider client={qc}>
-      <CustomerDisplayCard venueId="v1" terminalId="t1" deviceName="Caja 1" venueName="Testarudo" />
-    </QueryClientProvider>,
+      <CustomerDisplayCard venueId="v1" terminalId="t1" deviceName="Caja 1" venueName="Testarudo" {...p} />
+    </QueryClientProvider>
   )
-  return { qc }
+  const { rerender } = render(tarjeta(extra))
+  return { qc, repintar: (p: { latidoVigente?: string | null }) => rerender(tarjeta(p)) }
 }
+const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString()
+/** El estado FINAL (acuse de la huella vigente, mostrado, sin imágenes pendientes): la tarjeta ya no vuelve a preguntar. */
+const ACUSE_FINAL = { fingerprint: 'fp-vigente', receivedAt: '2026-10-14T20:02:00.000Z', storedAt: '2026-10-14T20:01:58.000Z', shownAt: '2026-10-14T20:01:59.000Z' }
 
 beforeEach(() => {
   permisos.clear()
@@ -116,6 +120,32 @@ describe('CustomerDisplayCard', () => {
       expect(screen.queryByText(noDice)).not.toBeInTheDocument()
     },
   )
+
+  describe('🔴 «activo» con el latido VIGENTE de la página, no con la foto de la tarjeta (Codex #3 · revisión final I1)', () => {
+    it.each([
+      ['latido fresco de la página y foto vieja de la tarjeta', haceMinutos(1), haceMinutos(10), /^status\.heartbeat /, /^status\.offline /],
+      ['latido viejo de la página y foto fresca de la tarjeta', haceMinutos(7), haceMinutos(1), /^status\.offline /, /^status\.heartbeat /],
+      ['sin latido de la página: usa el de la tarjeta (fresco)', undefined, haceMinutos(1), /^status\.heartbeat /, /^status\.offline /],
+      ['sin latido de la página: usa el de la tarjeta (viejo)', undefined, haceMinutos(10), /^status\.offline /, /^status\.heartbeat /],
+    ])('%s', async (_n, latidoVigente, latidoDeLaVista, dice, noDice) => {
+      permisos.add('customer-display:read')
+      vi.mocked(getCustomerDisplay).mockResolvedValue(vista({}, { lastHeartbeat: latidoDeLaVista, ack: ACUSE_FINAL }))
+      pintar(latidoVigente === undefined ? {} : { latidoVigente })
+      expect(await screen.findByText(dice)).toBeInTheDocument()
+      expect(screen.queryByText(noDice)).not.toBeInTheDocument()
+    })
+
+    it('la página recibe un latido nuevo (socket) con la tarjeta en estado final: pasa a «activo» SIN releer el diseño', async () => {
+      permisos.add('customer-display:read')
+      vi.mocked(getCustomerDisplay).mockResolvedValue(vista({}, { lastHeartbeat: haceMinutos(7), ack: ACUSE_FINAL }))
+      const { repintar } = pintar({ latidoVigente: haceMinutos(7) })
+      expect(await screen.findByText(/^status\.offline /)).toBeInTheDocument()
+      repintar({ latidoVigente: haceMinutos(0) })
+      expect(await screen.findByText(/^status\.heartbeat /)).toBeInTheDocument()
+      expect(screen.queryByText(/^status\.offline /)).not.toBeInTheDocument()
+      expect(getCustomerDisplay).toHaveBeenCalledTimes(1)
+    })
+  })
 
   it('una app que no entiende diseños lo dice; una segunda pantalla ausente también', async () => {
     permisos.add('customer-display:read')

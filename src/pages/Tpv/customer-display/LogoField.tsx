@@ -49,11 +49,16 @@ export function LogoField({ modo, onModo, hayLogoPropio, subiendo, bloqueado, er
       </RadioGroup>
       {modo === 'propio' && (
         <div className="space-y-1.5 pl-6">
+          {/* 🔴 Codex #2: el selector OCULTO se bloquea igual que su botón y queda fuera del Tab (la entrada accesible es el
+              botón). Habilitado, un archivo elegido durante un guardado arrancaba otra subida que cambiaba el borrador ya
+              enviado, y al confirmar el guardado ese logo se perdía. */}
           <input
             ref={entrada}
             type="file"
             accept={TIPOS_DE_IMAGEN.join(',')}
             className="sr-only"
+            disabled={subiendo || bloqueado}
+            tabIndex={-1}
             data-testid="customer-display-logo-input"
             onChange={e => {
               const archivo = e.target.files?.[0]

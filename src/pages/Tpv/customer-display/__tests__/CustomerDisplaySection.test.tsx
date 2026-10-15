@@ -4,7 +4,9 @@ import type { EffectiveDeviceCapabilities } from '@/services/tpv.service'
 import { CustomerDisplaySection } from '../CustomerDisplaySection'
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
-vi.mock('../CustomerDisplayCard', () => ({ CustomerDisplayCard: () => <div data-testid="tarjeta" /> }))
+vi.mock('../CustomerDisplayCard', () => ({
+  CustomerDisplayCard: (p: { latidoVigente?: string | null }) => <div data-testid="tarjeta" data-latido={String(p.latidoVigente)} />,
+}))
 vi.mock('../CheckoutStepsSection', () => ({ CheckoutStepsSection: () => <div data-testid="pasos" /> }))
 vi.mock('../../components/DisplayModeRequestControl', () => ({ DisplayModeRequestControl: () => <div data-testid="inversion" /> }))
 
@@ -12,10 +14,10 @@ const capacidades = (presence: 'SUPPORTED' | 'UNSUPPORTED' | 'UNKNOWN', invertib
   requiresActivation: false, canManagePaymentConfiguration: false, canAcceptTerminalPaymentRequests: false,
   customerDisplay: { presence, invertibility, canRequestInversion: false, observedAt: null, stale: false }, supportedRemoteCommands: [],
 })
-const pintar = (deviceType: string, caps: EffectiveDeviceCapabilities) =>
+const pintar = (deviceType: string, caps: EffectiveDeviceCapabilities, lastHeartbeat?: string | null) =>
   render(
     <CustomerDisplaySection venueId="v1" terminalId="t1" deviceType={deviceType} deviceName="X" venueName="Y" versionCode={null}
-      capabilities={caps} customerDisplayInverted={false} customerDisplayRequest={null} canUpdateDevice />,
+      capabilities={caps} customerDisplayInverted={false} customerDisplayRequest={null} canUpdateDevice lastHeartbeat={lastHeartbeat} />,
   )
 
 describe('CustomerDisplaySection (spec §6.1, según el aparato)', () => {
@@ -24,6 +26,10 @@ describe('CustomerDisplaySection (spec §6.1, según el aparato)', () => {
     expect(screen.getByTestId('tarjeta')).toBeInTheDocument()
     expect(screen.getByTestId('pasos')).toBeInTheDocument()
     expect(screen.getByTestId('inversion')).toBeInTheDocument()
+  })
+  it('🔴 le pasa a la tarjeta el latido de la página (el del encabezado), no la deja con su foto (Codex #3)', () => {
+    pintar('POS_ANDROID', capacidades('SUPPORTED'), '2026-10-15T09:00:00.000Z')
+    expect(screen.getByTestId('tarjeta')).toHaveAttribute('data-latido', '2026-10-15T09:00:00.000Z')
   })
   it('POS_ANDROID sin segunda pantalla: tarjeta y pasos, sin la inversión (igual que hoy)', () => {
     pintar('POS_ANDROID', capacidades('UNSUPPORTED'))

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
@@ -154,11 +154,22 @@ describe('CustomerDisplayEditor — guardar', () => {
     vi.mocked(saveCustomerDisplay).mockReturnValue(espera.promesa)
     const user = userEvent.setup()
     const { onClose, qc } = await pintar()
+    // «Otro logo» sin subir nada todavía: el borrador no cambia (sigue sin logo), pero ya existe el selector de archivo.
+    await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
     await user.type(bienvenida(), 'Hola')
     await user.click(guardarBtn())
     await waitFor(() => expect(bienvenida()).toBeDisabled())
     expect(screen.getByRole('button', { name: 'editor.themeDark' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'editor.colors.azul' })).toBeDisabled()
+    // 🔴 Codex #2: el selector de archivo OCULTO también se bloquea (no sólo su botón) y Tab no llega a él; un archivo
+    // elegido durante el guardado no arranca otra subida que cambiaría el borrador ya enviado.
+    const selector = screen.getByTestId('customer-display-logo-input')
+    expect(screen.getByRole('button', { name: 'editor.logoPick' })).toBeDisabled()
+    expect(selector).toBeDisabled()
+    expect(selector).toHaveAttribute('tabindex', '-1')
+    await user.upload(selector, new File([new Uint8Array(10)], 'tarde.png', { type: 'image/png' }))
+    expect(medirImagen).not.toHaveBeenCalled()
+    expect(uploadCustomerDisplayLogo).not.toHaveBeenCalled()
     expect(saveCustomerDisplay).toHaveBeenCalledWith('v1', 't1', 'factory', {
       theme: 'LIGHT',
       accentColor: null,
@@ -389,7 +400,10 @@ describe('CustomerDisplayEditor — ronda 1 de la revisión de B3', () => {
     const entrada = screen.getByTestId('customer-display-logo-input')
     await user.upload(entrada, new File([new Uint8Array(10)], 'vieja.png', { type: 'image/png' }))
     await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalledTimes(1))
-    await user.upload(entrada, new File([new Uint8Array(10)], 'nueva.png', { type: 'image/png' }))
+    // La UI ya no ofrece una segunda subida mientras la primera va en camino (Codex #2: el selector se bloquea)…
+    await waitFor(() => expect(entrada).toBeDisabled())
+    // …pero el número de subida sigue como defensa: un `change` programático (sin pasar por la UI) arranca la segunda.
+    fireEvent.change(entrada, { target: { files: [new File([new Uint8Array(10)], 'nueva.png', { type: 'image/png' })] } })
     await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalledTimes(2))
     expect(screen.getByText('editor.logoUploading')).toBeInTheDocument()
     expect(guardarBtn()).toBeDisabled()

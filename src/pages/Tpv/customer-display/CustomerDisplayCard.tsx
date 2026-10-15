@@ -32,6 +32,12 @@ export interface CustomerDisplayCardProps {
   terminalId: string
   deviceName: string
   venueName: string
+  /**
+   * 🔴 El latido VIGENTE del aparato: el de la página (`TpvId`, cuya consulta se refresca por socket), el mismo que usa el
+   * encabezado. La vista de la tarjeta deja de refrescarse al llegar a «Mostrado», así que su `lastHeartbeat` envejece y
+   * decía «Sin conexión» junto a un encabezado «En línea» (Codex #3, revisión final I1). Sin esta prop, se usa el de la vista.
+   */
+  latidoVigente?: string | null
 }
 
 /**
@@ -39,7 +45,7 @@ export interface CustomerDisplayCardProps {
  * y segunda pantalla) por separado, y las dos acciones. El editor y la copia se MONTAN sólo abiertos y se desmontan al
  * cerrar: el editor depende de eso para soltar su navegación retenida, y la copia congela su origen al montarse.
  */
-export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName }: CustomerDisplayCardProps) {
+export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName, latidoVigente }: CustomerDisplayCardProps) {
   const { t, i18n } = useTranslation('customerDisplay')
   const { can } = useAccess()
   const { toast } = useToast()
@@ -86,6 +92,7 @@ export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName
   // siempre y LO DICE: nunca presenta la propina como conocida (Codex #4).
   const pasosConocidos = pasos.data !== undefined && !pasos.isError
   const { historial } = estado
+  const latido = latidoVigente !== undefined ? latidoVigente : estado.latido
   const textoDelHistorial = t(CLAVE_DEL_HISTORIAL[historial.tipo], 'fecha' in historial ? { date: formatDateTime(historial.fecha) } : undefined)
   const agregados = [
     estado.imagenesDescargandose > 0 ? t('status.imagesPending', { count: estado.imagenesDescargandose }) : null,
@@ -119,11 +126,11 @@ export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            {/* 🔴 «Activo» con la MISMA regla del encabezado (`isTerminalOnline`, umbral TERMINAL_ONLINE_THRESHOLD_MS): un latido
-                más viejo se dice «Sin conexión», nunca «activo» mientras el encabezado dice lo contrario (QA real, 15-oct). */}
-            {estado.latido
-              ? t(isTerminalOnline(estado.latido) ? 'status.heartbeat' : 'status.offline', {
-                  ago: haceCuanto(estado.latido, getIntlLocale(i18n.language)),
+            {/* 🔴 «Activo» con la MISMA regla del encabezado (`isTerminalOnline`, umbral TERMINAL_ONLINE_THRESHOLD_MS) y con el
+                MISMO latido (el vigente de la página): nunca «activo» ni «Sin conexión» contra lo que dice el encabezado. */}
+            {latido
+              ? t(isTerminalOnline(latido) ? 'status.heartbeat' : 'status.offline', {
+                  ago: haceCuanto(latido, getIntlLocale(i18n.language)),
                 })
               : t('status.noHeartbeat')}
           </p>

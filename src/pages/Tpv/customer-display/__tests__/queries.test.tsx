@@ -3,14 +3,17 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  getCustomerDisplay,
   listCustomerDisplayDevices,
   previewCustomerDisplay,
   type CustomerDisplayDraft,
   type CustomerDisplayFicha,
   type CustomerDisplayPreview,
+  type CustomerDisplayView,
 } from '@/services/customerDisplay.service'
 import { tpvSettingsService } from '@/services/tpv-settings.service'
-import { useCopyTargets, useFichaPreview, usePasosDelCobro } from '../queries'
+import { DISENO_DE_FABRICA } from '../model'
+import { clavesDeLaPantalla, useCopyTargets, useCustomerDisplay, useFichaPreview, usePasosDelCobro } from '../queries'
 
 vi.mock('@/services/customerDisplay.service', () => ({
   getCustomerDisplay: vi.fn(),
@@ -117,6 +120,62 @@ describe('useFichaPreview (Review Focus 4)', () => {
     await waitFor(() => expect(result.current.ficha.fingerprint).toBe('fp-sin-eco'))
     expect(result.current.cargando).toBe(false)
     expect(result.current.error).toBeNull()
+  })
+})
+
+/** Una vista que todavía ESPERA a la pantalla (sin acuse): la tarjeta vuelve a preguntar cada 30 s, dentro de su ventana. */
+const esperando = (editToken: string): CustomerDisplayView => ({
+  terminal: { id: 't1', name: 'Caja 1' },
+  editToken,
+  design: { ...DISENO_DE_FABRICA },
+  ficha: ficha(`fp-${editToken}`),
+  entitlements: { slides: false, promotionCards: false },
+  assetRejected: [],
+  device: {
+    presence: 'SUPPORTED',
+    stale: false,
+    capabilitiesObservedAt: null,
+    lastHeartbeat: null,
+    designVersion: 1,
+    ack: null,
+    installationWarning: false,
+  },
+})
+
+describe('useCustomerDisplay (refresco acotado)', () => {
+  it('🔴 la ventana de 30 min vuelve a empezar cuando cambia el diseño (guardar, copiar, restablecer): revisión final M1', async () => {
+    vi.useFakeTimers()
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    try {
+      vi.mocked(getCustomerDisplay).mockResolvedValue(esperando('d1:1'))
+      const envoltura = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      const { result } = renderHook(() => useCustomerDisplay('v1', 't1', true), { wrapper: envoltura })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(result.current.data?.editToken).toBe('d1:1')
+      // Pasada la ventana desde el montaje, deja de preguntar (queda «Actualizar estado»).
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(31 * 60_000)
+      })
+      const alCerrarLaVentana = vi.mocked(getCustomerDisplay).mock.calls.length
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2 * 60_000)
+      })
+      expect(getCustomerDisplay).toHaveBeenCalledTimes(alCerrarLaVentana)
+      // Se guarda un diseño nuevo (el editor publica la vista con su token): hay que volver a vigilar el acuse.
+      vi.mocked(getCustomerDisplay).mockResolvedValue(esperando('d1:2'))
+      act(() => {
+        qc.setQueryData(clavesDeLaPantalla.vista('v1', 't1'), esperando('d1:2'))
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(31_000)
+      })
+      expect(vi.mocked(getCustomerDisplay).mock.calls.length).toBeGreaterThan(alCerrarLaVentana)
+    } finally {
+      qc.clear()
+      vi.useRealTimers()
+    }
   })
 })
 

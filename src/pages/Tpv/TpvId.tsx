@@ -46,6 +46,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   AppWindow,
   BatteryMedium,
   ChevronDown,
@@ -617,8 +618,15 @@ function TpvIdContent() {
     )
   }
 
+  // 🔴 Las páginas de error COMPLETAS sólo cuando no hay nada que enseñar (Codex #1, revisión final I2). Una reconsulta de
+  // fondo que falla (foco, socket) prende `isError` y CONSERVA `tpv` (TanStack v5): devolver aquí desmontaría la sección y un
+  // editor abierto, y el borrador se perdería sin la pregunta de salida. Con datos, el árbol se queda y se avisa arriba. Un
+  // 404 en una reconsulta (el aparato se borró o se movió) tampoco desmonta: mismo aviso, y si se guarda, el guardado da su
+  // propio 404 con el mensaje del servidor.
+  const errorDeFondo = isError && Boolean(tpv)
+
   // Handle 404 error - TPV not found
-  if (isError && (error as any)?.response?.status === 404) {
+  if (isError && !tpv && (error as any)?.response?.status === 404) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Card className="w-full max-w-md">
@@ -649,7 +657,7 @@ function TpvIdContent() {
   }
 
   // Handle other errors
-  if (isError) {
+  if (isError && !tpv) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Alert variant="destructive" className="max-w-md">
@@ -744,6 +752,16 @@ function TpvIdContent() {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          {/* Una reconsulta de fondo falló: se enseña lo último que se supo, sin desmontar nada (ver `errorDeFondo`). */}
+          {errorDeFondo && (
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-lg border border-warning-border bg-warning-muted px-3 py-2 text-sm text-warning-foreground"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              {t('detail.errors.refreshError')}
+            </p>
+          )}
           {/* Encabezado (maqueta E, 8-oct-2026): quién es, cómo está, y UN botón con las acciones. */}
           <div className="space-y-4">
             <Link to={from} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -932,6 +950,7 @@ function TpvIdContent() {
                       customerDisplayInverted={tpv.customerDisplayInverted}
                       customerDisplayRequest={tpv.customerDisplayRequest}
                       canUpdateDevice={canUpdate}
+                      lastHeartbeat={tpv.lastHeartbeat ?? null}
                     />
                   )}
 

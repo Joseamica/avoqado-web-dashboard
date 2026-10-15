@@ -417,7 +417,8 @@
       "venueOrTpvUndefined": "Venue or TPV ID is undefined",
       "updateFailed": "Failed to update terminal",
       "loadError": "Failed to load terminal",
-      "tpvIdUndefined": "TPV ID is undefined"
+      "tpvIdUndefined": "TPV ID is undefined",
+      "refreshError": "We couldn't refresh this device's data; showing the latest we have."
     },
     "toast": {
       "updateSuccess": "Terminal updated",
