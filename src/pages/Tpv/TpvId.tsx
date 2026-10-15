@@ -80,9 +80,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as z from 'zod'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { CommandHistoryTable } from './components/CommandHistoryTable'
-import { DisplayModeRequestControl, getDisplayModeRefetchInterval } from './components/DisplayModeRequestControl'
+import { getDisplayModeRefetchInterval } from './components/DisplayModeRequestControl'
 import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
+import { CustomerDisplaySection } from './customer-display/CustomerDisplaySection'
 import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
@@ -683,9 +684,6 @@ function TpvIdContent() {
   const maintenanceTransition = isInMaintenance ? TpvCommandType.EXIT_MAINTENANCE : TpvCommandType.MAINTENANCE_MODE
   const lockTransition = tpv.isLocked ? TpvCommandType.UNLOCK : TpvCommandType.LOCK
   const canRestart = canSendCommand(tpv.capabilities, TpvCommandType.RESTART)
-  const showDisplayModeControl =
-    tpv.capabilities.customerDisplay.presence !== 'UNSUPPORTED' &&
-    tpv.capabilities.customerDisplay.invertibility !== 'UNSUPPORTED'
 
   // Lo que el menú «Acciones» ofrece: mismos permisos y capacidades que los botones y switches de antes.
   const canCommand = can('tpv:command')
@@ -915,6 +913,23 @@ function TpvIdContent() {
             <TabsContent value="info" className="space-y-6">
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <div className="space-y-6 xl:col-span-2">
+                  {/* Pantalla del cliente (F1): diseño, pasos del cobro y orientación. La sección decide qué ve cada tipo. */}
+                  {venueId && tpvId && (
+                    <CustomerDisplaySection
+                      key={`${venueId}:${tpvId}`}
+                      venueId={venueId}
+                      terminalId={tpvId}
+                      deviceType={tpv.type}
+                      deviceName={tpv.name}
+                      venueName={venue?.name ?? ''}
+                      versionCode={typeof tpv.systemInfo?.versionCode === 'number' ? tpv.systemInfo.versionCode : null}
+                      capabilities={tpv.capabilities}
+                      customerDisplayInverted={tpv.customerDisplayInverted}
+                      customerDisplayRequest={tpv.customerDisplayRequest}
+                      canUpdateDevice={canUpdate}
+                    />
+                  )}
+
                   {/* Este dispositivo: lo que el dueño revisa cuando algo falla. */}
                   <section className="rounded-2xl border border-input bg-card p-5">
                     <h2 className="mb-2 text-base font-semibold">{t('device.sections.thisDevice')}</h2>
@@ -1120,21 +1135,6 @@ function TpvIdContent() {
                 </div>
 
                 <div className="space-y-6">
-                  {venueId && tpvId && showDisplayModeControl && (
-                    <section className="rounded-2xl border border-input bg-card p-5">
-                      <h2 className="mb-3 text-base font-semibold">{t('device.sections.customerDisplay')}</h2>
-                      <DisplayModeRequestControl
-                        key={`${venueId}:${tpvId}`}
-                        venueId={venueId}
-                        terminalId={tpvId}
-                        capabilities={tpv.capabilities}
-                        customerDisplayInverted={tpv.customerDisplayInverted}
-                        request={tpv.customerDisplayRequest}
-                        canUpdate={canUpdate}
-                      />
-                    </section>
-                  )}
-
                   {/* SUPERADMIN: todo lo suyo junto, con su degradado (ui-patterns.md). */}
                   {isSuperAdmin && (actionPolicy.canConfigurePayments || actionPolicy.canDeactivate || actionPolicy.activationPending) && (
                     <section className="rounded-2xl border border-amber-300/60 bg-card p-5 dark:border-amber-700/50">

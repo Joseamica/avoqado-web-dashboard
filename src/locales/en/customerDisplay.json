@@ -150,6 +150,44 @@
     "doneNeedsApp": "Copied to {{names}}. Registers that don't have the updated app yet will show it once they update."
   },
   "card": {
+    "new": "New",
+    "noReadPermission": "Ask your manager or administrator for access to view the customer display.",
+    "readOnly": "You can only view this design. To change it, ask your manager or administrator.",
+    "loadError": "We couldn't load the customer display.",
+    "retry": "Retry",
+    "designOwn": "Custom design",
+    "designFactory": "Factory design",
+    "edit": "Edit display",
+    "copy": "Copy to other registers",
+    "copyNeedsDesign": "Customize and save this register first; then copy it to the others.",
+    "ipadNoDisplay": "This iPad doesn't have a customer display yet.",
     "thumbnailLabel": "Customer display preview"
+  },
+  "steps": {
+    "title": "Checkout steps on this device",
+    "noReadPermission": "Ask your manager or administrator for access to the checkout steps.",
+    "readOnly": "You can only view these settings.",
+    "loadError": "We couldn't load the checkout steps.",
+    "tip": "Ask for a tip",
+    "review": "Star rating",
+    "receipt": "Offer a receipt",
+    "receiptNeedsUpdate": "Update the app on this device for this setting to take effect.",
+    "tipRemove": "Remove {{percent}} %",
+    "tipAddLabel": "Add a tip percentage",
+    "tipAddPlaceholder": "%",
+    "tipAdd": "Add",
+    "tipInvalid": "Type a percentage from 1 to 100 that isn't already on the list.",
+    "footer": "Saved right away and only apply to this device.",
+    "names": {
+      "showTipScreen": "ask for a tip",
+      "showReviewScreen": "star rating",
+      "showReceiptScreen": "offer a receipt"
+    },
+    "savedOn": "Saved: {{step}} on.",
+    "savedOff": "Saved: {{step}} off.",
+    "savedTips": "Saved: tip percentages.",
+    "saveError": "The change couldn't be saved.",
+    "uncertain": "We don't know if the change was saved: checking what the device has now.",
+    "unconfirmed": "Unconfirmed"
   }
 }

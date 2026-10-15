@@ -150,6 +150,44 @@
     "doneNeedsApp": "Copiado a {{names}}. Las cajas que aún no tienen la app actualizada lo mostrarán cuando la actualicen."
   },
   "card": {
+    "new": "Nuevo",
+    "noReadPermission": "Pídele a tu gerente o administrador que te dé acceso para ver la pantalla del cliente.",
+    "readOnly": "Sólo puedes ver este diseño. Para cambiarlo, pídeselo a tu gerente o administrador.",
+    "loadError": "No pudimos cargar la pantalla del cliente.",
+    "retry": "Reintentar",
+    "designOwn": "Diseño propio",
+    "designFactory": "Diseño de fábrica",
+    "edit": "Editar pantalla",
+    "copy": "Copiar a otras cajas",
+    "copyNeedsDesign": "Primero personaliza y guarda esta caja; después la copias a las demás.",
+    "ipadNoDisplay": "Este iPad aún no tiene pantalla del cliente.",
     "thumbnailLabel": "Vista previa de la pantalla del cliente"
+  },
+  "steps": {
+    "title": "Pasos del cobro en este dispositivo",
+    "noReadPermission": "Pídele a tu gerente o administrador que te dé acceso a los pasos del cobro.",
+    "readOnly": "Sólo puedes ver estos ajustes.",
+    "loadError": "No pudimos cargar los pasos del cobro.",
+    "tip": "Pedir propina",
+    "review": "Calificar con estrellas",
+    "receipt": "Ofrecer recibo",
+    "receiptNeedsUpdate": "Actualiza la app de este dispositivo para que este ajuste tenga efecto.",
+    "tipRemove": "Quitar {{percent}} %",
+    "tipAddLabel": "Agregar un porcentaje de propina",
+    "tipAddPlaceholder": "%",
+    "tipAdd": "Agregar",
+    "tipInvalid": "Escribe un porcentaje del 1 al 100 que no esté ya en la lista.",
+    "footer": "Se guardan al momento y sólo aplican a este dispositivo.",
+    "names": {
+      "showTipScreen": "pedir propina",
+      "showReviewScreen": "calificar con estrellas",
+      "showReceiptScreen": "ofrecer recibo"
+    },
+    "savedOn": "Guardado: {{step}} prendido.",
+    "savedOff": "Guardado: {{step}} apagado.",
+    "savedTips": "Guardado: porcentajes de propina.",
+    "saveError": "No se pudo guardar el cambio.",
+    "uncertain": "No sabemos si el cambio se guardó: estamos revisando lo que quedó en el dispositivo.",
+    "unconfirmed": "Sin confirmar"
   }
 }

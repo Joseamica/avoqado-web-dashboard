@@ -61,6 +61,9 @@ vi.mock('../components/DisplayModeRequestControl', () => ({
 vi.mock('../components/MessagesTab', () => ({ MessagesTab: () => <div /> }))
 vi.mock('../components/RemoteCommandPanel', () => ({ RemoteCommandPanel: () => <div /> }))
 vi.mock('@/pages/Settings/components/TpvSettingsForm', () => ({ TpvSettingsForm: () => <div /> }))
+vi.mock('../customer-display/CustomerDisplaySection', () => ({
+  CustomerDisplaySection: (props: { deviceType?: string }) => <div data-testid="customer-display-section" data-type={props.deviceType} />,
+}))
 
 function renderDetail() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -115,5 +118,10 @@ describe('device detail management surfaces', () => {
     expect(screen.queryByRole('button', { name: 'commands.remoteCommands' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Mensajes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'tpvSettings.title' })).not.toBeInTheDocument()
+  })
+
+  it('monta la sección de la pantalla del cliente con el tipo del aparato (la sección decide qué ve un iPad)', async () => {
+    renderDetail()
+    expect(await screen.findByTestId('customer-display-section')).toHaveAttribute('data-type', 'POS_IOS')
   })
 })

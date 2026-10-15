@@ -6,7 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { describe, expect, it } from 'vitest'
 import { CLAVE_DEL_HISTORIAL } from '../estado'
-import { MOMENTOS, MOTIVOS_DE_IMAGEN, MUESTRAS_DE_COLOR, NOTAS_DE_DESTINO } from '../model'
+import { MOMENTOS, MOTIVOS_DE_IMAGEN, MUESTRAS_DE_COLOR, NOTAS_DE_DESTINO, PASOS_CON_INTERRUPTOR } from '../model'
 
 const LOCALES = path.resolve(__dirname, '../../../../locales')
 const bundle = (lng: string) =>
@@ -23,6 +23,7 @@ const DINAMICAS: string[] = [
   ...MUESTRAS_DE_COLOR.map(m => `editor.colors.${m.clave}`),
   ...MOTIVOS_DE_IMAGEN.map(m => `editor.logoErrors.${m}`),
   ...NOTAS_DE_DESTINO.map(n => `copy.${n}`),
+  ...PASOS_CON_INTERRUPTOR.map(p => `steps.names.${p}`),
 ]
 const PLURALES: string[] = ['status.imagesPending', 'status.imagesFailed', 'copy.submit']
 
