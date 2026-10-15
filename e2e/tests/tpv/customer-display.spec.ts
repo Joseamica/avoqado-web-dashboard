@@ -5,7 +5,7 @@
  * Las tres obligatorias de testing-and-git.md:
  *  1. escribir y VER el cambio sin recargar: guardar el diseño, un paso del cobro y copiar;
  *  2. teclear conserva el foco aunque la vista previa vaya al server en cada pausa;
- *  3. sin permiso, sólo lectura, error y lista vacía se distinguen.
+ *  3. sin permiso, sólo lectura, CARGANDO, error y lista vacía se distinguen entre sí (y del camino feliz).
  * Y lo que pidió Codex (F1 r1): restablecer y ver el resultado, y una reconsulta fallida con el borrador abierto. Más lo
  * que cambiaron las rondas de arreglo: un guardado de respuesta perdida (aviso «No pudimos confirmar» o se da por hecho
  * si el server ya lo tiene), «Sin confirmar» en los pasos, el tope de 6 porcentajes y «Cargar más» bloqueado mientras carga.
@@ -14,12 +14,16 @@ import { test, expect, type Page, type Route } from '@playwright/test'
 
 import { setupApiMocks } from '../../fixtures/api-mocks'
 import { createMockVenue, StaffRole } from '../../fixtures/mock-data'
+// Los textos que cambian con el tiempo se leen del JSON de la app (no se copian aquí): si se reescriben, la prueba los sigue.
+import es from '../../../src/locales/es/customerDisplay.json' with { type: 'json' }
 
 test.setTimeout(60_000)
 test.use({ locale: 'es-MX' })
 
-const VENUE_ID = 'venue-alpha'
-const VENUE_SLUG = 'venue-alpha'
+// 🔴 El id y el slug son DISTINTOS a propósito: la URL de la página lleva el slug y las llamadas al API llevan el id. Con el mismo
+// valor en los dos, una llamada armada con el equivocado pasaría sin que nadie lo notara.
+const VENUE_ID = 'venue-alpha-id'
+const VENUE_SLUG = 'venue-alpha-slug'
 const CAJA_1 = 'dev-caja-1'
 const SCREENSHOT_DIR = process.env.E2E_SCREENSHOT_DIR
 const PERMISOS_COMPLETOS = ['customer-display:read', 'customer-display:update', 'tpv-settings:read', 'tpv-settings:update']
@@ -67,6 +71,50 @@ const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 const ERROR_500 = { message: 'Ocurrió un error inesperado en el servidor.' }
 
+/** Las rutas del API de ESTA pantalla, con el id del negocio (nunca el slug): un id y un slug mezclados dejan de coincidir. */
+const rutaDeVenue = (resto: string) => `/api/v1/dashboard/venues/${VENUE_ID}/${resto}`
+const rutaDeLaPantalla = (sufijo = '') => rutaDeVenue(`terminals/${CAJA_1}/customer-display${sufijo}`)
+const RUTA_DE_LOS_PASOS = `/api/v1/dashboard/tpv/${CAJA_1}/settings`
+
+const escapar = (texto: string) => texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const exacta = (metodo: string, ruta: string) => new RegExp(`^${metodo} ${escapar(ruta)}$`)
+
+/**
+ * 🔴 Guardia de llamadas inesperadas. `setupApiMocks` contesta `{}` a CUALQUIER ruta del API que nadie fingió, y eso deja
+ * pasar en silencio una llamada armada con el id equivocado, un endpoint que no debía tocarse o una escritura que nadie
+ * pidió. Aquí se apuntan todas las peticiones a `/api/v1/` y las que no están en esta lista cuentan como inesperadas; cada
+ * prueba termina exigiendo que no haya ninguna (`afterEach`).
+ */
+const PETICIONES_DE_LA_PAGINA = [
+  // Sesión y menú lateral (los fingidos de `setupApiMocks`)…
+  exacta('GET', '/api/v1/dashboard/auth/status'),
+  exacta('GET', '/api/v1/me/access'),
+  exacta('GET', rutaDeVenue('plan-tier')),
+  exacta('GET', rutaDeVenue('features')),
+  exacta('GET', rutaDeVenue('role-config')),
+  exacta('GET', rutaDeVenue('onboarding-state')),
+  // …y los que el comodín contesta `{}` y la página tolera (campanita, avisos, organización, suplantación).
+  exacta('GET', '/api/v1/dashboard/notifications'),
+  exacta('GET', '/api/v1/dashboard/announcements/home'),
+  exacta('GET', '/api/v1/dashboard/impersonation/status'),
+  exacta('GET', '/api/v1/organizations/org-test-001/venues'),
+  exacta('GET', '/api/v1/organizations/org-test-001/stats'),
+]
+const PERMITIDAS = [
+  // Lo que esta suite finge a propósito (con el id del negocio, no el slug).
+  exacta('GET', rutaDeVenue(`tpv/${CAJA_1}`)),
+  exacta('GET', rutaDeLaPantalla()),
+  exacta('PUT', rutaDeLaPantalla()),
+  exacta('POST', rutaDeLaPantalla('/reset')),
+  exacta('POST', rutaDeLaPantalla('/preview')),
+  exacta('POST', rutaDeLaPantalla('/copy')),
+  exacta('GET', rutaDeVenue('customer-display/devices')),
+  exacta('GET', RUTA_DE_LOS_PASOS),
+  exacta('PUT', RUTA_DE_LOS_PASOS),
+  // Lo que la página del dispositivo pide por su cuenta y `setupApiMocks` ya responde (o contesta vacío a propósito).
+  ...PETICIONES_DE_LA_PAGINA,
+]
+
 /**
  * Qué hace el server con cada PUT del diseño, en orden (el resto responde 'ok'):
  *  - 'conflicto': alguien más ya guardó (409 del contrato, con su mensaje);
@@ -82,6 +130,10 @@ interface Escenario {
   diseno?: Diseno
   editToken?: string
   fallasDeLaVista?: number
+  /** Espera de la PRIMERA lectura del diseño (la de la tarjeta): para ver el «cargando» sin confundirlo con vacío o error. */
+  demoraDeLaVista?: number
+  /** Espera de la PRIMERA página de destinos (al abrir «Copiar»): lo mismo, para la lista. */
+  demoraDeDestinos?: number
   guardados?: ModoDeGuardado[]
   destinos?: 'dos-paginas' | 'vacia' | 'error'
   demoraDeVistaPrevia?: number
@@ -92,6 +144,15 @@ interface Escenario {
   demoraDeLaRelecturaDePasos?: number
   tipSuggestions?: number[]
 }
+
+/** El escenario de la prueba en curso: el `afterEach` de abajo le exige cero llamadas inesperadas. */
+let estadoActual: { inesperadas: string[] } | null = null
+test.beforeEach(() => {
+  estadoActual = null
+})
+test.afterEach(() => {
+  expect(estadoActual?.inesperadas ?? [], 'llamadas a /api/v1/ que la suite no finge (las atrapó el comodín de setupApiMocks)').toEqual([])
+})
 
 async function preparar(page: Page, esc: Escenario = {}) {
   const venue = createMockVenue({ id: VENUE_ID, name: 'Testarudo Cafe', slug: VENUE_SLUG })
@@ -121,6 +182,7 @@ async function preparar(page: Page, esc: Escenario = {}) {
     },
     tokensDeDestino: { 'dev-barra': 'factory', 'dev-caja-2': 'factory', 'dev-mostrador': 'factory' } as Record<string, string>,
     llamadasALaVista: 0,
+    llamadasADestinos: 0,
     fallasDeLaVista: esc.fallasDeLaVista ?? 0,
     modosDeGuardado: [...(esc.guardados ?? [])],
     guardados: [] as Array<{ expectedEditToken: string; design: Partial<Diseno> }>,
@@ -131,7 +193,18 @@ async function preparar(page: Page, esc: Escenario = {}) {
       targets: Array<{ terminalId: string; editToken: string }>
     }>,
     restablecimientos: [] as string[],
+    /** Todas las peticiones a `/api/v1/` ("MÉTODO /ruta"), en orden. */
+    peticiones: [] as string[],
+    /** Las que no están en `PERMITIDAS`: `setupApiMocks` les contestaría `{}` sin avisar. */
+    get inesperadas() {
+      return this.peticiones.filter(p => !PERMITIDAS.some(permitida => permitida.test(p)))
+    },
   }
+  page.on('request', req => {
+    const { pathname } = new URL(req.url())
+    if (pathname.startsWith('/api/v1/')) estado.peticiones.push(`${req.method()} ${pathname}`)
+  })
+  estadoActual = estado
   const vista = () => ({
     data: {
       terminal: { id: CAJA_1, name: 'Caja 1' },
@@ -153,7 +226,7 @@ async function preparar(page: Page, esc: Escenario = {}) {
   })
 
   // El detalle del dispositivo (`GET .../tpv/:id`): una caja POS_ANDROID con segunda pantalla.
-  await page.route(`**/api/v1/dashboard/venues/*/tpv/${CAJA_1}`, route =>
+  await page.route(`**${rutaDeVenue(`tpv/${CAJA_1}`)}`, route =>
     route.request().method() !== 'GET'
       ? route.fallback()
       : json(route, {
@@ -190,11 +263,12 @@ async function preparar(page: Page, esc: Escenario = {}) {
   )
 
   await page.route(
-    url => url.pathname.endsWith(`/terminals/${CAJA_1}/customer-display`),
+    url => url.pathname === rutaDeLaPantalla(),
     async route => {
       const req = route.request()
       if (req.method() === 'GET') {
         estado.llamadasALaVista += 1
+        if (estado.llamadasALaVista === 1 && esc.demoraDeLaVista) await new Promise(r => setTimeout(r, esc.demoraDeLaVista))
         if (estado.fallasDeLaVista > 0) {
           estado.fallasDeLaVista -= 1
           return json(route, ERROR_500, 500)
@@ -236,7 +310,7 @@ async function preparar(page: Page, esc: Escenario = {}) {
   )
 
   await page.route(
-    url => url.pathname.endsWith(`/terminals/${CAJA_1}/customer-display/reset`),
+    url => url.pathname === rutaDeLaPantalla('/reset'),
     async route => {
       const { expectedEditToken } = route.request().postDataJSON() as { expectedEditToken: string }
       estado.restablecimientos.push(expectedEditToken)
@@ -247,7 +321,7 @@ async function preparar(page: Page, esc: Escenario = {}) {
   )
 
   await page.route(
-    url => url.pathname.endsWith(`/terminals/${CAJA_1}/customer-display/preview`),
+    url => url.pathname === rutaDeLaPantalla('/preview'),
     async route => {
       const { design, previewSeq } = route.request().postDataJSON() as { design: Partial<Diseno>; previewSeq: number }
       if (esc.demoraDeVistaPrevia) await new Promise(r => setTimeout(r, esc.demoraDeVistaPrevia))
@@ -257,7 +331,7 @@ async function preparar(page: Page, esc: Escenario = {}) {
 
   // Los pasos del cobro (`tpv-settings`): el GET devuelve los ajustes planos; el PUT mezcla sólo las llaves que llegan.
   await page.route(
-    url => url.pathname.endsWith(`/api/v1/dashboard/tpv/${CAJA_1}/settings`),
+    url => url.pathname === RUTA_DE_LOS_PASOS,
     async route => {
       const req = route.request()
       if (req.method() === 'PUT') {
@@ -289,8 +363,10 @@ async function preparar(page: Page, esc: Escenario = {}) {
     ...extra,
   })
   await page.route(
-    url => url.pathname.endsWith('/customer-display/devices'),
+    url => url.pathname === rutaDeVenue('customer-display/devices'),
     async route => {
+      estado.llamadasADestinos += 1
+      if (estado.llamadasADestinos === 1 && esc.demoraDeDestinos) await new Promise(r => setTimeout(r, esc.demoraDeDestinos))
       if (esc.destinos === 'error') return json(route, ERROR_500, 500)
       if (esc.destinos === 'vacia') return json(route, { data: { total: 1, nextCursor: null, devices: [fila(CAJA_1, 'Caja 1')] } })
       const cursor = new URL(route.request().url()).searchParams.get('cursor')
@@ -308,7 +384,7 @@ async function preparar(page: Page, esc: Escenario = {}) {
   )
 
   await page.route(
-    url => url.pathname.endsWith(`/terminals/${CAJA_1}/customer-display/copy`),
+    url => url.pathname === rutaDeLaPantalla('/copy'),
     async route => {
       const cuerpo = route.request().postDataJSON() as (typeof estado.copias)[number]
       estado.copias.push(cuerpo)
@@ -484,7 +560,9 @@ test.describe('Pantalla del cliente — escribir y ver el cambio', () => {
     // 🔴 La prueba: al reabrir, la lista ya dice que Barra tiene su propio diseño.
     await tarjeta.getByRole('button', { name: 'Copiar a otras cajas' }).click()
     const otraVez = page.getByRole('dialog', { name: 'Copiar a otras cajas' })
-    await expect(otraVez.locator('label', { hasText: 'Barra' })).toContainText('Tiene su propio diseño; se reemplaza')
+    await expect(otraVez.locator('[data-tour="customer-display-copy-row"]', { hasText: 'Barra' })).toContainText(
+      'Tiene su propio diseño; se reemplaza',
+    )
   })
 
   test('volver al diseño de fábrica: confirma, manda el token leído y la tarjeta dice «Diseño de fábrica» SIN recargar', async ({
@@ -508,7 +586,8 @@ test.describe('Pantalla del cliente — escribir y ver el cambio', () => {
 
 test.describe('Pantalla del cliente — foco, conflicto y salida', () => {
   test('teclear un texto conserva el foco mientras la vista previa va y viene del servidor', async ({ page }) => {
-    await preparar(page, { demoraDeVistaPrevia: 400 })
+    // 1.5 s: «Actualizando…» dura lo bastante para muestrearlo aunque la Mac vaya cargada.
+    await preparar(page, { demoraDeVistaPrevia: 1_500 })
     await abrirDetalle(page)
     const editor = await abrirEditor(page)
     const campo = editor.getByLabel('Al llegar')
@@ -625,27 +704,53 @@ test.describe('Pantalla del cliente — foco, conflicto y salida', () => {
 })
 
 test.describe('Pantalla del cliente — estados que no son el camino feliz', () => {
-  test('sin permiso de ver: se explica y NO se consulta el diseño', async ({ page }) => {
+  test('sin permiso de ver: se explica y NO se consulta NADA de la pantalla del cliente', async ({ page }) => {
     const estado = await preparar(page, { permisos: ['tpv-settings:read'] })
     await abrirDetalle(page, false)
-    await expect(page.getByText('Pídele a tu gerente o administrador que te dé acceso para ver la pantalla del cliente.')).toBeVisible({
-      timeout: 15_000,
-    })
+    await expect(page.getByText(es.card.noReadPermission)).toBeVisible({ timeout: 15_000 })
+    // Los pasos (otro permiso) sí cargaron: ya pasó el momento en que la tarjeta habría pedido el diseño si fuera a pedirlo.
+    await expect(pasosDelCobro(page).getByRole('switch', { name: 'Pedir propina' })).toBeVisible()
     expect(estado.llamadasALaVista).toBe(0)
+    // Ni la lectura, ni la vista previa, ni la lista de destinos: ninguna petición a /customer-display.
+    expect(estado.peticiones.filter(p => p.includes('/customer-display'))).toEqual([])
+    expect(estado.inesperadas).toEqual([])
   })
 
-  test('sólo lectura: se ve el estado, sin botones de editar ni copiar, y los pasos no se mueven', async ({ page }) => {
-    await preparar(page, { permisos: ['customer-display:read', 'tpv-settings:read'] })
+  test('sólo lectura: se ve el estado, sin botones de editar ni copiar, los pasos no se mueven y no se manda ninguna escritura', async ({
+    page,
+  }) => {
+    const estado = await preparar(page, { permisos: ['customer-display:read', 'tpv-settings:read'] })
     await abrirDetalle(page)
     const tarjeta = page.getByTestId('customer-display-card')
-    await expect(tarjeta).toContainText('Diseño de fábrica')
-    await expect(tarjeta).toContainText('Sólo puedes ver este diseño.')
+    await expect(tarjeta).toContainText(es.card.designFactory)
+    await expect(tarjeta).toContainText(es.card.readOnly)
     await expect(tarjeta.getByRole('button', { name: 'Editar pantalla' })).toHaveCount(0)
     await expect(tarjeta.getByRole('button', { name: 'Copiar a otras cajas' })).toHaveCount(0)
     await expect(page.getByRole('switch', { name: 'Pedir propina' })).toBeDisabled()
     // Sin poder cambiarlos, tampoco se ofrece agregar ni quitar porcentajes.
     await expect(pasosDelCobro(page).getByLabel('Agregar un porcentaje de propina')).toHaveCount(0)
     await expect(pasosDelCobro(page).getByRole('button', { name: /^Quitar/ })).toHaveCount(0)
+    // Sólo se lee: ni un POST, ni un PUT, ni un DELETE en toda la sesión.
+    expect(estado.peticiones.filter(p => !p.startsWith('GET '))).toEqual([])
+    expect(estado.inesperadas).toEqual([])
+  })
+
+  test('mientras la tarjeta CARGA no se ve «de fábrica» ni error; al llegar la respuesta aparece', async ({ page }) => {
+    const estado = await preparar(page, { demoraDeLaVista: 4_000 })
+    await abrirDetalle(page, false)
+    const seccion = page.locator('[data-tour="customer-display-section"]')
+    // La sección ya está (el detalle del dispositivo cargó) y la lectura del diseño sigue EN CAMINO: no es «vacío», es «cargando».
+    await expect(seccion).toBeVisible({ timeout: 15_000 })
+    await expect.poll(() => estado.llamadasALaVista).toBe(1)
+    await expect(seccion.getByTestId('customer-display-card')).toHaveCount(0)
+    await expect(seccion.getByText(es.card.designFactory)).toHaveCount(0)
+    await expect(seccion.getByText(es.card.designOwn)).toHaveCount(0)
+    await expect(seccion.getByRole('alert')).toHaveCount(0)
+    await expect(seccion.getByText(es.card.loadError)).toHaveCount(0)
+    await expect(seccion.getByRole('button', { name: 'Editar pantalla' })).toHaveCount(0)
+    // Al llegar: la tarjeta con su estado real, y nunca pasó por el error.
+    await expect(seccion.getByTestId('customer-display-card')).toContainText(es.card.designFactory, { timeout: 10_000 })
+    await expect(seccion.getByRole('alert')).toHaveCount(0)
   })
 
   test('si el servidor falla al cargar, se dice y se puede reintentar (no se ve como «de fábrica»)', async ({ page }) => {
@@ -687,6 +792,25 @@ test.describe('Pantalla del cliente — estados que no son el camino feliz', () 
     await expect(dialogo.getByText('No pudimos cargar la lista de cajas.')).toBeVisible({ timeout: 10_000 })
     await expect(dialogo.getByText('No hay otras cajas con pantalla del cliente en esta sucursal.')).toHaveCount(0)
     await expect(dialogo.getByRole('button', { name: 'Reintentar' })).toBeVisible()
+  })
+
+  test('copiar: mientras la lista CARGA no se ve «vacía» ni error; al llegar la respuesta aparece el vacío', async ({ page }) => {
+    const estado = await preparar(page, { diseno: PROPIO, editToken: 'cdd-1:2', destinos: 'vacia', demoraDeDestinos: 4_000 })
+    await abrirDetalle(page)
+    await page.getByTestId('customer-display-card').getByRole('button', { name: 'Copiar a otras cajas' }).click()
+    const dialogo = page.getByRole('dialog', { name: 'Copiar a otras cajas' })
+    const lista = dialogo.locator('[data-tour="customer-display-copy-list"]')
+    // El diálogo y su lista ya están y la primera página sigue EN CAMINO: ni el vacío ni el error ni filas ni contador.
+    await expect(lista).toBeVisible()
+    await expect.poll(() => estado.llamadasADestinos).toBe(1)
+    await expect(dialogo.getByText(es.copy.empty)).toHaveCount(0)
+    await expect(dialogo.getByText(es.copy.loadError)).toHaveCount(0)
+    await expect(dialogo.getByRole('button', { name: es.copy.retry })).toHaveCount(0)
+    await expect(dialogo.getByRole('checkbox')).toHaveCount(0)
+    await expect(dialogo.getByText(/^Mostrando /)).toHaveCount(0)
+    // Con la respuesta, el vacío (una sola otra caja: ninguna a la que copiar); el error nunca salió.
+    await expect(dialogo.getByText(es.copy.empty)).toBeVisible({ timeout: 10_000 })
+    await expect(dialogo.getByText(es.copy.loadError)).toHaveCount(0)
   })
 
   test('modo oscuro del editor (captura para revisión)', async ({ page }) => {
