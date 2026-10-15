@@ -51,6 +51,7 @@
     "avgTicket": "Avg Ticket"
   },
   "export": {
+    "title": "Export orders",
     "button": "Export",
     "asCSV": "Export as CSV",
     "asExcel": "Export as Excel (.xlsx)",

@@ -34,6 +34,7 @@ import { useTourProgressSync } from './hooks/useTourProgressSync'
 import { useDemoTour } from './hooks/useDemoTour'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
+import { esIdDeRegistro } from './lib/esIdDeRegistro'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './api'
@@ -383,6 +384,9 @@ function DashboardContent() {
     if (routeKeyMap[lowerSegment]) {
       return t(routeKeyMap[lowerSegment])
     }
+
+    // El id de un registro no se lee: «Pagos › Detalle». Un nombre propio (setCustomSegment, arriba) sigue mandando.
+    if (esIdDeRegistro(segment)) return t('sidebar:routes.detail')
 
     // Segmento sin mapear: se humaniza aqui (guiones -> espacios, solo la
     // primera letra en mayuscula). Antes lo hacia `capitalize` de CSS, que

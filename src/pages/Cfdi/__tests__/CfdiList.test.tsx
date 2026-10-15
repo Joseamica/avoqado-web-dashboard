@@ -11,7 +11,9 @@ import es from '@/locales/es/cfdi.json'
 import type { Cfdi } from '@/services/cfdi.service'
 
 const traducir = (key: string, opts?: Record<string, unknown>) => {
-  const raw = key.split('.').reduce<any>((o, k) => o?.[k], es as any)
+  const leer = (k: string) => k.split('.').reduce<any>((o, s) => o?.[s], es as any)
+  // Plurales de i18next: `clave_one` / `clave_other` cuando la base no existe.
+  const raw = leer(key) ?? (typeof opts?.count === 'number' ? leer(`${key}_${opts.count === 1 ? 'one' : 'other'}`) : undefined)
   if (typeof raw !== 'string') return key
   return raw.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => String(opts?.[k] ?? ''))
 }
@@ -513,6 +515,9 @@ describe('CfdiList — F6: la factura por el total con notas automáticas que fa
     )
     const resumen = within(fila('f1')).getByText(traducir('list.notasDeDevolucionPendientes', { count: 2 }))
     expect(resumen).toBeInTheDocument()
+    // El número va al principio: al final caía solo en otro renglón (guía de Facturación, 14-oct).
+    expect(resumen).toHaveTextContent(/^Faltan 2 notas de crédito de devoluciones$/)
+    expect(traducir('list.notasDeDevolucionPendientes', { count: 1 })).toBe('Falta 1 nota de crédito de una devolución')
     // Lo que falta, en ámbar (nunca rojo).
     expect(resumen.closest('details')?.className).toContain('text-amber-600')
     const enlaces = within(fila('f1'))
@@ -546,7 +551,7 @@ describe('CfdiList — F6: la factura por el total con notas automáticas que fa
         .queryAllByRole('link', { hidden: true })
         .filter(a => a.getAttribute('href')?.includes('/payments/'))
       expect([id, aPagos]).toEqual([id, []])
-      expect(within(fila(id)).queryByText(/Notas de crédito de devoluciones que faltan/)).not.toBeInTheDocument()
+      expect(within(fila(id)).queryByText(/Faltan? \d+ notas? de crédito/)).not.toBeInTheDocument()
     }
   })
 })

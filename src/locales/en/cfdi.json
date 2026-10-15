@@ -10,7 +10,8 @@
     "extraccion": "Taken out of the global invoice",
     "facturaDelClientePendiente": "The customer's invoice is missing: invoice the sale again.",
     "facturaDelClienteEnProceso": "The customer's invoice is being confirmed with the SAT.",
-    "notasDeDevolucionPendientes": "Refund credit notes missing: {{count}}",
+    "notasDeDevolucionPendientes_one": "{{count}} refund credit note missing",
+    "notasDeDevolucionPendientes_other": "{{count}} refund credit notes missing",
     "extraccionesPendientes": {
       "aviso": "{{count}} sales were taken out of your global invoice but the customer's invoice didn't go through. Review them and invoice them again.",
       "aviso_one": "1 sale was taken out of your global invoice but the customer's invoice didn't go through. Review it and invoice it again.",
@@ -115,6 +116,7 @@
       "successNet": "The invoice only includes what the customer kept: the refund is already deducted.",
       "successWithNote_one": "The refund's credit note was issued too.",
       "successWithNote_other": "The refunds' credit notes were issued too.",
+      "successWithExtraction": "This sale was in your global invoice: a credit note already took it out.",
       "notePending": "The invoice was issued; refund credit notes still missing: {{count}}",
       "notePendingDetail": "Folio {{folio}}. Invoicing shows which ones are missing; each refund payment shows why."
     },
