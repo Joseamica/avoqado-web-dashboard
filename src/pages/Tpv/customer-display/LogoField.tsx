@@ -30,13 +30,18 @@ export function LogoField({ modo, onModo, hayLogoPropio, subiendo, bloqueado, er
       <span className="text-sm font-medium">{t('editor.logo')}</span>
       <RadioGroup value={modo} onValueChange={v => onModo(v as 'negocio' | 'propio')} disabled={bloqueado} className="gap-2">
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="negocio" id="cd-logo-negocio" disabled={subiendo || bloqueado} />
+          <RadioGroupItem
+            value="negocio"
+            id="cd-logo-negocio"
+            disabled={subiendo || bloqueado}
+            data-tour="customer-display-editor-logo-venue"
+          />
           <Label htmlFor="cd-logo-negocio" className="cursor-pointer font-normal">
             {t('editor.logoVenue')}
           </Label>
         </div>
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="propio" id="cd-logo-propio" />
+          <RadioGroupItem value="propio" id="cd-logo-propio" data-tour="customer-display-editor-logo-own" />
           <Label htmlFor="cd-logo-propio" className="cursor-pointer font-normal">
             {t('editor.logoOwn')}
           </Label>

@@ -146,5 +146,8 @@
     "uncertainApplied": "Already have {{name}}'s design: {{names}}.",
     "uncertainNotApplied": "Don't have {{name}}'s design yet: {{names}}. If you want, select them again and copy.",
     "uncertainUnchecked": "We couldn't check {{names}}: look at their card before copying again."
+  },
+  "card": {
+    "thumbnailLabel": "Customer display preview"
   }
 }

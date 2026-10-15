@@ -7,6 +7,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -98,7 +99,7 @@ function retenida<T>() {
   return { promesa, resolver, rechazar }
 }
 
-function pintar(view = vistaDePrueba()) {
+async function pintar(view = vistaDePrueba()) {
   const onClose = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   qc.setQueryData(CLAVE, view)
@@ -107,23 +108,36 @@ function pintar(view = vistaDePrueba()) {
       path: '/',
       element: (
         <QueryClientProvider client={qc}>
-          <CustomerDisplayEditor
-            onClose={onClose}
-            venueId="v1"
-            terminalId="t1"
-            deviceName="Caja 1"
-            venueName="Testarudo"
-            view={view}
-            pasos={DEFAULT_TPV_SETTINGS}
-            pasosConocidos
-          />
+          <Montaje onClose={onClose} view={view} />
         </QueryClientProvider>
       ),
     },
     { path: '/otra', element: <div>otra página</div> },
   ])
-  render(<RouterProvider router={router} />)
+  await act(async () => {
+    render(<RouterProvider router={router} future={{ v7_startTransition: true }} />)
+  })
   return { onClose, qc, router }
+}
+/** Como en la tarjeta (`{editando && <CustomerDisplayEditor …/>}`): cerrar DESMONTA el editor. */
+function Montaje({ onClose, view }: { onClose: () => void; view: CustomerDisplayView }) {
+  const [abierto, setAbierto] = useState(true)
+  if (!abierto) return <div>tarjeta</div>
+  return (
+    <CustomerDisplayEditor
+      onClose={() => {
+        onClose()
+        setAbierto(false)
+      }}
+      venueId="v1"
+      terminalId="t1"
+      deviceName="Caja 1"
+      venueName="Testarudo"
+      view={view}
+      pasos={DEFAULT_TPV_SETTINGS}
+      pasosConocidos
+    />
+  )
 }
 const guardarBtn = () => screen.getByRole('button', { name: 'editor.save' })
 const guardandoBtn = () => screen.getByRole('button', { name: 'editor.saving' })
@@ -152,7 +166,7 @@ async function guardarConEsperas(user: ReturnType<typeof userEvent.setup>) {
 describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
   it('🔴 respuesta PERDIDA y el servidor SÍ lo aplicó: mientras relee no afirma nada; después es «Guardado» y cierra, sin reenviar', async () => {
     const user = userEvent.setup()
-    const { onClose, qc } = pintar()
+    const { onClose, qc } = await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(perdida()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalledWith('v1', 't1'))
@@ -181,7 +195,7 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
 
   it('🔴 respuesta PERDIDA y el servidor NO lo aplicó: el borrador se queda, se avisa, se ofrece recargar y reintentar va con el MISMO token', async () => {
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(perdida()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())
@@ -209,7 +223,7 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
 
   it('«Recargar lo guardado» tras el aviso trae lo del servidor y quita el aviso', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(perdida()))
     await act(async () => relectura.resolver(vistaDePrueba({ editToken: 'd1:9', design: { ...DISENO_DE_FABRICA, welcomeText: 'Otro' } })))
@@ -223,9 +237,28 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
     expect(screen.queryByText('editor.saveUncertain')).not.toBeInTheDocument()
   })
 
+  it('🔴 mientras «Recargar lo guardado» espera al servidor, los campos y «Guardar» quedan bloqueados', async () => {
+    const user = userEvent.setup()
+    await pintar()
+    const { put, relectura } = await guardarConEsperas(user)
+    await act(async () => put.rechazar(perdida()))
+    await act(async () => relectura.resolver(vistaDePrueba())) // no quedó: aviso y «Guardar» disponible
+    expect(await screen.findByText('editor.saveUncertain')).toBeInTheDocument()
+    expect(guardarBtn()).toBeEnabled()
+    const recarga = retenida<CustomerDisplayView>()
+    vi.mocked(getCustomerDisplay).mockReturnValue(recarga.promesa)
+    await user.click(screen.getByRole('button', { name: 'editor.reload' }))
+    await waitFor(() => expect(bienvenida()).toBeDisabled())
+    expect(guardarBtn()).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'editor.themeDark' })).toBeDisabled()
+    await act(async () => recarga.resolver(vistaDePrueba({ editToken: 'd1:8', design: { ...DISENO_DE_FABRICA, welcomeText: 'Guardado' } })))
+    await waitFor(() => expect(bienvenida()).toHaveValue('Guardado'))
+    expect(bienvenida()).toBeEnabled()
+  })
+
   it('🔴 un 409 del REINTENTO automático se reconcilia: si quedó lo nuestro es «Guardado», nunca «alguien más guardó»', async () => {
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(conflictoDelReintento()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())
@@ -240,7 +273,7 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
 
   it('un 409 del reintento que NO quedó: el aviso es «no pudimos confirmar», no el «alguien más guardó» del reintento', async () => {
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(conflictoDelReintento()))
     await act(async () => relectura.resolver(vistaDePrueba({ editToken: 'd1:4', design: { ...DISENO_DE_FABRICA, welcomeText: 'Ajeno' } })))
@@ -252,7 +285,7 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
 
   it('si la relectura TAMBIÉN falla, el borrador se queda y se avisa igual (sin reenviar)', async () => {
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(perdida()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())
@@ -269,7 +302,7 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
 
   it('un 500 genérico es incierto: se relee; el aviso lleva el texto del servidor como detalle y no hay toast de error', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(error500()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())
@@ -282,7 +315,7 @@ describe('CustomerDisplayEditor — guardar con resultado incierto', () => {
 
   it('🔴 navegar mientras se reconcilia ESPERA; si quedó guardado, sigue sola sin preguntar', async () => {
     const user = userEvent.setup()
-    const { router } = pintar()
+    const { router } = await pintar()
     const { put, relectura } = await guardarConEsperas(user)
     await act(async () => put.rechazar(perdida()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())
@@ -310,7 +343,7 @@ describe('CustomerDisplayEditor — volver a fábrica con resultado incierto', (
 
   it('🔴 respuesta PERDIDA y el servidor YA está de fábrica: se da por hecho (borrador, tarjeta y aviso de listo)', async () => {
     const user = userEvent.setup()
-    const { qc } = pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
+    const { qc } = await pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
     const { post, relectura } = await restablecerConEsperas(user)
     await act(async () => post.rechazar(perdida()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())
@@ -327,7 +360,7 @@ describe('CustomerDisplayEditor — volver a fábrica con resultado incierto', (
 
   it('respuesta PERDIDA y el servidor NO quedó de fábrica: el borrador se queda y se avisa (sin reenviar)', async () => {
     const user = userEvent.setup()
-    pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
+    await pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
     const { post, relectura } = await restablecerConEsperas(user)
     await act(async () => post.rechazar(perdida()))
     await act(async () => relectura.resolver(vistaDePrueba({ editToken: 'd1:2', design: PROPIO })))
@@ -341,7 +374,7 @@ describe('CustomerDisplayEditor — volver a fábrica con resultado incierto', (
 
   it('🔴 un 409 del REINTENTO al volver a fábrica se reconcilia: si ya quedó de fábrica es «listo», nunca «alguien más guardó»', async () => {
     const user = userEvent.setup()
-    pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
+    await pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
     const { post, relectura } = await restablecerConEsperas(user)
     await act(async () => post.rechazar(conflictoDelReintento()))
     await waitFor(() => expect(getCustomerDisplay).toHaveBeenCalled())

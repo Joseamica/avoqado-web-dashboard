@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -66,7 +66,7 @@ function vistaDePrueba(extra: Partial<CustomerDisplayView> = {}): CustomerDispla
   }
 }
 
-function pintar(view = vistaDePrueba(), pasos = DEFAULT_TPV_SETTINGS, pasosConocidos = true) {
+async function pintar(view = vistaDePrueba(), pasos = DEFAULT_TPV_SETTINGS, pasosConocidos = true) {
   const onClose = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   // Dentro de un router de DATOS, como en la app: el editor detiene la navegación con cambios (useBlocker).
@@ -89,7 +89,10 @@ function pintar(view = vistaDePrueba(), pasos = DEFAULT_TPV_SETTINGS, pasosConoc
       ),
     },
   ])
-  render(<RouterProvider router={router} />)
+  // `act` asíncrono: la vista previa que sale al montar se resuelve aquí adentro (sin avisos de act sueltos).
+  await act(async () => {
+    render(<RouterProvider router={router} future={{ v7_startTransition: true }} />)
+  })
   return { onClose }
 }
 const ultimoCuerpo = () => vi.mocked(previewCustomerDisplay).mock.lastCall?.[2]
@@ -111,21 +114,21 @@ beforeEach(() => {
 describe('CustomerDisplayEditor — campos y vista previa', () => {
   it('un texto viaja a /preview y la tablet pinta lo que devuelve el server', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     await user.type(screen.getByLabelText('editor.welcome'), '¡Hola!')
     await waitFor(() => expect(ultimoCuerpo()).toMatchObject({ welcomeText: '¡Hola!' }))
     expect(await screen.findByText('¡Hola!', { selector: 'p' })).toBeInTheDocument()
   })
 
   it('🔴 sólo viajan los cinco campos de F1 (nunca imágenes ni promos)', async () => {
-    pintar(vistaDePrueba({ design: { ...DISENO_DE_FABRICA, slides: [{ assetId: 'a1' }], showPromotions: true } }))
+    await pintar(vistaDePrueba({ design: { ...DISENO_DE_FABRICA, slides: [{ assetId: 'a1' }], showPromotions: true } }))
     await waitFor(() => expect(previewCustomerDisplay).toHaveBeenCalled())
     expect(Object.keys(ultimoCuerpo()!).sort()).toEqual(['accentColor', 'logoAssetId', 'thanksText', 'theme', 'welcomeText'])
   })
 
   it('Review Focus 2: un emoji cuenta como uno y el campo no pasa de 40', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     const campo = screen.getByLabelText('editor.thanks')
     await user.click(campo)
     await user.paste('😀'.repeat(45))
@@ -135,7 +138,7 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
 
   it('Review Focus 3: un color a medio escribir no viaja; uno completo en minúsculas viaja en mayúsculas', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     const hex = screen.getByLabelText('editor.hexLabel')
     await user.type(hex, '#0e7')
     expect(screen.getByText('editor.hexInvalid')).toBeInTheDocument()
@@ -148,7 +151,7 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
 
   it('una muestra fija el color y «El de siempre» lo quita', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     await user.click(screen.getByRole('button', { name: 'editor.colors.azul' }))
     await waitFor(() => expect(ultimoCuerpo()).toMatchObject({ accentColor: '#2563EB' }))
     expect(screen.getByLabelText('editor.hexLabel')).toHaveValue('#2563EB')
@@ -158,7 +161,7 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
 
   it('el tema se elige con dos botones y la tablet cambia', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     await user.click(screen.getByRole('button', { name: 'editor.themeDark' }))
     await waitFor(() => expect(screen.getByTestId('tablet-preview')).toHaveAttribute('data-tema', 'DARK'))
   })
@@ -173,7 +176,7 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
       height: 800,
     })
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
     const archivo = new File([new Uint8Array(10)], 'logo.png', { type: 'image/png' })
     await user.upload(screen.getByTestId('customer-display-logo-input'), archivo)
@@ -185,7 +188,7 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
 
   it('una imagen pesada o chica se avisa ANTES de subirla', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
     const pesada = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.jpg', { type: 'image/jpeg' })
     await user.upload(screen.getByTestId('customer-display-logo-input'), pesada)
@@ -202,7 +205,7 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
       response: { status: 400, data: { message: 'El archivo no es una imagen PNG, JPG o WEBP válida' } },
     })
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
     await user.upload(screen.getByTestId('customer-display-logo-input'), new File([new Uint8Array(10)], 'x.png', { type: 'image/png' }))
     expect(await screen.findByText('El archivo no es una imagen PNG, JPG o WEBP válida')).toBeInTheDocument()
@@ -214,36 +217,65 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
       assetRejected: ['viejo'],
       previewSeq,
     }))
-    pintar(vistaDePrueba({ design: { ...DISENO_DE_FABRICA, logoAssetId: 'viejo' }, assetRejected: ['viejo'] }))
+    await pintar(vistaDePrueba({ design: { ...DISENO_DE_FABRICA, logoAssetId: 'viejo' }, assetRejected: ['viejo'] }))
     expect(await screen.findByText('editor.assetRejected')).toBeInTheDocument()
     await waitFor(() => expect(previewCustomerDisplay).toHaveBeenCalled())
     expect(screen.getByText('editor.assetRejected')).toBeInTheDocument()
   })
 
-  it('promos en reposo: se ven con candado, sin botón de compra; el texto depende del plan', () => {
-    pintar()
+  it('promos en reposo: se ven con candado, sin botón de compra; el texto depende del plan', async () => {
+    await pintar()
     expect(screen.getByText('editor.promosPro')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /planes|plans/i })).not.toBeInTheDocument()
   })
 
-  it('si el negocio ya tiene el código, el candado dice que viene incluido', () => {
-    pintar(vistaDePrueba({ entitlements: { slides: true, promotionCards: true } }))
+  it('si el negocio ya tiene el código, el candado dice que viene incluido', async () => {
+    await pintar(vistaDePrueba({ entitlements: { slides: true, promotionCards: true } }))
     expect(screen.getByText('editor.promosIncluded')).toBeInTheDocument()
   })
 
-  it('con las estrellas apagadas no se ofrece el momento «Calificar»', () => {
-    pintar(vistaDePrueba(), { ...DEFAULT_TPV_SETTINGS, showReviewScreen: false })
+  it('con las estrellas apagadas no se ofrece el momento «Calificar»', async () => {
+    await pintar(vistaDePrueba(), { ...DEFAULT_TPV_SETTINGS, showReviewScreen: false })
     expect(screen.getByRole('button', { name: 'preview.moments.carrito' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'preview.moments.calificar' })).not.toBeInTheDocument()
   })
 
-  it('🔴 si no se pudieron leer los pasos del dispositivo, la vista previa lo dice en vez de presentarlos como conocidos', () => {
-    pintar(vistaDePrueba(), DEFAULT_TPV_SETTINGS, false)
+  it('🔴 si no se pudieron leer los pasos del dispositivo, la vista previa lo dice en vez de presentarlos como conocidos', async () => {
+    await pintar(vistaDePrueba(), DEFAULT_TPV_SETTINGS, false)
     expect(screen.getByText('preview.stepsUnknown')).toBeInTheDocument()
   })
 
-  it('con los pasos leídos no hay aviso', () => {
-    pintar()
+  it('con los pasos leídos no hay aviso', async () => {
+    await pintar()
     expect(screen.queryByText('preview.stepsUnknown')).not.toBeInTheDocument()
+  })
+  it('escribir un texto lleva la vista previa a SU momento: el de gracias a «Gracias», el de llegada a «En espera» (prototipo A)', async () => {
+    const user = userEvent.setup()
+    await pintar()
+    const tablet = () => screen.getByTestId('tablet-preview')
+    await user.click(screen.getByRole('button', { name: 'preview.moments.carrito' }))
+    expect(tablet()).toHaveAttribute('data-momento', 'carrito')
+    await user.type(screen.getByLabelText('editor.thanks'), 'V')
+    expect(tablet()).toHaveAttribute('data-momento', 'gracias')
+    expect(screen.getByRole('button', { name: 'preview.moments.gracias' })).toHaveAttribute('aria-pressed', 'true')
+    await user.type(screen.getByLabelText('editor.welcome'), 'H')
+    expect(tablet()).toHaveAttribute('data-momento', 'espera')
+    expect(screen.getByRole('button', { name: 'preview.moments.espera' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('«El de siempre» se pinta con el acento de la TABLET para el tema elegido, no con el color del dashboard', async () => {
+    const user = userEvent.setup()
+    await pintar()
+    const circulo = () => screen.getByRole('button', { name: 'editor.colors.deSiempre' }).querySelector('span')
+    expect(circulo()).toHaveStyle({ backgroundColor: '#1C1C1E' })
+    await user.click(screen.getByRole('button', { name: 'editor.themeDark' }))
+    expect(circulo()).toHaveStyle({ backgroundColor: '#FFFFFF' })
+  })
+
+  it('al abrir, el foco entra al editor sin enmarcarlo (el contenedor no lleva contorno de foco)', async () => {
+    await pintar()
+    const editor = screen.getByRole('dialog')
+    expect(document.activeElement).toBe(editor)
+    expect(editor).toHaveClass('outline-none')
   })
 })

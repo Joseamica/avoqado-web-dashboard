@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -83,7 +84,11 @@ function retenida<T>() {
   return { promesa, resolver }
 }
 
-function pintar(view = vistaDePrueba()) {
+/**
+ * `desmontarAlCerrar`: como en la tarjeta (`{editando && <CustomerDisplayEditor …/>}`), cerrar DESMONTA el editor; ahí se
+ * ve si una navegación retenida sobrevive al cierre.
+ */
+async function pintar(view = vistaDePrueba(), { desmontarAlCerrar = false }: { desmontarAlCerrar?: boolean } = {}) {
   const onClose = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   qc.setQueryData(CLAVE, view)
@@ -92,23 +97,35 @@ function pintar(view = vistaDePrueba()) {
       path: '/',
       element: (
         <QueryClientProvider client={qc}>
-          <CustomerDisplayEditor
-            onClose={onClose}
-            venueId="v1"
-            terminalId="t1"
-            deviceName="Caja 1"
-            venueName="Testarudo"
-            view={view}
-            pasos={DEFAULT_TPV_SETTINGS}
-            pasosConocidos
-          />
+          <Montaje onClose={onClose} view={view} desmontarAlCerrar={desmontarAlCerrar} />
         </QueryClientProvider>
       ),
     },
     { path: '/otra', element: <div>otra página</div> },
   ])
-  render(<RouterProvider router={router} />)
+  await act(async () => {
+    render(<RouterProvider router={router} future={{ v7_startTransition: true }} />)
+  })
   return { onClose, qc, router }
+}
+function Montaje({ onClose, view, desmontarAlCerrar }: { onClose: () => void; view: CustomerDisplayView; desmontarAlCerrar: boolean }) {
+  const [abierto, setAbierto] = useState(true)
+  if (!abierto) return <div>tarjeta</div>
+  return (
+    <CustomerDisplayEditor
+      onClose={() => {
+        onClose()
+        if (desmontarAlCerrar) setAbierto(false)
+      }}
+      venueId="v1"
+      terminalId="t1"
+      deviceName="Caja 1"
+      venueName="Testarudo"
+      view={view}
+      pasos={DEFAULT_TPV_SETTINGS}
+      pasosConocidos
+    />
+  )
 }
 const guardarBtn = () => screen.getByRole('button', { name: 'editor.save' })
 const bienvenida = () => screen.getByLabelText('editor.welcome')
@@ -124,7 +141,7 @@ beforeEach(() => {
 describe('CustomerDisplayEditor — guardar', () => {
   it('«Guardar» sólo se prende con un cambio de verdad', async () => {
     const user = userEvent.setup()
-    pintar()
+    await pintar()
     expect(guardarBtn()).toBeDisabled()
     await user.type(bienvenida(), ' ')
     expect(guardarBtn()).toBeDisabled()
@@ -136,7 +153,7 @@ describe('CustomerDisplayEditor — guardar', () => {
     const espera = retenida<CustomerDisplaySaved>()
     vi.mocked(saveCustomerDisplay).mockReturnValue(espera.promesa)
     const user = userEvent.setup()
-    const { onClose, qc } = pintar()
+    const { onClose, qc } = await pintar()
     await user.type(bienvenida(), 'Hola')
     await user.click(guardarBtn())
     await waitFor(() => expect(bienvenida()).toBeDisabled())
@@ -170,7 +187,7 @@ describe('CustomerDisplayEditor — guardar', () => {
       vistaDePrueba({ editToken: 'd1:5', design: { ...DISENO_DE_FABRICA, welcomeText: 'De otra persona' } }),
     )
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     await user.type(bienvenida(), 'Mío')
     await user.click(guardarBtn())
     expect(await screen.findByText('Alguien más guardó este diseño mientras lo editabas.')).toBeInTheDocument()
@@ -191,7 +208,7 @@ describe('CustomerDisplayEditor — guardar', () => {
       .mockRejectedValueOnce(conflicto('CUSTOMER_DISPLAY_BUSY', 'Otro cambio se cruzó; vuelve a intentarlo.'))
       .mockResolvedValueOnce({ editToken: 'd1:1', design: DISENO_DE_FABRICA, ficha: ficha(), assetRejected: [] })
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     await user.type(bienvenida(), 'Hola')
     await user.click(guardarBtn())
     expect(await screen.findByText('Otro cambio se cruzó; vuelve a intentarlo.')).toBeInTheDocument()
@@ -204,7 +221,7 @@ describe('CustomerDisplayEditor — guardar', () => {
   it('el dispositivo se mudó (404): el mensaje del servidor y el editor NO se cierra en silencio', async () => {
     vi.mocked(saveCustomerDisplay).mockRejectedValue({ response: { status: 404, data: { message: 'Dispositivo no encontrado' } } })
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     await user.type(bienvenida(), 'Hola')
     await user.click(guardarBtn())
     await waitFor(() =>
@@ -218,7 +235,7 @@ describe('CustomerDisplayEditor — guardar', () => {
     const subida = retenida<CustomerDisplayAsset>()
     vi.mocked(uploadCustomerDisplayLogo).mockReturnValue(subida.promesa)
     const user = userEvent.setup()
-    pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
+    await pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
     await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
     await user.upload(screen.getByTestId('customer-display-logo-input'), new File([new Uint8Array(10)], 'logo.png', { type: 'image/png' }))
     await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalled())
@@ -236,7 +253,7 @@ describe('CustomerDisplayEditor — guardar', () => {
 describe('CustomerDisplayEditor — salir y volver a fábrica', () => {
   it('cerrar sin cambios cierra; con cambios pregunta; «Seguir editando» conserva; «Salir sin guardar» cierra sin mandar nada', async () => {
     const user = userEvent.setup()
-    const { onClose } = pintar()
+    const { onClose } = await pintar()
     await user.click(screen.getByTestId('customer-display-editor-close'))
     expect(onClose).toHaveBeenCalledTimes(1)
     await user.type(screen.getByLabelText('editor.thanks'), 'Vuelve pronto')
@@ -256,7 +273,7 @@ describe('CustomerDisplayEditor — salir y volver a fábrica', () => {
   ])('🔴 tras un 409 %s, Atrás o un enlace PREGUNTAN; no se cancelan en silencio (Codex #7)', async (_n, code, mensaje) => {
     vi.mocked(saveCustomerDisplay).mockRejectedValue(conflicto(code, mensaje))
     const user = userEvent.setup()
-    const { router } = pintar()
+    const { router } = await pintar()
     await user.type(bienvenida(), 'Mío')
     await user.click(guardarBtn())
     await screen.findByText(mensaje)
@@ -272,7 +289,7 @@ describe('CustomerDisplayEditor — salir y volver a fábrica', () => {
     const espera = retenida<CustomerDisplayReset>()
     vi.mocked(resetCustomerDisplay).mockReturnValue(espera.promesa)
     const user = userEvent.setup()
-    const { router } = pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
+    const { router } = await pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
     await user.click(screen.getByRole('button', { name: 'editor.factory' }))
     await user.click(await screen.findByRole('button', { name: 'editor.factoryConfirm' }))
     await waitFor(() => expect(bienvenida()).toBeDisabled())
@@ -285,15 +302,15 @@ describe('CustomerDisplayEditor — salir y volver a fábrica', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/otra'))
   })
 
-  it('«Volver al diseño de fábrica» no aparece si ya es de fábrica', () => {
-    pintar()
+  it('«Volver al diseño de fábrica» no aparece si ya es de fábrica', async () => {
+    await pintar()
     expect(screen.queryByRole('button', { name: 'editor.factory' })).not.toBeInTheDocument()
   })
 
   it('volver a fábrica pide confirmación, manda el token y deja el borrador y la tarjeta en fábrica', async () => {
     vi.mocked(resetCustomerDisplay).mockResolvedValue({ editToken: 'd1:3', design: DISENO_DE_FABRICA, ficha: ficha() })
     const user = userEvent.setup()
-    const { qc } = pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
+    const { qc } = await pintar(vistaDePrueba({ editToken: 'd1:2', design: PROPIO }))
     await user.click(screen.getByRole('button', { name: 'editor.factory' }))
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('editor.factoryTitle')
     expect(resetCustomerDisplay).not.toHaveBeenCalled()
@@ -302,5 +319,61 @@ describe('CustomerDisplayEditor — salir y volver a fábrica', () => {
     await waitFor(() => expect(bienvenida()).toHaveValue(''))
     expect(qc.getQueryData<CustomerDisplayView>(CLAVE)).toMatchObject({ editToken: 'd1:3', design: DISENO_DE_FABRICA })
     expect(toast).toHaveBeenCalledWith({ title: 'editor.factoryDone {"name":"Caja 1"}' })
+  })
+})
+
+describe('CustomerDisplayEditor — ronda 1 de la revisión de B3', () => {
+  it('🔴 navegar mientras guarda ESPERA; al guardarse, la navegación SIGUE aunque cerrar desmonte el editor (como en la tarjeta)', async () => {
+    const espera = retenida<CustomerDisplaySaved>()
+    vi.mocked(saveCustomerDisplay).mockReturnValue(espera.promesa)
+    const user = userEvent.setup()
+    const { onClose, router } = await pintar(vistaDePrueba(), { desmontarAlCerrar: true })
+    await user.type(bienvenida(), 'Hola')
+    await user.click(guardarBtn())
+    await waitFor(() => expect(bienvenida()).toBeDisabled())
+    await act(async () => {
+      void router.navigate('/otra')
+    })
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.queryByText('editor.leaveTitle')).not.toBeInTheDocument()
+    await act(async () =>
+      espera.resolver({ editToken: 'd1:1', design: { ...DISENO_DE_FABRICA, welcomeText: 'Hola' }, ficha: ficha(), assetRejected: [] }),
+    )
+    await waitFor(() => expect(router.state.location.pathname).toBe('/otra'))
+    expect(onClose).toHaveBeenCalled()
+    expect(await screen.findByText('otra página')).toBeInTheDocument()
+  })
+
+  it('🔴 «Recargar lo guardado» mientras sube un logo: la subida que llega DESPUÉS ya no cambia el borrador', async () => {
+    vi.mocked(saveCustomerDisplay).mockRejectedValueOnce(
+      conflicto('CUSTOMER_DISPLAY_CONFLICT', 'Alguien más guardó este diseño mientras lo editabas.'),
+    )
+    vi.mocked(getCustomerDisplay).mockResolvedValue(
+      vistaDePrueba({ editToken: 'd1:5', design: { ...DISENO_DE_FABRICA, welcomeText: 'De otra persona' } }),
+    )
+    vi.mocked(medirImagen).mockResolvedValue({ ancho: 800, alto: 800 })
+    const subida = retenida<CustomerDisplayAsset>()
+    vi.mocked(uploadCustomerDisplayLogo).mockReturnValue(subida.promesa)
+    const user = userEvent.setup()
+    await pintar()
+    await user.type(bienvenida(), 'Mío')
+    await user.click(guardarBtn())
+    await screen.findByText('Alguien más guardó este diseño mientras lo editabas.')
+    await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
+    await user.upload(screen.getByTestId('customer-display-logo-input'), new File([new Uint8Array(10)], 'logo.png', { type: 'image/png' }))
+    await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: 'editor.reload' }))
+    await waitFor(() => expect(bienvenida()).toHaveValue('De otra persona'))
+    await act(async () =>
+      subida.resolver({ assetId: 'tarde', url: 'https://storage.googleapis.com/b/t.png', sha256: 'h', width: 800, height: 800 }),
+    )
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'editor.logoVenue' })).toBeEnabled())
+    expect(screen.getByRole('radio', { name: 'editor.logoVenue' })).toBeChecked()
+    // Más que el debounce de la vista previa, dentro de `act`: la que salga se resuelve aquí y no ensucia la salida.
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 400))
+    })
+    expect(vi.mocked(previewCustomerDisplay).mock.calls.some(c => c[2].logoAssetId === 'tarde')).toBe(false)
+    expect(guardarBtn()).toBeDisabled() // nada cambió respecto a lo recargado
   })
 })

@@ -146,5 +146,8 @@
     "uncertainApplied": "Ya tienen el diseño de {{name}}: {{names}}.",
     "uncertainNotApplied": "Todavía no tienen el diseño de {{name}}: {{names}}. Si quieres, vuelve a elegirlas y copia.",
     "uncertainUnchecked": "No pudimos revisar {{names}}: mira su tarjeta antes de volver a copiar."
+  },
+  "card": {
+    "thumbnailLabel": "Vista previa de la pantalla del cliente"
   }
 }

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { VenueTierBadge } from '@/components/venue-tier-badge'
 import { cn } from '@/lib/utils'
-import { contarCaracteres, limitarTexto, MAX_TEXTO, MUESTRAS_DE_COLOR, type BorradorDelEditor } from './model'
+import { contarCaracteres, limitarTexto, MAX_TEXTO, MUESTRAS_DE_COLOR, PALETA_DE_LA_TABLET, type BorradorDelEditor } from './model'
 
 function Seccion({
   icono,
@@ -103,10 +103,10 @@ export function BrandFields({ borrador, onCambio, bloqueado, logo, hex, onHex, h
                   className={cn(
                     'h-8 w-8 rounded-full border-2 border-background ring-1 ring-input group-focus-visible:ring-2 group-focus-visible:ring-ring',
                     elegida && 'ring-2 ring-foreground',
-                    m.color === null && 'bg-foreground',
                   )}
-                  // Las muestras son colores del APARATO (dato), no de la interfaz.
-                  style={m.color ? { backgroundColor: m.color } : undefined}
+                  // Las muestras son colores del APARATO (dato), no de la interfaz. «El de siempre» es el acento que la tablet
+                  // usa sin color propio, y depende del tema elegido para ELLA (no del tema del dashboard).
+                  style={{ backgroundColor: m.color ?? PALETA_DE_LA_TABLET[borrador.theme].acento }}
                 />
               </button>
             )

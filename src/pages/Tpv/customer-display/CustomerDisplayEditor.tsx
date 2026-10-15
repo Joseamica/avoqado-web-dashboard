@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -178,6 +178,12 @@ export function CustomerDisplayEditor({
     tomarBase(r.design, r.editToken)
     setAviso(null)
     toast({ title: t(view.device.designVersion === null ? 'editor.savedNeedsApp' : 'editor.saved', { name: deviceName }) })
+    // 🔴 Una navegación detenida mientras se guardaba sigue AHORA: cerrar desmonta el editor (la tarjeta lo monta con
+    // `{editando && …}`) y con él su `useBlocker`, así que la navegación retenida se perdería sin avisar.
+    // Se lee la salida VIGENTE: tras un resultado incierto, este cierre corre desde un callback creado antes de que se
+    // detuviera la navegación (la relectura tardó), y su `salida` diría que no hay nada retenido.
+    const ahora = salidaVigente.current
+    if (ahora.held) ahora.leave()
     onClose()
   }
   const confirmarFabrica = (r: Pick<CustomerDisplayView, 'editToken' | 'design' | 'ficha'>) => {
@@ -235,6 +241,10 @@ export function CustomerDisplayEditor({
   // `saving` hace ESPERAR la navegación mientras se guarda (o se reconcilia), restablece o recarga; si al terminar no quedan
   // cambios, sigue sola.
   const salida = useLeaveGuard({ dirty: sucio, saving: bloqueado, conflict: false })
+  const salidaVigente = useRef(salida)
+  useEffect(() => {
+    salidaVigente.current = salida
+  })
 
   const pedirCierre = () => {
     if (bloqueado) return
@@ -251,6 +261,12 @@ export function CustomerDisplayEditor({
     if (salida.asking) salida.stay()
   }
 
+  /** Como en el prototipo aprobado: lo que se escribe se ve en SU momento (el de llegada en «En espera», el otro en «Gracias»). */
+  const alCambiarTexto = (parcial: Partial<BorradorDelEditor>) => {
+    cambiar(parcial)
+    if ('thanksText' in parcial) setMomento('gracias')
+    else if ('welcomeText' in parcial) setMomento('espera')
+  }
   const alEscribirHex = (texto: string) => {
     setHex(texto)
     if (texto.trim() === '') cambiar({ accentColor: null })
@@ -307,6 +323,13 @@ export function CustomerDisplayEditor({
         title={t('editor.title', { name: deviceName })}
         contentClassName="bg-muted/30"
         closeButtonTestId="customer-display-editor-close"
+        // El foco entra al contenedor del modal (sin enfocar un campo ni abrir el teclado). Pasar `onOpenAutoFocus` también le
+        // quita el contorno: sin él, cuando la vista previa del montaje quita «Actualizando…», Radix enfoca el contenedor y lo
+        // enmarcaba en azul. Mismo patrón que `src/pages/StaffPay/foco.ts` y `FloorPlanEditor.tsx`.
+        onOpenAutoFocus={e => {
+          e.preventDefault()
+          ;(e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true })
+        }}
         actions={
           <Button type="button" onClick={() => guardar.mutate(borrador)} disabled={!puedeGuardar} data-tour="customer-display-editor-save">
             {guardar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
@@ -369,7 +392,7 @@ export function CustomerDisplayEditor({
                   />
                 }
               />
-              <TextFields borrador={borrador} onCambio={cambiar} bloqueado={bloqueado} />
+              <TextFields borrador={borrador} onCambio={alCambiarTexto} bloqueado={bloqueado} />
               <PromosTeaser incluidas={view.entitlements.slides} />
               {!esDisenoDeFabrica(base.design) && (
                 <Button
@@ -416,7 +439,9 @@ export function CustomerDisplayEditor({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={seguirEditando}>{t('editor.leaveStay')}</AlertDialogCancel>
-            <AlertDialogAction onClick={salirSinGuardar}>{t('editor.leaveGo')}</AlertDialogAction>
+            <AlertDialogAction onClick={salirSinGuardar} data-tour="customer-display-editor-leave-confirm">
+              {t('editor.leaveGo')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -435,6 +460,7 @@ export function CustomerDisplayEditor({
                 fabrica.mutate()
               }}
               disabled={fabrica.isPending}
+              data-tour="customer-display-editor-factory-confirm"
             >
               {fabrica.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
               {t('editor.factoryConfirm')}
