@@ -19,18 +19,24 @@ export interface AcuseDeLaPantalla {
   unsupportedSchema: boolean
 }
 
-/** El server guarda el acuse como JSON libre (`unknown`): uno ilegible no puede convertirse en «Mostrado». */
+/** Una fecha ISO legible; cualquier otra cosa (vacía, basura, `2026-13-45`) no es evidencia: null. */
+const fechaISO = (v: unknown): string | null => (typeof v === 'string' && DateTime.fromISO(v).isValid ? v : null)
+
+/**
+ * El server guarda el acuse como JSON libre (`unknown`): uno ilegible no puede convertirse en «Mostrado». Sin un
+ * `receivedAt` ISO válido no hay acuse (B2 r2): esa fecha es la que se muestra, y no se inventa.
+ */
 export function leerAcuse(raw: unknown): AcuseDeLaPantalla | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
   const a = raw as Record<string, unknown>
-  if (typeof a.fingerprint !== 'string' || typeof a.receivedAt !== 'string') return null
-  const texto = (v: unknown) => (typeof v === 'string' ? v : null)
+  const receivedAt = fechaISO(a.receivedAt)
+  if (typeof a.fingerprint !== 'string' || receivedAt === null) return null
   const cuenta = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0)
   return {
     fingerprint: a.fingerprint,
-    receivedAt: a.receivedAt,
-    storedAt: texto(a.storedAt),
-    shownAt: texto(a.shownAt),
+    receivedAt,
+    storedAt: fechaISO(a.storedAt),
+    shownAt: fechaISO(a.shownAt),
     surface: a.surface === 'presentation' || a.surface === 'activity' || a.surface === 'kiosk' ? a.surface : null,
     imagesPending: cuenta(a.imagesPending),
     imagesFailed: cuenta(a.imagesFailed),

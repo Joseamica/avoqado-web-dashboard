@@ -47,6 +47,12 @@ describe('errores de la pantalla del cliente', () => {
       expect(resultadoIncierto(reintentado(error409('CUSTOMER_DISPLAY_CONFLICT'), false))).toBe(false)
       expect(resultadoIncierto(reintentado(conEstado(429), 'true'))).toBe(false) // sólo el `true` que pone api.ts
     })
+    it('🔴 defensa (B2 r2): un 409 incierto NUNCA tiene clase de conflicto, aunque quien llama pregunte en el orden equivocado', () => {
+      expect(claseDeConflicto(reintentado(error409('CUSTOMER_DISPLAY_CONFLICT')))).toBeNull()
+      expect(claseDeConflicto(reintentado(error409('CUSTOMER_DISPLAY_BUSY')))).toBeNull()
+      expect(claseDeConflicto(error409('CUSTOMER_DISPLAY_BUSY'))).toBe('ocupado')
+      expect(claseDeConflicto(reintentado(error409('CUSTOMER_DISPLAY_CONFLICT'), false))).toBe('conflicto')
+    })
     it('el resto de los rechazos de un reintento siguen confirmados (el mismo cuerpo también se habría rechazado)', () => {
       for (const s of [400, 401, 403, 404, 422]) expect(resultadoIncierto(reintentado(conEstado(s))), String(s)).toBe(false)
     })

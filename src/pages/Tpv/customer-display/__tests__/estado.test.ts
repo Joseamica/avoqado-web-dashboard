@@ -71,6 +71,14 @@ describe('leerAcuse (Review Focus 6)', () => {
       shownAt: null,
     })
   })
+  it('🔴 fechas que no son ISO válidas no son evidencia (B2 r2): sin `receivedAt` legible no hay acuse; storedAt/shownAt ilegibles ⇒ null', () => {
+    for (const malo of ['', '   ', 'basura', '2026-13-45T99:00:00Z']) expect(leerAcuse(acuse({ receivedAt: malo })), malo).toBeNull()
+    expect(leerAcuse(acuse({ storedAt: 'basura', shownAt: '' }))).toMatchObject({ storedAt: null, shownAt: null })
+    const h = (extra: Record<string, unknown>) => estadoDeLaPantalla(vista({ ack: acuse(extra) })).historial
+    expect(h({ storedAt: 'ayer', shownAt: null })).toEqual({ tipo: 'recibido' })
+    expect(h({ shownAt: 'hace rato' })).toEqual({ tipo: 'guardado', fecha: '2026-10-14T20:02:00.000Z' })
+    expect(h({ receivedAt: 'nunca' })).toEqual({ tipo: 'sinAcuse' })
+  })
 })
 
 describe('estadoDeLaPantalla — histórico (sólo con evidencia)', () => {

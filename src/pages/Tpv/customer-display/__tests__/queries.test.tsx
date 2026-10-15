@@ -91,6 +91,32 @@ describe('useFichaPreview (Review Focus 4)', () => {
     expect(result.current.ficha.fingerprint).toBe('inicial')
     expect(result.current.cargando).toBe(false)
   })
+
+  it('🔴 el ERROR de una solicitud vieja que llega después de que la vigente tuvo éxito no se pinta (B2 r2)', async () => {
+    const pendientes = retenerPreviews()
+    const { result, rerender } = montar()
+    await waitFor(() => expect(pendientes.has(1)).toBe(true))
+    rerender({ c: cuerpo('B') })
+    await waitFor(() => expect(pendientes.has(2)).toBe(true))
+    await act(async () => pendientes.get(2)!.ok(ficha('fp-B')))
+    await waitFor(() => expect(result.current.ficha.fingerprint).toBe('fp-B'))
+    await act(async () =>
+      pendientes.get(1)!.falla({ response: { status: 400, data: { message: 'El texto no puede pasar de 40 caracteres' } } }),
+    )
+    expect(result.current.error).toBeNull()
+    expect(result.current.ficha.fingerprint).toBe('fp-B')
+    expect(result.current.cargando).toBe(false)
+  })
+
+  it('🔴 la vigencia se decide con el número que MANDAMOS: si el server no lo devuelve, la vigente igual se pinta y deja de cargar (B2 r2)', async () => {
+    vi.mocked(previewCustomerDisplay).mockImplementation(
+      async () => ({ ficha: ficha('fp-sin-eco'), assetRejected: [] }) as unknown as CustomerDisplayPreview,
+    )
+    const { result } = montar()
+    await waitFor(() => expect(result.current.ficha.fingerprint).toBe('fp-sin-eco'))
+    expect(result.current.cargando).toBe(false)
+    expect(result.current.error).toBeNull()
+  })
 })
 
 describe('useCopyTargets (datos acotados)', () => {

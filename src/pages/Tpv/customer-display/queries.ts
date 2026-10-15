@@ -65,7 +65,8 @@ export function useFichaPreview(entrada: {
     setCargando(true)
     previewCustomerDisplay(venueId, terminalId, JSON.parse(claveEstable) as CustomerDisplayDraft, seq)
       .then(r => {
-        if (!secuencia.current.esLaVigente(r.previewSeq)) return
+        // El número que MANDAMOS (el del cierre), no el eco del server: si el eco faltara, `cargando` se quedaría prendido.
+        if (!secuencia.current.esLaVigente(seq)) return
         setResultado({ ficha: r.ficha, assetRejected: r.assetRejected })
         setError(null)
         setCargando(false)

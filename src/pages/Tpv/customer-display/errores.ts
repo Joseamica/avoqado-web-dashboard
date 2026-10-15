@@ -18,11 +18,11 @@ export type ClaseDeConflicto = 'conflicto' | 'ocupado'
  * 🔴 ORDEN obligatorio en quien maneja un error de escritura (editor B3, copia B4): primero `resultadoIncierto`, DESPUÉS
  * esta función. Un 409 de un reintento automático también es un 409, pero no prueba que «alguien más» guardó: el token
  * pudo cambiar por nuestro PRIMER intento, cuya respuesta se perdió. Ése se reconcilia como incierto, nunca se anuncia
- * como conflicto ajeno.
+ * como conflicto ajeno. Defensa (B2 r2): un 409 incierto devuelve null aquí, así que ni el orden equivocado lo anuncia.
  */
 export function claseDeConflicto(error: unknown): ClaseDeConflicto | null {
   const r = respuesta(error)
-  if (r?.status !== 409) return null
+  if (r?.status !== 409 || resultadoIncierto(error)) return null
   return r.data?.code === 'CUSTOMER_DISPLAY_BUSY' ? 'ocupado' : 'conflicto'
 }
 
