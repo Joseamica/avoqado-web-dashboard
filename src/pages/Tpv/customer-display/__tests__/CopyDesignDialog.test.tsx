@@ -506,6 +506,109 @@ describe('CopyDesignDialog', () => {
     ])
   })
 
+  it('🔴 sin Pro, un destino que CONSERVA sus imágenes y su interruptor de promos tras la copia cuenta como «ya lo tiene» (la regla del server)', async () => {
+    const server = servidorConMemoria()
+    server.disenos.barra = { ...DISENO_DE_FABRICA, slides: [{ assetId: 's-barra' }], showPromotions: true }
+    vi.mocked(copyCustomerDisplay).mockImplementation(async (_v, _origen, destinos) => {
+      // Sin Pro el server copia marca, textos, logo y segundos; las imágenes y el interruptor del DESTINO se quedan.
+      for (const d of destinos) {
+        const antes = server.disenos[d.terminalId]
+        server.disenos[d.terminalId] = { ...ORIGEN.design, slides: antes.slides, showPromotions: antes.showPromotions }
+        server.tokens[d.terminalId] = 'cdd-9:1'
+      }
+      throw new Error('Network Error')
+    })
+    const user = userEvent.setup()
+    pintar()
+    await user.click(await screen.findByRole('checkbox', { name: 'Barra' }))
+    await confirmar(user, 1)
+    expect(await screen.findByText('copy.uncertainApplied {"name":"Caja 1","names":"Barra"}')).toBeInTheDocument()
+    expect(screen.queryByText(/copy\.uncertainNotApplied/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 si la revisión misma truena (una vista sin `entitlements`), no se queda en «Revisando…»: todos «no se pudo revisar»', async () => {
+    const server = servidorConMemoria()
+    vi.mocked(copyCustomerDisplay).mockImplementation(async (_v, _origen, destinos) => {
+      server.aplicarCopia(destinos)
+      throw new Error('Network Error')
+    })
+    vi.mocked(getCustomerDisplay).mockImplementation(
+      async (_v, id) => ({ ...vistaDe(id, server.disenos[id], server.tokens[id]), entitlements: undefined }) as unknown as CustomerDisplayView,
+    )
+    const user = userEvent.setup()
+    pintar()
+    await elegirBarraYCaja2(user)
+    await confirmar(user, 2)
+    expect(await screen.findByText('copy.uncertainUnchecked {"names":"Barra y Caja 2"}')).toBeInTheDocument()
+    expect(screen.queryByText('copy.uncertainChecking')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Barra' })).toBeEnabled())
+    expect(copyCustomerDisplay).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 «Cargar más» no cancela la relectura de la lista (retenida): queda bloqueado y los tokens nuevos sí llegan', async () => {
+    const tokens: Record<string, string> = { barra: 'factory', 'caja-2': 'd2:7' }
+    const relectura = retenida<void>()
+    let retener = false
+    vi.mocked(listCustomerDisplayDevices).mockImplementation(async (_v, { cursor }) => {
+      if (!cursor && retener) await relectura.promesa
+      return cursor
+        ? { total: 4, nextCursor: null, devices: [fila('caja-2', { name: 'Caja 2', editToken: tokens['caja-2'] })] }
+        : { total: 4, nextCursor: 'caja-1', devices: [fila('barra', { name: 'Barra', editToken: tokens.barra }), fila('caja-1', { name: 'Caja 1' })] }
+    })
+    // Alguien guardó en Barra: 409 confirmado y la lista se relee (sin que la mutación quede pendiente).
+    vi.mocked(copyCustomerDisplay).mockImplementationOnce(async () => {
+      tokens.barra = 'b5:1'
+      retener = true
+      throw {
+        response: { status: 409, data: { message: 'Alguien más cambió el diseño de algún dispositivo mientras copiabas.', code: 'CUSTOMER_DISPLAY_CONFLICT', details: { conflicts: ['barra'] } } },
+      }
+    })
+    const user = userEvent.setup()
+    pintar()
+    await user.click(await screen.findByRole('checkbox', { name: 'Barra' }))
+    await confirmar(user, 1)
+    await screen.findByText('Alguien más cambió el diseño de algún dispositivo mientras copiabas.')
+    const cargarMas = screen.getByRole('button', { name: 'copy.loadMore' })
+    await waitFor(() => expect(cargarMas).toBeDisabled())
+    await user.click(cargarMas) // un toque aquí no debe cancelar la relectura
+    retener = false
+    await act(async () => relectura.resolver())
+    await waitFor(() => expect(within(renglon('Barra')).getByText('copy.rowReplace')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'copy.loadMore' })).toBeEnabled())
+    await user.click(screen.getByRole('checkbox', { name: 'Barra' }))
+    await confirmar(user, 1)
+    await waitFor(() =>
+      expect(copyCustomerDisplay).toHaveBeenLastCalledWith('v1', { terminalId: 'caja-1', editToken: 'd1:2' }, [{ terminalId: 'barra', editToken: 'b5:1' }]),
+    )
+  })
+
+  it('409 por destinos: se dice CUÁLES se quitaron de lo elegido, con los nombres guardados al elegir', async () => {
+    dosPaginas()
+    vi.mocked(copyCustomerDisplay).mockRejectedValue({
+      response: { status: 409, data: { message: 'Alguien más cambió el diseño de algún dispositivo mientras copiabas.', code: 'CUSTOMER_DISPLAY_CONFLICT', details: { conflicts: ['barra', 'caja-2'] } } },
+    })
+    const user = userEvent.setup()
+    pintar()
+    await elegirBarraYCaja2(user)
+    await user.click(screen.getByRole('checkbox', { name: 'Mostrador' }))
+    await confirmar(user, 3)
+    expect(await screen.findByText('copy.conflictRemoved {"names":"Barra y Caja 2"}')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Mostrador' })).toBeChecked()
+  })
+
+  it('el aviso de éxito no promete de más: si alguna copiada aún no tiene la app que muestra diseños, lo dice', async () => {
+    dosPaginas()
+    vi.mocked(copyCustomerDisplay).mockResolvedValue({ copied: ['barra', 'mostrador'], promosOmitted: false })
+    const user = userEvent.setup()
+    const { onClose } = pintar()
+    await user.click(await screen.findByRole('checkbox', { name: 'Barra' }))
+    await user.click(screen.getByRole('button', { name: 'copy.loadMore' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Mostrador' })) // designVersion null: «Aún sin la app…»
+    await confirmar(user, 2)
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(toast).toHaveBeenCalledWith({ title: 'copy.doneNeedsApp {"names":"Barra y Mostrador"}', description: undefined })
+  })
+
   it('tope de 20: con 20 elegidos, el resto no se puede marcar y se explica', async () => {
     const muchas = Array.from({ length: 22 }, (_, i) => fila(`d${String(i).padStart(2, '0')}`))
     vi.mocked(listCustomerDisplayDevices).mockResolvedValue({ total: 22, nextCursor: null, devices: muchas })

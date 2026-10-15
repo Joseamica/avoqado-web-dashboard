@@ -141,11 +141,13 @@
     "error": "No se pudo copiar.",
     "conflictBack": "Volver a la tarjeta",
     "originChanged": "El diseño de {{name}} cambió desde que abriste esta ventana. Ciérrala y vuelve a abrirla para copiar la versión nueva.",
-    "uncertain": "Se perdió la respuesta del servidor. Para no copiar dos veces, no lo volvimos a intentar: revisamos cada caja.",
+    "uncertain": "Se perdió la respuesta del servidor y no sabemos si se copió. Revisamos cada caja:",
     "uncertainChecking": "Revisando cada caja…",
     "uncertainApplied": "Ya tienen el diseño de {{name}}: {{names}}.",
     "uncertainNotApplied": "Todavía no tienen el diseño de {{name}}: {{names}}. Si quieres, vuelve a elegirlas y copia.",
-    "uncertainUnchecked": "No pudimos revisar {{names}}: mira su tarjeta antes de volver a copiar."
+    "uncertainUnchecked": "No pudimos revisar {{names}}: mira su tarjeta antes de volver a copiar.",
+    "conflictRemoved": "Quitamos de lo elegido: {{names}}. La lista ya muestra su diseño actual; si quieres, vuelve a elegirlas.",
+    "doneNeedsApp": "Copiado a {{names}}. Las cajas que aún no tienen la app actualizada lo mostrarán cuando la actualicen."
   },
   "card": {
     "thumbnailLabel": "Vista previa de la pantalla del cliente"

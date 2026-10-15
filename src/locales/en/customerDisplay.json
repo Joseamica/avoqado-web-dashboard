@@ -141,11 +141,13 @@
     "error": "Couldn't copy.",
     "conflictBack": "Back to the card",
     "originChanged": "{{name}}'s design changed since you opened this window. Close it and open it again to copy the new version.",
-    "uncertain": "The server's response was lost. To avoid copying twice, we didn't try again: we checked each register.",
+    "uncertain": "We lost the server's response and don't know if it was copied. We checked each register:",
     "uncertainChecking": "Checking each register…",
     "uncertainApplied": "Already have {{name}}'s design: {{names}}.",
     "uncertainNotApplied": "Don't have {{name}}'s design yet: {{names}}. If you want, select them again and copy.",
-    "uncertainUnchecked": "We couldn't check {{names}}: look at their card before copying again."
+    "uncertainUnchecked": "We couldn't check {{names}}: look at their card before copying again.",
+    "conflictRemoved": "We removed from your selection: {{names}}. The list now shows their current design; select them again if you want.",
+    "doneNeedsApp": "Copied to {{names}}. Registers that don't have the updated app yet will show it once they update."
   },
   "card": {
     "thumbnailLabel": "Customer display preview"

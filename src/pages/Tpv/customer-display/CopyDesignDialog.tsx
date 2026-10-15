@@ -36,6 +36,14 @@ interface DestinoElegido {
   terminalId: string
   editToken: string
   name: string
+  /** La fila no tiene todavía la app que muestra diseños (`designVersion === null`, «Aún sin la app…»). */
+  sinApp: boolean
+}
+
+/** Un aviso rojo: el texto del server tal cual y, si fue un 409 de destinos, a cuáles se quitó de lo elegido. */
+interface Aviso {
+  mensaje: string
+  quitados: string[]
 }
 
 /** Tras una respuesta perdida: primero se revisa cada destino, luego se dice qué quedó en cada uno. */
@@ -115,7 +123,7 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
   const destinos = useCopyTargets(venueId, true)
   const [elegidos, setElegidos] = useState<Map<string, DestinoElegido>>(() => new Map())
   const [confirmando, setConfirmando] = useState(false)
-  const [aviso, setAviso] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<Aviso | null>(null)
   const [origenRechazado, setOrigenRechazado] = useState(false)
   const [reconciliacion, setReconciliacion] = useState<Reconciliacion | null>(null)
 
@@ -153,14 +161,20 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
   const reconciliar = async (enviados: DestinoElegido[]) => {
     setElegidos(new Map())
     setReconciliacion({ fase: 'revisando' })
-    const [, lecturas] = await Promise.all([
-      queryClient.invalidateQueries({ queryKey: clavesDeLaPantalla.dispositivos(venueId) }),
-      enTandas(enviados, d => releerDestino(d.terminalId)),
-    ])
-    const releidos: DestinoReleido[] = lecturas.map(l =>
-      l.status === 'fulfilled' ? { design: l.value.design, conImagenes: l.value.entitlements.slides } : null,
-    )
-    setReconciliacion({ fase: 'revisado', ...revisarDestinos(enviados, releidos, origen.design) })
+    try {
+      const [, lecturas] = await Promise.all([
+        queryClient.invalidateQueries({ queryKey: clavesDeLaPantalla.dispositivos(venueId) }),
+        enTandas(enviados, d => releerDestino(d.terminalId)),
+      ])
+      const releidos: DestinoReleido[] = lecturas.map(l =>
+        l.status === 'fulfilled' ? { design: l.value.design, conImagenes: l.value.entitlements.slides } : null,
+      )
+      setReconciliacion({ fase: 'revisado', ...revisarDestinos(enviados, releidos, origen.design) })
+    } catch {
+      // 🔴 TanStack se traga lo que truena dentro de `onError`: sin esto, «Revisando…» se quedaría para siempre. Si la
+      // revisión misma falla (p. ej. una vista con otra forma), nada prueba qué quedó: todos van a «no se pudo revisar».
+      setReconciliacion({ fase: 'revisado', conElDiseno: [], sinElDiseno: [], sinRevisar: enviados.map(d => d.name) })
+    }
   }
 
   const copiar = useMutation({
@@ -179,8 +193,10 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
       for (const id of r.copied) void queryClient.invalidateQueries({ queryKey: clavesDeLaPantalla.vista(venueId, id) })
       const copiados = r.copied.map(id => destinosElegidos.find(d => d.terminalId === id)?.name ?? id)
       const teniaPromos = origen.design.slides.length > 0 || origen.design.showPromotions
+      // «Cada una lo mostrará en cuanto se conecte» es falso para una caja sin la app que muestra diseños.
+      const algunaSinApp = destinosElegidos.some(d => d.sinApp && r.copied.includes(d.terminalId))
       toast({
-        title: t('copy.done', { names: nombres(copiados) }),
+        title: t(algunaSinApp ? 'copy.doneNeedsApp' : 'copy.done', { names: nombres(copiados) }),
         description: r.promosOmitted && teniaPromos ? t('copy.promosOmitted') : undefined,
       })
       setConfirmando(false)
@@ -192,8 +208,9 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
       // pudo chocar con NUESTRA primera copia, cuya respuesta se perdió.
       if (resultadoIncierto(error)) return reconciliar(destinosElegidos)
       if (claseDeConflicto(error)) {
-        setAviso(mensajeDelServidor(error, t('copy.error')))
+        const mensaje = mensajeDelServidor(error, t('copy.error'))
         if (conflictoDelOrigen(error)) {
+          setAviso({ mensaje, quitados: [] })
           // El origen cambió: la foto ya no vale. Se bloquea «Copiar» y la tarjeta relee su diseño.
           setOrigenRechazado(true)
           void queryClient.invalidateQueries({ queryKey: clavesDeLaPantalla.vista(venueId, origen.terminalId) })
@@ -202,6 +219,8 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
         // Todo-o-nada: no se escribió nada. Sólo los destinos que chocaron salen de lo elegido; la lista se relee para
         // que, si la persona los vuelve a elegir, viajen con su token nuevo. Un «ocupado» no trae destinos: se queda todo.
         const enConflicto = destinosEnConflicto(error)
+        // Los nombres que se guardaron AL ELEGIR (los de lo que se mandó), no los de la página visible.
+        setAviso({ mensaje, quitados: enConflicto.map(id => destinosElegidos.find(d => d.terminalId === id)?.name ?? id) })
         setElegidos(prev => {
           const siguiente = new Map(prev)
           for (const id of enConflicto) siguiente.delete(id)
@@ -255,7 +274,8 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
             <Alert variant="destructive" data-tour="customer-display-copy-notice">
               <AlertCircle aria-hidden="true" />
               <AlertDescription className="space-y-2">
-                {aviso && <p>{aviso}</p>}
+                {aviso && <p>{aviso.mensaje}</p>}
+                {aviso && aviso.quitados.length > 0 && <p>{t('copy.conflictRemoved', { names: nombres(aviso.quitados) })}</p>}
                 {origenCambiado && (
                   <>
                     {!origenRechazado && <p>{t('copy.originChanged', { name: origen.name })}</p>}
@@ -343,7 +363,9 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
                           deshabilitada={bloqueado || ocupado}
                           nombre={f.name}
                           // 🔴 Se guarda la fila QUE SE TIENE EN LA MANO, con su token de este momento.
-                          onCambio={v => alternar({ terminalId: f.id, editToken: f.editToken, name: f.name }, v)}
+                          onCambio={v =>
+                            alternar({ terminalId: f.id, editToken: f.editToken, name: f.name, sinApp: f.designVersion === null }, v)
+                          }
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{f.name}</span>
@@ -367,7 +389,10 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
                   size="sm"
                   className="cursor-pointer"
                   onClick={() => destinos.fetchNextPage()}
-                  disabled={destinos.isFetchingNextPage}
+                  // 🔴 `fetchNextPage` cancela por defecto una relectura en camino (`cancelRefetch: true`) y pega la página 2
+                  // a la página 1 VIEJA: tras un 409 o una respuesta perdida, las filas se quedarían con los tokens de antes.
+                  // Se bloquea mientras la lista se relee (y mientras se copia o se revisa), en vez de ignorar el toque.
+                  disabled={ocupado || destinos.isFetching}
                   data-tour="customer-display-copy-load-more"
                 >
                   {destinos.isFetchingNextPage ? t('copy.loadingMore') : t('copy.loadMore')}
