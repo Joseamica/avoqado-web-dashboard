@@ -336,6 +336,16 @@
     "subtitle": "Administra metas, comisiones, terminal y catálogo",
     "pageTitle": "Configuración",
     "pageSubtitle": "Administra metas, comisiones, terminal y catálogo",
+    "saveResult": {
+      "title": "Configuración guardada",
+      "all_one": "Se aplicó a {{count}} terminal.",
+      "all_other": "Se aplicó a {{count}} terminales.",
+      "partial": "Se aplicó a {{updated}} terminales. {{omitted}} cambiaron de sucursal mientras guardabas y no recibieron el cambio.",
+      "noneTitle": "No se aplicó a ninguna terminal",
+      "none_one": "La terminal cambió de sucursal mientras guardabas. Recarga la página y vuelve a intentarlo.",
+      "none_other": "Las {{count}} terminales cambiaron de sucursal mientras guardabas. Recarga la página y vuelve a intentarlo.",
+      "legacy": "Los cambios se sincronizarán con las terminales."
+    },
     "tabs": {
       "general": "General",
       "organizacional": "Organizacional",

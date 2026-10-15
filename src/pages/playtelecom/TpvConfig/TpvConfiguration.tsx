@@ -47,6 +47,7 @@ import { useAccess } from '@/hooks/use-access'
 import { tpvSettingsService, type VenueTpvSettings } from '@/services/tpv-settings.service'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
+import { resumenDeSincronizacion } from './resumenDeSincronizacion'
 import { getTpvMessages } from '@/services/tpv-messages.service'
 import { useToast } from '@/hooks/use-toast'
 import { useStoresStorePerformance } from '@/hooks/useStoresAnalysis'
@@ -218,19 +219,36 @@ export function TpvConfiguration() {
       const parsedRadius = parseInt(geofenceRadiusStr, 10)
       const geofenceRadiusMeters: number | null =
         geofenceRadiusStr.trim() === '' || isNaN(parsedRadius) ? null : Math.min(5000, Math.max(50, parsedRadius))
-      await tpvSettingsService.updateVenueSettings(venueId, {
+      return tpvSettingsService.updateVenueSettings(venueId, {
         ...modules,
         expectedCheckInTime: expectedCheckInTimeVal,
         latenessThresholdMinutes,
         geofenceRadiusMeters,
       })
     },
-    onSuccess: () => {
+    onSuccess: resultado => {
       queryClient.invalidateQueries({ queryKey: ['venue', venueId, 'tpv-settings'] })
       setHasChanges(false)
+      // Spec «pantalla del cliente» §13: decir a cuántas terminales llegó, y decirlo fuerte cuando no llegó a ninguna.
+      const resumen = resumenDeSincronizacion(resultado)
+      if (resumen.tipo === 'ninguna') {
+        toast({
+          variant: 'destructive',
+          title: t('playtelecom:tpvConfig.saveResult.noneTitle'),
+          description: t('playtelecom:tpvConfig.saveResult.none', { count: resumen.omitidas }),
+        })
+        return
+      }
       toast({
-        title: t('playtelecom:tpvConfig.saveSuccess', { defaultValue: 'Configuracion guardada' }),
-        description: t('playtelecom:tpvConfig.saveSuccessDesc', { defaultValue: 'Los cambios se sincronizaran con todas las terminales.' }),
+        title: t('playtelecom:tpvConfig.saveResult.title'),
+        description:
+          resumen.tipo === 'todas'
+            ? t('playtelecom:tpvConfig.saveResult.all', { count: resumen.actualizadas })
+            : resumen.tipo === 'parcial'
+              ? t('playtelecom:tpvConfig.saveResult.partial', { updated: resumen.actualizadas, omitted: resumen.omitidas })
+              : resumen.tipo === 'desconocido'
+                ? t('playtelecom:tpvConfig.saveResult.legacy')
+                : undefined,
       })
     },
     onError: (error: any) => {

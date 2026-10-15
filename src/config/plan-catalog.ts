@@ -91,6 +91,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Pago al personal: un recibo por persona con clases, comisiones y propinas (fase 3, decisión D3 del 5-oct-2026).
       // Pro; suelta $199/mes por sucursal. Espejo de LEGACY_PLAN_CODES del server, por nombre exacto.
       'SERVICE_PAY',
+      // Promos en reposo de la pantalla del cliente (spec «personalizar la pantalla del cliente», D7, 16-sep-2026). Pro;
+      // espejo de LEGACY_PLAN_CODES del server. 🔴 Sin anunciar: `FUNCIONES_SIN_LANZAR` la esconde de la tabla hasta F3.
+      'CUSTOMER_DISPLAY_PROMOS',
     ],
   },
   {
