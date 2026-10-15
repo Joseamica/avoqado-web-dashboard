@@ -217,6 +217,22 @@ describe('CheckoutStepsSection', () => {
     expect(screen.queryByText('steps.tipMax {"max":6}')).not.toBeInTheDocument()
   })
 
+  it('🔴 si la lista se llena POR OTRO LADO con un valor ya escrito, «Agregar» también se apaga y nada viaja', async () => {
+    permisos.add('tpv-settings:read').add('tpv-settings:update')
+    guardado = { ...guardado, tipSuggestions: [5, 10, 15, 20, 25], defaultTipPercentage: null }
+    const user = userEvent.setup()
+    const { qc } = pintar()
+    await user.type(await screen.findByLabelText('steps.tipAddLabel'), '35')
+    expect(screen.getByRole('button', { name: 'steps.tipAdd' })).toBeEnabled()
+    // Otra pestaña (o el POS) llegó primero al sexto porcentaje y la ficha se relee.
+    act(() => {
+      qc.setQueryData<TpvSettings>(['tpvSettings', 't1'], { ...guardado, tipSuggestions: [5, 10, 15, 20, 25, 30] })
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'steps.tipAdd' })).toBeDisabled())
+    expect(screen.getByText('steps.tipMax {"max":6}')).toBeInTheDocument()
+    expect(servicio.updateSettings).not.toHaveBeenCalled()
+  })
+
   it('porcentajes: agregar uno válido manda la lista ordenada; uno inválido se explica y no se manda', async () => {
     permisos.add('tpv-settings:read').add('tpv-settings:update')
     const user = userEvent.setup()
