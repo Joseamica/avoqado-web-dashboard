@@ -165,7 +165,7 @@
   },
   "steps": {
     "title": "Pasos del cobro en este dispositivo",
-    "noReadPermission": "Pídele a tu gerente o administrador que te dé acceso a los pasos del cobro.",
+    "noReadPermission": "Tu rol no tiene acceso a los pasos del cobro de este dispositivo. Pídeselo al dueño del negocio.",
     "readOnly": "Sólo puedes ver estos ajustes.",
     "loadError": "No pudimos cargar los pasos del cobro.",
     "tip": "Pedir propina",
@@ -177,6 +177,7 @@
     "tipAddPlaceholder": "%",
     "tipAdd": "Agregar",
     "tipInvalid": "Escribe un porcentaje del 1 al 100 que no esté ya en la lista.",
+    "tipMax": "Máximo {{max}} porcentajes. Quita uno para agregar otro.",
     "footer": "Se guardan al momento y sólo aplican a este dispositivo.",
     "names": {
       "showTipScreen": "pedir propina",
@@ -187,6 +188,7 @@
     "savedOff": "Guardado: {{step}} apagado.",
     "savedTips": "Guardado: porcentajes de propina.",
     "saveError": "No se pudo guardar el cambio.",
+    "uncertainTitle": "No sabemos si se guardó",
     "uncertain": "No sabemos si el cambio se guardó: estamos revisando lo que quedó en el dispositivo.",
     "unconfirmed": "Sin confirmar"
   }

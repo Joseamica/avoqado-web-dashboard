@@ -156,7 +156,14 @@ export function cambioDePaso(clave: PasoConInterruptor, valor: boolean): TpvSett
   return { [clave]: valor } as TpvSettingsUpdate
 }
 
+/**
+ * 🔴 Tope de porcentajes de propina: el MISMO del POS (`tpvSettings.mobile.schema.ts`, `.max(6)`) y de superadmin. El PUT
+ * del dashboard no valida nada; si escribiera 7, el POS ya no podría guardar ningún cambio de propina.
+ */
+export const MAX_PORCENTAJES_DE_PROPINA = 6
+
 export function agregarPorcentaje(lista: number[], texto: string): number[] | null {
+  if (lista.length >= MAX_PORCENTAJES_DE_PROPINA) return null
   const limpio = texto.trim()
   if (!/^\d{1,3}$/.test(limpio)) return null
   const n = Number(limpio)

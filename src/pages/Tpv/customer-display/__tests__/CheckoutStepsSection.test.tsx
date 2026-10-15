@@ -106,7 +106,8 @@ describe('CheckoutStepsSection', () => {
     const get = retenida<TpvSettings>()
     servicio.getSettings.mockReturnValue(get.promesa)
     await user.click(propina)
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'steps.saveError', description: 'steps.uncertain' }))
+    // Título propio: «No se pudo guardar» + «no sabemos si se guardó» se contradecían (revisión B5).
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'steps.uncertainTitle', description: 'steps.uncertain' }))
     // Mientras no se sepa, los pasos NO se presentan como conocidos (ni el valor viejo ni el supuesto).
     await waitFor(() => expect(screen.queryByRole('switch', { name: 'steps.tip' })).not.toBeInTheDocument())
     // El server SÍ lo había guardado:
@@ -146,7 +147,8 @@ describe('CheckoutStepsSection', () => {
     const propina = await screen.findByRole('switch', { name: 'steps.tip' })
     servicio.getSettings.mockRejectedValue(new Error('Network Error'))
     await user.click(propina)
-    expect(await screen.findByText('steps.loadError')).toBeInTheDocument()
+    // La lectura reintenta UNA vez (retry: 1, ~1 s) antes de rendirse.
+    expect(await screen.findByText('steps.loadError', {}, { timeout: 4000 })).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'steps.tip' })).not.toBeInTheDocument()
     expect(screen.queryByText('steps.unconfirmed')).not.toBeInTheDocument()
   })
@@ -174,6 +176,45 @@ describe('CheckoutStepsSection', () => {
     expect(screen.getByText('steps.readOnly')).toBeInTheDocument()
     expect(screen.queryByLabelText('steps.tipAddLabel')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'steps.tipRemove {"percent":20}' })).not.toBeInTheDocument()
+    // «Se guardan al momento» no aplica a quien no puede guardar.
+    expect(screen.queryByText('steps.footer')).not.toBeInTheDocument()
+  })
+
+  it('🔴 candado EN VUELO: con el PUT retenido, los otros interruptores, el campo de % y sus botones se apagan; al confirmar vuelven', async () => {
+    permisos.add('tpv-settings:read').add('tpv-settings:update')
+    const put = retenida<TpvSettings>()
+    servicio.updateSettings.mockReturnValue(put.promesa)
+    const user = userEvent.setup()
+    pintar()
+    expect(await screen.findByText('steps.footer')).toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'steps.review' }))
+    await waitFor(() => expect(interruptor('steps.review')).toHaveAttribute('aria-checked', 'false'))
+    // Un segundo cambio mientras el primero viaja haría un segundo PUT con una base que todavía no está confirmada.
+    expect(interruptor('steps.tip')).toBeDisabled()
+    expect(interruptor('steps.receipt')).toBeDisabled()
+    expect(interruptor('steps.review')).toBeDisabled()
+    expect(screen.getByLabelText('steps.tipAddLabel')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'steps.tipRemove {"percent":10}' })).toBeDisabled()
+    await user.click(interruptor('steps.receipt'))
+    expect(servicio.updateSettings).toHaveBeenCalledTimes(1)
+    await act(async () => put.resolver({ ...guardado, showReviewScreen: false }))
+    await waitFor(() => expect(interruptor('steps.tip')).toBeEnabled())
+    expect(screen.getByLabelText('steps.tipAddLabel')).toBeEnabled()
+  })
+
+  it('🔴 con 6 porcentajes (el tope del POS) no se puede agregar otro: campo y botón apagados, y se explica', async () => {
+    permisos.add('tpv-settings:read').add('tpv-settings:update')
+    guardado = { ...guardado, tipSuggestions: [5, 10, 15, 20, 25, 30], defaultTipPercentage: null }
+    const user = userEvent.setup()
+    pintar()
+    expect(await screen.findByText('steps.tipMax {"max":6}')).toBeInTheDocument()
+    expect(screen.getByLabelText('steps.tipAddLabel')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'steps.tipAdd' })).toBeDisabled()
+    // Quitar sigue disponible: es la salida para cambiar uno.
+    await user.click(screen.getByRole('button', { name: 'steps.tipRemove {"percent":30}' }))
+    await waitFor(() => expect(servicio.updateSettings).toHaveBeenCalledWith('t1', { tipSuggestions: [5, 10, 15, 20, 25] }))
+    await waitFor(() => expect(screen.getByLabelText('steps.tipAddLabel')).toBeEnabled())
+    expect(screen.queryByText('steps.tipMax {"max":6}')).not.toBeInTheDocument()
   })
 
   it('porcentajes: agregar uno válido manda la lista ordenada; uno inválido se explica y no se manda', async () => {

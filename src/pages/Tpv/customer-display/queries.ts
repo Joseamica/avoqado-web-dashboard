@@ -36,8 +36,17 @@ export function useCustomerDisplay(venueId: string, terminalId: string, enabled:
   })
 }
 
+/**
+ * Los pasos del cobro de un dispositivo. `retry: 1` (no los 3 de la app): tras un guardado incierto la sección muestra
+ * «Sin confirmar» mientras relee, y con 3 reintentos eso duraba ~7 s antes de decir «no se pudieron cargar».
+ */
 export function usePasosDelCobro(terminalId: string, enabled: boolean) {
-  return useQuery({ queryKey: clavesDeLaPantalla.pasos(terminalId), queryFn: () => tpvSettingsService.getSettings(terminalId), enabled })
+  return useQuery({
+    queryKey: clavesDeLaPantalla.pasos(terminalId),
+    queryFn: () => tpvSettingsService.getSettings(terminalId),
+    enabled,
+    retry: 1,
+  })
 }
 
 /**

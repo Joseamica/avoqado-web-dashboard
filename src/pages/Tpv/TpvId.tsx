@@ -33,6 +33,7 @@ import { useSocket } from '@/context/SocketContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI, TerminalStatus } from '@/services/superadmin-terminals.service'
@@ -684,6 +685,10 @@ function TpvIdContent() {
   const maintenanceTransition = isInMaintenance ? TpvCommandType.EXIT_MAINTENANCE : TpvCommandType.MAINTENANCE_MODE
   const lockTransition = tpv.isLocked ? TpvCommandType.UNLOCK : TpvCommandType.LOCK
   const canRestart = canSendCommand(tpv.capabilities, TpvCommandType.RESTART)
+  // La columna derecha de Información sólo tiene el bloque de SUPERADMIN: sin él, la principal ocupa todo el ancho (un
+  // tercio vacío a ≥1280 px se veía roto desde que la pantalla del cliente subió a la columna principal).
+  const conColumnaDerecha =
+    isSuperAdmin && (actionPolicy.canConfigurePayments || actionPolicy.canDeactivate || actionPolicy.activationPending)
 
   // Lo que el menú «Acciones» ofrece: mismos permisos y capacidades que los botones y switches de antes.
   const canCommand = can('tpv:command')
@@ -911,8 +916,8 @@ function TpvIdContent() {
 
             {/* Info Tab */}
             <TabsContent value="info" className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="space-y-6 xl:col-span-2">
+              <div className={cn('grid grid-cols-1 gap-6', conColumnaDerecha && 'xl:grid-cols-3')}>
+                <div className={cn('space-y-6', conColumnaDerecha && 'xl:col-span-2')}>
                   {/* Pantalla del cliente (F1): diseño, pasos del cobro y orientación. La sección decide qué ve cada tipo. */}
                   {venueId && tpvId && (
                     <CustomerDisplaySection
@@ -1134,9 +1139,9 @@ function TpvIdContent() {
                   </section>
                 </div>
 
-                <div className="space-y-6">
-                  {/* SUPERADMIN: todo lo suyo junto, con su degradado (ui-patterns.md). */}
-                  {isSuperAdmin && (actionPolicy.canConfigurePayments || actionPolicy.canDeactivate || actionPolicy.activationPending) && (
+                {/* SUPERADMIN: todo lo suyo junto, con su degradado (ui-patterns.md). */}
+                {conColumnaDerecha && (
+                  <div className="space-y-6">
                     <section className="rounded-2xl border border-amber-300/60 bg-card p-5 dark:border-amber-700/50">
                       <div className="mb-3 flex items-center gap-2">
                         <Shield className="h-4 w-4 text-amber-500" />
@@ -1284,8 +1289,8 @@ function TpvIdContent() {
                         </div>
                       )}
                     </section>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

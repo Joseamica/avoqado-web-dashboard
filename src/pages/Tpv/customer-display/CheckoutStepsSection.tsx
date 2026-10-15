@@ -12,7 +12,14 @@ import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_TPV_SETTINGS, tpvSettingsService, type TpvSettings, type TpvSettingsUpdate } from '@/services/tpv-settings.service'
 import { textoDelServidor } from '@/utils/apiError'
 import { resultadoIncierto } from './errores'
-import { agregarPorcentaje, cambioDePaso, quitarPorcentaje, reciboNecesitaActualizar, type PasoConInterruptor } from './model'
+import {
+  agregarPorcentaje,
+  cambioDePaso,
+  MAX_PORCENTAJES_DE_PROPINA,
+  quitarPorcentaje,
+  reciboNecesitaActualizar,
+  type PasoConInterruptor,
+} from './model'
 import { clavesDeLaPantalla, usePasosDelCobro } from './queries'
 
 const FILAS: { clave: PasoConInterruptor; etiqueta: string; tour: string }[] = [
@@ -78,7 +85,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
       // relectura termina (TanStack espera esta promesa), y mientras tanto cada paso se ve «sin confirmar». Si la relectura
       // también falla, se dice que no se pudieron cargar. Nunca se reenvía solo.
       if (resultadoIncierto(error)) {
-        toast({ variant: 'destructive', title: t('steps.saveError'), description: t('steps.uncertain') })
+        toast({ variant: 'destructive', title: t('steps.uncertainTitle'), description: t('steps.uncertain') })
         return queryClient.resetQueries({ queryKey: clave, exact: true })
       }
       // Rechazo CONFIRMADO (400/401/403/404/409/422/429 que no vienen del reintento): el server no cambió nada ⇒ vuelve lo
@@ -90,6 +97,8 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
   })
 
   const ajustes = pasos.data
+  // El tope del POS (6): con la lista llena no se agrega; se quita uno para cambiarlo.
+  const listaLlena = (ajustes?.tipSuggestions.length ?? 0) >= MAX_PORCENTAJES_DE_PROPINA
   // Sólo un guardado INCIERTO borra la ficha mientras la mutación sigue en curso: eso es «revisando lo que quedó».
   const sinConfirmar = guardar.isPending && pasos.isLoading
   const agregar = () => {
@@ -172,7 +181,8 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
                         {puedeCambiar && ajustes.tipSuggestions.length > 1 && (
                           <button
                             type="button"
-                            className="cursor-pointer hover:text-destructive disabled:opacity-50"
+                            // 24 px de toque alrededor del ícono de 12; los márgenes negativos dejan la ficha del mismo tamaño.
+                            className="-my-1.5 -ml-1 -mr-2 grid h-6 w-6 cursor-pointer place-items-center rounded-full hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
                             aria-label={t('steps.tipRemove', { percent: p })}
                             disabled={guardar.isPending}
                             onClick={() => quitar(p)}
@@ -203,7 +213,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
                             }
                           }}
                           className="h-8 w-20 text-sm"
-                          disabled={guardar.isPending}
+                          disabled={guardar.isPending || listaLlena}
                           data-tour="customer-display-tip-add-input"
                         />
                         <Button
@@ -212,7 +222,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
                           variant="outline"
                           className="h-8 cursor-pointer"
                           onClick={agregar}
-                          disabled={nuevo === '' || guardar.isPending}
+                          disabled={nuevo === '' || guardar.isPending || listaLlena}
                           data-tour="customer-display-tip-add-btn"
                         >
                           <Plus aria-hidden="true" />
@@ -221,6 +231,9 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
                       </span>
                     )}
                   </div>
+                  {puedeCambiar && listaLlena && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('steps.tipMax', { max: MAX_PORCENTAJES_DE_PROPINA })}</p>
+                  )}
                   {nuevoInvalido && <p className="mt-1 text-xs text-destructive">{t('steps.tipInvalid')}</p>}
                 </>
               )}
@@ -233,8 +246,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
               )}
             </div>
           ))}
-          <p className="text-xs text-muted-foreground">{t('steps.footer')}</p>
-          {!puedeCambiar && <p className="text-xs text-muted-foreground">{t('steps.readOnly')}</p>}
+          <p className="text-xs text-muted-foreground">{t(puedeCambiar ? 'steps.footer' : 'steps.readOnly')}</p>
         </>
       )}
     </div>

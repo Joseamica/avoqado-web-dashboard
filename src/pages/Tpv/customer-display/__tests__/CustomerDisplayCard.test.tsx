@@ -167,7 +167,7 @@ describe('CustomerDisplayCard', () => {
     const user = userEvent.setup()
     pintar()
     await user.click(await screen.findByRole('button', { name: 'card.edit' }))
-    await waitFor(() => expect(screen.getByTestId('editor-abierto')).toHaveAttribute('data-pasos-conocidos', 'false'))
+    await waitFor(() => expect(screen.getByTestId('editor-abierto')).toHaveAttribute('data-pasos-conocidos', 'false'), { timeout: 4000 })
   })
 
   it('copiar un diseño de fábrica se explica en vez de abrir la lista', async () => {

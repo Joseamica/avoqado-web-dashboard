@@ -9,7 +9,8 @@ import {
   type CustomerDisplayFicha,
   type CustomerDisplayPreview,
 } from '@/services/customerDisplay.service'
-import { useCopyTargets, useFichaPreview } from '../queries'
+import { tpvSettingsService } from '@/services/tpv-settings.service'
+import { useCopyTargets, useFichaPreview, usePasosDelCobro } from '../queries'
 
 vi.mock('@/services/customerDisplay.service', () => ({
   getCustomerDisplay: vi.fn(),
@@ -137,5 +138,17 @@ describe('useCopyTargets (datos acotados)', () => {
   it('cerrado no consulta', () => {
     renderHook(() => useCopyTargets('v1', false), { wrapper: envoltura() })
     expect(listCustomerDisplayDevices).not.toHaveBeenCalled()
+  })
+})
+
+describe('usePasosDelCobro', () => {
+  it('🔴 con los defaults de la app (3 reintentos) igual reintenta UNA sola vez: «Sin confirmar» no dura ~7 s', async () => {
+    vi.mocked(tpvSettingsService.getSettings).mockRejectedValue(new Error('Network Error'))
+    const qc = new QueryClient() // los defaults de main.tsx, a propósito
+    const envoltura = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    const { result } = renderHook(() => usePasosDelCobro('t1', true), { wrapper: envoltura })
+    await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 4000 })
+    expect(tpvSettingsService.getSettings).toHaveBeenCalledTimes(2)
+    qc.clear()
   })
 })

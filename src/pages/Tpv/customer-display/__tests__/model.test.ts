@@ -14,6 +14,7 @@ import {
   estaSucio,
   filasDeDestino,
   limitarTexto,
+  MAX_PORCENTAJES_DE_PROPINA,
   momentosVisibles,
   notasDeDestino,
   PALETA_DE_LA_TABLET,
@@ -132,6 +133,13 @@ describe('pasos del cobro', () => {
   it('agregarPorcentaje: 1 a 100, sin repetidos, ordenado', () => {
     expect(agregarPorcentaje([10, 15, 20], '18')).toEqual([10, 15, 18, 20])
     for (const malo of ['', '0', '101', '15', '12.5', 'diez']) expect(agregarPorcentaje([10, 15, 20], malo), malo).toBeNull()
+  })
+  it('🔴 agregarPorcentaje: tope de 6, el mismo del POS y de superadmin (con 7 el POS ya no podría guardar propinas)', () => {
+    expect(MAX_PORCENTAJES_DE_PROPINA).toBe(6)
+    expect(agregarPorcentaje([5, 10, 15, 20, 25], '30')).toEqual([5, 10, 15, 20, 25, 30])
+    expect(agregarPorcentaje([5, 10, 15, 20, 25, 30], '35')).toBeNull()
+    // Una lista vieja que ya trae de más no crece (quitar sí se puede).
+    expect(agregarPorcentaje([1, 2, 3, 4, 5, 6, 7], '8')).toBeNull()
   })
   it('quitarPorcentaje: nunca deja la lista vacía', () => {
     expect(quitarPorcentaje([10, 15], 15)).toEqual([10])

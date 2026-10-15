@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TpvId from '../TpvId'
 
-const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
+const { apiGet, sesion } = vi.hoisted(() => ({ apiGet: vi.fn(), sesion: { role: 'OWNER' } }))
 
 vi.mock('@/api', () => ({
   default: {
@@ -17,7 +17,7 @@ vi.mock('@/api', () => ({
 }))
 
 vi.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({ user: { role: 'OWNER' } }),
+  useAuth: () => ({ user: { role: sesion.role } }),
 }))
 
 vi.mock('@/context/BreadcrumbContext', () => ({
@@ -81,6 +81,7 @@ function renderDetail() {
 
 describe('device detail management surfaces', () => {
   beforeEach(() => {
+    sesion.role = 'OWNER'
     apiGet.mockResolvedValue({
       data: {
         id: 'device-1',
@@ -123,5 +124,29 @@ describe('device detail management surfaces', () => {
   it('monta la sección de la pantalla del cliente con el tipo del aparato (la sección decide qué ve un iPad)', async () => {
     renderDetail()
     expect(await screen.findByTestId('customer-display-section')).toHaveAttribute('data-type', 'POS_IOS')
+  })
+
+  it('sin nada de superadmin, Información NO deja un tercio vacío: la columna principal ocupa todo el ancho', async () => {
+    renderDetail()
+    const principal = (await screen.findByTestId('customer-display-section')).parentElement!
+    const rejilla = principal.parentElement!
+    expect(rejilla.children).toHaveLength(1) // ninguna columna derecha vacía
+    expect(rejilla).not.toHaveClass('xl:grid-cols-3')
+    expect(principal).not.toHaveClass('xl:col-span-2')
+  })
+
+  it('con el bloque de superadmin, la columna derecha sigue ahí (2/3 + 1/3)', async () => {
+    sesion.role = 'SUPERADMIN'
+    const aparato = (await apiGet.getMockImplementation()?.('')) as { data: Record<string, any> } | undefined
+    apiGet.mockResolvedValue({
+      data: { ...(aparato?.data ?? {}), capabilities: { ...aparato!.data.capabilities, requiresActivation: true }, activatedAt: null },
+    })
+    renderDetail()
+    const principal = (await screen.findByTestId('customer-display-section')).parentElement!
+    const rejilla = principal.parentElement!
+    expect(rejilla).toHaveClass('xl:grid-cols-3')
+    expect(principal).toHaveClass('xl:col-span-2')
+    expect(rejilla.children).toHaveLength(2)
+    expect(rejilla.children[1]).toHaveTextContent('device.sections.superadmin')
   })
 })

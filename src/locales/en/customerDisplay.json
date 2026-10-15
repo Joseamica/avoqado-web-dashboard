@@ -165,7 +165,7 @@
   },
   "steps": {
     "title": "Checkout steps on this device",
-    "noReadPermission": "Ask your manager or administrator for access to the checkout steps.",
+    "noReadPermission": "Your role doesn't have access to this device's checkout steps. Ask the business owner.",
     "readOnly": "You can only view these settings.",
     "loadError": "We couldn't load the checkout steps.",
     "tip": "Ask for a tip",
@@ -177,6 +177,7 @@
     "tipAddPlaceholder": "%",
     "tipAdd": "Add",
     "tipInvalid": "Type a percentage from 1 to 100 that isn't already on the list.",
+    "tipMax": "Up to {{max}} percentages. Remove one to add another.",
     "footer": "Saved right away and only apply to this device.",
     "names": {
       "showTipScreen": "ask for a tip",
@@ -187,6 +188,7 @@
     "savedOff": "Saved: {{step}} off.",
     "savedTips": "Saved: tip percentages.",
     "saveError": "The change couldn't be saved.",
+    "uncertainTitle": "We don't know if it was saved",
     "uncertain": "We don't know if the change was saved: checking what the device has now.",
     "unconfirmed": "Unconfirmed"
   }
