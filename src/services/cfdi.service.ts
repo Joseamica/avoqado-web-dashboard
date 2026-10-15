@@ -441,6 +441,8 @@ export interface IssueCfdiResponse {
   /** F6: `DESCONTADAS` = la factura salió sólo con lo que el cliente se quedó; `CON_NOTA` = por el total, con sus notas. */
   devoluciones?: DevolucionesDeLaFactura
   notasDeDevolucion?: NotaDeDevolucion[]
+  /** C3: `true` cuando el ticket iba en la factura global y salió de ella con su nota de extracción (ahora o en un intento anterior). */
+  conExtraccion?: boolean
 }
 
 /**

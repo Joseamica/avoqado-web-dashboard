@@ -1056,7 +1056,7 @@ export default function Orders() {
                 {t('payLater.banner.title', { defaultValue: '⚠️ Cuentas por Cobrar Pendientes' })}
               </p>
               <p className="text-sm text-red-700 dark:text-red-300">
-                {payLaterSummary.total_count} {payLaterSummary.total_count === 1 ? 'orden' : 'órdenes'} pendiente
+                {payLaterSummary.total_count} {payLaterSummary.total_count === 1 ? 'pedido' : 'pedidos'} pendiente
                 {payLaterSummary.total_count === 1 ? '' : 's'} de pago - {Currency(payLaterSummary.total_balance)}
               </p>
             </div>
@@ -1579,7 +1579,7 @@ export default function Orders() {
       <ExportDialog
         open={exportOpen}
         onClose={() => setExportOpen(false)}
-        title={t('export.title', { defaultValue: 'Exportar órdenes' })}
+        title={t('export.title', { defaultValue: 'Exportar pedidos' })}
         endpoint={`/api/v1/dashboard/venues/${venueId}/orders/export`}
         baseParams={exportBaseParams}
         columns={exportColumns}

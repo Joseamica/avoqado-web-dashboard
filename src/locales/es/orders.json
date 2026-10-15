@@ -1,8 +1,8 @@
 {
-  "title": "Órdenes",
+  "title": "Pedidos",
   "searchPlaceholder": "Buscar",
   "cancelBlockedByTerminalCharge": "Hay un cobro en curso en la terminal para esta orden. Espera su resultado o cancélalo desde la terminal antes de cancelar o eliminar la orden.",
-  "errorPrefix": "Error al cargar órdenes",
+  "errorPrefix": "Error al cargar pedidos",
   "summaryUnavailable": "No pudimos cargar los totales. La tabla sigue disponible, pero no mostraremos ceros que puedan ser incorrectos.",
   "counter": "Mostrador",
   "columns": {
@@ -52,11 +52,12 @@
     "avgTicket": "Ticket Promedio"
   },
   "export": {
+    "title": "Exportar pedidos",
     "button": "Exportar",
     "asCSV": "Exportar como CSV",
     "asExcel": "Exportar como Excel (.xlsx)",
-    "success": "Se exportaron {{count}} órdenes exitosamente",
-    "error": "Error al exportar órdenes",
+    "success": "Se exportaron {{count}} pedidos exitosamente",
+    "error": "Error al exportar pedidos",
     "noData": "No hay datos para exportar"
   },
   "payLater": {
@@ -170,8 +171,8 @@
     "title": "Orden {{number}}",
     "loading": "Cargando orden...",
     "notFound": "Orden no encontrada",
-    "backToOrders": "Volver a órdenes",
-    "backToList": "Volver a órdenes",
+    "backToOrders": "Volver a pedidos",
+    "backToList": "Volver a pedidos",
     "idLabel": "ID",
     "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.",
     "copiedToClipboard": "{{label}} copiado al portapapeles",

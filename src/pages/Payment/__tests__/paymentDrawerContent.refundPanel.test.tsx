@@ -88,10 +88,13 @@ describe('PaymentDrawerContent — el enlace de un pendiente abre la devolución
     expect(screen.getByText(es.creditNote.automatica.requiere)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: es.creditNote.retryXml })).toBeInTheDocument()
     expect(new Set(m.consultadas)).toEqual(new Set(['r1']))
+    // El encabezado de una devolución no se lee como cobro («-$50.00 pagado»).
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/^\$50\.00 reembolsado$/)
   })
   it('control — un cobro normal sin devoluciones no monta ningún panel de nota', async () => {
     abrir('p1')
     expect(await screen.findByText('Testarudo')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/^\$116\.00 pagado$/)
     expect(screen.queryByText(MOTIVO)).not.toBeInTheDocument()
     expect(m.consultadas).toEqual([])
   })

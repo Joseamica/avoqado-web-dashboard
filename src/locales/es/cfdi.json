@@ -10,7 +10,8 @@
     "extraccion": "Extracción de la global",
     "facturaDelClientePendiente": "Falta la factura del cliente: vuelve a facturar la venta.",
     "facturaDelClienteEnProceso": "La factura del cliente se está confirmando con el SAT.",
-    "notasDeDevolucionPendientes": "Notas de crédito de devoluciones que faltan: {{count}}",
+    "notasDeDevolucionPendientes_one": "Falta {{count}} nota de crédito de una devolución",
+    "notasDeDevolucionPendientes_other": "Faltan {{count}} notas de crédito de devoluciones",
     "extraccionesPendientes": {
       "aviso": "{{count}} ventas se sacaron de tu factura global pero su factura del cliente no salió. Revísalas y vuelve a facturarlas.",
       "aviso_one": "1 venta se sacó de tu factura global pero su factura del cliente no salió. Revísala y vuelve a facturarla.",
@@ -115,6 +116,7 @@
       "successNet": "La factura salió sólo con lo que el cliente se quedó: ya descuenta la devolución.",
       "successWithNote_one": "También se emitió la nota de crédito de la devolución.",
       "successWithNote_other": "También se emitieron las notas de crédito de las devoluciones.",
+      "successWithExtraction": "Esta venta iba en tu factura global: ya salió de ella con una nota de crédito.",
       "notePending": "La factura se emitió; notas de crédito de devoluciones que faltan: {{count}}",
       "notePendingDetail": "Folio {{folio}}. En Facturación verás cuáles faltan; el porqué de cada una, en el pago de su devolución."
     },

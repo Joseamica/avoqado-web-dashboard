@@ -333,7 +333,9 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         <div className="rounded-xl border border-border/60 bg-card p-6 space-y-5">
           <div className="space-y-1">
             <h2 className="text-3xl font-semibold tracking-tight">
-              {Currency(total)} {t('detail.paid', { defaultValue: 'pagado' })}
+              {payment.type === 'REFUND'
+                ? `${Currency(Math.abs(total))} ${t('detail.status.refunded', { defaultValue: 'Reembolsado' }).toLowerCase()}`
+                : `${Currency(total)} ${t('detail.paid', { defaultValue: 'pagado' })}`}
             </h2>
             <p className="text-sm text-muted-foreground">{dateShort}</p>
           </div>

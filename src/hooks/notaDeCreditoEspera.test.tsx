@@ -18,7 +18,8 @@ vi.mock('@/services/cfdi.service', () => ({
   },
 }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }) }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+const toast = vi.hoisted(() => vi.fn())
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 
 import {
   ESPERA_DEL_XML_MS,
@@ -218,5 +219,20 @@ describe('F6 · useIssueCfdi refresca el estado de las devoluciones', () => {
   it('control — con notas de devolución también (como antes); sin devoluciones, no se toca', async () => {
     expect(await facturar({ devoluciones: 'CON_NOTA', notasDeDevolucion: [{ refundPaymentId: 'r1', status: 'STAMPED' }] })).toBe(true)
     expect(await facturar({})).toBe(false)
+  })
+
+  // Guía de Facturación (14-oct): la frase extra iba pegada al UUID, y el ticket que salía de la global no lo decía.
+  it('🔴 el aviso separa el folio de la frase extra con punto y dice cuando la venta salió de la factura global', async () => {
+    toast.mockClear()
+    await facturar({ devoluciones: 'DESCONTADAS', conExtraccion: true })
+    expect(toast.mock.lastCall?.[0].description).toBe(
+      'issueDialog.toast.successDetail. issueDialog.toast.successNet issueDialog.toast.successWithExtraction',
+    )
+    await facturar({ conExtraccion: true }) // el caso real de C3: sin devoluciones
+    expect(toast.mock.lastCall?.[0].description).toBe('issueDialog.toast.successDetail. issueDialog.toast.successWithExtraction')
+    await facturar({ devoluciones: 'DESCONTADAS' })
+    expect(toast.mock.lastCall?.[0].description).toBe('issueDialog.toast.successDetail. issueDialog.toast.successNet')
+    await facturar({})
+    expect(toast.mock.lastCall?.[0].description).toBe('issueDialog.toast.successDetail')
   })
 })
