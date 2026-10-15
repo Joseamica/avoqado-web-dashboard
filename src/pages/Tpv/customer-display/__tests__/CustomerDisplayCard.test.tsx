@@ -103,6 +103,20 @@ describe('CustomerDisplayCard', () => {
     expect(screen.getByText('status.displayDetected {"date":"dt(2026-10-14T19:00:00.000Z)"}')).toBeInTheDocument()
   })
 
+  it.each([
+    ['1 minuto', 1, /^status\.heartbeat /, /^status\.offline /],
+    ['7 minutos', 7, /^status\.offline /, /^status\.heartbeat /],
+  ])(
+    '🔴 un latido de hace %s se dice con la MISMA regla que el encabezado («Sin conexión» desde los 5 min de TERMINAL_ONLINE_THRESHOLD_MS)',
+    async (_n, minutos, dice, noDice) => {
+      permisos.add('customer-display:read')
+      vi.mocked(getCustomerDisplay).mockResolvedValue(vista({}, { lastHeartbeat: new Date(Date.now() - minutos * 60_000).toISOString() }))
+      pintar()
+      expect(await screen.findByText(dice)).toBeInTheDocument()
+      expect(screen.queryByText(noDice)).not.toBeInTheDocument()
+    },
+  )
+
   it('una app que no entiende diseños lo dice; una segunda pantalla ausente también', async () => {
     permisos.add('customer-display:read')
     vi.mocked(getCustomerDisplay).mockResolvedValue(vista({}, { designVersion: null, presence: 'UNSUPPORTED' }))

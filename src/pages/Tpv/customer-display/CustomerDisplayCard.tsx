@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
+import { isTerminalOnline } from '@/lib/terminal-status'
 import { cn } from '@/lib/utils'
 import type { CustomerDisplayDesign } from '@/services/customerDisplay.service'
 import { DEFAULT_TPV_SETTINGS } from '@/services/tpv-settings.service'
@@ -118,7 +119,13 @@ export function CustomerDisplayCard({ venueId, terminalId, deviceName, venueName
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            {estado.latido ? t('status.heartbeat', { ago: haceCuanto(estado.latido, getIntlLocale(i18n.language)) }) : t('status.noHeartbeat')}
+            {/* 🔴 «Activo» con la MISMA regla del encabezado (`isTerminalOnline`, umbral TERMINAL_ONLINE_THRESHOLD_MS): un latido
+                más viejo se dice «Sin conexión», nunca «activo» mientras el encabezado dice lo contrario (QA real, 15-oct). */}
+            {estado.latido
+              ? t(isTerminalOnline(estado.latido) ? 'status.heartbeat' : 'status.offline', {
+                  ago: haceCuanto(estado.latido, getIntlLocale(i18n.language)),
+                })
+              : t('status.noHeartbeat')}
           </p>
           <p className="text-xs text-muted-foreground">
             {estado.presencia.tipo === 'detectada'
