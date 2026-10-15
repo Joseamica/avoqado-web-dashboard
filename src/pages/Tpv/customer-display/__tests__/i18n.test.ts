@@ -6,7 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { describe, expect, it } from 'vitest'
 import { CLAVE_DEL_HISTORIAL } from '../estado'
-import { MOMENTOS, MOTIVOS_DE_IMAGEN, MUESTRAS_DE_COLOR } from '../model'
+import { MOMENTOS, MOTIVOS_DE_IMAGEN, MUESTRAS_DE_COLOR, NOTAS_DE_DESTINO } from '../model'
 
 const LOCALES = path.resolve(__dirname, '../../../../locales')
 const bundle = (lng: string) =>
@@ -22,8 +22,9 @@ const DINAMICAS: string[] = [
   ...MOMENTOS.map(m => `preview.moments.${m}`),
   ...MUESTRAS_DE_COLOR.map(m => `editor.colors.${m.clave}`),
   ...MOTIVOS_DE_IMAGEN.map(m => `editor.logoErrors.${m}`),
+  ...NOTAS_DE_DESTINO.map(n => `copy.${n}`),
 ]
-const PLURALES: string[] = ['status.imagesPending', 'status.imagesFailed']
+const PLURALES: string[] = ['status.imagesPending', 'status.imagesFailed', 'copy.submit']
 
 describe('i18n customerDisplay', () => {
   it('es y en tienen exactamente las mismas llaves', () => expect(aplanar(bundle('en')).sort()).toEqual(aplanar(bundle('es')).sort()))
