@@ -117,7 +117,8 @@
       "successWithNote_one": "The refund's credit note was issued too.",
       "successWithNote_other": "The refunds' credit notes were issued too.",
       "successWithExtraction": "This sale was in your global invoice: a credit note already took it out.",
-      "notePending": "The invoice was issued; refund credit notes still missing: {{count}}",
+      "notePending_one": "The invoice was issued; {{count}} refund credit note is still missing",
+      "notePending_other": "The invoice was issued; {{count}} refund credit notes are still missing",
       "notePendingDetail": "Folio {{folio}}. Invoicing shows which ones are missing; each refund payment shows why."
     },
     "errors": {

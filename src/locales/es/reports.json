@@ -362,7 +362,7 @@
     "ivaAPagarHint": "Solo lado ventas; al restar tu IVA de gastos será menor.",
     "saldoAFavor": "Saldo a favor del periodo",
     "cfdiContraste": "IVA amparado por tus CFDIs (contraste)",
-    "cfdiContrasteHint": "Informativo: IVA de las facturas timbradas del mes. No es la base: el IVA causado sale de lo COBRADO, no de lo facturado.",
+    "cfdiContrasteHint": "Informativo: IVA de las facturas timbradas en el periodo, menos el de las notas de crédito timbradas en ese mismo periodo. No es la base: el IVA causado sale de lo COBRADO, no de lo facturado.",
     "diotTitle": "DIOT",
     "diotBody": "La DIOT lista el IVA que pagaste a cada proveedor (lado gastos). Requiere registrar tus CFDIs recibidos (próximamente, en el Buzón de CFDIs).",
     "error": "No se pudo cargar el IVA en flujo de efectivo.",
