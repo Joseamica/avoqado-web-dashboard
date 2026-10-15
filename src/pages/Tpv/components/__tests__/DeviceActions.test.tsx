@@ -50,6 +50,20 @@ vi.mock('@/components/PermissionGate', () => ({
   PermissionGate: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 
+// Borrar de fábrica ahora lo deciden el permiso del venue (panel) y la membresía de dueño de la organización
+// (cajón). Estas pruebas son de CAPACIDADES del aparato: el panel sin ese permiso (como antes, sin `isOwnerPlus`)
+// y el cajón con el dueño de la org (como antes, sin candado de rol). Las reglas en sí se prueban en
+// RemoteCommandPanel.factoryReset.test.tsx y OrgTerminalDrawer.ownerOnly.test.tsx.
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({ can: () => false, canAny: () => false, canAll: () => false }),
+}))
+
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { role: 'OWNER', organizationMemberships: [{ organizationId: 'org-1', organizationName: 'Org', role: 'OWNER', masterCatalogVisible: false }] },
+  }),
+}))
+
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({ formatDateTime: (value: string) => value }),
 }))
