@@ -117,7 +117,8 @@
       "successWithNote_one": "También se emitió la nota de crédito de la devolución.",
       "successWithNote_other": "También se emitieron las notas de crédito de las devoluciones.",
       "successWithExtraction": "Esta venta iba en tu factura global: ya salió de ella con una nota de crédito.",
-      "notePending": "La factura se emitió; notas de crédito de devoluciones que faltan: {{count}}",
+      "notePending_one": "La factura se emitió; falta {{count}} nota de crédito de una devolución",
+      "notePending_other": "La factura se emitió; faltan {{count}} notas de crédito de devoluciones",
       "notePendingDetail": "Folio {{folio}}. En Facturación verás cuáles faltan; el porqué de cada una, en el pago de su devolución."
     },
     "errors": {

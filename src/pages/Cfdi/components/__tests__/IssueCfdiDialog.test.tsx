@@ -505,13 +505,21 @@ describe('IssueCfdiDialog — F6: la factura de una venta con devolución', () =
       ],
     })
     expect(aviso).toMatchObject({
-      title: es.issueDialog.toast.notePending.replace('{{count}}', '2'),
+      title: 'La factura se emitió; faltan 2 notas de crédito de devoluciones',
       variant: 'warning',
       duration: DURACION_AVISO_LARGO_MS,
     })
     expect(aviso.description).toContain('F-9')
     expect(aviso.description).not.toContain('Falta el XML') // ni concatenados ni repetidos
     expect(aviso.description).not.toMatch(/reintentamos/i)
+  })
+  it('🔴 D3 (full-testing integral 15-oct): UNA nota pendiente ⇒ el aviso va en singular, no «…que faltan: 1»', async () => {
+    const aviso = await facturarCon({
+      cfdi: emitida,
+      devoluciones: 'CON_NOTA',
+      notasDeDevolucion: [{ refundPaymentId: 'r1', status: 'PENDIENTE', motivo: 'Falta el XML de la factura.' }],
+    })
+    expect(aviso.title).toBe('La factura se emitió; falta 1 nota de crédito de una devolución')
   })
   it('las notas salieron ⇒ el éxito lo dice', async () => {
     const aviso = await facturarCon({

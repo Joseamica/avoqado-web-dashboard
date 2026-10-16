@@ -362,7 +362,7 @@
     "ivaAPagarHint": "Sales side only; it will be lower once your expense VAT is subtracted.",
     "saldoAFavor": "Credit balance for the period",
     "cfdiContraste": "VAT covered by your CFDIs (contrast)",
-    "cfdiContrasteHint": "Informational: VAT on the invoices stamped this month. Not the base: accrued VAT comes from what was COLLECTED, not invoiced.",
+    "cfdiContrasteHint": "Informational: VAT on the invoices stamped in the period, minus the VAT on credit notes stamped in that same period. Not the base: accrued VAT comes from what was COLLECTED, not invoiced.",
     "diotTitle": "DIOT",
     "diotBody": "The DIOT lists the VAT you paid to each supplier (expense side). Requires recording your received CFDIs (coming soon, in the CFDI inbox).",
     "error": "Could not load the cash-basis VAT summary.",
