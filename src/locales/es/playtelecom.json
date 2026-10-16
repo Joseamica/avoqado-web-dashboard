@@ -234,6 +234,13 @@
     "viewDetails": "Ver Detalles"
   },
   "managers": {
+    "attendance": {
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "ownEntryHint": "Es tu propia checada: la valida otra persona",
+      "validateError": "No se pudo validar la checada",
+      "resetError": "No se pudo regresar la checada a pendiente"
+    },
     "title": "Gerentes",
     "subtitle": "Supervisión y rendimiento",
     "totalManagers": "Gerentes Activos",

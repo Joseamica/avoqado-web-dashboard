@@ -398,10 +398,10 @@ export function OrgTerminalDrawer({
                         hide this for everyone, even SUPERADMIN. Authorization is already enforced
                         at the org route level (OrganizationLayout: SUPERADMIN or OWNER-in-this-org)
                         and by the backend (requireOrgOwner). `onMigrate` is only wired in that
-                        gated context. Migrate and factory reset go further: OrganizationLayout also
-                        lets in the OWNER of a single branch, and the backend (requireOrgOwner) rejects
+                        gated context. Grant access, migrate and factory reset go further: OrganizationLayout
+                        also lets in the OWNER of a single branch, and the backend (requireOrgOwner) rejects
                         them, so they ask the same question as the server (isOrganizationOwner). */}
-                    {onGrantAccess && (
+                    {onGrantAccess && esDuenoDeLaOrg && (
                       <Button
                         variant="outline"
                         size="sm"
