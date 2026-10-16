@@ -1139,7 +1139,7 @@ export default function Payments() {
         {canCreateManualPayment && (
           <Button size="sm" className="h-9 gap-1.5 shrink-0" onClick={() => setManualPaymentOpen(true)}>
             <Plus className="h-4 w-4" />
-            Nuevo pago manual
+            {tCommon('newManualPayment')}
           </Button>
         )}
       </div>

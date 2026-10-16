@@ -10,10 +10,12 @@
 // ============================================================================
 
 /**
- * SKU Pattern: Only uppercase letters, numbers, hyphens, and underscores
+ * SKU Pattern: letters (either case), numbers, hyphens, and underscores — the same rule as the server
+ * (`SKU_REGEX`). The forms still uppercase what the user types; a lowercase SKU saved by the wizard, the MCP or an
+ * import must not block saving the product (D5, full-testing integral 15-oct).
  * Examples: PROD-001, ITEM_123, ABC123
  */
-export const SKU_PATTERN = /^[A-Z0-9_-]+$/
+export const SKU_PATTERN = /^[A-Za-z0-9_-]+$/
 
 /**
  * Get SKU validation rules for react-hook-form
