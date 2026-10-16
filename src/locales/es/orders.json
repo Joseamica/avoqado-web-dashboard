@@ -1,13 +1,13 @@
 {
   "title": "Pedidos",
   "searchPlaceholder": "Buscar",
-  "cancelBlockedByTerminalCharge": "Hay un cobro en curso en la terminal para esta orden. Espera su resultado o cancélalo desde la terminal antes de cancelar o eliminar la orden.",
+  "cancelBlockedByTerminalCharge": "Hay un cobro en curso en la terminal para este pedido. Espera su resultado o cancélalo desde la terminal antes de cancelar o eliminar el pedido.",
   "errorPrefix": "Error al cargar pedidos",
   "summaryUnavailable": "No pudimos cargar los totales. La tabla sigue disponible, pero no mostraremos ceros que puedan ser incorrectos.",
   "counter": "Mostrador",
   "columns": {
     "date": "Fecha",
-    "orderNumber": "Número de orden",
+    "orderNumber": "Número de pedido",
     "customer": "Cliente",
     "type": "Tipo",
     "products": "Artículos",
@@ -34,11 +34,11 @@
   },
   "statuses": {
     "PENDING": "Pendiente",
-    "CONFIRMED": "Confirmada",
+    "CONFIRMED": "Confirmado",
     "PREPARING": "En Preparación",
-    "READY": "Lista",
-    "COMPLETED": "Completada",
-    "CANCELLED": "Cancelada"
+    "READY": "Listo",
+    "COMPLETED": "Completado",
+    "CANCELLED": "Cancelado"
   },
   "statusTabs": {
     "all": "Todos",
@@ -69,7 +69,7 @@
     }
   },
   "editDialog": {
-    "description": "Editar orden #{{id}}"
+    "description": "Editar pedido #{{id}}"
   },
   "drawer": {
     "title": "Recibo n.° {{number}}",
@@ -120,7 +120,7 @@
       "promotionNeedsReview": "Esta promoción se registró fuera de vigencia: los productos entraron a precio de lista."
     },
     "refund": {
-      "full": "Reembolsada",
+      "full": "Reembolsado",
       "partial": "Reembolso parcial: {{amount}}",
       "partialLabel": "Reembolso parcial"
     },
@@ -148,7 +148,7 @@
     "refundReasons": {
       "RETURNED_GOODS": "Productos devueltos",
       "ACCIDENTAL_CHARGE": "Cargo accidental",
-      "CANCELLED_ORDER": "Orden cancelada",
+      "CANCELLED_ORDER": "Pedido cancelado",
       "FRAUDULENT_CHARGE": "Cargo fraudulento",
       "OTHER": "Otro"
     },
@@ -168,13 +168,13 @@
     }
   },
   "detail": {
-    "title": "Orden {{number}}",
-    "loading": "Cargando orden...",
-    "notFound": "Orden no encontrada",
+    "title": "Pedido {{number}}",
+    "loading": "Cargando pedido...",
+    "notFound": "Pedido no encontrado",
     "backToOrders": "Volver a pedidos",
     "backToList": "Volver a pedidos",
     "idLabel": "ID",
-    "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.",
+    "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente el pedido.",
     "copiedToClipboard": "{{label}} copiado al portapapeles",
     "breadcrumb": {
       "transactions": "Transacciones"
@@ -190,17 +190,17 @@
       "title": "Actividad reciente",
       "paymentReceived": "Pago recibido",
       "statusUpdated": "Estado actualizado",
-      "orderCreated": "Orden creada"
+      "orderCreated": "Pedido creado"
     },
     "toast": {
-      "updatedTitle": "Orden actualizada",
-      "updatedDesc": "La orden ha sido actualizada exitosamente.",
-      "deletedTitle": "Orden eliminada",
-      "deletedDesc": "La orden ha sido eliminada exitosamente.",
+      "updatedTitle": "Pedido actualizado",
+      "updatedDesc": "El pedido ha sido actualizado exitosamente.",
+      "deletedTitle": "Pedido eliminado",
+      "deletedDesc": "El pedido ha sido eliminado exitosamente.",
       "updateErrorTitle": "Error",
-      "updateErrorDesc": "No se pudo actualizar la orden",
+      "updateErrorDesc": "No se pudo actualizar el pedido",
       "deleteErrorTitle": "Error",
-      "deleteErrorDesc": "No se pudo eliminar la orden"
+      "deleteErrorDesc": "No se pudo eliminar el pedido"
     },
     "totals": {
       "total": "Total"
@@ -215,17 +215,17 @@
       "total": "Total"
     },
     "actions": {
-      "title": "Acciones de la Orden",
+      "title": "Acciones del pedido",
       "copyId": "Copiar ID",
       "export": "Exportar"
     },
     "sections": {
-      "orderInfo": "Información de la Orden",
-      "orderInfoDesc": "Detalles generales de la orden",
-      "items": "Artículos de la Orden",
-      "itemsDesc": "Lista de productos en esta orden",
+      "orderInfo": "Información del pedido",
+      "orderInfoDesc": "Detalles generales del pedido",
+      "items": "Artículos del pedido",
+      "itemsDesc": "Lista de productos en este pedido",
       "payments": "Pagos",
-      "paymentsDesc": "Historial de pagos de esta orden",
+      "paymentsDesc": "Historial de pagos de este pedido",
       "verification": "Verificación de Venta",
       "verificationDesc": "{{count}} fotos capturadas"
     },
@@ -235,10 +235,10 @@
       "scannedProducts": "Productos escaneados"
     },
     "fields": {
-      "orderId": "ID de orden",
+      "orderId": "ID de pedido",
       "dateTime": "Fecha y Hora",
-      "createdAt": "Creada el",
-      "orderNumber": "Número de orden",
+      "createdAt": "Creado el",
+      "orderNumber": "Número de pedido",
       "customer": "Cliente",
       "customerName": "Nombre del cliente",
       "customerPlaceholder": "Nombre del cliente",
@@ -246,7 +246,7 @@
       "noTable": "Sin mesa",
       "waiter": "Mesero",
       "noWaiter": "Sin mesero",
-      "orderType": "Tipo de orden",
+      "orderType": "Tipo de pedido",
       "noType": "Sin tipo",
       "name": "Nombre",
       "email": "Email",
@@ -256,7 +256,7 @@
       "productNotAvailable": "Producto no disponible",
       "each": "c/u",
       "modifiers": "{{count}} modificadores",
-      "noItems": "No hay artículos en esta orden"
+      "noItems": "No hay artículos en este pedido"
     },
     "payments": {
       "base": "Base",
@@ -266,7 +266,7 @@
     },
     "sidebar": {
       "status": "Estado",
-      "statusTitle": "Estado de la Orden",
+      "statusTitle": "Estado del pedido",
       "lastUpdate": "Última actualización",
       "notAvailable": "No disponible",
       "financialSummary": "Resumen Financiero",
@@ -284,7 +284,7 @@
     },
     "footer": {
       "copyright": "© 2025 Avoqado",
-      "orderId": "ID de orden: {{id}}",
+      "orderId": "ID de pedido: {{id}}",
       "generated": "Generado: {{date}}"
     },
     "financialSummary": {
@@ -303,19 +303,19 @@
       }
     },
     "statuses": {
-      "OPEN": "Abierta",
-      "PAID": "Pagada",
+      "OPEN": "Abierto",
+      "PAID": "Pagado",
       "PENDING": "Pendiente",
-      "CONFIRMED": "Confirmada",
+      "CONFIRMED": "Confirmado",
       "PREPARING": "En Preparación",
-      "READY": "Lista",
-      "CLOSED": "Cerrada",
-      "COMPLETED": "Completada",
-      "CANCELED": "Cancelada",
-      "CANCELLED": "Cancelada",
-      "PRECREATED": "Pre-creada",
+      "READY": "Listo",
+      "CLOSED": "Cerrado",
+      "COMPLETED": "Completado",
+      "CANCELED": "Cancelado",
+      "CANCELLED": "Cancelado",
+      "PRECREATED": "Pre-creado",
       "WITHOUT_TABLE": "Sin mesa",
-      "DELETED": "Eliminada",
+      "DELETED": "Eliminado",
       "EARLYACCESS": "Acceso anticipado",
       "COURTESY": "Cortesía"
     }
