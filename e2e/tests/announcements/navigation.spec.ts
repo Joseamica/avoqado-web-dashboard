@@ -31,11 +31,11 @@ test('anuncio publicado durante la sesión aparece al navegar; cerrarlo no bloqu
   })
 
   await page.goto('/venues/venue-gen-0/settings/preferences')
-  const closeDevtools = page.getByRole('button', { name: 'Close tanstack query devtools', exact: true })
-  await closeDevtools.click()
   await expect(page.locator('[data-tour="settings-preferences-page"]')).toBeVisible()
   await expect.poll(() => reads).toBeGreaterThan(0)
   await expect(page.getByRole('dialog')).toHaveCount(0)
+  const closeDevtools = page.getByRole('button', { name: 'Close tanstack query devtools', exact: true })
+  if (await closeDevtools.isVisible()) await closeDevtools.click()
 
   pending = { id: 'c0000000000000000000000001', title: 'FULLTEST: primer anuncio' }
   await page.locator('[data-tour="settings-nav-profile"]:visible').click()
