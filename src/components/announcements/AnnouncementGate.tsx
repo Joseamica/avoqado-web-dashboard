@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -22,8 +23,10 @@ import { dismissAnnouncement, getHomeAnnouncements } from '@/services/announceme
  * `Home.tsx` y sólo aparecía si la persona pasaba por el inicio.
  */
 export function AnnouncementGate() {
-  const [cerrado, setCerrado] = useState(false)
-  const [verCompleto, setVerCompleto] = useState(false)
+  const { pathname } = useLocation()
+  const queryClient = useQueryClient()
+  const [cerrados, setCerrados] = useState<string[]>([])
+  const [verCompleto, setVerCompleto] = useState<string | null>(null)
 
   const { data } = useQuery({
     queryKey: ['announcements', 'home'],
@@ -31,18 +34,23 @@ export function AnnouncementGate() {
     staleTime: 60_000,
   })
 
+  // El layout persiste al navegar: cambiar de pantalla no vuelve a montar esta consulta.
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ['announcements', 'home'], exact: true }, { cancelRefetch: false })
+  }, [pathname, queryClient])
+
   const ventana = data?.modal ?? null
-  if (!ventana || cerrado) return null
+  if (!ventana || cerrados.includes(ventana.id)) return null
 
   // Cerrar (en cualquiera de los dos niveles) apaga la ventana para siempre. Se guarda en
   // el servidor con su propia marca — NO con `isRead`, que la campana enciende sola.
   const cerrar = () => {
-    setCerrado(true)
-    setVerCompleto(false)
+    setCerrados(previous => [...previous, ventana.id])
+    setVerCompleto(null)
     dismissAnnouncement(ventana.id).catch(() => {})
   }
 
-  if (verCompleto) {
+  if (verCompleto === ventana.id) {
     return (
       <AnnouncementModal announcementId={ventana.id} precargado={ventana} open onClose={cerrar} />
     )
@@ -50,7 +58,7 @@ export function AnnouncementGate() {
 
   return (
     <Dialog open onOpenChange={abierto => !abierto && cerrar()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" hasTitle>
         <div className="flex items-start gap-3">
           <div className="mt-0.5 shrink-0 rounded-full bg-muted p-2">
             <Sparkles className="h-5 w-5 text-foreground" />
@@ -65,7 +73,7 @@ export function AnnouncementGate() {
           <Button variant="ghost" onClick={cerrar}>
             Ahora no
           </Button>
-          <Button onClick={() => setVerCompleto(true)}>
+          <Button onClick={() => setVerCompleto(ventana.id)}>
             {ventana.actionLabel || 'Ver más'}
             <ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>

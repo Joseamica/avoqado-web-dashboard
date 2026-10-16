@@ -57,6 +57,8 @@ All notable changes to the web dashboard frontend will be documented in this fil
 
 ### Fixed
 
+- Platform announcement dialogs check for pending announcements when navigating between dashboard screens. Closing one announcement no
+  longer hides subsequent announcements during the same session; the existing server-side dismissal per person and announcement remains.
 - **"eSIM" filter option in "Tipo de venta" was a dead filter** (`SalesDetail.tsx`, `SALE_TYPE_OPTIONS`). The backend no longer classifies
   eSIM sales as a sale type — eSIM is a SIM type, and eSIM sales now surface as "Línea nueva" / "Portabilidad" based on the captured
   portabilidad flag (backend `deriveSaleType`, 2026-06-08). So the "eSIM" choice in the "Tipo de venta" filter would never match any row.
