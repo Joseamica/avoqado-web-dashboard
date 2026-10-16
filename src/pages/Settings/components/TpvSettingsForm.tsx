@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { tpvSettingsService, TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
+import { textoDelServidor } from '@/utils/apiError'
 import { TpvSettingsFields } from '@/components/tpv/TpvSettingsFields'
 
 interface TpvSettingsFormProps {
@@ -67,12 +68,14 @@ export function TpvSettingsForm({
       }
       return { previousSettings }
     },
-    onError: (_error, _update, context) => {
+    onError: (error, _update, context) => {
       if (context?.previousSettings) {
         queryClient.setQueryData(['tpvSettings', tpvId], context.previousSettings)
       }
       toast({
         title: t('tpvSettings.updateError'),
+        // Un 400 trae el motivo en español del servidor (p. ej. el tope de 6 porcentajes de propina); otros códigos, sólo el genérico.
+        description: (error as { response?: { status?: number } })?.response?.status === 400 ? textoDelServidor(error) : undefined,
         variant: 'destructive',
       })
     },
