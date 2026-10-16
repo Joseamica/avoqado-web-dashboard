@@ -15,6 +15,8 @@ import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 export interface AttendanceEntry {
   id: string
   timeEntryId: string | null
+  // Staff id de quien hizo la checada (el servidor prohíbe validar o regresar la PROPIA).
+  promoterId?: string | null
   date: string
   storeName: string
   promoterName: string
@@ -42,6 +44,10 @@ export interface AttendanceEntry {
 
 interface AttendanceLogProps {
   entries: AttendanceEntry[]
+  // `attendance:manage` efectivo de quien mira. Sin él, el servidor rebota aprobar, rechazar y deshacer (403).
+  canManage: boolean
+  // Quién mira: su propia checada la valida otra persona (SELF_VALIDATION_FORBIDDEN).
+  currentStaffId?: string | null
   onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
   onResetValidation: (id: string) => void
@@ -49,8 +55,25 @@ interface AttendanceLogProps {
   onViewLocation: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut') => void
 }
 
-export function AttendanceLog({ entries, onApprove, onReject, onResetValidation, onViewPhoto, onViewLocation }: AttendanceLogProps) {
+export function AttendanceLog({
+  entries,
+  canManage,
+  currentStaffId,
+  onApprove,
+  onReject,
+  onResetValidation,
+  onViewPhoto,
+  onViewLocation,
+}: AttendanceLogProps) {
   const { t } = useTranslation('playtelecom')
+  // Falla cerrado: sin saber quién mira no se ofrece nada. El servidor lo vuelve a exigir.
+  const esPropia = (e: AttendanceEntry) => !!currentStaffId && e.promoterId === currentStaffId
+  const puedeValidar = (e: AttendanceEntry) => canManage && !!currentStaffId && !esPropia(e)
+  const avisoPropia = (
+    <span className="max-w-[160px] text-[10px] leading-tight text-muted-foreground">
+      {t('managers.attendance.ownEntryHint', { defaultValue: 'Es tu propia checada: la valida otra persona' })}
+    </span>
+  )
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [photoFilter, setPhotoFilter] = useState<string[]>([])
   const [incidentFilter, setIncidentFilter] = useState<string[]>([])
@@ -307,13 +330,15 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                           </div>
                         )}
                       </div>
-                      {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && (
+                      {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && canManage && esPropia(entry) && avisoPropia}
+                      {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && puedeValidar(entry) && (
                         <div className="flex gap-1 bg-muted/50 rounded p-1 border border-border/50">
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
                             onClick={() => onApprove(entry)}
+                            aria-label={t('managers.attendance.approve', { defaultValue: 'Aprobar' })}
                           >
                             <Check className="w-3.5 h-3.5" />
                           </Button>
@@ -322,6 +347,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
                             onClick={() => onReject(entry.timeEntryId!)}
+                            aria-label={t('managers.attendance.reject', { defaultValue: 'Rechazar' })}
                           >
                             <X className="w-3.5 h-3.5" />
                           </Button>
@@ -332,7 +358,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                           <Badge variant="default" className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
                             <Check className="w-3 h-3 mr-0.5" />
                           </Badge>
-                          {entry.timeEntryId && (
+                          {entry.timeEntryId && puedeValidar(entry) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -350,7 +376,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                           <Badge variant="destructive" className="text-[10px]">
                             <X className="w-3 h-3 mr-0.5" />
                           </Badge>
-                          {entry.timeEntryId && (
+                          {entry.timeEntryId && puedeValidar(entry) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -512,10 +538,13 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                     <AlertTriangle className="w-3 h-3 mr-0.5" />{inc.label}
                   </Badge>
                 ))}
-                {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && (
+                {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && canManage && esPropia(entry) && (
+                  <div className="ml-auto">{avisoPropia}</div>
+                )}
+                {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && puedeValidar(entry) && (
                   <div className="flex gap-1 ml-auto">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500" onClick={() => onApprove(entry)}><Check className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => onReject(entry.timeEntryId!)}><X className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500" onClick={() => onApprove(entry)} aria-label={t('managers.attendance.approve', { defaultValue: 'Aprobar' })}><Check className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => onReject(entry.timeEntryId!)} aria-label={t('managers.attendance.reject', { defaultValue: 'Rechazar' })}><X className="w-4 h-4" /></Button>
                   </div>
                 )}
               </div>

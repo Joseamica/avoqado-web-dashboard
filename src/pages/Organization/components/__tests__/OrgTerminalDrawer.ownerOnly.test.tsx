@@ -99,6 +99,7 @@ function abrirCajon() {
         onCommand={() => undefined}
         onEditMerchants={() => undefined}
         onMigrate={() => undefined}
+        onGrantAccess={() => undefined}
       />
     </QueryClientProvider>,
   )
@@ -109,19 +110,22 @@ const BORRADO = 'terminals.actions.factoryReset'
 const COMERCIOS = 'terminals.drawer.merchantsEdit'
 // «Migrar a otra sucursal» (ronda 3): el servidor lo exige con requireOrgOwner; la página deja entrar a más gente.
 const MIGRAR = 'terminals.actions.migrate'
+// «Dar acceso a una persona» (ronda 7): el servidor también lo exige con requireOrgOwner.
+const DAR_ACCESO = 'terminals.actions.grantAccess'
 
 describe('OrgTerminalDrawer · acciones del dueño de la organización', () => {
   beforeEach(() => {
     usuario = null
   })
 
-  it('el dueño de la organización ve «Borrar de fábrica», «Editar comercios» y «Migrar»', () => {
+  it('el dueño de la organización ve «Borrar de fábrica», «Editar comercios», «Migrar» y «Dar acceso»', () => {
     usuario = { role: 'ADMIN' as User['role'], organizationMemberships: [membresia(ORG, 'OWNER')] }
     abrirCajon()
 
     expect(screen.getByText(BORRADO)).toBeInTheDocument()
     expect(screen.getByText(COMERCIOS)).toBeInTheDocument()
     expect(screen.getByText(MIGRAR)).toBeInTheDocument()
+    expect(screen.getByText(DAR_ACCESO)).toBeInTheDocument()
   })
 
   it.each([
@@ -139,6 +143,7 @@ describe('OrgTerminalDrawer · acciones del dueño de la organización', () => {
     expect(screen.queryByText(BORRADO)).not.toBeInTheDocument()
     expect(screen.queryByText(COMERCIOS)).not.toBeInTheDocument()
     expect(screen.queryByText(MIGRAR)).not.toBeInTheDocument()
+    expect(screen.queryByText(DAR_ACCESO)).not.toBeInTheDocument()
     // Lo demás del cajón no cambia.
     expect(screen.getByText('terminals.actions.restart')).toBeInTheDocument()
   })
@@ -150,5 +155,6 @@ describe('OrgTerminalDrawer · acciones del dueño de la organización', () => {
     expect(screen.getByText(BORRADO)).toBeInTheDocument()
     expect(screen.getByText(COMERCIOS)).toBeInTheDocument()
     expect(screen.getByText(MIGRAR)).toBeInTheDocument()
+    expect(screen.getByText(DAR_ACCESO)).toBeInTheDocument()
   })
 })
