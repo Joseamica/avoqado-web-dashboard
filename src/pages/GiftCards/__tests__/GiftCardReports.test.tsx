@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -19,9 +19,12 @@ vi.mock('@/services/giftCard.service', () => svc)
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
 const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
-// Con `amount` se pinta junto a la llave, para leer el total de pendientes.
+// «llave(a=1,b=2)»: se lee qué llave se usó y con qué valores (los totales por tipo, el conteo).
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o?.amount ? `${k} ${String(o.amount)}` : k) }),
+  useTranslation: () => ({
+    t: (k: string, o?: unknown) =>
+      o && typeof o === 'object' ? `${k}(${Object.entries(o).map(([a, b]) => `${a}=${String(b)}`).join(',')})` : k,
+  }),
 }))
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatDateTime: (d: string) => `fecha ${d}`, formatDate: (d: string) => d }),
@@ -124,7 +127,62 @@ describe('GiftCardReports', () => {
     expect(screen.getByText('reports.pending.kind.VENTA_DE_TARJETAS')).toBeInTheDocument()
     expect(screen.getByText('reports.pending.kind.CANCELACION_DE_VENTA')).toBeInTheDocument()
     expect(screen.getByText(`−${Currency(1000)}`)).toBeInTheDocument()
-    expect(screen.getByText(`reports.pending.totals ${Currency(0)}`)).toBeInTheDocument()
+    expect(screen.getByText('reports.pending.totals(count=2)')).toBeInTheDocument()
+  })
+
+  it('🔴 I2 · los totales van POR TIPO, tal como los manda el server (nunca la suma de venta + pago con saldo)', () => {
+    h.pending = pendientes({
+      ...SIN_PENDIENTES,
+      items: [
+        fila({ paymentId: 'p2', kind: 'COBRO_CON_SALDO', amount: 300, tipAmount: 30, order: { id: 'o2', orderNumber: 'A-1002' } }),
+        fila({ paymentId: 'p1', kind: 'VENTA_DE_TARJETAS', amount: 1000 }),
+      ],
+      total: 2,
+      totals: { ...SIN_PENDIENTES.totals, VENTA_DE_TARJETAS: { count: 1, amount: 1000, tipAmount: 0 }, COBRO_CON_SALDO: { count: 1, amount: 300, tipAmount: 30 } },
+    })
+    pintar()
+    expect(screen.getByText('reports.pending.totals(count=2)')).toBeInTheDocument()
+    expect(screen.getByText(`reports.pending.byKind(kind=reports.pending.kind.VENTA_DE_TARJETAS,n=1,amount=${Currency(1000)})`)).toBeInTheDocument()
+    expect(
+      screen.getByText(`reports.pending.byKindWithTip(kind=reports.pending.kind.COBRO_CON_SALDO,n=1,amount=${Currency(300)},tip=${Currency(30)})`),
+    ).toBeInTheDocument()
+    // Los tipos en cero no se listan, y la suma de los cuatro ya no existe.
+    expect(screen.queryByText(/kind=reports\.pending\.kind\.REVERSO_DE_SALDO/)).not.toBeInTheDocument()
+    expect(screen.queryByText(new RegExp(Currency(1300).replace(/[$.]/g, '\\$&')))).not.toBeInTheDocument()
+  })
+
+  it('🔴 I3 · la tabla enseña la propina que también salió del saldo', () => {
+    h.pending = pendientes({
+      ...SIN_PENDIENTES,
+      items: [fila({ paymentId: 'p2', kind: 'COBRO_CON_SALDO', amount: 300, tipAmount: 30 })],
+      total: 1,
+      totals: { ...SIN_PENDIENTES.totals, COBRO_CON_SALDO: { count: 1, amount: 300, tipAmount: 30 } },
+    })
+    pintar()
+    const tabla = screen.getByRole('table', { name: 'reports.pending.title' })
+    expect(within(tabla).getByRole('columnheader', { name: 'reports.pending.columns.tip' })).toBeInTheDocument()
+    expect(within(tabla).getByText(Currency(30))).toBeInTheDocument()
+  })
+
+  it('🔴 M4 · al cambiar el rango, la tabla del rango anterior se ve atenuada y ocupada mientras llega la nueva', () => {
+    h.pending = { ...pendientes({ ...SIN_PENDIENTES, items: [fila({})], total: 1 }), isPlaceholderData: true }
+    pintar()
+    expect(screen.getByRole('table', { name: 'reports.pending.title' }).closest('[aria-busy="true"]')).not.toBeNull()
+  })
+
+  it('🔴 M4 · si «Cargar más» falla, lo dice y deja las filas que ya había', () => {
+    h.pending = { ...pendientes({ ...SIN_PENDIENTES, items: [fila({})], total: 60 }), hasNextPage: true, isError: true, isFetchNextPageError: true }
+    pintar()
+    expect(screen.getByText('reports.pending.loadMoreError')).toBeInTheDocument()
+    expect(screen.getByText('reports.pending.kind.VENTA_DE_TARJETAS')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'reports.pending.loadMore' })).toBeInTheDocument()
+  })
+
+  it('🔴 M5 · con «Al día» vacío, pide una fecha en vez de quedar en blanco', () => {
+    pintar()
+    fireEvent.change(screen.getByLabelText('reports.aging.at'), { target: { value: '' } })
+    expect(screen.getByText('reports.aging.pickDate')).toBeInTheDocument()
+    expect(screen.queryByText('reports.aging.total')).not.toBeInTheDocument()
   })
 
   it('«Descargar saldos» descarga el CSV SÓLO tras el clic, con un nombre de respaldo con la fecha del negocio', async () => {

@@ -17,11 +17,14 @@ import { downloadGiftCardBalancesCsv } from '@/services/giftCard.service'
 import { monto } from '@/pages/StaffPay/conSigno'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import type { PendingAccountingRow } from '@/types/giftCard'
-import { textoDelServidorConCodigo, totalDePendientes } from '../giftCardText'
+import { cn } from '@/lib/utils'
+import type { PendingAccountingKind, PendingAccountingRow } from '@/types/giftCard'
+import { textoDelServidorConCodigo } from '../giftCardText'
 
 const hoyEn = (zona: string) => DateTime.now().setZone(zona).toISODate() ?? ''
 const inicioDeMesEn = (zona: string) => DateTime.now().setZone(zona).startOf('month').toISODate() ?? ''
+/** Orden fijo de los totales por tipo (D5 r1, I2): venta y su cancelación (pasivo), pago con saldo y su reverso (canje). */
+const TIPOS_DE_PENDIENTE: readonly PendingAccountingKind[] = ['VENTA_DE_TARJETAS', 'CANCELACION_DE_VENTA', 'COBRO_CON_SALDO', 'REVERSO_DE_SALDO']
 
 function ErrorConReintento({ texto, onRetry }: { texto: string; onRetry: () => void }) {
   const { t } = useTranslation('giftCards')
@@ -155,7 +158,9 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
             <Input id="gift-reports-at" type="date" value={al} onChange={e => setAl(e.target.value)} className="w-[170px]" />
           </div>
         </div>
-        {aging.isLoading ? (
+        {al === '' ? (
+          <p className="text-sm text-muted-foreground">{t('reports.aging.pickDate')}</p>
+        ) : aging.isLoading ? (
           <Skeleton className="h-32 w-full rounded-lg" />
         ) : aging.isError && !aging.data ? (
           <ErrorConReintento texto={textoDelServidorConCodigo(aging.error) ?? t('reports.aging.error')} onRetry={() => void aging.refetch()} />
@@ -212,7 +217,11 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
                 <AlertDescription className="text-sm">{ultimaPendiente.notice}</AlertDescription>
               </Alert>
             )}
-            <div className="rounded-lg border border-input">
+            {/* Mientras llega el rango nuevo (`keepPreviousData`), lo del rango anterior se ve atenuado y no se toca (M4). */}
+            <div
+              className={cn('rounded-lg border border-input transition-opacity', pending.isPlaceholderData && 'pointer-events-none opacity-60')}
+              aria-busy={pending.isPlaceholderData}
+            >
               <div className="overflow-x-auto">
                 <table className="w-full text-sm" aria-label={t('reports.pending.title')}>
                   <thead>
@@ -221,6 +230,7 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
                       <th className="px-4 py-2 text-left font-medium">{t('reports.pending.columns.kind')}</th>
                       <th className="px-4 py-2 text-left font-medium">{t('reports.pending.columns.folio')}</th>
                       <th className="px-4 py-2 text-right font-medium">{t('reports.pending.columns.amount')}</th>
+                      <th className="px-4 py-2 text-right font-medium">{t('reports.pending.columns.tip')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -234,21 +244,42 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
                           </Link>
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums">{monto(r.amount)}</td>
+                        {/* La propina también salió del saldo (o regresó a él): campo del server, sin sumar en el panel (I3). */}
+                        <td className="px-4 py-2 text-right tabular-nums">{r.tipAmount !== 0 ? monto(r.tipAmount) : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground">
-                <span>
-                  {ultimaPendiente &&
-                    t('reports.pending.totals', { count: ultimaPendiente.total, amount: monto(totalDePendientes(ultimaPendiente.totals)) })}
-                </span>
-                {pending.hasNextPage && (
-                  <Button variant="outline" size="sm" onClick={() => void pending.fetchNextPage()} disabled={pending.isFetchingNextPage}>
-                    {t('reports.pending.loadMore')}
-                  </Button>
+              <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm text-muted-foreground">
+                {/* Totales POR TIPO, tal como los manda el server (D5 r1, I2): venta de tarjetas (pasivo) y pago con saldo (canje)
+                    no se suman entre sí, porque su suma no es pasivo, ni ingreso, ni caja. */}
+                {ultimaPendiente && (
+                  <div className="space-y-0.5">
+                    <p>{t('reports.pending.totals', { count: ultimaPendiente.total })}</p>
+                    <ul className="space-y-0.5">
+                      {TIPOS_DE_PENDIENTE.filter(k => ultimaPendiente.totals[k].count > 0).map(k => {
+                        const x = ultimaPendiente.totals[k]
+                        const valores = { kind: t(`reports.pending.kind.${k}`), n: x.count, amount: monto(x.amount) }
+                        return (
+                          <li key={k} className="tabular-nums">
+                            {x.tipAmount !== 0
+                              ? t('reports.pending.byKindWithTip', { ...valores, tip: monto(x.tipAmount) })
+                              : t('reports.pending.byKind', valores)}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
                 )}
+                <div className="flex items-center gap-3">
+                  {pending.isFetchNextPageError && <span className="text-destructive">{t('reports.pending.loadMoreError')}</span>}
+                  {pending.hasNextPage && (
+                    <Button variant="outline" size="sm" onClick={() => void pending.fetchNextPage()} disabled={pending.isFetchingNextPage}>
+                      {t('reports.pending.loadMore')}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </>

@@ -1100,6 +1100,7 @@ export default function SalesSummary() {
         netProfit: apiResponse.summary.netProfit,             // True profit after all costs
         // Tarjetas de regalo (spec §7, B5): cifras aparte, opcionales — un server sin la función no las manda.
         giftCardLoads: apiResponse.summary.giftCardLoads ?? null,
+        giftCardLoadsCount: apiResponse.summary.giftCardLoadsCount ?? null,
         paidWithGiftCardBalance: apiResponse.summary.paidWithGiftCardBalance ?? null,
       },
       transactions: {
@@ -1171,6 +1172,31 @@ export default function SalesSummary() {
       </div>
     )
   }
+
+  // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo
+  // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
+  const hayCifrasDeTarjetas =
+    !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
+  const tooltipTotalCobrado = hayCifrasDeTarjetas
+    ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
+    : t('salesSummary.tooltips.totalCollected')
+  // Lo pagado con saldo NO es un bucket (B5): va aparte y sin porcentaje, porque no es dinero que entró en el periodo (entró
+  // cuando se vendió la tarjeta). BRUTO como los buckets; lo que regresó al saldo se dice aparte, sin restar en el panel (M2).
+  // Sale en «Métodos de pago» (Free) y después del estado de cuenta (Pro, M1).
+  const saldoDeRegalo = apiResponse?.giftCardBalanceBreakdown
+  const lineaDeSaldo = (className: string) =>
+    saldoDeRegalo && saldoDeRegalo.count > 0 ? (
+      <p className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)} data-tour="sales-summary-gift-balance">
+        <WalletCards className="w-4 h-4 shrink-0" />
+        {saldoDeRegalo.refunds > 0
+          ? t('salesSummary.giftBalanceLineWithRefunds', {
+              amount: Currency(saldoDeRegalo.amount),
+              count: saldoDeRegalo.count,
+              refunds: Currency(saldoDeRegalo.refunds),
+            })
+          : t('salesSummary.giftBalanceLine', { amount: Currency(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
+      </p>
+    ) : null
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -2193,28 +2219,18 @@ export default function SalesSummary() {
                     bold
                     tooltip={t('salesSummary.tooltips.totalSales')}
                   />
+                  {/* Tarjetas de regalo (spec §7, B5): PARTE de las ventas y propinas de arriba, con sangría bajo su padre y con su
+                      mismo gate (M3). El server la manda sólo sin filtro de pago; se pinta si no es cero. */}
+                  {typeof data.summary.paidWithGiftCardBalance === 'number' && data.summary.paidWithGiftCardBalance !== 0 && (
+                    <SummaryRow
+                      label={t('salesSummary.rows.paidWithGiftCardBalance')}
+                      value={data.summary.paidWithGiftCardBalance}
+                      type="neutral"
+                      indent={1}
+                      tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
+                    />
+                  )}
                 </>
-              )}
-
-              {/* Tarjetas de regalo (spec §7, B5): dos cifras que el server manda sólo sin filtro de pago, y sólo se pintan si no son
-                  cero. «Pagado con saldo» es PARTE de las ventas y propinas de arriba (va con sangría, justo debajo de ellas);
-                  «Tarjetas de regalo cargadas» NO es venta (va aparte, sin sangría, para que no se lea como hija de la otra). */}
-              {!isFiltered && typeof data.summary.paidWithGiftCardBalance === 'number' && data.summary.paidWithGiftCardBalance !== 0 && (
-                <SummaryRow
-                  label={t('salesSummary.rows.paidWithGiftCardBalance')}
-                  value={data.summary.paidWithGiftCardBalance}
-                  type="neutral"
-                  indent={1}
-                  tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
-                />
-              )}
-              {!isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0 && (
-                <SummaryRow
-                  label={t('salesSummary.rows.giftCardLoads')}
-                  value={data.summary.giftCardLoads}
-                  type="neutral"
-                  tooltip={t('salesSummary.tooltips.giftCardLoads')}
-                />
               )}
 
               {/* Propinas */}
@@ -2258,8 +2274,8 @@ export default function SalesSummary() {
                     bold
                     tooltip={
                       settlementConfigs.length > 0
-                        ? `${t('salesSummary.tooltips.totalCollected')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
-                        : t('salesSummary.tooltips.totalCollected')
+                        ? `${tooltipTotalCobrado.replace(/\.$/, '')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
+                        : tooltipTotalCobrado
                     }
                   />
                 </>
@@ -2275,6 +2291,22 @@ export default function SalesSummary() {
                     type="positive"
                     bold
                     tooltip={t('salesSummary.tooltips.netProfit')}
+                  />
+                </>
+              )}
+
+              {/* Tarjetas de regalo cargadas (spec §7, B5): NO es venta ni entra a «Total cobrado» (ruling del contador, D5 r1):
+                  renglón aparte, debajo de todo, con su conteo. Sólo sin filtro de pago y si no es cero. */}
+              {!isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0 && (
+                <>
+                  <div className="h-px bg-border/50 mx-4 my-3" />
+                  <SummaryRow
+                    label={t('salesSummary.rows.giftCardLoads')}
+                    value={data.summary.giftCardLoads}
+                    count={data.summary.giftCardLoadsCount ?? undefined}
+                    countLabel={t('salesSummary.giftCardsCountLabel', { count: data.summary.giftCardLoadsCount ?? 0 })}
+                    type="neutral"
+                    tooltip={t('salesSummary.tooltips.giftCardLoads')}
                   />
                 </>
               )}
@@ -2304,6 +2336,7 @@ export default function SalesSummary() {
             venueTimezone={venueTimezone}
             formatCurrency={Currency}
           />
+          {lineaDeSaldo('px-1')}
           {venueId && <SettlementWeekStrip venueId={venueId} venueTimezone={venueTimezone} />}
         </>
       )}
@@ -2404,17 +2437,7 @@ export default function SalesSummary() {
                     />
                   )
                 })}
-                {/* Lo pagado con saldo de tarjetas de regalo NO es un bucket (B5): va aparte y sin porcentaje, porque no es
-                    dinero que entró en el periodo — entró cuando se vendió la tarjeta. */}
-                {(apiResponse.giftCardBalanceBreakdown?.count ?? 0) > 0 && (
-                  <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground" data-tour="sales-summary-gift-balance">
-                    <WalletCards className="w-4 h-4 shrink-0" />
-                    {t('salesSummary.giftBalanceLine', {
-                      amount: Currency(apiResponse.giftCardBalanceBreakdown!.amount),
-                      count: apiResponse.giftCardBalanceBreakdown!.count,
-                    })}
-                  </p>
-                )}
+                {lineaDeSaldo('px-4 py-3')}
                 </>
               ) : (
                 // Fallback flat layout (e.g. groupBy != paymentMethod or no detailed data).

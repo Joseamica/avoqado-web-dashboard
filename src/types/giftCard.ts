@@ -258,7 +258,7 @@ export interface PendingAccountingRow {
   order: { id: string; orderNumber: string }
 }
 
-/** C4 `PendingAccountingPage`. El total de la tabla es `totalDePendientes(totals)` (giftCardText), nunca la suma de la página. */
+/** C4 `PendingAccountingPage`. Los totales se enseñan POR TIPO tal como vienen (`totals[kind]`), nunca sumados entre tipos (D5 r1). */
 export interface PendingAccountingPage {
   items: PendingAccountingRow[]
   page: number

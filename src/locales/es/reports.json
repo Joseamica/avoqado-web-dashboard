@@ -605,6 +605,7 @@
       "staffCommissions": "Comisiones pagadas a empleados según las configuraciones de comisiones del venue",
       "totalSales": "Ventas netas (los impuestos ya están incluidos en los precios)",
       "totalCollected": "Dinero recibido: ventas netas + propinas - comisiones de plataforma",
+      "totalCollectedWithGiftCards": "Ventas netas + propinas − comisiones. No incluye lo cargado en tarjetas de regalo (va en su renglón) y sí incluye lo que se pagó con saldo de tarjeta.",
       "totalCollectedSettlement": "El tiempo de depósito varía según el método de pago: tarjetas de débito y crédito se liquidan en {{debitDays}} día(s) hábil(es), mientras que Amex e internacionales tardan {{amexDays}} día(s) hábil(es).",
       "netProfit": "Ganancia real después de todos los costos: ventas netas - comisiones de plataforma - comisiones a empleados",
       "giftCardLoads": "Saldo que vendiste en tarjetas de regalo, menos las cancelaciones. No es venta todavía: cuenta como venta cuando el cliente lo usa.",
@@ -612,6 +613,10 @@
     },
     "giftBalanceLine_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro). Ese dinero entró cuando se vendieron.",
     "giftBalanceLine_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros). Ese dinero entró cuando se vendieron.",
+    "giftBalanceLineWithRefunds_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro); {{refunds}} regresó al saldo. Ese dinero entró cuando se vendieron.",
+    "giftBalanceLineWithRefunds_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros); {{refunds}} regresó al saldo. Ese dinero entró cuando se vendieron.",
+    "giftCardsCountLabel_one": "tarjeta",
+    "giftCardsCountLabel_other": "tarjetas",
     "settlement": {
       "label": "Liquidación",
       "businessDay": "{{count}} día hábil",

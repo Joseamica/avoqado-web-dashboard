@@ -4,7 +4,6 @@ import type {
   GiftCardCancelReason,
   GiftCardReason,
   GiftCardSettingsView,
-  PendingAccountingPage,
 } from '@/types/giftCard'
 import {
   MINIMO_POR_SOBRE,
@@ -19,7 +18,6 @@ import {
   motivoSinVenta,
   signoDe,
   textoDelServidorConCodigo,
-  totalDePendientes,
   ultimos4,
   validarAjuste,
   validarMotivoYNota,
@@ -206,18 +204,6 @@ describe('accionesDisponibles', () => {
   it('🔴 «Cancelar venta» sigue lo que dice el server: otro día o ya usada ⇒ no se ofrece', () => {
     expect(accionesDisponibles(d({ cancel: cancel(false, 'NOT_SAME_DAY') })).cancelarVenta).toBe(false)
     expect(accionesDisponibles(d({ cancel: cancel(false, 'ALREADY_USED') })).cancelarVenta).toBe(false)
-  })
-})
-
-describe('totalDePendientes', () => {
-  it('suma los CUATRO agregados del server (no la página), al centavo', () => {
-    const totals: PendingAccountingPage['totals'] = {
-      VENTA_DE_TARJETAS: { count: 2, amount: 1500, tipAmount: 0 },
-      CANCELACION_DE_VENTA: { count: 1, amount: -500, tipAmount: 0 },
-      COBRO_CON_SALDO: { count: 1, amount: 0.1, tipAmount: 0 },
-      REVERSO_DE_SALDO: { count: 1, amount: 0.2, tipAmount: 0 },
-    }
-    expect(totalDePendientes(totals)).toBe(1000.3)
   })
 })
 

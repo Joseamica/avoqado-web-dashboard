@@ -2,7 +2,7 @@
  * Tarjetas de regalo — funciones puras del panel (sin React ni i18n): qué se enseña de una tarjeta, el signo de cada
  * renglón de la libreta, cómo se leen los montos tecleados, las validaciones de los formularios y qué acciones aplican.
  * El server vuelve a decidir todo; aquí sólo se evita mandar lo que de seguro rechaza y se explica antes. Leen los tipos de
- * C4 TAL CUAL (F3): lo poco que el server no manda («vencida», el total de pendientes) se calcula aquí, con su prueba.
+ * C4 TAL CUAL (F3): lo poco que el server no manda («vencida») se calcula aquí, con su prueba.
  */
 import { conSigno } from '@/pages/StaffPay/conSigno'
 import type {
@@ -14,7 +14,6 @@ import type {
   GiftCardRow,
   GiftCardSettingsView,
   GiftCardValidityMonths,
-  PendingAccountingPage,
   UpdateGiftCardSettingsInput,
 } from '@/types/giftCard'
 
@@ -68,12 +67,6 @@ export function montoDelMovimiento(type: GiftCardActivityType, amount: number): 
   const signo = signoDe(type)
   if (signo === 0 || !Number.isFinite(amount) || amount === 0) return '—'
   return conSigno(signo * amount)
-}
-
-/** El total de «Pendientes de revisión contable»: la suma de los CUATRO agregados que manda C4 (`totals[kind].amount`), en
- *  centavos para no arrastrar decimales; nunca la suma de la página cargada. */
-export function totalDePendientes(totals: PendingAccountingPage['totals']): number {
-  return Object.values(totals).reduce((suma, x) => suma + centavos(x.amount), 0) / 100
 }
 
 /**

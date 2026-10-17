@@ -247,6 +247,7 @@
       "title": "Live balance at a date",
       "help": "How much the still-active cards owe, by how long ago they were sold.",
       "at": "As of",
+      "pickDate": "Pick a date to see the balance.",
       "error": "We couldn't calculate the aging.",
       "columns": {
         "age": "Age",
@@ -267,13 +268,16 @@
       "help": "These operations don't create an automatic journal entry: a sold gift card is balance you owe the customer, not a sale. Review them with your accountant.",
       "error": "We couldn't load the pending items.",
       "empty": "Nothing pending in this period.",
-      "totals_one": "1 operation · {{amount}}",
-      "totals_other": "{{count}} operations · {{amount}}",
+      "totals_one": "1 operation in the period",
+      "totals_other": "{{count}} operations in the period",
+      "byKind": "{{kind}} ({{n}}): {{amount}}",
+      "byKindWithTip": "{{kind}} ({{n}}): {{amount}} + {{tip}} tip",
       "columns": {
         "date": "Date",
         "kind": "What it was",
         "folio": "Receipt",
-        "amount": "Amount"
+        "amount": "Amount",
+        "tip": "Tip"
       },
       "kind": {
         "VENTA_DE_TARJETAS": "Gift card sale",
@@ -281,7 +285,8 @@
         "REVERSO_DE_SALDO": "Refund to balance",
         "CANCELACION_DE_VENTA": "Gift card sale cancellation"
       },
-      "loadMore": "Load more"
+      "loadMore": "Load more",
+      "loadMoreError": "Couldn't load more."
     },
     "export": {
       "title": "Export balances",

@@ -247,6 +247,7 @@
       "title": "Saldo vivo a una fecha",
       "help": "Cuánto deben las tarjetas que siguen activas, según cuánto tiempo llevan desde que se vendieron.",
       "at": "Al día",
+      "pickDate": "Elige una fecha para ver el saldo.",
       "error": "No pudimos calcular la antigüedad.",
       "columns": {
         "age": "Antigüedad",
@@ -267,13 +268,16 @@
       "help": "Estas operaciones no generan póliza automática: una tarjeta vendida es saldo que le debes al cliente, no una venta. Revísalas con tu contador.",
       "error": "No pudimos cargar los pendientes.",
       "empty": "No hay pendientes en este periodo.",
-      "totals_one": "1 operación · {{amount}}",
-      "totals_other": "{{count}} operaciones · {{amount}}",
+      "totals_one": "1 operación en el periodo",
+      "totals_other": "{{count}} operaciones en el periodo",
+      "byKind": "{{kind}} ({{n}}): {{amount}}",
+      "byKindWithTip": "{{kind}} ({{n}}): {{amount}} + {{tip}} de propina",
       "columns": {
         "date": "Fecha",
         "kind": "Qué fue",
         "folio": "Folio",
-        "amount": "Monto"
+        "amount": "Monto",
+        "tip": "Propina"
       },
       "kind": {
         "VENTA_DE_TARJETAS": "Venta de tarjetas",
@@ -281,7 +285,8 @@
         "REVERSO_DE_SALDO": "Devolución al saldo",
         "CANCELACION_DE_VENTA": "Cancelación de venta de tarjetas"
       },
-      "loadMore": "Cargar más"
+      "loadMore": "Cargar más",
+      "loadMoreError": "No se pudo cargar más."
     },
     "export": {
       "title": "Exportar saldos",
