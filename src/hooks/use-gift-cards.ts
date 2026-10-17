@@ -63,21 +63,34 @@ export const giftCardKeys = {
 /** Consultas pesadas: locales a estas queries, nunca en el QueryClient compartido. */
 const HEAVY = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as const
 
-/** Lo que pide el server para TODA lectura de tarjetas: un negocio y `giftCards:read`. */
-function usePuedeLeer(venueId: string | undefined): boolean {
-  const { can } = useAccess()
-  return !!venueId && can('giftCards:read')
+/**
+ * Lo que pide el server para TODA lectura de tarjetas: un negocio y `giftCards:read`. `esperando` = los permisos todavía no
+ * llegan (recarga en frío: la guardia deja pasar y `can()` da false); ver `cargandoSiEspera`.
+ */
+function usePuedeLeer(venueId: string | undefined): { puede: boolean; esperando: boolean } {
+  const { can, isLoading } = useAccess()
+  return { puede: !!venueId && can('giftCards:read'), esperando: !!venueId && isLoading }
+}
+
+/**
+ * D6 r1 (M2): con los permisos en camino la consulta queda apagada y SIN datos, que en TanStack v5 no es «cargando» ni
+ * «error»: las pantallas caían un instante en «no se pudo cargar» o «aún no hay». Aquí cuenta como cargando, así lo heredan
+ * todas. Con datos ya en caché se enseñan (nunca se tapan con un «cargando»).
+ */
+function cargandoSiEspera<Q extends { isLoading: boolean; data: unknown }>(query: Q, esperando: boolean): Q {
+  return esperando && query.data === undefined ? { ...query, isLoading: true } : query
 }
 
 export function useGiftCardSettings(venueId: string | undefined) {
-  const enabled = usePuedeLeer(venueId)
-  return useQuery({ queryKey: giftCardKeys.settings(venueId), queryFn: () => getGiftCardSettings(venueId!), enabled, ...HEAVY })
+  const { puede: enabled, esperando } = usePuedeLeer(venueId)
+  const query = useQuery({ queryKey: giftCardKeys.settings(venueId), queryFn: () => getGiftCardSettings(venueId!), enabled, ...HEAVY })
+  return cargandoSiEspera(query, esperando)
 }
 
 /** Lista paginada en el server. Búsqueda y estados van en la clave ⇒ `keepPreviousData`: teclear no desmonta la tabla. */
 export function useGiftCardList(venueId: string | undefined, filters: GiftCardListFilters) {
-  const enabled = usePuedeLeer(venueId)
-  return useInfiniteQuery({
+  const { puede: enabled, esperando } = usePuedeLeer(venueId)
+  const query = useInfiniteQuery({
     queryKey: giftCardKeys.list(venueId, filters),
     queryFn: ({ pageParam, signal }) =>
       listGiftCards(
@@ -91,12 +104,14 @@ export function useGiftCardList(venueId: string | undefined, filters: GiftCardLi
     placeholderData: keepPreviousData,
     ...HEAVY,
   })
+  return cargandoSiEspera(query, esperando)
 }
 
 /** Detalle + libreta por cursor. Sólo corre con una tarjeta abierta (la hoja cerrada no pide nada). */
 export function useGiftCardDetail(venueId: string | undefined, giftCardId: string | null) {
-  const enabled = usePuedeLeer(venueId) && !!giftCardId
-  return useInfiniteQuery({
+  const { puede, esperando } = usePuedeLeer(venueId)
+  const enabled = puede && !!giftCardId
+  const query = useInfiniteQuery({
     queryKey: giftCardKeys.detail(venueId, giftCardId ?? ''),
     queryFn: ({ pageParam, signal }) =>
       getGiftCardDetail(venueId!, giftCardId!, { cursor: pageParam ?? undefined, limit: GIFT_CARD_ACTIVITY_PAGE_SIZE }, signal),
@@ -107,26 +122,32 @@ export function useGiftCardDetail(venueId: string | undefined, giftCardId: strin
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  return cargandoSiEspera(query, esperando && !!giftCardId)
 }
 
 export function useGiftCardSummary(venueId: string | undefined, from: string, to: string) {
-  const enabled = usePuedeLeer(venueId) && !!from && !!to
-  return useQuery({
+  const { puede, esperando } = usePuedeLeer(venueId)
+  const enabled = puede && !!from && !!to
+  const query = useQuery({
     queryKey: giftCardKeys.summary(venueId, from, to),
     queryFn: () => getGiftCardSummary(venueId!, { from, to }),
     enabled,
     ...HEAVY,
   })
+  return cargandoSiEspera(query, esperando && !!from && !!to)
 }
 
 export function useGiftCardAging(venueId: string | undefined, at: string) {
-  const enabled = usePuedeLeer(venueId) && !!at
-  return useQuery({ queryKey: giftCardKeys.aging(venueId, at), queryFn: () => getGiftCardAging(venueId!, at), enabled, ...HEAVY })
+  const { puede, esperando } = usePuedeLeer(venueId)
+  const enabled = puede && !!at
+  const query = useQuery({ queryKey: giftCardKeys.aging(venueId, at), queryFn: () => getGiftCardAging(venueId!, at), enabled, ...HEAVY })
+  return cargandoSiEspera(query, esperando && !!at)
 }
 
 export function useGiftCardPendingAccounting(venueId: string | undefined, from: string, to: string) {
-  const enabled = usePuedeLeer(venueId) && !!from && !!to
-  return useInfiniteQuery({
+  const { puede, esperando } = usePuedeLeer(venueId)
+  const enabled = puede && !!from && !!to
+  const query = useInfiniteQuery({
     queryKey: giftCardKeys.pending(venueId, from, to),
     queryFn: ({ pageParam }) =>
       listGiftCardPendingAccounting(venueId!, { page: pageParam, pageSize: PENDING_ACCOUNTING_PAGE_SIZE, from, to }),
@@ -136,6 +157,7 @@ export function useGiftCardPendingAccounting(venueId: string | undefined, from: 
     placeholderData: keepPreviousData,
     ...HEAVY,
   })
+  return cargandoSiEspera(query, esperando && !!from && !!to)
 }
 
 /**

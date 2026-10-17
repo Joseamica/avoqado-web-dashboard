@@ -26,6 +26,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAccess } from '@/hooks/use-access'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { cn } from '@/lib/utils'
+import { verTarjetasEnAjustes } from '@/pages/GiftCards/vista'
 
 interface HubItem {
   to: string
@@ -124,7 +125,7 @@ export default function SettingsLayout() {
         ...(can('tender-types:read')
           ? [{ to: 'tender-types', label: t('hub.items.tenderTypes'), icon: Wallet, dataTour: 'settings-nav-tender-types' }]
           : []),
-        ...(can('giftCards:read')
+        ...(verTarjetasEnAjustes({ puedeLeer: can('giftCards:read'), marcaBlanca: isWhiteLabelEnabled })
           ? [
               {
                 to: 'gift-cards',

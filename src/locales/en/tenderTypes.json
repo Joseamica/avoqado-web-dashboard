@@ -20,7 +20,8 @@
   },
   "giftCardTender": {
     "hint": "To take payments with gift card balance. It doesn't show in the point of sale payment list.",
-    "alwaysOn": "Always on: paying with balance is never turned off"
+    "alwaysOn": "Always on: paying with balance is never turned off",
+    "alwaysOnLabel": "Always on"
   },
   "form": {
     "createTitle": "New payment type",

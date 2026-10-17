@@ -41,6 +41,12 @@ interface FormState {
   satFormaPago: string
 }
 
+/**
+ * La fila de un tender de sistema con dueño fijo (hoy sólo `GIFT_CARD`, cobrar con saldo; R4): nunca se edita ni se apaga
+ * (el server rechaza el PATCH). UNA sola condición para el cinturón y para lo que se pinta (D6 r1, M3).
+ */
+const esFilaFija = (tender: TenderType) => !!tender.systemKind
+
 const EMPTY_FORM: FormState = {
   name: '',
   posSection: 'MORE',
@@ -165,7 +171,7 @@ export default function TenderTypes() {
 
   const toggleActive = (tender: TenderType, active: boolean) => {
     // El tender de sistema del saldo no se apaga (R4); el switch ya viene deshabilitado, esto es el cinturón.
-    if (tender.systemKind) return
+    if (esFilaFija(tender)) return
     updateMutation.mutate({ id: tender.id, input: { expectedRevision: tender.revision, active } })
   }
 
@@ -181,7 +187,7 @@ export default function TenderTypes() {
               {t('badges.system')}
             </Badge>
           )}
-          {tender.systemKind === 'GIFT_CARD' && (
+          {esFilaFija(tender) && (
             <Badge variant="outline" className="text-[10px]">
               <WalletCards className="mr-1 h-3 w-3" />
               {t('badges.giftCard')}
@@ -205,17 +211,18 @@ export default function TenderTypes() {
           )}
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {tender.systemKind === 'GIFT_CARD'
+          {esFilaFija(tender)
             ? t('giftCardTender.hint')
             : tender.satFormaPago
               ? t('badges.sat', { code: tender.satFormaPago })
               : t('badges.notInvoiceable')}
         </p>
       </div>
-      {tender.systemKind === 'GIFT_CARD' ? (
+      {esFilaFija(tender) ? (
         // Cobrar con saldo NUNCA se apaga (spec §6 y §9): se ve encendido, con candado y su razón; ni lápiz ni switch movible.
         <div className="flex shrink-0 items-center gap-2">
           <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <span className="text-xs text-muted-foreground">{t('giftCardTender.alwaysOnLabel')}</span>
           <Switch checked disabled aria-label={t('giftCardTender.alwaysOn')} />
         </div>
       ) : canManage && (

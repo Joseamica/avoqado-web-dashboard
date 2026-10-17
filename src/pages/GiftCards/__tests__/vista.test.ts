@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GiftCardSettingsView } from '@/types/giftCard'
-import { decidirVista } from '../vista'
+import { decidirVista, verTarjetasEnAjustes } from '../vista'
 
 const S: GiftCardSettingsView = {
   enabled: false,
@@ -45,5 +45,18 @@ describe('decidirVista', () => {
     const sinCampo: Partial<GiftCardSettingsView> = { ...S }
     delete sinCampo.hasCards
     expect(decidirVista({ ...base, settings: sinCampo as GiftCardSettingsView, hasAccess: false })).toBe('lista')
+  })
+})
+
+// D6 r1 (M1): el hub de Ajustes sigue al menú lateral, que en la fase 1a esconde las tarjetas en marca blanca.
+describe('verTarjetasEnAjustes', () => {
+  it('con giftCards:read y fuera de marca blanca se ve', () => {
+    expect(verTarjetasEnAjustes({ puedeLeer: true, marcaBlanca: false })).toBe(true)
+  })
+  it('en marca blanca no se ve, aunque tenga el permiso (como el menú lateral)', () => {
+    expect(verTarjetasEnAjustes({ puedeLeer: true, marcaBlanca: true })).toBe(false)
+  })
+  it('sin giftCards:read no se ve', () => {
+    expect(verTarjetasEnAjustes({ puedeLeer: false, marcaBlanca: false })).toBe(false)
   })
 })

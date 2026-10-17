@@ -3,8 +3,8 @@ import { renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/react-query'
 import { createElement, type ReactNode } from 'react'
 
-const access = vi.hoisted(() => ({ allowed: ['giftCards:read'] as string[] }))
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p) }) }))
+const access = vi.hoisted(() => ({ allowed: ['giftCards:read'] as string[], loading: false }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p), isLoading: access.loading }) }))
 // Todas las funciones del servicio, aunque esta prueba no las llame: un export ausente en un mock de vitest truena al usarse.
 vi.mock('@/services/giftCard.service', () => ({
   getGiftCardSettings: vi.fn(),
@@ -75,6 +75,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   client = new QueryClient()
   access.allowed = ['giftCards:read']
+  access.loading = false
   mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
   mockUseInfiniteQuery.mockReturnValue({ data: undefined, isLoading: false })
 })
@@ -128,6 +129,44 @@ describe('use-gift-cards: consultas', () => {
     expect(o.queryKey.slice(0, 3)).toEqual(['gift-cards', 'v1', 'reports'])
     expect(giftCardKeys.aging('v1', '2026-10-14').slice(0, 3)).toEqual(['gift-cards', 'v1', 'reports'])
     expect(giftCardKeys.pending('v1', 'a', 'b').slice(0, 3)).toEqual(['gift-cards', 'v1', 'reports'])
+  })
+})
+
+// D6 r1 (M2): mientras llegan los permisos `can()` da false y la consulta queda apagada SIN datos; en TanStack v5 eso no es
+// «cargando» ni «error», y las pantallas caían un instante en «no se pudo cargar» o «aún no hay». El hook lo cuenta como
+// cargando, así todas las pantallas del módulo lo heredan.
+describe('use-gift-cards: permisos todavía cargando', () => {
+  const todas = () =>
+    renderHook(
+      () => [
+        useGiftCardSettings('v1'),
+        useGiftCardList('v1', FILTROS),
+        useGiftCardDetail('v1', 'g1'),
+        useGiftCardSummary('v1', '2026-10-01', '2026-10-14'),
+        useGiftCardAging('v1', '2026-10-14'),
+        useGiftCardPendingAccounting('v1', '2026-10-01', '2026-10-14'),
+      ],
+      { wrapper },
+    ).result.current
+
+  it('ninguna corre y TODAS dicen «cargando»', () => {
+    access.allowed = []
+    access.loading = true
+    const resultados = todas()
+    for (const o of allOpts()) expect(o.enabled).toBe(false)
+    expect(resultados).toHaveLength(6)
+    for (const q of resultados) expect(q.isLoading).toBe(true)
+  })
+
+  it('ya cargados, cada una dice el estado de su consulta', () => {
+    for (const q of todas()) expect(q.isLoading).toBe(false)
+  })
+
+  it('con datos ya en caché no se tapan con «cargando»', () => {
+    access.loading = true
+    mockUseQuery.mockReturnValue({ data: { enabled: true }, isLoading: false })
+    mockUseInfiniteQuery.mockReturnValue({ data: { pages: [], pageParams: [] }, isLoading: false })
+    for (const q of todas()) expect(q.isLoading).toBe(false)
   })
 })
 

@@ -85,4 +85,25 @@ describe('Tipos de pago — tender de sistema «Tarjeta de regalo» (R4, spec §
     expect(screen.getAllByRole('button', { name: 'form.editTitle' })).toHaveLength(1)
     expect(screen.getByRole('switch', { name: 'Uber Eats' })).toBeEnabled()
   })
+
+  // D6 r1 (M4): «nunca se apaga» no puede vivir sólo en el aria-label; quien mira la pantalla también lo lee.
+  it('«Siempre activo» se lee junto al candado', async () => {
+    pintar()
+    await screen.findByRole('switch', { name: 'giftCardTender.alwaysOn' })
+    expect(screen.getByText('giftCardTender.alwaysOnLabel')).toBeVisible()
+  })
+
+  // D6 r1 (M3): el cinturón de toggleActive y lo que se pinta usan la MISMA condición. Una fila con cualquier `systemKind`
+  // (aunque no venga marcada `isSystem`) se pinta fija: ni lápiz ni switch movible, así nunca llega a updateTenderType.
+  it('cualquier fila con systemKind se pinta fija, aunque no venga como isSystem', async () => {
+    const RARA: TenderType = { ...UBER, id: 't-rara', name: 'Fila rara', isSystem: false, systemKind: 'OTRO' as never }
+    svc.listTenderTypes.mockResolvedValue([RARA])
+    pintar()
+    const fijo = await screen.findByRole('switch', { name: 'giftCardTender.alwaysOn' })
+    expect(fijo).toBeDisabled()
+    expect(screen.queryByRole('switch', { name: 'Fila rara' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'form.editTitle' })).not.toBeInTheDocument()
+    fireEvent.click(fijo)
+    expect(svc.updateTenderType).not.toHaveBeenCalled()
+  })
 })

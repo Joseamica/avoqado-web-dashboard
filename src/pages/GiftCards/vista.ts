@@ -26,3 +26,11 @@ export function decidirVista(p: {
   if (p.tierResolved && !p.hasAccess) return 'cartel'
   return 'prender'
 }
+
+/**
+ * Entrada «Tarjetas de regalo» del hub de Ajustes (D6 r1, M1): con `giftCards:read` y fuera de marca blanca, igual que el
+ * menú lateral en la fase 1a. La ruta no cambia (el permiso del server protege los datos).
+ */
+export function verTarjetasEnAjustes(p: { puedeLeer: boolean; marcaBlanca: boolean }): boolean {
+  return p.puedeLeer && !p.marcaBlanca
+}

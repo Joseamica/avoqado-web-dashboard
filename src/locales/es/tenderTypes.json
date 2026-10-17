@@ -20,7 +20,8 @@
   },
   "giftCardTender": {
     "hint": "Para cobrar con saldo de tarjetas de regalo. No aparece en la lista de cobro del punto de venta.",
-    "alwaysOn": "Siempre activo: cobrar con saldo nunca se apaga"
+    "alwaysOn": "Siempre activo: cobrar con saldo nunca se apaga",
+    "alwaysOnLabel": "Siempre activo"
   },
   "form": {
     "createTitle": "Nuevo tipo de pago",
