@@ -27,6 +27,7 @@ import { IssueRefundSheet } from './IssueRefundSheet'
 import { RefundCreditNotePanel } from './RefundCreditNotePanel'
 import { refundableItemsFromOrder } from './refundAmount'
 import { restanteTotal, saldosPorDevolver } from './refundTip'
+import { etiquetaDeMetodo } from './etiquetaDeMetodo'
 
 interface PaymentDrawerContentProps {
   paymentId: string
@@ -637,14 +638,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   )
 }
 
-function formatMethod(method: string | undefined, t: (key: string, opts?: any) => string): string {
-  const m = method?.toUpperCase()
-  if (m === 'CASH') return t('methods.CASH', { defaultValue: 'Efectivo' })
-  if (m === 'CREDIT_CARD') return t('methods.CREDIT_CARD', { defaultValue: 'Tarjeta de crédito' })
-  if (m === 'DEBIT_CARD') return t('methods.DEBIT_CARD', { defaultValue: 'Tarjeta de débito' })
-  if (m === 'DIGITAL_WALLET') return t('methods.DIGITAL_WALLET', { defaultValue: 'Billetera digital' })
-  return method ?? '-'
-}
+const formatMethod = etiquetaDeMetodo
 
 interface DrawerLineItem {
   name: string
