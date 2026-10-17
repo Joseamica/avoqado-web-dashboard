@@ -1,0 +1,368 @@
+{
+  "page": {
+    "title": "Tarjetas de regalo",
+    "subtitle": "Cada tarjeta que vendiste, con su saldo y su historial.",
+    "info": "Una tarjeta de regalo es saldo a favor de tu cliente. Se vende en el punto de venta y se usa para pagar en tu negocio.",
+    "loading": "Cargando…",
+    "retry": "Reintentar",
+    "settingsError": "No pudimos leer cómo están configuradas las tarjetas de regalo."
+  },
+  "tabs": {
+    "cards": "Tarjetas",
+    "reports": "Reportes"
+  },
+  "notice": {
+    "DISABLED": "Las tarjetas de regalo están apagadas: no se venden nuevas. Las que ya vendiste se siguen cobrando.",
+    "NOT_IN_PLAN": "Tu plan ya no incluye vender tarjetas de regalo. Las que ya vendiste se siguen cobrando y aquí las sigues viendo.",
+    "KEYS_MISSING": "A Avoqado le falta un paso para que vendas tarjetas de regalo. Escríbenos a hola@avoqado.io.",
+    "goToSettings": "Ir a configuración"
+  },
+  "turnOn": {
+    "title": "Vende tarjetas de regalo",
+    "body": "Tus clientes regalan saldo para gastar en tu negocio. Primero préndelas en Configuración.",
+    "cta": "Prender tarjetas de regalo",
+    "askOwner": "Pídele al dueño o al gerente que las prenda en Configuración."
+  },
+  "teaser": {
+    "title": "Qué puedes hacer con las tarjetas de regalo",
+    "sell": "Venderlas en el punto de venta, desde $100 hasta $10,000.",
+    "pay": "Cobrar con el saldo, completo o una parte.",
+    "track": "Ver el saldo y el historial de cada tarjeta.",
+    "reports": "Reportes de saldo para tu contador."
+  },
+  "status": {
+    "PENDING": "Sin pagar",
+    "ACTIVE": "Activa",
+    "BLOCKED": "Bloqueada",
+    "DEACTIVATED": "Cancelada",
+    "EXPIRED": "Vencida"
+  },
+  "activity": {
+    "ACTIVATE": "Se activó",
+    "REDEEM": "Se usó para pagar",
+    "REDEEM_REVERSAL": "Regresó al saldo",
+    "ADJUST_INCREMENT": "Ajuste a favor",
+    "ADJUST_DECREMENT": "Ajuste en contra",
+    "BLOCK": "Se bloqueó",
+    "UNBLOCK": "Se desbloqueó",
+    "DEACTIVATE": "Se canceló",
+    "CLAIM": "Se guardó en la tarjeta del cliente",
+    "CODE_REPLACED": "Se cambió el código"
+  },
+  "reason": {
+    "SUSPICIOUS_ACTIVITY": "Actividad sospechosa",
+    "CASHIER_ERROR": "Error al cobrar",
+    "CUSTOMER_REQUEST": "Lo pidió el cliente",
+    "LOST_CARD": "El cliente la perdió",
+    "SALE_CANCELLED": "Se canceló la venta",
+    "ONLINE_REVOCATION": "El comprador la canceló en línea",
+    "CHARGEBACK": "Contracargo del banco",
+    "CANCEL_IN_PROGRESS": "Cancelación en curso",
+    "OTHER": "Otro motivo"
+  },
+  "delivery": {
+    "WHATSAPP": "WhatsApp",
+    "EMAIL": "Correo",
+    "PRINTED": "Impresa",
+    "CUSTOMER_CARD": "En la tarjeta del cliente",
+    "HANDED_TO_BUYER": "Se la llevó el comprador"
+  },
+  "deliveryStatus": {
+    "PENDING": "Por enviar",
+    "SENT": "Enviada",
+    "FAILED": "No se pudo enviar"
+  },
+  "list": {
+    "searchPlaceholder": "Buscar por últimos 4, nombre, teléfono o correo",
+    "clearSearch": "Borrar búsqueda",
+    "statusFilter": "Estado",
+    "statusFilterTitle": "Filtrar por estado",
+    "apply": "Aplicar",
+    "clear": "Limpiar",
+    "clearFilters": "Quitar filtros",
+    "updating": "Actualizando…",
+    "totals_one": "1 tarjeta · saldo {{amount}}",
+    "totals_other": "{{count}} tarjetas · saldo {{amount}}",
+    "columns": {
+      "code": "Tarjeta",
+      "status": "Estado",
+      "balance": "Saldo",
+      "recipient": "Para",
+      "soldAt": "Vendida",
+      "expiresAt": "Vence",
+      "folio": "Folio"
+    },
+    "balanceOf": "de {{amount}}",
+    "noExpiry": "Sin vencimiento",
+    "noName": "—",
+    "emptyTitle": "Todavía no vendes tarjetas de regalo",
+    "emptyBody": "Se venden desde el punto de venta. Aquí verás cada una con su saldo.",
+    "noResults": "Ninguna tarjeta coincide con tu búsqueda",
+    "loadError": "No pudimos cargar las tarjetas",
+    "retry": "Reintentar",
+    "showing": "Mostrando {{shown}} de {{total}}",
+    "loadMore": "Cargar más",
+    "refresh": "Actualizar"
+  },
+  "detail": {
+    "title": "Tarjeta {{last4}}",
+    "loadingTitle": "Tarjeta de regalo",
+    "subtitle": "Saldo, datos de la venta e historial.",
+    "loadError": "No pudimos cargar esta tarjeta",
+    "retry": "Reintentar",
+    "balance": "Saldo",
+    "ofInitial": "Se cargaron {{amount}}",
+    "blockedBecause": "Bloqueada: {{reason}}",
+    "facts": {
+      "soldAt": "Vendida",
+      "expiresAt": "Vence",
+      "recipient": "Para",
+      "purchaser": "Compró",
+      "customer": "Guardada en la tarjeta de",
+      "notSaved": "Nadie todavía",
+      "delivery": "Entrega",
+      "deliveryValue": "{{channel}} · {{status}}",
+      "folio": "Folio de la compra (número de cuenta)",
+      "validity": "Vigencia"
+    },
+    "history": "Historial",
+    "historyCount_one": "1 movimiento",
+    "historyCount_other": "{{count}} movimientos",
+    "whenBy": "{{date}} · {{name}}",
+    "note": "Nota: {{note}}",
+    "inOrder": "Venta {{folio}}",
+    "balanceAfter": "Quedó en {{amount}}",
+    "loadMore": "Ver más movimientos",
+    "loadMoreError": "No pudimos cargar más movimientos. Inténtalo otra vez."
+  },
+  "actions": {
+    "title": "Acciones del gerente",
+    "none": "No hay acciones para esta tarjeta.",
+    "reason": "Motivo",
+    "note": "Nota",
+    "noteOptional": "Nota (opcional)",
+    "notePlaceholder": "Qué pasó, en pocas palabras",
+    "cancel": "Volver",
+    "retry": "Intentar otra vez",
+    "inDoubt": "No supimos si se guardó. Toca «Intentar otra vez»: no se aplica dos veces.",
+    "errors": {
+      "reason": "Elige un motivo.",
+      "noteForOther": "Con «Otro motivo», escribe una nota de al menos 5 letras."
+    },
+    "adjust": {
+      "button": "Ajustar saldo",
+      "title": "Ajustar saldo",
+      "description": "Saldo actual: {{balance}}. El ajuste queda en el historial con tu nombre.",
+      "direction": "Tipo de ajuste",
+      "increment": "Sumar saldo",
+      "decrement": "Quitar saldo",
+      "amount": "Monto",
+      "confirm": "Ajustar",
+      "done": "Saldo ajustado",
+      "errors": {
+        "amount": "Escribe un monto mayor a cero, por ejemplo 150 o 150.50.",
+        "moreThanBalance": "No puedes quitar más del saldo ({{amount}}).",
+        "overCap": "El saldo de una tarjeta no puede pasar de {{amount}}.",
+        "note": "Escribe una nota de al menos 5 letras: queda en el historial."
+      }
+    },
+    "block": {
+      "button": "Bloquear",
+      "title": "Bloquear tarjeta",
+      "description": "Nadie podrá pagar con ella hasta que la desbloquees. El saldo no cambia.",
+      "confirm": "Bloquear",
+      "done": "Tarjeta bloqueada"
+    },
+    "unblock": {
+      "button": "Desbloquear",
+      "title": "Desbloquear tarjeta",
+      "description": "Se podrá volver a pagar con ella.",
+      "confirm": "Desbloquear",
+      "done": "Tarjeta desbloqueada"
+    },
+    "replace": {
+      "button": "Reponer código",
+      "title": "Reponer el código",
+      "description": "Se crea un código nuevo y el anterior deja de servir. El saldo, la vigencia y la venta no cambian.",
+      "folio": "Folio de la compra (número de cuenta)",
+      "folioHint": "Es el número de cuenta que viene en el comprobante de la compra. Sirve para confirmar que es la tarjeta correcta.",
+      "confirm": "Reponer código",
+      "errors": {
+        "folio": "Escribe el folio de la compra (el número de cuenta del comprobante)."
+      },
+      "doneToast": "Código repuesto",
+      "newCodeTitle": "Código nuevo",
+      "newCodeOnce": "Anótalo o entrégalo ahora: por seguridad no lo volverás a ver aquí.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "done": "Listo"
+    },
+    "cancelSale": {
+      "button": "Cancelar la venta",
+      "title": "Cancelar la venta",
+      "descriptionAll": "Se cancelan juntas todas las tarjetas de esta venta. Así se cancela:",
+      "step1": "Bloqueamos las tarjetas para que nadie las use.",
+      "step2": "Devuelve el dinero por donde se pagó: en la terminal o desde la venta.",
+      "step3": "Al registrar la devolución, las tarjetas se cancelan solas.",
+      "sameDay": "Sólo se puede el mismo día de la venta y si nunca se usó.",
+      "confirm": "Bloquear y empezar",
+      "started": "Tarjetas bloqueadas. Ahora devuelve el dinero desde la venta.",
+      "inProgressAll": "Cancelación en curso: las tarjetas de la venta están bloqueadas. Devuelve el dinero desde la venta.",
+      "goToSale": "Ir a la venta",
+      "release": "Ya no cancelar",
+      "releaseTitle": "¿Ya no cancelar la venta?",
+      "releaseDescription": "Las tarjetas se desbloquean y se pueden usar otra vez. Hazlo sólo si COMPROBASTE que la devolución no se hizo: si se acabó el tiempo o no sabes qué pasó, deja las tarjetas bloqueadas y revisa la venta.",
+      "releaseCheck": "Comprobé que la devolución NO se hizo (la terminal la rechazó o no se intentó). Si no lo sabes, deja la tarjeta bloqueada.",
+      "releaseConfirm": "Ya no cancelar",
+      "released": "Listo: las tarjetas se pueden usar otra vez.",
+      "blocker": {
+        "NOT_PAID": "No se puede cancelar: la venta todavía no está pagada o sus tarjetas aún no se activan.",
+        "NOT_SAME_DAY": "No se puede cancelar: sólo el mismo día de la venta.",
+        "ALREADY_USED": "No se puede cancelar: una tarjeta de esta venta ya se usó.",
+        "ALREADY_CANCELLED": "Esta venta ya se canceló.",
+        "BLOCKED_OTHER": "Desbloquea la tarjeta antes de cancelar la venta.",
+        "GENERIC": "No se puede cancelar esta venta desde aquí."
+      }
+    }
+  },
+  "reports": {
+    "from": "Desde",
+    "to": "Hasta",
+    "rangeError": "La fecha «Desde» debe ser antes de «Hasta».",
+    "retry": "Reintentar",
+    "summaryTitle": "Resumen del periodo",
+    "summaryError": "No pudimos cargar el resumen.",
+    "cards": {
+      "sold": "Vendidas ({{count}})",
+      "used": "Usadas ({{count}})",
+      "cancelled": "Canceladas ({{count}})",
+      "live": "Saldo vivo hoy ({{count}})"
+    },
+    "adjustments": "Ajustes del periodo: +{{up}} y −{{down}}",
+    "aging": {
+      "title": "Saldo vivo a una fecha",
+      "help": "Cuánto deben las tarjetas que siguen activas, según cuánto tiempo llevan desde que se vendieron.",
+      "at": "Al día",
+      "error": "No pudimos calcular la antigüedad.",
+      "columns": {
+        "age": "Antigüedad",
+        "cards": "Tarjetas",
+        "amount": "Saldo"
+      },
+      "total": "Total",
+      "buckets": {
+        "0-30": "0 a 30 días",
+        "31-90": "31 a 90 días",
+        "91-180": "91 a 180 días",
+        "181-365": "181 días a 1 año",
+        "366+": "Más de 1 año"
+      }
+    },
+    "pending": {
+      "title": "Pendientes de revisión contable",
+      "help": "Estas operaciones no generan póliza automática: una tarjeta vendida es saldo que le debes al cliente, no una venta. Revísalas con tu contador.",
+      "error": "No pudimos cargar los pendientes.",
+      "empty": "No hay pendientes en este periodo.",
+      "totals_one": "1 operación · {{amount}}",
+      "totals_other": "{{count}} operaciones · {{amount}}",
+      "columns": {
+        "date": "Fecha",
+        "kind": "Qué fue",
+        "folio": "Folio",
+        "amount": "Monto"
+      },
+      "kind": {
+        "VENTA_DE_TARJETAS": "Venta de tarjetas",
+        "COBRO_CON_SALDO": "Pago con saldo",
+        "REVERSO_DE_SALDO": "Devolución al saldo",
+        "CANCELACION_DE_VENTA": "Cancelación de venta de tarjetas"
+      },
+      "loadMore": "Cargar más"
+    },
+    "export": {
+      "title": "Exportar saldos",
+      "help": "Un archivo CSV con todas las tarjetas que tienen saldo. Sirve para tu contador o si cambias de sistema.",
+      "button": "Descargar saldos (CSV)",
+      "error": "No pudimos descargar el archivo."
+    }
+  },
+  "settings": {
+    "title": "Tarjetas de regalo",
+    "subtitle": "Préndelas y elige los montos y la vigencia.",
+    "info": "Lo que configures aquí aplica a las tarjetas que vendas desde ahora.",
+    "readOnly": "Puedes ver esta configuración, pero sólo el gerente o el dueño la cambian.",
+    "loadError": "No pudimos cargar la configuración.",
+    "switch": {
+      "title": "Vender tarjetas de regalo",
+      "label": "Vender tarjetas de regalo",
+      "proBadge": "Pro",
+      "offDescription": "Apagado: el punto de venta no vende tarjetas. Para prenderlo hay que aceptar las reglas.",
+      "onDescription": "Prendido: el punto de venta vende tarjetas y cobra con su saldo.",
+      "downgraded": "Tu plan ya no incluye vender tarjetas de regalo. Puedes apagarlas; las que ya vendiste se siguen cobrando.",
+      "onToast": "Tarjetas de regalo prendidas",
+      "offToast": "Tarjetas de regalo apagadas",
+      "errorTitle": "No se guardó el cambio"
+    },
+    "rules": {
+      "title": "Montos y vigencia",
+      "description": "Aplica a las tarjetas que vendas desde ahora. Las que ya vendiste conservan lo que se le dijo al cliente.",
+      "suggested": "Montos sugeridos",
+      "suggestedHint": "Los botones que verá el cajero. También puede escribir otro monto.",
+      "suggestedN": "Monto sugerido {{n}}",
+      "min": "Monto mínimo",
+      "max": "Monto máximo",
+      "limitsHint": "Desde {{floor}} y hasta {{cap}} por tarjeta (tope de ley).",
+      "validity": "Vigencia",
+      "validityHint": "Recomendado: sin vencimiento. Si eliges una vigencia, el cliente la ve antes de pagar.",
+      "validityOption": {
+        "none": "Sin vencimiento (recomendado)",
+        "12": "1 año",
+        "24": "2 años",
+        "36": "3 años",
+        "60": "5 años"
+      },
+      "save": "Guardar",
+      "saved": "Cambios guardados",
+      "saveError": "No se guardaron los cambios",
+      "errors": {
+        "minInvalid": "Escribe un monto mínimo válido.",
+        "maxInvalid": "Escribe un monto máximo válido.",
+        "minTooLow": "El mínimo no puede ser menor a {{amount}}.",
+        "maxTooHigh": "El máximo no puede pasar de {{amount}}.",
+        "minAboveMax": "El mínimo no puede ser mayor que el máximo.",
+        "suggestedInvalid": "Revisa los montos sugeridos: sólo números, por ejemplo 500.",
+        "suggestedRequired": "Escribe al menos un monto sugerido.",
+        "suggestedOutOfRange": "Los montos sugeridos deben ir de {{min}} a {{max}}."
+      }
+    },
+    "howTitle": "Así funcionan",
+    "how": {
+      "sell": "Se venden en el punto de venta, en una cuenta aparte de la mercancía.",
+      "pay": "El cliente paga con el saldo, completo o una parte, y lo que falte con otro medio.",
+      "noCash": "El saldo nunca se cambia por efectivo ni se transfiere.",
+      "invoice": "Se factura cuando se usa, no cuando se vende."
+    }
+  },
+  "activate": {
+    "title": "Antes de prender las tarjetas de regalo",
+    "intro": "Estas reglas protegen a tu negocio y a tus clientes:",
+    "rules": {
+      "debt": "El saldo de cada tarjeta es una deuda de tu negocio con el cliente.",
+      "noCash": "Nunca se cambia por efectivo ni se transfiere.",
+      "limits": "Hasta $10,000 por tarjeta y menos de $70,000 por compra.",
+      "invoice": "Se factura cuando el cliente la usa.",
+      "cancel": "Sólo se cancela el mismo día y si nunca se usó."
+    },
+    "cancel": "Ahora no",
+    "confirm": "Prender"
+  },
+  "deactivate": {
+    "title": "¿Apagar las tarjetas de regalo?",
+    "body": "Ya no se venderán nuevas. Las que vendiste se siguen cobrando y aquí las sigues viendo.",
+    "cancel": "Dejarlas prendidas",
+    "confirm": "Apagar"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Inténtalo otra vez."
+  }
+}
