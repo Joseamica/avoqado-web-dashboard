@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella 465d9de1994560a3.
- * ADMIN 110 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 131 · OWNER 116 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella e3d94d9e5019916a.
+ * ADMIN 112 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 133 · OWNER 118 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -129,6 +129,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:connect_self',
     'calendar:disconnect_staff',
     'calendar:view_status',
+    'online-orders:manage',
+    'online-orders:pause',
     'cfdi:configure',
     'cfdi:issue',
     'cfdi:view',
@@ -338,6 +340,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'sale-verifications:review',
     'calendar:connect_self',
     'calendar:view_status',
+    'online-orders:manage',
+    'online-orders:pause',
     'cfdi:issue',
     'cfdi:view',
     'delivery-channels:snooze',
@@ -454,6 +458,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:view_status',
     'venue-crypto:manage',
     'venue-fiscal-profile:manage',
+    'online-orders:manage',
+    'online-orders:pause',
     'cfdi:configure',
     'cfdi:issue',
     'cfdi:view',
@@ -534,4 +540,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = '465d9de1994560a3'
+export const DEFAULT_PERMISSIONS_DIGEST = 'e3d94d9e5019916a'
