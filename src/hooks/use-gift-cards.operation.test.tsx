@@ -18,10 +18,11 @@ const svc = vi.hoisted(() => ({
   downloadGiftCardBalancesCsv: vi.fn(),
 }))
 vi.mock('@/services/giftCard.service', () => svc)
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
+const usuario = vi.hoisted(() => ({ id: 'u1' }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true, access: { userId: usuario.id } }) }))
 
 import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
-import { giftCardKeys, olvidarIntentosEnDuda, useGiftCardOperation, useGiftCardSaleCancel } from './use-gift-cards'
+import { giftCardKeys, huellaDeOperacion, olvidarIntentosEnDuda, useGiftCardOperation, useGiftCardSaleCancel } from './use-gift-cards'
 
 let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children)
@@ -43,10 +44,20 @@ const AJUSTE: GiftCardOperation = {
   note: 'Se cobró de menos',
 }
 
+/** «Recargar la página»: se va la memoria del módulo (llaves de envioUnico y cuerpos en duda); sessionStorage se queda. */
+const recargar = () => {
+  olvidarPendientes()
+  olvidarIntentosEnDuda()
+}
+const K_AJUSTE = 'gc-en-duda:v1:u1:g1:AJUSTE'
+const guardado = (k: string) => JSON.parse(sessionStorage.getItem(k) ?? 'null') as unknown
+
 beforeEach(() => {
   vi.clearAllMocks()
   olvidarPendientes()
   olvidarIntentosEnDuda()
+  sessionStorage.clear()
+  usuario.id = 'u1'
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
 })
 
@@ -310,5 +321,138 @@ describe('useGiftCardSaleCancel', () => {
       await result.current.liberar({ confirmacionNoDevuelto: true }, OTRO)
     })
     expect(llaveDe(svc.releaseGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.releaseGiftCardSaleCancel, 0, 2))
+  })
+})
+
+describe('recargar la página con un intento en duda (ronda final, Codex #4)', () => {
+  it('🔴 se guarda ANTES de mandarlo (huella, llave, cuerpo y acción); tras recargar vuelve el MISMO cuerpo con la MISMA llave y el éxito lo borra', async () => {
+    let alMandar: unknown
+    svc.operateGiftCard
+      .mockImplementationOnce(() => {
+        alMandar = guardado(K_AJUSTE)
+        return Promise.reject(sinRespuesta())
+      })
+      .mockResolvedValueOnce({ activityIds: ['a2'] })
+    const primero = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(primero.result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    const clave = llaveDe(svc.operateGiftCard, 0, 2)
+    expect(alMandar).toEqual({ huella: huellaDeOperacion('g1', AJUSTE), clave, cuerpo: AJUSTE, accion: 'AJUSTE' })
+    primero.unmount()
+    recargar()
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    expect(result.current.intentoEnDuda('AJUSTE')).toEqual(AJUSTE)
+    await act(async () => {
+      await result.current.operar(result.current.intentoEnDuda('AJUSTE')!)
+    })
+    expect(llaveDe(svc.operateGiftCard, 1, 2)).toBe(clave)
+    expect(sessionStorage.getItem(K_AJUSTE)).toBeNull()
+    recargar()
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
+  })
+
+  it('🔴 «Descartar este intento» tras recargar lo borra también de sessionStorage: lo siguiente lleva llave NUEVA', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a2'] })
+    const primero = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(primero.result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    primero.unmount()
+    recargar()
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    expect(result.current.intentoEnDuda('AJUSTE')).toEqual(AJUSTE)
+    act(() => result.current.descartarIntento('AJUSTE'))
+    expect(sessionStorage.getItem(K_AJUSTE)).toBeNull()
+    recargar()
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
+    await act(async () => {
+      await result.current.operar(AJUSTE)
+    })
+    expect(llaveDe(svc.operateGiftCard, 1, 2)).not.toBe(llaveDe(svc.operateGiftCard, 0, 2))
+  })
+
+  it('una respuesta definitiva (4xx) lo borra de sessionStorage', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockRejectedValueOnce(definitivo(422))
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    expect(guardado(K_AJUSTE)).not.toBeNull()
+    await act(async () => {
+      await expect(result.current.operar(AJUSTE)).rejects.toThrow('422')
+    })
+    expect(sessionStorage.getItem(K_AJUSTE)).toBeNull()
+  })
+
+  it('es por usuario: tras recargar, OTRO usuario en la misma pestaña no hereda el intento', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta())
+    const primero = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(primero.result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    primero.unmount()
+    recargar()
+    usuario.id = 'u2'
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
+  })
+
+  it('🔴 liberar la cancelación en duda → recargar ⇒ vuelve con su «foto» y la MISMA llave; el éxito lo borra', async () => {
+    svc.releaseGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ released: true })
+    const primero = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
+    await act(async () => {
+      await expect(primero.result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)).rejects.toThrow()
+    })
+    primero.unmount()
+    recargar()
+    const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
+    expect(result.current.intentoEnDuda('release-cancel', ESTADO)).toEqual({ estado: ESTADO })
+    await act(async () => {
+      await result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)
+    })
+    expect(llaveDe(svc.releaseGiftCardSaleCancel, 1, 2)).toBe(llaveDe(svc.releaseGiftCardSaleCancel, 0, 2))
+    expect(sessionStorage.getItem('gc-en-duda:v1:u1:o1:release-cancel')).toBeNull()
+  })
+
+  it('🔴 con sessionStorage bloqueado (modo privado) no truena y se porta como antes: en duda, el reintento lleva la MISMA llave', async () => {
+    vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    })
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a2'] })
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    expect(result.current.intentoEnDuda('AJUSTE')).toEqual(AJUSTE)
+    await act(async () => {
+      await result.current.operar(AJUSTE)
+    })
+    expect(llaveDe(svc.operateGiftCard, 1, 2)).toBe(llaveDe(svc.operateGiftCard, 0, 2))
+    expect(() => act(() => result.current.descartarIntento('AJUSTE'))).not.toThrow()
+  })
+
+  it('lo guardado que no es un intento (JSON roto o ajeno) se ignora', () => {
+    sessionStorage.setItem(K_AJUSTE, '{roto')
+    sessionStorage.setItem('gc-en-duda:v1:u1:g1:BLOQUEAR', JSON.stringify({ cuerpo: { tipo: 'BLOQUEAR' } }))
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
+    expect(result.current.intentoEnDuda('BLOQUEAR')).toBeUndefined()
+  })
+
+  it('🔴 nunca guarda un código completo: reponer guarda sólo su cuerpo (folio y nota) y, al salir bien, nada', async () => {
+    const REPONER: GiftCardOperation = { tipo: 'REEMPLAZAR_CODIGO', reason: 'LOST_CARD', folio: 'A-1042' }
+    svc.operateGiftCard
+      .mockRejectedValueOnce(sinRespuesta())
+      .mockResolvedValueOnce({ activityIds: ['a1'], nuevoCodigo: { display: 'K7QM-2XRA-9TBC-H4WD-6', last4: 'WD-6' } })
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.operar(REPONER)).rejects.toThrow('Network Error')
+    })
+    expect((guardado('gc-en-duda:v1:u1:g1:REEMPLAZAR_CODIGO') as { cuerpo: unknown }).cuerpo).toEqual(REPONER)
+    await act(async () => {
+      await result.current.operar(REPONER)
+    })
+    expect(sessionStorage.length).toBe(0)
   })
 })

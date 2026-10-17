@@ -13,7 +13,7 @@
 import { useCallback } from 'react'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
-import { olvidar, quedoEnDuda, useEnvioUnico } from '@/pages/Commissions/envioUnico'
+import { olvidar, quedoEnDuda, recordarClave, useEnvioUnico } from '@/pages/Commissions/envioUnico'
 import {
   getGiftCardAging,
   getGiftCardDetail,
@@ -198,18 +198,61 @@ export function useUpdateGiftCardSettings(venueId: string | undefined) {
  * acción. Como su llave en envioUnico, vive fuera de los componentes: cerrar, desmontar o reabrir el diálogo NO lo pierde, y
  * rehacerlo con la misma llave lo deduplica el server (exactamente una vez). Mover un saldo dos veces es peor que tragarse una
  * vez un ajuste idéntico deliberado. Se borra con el éxito, con una respuesta definitiva o con «Descartar este intento».
+ *
+ * Ronda final (Codex #4): también va a sessionStorage —sobrevive a RECARGAR la página, muere al cerrar la pestaña y no se
+ * comparte con otras— con su huella y su llave, ANTES de mandarlo (si la página se cae a medio envío, también quedó en duda).
+ * La llave es por negocio, usuario, tarjeta (o venta) y acción. Al leerlo tras recargar, su llave vuelve a envioUnico. Sin
+ * usuario, o con el almacenamiento bloqueado (modo privado), sólo memoria, como antes. Ningún cuerpo trae el código de una
+ * tarjeta: el único código completo es la RESPUESTA de «Reponer», que nunca se guarda.
  */
 const enDuda = new Map<string, unknown>()
-/** Sólo para las pruebas: olvida los intentos en duda. */
+type Guardado = { huella: string; clave: string; cuerpo: unknown; accion: string }
+const llaveDeIntento = (venueId: string | undefined, userId: string | undefined, alcance: string, accion: string) =>
+  `gc-en-duda:${venueId}:${userId}:${alcance}:${accion}`
+const guardarEnSesion = (k: string, g: Guardado) => {
+  try {
+    sessionStorage.setItem(k, JSON.stringify(g))
+  } catch {
+    /* almacenamiento bloqueado: queda sólo en memoria */
+  }
+}
+const leerDeSesion = (k: string): Guardado | undefined => {
+  try {
+    const g = JSON.parse(sessionStorage.getItem(k) ?? 'null') as Partial<Guardado> | null
+    return typeof g?.huella === 'string' && typeof g.clave === 'string' && g.cuerpo ? (g as Guardado) : undefined
+  } catch {
+    return undefined
+  }
+}
+/** Sólo para las pruebas: olvida los intentos en duda de la MEMORIA (lo que se lleva una recarga; sessionStorage se queda). */
 export const olvidarIntentosEnDuda = () => enDuda.clear()
+/** El intento en duda de `k`: de memoria o, tras recargar, de sessionStorage (y su llave vuelve al paso `paso` de envioUnico). */
+const leerIntento = (k: string, paso: string): unknown => {
+  if (enDuda.has(k)) return enDuda.get(k)
+  const g = leerDeSesion(k)
+  if (!g) return undefined
+  enDuda.set(k, g.cuerpo)
+  recordarClave(g.huella, paso, g.clave)
+  return g.cuerpo
+}
+const borrarIntento = (k: string) => {
+  enDuda.delete(k)
+  try {
+    sessionStorage.removeItem(k)
+  } catch {
+    /* almacenamiento bloqueado: no había nada */
+  }
+}
 /** En duda, el intento se queda; ante una respuesta definitiva se va (su llave ya la tiró envioUnico). */
 const anotarFallo = (k: string, intento: unknown, err: unknown) => {
   if (quedoEnDuda(err)) enDuda.set(k, intento)
-  else enDuda.delete(k)
+  else borrarIntento(k)
 }
 
 /** La huella de una operación: misma tarjeta (o venta) + mismo contenido ⇒ misma llave hasta una respuesta definitiva. */
 export const huellaDeOperacion = (alcance: string, contenido: unknown): string => `gift-card:${alcance}:${JSON.stringify(contenido)}`
+/** El nombre del único paso de una operación de tarjeta en envioUnico (las de venta usan su acción). */
+const PASO_DE_TARJETA = 'operacion'
 type AccionDeVenta = 'cancel-sale' | 'release-cancel'
 /** Lo que se recuerda de un intento de cancelar o liberar que quedó en duda: la «foto» de la cancelación al intentarlo. */
 type IntentoDeVenta = { estado: string }
@@ -225,16 +268,20 @@ type IntentoDeVenta = { estado: string }
 export function useGiftCardOperation(venueId: string | undefined, giftCardId: string) {
   const { enviar, enviando } = useEnvioUnico()
   const invalidate = useInvalidateGiftCards()
-  const llaveDe = useCallback((tipo: GiftCardOperation['tipo']) => `${giftCardId}:${tipo}`, [giftCardId])
+  const userId = useAccess().access?.userId
+  const llaveDe = useCallback(
+    (tipo: GiftCardOperation['tipo']) => llaveDeIntento(venueId, userId, giftCardId, tipo),
+    [venueId, userId, giftCardId],
+  )
   const intentoEnDuda = useCallback(
-    (tipo: GiftCardOperation['tipo']) => enDuda.get(llaveDe(tipo)) as GiftCardOperation | undefined,
+    (tipo: GiftCardOperation['tipo']) => leerIntento(llaveDe(tipo), PASO_DE_TARJETA) as GiftCardOperation | undefined,
     [llaveDe],
   )
   const descartarIntento = useCallback(
     (tipo: GiftCardOperation['tipo']) => {
       const previo = intentoEnDuda(tipo)
       if (previo) olvidar(huellaDeOperacion(giftCardId, previo))
-      enDuda.delete(llaveDe(tipo))
+      borrarIntento(llaveDe(tipo))
     },
     [giftCardId, intentoEnDuda, llaveDe],
   )
@@ -243,24 +290,29 @@ export function useGiftCardOperation(venueId: string | undefined, giftCardId: st
       if (!venueId) return undefined
       // Bloquear o desbloquear cambia el `cancel` de las HERMANAS de la venta (r1, M4): se releen todos los detalles.
       const cambio: GiftCardChange = op.tipo === 'BLOQUEAR' || op.tipo === 'DESBLOQUEAR' ? { kind: 'sale' } : { kind: 'card', giftCardId }
+      const k = llaveDe(op.tipo)
+      const huella = huellaDeOperacion(giftCardId, op)
       try {
-        const r = await enviar(huellaDeOperacion(giftCardId, op), paso =>
-          paso('operacion', operationKey => operateGiftCard(venueId, giftCardId, { ...op, operationKey })),
+        const r = await enviar(huella, paso =>
+          paso(PASO_DE_TARJETA, operationKey => {
+            if (userId) guardarEnSesion(k, { huella, clave: operationKey, cuerpo: op, accion: op.tipo })
+            return operateGiftCard(venueId, giftCardId, { ...op, operationKey })
+          }),
         )
         if (r) {
-          enDuda.delete(llaveDe(op.tipo))
+          borrarIntento(k)
           if (op.tipo === 'BLOQUEAR') descartarIntento('DESBLOQUEAR')
           if (op.tipo === 'DESBLOQUEAR') descartarIntento('BLOQUEAR')
           void invalidate(venueId, cambio)
         }
         return r
       } catch (err) {
-        anotarFallo(llaveDe(op.tipo), op, err)
+        anotarFallo(k, op, err)
         void invalidate(venueId, cambio)
         throw err
       }
     },
-    [venueId, giftCardId, enviar, invalidate, llaveDe, descartarIntento],
+    [venueId, userId, giftCardId, enviar, invalidate, llaveDe, descartarIntento],
   )
   return { operar, enviando, intentoEnDuda, descartarIntento }
 }
@@ -279,20 +331,21 @@ export function useGiftCardOperation(venueId: string | undefined, giftCardId: st
 export function useGiftCardSaleCancel(venueId: string | undefined, orderId: string) {
   const { enviar, enviando } = useEnvioUnico()
   const invalidate = useInvalidateGiftCards()
-  const llaveDe = useCallback((accion: AccionDeVenta) => `${orderId}:${accion}`, [orderId])
+  const userId = useAccess().access?.userId
+  const llaveDe = useCallback((accion: AccionDeVenta) => llaveDeIntento(venueId, userId, orderId, accion), [venueId, userId, orderId])
   const huellaDe = useCallback((accion: AccionDeVenta, estado: string) => huellaDeOperacion(orderId, { accion, estado }), [orderId])
   const intentoEnDuda = useCallback(
     (accion: AccionDeVenta, estadoActual: string) => {
-      const previo = enDuda.get(llaveDe(accion)) as IntentoDeVenta | undefined
+      const previo = leerIntento(llaveDe(accion), accion) as IntentoDeVenta | undefined
       return previo?.estado === estadoActual ? previo : undefined
     },
     [llaveDe],
   )
   const descartarIntento = useCallback(
     (accion: AccionDeVenta) => {
-      const previo = enDuda.get(llaveDe(accion)) as IntentoDeVenta | undefined
+      const previo = leerIntento(llaveDe(accion), accion) as IntentoDeVenta | undefined
       if (previo) olvidar(huellaDe(accion, previo.estado))
-      enDuda.delete(llaveDe(accion))
+      borrarIntento(llaveDe(accion))
     },
     [llaveDe, huellaDe],
   )
@@ -300,26 +353,30 @@ export function useGiftCardSaleCancel(venueId: string | undefined, orderId: stri
     async (accion: AccionDeVenta, estado: string, confirmacion?: ConfirmacionDeLiberar): Promise<{ refresco: Promise<unknown> } | undefined> => {
       if (!venueId) return undefined
       if (accion === 'release-cancel' && confirmacion?.confirmacionNoDevuelto !== true) return undefined
+      const k = llaveDe(accion)
+      const huella = huellaDe(accion, estado)
+      const intento: IntentoDeVenta = { estado }
       try {
-        const r = await enviar(huellaDe(accion, estado), paso =>
+        const r = await enviar(huella, paso =>
           // `<unknown>`: las dos ramas responden distinto ({ giftCardIds } / { released }); sin él, TS fija T con la primera.
-          paso<unknown>(accion, operationKey =>
-            accion === 'cancel-sale'
+          paso<unknown>(accion, operationKey => {
+            if (userId) guardarEnSesion(k, { huella, clave: operationKey, cuerpo: intento, accion })
+            return accion === 'cancel-sale'
               ? startGiftCardSaleCancel(venueId, orderId, operationKey)
-              : releaseGiftCardSaleCancel(venueId, orderId, operationKey, { confirmacionNoDevuelto: true }),
-          ),
+              : releaseGiftCardSaleCancel(venueId, orderId, operationKey, { confirmacionNoDevuelto: true })
+          }),
         )
         if (!r) return undefined
-        enDuda.delete(llaveDe(accion))
+        borrarIntento(k)
         descartarIntento(accion === 'cancel-sale' ? 'release-cancel' : 'cancel-sale')
         return { refresco: invalidate(venueId, { kind: 'sale' }) }
       } catch (err) {
-        anotarFallo(llaveDe(accion), { estado } satisfies IntentoDeVenta, err)
+        anotarFallo(k, intento, err)
         void invalidate(venueId, { kind: 'sale' })
         throw err
       }
     },
-    [venueId, orderId, enviar, invalidate, llaveDe, huellaDe, descartarIntento],
+    [venueId, userId, orderId, enviar, invalidate, llaveDe, huellaDe, descartarIntento],
   )
   const iniciar = useCallback((estado: string) => correr('cancel-sale', estado), [correr])
   const liberar = useCallback(

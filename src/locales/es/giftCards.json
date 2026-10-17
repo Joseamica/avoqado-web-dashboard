@@ -219,6 +219,7 @@
       "releaseConfirm": "Ya no cancelar",
       "released": "Listo: las tarjetas se pueden usar otra vez.",
       "releaseNotConfirmed": "El servidor respondió, pero las tarjetas todavía aparecen bloqueadas por la cancelación. Revisa la venta antes de volver a intentarlo.",
+      "releasedCheckCards": "Se liberó la cancelación. Revisa el estado de cada tarjeta antes de usarla.",
       "blocker": {
         "NOT_PAID": "No se puede cancelar: la venta todavía no está pagada o sus tarjetas aún no se activan.",
         "NOT_SAME_DAY": "No se puede cancelar: sólo el mismo día de la venta.",

@@ -219,6 +219,7 @@
       "releaseConfirm": "Don't cancel",
       "released": "Done: the cards can be used again.",
       "releaseNotConfirmed": "The server answered, but the cards still show as blocked by the cancellation. Check the sale before trying again.",
+      "releasedCheckCards": "The cancellation was released. Check each card's status before using it.",
       "blocker": {
         "NOT_PAID": "It can't be canceled: the sale isn't paid yet or its cards aren't active yet.",
         "NOT_SAME_DAY": "It can't be canceled: only on the same day of the sale.",

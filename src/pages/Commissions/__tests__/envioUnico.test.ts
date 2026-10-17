@@ -1,7 +1,7 @@
 // ft-graves, D-D1: reglas de la clave de una operación que crea algo. La clave es de la OPERACIÓN, no del clic.
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { olvidarPendientes, quedoEnDuda, useEnvioUnico, type Paso } from '../envioUnico'
+import { olvidarPendientes, quedoEnDuda, recordarClave, useEnvioUnico, type Paso } from '../envioUnico'
 
 const sinRespuesta = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
 const conEstado = (status: number) => Object.assign(new Error(`status ${status}`), { response: { status, data: {} } })
@@ -147,6 +147,13 @@ describe('useEnvioUnico', () => {
         vi.useRealTimers()
       }
     })
+  })
+
+  it('recordarClave (tarjetas de regalo, tras recargar la página): el siguiente envío con esa huella y ese paso usa la clave devuelta', async () => {
+    recordarClave('h', 'esquema', 'clave-de-antes-de-recargar')
+    const claves = await correr(montar(), 'h', ['esquema', 'niveles'])
+    expect(claves.esquema).toBe('clave-de-antes-de-recargar')
+    expect(claves.niveles).not.toBe('clave-de-antes-de-recargar')
   })
 
   it('quedoEnDuda: sin respuesta o 5xx sí; 4xx no', () => {

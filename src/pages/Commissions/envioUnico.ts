@@ -59,6 +59,14 @@ export const olvidar = (huella: string) => {
   pendientes.delete(huella)
 }
 
+/**
+ * Devuelve a la memoria la clave del paso `nombre` de una operación que quedó en duda ANTES de recargar la página (quien la
+ * guardó, p. ej. en sessionStorage, la trae de vuelta): el siguiente envío con esa huella la reusa y el servidor deduplica.
+ */
+export const recordarClave = (huella: string, nombre: string, clave: string) => {
+  clavesDe(huella).set(nombre, clave)
+}
+
 export function useEnvioUnico() {
   const enVuelo = useRef(false)
   const [enviando, setEnviando] = useState(false)

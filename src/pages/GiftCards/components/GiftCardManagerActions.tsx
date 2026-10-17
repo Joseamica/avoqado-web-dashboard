@@ -47,9 +47,10 @@ import {
  *   el contenido sería otra operación con otra llave) y «Intentar otra vez» reenvía ESE cuerpo tal cual, con la misma llave y
  *   SIN volver a validarlo contra el saldo refrescado (auditoría r1, D-1: si el primer intento sí se aplicó, validar contra el
  *   saldo nuevo bloquearía el reintento; el server devuelve el resultado original y no aplica dos veces);
- * - D4 r1 (I1): cerrar o desmontar NO olvida un intento en duda (mover un saldo dos veces es peor que tragarse un ajuste
- *   idéntico). Al reabrir, el diálogo sale con el aviso, el MISMO cuerpo prellenado y congelado, «Intentar otra vez» (misma
- *   llave) y «Descartar este intento» (lo que siga es una acción nueva). Un 4xx definitivo ya no deja nada pendiente;
+ * - D4 r1 (I1): cerrar, desmontar o recargar la página (ronda final) NO olvida un intento en duda (mover un saldo dos veces
+ *   es peor que tragarse un ajuste idéntico). Al reabrir, el diálogo sale con el aviso, el MISMO cuerpo prellenado y
+ *   congelado, «Intentar otra vez» (misma llave) y «Descartar este intento» (lo que siga es una acción nueva). Un 4xx
+ *   definitivo ya no deja nada pendiente;
  * - D4 r1 (I2): con la respuesta del server el diálogo TERMINA en ese mismo instante (cierra, o «Reponer» pasa a su código):
  *   la relectura no se espera y un segundo clic no manda otra operación;
  * - un 4xx con `code` enseña el texto del server tal cual y deja corregir; sin `code`, el genérico (notas 10 y 12).
@@ -543,10 +544,17 @@ function CancelarVentaDialog({
   const [comprobado, setComprobado] = useState(previo != null && modo === 'liberar')
   const puedeConfirmar = modo === 'cancelar' || comprobado
 
-  /** I1.3: tras «liberada», lo que muestra el server en la relectura. Si las sigue mostrando bloqueadas, no se dice «se pueden usar». */
+  /**
+   * I1.3 y ronda final (Codex #7): tras «liberada», lo que muestra el server en la relectura. Sigue en cancelación ⇒ lo dice.
+   * «Se pueden usar otra vez» SÓLO si lo confirma su propio predicado (`cancel.allowed`: sin cancelación y ninguna tarjeta de
+   * la venta bloqueada) y ésta no está bloqueada. Lo demás —sin relectura, una hermana bloqueada (`reason: null`), otro día
+   * (el server ya no llega a revisar los bloqueos)— no lo confirma ⇒ aviso neutro: que revise cada tarjeta.
+   */
   const avisarLiberada = () => {
     const d = queryClient.getQueryData<InfiniteData<GiftCardDetail>>(giftCardKeys.detail(venueId, giftCardId))?.pages[0]
-    toast({ title: t(d?.cancel.reason === 'IN_PROGRESS' ? 'actions.cancelSale.releaseNotConfirmed' : 'actions.cancelSale.released') })
+    const aviso =
+      d?.cancel.reason === 'IN_PROGRESS' ? 'releaseNotConfirmed' : d?.cancel.allowed && d.status !== 'BLOCKED' ? 'released' : 'releasedCheckCards'
+    toast({ title: t(`actions.cancelSale.${aviso}`) })
   }
 
   // Menor de r1: el reintento NO limpia el estado «en duda» (igual que los otros tres diálogos).

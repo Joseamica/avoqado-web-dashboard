@@ -24,6 +24,7 @@ vi.mock('@/hooks/use-access', () => ({
     can: (p: string) => access.allowed.includes(p),
     canAny: (ps: string[]) => ps.some(p => access.allowed.includes(p)),
     canAll: (ps: string[]) => ps.every(p => access.allowed.includes(p)),
+    access: { userId: 'u1' },
   }),
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
@@ -115,6 +116,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   olvidarPendientes()
   olvidarIntentosEnDuda()
+  sessionStorage.clear()
   access.allowed = ['giftCards:read', 'giftCards:manage']
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
 })
@@ -257,6 +259,29 @@ describe('GiftCardManagerActions', () => {
     fireEvent.click(boton('actions.retry'))
     await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
     expect(svc.operateGiftCard.mock.calls[1][2]).toEqual(svc.operateGiftCard.mock.calls[0][2])
+  })
+
+  it('🔴 ronda final (Codex #4): ajuste en duda → RECARGAR la página → reabrir ⇒ aviso, el MISMO cuerpo congelado y la MISMA llave; el éxito lo borra', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a1'] })
+    const { unmount } = pintar()
+    ajustar('decrement', '150', 'Se cobró de más')
+    await screen.findByText('actions.inDoubt')
+    unmount()
+    // La recarga se lleva la memoria del módulo (llaves y cuerpos en duda); sessionStorage se queda.
+    olvidarPendientes()
+    olvidarIntentosEnDuda()
+    pintar()
+    fireEvent.click(boton('actions.adjust.button'))
+    expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+    expect(screen.getByLabelText('actions.adjust.amount')).toHaveValue('150')
+    expect(screen.getByLabelText('actions.adjust.amount')).toBeDisabled()
+    expect(screen.getByLabelText('actions.adjust.decrement')).toBeChecked()
+    expect(screen.getByLabelText('actions.note')).toHaveValue('Se cobró de más')
+    fireEvent.click(boton('actions.retry'))
+    await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
+    expect(svc.operateGiftCard.mock.calls[1][2]).toEqual(svc.operateGiftCard.mock.calls[0][2])
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.adjust.done' }))
+    expect(sessionStorage.getItem('gc-en-duda:v1:u1:g1:AJUSTE')).toBeNull()
   })
 
   it('r1 I1: «Descartar este intento» olvida la llave y el cuerpo: lo que se haga después es una acción NUEVA (llave nueva)', async () => {
@@ -492,6 +517,33 @@ describe('GiftCardManagerActions', () => {
     expect(toast).not.toHaveBeenCalledWith({ title: 'actions.cancelSale.released' })
   })
 
+  it.each([
+    ['la confirma (el predicado del server: sin cancelación y ninguna bloqueada)', 'actions.cancelSale.released', detalle()],
+    [
+      'tiene una hermana bloqueada por otro motivo (`reason: null`)',
+      'actions.cancelSale.releasedCheckCards',
+      detalle({ cancel: { allowed: false, reason: null, message: 'Una de las tarjetas de esta venta está bloqueada por otro motivo.' } }),
+    ],
+    [
+      'muestra ESTA tarjeta todavía bloqueada',
+      'actions.cancelSale.releasedCheckCards',
+      detalle({ status: 'BLOCKED', currentBlock: bloqueo('CANCEL_IN_PROGRESS') }),
+    ],
+    [
+      'es de otro día (el server deja de revisar los bloqueos antes)',
+      'actions.cancelSale.releasedCheckCards',
+      detalle({ cancel: { allowed: false, reason: 'NOT_SAME_DAY', message: null } }),
+    ],
+  ] as const)('🔴 ronda final (Codex #7): tras «liberada», si la relectura %s ⇒ %s', async (_caso, titulo, relectura) => {
+    svc.getGiftCardDetail.mockResolvedValueOnce(enCurso()).mockResolvedValue(relectura)
+    svc.releaseGiftCardSaleCancel.mockResolvedValue({ released: true })
+    pintarVivo(enCurso())
+    await waitFor(() => expect(svc.getGiftCardDetail).toHaveBeenCalled())
+    liberarConCasilla()
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: titulo }))
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
   it('🔴 liberar (F6): sin la casilla «Comprobé que la devolución NO se hizo» no se puede; con ella manda `confirmacionNoDevuelto: true`', async () => {
     svc.releaseGiftCardSaleCancel.mockResolvedValue({ released: true })
     pintar(detalle({ status: 'BLOCKED', cancel: { allowed: false, reason: 'IN_PROGRESS', message: null }, currentBlock: bloqueo('CANCEL_IN_PROGRESS') }))
@@ -506,7 +558,8 @@ describe('GiftCardManagerActions', () => {
     await waitFor(() =>
       expect(svc.releaseGiftCardSaleCancel).toHaveBeenCalledWith('v1', 'o1', expect.any(String), { confirmacionNoDevuelto: true }),
     )
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.cancelSale.released' }))
+    // Ronda final (Codex #7): sin relectura en caché nada confirma que se puedan usar ⇒ el aviso neutro.
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.cancelSale.releasedCheckCards' }))
   })
 
   it.each(['NOT_PAID', 'NOT_SAME_DAY', 'ALREADY_USED', 'ALREADY_CANCELLED'] as const)(
