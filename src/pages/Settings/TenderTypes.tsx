@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Loader2, Pencil, Plus, Wallet } from 'lucide-react'
+import { Banknote, Loader2, Lock, Pencil, Plus, Wallet, WalletCards } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -164,6 +164,8 @@ export default function TenderTypes() {
   }
 
   const toggleActive = (tender: TenderType, active: boolean) => {
+    // El tender de sistema del saldo no se apaga (R4); el switch ya viene deshabilitado, esto es el cinturón.
+    if (tender.systemKind) return
     updateMutation.mutate({ id: tender.id, input: { expectedRevision: tender.revision, active } })
   }
 
@@ -177,6 +179,12 @@ export default function TenderTypes() {
           {tender.isSystem && (
             <Badge variant="secondary" className="text-[10px]">
               {t('badges.system')}
+            </Badge>
+          )}
+          {tender.systemKind === 'GIFT_CARD' && (
+            <Badge variant="outline" className="text-[10px]">
+              <WalletCards className="mr-1 h-3 w-3" />
+              {t('badges.giftCard')}
             </Badge>
           )}
           {tender.countsAsPhysicalCash && (
@@ -197,10 +205,20 @@ export default function TenderTypes() {
           )}
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {tender.satFormaPago ? t('badges.sat', { code: tender.satFormaPago }) : t('badges.notInvoiceable')}
+          {tender.systemKind === 'GIFT_CARD'
+            ? t('giftCardTender.hint')
+            : tender.satFormaPago
+              ? t('badges.sat', { code: tender.satFormaPago })
+              : t('badges.notInvoiceable')}
         </p>
       </div>
-      {canManage && (
+      {tender.systemKind === 'GIFT_CARD' ? (
+        // Cobrar con saldo NUNCA se apaga (spec §6 y §9): se ve encendido, con candado y su razón; ni lápiz ni switch movible.
+        <div className="flex shrink-0 items-center gap-2">
+          <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <Switch checked disabled aria-label={t('giftCardTender.alwaysOn')} />
+        </div>
+      ) : canManage && (
         <div className="flex shrink-0 items-center gap-2">
           {!tender.isSystem && (
             <Button variant="ghost" size="icon" aria-label={t('form.editTitle')} onClick={() => openEdit(tender)}>

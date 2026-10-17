@@ -91,6 +91,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Pago al personal: un recibo por persona con clases, comisiones y propinas (fase 3, decisión D3 del 5-oct-2026).
       // Pro; suelta $199/mes por sucursal. Espejo de LEGACY_PLAN_CODES del server, por nombre exacto.
       'SERVICE_PAY',
+      // Tarjetas de regalo (fase 1a, D1 del spec, 14-oct-2026): Pro; suelta $249/mes con IVA. Espejo de LEGACY_PLAN_CODES
+      // del server, por nombre exacto. 🔴 Sólo VENDER y PRENDER se gatean (R9): ver saldos, cobrar con saldo y reportes no.
+      'GIFT_CARDS',
     ],
   },
   {

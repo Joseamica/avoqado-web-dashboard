@@ -25,7 +25,8 @@
       "merchantAccounts": "Merchant accounts",
       "tenderTypes": "Payment types",
       "receiptLayout": "Receipt design",
-      "serviceCourses": "Service courses"
+      "serviceCourses": "Service courses",
+      "giftCards": "Gift cards"
     }
   },
   "preferences": {
@@ -226,6 +227,7 @@
       "discounts": "Discounts",
       "coupons": "Coupons",
       "credit_packs": "Packages & Memberships",
+      "gift_cards": "Gift cards",
       "tpv_settings": "TPV Settings",
       "tpv_terminal": "Terminal Configuration",
       "tpv_orders": "TPV Orders (Advanced)",
@@ -306,6 +308,7 @@
       "discounts": "Create and manage discounts and promotions.",
       "coupons": "Create, edit, and manage discount coupons.",
       "credit_packs": "Sell and redeem prepaid packages (classes, sessions, memberships) and manage their catalog.",
+      "gift_cards": "Sell gift cards, take payments with their balance and manage them.",
       "tpv_settings": "Configure general point of sale terminal options.",
       "tpv_terminal": "Configure devices, printers, and terminal peripherals.",
       "tpv_orders": "Advanced order operations from the terminal.",
@@ -487,6 +490,10 @@
       "creditPacks_create": "Create packages in the catalog",
       "creditPacks_update": "Edit catalog packages (price and sessions)",
       "creditPacks_delete": "Delete packages and refund purchases",
+      "giftCards_read": "View gift cards, their balance and history",
+      "giftCards_sell": "Sell gift cards at the counter",
+      "giftCards_redeem": "Take payments with gift card balance",
+      "giftCards_manage": "Adjust, block, replace and cancel gift cards",
       "tpv-settings_read": "View POS settings",
       "tpv-settings_update": "Edit POS settings",
       "billing_read": "View billing",

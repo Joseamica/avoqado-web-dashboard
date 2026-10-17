@@ -186,6 +186,7 @@ const resolveVenueTitle = ({ sidebarT, commonT, menuT }: RouteTitleTranslators, 
     customers: sidebarT('customersMenu.title', { defaultValue: 'Customers' }),
     loyalty: sidebarT('customersMenu.loyalty', { defaultValue: 'Loyalty Program' }),
     campaigns: sidebarT('customersMenu.campaigns', { defaultValue: 'Email campaigns' }),
+    'gift-cards': sidebarT('customersMenu.giftCards', { defaultValue: 'Gift cards' }),
     notifications: commonT('notifications.title', { defaultValue: 'Notifications' }),
     'payment-config': sidebarT('paymentConfig', { defaultValue: 'Payment Config' }),
     'merchant-accounts': sidebarT('merchantAccounts', { defaultValue: 'Merchant Accounts' }),
@@ -249,6 +250,10 @@ const resolveVenueTitle = ({ sidebarT, commonT, menuT }: RouteTitleTranslators, 
   }
 
   if (section === 'settings') {
+    if (subsection === 'gift-cards') {
+      return sidebarT('customersMenu.giftCards', { defaultValue: 'Gift cards' })
+    }
+
     if (subsection === 'role-permissions') {
       return sidebarT('rolePermissions', { defaultValue: 'Role Permissions' })
     }

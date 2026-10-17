@@ -17,7 +17,8 @@
     "loyalty": "Loyalty Program",
     "referrals": "Referral Program",
     "walletCard": "Digital card",
-    "campaigns": "Email campaigns"
+    "campaigns": "Email campaigns",
+    "giftCards": "Gift cards"
   },
   "promotionsMenu": {
     "title": "Promotions",

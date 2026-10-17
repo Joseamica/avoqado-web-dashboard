@@ -224,6 +224,10 @@ export const WalletCardDesigner = lazyWithRetry(() => import('@/pages/Loyalty/Wa
 // Referrals
 export const ReferralsSettings = lazyWithRetry(() => import('@/pages/Referrals/ReferralsSettings'))
 
+// Tarjetas de regalo (fase 1a): la lista con sus reportes, y su configuración en el hub de Ajustes.
+export const GiftCardsPage = lazyWithRetry(() => import('@/pages/GiftCards/GiftCardsPage'))
+export const GiftCardSettings = lazyWithRetry(() => import('@/pages/Settings/GiftCardSettings'))
+
 // Facturación (CFDI)
 export const CfdiList = lazyWithRetry(() => import('@/pages/Cfdi/CfdiList'))
 export const CfdiConfiguracion = lazyWithRetry(() => import('@/pages/Cfdi/CfdiConfiguracion'))

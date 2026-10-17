@@ -59,6 +59,8 @@ import {
   LoyaltySettings,
   WalletCardDesigner,
   ReferralsSettings,
+  GiftCardsPage,
+  GiftCardSettings,
   MenuId,
   MenuMakerLayout,
   MenuOverview,
@@ -688,6 +690,15 @@ export function createVenueRoutes(): RouteObject[] {
       children: [{ index: true, element: <ReferralsSettings /> }],
     },
 
+    // Tarjetas de regalo (fase 1a) — TEASER VISIBLE por permiso, como Delivery: la página decide el cartel de Pro DENTRO
+    // (FeatureProtectedRoute no gatea por plan, T3). 🔴 Sólo vender y prender son de Pro (R9): ver saldos, el historial,
+    // las acciones del gerente y los reportes siguen aunque baje de plan.
+    {
+      path: 'gift-cards',
+      element: <PermissionProtectedRoute permission="giftCards:read" />,
+      children: [{ index: true, element: <GiftCardsPage /> }],
+    },
+
     // Facturación (CFDI) — VISIBLE TEASER, no FeatureProtectedRoute wrapper.
     // The pages always render so the feature stays discoverable; when the venue
     // lacks the CFDI VenueFeature the page shows an upsell teaser (FeatureTeaser)
@@ -922,6 +933,13 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'tender-types',
           element: <PermissionProtectedRoute permission="tender-types:read" />,
           children: [{ index: true, element: <TenderTypes /> }],
+        },
+        // Tarjetas de regalo — el switch canónico (apagado de fábrica), los términos y las reglas de venta. Por PERMISO y no
+        // por rol: con giftCards:read se ve en sólo lectura; cambiar pide giftCards:manage (lo exige el server).
+        {
+          path: 'gift-cards',
+          element: <PermissionProtectedRoute permission="giftCards:read" />,
+          children: [{ index: true, element: <GiftCardSettings /> }],
         },
         {
           path: 'area-tickets',

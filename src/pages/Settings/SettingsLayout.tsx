@@ -18,6 +18,7 @@ import {
   TicketCheck,
   User,
   Wallet,
+  WalletCards,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -122,6 +123,18 @@ export default function SettingsLayout() {
           : []),
         ...(can('tender-types:read')
           ? [{ to: 'tender-types', label: t('hub.items.tenderTypes'), icon: Wallet, dataTour: 'settings-nav-tender-types' }]
+          : []),
+        ...(can('giftCards:read')
+          ? [
+              {
+                to: 'gift-cards',
+                label: t('hub.items.giftCards'),
+                icon: WalletCards,
+                dataTour: 'settings-nav-gift-cards',
+                // Insignia del plan: vender es Pro (R9). La página explica y deja apagar aunque haya bajado de plan.
+                premiumLocked: !hasFeatureAccess('GIFT_CARDS'),
+              },
+            ]
           : []),
         ...(can('area-tickets:configure')
           ? [
