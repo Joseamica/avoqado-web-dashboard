@@ -12,6 +12,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { GiftCardActivityRow, GiftCardDetail } from '@/types/giftCard'
 import { estadoVisible, montoDelMovimiento, textoDelServidorConCodigo, ultimos4, varianteDeEstado } from '../giftCardText'
+import { GiftCardManagerActions } from './GiftCardManagerActions'
 
 function Dato({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -163,6 +164,9 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
                 value={card.validityMonths == null ? t('list.noExpiry') : t(`settings.rules.validityOption.${String(card.validityMonths)}`)}
               />
             </dl>
+
+            {/* Sólo con giftCards:manage (PermissionGate adentro); el server vuelve a pedirlo. */}
+            {primera && <GiftCardManagerActions venueId={venueId} detail={primera} />}
 
             <section>
               <h3 className="text-sm font-semibold">{t('detail.history')}</h3>

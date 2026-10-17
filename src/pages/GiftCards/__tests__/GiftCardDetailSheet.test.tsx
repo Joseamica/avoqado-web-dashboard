@@ -12,6 +12,7 @@ vi.mock('@/utils/datetime', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o?.last4 ? `${k} ${String(o.last4)}` : k) }),
 }))
+vi.mock('../components/GiftCardManagerActions', () => ({ GiftCardManagerActions: () => <div data-testid="acciones" /> }))
 
 import { Currency } from '@/utils/currency'
 import { GiftCardDetailSheet } from '../components/GiftCardDetailSheet'
@@ -60,6 +61,7 @@ beforeEach(() => {
 describe('GiftCardDetailSheet', () => {
   it('enseña los últimos 4 (nunca el código), el saldo y la libreta con su signo', () => {
     pintar()
+    expect(screen.getByTestId('acciones')).toBeInTheDocument()
     expect(screen.getByText('detail.title •••• 4821')).toBeInTheDocument()
     expect(screen.getByText(Currency(1200))).toBeInTheDocument()
     expect(screen.getByText('activity.BLOCK')).toBeInTheDocument()
