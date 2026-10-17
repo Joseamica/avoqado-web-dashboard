@@ -313,6 +313,14 @@ function IsrInner() {
             </div>
           )}
 
+          {/* Tarjetas de regalo (ruling B4): aviso informativo con las cifras que el estimado deja fuera o incluye. Es texto del server. */}
+          {data?.avisoTarjetasDeRegalo && (
+            <div className="flex items-start gap-2 rounded-lg border border-input bg-muted/40 p-3 text-foreground" data-tour="isr-gift-cards-notice">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="text-xs font-medium">{data.avisoTarjetasDeRegalo}</p>
+            </div>
+          )}
+
           {regime === 'RESICO' && data?.excedeTopeResico && (
             <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/5 p-3 text-red-700 dark:text-red-400">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

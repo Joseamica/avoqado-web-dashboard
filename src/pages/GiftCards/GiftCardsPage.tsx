@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Info, Loader2, WalletCards } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useAccess } from '@/hooks/use-access'
@@ -10,6 +11,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { GIFT_CARDS_FEATURE, useGiftCardSettings } from '@/hooks/use-gift-cards'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import type { GiftCardNotSellableReason } from '@/types/giftCard'
+import { GiftCardReports } from './components/GiftCardReports'
 import { GiftCardsList } from './components/GiftCardsList'
 import { GiftCardsTeaser } from './components/GiftCardsTeaser'
 import { motivoSinVenta, textoDelServidorConCodigo } from './giftCardText'
@@ -34,6 +36,10 @@ function AvisoDeVenta({ motivo, canManage, settingsHref }: { motivo: GiftCardNot
   )
 }
 
+const PESTANAS = ['cards', 'reports'] as const
+type Pestana = (typeof PESTANAS)[number]
+const esPestana = (v: string): v is Pestana => (PESTANAS as readonly string[]).includes(v)
+
 /**
  * Clientes › Tarjetas de regalo. El plan se decide AQUÍ dentro (convención vigente: `FeatureProtectedRoute` no gatea por
  * plan, T3): sin plan y sin tarjetas nunca vendidas ⇒ el cartel de Pro sobre un teaser; con tarjetas (aunque esté apagado
@@ -56,6 +62,12 @@ export default function GiftCardsPage() {
     hasAccess: tier.hasAccess,
   })
   const settingsHref = `${fullBasePath}/settings/gift-cards`
+  // La pestaña vive en el hash (#cards / #reports): se comparte por liga y sobrevive a recargar (ui-patterns.md).
+  const location = useLocation()
+  const navigate = useNavigate()
+  const hash = location.hash.slice(1)
+  const pestana: Pestana = esPestana(hash) ? hash : 'cards'
+  const cambiarPestana = (v: string) => navigate(`${location.pathname}${location.search}#${v}`, { replace: true })
 
   return (
     <div className="space-y-4 p-6" data-tour="gift-cards-page">
@@ -116,7 +128,30 @@ export default function GiftCardsPage() {
               settingsHref={settingsHref}
             />
           )}
-          <GiftCardsList key={venueId} venueId={venueId} />
+          <Tabs value={pestana} onValueChange={cambiarPestana}>
+            <TabsList className="rounded-full border border-border bg-muted/60 px-1 py-1">
+              <TabsTrigger
+                value="cards"
+                className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background"
+                data-tour="gift-cards-tab-cards"
+              >
+                {t('tabs.cards')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="reports"
+                className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background"
+                data-tour="gift-cards-tab-reports"
+              >
+                {t('tabs.reports')}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="cards" className="mt-4">
+              <GiftCardsList key={venueId} venueId={venueId} />
+            </TabsContent>
+            <TabsContent value="reports" className="mt-4">
+              <GiftCardReports key={venueId} venueId={venueId} />
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </div>

@@ -50,6 +50,7 @@ import {
   Store,
   Clock,
   QrCode,
+  WalletCards,
   Filter,
   X,
   Lock,
@@ -1097,6 +1098,9 @@ export default function SalesSummary() {
         staffCommissions: apiResponse.summary.staffCommissions, // Commissions paid to staff
         totalCollected: apiResponse.summary.totalCollected,
         netProfit: apiResponse.summary.netProfit,             // True profit after all costs
+        // Tarjetas de regalo (spec §7, B5): cifras aparte, opcionales — un server sin la función no las manda.
+        giftCardLoads: apiResponse.summary.giftCardLoads ?? null,
+        paidWithGiftCardBalance: apiResponse.summary.paidWithGiftCardBalance ?? null,
       },
       transactions: {
         total: apiResponse.summary.transactionCount,
@@ -2192,6 +2196,27 @@ export default function SalesSummary() {
                 </>
               )}
 
+              {/* Tarjetas de regalo (spec §7, B5): dos cifras que el server manda sólo sin filtro de pago, y sólo se pintan si no son
+                  cero. «Pagado con saldo» es PARTE de las ventas y propinas de arriba (va con sangría, justo debajo de ellas);
+                  «Tarjetas de regalo cargadas» NO es venta (va aparte, sin sangría, para que no se lea como hija de la otra). */}
+              {!isFiltered && typeof data.summary.paidWithGiftCardBalance === 'number' && data.summary.paidWithGiftCardBalance !== 0 && (
+                <SummaryRow
+                  label={t('salesSummary.rows.paidWithGiftCardBalance')}
+                  value={data.summary.paidWithGiftCardBalance}
+                  type="neutral"
+                  indent={1}
+                  tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
+                />
+              )}
+              {!isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0 && (
+                <SummaryRow
+                  label={t('salesSummary.rows.giftCardLoads')}
+                  value={data.summary.giftCardLoads}
+                  type="neutral"
+                  tooltip={t('salesSummary.tooltips.giftCardLoads')}
+                />
+              )}
+
               {/* Propinas */}
               {selectedMetrics.includes('tips') && (
                 <SummaryRow
@@ -2330,8 +2355,9 @@ export default function SalesSummary() {
                   <span>{t('salesSummary.controls.filterBy.filteredMessage')}</span>
                 </div>
               ) : apiResponse?.byPaymentMethodDetailed && apiResponse.byPaymentMethodDetailed.length > 0 ? (
-                // Enriched breakdown: Card expands to Credit/Debit/AMEX/International with commission.
-                apiResponse.byPaymentMethodDetailed.map(bucket => {
+                <>
+                {/* Enriched breakdown: Card expands to Credit/Debit/AMEX/International with commission. */}
+                {apiResponse.byPaymentMethodDetailed.map(bucket => {
                   const bucketConfig: Record<
                     PaymentMethodDetailedBreakdown['bucket'],
                     { icon: React.ReactNode; label: string; settlementLabel?: string }
@@ -2377,7 +2403,19 @@ export default function SalesSummary() {
                       }}
                     />
                   )
-                })
+                })}
+                {/* Lo pagado con saldo de tarjetas de regalo NO es un bucket (B5): va aparte y sin porcentaje, porque no es
+                    dinero que entró en el periodo — entró cuando se vendió la tarjeta. */}
+                {(apiResponse.giftCardBalanceBreakdown?.count ?? 0) > 0 && (
+                  <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground" data-tour="sales-summary-gift-balance">
+                    <WalletCards className="w-4 h-4 shrink-0" />
+                    {t('salesSummary.giftBalanceLine', {
+                      amount: Currency(apiResponse.giftCardBalanceBreakdown!.amount),
+                      count: apiResponse.giftCardBalanceBreakdown!.count,
+                    })}
+                  </p>
+                )}
+                </>
               ) : (
                 // Fallback flat layout (e.g. groupBy != paymentMethod or no detailed data).
                 <>

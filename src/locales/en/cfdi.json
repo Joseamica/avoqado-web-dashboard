@@ -390,7 +390,8 @@
         "YA_EXTRAIDO": "already in an extraction note",
         "DEVUELTA": "fully refunded",
         "OTRO": "other reason",
-        "SIN_TERMINAL": "charged outside the terminal"
+        "SIN_TERMINAL": "charged outside the terminal",
+        "TARJETA_DE_REGALO": "gift card sale (invoiced when used)"
       },
       "byReason": "Why: {{list}}."
     },

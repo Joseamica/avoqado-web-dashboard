@@ -44,6 +44,13 @@ export interface SalesSummaryMetrics {
   // True profit after all costs
   netProfit: number
   transactionCount: number
+  // Tarjetas de regalo (fase 1a, Parte B · B5) — aditivos y opcionales: un server sin la función no los manda.
+  /** Tarjetas cargadas en el rango, menos sus cancelaciones. NO es venta: no está en grossSales. */
+  giftCardLoads?: number
+  /** Sobres de cuentas de tarjetas PAGADAS en el rango. */
+  giftCardLoadsCount?: number
+  /** Pagado con saldo (venta + propina), menos sus reversos. YA está dentro de las ventas: aquí sólo se separa. */
+  paidWithGiftCardBalance?: number
 }
 
 export interface PaymentMethodBreakdown {
@@ -68,6 +75,14 @@ export interface PaymentMethodDetailedBreakdown {
     percentage: number
     platformFees: number
   }>
+}
+
+/** Lo pagado con saldo de tarjeta de regalo, FUERA de los buckets (B5: un bucket nuevo tumbaría al panel que no lo conoce). */
+export interface GiftCardBalanceBreakdown {
+  amount: number
+  count: number
+  tips: number
+  refunds: number
 }
 
 export interface TimePeriodMetrics {
@@ -137,6 +152,8 @@ export interface SalesSummaryResponse {
   settlementCalendar?: SettlementCalendarDay[]
   /** True when a payment filter is active; order-level metrics are then null. */
   filtered: boolean
+  /** Lo pagado con saldo de tarjetas de regalo (B5); sólo con groupBy=paymentMethod y sin filtro. Opcional. */
+  giftCardBalanceBreakdown?: GiftCardBalanceBreakdown
 }
 
 export interface SalesSummaryFilters {
