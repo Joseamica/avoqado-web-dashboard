@@ -147,7 +147,8 @@
     "inDoubt": "No supimos si se guardó. Toca «Intentar otra vez»: no se aplica dos veces.",
     "errors": {
       "reason": "Elige un motivo.",
-      "noteForOther": "Con «Otro motivo», escribe una nota de al menos 5 letras."
+      "noteForOther": "Con «Otro motivo», escribe una nota de al menos 5 letras.",
+      "noteTooLong": "La nota no puede pasar de 500 caracteres."
     },
     "adjust": {
       "button": "Ajustar saldo",

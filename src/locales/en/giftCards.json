@@ -147,7 +147,8 @@
     "inDoubt": "We don't know if it was saved. Tap «Try again»: it won't be applied twice.",
     "errors": {
       "reason": "Pick a reason.",
-      "noteForOther": "With «Other reason», write a note of at least 5 letters."
+      "noteForOther": "With «Other reason», write a note of at least 5 letters.",
+      "noteTooLong": "The note can't be longer than 500 characters."
     },
     "adjust": {
       "button": "Adjust balance",

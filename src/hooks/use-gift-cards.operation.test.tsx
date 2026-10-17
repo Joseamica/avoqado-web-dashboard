@@ -101,17 +101,47 @@ describe('useGiftCardOperation — una operación, una llave (R12, Review Focus 
     expect(llaveDe(svc.operateGiftCard, 1, 2)).not.toBe(llaveDe(svc.operateGiftCard, 0, 2))
   })
 
-  it('al terminar invalida la lista, el detalle de ESA tarjeta y los reportes', async () => {
+  it('un ajuste invalida la lista, el detalle de ESA tarjeta y los reportes (no los de las demás)', async () => {
     svc.operateGiftCard.mockResolvedValue({ activityIds: ['a1'] })
     const spy = vi.spyOn(client, 'invalidateQueries')
     const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
     await act(async () => {
-      await result.current.operar({ tipo: 'BLOQUEAR', reason: 'SUSPICIOUS_ACTIVITY' })
+      await result.current.operar(AJUSTE)
     })
     const claves = spy.mock.calls.map(c => (c[0] as { queryKey: unknown[] }).queryKey)
     expect(claves).toEqual(
       expect.arrayContaining([giftCardKeys.listAll('v1'), giftCardKeys.detail('v1', 'g1'), giftCardKeys.reportsAll('v1')]),
     )
+    expect(claves).not.toContainEqual(giftCardKeys.detailAll('v1'))
+  })
+
+  it('🔴 bloquear o desbloquear invalida TODOS los detalles: las hermanas de la venta cambian su `cancel` (r1, M4)', async () => {
+    svc.operateGiftCard.mockResolvedValue({ activityIds: ['a1'] })
+    const spy = vi.spyOn(client, 'invalidateQueries')
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    for (const tipo of ['BLOQUEAR', 'DESBLOQUEAR'] as const) {
+      spy.mockClear()
+      await act(async () => {
+        await result.current.operar({ tipo, reason: 'SUSPICIOUS_ACTIVITY' })
+      })
+      const claves = spy.mock.calls.map(c => (c[0] as { queryKey: unknown[] }).queryKey)
+      expect(claves).toEqual(
+        expect.arrayContaining([giftCardKeys.listAll('v1'), giftCardKeys.detailAll('v1'), giftCardKeys.reportsAll('v1')]),
+      )
+    }
+  })
+
+  it('🔴 cerrar el diálogo (`olvidarIntento`) abandona el intento en duda: el ajuste idéntico de después lleva llave NUEVA (r1, M3c)', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a2'] })
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    act(() => result.current.olvidarIntento())
+    await act(async () => {
+      await result.current.operar(AJUSTE)
+    })
+    expect(llaveDe(svc.operateGiftCard, 1, 2)).not.toBe(llaveDe(svc.operateGiftCard, 0, 2))
   })
 
   it('aunque quede en duda, la pantalla vuelve a leer (si sí se aplicó, se ve)', async () => {
@@ -164,5 +194,53 @@ describe('useGiftCardSaleCancel', () => {
       await result.current.iniciar()
     })
     expect(llaveDe(svc.startGiftCardSaleCancel, 1, 2)).toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
+  })
+
+  it('🔴 iniciar en duda (sí se aplicó) → liberar sale bien → cancelar OTRA vez lleva llave NUEVA (r1, M3a)', async () => {
+    svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ giftCardIds: ['g1'] })
+    svc.releaseGiftCardSaleCancel.mockResolvedValue({ released: true })
+    const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.iniciar()).rejects.toThrow()
+    })
+    await act(async () => {
+      await result.current.liberar({ confirmacionNoDevuelto: true })
+    })
+    await act(async () => {
+      await result.current.iniciar()
+    })
+    expect(llaveDe(svc.startGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
+  })
+
+  it('🔴 liberar en duda (sí se aplicó) → nueva cancelación sale bien → liberar OTRA vez lleva llave NUEVA (r1, M3b)', async () => {
+    svc.startGiftCardSaleCancel.mockResolvedValue({ giftCardIds: ['g1'] })
+    svc.releaseGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ released: true })
+    const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
+    await act(async () => {
+      await result.current.iniciar()
+    })
+    await act(async () => {
+      await expect(result.current.liberar({ confirmacionNoDevuelto: true })).rejects.toThrow()
+    })
+    await act(async () => {
+      await result.current.iniciar()
+    })
+    await act(async () => {
+      await result.current.liberar({ confirmacionNoDevuelto: true })
+    })
+    expect(llaveDe(svc.releaseGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.releaseGiftCardSaleCancel, 0, 2))
+  })
+
+  it('cerrar el diálogo (`olvidarIntento`) tras quedar en duda: el siguiente intento lleva llave NUEVA (r1, M3)', async () => {
+    svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ giftCardIds: ['g1'] })
+    const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.iniciar()).rejects.toThrow()
+    })
+    act(() => result.current.olvidarIntento())
+    await act(async () => {
+      await result.current.iniciar()
+    })
+    expect(llaveDe(svc.startGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
   })
 })

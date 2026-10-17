@@ -5,7 +5,6 @@
  * C4 TAL CUAL (F3): lo poco que el server no manda («vencida», el total de pendientes) se calcula aquí, con su prueba.
  */
 import { conSigno } from '@/pages/StaffPay/conSigno'
-import { textoDelServidor } from '@/utils/apiError'
 import type {
   GiftCardActivityType,
   GiftCardDetail,
@@ -23,6 +22,8 @@ import type {
 export const TOPE_POR_TARJETA = 10_000
 /** Monto mínimo de una tarjeta (contrato «Topes», `MINIMO_POR_SOBRE` del server). */
 export const MINIMO_POR_SOBRE = 100
+/** Tope de la nota de una acción del gerente: el del zod del server (`giftCard.schema.ts`, ya recortada); su 400 no trae `code`. */
+export const NOTA_MAXIMA = 500
 
 const centavos = (n: number) => Math.round(n * 100)
 
@@ -80,17 +81,25 @@ export function totalDePendientes(totals: PendingAccountingPage['totals']): numb
  * (y el candado de plan, reescrito con `GIFT_CARDS_NOT_IN_PLAN`) llegan en español con su código. Sin `code` —los 401/500 de
  * `checkFeatureAccess` en inglés, un 502 en HTML, la red caída— devuelve `undefined` y la pantalla pone su texto genérico
  * (`errors.generic` o el de su sección): nunca el `message` crudo.
+ * Lee SÓLO `message` (r1, I1): el candado de plan manda también `error` y ahí va el CÓDIGO, no un texto. Con `code` y sin
+ * `message`, también `undefined`.
  */
 export function textoDelServidorConCodigo(err: unknown): string | undefined {
-  const code = (err as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code
-  return typeof code === 'string' && code !== '' ? textoDelServidor(err) : undefined
+  const data = (err as { response?: { data?: { code?: unknown; message?: unknown } } } | null)?.response?.data
+  if (typeof data?.code !== 'string' || data.code === '') return undefined
+  return typeof data.message === 'string' && data.message.trim() !== '' ? data.message : undefined
 }
 
-/** Lee un monto tecleado: «150», «150.5», «1,500.00» o «$500». `null` si no es un monto positivo con hasta 2 decimales. */
+/**
+ * Lee un monto tecleado: «150», «150.5», «1,500», «1,500.50» o «$500». `null` si no es un número con hasta 2 decimales.
+ * En México el punto es decimal y la coma sólo separa miles en grupos de 3 (r1, I2): «5,00», «150,50» o «1,0,0» dan `null`
+ * para que la persona corrija; nunca se adivina (en un ajuste, «5,00» leído como 500 sumaría $500). «0» da 0: quien llama
+ * valida que sea positivo.
+ */
 export function leerMonto(texto: string): number | null {
-  const limpio = texto.replace(/[$,\s]/g, '')
-  if (!/^\d+(\.\d{1,2})?$/.test(limpio)) return null
-  return Number(limpio)
+  const limpio = texto.replace(/[$\s]/g, '')
+  if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d{1,2})?$/.test(limpio)) return null
+  return Number(limpio.replace(/,/g, ''))
 }
 
 /** Motivos que el gerente puede escoger en cada acción: la lista cerrada del server, sólo los que tienen sentido aquí. */
@@ -118,13 +127,15 @@ export function validarAjuste(p: {
     return { key: 'actions.adjust.errors.overCap', amount: TOPE_POR_TARJETA }
   if (!p.motivo) return { key: 'actions.errors.reason' }
   if (p.nota.trim().length < 5) return { key: 'actions.adjust.errors.note' }
+  if (p.nota.trim().length > NOTA_MAXIMA) return { key: 'actions.errors.noteTooLong' }
   return null
 }
 
-/** Bloquear y desbloquear: motivo obligatorio; nota sólo con «Otro motivo». */
+/** Bloquear y desbloquear: motivo obligatorio; nota sólo con «Otro motivo»; nunca más de NOTA_MAXIMA. */
 export function validarMotivoYNota(p: { motivo: GiftCardReason | ''; nota: string }): ErrorDeFormulario | null {
   if (!p.motivo) return { key: 'actions.errors.reason' }
   if (p.motivo === 'OTHER' && p.nota.trim().length < 5) return { key: 'actions.errors.noteForOther' }
+  if (p.nota.trim().length > NOTA_MAXIMA) return { key: 'actions.errors.noteTooLong' }
   return null
 }
 

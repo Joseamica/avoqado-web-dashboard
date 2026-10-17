@@ -10,10 +10,10 @@
  *   tras quedar en duda (sin respuesta, 5xx) también; tras una respuesta definitiva la llave se tira. El server deduplica por
  *   [venueId, operationKey] y rechaza la misma llave con otro contenido (R12).
  */
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
-import { useEnvioUnico } from '@/pages/Commissions/envioUnico'
+import { olvidar, useEnvioUnico } from '@/pages/Commissions/envioUnico'
 import {
   getGiftCardAging,
   getGiftCardDetail,
@@ -143,7 +143,8 @@ export function useGiftCardPendingAccounting(venueId: string | undefined, from: 
  * hasta que llegaron los datos nuevos y nadie vuelve a tocar sobre valores viejos.
  *   'settings' — ajustes y tipos de pago (prender crea el tender de sistema «Tarjeta de regalo», R4).
  *   'card'     — la lista, el detalle de ESA tarjeta y los reportes (un ajuste mueve el saldo vivo y la antigüedad).
- *   'sale'     — cancelar una venta toca TODAS sus tarjetas: la lista, todos los detalles y los reportes.
+ *   'sale'     — cancelar una venta toca TODAS sus tarjetas, y bloquear/desbloquear una cambia el `cancel` de sus hermanas:
+ *                la lista, todos los detalles y los reportes.
  */
 export function useInvalidateGiftCards(): (venueId: string, change: GiftCardChange) => Promise<unknown> {
   const queryClient = useQueryClient()
@@ -172,47 +173,63 @@ export function useUpdateGiftCardSettings(venueId: string | undefined) {
 
 /** La huella de una operación: misma tarjeta (o venta) + mismo contenido ⇒ misma llave hasta una respuesta definitiva. */
 export const huellaDeOperacion = (alcance: string, contenido: unknown): string => `gift-card:${alcance}:${JSON.stringify(contenido)}`
+type AccionDeVenta = 'cancel-sale' | 'release-cancel'
 
 /**
  * Ajustar, bloquear, desbloquear o reponer UNA tarjeta. `operar` devuelve `undefined` si ya hay otra operación en vuelo
  * (candado síncrono de useEnvioUnico: un doble clic no manda dos). Pase lo que pase, la pantalla vuelve a leer: si quedó en
  * duda y sí se aplicó, se ve en el historial.
+ * `olvidarIntento()` se llama al CERRAR el diálogo (r1, M3): cerrar abandona el intento en duda y reabrir es una acción nueva
+ * con llave nueva (nota 7). Sin cerrar, «Intentar otra vez» sigue mandando la misma llave.
  */
 export function useGiftCardOperation(venueId: string | undefined, giftCardId: string) {
   const { enviar, enviando } = useEnvioUnico()
   const invalidate = useInvalidateGiftCards()
+  const intentos = useRef(new Set<string>())
   const operar = useCallback(
     async (op: GiftCardOperation): Promise<GiftCardOperationResult | undefined> => {
       if (!venueId) return undefined
+      const huella = huellaDeOperacion(giftCardId, op)
+      intentos.current.add(huella)
+      // Bloquear o desbloquear cambia el `cancel` de las HERMANAS de la venta (r1, M4): se releen todos los detalles.
+      const cambio: GiftCardChange = op.tipo === 'BLOQUEAR' || op.tipo === 'DESBLOQUEAR' ? { kind: 'sale' } : { kind: 'card', giftCardId }
       try {
-        const r = await enviar(huellaDeOperacion(giftCardId, op), paso =>
+        const r = await enviar(huella, paso =>
           paso('operacion', operationKey => operateGiftCard(venueId, giftCardId, { ...op, operationKey })),
         )
-        if (r) await invalidate(venueId, { kind: 'card', giftCardId })
+        if (r) await invalidate(venueId, cambio)
         return r
       } catch (err) {
-        void invalidate(venueId, { kind: 'card', giftCardId })
+        void invalidate(venueId, cambio)
         throw err
       }
     },
     [venueId, giftCardId, enviar, invalidate],
   )
-  return { operar, enviando }
+  const olvidarIntento = useCallback(() => {
+    intentos.current.forEach(olvidar)
+    intentos.current.clear()
+  }, [])
+  return { operar, enviando, olvidarIntento }
 }
 
 /**
  * Empezar o detener la cancelación de una venta de tarjetas (spec §5.6). Cada una es su propia operación con su llave.
  * Liberar pide la confirmación EXPLÍCITA de que la devolución NO se hizo (F6): un *timeout* no lo prueba.
+ * r1, M3 (nota 7: acción nueva = llave nueva): cuando una sale bien, la otra de ESA venta olvida su intento en duda (si no,
+ * cancelar tras liberar reusaría una llave ya cerrada ⇒ 409, y liberar tras otra cancelación se tomaría por repetición y diría
+ * «liberada» sin liberar). `olvidarIntento()` se llama al CERRAR el diálogo.
  */
 export function useGiftCardSaleCancel(venueId: string | undefined, orderId: string) {
   const { enviar, enviando } = useEnvioUnico()
   const invalidate = useInvalidateGiftCards()
+  const huellaDe = useCallback((accion: AccionDeVenta) => huellaDeOperacion(orderId, { accion }), [orderId])
   const correr = useCallback(
-    async (accion: 'cancel-sale' | 'release-cancel', confirmacion?: ConfirmacionDeLiberar): Promise<unknown> => {
+    async (accion: AccionDeVenta, confirmacion?: ConfirmacionDeLiberar): Promise<unknown> => {
       if (!venueId) return undefined
       if (accion === 'release-cancel' && confirmacion?.confirmacionNoDevuelto !== true) return undefined
       try {
-        const r = await enviar(huellaDeOperacion(orderId, { accion }), paso =>
+        const r = await enviar(huellaDe(accion), paso =>
           // `<unknown>`: las dos ramas responden distinto ({ giftCardIds } / { released }); sin él, TS fija T con la primera.
           paso<unknown>(accion, operationKey =>
             accion === 'cancel-sale'
@@ -220,16 +237,23 @@ export function useGiftCardSaleCancel(venueId: string | undefined, orderId: stri
               : releaseGiftCardSaleCancel(venueId, orderId, operationKey, { confirmacionNoDevuelto: true }),
           ),
         )
-        if (r) await invalidate(venueId, { kind: 'sale' })
+        if (r) {
+          olvidar(huellaDe(accion === 'cancel-sale' ? 'release-cancel' : 'cancel-sale'))
+          await invalidate(venueId, { kind: 'sale' })
+        }
         return r
       } catch (err) {
         void invalidate(venueId, { kind: 'sale' })
         throw err
       }
     },
-    [venueId, orderId, enviar, invalidate],
+    [venueId, orderId, enviar, invalidate, huellaDe],
   )
   const iniciar = useCallback(() => correr('cancel-sale'), [correr])
   const liberar = useCallback((confirmacion: ConfirmacionDeLiberar) => correr('release-cancel', confirmacion), [correr])
-  return { iniciar, liberar, enviando }
+  const olvidarIntento = useCallback(() => {
+    olvidar(huellaDe('cancel-sale'))
+    olvidar(huellaDe('release-cancel'))
+  }, [huellaDe])
+  return { iniciar, liberar, enviando, olvidarIntento }
 }

@@ -9,6 +9,7 @@ import type {
 import {
   MINIMO_POR_SOBRE,
   MOTIVOS_POR_ACCION,
+  NOTA_MAXIMA,
   TOPE_POR_TARJETA,
   accionesDisponibles,
   borradorDesde,
@@ -75,6 +76,15 @@ describe('montos tecleados', () => {
   it('rechaza vacío, letras, 3 decimales y negativos', () => {
     for (const malo of ['', 'abc', '1.234', '-5', '1e3']) expect(leerMonto(malo)).toBeNull()
   })
+  it('🔴 la coma SÓLO separa miles en grupos de 3: «5,00» no son $500 (r1, I2; ante la duda, que corrija)', () => {
+    for (const malo of ['5,00', '1,50', '150,50', '1,0,0', ',500', '1500,000', '1,500,00']) expect(leerMonto(malo)).toBeNull()
+    expect(leerMonto('1,500')).toBe(1500)
+    expect(leerMonto('1,500.50')).toBe(1500.5)
+    expect(leerMonto('$ 1,500')).toBe(1500)
+  })
+  it('«0» se lee 0: quien llama valida que sea positivo', () => {
+    expect(leerMonto('0')).toBe(0)
+  })
 })
 
 describe('validarAjuste', () => {
@@ -102,6 +112,11 @@ describe('validarAjuste', () => {
     expect(validarAjuste({ ...base, motivo: '' })?.key).toBe('actions.errors.reason')
     expect(validarAjuste({ ...base, nota: ' ok ' })?.key).toBe('actions.adjust.errors.note')
   })
+  it(`la nota no pasa de ${NOTA_MAXIMA} caracteres (sin contar espacios de las orillas, como el server) (r1, M5)`, () => {
+    expect(validarAjuste({ ...base, nota: 'a'.repeat(NOTA_MAXIMA) })).toBeNull()
+    expect(validarAjuste({ ...base, nota: `  ${'a'.repeat(NOTA_MAXIMA)}  ` })).toBeNull()
+    expect(validarAjuste({ ...base, nota: 'a'.repeat(NOTA_MAXIMA + 1) })).toEqual({ key: 'actions.errors.noteTooLong' })
+  })
 })
 
 describe('validarMotivoYNota (bloquear y desbloquear)', () => {
@@ -110,6 +125,13 @@ describe('validarMotivoYNota (bloquear y desbloquear)', () => {
     expect(validarMotivoYNota({ motivo: 'SUSPICIOUS_ACTIVITY', nota: '' })).toBeNull()
     expect(validarMotivoYNota({ motivo: 'OTHER', nota: 'no' })?.key).toBe('actions.errors.noteForOther')
     expect(validarMotivoYNota({ motivo: 'OTHER', nota: 'Lo pidió el banco' })).toBeNull()
+  })
+  it(`con cualquier motivo, la nota no pasa de ${NOTA_MAXIMA} caracteres (r1, M5)`, () => {
+    expect(validarMotivoYNota({ motivo: 'SUSPICIOUS_ACTIVITY', nota: 'a'.repeat(NOTA_MAXIMA) })).toBeNull()
+    expect(validarMotivoYNota({ motivo: 'SUSPICIOUS_ACTIVITY', nota: 'a'.repeat(NOTA_MAXIMA + 1) })).toEqual({
+      key: 'actions.errors.noteTooLong',
+    })
+    expect(validarMotivoYNota({ motivo: 'OTHER', nota: 'a'.repeat(NOTA_MAXIMA + 1) })?.key).toBe('actions.errors.noteTooLong')
   })
   it('cada acción ofrece «Otro motivo» y nunca los motivos que pone el sistema', () => {
     for (const lista of Object.values(MOTIVOS_POR_ACCION)) {
@@ -273,9 +295,21 @@ describe('reglas de venta (Configuración)', () => {
 
 describe('textoDelServidorConCodigo (nota 10: sin `code`, nunca el texto crudo)', () => {
   const conCuerpo = (status: number, data: unknown) => Object.assign(new Error(String(status)), { response: { status, data } })
-  it('un error nuestro (con `code`) se enseña tal cual: viene en español', () => {
-    const err = conCuerpo(403, { code: 'GIFT_CARDS_NOT_IN_PLAN', message: 'Tu plan no incluye vender tarjetas de regalo.' })
+  it('🔴 el cuerpo REAL del candado de plan (`error` = el código) enseña el `message` en español, nunca el código (r1, I1)', () => {
+    // giftCardsPlan.middleware.ts (`reescribirNegativa`) responde las tres llaves; `error` trae el código, no un texto.
+    const err = conCuerpo(403, {
+      error: 'GIFT_CARDS_NOT_IN_PLAN',
+      code: 'GIFT_CARDS_NOT_IN_PLAN',
+      message: 'Tu plan no incluye vender tarjetas de regalo.',
+    })
     expect(textoDelServidorConCodigo(err)).toBe('Tu plan no incluye vender tarjetas de regalo.')
+  })
+  it('un GiftCardError (`{ message, code }`, app.ts) enseña su message', () => {
+    const err = conCuerpo(409, { message: 'Una de las tarjetas de esta venta está bloqueada por otro motivo.', code: 'GIFT_CARD_BLOCKED' })
+    expect(textoDelServidorConCodigo(err)).toBe('Una de las tarjetas de esta venta está bloqueada por otro motivo.')
+  })
+  it('con `code` y sólo `error` (sin message): nada, nunca el código', () => {
+    expect(textoDelServidorConCodigo(conCuerpo(403, { error: 'GIFT_CARDS_NOT_IN_PLAN', code: 'GIFT_CARDS_NOT_IN_PLAN' }))).toBeUndefined()
   })
   it('sin `code` (401/500 de checkFeatureAccess, en inglés), un 502 en HTML o sin respuesta: nada (la pantalla pone el genérico)', () => {
     expect(textoDelServidorConCodigo(conCuerpo(401, { error: 'Unauthorized', message: 'No venue context found' }))).toBeUndefined()
