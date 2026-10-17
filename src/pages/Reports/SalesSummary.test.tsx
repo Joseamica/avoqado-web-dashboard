@@ -143,4 +143,40 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     expect(await screen.findByText(/^salesSummary\.giftBalanceLine\(/)).toBeInTheDocument()
     expect(screen.queryByTestId('estado-de-cuenta')).not.toBeInTheDocument()
   })
+
+  it('🔴 el renglón de cargas lleva su conteo sólo si es > 0: nunca «0 tarjetas» junto a un monto (lote ⭐ 5b)', async () => {
+    // Sólo cancelaciones de cargas de otro periodo: neto negativo y 0 tarjetas cargadas en el rango.
+    h.response = respuesta({ summary: { ...CON_TARJETAS, giftCardLoads: -500, giftCardLoadsCount: 0 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.giftCardLoads')
+    expect(screen.queryByText(/salesSummary\.giftCardsCountLabel/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 sin renglón de cargas en pantalla (cargas = 0), el tooltip de «Total cobrado» no dice «(va en su renglón)» (lote ⭐ 5c)', async () => {
+    h.response = respuesta({ summary: { ...CON_TARJETAS, giftCardLoads: 0, giftCardLoadsCount: 0 } })
+    pintar()
+    expect(await screen.findByText('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')).toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.tooltips.totalCollectedWithGiftCards')).not.toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.rows.giftCardLoads')).not.toBeInTheDocument()
+  })
+
+  it('🔴 (dinero) el único cobro del rango fue con saldo: sin buckets, la línea del saldo sale igual y «Métodos de pago» no enseña 0 % (lote ⭐ 5d)', async () => {
+    // La respuesta del server real (D7 §4): sin buckets, pero con lo pagado con saldo.
+    h.response = respuesta({
+      summary: {
+        ...SUMMARY, grossSales: 69, items: 69, netSales: 69, taxes: 9.52, tips: 0, platformFees: 0, commissions: 0,
+        totalCollected: 69, netProfit: 69, transactionCount: 1, giftCardLoads: 0, giftCardLoadsCount: 0, paidWithGiftCardBalance: 69,
+      },
+      byPaymentMethod: [],
+      byPaymentMethodDetailed: [],
+      giftCardBalanceBreakdown: { amount: 69, count: 1, tips: 0, refunds: 0 },
+    })
+    pintar()
+    const linea = await screen.findByText(/^salesSummary\.giftBalanceLine\(/)
+    expect(linea.textContent).toContain('$69.00')
+    expect(linea.textContent).toContain('count=1')
+    expect(screen.getByText('salesSummary.paymentMethodsEmpty')).toBeInTheDocument()
+    // Nada de «Tarjeta / Efectivo / Otro» en $0.00 y 0 %.
+    expect(screen.queryByText('0 trans.')).not.toBeInTheDocument()
+  })
 })

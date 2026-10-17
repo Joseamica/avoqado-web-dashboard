@@ -139,12 +139,17 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
               <Dato label={t('detail.facts.recipient')} value={card.recipientName ?? t('list.noName')} />
               <Dato label={t('detail.facts.purchaser')} value={card.purchaserName ?? t('list.noName')} />
               <Dato label={t('detail.facts.customer')} value={card.customer?.name ?? t('detail.facts.notSaved')} />
+              {/* En mano no hay envío: el server la deja en PENDING y nada la mueve, así que no se pinta «Por enviar» (lote ⭐). */}
               <Dato
                 label={t('detail.facts.delivery')}
-                value={t('detail.facts.deliveryValue', {
-                  channel: t(`delivery.${card.deliveryChannel}`),
-                  status: t(`deliveryStatus.${card.deliveryStatus}`),
-                })}
+                value={
+                  card.deliveryChannel === 'HANDED_TO_BUYER'
+                    ? t('delivery.HANDED_TO_BUYER')
+                    : t('detail.facts.deliveryValue', {
+                        channel: t(`delivery.${card.deliveryChannel}`),
+                        status: t(`deliveryStatus.${card.deliveryStatus}`),
+                      })
+                }
               />
               <Dato
                 label={t('detail.facts.folio')}

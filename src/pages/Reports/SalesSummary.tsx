@@ -1177,15 +1177,20 @@ export default function SalesSummary() {
   // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
   const hayCifrasDeTarjetas =
     !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
-  const tooltipTotalCobrado = hayCifrasDeTarjetas
-    ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
-    : t('salesSummary.tooltips.totalCollected')
+  // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
+  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
+  const tooltipTotalCobrado = !hayCifrasDeTarjetas
+    ? t('salesSummary.tooltips.totalCollected')
+    : hayRenglonDeCargas
+      ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
+      : t('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')
   // Lo pagado con saldo NO es un bucket (B5): va aparte y sin porcentaje, porque no es dinero que entró en el periodo (entró
   // cuando se vendió la tarjeta). BRUTO como los buckets; lo que regresó al saldo se dice aparte, sin restar en el panel (M2).
-  // Sale en «Métodos de pago» (Free) y después del estado de cuenta (Pro, M1).
+  // Sale después del estado de cuenta (Pro, M1) o en «Métodos de pago» (Free, o sin buckets), FUERA de la rama de los buckets:
+  // si el único cobro del rango fue con saldo, el server manda `byPaymentMethodDetailed: []` y la línea igual se dice (lote ⭐).
   const saldoDeRegalo = apiResponse?.giftCardBalanceBreakdown
   const lineaDeSaldo = (className: string) =>
-    saldoDeRegalo && saldoDeRegalo.count > 0 ? (
+    saldoDeRegalo && (saldoDeRegalo.count > 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0) ? (
       <p className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)} data-tour="sales-summary-gift-balance">
         <WalletCards className="w-4 h-4 shrink-0" />
         {saldoDeRegalo.refunds > 0
@@ -2297,13 +2302,14 @@ export default function SalesSummary() {
 
               {/* Tarjetas de regalo cargadas (spec §7, B5): NO es venta ni entra a «Total cobrado» (ruling del contador, D5 r1):
                   renglón aparte, debajo de todo, con su conteo. Sólo sin filtro de pago y si no es cero. */}
-              {!isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0 && (
+              {hayRenglonDeCargas && (
                 <>
                   <div className="h-px bg-border/50 mx-4 my-3" />
                   <SummaryRow
                     label={t('salesSummary.rows.giftCardLoads')}
-                    value={data.summary.giftCardLoads}
-                    count={data.summary.giftCardLoadsCount ?? undefined}
+                    value={data.summary.giftCardLoads ?? 0}
+                    // Sólo con tarjetas cargadas en el rango: un neto de puras cancelaciones no dice «0 tarjetas» (lote ⭐).
+                    count={data.summary.giftCardLoadsCount || undefined}
                     countLabel={t('salesSummary.giftCardsCountLabel', { count: data.summary.giftCardLoadsCount ?? 0 })}
                     type="neutral"
                     tooltip={t('salesSummary.tooltips.giftCardLoads')}
@@ -2437,8 +2443,12 @@ export default function SalesSummary() {
                     />
                   )
                 })}
-                {lineaDeSaldo('px-4 py-3')}
                 </>
+              ) : apiResponse?.byPaymentMethodDetailed ? (
+                // Buckets vacíos (p. ej. el único cobro fue con saldo): estado vacío honesto, nunca $0.00 / 0 % (lote ⭐).
+                <p className="px-4 py-3 text-sm text-muted-foreground" data-tour="sales-summary-payment-methods-empty">
+                  {t('salesSummary.paymentMethodsEmpty')}
+                </p>
               ) : (
                 // Fallback flat layout (e.g. groupBy != paymentMethod or no detailed data).
                 <>
@@ -2467,6 +2477,7 @@ export default function SalesSummary() {
                   />
                 </>
               )}
+              {!isFiltered && lineaDeSaldo('px-4 py-3')}
             </div>
           </CollapsibleContent>
         </GlassCard>

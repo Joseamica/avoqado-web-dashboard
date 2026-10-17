@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Search, WalletCards, X } from 'lucide-react'
+import { AlertTriangle, Loader2, Search, WalletCards, X } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -254,7 +254,9 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
           hidePagination
           tableId="gift-cards"
           footer={
-            !stale && (
+            // Ni con el esqueleto de la primera carga (lote ⭐): hoy DataTable no pinta el pie mientras carga; esto no depende de eso.
+            !stale &&
+            !query.isLoading && (
               <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm text-muted-foreground">
                 <div className="space-y-0.5">
                   <span>{t('list.showing', { shown: cards.length, total })}</span>
@@ -265,14 +267,21 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
                   )}
                 </div>
                 {query.hasNextPage ? (
-                  <Button variant="outline" size="sm" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={() => void query.fetchNextPage()}
+                    disabled={query.isFetchingNextPage}
+                  >
+                    {query.isFetchingNextPage && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
                     {t('list.loadMore')}
                   </Button>
                 ) : (
                   // Se acabaron las páginas pero faltan filas (una venta nueva desplazó la lista) o la relectura falló:
                   // volver a empezar sí las trae.
                   (cards.length < total || query.isError) && (
-                    <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching}>
+                    <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void query.refetch()} disabled={query.isFetching}>
                       {t('list.refresh')}
                     </Button>
                   )

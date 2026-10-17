@@ -17,6 +17,13 @@ describe('giftCards translations', () => {
     expect(leaves(en).sort()).toEqual(leaves(es).sort())
   })
 
+  it('🔴 un total por tipo con propina se lee neutro, también en negativo: nunca «−$300.00 + −$30.00 de propina» (lote ⭐)', () => {
+    const llenar = (plantilla: string) =>
+      plantilla.replace(/{{(\w+)}}/g, (_, k: string) => ({ kind: 'X', n: '1', amount: '−$300.00', tip: '−$30.00' })[k] ?? '')
+    expect(llenar(es.reports.pending.byKindWithTip)).toBe('X (1): −$300.00 (propina −$30.00)')
+    expect(llenar(en.reports.pending.byKindWithTip)).toBe('X (1): −$300.00 (tip −$30.00)')
+  })
+
   it('ningún texto vacío', () => {
     for (const source of [es, en])
       for (const key of leaves(source)) {

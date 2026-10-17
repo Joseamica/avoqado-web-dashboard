@@ -37,13 +37,16 @@ const SETTINGS: GiftCardSettingsView = {
   updatedAt: '2026-10-14T15:00:00.000Z',
 }
 
-function renderForm(canManage = true) {
+function renderForm(canManage = true, settings: GiftCardSettingsView = SETTINGS) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(
+  const ui = (s: GiftCardSettingsView) => (
     <QueryClientProvider client={client}>
-      <GiftCardRulesForm venueId="v1" settings={SETTINGS} canManage={canManage} />
-    </QueryClientProvider>,
+      <GiftCardRulesForm venueId="v1" settings={s} canManage={canManage} />
+    </QueryClientProvider>
   )
+  const { rerender } = render(ui(settings))
+  /** Lo guardado cambia en el server (otra sesión, o el switch) y la consulta vuelve a leer. */
+  return { releer: (s: GiftCardSettingsView) => rerender(ui(s)) }
 }
 const guardar = () => screen.getByRole('button', { name: 'settings.rules.save' })
 
@@ -93,6 +96,22 @@ describe('GiftCardRulesForm', () => {
     renderForm(false)
     expect(screen.getByLabelText('settings.rules.min')).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'settings.rules.save' })).not.toBeInTheDocument()
+  })
+
+  it('🔴 sin editar, el borrador sigue a lo guardado cuando la consulta vuelve a leer (lote ⭐ 2d)', () => {
+    const { releer } = renderForm()
+    releer({ ...SETTINGS, suggestedAmounts: [700, 1000, 2000], minAmount: 200, updatedAt: '2026-10-15T09:00:00.000Z' })
+    expect(screen.getAllByLabelText('settings.rules.suggestedN')[0]).toHaveValue('700')
+    expect(screen.getByLabelText('settings.rules.min')).toHaveValue('200')
+    expect(guardar()).toBeDisabled()
+  })
+
+  it('con algo tecleado, una relectura NO pisa lo que la persona escribió (lote ⭐ 2d)', () => {
+    const { releer } = renderForm()
+    fireEvent.change(screen.getByLabelText('settings.rules.max'), { target: { value: '5000' } })
+    releer({ ...SETTINGS, enabled: false, updatedAt: '2026-10-15T09:00:00.000Z' })
+    expect(screen.getByLabelText('settings.rules.max')).toHaveValue('5000')
+    expect(guardar()).toBeEnabled()
   })
 
   it('un error sin `code` se dice con el texto genérico, nunca el crudo (nota 12)', async () => {

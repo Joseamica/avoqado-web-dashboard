@@ -271,7 +271,7 @@
       "totals_one": "1 operation in the period",
       "totals_other": "{{count}} operations in the period",
       "byKind": "{{kind}} ({{n}}): {{amount}}",
-      "byKindWithTip": "{{kind}} ({{n}}): {{amount}} + {{tip}} tip",
+      "byKindWithTip": "{{kind}} ({{n}}): {{amount}} (tip {{tip}})",
       "columns": {
         "date": "Date",
         "kind": "What it was",
@@ -301,6 +301,7 @@
     "info": "What you set here applies to the cards you sell from now on.",
     "readOnly": "You can see this setup, but only a manager or the owner can change it.",
     "loadError": "We couldn't load the setup.",
+    "refreshError": "We couldn't reload the setup. You're seeing the last version that loaded.",
     "switch": {
       "title": "Sell gift cards",
       "label": "Sell gift cards",
@@ -310,7 +311,9 @@
       "downgraded": "Your plan no longer includes selling gift cards. You can turn them off; the ones you already sold can still be used to pay.",
       "onToast": "Gift cards turned on",
       "offToast": "Gift cards turned off",
-      "errorTitle": "The change wasn't saved"
+      "errorTitle": "The change wasn't saved",
+      "planUnknown": "We couldn't confirm your plan, so they can't be turned on yet.",
+      "planRetry": "Try again"
     },
     "rules": {
       "title": "Amounts and validity",

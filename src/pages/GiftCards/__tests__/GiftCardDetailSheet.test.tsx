@@ -122,4 +122,18 @@ describe('GiftCardDetailSheet', () => {
     expect(screen.queryByText('detail.loadError')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('detail.loadMoreError')
   })
+
+  it('🔴 entregada EN MANO (el comprador se la llevó): sin estado de envío, nunca «Por enviar» (lote ⭐)', () => {
+    q.current = listo({
+      data: { pages: [{ ...DETAIL, deliveryChannel: 'HANDED_TO_BUYER', deliveryStatus: 'PENDING' }], pageParams: [null] },
+    })
+    pintar()
+    expect(screen.getByText('delivery.HANDED_TO_BUYER')).toBeInTheDocument()
+    expect(screen.queryByText('detail.facts.deliveryValue')).not.toBeInTheDocument()
+  })
+
+  it('por WhatsApp sí dice canal y estado de envío', () => {
+    pintar()
+    expect(screen.getByText('detail.facts.deliveryValue')).toBeInTheDocument()
+  })
 })

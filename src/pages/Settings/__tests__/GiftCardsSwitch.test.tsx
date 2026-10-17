@@ -18,7 +18,10 @@ const svc = vi.hoisted(() => ({
 }))
 vi.mock('@/services/giftCard.service', () => svc)
 const tier = vi.hoisted(() => ({ current: { hasAccess: true, isResolved: true, isLoading: false, requiredTier: 'PRO' } }))
-vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => tier.current }))
+vi.mock('@/hooks/use-tier-feature-access', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/use-tier-feature-access')>()),
+  useTierFeatureAccess: () => tier.current,
+}))
 const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
@@ -151,5 +154,20 @@ describe('GiftCardsSwitch (switch canónico, spec §9)', () => {
   it('le falta a Avoqado una llave: prendido, lo dice', () => {
     renderSwitch({ enabled: true, llavesConfiguradas: false })
     expect(screen.getByText('notice.KEYS_MISSING')).toBeInTheDocument()
+  })
+
+  it('🔴 si la consulta del plan FALLÓ (fail-open sin resolver), el switch apagado no queda muerto sin explicar (lote ⭐ 2b)', () => {
+    tier.current = { hasAccess: true, isResolved: false, isLoading: false, requiredTier: 'PRO' }
+    const { invalidate } = renderSwitch()
+    expect(elSwitch()).toBeDisabled()
+    expect(screen.getByText('settings.switch.planUnknown')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'settings.switch.planRetry' }))
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['venueFeatures', 'v1', 'planTier'] })
+  })
+
+  it('mientras el plan carga no hay aviso (sólo el spinner)', () => {
+    tier.current = { hasAccess: true, isResolved: false, isLoading: true, requiredTier: 'PRO' }
+    renderSwitch()
+    expect(screen.queryByText('settings.switch.planUnknown')).not.toBeInTheDocument()
   })
 })

@@ -41,7 +41,14 @@ export function GiftCardRulesForm({
   const update = useUpdateGiftCardSettings(venueId)
   const guardado = useMemo(() => borradorDesde(settings), [settings])
   const [borrador, setBorrador] = useState<BorradorDeReglas>(guardado)
+  const [base, setBase] = useState(guardado)
   const [intentado, setIntentado] = useState(false)
+  // Lo guardado cambió (otra sesión, o el switch): un borrador SIN editar lo sigue; uno editado se respeta (lote ⭐).
+  // Ajuste durante el render (patrón de React para «el valor anterior»), sin un render de más con los montos viejos.
+  if (base !== guardado) {
+    setBase(guardado)
+    if (JSON.stringify(borrador) === JSON.stringify(base)) setBorrador(guardado)
+  }
   const cambio = JSON.stringify(borrador) !== JSON.stringify(guardado)
   const resultado = validarReglas(borrador)
   // `=== false` y no `!ok`: con `strict: false` la negación no estrecha la unión.

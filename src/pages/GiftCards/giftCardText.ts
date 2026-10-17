@@ -86,11 +86,12 @@ export function textoDelServidorConCodigo(err: unknown): string | undefined {
 /**
  * Lee un monto tecleado: «150», «150.5», «1,500», «1,500.50» o «$500». `null` si no es un número con hasta 2 decimales.
  * En México el punto es decimal y la coma sólo separa miles en grupos de 3 (r1, I2): «5,00», «150,50» o «1,0,0» dan `null`
- * para que la persona corrija; nunca se adivina (en un ajuste, «5,00» leído como 500 sumaría $500). «0» da 0: quien llama
- * valida que sea positivo.
+ * para que la persona corrija; nunca se adivina (en un ajuste, «5,00» leído como 500 sumaría $500). Lo mismo con `$` y
+ * espacios (lote ⭐): el `$` sólo al inicio y los espacios sólo en los extremos («5 00», «5$00» ⇒ `null`). «0» da 0: quien
+ * llama valida que sea positivo.
  */
 export function leerMonto(texto: string): number | null {
-  const limpio = texto.replace(/[$\s]/g, '')
+  const limpio = texto.trim().replace(/^\$\s*/, '')
   if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d{1,2})?$/.test(limpio)) return null
   return Number(limpio.replace(/,/g, ''))
 }

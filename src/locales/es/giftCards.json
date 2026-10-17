@@ -271,7 +271,7 @@
       "totals_one": "1 operación en el periodo",
       "totals_other": "{{count}} operaciones en el periodo",
       "byKind": "{{kind}} ({{n}}): {{amount}}",
-      "byKindWithTip": "{{kind}} ({{n}}): {{amount}} + {{tip}} de propina",
+      "byKindWithTip": "{{kind}} ({{n}}): {{amount}} (propina {{tip}})",
       "columns": {
         "date": "Fecha",
         "kind": "Qué fue",
@@ -301,6 +301,7 @@
     "info": "Lo que configures aquí aplica a las tarjetas que vendas desde ahora.",
     "readOnly": "Puedes ver esta configuración, pero sólo el gerente o el dueño la cambian.",
     "loadError": "No pudimos cargar la configuración.",
+    "refreshError": "No pudimos volver a leer la configuración. Ves lo último que se cargó.",
     "switch": {
       "title": "Vender tarjetas de regalo",
       "label": "Vender tarjetas de regalo",
@@ -310,7 +311,9 @@
       "downgraded": "Tu plan ya no incluye vender tarjetas de regalo. Puedes apagarlas; las que ya vendiste se siguen cobrando.",
       "onToast": "Tarjetas de regalo prendidas",
       "offToast": "Tarjetas de regalo apagadas",
-      "errorTitle": "No se guardó el cambio"
+      "errorTitle": "No se guardó el cambio",
+      "planUnknown": "No pudimos confirmar tu plan, así que todavía no se pueden prender.",
+      "planRetry": "Intentar otra vez"
     },
     "rules": {
       "title": "Montos y vigencia",

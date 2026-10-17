@@ -606,6 +606,7 @@
       "totalSales": "Net sales (taxes are already included in prices)",
       "totalCollected": "Money received: net sales + tips - platform fees",
       "totalCollectedWithGiftCards": "Net sales + tips − fees. It doesn't include what was loaded on gift cards (that has its own row) and it does include what was paid with gift card balance.",
+      "totalCollectedWithGiftCardsNoLoadsRow": "Net sales + tips − fees. It doesn't include what was loaded on gift cards and it does include what was paid with gift card balance.",
       "totalCollectedSettlement": "Deposit timing varies by payment method: debit and credit cards settle in {{debitDays}} business day(s), while Amex and international cards take {{amexDays}} business day(s).",
       "netProfit": "True profit after all costs: net sales - platform fees - staff commissions",
       "giftCardLoads": "Balance you sold on gift cards, minus cancellations. It isn't a sale yet: it counts as a sale when the customer uses it.",
@@ -617,6 +618,7 @@
     "giftBalanceLineWithRefunds_other": "Also, {{amount}} was paid with gift card balance ({{count}} payments); {{refunds}} went back to the balance. That money came in when the cards were sold.",
     "giftCardsCountLabel_one": "card",
     "giftCardsCountLabel_other": "cards",
+    "paymentMethodsEmpty": "There were no card, cash or other payments in this period.",
     "settlement": {
       "label": "Settlement",
       "businessDay": "{{count}} business day",

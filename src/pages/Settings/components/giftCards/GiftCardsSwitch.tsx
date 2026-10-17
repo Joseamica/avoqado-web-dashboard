@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, WalletCards } from 'lucide-react'
 import {
   AlertDialog,
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
 import { GIFT_CARDS_FEATURE, useUpdateGiftCardSettings } from '@/hooks/use-gift-cards'
-import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { planTierQueryKey, useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
 import { textoDelServidorConCodigo } from '@/pages/GiftCards/giftCardText'
 import type { GiftCardSettingsView } from '@/types/giftCard'
@@ -29,17 +30,21 @@ import type { GiftCardSettingsView } from '@/types/giftCard'
  * - Prendido y sin plan (bajó de plan) se ve, se explica y se puede apagar: «apagado se ve y se explica».
  * - `enabled` viaja SÓLO desde aquí (nota 6): el server pide el plan sólo al prender; guardar montos va sin él.
  * - No es optimista: el switch refleja lo GUARDADO. Candado síncrono (`useRef`): dos clics en «Prender» no mandan dos PUT.
+ * - Si la consulta del plan FALLÓ (sin resolver y sin cargar: el gate hace fail-open), apagado no se queda muerto sin
+ *   explicar: lo dice y deja volver a pedir el plan (lote ⭐).
  */
 export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: string; settings: GiftCardSettingsView; canManage: boolean }) {
   const { t } = useTranslation('giftCards')
   const { toast } = useToast()
   const { hasAccess, isResolved, isLoading } = useTierFeatureAccess(GIFT_CARDS_FEATURE)
   const update = useUpdateGiftCardSettings(venueId)
+  const queryClient = useQueryClient()
   const [dialogo, setDialogo] = useState<'prender' | 'apagar' | null>(null)
   const [acepta, setAcepta] = useState(false)
   const enVuelo = useRef(false)
   const planComprobado = isResolved && hasAccess
   const prendido = settings.enabled
+  const planSinConfirmar = !prendido && canManage && !isResolved && !isLoading
 
   const guardar = async (prender: boolean) => {
     if (enVuelo.current) return
@@ -102,6 +107,20 @@ export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: str
         </div>
       </div>
 
+      {planSinConfirmar && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-input pt-3">
+          <p className="text-xs leading-relaxed text-warning-foreground">{t('settings.switch.planUnknown')}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => void queryClient.invalidateQueries({ queryKey: planTierQueryKey(venueId) })}
+            data-tour="gift-cards-plan-retry"
+          >
+            {t('settings.switch.planRetry')}
+          </Button>
+        </div>
+      )}
       {prendido && isResolved && !hasAccess && (
         <p className="mt-3 border-t border-input pt-3 text-xs leading-relaxed text-warning-foreground">{t('settings.switch.downgraded')}</p>
       )}

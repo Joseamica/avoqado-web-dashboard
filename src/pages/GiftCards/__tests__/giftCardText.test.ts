@@ -80,6 +80,13 @@ describe('montos tecleados', () => {
     expect(leerMonto('1,500.50')).toBe(1500.5)
     expect(leerMonto('$ 1,500')).toBe(1500)
   })
+  it('🔴 `$` sólo al inicio y espacios sólo en los extremos: «5 00» o «5$00» no son $500 (lote ⭐)', () => {
+    for (const malo of ['5 00', '5$00', '$ 5 00', '500$', '$$500', '1 500.00']) expect(leerMonto(malo)).toBeNull()
+    expect(leerMonto('$500')).toBe(500)
+    expect(leerMonto(' 500 ')).toBe(500)
+    expect(leerMonto('$1,500.50')).toBe(1500.5)
+    expect(leerMonto('  $1,500.50  ')).toBe(1500.5)
+  })
   it('«0» se lee 0: quien llama valida que sea positivo', () => {
     expect(leerMonto('0')).toBe(0)
   })

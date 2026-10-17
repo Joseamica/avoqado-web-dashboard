@@ -4,8 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const q = vi.hoisted(() => ({ current: {} as Record<string, unknown> }))
 vi.mock('@/hooks/use-gift-cards', () => ({ GIFT_CARDS_FEATURE: 'GIFT_CARDS', useGiftCardSettings: () => q.current }))
-const access = vi.hoisted(() => ({ allowed: ['giftCards:read', 'giftCards:manage'] as string[] }))
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p) }) }))
+const access = vi.hoisted(() => ({ allowed: ['giftCards:read', 'giftCards:manage'] as string[], isLoading: false }))
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({ can: (p: string) => access.allowed.includes(p), isLoading: access.isLoading }),
+}))
+const tier = vi.hoisted(() => ({ current: { hasAccess: true, isResolved: true, isLoading: false, requiredTier: 'PRO' } }))
+vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => tier.current }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 // FeatureGate tiene su propia prueba; aquí sólo importa QUÉ queda dentro del cartel y con qué código.
@@ -18,7 +22,21 @@ vi.mock('@/components/billing/FeatureGate', () => ({
 }))
 vi.mock('@/components/PageTitleWithInfo', () => ({ PageTitleWithInfo: ({ title }: { title: string }) => <h1>{title}</h1> }))
 vi.mock('../components/giftCards/GiftCardsSwitch', () => ({ GiftCardsSwitch: () => <p>switch</p> }))
-vi.mock('../components/giftCards/GiftCardRulesForm', () => ({ GiftCardRulesForm: () => <p>reglas</p> }))
+// Con estado propio: si la página lo desmonta (el árbol cambia de forma), lo tecleado se pierde y la prueba lo ve.
+vi.mock('../components/giftCards/GiftCardRulesForm', async () => {
+  const { useState } = await import('react')
+  return {
+    GiftCardRulesForm: () => {
+      const [v, setV] = useState('')
+      return (
+        <label>
+          reglas
+          <input aria-label="monto tecleado" value={v} onChange={e => setV(e.target.value)} />
+        </label>
+      )
+    },
+  }
+})
 
 import GiftCardSettings from '../GiftCardSettings'
 
@@ -42,11 +60,14 @@ const fallido = (error: unknown, refetch = vi.fn()) => ({
 
 beforeEach(() => {
   access.allowed = ['giftCards:read', 'giftCards:manage']
+  access.isLoading = false
+  tier.current = { hasAccess: true, isResolved: true, isLoading: false, requiredTier: 'PRO' }
   q.current = listo(DATA)
 })
 
 describe('Configuración › Tarjetas de regalo', () => {
-  it('apagado ⇒ la página entera vive dentro de <FeatureGate feature="GIFT_CARDS"> (sin plan se ve borrosa con el cartel)', () => {
+  it('apagado y SIN plan ⇒ la página entera vive dentro de <FeatureGate feature="GIFT_CARDS"> (se ve borrosa con el cartel)', () => {
+    tier.current = { ...tier.current, hasAccess: false }
     render(<GiftCardSettings />)
     expect(screen.getByTestId('feature-gate')).toHaveAttribute('data-feature', 'GIFT_CARDS')
     expect(screen.getByText('switch')).toBeInTheDocument()
@@ -58,6 +79,35 @@ describe('Configuración › Tarjetas de regalo', () => {
     render(<GiftCardSettings />)
     expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
     expect(screen.getByText('switch')).toBeInTheDocument()
+  })
+
+  it('🔴 apagado CON plan ⇒ paso directo, sin envoltura: prender o apagar no cambia la forma del árbol (lote ⭐ 2a)', () => {
+    render(<GiftCardSettings />)
+    expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+  })
+
+  it('🔴 prender y apagar NO pierden los montos tecleados sin guardar (lote ⭐ 2a)', () => {
+    const { rerender } = render(<GiftCardSettings />)
+    fireEvent.change(screen.getByLabelText('monto tecleado'), { target: { value: '750' } })
+    q.current = listo({ ...DATA, enabled: true })
+    rerender(<GiftCardSettings />)
+    expect(screen.getByLabelText('monto tecleado')).toHaveValue('750')
+    q.current = listo({ ...DATA, enabled: false })
+    rerender(<GiftCardSettings />)
+    expect(screen.getByLabelText('monto tecleado')).toHaveValue('750')
+  })
+
+  it('🔴 una relectura fallida CON datos en mano no tapa el formulario: el error va en línea y deja reintentar (lote ⭐ 2c)', () => {
+    const refetch = vi.fn()
+    q.current = { ...listo(DATA), isError: true, error: { response: { status: 500, data: { message: 'Internal server error' } } }, refetch }
+    render(<GiftCardSettings />)
+    expect(screen.getByText('reglas')).toBeInTheDocument()
+    expect(screen.getByText('switch')).toBeInTheDocument()
+    expect(screen.getByText('settings.refreshError')).toBeInTheDocument()
+    expect(screen.queryByText('settings.loadError')).not.toBeInTheDocument()
+    expect(screen.getByText('errors.generic')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'page.retry' }))
+    expect(refetch).toHaveBeenCalled()
   })
 
   it('cargando ⇒ sin cartel y sin formulario', () => {
@@ -89,5 +139,12 @@ describe('Configuración › Tarjetas de regalo', () => {
     access.allowed = ['giftCards:read']
     render(<GiftCardSettings />)
     expect(screen.getByText('settings.readOnly')).toBeInTheDocument()
+  })
+
+  it('🔴 con los permisos todavía en camino NO se pinta «sólo lectura» (lote ⭐ 2e)', () => {
+    access.allowed = []
+    access.isLoading = true
+    render(<GiftCardSettings />)
+    expect(screen.queryByText('settings.readOnly')).not.toBeInTheDocument()
   })
 })

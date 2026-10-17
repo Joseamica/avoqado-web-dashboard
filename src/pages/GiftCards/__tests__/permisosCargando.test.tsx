@@ -9,6 +9,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => false, isLoading: true }) }))
+// El plan también es «de fuera» (Ajustes lo lee para decidir el cartel): sin esto saldría un GET real a /plan-tier.
+vi.mock('@/hooks/use-tier-feature-access', () => ({
+  useTierFeatureAccess: () => ({ hasAccess: true, isResolved: false, isLoading: true, requiredTier: 'PRO' }),
+}))
 const svc = vi.hoisted(() => ({
   getGiftCardSettings: vi.fn(),
   updateGiftCardSettings: vi.fn(),
@@ -51,6 +55,8 @@ describe('permisos todavía cargando: cada pantalla dice «cargando», nunca err
     pintar(<GiftCardSettings />)
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(screen.queryByText('settings.loadError')).not.toBeInTheDocument()
+    // Lote ⭐ 2e: sin permisos todavía, `can()` da false; eso no es «sólo lectura».
+    expect(screen.queryByText('settings.readOnly')).not.toBeInTheDocument()
     nadaPedido()
   })
 
