@@ -94,6 +94,7 @@ const CURACION = {
     ['MENU', ['menu'], 'Menu Management'],
     ['PRODUCTS', ['products'], 'Products'],
     ['ORDERS', ['orders'], 'Orders'],
+    ['ONLINE_ORDERS', ['online-orders'], 'Pedidos en línea'],
     ['ESTIMATES', ['estimates'], 'Cotizaciones'],
     ['MANUAL_SALES', ['manual-sales'], 'Ventas manuales'],
     ['PAYMENTS', ['payments', 'payment'], 'Payments'],
