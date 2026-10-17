@@ -62,6 +62,7 @@ import { ChannelBadge } from '@/components/delivery/ChannelBadge'
 import { useAccess } from '@/hooks/use-access'
 import { getPaymentFilterOptions, getPayments, getPaymentsSummary } from '@/services/payment.service'
 import { paymentCardsForTab, paymentRowMatchesTab, paymentTabCounts } from './paymentSummary'
+import { etiquetaDeMetodo } from './etiquetaDeMetodo'
 
 // processorData.isInternational may arrive as boolean or as the string "true"/"false"
 // depending on the provider/legacy row. Normalize to a strict boolean.
@@ -746,22 +747,7 @@ export default function Payments() {
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
           const isCard = payment.method === 'CREDIT_CARD' || payment.method === 'DEBIT_CARD'
           const isCrypto = (payment.method as string) === 'CRYPTOCURRENCY'
-          const methodDisplay =
-            payment.method === 'CASH'
-              ? t('methods.cash')
-              : payment.method === 'CREDIT_CARD'
-                ? t('methods.creditCard')
-                : payment.method === 'DEBIT_CARD'
-                  ? t('methods.debitCard')
-                  : payment.method === 'DIGITAL_WALLET'
-                    ? t('methods.digitalWallet')
-                    : payment.method === 'BANK_TRANSFER'
-                      ? t('methods.bankTransfer')
-                      : (payment.method as string) === 'CRYPTOCURRENCY'
-                        ? t('methods.cryptocurrency')
-                        : payment.method === 'OTHER'
-                          ? t('methods.other')
-                          : t('methods.card')
+          const methodDisplay = etiquetaDeMetodo(payment.method, t)
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
@@ -1280,34 +1266,14 @@ export default function Payments() {
                   label={t('columns.method')}
                   activeValue={getFilterDisplayLabel(
                     methodFilter,
-                    methods.map((method: string) => ({
-                      value: method,
-                      label:
-                        method === 'CASH'
-                          ? t('methods.cash')
-                          : method === 'CREDIT_CARD'
-                            ? t('methods.creditCard')
-                            : method === 'DEBIT_CARD'
-                              ? t('methods.debitCard')
-                              : t('methods.card'),
-                    })),
+                    methods.map((method: string) => ({ value: method, label: etiquetaDeMetodo(method, t) })),
                   )}
                   isActive={methodFilter.length > 0}
                   onClear={() => setMethodFilter([])}
                 >
                   <CheckboxFilterContent
                     title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
-                    options={methods.map((method: string) => ({
-                      value: method,
-                      label:
-                        method === 'CASH'
-                          ? t('methods.cash')
-                          : method === 'CREDIT_CARD'
-                            ? t('methods.creditCard')
-                            : method === 'DEBIT_CARD'
-                              ? t('methods.debitCard')
-                              : t('methods.card'),
-                    }))}
+                    options={methods.map((method: string) => ({ value: method, label: etiquetaDeMetodo(method, t) }))}
                     selectedValues={methodFilter}
                     onApply={setMethodFilter}
                   />
