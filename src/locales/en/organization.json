@@ -358,7 +358,9 @@
     "billingEmailDesc": "Email address for billing notifications",
     "save": "Save Changes",
     "updateSuccess": "Organization updated successfully",
-    "updateError": "Failed to update organization"
+    "updateError": "Failed to update organization",
+    "tpvSoloDuenoOrg": "Only the organization owner can change these settings, because they apply to every terminal in every store. If you need a change, ask the organization owner.",
+    "tpvLoadError": "The saved settings could not be loaded. Reload the page before changing them, so you do not replace them with the factory values."
   },
   "terminals": {
     "title": "Devices",

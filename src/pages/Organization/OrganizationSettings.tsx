@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { isOrganizationOwner } from '@/lib/permissions/organizationOwner'
+import { mensajeDelServidor4xx } from '@/utils/apiError'
 import { useOrgTpvDefaults, useOrgTpvStats, useUpsertOrgTpvDefaults } from '@/hooks/useStoresAnalysis'
 import { getOrganization, updateOrganization, type OrganizationInfo } from '@/services/organization.service'
 import type { TpvSettings } from '@/services/tpv-settings.service'
@@ -309,7 +311,7 @@ const OrganizationSettings: React.FC = () => {
 // ORG TPV CONFIG SECTION
 // =============================================================================
 
-function OrgTpvConfigSection({ orgId }: { orgId: string }) {
+export function OrgTpvConfigSection({ orgId }: { orgId: string }) {
   const { t } = useTranslation('organization')
   const { t: tTpv } = useTranslation('tpv')
   const { toast } = useToast()
@@ -321,9 +323,14 @@ function OrgTpvConfigSection({ orgId }: { orgId: string }) {
     return user?.venues?.find(v => v.organizationId === orgId)?.id ?? null
   }, [activeVenue, orgId, user?.venues])
 
-  const { data: orgDefaults, isLoading } = useOrgTpvDefaults({ venueId })
+  const { data: orgDefaults, isLoading, isError } = useOrgTpvDefaults({ venueId })
   const { data: stats } = useOrgTpvStats({ venueId })
   const upsertMutation = useUpsertOrgTpvDefaults({ venueId })
+  // El servidor empuja estos ajustes a TODAS las terminales de todas las sucursales y sólo deja cambiarlos al dueño de la
+  // ORGANIZACIÓN. La página deja entrar también al OWNER de una sucursal: aquí se pregunta lo mismo que el servidor. Si la
+  // lectura falló tampoco se edita: el formulario tendría los valores de fábrica y guardarlos pisaría los reales.
+  const esDuenoDeLaOrg = isOrganizationOwner(user, orgId)
+  const soloLectura = !esDuenoDeLaOrg || isError
 
   const [localSettings, setLocalSettings] = useState<TpvSettings>(ORG_DEFAULT_TPV_SETTINGS)
   const [hasChanges, setHasChanges] = useState(false)
@@ -354,8 +361,8 @@ function OrgTpvConfigSection({ orgId }: { orgId: string }) {
           count: result.terminalsUpdated,
         }),
       })
-    } catch {
-      toast({ title: tTpv('tpvSettings.updateError'), variant: 'destructive' })
+    } catch (error) {
+      toast({ title: mensajeDelServidor4xx(error) ?? tTpv('tpvSettings.updateError'), variant: 'destructive' })
     }
   }
 
@@ -378,15 +385,22 @@ function OrgTpvConfigSection({ orgId }: { orgId: string }) {
               {totalTerminals} {totalTerminals === 1 ? 'terminal' : 'terminales'}
             </Badge>
           )}
-          <Button onClick={handleSave} disabled={!hasChanges || upsertMutation.isPending} size="sm">
+          <Button onClick={handleSave} disabled={soloLectura || !hasChanges || upsertMutation.isPending} size="sm">
             {upsertMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {tTpv('tpvSettings.saveAndApply', { defaultValue: 'Guardar y aplicar' })}
           </Button>
         </div>
       </div>
 
+      {!esDuenoDeLaOrg && (
+        <div className="flex items-start gap-2 rounded-lg border border-input bg-muted/40 px-3 py-2.5">
+          <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+          <p className="text-xs text-muted-foreground">{t('settings.tpvSoloDuenoOrg')}</p>
+        </div>
+      )}
+
       {/* Info banner */}
-      {totalTerminals > 0 && (
+      {!soloLectura && totalTerminals > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 px-3 py-2.5">
           <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
           <p className="text-xs text-blue-700 dark:text-blue-300">
@@ -411,14 +425,22 @@ function OrgTpvConfigSection({ orgId }: { orgId: string }) {
       )}
 
       {/* Settings fields */}
-      {isLoading ? (
+      {isError ? (
+        <p className="text-sm text-destructive">{t('settings.tpvLoadError')}</p>
+      ) : isLoading ? (
         <div className="space-y-3">
           <div className="h-14 bg-muted/40 animate-pulse rounded-2xl" />
           <div className="h-14 bg-muted/40 animate-pulse rounded-2xl" />
           <div className="h-14 bg-muted/40 animate-pulse rounded-2xl" />
         </div>
       ) : (
-        <TpvSettingsFields settings={localSettings} onUpdate={handleUpdate} isPending={upsertMutation.isPending} mode="org" />
+        <TpvSettingsFields
+          settings={localSettings}
+          onUpdate={handleUpdate}
+          isPending={upsertMutation.isPending}
+          disabled={soloLectura}
+          mode="org"
+        />
       )}
     </div>
   )
