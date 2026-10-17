@@ -10,10 +10,10 @@
  *   tras quedar en duda (sin respuesta, 5xx) también; tras una respuesta definitiva la llave se tira. El server deduplica por
  *   [venueId, operationKey] y rechaza la misma llave con otro contenido (R12).
  */
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
-import { olvidar, useEnvioUnico } from '@/pages/Commissions/envioUnico'
+import { olvidar, quedoEnDuda, useEnvioUnico } from '@/pages/Commissions/envioUnico'
 import {
   getGiftCardAging,
   getGiftCardDetail,
@@ -139,8 +139,8 @@ export function useGiftCardPendingAccounting(venueId: string | undefined, from: 
 }
 
 /**
- * Invalida SÓLO lo que lee lo que cambió y devuelve la promesa para que la acción la ESPERE: así el botón sigue ocupado
- * hasta que llegaron los datos nuevos y nadie vuelve a tocar sobre valores viejos.
+ * Invalida SÓLO lo que lee lo que cambió y devuelve la promesa de la relectura. Los ajustes la esperan; las acciones del gerente
+ * NO (D4 r1, I2: su diálogo termina con la respuesta del server; «liberar» la lee después para decir lo que el server muestra).
  *   'settings' — ajustes y tipos de pago (prender crea el tender de sistema «Tarjeta de regalo», R4).
  *   'card'     — la lista, el detalle de ESA tarjeta y los reportes (un ajuste mueve el saldo vivo y la antigüedad).
  *   'sale'     — cancelar una venta toca TODAS sus tarjetas, y bloquear/desbloquear una cambia el `cancel` de sus hermanas:
@@ -171,65 +171,115 @@ export function useUpdateGiftCardSettings(venueId: string | undefined) {
   })
 }
 
+/**
+ * D4 r1 (I1): el CUERPO exacto de cada intento que quedó EN DUDA (sin respuesta, 5xx o «en curso»), por tarjeta (o venta) y
+ * acción. Como su llave en envioUnico, vive fuera de los componentes: cerrar, desmontar o reabrir el diálogo NO lo pierde, y
+ * rehacerlo con la misma llave lo deduplica el server (exactamente una vez). Mover un saldo dos veces es peor que tragarse una
+ * vez un ajuste idéntico deliberado. Se borra con el éxito, con una respuesta definitiva o con «Descartar este intento».
+ */
+const enDuda = new Map<string, unknown>()
+/** Sólo para las pruebas: olvida los intentos en duda. */
+export const olvidarIntentosEnDuda = () => enDuda.clear()
+/** En duda, el intento se queda; ante una respuesta definitiva se va (su llave ya la tiró envioUnico). */
+const anotarFallo = (k: string, intento: unknown, err: unknown) => {
+  if (quedoEnDuda(err)) enDuda.set(k, intento)
+  else enDuda.delete(k)
+}
+
 /** La huella de una operación: misma tarjeta (o venta) + mismo contenido ⇒ misma llave hasta una respuesta definitiva. */
 export const huellaDeOperacion = (alcance: string, contenido: unknown): string => `gift-card:${alcance}:${JSON.stringify(contenido)}`
 type AccionDeVenta = 'cancel-sale' | 'release-cancel'
+/** Lo que se recuerda de un intento de cancelar o liberar que quedó en duda: la «foto» de la cancelación al intentarlo. */
+type IntentoDeVenta = { estado: string }
 
 /**
  * Ajustar, bloquear, desbloquear o reponer UNA tarjeta. `operar` devuelve `undefined` si ya hay otra operación en vuelo
- * (candado síncrono de useEnvioUnico: un doble clic no manda dos). Pase lo que pase, la pantalla vuelve a leer: si quedó en
- * duda y sí se aplicó, se ve en el historial.
- * `olvidarIntento()` se llama al CERRAR el diálogo (r1, M3): cerrar abandona el intento en duda y reabrir es una acción nueva
- * con llave nueva (nota 7). Sin cerrar, «Intentar otra vez» sigue mandando la misma llave.
+ * (candado síncrono de useEnvioUnico: un doble clic no manda dos). Pase lo que pase la pantalla vuelve a leer, SIN esperarlo
+ * (D4 r1, I2: esperar la relectura dejaba el botón vivo tras el éxito y un segundo clic era otra operación con llave nueva).
+ * En duda, el cuerpo queda en `intentoEnDuda(tipo)` (y su llave en envioUnico) hasta el éxito, una respuesta definitiva o
+ * `descartarIntento(tipo)` («Descartar este intento»). Bloquear y desbloquear se dejan atrás uno al otro: tras uno que salió
+ * bien, repetir el otro con su llave vieja haría que el server respondiera «hecho» sin hacerlo.
  */
 export function useGiftCardOperation(venueId: string | undefined, giftCardId: string) {
   const { enviar, enviando } = useEnvioUnico()
   const invalidate = useInvalidateGiftCards()
-  const intentos = useRef(new Set<string>())
+  const llaveDe = useCallback((tipo: GiftCardOperation['tipo']) => `${giftCardId}:${tipo}`, [giftCardId])
+  const intentoEnDuda = useCallback(
+    (tipo: GiftCardOperation['tipo']) => enDuda.get(llaveDe(tipo)) as GiftCardOperation | undefined,
+    [llaveDe],
+  )
+  const descartarIntento = useCallback(
+    (tipo: GiftCardOperation['tipo']) => {
+      const previo = intentoEnDuda(tipo)
+      if (previo) olvidar(huellaDeOperacion(giftCardId, previo))
+      enDuda.delete(llaveDe(tipo))
+    },
+    [giftCardId, intentoEnDuda, llaveDe],
+  )
   const operar = useCallback(
     async (op: GiftCardOperation): Promise<GiftCardOperationResult | undefined> => {
       if (!venueId) return undefined
-      const huella = huellaDeOperacion(giftCardId, op)
-      intentos.current.add(huella)
       // Bloquear o desbloquear cambia el `cancel` de las HERMANAS de la venta (r1, M4): se releen todos los detalles.
       const cambio: GiftCardChange = op.tipo === 'BLOQUEAR' || op.tipo === 'DESBLOQUEAR' ? { kind: 'sale' } : { kind: 'card', giftCardId }
       try {
-        const r = await enviar(huella, paso =>
+        const r = await enviar(huellaDeOperacion(giftCardId, op), paso =>
           paso('operacion', operationKey => operateGiftCard(venueId, giftCardId, { ...op, operationKey })),
         )
-        if (r) await invalidate(venueId, cambio)
+        if (r) {
+          enDuda.delete(llaveDe(op.tipo))
+          if (op.tipo === 'BLOQUEAR') descartarIntento('DESBLOQUEAR')
+          if (op.tipo === 'DESBLOQUEAR') descartarIntento('BLOQUEAR')
+          void invalidate(venueId, cambio)
+        }
         return r
       } catch (err) {
+        anotarFallo(llaveDe(op.tipo), op, err)
         void invalidate(venueId, cambio)
         throw err
       }
     },
-    [venueId, giftCardId, enviar, invalidate],
+    [venueId, giftCardId, enviar, invalidate, llaveDe, descartarIntento],
   )
-  const olvidarIntento = useCallback(() => {
-    intentos.current.forEach(olvidar)
-    intentos.current.clear()
-  }, [])
-  return { operar, enviando, olvidarIntento }
+  return { operar, enviando, intentoEnDuda, descartarIntento }
 }
 
 /**
- * Empezar o detener la cancelación de una venta de tarjetas (spec §5.6). Cada una es su propia operación con su llave.
+ * Empezar o detener la cancelación de una venta de tarjetas (spec §5.6). Cada una es su propia operación con su llave, y su
+ * huella lleva la «foto» de la cancelación al intentar (`estado`, de `estadoDeCancelacion`; D4 r1, I1.3): si la foto cambió
+ * —otra cancelación, otra liberación o cualquier movimiento: la libreta sólo crece— ya es OTRA operación, con llave nueva.
+ * Así una llave vieja de liberar nunca se repite sobre una cancelación nueva (el server respondería «liberada» sin liberar).
  * Liberar pide la confirmación EXPLÍCITA de que la devolución NO se hizo (F6): un *timeout* no lo prueba.
- * r1, M3 (nota 7: acción nueva = llave nueva): cuando una sale bien, la otra de ESA venta olvida su intento en duda (si no,
- * cancelar tras liberar reusaría una llave ya cerrada ⇒ 409, y liberar tras otra cancelación se tomaría por repetición y diría
- * «liberada» sin liberar). `olvidarIntento()` se llama al CERRAR el diálogo.
+ * En duda, el intento queda en `intentoEnDuda(accion, estadoActual)` (sólo mientras la foto siga igual) hasta el éxito, una
+ * respuesta definitiva o `descartarIntento(accion)`. Cuando una sale bien, la otra de ESA venta se descarta (r1, M3).
+ * Devuelve `{ refresco }`: la relectura NO se espera para cerrar (I2), pero «liberar» la lee para no decir «se pueden usar
+ * otra vez» si el server las sigue mostrando bloqueadas.
  */
 export function useGiftCardSaleCancel(venueId: string | undefined, orderId: string) {
   const { enviar, enviando } = useEnvioUnico()
   const invalidate = useInvalidateGiftCards()
-  const huellaDe = useCallback((accion: AccionDeVenta) => huellaDeOperacion(orderId, { accion }), [orderId])
+  const llaveDe = useCallback((accion: AccionDeVenta) => `${orderId}:${accion}`, [orderId])
+  const huellaDe = useCallback((accion: AccionDeVenta, estado: string) => huellaDeOperacion(orderId, { accion, estado }), [orderId])
+  const intentoEnDuda = useCallback(
+    (accion: AccionDeVenta, estadoActual: string) => {
+      const previo = enDuda.get(llaveDe(accion)) as IntentoDeVenta | undefined
+      return previo?.estado === estadoActual ? previo : undefined
+    },
+    [llaveDe],
+  )
+  const descartarIntento = useCallback(
+    (accion: AccionDeVenta) => {
+      const previo = enDuda.get(llaveDe(accion)) as IntentoDeVenta | undefined
+      if (previo) olvidar(huellaDe(accion, previo.estado))
+      enDuda.delete(llaveDe(accion))
+    },
+    [llaveDe, huellaDe],
+  )
   const correr = useCallback(
-    async (accion: AccionDeVenta, confirmacion?: ConfirmacionDeLiberar): Promise<unknown> => {
+    async (accion: AccionDeVenta, estado: string, confirmacion?: ConfirmacionDeLiberar): Promise<{ refresco: Promise<unknown> } | undefined> => {
       if (!venueId) return undefined
       if (accion === 'release-cancel' && confirmacion?.confirmacionNoDevuelto !== true) return undefined
       try {
-        const r = await enviar(huellaDe(accion), paso =>
+        const r = await enviar(huellaDe(accion, estado), paso =>
           // `<unknown>`: las dos ramas responden distinto ({ giftCardIds } / { released }); sin él, TS fija T con la primera.
           paso<unknown>(accion, operationKey =>
             accion === 'cancel-sale'
@@ -237,23 +287,22 @@ export function useGiftCardSaleCancel(venueId: string | undefined, orderId: stri
               : releaseGiftCardSaleCancel(venueId, orderId, operationKey, { confirmacionNoDevuelto: true }),
           ),
         )
-        if (r) {
-          olvidar(huellaDe(accion === 'cancel-sale' ? 'release-cancel' : 'cancel-sale'))
-          await invalidate(venueId, { kind: 'sale' })
-        }
-        return r
+        if (!r) return undefined
+        enDuda.delete(llaveDe(accion))
+        descartarIntento(accion === 'cancel-sale' ? 'release-cancel' : 'cancel-sale')
+        return { refresco: invalidate(venueId, { kind: 'sale' }) }
       } catch (err) {
+        anotarFallo(llaveDe(accion), { estado } satisfies IntentoDeVenta, err)
         void invalidate(venueId, { kind: 'sale' })
         throw err
       }
     },
-    [venueId, orderId, enviar, invalidate, huellaDe],
+    [venueId, orderId, enviar, invalidate, llaveDe, huellaDe, descartarIntento],
   )
-  const iniciar = useCallback(() => correr('cancel-sale'), [correr])
-  const liberar = useCallback((confirmacion: ConfirmacionDeLiberar) => correr('release-cancel', confirmacion), [correr])
-  const olvidarIntento = useCallback(() => {
-    olvidar(huellaDe('cancel-sale'))
-    olvidar(huellaDe('release-cancel'))
-  }, [huellaDe])
-  return { iniciar, liberar, enviando, olvidarIntento }
+  const iniciar = useCallback((estado: string) => correr('cancel-sale', estado), [correr])
+  const liberar = useCallback(
+    (confirmacion: ConfirmacionDeLiberar, estado: string) => correr('release-cancel', estado, confirmacion),
+    [correr],
+  )
+  return { iniciar, liberar, enviando, intentoEnDuda, descartarIntento }
 }

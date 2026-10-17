@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Ban, Copy, KeyRound, Loader2, LockOpen, Scale, XCircle } from 'lucide-react'
 import {
   AlertDialog,
@@ -21,7 +22,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useGiftCardOperation, useGiftCardSaleCancel } from '@/hooks/use-gift-cards'
+import { giftCardKeys, useGiftCardOperation, useGiftCardSaleCancel } from '@/hooks/use-gift-cards'
 import { useToast } from '@/hooks/use-toast'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { Currency } from '@/utils/currency'
@@ -30,6 +31,7 @@ import {
   MOTIVOS_POR_ACCION,
   NOTA_MAXIMA,
   accionesDisponibles,
+  estadoDeCancelacion,
   leerMonto,
   textoDelServidorConCodigo,
   validarAjuste,
@@ -45,25 +47,23 @@ import {
  *   el contenido sería otra operación con otra llave) y «Intentar otra vez» reenvía ESE cuerpo tal cual, con la misma llave y
  *   SIN volver a validarlo contra el saldo refrescado (auditoría r1, D-1: si el primer intento sí se aplicó, validar contra el
  *   saldo nuevo bloquearía el reintento; el server devuelve el resultado original y no aplica dos veces);
- * - cerrar o desmontar el diálogo abandona el intento (notas 14-15): reabrir es una acción nueva con llave nueva;
+ * - D4 r1 (I1): cerrar o desmontar NO olvida un intento en duda (mover un saldo dos veces es peor que tragarse un ajuste
+ *   idéntico). Al reabrir, el diálogo sale con el aviso, el MISMO cuerpo prellenado y congelado, «Intentar otra vez» (misma
+ *   llave) y «Descartar este intento» (lo que siga es una acción nueva). Un 4xx definitivo ya no deja nada pendiente;
+ * - D4 r1 (I2): con la respuesta del server el diálogo TERMINA en ese mismo instante (cierra, o «Reponer» pasa a su código):
+ *   la relectura no se espera y un segundo clic no manda otra operación;
  * - un 4xx con `code` enseña el texto del server tal cual y deja corregir; sin `code`, el genérico (notas 10 y 12).
  * Ajustar y Reponer son formularios ⇒ `FullScreenModal` (ui-patterns.md, auditoría r1 D-3); bloquear/desbloquear, iniciar la
- * cancelación y liberarla son confirmaciones breves ⇒ `AlertDialog`. Se montan al abrirse: cada apertura empieza limpia. El
- * estado y el motivo vigente salen del detalle de C4 (`cancel`, `currentBlock`), nunca de la libreta paginada (D-2).
+ * cancelación y liberarla son confirmaciones breves ⇒ `AlertDialog`. El estado y el motivo vigente salen del detalle de C4
+ * (`cancel`, `currentBlock`), nunca de la libreta paginada (D-2).
  */
 
 type Dialogo = 'ajustar' | 'bloquear' | 'desbloquear' | 'reponer' | 'cancelar' | 'liberar' | null
 type Ajuste = Extract<GiftCardOperation, { tipo: 'AJUSTE' }>
+type Bloqueo = Extract<GiftCardOperation, { tipo: 'BLOQUEAR' | 'DESBLOQUEAR' }>
 type Reposicion = Extract<GiftCardOperation, { tipo: 'REEMPLAZAR_CODIGO' }>
-
-/** Notas 14-15: cerrar (o desmontarse sin cerrar, p. ej. al cerrar la hoja) abandona el intento en duda; reabrir = llave nueva. */
-function useCerrarOlvidando(olvidarIntento: () => void, onClose: () => void) {
-  useEffect(() => olvidarIntento, [olvidarIntento])
-  return () => {
-    olvidarIntento()
-    onClose()
-  }
-}
+/** Tope del folio: el del zod del server (`giftCard.schema.ts`); su 400 no trae `code`. */
+const FOLIO_MAXIMO = 64
 
 /** El texto de un error de formulario, con sus montos ya en pesos. */
 function useTextoDeError() {
@@ -72,28 +72,51 @@ function useTextoDeError() {
     t(e.key, { amount: Currency(e.amount ?? 0), min: Currency(e.min ?? 0), max: Currency(e.max ?? 0) })
 }
 
-/** Resultado de un envío: listo, en duda (se reintenta con la misma llave) o rechazado con el texto del server. */
-function useEnvioDeDialogo() {
+/**
+ * Un envío de diálogo: listo, en duda (se reintenta con la misma llave) o rechazado con el texto del server.
+ * D4 r1 (I2): `ocupado` se prende con el clic y tras el éxito se QUEDA prendido: el diálogo terminó y ni un segundo clic ni
+ * Enter mandan otra operación (antes, con la relectura pendiente, el botón seguía vivo y el segundo clic llevaba llave nueva).
+ */
+function useEnvioDeDialogo(enDudaInicial: boolean) {
   const { t } = useTranslation('giftCards')
-  const [enDuda, setEnDuda] = useState(false)
+  const [enDuda, setEnDuda] = useState(enDudaInicial)
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
-  const atrapar = (err: unknown) => {
-    if (quedoEnDuda(err)) {
-      setEnDuda(true)
-      setErrorServidor(null)
-    } else {
-      setEnDuda(false)
-      setErrorServidor(textoDelServidorConCodigo(err) ?? t('errors.generic'))
+  const ocupado = useRef(false)
+  const correr = async <T,>(enviar: () => Promise<T | undefined>, alExito: (r: T) => void) => {
+    if (ocupado.current) return
+    ocupado.current = true
+    try {
+      const r = await enviar()
+      if (r === undefined) ocupado.current = false
+      else alExito(r)
+    } catch (err) {
+      ocupado.current = false
+      if (quedoEnDuda(err)) {
+        setEnDuda(true)
+        setErrorServidor(null)
+      } else {
+        setEnDuda(false)
+        setErrorServidor(textoDelServidorConCodigo(err) ?? t('errors.generic'))
+      }
     }
   }
-  const limpiar = () => {
-    setEnDuda(false)
-    setErrorServidor(null)
-  }
-  return { enDuda, errorServidor, atrapar, limpiar }
+  return { enDuda, errorServidor, correr }
 }
 
-function Avisos({ error, errorServidor, enDuda }: { error: string | null; errorServidor: string | null; enDuda: boolean }) {
+/** Avisos del diálogo. `descartar` sólo llega cuando el intento en duda viene de una apertura anterior (D4 r1, I1). */
+function Avisos({
+  error,
+  errorServidor,
+  enDuda,
+  descartar,
+  enviando,
+}: {
+  error: string | null
+  errorServidor: string | null
+  enDuda: boolean
+  descartar?: () => void
+  enviando: boolean
+}) {
   const { t } = useTranslation('giftCards')
   return (
     <>
@@ -108,9 +131,16 @@ function Avisos({ error, errorServidor, enDuda }: { error: string | null; errorS
         </p>
       )}
       {enDuda && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {t('actions.inDoubt')}
-        </p>
+        <div className="space-y-2">
+          <p role="status" className="text-sm text-muted-foreground">
+            {t(descartar ? 'actions.inDoubtBefore' : 'actions.inDoubt')}
+          </p>
+          {descartar && (
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={descartar} disabled={enviando} data-tour="gift-card-discard-attempt">
+              {t('actions.discard')}
+            </Button>
+          )}
+        </div>
       )}
     </>
   )
@@ -150,30 +180,33 @@ function AjustarModal({ venueId, detail, onClose }: { venueId: string; detail: G
   const { t } = useTranslation('giftCards')
   const { toast } = useToast()
   const textoDeError = useTextoDeError()
-  const { operar, enviando, olvidarIntento } = useGiftCardOperation(venueId, detail.id)
-  const cerrar = useCerrarOlvidando(olvidarIntento, onClose)
-  const envio = useEnvioDeDialogo()
-  const [direccion, setDireccion] = useState<'INCREMENT' | 'DECREMENT'>('INCREMENT')
-  const [monto, setMonto] = useState('')
-  const [motivo, setMotivo] = useState<GiftCardReason | ''>('')
-  const [nota, setNota] = useState('')
+  const { operar, enviando, intentoEnDuda, descartarIntento } = useGiftCardOperation(venueId, detail.id)
+  // D4 r1 (I1): un ajuste en duda de una apertura anterior vuelve PRELLENADO y CONGELADO (si hubiera que reescribir la nota,
+  // un error de dedo sería otra huella, otra llave y otro movimiento).
+  const [previo] = useState<Ajuste | null>(() => {
+    const op = intentoEnDuda('AJUSTE')
+    return op?.tipo === 'AJUSTE' ? op : null
+  })
+  const envio = useEnvioDeDialogo(previo != null)
+  const [direccion, setDireccion] = useState<'INCREMENT' | 'DECREMENT'>(previo?.direccion ?? 'INCREMENT')
+  const [monto, setMonto] = useState(previo ? String(previo.amount) : '')
+  const [motivo, setMotivo] = useState<GiftCardReason | ''>(previo?.reason ?? '')
+  const [nota, setNota] = useState(previo?.note ?? '')
   const [intentado, setIntentado] = useState(false)
   // El cuerpo YA mandado: si quedó en duda, el reintento lo reenvía tal cual (misma huella ⇒ misma llave).
-  const [congelado, setCongelado] = useState<Ajuste | null>(null)
+  const [congelado, setCongelado] = useState<Ajuste | null>(previo)
   const saldo = detail.balance
   const cantidad = leerMonto(monto)
   const error = validarAjuste({ direccion, cantidad, saldo, motivo, nota })
 
-  const enviarAjuste = async (op: Ajuste) => {
-    try {
-      const r = await operar(op)
-      if (!r) return
-      toast({ title: t('actions.adjust.done') })
-      cerrar()
-    } catch (err) {
-      envio.atrapar(err)
-    }
-  }
+  const enviarAjuste = (op: Ajuste) =>
+    envio.correr(
+      () => operar(op),
+      () => {
+        toast({ title: t('actions.adjust.done') })
+        onClose()
+      },
+    )
 
   const confirmar = async () => {
     // 🔴 Auditoría r1 (D-1): en duda NO se revalida contra el saldo refrescado (si el primer intento sí se aplicó, el saldo
@@ -186,10 +219,15 @@ function AjustarModal({ venueId, detail, onClose }: { venueId: string; detail: G
     await enviarAjuste(op)
   }
 
+  const descartar = () => {
+    descartarIntento('AJUSTE')
+    onClose()
+  }
+
   return (
     <FullScreenModal
       open
-      onClose={() => !enviando && cerrar()}
+      onClose={() => !enviando && onClose()}
       title={t('actions.adjust.title')}
       contentClassName="bg-muted/30"
       actions={
@@ -239,7 +277,13 @@ function AjustarModal({ venueId, detail, onClose }: { venueId: string; detail: G
             <Nota id="gift-adjust-note" value={nota} onChange={setNota} />
           </fieldset>
           {/* En duda no se enseña la validación contra el saldo refrescado: no aplica al reintento. */}
-          <Avisos error={intentado && error && !envio.enDuda ? textoDeError(error) : null} errorServidor={envio.errorServidor} enDuda={envio.enDuda} />
+          <Avisos
+            error={intentado && error && !envio.enDuda ? textoDeError(error) : null}
+            errorServidor={envio.errorServidor}
+            enDuda={envio.enDuda}
+            descartar={previo ? descartar : undefined}
+            enviando={enviando}
+          />
         </section>
       </div>
     </FullScreenModal>
@@ -260,31 +304,44 @@ function BloqueoDialog({
   const { t } = useTranslation('giftCards')
   const { toast } = useToast()
   const textoDeError = useTextoDeError()
-  const { operar, enviando, olvidarIntento } = useGiftCardOperation(venueId, detail.id)
-  const cerrar = useCerrarOlvidando(olvidarIntento, onClose)
-  const envio = useEnvioDeDialogo()
-  const [motivo, setMotivo] = useState<GiftCardReason | ''>('')
-  const [nota, setNota] = useState('')
+  const { operar, enviando, intentoEnDuda, descartarIntento } = useGiftCardOperation(venueId, detail.id)
+  const [previo] = useState<Bloqueo | null>(() => {
+    const op = intentoEnDuda(tipo)
+    return op?.tipo === 'BLOQUEAR' || op?.tipo === 'DESBLOQUEAR' ? op : null
+  })
+  const envio = useEnvioDeDialogo(previo != null)
+  const [motivo, setMotivo] = useState<GiftCardReason | ''>(previo?.reason ?? '')
+  const [nota, setNota] = useState(previo?.note ?? '')
   const [intentado, setIntentado] = useState(false)
+  const [congelado, setCongelado] = useState<Bloqueo | null>(previo)
   const error = validarMotivoYNota({ motivo, nota })
   const clave = tipo === 'BLOQUEAR' ? 'block' : 'unblock'
 
-  // En duda los campos están congelados (fieldset): el reintento lleva el MISMO contenido ⇒ la misma huella y la misma llave.
+  const enviarBloqueo = (op: Bloqueo) =>
+    envio.correr(
+      () => operar(op),
+      () => {
+        toast({ title: t(`actions.${clave}.done`) })
+        onClose()
+      },
+    )
+
   const confirmar = async () => {
+    if (envio.enDuda && congelado) return enviarBloqueo(congelado)
     setIntentado(true)
     if (error || !motivo) return
-    try {
-      const r = await operar({ tipo, reason: motivo, ...(nota.trim() ? { note: nota.trim() } : {}) })
-      if (!r) return
-      toast({ title: t(`actions.${clave}.done`) })
-      cerrar()
-    } catch (err) {
-      envio.atrapar(err)
-    }
+    const op: Bloqueo = { tipo, reason: motivo, ...(nota.trim() ? { note: nota.trim() } : {}) }
+    setCongelado(op)
+    await enviarBloqueo(op)
+  }
+
+  const descartar = () => {
+    descartarIntento(tipo)
+    onClose()
   }
 
   return (
-    <AlertDialog open onOpenChange={abierto => !abierto && !enviando && cerrar()}>
+    <AlertDialog open onOpenChange={abierto => !abierto && !enviando && onClose()}>
       <AlertDialogContent data-tour={`gift-card-${clave}-dialog`}>
         <AlertDialogHeader>
           <AlertDialogTitle>{t(`actions.${clave}.title`)}</AlertDialogTitle>
@@ -294,7 +351,13 @@ function BloqueoDialog({
           <Motivos accion={tipo} value={motivo} onChange={setMotivo} />
           <Nota id={`gift-${clave}-note`} value={nota} onChange={setNota} opcional={motivo !== 'OTHER'} />
         </fieldset>
-        <Avisos error={intentado && error ? textoDeError(error) : null} errorServidor={envio.errorServidor} enDuda={envio.enDuda} />
+        <Avisos
+          error={intentado && error && !envio.enDuda ? textoDeError(error) : null}
+          errorServidor={envio.errorServidor}
+          enDuda={envio.enDuda}
+          descartar={previo ? descartar : undefined}
+          enviando={enviando}
+        />
         <AlertDialogFooter>
           <AlertDialogCancel disabled={enviando}>{t('actions.cancel')}</AlertDialogCancel>
           <Button
@@ -316,13 +379,16 @@ function BloqueoDialog({
 function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: GiftCardDetail; onClose: () => void }) {
   const { t } = useTranslation('giftCards')
   const { toast } = useToast()
-  const { operar, enviando, olvidarIntento } = useGiftCardOperation(venueId, detail.id)
-  const cerrar = useCerrarOlvidando(olvidarIntento, onClose)
-  const envio = useEnvioDeDialogo()
-  const [folio, setFolio] = useState('')
-  const [nota, setNota] = useState('')
+  const { operar, enviando, intentoEnDuda, descartarIntento } = useGiftCardOperation(venueId, detail.id)
+  const [previo] = useState<Reposicion | null>(() => {
+    const op = intentoEnDuda('REEMPLAZAR_CODIGO')
+    return op?.tipo === 'REEMPLAZAR_CODIGO' ? op : null
+  })
+  const envio = useEnvioDeDialogo(previo != null)
+  const [folio, setFolio] = useState(previo?.folio ?? '')
+  const [nota, setNota] = useState(previo?.note ?? '')
   const [intentado, setIntentado] = useState(false)
-  const [congelado, setCongelado] = useState<Reposicion | null>(null)
+  const [congelado, setCongelado] = useState<Reposicion | null>(previo)
   // 🔴 El código nuevo vive SÓLO en este estado: se enseña una vez y se borra al cerrar (spec §4.1).
   const [nuevo, setNuevo] = useState<{ display: string; last4: string } | null>(null)
   const [copiado, setCopiado] = useState(false)
@@ -335,19 +401,18 @@ function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: G
       ? t('actions.errors.noteTooLong')
       : null
 
-  const enviarReposicion = async (op: Reposicion) => {
-    try {
-      const r = await operar(op)
-      if (!r) return
-      if (r.nuevoCodigo) setNuevo(r.nuevoCodigo)
-      else {
-        toast({ title: t('actions.replace.doneToast') })
-        cerrar()
-      }
-    } catch (err) {
-      envio.atrapar(err)
-    }
-  }
+  // I2: con la respuesta pasa DE INMEDIATO a la vista del código (sin botón de confirmar); no espera la relectura.
+  const enviarReposicion = (op: Reposicion) =>
+    envio.correr(
+      () => operar(op),
+      r => {
+        if (r.nuevoCodigo) setNuevo(r.nuevoCodigo)
+        else {
+          toast({ title: t('actions.replace.doneToast') })
+          onClose()
+        }
+      },
+    )
 
   const confirmar = async () => {
     // En duda: el MISMO cuerpo con la MISMA llave (si el primero sí repuso, el server devuelve el código vigente).
@@ -357,6 +422,11 @@ function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: G
     const op: Reposicion = { tipo: 'REEMPLAZAR_CODIGO', reason: 'LOST_CARD', folio: folioLimpio, ...(notaLimpia ? { note: notaLimpia } : {}) }
     setCongelado(op)
     await enviarReposicion(op)
+  }
+
+  const descartar = () => {
+    descartarIntento('REEMPLAZAR_CODIGO')
+    onClose()
   }
 
   const copiar = async () => {
@@ -372,13 +442,13 @@ function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: G
   const terminar = () => {
     setNuevo(null)
     setCopiado(false)
-    cerrar()
+    onClose()
   }
 
   return (
     <FullScreenModal
       open
-      onClose={() => (nuevo ? terminar() : !enviando && cerrar())}
+      onClose={() => (nuevo ? terminar() : !enviando && onClose())}
       title={t(nuevo ? 'actions.replace.newCodeTitle' : 'actions.replace.title')}
       contentClassName="bg-muted/30"
       actions={
@@ -420,6 +490,7 @@ function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: G
                   autoComplete="off"
                   value={folio}
                   onChange={e => setFolio(e.target.value)}
+                  maxLength={FOLIO_MAXIMO}
                   className="h-12 text-base"
                   data-tour="gift-card-replace-folio"
                 />
@@ -427,7 +498,13 @@ function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: G
               </div>
               <Nota id="gift-replace-note" value={nota} onChange={setNota} opcional />
             </fieldset>
-            <Avisos error={intentado && !envio.enDuda ? errorDeFormulario : null} errorServidor={envio.errorServidor} enDuda={envio.enDuda} />
+            <Avisos
+              error={intentado && !envio.enDuda ? errorDeFormulario : null}
+              errorServidor={envio.errorServidor}
+              enDuda={envio.enDuda}
+              descartar={previo ? descartar : undefined}
+              enviando={enviando}
+            />
           </section>
         )}
       </div>
@@ -437,39 +514,63 @@ function ReponerModal({ venueId, detail, onClose }: { venueId: string; detail: G
 
 function CancelarVentaDialog({
   venueId,
+  giftCardId,
   venta,
+  estado,
   modo,
   onClose,
 }: {
   venueId: string
+  giftCardId: string
   venta: NonNullable<GiftCardDetail['order']>
+  /** La «foto» de la cancelación en el detalle de AHORA (`estadoDeCancelacion`; D4 r1, I1.3). */
+  estado: string
   modo: 'cancelar' | 'liberar'
   onClose: () => void
 }) {
   const { t } = useTranslation('giftCards')
   const { toast } = useToast()
-  const { iniciar, liberar, enviando, olvidarIntento } = useGiftCardSaleCancel(venueId, venta.id)
-  const cerrar = useCerrarOlvidando(olvidarIntento, onClose)
-  const envio = useEnvioDeDialogo()
-  // F6 del índice: liberar sólo con la confirmación EXPLÍCITA de que la devolución NO se hizo (un timeout no lo prueba).
-  const [comprobado, setComprobado] = useState(false)
+  const queryClient = useQueryClient()
+  const accion = modo === 'cancelar' ? 'cancel-sale' : 'release-cancel'
+  const { iniciar, liberar, enviando, intentoEnDuda, descartarIntento } = useGiftCardSaleCancel(venueId, venta.id)
+  // Sólo se ofrece el intento en duda si la foto sigue igual: si cambió, su llave ya no aplica (I1.3).
+  const [previo] = useState(() => intentoEnDuda(accion, estado) ?? null)
+  const envio = useEnvioDeDialogo(previo != null)
+  // La foto con la que se mandó: en duda, el reintento la repite (misma huella ⇒ misma llave) aunque el detalle ya cambió.
+  const [congelado, setCongelado] = useState<string | null>(previo?.estado ?? null)
+  // F6 del índice: liberar sólo con la confirmación EXPLÍCITA de que la devolución NO se hizo (un timeout no lo prueba). Un
+  // intento en duda de liberar ya la llevaba: vuelve marcada (y congelada).
+  const [comprobado, setComprobado] = useState(previo != null && modo === 'liberar')
   const puedeConfirmar = modo === 'cancelar' || comprobado
 
-  const confirmar = async () => {
+  /** I1.3: tras «liberada», lo que muestra el server en la relectura. Si las sigue mostrando bloqueadas, no se dice «se pueden usar». */
+  const avisarLiberada = () => {
+    const d = queryClient.getQueryData<InfiniteData<GiftCardDetail>>(giftCardKeys.detail(venueId, giftCardId))?.pages[0]
+    toast({ title: t(d?.cancel.reason === 'IN_PROGRESS' ? 'actions.cancelSale.releaseNotConfirmed' : 'actions.cancelSale.released') })
+  }
+
+  // Menor de r1: el reintento NO limpia el estado «en duda» (igual que los otros tres diálogos).
+  const confirmar = () => {
     if (!puedeConfirmar) return
-    envio.limpiar()
-    try {
-      const r = await (modo === 'cancelar' ? iniciar() : liberar({ confirmacionNoDevuelto: true }))
-      if (!r) return
-      toast({ title: t(modo === 'cancelar' ? 'actions.cancelSale.started' : 'actions.cancelSale.released') })
-      cerrar()
-    } catch (err) {
-      envio.atrapar(err)
-    }
+    const foto = envio.enDuda && congelado != null ? congelado : estado
+    setCongelado(foto)
+    return envio.correr(
+      () => (modo === 'cancelar' ? iniciar(foto) : liberar({ confirmacionNoDevuelto: true }, foto)),
+      ({ refresco }) => {
+        onClose()
+        if (modo === 'cancelar') toast({ title: t('actions.cancelSale.started') })
+        else void refresco.then(avisarLiberada)
+      },
+    )
+  }
+
+  const descartar = () => {
+    descartarIntento(accion)
+    onClose()
   }
 
   return (
-    <AlertDialog open onOpenChange={abierto => !abierto && !enviando && cerrar()}>
+    <AlertDialog open onOpenChange={abierto => !abierto && !enviando && onClose()}>
       <AlertDialogContent data-tour={modo === 'cancelar' ? 'gift-card-cancel-sale-dialog' : 'gift-card-release-dialog'}>
         <AlertDialogHeader>
           <AlertDialogTitle>{t(modo === 'cancelar' ? 'actions.cancelSale.title' : 'actions.cancelSale.releaseTitle')}</AlertDialogTitle>
@@ -500,7 +601,13 @@ function CancelarVentaDialog({
             </Label>
           </div>
         )}
-        <Avisos error={null} errorServidor={envio.errorServidor} enDuda={envio.enDuda} />
+        <Avisos
+          error={null}
+          errorServidor={envio.errorServidor}
+          enDuda={envio.enDuda}
+          descartar={previo ? descartar : undefined}
+          enviando={enviando}
+        />
         <AlertDialogFooter>
           <AlertDialogCancel disabled={enviando}>{t('actions.cancel')}</AlertDialogCancel>
           <Button
@@ -611,7 +718,14 @@ export function GiftCardManagerActions({ venueId, detail }: { venueId: string; d
         )}
         {dialogo === 'reponer' && <ReponerModal venueId={venueId} detail={detail} onClose={cerrar} />}
         {(dialogo === 'cancelar' || dialogo === 'liberar') && venta && (
-          <CancelarVentaDialog venueId={venueId} venta={venta} modo={dialogo} onClose={cerrar} />
+          <CancelarVentaDialog
+            venueId={venueId}
+            giftCardId={detail.id}
+            venta={venta}
+            estado={estadoDeCancelacion(detail)}
+            modo={dialogo}
+            onClose={cerrar}
+          />
         )}
       </section>
     </PermissionGate>

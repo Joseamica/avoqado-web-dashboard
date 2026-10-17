@@ -21,7 +21,7 @@ vi.mock('@/services/giftCard.service', () => svc)
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 
 import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
-import { giftCardKeys, useGiftCardOperation, useGiftCardSaleCancel } from './use-gift-cards'
+import { giftCardKeys, olvidarIntentosEnDuda, useGiftCardOperation, useGiftCardSaleCancel } from './use-gift-cards'
 
 let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children)
@@ -33,6 +33,8 @@ const llaveDe = (fn: ReturnType<typeof vi.fn>, i: number, pos: number) => {
   const arg = fn.mock.calls[i][pos] as { operationKey?: string } | string
   return typeof arg === 'string' ? arg : arg.operationKey!
 }
+/** La «foto» de la cancelación al intentar (D4 r1, I1.3): si cambia, la llave pendiente de esa venta ya no aplica. */
+const ESTADO = '[true,null,3]'
 const AJUSTE: GiftCardOperation = {
   tipo: 'AJUSTE',
   direccion: 'INCREMENT',
@@ -44,6 +46,7 @@ const AJUSTE: GiftCardOperation = {
 beforeEach(() => {
   vi.clearAllMocks()
   olvidarPendientes()
+  olvidarIntentosEnDuda()
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
 })
 
@@ -131,17 +134,66 @@ describe('useGiftCardOperation — una operación, una llave (R12, Review Focus 
     }
   })
 
-  it('🔴 cerrar el diálogo (`olvidarIntento`) abandona el intento en duda: el ajuste idéntico de después lleva llave NUEVA (r1, M3c)', async () => {
+  it('🔴 D4 r1 (I1): el intento EN DUDA sobrevive al hook (cerrar o desmontar el diálogo): otra instancia lo ve y reusa su llave', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a2'] })
+    const primero = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(primero.result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
+    })
+    primero.unmount()
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    expect(result.current.intentoEnDuda('AJUSTE')).toEqual(AJUSTE)
+    await act(async () => {
+      await result.current.operar(result.current.intentoEnDuda('AJUSTE')!)
+    })
+    expect(llaveDe(svc.operateGiftCard, 1, 2)).toBe(llaveDe(svc.operateGiftCard, 0, 2))
+    // El éxito lo borra: ya no hay nada en duda.
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
+  })
+
+  it('🔴 «Descartar este intento» (`descartarIntento`) olvida el cuerpo y la llave: el ajuste idéntico de después lleva llave NUEVA', async () => {
     svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a2'] })
     const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
     await act(async () => {
       await expect(result.current.operar(AJUSTE)).rejects.toThrow('Network Error')
     })
-    act(() => result.current.olvidarIntento())
+    act(() => result.current.descartarIntento('AJUSTE'))
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
     await act(async () => {
       await result.current.operar(AJUSTE)
     })
     expect(llaveDe(svc.operateGiftCard, 1, 2)).not.toBe(llaveDe(svc.operateGiftCard, 0, 2))
+  })
+
+  it('una respuesta definitiva (4xx) borra el intento en duda: ya no hay nada que reintentar', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockRejectedValueOnce(definitivo(422))
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    for (let i = 0; i < 2; i++) {
+      await act(async () => {
+        await expect(result.current.operar(AJUSTE)).rejects.toThrow()
+      })
+    }
+    expect(result.current.intentoEnDuda('AJUSTE')).toBeUndefined()
+  })
+
+  it('🔴 D4 r1: desbloquear que sale bien descarta un BLOQUEAR en duda (y al revés): repetirlo con su llave diría «bloqueada» sin bloquear', async () => {
+    const BLOQUEAR: GiftCardOperation = { tipo: 'BLOQUEAR', reason: 'SUSPICIOUS_ACTIVITY' }
+    svc.operateGiftCard
+      .mockRejectedValueOnce(sinRespuesta())
+      .mockResolvedValueOnce({ activityIds: ['a2'] })
+      .mockResolvedValueOnce({ activityIds: ['a3'] })
+    const { result } = renderHook(() => useGiftCardOperation('v1', 'g1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.operar(BLOQUEAR)).rejects.toThrow()
+    })
+    await act(async () => {
+      await result.current.operar({ tipo: 'DESBLOQUEAR', reason: 'CUSTOMER_REQUEST' })
+    })
+    expect(result.current.intentoEnDuda('BLOQUEAR')).toBeUndefined()
+    await act(async () => {
+      await result.current.operar(BLOQUEAR)
+    })
+    expect(llaveDe(svc.operateGiftCard, 2, 2)).not.toBe(llaveDe(svc.operateGiftCard, 0, 2))
   })
 
   it('aunque quede en duda, la pantalla vuelve a leer (si sí se aplicó, se ve)', async () => {
@@ -161,7 +213,7 @@ describe('useGiftCardSaleCancel', () => {
     const spy = vi.spyOn(client, 'invalidateQueries')
     const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     expect(svc.startGiftCardSaleCancel).toHaveBeenCalledWith('v1', 'o1', expect.any(String))
     const claves = spy.mock.calls.map(c => (c[0] as { queryKey: unknown[] }).queryKey)
@@ -175,10 +227,10 @@ describe('useGiftCardSaleCancel', () => {
     svc.releaseGiftCardSaleCancel.mockResolvedValue({ released: true })
     const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     await act(async () => {
-      await result.current.liberar({ confirmacionNoDevuelto: true })
+      await result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)
     })
     expect(llaveDe(svc.releaseGiftCardSaleCancel, 0, 2)).not.toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
     expect(svc.releaseGiftCardSaleCancel).toHaveBeenCalledWith('v1', 'o1', expect.any(String), { confirmacionNoDevuelto: true })
@@ -188,10 +240,10 @@ describe('useGiftCardSaleCancel', () => {
     svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ giftCardIds: ['g1'] })
     const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
     await act(async () => {
-      await expect(result.current.iniciar()).rejects.toThrow()
+      await expect(result.current.iniciar(ESTADO)).rejects.toThrow()
     })
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     expect(llaveDe(svc.startGiftCardSaleCancel, 1, 2)).toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
   })
@@ -201,13 +253,13 @@ describe('useGiftCardSaleCancel', () => {
     svc.releaseGiftCardSaleCancel.mockResolvedValue({ released: true })
     const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
     await act(async () => {
-      await expect(result.current.iniciar()).rejects.toThrow()
+      await expect(result.current.iniciar(ESTADO)).rejects.toThrow()
     })
     await act(async () => {
-      await result.current.liberar({ confirmacionNoDevuelto: true })
+      await result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)
     })
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     expect(llaveDe(svc.startGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
   })
@@ -217,30 +269,46 @@ describe('useGiftCardSaleCancel', () => {
     svc.releaseGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ released: true })
     const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     await act(async () => {
-      await expect(result.current.liberar({ confirmacionNoDevuelto: true })).rejects.toThrow()
+      await expect(result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)).rejects.toThrow()
     })
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     await act(async () => {
-      await result.current.liberar({ confirmacionNoDevuelto: true })
+      await result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)
     })
     expect(llaveDe(svc.releaseGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.releaseGiftCardSaleCancel, 0, 2))
   })
 
-  it('cerrar el diálogo (`olvidarIntento`) tras quedar en duda: el siguiente intento lleva llave NUEVA (r1, M3)', async () => {
+  it('«Descartar este intento» (`descartarIntento`) tras quedar en duda: el siguiente intento lleva llave NUEVA', async () => {
     svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ giftCardIds: ['g1'] })
     const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
     await act(async () => {
-      await expect(result.current.iniciar()).rejects.toThrow()
+      await expect(result.current.iniciar(ESTADO)).rejects.toThrow()
     })
-    act(() => result.current.olvidarIntento())
+    expect(result.current.intentoEnDuda('cancel-sale', ESTADO)).toEqual({ estado: ESTADO })
+    act(() => result.current.descartarIntento('cancel-sale'))
+    expect(result.current.intentoEnDuda('cancel-sale', ESTADO)).toBeUndefined()
     await act(async () => {
-      await result.current.iniciar()
+      await result.current.iniciar(ESTADO)
     })
     expect(llaveDe(svc.startGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.startGiftCardSaleCancel, 0, 2))
+  })
+
+  it('🔴 D4 r1 (I1.3): si la «foto» de la cancelación cambió, el intento en duda ya no aplica: no se ofrece y lleva llave NUEVA', async () => {
+    svc.releaseGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ released: true })
+    const { result } = renderHook(() => useGiftCardSaleCancel('v1', 'o1'), { wrapper })
+    await act(async () => {
+      await expect(result.current.liberar({ confirmacionNoDevuelto: true }, ESTADO)).rejects.toThrow()
+    })
+    const OTRO = '[false,"IN_PROGRESS",5]'
+    expect(result.current.intentoEnDuda('release-cancel', OTRO)).toBeUndefined()
+    await act(async () => {
+      await result.current.liberar({ confirmacionNoDevuelto: true }, OTRO)
+    })
+    expect(llaveDe(svc.releaseGiftCardSaleCancel, 1, 2)).not.toBe(llaveDe(svc.releaseGiftCardSaleCancel, 0, 2))
   })
 })

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GiftCardDetail, GiftCardReason } from '@/types/giftCard'
@@ -31,6 +31,7 @@ const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 
+import { olvidarIntentosEnDuda, useGiftCardDetail } from '@/hooks/use-gift-cards'
 import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
 import en from '@/locales/en/giftCards.json'
 import es from '@/locales/es/giftCards.json'
@@ -64,9 +65,41 @@ const arbol = (d: GiftCardDetail) => (
   </MemoryRouter>
 )
 const pintar = (d: GiftCardDetail = detalle()) => render(arbol(d))
+/** El detalle VIVO en el QueryClient, como en la hoja: las acciones lo invalidan y su relectura corre de verdad. */
+function ConDetalleVivo({ d }: { d: GiftCardDetail }) {
+  useGiftCardDetail('v1', d.id)
+  return <GiftCardManagerActions venueId="v1" detail={d} />
+}
+const pintarVivo = (d: GiftCardDetail) =>
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <ConDetalleVivo d={d} />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  )
 const boton = (name: string) => screen.getByRole('button', { name })
 const sinRespuesta = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
 const llave = (fn: ReturnType<typeof vi.fn>, i: number) => (fn.mock.calls[i][2] as { operationKey: string }).operationKey
+const vaciarCola = () => act(async () => new Promise(r => setTimeout(r, 0)))
+/** La venta en cancelación (lo que el server manda tras «Cancelar la venta»). `total` = movimientos de la libreta. */
+const enCurso = (total = 3) =>
+  detalle({
+    status: 'BLOCKED',
+    cancel: { allowed: false, reason: 'IN_PROGRESS', message: null },
+    currentBlock: bloqueo('CANCEL_IN_PROGRESS'),
+    activities: { items: [], nextCursor: null, total },
+  })
+const cerrarModal = () => fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+async function reabrirTrasCerrar(abrir: string, rol: 'dialog' | 'alertdialog') {
+  await waitFor(() => expect(screen.queryByRole(rol)).not.toBeInTheDocument())
+  fireEvent.click(boton(abrir))
+}
+function liberarConCasilla() {
+  fireEvent.click(boton('actions.cancelSale.release'))
+  fireEvent.click(screen.getByLabelText('actions.cancelSale.releaseCheck'))
+  fireEvent.click(boton('actions.cancelSale.releaseConfirm'))
+}
 
 /** Llena el formulario de ajuste (FullScreenModal) y lo manda. */
 function ajustar(direccion: 'increment' | 'decrement', monto: string, nota: string) {
@@ -81,6 +114,7 @@ function ajustar(direccion: 'increment' | 'decrement', monto: string, nota: stri
 beforeEach(() => {
   vi.clearAllMocks()
   olvidarPendientes()
+  olvidarIntentosEnDuda()
   access.allowed = ['giftCards:read', 'giftCards:manage']
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
 })
@@ -192,29 +226,107 @@ describe('GiftCardManagerActions', () => {
     expect(llave(svc.operateGiftCard, 1)).not.toBe(llave(svc.operateGiftCard, 0))
   })
 
-  it('🔴 nota 14: cerrar el ajuste en duda abandona el intento; reabrirlo con los MISMOS datos manda OTRA llave', async () => {
+  it('🔴 r1 I1: ajuste en duda → cerrar → reabrir ⇒ aviso, el MISMO cuerpo prellenado y congelado, y «Intentar otra vez» con la MISMA llave', async () => {
     svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a1'] })
     pintar()
-    ajustar('increment', '150', 'Se cobró de menos')
+    ajustar('decrement', '150', 'Se cobró de más')
     await screen.findByText('actions.inDoubt')
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    ajustar('increment', '150', 'Se cobró de menos')
+    cerrarModal()
+    await reabrirTrasCerrar('actions.adjust.button', 'dialog')
+    expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+    expect(screen.getByLabelText('actions.adjust.amount')).toHaveValue('150')
+    expect(screen.getByLabelText('actions.adjust.amount')).toBeDisabled()
+    expect(screen.getByLabelText('actions.adjust.decrement')).toBeChecked()
+    expect(screen.getByLabelText('reason.CASHIER_ERROR')).toBeChecked()
+    expect(screen.getByLabelText('actions.note')).toHaveValue('Se cobró de más')
+    fireEvent.click(boton('actions.retry'))
     await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
-    expect(svc.operateGiftCard.mock.calls[1][2]).toMatchObject({ amount: 150, note: 'Se cobró de menos' })
-    expect(llave(svc.operateGiftCard, 1)).not.toBe(llave(svc.operateGiftCard, 0))
+    expect(svc.operateGiftCard.mock.calls[1][2]).toEqual(svc.operateGiftCard.mock.calls[0][2])
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.adjust.done' }))
   })
 
-  it('🔴 nota 15a: si el diálogo en duda se DESMONTA sin cerrarse (se cerró la hoja), la llave vieja no sobrevive', async () => {
+  it('🔴 r1 I1: si el diálogo en duda se DESMONTA (se cerró la hoja), al volver el intento sigue ahí: mismo cuerpo, MISMA llave', async () => {
     svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a1'] })
     const { unmount } = pintar()
     ajustar('increment', '150', 'Se cobró de menos')
     await screen.findByText('actions.inDoubt')
     unmount()
     pintar()
+    fireEvent.click(boton('actions.adjust.button'))
+    expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+    fireEvent.click(boton('actions.retry'))
+    await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
+    expect(svc.operateGiftCard.mock.calls[1][2]).toEqual(svc.operateGiftCard.mock.calls[0][2])
+  })
+
+  it('r1 I1: «Descartar este intento» olvida la llave y el cuerpo: lo que se haga después es una acción NUEVA (llave nueva)', async () => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a1'] })
+    pintar()
+    ajustar('increment', '150', 'Se cobró de menos')
+    await screen.findByText('actions.inDoubt')
+    cerrarModal()
+    await reabrirTrasCerrar('actions.adjust.button', 'dialog')
+    fireEvent.click(boton('actions.discard'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     ajustar('increment', '150', 'Se cobró de menos')
     await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
     expect(llave(svc.operateGiftCard, 1)).not.toBe(llave(svc.operateGiftCard, 0))
+  })
+
+  it('r1 I1: un 4xx definitivo → cerrar → reabrir ⇒ formulario limpio, sin aviso, y llave NUEVA', async () => {
+    svc.operateGiftCard
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'GIFT_CARD_BLOCKED', message: 'La tarjeta cambió.' } } })
+      .mockResolvedValueOnce({ activityIds: ['a1'] })
+    pintar()
+    ajustar('increment', '150', 'Se cobró de menos')
+    await screen.findByText('La tarjeta cambió.')
+    cerrarModal()
+    await reabrirTrasCerrar('actions.adjust.button', 'dialog')
+    expect(screen.queryByText('actions.inDoubtBefore')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('actions.adjust.amount')).toHaveValue('')
+    cerrarModal()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    ajustar('increment', '150', 'Se cobró de menos')
+    await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
+    expect(llave(svc.operateGiftCard, 1)).not.toBe(llave(svc.operateGiftCard, 0))
+  })
+
+  it.each([
+    ['block', detalle(), 'SUSPICIOUS_ACTIVITY'],
+    ['unblock', detalle({ status: 'BLOCKED', cancel: { allowed: false, reason: null, message: null }, currentBlock: bloqueo('LOST_CARD') }), 'CUSTOMER_REQUEST'],
+  ] as const)('🔴 r1: %s en duda → cerrar → reabrir ⇒ aviso, motivo congelado y la MISMA llave', async (clave, d, motivo) => {
+    svc.operateGiftCard.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ activityIds: ['a1'] })
+    pintar(d)
+    fireEvent.click(boton(`actions.${clave}.button`))
+    fireEvent.click(screen.getByLabelText(`reason.${motivo}`))
+    fireEvent.click(boton(`actions.${clave}.confirm`))
+    await screen.findByText('actions.inDoubt')
+    fireEvent.click(boton('actions.cancel'))
+    await reabrirTrasCerrar(`actions.${clave}.button`, 'alertdialog')
+    expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+    expect(screen.getByLabelText(`reason.${motivo}`)).toBeChecked()
+    fireEvent.click(boton('actions.retry'))
+    await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(2))
+    expect(svc.operateGiftCard.mock.calls[1][2]).toEqual(svc.operateGiftCard.mock.calls[0][2])
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `actions.${clave}.done` }))
+  })
+
+  it('🔴 r1 I2: tras el éxito, con la relectura todavía pendiente, un segundo clic en confirmar NO manda otro ajuste', async () => {
+    svc.getGiftCardDetail.mockReturnValue(new Promise(() => {}))
+    svc.operateGiftCard.mockResolvedValue({ activityIds: ['a1'] })
+    pintarVivo(detalle())
+    fireEvent.click(boton('actions.adjust.button'))
+    fireEvent.change(screen.getByLabelText('actions.adjust.amount'), { target: { value: '150' } })
+    fireEvent.click(screen.getByLabelText('reason.CASHIER_ERROR'))
+    fireEvent.change(screen.getByLabelText('actions.note'), { target: { value: 'Se cobró de menos' } })
+    const confirmar = boton('actions.adjust.confirm')
+    fireEvent.click(confirmar)
+    await waitFor(() => expect(svc.operateGiftCard).toHaveBeenCalledTimes(1))
+    await vaciarCola()
+    fireEvent.click(confirmar)
+    await vaciarCola()
+    expect(svc.operateGiftCard).toHaveBeenCalledTimes(1)
+    expect(toast).toHaveBeenCalledWith({ title: 'actions.adjust.done' })
   })
 
   it('un 4xx se dice con el texto del server (trae `code`) y deja corregir', async () => {
@@ -258,6 +370,27 @@ describe('GiftCardManagerActions', () => {
     await waitFor(() => expect(screen.queryByText('K7QM-2XRA-9TBC-H4WD-6')).not.toBeInTheDocument())
   })
 
+  it('🔴 r1 I2: reponer pasa de inmediato a la vista del código (sin botón de confirmar): un segundo clic con la relectura pendiente NO repone otra vez', async () => {
+    svc.getGiftCardDetail.mockReturnValue(new Promise(() => {}))
+    svc.operateGiftCard.mockResolvedValue({ activityIds: ['a9'], nuevoCodigo: { display: 'K7QM-2XRA-9TBC-H4WD-6', last4: 'H4WD' } })
+    pintarVivo(detalle())
+    fireEvent.click(boton('actions.replace.button'))
+    fireEvent.change(screen.getByLabelText('actions.replace.folio'), { target: { value: 'A-1042' } })
+    const confirmar = boton('actions.replace.confirm')
+    fireEvent.click(confirmar)
+    expect(await screen.findByText('K7QM-2XRA-9TBC-H4WD-6')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'actions.replace.confirm' })).not.toBeInTheDocument()
+    fireEvent.click(confirmar)
+    await vaciarCola()
+    expect(svc.operateGiftCard).toHaveBeenCalledTimes(1)
+  })
+
+  it('r1: el folio se topa en 64 caracteres como el server (su 400 no trae `code`)', () => {
+    pintar()
+    fireEvent.click(boton('actions.replace.button'))
+    expect(screen.getByLabelText('actions.replace.folio')).toHaveAttribute('maxLength', '64')
+  })
+
   it('nota 15b: la nota de reponer de más de 500 caracteres no se manda y se explica', () => {
     pintar()
     fireEvent.click(boton('actions.replace.button'))
@@ -278,18 +411,85 @@ describe('GiftCardManagerActions', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.cancelSale.started' }))
   })
 
-  it('🔴 nota 14: cancelar la venta en duda y cerrar el aviso abandona el intento; volver a cancelar manda OTRA llave', async () => {
+  it('🔴 r1 I1: cancelar la venta en duda → cerrar → reabrir ⇒ aviso y «Intentar otra vez» con la MISMA llave', async () => {
     svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ giftCardIds: ['g1'] })
     pintar()
     fireEvent.click(boton('actions.cancelSale.button'))
     fireEvent.click(boton('actions.cancelSale.confirm'))
     await screen.findByText('actions.inDoubt')
     fireEvent.click(boton('actions.cancel'))
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    await reabrirTrasCerrar('actions.cancelSale.button', 'alertdialog')
+    expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+    fireEvent.click(boton('actions.retry'))
+    await waitFor(() => expect(svc.startGiftCardSaleCancel).toHaveBeenCalledTimes(2))
+    expect(svc.startGiftCardSaleCancel.mock.calls[1][2]).toBe(svc.startGiftCardSaleCancel.mock.calls[0][2])
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.cancelSale.started' }))
+  })
+
+  it('🔴 r1: cancelar en duda y, con el aviso abierto, el detalle se refresca (sí se aplicó): «Intentar otra vez» repite la foto congelada ⇒ MISMA llave', async () => {
+    svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ giftCardIds: ['g1'] })
+    const { rerender } = pintar()
     fireEvent.click(boton('actions.cancelSale.button'))
     fireEvent.click(boton('actions.cancelSale.confirm'))
+    await screen.findByText('actions.inDoubt')
+    rerender(arbol(enCurso(4)))
+    fireEvent.click(boton('actions.retry'))
     await waitFor(() => expect(svc.startGiftCardSaleCancel).toHaveBeenCalledTimes(2))
-    expect(svc.startGiftCardSaleCancel.mock.calls[1][2]).not.toBe(svc.startGiftCardSaleCancel.mock.calls[0][2])
+    expect(svc.startGiftCardSaleCancel.mock.calls[1][2]).toBe(svc.startGiftCardSaleCancel.mock.calls[0][2])
+  })
+
+  it('r1 (menor): mientras el reintento de cancelar va en camino, sigue diciendo «en duda» y «Intentar otra vez» (como los demás diálogos)', async () => {
+    svc.startGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockReturnValueOnce(new Promise(() => {}))
+    pintar()
+    fireEvent.click(boton('actions.cancelSale.button'))
+    fireEvent.click(boton('actions.cancelSale.confirm'))
+    await screen.findByText('actions.inDoubt')
+    fireEvent.click(boton('actions.retry'))
+    await waitFor(() => expect(svc.startGiftCardSaleCancel).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('actions.inDoubt')).toBeInTheDocument()
+    expect(boton('actions.retry')).toBeDisabled()
+  })
+
+  it('🔴 r1 I1: liberar en duda → cerrar → reabrir ⇒ la casilla sigue marcada y congelada, aviso y la MISMA llave', async () => {
+    svc.releaseGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ released: true })
+    pintar(enCurso())
+    liberarConCasilla()
+    await screen.findByText('actions.inDoubt')
+    fireEvent.click(boton('actions.cancel'))
+    await reabrirTrasCerrar('actions.cancelSale.release', 'alertdialog')
+    expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+    expect(screen.getByLabelText('actions.cancelSale.releaseCheck')).toBeChecked()
+    expect(screen.getByLabelText('actions.cancelSale.releaseCheck')).toBeDisabled()
+    fireEvent.click(boton('actions.retry'))
+    await waitFor(() => expect(svc.releaseGiftCardSaleCancel).toHaveBeenCalledTimes(2))
+    expect(svc.releaseGiftCardSaleCancel.mock.calls[1][2]).toBe(svc.releaseGiftCardSaleCancel.mock.calls[0][2])
+  })
+
+  it('🔴 r1 I1.3: liberar en duda y luego el detalle refrescado CAMBIÓ (la libreta creció: otra liberación y otra cancelación) ⇒ esa llave ya no aplica: diálogo limpio y llave NUEVA', async () => {
+    svc.releaseGiftCardSaleCancel.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ released: true })
+    const { rerender } = pintar(enCurso(3))
+    liberarConCasilla()
+    await screen.findByText('actions.inDoubt')
+    fireEvent.click(boton('actions.cancel'))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    rerender(arbol(enCurso(5)))
+    fireEvent.click(boton('actions.cancelSale.release'))
+    expect(screen.queryByText('actions.inDoubtBefore')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('actions.cancelSale.releaseCheck')).not.toBeChecked()
+    fireEvent.click(screen.getByLabelText('actions.cancelSale.releaseCheck'))
+    fireEvent.click(boton('actions.cancelSale.releaseConfirm'))
+    await waitFor(() => expect(svc.releaseGiftCardSaleCancel).toHaveBeenCalledTimes(2))
+    expect(svc.releaseGiftCardSaleCancel.mock.calls[1][2]).not.toBe(svc.releaseGiftCardSaleCancel.mock.calls[0][2])
+  })
+
+  it('🔴 r1 I1.3: si tras «liberada» el detalle refrescado sigue en cancelación, NO dice «se pueden usar otra vez»', async () => {
+    svc.getGiftCardDetail.mockResolvedValue(enCurso())
+    svc.releaseGiftCardSaleCancel.mockResolvedValue({ released: true })
+    pintarVivo(enCurso())
+    await waitFor(() => expect(svc.getGiftCardDetail).toHaveBeenCalled())
+    liberarConCasilla()
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'actions.cancelSale.releaseNotConfirmed' }))
+    expect(toast).not.toHaveBeenCalledWith({ title: 'actions.cancelSale.released' })
   })
 
   it('🔴 liberar (F6): sin la casilla «Comprobé que la devolución NO se hizo» no se puede; con ella manda `confirmacionNoDevuelto: true`', async () => {

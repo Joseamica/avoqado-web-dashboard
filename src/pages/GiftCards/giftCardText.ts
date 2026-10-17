@@ -172,6 +172,14 @@ export function accionesDisponibles(d: Pick<GiftCardDetail, 'status' | 'canRepla
   }
 }
 
+/**
+ * La «foto» de la cancelación de la venta en el detalle (D4 r1, I1.3): va en la huella de cancelar/liberar. Si cambia, una
+ * llave pendiente de esa venta ya no aplica. Lleva `activities.total` porque la libreta SÓLO crece: cancelar escribe un BLOCK
+ * y liberar un UNBLOCK en cada tarjeta, así que «cancelada → liberada» no vuelve a la foto de antes (sin ABA).
+ */
+export const estadoDeCancelacion = (d: Pick<GiftCardDetail, 'cancel' | 'activities'>): string =>
+  JSON.stringify([d.cancel.allowed, d.cancel.reason, d.activities.total])
+
 // ── Reglas de venta (Configuración) ──────────────────────────────────────
 
 export type VigenciaElegida = 'none' | '12' | '24' | '36' | '60'

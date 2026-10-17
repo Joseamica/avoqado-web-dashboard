@@ -145,6 +145,8 @@
     "cancel": "Back",
     "retry": "Try again",
     "inDoubt": "We don't know if it was saved. Tap «Try again»: it won't be applied twice.",
+    "inDoubtBefore": "Your previous attempt is in doubt. Check the history: if it's already there, don't repeat it.",
+    "discard": "Discard this attempt",
     "errors": {
       "reason": "Pick a reason.",
       "noteForOther": "With «Other reason», write a note of at least 5 letters.",
@@ -216,6 +218,7 @@
       "releaseCheck": "I checked that the refund did NOT go through (the terminal declined it or it wasn't attempted). If you don't know, keep the card blocked.",
       "releaseConfirm": "Don't cancel",
       "released": "Done: the cards can be used again.",
+      "releaseNotConfirmed": "The server answered, but the cards still show as blocked by the cancellation. Check the sale before trying again.",
       "blocker": {
         "NOT_PAID": "It can't be canceled: the sale isn't paid yet or its cards aren't active yet.",
         "NOT_SAME_DAY": "It can't be canceled: only on the same day of the sale.",
