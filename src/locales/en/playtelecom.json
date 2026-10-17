@@ -234,6 +234,13 @@
     "viewDetails": "View Details"
   },
   "managers": {
+    "attendance": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "ownEntryHint": "This is your own time entry: someone else must validate it",
+      "validateError": "Could not validate the time entry",
+      "resetError": "Could not reset the time entry to pending"
+    },
     "title": "Managers",
     "subtitle": "Supervision and performance",
     "totalManagers": "Active Managers",
