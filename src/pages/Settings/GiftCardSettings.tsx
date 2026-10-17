@@ -16,12 +16,12 @@ import { GiftCardsSwitch } from './components/giftCards/GiftCardsSwitch'
  * Configuración › Tarjetas de regalo: el switch canónico (apagado de fábrica, spec §9), las reglas de venta y los términos
  * que se aceptan al prender.
  *
- * El plan (Pro) se decide AQUÍ dentro, como en Pases: apagado, todo va dentro de <FeatureGate> (sin plan se ve borroso con
- * el cartel; con plan pasa directo). Prendido, la página NUNCA se esconde: si bajó de plan, el switch explica y deja
- * apagar («apagado se ve y se explica»). Sin datos todavía (cargando o con error) no se decide el cartel. Sin
- * `giftCards:manage` todo se ve en sólo lectura.
- * Lote ⭐: con plan, la página va SIN envoltura (paso directo, como haría el propio FeatureGate): así prender/apagar no
- * cambia la forma del árbol y no se pierde lo tecleado. Con datos en mano, una relectura fallida se avisa en línea.
+ * El plan (Pro) se decide AQUÍ dentro, como en Pases, con la misma señal que <FeatureGate>: sólo APAGADO Y SIN PLAN la página
+ * va dentro del cartel (se ve borrosa). Con plan va sin envoltura, prendida o apagada (lote ⭐): así prender/apagar no cambia
+ * la forma del árbol y no se pierde lo tecleado. Prendida, nunca se esconde: si bajó de plan, el switch explica y deja apagar
+ * («apagado se ve y se explica»); si el plan no se pudo confirmar, el switch lo dice y deja reintentar. Sin datos todavía
+ * (cargando o con error) no se decide el cartel; con datos en mano, una relectura fallida se avisa en línea. Sin
+ * `giftCards:manage` todo se ve en sólo lectura (no mientras cargan los permisos).
  */
 export default function GiftCardSettings() {
   const { t } = useTranslation('giftCards')

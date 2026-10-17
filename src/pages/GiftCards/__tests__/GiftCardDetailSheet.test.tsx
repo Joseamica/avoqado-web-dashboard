@@ -123,17 +123,14 @@ describe('GiftCardDetailSheet', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('detail.loadMoreError')
   })
 
-  it('🔴 entregada EN MANO (el comprador se la llevó): sin estado de envío, nunca «Por enviar» (lote ⭐)', () => {
-    q.current = listo({
-      data: { pages: [{ ...DETAIL, deliveryChannel: 'HANDED_TO_BUYER', deliveryStatus: 'PENDING' }], pageParams: [null] },
-    })
-    pintar()
-    expect(screen.getByText('delivery.HANDED_TO_BUYER')).toBeInTheDocument()
-    expect(screen.queryByText('detail.facts.deliveryValue')).not.toBeInTheDocument()
-  })
-
-  it('por WhatsApp sí dice canal y estado de envío', () => {
-    pintar()
-    expect(screen.getByText('detail.facts.deliveryValue')).toBeInTheDocument()
+  it('🔴 en la 1a ningún canal pinta estado de envío (todo nace PENDING y nada lo mueve): sólo el canal (lote ⭐ r1)', () => {
+    for (const canal of ['WHATSAPP', 'EMAIL', 'PRINTED', 'CUSTOMER_CARD', 'HANDED_TO_BUYER'] as const) {
+      q.current = listo({ data: { pages: [{ ...DETAIL, deliveryChannel: canal, deliveryStatus: 'PENDING' }], pageParams: [null] } })
+      const { unmount } = pintar()
+      expect(screen.getByText(`delivery.${canal}`)).toBeInTheDocument()
+      expect(screen.queryByText('detail.facts.deliveryValue')).not.toBeInTheDocument()
+      expect(screen.queryByText(/^deliveryStatus\./)).not.toBeInTheDocument()
+      unmount()
+    }
   })
 })

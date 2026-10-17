@@ -1175,6 +1175,10 @@ export default function SalesSummary() {
 
   // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo
   // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
+  // Sin nada que repartir (los métodos suman 0: p. ej. el único cobro del rango fue con saldo), la barra, la dona y la tabla de
+  // arriba no pintan «0 %» por método (lote ⭐ r1). El total y su conteo siguen; «Métodos de pago» dice su estado vacío.
+  const pm = data.paymentMethods
+  const hayReparto = pm.card.amount + pm.cash.amount + pm.other.amount > 0
   const hayCifrasDeTarjetas =
     !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
   // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
@@ -2006,7 +2010,7 @@ export default function SalesSummary() {
         {/* Dynamic visualization based on viewType — hidden under a payment
             filter (the distribution would be a tautological 100% of the
             filtered method). */}
-        {!isFiltered && viewType === 'gauge' && (
+        {!isFiltered && hayReparto && viewType === 'gauge' && (
           <SalesBreakdownBar
             segments={[
               {
@@ -2031,7 +2035,7 @@ export default function SalesSummary() {
           />
         )}
 
-        {!isFiltered && viewType === 'pie' && (
+        {!isFiltered && hayReparto && viewType === 'pie' && (
           <SalesPieChart
             segments={[
               {
@@ -2056,7 +2060,7 @@ export default function SalesSummary() {
           />
         )}
 
-        {!isFiltered && viewType === 'table' && (
+        {!isFiltered && hayReparto && viewType === 'table' && (
           <SalesTable
             segments={[
               {

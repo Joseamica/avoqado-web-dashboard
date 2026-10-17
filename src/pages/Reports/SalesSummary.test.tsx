@@ -61,6 +61,18 @@ const respuesta = (over: Partial<SalesSummaryResponse> = {}): SalesSummaryRespon
   ...over,
 })
 
+/** La respuesta del server real (D7 §4) cuando el único cobro del rango fue con saldo: sin buckets, pero con lo pagado con saldo. */
+const SOLO_SALDO = () =>
+  respuesta({
+    summary: {
+      ...SUMMARY, grossSales: 69, items: 69, netSales: 69, taxes: 9.52, tips: 0, platformFees: 0, commissions: 0,
+      totalCollected: 69, netProfit: 69, transactionCount: 1, giftCardLoads: 0, giftCardLoadsCount: 0, paidWithGiftCardBalance: 69,
+    },
+    byPaymentMethod: [],
+    byPaymentMethodDetailed: [],
+    giftCardBalanceBreakdown: { amount: 69, count: 1, tips: 0, refunds: 0 },
+  })
+
 const pintar = () =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -161,16 +173,7 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
   })
 
   it('🔴 (dinero) el único cobro del rango fue con saldo: sin buckets, la línea del saldo sale igual y «Métodos de pago» no enseña 0 % (lote ⭐ 5d)', async () => {
-    // La respuesta del server real (D7 §4): sin buckets, pero con lo pagado con saldo.
-    h.response = respuesta({
-      summary: {
-        ...SUMMARY, grossSales: 69, items: 69, netSales: 69, taxes: 9.52, tips: 0, platformFees: 0, commissions: 0,
-        totalCollected: 69, netProfit: 69, transactionCount: 1, giftCardLoads: 0, giftCardLoadsCount: 0, paidWithGiftCardBalance: 69,
-      },
-      byPaymentMethod: [],
-      byPaymentMethodDetailed: [],
-      giftCardBalanceBreakdown: { amount: 69, count: 1, tips: 0, refunds: 0 },
-    })
+    h.response = SOLO_SALDO()
     pintar()
     const linea = await screen.findByText(/^salesSummary\.giftBalanceLine\(/)
     expect(linea.textContent).toContain('$69.00')
@@ -178,5 +181,21 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     expect(screen.getByText('salesSummary.paymentMethodsEmpty')).toBeInTheDocument()
     // Nada de «Tarjeta / Efectivo / Otro» en $0.00 y 0 %.
     expect(screen.queryByText('0 trans.')).not.toBeInTheDocument()
+  })
+
+  it('🔴 sin nada que repartir (los métodos suman 0, el rango de sólo saldo), la barra de arriba no pinta segmentos de 0 % (lote ⭐ r1)', async () => {
+    h.response = SOLO_SALDO()
+    pintar()
+    await screen.findByText(/^salesSummary\.giftBalanceLine\(/)
+    // Ni la barra ni su leyenda «Tarjeta 0 % · Efectivo 0 % · Otro 0 %».
+    expect(screen.queryByText('salesSummary.paymentTypes.card')).not.toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.paymentTypes.cash')).not.toBeInTheDocument()
+  })
+
+  it('control · con cobros reales la barra de arriba sí reparte por método', async () => {
+    h.response = respuesta({ byPaymentMethod: [{ method: 'CASH', amount: 12500, count: 18, percentage: 100 }] })
+    pintar()
+    // La leyenda y el tooltip (que aquí se pinta en línea) dicen el método.
+    expect((await screen.findAllByText('salesSummary.paymentTypes.cash')).length).toBeGreaterThan(0)
   })
 })
