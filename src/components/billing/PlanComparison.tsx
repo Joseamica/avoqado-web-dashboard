@@ -17,11 +17,14 @@ interface PlanComparisonProps {
   defaultOpen?: boolean
   /** El alta nunca enseña Gratis: sin su columna, y «común a todos» se calcula sólo entre Pro y Premium. */
   ocultarGratis?: boolean
+  /** Siempre desplegada y sin el botón de ocultar (el diálogo del alta: ocultarla dejaba el diálogo vacío). */
+  siempreAbierta?: boolean
 }
 
-export function PlanComparison({ selectedTier, defaultOpen = false, ocultarGratis = false }: PlanComparisonProps) {
+export function PlanComparison({ selectedTier, defaultOpen = false, ocultarGratis = false, siempreAbierta = false }: PlanComparisonProps) {
   const { t } = useTranslation('billing')
-  const [abierta, setAbierta] = useState(defaultOpen)
+  const [desplegada, setDesplegada] = useState(defaultOpen)
+  const abierta = siempreAbierta || desplegada
   const panelId = useId()
   const tiers = ocultarGratis ? TIERS_COMPARADOS.filter(tier => tier !== 'FREE') : TIERS_COMPARADOS
   // Clases literales (no armadas con el número): Tailwind sólo genera las que ve escritas completas.
@@ -45,19 +48,21 @@ export function PlanComparison({ selectedTier, defaultOpen = false, ocultarGrati
 
   return (
     <section className="mx-auto w-full max-w-[880px]">
-      <button
-        type="button"
-        aria-expanded={abierta}
-        aria-controls={panelId}
-        data-tour="plan-compare-toggle"
-        onClick={() => setAbierta(v => !v)}
-        className="mx-auto flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {abierta
-          ? t('plan.compare.hide', { defaultValue: 'Ocultar la comparación' })
-          : t('plan.compare.show', { defaultValue: 'Ver todo lo que incluye cada plan' })}
-        <ChevronDown className={cn('h-4 w-4 transition-transform duration-200 ease-out', abierta && 'rotate-180')} aria-hidden="true" />
-      </button>
+      {!siempreAbierta && (
+        <button
+          type="button"
+          aria-expanded={abierta}
+          aria-controls={panelId}
+          data-tour="plan-compare-toggle"
+          onClick={() => setDesplegada(v => !v)}
+          className="mx-auto flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {abierta
+            ? t('plan.compare.hide', { defaultValue: 'Ocultar la comparación' })
+            : t('plan.compare.show', { defaultValue: 'Ver todo lo que incluye cada plan' })}
+          <ChevronDown className={cn('h-4 w-4 transition-transform duration-200 ease-out', abierta && 'rotate-180')} aria-hidden="true" />
+        </button>
+      )}
 
       {abierta && comunes.length > 0 && (
         <p className="mt-4 text-center text-sm text-muted-foreground">

@@ -32,6 +32,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { pedidoCompartido, type PedidoEnVuelo } from './pedidoCompartido'
 import { track } from '@/lib/posthog'
 import { trackPurchase } from '@/lib/gtag'
+import { focoPerdido } from '../offer/focoPerdido'
 import { formatMXN } from '../offer/formatMXN'
 import { textoDeRechazo } from '../offer/mensajeDeRechazo'
 import { expectedStandardFirstChargeCents } from '../offer/standardQuote'
@@ -80,8 +81,6 @@ export interface OfferStepProps {
    * contratos dan el acceso. Gratis ya no se ofrece en el alta.
    */
   onFreePlan?: (plan: NonNullable<SetupData['plan']>) => void | Promise<boolean | void>
-  /** Avisa que se están mostrando los planes (siempre, en este paso): el asistente ensancha su columna. */
-  onVistaDePlanes?: (viendoPlanes: boolean) => void
   /**
    * El servidor tiene un cobro de este alta SIN cerrar (`planActivation.status === 'IN_PROGRESS'`).
    * Llega así tras una recarga: el plan arranca bloqueado y se ofrece volver a comprobar.
@@ -124,7 +123,6 @@ export function OfferStep({
   onFinish,
   onRefreshProgress,
   onFreePlan,
-  onVistaDePlanes,
   activacionEnCurso = false,
 }: OfferStepProps) {
   const { t, i18n } = useTranslation('setup')
@@ -191,11 +189,6 @@ export function OfferStep({
   }, [])
 
   const mostrarOferta = !!oferta && !verEstandar
-
-  // Las 3 tarjetas siempre van a lo ancho.
-  useEffect(() => {
-    onVistaDePlanes?.(true)
-  }, [onVistaDePlanes])
 
   // SetupIntent para la tarjeta, para cualquier plan (oferta o prueba): se pide al montar, no al abrir
   // la ventana, para que el formulario aparezca ya listo.
@@ -499,6 +492,14 @@ export function OfferStep({
       })
   }, [cobrar, onRefreshProgress])
 
+  // M6: tras rendirse de confirmar, el botón de pagar sigue apagado y el foco se queda en el aire: va a la única salida.
+  const volverAComprobarRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (desenlace.tipo === 'sin-confirmar' && focoPerdido()) volverAComprobarRef.current?.focus()
+  }, [desenlace.tipo])
+  // A dónde vuelve el foco al cerrar la ventana si el botón que la abrió ya no está («Confirmar mi pago» se desmonta).
+  const tituloRef = useRef<HTMLHeadingElement>(null)
+
   // Un cobro sin respuesta definitiva: el que ESTA pantalla se rindió de confirmar, o el que el servidor tiene
   // abierto tras una recarga. Va dentro de la ventana si está abierta (no se puede cerrar con un cobro en vuelo) y,
   // si no, encima de las tarjetas.
@@ -538,6 +539,7 @@ export function OfferStep({
           </Button>
         )}
         <Button
+          ref={volverAComprobarRef}
           variant="outline"
           className="gap-2 rounded-full"
           data-tour="offer-recheck-payment"
@@ -557,7 +559,8 @@ export function OfferStep({
       <div className="mx-auto flex w-full max-w-[640px] flex-col gap-4">
         <h1 className="text-2xl font-semibold sm:text-3xl">{t('offer.alreadyActiveTitle', { defaultValue: 'Tu plan ya está activo' })}</h1>
         <p className="text-sm text-muted-foreground">{desenlace.mensaje}</p>
-        <Button className="rounded-full" onClick={onFinish} data-tour="offer-enter">
+        {/* M6: la ventana se desmonta con el foco adentro; sin esto se perdía en el <body>. */}
+        <Button className="rounded-full" onClick={onFinish} data-tour="offer-enter" autoFocus>
           {t('offer.enter', { defaultValue: 'Entrar a Avoqado' })}
         </Button>
         <p className="text-xs text-muted-foreground">
@@ -613,9 +616,14 @@ export function OfferStep({
       {/* 🔴 `inert` con la ventana abierta: es `modal={false}` (por el 3D Secure de Stripe), así que sin esto el Tab
           llegaba a «Elegir…» y al pie debajo de un cobro. React 18 no conoce `inert`: va como texto vacío (en React 19
           es booleano y `''` contaría como apagado). */}
-      <div data-testid="planes-del-alta" className="flex flex-col gap-6" {...(planElegido ? { inert: '' } : {})}>
+      <div
+        data-testid="planes-del-alta"
+        className="flex flex-col gap-6"
+        // ponytail: React 18 sólo pinta `inert` como texto (''); al subir a React 19 aquí va `inert: true` ('' lo apagaría en silencio).
+        {...(planElegido ? { inert: '' } : {})}
+      >
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold sm:text-3xl">
+          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl font-semibold outline-none sm:text-3xl">
             {mostrarOferta ? (oferta!.copy.headline ?? t('plans.title')) : t('plans.title')}
           </h1>
           {mostrarOferta ? (
@@ -669,7 +677,7 @@ export function OfferStep({
         <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto">
           <DialogTitle>{t('plans.compareTitle')}</DialogTitle>
           <DialogDescription className="sr-only">{t('plans.compare')}</DialogDescription>
-          <PlanComparison ocultarGratis defaultOpen />
+          <PlanComparison ocultarGratis siempreAbierta />
         </DialogContent>
       </Dialog>
 
@@ -678,6 +686,7 @@ export function OfferStep({
         // 🔴 No se cierra con un cobro de esta pantalla en vuelo. Tras una recarga (`activacionEnCurso`) sí: no hay
         // nada en vuelo aquí y las tarjetas siguen apagadas, así que cerrar no deja cambiar de plan.
         puedeCerrar={!pagoBloqueado}
+        focoDeRespaldo={tituloRef}
         onCerrar={() => {
           if (!pagoBloqueado) setPlanElegido(null)
         }}
@@ -692,7 +701,14 @@ export function OfferStep({
         )}
         {avisoPendiente}
 
-        {intentStatus === 'error' ? (
+        {!ventanaDeOferta && !cotizado ? (
+          // M2: sin la cotización del servidor no hay monto ni legal que consentir, así que no se pide la tarjeta
+          // (guardarla sin ese texto era recabar un método de pago sin consentimiento). `pagarPlan` sigue negándose solo.
+          <div className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' })}</span>
+          </div>
+        ) : intentStatus === 'error' ? (
           <div className="flex flex-col gap-3">
             <div className="flex items-start gap-2 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

@@ -231,13 +231,6 @@ describe('OfferStep — lo que pinta', () => {
     await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
     expect(document.body.textContent).not.toMatch(/Gratis/)
   })
-
-  it('avisa al asistente que se ven los planes: siempre, para ensanchar la columna', async () => {
-    const onVistaDePlanes = vi.fn()
-    pintar({ onVistaDePlanes })
-    await waitFor(() => expect(onVistaDePlanes).toHaveBeenCalledWith(true))
-    expect(onVistaDePlanes).not.toHaveBeenCalledWith(false)
-  })
 })
 
 describe('OfferStep — el pie de las tarjetas', () => {
@@ -247,6 +240,8 @@ describe('OfferStep — el pie de las tarjetas', () => {
     const ventana = await screen.findByRole('dialog', { name: 'Qué incluye cada plan' })
     expect(within(ventana).getByRole('table')).toBeInTheDocument()
     expect(ventana.textContent).not.toMatch(/Gratis/)
+    // M5: sin «Ocultar la comparación» — ocultarla dejaba un diálogo con título y vacío.
+    expect(within(ventana).queryByRole('button', { name: /Ocultar la comparación/ })).not.toBeInTheDocument()
   })
 
   it('«¿No tienes tarjeta? Escríbenos» abre WhatsApp de ventas con su texto', async () => {
@@ -389,6 +384,8 @@ describe('OfferStep — el cobro', () => {
     await pagar()
 
     const boton = await screen.findByRole('button', { name: /Entrar a Avoqado/i })
+    // M6: la ventana se fue con el foco adentro; la salida lo recibe (no se queda en el <body>).
+    await waitFor(() => expect(boton).toHaveFocus())
     await userEvent.setup().click(boton)
     expect(onFinish).toHaveBeenCalledTimes(1)
   })
@@ -711,6 +708,8 @@ describe('🔴 Codex ronda 9: el plan queda bloqueado desde que sale el cobro ha
       await waitFor(() => expect(screen.getByTestId('offer-pending-locked')).toBeInTheDocument())
       expect(elegirPremium()).toBeDisabled()
       expect(screen.getByRole('dialog')).toBeInTheDocument()
+      // M6: el botón de pagar sigue apagado; el foco va a la única salida, no se queda en el aire.
+      expect(screen.getByRole('button', { name: /Volver a comprobar mi pago/i })).toHaveFocus()
 
       const antes = activatePlan.mock.calls.length
       activatePlan.mockReset().mockResolvedValue(EXITO)
@@ -832,5 +831,18 @@ describe('🔴 full-testing 26-sep: en la OFERTA, tras un rechazo el formulario 
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_2'))
     expect(screen.getByRole('alert')).toHaveTextContent(/rechaz/i)
+  })
+
+  it('🔴 D1: tras el 402 y el remontaje con el SetupIntent nuevo, el foco queda en el mensaje (no en el <body>)', async () => {
+    planSetupIntent
+      .mockReset()
+      .mockResolvedValueOnce({ data: { data: { clientSecret: 'seti_1' } } })
+      .mockResolvedValue({ data: { data: { clientSecret: 'seti_2' } } })
+    activatePlan.mockRejectedValueOnce(errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'card_declined' } }))
+    pintar()
+    await pagar()
+    await waitFor(() => expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_2'))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveFocus())
+    expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent(/rechaz/i)
   })
 })

@@ -223,16 +223,19 @@ describe('prueba de 30 días — ningún fallo avanza, y todos se VEN', () => {
     expect(saveStep).not.toHaveBeenCalled()
   })
 
-  it('🔴 Review Focus 4: sin `planQuote` NO se llama a activate-plan NI se avanza — dice `offer.noQuote`', async () => {
+  it('🔴 Review Focus 4 (M2): sin `planQuote` la ventana NO pide la tarjeta — dice `offer.noQuote`, no cobra y no avanza', async () => {
     pintarEstandar({ planQuote: null })
-    await empezarPrueba('Pro')
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Elegir Pro' }))
 
-    expect(await screen.findByText('No pudimos cargar los precios. Recarga la página e intenta de nuevo.')).toBeInTheDocument()
+    const ventana = screen.getByRole('dialog')
+    expect(within(ventana).getByText('No pudimos cargar los precios. Recarga la página e intenta de nuevo.')).toBeInTheDocument()
+    // Sin monto ni legal que consentir no se guarda ninguna tarjeta: ni formulario ni botón.
+    expect(within(ventana).queryByTestId('payment-element')).not.toBeInTheDocument()
+    expect(within(ventana).queryByRole('button', { name: 'Empezar mis 30 días gratis' })).not.toBeInTheDocument()
+    expect(confirmSetup).not.toHaveBeenCalled()
     expect(activatePlan).not.toHaveBeenCalled()
     expect(onFreePlan).not.toHaveBeenCalled()
     expect(onActivated).not.toHaveBeenCalled()
-    // La tarjeta ya confirmó ese SetupIntent: el siguiente intento lleva uno nuevo.
-    await waitFor(() => expect(planSetupIntent).toHaveBeenCalledTimes(2))
   })
 
   it('🔴 409 OFFER_CHANGED no avanza: el precio nuevo se vuelve a consentir', async () => {

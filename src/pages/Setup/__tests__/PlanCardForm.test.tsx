@@ -70,3 +70,41 @@ describe('PlanCardForm', () => {
     expect(onBusyChange).toHaveBeenLastCalledWith(false)
   })
 })
+
+describe('PlanCardForm — el foco tras un error (D1)', () => {
+  it('🔴 tras un reto 3D Secure fallido, el foco va al mensaje: no se queda en el <body>', async () => {
+    stripe.confirmSetup.mockImplementation(async () => {
+      // Como el reto del banco de Stripe: se lleva el foco a su ventana (fuera del formulario) y, al cerrarse, el foco
+      // cae al <body>, porque el botón de pagar al que regresaría está apagado.
+      const reto = document.createElement('button')
+      document.body.appendChild(reto)
+      reto.focus()
+      reto.remove()
+      return { error: { message: 'No podemos autenticar tu método de pago.' } }
+    })
+    render(<PlanCardForm payNowLabel="Pagar" onConfirmed={vi.fn()} />)
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /Pagar/ }))
+
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent('No podemos autenticar tu método de pago.')
+    expect(alerta).toHaveFocus()
+  })
+
+  it('🔴 nunca le quita el foco a quien está tecleando: con un campo enfocado, el mensaje llega sin moverlo', () => {
+    const conMensaje = (errorMessage: string | null) => (
+      <>
+        <input aria-label="Nombre" />
+        <PlanCardForm payNowLabel="Pagar" onConfirmed={vi.fn()} errorMessage={errorMessage} />
+      </>
+    )
+    const { rerender } = render(conMensaje(null))
+    const campo = screen.getByRole('textbox', { name: 'Nombre' })
+    campo.focus()
+
+    rerender(conMensaje('Tu banco rechazó el cargo'))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Tu banco rechazó el cargo')
+    expect(campo).toHaveFocus()
+  })
+})

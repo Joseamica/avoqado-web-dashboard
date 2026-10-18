@@ -47,9 +47,9 @@ function Tarjeta({ plan, etiqueta, destacada, precio, puntos, boton, bloqueado, 
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id={idTitulo} className="text-xl font-semibold">
+        <h2 id={idTitulo} className="text-xl font-semibold">
           {NOMBRE[plan]}
-        </h3>
+        </h2>
         {etiqueta && <Badge>{etiqueta}</Badge>}
       </div>
       <p className="text-sm text-muted-foreground">{t(`plans.${clave}Tagline`)}</p>
