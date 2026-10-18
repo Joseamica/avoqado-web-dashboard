@@ -40,7 +40,11 @@ vi.mock('@/services/setup.service', () => ({
 vi.mock('@/lib/gtag', () => ({ trackPurchase: (...a: unknown[]) => trackPurchase(...a), trackSignup: vi.fn() }))
 vi.mock('@/lib/posthog', () => ({ track: (...a: unknown[]) => track(...a) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
-vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))
+// D2: la MISMA instancia que recibe <Elements> abre el reto 3D Secure del banco (`confirmCardPayment`).
+const confirmCardPayment = vi.hoisted(() => vi.fn())
+vi.mock('@stripe/stripe-js', () => ({
+  loadStripe: () => Promise.resolve({ confirmCardPayment: (...a: unknown[]) => confirmCardPayment(...a) }),
+}))
 vi.mock('@stripe/react-stripe-js', () => ({
   // Como el <Elements> REAL: su `clientSecret` es INMUTABLE — se queda con el del primer montaje y sólo
   // cambia si se vuelve a montar. Con un <div> pelón, un SetupIntent nuevo «entraba» sin remontar y la
@@ -161,6 +165,7 @@ beforeEach(() => {
   saveStep.mockReset().mockResolvedValue({})
   planSetupIntent.mockReset().mockResolvedValue({ data: { data: { clientSecret: 'seti_secret' } } })
   confirmSetup.mockReset().mockResolvedValue({ setupIntent: { payment_method: 'pm_123' } })
+  confirmCardPayment.mockReset().mockResolvedValue({ paymentIntent: { status: 'succeeded' } })
   trackPurchase.mockReset()
   track.mockReset()
   onActivated.mockReset()
@@ -844,5 +849,215 @@ describe('🔴 full-testing 26-sep: en la OFERTA, tras un rechazo el formulario 
     await waitFor(() => expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_2'))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveFocus())
     expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent(/rechaz/i)
+  })
+})
+
+/**
+ * 🔴 D2 (spec 2026-10-18-campana-3ds §6.5): el banco pide autorizar el primer cobro (3D Secure). El servidor responde 409
+ * `PLAN_PAYMENT_REQUIRES_ACTION` con el secreto del cobro; la pantalla abre el reto del banco con la tarjeta YA guardada y
+ * vuelve a mandar el MISMO cuerpo: decide el servidor (200 · 409 sigue esperando · 402 · 503). Un reto por clic, también en
+ * los reintentos automáticos (Codex r1 #5): sólo «Autorizar el pago» abre otro.
+ */
+describe('🔴 D2: el banco pide autorizar el primer cobro', () => {
+  const RETO = errorHttp(409, 'PLAN_PAYMENT_REQUIRES_ACTION', { details: { clientSecret: 'pi_1_secret_x' } })
+  const PENDIENTE = errorHttp(503, 'PLAN_ACTIVATION_PENDING')
+  const cerrar = () => screen.getByRole('button', { name: /cerrar|close/i })
+  const mismosCuerpos = () => {
+    for (const llamada of activatePlan.mock.calls) expect(llamada).toEqual(activatePlan.mock.calls[0])
+  }
+
+  beforeEach(() => {
+    confirmSetup.mockResolvedValue({ setupIntent: { payment_method: 'pm_1' } })
+  })
+
+  it('409 ⇒ abre el reto con el secreto y la tarjeta guardada, y vuelve a mandar el MISMO cuerpo; con 200 avanza', async () => {
+    activatePlan.mockRejectedValueOnce(RETO).mockResolvedValueOnce(EXITO)
+    pintar()
+    await pagar()
+
+    await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+    expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+    expect(confirmCardPayment).toHaveBeenCalledWith('pi_1_secret_x', { payment_method: 'pm_1' })
+    expect(activatePlan).toHaveBeenCalledTimes(2)
+    expect(activatePlan.mock.calls[1]).toEqual(activatePlan.mock.calls[0])
+    expect(activatePlan.mock.calls[0][1].paymentMethodId).toBe('pm_1')
+    // El respaldo del paso 10 sólo DESPUÉS del 200.
+    expect(saveStep).toHaveBeenCalledTimes(1)
+    expect(saveStep.mock.invocationCallOrder[0]).toBeGreaterThan(activatePlan.mock.invocationCallOrder[1])
+    expect(trackPurchase).toHaveBeenCalledTimes(1)
+    // El formulario NO se remonta: la autorización es sobre ESA tarjeta y ese SetupIntent.
+    expect(planSetupIntent).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/Tu banco rechazó el cargo/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/mensaje-PLAN_PAYMENT_REQUIRES_ACTION/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 mientras el banco pregunta: texto de estado, la ventana no se cierra, aria-modal="false" y los planes apagados', async () => {
+    confirmCardPayment.mockImplementation(() => new Promise(() => undefined))
+    activatePlan.mockRejectedValueOnce(RETO)
+    pintar()
+    const user = await abrirLaOferta()
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+
+    const estado = await screen.findByText('Tu banco pide que autorices este pago. Sigue los pasos en la ventana de tu banco.')
+    expect(estado).toHaveAttribute('role', 'status')
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(cerrar()).toBeDisabled()
+    // El reto del banco se monta FUERA de la ventana: con `aria-modal` VoiceOver lo dejaría mudo.
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'false')
+    expect(elegirPremium()).toBeDisabled()
+    expect(saveStep).not.toHaveBeenCalled()
+    expect(planSetupIntent).toHaveBeenCalledTimes(1)
+    // El secreto del cobro nunca se pinta.
+    expect(document.body.textContent).not.toContain('pi_1_secret_x')
+  })
+
+  it('🔴 el reto falla: el servidor responde 402 de autenticación ⇒ texto propio, formulario NUEVO, candado suelto y foco en el mensaje', async () => {
+    planSetupIntent
+      .mockReset()
+      .mockResolvedValueOnce({ data: { data: { clientSecret: 'seti_1' } } })
+      .mockResolvedValue({ data: { data: { clientSecret: 'seti_2' } } })
+    activatePlan
+      .mockRejectedValueOnce(RETO)
+      .mockRejectedValueOnce(errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'payment_intent_authentication_failure' } }))
+    pintar()
+    await pagar()
+
+    await waitFor(() => expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_2'))
+    expect(planSetupIntent).toHaveBeenCalledTimes(2)
+    expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'No se completó la autorización de tu banco. Inténtalo otra vez o usa otra tarjeta.',
+    )
+    await waitFor(() => expect(cerrar()).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveFocus())
+    expect(saveStep).not.toHaveBeenCalled()
+    expect(onActivated).not.toHaveBeenCalled()
+  })
+
+  it('el servidor sigue esperando tras el reto ⇒ NO abre otro reto solo: «Autorizar el pago», y al tocarlo sí', async () => {
+    activatePlan.mockRejectedValueOnce(RETO).mockRejectedValueOnce(RETO).mockRejectedValueOnce(RETO).mockResolvedValueOnce(EXITO)
+    pintar()
+    await pagar()
+
+    const boton = await screen.findByRole('button', { name: 'Autorizar el pago' })
+    expect(screen.getByText('Tu banco todavía espera que autorices el pago. No se te ha cobrado.')).toBeInTheDocument()
+    expect(activatePlan).toHaveBeenCalledTimes(2)
+    expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+    expect(cerrar()).toBeDisabled()
+    expect(elegirPremium()).toBeDisabled()
+    // El botón de pagar sigue apagado: el foco va a la única salida.
+    await waitFor(() => expect(boton).toHaveFocus())
+
+    await userEvent.setup().click(boton)
+    await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+    expect(activatePlan).toHaveBeenCalledTimes(4)
+    expect(confirmCardPayment).toHaveBeenCalledTimes(2)
+    expect(confirmCardPayment.mock.calls[1]).toEqual(['pi_1_secret_x', { payment_method: 'pm_1' }])
+    mismosCuerpos()
+    expect(cerrar()).toBeDisabled()
+    expect(planSetupIntent).toHaveBeenCalledTimes(1)
+  })
+
+  it('si Stripe.js falla al abrir el reto, igual le pregunta al servidor (decide él)', async () => {
+    confirmCardPayment.mockRejectedValue(new Error('network'))
+    activatePlan.mockRejectedValueOnce(RETO).mockResolvedValueOnce(EXITO)
+    pintar()
+    await pagar()
+
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+    expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+    mismosCuerpos()
+    await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+  })
+
+  it('si la pantalla se va durante el reto, NO se manda el pedido de después', async () => {
+    let terminarReto: (v: unknown) => void = () => {}
+    confirmCardPayment.mockImplementation(() => new Promise(r => (terminarReto = r)))
+    activatePlan.mockRejectedValueOnce(RETO).mockResolvedValueOnce(EXITO)
+    const { unmount } = pintar()
+    await pagar()
+    await waitFor(() => expect(confirmCardPayment).toHaveBeenCalledTimes(1))
+
+    unmount()
+    await act(async () => {
+      terminarReto({ paymentIntent: { status: 'succeeded' } })
+      await new Promise(r => setTimeout(r, 0))
+    })
+    expect(activatePlan).toHaveBeenCalledTimes(1)
+    expect(onActivated).not.toHaveBeenCalled()
+  })
+
+  it('🔴 409 → reto → 503 → reintento automático → 409: NO abre otro reto solo; «Autorizar el pago» sí', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      activatePlan
+        .mockRejectedValueOnce(RETO)
+        .mockRejectedValueOnce(PENDIENTE)
+        .mockRejectedValueOnce(RETO)
+        .mockRejectedValueOnce(RETO)
+        .mockResolvedValueOnce(EXITO)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      pintar()
+      await abrirLaOferta(user)
+      await user.click(screen.getByRole('button', { name: /pagar/i }))
+
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+      expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+      expect(await screen.findByText(/Confirmando tu pago/i)).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000)
+      })
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(3))
+      const boton = await screen.findByRole('button', { name: 'Autorizar el pago' })
+      expect(screen.getByText('Tu banco todavía espera que autorices el pago. No se te ha cobrado.')).toBeInTheDocument()
+      expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+      expect(cerrar()).toBeDisabled()
+
+      await user.click(boton)
+      await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+      expect(activatePlan).toHaveBeenCalledTimes(5)
+      expect(confirmCardPayment).toHaveBeenCalledTimes(2)
+      mismosCuerpos()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('🔴 «Volver a comprobar» tras rendirse conserva las opciones: un 409 no abre otro reto solo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      activatePlan
+        .mockRejectedValueOnce(RETO)
+        .mockRejectedValueOnce(PENDIENTE)
+        .mockRejectedValueOnce(PENDIENTE)
+        .mockRejectedValueOnce(PENDIENTE)
+        .mockRejectedValueOnce(PENDIENTE)
+        .mockRejectedValueOnce(RETO)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      pintar()
+      await abrirLaOferta(user)
+      await user.click(screen.getByRole('button', { name: /pagar/i }))
+      for (let i = 0; i < 4; i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10_000)
+        })
+      }
+
+      const volver = await screen.findByRole('button', { name: /Volver a comprobar mi pago/i })
+      expect(activatePlan).toHaveBeenCalledTimes(5)
+      expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+
+      await user.click(volver)
+      expect(await screen.findByRole('button', { name: 'Autorizar el pago' })).toBeInTheDocument()
+      expect(activatePlan).toHaveBeenCalledTimes(6)
+      expect(confirmCardPayment).toHaveBeenCalledTimes(1)
+      expect(screen.getByText('Tu banco todavía espera que autorices el pago. No se te ha cobrado.')).toBeInTheDocument()
+      expect(cerrar()).toBeDisabled()
+      mismosCuerpos()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
