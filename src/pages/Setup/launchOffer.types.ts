@@ -45,6 +45,9 @@ export function isOfferAvailable(offer: LaunchOfferState | null | undefined): of
 export interface PlanQuoteTier {
   monthlyCents: number
   annualCents: number
+  /** Precio SIN IVA que publica el servidor; opcional (un servidor viejo no lo manda). Nunca se deriva aquí. */
+  monthlyNetCents?: number
+  annualNetCents?: number
   intro: { monthlyCents: number; months: number; interval: 'monthly'; requiresPayNow: boolean } | null
 }
 

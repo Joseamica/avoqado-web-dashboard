@@ -326,6 +326,61 @@
     "recheck": "Check my payment again",
     "pendingAfterReload": "Your last payment wasn't confirmed. Confirm again with your card: if it was already charged, we recover it and you won't be charged twice."
   },
+  "plans": {
+    "title": "Choose your plan",
+    "subtitle": "Pro and Premium: 30 days free. Cancel before it ends and you won't be charged.",
+    "choosePro": "Choose Pro",
+    "choosePremium": "Choose Premium",
+    "chooseOffer": "Choose {{plan}} for {{price}}",
+    "talkToSales": "Talk to sales",
+    "startTrial": "Start my 30 days free",
+    "compare": "Compare everything each plan includes",
+    "noCard": "Don't have a card? Message us",
+    "recommended": "Recommended",
+    "yourOffer": "Offer from your ad",
+    "trialPrice": "30 days free",
+    "thenPerMonth": "Then {{price}} per month",
+    "withoutOffer": "without the offer",
+    "offerPrice": "{{price}} per month for {{count}} months",
+    "offerRenewal": "VAT included. Then {{price}} per month.",
+    "enterprisePrice": "Custom",
+    "enterpriseSub": "Volume pricing",
+    "proTagline": "To sell and balance your register",
+    "premiumTagline": "To invoice and control your inventory",
+    "enterpriseTagline": "For chains and franchises",
+    "benefits": {
+      "pro": {
+        "1": "Take card and cash payments",
+        "2": "Unlimited tables and users",
+        "3": "Cash cut and register count",
+        "4": "Loyalty, promotions and reservations"
+      },
+      "premium": {
+        "1": "Everything in Pro",
+        "2": "CFDI invoicing",
+        "3": "Inventory with recipes and costing",
+        "4": "Delivery: Uber Eats, Rappi and DiDi"
+      },
+      "enterprise": {
+        "1": "Everything in Premium",
+        "2": "Your own branding",
+        "3": "API and integrations",
+        "4": "Dedicated support"
+      }
+    },
+    "trialLegal": "By starting you agree that from {{fecha}} {{monto}} per month will be charged to this card until you cancel. We'll notify you 7 days before. Cancel any time from Billing.",
+    "netPlusIva": "{{net}} + VAT = {{gross}}",
+    "grossWithIva": "{{gross}} with VAT",
+    "pendingTitle": "You have an unconfirmed payment",
+    "confirmPayment": "Confirm my payment",
+    "trialTitle": "Start your {{plan}} trial",
+    "trialSubtitle": "30 days free. Cancel before it ends and you won't be charged.",
+    "offerTitle": "Your offer: {{price}} per month for {{count}} months",
+    "todayYouPay": "Today you pay",
+    "firstCharge": "First charge: {{fecha}}",
+    "noCardWhatsApp": "Hi, I want to sign up my business on Avoqado but I don't have a card",
+    "compareTitle": "What each plan includes"
+  },
   "done": {
     "title": "All set",
     "subtitle": "Your business is on Avoqado. Go in and start selling.",
