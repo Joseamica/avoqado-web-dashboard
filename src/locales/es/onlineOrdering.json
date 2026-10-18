@@ -96,7 +96,9 @@
     },
     "category": {
       "count": "{{online}}/{{total}} en línea",
-      "toggle": "Mostrar {{name}} en línea"
+      "toggle": "Mostrar {{name}} en línea",
+      "inactive": "Inactiva en el POS",
+      "removeFromOnline": "Quitar categoría de línea"
     },
     "product": {
       "total": "{{count}} productos",

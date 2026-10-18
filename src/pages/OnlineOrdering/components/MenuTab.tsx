@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -131,7 +131,18 @@ export function MenuTab() {
                   <span className="ml-2 text-sm text-muted-foreground">
                     {t('menu.category.count', { online: c.online, total: c.total })}
                   </span>
+                  {!c.active && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">{t('menu.category.inactive')}</span>}
                 </button>
+                {c.online > 0 && (
+                  <button
+                    type="button"
+                    className="cursor-pointer text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={mutation.isPending}
+                    onClick={() => mutation.mutate({ availableOnline: false, categoryIds: [c.id] })}
+                  >
+                    {t('menu.category.removeFromOnline')}
+                  </button>
+                )}
                 <Switch
                   aria-label={t('menu.category.toggle', { name: c.name })}
                   checked={c.total > 0 && c.online === c.total}
@@ -248,7 +259,7 @@ export function MenuTab() {
           <AlertDialogFooter>
             <AlertDialogCancel className="cursor-pointer">{t('menu.bulk.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              className="cursor-pointer"
+              className={cn('cursor-pointer', bulk === 'hideAll' && buttonVariants({ variant: 'destructive' }))}
               onClick={() => {
                 if (bulk) mutation.mutate({ availableOnline: bulk === 'showAll', allProducts: true })
                 setBulk(null)

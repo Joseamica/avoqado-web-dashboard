@@ -29,8 +29,9 @@ const summary = {
   categories: [
     { id: 'cat-1', name: 'Tacos', active: true, total: 10, online: 4, onlineWithoutPhoto: 1 },
     { id: 'cat-2', name: 'Bebidas', active: true, total: 5, online: 0, onlineWithoutPhoto: 0 },
+    { id: 'cat-3', name: 'Postres', active: false, total: 3, online: 3, onlineWithoutPhoto: 0 },
   ],
-  totals: { total: 15, online: 4, onlineWithoutPhoto: 1 },
+  totals: { total: 18, online: 7, onlineWithoutPhoto: 1 },
   truncated: false,
 }
 const prod = (id: string, over: Record<string, unknown> = {}) => ({
@@ -68,7 +69,7 @@ describe('MenuTab', () => {
 
   it('muestra los totales del servidor y online/total por categoría', async () => {
     renderTab()
-    expect(await screen.findByText('menu.summary.online|4,15')).toBeInTheDocument()
+    expect(await screen.findByText('menu.summary.online|7,18')).toBeInTheDocument()
     expect(screen.getByText('menu.summary.noPhoto|1')).toBeInTheDocument()
     expect(screen.getByText('menu.category.count|4,10')).toBeInTheDocument()
   })
@@ -148,5 +149,58 @@ describe('MenuTab', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'menu.bulk.hideAll' }))
     await userEvent.click(await screen.findByRole('button', { name: 'menu.bulk.confirm' }))
     await waitFor(() => expect(setMenuAvailability).toHaveBeenCalledWith('venue-1', { availableOnline: false, allProducts: true }))
+  })
+
+  it('«Quitar todo de línea» usa la confirmación destructiva; «Mostrar todo» no', async () => {
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'menu.bulk.hideAll' }))
+    expect(setMenuAvailability).not.toHaveBeenCalled()
+    expect(await screen.findByRole('button', { name: 'menu.bulk.confirm' })).toHaveClass('bg-destructive')
+    await userEvent.click(screen.getByRole('button', { name: 'menu.bulk.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'menu.bulk.showAll' }))
+    expect(await screen.findByRole('button', { name: 'menu.bulk.confirm' })).not.toHaveClass('bg-destructive')
+  })
+
+  it('una categoría a medias se puede quitar de línea completa', async () => {
+    const { spy } = renderTab()
+    const btns = await screen.findAllByRole('button', { name: 'menu.category.removeFromOnline' })
+    // sólo categorías con online > 0 (Tacos y Postres), no Bebidas
+    expect(btns).toHaveLength(2)
+    await userEvent.click(btns[0])
+    await waitFor(() => expect(setMenuAvailability).toHaveBeenCalledWith('venue-1', { availableOnline: false, categoryIds: ['cat-1'] }))
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2))
+  })
+
+  it('una categoría inactiva muestra la insignia «Inactiva en el POS»', async () => {
+    renderTab()
+    await screen.findByText('Tacos')
+    expect(screen.getAllByText('menu.category.inactive')).toHaveLength(1)
+  })
+
+  it('«Borrar búsqueda» limpia el término y vuelve a consultar sin search', async () => {
+    renderTab()
+    await userEvent.click(await screen.findByText('Tacos'))
+    await screen.findByText('Producto p1')
+    await userEvent.click(screen.getByRole('button', { name: 'menu.product.searchToggle' }))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'pas' } })
+    await waitFor(() => expect(getMenuProducts).toHaveBeenCalledWith('venue-1', expect.objectContaining({ search: 'pas' })))
+    await userEvent.click(screen.getByRole('button', { name: 'menu.product.searchClear' }))
+    expect(screen.getByRole('textbox')).toHaveValue('')
+    await waitFor(() => expect(getMenuProducts.mock.lastCall?.[1].search).toBeUndefined())
+  })
+
+  it('un error al cargar las categorías muestra el estado de error (no vacío)', async () => {
+    getMenuCategories.mockRejectedValue(new Error('boom'))
+    renderTab()
+    expect(await screen.findByText('menu.loadFailed')).toBeInTheDocument()
+    expect(screen.queryByText('Tacos')).not.toBeInTheDocument()
+  })
+
+  it('un error al cargar los productos muestra el error y no «categoría vacía»', async () => {
+    getMenuProducts.mockRejectedValue(new Error('boom'))
+    renderTab()
+    await userEvent.click(await screen.findByText('Tacos'))
+    expect(await screen.findByText('menu.loadFailed')).toBeInTheDocument()
+    expect(screen.queryByText('menu.product.empty')).not.toBeInTheDocument()
   })
 })
