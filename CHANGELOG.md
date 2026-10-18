@@ -6,6 +6,8 @@ All notable changes to the web dashboard frontend will be documented in this fil
 
 ### Added
 
+- Public onboarding document delivery at `/documentos/:id`: individual private invitations, account-free mobile uploads, confirmed-file recovery, safe retry/discard, contact and privacy consent, and a receipt after submission. Includes Spanish/English copy and a separate bootstrap that excludes authentication and analytics. Refreshed with Avoqado branding, a violet/blue palette, a concise introduction, and local terminal summary/presentation PDFs that open separately from the form.
+
 - **Organization master catalog workflow (ENTERPRISE/custom entitlement)**: adds tenant-scoped item browsing and editing, safe XLSX
   preview/confirm import, venue assignment decisions, publication before/after review with approved-override provenance, explicit
   idempotency recovery, read-only audit history, catalog/template/error downloads, OWNER/ADMIN mutation controls, VIEWER read-only behavior,
@@ -57,6 +59,8 @@ All notable changes to the web dashboard frontend will be documented in this fil
 
 ### Fixed
 
+- Platform announcement dialogs check for pending announcements when navigating between dashboard screens. Closing one announcement no
+  longer hides subsequent announcements during the same session; the existing server-side dismissal per person and announcement remains.
 - **"eSIM" filter option in "Tipo de venta" was a dead filter** (`SalesDetail.tsx`, `SALE_TYPE_OPTIONS`). The backend no longer classifies
   eSIM sales as a sale type — eSIM is a SIM type, and eSIM sales now surface as "Línea nueva" / "Portabilidad" based on the captured
   portabilidad flag (backend `deriveSaleType`, 2026-06-08). So the "eSIM" choice in the "Tipo de venta" filter would never match any row.

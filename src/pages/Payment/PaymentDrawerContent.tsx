@@ -27,6 +27,7 @@ import { IssueRefundSheet } from './IssueRefundSheet'
 import { RefundCreditNotePanel } from './RefundCreditNotePanel'
 import { refundableItemsFromOrder } from './refundAmount'
 import { restanteTotal, saldosPorDevolver } from './refundTip'
+import { etiquetaDeMetodo } from './etiquetaDeMetodo'
 
 interface PaymentDrawerContentProps {
   paymentId: string
@@ -333,7 +334,9 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         <div className="rounded-xl border border-border/60 bg-card p-6 space-y-5">
           <div className="space-y-1">
             <h2 className="text-3xl font-semibold tracking-tight">
-              {Currency(total)} {t('detail.paid', { defaultValue: 'pagado' })}
+              {payment.type === 'REFUND'
+                ? `${Currency(Math.abs(total))} ${t('detail.status.refunded', { defaultValue: 'Reembolsado' }).toLowerCase()}`
+                : `${Currency(total)} ${t('detail.paid', { defaultValue: 'pagado' })}`}
             </h2>
             <p className="text-sm text-muted-foreground">{dateShort}</p>
           </div>
@@ -635,14 +638,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   )
 }
 
-function formatMethod(method: string | undefined, t: (key: string, opts?: any) => string): string {
-  const m = method?.toUpperCase()
-  if (m === 'CASH') return t('methods.CASH', { defaultValue: 'Efectivo' })
-  if (m === 'CREDIT_CARD') return t('methods.CREDIT_CARD', { defaultValue: 'Tarjeta de crédito' })
-  if (m === 'DEBIT_CARD') return t('methods.DEBIT_CARD', { defaultValue: 'Tarjeta de débito' })
-  if (m === 'DIGITAL_WALLET') return t('methods.DIGITAL_WALLET', { defaultValue: 'Billetera digital' })
-  return method ?? '-'
-}
+const formatMethod = etiquetaDeMetodo
 
 interface DrawerLineItem {
   name: string

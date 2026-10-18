@@ -4,8 +4,9 @@ import type { AgnosticDataRouteObject } from '@remix-run/router'
 import router from '@/routes/router'
 
 function topLevelDashboardChildren(): AgnosticDataRouteObject[] {
-  const root = router.routes[0]
-  const protectedDashboard = root.children?.find(route => route.children?.some(child => child.path === '/organizations/:orgId'))
+  const protectedDashboard = router.routes
+    .flatMap(root => root.children ?? [])
+    .find(route => route.children?.some(child => child.path === '/organizations/:orgId'))
   return (protectedDashboard?.children ?? []) as AgnosticDataRouteObject[]
 }
 

@@ -1,4 +1,6 @@
 import i18n from 'i18next'
+import publicDocumentsEn from '@/locales/en/publicDocuments.json'
+import publicDocumentsEs from '@/locales/es/publicDocuments.json'
 import { initReactI18next } from 'react-i18next'
 import testingEn from '@/locales/en/testing.json'
 import testingEs from '@/locales/es/testing.json'
@@ -875,3 +877,6 @@ export default i18n
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'serviceCourses', bundle, true, true)
 })
+
+i18n.addResourceBundle('es', 'publicDocuments', publicDocumentsEs, true, true)
+i18n.addResourceBundle('en', 'publicDocuments', publicDocumentsEn, true, true)
