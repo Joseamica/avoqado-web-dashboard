@@ -40,7 +40,10 @@ import type { VenuePromoterLocationSettings } from '@/services/organizationConfi
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import { isOrganizationOwner } from '@/lib/permissions/organizationOwner'
 import { cn } from '@/lib/utils'
+import { mensajeDelServidor4xx } from '@/utils/apiError'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,11 +105,18 @@ type ModuleKey = typeof MODULE_TOGGLES[number]['key']
 export default function OrgTpvConfigSection() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { role } = useAccess()
-  const { isOwner } = useCurrentOrganization()
+  const { isOwner, orgId } = useCurrentOrganization()
   const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN' || isOwner
   const { toast } = useToast()
+  const { user } = useAuth()
 
-  const { data: config, isLoading } = useOrgAttendanceConfig({ enabled: isOwnerPlus })
+  const { data: config, isLoading, isError, isSuccess } = useOrgAttendanceConfig({ enabled: isOwnerPlus })
+  // Esta configuración aplica a TODAS las sucursales y el servidor sólo deja cambiarla al dueño de la ORGANIZACIÓN; la
+  // página deja entrar también al OWNER de una sucursal, así que aquí se pregunta lo mismo que el servidor. Si la lectura
+  // falló —o todavía no responde (ronda 3, Codex)— tampoco se edita: el formulario tendría los valores de fábrica y
+  // guardarlos pisaría los reales.
+  const esDuenoDeLaOrg = isOrganizationOwner(user, orgId)
+  const soloLectura = !esDuenoDeLaOrg || !isSuccess
   const upsertMutation = useUpsertOrgAttendanceConfig()
   const deleteMutation = useDeleteOrgAttendanceConfig()
 
@@ -188,8 +198,8 @@ export default function OrgTpvConfigSection() {
         promoterLocationEndHour,
       })
       toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.saveSuccess') })
-    } catch {
-      toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.error'), variant: 'destructive' })
+    } catch (error) {
+      toast({ title: mensajeDelServidor4xx(error) ?? t('playtelecom:tpvConfig.orgTpvConfig.error'), variant: 'destructive' })
     }
   }, [
     upsertMutation,
@@ -222,8 +232,8 @@ export default function OrgTpvConfigSection() {
       setPromoterLocationStartHour(11)
       setPromoterLocationEndHour(18)
       toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.resetSuccess') })
-    } catch {
-      toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.error'), variant: 'destructive' })
+    } catch (error) {
+      toast({ title: mensajeDelServidor4xx(error) ?? t('playtelecom:tpvConfig.orgTpvConfig.error'), variant: 'destructive' })
     }
   }, [deleteMutation, toast, t])
 
@@ -246,7 +256,7 @@ export default function OrgTpvConfigSection() {
           {config && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground" disabled={isMutating}>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground" disabled={isMutating || soloLectura}>
                   <RotateCcw className="w-3 h-3 mr-1" />
                   {t(`${ns}.reset`)}
                 </Button>
@@ -265,15 +275,20 @@ export default function OrgTpvConfigSection() {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={handleSave} disabled={isMutating}>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={handleSave} disabled={isMutating || soloLectura}>
             {isMutating ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
             {t(`${ns}.save`)}
           </Button>
         </div>
       </div>
       <p className="text-xs text-muted-foreground mb-5">{t(`${ns}.description`)}</p>
+      {!esDuenoDeLaOrg && (
+        <p className="text-xs text-muted-foreground mb-5 rounded-lg border border-input bg-muted/40 px-3 py-2.5">{t(`${ns}.soloDuenoOrg`)}</p>
+      )}
 
-      {isLoading ? (
+      {isError ? (
+        <p className="text-xs text-destructive">{t(`${ns}.loadError`)}</p>
+      ) : isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="h-14 bg-muted/30 rounded-lg animate-pulse" />
@@ -310,7 +325,7 @@ export default function OrgTpvConfigSection() {
                     </div>
                     <Switch
                       checked={modules[mod.key]}
-                      disabled={isDisabled}
+                      disabled={isDisabled || soloLectura}
                       onCheckedChange={(checked) => handleModuleChange(mod.key, checked)}
                     />
                   </div>
@@ -332,7 +347,7 @@ export default function OrgTpvConfigSection() {
                   <Select
                     value={String(promoterLocationStartHour)}
                     onValueChange={v => setPromoterLocationStartHour(Number(v))}
-                    disabled={is24h}
+                    disabled={is24h || soloLectura}
                   >
                     <SelectTrigger className="w-28 h-8 text-sm">
                       <SelectValue />
@@ -351,7 +366,7 @@ export default function OrgTpvConfigSection() {
                   <Select
                     value={String(promoterLocationEndHour)}
                     onValueChange={v => setPromoterLocationEndHour(Number(v))}
-                    disabled={is24h}
+                    disabled={is24h || soloLectura}
                   >
                     <SelectTrigger className="w-28 h-8 text-sm">
                       <SelectValue />
@@ -366,13 +381,13 @@ export default function OrgTpvConfigSection() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-2 pb-1.5">
-                  <Switch checked={is24h} onCheckedChange={handleToggle24h} />
+                  <Switch checked={is24h} onCheckedChange={handleToggle24h} disabled={soloLectura} />
                   <span className="text-xs text-muted-foreground">{t(`${ns}.locationWindow24h`)}</span>
                 </div>
               </div>
 
               <div className="mt-4">
-                <PerVenuePromoterLocationSettings ns={ns} />
+                <PerVenuePromoterLocationSettings ns={ns} soloLectura={soloLectura} />
               </div>
             </div>
           )}
@@ -393,6 +408,7 @@ export default function OrgTpvConfigSection() {
                     type="time"
                     value={expectedCheckInTime}
                     onChange={e => setExpectedCheckInTime(e.target.value)}
+                    disabled={soloLectura}
                     className="w-40 h-8 text-sm"
                   />
                 </div>
@@ -408,6 +424,7 @@ export default function OrgTpvConfigSection() {
                       max="120"
                       value={latenessThreshold}
                       onChange={e => setLatenessThreshold(e.target.value)}
+                      disabled={soloLectura}
                       className="w-24 h-8 text-sm"
                     />
                     <span className="text-xs text-muted-foreground">{t(`${ns}.minutes`)}</span>
@@ -425,6 +442,7 @@ export default function OrgTpvConfigSection() {
                       max="5000"
                       value={geofenceRadius}
                       onChange={e => setGeofenceRadius(e.target.value)}
+                      disabled={soloLectura}
                       className="w-28 h-8 text-sm"
                     />
                     <span className="text-xs text-muted-foreground">{t(`${ns}.meters`)}</span>
@@ -436,7 +454,7 @@ export default function OrgTpvConfigSection() {
         </div>
       )}
 
-      {!isLoading && !config && (
+      {!isLoading && !isError && !config && (
         <p className="text-xs text-muted-foreground mt-3 italic">{t(`${ns}.noConfig`)}</p>
       )}
     </GlassCard>
@@ -449,7 +467,7 @@ export default function OrgTpvConfigSection() {
  * Each row saves independently via a PUT to
  * /organizations/:orgId/venues/:venueId/promoter-location-settings.
  */
-function PerVenuePromoterLocationSettings({ ns }: { ns: string }) {
+function PerVenuePromoterLocationSettings({ ns, soloLectura }: { ns: string; soloLectura: boolean }) {
   const { t } = useTranslation(['playtelecom', 'common'])
   const [open, setOpen] = useState(false)
   const { data: venues, isLoading } = useOrgPromoterLocationSettings({ enabled: open })
@@ -478,7 +496,7 @@ function PerVenuePromoterLocationSettings({ ns }: { ns: string }) {
         ) : (
           <div className="space-y-2">
             {(venues ?? []).map(venue => (
-              <VenueLocationRow key={venue.venueId} venue={venue} ns={ns} />
+              <VenueLocationRow key={venue.venueId} venue={venue} ns={ns} soloLectura={soloLectura} />
             ))}
           </div>
         )}
@@ -487,7 +505,7 @@ function PerVenuePromoterLocationSettings({ ns }: { ns: string }) {
   )
 }
 
-function VenueLocationRow({ venue, ns }: { venue: VenuePromoterLocationSettings; ns: string }) {
+function VenueLocationRow({ venue, ns, soloLectura }: { venue: VenuePromoterLocationSettings; ns: string; soloLectura: boolean }) {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { toast } = useToast()
   const updateMutation = useUpdateVenuePromoterLocationSettings()
@@ -510,7 +528,7 @@ function VenueLocationRow({ venue, ns }: { venue: VenuePromoterLocationSettings;
         { venueId: venue.venueId, data },
         {
           onSuccess: () => toast({ title: t(`${ns}.venueUpdated`) }),
-          onError: () => toast({ title: t(`${ns}.error`), variant: 'destructive' }),
+          onError: error => toast({ title: mensajeDelServidor4xx(error) ?? t(`${ns}.error`), variant: 'destructive' }),
         },
       )
     },
@@ -553,11 +571,11 @@ function VenueLocationRow({ venue, ns }: { venue: VenuePromoterLocationSettings;
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-input bg-background/50 p-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Switch checked={trackPromoterLocation} onCheckedChange={handleTrackChange} className="shrink-0" />
+        <Switch checked={trackPromoterLocation} onCheckedChange={handleTrackChange} disabled={soloLectura} className="shrink-0" />
         <p className="text-xs font-medium truncate">{venue.name}</p>
       </div>
       <div className={cn('flex items-center gap-2', !trackPromoterLocation && 'opacity-40 pointer-events-none')}>
-        <Select value={String(startHour)} onValueChange={handleStartChange} disabled={rowIs24h || !trackPromoterLocation}>
+        <Select value={String(startHour)} onValueChange={handleStartChange} disabled={soloLectura || rowIs24h || !trackPromoterLocation}>
           <SelectTrigger className="w-20 h-7 text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -569,7 +587,7 @@ function VenueLocationRow({ venue, ns }: { venue: VenuePromoterLocationSettings;
             ))}
           </SelectContent>
         </Select>
-        <Select value={String(endHour)} onValueChange={handleEndChange} disabled={rowIs24h || !trackPromoterLocation}>
+        <Select value={String(endHour)} onValueChange={handleEndChange} disabled={soloLectura || rowIs24h || !trackPromoterLocation}>
           <SelectTrigger className="w-20 h-7 text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -582,7 +600,7 @@ function VenueLocationRow({ venue, ns }: { venue: VenuePromoterLocationSettings;
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1">
-          <Switch checked={rowIs24h} onCheckedChange={handleToggle24h} disabled={!trackPromoterLocation} />
+          <Switch checked={rowIs24h} onCheckedChange={handleToggle24h} disabled={soloLectura || !trackPromoterLocation} />
           <span className="text-[10px] text-muted-foreground whitespace-nowrap">{t(`${ns}.locationWindow24h`)}</span>
         </div>
       </div>
