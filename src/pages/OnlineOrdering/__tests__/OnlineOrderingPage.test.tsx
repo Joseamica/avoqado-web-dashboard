@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ const mockStatus = vi.fn()
 vi.mock('@/hooks/use-online-ordering-status', () => ({ useOnlineOrderingStatus: () => mockStatus() }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'venue-1', fullBasePath: '/venues/t' }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
+vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatTime: (d: string) => d }) }))
 vi.mock('@/components/billing/FeatureGate', () => ({
   FeatureGate: ({ feature, children }: { feature: string; children: ReactNode }) => (
     <div data-testid="feature-gate" data-feature={feature}>
@@ -36,8 +37,21 @@ const status = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
+const EMPTY_INBOX = {
+  serverTime: '2026-10-17T18:00:00.000Z',
+  counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0 },
+  orders: [],
+  truncated: false,
+  nextCursor: null,
+  store: null,
+}
+
+const setVisibility = (v: DocumentVisibilityState) =>
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v })
+
+let qc: QueryClient
 const renderPage = (hash = '') => {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/venues/t/online-ordering${hash}`]}>
@@ -51,7 +65,34 @@ describe('OnlineOrderingPage', () => {
   beforeEach(() => {
     mockStatus.mockReset()
     getInbox.mockReset()
-    getInbox.mockResolvedValue({ orders: [], counts: {} })
+    getInbox.mockResolvedValue(EMPTY_INBOX)
+    setVisibility('visible')
+  })
+  afterEach(() => setVisibility('visible'))
+
+  it('🔴 la página monta UN solo sondeo de bandeja, y con la pestaña oculta no manda el latido', async () => {
+    setVisibility('hidden')
+    mockStatus.mockReturnValue(status())
+    renderPage()
+    await vi.waitFor(() => expect(getInbox).toHaveBeenCalled())
+    const queries = qc.getQueryCache().findAll({ queryKey: ['online-ordering', 'venue-1', 'inbox'] })
+    expect(queries).toHaveLength(1)
+    expect(queries[0].getObserversCount()).toBe(1)
+    expect(getInbox).toHaveBeenCalledTimes(1)
+    expect(getInbox).toHaveBeenCalledWith('venue-1', { tray: false })
+  })
+
+  it('🔴 keepsStoreOpen === false (p. ej. SUPERADMIN) ⇒ getInbox con tray:false', async () => {
+    mockStatus.mockReturnValue(status({ keepsStoreOpen: false }))
+    renderPage()
+    await vi.waitFor(() => expect(getInbox).toHaveBeenCalledWith('venue-1', { tray: false }))
+    expect(getInbox).not.toHaveBeenCalledWith('venue-1', { tray: true })
+  })
+
+  it('la pestaña visible con keepsStoreOpen manda el latido', async () => {
+    mockStatus.mockReturnValue(status())
+    renderPage()
+    await vi.waitFor(() => expect(getInbox).toHaveBeenCalledWith('venue-1', { tray: true }))
   })
 
   it('por omisión muestra la Bandeja, sin FeatureGate', () => {
