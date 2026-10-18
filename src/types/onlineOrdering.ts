@@ -24,6 +24,13 @@ export interface OnlineOrderingSettings {
   requirements: Record<StoreRequirement, boolean>
 }
 
+/**
+ * Respuesta del PUT /settings: los ajustes guardados. `store` y `requirements` sólo vienen si el servidor ya contesta con la
+ * vista completa del GET; el panel no debe suponerlos (se mezcla sobre la caché y se vuelve a pedir el GET).
+ */
+export type OnlineOrderingSettingsSaved = Omit<OnlineOrderingSettings, 'store' | 'requirements'> &
+  Partial<Pick<OnlineOrderingSettings, 'store' | 'requirements'>>
+
 export type OnlineOrderingSettingsInput = Pick<
   OnlineOrderingSettings,
   'enabled' | 'minOrderAmount' | 'defaultPrepMinutes' | 'acceptsPayAtPickup' | 'manualPause' | 'pausedUntil' | 'hours'

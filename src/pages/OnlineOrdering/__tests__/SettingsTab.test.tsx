@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -37,6 +37,12 @@ const base = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
+// La forma REAL del PUT de hoy: los ajustes, SIN `store` ni `requirements` (sólo el GET los trae).
+const putToday = (over: Record<string, unknown> = {}) => {
+  const { store: _store, requirements: _requirements, ...rest } = base(over)
+  return rest
+}
+
 const renderTab = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -54,6 +60,7 @@ describe('SettingsTab', () => {
     updateSettings.mockReset()
     toast.mockReset()
   })
+  afterEach(() => vi.unstubAllGlobals())
 
   it('rehidrata el formulario y Guardar empieza deshabilitado', async () => {
     getSettings.mockResolvedValue(base())
@@ -78,6 +85,38 @@ describe('SettingsTab', () => {
     fireEvent.change(input, { target: { value: '80' } })
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 }))
+  })
+
+  it('🔴 guardar con la respuesta REAL del PUT (sin store ni requirements) no tira la pestaña y vuelve a pedir el GET', async () => {
+    getSettings.mockResolvedValueOnce(base()).mockResolvedValue(base({ minOrderAmount: 80 }))
+    updateSettings.mockResolvedValue(putToday({ minOrderAmount: 80 }))
+    renderTab()
+    fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '80' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' })
+    // La pestaña sigue en pie: estado de la tienda, formulario con lo guardado y Guardar otra vez apagado.
+    expect(await screen.findByText('settings.status.DISABLED|DISABLED')).toBeInTheDocument()
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled())
+  })
+
+  it('guardar con la respuesta COMPLETA del PUT (con store y requirements) también deja la pestaña en pie', async () => {
+    const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValueOnce(base()).mockResolvedValue(base({ enabled: true, store: open }))
+    updateSettings.mockResolvedValue(base({ enabled: true, store: open }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    expect(await screen.findByText('settings.status.OPEN|OPEN')).toBeInTheDocument()
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+  })
+
+  it('si el servidor llega a contestar sin store, la pestaña no truena', async () => {
+    getSettings.mockResolvedValue(putToday())
+    renderTab()
+    expect(await screen.findByLabelText('settings.minOrder')).toHaveValue(50)
+    expect(screen.getByText('settings.status.label', { exact: false })).toBeInTheDocument()
   })
 
   it('pedido mínimo vacío no manda 0', async () => {
@@ -176,4 +215,31 @@ describe('SettingsTab', () => {
     expect(snippet).not.toContain('<iframe')
     expect(screen.getByTitle('settings.share.previewTitle')).toHaveAttribute('src', link)
   })
+
+  // ── Ronda final · D3: la tienda sólo se deja enmarcar desde el panel principal ──
+  const openedFrom = (origin: string) => {
+    const url = new URL(origin)
+    vi.stubGlobal('location', { ...window.location, origin: url.origin, hostname: url.hostname, href: `${url.origin}/` })
+  }
+
+  it.each(['https://dashboard.avoqado.io', 'http://localhost:5173'])('la vista previa (iframe) se ve desde %s', async origin => {
+    openedFrom(origin)
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    expect(await screen.findByTitle('settings.share.previewTitle')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'settings.share.openInTab' })).toBeNull()
+  })
+
+  it.each(['https://demo.dashboard.avoqado.io', 'https://dashboardv2.avoqado.io', 'https://staging.dashboard.avoqado.io'])(
+    '🔴 desde %s no hay iframe (la tienda lo rechaza): hay una liga «Abrir la tienda en otra pestaña»',
+    async origin => {
+      openedFrom(origin)
+      getSettings.mockResolvedValue(base())
+      renderTab()
+      const link = await screen.findByRole('link', { name: 'settings.share.openInTab' })
+      expect(link).toHaveAttribute('href', 'https://pedidos.avoqado.io/taqueria')
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(screen.queryByTitle('settings.share.previewTitle')).toBeNull()
+    },
+  )
 })

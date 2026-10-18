@@ -11,6 +11,7 @@ import type {
   MenuProductsPage,
   OnlineOrderingSettings,
   OnlineOrderingSettingsInput,
+  OnlineOrderingSettingsSaved,
   PauseMinutes,
   RejectReason,
 } from '@/types/onlineOrdering'
@@ -27,8 +28,10 @@ export const onlineOrderingKeys = {
 export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
   (await api.get(`${base(venueId)}/settings`)).data.data
 
-export const updateSettings = async (venueId: string, patch: Partial<OnlineOrderingSettingsInput>): Promise<OnlineOrderingSettings> =>
-  (await api.put(`${base(venueId)}/settings`, patch)).data.data
+export const updateSettings = async (
+  venueId: string,
+  patch: Partial<OnlineOrderingSettingsInput>,
+): Promise<OnlineOrderingSettingsSaved> => (await api.put(`${base(venueId)}/settings`, patch)).data.data
 
 export const getMenuCategories = async (venueId: string): Promise<MenuCategoriesSummary> =>
   (await api.get(`${base(venueId)}/menu/categories`)).data.data

@@ -7,6 +7,9 @@ import type { InboxOrder } from '@/types/onlineOrdering'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
+/** Cerrados SIN cobro: nunca hubo (ni habrá) dinero que cobrar al recoger. */
+const NO_CHARGE: ReadonlySet<string> = new Set(['REJECTED', 'EXPIRED', 'CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF'])
+
 export type OrderAction = 'accept' | 'reject' | 'ready' | 'delivered' | 'cancel'
 
 /** Cuenta regresiva al vencimiento con el reloj del SERVIDOR (`skewMs` = hora del servidor − reloj local). */
@@ -36,7 +39,8 @@ interface Props {
 export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, onAction }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { formatTime } = useVenueDateTime()
-  const owes = order.remaining > 0
+  const noCharge = NO_CHARGE.has(order.status)
+  const owes = !noCharge && order.remaining > 0
   const isPending = order.status === 'PENDING_ACCEPTANCE'
   const isActive = order.status === 'ACCEPTED' || order.status === 'READY'
   const isDone = !isPending && !isActive
@@ -47,16 +51,22 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, onAction 
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-lg font-semibold">#{order.orderNumber}</span>
-            <Badge variant="outline">{t('inbox.card.pickup')}</Badge>
+            <Badge variant="outline" className="whitespace-nowrap">
+              {t('inbox.card.pickup')}
+            </Badge>
           </div>
           {order.customerName && <p className="truncate text-sm font-medium">{order.customerName}</p>}
           {order.customerPhone && <p className="text-sm text-muted-foreground">{order.customerPhone}</p>}
         </div>
         <div className="shrink-0 text-right text-sm text-muted-foreground">
           <p>{formatTime(order.createdAt)}</p>
-          {isPending && order.acceptDeadlineAt && <Countdown deadline={order.acceptDeadlineAt} skewMs={skewMs} />}
         </div>
       </div>
+      {isPending && order.acceptDeadlineAt && (
+        <p className="text-sm">
+          <Countdown deadline={order.acceptDeadlineAt} skewMs={skewMs} />
+        </p>
+      )}
 
       <ul className="space-y-1 text-sm">
         {order.items.map((item, i) => (
@@ -86,7 +96,11 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, onAction 
         <span className="font-semibold">{Currency(order.total)}</span>
       </div>
       <p className={owes ? 'text-sm font-medium' : 'text-sm text-muted-foreground'}>
-        {owes ? t('inbox.card.payAtPickup', { amount: Currency(order.remaining) }) : t('inbox.card.paid')}
+        {noCharge
+          ? t('inbox.card.noCharge')
+          : owes
+            ? t('inbox.card.payAtPickup', { amount: Currency(order.remaining) })
+            : t('inbox.card.paid')}
       </p>
 
       {isDone && <Badge variant="secondary">{t(`inbox.card.status.${order.status}`, { defaultValue: order.status })}</Badge>}

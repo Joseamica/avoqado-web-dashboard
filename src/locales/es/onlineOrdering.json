@@ -80,7 +80,8 @@
       "snippetHelp": "Pega este código en tu página. Si tu sitio no acepta scripts, usa la liga o un botón que la abra.",
       "copySnippet": "Copiar código",
       "preview": "Vista previa",
-      "previewTitle": "Vista previa de la tienda"
+      "previewTitle": "Vista previa de la tienda",
+      "openInTab": "Abrir la tienda en otra pestaña"
     },
     "minOrderErrors": {
       "range": "El pedido mínimo va de $0 a $100,000",
@@ -127,6 +128,10 @@
     "offline": "Sin conexión: no llegan pedidos nuevos",
     "keepsOpen": "Mientras esta pestaña esté abierta y visible, tu tienda recibe pedidos; si nadie la tiene a la vista, se pausa sola a los 2 minutos.",
     "viewOnly": "Puedes ver los pedidos, pero tu cuenta no mantiene abierta la tienda.",
+    "status": {
+      "noPlan": "Sin plan: no llegan pedidos nuevos",
+      "offlineNobody": "Nadie con permiso de contestar tiene la Bandeja abierta"
+    },
     "sections": {
       "pending": "Por aceptar",
       "accepted": "En preparación",
@@ -146,6 +151,7 @@
       "total": "Total (IVA incluido)",
       "payAtPickup": "Cobrar al recoger {{amount}}",
       "paid": "Pagado",
+      "noCharge": "Sin cobro",
       "collectFirst": "Falta cobrarlo",
       "deadline": "Quedan {{time}} para aceptar",
       "expired": "Se acabó el tiempo para aceptar",
