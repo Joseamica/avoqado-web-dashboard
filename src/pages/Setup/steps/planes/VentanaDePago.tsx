@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -14,6 +14,8 @@ interface VentanaDePagoProps {
   onCerrar: () => void
   /** `false` con un cobro en vuelo: ni Esc ni la X cierran. */
   puedeCerrar: boolean
+  /** A dónde va el foco al cerrar si el botón que la abrió ya no está en la página (p. ej. «Confirmar mi pago»). */
+  focoDeRespaldo?: RefObject<HTMLElement>
   titulo: string
   subtitulo: string
   hoyPagasCents: number
@@ -35,6 +37,7 @@ export function VentanaDePago({
   abierta,
   onCerrar,
   puedeCerrar,
+  focoDeRespaldo,
   titulo,
   subtitulo,
   hoyPagasCents,
@@ -60,12 +63,22 @@ export function VentanaDePago({
       <Dialog.Portal>
         <div data-testid="fondo-ventana-de-pago" aria-hidden="true" className="fixed inset-0 z-50 bg-background/80" />
         <Dialog.Content
-          onOpenAutoFocus={() => {
-            abrio.current = document.activeElement as HTMLElement | null
+          // M4: el fondo tapa la página y lo de atrás queda `inert`, así que para un lector de pantalla es modal. 🔴 Salvo
+          // con un cobro en vuelo: el reto 3D Secure del banco se monta FUERA de esta ventana, y Safari/VoiceOver esconde
+          // todo lo que queda fuera de un `aria-modal` (el reto quedaría mudo).
+          aria-modal={puedeCerrar}
+          onOpenAutoFocus={event => {
+            // Si quien la abrió se desmontó al abrirla, el foco ya cayó al <body>: ése no cuenta como «quien la abrió».
+            const activo = document.activeElement as HTMLElement | null
+            abrio.current = activo && activo !== document.body ? activo : null
+            // M4: el foco va a la ventana misma (se leen primero su título y su descripción), no a la X.
+            event.preventDefault()
+            ;(event.currentTarget as HTMLElement | null)?.focus()
           }}
           onCloseAutoFocus={event => {
             event.preventDefault()
-            abrio.current?.focus()
+            // M6: si el botón que la abrió ya no está, al respaldo; sin esto el foco se perdía en el <body>.
+            ;(abrio.current?.isConnected ? abrio.current : focoDeRespaldo?.current)?.focus()
           }}
           onInteractOutside={event => event.preventDefault()}
           onEscapeKeyDown={event => {
@@ -73,7 +86,7 @@ export function VentanaDePago({
           }}
           className={cn(
             // `overscroll-contain`: el desplazamiento de la ventana no arrastra la página de atrás.
-            'fixed z-50 flex max-h-[90dvh] w-full flex-col gap-4 overflow-y-auto overscroll-contain border border-border bg-card p-6 text-card-foreground shadow-lg',
+            'fixed z-50 flex max-h-[90dvh] w-full flex-col gap-4 overflow-y-auto overscroll-contain border border-border bg-card p-6 text-card-foreground shadow-lg outline-none',
             // En celular, el botón de pagar no queda bajo la barra de inicio del iPhone.
             esCelular
               ? 'inset-x-0 bottom-0 rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]'

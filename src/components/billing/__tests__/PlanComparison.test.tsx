@@ -84,5 +84,11 @@ describe('PlanComparison', () => {
       expect(screen.getByRole('table')).toBeInTheDocument()
       expect(screen.queryAllByTestId(/^compare-.*-FREE$/)).toHaveLength(0)
     })
+
+    it('siempreAbierta (el diálogo del alta): desplegada y SIN el botón de ocultar, que dejaba el diálogo vacío', () => {
+      render(<PlanComparison ocultarGratis siempreAbierta />)
+      expect(screen.getByRole('table')).toBeInTheDocument()
+      expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    })
   })
 })

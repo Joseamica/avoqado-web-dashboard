@@ -9,7 +9,7 @@ import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18next from 'i18next'
-import { useState, type ComponentProps } from 'react'
+import { useRef, useState, type ComponentProps } from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import esCommon from '@/locales/es/common.json'
@@ -73,6 +73,36 @@ function ConBotonQueAbre({ puedeCerrar = true }: { puedeCerrar?: boolean }) {
         abierta={abierta}
         onCerrar={() => setAbierta(false)}
         puedeCerrar={puedeCerrar}
+        titulo="Empieza tu prueba de Pro"
+        subtitulo="30 días gratis."
+        hoyPagasCents={0}
+        legal="Legal"
+      >
+        <input aria-label="Tarjeta" />
+      </VentanaDePago>
+    </I18nextProvider>
+  )
+}
+
+/** Como «Confirmar mi pago»: el botón que la abre desaparece al abrirla, y el título de la página es el respaldo. */
+function ConAbridorQueDesaparece() {
+  const [abierta, setAbierta] = useState(false)
+  const titulo = useRef<HTMLHeadingElement>(null)
+  return (
+    <I18nextProvider i18n={i18n}>
+      <h1 ref={titulo} tabIndex={-1}>
+        Elige tu plan
+      </h1>
+      {!abierta && (
+        <button type="button" onClick={() => setAbierta(true)}>
+          Confirmar mi pago
+        </button>
+      )}
+      <VentanaDePago
+        abierta={abierta}
+        onCerrar={() => setAbierta(false)}
+        puedeCerrar
+        focoDeRespaldo={titulo}
         titulo="Empieza tu prueba de Pro"
         subtitulo="30 días gratis."
         hoyPagasCents={0}
@@ -156,6 +186,29 @@ describe('VentanaDePago', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     await waitFor(() => expect(abrir).toHaveFocus())
+  })
+
+  it('M6: si quien la abrió ya no está en la página, al cerrar el foco va al respaldo (no se pierde en el <body>)', async () => {
+    render(<ConAbridorQueDesaparece />)
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar mi pago' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Elige tu plan' })).toHaveFocus())
+  })
+
+  it('M4: se declara modal y, al abrir, el foco va a la ventana misma (título y descripción primero), no a la X', async () => {
+    render(<ConBotonQueAbre />)
+    await userEvent.click(screen.getByRole('button', { name: 'Elegir Pro' }))
+    const ventana = screen.getByRole('dialog')
+    expect(ventana).toHaveAttribute('aria-modal', 'true')
+    await waitFor(() => expect(ventana).toHaveFocus())
+    expect(screen.getByRole('button', { name: 'Cerrar' })).not.toHaveFocus()
+  })
+
+  it('🔴 con un cobro en vuelo NO se declara modal: el reto 3D Secure del banco vive FUERA de la ventana', () => {
+    render(<Ventana puedeCerrar={false} />)
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'false')
   })
 
   it('en computadora va centrada; en celular, pegada abajo (bottom-0)', () => {
