@@ -95,7 +95,7 @@ export function SettingsTab() {
   const [serverMissing, setServerMissing] = useState<StoreRequirement[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const { data: settings, isLoading, isError } = useQuery({
+  const { data: settings, isLoading } = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
     queryFn: () => getSettings(venueId!),
     enabled: !!venueId,
@@ -143,7 +143,8 @@ export function SettingsTab() {
   })
 
   if (isLoading || !venueId) return <Skeleton className="h-64 w-full rounded-xl" />
-  if (isError || !settings || !saved) return <p className="text-sm text-destructive">{t('settings.loadFailed')}</p>
+  // Un refetch fallido deja `isError` en true CON los datos de antes: la pestaña sigue en pie; el error sólo si nunca hubo datos.
+  if (!settings || !saved) return <p className="text-sm text-destructive">{t('settings.loadFailed')}</p>
 
   const onSubmit = handleSubmit(values => {
     if (hourErrors.length) return

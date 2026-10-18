@@ -216,13 +216,21 @@ describe('SettingsTab', () => {
     expect(screen.getByTitle('settings.share.previewTitle')).toHaveAttribute('src', link)
   })
 
-  // ── Ronda final · D3: la tienda sólo se deja enmarcar desde el panel principal ──
+  // ── Ronda final · D3 (+ ronda 1): la vista previa sólo en los orígenes que la tienda deja enmarcar ──
+  // La lista debe coincidir con `frame-ancestors` de `avoqado-booking-widget/public/_headers`.
   const openedFrom = (origin: string) => {
     const url = new URL(origin)
     vi.stubGlobal('location', { ...window.location, origin: url.origin, hostname: url.hostname, href: `${url.origin}/` })
   }
 
-  it.each(['https://dashboard.avoqado.io', 'http://localhost:5173'])('la vista previa (iframe) se ve desde %s', async origin => {
+  it.each([
+    'https://dashboard.avoqado.io',
+    'https://dashboardv2.avoqado.io',
+    'https://demo.dashboard.avoqado.io',
+    'https://staging.dashboard.avoqado.io',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+  ])('la vista previa (iframe) se ve desde %s', async origin => {
     openedFrom(origin)
     getSettings.mockResolvedValue(base())
     renderTab()
@@ -230,8 +238,8 @@ describe('SettingsTab', () => {
     expect(screen.queryByRole('link', { name: 'settings.share.openInTab' })).toBeNull()
   })
 
-  it.each(['https://demo.dashboard.avoqado.io', 'https://dashboardv2.avoqado.io', 'https://staging.dashboard.avoqado.io'])(
-    '🔴 desde %s no hay iframe (la tienda lo rechaza): hay una liga «Abrir la tienda en otra pestaña»',
+  it.each(['https://otro.example.com', 'https://dashboard.avoqado.io.evil.example', 'http://dashboard.avoqado.io'])(
+    '🔴 desde %s (origen que la tienda no deja enmarcar) no hay iframe: hay una liga «Abrir la tienda en otra pestaña»',
     async origin => {
       openedFrom(origin)
       getSettings.mockResolvedValue(base())
@@ -242,4 +250,24 @@ describe('SettingsTab', () => {
       expect(screen.queryByTitle('settings.share.previewTitle')).toBeNull()
     },
   )
+
+  // ── Ronda 1 de la revisión · D1: un refetch fallido tras guardar no tumba la pestaña ──
+  it('🔴 si la recarga tras guardar falla, la pestaña sigue en pie con los datos guardados', async () => {
+    getSettings.mockResolvedValueOnce(base()).mockRejectedValue(new Error('Network Error'))
+    updateSettings.mockResolvedValue(putToday({ minOrderAmount: 80 }))
+    renderTab()
+    fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '80' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' })
+    await new Promise(r => setTimeout(r, 30))
+    expect(screen.queryByText('settings.loadFailed')).toBeNull()
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+  })
+
+  it('si NUNCA hubo datos y el GET falla, sí dice «No se pudo cargar»', async () => {
+    getSettings.mockRejectedValue(new Error('Network Error'))
+    renderTab()
+    expect(await screen.findByText('settings.loadFailed')).toBeInTheDocument()
+  })
 })
