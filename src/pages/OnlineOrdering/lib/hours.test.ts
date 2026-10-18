@@ -20,6 +20,9 @@ describe('hours', () => {
     expect(validateWeek(week([{ open: '', close: '' }]))).toEqual(['incompleteRange'])
     expect(validateWeek(week([], false))).toEqual([])
   })
+  it('09:00–09:00 no genera nota de madrugada', () => {
+    expect(overnightNotes(week([{ open: '09:00', close: '09:00' }]))).toEqual([])
+  })
   it('viernes 22:00–02:00 cierra el sábado a las 2:00', () => {
     const w = week([{ open: '22:00', close: '02:00' }])
     expect(validateWeek(w)).toEqual([])

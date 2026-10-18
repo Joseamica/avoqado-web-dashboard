@@ -80,6 +80,10 @@
       "copySnippet": "Copiar código",
       "preview": "Vista previa",
       "previewTitle": "Vista previa de la tienda"
+    },
+    "minOrderErrors": {
+      "range": "El pedido mínimo va de $0 a $100,000",
+      "decimals": "Usa máximo 2 decimales"
     }
   }
 }

@@ -80,6 +80,10 @@
       "copySnippet": "Copy code",
       "preview": "Preview",
       "previewTitle": "Store preview"
+    },
+    "minOrderErrors": {
+      "range": "Minimum order must be between $0 and $100,000",
+      "decimals": "Use at most 2 decimals"
     }
   }
 }

@@ -86,6 +86,31 @@ describe('SettingsTab', () => {
     expect(updateSettings.mock.calls[0][1]).toEqual({ manualPause: true })
   })
 
+  it('pedido mínimo fuera de rango muestra el error y no llama updateSettings', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '200000' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    expect(await screen.findByText('settings.minOrderErrors.range')).toBeInTheDocument()
+    expect(updateSettings).not.toHaveBeenCalled()
+  })
+
+  it('pedido mínimo con 3 decimales muestra error de decimales', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '80.555' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    expect(await screen.findByText('settings.minOrderErrors.decimals')).toBeInTheDocument()
+    expect(updateSettings).not.toHaveBeenCalled()
+  })
+
+  it('vaciar el mínimo sin otro cambio deja Guardar deshabilitado', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '' } })
+    expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
+  })
+
   it('con phone:false «Encender» está deshabilitado y se ve la liga del faltante', async () => {
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: false, privacyNotice: true } }))
     renderTab()
