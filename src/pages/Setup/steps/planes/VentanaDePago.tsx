@@ -72,8 +72,12 @@ export function VentanaDePago({
             if (!puedeCerrar) event.preventDefault()
           }}
           className={cn(
-            'fixed z-50 flex max-h-[90dvh] w-full flex-col gap-4 overflow-y-auto border border-border bg-card p-6 text-card-foreground shadow-lg',
-            esCelular ? 'inset-x-0 bottom-0 rounded-t-2xl' : 'left-1/2 top-1/2 max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl',
+            // `overscroll-contain`: el desplazamiento de la ventana no arrastra la página de atrás.
+            'fixed z-50 flex max-h-[90dvh] w-full flex-col gap-4 overflow-y-auto overscroll-contain border border-border bg-card p-6 text-card-foreground shadow-lg',
+            // En celular, el botón de pagar no queda bajo la barra de inicio del iPhone.
+            esCelular
+              ? 'inset-x-0 bottom-0 rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]'
+              : 'left-1/2 top-1/2 max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl',
           )}
         >
           <div className="flex items-start justify-between gap-4">

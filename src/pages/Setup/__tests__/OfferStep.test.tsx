@@ -1,16 +1,21 @@
 /**
- * La pantalla de la oferta, RENDERIZADA (§4.5).
+ * La pantalla de planes del alta con la oferta del anuncio, RENDERIZADA (§4.5 y diseño D del 17-oct).
  *
  * 🔴 Es la pantalla donde se cobra. Lo que estas pruebas fijan:
  *  1. Pinta EXACTAMENTE los montos del servidor y manda de vuelta el mismo `firstChargeCents`.
  *  2. Un rechazo de tarjeta (402) NO avanza y NO escribe el respaldo `step/10` — escribirlo
  *     dejaría `v2SetupData.plan` listo para que el camino legacy cobre a precio de lista.
  *  3. Ningún 409 es un callejón: los dos «ya tienes plan» ofrecen un botón que TERMINA el alta.
- *  4. Una oferta que ya no está disponible NO se reintenta sola: se avisa y se enseña la vista
- *     estándar, donde el precio normal hay que volver a tocarlo.
+ *  4. Una oferta que ya no está disponible NO se reintenta sola: se cierra la ventana, se avisa y
+ *     las tarjetas pasan a la prueba de 30 días, donde el precio normal hay que volver a tocarlo.
+ *  5. Con un cobro sin respuesta definitiva el plan no se cambia: las tarjetas se apagan y la
+ *     ventana no se cierra.
+ *
+ * Las cadenas son las REALES de `setup.json` (ver `traduccionesDePrueba`). Para pagar, primero se abre
+ * la ventana con «Elegir Pro por $22.00», como el cliente.
  */
 import { useEffect, useState } from 'react'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -63,22 +68,7 @@ vi.mock('@stripe/react-stripe-js', () => ({
   useStripe: () => ({ confirmSetup: (...a: unknown[]) => confirmSetup(...a) }),
   useElements: () => ({ secret: secretMontado.actual }),
 }))
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (k: string, o?: any) => {
-      const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
-      return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
-    },
-    i18n: { language: 'es' },
-  }),
-}))
-vi.mock('../steps/PlanStep', () => ({
-  PlanStep: ({ quote }: { quote?: any }) => (
-    <div data-testid="plan-step-estandar">
-      <span>{`estandar:${quote?.tiers?.PRO?.monthlyCents ?? 'sin-cotizacion'}`}</span>
-    </div>
-  ),
-}))
+vi.mock('react-i18next', () => import('./traduccionesDePrueba'))
 
 import { OfferStep } from '../steps/OfferStep'
 import type { LaunchOfferView, PlanQuote } from '../launchOffer.types'
@@ -116,6 +106,19 @@ const QUOTE: PlanQuote = {
   },
 }
 
+const EXITO = {
+  data: {
+    data: {
+      status: 'ACTIVE',
+      alreadyActive: false,
+      tier: 'PRO',
+      interval: 'monthly',
+      firstChargeCents: 2200,
+      nextChargeAt: '2026-10-17T00:00:00.000Z',
+    },
+  },
+}
+
 function errorHttp(status: number, code: string, extra: Record<string, unknown> = {}) {
   return { response: { status, data: { code, message: `mensaje-${code}`, ...extra } } }
 }
@@ -139,11 +142,19 @@ function pintar(props: Partial<React.ComponentProps<typeof OfferStep>> = {}) {
   )
 }
 
-async function pagar() {
-  const user = userEvent.setup()
+/** Abre la ventana del plan de la campaña, como el cliente: «Elegir Pro por $22.00». */
+async function abrirLaOferta(user = userEvent.setup()) {
+  await user.click(await screen.findByRole('button', { name: 'Elegir Pro por $22.00' }))
   await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+  return user
+}
+
+async function pagar() {
+  const user = await abrirLaOferta()
   await user.click(screen.getByRole('button', { name: /pagar/i }))
 }
+
+const elegirPremium = () => screen.getByRole('button', { name: 'Elegir Premium' })
 
 beforeEach(() => {
   activatePlan.mockReset()
@@ -158,59 +169,181 @@ beforeEach(() => {
 })
 
 describe('OfferStep — lo que pinta', () => {
-  it('pinta los montos del servidor: promo, meses, renovación, IVA y lo que se cobra hoy', async () => {
+  it('pinta los montos del servidor: promo, meses, renovación y, en la ventana, lo que se cobra hoy', async () => {
     pintar()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(await screen.findByText('$22.00 al mes por 3 meses')).toBeInTheDocument()
+    expect(screen.getByText(/Después \$999\.00 \+ IVA = \$1,158\.84 al mes/)).toBeInTheDocument()
 
-    expect(screen.getAllByText(/\$22\.00/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/3 meses/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/\$1,158\.84/).length).toBeGreaterThan(0)
-    expect(screen.getByText('$3.03')).toBeInTheDocument()
-    expect(screen.getByText(/Hoy pagas/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Pagar \$22\.00 y entrar/i })).toBeInTheDocument()
+    await abrirLaOferta()
+    const ventana = screen.getByRole('dialog')
+    expect(within(ventana).getByText('Tu oferta: $22.00 al mes por 3 meses')).toBeInTheDocument()
+    expect(within(ventana).getByText('Hoy pagas')).toBeInTheDocument()
+    expect(within(ventana).getByText('$22.00')).toBeInTheDocument()
+    expect(within(ventana).getByRole('button', { name: 'Pagar $22.00 y entrar' })).toBeInTheDocument()
+    // El legal de la campaña (`offer.legal`) con los montos de `launchOffer`.
+    expect(
+      within(ventana).getByText(/autorizas a Avoqado a cobrar \$22\.00 al mes durante 3 meses y después \$1,158\.84/),
+    ).toBeInTheDocument()
   })
 
-  it('el desglose de IVA solo sale si el servidor lo mandó', async () => {
-    const sinIva = { ...OFERTA, promo: { ...OFERTA.promo, ivaCents: 0 } }
-    pintar({ launchOffer: sinIva })
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    expect(screen.queryByText('$3.03')).not.toBeInTheDocument()
+  it('una campaña de 1 mes dice «1 mes», nunca «1 meses»', async () => {
+    pintar({ launchOffer: { ...OFERTA, promo: { ...OFERTA.promo, months: 1 } } })
+    expect(await screen.findByText('$22.00 al mes por 1 mes')).toBeInTheDocument()
+    await abrirLaOferta()
+    expect(within(screen.getByRole('dialog')).getByText('Tu oferta: $22.00 al mes por 1 mes')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/1 meses/)
   })
 
-  it('este camino NO ofrece prueba gratis: un solo botón', async () => {
+  it('la ventana de la oferta NO ofrece prueba gratis: un solo botón, el de pagar', async () => {
     pintar()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    expect(screen.queryByText(/30 días gratis/i)).not.toBeInTheDocument()
+    await abrirLaOferta()
+    const ventana = screen.getByRole('dialog')
+    expect(within(ventana).queryByText(/30 días gratis/i)).not.toBeInTheDocument()
+    expect(within(ventana).getAllByRole('button', { name: /pagar|gratis/i })).toHaveLength(1)
   })
 
-  it('una oferta reclamada pero NO disponible avisa y enseña la vista estándar', async () => {
+  it('una oferta reclamada pero NO disponible avisa y enseña las tarjetas sin campaña', async () => {
     pintar({ launchOffer: { code: 'POS22', slug: 'pos-22', available: false, unavailableReason: 'SOLD_OUT' } })
-    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
-    expect(screen.getByText(/POS22/)).toBeInTheDocument()
+    expect(await screen.findByText('La oferta POS22 ya no está disponible.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Elegir Pro' })).toBeInTheDocument()
+    expect(screen.queryByText('Oferta de tu anuncio')).not.toBeInTheDocument()
     expect(activatePlan).not.toHaveBeenCalled()
   })
 
-  it('sin campaña abre directo en la vista estándar con la cotización del servidor', async () => {
+  it('sin campaña abre en las 3 tarjetas con la cotización del servidor', async () => {
     pintar({ launchOffer: null })
-    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
-    expect(screen.getByText('estandar:115884')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Elige tu plan' })).toBeInTheDocument()
+    expect(screen.getByText('Pro y Premium: 30 días gratis. Cancela antes y no se te cobra.')).toBeInTheDocument()
+    expect(screen.getByText('Luego $1,158.84 con IVA al mes')).toBeInTheDocument()
+    expect(screen.getByText('Recomendado')).toBeInTheDocument()
+  })
+
+  it('🔴 no existe ningún «Gratis» ni «Continuar con el plan Gratis» en el paso (con y sin campaña)', async () => {
+    const { unmount } = pintar()
+    await screen.findByRole('button', { name: 'Elegir Pro por $22.00' })
+    expect(document.body.textContent).not.toMatch(/Gratis/)
+    expect(screen.queryByRole('button', { name: /plan Gratis/i })).not.toBeInTheDocument()
+    unmount()
+
+    pintar({ launchOffer: null })
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Elegir Pro' }))
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(document.body.textContent).not.toMatch(/Gratis/)
+  })
+
+  it('avisa al asistente que se ven los planes: siempre, para ensanchar la columna', async () => {
+    const onVistaDePlanes = vi.fn()
+    pintar({ onVistaDePlanes })
+    await waitFor(() => expect(onVistaDePlanes).toHaveBeenCalledWith(true))
+    expect(onVistaDePlanes).not.toHaveBeenCalledWith(false)
+  })
+})
+
+describe('OfferStep — el pie de las tarjetas', () => {
+  it('«Comparar todo lo que incluye cada plan» abre la comparación, ya desplegada y sin Gratis', async () => {
+    pintar()
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Comparar todo lo que incluye cada plan' }))
+    const ventana = await screen.findByRole('dialog', { name: 'Qué incluye cada plan' })
+    expect(within(ventana).getByRole('table')).toBeInTheDocument()
+    expect(ventana.textContent).not.toMatch(/Gratis/)
+  })
+
+  it('«¿No tienes tarjeta? Escríbenos» abre WhatsApp de ventas con su texto', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    pintar()
+    await userEvent.setup().click(await screen.findByRole('button', { name: '¿No tienes tarjeta? Escríbenos' }))
+    expect(abrir).toHaveBeenCalledWith(expect.stringContaining('wa.me'), '_blank', 'noopener,noreferrer')
+    expect(decodeURIComponent(String(abrir.mock.calls[0][0]))).toContain('no tengo tarjeta')
+  })
+})
+
+describe('OfferStep — la ventana para pagar', () => {
+  it('🔴 mientras la ventana está abierta, las tarjetas y el pie quedan `inert` (Tab no llega a «Elegir…»)', async () => {
+    pintar()
+    const user = await abrirLaOferta()
+    expect(screen.getByTestId('planes-del-alta')).toHaveAttribute('inert')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByTestId('planes-del-alta')).not.toHaveAttribute('inert')
+  })
+
+  it('🔴 Review Focus 2: con un 503 en curso, Esc NO cierra la ventana y la X está apagada', async () => {
+    activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
+    pintar()
+    const user = await abrirLaOferta()
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+    expect(await screen.findByText(/Confirmando tu pago/i)).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cerrar|close/i })).toBeDisabled()
+  })
+
+  it('🔴 Review Focus 3: OFFER_CHANGED con la ventana abierta la cierra, avisa, quita la oferta y NO reintenta', async () => {
+    activatePlan.mockRejectedValue(errorHttp(409, 'OFFER_CHANGED', {}))
+    pintar()
+    await pagar()
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('La oferta cambió. Revisa el precio nuevo antes de continuar.')).toBeInTheDocument()
+    const pro = document.querySelector<HTMLElement>('[data-plan="PRO"]')!
+    expect(within(pro).queryByText('Oferta de tu anuncio')).not.toBeInTheDocument()
+    expect(within(pro).getByRole('button', { name: 'Elegir Pro' })).toBeEnabled()
+    expect(activatePlan).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 (Codex r1 P2) OFFER_CHANGED → reabrir «Elegir Pro» usa un SetupIntent NUEVO y cobra la prueba STANDARD', async () => {
+    planSetupIntent
+      .mockReset()
+      .mockResolvedValueOnce({ data: { data: { clientSecret: 'seti_1' } } })
+      .mockResolvedValue({ data: { data: { clientSecret: 'seti_2' } } })
+    activatePlan.mockRejectedValueOnce(errorHttp(409, 'OFFER_CHANGED', {})).mockResolvedValueOnce({
+      data: { data: { ...EXITO.data.data, firstChargeCents: 0 } },
+    })
+    pintar()
+    const user = await abrirLaOferta()
+    expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_1')
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(planSetupIntent).toHaveBeenCalledTimes(2))
+
+    await user.click(screen.getByRole('button', { name: 'Elegir Pro' }))
+    await waitFor(() => expect(screen.getByTestId('elements')).toHaveAttribute('data-secret', 'seti_2'))
+    await user.click(screen.getByRole('button', { name: 'Empezar mis 30 días gratis' }))
+
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+    expect(activatePlan.mock.calls[1]).toEqual([
+      'org_1',
+      {
+        tier: 'PRO',
+        interval: 'monthly',
+        payNow: false,
+        paymentMethodId: 'pm_123',
+        offer: { kind: 'STANDARD', expectedFirstChargeCents: 0 },
+        language: 'es',
+      },
+    ])
+    expect(confirmSetup.mock.calls[1][0].elements.secret).toBe('seti_2')
+    await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+  })
+
+  it('SetupIntent que falla: «Reintentar» y WhatsApp, nunca Gratis', async () => {
+    planSetupIntent.mockReset().mockRejectedValue(new Error('404'))
+    pintar()
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Elegir Pro por $22.00' }))
+    const ventana = screen.getByRole('dialog')
+    expect(await within(ventana).findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(within(ventana).getByText('No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.')).toBeInTheDocument()
+    expect(within(ventana).getByRole('button', { name: '¿Problemas? Escríbenos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '¿No tienes tarjeta? Escríbenos' })).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/Gratis/)
   })
 })
 
 describe('OfferStep — el cobro', () => {
   it('manda EXACTAMENTE el cuerpo del contrato y avisa al asistente', async () => {
-    activatePlan.mockResolvedValue({
-      data: {
-        data: {
-          status: 'ACTIVE',
-          alreadyActive: false,
-          tier: 'PRO',
-          interval: 'monthly',
-          firstChargeCents: 2200,
-          nextChargeAt: '2026-10-17T00:00:00.000Z',
-        },
-      },
-    })
+    activatePlan.mockResolvedValue(EXITO)
 
     pintar()
     await pagar()
@@ -293,7 +426,8 @@ describe('OfferStep — el cobro', () => {
     await pagar()
 
     await waitFor(() => expect(onRefreshProgress).toHaveBeenCalledTimes(1))
-    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
+    expect(await screen.findByText('La oferta ya no está disponible.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Elegir Pro' })).toBeInTheDocument()
     expect(activatePlan).toHaveBeenCalledTimes(1)
   })
 
@@ -311,22 +445,11 @@ describe('OfferStep — el cobro', () => {
   it('503 reintenta el MISMO cuerpo a los 10 s y al cerrar en éxito termina el alta', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      activatePlan.mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING')).mockResolvedValueOnce({
-        data: {
-          data: {
-            status: 'ACTIVE',
-            alreadyActive: false,
-            tier: 'PRO',
-            interval: 'monthly',
-            firstChargeCents: 2200,
-            nextChargeAt: '2026-10-17T00:00:00.000Z',
-          },
-        },
-      })
+      activatePlan.mockRejectedValueOnce(errorHttp(503, 'PLAN_ACTIVATION_PENDING')).mockResolvedValueOnce(EXITO)
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
 
       await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
@@ -352,7 +475,7 @@ describe('OfferStep — el cobro', () => {
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
 
       expect(await screen.findByText(/Confirmando tu pago/i)).toBeInTheDocument()
@@ -373,7 +496,7 @@ describe('OfferStep — el cobro', () => {
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
 
       for (let i = 0; i < 4; i++) {
@@ -382,7 +505,7 @@ describe('OfferStep — el cobro', () => {
         })
       }
 
-      await waitFor(() => expect(screen.getByText(/vuelve en unos minutos/i)).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText(/Estamos confirmando tu pago con el banco/i)).toBeInTheDocument())
       expect(activatePlan.mock.calls.length).toBeLessThanOrEqual(4)
       expect(onActivated).not.toHaveBeenCalled()
     } finally {
@@ -396,7 +519,7 @@ describe('OfferStep — el cobro', () => {
       activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
       for (let i = 0; i < 4; i++) {
         await act(async () => {
@@ -436,6 +559,7 @@ describe('OfferStep — el cobro', () => {
     pagoListo.fallaCarga = true
     try {
       pintar()
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Elegir Pro por $22.00' }))
       const reintentar = await screen.findByRole('button', { name: /reintentar/i })
       expect(screen.getByText(/No pudimos preparar el pago con tarjeta/)).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /pagar/i })).toBeNull()
@@ -452,7 +576,7 @@ describe('OfferStep — el cobro', () => {
     pagoListo.auto = false
     try {
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta()
       expect(screen.getByRole('button', { name: /pagar/i })).toBeDisabled()
     } finally {
       pagoListo.auto = true
@@ -463,21 +587,12 @@ describe('OfferStep — el cobro', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       activatePlan.mockRejectedValueOnce(errorHttp(409, 'PLAN_ACTIVATION_IN_PROGRESS')).mockResolvedValueOnce({
-        data: {
-          data: {
-            status: 'ACTIVE',
-            alreadyActive: true,
-            tier: 'PRO',
-            interval: 'monthly',
-            firstChargeCents: 2200,
-            nextChargeAt: '2026-10-17T00:00:00.000Z',
-          },
-        },
+        data: { data: { ...EXITO.data.data, alreadyActive: true } },
       })
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
       await waitFor(() => expect(screen.getByText(/Confirmando tu pago/i)).toBeInTheDocument())
 
@@ -521,10 +636,8 @@ describe('OfferStep — sin números en el código', () => {
   it('🔴 un 503 de CONFIGURACIÓN no es un pago ambiguo: dice el motivo real y NO reintenta', async () => {
     activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_NOT_CONFIGURED'))
 
-    const user = userEvent.setup()
     pintar()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /pagar/i }))
+    await pagar()
 
     // el mensaje del servidor («no se te cobró nada») llega tal cual
     expect(await screen.findByText(/mensaje-PLAN_NOT_CONFIGURED/)).toBeInTheDocument()
@@ -548,10 +661,8 @@ describe('OfferStep — sin números en el código', () => {
       }),
     )
 
-    const user = userEvent.setup()
     pintar()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /pagar/i }))
+    await pagar()
 
     expect(await screen.findByText(/fondos suficientes/i)).toBeInTheDocument()
     expect(screen.queryByText(/insufficient funds/i)).not.toBeInTheDocument()
@@ -563,67 +674,24 @@ describe('OfferStep — sin números en el código', () => {
       errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'do_not_honor', message: 'Your card was declined.' } }),
     )
 
-    const user = userEvent.setup()
     pintar()
-    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /pagar/i }))
+    await pagar()
 
     expect(await screen.findByText(/Tu banco rechaz/i)).toBeInTheDocument()
     expect(screen.queryByText(/Your card was declined/i)).not.toBeInTheDocument()
   })
 })
 
-describe('«Ver otros planes» tiene regreso a la oferta', () => {
-  // 🔴 Pro ES el plan de la oferta. Sin un regreso, quien toca «Ver otros planes» por curiosidad
-  // se queda frente a Pro a precio de lista y puede pagar $694.84 por lo mismo que costaba $22.
-  it('muestra «Volver a la oferta» y al tocarlo regresa a la tarjeta de $22', async () => {
-    const user = userEvent.setup()
-    pintar()
-    await user.click(await screen.findByRole('button', { name: 'Ver otros planes' }))
-    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Volver a la oferta de $22.00' }))
-    expect(screen.queryByTestId('plan-step-estandar')).not.toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: 'Ver otros planes' })).toBeInTheDocument()
-  })
-
-  it('avisa al asistente cuándo se ven los planes, para ensanchar la columna', async () => {
-    const user = userEvent.setup()
-    const onVistaDePlanes = vi.fn()
-    pintar({ onVistaDePlanes })
-    await user.click(await screen.findByRole('button', { name: 'Ver otros planes' }))
-    await waitFor(() => expect(onVistaDePlanes).toHaveBeenLastCalledWith(true))
-    await user.click(screen.getByRole('button', { name: 'Volver a la oferta de $22.00' }))
-    await waitFor(() => expect(onVistaDePlanes).toHaveBeenLastCalledWith(false))
-  })
-
-  it('con la oferta ya NO disponible no ofrece volver a ella', async () => {
-    pintar({ launchOffer: { code: 'POS22', slug: 'pos-22', available: false, unavailableReason: 'SOLD_OUT' } as any })
-    expect(await screen.findByTestId('plan-step-estandar')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Volver a la oferta/ })).not.toBeInTheDocument()
-  })
-})
-
 describe('🔴 Codex ronda 9: el plan queda bloqueado desde que sale el cobro hasta que hay respuesta definitiva', () => {
-  it('con el PRIMER cobro de la oferta en vuelo, «Ver otros planes» no se puede tocar', async () => {
+  it('con el PRIMER cobro de la oferta en vuelo, ni se elige otro plan ni se cierra la ventana', async () => {
     let responder: (v: unknown) => void = () => {}
     activatePlan.mockImplementation(() => new Promise(r => (responder = r)))
     pintar()
     await pagar()
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
-    expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeDisabled()
-    responder({
-      data: {
-        data: {
-          status: 'ACTIVE',
-          alreadyActive: false,
-          tier: 'PRO',
-          interval: 'monthly',
-          firstChargeCents: 2200,
-          nextChargeAt: '2026-10-17T00:00:00.000Z',
-        },
-      },
-    })
+    expect(elegirPremium()).toBeDisabled()
+    expect(screen.getByRole('button', { name: /cerrar|close/i })).toBeDisabled()
+    responder(EXITO)
     await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
   })
 
@@ -633,7 +701,7 @@ describe('🔴 Codex ronda 9: el plan queda bloqueado desde que sale el cobro ha
       activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
       for (let i = 0; i < 4; i++) {
         await act(async () => {
@@ -641,21 +709,11 @@ describe('🔴 Codex ronda 9: el plan queda bloqueado desde que sale el cobro ha
         })
       }
       await waitFor(() => expect(screen.getByTestId('offer-pending-locked')).toBeInTheDocument())
-      expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeDisabled()
+      expect(elegirPremium()).toBeDisabled()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
 
       const antes = activatePlan.mock.calls.length
-      activatePlan.mockReset().mockResolvedValue({
-        data: {
-          data: {
-            status: 'ACTIVE',
-            alreadyActive: false,
-            tier: 'PRO',
-            interval: 'monthly',
-            firstChargeCents: 2200,
-            nextChargeAt: '2026-10-17T00:00:00.000Z',
-          },
-        },
-      })
+      activatePlan.mockReset().mockResolvedValue(EXITO)
       await user.click(screen.getByRole('button', { name: /Volver a comprobar mi pago/i }))
       await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
       expect(antes).toBeGreaterThan(0)
@@ -670,34 +728,22 @@ describe('🔴 Codex ronda 9: el plan queda bloqueado desde que sale el cobro ha
     pintar()
     await pagar()
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeEnabled())
+    await waitFor(() => expect(elegirPremium()).toBeEnabled())
+    expect(screen.getByRole('button', { name: /cerrar|close/i })).toBeEnabled()
   })
 })
 
 describe('🔴 Codex ronda 10: tres puertas más al mismo candado', () => {
-  const exito = {
-    data: {
-      data: {
-        status: 'ACTIVE',
-        alreadyActive: false,
-        tier: 'PRO',
-        interval: 'monthly',
-        firstChargeCents: 2200,
-        nextChargeAt: '2026-10-17T00:00:00.000Z',
-      },
-    },
-  }
-
   it('una caída de red a media petición NO es un «no»: el candado sigue y se pregunta otra vez por el MISMO cobro', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      activatePlan.mockRejectedValueOnce({ message: 'Network Error', code: 'ERR_NETWORK' }).mockResolvedValueOnce(exito)
+      activatePlan.mockRejectedValueOnce({ message: 'Network Error', code: 'ERR_NETWORK' }).mockResolvedValueOnce(EXITO)
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       pintar()
-      await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+      await abrirLaOferta(user)
       await user.click(screen.getByRole('button', { name: /pagar/i }))
       await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
-      expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeDisabled()
+      expect(elegirPremium()).toBeDisabled()
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10_000)
       })
@@ -709,12 +755,13 @@ describe('🔴 Codex ronda 10: tres puertas más al mismo candado', () => {
     }
   })
 
-  it('mientras Stripe guarda la tarjeta, «Ver otros planes» ya está bloqueado', async () => {
+  it('mientras Stripe guarda la tarjeta, ya no se puede elegir otro plan ni cerrar la ventana', async () => {
     confirmSetup.mockImplementation(() => new Promise(() => {}))
     pintar()
     await pagar()
     await waitFor(() => expect(confirmSetup).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeDisabled())
+    await waitFor(() => expect(elegirPremium()).toBeDisabled())
+    expect(screen.getByRole('button', { name: /cerrar|close/i })).toBeDisabled()
   })
 
   it('si la pantalla se va mientras se guarda la tarjeta, ese cobro ya NO sale', async () => {
@@ -732,33 +779,44 @@ describe('🔴 Codex ronda 10: tres puertas más al mismo candado', () => {
     const user = userEvent.setup()
     pintar({ activacionEnCurso: true })
     expect(await screen.findByTestId('offer-pending-locked')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeDisabled()
+    expect(elegirPremium()).toBeDisabled()
     await user.click(screen.getByRole('button', { name: /Volver a comprobar mi pago/i }))
     expect(onRefreshProgress).toHaveBeenCalled()
     expect(activatePlan).not.toHaveBeenCalled() // sin la tarjeta de antes no se reenvía nada: se pregunta
   })
 })
 
-describe('🔴 revisión independiente (26-sep): tras recargar con un cobro colgado, confirmar otra vez es la salida', () => {
-  it('la oferta deja pagar (el servidor recupera el cobro anterior) pero no cambiar de plan', async () => {
-    activatePlan.mockResolvedValue({
-      data: {
-        data: {
-          status: 'ACTIVE',
-          alreadyActive: false,
-          tier: 'PRO',
-          interval: 'monthly',
-          firstChargeCents: 2200,
-          nextChargeAt: '2026-10-17T00:00:00.000Z',
-        },
-      },
-    })
+describe('🔴 recarga con un cobro sin cerrar: «Confirmar mi pago» es la salida (revisión 26-sep y Codex r1 P1)', () => {
+  it('las tarjetas quedan apagadas, y «Confirmar mi pago» abre la ventana de la campaña con la tarjeta HABILITADA', async () => {
+    activatePlan.mockResolvedValue(EXITO)
     pintar({ activacionEnCurso: true })
-    expect(await screen.findByText(/Tu último pago quedó sin confirmar/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ver otros planes' })).toBeDisabled()
-    await pagar()
+
+    expect(await screen.findByText('Tienes un pago sin confirmar')).toBeInTheDocument()
+    expect(screen.getByText(/Tu último pago quedó sin confirmar/)).toBeInTheDocument()
+    for (const nombre of ['Elegir Pro por $22.00', 'Elegir Premium', 'Hablar con ventas']) {
+      expect(screen.getByRole('button', { name: nombre })).toBeDisabled()
+    }
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Confirmar mi pago' }))
+    const ventana = screen.getByRole('dialog')
+    expect(within(ventana).getByText('Tu oferta: $22.00 al mes por 3 meses')).toBeInTheDocument()
+    await waitFor(() => expect(within(ventana).getByRole('button', { name: /pagar/i })).toBeEnabled())
+
+    await user.click(within(ventana).getByRole('button', { name: /pagar/i }))
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    expect(activatePlan.mock.calls[0][1]).toMatchObject({ tier: 'PRO', payNow: true, offer: { kind: 'LAUNCH', code: 'POS22' } })
     await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
+  })
+
+  it('al cerrar esa ventana no hay forma de abrir la de otro plan', async () => {
+    pintar({ activacionEnCurso: true })
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Confirmar mi pago' }))
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(elegirPremium()).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Elegir Pro por $22.00' })).toBeDisabled()
   })
 })
 
