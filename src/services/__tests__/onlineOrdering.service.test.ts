@@ -82,10 +82,10 @@ describe('onlineOrdering.service', () => {
   })
 
   it('serverMessage lee las dos formas de error', () => {
-    expect(serverMessage({ response: { data: { success: false, code: 'X', error: 'Desde transición' } } })).toBe('Desde transición')
-    expect(serverMessage({ response: { data: { message: 'Desde global' } } })).toBe('Desde global')
-    expect(serverMessage(new Error('boom'))).toBeTruthy()
-    expect(serverMessage(undefined)).toBeTruthy()
+    expect(serverMessage({ response: { data: { success: false, code: 'X', error: 'Desde transición' } } }, 'F')).toBe('Desde transición')
+    expect(serverMessage({ response: { data: { message: 'Desde global' } } }, 'F')).toBe('Desde global')
+    expect(serverMessage(new Error('boom'), 'Respaldo')).toBe('Respaldo')
+    expect(serverMessage(undefined, 'Respaldo')).toBe('Respaldo')
   })
 
   it('llaves de caché', () => {

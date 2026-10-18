@@ -8,5 +8,78 @@
     "tray": "Bandeja",
     "menu": "Menú en línea",
     "settings": "Configuración"
+  },
+  "settings": {
+    "saved": "Configuración guardada",
+    "saveFailed": "No se pudo guardar. Intenta de nuevo.",
+    "loadFailed": "No se pudo cargar la configuración.",
+    "save": "Guardar",
+    "status": {
+      "label": "Estado de la tienda",
+      "OPEN": "Abierta",
+      "CLOSED": "Cerrada por horario",
+      "PAUSED": "Pausada",
+      "pausedUntil": "Pausada hasta {{time}}",
+      "pausedManual": "Pausada desde Configuración",
+      "OFFLINE": "Sin aparato conectado: deja la Bandeja abierta y visible en una computadora o tableta para recibir pedidos",
+      "DISABLED": "Apagada"
+    },
+    "requirements": {
+      "title": "Antes de encender la tienda te falta:",
+      "address": {
+        "label": "El domicilio del negocio.",
+        "link": "Capturar domicilio"
+      },
+      "phone": {
+        "label": "El teléfono del negocio.",
+        "link": "Capturar teléfono"
+      },
+      "privacyNotice": {
+        "label": "Publicar el aviso de privacidad.",
+        "link": "Publicar aviso en Clientes"
+      }
+    },
+    "store": {
+      "title": "Tienda en línea"
+    },
+    "enable": "Encender la tienda",
+    "enableHelp": "Los clientes podrán pedir para recoger desde tu liga.",
+    "enableBlocked": "Completa lo que falta arriba para poder encenderla.",
+    "payAtPickup": "Pagar al recoger",
+    "cardOnline": "Tarjeta en línea",
+    "soon": "Muy pronto",
+    "minOrder": "Pedido mínimo (MXN)",
+    "minOrderHelp": "El precio ya incluye IVA. Déjalo en blanco para no cambiarlo.",
+    "prepTime": "Tiempo de preparación",
+    "prepOption": "{{minutes}} min",
+    "manualPause": "Pausar pedidos",
+    "manualPauseHelp": "Mientras esté pausada no llegan pedidos nuevos.",
+    "hours": {
+      "title": "Horario",
+      "use": "Usar horario",
+      "onHelp": "La tienda recibe pedidos sólo dentro de este horario.",
+      "offHelp": "Recibe pedidos siempre que alguien tenga la Bandeja abierta.",
+      "overnight": "{{day}}: cierra a las {{time}} del {{nextDay}}",
+      "errors": {
+        "dayNeedsRange": "Un día abierto necesita al menos un horario",
+        "sameTime": "La hora de apertura y la de cierre no pueden ser iguales",
+        "incompleteRange": "Completa la hora de apertura y la de cierre"
+      }
+    },
+    "share": {
+      "title": "Compartir tu tienda",
+      "description": "Pon tu liga o el QR donde tus clientes te vean.",
+      "link": "Liga de tu tienda",
+      "copy": "Copiar",
+      "open": "Abrir",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar",
+      "downloadQr": "Descargar QR",
+      "snippetTitle": "Para tu sitio web",
+      "snippetHelp": "Pega este código en tu página. Si tu sitio no acepta scripts, usa la liga o un botón que la abra.",
+      "copySnippet": "Copiar código",
+      "preview": "Vista previa",
+      "previewTitle": "Vista previa de la tienda"
+    }
   }
 }

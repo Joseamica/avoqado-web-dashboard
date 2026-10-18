@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -20,6 +20,8 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   const actual = await importOriginal<typeof import('@/services/onlineOrdering.service')>()
   return { ...actual, getInbox: (...a: unknown[]) => getInbox(...a) }
 })
+
+vi.mock('../components/SettingsTab', () => ({ SettingsTab: () => <div data-testid="settings-tab" /> }))
 
 import OnlineOrderingPage from '../OnlineOrderingPage'
 
@@ -79,6 +81,17 @@ describe('OnlineOrderingPage', () => {
     mockStatus.mockReturnValue(status())
     renderPage('#configuracion')
     expect(screen.getByTestId('tab-content-settings')).toBeInTheDocument()
+  })
+
+  it('hacer clic en una pestaña cambia el hash y la pestaña visible', async () => {
+    mockStatus.mockReturnValue(status())
+    renderPage()
+    expect(screen.getByTestId('tab-content-tray')).toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByText('tabs.settings'))
+    fireEvent.click(screen.getByText('tabs.settings'))
+    expect(await screen.findByTestId('tab-content-settings')).toBeInTheDocument()
+    expect(screen.queryByTestId('tab-content-tray')).toBeNull()
+    expect(screen.getByRole('tab', { name: 'tabs.settings' })).toHaveAttribute('data-state', 'active')
   })
 
   it('sólo orders:read: Bandeja visible y, en las otras pestañas, la línea del permiso', () => {
