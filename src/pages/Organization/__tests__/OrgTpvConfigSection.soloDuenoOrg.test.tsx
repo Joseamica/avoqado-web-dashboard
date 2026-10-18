@@ -18,7 +18,9 @@ const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 
 const mutateAsync = vi.fn()
-let lectura: { data: any; isLoading: boolean; isError: boolean } = { data: {}, isLoading: false, isError: false }
+type Lectura = { data: any; isLoading: boolean; isError: boolean; isSuccess: boolean }
+const LISTA: Lectura = { data: {}, isLoading: false, isError: false, isSuccess: true }
+let lectura: Lectura = LISTA
 vi.mock('@/hooks/useStoresAnalysis', () => ({
   useOrgTpvDefaults: () => lectura,
   useOrgTpvStats: () => ({ data: { totalTerminals: 2, venues: [] } }),
@@ -42,7 +44,7 @@ const guardar = () => screen.getByRole('button', { name: /tpvSettings\.saveAndAp
 
 beforeEach(() => {
   vi.clearAllMocks()
-  lectura = { data: {}, isLoading: false, isError: false }
+  lectura = LISTA
 })
 
 describe('pestaña TPV de la organización — sólo el dueño de la org la cambia', () => {
@@ -93,9 +95,23 @@ describe('pestaña TPV de la organización — sólo el dueño de la org la camb
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'tpvSettings.updateError' })))
   })
 
+  it.each([
+    ['cargando', { data: undefined, isLoading: true, isError: false, isSuccess: false }],
+    // Sin respuesta todavía y sin «cargando» (la consulta aún no arranca): los campos se pintan con valores de fábrica.
+    ['sin respuesta todavía', { data: undefined, isLoading: false, isError: false, isSuccess: false }],
+  ])('🔴 mientras la lectura no ha respondido (%s) no se edita ni se guarda (Codex, ronda 3)', (_l, pendiente) => {
+    auth.user = DUENO_DE_LA_ORG
+    lectura = pendiente
+    render(<OrgTpvConfigSection orgId="org-1" />)
+
+    screen.queryByTestId('campos') && fireEvent.click(screen.getByTestId('campos'))
+    expect(guardar()).toBeDisabled()
+    expect(mutateAsync).not.toHaveBeenCalled()
+  })
+
   it('🔴 si la lectura falló, no deja guardar los valores de fábrica encima de los reales', () => {
     auth.user = DUENO_DE_LA_ORG
-    lectura = { data: undefined, isLoading: false, isError: true }
+    lectura = { data: undefined, isLoading: false, isError: true, isSuccess: false }
     render(<OrgTpvConfigSection orgId="org-1" />)
 
     expect(screen.getByText('settings.tpvLoadError')).toBeInTheDocument()

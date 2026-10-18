@@ -359,6 +359,7 @@
     "save": "Guardar Cambios",
     "updateSuccess": "Organización actualizada exitosamente",
     "updateError": "Error al actualizar la organización",
+    "generalSoloDuenoOrg": "Sólo el dueño de la organización puede cambiar estos datos. Si necesitas un cambio, pídeselo al dueño de la organización.",
     "tpvSoloDuenoOrg": "Sólo el dueño de la organización puede cambiar estos ajustes, porque se aplican a todas las terminales de todas las sucursales. Si necesitas un cambio, pídeselo al dueño de la organización.",
     "tpvLoadError": "No se pudieron cargar los ajustes guardados. Recarga la página antes de cambiarlos, para no reemplazarlos con los valores de fábrica."
   },

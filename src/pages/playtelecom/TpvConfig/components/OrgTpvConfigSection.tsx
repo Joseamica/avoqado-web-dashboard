@@ -110,12 +110,13 @@ export default function OrgTpvConfigSection() {
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const { data: config, isLoading, isError } = useOrgAttendanceConfig({ enabled: isOwnerPlus })
+  const { data: config, isLoading, isError, isSuccess } = useOrgAttendanceConfig({ enabled: isOwnerPlus })
   // Esta configuración aplica a TODAS las sucursales y el servidor sólo deja cambiarla al dueño de la ORGANIZACIÓN; la
   // página deja entrar también al OWNER de una sucursal, así que aquí se pregunta lo mismo que el servidor. Si la lectura
-  // falló tampoco se edita: el formulario tendría los valores de fábrica y guardarlos pisaría los reales.
+  // falló —o todavía no responde (ronda 3, Codex)— tampoco se edita: el formulario tendría los valores de fábrica y
+  // guardarlos pisaría los reales.
   const esDuenoDeLaOrg = isOrganizationOwner(user, orgId)
-  const soloLectura = !esDuenoDeLaOrg || isError
+  const soloLectura = !esDuenoDeLaOrg || !isSuccess
   const upsertMutation = useUpsertOrgAttendanceConfig()
   const deleteMutation = useDeleteOrgAttendanceConfig()
 

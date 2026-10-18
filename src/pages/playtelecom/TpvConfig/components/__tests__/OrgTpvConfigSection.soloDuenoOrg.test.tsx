@@ -33,7 +33,9 @@ const CONFIG = {
   promoterLocationStartHour: 11,
   promoterLocationEndHour: 18,
 }
-let lectura: { data: any; isLoading: boolean; isError: boolean } = { data: CONFIG, isLoading: false, isError: false }
+type Lectura = { data: any; isLoading: boolean; isError: boolean; isSuccess: boolean }
+const LISTA: Lectura = { data: CONFIG, isLoading: false, isError: false, isSuccess: true }
+let lectura: Lectura = LISTA
 const guardar = vi.fn()
 const borrar = vi.fn()
 vi.mock('@/hooks/useOrganizationConfig', () => ({
@@ -54,7 +56,7 @@ const botonRestaurar = () => screen.getByRole('button', { name: new RegExp(`${NS
 
 beforeEach(() => {
   vi.clearAllMocks()
-  lectura = { data: CONFIG, isLoading: false, isError: false }
+  lectura = LISTA
 })
 
 describe('configuración TPV/checador de la organización — sólo el dueño de la org la cambia', () => {
@@ -101,9 +103,19 @@ describe('configuración TPV/checador de la organización — sólo el dueño de
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: `${NS}.error` })))
   })
 
+  it('🔴 mientras la lectura sigue pendiente no se puede guardar ni restaurar (Codex, ronda 3)', () => {
+    auth.user = DUENO_DE_LA_ORG
+    lectura = { data: undefined, isLoading: true, isError: false, isSuccess: false }
+    render(<OrgTpvConfigSection />)
+
+    expect(botonGuardar()).toBeDisabled()
+    fireEvent.click(botonGuardar())
+    expect(guardar).not.toHaveBeenCalled()
+  })
+
   it('🔴 si la lectura falló, no deja guardar los valores de fábrica encima de los reales', () => {
     auth.user = DUENO_DE_LA_ORG
-    lectura = { data: undefined, isLoading: false, isError: true }
+    lectura = { data: undefined, isLoading: false, isError: true, isSuccess: false }
     render(<OrgTpvConfigSection />)
 
     expect(screen.getByText(`${NS}.loadError`)).toBeInTheDocument()

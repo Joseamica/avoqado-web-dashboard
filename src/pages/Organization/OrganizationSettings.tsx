@@ -42,6 +42,10 @@ const OrganizationSettings: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  // El servidor sólo deja cambiar los datos de la org a su dueño (ronda 3); la página deja entrar también al OWNER de una
+  // sucursal, así que aquí se pregunta lo mismo que el servidor: quien no es dueño de la org los ve en sólo lectura.
+  const { user } = useAuth()
+  const generalSoloLectura = !isOrganizationOwner(user, orgId)
 
   const { data: organization, isLoading } = useQuery({
     queryKey: ['organization', orgId],
@@ -69,8 +73,8 @@ const OrganizationSettings: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['organization', 'stats', orgId] })
       toast({ title: t('settings.updateSuccess') })
     },
-    onError: () => {
-      toast({ title: t('settings.updateError'), variant: 'destructive' })
+    onError: error => {
+      toast({ title: mensajeDelServidor4xx(error) ?? t('settings.updateError'), variant: 'destructive' })
     },
   })
 
@@ -155,49 +159,110 @@ const OrganizationSettings: React.FC = () => {
         <TabsContent value="general" className="mt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* General Information */}
-              <GlassCard className="p-6">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
-                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-sm">{t('settings.generalInfo')}</h3>
-                    <p className="text-xs text-muted-foreground">{t('settings.generalInfoDesc')}</p>
-                  </div>
+              {generalSoloLectura && (
+                <div className="flex items-start gap-2 rounded-lg border border-input bg-muted/40 px-3 py-2.5">
+                  <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground">{t('settings.generalSoloDuenoOrg')}</p>
                 </div>
+              )}
+              {/* Un solo interruptor deshabilita todos los campos y el botón: el `disabled` nativo del fieldset. */}
+              <fieldset disabled={generalSoloLectura} className="space-y-6">
+                {/* General Information */}
+                <GlassCard className="p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
+                      <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">{t('settings.generalInfo')}</h3>
+                      <p className="text-xs text-muted-foreground">{t('settings.generalInfoDesc')}</p>
+                    </div>
+                  </div>
 
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.name')}</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-10" />
-                        </FormControl>
-                        <FormDescription className="text-xs">{t('settings.nameDesc')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.name')}</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-10" />
+                          </FormControl>
+                          <FormDescription className="text-xs">{t('settings.nameDesc')}</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <Separator className="opacity-50" />
+                    <Separator className="opacity-50" />
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.email')}</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input {...field} className="pl-10 h-10" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.phone')}</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input {...field} className="pl-10 h-10" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Billing Information */}
+                <GlassCard className="p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-2 rounded-xl bg-linear-to-br from-emerald-500/20 to-emerald-500/5">
+                      <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">{t('settings.billingInfo')}</h3>
+                      <p className="text-xs text-muted-foreground">{t('settings.billingInfoDesc')}</p>
+                    </div>
+                  </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="email"
+                      name="taxId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.email')}</FormLabel>
+                          <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.taxId')}</FormLabel>
                           <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input {...field} className="pl-10 h-10" />
-                            </div>
+                            <Input
+                              {...field}
+                              value={field.value || ''}
+                              placeholder={t('settings.taxIdPlaceholder', { defaultValue: 'RFC' })}
+                              className="h-10"
+                            />
                           </FormControl>
+                          <FormDescription className="text-xs">{t('settings.taxIdDesc')}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -205,89 +270,37 @@ const OrganizationSettings: React.FC = () => {
 
                     <FormField
                       control={form.control}
-                      name="phone"
+                      name="billingEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.phone')}</FormLabel>
+                          <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.billingEmail')}</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input {...field} className="pl-10 h-10" />
+                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                {...field}
+                                value={field.value || ''}
+                                className="pl-10 h-10"
+                                placeholder={t('settings.billingEmailPlaceholder', { defaultValue: 'facturacion@empresa.com' })}
+                              />
                             </div>
                           </FormControl>
+                          <FormDescription className="text-xs">{t('settings.billingEmailDesc')}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                </GlassCard>
+
+                {/* Save */}
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={updateMutation.isPending || !form.formState.isDirty} size="sm">
+                    {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {t('settings.save')}
+                  </Button>
                 </div>
-              </GlassCard>
-
-              {/* Billing Information */}
-              <GlassCard className="p-6">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="p-2 rounded-xl bg-linear-to-br from-emerald-500/20 to-emerald-500/5">
-                    <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-sm">{t('settings.billingInfo')}</h3>
-                    <p className="text-xs text-muted-foreground">{t('settings.billingInfoDesc')}</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="taxId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.taxId')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={field.value || ''}
-                            placeholder={t('settings.taxIdPlaceholder', { defaultValue: 'RFC' })}
-                            className="h-10"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">{t('settings.taxIdDesc')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="billingEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium text-muted-foreground">{t('settings.billingEmail')}</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              value={field.value || ''}
-                              className="pl-10 h-10"
-                              placeholder={t('settings.billingEmailPlaceholder', { defaultValue: 'facturacion@empresa.com' })}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormDescription className="text-xs">{t('settings.billingEmailDesc')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </GlassCard>
-
-              {/* Save */}
-              <div className="flex justify-end">
-                <Button type="submit" disabled={updateMutation.isPending || !form.formState.isDirty} size="sm">
-                  {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {t('settings.save')}
-                </Button>
-              </div>
+              </fieldset>
             </form>
           </Form>
         </TabsContent>
@@ -323,14 +336,15 @@ export function OrgTpvConfigSection({ orgId }: { orgId: string }) {
     return user?.venues?.find(v => v.organizationId === orgId)?.id ?? null
   }, [activeVenue, orgId, user?.venues])
 
-  const { data: orgDefaults, isLoading, isError } = useOrgTpvDefaults({ venueId })
+  const { data: orgDefaults, isLoading, isError, isSuccess } = useOrgTpvDefaults({ venueId })
   const { data: stats } = useOrgTpvStats({ venueId })
   const upsertMutation = useUpsertOrgTpvDefaults({ venueId })
   // El servidor empuja estos ajustes a TODAS las terminales de todas las sucursales y sólo deja cambiarlos al dueño de la
   // ORGANIZACIÓN. La página deja entrar también al OWNER de una sucursal: aquí se pregunta lo mismo que el servidor. Si la
-  // lectura falló tampoco se edita: el formulario tendría los valores de fábrica y guardarlos pisaría los reales.
+  // lectura falló —o todavía no responde (ronda 3, Codex)— tampoco se edita: el formulario tendría los valores de
+  // fábrica y guardarlos pisaría los reales.
   const esDuenoDeLaOrg = isOrganizationOwner(user, orgId)
-  const soloLectura = !esDuenoDeLaOrg || isError
+  const soloLectura = !esDuenoDeLaOrg || !isSuccess
 
   const [localSettings, setLocalSettings] = useState<TpvSettings>(ORG_DEFAULT_TPV_SETTINGS)
   const [hasChanges, setHasChanges] = useState(false)
