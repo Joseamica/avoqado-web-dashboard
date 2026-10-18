@@ -23,3 +23,16 @@ export function textoDelServidor(err: unknown): string | undefined {
   for (const v of [data.error, data.message]) if (typeof v === 'string' && v.trim() !== '') return v
   return undefined
 }
+
+/**
+ * El `message` que mandó NUESTRO servidor con un 4xx, o `undefined`. Un 4xx explica algo que el usuario puede corregir
+ * o a quién pedírselo («Sólo el dueño de la organización puede…»), y el toast lo dice tal cual. Sin respuesta (red), un
+ * 5xx o un cuerpo sin `message` ⇒ `undefined`, y la pantalla pone su texto genérico. A diferencia de `textoDelServidor`,
+ * no lee `error`: varias rutas ponen ahí un CÓDIGO (`'forbidden'`, `'owner_required'`), no un texto para personas.
+ */
+export function mensajeDelServidor4xx(err: unknown): string | undefined {
+  const r = (err as { response?: { status?: unknown; data?: { message?: unknown } } } | null | undefined)?.response
+  const m = r?.data?.message
+  const es4xx = typeof r?.status === 'number' && r.status >= 400 && r.status < 500
+  return es4xx && typeof m === 'string' && m.trim() !== '' ? m : undefined
+}
