@@ -1,3 +1,5 @@
+import { isPrivateDocumentPage } from './privateDocumentPage'
+
 // src/lib/gtag.ts
 //
 // Helpers for the Google tag (gtag.js) loaded in index.html — Google Ads
@@ -8,7 +10,7 @@
 // Undefined-safe: no-ops if gtag isn't present (SSR / blocked by an ad blocker).
 
 function gtag(...args: unknown[]): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined' || isPrivateDocumentPage()) return
   const w = window as unknown as { gtag?: (...a: unknown[]) => void }
   try {
     w.gtag?.(...args)
@@ -22,7 +24,7 @@ function gtag(...args: unknown[]): void {
  * de anuncios lo tumba, o no existe (local), no hace nada.
  */
 function oaiq(...args: unknown[]): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined' || isPrivateDocumentPage()) return
   const w = window as unknown as { oaiq?: (...a: unknown[]) => void }
   try {
     w.oaiq?.(...args)

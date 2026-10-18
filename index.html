@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script src="/document-privacy.js"></script>
     <link rel="icon" id="favicon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="icon" href="/favicon.ico?v=3" sizes="32x32" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
@@ -25,7 +26,7 @@
       ;(function () {
         var h = window.location.hostname
         var isLocalDev = h === 'localhost' || h === '127.0.0.1' || h.indexOf('192.168.') === 0 || /\.local$/.test(h)
-        if (isLocalDev) return
+        if (isLocalDev || /^\/documentos(?:\/|$)/.test(window.location.pathname) || window.__AVOQADO_PRIVATE_DOCUMENTS__) return
         gtag('consent', 'default', {
           ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted',
           analytics_storage: 'granted', functionality_storage: 'granted', security_storage: 'granted',
@@ -50,7 +51,7 @@
          trackSignup() (src/lib/gtag.ts), el embudo común del alta por correo y por Google. -->
     <script>
       ;(function () {
-        if (window.location.hostname !== 'dashboard.avoqado.io') return
+        if (/^\/documentos(?:\/|$)/.test(window.location.pathname) || window.__AVOQADO_PRIVATE_DOCUMENTS__ || window.location.hostname !== 'dashboard.avoqado.io') return
         window.oaiq = window.oaiq || function () { (window.oaiq.q = window.oaiq.q || []).push(arguments) }
         window.oaiq('init', { pixelId: 'CKPpCFauLQSBNmoD6g1hBw' })
         var s = document.createElement('script')
