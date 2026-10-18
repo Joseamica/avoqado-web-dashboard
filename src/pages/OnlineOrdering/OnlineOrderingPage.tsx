@@ -7,6 +7,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnlineOrderingStatus } from '@/hooks/use-online-ordering-status'
+import { MenuTab } from './components/MenuTab'
 import { SettingsTab } from './components/SettingsTab'
 import { getInbox, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 
@@ -80,7 +81,7 @@ export default function OnlineOrderingPage() {
 
       {tab === 'menu' && (
         <FeatureGate feature="ONLINE_ORDERING">
-          {canManage ? <div data-testid="tab-content-menu">{/* Tareas 14–15: menú en línea */}</div> : needManage}
+          {canManage ? <div data-testid="tab-content-menu"><MenuTab /></div> : needManage}
         </FeatureGate>
       )}
 
