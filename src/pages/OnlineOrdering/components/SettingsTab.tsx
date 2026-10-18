@@ -117,8 +117,16 @@ export function SettingsTab() {
   const mutation = useMutation({
     mutationFn: (patch: Partial<OnlineOrderingSettingsInput>) => updateSettings(venueId!, patch),
     onSuccess: next => {
-      qc.setQueryData(onlineOrderingKeys.settings(venueId!), next)
-      reset(toForm(next))
+      // 🔴 La respuesta del PUT puede venir SIN `store`/`requirements` (sólo el GET los trae): se MEZCLA sobre la caché, nunca la
+      // reemplaza, y luego se vuelve a pedir el GET como fuente de verdad.
+      const key = onlineOrderingKeys.settings(venueId!)
+      const cached = qc.getQueryData<OnlineOrderingSettings>(key)
+      if (cached) {
+        const merged = { ...cached, ...next }
+        qc.setQueryData(key, merged)
+        reset(toForm(merged))
+      }
+      void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
       setSaveError(null)
       toast({ title: t('settings.saved') })
@@ -145,7 +153,11 @@ export function SettingsTab() {
 
   const store = settings.store
   const pause = pauseLabel(store, formatTime)
-  const statusText = pause ? t(pause.key, pause.params) : t(`settings.status.${store.status}`, { defaultValue: store.status })
+  const statusText = pause
+    ? t(pause.key, pause.params)
+    : store?.status
+      ? t(`settings.status.${store.status}`, { defaultValue: store.status })
+      : '—'
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-6">

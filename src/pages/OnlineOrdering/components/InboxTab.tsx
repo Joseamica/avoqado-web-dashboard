@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnlineOrderingStatus } from '@/hooks/use-online-ordering-status'
+import { planTierQueryKey } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
 import {
   acceptOrder,
@@ -82,7 +83,7 @@ export function InboxTab() {
   const queryClient = useQueryClient()
   const { formatTime } = useVenueDateTime()
   const venueId = useCurrentVenue().venueId ?? ''
-  const { canAnswer, canCancel, canPause, keepsStoreOpen } = useOnlineOrderingStatus()
+  const { hasPlan, canAnswer, canCancel, canPause, keepsStoreOpen } = useOnlineOrderingStatus()
   const { data, isError, error, dataUpdatedAt } = useOnlineOrdersInbox(venueId, { trayActive: () => keepsStoreOpen })
 
   const [dialog, setDialog] = useState<DialogState>(null)
@@ -94,6 +95,11 @@ export function InboxTab() {
   useEffect(() => {
     if (soundOn && pending > 0) chime().play()
   }, [dataUpdatedAt, soundOn, pending])
+
+  // El plan se cachea 5 min: con el plan vencido cada sondeo vuelve a pedirlo, para que el aviso se vaya solo al reactivarlo.
+  useEffect(() => {
+    if (!hasPlan && dataUpdatedAt) void queryClient.invalidateQueries({ queryKey: planTierQueryKey(venueId) })
+  }, [hasPlan, dataUpdatedAt, venueId, queryClient])
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
 
@@ -156,6 +162,15 @@ export function InboxTab() {
 
   const store = data.store
   const pause = pauseLabel(store, formatTime)
+  // Sin plan no llegan pedidos nuevos (el comensal recibe PLAN_REQUIRED) y quien no puede mantener abierta la tienda no
+  // debe leer «deja la Bandeja abierta»: el texto no promete lo que no es cierto.
+  const statusText = !hasPlan
+    ? t('inbox.status.noPlan')
+    : pause
+      ? t(pause.key, pause.params)
+      : store?.status === 'OFFLINE' && !keepsStoreOpen
+        ? t('inbox.status.offlineNobody')
+        : t(`settings.status.${store?.status}`, { defaultValue: store?.status })
   const soundSupported = chime().state() !== 'unsupported'
   const skewMs = Date.parse(data.serverTime) - dataUpdatedAt
 
@@ -166,9 +181,7 @@ export function InboxTab() {
           {store && (
             <p className="text-sm">
               <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-              <span className="font-medium">
-                {pause ? t(pause.key, pause.params) : t(`settings.status.${store.status}`, { defaultValue: store.status })}
-              </span>
+              <span className="font-medium">{statusText}</span>
             </p>
           )}
           <PauseControl venueId={venueId} store={store} canPause={canPause} />

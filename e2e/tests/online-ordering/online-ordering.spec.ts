@@ -1,7 +1,9 @@
 /**
  * E2E de «Pedidos en línea» (Bandeja y Menú en línea). Todo por `page.route()`, sin backend.
  *  (a) aceptar un pedido «Por aceptar» ⇒ la tarjeta pasa a «En preparación» SIN recargar;
- *  (b) prender un producto en «Menú en línea» ⇒ «N de M» cambia SIN recargar.
+ *  (b) prender un producto en «Menú en línea» ⇒ «N de M» cambia SIN recargar;
+ *  (c) guardar «Configuración» con la respuesta REAL del PUT (sin `store` ni `requirements`) ⇒ la pestaña sigue en pie;
+ *  (d) el aviso de plan vencido se va solo, sin recargar, cuando el plan se reactiva (el sondeo de la bandeja vuelve a pedir el plan).
  * Los mocks son con ESTADO: la lista cambia sólo si la página re-lee después de la mutación (cazan una invalidación mal dirigida).
  * Se registran DESPUÉS de setupApiMocks (LIFO).
  */
@@ -132,4 +134,87 @@ test('prender un producto en «Menú en línea» cambia «N de M» sin recargar'
   await expect(page.getByText('2 de 3 productos en línea')).toBeVisible()
   await expect(page.getByRole('switch', { name: 'Mostrar Papas en línea' })).toBeChecked()
   expect(putBody).toEqual({ availableOnline: true, productIds: ['p2'] })
+})
+
+test('guardar Configuración con la respuesta real del PUT (sin store ni requirements) deja la pestaña en pie', async ({ page }) => {
+  await setup(page)
+  // La vista previa pide la tienda a otro dominio: se responde en vacío para no depender de la red.
+  await page.route('https://pedidos.avoqado.io/**', route =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>tienda</p>' }),
+  )
+  const settings = {
+    enabled: false,
+    minOrderAmount: 50,
+    defaultPrepMinutes: 20,
+    acceptsPayAtPickup: true,
+    manualPause: false,
+    pausedUntil: null,
+    hours: null,
+    lastInboxPollAt: null,
+  }
+  // El GET trae la vista completa; el PUT de hoy contesta SÓLO los ajustes (la forma que tumbaba la pestaña).
+  const view = () => ({
+    ...settings,
+    store: { status: settings.enabled ? 'OPEN' : 'DISABLED', reason: null, pausedUntil: null, manualPause: false },
+    requirements: { address: true, phone: true, privacyNotice: true },
+  })
+  let gets = 0
+  let putBody: unknown = null
+  await page.route(`${BASE}/settings`, route => {
+    if (route.request().method() === 'PUT') {
+      putBody = route.request().postDataJSON()
+      Object.assign(settings, putBody)
+      return route.fulfill(json({ ...settings }))
+    }
+    gets += 1
+    return route.fulfill(json(view()))
+  })
+
+  await page.goto('/venues/venue-alpha/online-ordering#configuracion')
+  const min = page.getByLabel('Pedido mínimo (MXN)')
+  const status = page.locator('[data-tour="online-ordering-store-status"]')
+  await expect(min).toHaveValue('50')
+  await expect(status).toContainText('Apagada')
+
+  await min.fill('80')
+  await page.getByRole('button', { name: 'Guardar' }).click()
+
+  // 🔴 Sin recargar: la pestaña sigue en pie, con lo guardado, y volvió a leer el GET.
+  await expect(page.getByText('Configuración guardada', { exact: true })).toBeVisible()
+  await expect(page.getByText('¡Ups!')).toHaveCount(0)
+  await expect(min).toHaveValue('80')
+  await expect(status).toContainText('Apagada')
+  await expect(page.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+  await expect.poll(() => gets).toBeGreaterThanOrEqual(2)
+  expect(putBody).toEqual({ minOrderAmount: 80 })
+})
+
+test('el aviso de plan vencido se va solo, sin recargar, al reactivar el plan', async ({ page }) => {
+  test.setTimeout(90_000)
+  await setup(page)
+  let tier: 'FREE' | 'PRO' = 'FREE'
+  await page.route('**/api/v1/dashboard/venues/*/plan-tier', route =>
+    route.fulfill(json({ tier, grandfathered: false, exempt: false, grantedFeatureCodes: tier === 'PRO' ? ['ONLINE_ORDERING'] : [] })),
+  )
+  await page.route(`${BASE}/orders?*`, route =>
+    route.fulfill(
+      json({
+        serverTime: new Date().toISOString(),
+        counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0 },
+        orders: [],
+        truncated: false,
+        nextCursor: null,
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    ),
+  )
+
+  await page.goto('/venues/venue-alpha/online-ordering#bandeja')
+  await expect(page.getByText('Tu plan no incluye Pedidos en línea')).toBeVisible()
+  await expect(page.getByText('Sin plan: no llegan pedidos nuevos')).toBeVisible()
+
+  // El plan se reactiva fuera del panel: el siguiente sondeo (10 s) lo lee y el aviso se va SIN recargar.
+  tier = 'PRO'
+  await expect(page.getByText('Tu plan no incluye Pedidos en línea')).toHaveCount(0, { timeout: 30_000 })
+  await expect(page.locator('[data-testid="online-inbox"]')).toContainText('Abierta')
 })

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, o?: Record<string, unknown>) => (o ? `${key}|${Object.values(o).join(',')}` : key) }),
@@ -56,6 +56,7 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   }
 })
 
+import { planTierQueryKey } from '@/hooks/use-tier-feature-access'
 import { InboxTab } from '../components/InboxTab'
 
 const order = (over: Record<string, unknown> = {}) => ({
@@ -391,6 +392,96 @@ describe('InboxTab', () => {
     renderTab()
     expect(await screen.findByText('inbox.keepsOpen')).toBeInTheDocument()
     expect(getInbox).toHaveBeenCalledWith('venue-1', { tray: true })
+  })
+
+  // ── Ronda final · D2: textos honestos del estado de la tienda ──
+  it('🔴 sin plan el estado de la tienda dice «Sin plan», no «Abierta»', async () => {
+    mockStatus.mockReturnValue(status({ hasPlan: false }))
+    getInbox.mockResolvedValue(inbox([]))
+    renderTab()
+    expect(await screen.findByText('inbox.status.noPlan')).toBeInTheDocument()
+    expect(screen.queryByText('settings.status.OPEN|OPEN')).toBeNull()
+  })
+
+  it('🔴 quien no puede mantener abierta la tienda y la ve OFFLINE: «Nadie con permiso de contestar tiene la Bandeja abierta»', async () => {
+    mockStatus.mockReturnValue(status({ keepsStoreOpen: false }))
+    getInbox.mockResolvedValue(inbox([], { store: { status: 'OFFLINE', reason: 'NO_DEVICE', pausedUntil: null, manualPause: false } }))
+    renderTab()
+    expect(await screen.findByText('inbox.status.offlineNobody')).toBeInTheDocument()
+    expect(screen.queryByText('settings.status.OFFLINE|OFFLINE')).toBeNull()
+  })
+
+  it('quien SÍ mantiene abierta la tienda y la ve OFFLINE conserva el texto de «deja la Bandeja abierta»', async () => {
+    getInbox.mockResolvedValue(inbox([], { store: { status: 'OFFLINE', reason: 'NO_DEVICE', pausedUntil: null, manualPause: false } }))
+    renderTab()
+    expect(await screen.findByText('settings.status.OFFLINE|OFFLINE')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.status.offlineNobody')).toBeNull()
+  })
+
+  // ── Ronda final · D4: un pedido cerrado sin cobro no dice «Cobrar al recoger» ──
+  it.each(['CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF', 'REJECTED', 'EXPIRED'])('🔴 %s no dice «Cobrar al recoger»: dice «Sin cobro»', async st => {
+    getInbox.mockResolvedValue(inbox([order({ status: st, remaining: 95, total: 95, acceptDeadlineAt: null })]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getByText('inbox.card.noCharge')).toBeInTheDocument()
+    expect(within(card).queryByText(/^inbox\.card\.payAtPickup\|/)).toBeNull()
+    expect(within(card).queryByText('inbox.card.paid')).toBeNull()
+  })
+
+  it('un pedido entregado y pagado sigue diciendo «Pagado»', async () => {
+    getInbox.mockResolvedValue(inbox([order({ status: 'COMPLETED', remaining: 0, acceptDeadlineAt: null })]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getByText('inbox.card.paid')).toBeInTheDocument()
+    expect(within(card).queryByText('inbox.card.noCharge')).toBeNull()
+  })
+
+  // ── Ronda final · D5: la cuenta regresiva no se encima con «Para recoger» ──
+  it('🔴 «Para recoger» no se parte y la cuenta regresiva va en su propio renglón, no junto a la hora', async () => {
+    getInbox.mockResolvedValue(inbox([order()]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getByText('inbox.card.pickup').className).toContain('whitespace-nowrap')
+    const time = within(card).getByText('T(2026-10-17T17:55:00.000Z)')
+    const deadline = within(card).getByText(/^inbox\.card\.deadline\|/)
+    expect(time.parentElement).not.toContainElement(deadline)
+  })
+
+  // ── Ronda final · D6: el aviso de plan vencido se va solo al reactivar el plan ──
+  const renderWithPlanProbe = (planFetch: () => Promise<unknown>) => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const PlanProbe = () => {
+      useQuery({ queryKey: planTierQueryKey('venue-1'), queryFn: planFetch, staleTime: 5 * 60 * 1000 })
+      return null
+    }
+    return render(
+      <QueryClientProvider client={qc}>
+        <PlanProbe />
+        <InboxTab />
+      </QueryClientProvider>,
+    )
+  }
+
+  it('🔴 con el plan vencido cada sondeo de la bandeja vuelve a pedir el plan', async () => {
+    const planFetch = vi.fn().mockResolvedValue({})
+    mockStatus.mockReturnValue(status({ hasPlan: false }))
+    getInbox.mockResolvedValue(inbox([]))
+    renderWithPlanProbe(planFetch)
+    await screen.findByTestId('online-inbox')
+    await waitFor(() => expect(planFetch).toHaveBeenCalledTimes(2)) // al montar + tras el primer sondeo
+    act(() => handlers.order_updated({ orderId: 'o1', onlineStatus: 'ACCEPTED' })) // otro sondeo
+    await waitFor(() => expect(planFetch).toHaveBeenCalledTimes(3))
+  })
+
+  it('con el plan vigente el sondeo no molesta a la consulta del plan', async () => {
+    const planFetch = vi.fn().mockResolvedValue({})
+    getInbox.mockResolvedValue(inbox([]))
+    renderWithPlanProbe(planFetch)
+    await screen.findByTestId('online-inbox')
+    act(() => handlers.order_updated({ orderId: 'o1', onlineStatus: 'ACCEPTED' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+    await new Promise(r => setTimeout(r, 30))
+    expect(planFetch).toHaveBeenCalledTimes(1)
   })
 
   it('consulta en error con datos viejos ⇒ «Sin conexión: no llegan pedidos nuevos»', async () => {

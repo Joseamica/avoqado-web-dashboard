@@ -10,6 +10,11 @@ import { useToast } from '@/hooks/use-toast'
 
 const ORDERING_URL = (import.meta.env.VITE_ORDERING_URL as string | undefined) || 'https://pedidos.avoqado.io'
 
+// La tienda sólo se deja enmarcar desde el panel principal (su `frame-ancestors`) y desde el desarrollo local; en los demás
+// orígenes del panel (demo, staging, dashboardv2) el iframe saldría como «rechazó la conexión».
+const canEmbedPreview = () =>
+  window.location.origin === 'https://dashboard.avoqado.io' || ['localhost', '127.0.0.1'].includes(window.location.hostname)
+
 const storefrontUrl = (slug: string) => `${ORDERING_URL}/${slug}`
 const widgetSnippet = (slug: string) =>
   `<script src="https://cdn.avoqado.io/widget.js" defer></script>\n<avoqado-order venue="${slug}"></avoqado-order>`
@@ -85,7 +90,16 @@ export function StorefrontShareCard({ slug }: { slug: string }) {
 
         <div className="space-y-2">
           <p className="text-sm font-medium">{t('settings.share.preview')}</p>
-          <iframe title={t('settings.share.previewTitle')} src={url} className="h-[480px] w-full rounded-xl border border-border" />
+          {canEmbedPreview() ? (
+            <iframe title={t('settings.share.previewTitle')} src={url} className="h-[480px] w-full rounded-xl border border-border" />
+          ) : (
+            <Button type="button" variant="outline" className="cursor-pointer" asChild>
+              <a href={url} target="_blank" rel="noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                {t('settings.share.openInTab')}
+              </a>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

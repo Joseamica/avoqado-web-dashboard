@@ -80,7 +80,8 @@
       "snippetHelp": "Paste this code in your page. If your site doesn't accept scripts, use the link or a button that opens it.",
       "copySnippet": "Copy code",
       "preview": "Preview",
-      "previewTitle": "Store preview"
+      "previewTitle": "Store preview",
+      "openInTab": "Open the store in another tab"
     },
     "minOrderErrors": {
       "range": "Minimum order must be between $0 and $100,000",
@@ -127,6 +128,10 @@
     "offline": "Offline: new orders aren't coming in",
     "keepsOpen": "While this tab is open and visible, your store takes orders; if nobody has it in view, it pauses on its own after 2 minutes.",
     "viewOnly": "You can see the orders, but your account doesn't keep the store open.",
+    "status": {
+      "noPlan": "No plan: new orders aren't coming in",
+      "offlineNobody": "Nobody who can answer orders has the Tray open"
+    },
     "sections": {
       "pending": "To accept",
       "accepted": "Preparing",
@@ -146,6 +151,7 @@
       "total": "Total (VAT included)",
       "payAtPickup": "Collect at pickup {{amount}}",
       "paid": "Paid",
+      "noCharge": "No charge",
       "collectFirst": "Payment still due",
       "deadline": "{{time}} left to accept",
       "expired": "Time to accept is up",
