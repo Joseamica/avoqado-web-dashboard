@@ -119,9 +119,9 @@ export function valorDeCelda(fila: FilaDeComparacion, tier: TierComparado): Valo
   })
 }
 
-/** ¿Los tres planes dicen lo mismo en esta fila? Esas filas no ayudan a elegir: van en una sola línea. */
-export function esComun(fila: FilaDeComparacion): boolean {
-  const [a, ...resto] = TIERS_COMPARADOS.map(t => valorDeCelda(fila, t))
+/** ¿Los planes que se enseñan (por default los tres) dicen lo mismo en esta fila? Esas filas no ayudan a elegir: van en una sola línea. */
+export function esComun(fila: FilaDeComparacion, tiers: readonly TierComparado[] = TIERS_COMPARADOS): boolean {
+  const [a, ...resto] = tiers.map(t => valorDeCelda(fila, t))
   return resto.every(v => v === a)
 }
 

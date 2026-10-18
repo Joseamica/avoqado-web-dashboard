@@ -15,18 +15,24 @@ interface PlanComparisonProps {
   /** Plan elegido en este momento: su columna se resalta. */
   selectedTier?: TierId
   defaultOpen?: boolean
+  /** El alta nunca enseña Gratis: sin su columna, y «común a todos» se calcula sólo entre Pro y Premium. */
+  ocultarGratis?: boolean
 }
 
-export function PlanComparison({ selectedTier, defaultOpen = false }: PlanComparisonProps) {
+export function PlanComparison({ selectedTier, defaultOpen = false, ocultarGratis = false }: PlanComparisonProps) {
   const { t } = useTranslation('billing')
   const [abierta, setAbierta] = useState(defaultOpen)
   const panelId = useId()
-  const columnas = 'grid grid-cols-[minmax(0,1fr)_repeat(3,minmax(3.25rem,5.5rem))] sm:grid-cols-[minmax(0,1fr)_repeat(3,7rem)]'
+  const tiers = ocultarGratis ? TIERS_COMPARADOS.filter(tier => tier !== 'FREE') : TIERS_COMPARADOS
+  // Clases literales (no armadas con el número): Tailwind sólo genera las que ve escritas completas.
+  const columnas = ocultarGratis
+    ? 'grid grid-cols-[minmax(0,1fr)_repeat(2,minmax(3.25rem,5.5rem))] sm:grid-cols-[minmax(0,1fr)_repeat(2,7rem)]'
+    : 'grid grid-cols-[minmax(0,1fr)_repeat(3,minmax(3.25rem,5.5rem))] sm:grid-cols-[minmax(0,1fr)_repeat(3,7rem)]'
 
   // Lo que todos los planes tienen igual no ayuda a elegir: va en una sola línea arriba y la tabla
   // sólo enseña lo que CAMBIA de un plan a otro (la lista completa era demasiado larga).
-  const comunes = PLAN_COMPARISON.flatMap(c => c.rows.filter(esComun))
-  const categorias = PLAN_COMPARISON.map(c => ({ ...c, rows: c.rows.filter(f => !esComun(f)) })).filter(c => c.rows.length > 0)
+  const comunes = PLAN_COMPARISON.flatMap(c => c.rows.filter(f => esComun(f, tiers)))
+  const categorias = PLAN_COMPARISON.map(c => ({ ...c, rows: c.rows.filter(f => !esComun(f, tiers)) })).filter(c => c.rows.length > 0)
 
   const celda = (valor: ValorDeCelda) =>
     valor === true ? (
@@ -71,7 +77,7 @@ export function PlanComparison({ selectedTier, defaultOpen = false }: PlanCompar
         >
           <div role="row" className={cn(columnas, 'border-b border-input bg-background')}>
             <div role="columnheader" className="px-4 py-3" />
-            {TIERS_COMPARADOS.map(tier => (
+            {tiers.map(tier => (
               <div
                 key={tier}
                 role="columnheader"
@@ -97,7 +103,7 @@ export function PlanComparison({ selectedTier, defaultOpen = false }: PlanCompar
                   <div role="rowheader" className="px-4 py-2 text-sm">
                     {t(`plan.compare.rows.${fila.key}`)}
                   </div>
-                  {TIERS_COMPARADOS.map(tier => (
+                  {tiers.map(tier => (
                     <div
                       key={tier}
                       role="cell"
