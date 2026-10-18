@@ -102,6 +102,7 @@ export interface ActivatePlanResult {
 /** Códigos de error de `activate-plan` que la pantalla trata de forma distinta (§4.5). */
 export type ActivatePlanErrorCode =
   | 'PLAN_PAYMENT_DECLINED'
+  | 'PLAN_PAYMENT_REQUIRES_ACTION'
   | 'PLAN_ALREADY_ACTIVATED'
   | 'PLAN_ACTIVE_WITHOUT_OFFER'
   | 'LAUNCH_OFFER_UNAVAILABLE'
