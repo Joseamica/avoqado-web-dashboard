@@ -32,7 +32,12 @@ const schema = z.object({
   enabled: z.boolean(),
   acceptsPayAtPickup: z.boolean(),
   manualPause: z.boolean(),
-  minOrderAmount: z.number().min(0).max(100000).optional(),
+  minOrderAmount: z
+    .number({ invalid_type_error: 'range' })
+    .min(0, 'range')
+    .max(100000, 'range')
+    .refine(v => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'decimals')
+    .optional(),
   defaultPrepMinutes: z.number(),
   hours: z.custom<OperatingHours | null>(),
 })
@@ -101,6 +106,8 @@ export function SettingsTab() {
   const hours = watch('hours')
   const enabled = watch('enabled')
 
+  const watched = watch()
+  const hasChanges = !!saved && Object.keys(buildPatch(watched, saved)).length > 0
   const hourErrors = validateWeek(hours)
   const notes = overnightNotes(hours)
 
@@ -146,13 +153,13 @@ export function SettingsTab() {
   })()
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form noValidate onSubmit={onSubmit} className="space-y-6">
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
         <div className="text-sm" data-tour="online-ordering-store-status">
           <span className="text-muted-foreground">{t('settings.status.label')}: </span>
           <span className="font-medium">{statusText}</span>
         </div>
-        <Button type="submit" className="cursor-pointer" disabled={!formState.isDirty || hourErrors.length > 0 || mutation.isPending}>
+        <Button type="submit" className="cursor-pointer" disabled={!hasChanges || hourErrors.length > 0 || mutation.isPending}>
           {t('settings.save')}
         </Button>
       </div>
@@ -231,7 +238,13 @@ export function SettingsTab() {
                   />
                 )}
               />
-              <p className="text-xs text-muted-foreground">{t('settings.minOrderHelp')}</p>
+              {formState.errors.minOrderAmount ? (
+                <p role="alert" className="text-xs text-destructive">
+                  {t(`settings.minOrderErrors.${formState.errors.minOrderAmount.message === 'decimals' ? 'decimals' : 'range'}`)}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('settings.minOrderHelp')}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="oo-prep">{t('settings.prepTime')}</Label>
