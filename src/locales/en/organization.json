@@ -1243,6 +1243,7 @@
       "ORDER_DISCOUNT_REMOVED": "Discount removed from order",
       "ORDER_FROM_RESERVATION_FAILED": "Could not create order from reservation",
       "ORDER_ITEM_COMPED": "Item comped",
+      "ORDER_PREVIOUS_PRICE_HONORED": "Previous price honored",
       "ORDER_SERVICE_CHARGE_APPLIED": "Service charge applied",
       "ORDER_SERVICE_CHARGE_REMOVED": "Service charge removed",
       "ORDER_SETTLED": "Order settled",

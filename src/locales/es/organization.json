@@ -1243,6 +1243,7 @@
       "ORDER_DISCOUNT_REMOVED": "Descuento quitado de la orden",
       "ORDER_FROM_RESERVATION_FAILED": "No se pudo crear la orden desde la reservación",
       "ORDER_ITEM_COMPED": "Artículo de cortesía",
+      "ORDER_PREVIOUS_PRICE_HONORED": "Precio anterior respetado",
       "ORDER_SERVICE_CHARGE_APPLIED": "Cargo por servicio aplicado",
       "ORDER_SERVICE_CHARGE_REMOVED": "Cargo por servicio quitado",
       "ORDER_SETTLED": "Orden liquidada",
