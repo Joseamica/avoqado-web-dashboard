@@ -23,6 +23,7 @@ import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { defaultWeek, overnightNotes, validateWeek } from '../lib/hours'
+import { pauseLabel } from '../lib/pauseLabel'
 import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
@@ -143,14 +144,8 @@ export function SettingsTab() {
   })
 
   const store = settings.store
-  const statusText = (() => {
-    if (store.status === 'PAUSED') {
-      return store.manualPause || !store.pausedUntil
-        ? t('settings.status.pausedManual')
-        : t('settings.status.pausedUntil', { time: formatTime(store.pausedUntil) })
-    }
-    return t(`settings.status.${store.status}`, { defaultValue: store.status })
-  })()
+  const pause = pauseLabel(store, formatTime)
+  const statusText = pause ? t(pause.key, pause.params) : t(`settings.status.${store.status}`, { defaultValue: store.status })
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-6">

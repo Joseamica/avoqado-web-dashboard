@@ -26,12 +26,14 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
     if (!venueId || !socket) return
     joinVenueRoom(venueId)
     const refresh = () => queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
-    const onCreated = (e: { source?: string } | undefined) => {
-      if (e?.source === 'WEB') refresh()
+    // Un evento de OTRO negocio (el socket puede estar en varios cuartos) no toca esta bandeja.
+    const otherVenue = (e: { venueId?: string } | undefined) => !!e?.venueId && e.venueId !== venueId
+    const onCreated = (e: { source?: string; venueId?: string } | undefined) => {
+      if (e?.source === 'WEB' && !otherVenue(e)) refresh()
     }
     // `order_updated` también lo emiten las cuentas del POS: sólo el de un pedido en línea trae `onlineStatus`.
-    const onUpdated = (e: { onlineStatus?: string } | undefined) => {
-      if (e?.onlineStatus) refresh()
+    const onUpdated = (e: { onlineStatus?: string; venueId?: string } | undefined) => {
+      if (e?.onlineStatus && !otherVenue(e)) refresh()
     }
     socket.on('order_created', onCreated)
     socket.on('order_updated', onUpdated)

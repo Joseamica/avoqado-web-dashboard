@@ -63,6 +63,13 @@ describe('SettingsTab', () => {
     expect(screen.queryByTestId('hours-editor')).toBeNull()
   })
 
+  it('pausada por muchos pedidos (TOO_BUSY) no dice «Pausada desde Configuración»', async () => {
+    getSettings.mockResolvedValue(base({ enabled: true, store: { status: 'PAUSED', reason: 'TOO_BUSY', pausedUntil: null, manualPause: false } }))
+    renderTab()
+    expect(await screen.findByText('settings.status.pausedBusy')).toBeInTheDocument()
+    expect(screen.queryByText('settings.status.pausedManual')).toBeNull()
+  })
+
   it('guardar manda sólo lo cambiado', async () => {
     getSettings.mockResolvedValue(base())
     updateSettings.mockResolvedValue(base({ minOrderAmount: 80 }))

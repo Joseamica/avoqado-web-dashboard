@@ -31,10 +31,12 @@ import {
   serverMessage,
 } from '@/services/onlineOrdering.service'
 import type { Inbox, InboxOrder, OnlineOrderStatus } from '@/types/onlineOrdering'
+import { useVenueDateTime } from '@/utils/datetime'
 
 import { useOnlineOrdersInbox } from '../hooks/useOnlineOrdersInbox'
 import { actionOutcome } from '../lib/actionOutcome'
 import { createChime, type Chime } from '../lib/chime'
+import { pauseLabel } from '../lib/pauseLabel'
 import { AcceptDialog } from './AcceptDialog'
 import { OrderCard, type OrderAction } from './OrderCard'
 import { PauseControl } from './PauseControl'
@@ -78,6 +80,7 @@ export function InboxTab() {
   const { t } = useTranslation('onlineOrdering')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatTime } = useVenueDateTime()
   const venueId = useCurrentVenue().venueId ?? ''
   const { canAnswer, canCancel, canPause, keepsStoreOpen } = useOnlineOrderingStatus()
   const { data, isError, error, dataUpdatedAt } = useOnlineOrdersInbox(venueId, { trayActive: () => keepsStoreOpen })
@@ -97,10 +100,10 @@ export function InboxTab() {
   const action = useMutation({
     mutationFn: (a: Act) => a.run(),
     onSuccess: () => refresh(),
+    // onSuccess/onError DEVUELVEN el refresco: `isPending` lo cubre y los botones no se reactivan con la tarjeta vieja.
     onError: (err: unknown, a: Act) => {
       const outcome = actionOutcome(err, a.target)
-      if (outcome !== 'network') refresh()
-      if (outcome === 'success') return
+      if (outcome === 'success') return refresh()
       const title =
         outcome === 'gone'
           ? t('inbox.outcome.gone')
@@ -112,6 +115,7 @@ export function InboxTab() {
                 ? t('inbox.outcome.network')
                 : serverMessage(err, t('inbox.outcome.error'))
       toast({ title, ...(outcome === 'error' ? { variant: 'destructive' as const } : {}) })
+      return outcome === 'network' ? undefined : refresh()
     },
   })
 
@@ -130,10 +134,11 @@ export function InboxTab() {
     await chime().unlock()
     rerender()
   }
-  const toggleSound = async (on: boolean) => {
-    if (on) await chime().unlock() // dentro del clic: es lo que el navegador exige para dejar sonar
+  const toggleSound = (on: boolean) => {
+    // Primero la preferencia: si `resume()` nunca resuelve (Safari), el interruptor no se traba.
     writeSoundPref(on)
     setSoundOn(on)
+    if (on) void unlockSound() // dentro del clic: es lo que el navegador exige para dejar sonar
   }
 
   if (!data) {
@@ -150,27 +155,33 @@ export function InboxTab() {
   }
 
   const store = data.store
-  // La pausa a mano (con hora o del gerente) la dice PauseControl; aquí sólo los demás estados.
-  const pausedByHand = store?.status === 'PAUSED' && store.reason === 'MANUAL_PAUSE'
+  const pause = pauseLabel(store, formatTime)
+  const soundSupported = chime().state() !== 'unsupported'
   const skewMs = Date.parse(data.serverTime) - dataUpdatedAt
 
   return (
     <div className="space-y-4" data-testid="online-inbox">
       <div className="space-y-3 rounded-xl border border-input p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          {store && !pausedByHand && (
+          {store && (
             <p className="text-sm">
               <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-              <span className="font-medium">{t(`settings.status.${store.status}`, { defaultValue: store.status })}</span>
+              <span className="font-medium">
+                {pause ? t(pause.key, pause.params) : t(`settings.status.${store.status}`, { defaultValue: store.status })}
+              </span>
             </p>
           )}
           <PauseControl venueId={venueId} store={store} canPause={canPause} />
         </div>
         <p className="text-sm text-muted-foreground">{keepsStoreOpen ? t('inbox.keepsOpen') : t('inbox.viewOnly')}</p>
-        <div className="flex items-center gap-2">
-          <Switch id="online-inbox-sound" checked={soundOn} onCheckedChange={toggleSound} data-tour="online-inbox-sound" />
-          <Label htmlFor="online-inbox-sound">{t('inbox.sound.toggle')}</Label>
-        </div>
+        {soundSupported ? (
+          <div className="flex items-center gap-2">
+            <Switch id="online-inbox-sound" checked={soundOn} onCheckedChange={toggleSound} data-tour="online-inbox-sound" />
+            <Label htmlFor="online-inbox-sound">{t('inbox.sound.toggle')}</Label>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('inbox.sound.unsupported')}</p>
+        )}
       </div>
 
       {isError && (
@@ -179,13 +190,13 @@ export function InboxTab() {
           <AlertDescription>{t('inbox.offline')}</AlertDescription>
         </Alert>
       )}
-      {soundOn && chime().state() !== 'running' && (
+      {soundSupported && soundOn && chime().state() !== 'running' && (
         <Button variant="outline" className="w-full" onClick={unlockSound} data-tour="online-inbox-unlock-sound">
           <Volume2 />
           {t('inbox.sound.unlock')}
         </Button>
       )}
-      {!soundOn && pending > 0 && <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>}
+      {soundSupported && !soundOn && pending > 0 && <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>}
 
       {SECTIONS.map(section => {
         const list = data.orders.filter(o => section.match(o.status))
