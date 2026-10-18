@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PublicDocumentsPage from './PublicDocumentsPage'
 import i18n from './i18n'
@@ -33,6 +33,7 @@ beforeEach(() => {
   history.replaceState({}, '', `/documentos/${id}#token=${token}`)
   sessionStorage.clear()
   Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+  onlineManager.setOnline(true)
   vi.mocked(publicDocuments.get).mockResolvedValue(structuredClone(request))
 })
 afterEach(cleanup)
@@ -189,5 +190,88 @@ describe('WhatsApp document delivery without an account', () => {
     })
     expect(screen.getByText(/Sin conexión/)).toBeVisible()
     expect(screen.getByRole('button', { name: 'Enviar documentos' })).toBeDisabled()
+  })
+  it('saves a dropped file under its requirement and keeps the file picker available', async () => {
+    vi.mocked(publicDocuments.upload).mockResolvedValue(file)
+    mount()
+    const region = await screen.findByRole('region', { name: 'Comprobante de domicilio' })
+    const dropped = new File(['pdf'], 'domicilio.pdf', { type: 'application/pdf' })
+    expect(fireEvent.drop(region, { dataTransfer: { types: ['Files'], files: [dropped] } })).toBe(false)
+    expect(await screen.findByText('Guardado')).toBeVisible()
+    expect(screen.getByText('1 de 1 requisitos completos')).toBeVisible()
+    expect(publicDocuments.upload).toHaveBeenCalledWith(id, token, 'address', dropped, expect.any(String), expect.any(Function))
+    expect(screen.getByLabelText('Agregar archivo: Comprobante de domicilio')).toBeEnabled()
+  })
+  it('highlights the destination while a file is over it and clears it on leaving', async () => {
+    mount()
+    const region = await screen.findByRole('region', { name: 'Comprobante de domicilio' })
+    fireEvent.dragEnter(region, { dataTransfer: { types: ['Files'] } })
+    expect(screen.getByText('Suéltalo aquí')).toBeVisible()
+    fireEvent.dragLeave(region)
+    expect(screen.queryByText('Suéltalo aquí')).not.toBeInTheDocument()
+  })
+  it.each([
+    new File(['executable'], 'documento.exe', { type: 'application/octet-stream' }),
+    new File([''], 'vacio.pdf', { type: 'application/pdf' }),
+    new File([new Uint8Array(8388609)], 'grande.pdf', { type: 'application/pdf' }),
+  ])('rejects an invalid dropped file ($name) before uploading', async dropped => {
+    mount()
+    fireEvent.drop(await screen.findByRole('region', { name: 'Comprobante de domicilio' }), {
+      dataTransfer: { types: ['Files'], files: [dropped] },
+    })
+    expect(await screen.findByText('Elige un PDF, JPG o PNG que no supere 8 MB.')).toBeVisible()
+    expect(publicDocuments.upload).not.toHaveBeenCalled()
+  })
+  it('explains a multiple-file drop instead of silently losing files', async () => {
+    mount()
+    fireEvent.drop(await screen.findByRole('region', { name: 'Comprobante de domicilio' }), {
+      dataTransfer: {
+        types: ['Files'],
+        files: [new File(['a'], 'frente.png', { type: 'image/png' }), new File(['b'], 'reverso.png', { type: 'image/png' })],
+      },
+    })
+    expect(await screen.findByText('Agrega un archivo a la vez en el requisito correspondiente.')).toBeVisible()
+    expect(publicDocuments.upload).not.toHaveBeenCalled()
+  })
+  it('enforces the requirement file limit for drops', async () => {
+    vi.mocked(publicDocuments.get).mockResolvedValue({ ...request, documents: [file, { ...file, id: 'file2' }] })
+    mount()
+    fireEvent.drop(await screen.findByRole('region', { name: 'Comprobante de domicilio' }), {
+      dataTransfer: { types: ['Files'], files: [new File(['pdf'], 'extra.pdf', { type: 'application/pdf' })] },
+    })
+    expect(await screen.findByText('Llegaste al máximo de archivos. Quita uno antes de agregar otro.')).toBeVisible()
+    expect(publicDocuments.upload).not.toHaveBeenCalled()
+  })
+  it.each(['offline', 'uploading'] as const)('does not accept another drop while %s', async state => {
+    vi.mocked(publicDocuments.upload).mockImplementation(() => new Promise(() => {}))
+    mount()
+    const region = await screen.findByRole('region', { name: 'Comprobante de domicilio' })
+    if (state === 'offline') {
+      act(() => {
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: false })
+        window.dispatchEvent(new Event('offline'))
+      })
+    } else {
+      fireEvent.change(screen.getByLabelText('Agregar archivo: Comprobante de domicilio'), {
+        target: { files: [new File(['pdf'], 'primero.pdf', { type: 'application/pdf' })] },
+      })
+      await screen.findByText('primero.pdf')
+    }
+    expect(
+      fireEvent.drop(region, {
+        dataTransfer: { types: ['Files'], files: [new File(['pdf'], 'otro.pdf', { type: 'application/pdf' })] },
+      }),
+    ).toBe(false)
+    expect(screen.queryByText('otro.pdf')).not.toBeInTheDocument()
+    expect(publicDocuments.upload).toHaveBeenCalledTimes(state === 'offline' ? 0 : 1)
+  })
+  it('prevents a dropped file outside the requirements from navigating away, while allowing text drops', async () => {
+    mount()
+    await screen.findByRole('region', { name: 'Comprobante de domicilio' })
+    fireEvent.change(screen.getByLabelText('Tu nombre'), { target: { value: 'Ana' } })
+    expect(fireEvent.drop(document.body, { dataTransfer: { types: ['Files'], files: [new File(['pdf'], 'doc.pdf')] } })).toBe(false)
+    expect(screen.getByLabelText('Tu nombre')).toHaveValue('Ana')
+    expect(publicDocuments.upload).not.toHaveBeenCalled()
+    expect(fireEvent.drop(screen.getByLabelText('Tu nombre'), { dataTransfer: { types: ['text/plain'], files: [] } })).toBe(true)
   })
 })
