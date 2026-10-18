@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type DragEvent } from 'react'
 import { I18nextProvider, useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -42,6 +42,7 @@ type PendingFile = {
 }
 const statusOf = (error: unknown) => (error as { response?: { status?: number } })?.response?.status
 const unavailable = (error: unknown) => [401, 403, 404, 410].includes(statusOf(error) || 0)
+const hasFiles = (transfer: DataTransfer | null) => Array.from(transfer?.types || []).includes('Files')
 
 function DocumentForm({ requestId }: { requestId: string }) {
   const { t } = useTranslation('publicDocuments')
@@ -51,6 +52,7 @@ function DocumentForm({ requestId }: { requestId: string }) {
   const [pending, setPending] = useState<PendingFile[]>([])
   const [message, setMessage] = useState('')
   const [linkUnavailable, setLinkUnavailable] = useState(false)
+  const [dragTarget, setDragTarget] = useState<string | null>(null)
   const queryKey = ['public-document-request', requestId]
   const form = useForm<DocumentContact>({
     resolver: zodResolver(contactSchema),
@@ -81,6 +83,23 @@ function DocumentForm({ requestId }: { requestId: string }) {
     document.title = t('title')
     document.documentElement.lang = i18n.language
   }, [t])
+  useEffect(() => {
+    // File drops outside a requirement must not replace the page and lose the form.
+    const preventFileNavigation = (event: globalThis.DragEvent) => {
+      if (hasFiles(event.dataTransfer)) event.preventDefault()
+    }
+    const endDrag = () => setDragTarget(null)
+    document.addEventListener('dragover', preventFileNavigation)
+    document.addEventListener('drop', preventFileNavigation)
+    document.addEventListener('drop', endDrag)
+    document.addEventListener('dragend', endDrag)
+    return () => {
+      document.removeEventListener('dragover', preventFileNavigation)
+      document.removeEventListener('drop', preventFileNavigation)
+      document.removeEventListener('drop', endDrag)
+      document.removeEventListener('dragend', endDrag)
+    }
+  }, [])
 
   const handleFailure = (error: unknown, key: string) => {
     if (unavailable(error)) setLinkUnavailable(true)
@@ -200,6 +219,12 @@ function DocumentForm({ requestId }: { requestId: string }) {
     const item: PendingFile = { uploadId: createUploadId(), key, file, state: 'uploading', progress: 0 }
     setPending(items => [...items, item])
     upload.mutate(item)
+  }
+  const dragOver = (event: DragEvent<HTMLElement>, key: string) => {
+    if (!hasFiles(event.dataTransfer)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = busy || !online ? 'none' : 'copy'
+    if (!busy && online) setDragTarget(key)
   }
 
   const notice = (title: string, body: string, retry = false) => (
@@ -328,7 +353,25 @@ function DocumentForm({ requestId }: { requestId: string }) {
                         key={requirement.key}
                         className="document-requirement"
                         data-tour={`documents-${requirement.key}`}
+                        data-drag-active={!busy && online && dragTarget === requirement.key}
                         aria-labelledby={`heading-${requirement.key}`}
+                        onDragEnter={event => dragOver(event, requirement.key)}
+                        onDragOver={event => dragOver(event, requirement.key)}
+                        onDragLeave={event => {
+                          if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return
+                          setDragTarget(current => (current === requirement.key ? null : current))
+                        }}
+                        onDrop={event => {
+                          if (!hasFiles(event.dataTransfer)) return
+                          event.preventDefault()
+                          setDragTarget(null)
+                          if (busy || !online) return
+                          if (event.dataTransfer.files.length !== 1) {
+                            setMessage('oneFileAtATime')
+                            return
+                          }
+                          chooseFile(requirement.key, event.dataTransfer.files[0])
+                        }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <h3 id={`heading-${requirement.key}`} className="document-file-heading">
@@ -452,13 +495,19 @@ function DocumentForm({ requestId }: { requestId: string }) {
                           <span className="document-upload-icon">
                             <Upload className="size-4" aria-hidden="true" />
                           </span>
-                          {t('addFile')}
+                          <span>
+                            {t('addFile')}
+                            <span id={`drop-hint-${requirement.key}`} className="document-drop-hint">
+                              {t(!busy && online && dragTarget === requirement.key ? 'dropFile' : 'dragFile')}
+                            </span>
+                          </span>
                           <input
                             className="sr-only"
                             type="file"
                             accept=".pdf,.jpg,.jpeg,.png"
                             disabled={busy || !online}
                             aria-label={t('uploadLabel', { label: requirement.label })}
+                            aria-describedby={`drop-hint-${requirement.key}`}
                             onChange={event => {
                               chooseFile(requirement.key, event.target.files?.[0])
                               event.target.value = ''

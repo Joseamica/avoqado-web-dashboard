@@ -201,9 +201,21 @@
     background-color 160ms,
     border-color 160ms;
 }
-.document-upload:has(input:enabled):hover {
+.document-upload:has(input:enabled):hover,
+.document-requirement[data-drag-active='true'] .document-upload {
   background: var(--document-tint);
   border-color: var(--document-brand);
+}
+.document-requirement[data-drag-active='true'] .document-upload {
+  outline: 2px solid var(--document-brand);
+  outline-offset: 3px;
+}
+.document-drop-hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--document-muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 .document-upload-icon {
   display: grid;
