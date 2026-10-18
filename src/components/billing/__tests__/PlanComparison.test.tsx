@@ -61,9 +61,16 @@ describe('PlanComparison', () => {
       await abrir(<PlanComparison ocultarGratis />)
       // Tienen lo mismo en Pro y Premium (sólo cambiaban contra Gratis): pasan a la línea de arriba.
       expect(screen.queryByTestId('compare-loyalty-PRO')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('compare-seats-PRO')).not.toBeInTheDocument()
       // Lo que sí distingue a Pro de Premium se queda en la tabla.
       expect(screen.getByTestId('compare-cfdi-PRO')).toBeInTheDocument()
+    })
+
+    it('«Usuarios» se queda en la tabla con su valor («Ilimitados») aunque Pro y Premium coincidan', async () => {
+      await abrir(<PlanComparison ocultarGratis />)
+      expect(screen.getByRole('rowheader', { name: 'plan.compare.rows.seats' })).toBeInTheDocument()
+      expect(screen.getByTestId('compare-seats-PRO')).toHaveTextContent('plan.compare.values.unlimited')
+      expect(screen.getByTestId('compare-seats-PREMIUM')).toHaveTextContent('plan.compare.values.unlimited')
+      expect(screen.queryByTestId('compare-seats-FREE')).not.toBeInTheDocument()
     })
 
     it('el plan resaltado sigue resaltándose', async () => {

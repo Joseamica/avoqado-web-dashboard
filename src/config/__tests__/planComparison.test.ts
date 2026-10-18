@@ -55,6 +55,20 @@ describe('resúmenes de la tabla', () => {
     expect(esComun(fila('cfdi'))).toBe(false)
   })
 
+  it('esComun puede mirar sólo algunos planes (la comparación del alta no enseña Gratis)', () => {
+    // Lealtad: Gratis no, Pro y Premium sí. Con los tres no es común; entre Pro y Premium sí.
+    expect(esComun(fila('loyalty'))).toBe(false)
+    expect(esComun(fila('loyalty'), TIERS_COMPARADOS)).toBe(false)
+    expect(esComun(fila('loyalty'), ['PRO', 'PREMIUM'])).toBe(true)
+    // Lo que distingue a Pro de Premium sigue sin ser común.
+    expect(esComun(fila('cfdi'), ['PRO', 'PREMIUM'])).toBe(false)
+  })
+
+  it('🔴 una fila con TEXTO nunca es común: «Usuarios» sigue diciendo «Ilimitados» aunque Pro y Premium coincidan', () => {
+    expect(esComun(fila('seats'))).toBe(false)
+    expect(esComun(fila('seats'), ['PRO', 'PREMIUM'])).toBe(false)
+  })
+
   it('Pro agrega sobre Free y Premium sobre Pro, sin repetir lo de abajo', () => {
     const pro = novedadesDelPlan('PRO').flatMap(c => c.filas.map(f => f.key))
     const premium = novedadesDelPlan('PREMIUM').flatMap(c => c.filas.map(f => f.key))
