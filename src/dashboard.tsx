@@ -111,6 +111,7 @@ const routeKeyMap: Record<string, string> = {
   passes: 'sidebar:routes.passes',
   reviews: 'sidebar:routes.reviews',
   delivery: 'sidebar:routes.delivery',
+  'online-ordering': 'sidebar:routes.onlineOrdering',
   ecommerce: 'sidebar:routes.ecommerce',
   calendar: 'sidebar:routes.calendar',
   history: 'sidebar:routes.history',
