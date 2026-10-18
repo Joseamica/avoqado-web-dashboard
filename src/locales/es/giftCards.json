@@ -204,6 +204,8 @@
       "button": "Cancelar la venta",
       "title": "Cancelar la venta",
       "descriptionAll": "Se cancelan juntas todas las tarjetas de esta venta. Así se cancela:",
+      "descriptionSale_one": "Venta #{{orderNumber}}: se cancela su tarjeta ({{amount}}). Así se cancela:",
+      "descriptionSale_other": "Venta #{{orderNumber}}: se cancelan juntas sus {{count}} tarjetas ({{amount}}). Así se cancela:",
       "step1": "Bloqueamos las tarjetas para que nadie las use.",
       "step2": "Devuelve el dinero por donde se pagó: en la terminal o desde la venta.",
       "step3": "Al registrar la devolución, las tarjetas se cancelan solas.",
@@ -376,6 +378,7 @@
     "confirm": "Apagar"
   },
   "errors": {
-    "generic": "Algo salió mal. Inténtalo otra vez."
+    "generic": "Algo salió mal. Inténtalo otra vez.",
+    "forbidden": "No tienes permiso para hacer esto. Pídeselo a quien administra el negocio."
   }
 }

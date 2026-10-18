@@ -628,7 +628,8 @@
     "paymentTypes": {
       "card": "Tarjeta",
       "cash": "Efectivo",
-      "other": "Otros"
+      "other": "Otros",
+      "giftCardBalance": "Saldo de tarjeta de regalo"
     },
     "controls": {
       "title": "Controles",

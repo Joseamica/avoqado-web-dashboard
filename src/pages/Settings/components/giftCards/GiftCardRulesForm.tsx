@@ -12,7 +12,7 @@ import {
   TOPE_POR_TARJETA,
   VIGENCIAS,
   borradorDesde,
-  textoDelServidorConCodigo,
+  avisoDeError,
   validarReglas,
   type BorradorDeReglas,
   type VigenciaElegida,
@@ -75,7 +75,7 @@ export function GiftCardRulesForm({
       // `validarReglas` ya atajó esos mismos casos antes de mandar.
       toast({
         title: t('settings.rules.saveError'),
-        description: textoDelServidorConCodigo(err) ?? t('errors.generic'),
+        description: avisoDeError(err, t),
         variant: 'destructive',
       })
     }

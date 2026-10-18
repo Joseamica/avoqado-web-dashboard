@@ -30,7 +30,13 @@ vi.mock('@/hooks/use-access', () => ({
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
 const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
+// Sólo el aviso de cancelar (full-testing v2 #3) lleva folio: ahí se pintan sus valores para poder leerlos.
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (k: string, o?: { orderNumber?: string; count?: number; amount?: string }) =>
+      o?.orderNumber ? `${k}(#${o.orderNumber}·${o.count}·${o.amount})` : k,
+  }),
+}))
 
 import { olvidarIntentosEnDuda, useGiftCardDetail } from '@/hooks/use-gift-cards'
 import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
@@ -367,13 +373,24 @@ describe('GiftCardManagerActions', () => {
     expect(boton('actions.block.confirm')).toBeEnabled()
   })
 
-  it('notas 10 y 12: un error SIN `code` (un 403 en inglés) enseña el texto genérico, nunca el `message` crudo', async () => {
-    svc.operateGiftCard.mockRejectedValue({ response: { status: 403, data: { message: 'Forbidden' } } })
+  it('notas 10 y 12: un error SIN `code` enseña el texto genérico, nunca el `message` crudo', async () => {
+    svc.operateGiftCard.mockRejectedValue({ response: { status: 400, data: { message: 'Bad Request' } } })
     pintar()
     fireEvent.click(boton('actions.block.button'))
     fireEvent.click(screen.getByLabelText('reason.SUSPICIOUS_ACTIVITY'))
     fireEvent.click(boton('actions.block.confirm'))
     expect(await screen.findByText('errors.generic')).toBeInTheDocument()
+    expect(screen.queryByText('Bad Request')).not.toBeInTheDocument()
+  })
+
+  it('🔴 full-testing v2 #2 · un 403 de permisos SIN `code` (en inglés) dice que falta permiso, no «Algo salió mal»', async () => {
+    svc.operateGiftCard.mockRejectedValue({ response: { status: 403, data: { message: 'Forbidden' } } })
+    pintar()
+    fireEvent.click(boton('actions.block.button'))
+    fireEvent.click(screen.getByLabelText('reason.SUSPICIOUS_ACTIVITY'))
+    fireEvent.click(boton('actions.block.confirm'))
+    expect(await screen.findByText('errors.forbidden')).toBeInTheDocument()
+    expect(screen.queryByText('errors.generic')).not.toBeInTheDocument()
     expect(screen.queryByText('Forbidden')).not.toBeInTheDocument()
   })
 
@@ -424,6 +441,19 @@ describe('GiftCardManagerActions', () => {
     fireEvent.click(boton('actions.replace.confirm'))
     expect(screen.getByRole('alert')).toHaveTextContent('actions.errors.noteTooLong')
     expect(svc.operateGiftCard).not.toHaveBeenCalled()
+  })
+
+  it('🔴 full-testing v2 #3 · el aviso dice QUÉ venta se cancela: su folio, cuántas tarjetas y por cuánto', () => {
+    pintar(detalle({ sale: { cards: 2, amount: 800 } }))
+    fireEvent.click(boton('actions.cancelSale.button'))
+    expect(screen.getByText('actions.cancelSale.descriptionSale(#A-1042·2·$800.00)')).toBeInTheDocument()
+    expect(screen.queryByText('actions.cancelSale.descriptionAll')).not.toBeInTheDocument()
+  })
+
+  it('full-testing v2 #3 · un server sin `sale` deja el aviso de siempre', () => {
+    pintar()
+    fireEvent.click(boton('actions.cancelSale.button'))
+    expect(screen.getByText('actions.cancelSale.descriptionAll')).toBeInTheDocument()
   })
 
   it('cancelar la venta: explica los pasos y manda su llave a ESA venta', async () => {

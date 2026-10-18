@@ -84,6 +84,21 @@ export function textoDelServidorConCodigo(err: unknown): string | undefined {
 }
 
 /**
+ * El texto de un error en las pantallas de tarjetas (full-testing v2 #2): el del server si trae `code`; un 403 SIN `code` (los de
+ * permisos, `checkPermission`/`verifyAccess`, en inglés) dice que falta permiso; lo demás, el respaldo de la pantalla. `t` es el de
+ * `useTranslation('giftCards')`.
+ */
+export function avisoDeError(err: unknown, t: (clave: string) => string, respaldo = 'errors.generic'): string {
+  const status = (err as { response?: { status?: unknown } } | null)?.response?.status
+  return textoDelServidorConCodigo(err) ?? t(status === 403 && !tieneCodigo(err) ? 'errors.forbidden' : respaldo)
+}
+
+function tieneCodigo(err: unknown): boolean {
+  const code = (err as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code
+  return typeof code === 'string' && code !== ''
+}
+
+/**
  * Lee un monto tecleado: «150», «150.5», «1,500», «1,500.50» o «$500». `null` si no es un número con hasta 2 decimales.
  * En México el punto es decimal y la coma sólo separa miles en grupos de 3 (r1, I2): «5,00», «150,50» o «1,0,0» dan `null`
  * para que la persona corrija; nunca se adivina (en un ajuste, «5,00» leído como 500 sumaría $500). Lo mismo con `$` y

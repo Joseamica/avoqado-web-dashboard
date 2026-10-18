@@ -17,6 +17,7 @@ import {
   montoDelMovimiento,
   motivoSinVenta,
   signoDe,
+  avisoDeError,
   textoDelServidorConCodigo,
   ultimos4,
   validarAjuste,
@@ -24,6 +25,8 @@ import {
   validarReglas,
   varianteDeEstado,
 } from '../giftCardText'
+import en from '@/locales/en/giftCards.json'
+import es from '@/locales/es/giftCards.json'
 
 const AHORA = new Date('2026-10-14T18:00:00.000Z')
 
@@ -315,5 +318,25 @@ describe('textoDelServidorConCodigo (nota 10: sin `code`, nunca el texto crudo)'
   })
   it('con `code` pero sin texto: nada', () => {
     expect(textoDelServidorConCodigo(conCuerpo(409, { code: 'GIFT_CARD_BLOCKED', message: '  ' }))).toBeUndefined()
+  })
+})
+
+describe('avisoDeError (full-testing v2 #2: el texto que enseña cada pantalla ante un error)', () => {
+  const conCuerpo = (status: number, data: unknown) => Object.assign(new Error(String(status)), { response: { status, data } })
+  const t = (clave: string) => `t:${clave}`
+  it('🔴 un 403 de permisos SIN `code` (checkPermission / verifyAccess, en inglés) dice que falta permiso, no «Algo salió mal»', () => {
+    expect(avisoDeError(conCuerpo(403, { error: 'Forbidden', message: 'Insufficient permissions' }), t)).toBe('t:errors.forbidden')
+    expect(avisoDeError(conCuerpo(403, { message: 'No access to this venue' }), t, 'reports.summaryError')).toBe('t:errors.forbidden')
+    expect(es.errors.forbidden).toMatch(/permiso/)
+    expect(en.errors.forbidden).toMatch(/permission/)
+  })
+  it('con `code` manda el texto del server (el candado de plan es un 403 con código)', () => {
+    const err = conCuerpo(403, { code: 'GIFT_CARDS_NOT_IN_PLAN', message: 'Tu plan no incluye vender tarjetas de regalo.' })
+    expect(avisoDeError(err, t)).toBe('Tu plan no incluye vender tarjetas de regalo.')
+  })
+  it('lo demás sin `code` (500, 401, sin red) cae en el respaldo de la pantalla: `errors.generic` si no dice otro', () => {
+    expect(avisoDeError(conCuerpo(500, { message: 'Internal Server Error' }), t)).toBe('t:errors.generic')
+    expect(avisoDeError(conCuerpo(401, { message: 'No venue context found' }), t, 'reports.aging.error')).toBe('t:reports.aging.error')
+    expect(avisoDeError(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }), t)).toBe('t:errors.generic')
   })
 })

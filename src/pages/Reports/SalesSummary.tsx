@@ -515,7 +515,8 @@ const SalesPieChart: React.FC<{
                         'cursor-pointer transition-opacity hover:opacity-80',
                         segment.color === 'bg-blue-500' && 'text-blue-500',
                         segment.color === 'bg-green-500' && 'text-green-500',
-                        segment.color === 'bg-orange-500' && 'text-orange-500'
+                        segment.color === 'bg-orange-500' && 'text-orange-500',
+                        segment.color === 'bg-purple-500' && 'text-purple-500'
                       )}
                       style={{
                         strokeDasharray: `${strokeDasharray} ${circumference}`,
@@ -1082,6 +1083,18 @@ export default function SalesSummary() {
 
     const totalPaymentAmount = paymentMethods.reduce((sum, p) => sum + p.amount, 0)
 
+    // La barra de arriba reparte el «Total de Ventas», que es VENTAS (full-testing v2 #1): con tarjetas de regalo el server manda
+    // `salesByPaymentMethod` (sin las cargas, con lo pagado con saldo como GIFT_CARD); sin él, ventas y dinero son lo mismo.
+    const ventas = apiResponse.salesByPaymentMethod ?? paymentMethods
+    const esTarjeta = (m: string) => ['CREDIT_CARD', 'DEBIT_CARD', 'CARD'].includes(m)
+    const ventasDe = (es: (m: string) => boolean) => ventas.filter(p => es(p.method)).reduce((sum, p) => sum + p.amount, 0)
+    const repartoDeVentas = {
+      card: ventasDe(esTarjeta),
+      cash: ventasDe(m => m === 'CASH'),
+      other: ventasDe(m => !esTarjeta(m) && m !== 'CASH' && m !== 'GIFT_CARD'),
+      giftCard: ventasDe(m => m === 'GIFT_CARD'),
+    }
+
     return {
       summary: {
         totalGross: apiResponse.summary.grossSales,
@@ -1110,6 +1123,7 @@ export default function SalesSummary() {
         voided: 0,
         deferred: 0,
       },
+      repartoDeVentas,
       paymentMethods: {
         card: {
           amount: cardAmount,
@@ -1177,8 +1191,18 @@ export default function SalesSummary() {
   // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
   // Sin nada que repartir (los métodos suman 0: p. ej. el único cobro del rango fue con saldo), la barra, la dona y la tabla de
   // arriba no pintan «0 %» por método (lote ⭐ r1). El total y su conteo siguen; «Métodos de pago» dice su estado vacío.
-  const pm = data.paymentMethods
-  const hayReparto = pm.card.amount + pm.cash.amount + pm.other.amount > 0
+  // La barra, la dona y la tabla de arriba: UN arreglo (antes se repetía tres veces). El saldo de tarjeta sale sólo si hubo.
+  // Sin nada que repartir, o con un método en negativo (una devolución del día, Codex r1 #1), no se pintan: serían «0 %» o
+  // porcentajes imposibles. El total, su conteo y «Métodos de pago» siguen.
+  const rv = data.repartoDeVentas
+  const totalVendido = rv.card + rv.cash + rv.other + rv.giftCard
+  const hayReparto = totalVendido > 0 && [rv.card, rv.cash, rv.other, rv.giftCard].every(v => v >= 0)
+  const segmentosDeVentas = [
+    { label: t('salesSummary.paymentTypes.card'), value: rv.card, color: 'bg-blue-500' },
+    { label: t('salesSummary.paymentTypes.cash'), value: rv.cash, color: 'bg-green-500' },
+    { label: t('salesSummary.paymentTypes.other'), value: rv.other, color: 'bg-orange-500' },
+    ...(rv.giftCard !== 0 ? [{ label: t('salesSummary.paymentTypes.giftCardBalance'), value: rv.giftCard, color: 'bg-purple-500' }] : []),
+  ].map(seg => ({ ...seg, percentage: totalVendido > 0 ? (seg.value / totalVendido) * 100 : 0 }))
   const hayCifrasDeTarjetas =
     !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
   // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
@@ -2012,76 +2036,19 @@ export default function SalesSummary() {
             filtered method). */}
         {!isFiltered && hayReparto && viewType === 'gauge' && (
           <SalesBreakdownBar
-            segments={[
-              {
-                label: t('salesSummary.paymentTypes.card'),
-                value: data.paymentMethods.card.amount,
-                color: 'bg-blue-500',
-                percentage: data.paymentMethods.card.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.cash'),
-                value: data.paymentMethods.cash.amount,
-                color: 'bg-green-500',
-                percentage: data.paymentMethods.cash.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.other'),
-                value: data.paymentMethods.other.amount,
-                color: 'bg-orange-500',
-                percentage: data.paymentMethods.other.percentage,
-              },
-            ]}
+            segments={segmentosDeVentas}
           />
         )}
 
         {!isFiltered && hayReparto && viewType === 'pie' && (
           <SalesPieChart
-            segments={[
-              {
-                label: t('salesSummary.paymentTypes.card'),
-                value: data.paymentMethods.card.amount,
-                color: 'bg-blue-500',
-                percentage: data.paymentMethods.card.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.cash'),
-                value: data.paymentMethods.cash.amount,
-                color: 'bg-green-500',
-                percentage: data.paymentMethods.cash.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.other'),
-                value: data.paymentMethods.other.amount,
-                color: 'bg-orange-500',
-                percentage: data.paymentMethods.other.percentage,
-              },
-            ]}
+            segments={segmentosDeVentas}
           />
         )}
 
         {!isFiltered && hayReparto && viewType === 'table' && (
           <SalesTable
-            segments={[
-              {
-                label: t('salesSummary.paymentTypes.card'),
-                value: data.paymentMethods.card.amount,
-                color: 'bg-blue-500',
-                percentage: data.paymentMethods.card.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.cash'),
-                value: data.paymentMethods.cash.amount,
-                color: 'bg-green-500',
-                percentage: data.paymentMethods.cash.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.other'),
-                value: data.paymentMethods.other.amount,
-                color: 'bg-orange-500',
-                percentage: data.paymentMethods.other.percentage,
-              },
-            ]}
+            segments={segmentosDeVentas}
             columns={{
               method: t('salesSummary.tableColumns.method'),
               amount: t('salesSummary.columns.amount'),

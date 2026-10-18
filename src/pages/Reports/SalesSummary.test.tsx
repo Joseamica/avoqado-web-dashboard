@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -81,6 +81,14 @@ const pintar = () =>
       </MemoryRouter>
     </QueryClientProvider>,
   )
+/** La tarjeta de arriba: «Total de Ventas» y su barra (ahí no entra «Métodos de pago», que es dinero). */
+const tarjetaDelTotal = async () => (await screen.findByText('salesSummary.totalSales')).closest('.space-y-5') as HTMLElement
+/** El «N%» de la leyenda junto a un método (el tooltip, que aquí se pinta en línea, dice «$X (N.N%)» y no cuenta). */
+const porcentajeEnLeyenda = (contenedor: HTMLElement, metodo: string) =>
+  within(contenedor)
+    .getAllByText(metodo)
+    .map(el => el.nextElementSibling?.textContent ?? '')
+    .find(texto => /^\d+%$/.test(texto))
 /** `a` aparece antes que `b` en la página. */
 const antes = (a: HTMLElement, b: HTMLElement) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
 
@@ -190,6 +198,34 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     // Ni la barra ni su leyenda «Tarjeta 0 % · Efectivo 0 % · Otro 0 %».
     expect(screen.queryByText('salesSummary.paymentTypes.card')).not.toBeInTheDocument()
     expect(screen.queryByText('salesSummary.paymentTypes.cash')).not.toBeInTheDocument()
+  })
+
+  it('🔴 full-testing v2 #1 · la barra de arriba reparte lo VENDIDO: sin el efectivo de las cargas y con el saldo de tarjeta', async () => {
+    h.response = respuesta({
+      summary: { ...SUMMARY, totalCollected: 150, giftCardLoads: 950, giftCardLoadsCount: 3, paidWithGiftCardBalance: 150 },
+      // dinero: $950 de cargas en efectivo · ventas: los $150 se pagaron con saldo.
+      byPaymentMethod: [{ method: 'CASH', amount: 950, count: 3, percentage: 100 }],
+      salesByPaymentMethod: [{ method: 'GIFT_CARD', amount: 150, count: 1, percentage: 100 }],
+    })
+    pintar()
+    const total = await tarjetaDelTotal()
+    // Antes: «Efectivo 100%» (los $950 de cargas bajo un total de $150). Ahora el saldo es el 100 % y el efectivo, 0 %.
+    expect(porcentajeEnLeyenda(total, 'salesSummary.paymentTypes.giftCardBalance')).toBe('100%')
+    expect(porcentajeEnLeyenda(total, 'salesSummary.paymentTypes.cash')).toBe('0%')
+  })
+
+  it('🔴 full-testing v2 #1 (Codex r1 #1) · con un método en negativo (una devolución del día) no se pinta un reparto imposible', async () => {
+    h.response = respuesta({
+      byPaymentMethod: [{ method: 'CASH', amount: -200, count: 1, percentage: 0 }],
+      salesByPaymentMethod: [
+        { method: 'CASH', amount: -200, count: 1, percentage: -200 },
+        { method: 'GIFT_CARD', amount: 300, count: 1, percentage: 300 },
+      ],
+    })
+    pintar()
+    const total = await tarjetaDelTotal()
+    expect(within(total).queryByText('salesSummary.paymentTypes.giftCardBalance')).not.toBeInTheDocument()
+    expect(within(total).queryByText('salesSummary.paymentTypes.cash')).not.toBeInTheDocument()
   })
 
   it('control · con cobros reales la barra de arriba sí reparte por método', async () => {

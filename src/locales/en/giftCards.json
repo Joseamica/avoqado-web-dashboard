@@ -204,6 +204,8 @@
       "button": "Cancel the sale",
       "title": "Cancel the sale",
       "descriptionAll": "All the cards of this sale are canceled together. This is how it's canceled:",
+      "descriptionSale_one": "Sale #{{orderNumber}}: its card ({{amount}}) is canceled. This is how it's canceled:",
+      "descriptionSale_other": "Sale #{{orderNumber}}: its {{count}} cards ({{amount}}) are canceled together. This is how it's canceled:",
       "step1": "We block the cards so nobody uses them.",
       "step2": "Give the money back the way it was paid: on the terminal or from the sale.",
       "step3": "When the refund is recorded, the cards are canceled on their own.",
@@ -376,6 +378,7 @@
     "confirm": "Turn off"
   },
   "errors": {
-    "generic": "Something went wrong. Try again."
+    "generic": "Something went wrong. Try again.",
+    "forbidden": "You don't have permission to do this. Ask whoever manages the business."
   }
 }

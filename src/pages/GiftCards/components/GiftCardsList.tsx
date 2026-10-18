@@ -13,7 +13,7 @@ import { GIFT_CARDS_PAGE_SIZE, useGiftCardList, type GiftCardListFilters } from 
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { GIFT_CARD_FILTER_STATUSES, type GiftCardListStatus, type GiftCardRow } from '@/types/giftCard'
-import { estadoVisible, textoDelServidorConCodigo, ultimos4, varianteDeEstado } from '../giftCardText'
+import { estadoVisible, avisoDeError, ultimos4, varianteDeEstado } from '../giftCardText'
 import { GiftCardDetailSheet } from './GiftCardDetailSheet'
 
 /**
@@ -134,7 +134,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
   // Un fallo NO es «no hay tarjetas»: se dice y se ofrece reintentar. Con filas ya cargadas, se avisa en el pie.
   const loadFailed = query.isError && cards.length === 0
   const isEmpty = !query.isLoading && !loadFailed && !stale && cards.length === 0
-  const errorText = textoDelServidorConCodigo(query.error) ?? t('errors.generic')
+  const errorText = avisoDeError(query.error, t)
 
   return (
     <div className="space-y-3">

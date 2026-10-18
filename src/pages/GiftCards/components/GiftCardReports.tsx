@@ -19,7 +19,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cn } from '@/lib/utils'
 import type { PendingAccountingKind, PendingAccountingRow } from '@/types/giftCard'
-import { textoDelServidorConCodigo } from '../giftCardText'
+import { avisoDeError } from '../giftCardText'
 
 const hoyEn = (zona: string) => DateTime.now().setZone(zona).toISODate() ?? ''
 const inicioDeMesEn = (zona: string) => DateTime.now().setZone(zona).startOf('month').toISODate() ?? ''
@@ -101,7 +101,7 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
     try {
       await downloadGiftCardBalancesCsv(venueId, `saldos-tarjetas-de-regalo-${hoyEn(venueTimezone)}.csv`)
     } catch (err) {
-      toast({ title: t('reports.export.error'), description: textoDelServidorConCodigo(err) ?? t('errors.generic'), variant: 'destructive' })
+      toast({ title: t('reports.export.error'), description: avisoDeError(err, t), variant: 'destructive' })
     } finally {
       setBajando(false)
     }
@@ -129,7 +129,7 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
         <SummaryQueryBoundary
           isLoading={rangoValido && summary.isLoading}
           isError={summary.isError && !s}
-          message={textoDelServidorConCodigo(summary.error) ?? t('reports.summaryError')}
+          message={avisoDeError(summary.error, t, 'reports.summaryError')}
           retryLabel={t('reports.retry')}
           onRetry={() => void summary.refetch()}
         >
@@ -163,7 +163,7 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
         ) : aging.isLoading ? (
           <Skeleton className="h-32 w-full rounded-lg" />
         ) : aging.isError && !aging.data ? (
-          <ErrorConReintento texto={textoDelServidorConCodigo(aging.error) ?? t('reports.aging.error')} onRetry={() => void aging.refetch()} />
+          <ErrorConReintento texto={avisoDeError(aging.error, t, 'reports.aging.error')} onRetry={() => void aging.refetch()} />
         ) : (
           aging.data && (
             <div className="overflow-x-auto rounded-lg border border-input">
@@ -205,7 +205,7 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
         {!rangoValido ? null : pending.isLoading ? (
           <Skeleton className="h-24 w-full rounded-lg" />
         ) : pending.isError && pendientes.length === 0 ? (
-          <ErrorConReintento texto={textoDelServidorConCodigo(pending.error) ?? t('reports.pending.error')} onRetry={() => void pending.refetch()} />
+          <ErrorConReintento texto={avisoDeError(pending.error, t, 'reports.pending.error')} onRetry={() => void pending.refetch()} />
         ) : pendientes.length === 0 ? (
           !pending.isPlaceholderData && <p className="text-sm text-muted-foreground">{t('reports.pending.empty')}</p>
         ) : (

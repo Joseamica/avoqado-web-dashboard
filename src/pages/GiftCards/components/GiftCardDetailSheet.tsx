@@ -11,7 +11,7 @@ import { useGiftCardDetail } from '@/hooks/use-gift-cards'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { GiftCardActivityRow, GiftCardDetail } from '@/types/giftCard'
-import { estadoVisible, montoDelMovimiento, textoDelServidorConCodigo, ultimos4, varianteDeEstado } from '../giftCardText'
+import { estadoVisible, montoDelMovimiento, avisoDeError, ultimos4, varianteDeEstado } from '../giftCardText'
 import { GiftCardManagerActions } from './GiftCardManagerActions'
 
 function Dato({ label, value }: { label: string; value: ReactNode }) {
@@ -102,7 +102,7 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                 <div>
                   <p className="font-medium">{t('detail.loadError')}</p>
-                  <p className="text-muted-foreground">{textoDelServidorConCodigo(q.error) ?? t('errors.generic')}</p>
+                  <p className="text-muted-foreground">{avisoDeError(q.error, t)}</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void q.refetch()}>

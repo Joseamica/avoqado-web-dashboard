@@ -185,6 +185,11 @@ export interface GiftCardDetail extends GiftCardRow {
   canReplaceCode: boolean
   cancel: CancelacionDeVenta
   /**
+   * Full-testing v2 #3: la venta de la tarjeta (cuántas tarjetas y cuánto costaron) para que «Cancelar la venta» diga qué cancela.
+   * `null` sin venta; opcional: un server sin el campo deja el aviso de siempre.
+   */
+  sale?: { cards: number; amount: number } | null
+  /**
    * El bloqueo VIGENTE (auditoría r1, D-2): el server lo saca de su último BLOCK/UNBLOCK con UNA consulta indexada, aparte de
    * la libreta paginada; `null` si la tarjeta no está `BLOCKED`. El panel NUNCA lo deduce de `activities` (tras muchos
    * movimientos el BLOCK ya no está en la primera página).

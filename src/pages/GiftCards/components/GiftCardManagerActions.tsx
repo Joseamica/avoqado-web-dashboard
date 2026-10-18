@@ -33,7 +33,7 @@ import {
   accionesDisponibles,
   estadoDeCancelacion,
   leerMonto,
-  textoDelServidorConCodigo,
+  avisoDeError,
   validarAjuste,
   validarMotivoYNota,
   type AccionConMotivo,
@@ -97,7 +97,7 @@ function useEnvioDeDialogo(enDudaInicial: boolean) {
         setErrorServidor(null)
       } else {
         setEnDuda(false)
-        setErrorServidor(textoDelServidorConCodigo(err) ?? t('errors.generic'))
+        setErrorServidor(avisoDeError(err, t))
       }
     }
   }
@@ -517,6 +517,7 @@ function CancelarVentaDialog({
   venueId,
   giftCardId,
   venta,
+  sale,
   estado,
   modo,
   onClose,
@@ -524,6 +525,8 @@ function CancelarVentaDialog({
   venueId: string
   giftCardId: string
   venta: NonNullable<GiftCardDetail['order']>
+  /** Cuántas tarjetas tiene esa venta y por cuánto (full-testing v2 #3); sin ellas (server viejo), el aviso de siempre. */
+  sale: GiftCardDetail['sale']
   /** La «foto» de la cancelación en el detalle de AHORA (`estadoDeCancelacion`; D4 r1, I1.3). */
   estado: string
   modo: 'cancelar' | 'liberar'
@@ -583,7 +586,15 @@ function CancelarVentaDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{t(modo === 'cancelar' ? 'actions.cancelSale.title' : 'actions.cancelSale.releaseTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {modo === 'cancelar' ? t('actions.cancelSale.descriptionAll') : t('actions.cancelSale.releaseDescription')}
+            {modo === 'liberar'
+              ? t('actions.cancelSale.releaseDescription')
+              : sale
+                ? t('actions.cancelSale.descriptionSale', {
+                    orderNumber: venta.orderNumber,
+                    count: sale.cards,
+                    amount: Currency(sale.amount),
+                  })
+                : t('actions.cancelSale.descriptionAll')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {modo === 'cancelar' ? (
@@ -730,6 +741,7 @@ export function GiftCardManagerActions({ venueId, detail }: { venueId: string; d
             venueId={venueId}
             giftCardId={detail.id}
             venta={venta}
+            sale={detail.sale}
             estado={estadoDeCancelacion(detail)}
             modo={dialogo}
             onClose={cerrar}

@@ -18,7 +18,7 @@ import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
 import { GIFT_CARDS_FEATURE, useUpdateGiftCardSettings } from '@/hooks/use-gift-cards'
 import { planTierQueryKey, useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
-import { textoDelServidorConCodigo } from '@/pages/GiftCards/giftCardText'
+import { avisoDeError } from '@/pages/GiftCards/giftCardText'
 import type { GiftCardSettingsView } from '@/types/giftCard'
 
 /**
@@ -58,7 +58,7 @@ export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: str
       // Sólo el texto de un error CON `code` (nota 12): un 401/500 sin código llega en inglés.
       toast({
         title: t('settings.switch.errorTitle'),
-        description: textoDelServidorConCodigo(err) ?? t('errors.generic'),
+        description: avisoDeError(err, t),
         variant: 'destructive',
       })
     } finally {

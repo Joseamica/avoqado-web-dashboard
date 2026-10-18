@@ -144,6 +144,8 @@ export interface SalesSummaryResponse {
   reportType: ReportType
   summary: SalesSummaryMetrics
   byPaymentMethod?: PaymentMethodBreakdown[]
+  /** Aditivo (tarjetas de regalo, full-testing v2 #1): VENTAS por método para la barra bajo el total; `byPaymentMethod` es DINERO. */
+  salesByPaymentMethod?: PaymentMethodBreakdown[]
   byPaymentMethodDetailed?: PaymentMethodDetailedBreakdown[]
   byPeriod?: TimePeriodMetrics[]
   /** Per-merchant-account card breakdown; present only when includeMerchantBreakdown=true. */

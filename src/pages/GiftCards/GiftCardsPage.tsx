@@ -14,7 +14,7 @@ import type { GiftCardNotSellableReason } from '@/types/giftCard'
 import { GiftCardReports } from './components/GiftCardReports'
 import { GiftCardsList } from './components/GiftCardsList'
 import { GiftCardsTeaser } from './components/GiftCardsTeaser'
-import { motivoSinVenta, textoDelServidorConCodigo } from './giftCardText'
+import { motivoSinVenta, avisoDeError } from './giftCardText'
 import { decidirVista } from './vista'
 
 /** «Apagado se ve y se explica»: por qué hoy no se venden tarjetas nuevas (lo vendido siempre se cobra). */
@@ -80,7 +80,7 @@ export default function GiftCardsPage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('page.settingsError')}</AlertTitle>
-          <AlertDescription>{textoDelServidorConCodigo(settings.error) ?? t('errors.generic')}</AlertDescription>
+          <AlertDescription>{avisoDeError(settings.error, t)}</AlertDescription>
           <Button
             variant="outline"
             size="sm"

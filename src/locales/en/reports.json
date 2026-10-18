@@ -628,7 +628,8 @@
     "paymentTypes": {
       "card": "Card",
       "cash": "Cash",
-      "other": "Other"
+      "other": "Other",
+      "giftCardBalance": "Gift card balance"
     },
     "controls": {
       "title": "Controls",

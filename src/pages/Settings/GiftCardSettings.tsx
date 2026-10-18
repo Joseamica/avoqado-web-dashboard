@@ -8,7 +8,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { GIFT_CARDS_FEATURE, useGiftCardSettings } from '@/hooks/use-gift-cards'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { textoDelServidorConCodigo } from '@/pages/GiftCards/giftCardText'
+import { avisoDeError } from '@/pages/GiftCards/giftCardText'
 import { GiftCardRulesForm } from './components/giftCards/GiftCardRulesForm'
 import { GiftCardsSwitch } from './components/giftCards/GiftCardsSwitch'
 
@@ -58,7 +58,7 @@ export default function GiftCardSettings() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>{t(data ? 'settings.refreshError' : 'settings.loadError')}</AlertTitle>
               {/* Sólo el texto de un error CON `code` (nota 12): un 401/500 sin código llega en inglés. */}
-              <AlertDescription>{textoDelServidorConCodigo(settings.error) ?? t('errors.generic')}</AlertDescription>
+              <AlertDescription>{avisoDeError(settings.error, t)}</AlertDescription>
               <Button
                 variant="outline"
                 size="sm"
