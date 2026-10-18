@@ -7,6 +7,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnlineOrderingStatus } from '@/hooks/use-online-ordering-status'
+import { SettingsTab } from './components/SettingsTab'
 import { getInbox, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 
 const TABS = ['bandeja', 'menu', 'configuracion'] as const
@@ -85,7 +86,7 @@ export default function OnlineOrderingPage() {
 
       {tab === 'configuracion' && (
         <FeatureGate feature="ONLINE_ORDERING">
-          {canManage ? <div data-testid="tab-content-settings">{/* Tarea 14: configuración */}</div> : needManage}
+          {canManage ? <div data-testid="tab-content-settings"><SettingsTab /></div> : needManage}
         </FeatureGate>
       )}
     </div>

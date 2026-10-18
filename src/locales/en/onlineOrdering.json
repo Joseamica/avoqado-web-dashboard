@@ -8,5 +8,78 @@
     "tray": "Inbox",
     "menu": "Online menu",
     "settings": "Settings"
+  },
+  "settings": {
+    "saved": "Settings saved",
+    "saveFailed": "Couldn't save. Try again.",
+    "loadFailed": "Couldn't load the settings.",
+    "save": "Save",
+    "status": {
+      "label": "Store status",
+      "OPEN": "Open",
+      "CLOSED": "Closed (outside hours)",
+      "PAUSED": "Paused",
+      "pausedUntil": "Paused until {{time}}",
+      "pausedManual": "Paused from Settings",
+      "OFFLINE": "No device connected: keep the Tray open and visible on a computer or tablet to receive orders",
+      "DISABLED": "Off"
+    },
+    "requirements": {
+      "title": "Before turning the store on you still need:",
+      "address": {
+        "label": "The business address.",
+        "link": "Add address"
+      },
+      "phone": {
+        "label": "The business phone.",
+        "link": "Add phone"
+      },
+      "privacyNotice": {
+        "label": "Publish the privacy notice.",
+        "link": "Publish notice in Customers"
+      }
+    },
+    "store": {
+      "title": "Online store"
+    },
+    "enable": "Turn the store on",
+    "enableHelp": "Customers will be able to order for pickup from your link.",
+    "enableBlocked": "Complete what is missing above to turn it on.",
+    "payAtPickup": "Pay at pickup",
+    "cardOnline": "Card online",
+    "soon": "Coming soon",
+    "minOrder": "Minimum order (MXN)",
+    "minOrderHelp": "Price already includes tax. Leave blank to keep it unchanged.",
+    "prepTime": "Preparation time",
+    "prepOption": "{{minutes}} min",
+    "manualPause": "Pause orders",
+    "manualPauseHelp": "While paused, no new orders arrive.",
+    "hours": {
+      "title": "Hours",
+      "use": "Use hours",
+      "onHelp": "The store takes orders only within these hours.",
+      "offHelp": "It takes orders whenever someone has the Tray open.",
+      "overnight": "{{day}}: closes at {{time}} the next day ({{nextDay}})",
+      "errors": {
+        "dayNeedsRange": "An open day needs at least one time range",
+        "sameTime": "Opening and closing time can't be the same",
+        "incompleteRange": "Fill in the opening and closing time"
+      }
+    },
+    "share": {
+      "title": "Share your store",
+      "description": "Put your link or QR where your customers can see it.",
+      "link": "Your store link",
+      "copy": "Copy",
+      "open": "Open",
+      "copied": "Copied",
+      "copyFailed": "Couldn't copy",
+      "downloadQr": "Download QR",
+      "snippetTitle": "For your website",
+      "snippetHelp": "Paste this code in your page. If your site doesn't accept scripts, use the link or a button that opens it.",
+      "copySnippet": "Copy code",
+      "preview": "Preview",
+      "previewTitle": "Store preview"
+    }
   }
 }

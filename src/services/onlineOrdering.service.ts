@@ -66,9 +66,9 @@ export const cancelOrder = (venueId: string, orderId: string) => act(venueId, or
 export const pauseOrdering = async (venueId: string, minutes: PauseMinutes): Promise<{ pausedUntil: string | null; manualPause: boolean }> =>
   (await api.post(`${base(venueId)}/pause`, { minutes })).data.data
 
-const GENERIC = 'No se pudo completar la acción. Intenta de nuevo.'
-export function serverMessage(error: unknown): string {
+/** `fallback` ya viene traducido por la UI (`t('…')`): nada de texto fijo en español aquí. */
+export function serverMessage(error: unknown, fallback: string): string {
   const data = (error as { response?: { data?: { error?: unknown; message?: unknown } } } | undefined)?.response?.data
   const msg = data?.error ?? data?.message
-  return typeof msg === 'string' && msg ? msg : GENERIC
+  return typeof msg === 'string' && msg ? msg : fallback
 }
