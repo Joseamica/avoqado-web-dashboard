@@ -10,10 +10,17 @@ import { useToast } from '@/hooks/use-toast'
 
 const ORDERING_URL = (import.meta.env.VITE_ORDERING_URL as string | undefined) || 'https://pedidos.avoqado.io'
 
-// La tienda sólo se deja enmarcar desde el panel principal (su `frame-ancestors`) y desde el desarrollo local; en los demás
-// orígenes del panel (demo, staging, dashboardv2) el iframe saldría como «rechazó la conexión».
+// Orígenes desde los que la tienda deja enmarcar la vista previa. 🔴 Debe coincidir con `frame-ancestors` de
+// `avoqado-booking-widget/public/_headers`; cualquier otro origen del panel vería «rechazó la conexión», así que ahí va una liga.
+const FRAMEABLE_ORIGINS = [
+  'https://dashboard.avoqado.io',
+  'https://dashboardv2.avoqado.io',
+  'https://demo.dashboard.avoqado.io',
+  'https://staging.dashboard.avoqado.io',
+]
+// Desarrollo local (cualquier puerto): la tienda de desarrollo no manda `frame-ancestors`.
 const canEmbedPreview = () =>
-  window.location.origin === 'https://dashboard.avoqado.io' || ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  FRAMEABLE_ORIGINS.includes(window.location.origin) || ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const storefrontUrl = (slug: string) => `${ORDERING_URL}/${slug}`
 const widgetSnippet = (slug: string) =>
