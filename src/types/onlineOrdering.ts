@@ -35,13 +35,34 @@ export interface StoreRequirementsMissingBody {
   details: { missing: StoreRequirement[] }
 }
 
+export interface MenuCategorySummary {
+  id: string
+  name: string
+  active: boolean
+  total: number
+  online: number
+  onlineWithoutPhoto: number
+}
+
+/** Agregado exacto del servidor (`truncated` = hay más categorías que el tope). */
 export interface MenuCategoriesSummary {
-  // Agregado exacto del servidor; la forma fina la fijan las tareas 14–15.
-  [key: string]: unknown
+  categories: MenuCategorySummary[]
+  totals: { total: number; online: number; onlineWithoutPhoto: number }
+  truncated: boolean
+}
+
+export interface MenuProductItem {
+  id: string
+  name: string
+  price: number
+  imageUrl: string | null
+  active: boolean
+  availableOnline: boolean
+  categoryId: string | null
 }
 
 export interface MenuProductsPage {
-  items: Array<Record<string, unknown>>
+  items: MenuProductItem[]
   nextCursor: string | null
   total: number
 }

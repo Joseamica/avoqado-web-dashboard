@@ -85,5 +85,38 @@
       "range": "Minimum order must be between $0 and $100,000",
       "decimals": "Use at most 2 decimals"
     }
+  },
+  "menu": {
+    "saveFailed": "Couldn't save the change",
+    "loadFailed": "Couldn't load the menu",
+    "truncated": "There are more categories than shown. The totals include them.",
+    "summary": {
+      "online": "{{online}} of {{total}} products online",
+      "noPhoto": "{{count}} online without a photo"
+    },
+    "category": {
+      "count": "{{online}}/{{total}} online",
+      "toggle": "Show {{name}} online"
+    },
+    "product": {
+      "total": "{{count}} products",
+      "searchToggle": "Search products",
+      "searchPlaceholder": "Search products…",
+      "searchClear": "Clear search",
+      "noResults": "No product matches your search.",
+      "empty": "This category has no products.",
+      "noPhoto": "No photo",
+      "inactive": "Inactive in the POS",
+      "toggle": "Show {{name}} online",
+      "loadMore": "Load more"
+    },
+    "bulk": {
+      "showAll": "Show the whole menu",
+      "hideAll": "Remove everything from online",
+      "showAllConfirm": "Every product will be visible in your online store.",
+      "hideAllConfirm": "No product will show in your online store. Orders already placed are not affected.",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    }
   }
 }

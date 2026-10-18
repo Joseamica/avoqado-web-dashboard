@@ -85,5 +85,38 @@
       "range": "El pedido mínimo va de $0 a $100,000",
       "decimals": "Usa máximo 2 decimales"
     }
+  },
+  "menu": {
+    "saveFailed": "No se pudo guardar el cambio",
+    "loadFailed": "No se pudo cargar el menú",
+    "truncated": "Hay más categorías de las que se muestran. Los totales sí las incluyen.",
+    "summary": {
+      "online": "{{online}} de {{total}} productos en línea",
+      "noPhoto": "{{count}} en línea sin foto"
+    },
+    "category": {
+      "count": "{{online}}/{{total}} en línea",
+      "toggle": "Mostrar {{name}} en línea"
+    },
+    "product": {
+      "total": "{{count}} productos",
+      "searchToggle": "Buscar producto",
+      "searchPlaceholder": "Buscar producto…",
+      "searchClear": "Borrar búsqueda",
+      "noResults": "Ningún producto coincide con la búsqueda.",
+      "empty": "Esta categoría no tiene productos.",
+      "noPhoto": "Sin foto",
+      "inactive": "Inactivo en el POS",
+      "toggle": "Mostrar {{name}} en línea",
+      "loadMore": "Cargar más"
+    },
+    "bulk": {
+      "showAll": "Mostrar todo el menú",
+      "hideAll": "Quitar todo de línea",
+      "showAllConfirm": "Todos los productos quedarán visibles en tu tienda en línea.",
+      "hideAllConfirm": "Ningún producto se verá en tu tienda en línea. Los pedidos que ya llegaron no cambian.",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
+    }
   }
 }
