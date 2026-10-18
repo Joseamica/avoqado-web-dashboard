@@ -94,6 +94,10 @@ type Desenlace =
   | { tipo: 'esperando' }
   | { tipo: 'sin-confirmar' }
   | { tipo: 'ya-activo'; mensaje: string }
+  // D2 (3D Secure): el banco pide autorizar el primer cobro. 'autorizando' = su reto está abierto; 'autorizar' = el
+  // servidor sigue esperando tras el reto de ESTE clic y la salida es «Autorizar el pago».
+  | { tipo: 'autorizando' }
+  | { tipo: 'autorizar' }
 
 /**
  * Lo que `cobrar` le contesta a quien lo llamó. 🔴 Solo un 200 CONFIRMADO es `ok`: cualquier otra
@@ -106,6 +110,12 @@ type Desenlace =
  * que importa: un fallo mudo es justo el defecto que se está cerrando.
  */
 type ResultadoDeCobro = { ok: true; mensaje?: undefined } | { ok: false; mensaje: string }
+
+/**
+ * 🔴 Viajan con el cobro (Codex r1 #5): el reintento del 503/red y «Volver a comprobar» las reenvían tal cual. Si se
+ * perdieran, `409 → reto → 503 → reintento → 409` abriría otro reto del banco solo. Sólo «Autorizar el pago» las quita.
+ */
+type OpcionesDeCobro = { yaAutorizo?: boolean }
 
 function leerError(error: unknown): { status?: number; code?: string; message?: string; details?: Record<string, unknown> } {
   const resp = (error as { response?: { status?: number; data?: Record<string, unknown> } })?.response
@@ -159,7 +169,11 @@ export function OfferStep({
     cobroEnCursoRef.current = enCurso
     setCobroEnCurso(enCurso)
   }, [])
-  const ultimoCobro = useRef<{ cuerpo: ActivatePlanBody; plan: NonNullable<SetupData['plan']> } | null>(null)
+  const ultimoCobro = useRef<{
+    cuerpo: ActivatePlanBody
+    plan: NonNullable<SetupData['plan']>
+    opciones?: OpcionesDeCobro
+  } | null>(null)
   // Tras una RECARGA con un cobro sin cerrar en el servidor (`activacionEnCurso`), el candado arranca
   // puesto: la pantalla se pintó de cero y no sabe del cobro que ya salió (Codex ronda 10).
   const pagoEnVuelo = cobroEnCurso || tarjetaTrabajando || !!activacionEnCurso
@@ -254,9 +268,9 @@ export function OfferStep({
    * capturaría nadie.
    */
   const cobrar = useCallback(
-    async (cuerpo: ActivatePlanBody, plan: NonNullable<SetupData['plan']>): Promise<ResultadoDeCobro> => {
+    async (cuerpo: ActivatePlanBody, plan: NonNullable<SetupData['plan']>, opciones?: OpcionesDeCobro): Promise<ResultadoDeCobro> => {
       marcarCobroEnCurso(true)
-      ultimoCobro.current = { cuerpo, plan }
+      ultimoCobro.current = { cuerpo, plan, opciones }
       try {
         const res = await setupService.activatePlan(organizationId, cuerpo)
         if (!montado.current) return { ok: false, mensaje: '' }
@@ -293,6 +307,25 @@ export function OfferStep({
       } catch (error) {
         if (!montado.current) return { ok: false, mensaje: '' }
         const { status, code, message, details } = leerError(error)
+
+        // 🔴 D2: el banco pide autorizar el primer cobro (3D Secure). Se abre SU reto con la tarjeta ya guardada y se
+        // vuelve a mandar el MISMO cuerpo: lo que diga Stripe.js no decide, decide el servidor (200 · 409 · 402 · 503).
+        // El candado sigue puesto todo el tiempo y el formulario NO se remonta (la autorización es sobre ESA tarjeta).
+        if (code === 'PLAN_PAYMENT_REQUIRES_ACTION') {
+          // El secreto del cobro nunca va a un log ni a la pantalla.
+          const secretoDelCobro = (details as { clientSecret?: string } | undefined)?.clientSecret
+          // Un reto por clic: si ya hubo uno (o no vino secreto), la salida es «Autorizar el pago», nunca otro reto solo.
+          if (opciones?.yaAutorizo || !secretoDelCobro) {
+            setDesenlace({ tipo: 'autorizar' })
+            return { ok: false, mensaje: t('offer.authorizePending') }
+          }
+          setDesenlace({ tipo: 'autorizando' })
+          await stripePromise
+            .then(stripe => stripe?.confirmCardPayment(secretoDelCobro, { payment_method: cuerpo.paymentMethodId }))
+            .catch(() => undefined)
+          if (!montado.current) return { ok: false, mensaje: '' }
+          return cobrar(cuerpo, plan, { yaAutorizo: true })
+        }
 
         if (status === 402) {
           // 🔴 NUNCA el `message` de Stripe: viene en inglés y esta pantalla está en español
@@ -366,7 +399,7 @@ export function OfferStep({
           setDesenlace({ tipo: 'esperando' })
           temporizador.current = setTimeout(() => {
             if (!montado.current) return
-            void cobrar(cuerpo, plan)
+            void cobrar(cuerpo, plan, opciones)
           }, REINTENTO_MS)
           // Un reintento EN CURSO tampoco es un cobro: el alta no avanza. Si el reintento
           // confirma, quien avanza es `onActivated`, no este retorno.
@@ -470,32 +503,40 @@ export function OfferStep({
   // en paralelo sobre el mismo cobro (full-testing 26-sep).
   const [comprobando, setComprobando] = useState(false)
   const comprobandoRef = useRef(false)
-  const volverAComprobar = useCallback(() => {
-    if (comprobandoRef.current) return
-    comprobandoRef.current = true
-    setComprobando(true)
-    const ultimo = ultimoCobro.current
-    // Tras una recarga no hay cuerpo que reenviar (la tarjeta no se guarda en el navegador): se le
-    // pregunta al servidor cómo quedó. Si ya está activo, el asistente avanza solo.
-    let pregunta: Promise<unknown>
-    if (!ultimo) {
-      pregunta = Promise.resolve(onRefreshProgress())
-    } else {
-      reintentos.current = 0
-      pregunta = cobrar(ultimo.cuerpo, ultimo.plan)
-    }
-    void pregunta
-      .catch(() => undefined)
-      .finally(() => {
-        comprobandoRef.current = false
-        if (montado.current) setComprobando(false)
-      })
-  }, [cobrar, onRefreshProgress])
+  // «Autorizar el pago» (`otroReto`) comparte esta guarda, pero reenvía el cobro SIN opciones: es la única llamada que
+  // permite abrir otro reto del banco. «Volver a comprobar» reenvía las guardadas (Codex r1 #5).
+  const preguntarOtraVez = useCallback(
+    (otroReto: boolean) => {
+      if (comprobandoRef.current) return
+      comprobandoRef.current = true
+      setComprobando(true)
+      const ultimo = ultimoCobro.current
+      // Tras una recarga no hay cuerpo que reenviar (la tarjeta no se guarda en el navegador): se le
+      // pregunta al servidor cómo quedó. Si ya está activo, el asistente avanza solo.
+      let pregunta: Promise<unknown>
+      if (!ultimo) {
+        pregunta = Promise.resolve(onRefreshProgress())
+      } else {
+        reintentos.current = 0
+        pregunta = cobrar(ultimo.cuerpo, ultimo.plan, otroReto ? undefined : ultimo.opciones)
+      }
+      void pregunta
+        .catch(() => undefined)
+        .finally(() => {
+          comprobandoRef.current = false
+          if (montado.current) setComprobando(false)
+        })
+    },
+    [cobrar, onRefreshProgress],
+  )
+  const volverAComprobar = () => preguntarOtraVez(false)
+  const autorizarOtraVez = () => preguntarOtraVez(true)
 
-  // M6: tras rendirse de confirmar, el botón de pagar sigue apagado y el foco se queda en el aire: va a la única salida.
+  // M6: tras rendirse de confirmar (o con el banco esperando la autorización), el botón de pagar sigue apagado y el foco
+  // se queda en el aire: va a la única salida.
   const volverAComprobarRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    if (desenlace.tipo === 'sin-confirmar' && focoPerdido()) volverAComprobarRef.current?.focus()
+    if ((desenlace.tipo === 'sin-confirmar' || desenlace.tipo === 'autorizar') && focoPerdido()) volverAComprobarRef.current?.focus()
   }, [desenlace.tipo])
   // A dónde vuelve el foco al cerrar la ventana si el botón que la abrió ya no está («Confirmar mi pago» se desmonta).
   const tituloRef = useRef<HTMLHeadingElement>(null)
@@ -503,7 +544,7 @@ export function OfferStep({
   // Un cobro sin respuesta definitiva: el que ESTA pantalla se rindió de confirmar, o el que el servidor tiene
   // abierto tras una recarga. Va dentro de la ventana si está abierta (no se puede cerrar con un cobro en vuelo) y,
   // si no, encima de las tarjetas.
-  const hayPendiente = desenlace.tipo === 'sin-confirmar' || (activacionEnCurso && !cobroEnCurso)
+  const hayPendiente = desenlace.tipo === 'sin-confirmar' || desenlace.tipo === 'autorizar' || (activacionEnCurso && !cobroEnCurso)
   const avisoPendiente = hayPendiente ? (
     <div
       role="status"
@@ -513,7 +554,9 @@ export function OfferStep({
       <span className="flex items-start gap-2">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span>
-          {desenlace.tipo === 'sin-confirmar' ? (
+          {desenlace.tipo === 'autorizar' ? (
+            t('offer.authorizePending')
+          ) : desenlace.tipo === 'sin-confirmar' ? (
             <>
               {t('offer.pending', { defaultValue: 'Tu pago se está confirmando; vuelve en unos minutos.' })}{' '}
               {t('offer.pendingNoChange', {
@@ -543,11 +586,11 @@ export function OfferStep({
           variant="outline"
           className="gap-2 rounded-full"
           data-tour="offer-recheck-payment"
-          onClick={volverAComprobar}
+          onClick={desenlace.tipo === 'autorizar' ? autorizarOtraVez : volverAComprobar}
           disabled={comprobando}
         >
           <RotateCw className="h-4 w-4" aria-hidden="true" />
-          {t('offer.recheck', { defaultValue: 'Volver a comprobar mi pago' })}
+          {desenlace.tipo === 'autorizar' ? t('offer.authorizeAgain') : t('offer.recheck', { defaultValue: 'Volver a comprobar mi pago' })}
         </Button>
       </span>
     </div>
@@ -698,6 +741,11 @@ export function OfferStep({
       >
         {desenlace.tipo === 'esperando' && (
           <p className="text-sm text-muted-foreground">{t('offer.confirming', { defaultValue: 'Confirmando tu pago…' })}</p>
+        )}
+        {desenlace.tipo === 'autorizando' && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t('offer.authorizing')}
+          </p>
         )}
         {avisoPendiente}
 
