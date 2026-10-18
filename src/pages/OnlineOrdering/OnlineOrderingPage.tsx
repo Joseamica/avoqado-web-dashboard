@@ -1,15 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
 import { ShoppingBag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnlineOrderingStatus } from '@/hooks/use-online-ordering-status'
+import { InboxTab } from './components/InboxTab'
 import { MenuTab } from './components/MenuTab'
 import { SettingsTab } from './components/SettingsTab'
-import { getInbox, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 
 const TABS = ['bandeja', 'menu', 'configuracion'] as const
 type TabValue = (typeof TABS)[number]
@@ -17,29 +15,18 @@ type TabValue = (typeof TABS)[number]
 const pill = 'rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background'
 
 /**
- * Pedidos en línea (Ventas). Cascarón: el contenido de cada pestaña llega en las tareas 14–16.
+ * Pedidos en línea (Ventas): Bandeja, Menú en línea y Configuración.
  * 🔴 La Bandeja NO lleva candado de plan (los pedidos que ya llegaron se atienden aunque venza el plan);
  * Menú en línea y Configuración van dentro de <FeatureGate> y sólo con `online-orders:manage`.
  */
 export default function OnlineOrderingPage() {
   const { t } = useTranslation('onlineOrdering')
-  const { venueId } = useCurrentVenue()
-  const { hasPlan, canManage, keepsStoreOpen } = useOnlineOrderingStatus()
+  const { hasPlan, canManage } = useOnlineOrderingStatus()
   const location = useLocation()
   const navigate = useNavigate()
 
   const hash = location.hash.replace('#', '')
   const tab: TabValue = (TABS as readonly string[]).includes(hash) ? (hash as TabValue) : 'bandeja'
-
-  // La bandeja no depende del plan. Sólo la bandeja en primer plano manda el latido (tarea 16 lo completa).
-  useQuery({
-    queryKey: onlineOrderingKeys.inbox(venueId ?? ''),
-    queryFn: () => getInbox(venueId!, { tray: keepsStoreOpen }),
-    enabled: !!venueId && tab === 'bandeja',
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: false,
-    retry: 1,
-  })
 
   const setTab = (value: string) => navigate(`${location.pathname}#${value}`, { replace: true })
 
@@ -75,7 +62,8 @@ export default function OnlineOrderingPage() {
           {!hasPlan && (
             <p className="rounded-xl border border-input bg-muted/40 p-4 text-sm text-muted-foreground">{t('page.noPlanNotice')}</p>
           )}
-          {/* Tarea 16: bandeja */}
+          {/* El ÚNICO sondeo de la bandeja vive en InboxTab: sólo corre con esta pestaña montada. */}
+          <InboxTab />
         </div>
       )}
 

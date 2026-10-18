@@ -120,5 +120,84 @@
       "confirm": "Confirm",
       "cancel": "Cancel"
     }
+  },
+  "inbox": {
+    "loadFailed": "We couldn't load the orders. Check your connection and try again.",
+    "offline": "Offline: new orders aren't coming in",
+    "keepsOpen": "While this tab is open and visible, your store takes orders; if nobody has it in view, it pauses on its own after 2 minutes.",
+    "viewOnly": "You can see the orders, but your account doesn't keep the store open.",
+    "sections": {
+      "pending": "To accept",
+      "accepted": "Preparing",
+      "ready": "Ready",
+      "done": "Last 24 hours",
+      "empty": "No orders for now",
+      "showing": "Showing {{shown}} of {{total}}"
+    },
+    "sound": {
+      "toggle": "Turn on sound",
+      "unlock": "Tap to turn on the sound",
+      "nag": "Turn on the sound so you don't miss an order"
+    },
+    "card": {
+      "pickup": "For pickup",
+      "total": "Total (VAT included)",
+      "payAtPickup": "Collect at pickup {{amount}}",
+      "paid": "Paid",
+      "collectFirst": "Payment still due",
+      "deadline": "{{time}} left to accept",
+      "expired": "Time to accept is up",
+      "status": {
+        "COMPLETED": "Delivered",
+        "REJECTED": "Rejected",
+        "EXPIRED": "Expired without an answer",
+        "CANCELLED_BY_CUSTOMER": "Cancelled by the customer",
+        "CANCELLED_BY_STAFF": "Cancelled"
+      }
+    },
+    "actions": {
+      "accept": "Accept",
+      "reject": "Reject",
+      "ready": "Ready",
+      "delivered": "Delivered",
+      "cancel": "Cancel"
+    },
+    "accept": {
+      "title": "Accept order #{{number}}",
+      "description": "How long until it's ready for pickup?",
+      "minutes": "{{minutes}} min"
+    },
+    "reject": {
+      "title": "Reject order #{{number}}",
+      "description": "Choose the reason.",
+      "reasons": {
+        "OUT_OF_ITEMS": "Out of items",
+        "CLOSED": "Closed",
+        "TOO_BUSY": "Too busy",
+        "OTHER": "Other"
+      },
+      "note": "Note (optional)",
+      "confirm": "Reject"
+    },
+    "cancel": {
+      "title": "Cancel order #{{number}}?",
+      "description": "This can't be undone.",
+      "confirm": "Yes, cancel",
+      "back": "Go back"
+    },
+    "outcome": {
+      "gone": "That order is no longer available",
+      "hasPayments": "This order already has a payment; cancel it from the POS.",
+      "network": "Try again when the connection is back",
+      "error": "Couldn't complete it. Try again."
+    },
+    "pause": {
+      "label": "Pause orders",
+      "minutes": "{{minutes}} min",
+      "resume": "Resume",
+      "until": "Paused until {{time}}",
+      "manual": "Paused from Settings",
+      "failed": "Couldn't change the pause. Try again."
+    }
   }
 }

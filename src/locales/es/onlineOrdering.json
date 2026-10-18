@@ -120,5 +120,84 @@
       "confirm": "Confirmar",
       "cancel": "Cancelar"
     }
+  },
+  "inbox": {
+    "loadFailed": "No pudimos cargar los pedidos. Revisa tu conexión y vuelve a intentar.",
+    "offline": "Sin conexión: no llegan pedidos nuevos",
+    "keepsOpen": "Mientras esta pestaña esté abierta y visible, tu tienda recibe pedidos; si nadie la tiene a la vista, se pausa sola a los 2 minutos.",
+    "viewOnly": "Puedes ver los pedidos, pero tu cuenta no mantiene abierta la tienda.",
+    "sections": {
+      "pending": "Por aceptar",
+      "accepted": "En preparación",
+      "ready": "Listos",
+      "done": "Últimas 24 horas",
+      "empty": "Sin pedidos por ahora",
+      "showing": "Mostrando {{shown}} de {{total}}"
+    },
+    "sound": {
+      "toggle": "Activar sonido",
+      "unlock": "Toca para activar el sonido",
+      "nag": "Activa el sonido para que no se te pase un pedido"
+    },
+    "card": {
+      "pickup": "Para recoger",
+      "total": "Total (IVA incluido)",
+      "payAtPickup": "Cobrar al recoger {{amount}}",
+      "paid": "Pagado",
+      "collectFirst": "Falta cobrarlo",
+      "deadline": "Quedan {{time}} para aceptar",
+      "expired": "Se acabó el tiempo para aceptar",
+      "status": {
+        "COMPLETED": "Entregado",
+        "REJECTED": "Rechazado",
+        "EXPIRED": "Venció sin respuesta",
+        "CANCELLED_BY_CUSTOMER": "Lo canceló el cliente",
+        "CANCELLED_BY_STAFF": "Cancelado"
+      }
+    },
+    "actions": {
+      "accept": "Aceptar",
+      "reject": "Rechazar",
+      "ready": "Listo",
+      "delivered": "Entregado",
+      "cancel": "Cancelar"
+    },
+    "accept": {
+      "title": "Aceptar el pedido #{{number}}",
+      "description": "¿En cuánto tiempo estará listo para recoger?",
+      "minutes": "{{minutes}} min"
+    },
+    "reject": {
+      "title": "Rechazar el pedido #{{number}}",
+      "description": "Elige el motivo.",
+      "reasons": {
+        "OUT_OF_ITEMS": "Sin ingredientes",
+        "CLOSED": "Cerrado",
+        "TOO_BUSY": "Muy ocupados",
+        "OTHER": "Otro"
+      },
+      "note": "Nota (opcional)",
+      "confirm": "Rechazar"
+    },
+    "cancel": {
+      "title": "¿Cancelar el pedido #{{number}}?",
+      "description": "Esto no se puede deshacer.",
+      "confirm": "Sí, cancelar",
+      "back": "Volver"
+    },
+    "outcome": {
+      "gone": "Ese pedido ya no está disponible",
+      "hasPayments": "Este pedido ya tiene un cobro; cancélalo desde el POS.",
+      "network": "Reintenta cuando vuelva la conexión",
+      "error": "No se pudo completar. Vuelve a intentar."
+    },
+    "pause": {
+      "label": "Pausar pedidos",
+      "minutes": "{{minutes}} min",
+      "resume": "Reanudar",
+      "until": "Pausada hasta {{time}}",
+      "manual": "Pausada desde Configuración",
+      "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
+    }
   }
 }
