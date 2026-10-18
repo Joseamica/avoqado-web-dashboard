@@ -96,7 +96,9 @@
     },
     "category": {
       "count": "{{online}}/{{total}} online",
-      "toggle": "Show {{name}} online"
+      "toggle": "Show {{name}} online",
+      "inactive": "Inactive in POS",
+      "removeFromOnline": "Remove category from online"
     },
     "product": {
       "total": "{{count}} products",
