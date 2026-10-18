@@ -1,0 +1,15 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "files": ["src/pages/PublicDocuments/public-documents.css"],
+        "createdAt": "2026-10-18T09:45:11.045Z",
+        "reason": "Agent: se conserva deliberadamente la tipografía existente de Avoqado; src/index.css define --font-sans con --font-geist, index.html ya carga Geist y Setup/offer/stripeAppearance.ts lo usa para mantener coherencia con el dashboard."
+      }
+    ]
+  }
+}

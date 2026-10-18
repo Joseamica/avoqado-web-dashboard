@@ -428,7 +428,9 @@
       "noConfig": "No organizational configuration. System defaults are used.",
       "minutes": "min",
       "meters": "meters",
-      "error": "Error saving configuration"
+      "error": "Error saving configuration",
+      "soloDuenoOrg": "Only the organization owner can change this configuration, because it applies to every store. If you need a change, ask the organization owner.",
+      "loadError": "The saved configuration could not be loaded. Reload the page before changing it, so you do not replace it with the factory values."
     }
   },
   "supervisor": {

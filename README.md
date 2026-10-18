@@ -27,6 +27,12 @@ The project is built with a modern and robust tech stack:
 - **Customer Feedback:** View and manage customer reviews to improve service quality.
 - **Admin Dashboard:** A powerful administrative panel for superusers to oversee multiple venues and system settings.
 
+### Public document delivery
+
+`/documentos/:id#token=…` accepts onboarding documents from an individual WhatsApp invitation without an account. The secret is stripped from the address bar and kept only in session storage for reloads. Contact details and unconfirmed files remain in memory. Requirements come from the API; confirmed uploads resume from server metadata. Submission closes the form and shows only a receipt.
+
+This route has a separate bootstrap, no dashboard auth providers or analytics, a credential-free public API client, no automatic write retries, and scoped noindex/no-referrer protection. Private files cannot be viewed or downloaded from this delivery page. To run the optional real-backend browser checks, provide `DOCUMENT_REQUEST_FIXTURES` from the local disposable QA harness and point Vite at its local API; never use production documents.
+
 ## 4. Project Structure
 
 The codebase is organized following a feature-oriented architecture within the `src/` directory:

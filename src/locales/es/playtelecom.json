@@ -428,7 +428,9 @@
       "noConfig": "Sin configuración organizacional. Se usan valores predeterminados del sistema.",
       "minutes": "min",
       "meters": "metros",
-      "error": "Error al guardar la configuración"
+      "error": "Error al guardar la configuración",
+      "soloDuenoOrg": "Sólo el dueño de la organización puede cambiar esta configuración, porque se aplica a todas las sucursales. Si necesitas un cambio, pídeselo al dueño de la organización.",
+      "loadError": "No se pudo cargar la configuración guardada. Recarga la página antes de cambiarla, para no reemplazarla con los valores de fábrica."
     }
   },
   "supervisor": {
