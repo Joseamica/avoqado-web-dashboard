@@ -138,7 +138,7 @@ export function InboxTab() {
     // Primero la preferencia: si `resume()` nunca resuelve (Safari), el interruptor no se traba.
     writeSoundPref(on)
     setSoundOn(on)
-    if (on) void unlockSound() // dentro del clic: es lo que el navegador exige para dejar sonar
+    if (on) unlockSound().catch(() => {}) // el estado ya quedó guardado; dentro del clic: es lo que el navegador exige para dejar sonar
   }
 
   if (!data) {

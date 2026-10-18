@@ -4,7 +4,7 @@ export type PauseLabel = { key: string; params?: Record<string, string> }
 
 /**
  * Qué pausa tiene la tienda: la MISMA regla en Configuración y en la Bandeja. `null` si no está pausada (o el servidor dio un
- * motivo que no conocemos: la UI dice «Pausada»). El servidor decide el orden: la pausa a mano gana a «muchos pedidos».
+ * motivo que no conocemos: la UI dice «Pausada»). El `reason` del servidor decide: TOO_BUSY se evalúa antes que la pausa a mano.
  */
 export function pauseLabel(store: StoreState | null | undefined, formatTime: (iso: string) => string): PauseLabel | null {
   if (store?.status !== 'PAUSED') return null
