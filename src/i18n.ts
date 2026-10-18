@@ -177,6 +177,8 @@ import tenderTypesEs from '@/locales/es/tenderTypes.json'
 import deliveryEn from '@/locales/en/delivery.json'
 import deliveryEs from '@/locales/es/delivery.json'
 import deliveryFr from '@/locales/fr/delivery.json'
+import onlineOrderingEn from '@/locales/en/onlineOrdering.json'
+import onlineOrderingEs from '@/locales/es/onlineOrdering.json'
 import passesEn from '@/locales/en/passes.json'
 import passesEs from '@/locales/es/passes.json'
 import shopifyEn from '@/locales/en/shopify.json'
@@ -809,6 +811,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'delivery', bundle as Record<string, unknown>, true, true)
+})
+// Pedidos en línea — es y en.
+;(
+  [
+    ['en', onlineOrderingEn],
+    ['es', onlineOrderingEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'onlineOrdering', bundle as Record<string, unknown>, true, true)
 })
 // Conector de pases (TotalPass · Wellhub) — es y en; el francés no se soporta desde el 28-sep-2026.
 ;(

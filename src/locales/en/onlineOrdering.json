@@ -1,0 +1,12 @@
+{
+  "page": {
+    "title": "Online ordering",
+    "noPlanNotice": "Your plan doesn't include Online ordering: you can still finish the orders that have already arrived.",
+    "needManage": "To set up the store you need the “Configure online ordering” permission; ask your administrator."
+  },
+  "tabs": {
+    "tray": "Inbox",
+    "menu": "Online menu",
+    "settings": "Settings"
+  }
+}

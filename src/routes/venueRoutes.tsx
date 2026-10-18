@@ -106,6 +106,7 @@ import {
   CfdiList,
   CfdiConfiguracion,
   DeliveryPage,
+  OnlineOrderingPage,
   RolePermissions,
   PrintStations,
   FloorPlanSettings,
@@ -265,6 +266,13 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'orders', element: <Orders /> },
         { path: 'orders/:orderId', element: <Orders /> },
       ],
+    },
+
+    // Pedidos en línea — la Bandeja no tiene candado de plan; el <FeatureGate> va DENTRO de la página (pestañas de configurar).
+    {
+      path: 'online-ordering',
+      element: <PermissionProtectedRoute permission="orders:read" />,
+      children: [{ index: true, element: <OnlineOrderingPage /> }],
     },
 
     // (removed 2026-08-17) La ruta 'analytics' servía `/api/v1/analytics/overview`, que era un MOCK

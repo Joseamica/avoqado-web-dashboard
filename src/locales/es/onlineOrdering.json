@@ -1,0 +1,12 @@
+{
+  "page": {
+    "title": "Pedidos en línea",
+    "noPlanNotice": "Tu plan no incluye Pedidos en línea: puedes terminar los pedidos que ya llegaron.",
+    "needManage": "Para configurar la tienda necesitas el permiso “Configurar pedidos en línea”; pídeselo a tu administrador."
+  },
+  "tabs": {
+    "tray": "Bandeja",
+    "menu": "Menú en línea",
+    "settings": "Configuración"
+  }
+}
