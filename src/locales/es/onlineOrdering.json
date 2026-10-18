@@ -21,6 +21,7 @@
       "PAUSED": "Pausada",
       "pausedUntil": "Pausada hasta {{time}}",
       "pausedManual": "Pausada desde Configuración",
+      "pausedBusy": "Pausada: muchos pedidos por aceptar",
       "OFFLINE": "Sin aparato conectado: deja la Bandeja abierta y visible en una computadora o tableta para recibir pedidos",
       "DISABLED": "Apagada"
     },
@@ -137,7 +138,8 @@
     "sound": {
       "toggle": "Activar sonido",
       "unlock": "Toca para activar el sonido",
-      "nag": "Activa el sonido para que no se te pase un pedido"
+      "nag": "Activa el sonido para que no se te pase un pedido",
+      "unsupported": "Tu navegador no permite sonido"
     },
     "card": {
       "pickup": "Para recoger",
@@ -195,8 +197,6 @@
       "label": "Pausar pedidos",
       "minutes": "{{minutes}} min",
       "resume": "Reanudar",
-      "until": "Pausada hasta {{time}}",
-      "manual": "Pausada desde Configuración",
       "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
     }
   }

@@ -120,6 +120,12 @@ const storage: Record<string, string> = {}
 const SOUND = 'avq:online-orders:sound'
 
 const http = (status: number, data: object) => Object.assign(new Error('http'), { isAxiosError: true, response: { status, data } })
+const networkError = () => Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })
+const deferred = <T,>() => {
+  let resolve!: (v: T) => void
+  const promise = new Promise<T>(r => (resolve = r))
+  return { promise, resolve }
+}
 
 describe('InboxTab', () => {
   beforeEach(() => {
@@ -238,6 +244,28 @@ describe('InboxTab', () => {
     expect(screen.queryByText('inbox.sound.nag')).toBeNull()
   })
 
+  it('si el navegador no termina de arrancar el audio, el interruptor no se traba', async () => {
+    unlock.mockReturnValue(new Promise(() => {})) // resume() que nunca resuelve (Safari)
+    getInbox.mockResolvedValue(inbox([]))
+    renderTab()
+    const sw = await screen.findByRole('switch', { name: 'inbox.sound.toggle' })
+    await userEvent.click(sw)
+    expect(unlock).toHaveBeenCalled()
+    expect(storage[SOUND]).toBe('1')
+    expect(sw).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('navegador sin WebAudio ⇒ ni interruptor, ni banner, ni «Activa el sonido»: lo explica', async () => {
+    chime.state = 'unsupported'
+    storage[SOUND] = '1'
+    getInbox.mockResolvedValue(inbox([order()]))
+    renderTab()
+    expect(await screen.findByText('inbox.sound.unsupported')).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'inbox.sound.toggle' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'inbox.sound.unlock' })).toBeNull()
+    expect(screen.queryByText('inbox.sound.nag')).toBeNull()
+  })
+
   it('el interruptor «Activar sonido» desbloquea con el clic y guarda la preferencia', async () => {
     getInbox.mockResolvedValue(inbox([]))
     renderTab()
@@ -260,7 +288,7 @@ describe('InboxTab', () => {
     )
     pauseOrdering.mockResolvedValue({ pausedUntil: null, manualPause: false })
     renderTab()
-    expect(await screen.findByText('inbox.pause.until|T(2026-10-17T18:30:00.000Z)')).toBeInTheDocument()
+    expect(await screen.findByText('settings.status.pausedUntil|T(2026-10-17T18:30:00.000Z)')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'inbox.pause.resume' }))
     await waitFor(() => expect(pauseOrdering).toHaveBeenCalledWith('venue-1', null))
   })
@@ -268,8 +296,75 @@ describe('InboxTab', () => {
   it('con manualPause no hay «Reanudar»', async () => {
     getInbox.mockResolvedValue(inbox([], { store: { status: 'PAUSED', reason: 'MANUAL_PAUSE', pausedUntil: null, manualPause: true } }))
     renderTab()
-    expect(await screen.findByText('inbox.pause.manual')).toBeInTheDocument()
+    expect(await screen.findByText('settings.status.pausedManual')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'inbox.pause.resume' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'inbox.pause.minutes|30' })).toBeNull()
+  })
+
+  it('pausada por muchos pedidos (TOO_BUSY) ⇒ lo dice y deja pausar', async () => {
+    getInbox.mockResolvedValue(inbox([], { store: { status: 'PAUSED', reason: 'TOO_BUSY', pausedUntil: null, manualPause: false } }))
+    renderTab()
+    expect(await screen.findByText('settings.status.pausedBusy')).toBeInTheDocument()
+    expect(screen.queryByText('settings.status.pausedManual')).toBeNull()
+    expect(screen.getByRole('button', { name: 'inbox.pause.minutes|30' })).toBeInTheDocument()
+  })
+
+  it('tienda apagada o sin estado ⇒ sin botones de pausa', async () => {
+    getInbox.mockResolvedValue(inbox([], { store: { status: 'DISABLED', reason: 'NOT_ENABLED', pausedUntil: null, manualPause: false } }))
+    const { unmount } = renderTab()
+    await screen.findByTestId('online-inbox')
+    expect(screen.queryByRole('button', { name: 'inbox.pause.minutes|30' })).toBeNull()
+    unmount()
+
+    getInbox.mockResolvedValue(inbox([], { store: null }))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    expect(screen.queryByRole('button', { name: 'inbox.pause.minutes|30' })).toBeNull()
+  })
+
+  it('doble clic en «Listo» ⇒ una sola llamada', async () => {
+    getInbox.mockResolvedValue(inbox([order({ status: 'ACCEPTED' })]))
+    const ready = deferred<unknown>()
+    markReady.mockReturnValue(ready.promise)
+    renderTab()
+    await userEvent.dblClick(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    expect(markReady).toHaveBeenCalledTimes(1)
+    ready.resolve({ status: 'READY' })
+  })
+
+  it('doble clic en el tiempo de «Aceptar» ⇒ una sola llamada', async () => {
+    getInbox.mockResolvedValue(inbox([order()]))
+    const accepted = deferred<unknown>()
+    acceptOrder.mockReturnValue(accepted.promise)
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
+    await userEvent.dblClick(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
+    expect(acceptOrder).toHaveBeenCalledTimes(1)
+    accepted.resolve({ status: 'ACCEPTED' })
+  })
+
+  it('una acción que falla por red ⇒ «Reintenta cuando vuelva la conexión» y no refresca', async () => {
+    getInbox.mockResolvedValue(inbox([order({ status: 'ACCEPTED' })]))
+    markReady.mockRejectedValue(networkError())
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'inbox.outcome.network' })))
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+    expect(getInbox).toHaveBeenCalledTimes(1)
+  })
+
+  it('los botones no se reactivan con la tarjeta vieja: esperan al refresco', async () => {
+    getInbox.mockResolvedValueOnce(inbox([order({ status: 'ACCEPTED' })]))
+    const refetch = deferred<unknown>()
+    getInbox.mockReturnValueOnce(refetch.promise)
+    markReady.mockResolvedValue({ status: 'READY' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+    await new Promise(r => setTimeout(r, 30))
+    expect(screen.getByRole('button', { name: 'inbox.actions.ready' })).toBeDisabled()
+    await act(async () => refetch.resolve(inbox([order({ status: 'READY', remaining: 0 })])))
+    expect(await screen.findByRole('button', { name: 'inbox.actions.delivered' })).toBeEnabled()
   })
 
   it('sin plan la bandeja consulta y contesta', async () => {

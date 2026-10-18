@@ -85,6 +85,19 @@ describe('useOnlineOrdersInbox', () => {
     await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
   })
 
+  it('eventos de OTRO negocio no refrescan', async () => {
+    renderInbox(() => true)
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(1))
+
+    act(() => handlers.order_created({ orderId: 'x1', source: 'WEB', venueId: 'venue-2' }))
+    act(() => handlers.order_updated({ orderId: 'x1', onlineStatus: 'READY', venueId: 'venue-2' }))
+    await new Promise(r => setTimeout(r, 30))
+    expect(getInbox).toHaveBeenCalledTimes(1)
+
+    act(() => handlers.order_created({ orderId: 'o3', source: 'WEB', venueId: 'venue-1' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+  })
+
   it('order_created que no es de la tienda en línea no refresca', async () => {
     renderInbox(() => true)
     await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(1))

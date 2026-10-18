@@ -21,6 +21,7 @@
       "PAUSED": "Paused",
       "pausedUntil": "Paused until {{time}}",
       "pausedManual": "Paused from Settings",
+      "pausedBusy": "Paused: too many orders waiting to be accepted",
       "OFFLINE": "No device connected: keep the Tray open and visible on a computer or tablet to receive orders",
       "DISABLED": "Off"
     },
@@ -137,7 +138,8 @@
     "sound": {
       "toggle": "Turn on sound",
       "unlock": "Tap to turn on the sound",
-      "nag": "Turn on the sound so you don't miss an order"
+      "nag": "Turn on the sound so you don't miss an order",
+      "unsupported": "Your browser doesn't allow sound"
     },
     "card": {
       "pickup": "For pickup",
@@ -195,8 +197,6 @@
       "label": "Pause orders",
       "minutes": "{{minutes}} min",
       "resume": "Resume",
-      "until": "Paused until {{time}}",
-      "manual": "Paused from Settings",
       "failed": "Couldn't change the pause. Try again."
     }
   }
