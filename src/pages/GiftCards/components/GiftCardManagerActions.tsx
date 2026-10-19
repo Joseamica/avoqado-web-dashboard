@@ -725,10 +725,14 @@ export function GiftCardManagerActions({ venueId, detail }: { venueId: string; d
         </div>
 
         {/* Nota 2: si el server explica por qué no (`cancel.message`, que escribe en español), su texto va en vez del genérico del
-            motivo; con el panel en otro idioma manda el motivo (`blocker.<REASON>`), que tiene su traducción. */}
+            motivo; con el panel en otro idioma manda el motivo (`blocker.<REASON>`), que tiene su traducción. Un motivo nuevo que
+            el panel aún no traduce sale con el texto del server (o el genérico), nunca con la llave cruda. */}
         {motivoSinCancelar && (
           <p className="text-xs text-muted-foreground" data-tour="gift-card-cancel-sale-reason">
-            {(esIdiomaEspanol() && cancelacion?.message) || t(`actions.cancelSale.blocker.${motivoSinCancelar}`)}
+            {(esIdiomaEspanol() && cancelacion?.message) ||
+              t(`actions.cancelSale.blocker.${motivoSinCancelar}`, {
+                defaultValue: cancelacion?.message ?? t('actions.cancelSale.blocker.GENERIC'),
+              })}
           </p>
         )}
         {ninguna && !motivoSinCancelar && <p className="text-xs text-muted-foreground">{t('actions.none')}</p>}

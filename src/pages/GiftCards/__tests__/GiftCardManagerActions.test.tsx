@@ -31,13 +31,21 @@ vi.mock('@/hooks/use-access', () => ({
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
 const toast = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
-// Sólo el aviso de cancelar (full-testing v2 #3) lleva folio: ahí se pintan sus valores para poder leerlos.
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (k: string, o?: { orderNumber?: string; count?: number; amount?: string }) =>
-      o?.orderNumber ? `${k}(#${o.orderNumber}·${o.count}·${o.amount})` : k,
-  }),
-}))
+// Sólo el aviso de cancelar (full-testing v2 #3) lleva folio: ahí se pintan sus valores para poder leerlos. Con i18next ya
+// inicializado (el bloque en inglés), una llave que NO existe en los recursos reales sale con su `defaultValue`, como en i18next.
+vi.mock('react-i18next', async () => {
+  const { default: i18n } = await import('i18next')
+  return {
+    useTranslation: () => ({
+      t: (k: string, o?: { orderNumber?: string; count?: number; amount?: string; defaultValue?: string }) =>
+        o?.orderNumber
+          ? `${k}(#${o.orderNumber}·${o.count}·${o.amount})`
+          : i18n.isInitialized && o?.defaultValue !== undefined && !i18n.exists(`giftCards:${k}`)
+            ? o.defaultValue
+            : k,
+    }),
+  }
+})
 
 import { olvidarIntentosEnDuda, useGiftCardDetail } from '@/hooks/use-gift-cards'
 import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
@@ -641,6 +649,17 @@ describe('«Cancelar venta» imposible con el panel en inglés', () => {
     for (const reason of ['NOT_PAID', 'NOT_SAME_DAY', 'ALREADY_USED', 'ALREADY_CANCELLED', 'BLOCKED_OTHER', 'GENERIC'])
       expect(bloqueantes[reason], `actions.cancelSale.blocker.${reason}`).toBeTruthy()
     expect((en.actions.cancelSale as Record<string, unknown>).reasons).toBeUndefined()
+  })
+
+  it('🔴 en inglés, un motivo NUEVO del server (sin llave) nunca sale como llave cruda: su texto o, sin texto, el genérico', () => {
+    const texto = 'No se puede cancelar por un motivo que el panel todavía no conoce.'
+    const { unmount } = pintar(detalle({ cancel: { allowed: false, reason: 'MOTIVO_NUEVO' as never, message: texto } }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText('actions.cancelSale.blocker.MOTIVO_NUEVO')).not.toBeInTheDocument()
+    unmount()
+    pintar(detalle({ cancel: { allowed: false, reason: 'MOTIVO_NUEVO' as never, message: null } }))
+    expect(screen.getByText('actions.cancelSale.blocker.GENERIC')).toBeInTheDocument()
+    expect(screen.queryByText('actions.cancelSale.blocker.MOTIVO_NUEVO')).not.toBeInTheDocument()
   })
 
   it('en inglés y sin motivo (`reason: null`), la tarjeta bloqueada dice BLOCKED_OTHER aunque el server mande su texto', () => {

@@ -405,6 +405,11 @@ describe('avisoDeError con el panel en inglés (Task 5; Codex r1 #3)', () => {
     expect(aviso).not.toMatch(/serverCodes|[áéíóúñ¿¡]/i)
   })
 
+  it('en inglés, la cuenta del POS es «check» y el folio es «order number», como en el resto del archivo (nunca «account»)', () => {
+    for (const [code, texto] of Object.entries(en.serverCodes)) expect(texto, code).not.toMatch(/\baccount\b|receipt number/i)
+    expect(en.serverCodes.GIFT_CARD_FOLIO_MISMATCH).toMatch(/order number/)
+  })
+
   it('en inglés, un code sin traducción sale con el texto del server, nunca la llave', () => {
     const aviso = avisoDeError(conCuerpo(409, { code: 'GIFT_CARD_CODIGO_NUEVO', message: SERVER }), t())
     expect(aviso).toBe(SERVER)
