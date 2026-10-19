@@ -454,29 +454,34 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('Codex r1 P6 + r2 #4: la X mientras se guarda pregunta, y si el guardado termina bien la pregunta se cierra sola', async () => {
-    let terminar: (v: unknown) => void = () => {}
-    grupos.createProductGroup.mockReturnValue(new Promise(r => (terminar = r)))
-    const { onOpenChange } = pintar()
-    await prepararFamiliaValida()
-    fireEvent.click(botonGuardar())
-    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
-    terminar({ id: 'g1' })
-    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-    await waitFor(() => expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument())
-  })
-
-  it('Codex r2 #4: un guardado que nunca responde (sin red) no deja el asistente sin salida', async () => {
+  it('Codex r3 #2: la X mientras se guarda cierra sin preguntar «descartar» (lo que va en camino sí se guarda; sin red no se queda sin salida)', async () => {
     grupos.createProductGroup.mockReturnValue(new Promise(() => {}))
     const { onOpenChange } = pintar()
     await prepararFamiliaValida()
     fireEvent.click(botonGuardar())
     await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
-    fireEvent.click(await screen.findByRole('button', { name: 'wizard.discard.confirm' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+  })
+
+  it('Codex r3 #3: un guardado que termina tarde no cierra ni limpia el alta nueva que se abrió después', async () => {
+    let terminar: (v: unknown) => void = () => {}
+    grupos.createProductGroup.mockReturnValue(new Promise(r => (terminar = r)))
+    const { onOpenChange, abrir } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    abrir(false)
+    abrir(true)
+    onOpenChange.mockClear()
+    const nombre = await screen.findByPlaceholderText('wizard.step1.namePlaceholder')
+    fireEvent.change(nombre, { target: { value: 'Borrador B' } })
+    terminar({ id: 'g1' })
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'alta.creada' })))
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(screen.getByPlaceholderText('wizard.step1.namePlaceholder')).toHaveValue('Borrador B')
   })
 
   it('Codex r2 #5: una foto pendiente de recorte cuenta como captura', async () => {

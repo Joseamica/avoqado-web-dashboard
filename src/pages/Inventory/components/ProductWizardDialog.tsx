@@ -257,6 +257,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Single-step wizard - no step navigation needed
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
+  const sesion = useRef(0) // sube cada vez que el asistente se cierra (ver handleWizardComplete)
   const [selectedInventoryMethod, setSelectedInventoryMethod] = useState<InventoryMethod | null>(null)
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
@@ -466,7 +467,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }) => {
       return productWizardApi.createProductWithInventory(venueId, data)
     },
-    onSuccess: response => {
+    onMutate: () => ({ sesion: sesion.current }),
+    onSuccess: (response, _variables, contexto) => {
       const productId = response.data.data.productId
       setCreatedProductId(productId)
 
@@ -476,7 +478,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         variant: 'default',
       })
 
-      handleWizardComplete()
+      handleWizardComplete(contexto?.sesion)
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
@@ -503,9 +505,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const invalidarCatalogo = useInvalidarCatalogo()
   const crearFamilia = useMutation({
     mutationFn: (body: CreateGroupBody) => createProductGroup(venueId!, body),
-    onSuccess: () => {
+    onMutate: () => ({ sesion: sesion.current }),
+    onSuccess: (_data, _body, contexto) => {
       toast({ title: tv('alta.creada') })
-      handleWizardComplete() // el mismo cierre que el alta normal (invalida ['products', venueId], lo mismo que useInvalidarCatalogo)
+      handleWizardComplete(contexto?.sesion) // el mismo cierre que el alta normal (invalida ['products', venueId], lo mismo que useInvalidarCatalogo)
     },
     onError: error => {
       // Tras CUALQUIER error se relee: el reintento automático de src/api.ts pudo haber creado la familia (409 nombre ya usado).
@@ -661,11 +664,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
   })
 
-  // Handle wizard completion
-  const handleWizardComplete = () => {
+  // Handle wizard completion. `sesionDelEnvio` (de onMutate): si el asistente se cerró desde que se envió, el guardado sólo refresca la
+  // lista; NO cierra ni limpia el alta que se haya abierto después (Codex r3 #3).
+  const handleWizardComplete = (sesionDelEnvio?: number) => {
     queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueId] })
     queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId) }) // el primer encendido pudo prender el IVA por producto
+    if (sesionDelEnvio !== undefined && sesionDelEnvio !== sesion.current) return
 
     if (onSuccess && createdProductId) {
       onSuccess(createdProductId)
@@ -705,6 +710,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Handle dialog close
   useEffect(() => {
     if (!open) {
+      sesion.current += 1
       resetWizard()
     }
   }, [open, resetWizard])
@@ -1211,8 +1217,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
   // `true` sin tocar nada (QA en navegador, 19-oct). Las variantes se comparan por contenido (agregar y quitar una opción vacía no es
   // captura), y cuenta también un valor escrito en las fichas que aún no es ficha (`data-por-confirmar`, como ProductGroupDialog).
-  // No se bloquea mientras se guarda: sin red la mutación queda en pausa y el asistente se quedaría sin salida (Codex r2); si el
-  // guardado termina bien, resetWizard cierra la pregunta.
+  // Mientras se guarda cierra directo, sin «descartar»: el guardado sigue (Codex r3) y sin red no se queda sin salida (Codex r2).
   const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
   const hayCaptura =
     mode === 'create' &&
@@ -1223,6 +1228,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       JSON.stringify(variantes) !== JSON.stringify(VARIANTES_INICIALES) ||
       !!imageForCrop) // una foto elegida que aún no se recorta
   const pedirCerrar = () => {
+    if (isLoading) return onOpenChange(false) // guardando: lo que va en camino sí se guarda (y sin red no se queda sin salida)
     const textoPorConfirmar =
       mode === 'create' &&
       Array.from(document.querySelectorAll<HTMLInputElement>('input[data-por-confirmar]')).some(i => i.value.trim() !== '')

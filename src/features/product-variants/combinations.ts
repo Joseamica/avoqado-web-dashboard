@@ -27,6 +27,8 @@ export interface FilaVariante {
   sku?: string
   gtin?: string
   initialStock?: number
+  /** Con qué opciones nació la fila (nombres normalizados): sólo hereda si la opción nueva se agregó encima de ESAS. No viaja al server. */
+  deOpciones?: string
 }
 
 export type ProblemaDeOpciones =
@@ -125,18 +127,21 @@ export function sugerirSku(padre: string, values: string[]): string {
  */
 export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[]): FilaVariante[] {
   const porLlave = new Map(previas.map(f => [f.key, f]))
+  const nombres = opciones.map(o => norm(o.name))
+  const deOpciones = JSON.stringify(nombres)
+  const deOpcionesAntes = JSON.stringify(nombres.slice(0, -1)) // las mismas opciones, sin la que se acaba de agregar
   const primeroDeLaUltima = norm(opciones[opciones.length - 1]?.values[0] ?? '')
   return generarCombinaciones(opciones).map(values => {
     const key = llaveDeCombinacion(values)
     const previa = porLlave.get(key)
-    if (previa) return { ...previa, values }
+    if (previa) return { ...previa, values, deOpciones }
     const origen =
       values.length > 1 && norm(values[values.length - 1]) === primeroDeLaUltima
         ? porLlave.get(llaveDeCombinacion(values.slice(0, -1)))
         : undefined
-    return origen
-      ? { key, values, incluida: origen.incluida, price: origen.price, cost: origen.cost }
-      : { key, values, incluida: true }
+    return origen && origen.deOpciones === deOpcionesAntes
+      ? { key, values, incluida: origen.incluida, price: origen.price, cost: origen.cost, deOpciones }
+      : { key, values, incluida: true, deOpciones }
   })
 }
 

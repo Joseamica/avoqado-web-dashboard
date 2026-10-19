@@ -97,6 +97,13 @@ describe('filas', () => {
       expect(precio(filas)).toEqual({ 'S/Rojo/Algodón': 199, 'S/Azul/Algodón': 299 })
     })
 
+    it('Codex r3 #1: filas viejas «en espera» de otras opciones no heredan (la «m» de Modelo no es la talla «M»)', () => {
+      const viejas = tallasConPrecio() // nacieron con [Talla]
+      // se quitó Talla mientras Modelo estaba a medias; al teclear «m» en Modelo las opciones son [Modelo, Material]
+      const filas = sincronizarFilas([op('Modelo', ['m']), op('Material', ['Algodón'])], viejas)
+      expect(precio(filas)).toEqual({ 'm/Algodón': undefined })
+    })
+
     it('Codex r2: quitar una opción (la de en medio o la última) o reordenar valores nunca copia un precio de otra combinación', () => {
       let filas: FilaVariante[] = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul']), op('Material', ['Algodón'])], [])
       filas = filas.map(f => ({ ...f, price: f.values[1] === 'Rojo' ? 199 : 299 }))
