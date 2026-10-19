@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apiErrorDescription } from '../apiError'
+import { apiErrorDescription, mensajeDelServidor4xx } from '../apiError'
 
 // Caso real (2026-09-01): el server respondía el motivo exacto del 409 en
 // { error: '...' }, el toast leía sólo data.message y el founder vio el
@@ -26,5 +26,29 @@ describe('apiErrorDescription', () => {
   it('devuelve cadena vacía ante un error sin forma conocida', () => {
     expect(apiErrorDescription(undefined)).toBe('')
     expect(apiErrorDescription({})).toBe('')
+  })
+})
+
+// 17-oct: los toasts de la configuración de la organización muestran el motivo del 403 («Sólo el dueño de la
+// organización puede…») en vez del genérico. Sólo para 4xx y sólo `message`.
+describe('mensajeDelServidor4xx', () => {
+  it('un 4xx con `message` → ese texto', () => {
+    expect(mensajeDelServidor4xx({ response: { status: 403, data: { message: 'Sólo el dueño…', code: 'ORG_OWNER_REQUIRED' } } })).toBe(
+      'Sólo el dueño…',
+    )
+  })
+
+  it('un 5xx, aunque traiga `message`, no sale al usuario', () => {
+    expect(mensajeDelServidor4xx({ response: { status: 500, data: { message: 'Cannot read properties of undefined' } } })).toBeUndefined()
+  })
+
+  it('un 4xx que sólo trae un código en `error` (no un texto para personas) → nada', () => {
+    expect(mensajeDelServidor4xx({ response: { status: 403, data: { error: 'forbidden' } } })).toBeUndefined()
+  })
+
+  it('sin respuesta (red) o con `message` vacío → nada', () => {
+    expect(mensajeDelServidor4xx(new Error('Network Error'))).toBeUndefined()
+    expect(mensajeDelServidor4xx({ response: { status: 400, data: { message: '  ' } } })).toBeUndefined()
+    expect(mensajeDelServidor4xx(undefined)).toBeUndefined()
   })
 })

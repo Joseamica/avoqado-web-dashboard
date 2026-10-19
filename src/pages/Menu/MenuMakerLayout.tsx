@@ -41,6 +41,7 @@ export default function MenuMakerLayout() {
             { to: 'products', label: t('menumaker.nav.products', { defaultValue: 'Products' }) },
             { to: 'services', label: t('menumaker.nav.services', { defaultValue: 'Services' }) },
             { to: 'modifier-groups', label: t('menumaker.nav.modifierGroups', { defaultValue: 'Modifier Groups' }) },
+            { to: 'product-options', label: t('menumaker.nav.productOptions', { defaultValue: 'Options' }) },
             { to: 'credit-packs', label: t('menumaker.nav.creditPacks', { defaultValue: 'Credit Packs' }) },
           ]}
         />

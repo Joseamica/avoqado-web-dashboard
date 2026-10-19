@@ -26,13 +26,16 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn, includesNormalized } from '@/lib/utils'
+import { familiasDe, variantesParaAgregar } from '@/features/product-variants/families'
 import { PurchaseUnitSelect } from './PurchaseUnitSelect'
 
 /**
  * Un artículo que se puede comprar: insumo de cocina o mercancía de reventa.
  * `kind` es lo que decide a cuál de los dos campos del renglón se manda el id.
+ * `FAMILY` es «toda la familia» de un producto con variantes (`id` = la familia): se resuelve al elegirla en un
+ * renglón por variante, así que ningún renglón la guarda.
  */
-type ArticuloComprable = { id: string; name: string; unit: string; kind: 'RAW_MATERIAL' | 'PRODUCT' }
+type ArticuloComprable = { id: string; name: string; unit: string; kind: 'RAW_MATERIAL' | 'PRODUCT' | 'FAMILY' }
 
 // Validation schema
 //
@@ -107,6 +110,7 @@ interface PurchaseOrderWizardProps {
 
 export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, duplicateFrom, mode = 'create' }: PurchaseOrderWizardProps) {
   const { t } = useTranslation(['purchaseOrders', 'common'])
+  const { t: tv } = useTranslation('variants')
   const { getShortLabel } = useUnitTranslation()
   const { venue } = useCurrentVenue()
   const isEditMode = mode === 'edit' && !!purchaseOrder
@@ -321,14 +325,23 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
     enabled: !!venue,
   })
 
+  // Familias con al menos una variante comprable (ya filtradas arriba); sin familias, la lista queda igual que siempre.
+  const familiasComprables = useMemo(() => familiasDe(productosComprables ?? []), [productosComprables])
+
   // Una sola lista para el selector: el usuario busca "refresco" sin tener que saber
   // de antemano si está catalogado como insumo o como producto.
   const articulosComprables = useMemo<ArticuloComprable[]>(
     () => [
       ...(rawMaterials?.data ?? []).map((m: any) => ({ id: m.id, name: m.name, unit: m.unit, kind: 'RAW_MATERIAL' as const })),
+      ...familiasComprables.map(f => ({
+        id: f.groupId,
+        name: tv('selector.todaLaFamilia', { name: f.name, count: f.variantes.length }),
+        unit: f.variantes[0].unit as string,
+        kind: 'FAMILY' as const,
+      })),
       ...(productosComprables ?? []).map(p => ({ id: p.id, name: p.name, unit: p.unit as string, kind: 'PRODUCT' as const })),
     ],
-    [rawMaterials?.data, productosComprables],
+    [rawMaterials?.data, productosComprables, familiasComprables, tv],
   )
 
   // Mutations
@@ -498,6 +511,29 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       }
     },
     [form, createMutation, updateMutation, isEditMode, toast, t, venue, queryClient],
+  )
+
+  // «Toda la familia»: el renglón toma la primera variante comprable que no esté ya en otro renglón y se agrega un renglón
+  // (mismos valores que «Agregar renglón») por cada otra, con la cantidad vacía para que el dueño la escriba.
+  const elegirFamilia = useCallback(
+    (index: number, groupId: string) => {
+      const familia = familiasComprables.find(f => f.groupId === groupId)
+      if (!familia) return
+      const enOtrosRenglones = form.getValues('items').flatMap((it, i) => (i !== index && it.productId ? [it.productId] : []))
+      const [primera, ...resto] = variantesParaAgregar(familia, enOtrosRenglones)
+      if (!primera) {
+        // Ya están todas en la orden: no se agrega nada, pero se dice (el combobox se cierra igual).
+        toast({ description: tv('selector.familiaYaEnLaOrden', { name: familia.name }) })
+        return
+      }
+      form.setValue(`items.${index}.rawMaterialId`, '', { shouldDirty: true })
+      form.setValue(`items.${index}.productId`, primera.id, { shouldDirty: true })
+      form.setValue(`items.${index}.presentationName`, undefined, { shouldDirty: true })
+      if (resto.length > 0) {
+        append(resto.map(v => ({ rawMaterialId: '', productId: v.id, quantityOrdered: 0, unit: Unit.KILOGRAM, unitPrice: 0 })))
+      }
+    },
+    [familiasComprables, form, append, toast, tv],
   )
 
   const handleAddItem = useCallback(() => {
@@ -994,6 +1030,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                     materials={articulosComprables}
                                     value={idSeleccionado}
                                     onChange={(value, kind) => {
+                                      if (kind === 'FAMILY') return elegirFamilia(index, value)
                                       // Exclusivo: se llena uno y se LIMPIA el otro.
                                       // Sin el limpiado, cambiar de insumo a producto
                                       // dejaría los dos ids puestos y el backend
@@ -1499,7 +1536,7 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
                       <p className="text-xs text-muted-foreground">
                         {getShortLabel(material.unit)}
                         {' · '}
-                        {material.kind === 'PRODUCT' ? 'Mercancía de reventa' : 'Insumo'}
+                        {material.kind === 'RAW_MATERIAL' ? 'Insumo' : 'Mercancía de reventa'}
                       </p>
                     </div>
                   </CommandItem>

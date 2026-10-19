@@ -36,6 +36,11 @@ interface FullScreenModalProps {
   onEscapeKeyDown?: (event: KeyboardEvent) => void
   /** `data-testid` del botón de cerrar (para pruebas: «Cerrar» por nombre choca con el de un aviso abierto). */
   closeButtonTestId?: string
+  /**
+   * Clases del bloque del título. Sin ellas, un título largo puede encimarse con las acciones en un celular: pasa un ancho máximo que
+   * deje libre lo que ocupan la X y las acciones, y `*:truncate` para que se recorte con «…».
+   */
+  titleClassName?: string
 }
 
 export function FullScreenModal({
@@ -50,6 +55,7 @@ export function FullScreenModal({
   onCloseAutoFocus,
   onEscapeKeyDown,
   closeButtonTestId,
+  titleClassName,
 }: FullScreenModalProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -87,7 +93,7 @@ export function FullScreenModal({
             </DialogPrimitive.Close>
 
             {/* Center - Title */}
-            <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <div className={cn('absolute left-1/2 -translate-x-1/2 text-center', titleClassName)}>
               {subtitle && (
                 <p className="text-xs text-muted-foreground leading-tight">{subtitle}</p>
               )}

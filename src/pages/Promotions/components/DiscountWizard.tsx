@@ -91,7 +91,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
   const [step2Data, setStep2Data] = useState<Step2FormData | null>(null)
   const [step3Data, setStep3Data] = useState<Step3FormData | null>(null)
 
-  const { productOptions, categoryOptions, customerGroupOptions, dayOptions } = useDiscountFormData(venueId)
+  const { products, categoryOptions, customerGroupOptions, dayOptions } = useDiscountFormData(venueId)
 
   // Step 1 Form
   const step1Form = useForm<Step1FormData>({
@@ -410,7 +410,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
             <Form {...step2Form}>
               <WizardStep2Scope
                 form={step2Form}
-                productOptions={productOptions}
+                products={products}
                 categoryOptions={categoryOptions}
                 customerGroupOptions={customerGroupOptions}
               />

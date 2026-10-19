@@ -1,4 +1,3 @@
-import DataTable from '@/components/data-table'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,6 +17,8 @@ import { useTranslation } from 'react-i18next'
 import { AdjustInventoryStockDialog } from './components/AdjustInventoryStockDialog'
 import { InventoryMovementsDialog } from './components/InventoryMovementsDialog'
 import { includesNormalized } from '@/lib/utils'
+import { NombreDeFamilia, TablaConFamilias } from './components/TablaConFamilias'
+import { familiaDeProducto, filasDeExistencias, sumaDe, type FilaConFamilia } from './stockFamilies'
 
 /**
  * ProductStock Page
@@ -60,6 +61,14 @@ interface ProductWithStock extends Product {
   unit: string
 }
 
+type FilaStock = FilaConFamilia<ProductWithStock>
+
+// La fila de una familia suma las existencias y los puntos de reorden de sus variantes; costo y acciones son de cada variante.
+const sumarStock = (rs: ProductWithStock[]): Partial<ProductWithStock> => ({
+  currentStock: sumaDe(rs, r => r.currentStock) ?? 0,
+  reorderPoint: sumaDe(rs, r => r.reorderPoint) ?? 0,
+})
+
 // Stock status helper function
 const getStockStatus = (currentStock: number, reorderPoint: number, t: (key: string) => string) => {
   if (currentStock === 0) {
@@ -81,6 +90,15 @@ const getStockStatus = (currentStock: number, reorderPoint: number, t: (key: str
     variant: 'outline' as const,
     className: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
   }
+}
+
+// El estado de una familia NO sale de su suma (una talla agotada se escondería en ella): si alguna variante está en o bajo su punto
+// de reorden, la familia sale «Stock Bajo»; «Sin Stock» sólo si la suma es 0.
+const estadoDeFila = (item: FilaStock, t: (key: string) => string) => {
+  const familia = item.__familia
+  if (!familia) return getStockStatus(item.currentStock, item.reorderPoint, t)
+  const algunaBaja = familia.variantes.some(v => v.currentStock <= v.reorderPoint)
+  return getStockStatus(item.currentStock, algunaBaja ? Infinity : -Infinity, t)
 }
 
 export default function ProductStock() {
@@ -135,14 +153,21 @@ export default function ProductStock() {
 
   const isLoading = isLoadingProducts
 
-  // Apply filters
-  const filteredItems = productStockItems.filter(item => {
-    const matchesSearch =
-      includesNormalized(item.name ?? '', searchQuery) || includesNormalized(item.sku ?? '', searchQuery)
-    const matchesLowStock = !filterLowStock || item.currentStock <= item.reorderPoint
+  // Apply filters (por variante: una familia aparece si alguna de sus variantes cumple)
+  const filteredItems = useMemo(
+    () =>
+      productStockItems.filter(item => {
+        const matchesSearch =
+          includesNormalized(item.name ?? '', searchQuery) || includesNormalized(item.sku ?? '', searchQuery)
+        const matchesLowStock = !filterLowStock || item.currentStock <= item.reorderPoint
 
-    return matchesSearch && matchesLowStock
-  })
+        return matchesSearch && matchesLowStock
+      }),
+    [productStockItems, searchQuery, filterLowStock],
+  )
+
+  // Cada familia, UNA fila con la suma de sus variantes. Sin familias es la misma lista, objeto por objeto.
+  const filas = useMemo(() => filasDeExistencias<ProductWithStock>(filteredItems, familiaDeProducto, sumarStock), [filteredItems])
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -161,26 +186,29 @@ export default function ProductStock() {
   }, [filteredItems])
 
   // Table columns
-  const columns = useMemo<ColumnDef<ProductWithStock, unknown>[]>(
+  const columns = useMemo<ColumnDef<FilaStock, unknown>[]>(
     () => [
       {
         accessorKey: 'name',
         header: t('productStock.table.columns.product'),
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="font-medium">{row.original.name}</p>
-              <p className="text-xs text-muted-foreground">SKU: {row.original.sku}</p>
+        cell: ({ row }) =>
+          row.original.__familia ? (
+            <NombreDeFamilia familia={row.original.__familia} />
+          ) : (
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="font-medium">{row.original.name}</p>
+                <p className="text-xs text-muted-foreground">SKU: {row.original.sku}</p>
+              </div>
             </div>
-          </div>
-        ),
+          ),
       },
       {
         accessorKey: 'currentStock',
         header: t('productStock.table.columns.currentStock'),
         cell: ({ row }) => {
-          const status = getStockStatus(row.original.currentStock, row.original.reorderPoint, t)
+          const status = estadoDeFila(row.original, t)
           return (
             <div className="flex items-center gap-2">
               <span
@@ -210,13 +238,18 @@ export default function ProductStock() {
       {
         accessorKey: 'costPerUnit',
         header: t('productStock.table.columns.costPerUnit'),
-        cell: ({ row }) => <span className="font-medium">${row.original.costPerUnit.toFixed(2)}</span>,
+        cell: ({ row }) =>
+          row.original.__familia ? (
+            <span className="text-muted-foreground">—</span>
+          ) : (
+            <span className="font-medium">${row.original.costPerUnit.toFixed(2)}</span>
+          ),
       },
       {
         accessorKey: 'status',
         header: t('productStock.table.columns.status'),
         cell: ({ row }) => {
-          const status = getStockStatus(row.original.currentStock, row.original.reorderPoint, t)
+          const status = estadoDeFila(row.original, t)
           return (
             <Badge variant={status.variant} className={status.className}>
               {status.label}
@@ -227,32 +260,34 @@ export default function ProductStock() {
       {
         id: 'actions',
         header: t('productStock.table.columns.actions'),
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <PermissionGate permission="inventory:update">
+        // La fila de una familia no ajusta: cada variante se ajusta en su renglón al desplegarla.
+        cell: ({ row }) =>
+          row.original.__familia ? null : (
+            <div className="flex items-center gap-2">
+              <PermissionGate permission="inventory:update">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProduct(row.original)
+                    setIsAdjustStockDialogOpen(true)
+                  }}
+                >
+                  {t('productStock.actions.adjustStock')}
+                </Button>
+              </PermissionGate>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => {
                   setSelectedProduct(row.original)
-                  setIsAdjustStockDialogOpen(true)
+                  setIsMovementsDialogOpen(true)
                 }}
               >
-                {t('productStock.actions.adjustStock')}
+                {t('productStock.actions.viewMovements')}
               </Button>
-            </PermissionGate>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedProduct(row.original)
-                setIsMovementsDialogOpen(true)
-              }}
-            >
-              {t('productStock.actions.viewMovements')}
-            </Button>
-          </div>
-        ),
+            </div>
+          ),
       },
     ],
     [t, formatUnitWithQuantity],
@@ -348,7 +383,7 @@ export default function ProductStock() {
 
       {/* Data Table */}
       <div className="rounded-md border bg-card">
-        <DataTable columns={columns} data={filteredItems} rowCount={filteredItems.length} />
+        <TablaConFamilias<ProductWithStock> columns={columns} data={filas} conFiltro={searchQuery !== '' || filterLowStock} />
       </div>
 
       {/* Dialogs */}

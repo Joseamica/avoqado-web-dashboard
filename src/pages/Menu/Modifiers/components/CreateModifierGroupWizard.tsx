@@ -882,6 +882,8 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
 interface ProductLike {
   id: string
   name: string
+  productGroupId?: string | null
+  productGroupName?: string | null
 }
 
 interface ProductMultiPickerProps {
@@ -917,6 +919,7 @@ function ProductMultiPicker({
   onViewProduct,
   onCreateNew,
 }: ProductMultiPickerProps) {
+  const { t: tv } = useTranslation('variants')
   const [search, setSearch] = useState('')
 
   const selectedIds = useMemo(() => new Set(value.map(o => o.value)), [value])
@@ -924,8 +927,14 @@ function ProductMultiPicker({
   const items = useMemo<SearchComboboxItem[]>(() => {
     const available = products.filter(p => !selectedIds.has(p.id))
     const filtered = !search ? available : available.filter(p => includesNormalized(p.name ?? '', search))
-    return filtered.map(p => ({ id: p.id, label: p.name }))
-  }, [products, selectedIds, search])
+    // Los extras de una variante son de su familia (el server rechaza asignarlos con 409): sale deshabilitada con la razón.
+    return filtered.map(p => ({
+      id: p.id,
+      label: p.name,
+      disabled: !!p.productGroupId,
+      ...(p.productGroupId ? { disabledLabel: tv('variante.extrasDesde', { familia: p.productGroupName ?? '' }) } : {}),
+    }))
+  }, [products, selectedIds, search, tv])
 
   const handleSelect = (item: SearchComboboxItem) => {
     onChange([...value, { label: item.label, value: item.id, disable: false }])

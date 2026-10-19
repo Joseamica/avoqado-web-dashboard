@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { mensajeDeFalloDeCobro } from '../offer/falloDeCobro'
+import { focoPerdido } from '../offer/focoPerdido'
 
 interface PlanCardFormProps {
   /** Texto del botón que paga hoy. */
@@ -84,8 +85,12 @@ export function PlanCardForm({
     }
   }, [])
 
+  // 🔴 QA N1: el estado `submitting` no alcanza a pintarse entre dos clics del MISMO instante; salían dos `confirmSetup` y
+  // el perdedor dejaba un rojo falso junto a la autorización del banco. La ref se toma y se suelta junto con `submitting`.
+  const enviando = useRef(false)
   const confirm = async (payNow: boolean) => {
-    if (!stripe || !elements) return
+    if (!stripe || !elements || enviando.current) return
+    enviando.current = true
     setSubmitting(true)
     setCardError(null)
     try {
@@ -108,6 +113,7 @@ export function PlanCardForm({
         setCardError(legible || t('plan.chargeError', { defaultValue: 'No pudimos procesar el pago. Intenta de nuevo.' }))
       }
     } finally {
+      enviando.current = false
       setSubmitting(false)
     }
   }
@@ -125,6 +131,15 @@ export function PlanCardForm({
   const onBusyChangeRef = useRef(onBusyChange)
   onBusyChangeRef.current = onBusyChange
   useEffect(() => () => onBusyChangeRef.current?.(false), [])
+
+  // D1: tras un reto 3D Secure fallido o cancelado, o tras un 402 que remonta este formulario, el foco caía al <body>
+  // (el botón de pagar estaba apagado) y quien usa teclado o lector de pantalla tenía que buscarlo. Se lleva al mensaje
+  // sólo si se perdió (`focoPerdido`): nunca se le quita a quien está tecleando su tarjeta. Desde el mensaje, Tab llega
+  // al botón de pagar y Shift+Tab a la tarjeta.
+  const alertaRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if ((cardError || errorMessage || falloCarga) && focoPerdido()) alertaRef.current?.focus()
+  }, [cardError, errorMessage, falloCarga])
 
   const opciones = trialLabel
     ? ([
@@ -215,7 +230,12 @@ export function PlanCardForm({
       </p>
 
       {(cardError || errorMessage || falloCarga) && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p
+          ref={alertaRef}
+          tabIndex={-1}
+          role="alert"
+          className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none"
+        >
           {cardError ||
             errorMessage ||
             t('plan.setupIntentErrorBody', { defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.' })}

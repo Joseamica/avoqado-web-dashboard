@@ -18,12 +18,12 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react'
-import { useCallback, useEffect, useState, useMemo } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
 import { useVenueDateTime } from '@/utils/datetime'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { AddToAIButton } from '@/components/AddToAIButton'
@@ -71,12 +71,95 @@ import { useMenuMakerHeader } from '../MenuMakerLayout'
 import { useProductCreationTour } from '@/hooks/useProductCreationTour'
 import { useRecipeCreationTour } from '@/hooks/useRecipeCreationTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
+import { ProductGroupDialog } from '@/pages/Menu/Products/components/ProductGroupDialog'
+import { FamilyVariantRows } from '@/pages/Menu/Products/components/FamilyVariantRows'
+import { VariantsMenu } from '@/pages/Menu/Products/components/VariantsMenu'
+import { GroupExistingDialog } from '@/pages/Menu/Products/components/GroupExistingDialog'
+import { GroupFromSourcesDialog } from '@/pages/Menu/Products/components/GroupFromSourcesDialog'
+import { SuggestionsBanner } from '@/pages/Menu/Products/components/SuggestionsBanner'
+import { ProductSelectionBar } from '@/pages/Menu/Products/components/ProductSelectionBar'
+import { filasConFamilias, rangoDePrecio, type FilaProducto } from '@/pages/Menu/Products/listaConFamilias'
+import { esAgrupable, sugerirDesdeNombres, type EstadoAgrupar } from '@/features/product-variants/groupExisting'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useAccess } from '@/hooks/use-access'
+import { textoDelServidor } from '@/utils/apiError'
+
+// 🔴 `flexRender` pinta cada `cell` como componente: si `columns` cambia, React remonta TODAS las celdas y el foco del teclado cae al
+// <body>. Por eso las columnas no dependen de nada que cambie en cada render: la fecha usa su propio hook, el interruptor la `mutate`
+// estable, y el chevron lee las familias desplegadas de este contexto.
+const FamiliasDesplegadas = createContext<{ estaDesplegada: (groupId: string) => boolean; alternar: (groupId: string) => void }>({
+  estaDesplegada: () => false,
+  alternar: () => {},
+})
+
+function ChevronDeFamilia({ groupId, name }: { groupId: string; name: string }) {
+  const { t } = useTranslation('variants')
+  const { estaDesplegada, alternar } = useContext(FamiliasDesplegadas)
+  const desplegada = estaDesplegada(groupId)
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7 shrink-0 cursor-pointer"
+      aria-expanded={desplegada}
+      aria-label={t('lista.verVariantes', { name })}
+      data-tour="products-family-expand"
+      onClick={e => {
+        e.stopPropagation()
+        alternar(groupId)
+      }}
+    >
+      <ChevronRight className={`h-4 w-4 transition-transform ${desplegada ? 'rotate-90' : ''}`} />
+    </Button>
+  )
+}
+
+function FechaActualizada({ value }: { value: string }) {
+  const { formatDate } = useVenueDateTime()
+  return <span>{formatDate(value)}</span>
+}
+
+// «Elegir para agrupar»: casillas PROPIAS (la selección interna de DataTable se borra cuando cambian los datos). Lo elegido se guarda
+// con el producto en la mano al elegirlo, en orden; la casilla lo lee de este contexto para no remontar las celdas en cada clic.
+const ElegidosParaAgrupar = createContext<{ elegidos: Map<string, Product>; alternar: (p: Product) => void }>({
+  elegidos: new Map(),
+  alternar: () => {},
+})
+
+function CasillaParaAgrupar({ producto }: { producto: FilaProducto }) {
+  const { t } = useTranslation('variants')
+  const { elegidos, alternar } = useContext(ElegidosParaAgrupar)
+  const agrupable = esAgrupable(producto)
+  return (
+    <span className="flex" title={agrupable ? undefined : t('agrupar.noAgrupable')} onClick={e => e.stopPropagation()}>
+      <Checkbox
+        checked={elegidos.has(producto.id)}
+        disabled={!agrupable}
+        onCheckedChange={() => alternar(producto)}
+        aria-label={t('agrupar.elegirProducto', { name: producto.name })}
+        data-tour="products-group-select"
+      />
+    </span>
+  )
+}
+
+function EncabezadoParaAgrupar() {
+  const { t } = useTranslation('variants')
+  return <span className="sr-only">{t('agrupar.elegir')}</span>
+}
+
+const COLUMNA_PARA_AGRUPAR: ColumnDef<FilaProducto, unknown> = {
+  id: 'select',
+  header: () => <EncabezadoParaAgrupar />,
+  cell: ({ row }) => <CasillaParaAgrupar producto={row.original} />,
+  size: 40,
+  enableSorting: false,
+}
 
 export default function Products() {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { venueId, fullBasePath } = useCurrentVenue()
-  const { formatDate } = useVenueDateTime()
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
 
@@ -102,6 +185,58 @@ export default function Products() {
   const [editWizardOpen, setEditWizardOpen] = useState(false)
   const [convertDialogOpen, setConvertDialogOpen] = useState(false)
   const [productToConvert, setProductToConvert] = useState<Product | null>(null)
+
+  // Variantes: la familia abierta en ProductGroupDialog (`?familia=<groupId>` la abre al cargar) y las desplegadas en la lista.
+  const { t: tV } = useTranslation('variants')
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [familiaAbierta, setFamiliaAbierta] = useState<string | null>(() => searchParams.get('familia') || null)
+  const [expandidas, setExpandidas] = useState<Set<string>>(() => new Set())
+
+  // Agrupar productos que ya existen: modo «elegir» (casillas + barra) → diálogo con vista previa → la familia nueva se abre.
+  const puedeAgrupar = useAccess().can('menu:update')
+  const [modoAgrupar, setModoAgrupar] = useState(false)
+  const [elegidos, setElegidos] = useState<Map<string, Product>>(() => new Map())
+  const [agrupando, setAgrupando] = useState<EstadoAgrupar | null>(null)
+  const [fuentesAbiertas, setFuentesAbiertas] = useState(false) // «Agrupar productos que ya tengo»: sugerencias y archivo de Shopify
+  const alternarElegido = useCallback((p: Product) => {
+    setElegidos(prev => {
+      const siguiente = new Map(prev)
+      if (!siguiente.delete(p.id)) siguiente.set(p.id, p)
+      return siguiente
+    })
+  }, [])
+  const seleccionParaAgrupar = useMemo(() => ({ elegidos, alternar: alternarElegido }), [elegidos, alternarElegido])
+  const salirDeAgrupar = useCallback(() => {
+    setModoAgrupar(false)
+    setElegidos(new Map())
+  }, [])
+  const abrirAgrupar = () => {
+    const lista = [...elegidos.values()]
+    const { parentName, valores, opcion } = sugerirDesdeNombres(lista.map(p => p.name))
+    setAgrupando({
+      name: parentName,
+      optionNames: [opcion ?? ''],
+      members: lista.map((p, i) => ({ productId: p.id, name: p.name, sku: p.sku || undefined, values: [valores[i]] })),
+    })
+  }
+
+  const entradasDeVariantes = useMemo(
+    () => [
+      ...(puedeAgrupar
+        ? [
+            { key: 'agrupar', label: tV('agrupar.elegir'), onSelect: () => setModoAgrupar(true), requierePlan: true },
+            { key: 'fuentes', label: tV('fuentes.titulo'), onSelect: () => setFuentesAbiertas(true), requierePlan: true },
+          ]
+        : []),
+      {
+        key: 'opciones-guardadas',
+        label: tV('lista.opcionesGuardadas'),
+        onSelect: () => navigate(`${fullBasePath}/menumaker/product-options`),
+      },
+    ],
+    [tV, navigate, fullBasePath, puedeAgrupar],
+  )
 
   // Interactive onboarding tours
   const { start: startProductTour } = useProductCreationTour()
@@ -164,6 +299,9 @@ export default function Products() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <PermissionGate permission="menu:read">
+            <VariantsMenu items={entradasDeVariantes} />
+          </PermissionGate>
           <PermissionGate permission="menu:create">
             <Button
               data-tour="product-new-btn"
@@ -177,7 +315,7 @@ export default function Products() {
       ),
     })
     return () => setHeader({})
-  }, [t, setHeader, startProductTour, startRecipeTour])
+  }, [t, setHeader, startProductTour, startRecipeTour, entradasDeVariantes])
 
   // ✅ STRIPE-STYLE FILTERS: State for FilterPills
   const [searchTerm, setSearchTerm] = useState('')
@@ -376,6 +514,43 @@ export default function Products() {
     return result
   }, [products, showLowStockOnly, lowStockProducts, debouncedSearchTerm, categoryFilter, statusFilter, inventoryFilter, stockFilter])
 
+  // Cada familia es UNA fila («Playera · 8 variantes»). Sin familias es la misma lista, objeto por objeto.
+  const filas = useMemo(() => filasConFamilias(filteredProducts ?? []), [filteredProducts])
+
+  // Con búsqueda activa las familias que coinciden salen desplegadas; `expandidas` guarda las que el chevron invirtió.
+  const busquedaActiva = debouncedSearchTerm !== ''
+  useEffect(() => {
+    setExpandidas(prev => (prev.size ? new Set() : prev))
+  }, [busquedaActiva])
+  const estaDesplegada = useCallback((groupId: string) => expandidas.has(groupId) !== busquedaActiva, [expandidas, busquedaActiva])
+  const alternarFamilia = useCallback((groupId: string) => {
+    setExpandidas(prev => {
+      const siguiente = new Set(prev)
+      if (!siguiente.delete(groupId)) siguiente.add(groupId)
+      return siguiente
+    })
+  }, [])
+  const familiasDesplegadas = useMemo(() => ({ estaDesplegada, alternar: alternarFamilia }), [estaDesplegada, alternarFamilia])
+
+  // Una variante (o su familia) se edita en la familia; un producto suelto sigue abriendo el asistente.
+  const abrirProducto = useCallback((p: FilaProducto) => {
+    const groupId = p.__familia?.groupId ?? p.productGroupId
+    if (groupId) {
+      setFamiliaAbierta(groupId)
+      return
+    }
+    setEditProductId(p.id)
+    setEditWizardOpen(true)
+  }, [])
+
+  const cerrarFamilia = useCallback(() => {
+    setFamiliaAbierta(null)
+    if (!searchParams.has('familia')) return
+    const sinFamilia = new URLSearchParams(searchParams)
+    sinFamilia.delete('familia')
+    setSearchParams(sinFamilia, { replace: true })
+  }, [searchParams, setSearchParams])
+
   const toggleActive = useMutation({
     mutationFn: async ({ productId, status }: { productId: string; status: boolean }) => {
       await updateProduct(venueId!, productId, { active: status })
@@ -402,15 +577,15 @@ export default function Products() {
       // Return context with snapshot, timestamp, and previous state
       return { previousProducts, timestamp, productId, previousActiveState }
     },
-    onError: (_error, _variables, _context) => {
+    onError: (error, _variables, _context) => {
       // ✅ FIX: Instead of blind rollback, invalidate queries to get fresh server state
       // This prevents restoring incorrect state if someone else modified it
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
 
-      // Show error toast with more context
+      // El texto del server si viene (en español); si no, el nuestro — nunca el de axios en inglés.
       toast({
         title: tCommon('error'),
-        description: 'Failed to update product status. Please try again.',
+        description: textoDelServidor(error) ?? t('products.toasts.statusError'),
         variant: 'destructive',
       })
     },
@@ -437,6 +612,9 @@ export default function Products() {
       })
     },
   })
+
+  // `mutate` es estable (useCallback de TanStack); el objeto `toggleActive` es nuevo en cada render.
+  const { mutate: cambiarActivo } = toggleActive
 
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string) => {
@@ -499,21 +677,24 @@ export default function Products() {
     },
   })
 
-  const columns: ColumnDef<Product, unknown>[] = useMemo(() => [
+  const columns: ColumnDef<FilaProducto, unknown>[] = useMemo(() => [
     // AI column - only show if venue has chatbot feature
     ...(hasChatbot
       ? [
           {
             id: 'ai',
             header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
-            cell: ({ row }: { row: { original: Product } }) => (
-              <div className="flex justify-center">
-                <AddToAIButton type="product" data={row.original} variant="icon" />
-              </div>
-            ),
+            cell: ({ row }: { row: { original: FilaProducto } }) =>
+              row.original.__familia ? (
+                <span className="text-muted-foreground">—</span>
+              ) : (
+                <div className="flex justify-center">
+                  <AddToAIButton type="product" data={row.original} variant="icon" />
+                </div>
+              ),
             size: 50,
             enableSorting: false,
-          } as ColumnDef<Product, unknown>,
+          } as ColumnDef<FilaProducto, unknown>,
         ]
       : []),
     {
@@ -562,8 +743,18 @@ export default function Products() {
         </div>
       ),
 
-      cell: ({ cell }) => {
-        return cell.getValue() as string
+      cell: ({ cell, row }) => {
+        const familia = row.original.__familia
+        if (!familia) return cell.getValue() as string
+        return (
+          <div className="flex items-center gap-2">
+            <ChevronDeFamilia groupId={familia.groupId} name={familia.name} />
+            <span>{familia.name}</span>
+            <Badge variant="secondary" className="text-xs">
+              {tV('lista.variantes', { count: familia.variantes.length })}
+            </Badge>
+          </div>
+        )
       },
     },
     {
@@ -578,7 +769,12 @@ export default function Products() {
         </div>
       ),
 
-      cell: ({ cell }) => {
+      cell: ({ cell, row }) => {
+        const familia = row.original.__familia
+        if (familia) {
+          const { min, max } = rangoDePrecio(familia)
+          return <ul>{min === max ? Currency(min) : tV('lista.desde', { precio: Currency(min) })}</ul>
+        }
         const price = cell.getValue() as number
         return <ul>{Currency(price)}</ul>
       },
@@ -590,6 +786,7 @@ export default function Products() {
       enableColumnFilter: false,
       cell: ({ row }) => {
         const product = row.original
+        if (product.__familia) return <span className="text-muted-foreground">—</span>
         return (
           <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-muted-foreground hover:text-primary">
             <Link to={`${fullBasePath}/inventory/recipes?productId=${product.id}`}>
@@ -608,6 +805,16 @@ export default function Products() {
       enableColumnFilter: false,
       cell: ({ row }) => {
         const product = row.original
+        if (product.__familia) {
+          // La suma de lo que InventoryBadge muestra en cada variante que lleva existencias.
+          const conInventario = product.__familia.variantes.filter(v => v.trackInventory)
+          if (conInventario.length === 0) return <span className="text-muted-foreground">—</span>
+          return (
+            <span className="text-sm font-medium tabular-nums">
+              {conInventario.reduce((suma, v) => suma + (v.availableQuantity ?? 0), 0)}
+            </span>
+          )
+        }
 
         return (
           <InventoryBadge
@@ -641,6 +848,7 @@ export default function Products() {
       header: t('products.columns.modifierGroups'),
       enableColumnFilter: false,
       cell: ({ row }) => {
+        if (row.original.__familia) return <span className="text-muted-foreground">—</span>
         const modifierGroups = row.original.modifierGroups || []
         // Extract the group from each ProductModifierGroup
         const groups = modifierGroups.map(pmg => pmg.group).filter(Boolean)
@@ -671,9 +879,10 @@ export default function Products() {
       meta: { label: t('products.columns.updatedAt') },
       header: t('products.columns.updatedAt'),
       enableColumnFilter: false,
-      cell: ({ cell }) => {
+      cell: ({ cell, row }) => {
+        if (row.original.__familia) return <span className="text-muted-foreground">—</span>
         const updatedAt = cell.getValue() as string
-        return <span>{formatDate(updatedAt)}</span>
+        return <FechaActualizada value={updatedAt} />
       },
     },
     {
@@ -684,6 +893,14 @@ export default function Products() {
       enableColumnFilter: false,
       cell: ({ row }) => {
         const product = row.original
+        if (product.__familia) {
+          const { variantes } = product.__familia
+          return (
+            <span className="text-sm text-muted-foreground">
+              {tV('lista.activas', { count: variantes.filter(v => v.active).length, total: variantes.length })}
+            </span>
+          )
+        }
         const isActive = product.active
 
         return (
@@ -691,7 +908,7 @@ export default function Products() {
             <Switch
               checked={isActive}
               onCheckedChange={checked => {
-                toggleActive.mutate({ productId: product.id, status: checked })
+                cambiarActivo({ productId: product.id, status: checked })
               }}
               className={isActive ? 'data-[state=checked]:bg-green-500' : 'data-[state=unchecked]:bg-red-500'}
             />
@@ -713,6 +930,39 @@ export default function Products() {
       cell: ({ row }) => {
         const product = row.original
 
+        if (product.__familia) {
+          return (
+            <PermissionGate permission="menu:update">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    data-tour="products-family-actions"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
+                  <DropdownMenuItem
+                    data-tour="products-family-edit"
+                    onClick={e => {
+                      e.stopPropagation()
+                      abrirProducto(product)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    {tV('lista.editarFamilia')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </PermissionGate>
+          )
+        }
+
         return (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
@@ -728,8 +978,7 @@ export default function Products() {
                 <DropdownMenuItem
                   onClick={e => {
                     e.stopPropagation()
-                    setEditProductId(product.id)
-                    setEditWizardOpen(true)
+                    abrirProducto(product)
                   }}
                   className="cursor-pointer"
                 >
@@ -787,7 +1036,26 @@ export default function Products() {
         )
       },
     },
-  ], [hasChatbot, t, tCommon, imageErrors, formatDate, toggleActive, fullBasePath])
+  ], [hasChatbot, t, tCommon, tV, imageErrors, cambiarActivo, fullBasePath, abrirProducto])
+
+  const variantesDesplegadas = useCallback(
+    (fila: FilaProducto) => {
+      const familia = fila.__familia
+      if (!familia || !estaDesplegada(familia.groupId)) return null
+      return (
+        <FamilyVariantRows
+          familia={familia}
+          onToggleActive={(variante, activa) => cambiarActivo({ productId: variante.id, status: activa })}
+          onVerExistencias={variante => {
+            setSelectedProduct(variante)
+            setIsInventoryModalOpen(true)
+          }}
+          onOpen={() => setFamiliaAbierta(familia.groupId)}
+        />
+      )
+    },
+    [estaDesplegada, cambiarActivo],
+  )
 
   // ✅ STRIPE-STYLE: Column options for ColumnCustomizer
   const columnOptions = useMemo(() => {
@@ -801,11 +1069,20 @@ export default function Products() {
 
   // ✅ Filter columns based on visibility
   const filteredColumns = useMemo(() => {
-    return columns.filter(col => {
+    const visibles = columns.filter(col => {
       const colId = col.id || (col as any).accessorKey || ''
       return visibleColumns.includes(colId) || colId === 'actions'
     })
-  }, [columns, visibleColumns])
+    return modoAgrupar ? [COLUMNA_PARA_AGRUPAR, ...visibles] : visibles
+  }, [columns, visibleColumns, modoAgrupar])
+
+  // Mientras se elige, tocar la fila marca su casilla (sólo si se puede agrupar); fuera de ese modo abre el producto, como siempre.
+  const tocarFila = useCallback(
+    (p: FilaProducto) => {
+      if (esAgrupable(p)) alternarElegido(p)
+    },
+    [alternarElegido],
+  )
 
   return (
     <div className="p-4">
@@ -826,6 +1103,9 @@ export default function Products() {
         ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tours' })}
         onStart={startProductTour}
       />
+
+      {/* Variantes: «Encontramos N grupos de productos que parecen variantes» (sólo con plan y permiso de editar) */}
+      <SuggestionsBanner venueId={venueId!} onRevisar={() => setFuentesAbiertas(true)} className="mb-4" />
 
       {/* ✅ Low stock alert banner - Pricing page style */}
       {lowStockProducts.length > 0 && activeFiltersCount === 0 && (
@@ -998,18 +1278,44 @@ export default function Products() {
         </div>
       )}
       {(!isError || products !== undefined) && (
-        <DataTable
-          data={filteredProducts || []}
-          rowCount={filteredProducts?.length}
-          columns={filteredColumns}
-          isLoading={isLoading}
-          enableSearch={false}
-          tableId="menu:products"
-          pagination={pagination}
-          setPagination={setPagination}
-          onRowClick={row => {
-            setEditProductId(row.id)
-            setEditWizardOpen(true)
+        <FamiliasDesplegadas.Provider value={familiasDesplegadas}>
+          <ElegidosParaAgrupar.Provider value={seleccionParaAgrupar}>
+            <DataTable
+              data={filas}
+              rowCount={filas.length}
+              columns={filteredColumns}
+              isLoading={isLoading}
+              enableSearch={false}
+              tableId="menu:products"
+              pagination={pagination}
+              setPagination={setPagination}
+              onRowClick={modoAgrupar ? tocarFila : abrirProducto}
+              renderSubComponent={variantesDesplegadas}
+              getRowId={fila => fila.id}
+            />
+          </ElegidosParaAgrupar.Provider>
+        </FamiliasDesplegadas.Provider>
+      )}
+
+      {/* El producto con variantes recién creado se abre ENCIMA de este diálogo: al cerrarlo se sigue con el resto de los grupos. */}
+      <GroupFromSourcesDialog
+        open={fuentesAbiertas}
+        onClose={() => setFuentesAbiertas(false)}
+        venueId={venueId!}
+        onDone={setFamiliaAbierta}
+      />
+
+      {modoAgrupar && <ProductSelectionBar count={elegidos.size} onAgrupar={abrirAgrupar} onCancelar={salirDeAgrupar} />}
+      {agrupando && (
+        <GroupExistingDialog
+          open
+          onClose={() => setAgrupando(null)}
+          venueId={venueId!}
+          inicial={agrupando}
+          onDone={groupId => {
+            setAgrupando(null)
+            salirDeAgrupar()
+            setFamiliaAbierta(groupId)
           }}
         />
       )}
@@ -1098,6 +1404,9 @@ export default function Products() {
           queryClient.invalidateQueries({ queryKey: ['products', venueId] })
         }}
       />
+
+      {/* Variantes: un producto con variantes (la familia) se edita aquí, nunca en el asistente de producto suelto */}
+      <ProductGroupDialog open={familiaAbierta !== null} onClose={cerrarFamilia} venueId={venueId!} groupId={familiaAbierta} />
 
       {/* Convert to Service Dialog */}
       <ConvertToServiceDialog

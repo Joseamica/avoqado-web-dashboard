@@ -1579,5 +1579,12 @@
     "noResults": "No waste matches the filters.",
     "occurredAt": "Happened on {{date}}",
     "refresh": "Refresh"
+  },
+  "familias": {
+    "variantes_one": "{{count}} variant",
+    "variantes_other": "{{count}} variants",
+    "ver": "Show variants of {{name}}",
+    "suma": "Sum of its variants",
+    "sumaFiltrada": "Sum of the matching ones"
   }
 }

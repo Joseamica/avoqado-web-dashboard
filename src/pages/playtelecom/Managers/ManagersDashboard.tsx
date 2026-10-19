@@ -15,6 +15,8 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
+import { useToast } from '@/hooks/use-toast'
 import {
   Select,
   SelectContent,
@@ -52,8 +54,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function ManagersDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
-  const { activeVenue } = useAuth()
+  const { activeVenue, user } = useAuth()
   const { venueId } = useCurrentVenue()
+  const { can } = useAccess()
+  const { toast } = useToast()
   const localeCode = getIntlLocale(i18n.language)
 
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
@@ -129,6 +133,13 @@ export function ManagersDashboard() {
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'overview'] })
       setDepositEntry(null)
     },
+    // El servidor explica el rechazo (sin permiso, checada propia): se muestra tal cual, no un error genérico.
+    onError: (error: any) => {
+      toast({
+        title: error?.response?.data?.message || t('managers.attendance.validateError', { defaultValue: 'No se pudo validar la checada' }),
+        variant: 'destructive',
+      })
+    },
   })
 
   // Reset time entry validation mutation
@@ -137,6 +148,14 @@ export function ManagersDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'staff-attendance'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'overview'] })
+    },
+    onError: (error: any) => {
+      toast({
+        title:
+          error?.response?.data?.message ||
+          t('managers.attendance.resetError', { defaultValue: 'No se pudo regresar la checada a pendiente' }),
+        variant: 'destructive',
+      })
     },
   })
 
@@ -179,6 +198,7 @@ export function ManagersDashboard() {
       return {
         id: teId,
         timeEntryId: teId || null,
+        promoterId: entry.id,
         date: clockInDate.toLocaleDateString('es-MX', dateOpts),
         storeName: entry.venueName,
         promoterName: entry.name,
@@ -553,6 +573,8 @@ export function ManagersDashboard() {
 
       {/* Attendance Log */}
       <AttendanceLog
+        canManage={can('attendance:manage')}
+        currentStaffId={user?.id}
         entries={attendanceEntries}
         onApprove={handleApprove}
         onReject={handleReject}

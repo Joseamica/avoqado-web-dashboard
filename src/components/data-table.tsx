@@ -50,6 +50,11 @@ type DataTableProps<TData> = {
   enableColumnResizing?: boolean
   /** Render expandable sub-content below a row. Return null/undefined to skip. */
   renderSubComponent?: (row: TData) => ReactNode | null | undefined
+  /**
+   * Stable id per row (e.g. `row => row.id`). Without it rows are keyed by POSITION: when a refetch reorders or removes rows, React
+   * reuses a row's cells (an open popover or menu) for whatever row now sits there. Pass it whenever cells hold state.
+   */
+  getRowId?: (row: TData, index: number) => string
   /** Enable row selection with checkboxes */
   enableRowSelection?: boolean
   /** Callback with selected row data whenever selection changes */
@@ -90,6 +95,7 @@ function DataTable<TData>({
   stickyFirstColumn = false,
   enableColumnResizing = false,
   renderSubComponent,
+  getRowId,
   enableRowSelection: enableRowSelectionProp = false,
   onRowSelectionChange: onRowSelectionChangeProp,
   clearSelectionTrigger,
@@ -138,6 +144,9 @@ function DataTable<TData>({
     dragRef.current = { active: true, startIdx: rowIndex, selectValue: !isCurrentlySelected }
   }, [])
 
+  // Drag works with positions in `data`; the selection is keyed by row id (the position itself when there is no getRowId).
+  const rowIdAt = useRef<(index: number) => string>(index => String(index))
+
   const handleDragEnter = useCallback((rowIndex: number) => {
     if (!dragRef.current.active) return
     const { startIdx, selectValue } = dragRef.current
@@ -147,9 +156,9 @@ function DataTable<TData>({
       const next = { ...prev }
       for (let i = min; i <= max; i++) {
         if (selectValue) {
-          next[i] = true
+          next[rowIdAt.current(i)] = true
         } else {
-          delete next[i]
+          delete next[rowIdAt.current(i)]
         }
       }
       return next
@@ -189,6 +198,10 @@ function DataTable<TData>({
     }
     return onSearch(currentSearchTerm, data || [])
   }, [enableSearch, isControlledSearch, currentSearchTerm, onSearch, data])
+
+  useEffect(() => {
+    rowIdAt.current = index => (getRowId ? getRowId(filteredData[index], index) : String(index))
+  }, [filteredData, getRowId])
 
   // Prepend checkbox column when row selection is enabled
   const allColumns = useMemo<ColumnDef<TData, any>[]>(() => {
@@ -276,6 +289,7 @@ function DataTable<TData>({
     manualPagination: !!setPagination, // Use manual pagination when pagination state is controlled externally
     rowCount: _rowCount, // Total number of rows for server-side pagination
     getCoreRowModel: getCoreRowModel(),
+    getRowId,
     defaultColumn: {
       size: 150, // Default column width
       minSize: 50, // Minimum column width when resizing

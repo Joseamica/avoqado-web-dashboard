@@ -36,6 +36,7 @@
       "products": "Products",
       "services": "Services",
       "modifierGroups": "Modifier Groups",
+      "productOptions": "Options",
       "creditPacks": "Credit Packs",
       "customers": "Customers"
     }
@@ -459,7 +460,8 @@
     "toasts": {
       "activated": "Product activated",
       "deactivated": "Product deactivated",
-      "saved": "Changes have been saved successfully."
+      "saved": "Changes have been saved successfully.",
+      "statusError": "Couldn't update the product status."
     },
     "lowStock": {
       "alert": "{{count}} product is low on stock",

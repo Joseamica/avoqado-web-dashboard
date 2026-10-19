@@ -350,6 +350,15 @@ export function AppSidebar({
       { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
       { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
       {
+        title: t('menu:menumaker.nav.productOptions'),
+        url: 'menumaker/product-options',
+        permission: 'menu:read',
+        // Espeja el <FeatureGate feature="PRODUCT_VARIANTS"> de la página: la insignia Pro sale cuando la página sale borrosa.
+        premiumLocked: !hasFeatureAccess('PRODUCT_VARIANTS'),
+        gatedFeature: 'PRODUCT_VARIANTS',
+        keywords: ['talla', 'color', 'tamaño', 'variantes', 'plantillas'],
+      },
+      {
         title: t('sidebar:creditPacks'),
         url: 'menumaker/credit-packs',
         permission: 'creditPacks:read',

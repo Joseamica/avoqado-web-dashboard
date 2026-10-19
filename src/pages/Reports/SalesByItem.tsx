@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ import {
   salesByItemKeys,
   type ReportType,
   type GroupByOption,
+  type ItemSalesMetrics,
 } from '@/services/reports/salesByItem.service'
 import {
   ChevronDown,
@@ -34,6 +35,8 @@ import {
 } from 'lucide-react'
 import { SalesByItemChart } from './components/SalesByItemChart'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { agruparVentasPorFamilia } from './salesByItemFamilies'
+import { csvDeVentas } from './salesByItemCsv'
 
 // ============================================
 // Types
@@ -212,6 +215,89 @@ const SortableHeader: React.FC<{
 }
 
 // ============================================
+// ItemRow Component
+// ============================================
+// Una fila de la tabla: artículo suelto, familia (con chevron) o variante dentro de una familia (con sangría).
+const ItemRow: React.FC<{
+  item: ItemSalesMetrics
+  showProductColumns: boolean
+  isVariant?: boolean
+  family?: { open: boolean; count: number; onToggle: () => void }
+}> = ({ item, showProductColumns, isVariant, family }) => {
+  const { t } = useTranslation('reports')
+  const name = <span className="text-sm font-medium">{item.productName}</span>
+  return (
+    <tr className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+      <td className={cn('px-4 py-3', isVariant && 'pl-8')}>
+        <div className="flex flex-col">
+          {family ? (
+            <button
+              type="button"
+              onClick={family.onToggle}
+              aria-expanded={family.open}
+              aria-label={t('salesByItem.verVariantes', { name: item.productName })}
+              data-tour="sales-by-item-family-toggle"
+              className="flex items-center gap-1 text-left cursor-pointer"
+            >
+              {family.open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+              {name}
+            </button>
+          ) : (
+            name
+          )}
+          {family && (
+            <span className="text-xs text-muted-foreground pl-5">{t('salesByItem.variantes', { count: family.count })}</span>
+          )}
+          {/* Este reporte desglosa los COMPONENTES (modelo Square); la marca dice
+              de qué combo salieron, para que no se lea como venta suelta ni se
+              sume dos veces con el reporte de Promociones. */}
+          {item.promotions && item.promotions.length > 0 && (
+            <span
+              className="text-xs text-muted-foreground"
+              title={item.promotions.map(p => `${p.name} · ${p.unitsSold}`).join(' · ')}
+            >
+              {item.promotionName
+                ? t('salesByItem.insidePromotion', {
+                    name: item.promotionName,
+                    units: item.promotions[0].unitsSold,
+                  })
+                : t('salesByItem.insidePromotions', { n: item.promotions.length })}
+            </span>
+          )}
+        </div>
+      </td>
+      {showProductColumns && (
+        <td className="px-4 py-3 hidden md:table-cell">
+          <span className="text-sm text-muted-foreground">{item.productSku || '—'}</span>
+        </td>
+      )}
+      {showProductColumns && (
+        <td className="px-4 py-3 hidden lg:table-cell">
+          <span className="text-sm text-muted-foreground">{item.categoryName || '—'}</span>
+        </td>
+      )}
+      <td className="px-4 py-3 text-center hidden sm:table-cell">
+        <span className="text-sm text-muted-foreground">{item.unit}</span>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <span className="text-sm font-mono">{item.itemsSold}</span>
+      </td>
+      <td className="px-4 py-3 text-right hidden sm:table-cell">
+        <span className="text-sm font-mono">{item.unitsSold}</span>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <span className="text-sm font-mono">{Currency(item.grossSales)}</span>
+      </td>
+      <td className="px-4 py-3 text-right hidden md:table-cell">
+        <span className="text-sm font-mono text-muted-foreground">
+          {item.discounts > 0 ? `-${Currency(item.discounts)}` : '—'}
+        </span>
+      </td>
+    </tr>
+  )
+}
+
+// ============================================
 // Loading Skeleton
 // ============================================
 const SalesByItemSkeleton = () => (
@@ -272,6 +358,15 @@ export default function SalesByItem() {
     field: 'grossSales',
     direction: 'desc',
   })
+
+  // Familias abiertas (ids de familia): sus variantes se ven debajo de la fila de la familia
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set())
+  const toggleFamilia = (groupId: string) =>
+    setAbiertas(prev => {
+      const next = new Set(prev)
+      if (!next.delete(groupId)) next.add(groupId)
+      return next
+    })
 
   // Handle sort
   const handleSort = (field: SortField) => {
@@ -380,22 +475,11 @@ export default function SalesByItem() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  // Sort items
-  const sortedItems = useMemo(() => {
-    if (!apiResponse?.items) return []
-    return [...apiResponse.items].sort((a, b) => {
-      const aValue = a[sort.field]
-      const bValue = b[sort.field]
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sort.direction === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-      const numA = Number(aValue) || 0
-      const numB = Number(bValue) || 0
-      return sort.direction === 'asc' ? numA - numB : numB - numA
-    })
-  }, [apiResponse?.items, sort])
+  // Ordena y junta las variantes de una familia en una fila (sin familias, es la misma tabla de siempre)
+  const filas = useMemo(
+    () => (apiResponse?.items ? agruparVentasPorFamilia(apiResponse.items, sort) : []),
+    [apiResponse?.items, sort],
+  )
 
   // Handle date range change
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
@@ -408,56 +492,32 @@ export default function SalesByItem() {
   const handleExportCSV = () => {
     if (!apiResponse) return
 
-    const rows: string[][] = []
-
-    // Header - conditional columns based on groupBy
-    const headerRow = [getFirstColumnLabel()]
-    if (groupBy === 'none') {
-      // La columna de promoción viaja al CSV: sin ella, exportar el mix pierde
-      // justo el dato que explica por qué un producto trae descuento.
-      headerRow.push(t('salesByItem.columns.sku'), t('salesByItem.columns.category'), t('salesByItem.columns.promotion'))
-    }
-    headerRow.push(
-      t('salesByItem.columns.unit'),
-      t('salesByItem.columns.itemsSold'),
-      t('salesByItem.columns.unitsSold'),
-      t('salesByItem.columns.grossSales'),
-      t('salesByItem.columns.discounts'),
+    // Plano: un renglón por variante, en el orden en que se ven en pantalla
+    const renglones = filas.flatMap(f => (f.tipo === 'familia' ? f.variantes : [f.item]))
+    const csvContent = csvDeVentas(
+      renglones,
+      apiResponse.totals,
+      {
+        primera: getFirstColumnLabel(),
+        producto:
+          groupBy === 'none'
+            ? {
+                sku: t('salesByItem.columns.sku'),
+                categoria: t('salesByItem.columns.category'),
+                promocion: t('salesByItem.columns.promotion'),
+              }
+            : undefined,
+        unidad: t('salesByItem.columns.unit'),
+        articulos: t('salesByItem.columns.itemsSold'),
+        unidades: t('salesByItem.columns.unitsSold'),
+        brutas: t('salesByItem.columns.grossSales'),
+        descuentos: t('salesByItem.columns.discounts'),
+        familia: t('salesByItem.familia'),
+        total: t('salesByItem.totals.label'),
+      },
+      filas.some(f => f.tipo === 'familia'),
     )
-    rows.push(headerRow)
-
-    // Data rows
-    sortedItems.forEach(item => {
-      const dataRow = [item.productName]
-      if (groupBy === 'none') {
-        dataRow.push(item.productSku || '', item.categoryName || '', (item.promotions ?? []).map(p => `${p.name} (${p.unitsSold})`).join(' · '))
-      }
-      dataRow.push(
-        item.unit,
-        item.itemsSold.toString(),
-        item.unitsSold.toString(),
-        item.grossSales.toFixed(2),
-        item.discounts.toFixed(2),
-      )
-      rows.push(dataRow)
-    })
-
-    // Totals row
-    const totalsRow = [t('salesByItem.totals.label')]
-    if (groupBy === 'none') {
-      totalsRow.push('', '', '')
-    }
-    totalsRow.push(
-      '',
-      apiResponse.totals.itemsSold.toString(),
-      apiResponse.totals.unitsSold.toString(),
-      apiResponse.totals.grossSales.toFixed(2),
-      apiResponse.totals.discounts.toFixed(2),
-    )
-    rows.push(totalsRow)
-
-    const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = `sales-by-item-${dateRange.from.toISOString().split('T')[0]}-${dateRange.to.toISOString().split('T')[0]}.csv`
@@ -926,61 +986,37 @@ export default function SalesByItem() {
                 </tr>
               </thead>
               <tbody>
-                {sortedItems.map((item, index) => (
-                  <tr
-                    key={`${item.productId || item.productName}-${index}`}
-                    className="border-b border-border/30 hover:bg-muted/20 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{item.productName}</span>
-                        {/* Este reporte desglosa los COMPONENTES (modelo Square); la marca dice
-                            de qué combo salieron, para que no se lea como venta suelta ni se
-                            sume dos veces con el reporte de Promociones. */}
-                        {item.promotions && item.promotions.length > 0 && (
-                          <span
-                            className="text-xs text-muted-foreground"
-                            title={item.promotions.map(p => `${p.name} · ${p.unitsSold}`).join(' · ')}
-                          >
-                            {item.promotionName
-                              ? t('salesByItem.insidePromotion', {
-                                  name: item.promotionName,
-                                  units: item.promotions[0].unitsSold,
-                                })
-                              : t('salesByItem.insidePromotions', { n: item.promotions.length })}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    {showProductColumns && (
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-sm text-muted-foreground">{item.productSku || '—'}</span>
-                      </td>
-                    )}
-                    {showProductColumns && (
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-sm text-muted-foreground">{item.categoryName || '—'}</span>
-                      </td>
-                    )}
-                    <td className="px-4 py-3 text-center hidden sm:table-cell">
-                      <span className="text-sm text-muted-foreground">{item.unit}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-sm font-mono">{item.itemsSold}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
-                      <span className="text-sm font-mono">{item.unitsSold}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-sm font-mono">{Currency(item.grossSales)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right hidden md:table-cell">
-                      <span className="text-sm font-mono text-muted-foreground">
-                        {item.discounts > 0 ? `-${Currency(item.discounts)}` : '—'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filas.map((fila, index) => {
+                  if (fila.tipo === 'articulo') {
+                    const { item } = fila
+                    return (
+                      <ItemRow
+                        key={`${item.productId || item.productName}-${index}`}
+                        item={item}
+                        showProductColumns={showProductColumns}
+                      />
+                    )
+                  }
+                  const open = abiertas.has(fila.groupId)
+                  return (
+                    <Fragment key={`familia:${fila.groupId}`}>
+                      <ItemRow
+                        item={fila.metricas}
+                        showProductColumns={showProductColumns}
+                        family={{ open, count: fila.variantes.length, onToggle: () => toggleFamilia(fila.groupId) }}
+                      />
+                      {open &&
+                        fila.variantes.map((variante, i) => (
+                          <ItemRow
+                            key={`${variante.productId || variante.productName}-${i}`}
+                            item={variante}
+                            showProductColumns={showProductColumns}
+                            isVariant
+                          />
+                        ))}
+                    </Fragment>
+                  )
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 font-semibold">

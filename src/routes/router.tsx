@@ -134,8 +134,10 @@ import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { MasterCatalogProtectedRoute } from './MasterCatalogProtectedRoute'
 
+// The bootstrap and history guard load this route in an isolated public entry.
 const router = createBrowserRouter(
   [
+    { path: '/documentos/:id', loader: () => { window.location.reload(); return null }, element: null },
     {
       element: <Root />, // Root element wraps all routes
       children: [

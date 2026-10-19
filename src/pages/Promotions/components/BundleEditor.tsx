@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { ImagePlus, Layers, Plus, Trash2 } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Cropper from 'react-easy-crop'
 import { type FieldPath, type UseFormReturn, useFieldArray, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -13,11 +13,14 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useToast } from '@/hooks/use-toast'
+import { OpcionesDeProducto } from '@/features/product-variants/components/OpcionesDeProducto'
+import { familiasDe, variantesParaAgregar, type Familia, type ProductoConFamilia } from '@/features/product-variants/families'
 import promotionService from '@/services/promotion.service'
 import type { Promotion, UpsertPromotionRequest } from '@/types/promotion'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
@@ -60,7 +63,7 @@ export function BundleEditor({ open, onClose, venueId, editPromotion, onSaved }:
   const { toast } = useToast()
   const { venue } = useCurrentVenue()
   const venueTz = venue?.timezone ?? 'America/Mexico_City'
-  const { productOptions, dayOptions } = useDiscountFormData(venueId)
+  const { products, dayOptions } = useDiscountFormData(venueId)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -269,7 +272,7 @@ export function BundleEditor({ open, onClose, venueId, editPromotion, onSaved }:
           <p className="text-sm text-muted-foreground">{t('bundles.form.groupsHelp')}</p>
 
           {groupsArray.fields.map((group, gi) => (
-            <GroupCard key={group.id} gi={gi} form={form} productOptions={productOptions} pricingMode={pricingMode}
+            <GroupCard key={group.id} gi={gi} form={form} products={products} pricingMode={pricingMode}
               onRemove={groupsArray.fields.length > 1 ? () => groupsArray.remove(gi) : undefined} t={t} />
           ))}
         </section>
@@ -325,14 +328,31 @@ export function BundleEditor({ open, onClose, venueId, editPromotion, onSaved }:
 interface GroupCardProps {
   gi: number
   form: ReturnType<typeof useForm<FormData>>
-  productOptions: Array<{ value: string; label: string }>
+  products: ProductoConFamilia[]
   pricingMode: FormData['pricingMode']
   onRemove?: () => void
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
-function GroupCard({ gi, form, productOptions, pricingMode, onRemove, t }: GroupCardProps) {
+function GroupCard({ gi, form, products, pricingMode, onRemove, t }: GroupCardProps) {
   const optionsArray = useFieldArray({ control: form.control, name: `groups.${gi}.options` as const })
+  const { t: tv } = useTranslation('variants')
+  // Sin familias, el selector es la lista de siempre (`OpcionesDeProducto`) y no aparece «Agregar toda una familia».
+  const familias = useMemo(() => familiasDe(products), [products])
+  const [familiasAbierto, setFamiliasAbierto] = useState(false)
+  const idsDelGrupo = (form.watch(`groups.${gi}.options`) ?? []).map(o => o.productId)
+
+  // Un grupo ya significa «el cliente elige una»: la familia entera es «cualquier talla». Primero se llenan las opciones vacías
+  // (un grupo nuevo empieza con una) y después se agrega una opción por cada variante que falte.
+  const agregarFamilia = (f: Familia<ProductoConFamilia>) => {
+    const actuales = form.getValues(`groups.${gi}.options`)
+    const faltan = variantesParaAgregar(f, actuales.map(o => o.productId))
+    const vacias = actuales.flatMap((o, i) => (o.productId ? [] : [i]))
+    faltan.slice(0, vacias.length).forEach((v, k) => form.setValue(`groups.${gi}.options.${vacias[k]}.productId`, v.id, { shouldDirty: true }))
+    const resto = faltan.slice(vacias.length)
+    if (resto.length > 0) optionsArray.append(resto.map(v => ({ ...emptyOption, productId: v.id })))
+    setFamiliasAbierto(false)
+  }
 
   return (
     <div className="rounded-xl border border-input p-4 space-y-3">
@@ -362,9 +382,12 @@ function GroupCard({ gi, form, productOptions, pricingMode, onRemove, t }: Group
                 <SelectValue placeholder={t('bundles.form.productPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                {productOptions.map(p => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                ))}
+                <OpcionesDeProducto
+                  productos={products}
+                  item={p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  )}
+                />
               </SelectContent>
             </Select>
           </div>
@@ -399,9 +422,37 @@ function GroupCard({ gi, form, productOptions, pricingMode, onRemove, t }: Group
         </div>
       ))}
 
-      <Button type="button" variant="outline" size="sm" onClick={() => optionsArray.append({ ...emptyOption })}>
-        <Plus className="mr-1 h-4 w-4" /> {t('bundles.form.addOption')}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={() => optionsArray.append({ ...emptyOption })}>
+          <Plus className="mr-1 h-4 w-4" /> {t('bundles.form.addOption')}
+        </Button>
+        {familias.length > 0 && (
+          <Popover open={familiasAbierto} onOpenChange={setFamiliasAbierto} modal>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" size="sm" data-tour={`bundle-add-family-${gi}`}>
+                <Layers className="mr-1 h-4 w-4" /> {tv('selector.agregarFamilia')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-1" align="start">
+              <div className="max-h-64 overflow-y-auto">
+                {familias.map((f, fi) => (
+                  <Button
+                    key={f.groupId}
+                    type="button"
+                    data-tour={`bundle-family-${gi}-${fi}`}
+                    variant="ghost"
+                    className="w-full cursor-pointer justify-start"
+                    disabled={variantesParaAgregar(f, idsDelGrupo).length === 0}
+                    onClick={() => agregarFamilia(f)}
+                  >
+                    <span className="truncate">{tv('selector.todaLaFamilia', { name: f.name, count: f.variantes.length })}</span>
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
       <p className="text-xs text-muted-foreground">
         {pricingMode === 'PER_UNIT' ? t('bundles.form.perUnitRowHelp') : t('bundles.form.fixedRowHelp')}
       </p>

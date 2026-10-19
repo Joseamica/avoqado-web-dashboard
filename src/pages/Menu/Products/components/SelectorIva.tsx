@@ -56,6 +56,8 @@ export function SelectorIva(props: {
   /** Del contenedor (por defecto `max-w-96`) y del selector (por defecto `h-9`): el asistente los iguala a los campos de su formulario. */
   className?: string
   triggerClassName?: string
+  /** Bloquea el selector desde fuera (un `<fieldset disabled>` no bloquea el Select de Radix, radix-ui/primitives#2417). */
+  disabled?: boolean
 }) {
   const { t } = useTranslation('menu')
   const estado = useEstadoIva(props.venueId)
@@ -69,7 +71,7 @@ export function SelectorIva(props: {
     <div className={cn('max-w-96 space-y-2', props.className)}>
       <Label htmlFor="iva-del-producto">{t('iva.label')}</Label>
       {/* value '' (no undefined): el Select no cambia de no controlado a controlado y muestra «Por revisar». */}
-      <Select value={elegido ?? ''} onValueChange={v => props.onChange(v as TratamientoElegible)} disabled={!!motivo}>
+      <Select value={elegido ?? ''} onValueChange={v => props.onChange(v as TratamientoElegible)} disabled={!!motivo || !!props.disabled}>
         <SelectTrigger id="iva-del-producto" aria-label={t('iva.label')} className={props.triggerClassName}>
           <SelectValue placeholder={t('iva.porRevisar')} />
         </SelectTrigger>
