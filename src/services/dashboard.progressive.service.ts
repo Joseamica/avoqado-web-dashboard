@@ -30,6 +30,20 @@ export interface ChartData {
   [key: string]: any
 }
 
+/**
+ * Un producto de `/charts/best-selling-products` (`products[]`). La familia (`productGroupId`/`productGroupName`) es la
+ * ACTUAL del padre de una variante; viene `null` en un producto suelto.
+ */
+export interface BestSellingProduct {
+  id?: string
+  name: string
+  type?: string | null
+  quantity: number | string
+  price?: number
+  productGroupId?: string | null
+  productGroupName?: string | null
+}
+
 export interface ExtendedMetricsData {
   [key: string]: any
 }

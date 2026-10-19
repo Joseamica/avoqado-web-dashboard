@@ -9,6 +9,7 @@ import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 interface Option {
   label: string
   value: string
+  /** No se puede elegir ni quitar: en la lista no responde y, si ya está elegida, su chip sale sin la X (p. ej. una variante). */
   disabled?: boolean
 }
 
@@ -52,14 +53,18 @@ export function MultiSelectCombobox({
               {selected.map(item => (
                 <div
                   key={item.value}
-                  className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
+                  className={cn(
+                    'flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                    !item.disabled && 'cursor-pointer hover:bg-primary/20',
+                  )}
                   onClick={e => {
                     e.stopPropagation()
+                    if (item.disabled) return
                     onChange(selected.filter(i => i.value !== item.value))
                   }}
                 >
                   {item.label}
-                  <X className="h-3 w-3 opacity-60 hover:opacity-100" />
+                  {!item.disabled && <X className="h-3 w-3 opacity-60 hover:opacity-100" />}
                 </div>
               ))}
             </div>
@@ -88,6 +93,7 @@ export function MultiSelectCombobox({
                       <CommandItem
                         key={option.value}
                         value={option.value}
+                        disabled={option.disabled}
                         onSelect={() => {
                           if (isSelected) {
                             onChange(selected.filter(item => item.value !== option.value))
@@ -95,7 +101,7 @@ export function MultiSelectCombobox({
                             onChange([...selected, option])
                           }
                         }}
-                        className="flex items-center gap-3 cursor-pointer py-3"
+                        className={cn('flex items-center gap-3 py-3', option.disabled ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer')}
                       >
                         <Check
                           className={cn('h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')}

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboardPack } from '@/hooks/use-dashboard-pack'
+import { agregarMasVendidos } from './bestSellingAggregate'
 
 export const BestSellingProductsChart = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
@@ -10,55 +11,15 @@ export const BestSellingProductsChart = ({ data }: { data: any }) => {
   // instead of empty Comida/Bebida buckets.
   const isFlat = category === 'RETAIL'
 
-  // Process products data for best sellers by category (food service / hospitality / etc.)
-  const bestSellingProducts = useMemo(() => {
-    const productsData = data?.products || []
-    if (isFlat) return null
-    if (!productsData) return { FOOD: [], BEVERAGE: [], OTHER: [] }
-
-    const categories: Record<string, any[]> = { FOOD: [], BEVERAGE: [], OTHER: [] }
-
-    productsData.forEach((product: any) => {
-      const productType = product.type || 'OTHER'
-      if (categories[productType]) {
-        const existing = categories[productType].find((p: any) => p.name === product.name)
-        if (existing) {
-          existing.quantity = Number(existing.quantity) + Number(product.quantity)
-        } else {
-          categories[productType].push({ ...product })
-        }
-      } else {
-        categories.OTHER.push({ ...product })
-      }
-    })
-
-    // Sort by quantity and limit top 3
-    Object.keys(categories).forEach(type => {
-      categories[type].sort((a: any, b: any) => b.quantity - a.quantity)
-      categories[type] = categories[type].slice(0, 3)
-    })
-
-    return categories
-  }, [data?.products, isFlat])
-
-  // Flat top-N list for retail — collapses duplicates by name and ignores type
-  const flatBestSellers = useMemo(() => {
-    if (!isFlat) return []
-    const productsData = data?.products || []
-    const merged = new Map<string, { name: string; quantity: number }>()
-    productsData.forEach((product: any) => {
-      const key = product.name
-      const existing = merged.get(key)
-      if (existing) {
-        existing.quantity = Number(existing.quantity) + Number(product.quantity)
-      } else {
-        merged.set(key, { name: product.name, quantity: Number(product.quantity) })
-      }
-    })
-    return [...merged.values()]
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 10)
-  }, [data?.products, isFlat])
+  // Por tipo (comida / bebida / otros) y, en retail, lista plana; las variantes de una familia se juntan en una sola barra
+  const bestSellingProducts = useMemo(
+    () => (isFlat ? null : agregarMasVendidos(data?.products, 'porTipo')),
+    [data?.products, isFlat],
+  )
+  const flatBestSellers = useMemo(
+    () => (isFlat ? agregarMasVendidos(data?.products, 'plano') : []),
+    [data?.products, isFlat],
+  )
 
   return (
     <Card>

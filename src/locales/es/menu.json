@@ -36,6 +36,7 @@
       "products": "Productos",
       "services": "Servicios",
       "modifierGroups": "Grupos Modificadores",
+      "productOptions": "Opciones",
       "creditPacks": "Paquetes de Créditos",
       "customers": "Clientes"
     }
@@ -454,7 +455,8 @@
     "toasts": {
       "activated": "Producto activado",
       "deactivated": "Producto desactivado",
-      "saved": "Los cambios se han guardado correctamente."
+      "saved": "Los cambios se han guardado correctamente.",
+      "statusError": "No se pudo cambiar el estado del producto."
     },
     "lowStock": {
       "alert": "{{count}} producto tiene stock bajo",
@@ -1013,6 +1015,13 @@
     "complete": {
       "title": "🎉 ¡Listo!",
       "description": "Ya sabes crear productos basados en recetas. Cada venta descontará los ingredientes automáticamente y te avisaremos cuando alguno baje del mínimo."
+    }
+  },
+  "iva": {
+    "opciones": {
+      "IVA_16": "16 % (normal)",
+      "IVA_0": "0 % — alimentos sin preparar como café en grano o fruta, medicinas",
+      "EXENTO": "Exento — p. ej. servicios médicos, colegiaturas"
     }
   }
 }

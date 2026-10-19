@@ -1579,5 +1579,12 @@
     "noResults": "Ninguna merma coincide con los filtros.",
     "occurredAt": "Ocurrió el {{date}}",
     "refresh": "Actualizar"
+  },
+  "familias": {
+    "variantes_one": "{{count}} variante",
+    "variantes_other": "{{count}} variantes",
+    "ver": "Ver variantes de {{name}}",
+    "suma": "Suma de sus variantes",
+    "sumaFiltrada": "Suma de las que coinciden"
   }
 }

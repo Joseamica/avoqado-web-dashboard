@@ -1,8 +1,11 @@
 import { Info } from 'lucide-react'
+import { useMemo } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import MultipleSelector, { Option } from '@/components/multi-selector'
+import { ProductMultiSelect } from '@/features/product-variants/components/ProductMultiSelect'
+import type { ProductoConFamilia } from '@/features/product-variants/families'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -14,18 +17,24 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface DiscountFormFieldsProps {
   form: UseFormReturn<any>
-  productOptions: Option[]
+  products: ProductoConFamilia[]
   categoryOptions: Option[]
   customerGroupOptions: Option[]
   dayOptions: Option[]
 }
 
-export function DiscountFormFields({ form, productOptions, categoryOptions, customerGroupOptions, dayOptions }: DiscountFormFieldsProps) {
+export function DiscountFormFields({ form, products, categoryOptions, customerGroupOptions, dayOptions }: DiscountFormFieldsProps) {
   const { t } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
 
   const watchType = form.watch('type')
   const watchScope = form.watch('scope')
+
+  // Los campos de productos guardan { value, label } al elegir (el formulario los vuelve ids al guardar) e ids al editar uno
+  // guardado: se leen las dos formas y se escribe la de siempre.
+  const nombres = useMemo(() => new Map(products.map(p => [p.id, p.name])), [products])
+  const idsDe = (v?: Array<string | Option>) => (v ?? []).map(x => (typeof x === 'object' ? x.value : x))
+  const comoOpciones = (ids: string[]): Option[] => ids.map(id => ({ value: id, label: nombres.get(id) ?? id }))
 
   return (
     <div className="space-y-6">
@@ -187,15 +196,10 @@ export function DiscountFormFields({ form, productOptions, categoryOptions, cust
                 <FormItem>
                   <FormLabel>{t('discounts.form.fields.targetItems')}</FormLabel>
                   <FormControl>
-                    <MultipleSelector
-                      value={
-                        field.value?.map((id: string) => {
-                          const product = productOptions.find((p: any) => p.value === id)
-                          return product || { value: id, label: id }
-                        }) || []
-                      }
-                      onChange={newValue => field.onChange(newValue)}
-                      options={productOptions}
+                    <ProductMultiSelect
+                      productos={products}
+                      value={idsDe(field.value)}
+                      onChange={ids => field.onChange(comoOpciones(ids))}
                       placeholder={t('discounts.form.placeholders.selectProducts')}
                       emptyIndicator={<p className="text-center text-muted-foreground">{tCommon('noResults')}</p>}
                     />
@@ -329,15 +333,10 @@ export function DiscountFormFields({ form, productOptions, categoryOptions, cust
                     <FormItem>
                       <FormLabel>{t('discounts.bogo.buyFrom')}</FormLabel>
                       <FormControl>
-                        <MultipleSelector
-                          value={
-                            field.value?.map((id: string) => {
-                              const product = productOptions.find((p: any) => p.value === id)
-                              return product || { value: id, label: id }
-                            }) || []
-                          }
-                          onChange={newValue => field.onChange(newValue)}
-                          options={productOptions}
+                        <ProductMultiSelect
+                          productos={products}
+                          value={idsDe(field.value)}
+                          onChange={ids => field.onChange(comoOpciones(ids))}
                           placeholder={t('discounts.form.placeholders.selectProducts')}
                           emptyIndicator={<p className="text-center text-muted-foreground">{tCommon('noResults')}</p>}
                         />
@@ -355,15 +354,10 @@ export function DiscountFormFields({ form, productOptions, categoryOptions, cust
                     <FormItem>
                       <FormLabel>{t('discounts.bogo.getFrom')}</FormLabel>
                       <FormControl>
-                        <MultipleSelector
-                          value={
-                            field.value?.map((id: string) => {
-                              const product = productOptions.find((p: any) => p.value === id)
-                              return product || { value: id, label: id }
-                            }) || []
-                          }
-                          onChange={newValue => field.onChange(newValue)}
-                          options={productOptions}
+                        <ProductMultiSelect
+                          productos={products}
+                          value={idsDe(field.value)}
+                          onChange={ids => field.onChange(comoOpciones(ids))}
                           placeholder={t('discounts.form.placeholders.selectProducts')}
                           emptyIndicator={<p className="text-center text-muted-foreground">{tCommon('noResults')}</p>}
                         />

@@ -173,6 +173,7 @@
         "googleReviews": "Reseñas en Google",
         "inventoryBasic": "Inventario básico",
         "priceLabels": "Etiquetas de precios",
+        "productVariants": "Variantes de producto (talla, color, tamaño)",
         "inventoryFifo": "Inventario FIFO, recetas y costeo",
         "autoReorder": "Reorden automático",
         "serialized": "Inventario por número de serie",
@@ -799,6 +800,7 @@
       "VARIABLE_WEIGHT_BARCODE": "Códigos de peso variable",
       "MASTER_CATALOG": "Catálogo maestro",
       "PRICE_LABELS": "Etiquetas de precios",
+      "PRODUCT_VARIANTS": "Variantes de producto",
       "AGGREGATOR_PASSES": "Pases (TotalPass · Wellhub)"
     },
     "restoreChanged": "Una oferta de tu selección guardada cambió o ya no está disponible. Reintenta o vuelve a elegir antes de cotizar.",

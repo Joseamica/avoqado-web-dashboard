@@ -174,6 +174,35 @@ describe('CFG02 routing pages through real UI', () => {
     expect(await screen.findByText('Sin resultados para esta búsqueda')).toBeInTheDocument()
     expect(screen.queryByText(/Aún no hay categorías/)).not.toBeInTheDocument()
   })
+  it('variantes: la impresora de una variante sale deshabilitada con «se cambia desde», un suelto sigue igual y el guardado no la manda', async () => {
+    const original = h.get.getMockImplementation()!
+    h.get.mockImplementation((venue, query) =>
+      query.section === 'products'
+        ? Promise.resolve({
+            categories: [],
+            products: [
+              { id: 'pv', name: 'Playera · M', categoryId: 'c1', printStationId: null, productGroupId: 'g1', productGroupName: 'Playera' },
+              { id: 'ps', name: 'Gorra', categoryId: 'c1', printStationId: null, productGroupId: null, productGroupName: null },
+            ],
+            hasDefault: true,
+            unroutedCategories: 0,
+            pagination: { page: 1, pageSize: 50, total: 2, totalPages: 1 },
+          })
+        : original(venue, query),
+    )
+    mount()
+    await screen.findByText('Bebidas')
+    await userEvent.click(screen.getByRole('button', { name: 'Ver productos' }))
+    const variante = await screen.findByTestId('routing-product-pv')
+    expect(within(variante).getByRole('combobox')).toBeDisabled()
+    expect(within(variante).getByText('se cambia desde «Playera»')).toBeInTheDocument()
+    const suelto = screen.getByTestId('routing-product-ps')
+    expect(within(suelto).getByRole('combobox')).toBeEnabled()
+    expect(within(suelto).queryByText(/se cambia desde/)).not.toBeInTheDocument()
+    await chooseStation(suelto)
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ruteo' }))
+    await waitFor(() => expect(h.save).toHaveBeenCalledWith('v1', { categories: undefined, products: [{ id: 'ps', printStationId: 's1' }] }))
+  })
   it('shows lazy product failures with retry and keeps category draft', async () => {
     const original = h.get.getMockImplementation()!
     let failed = true
