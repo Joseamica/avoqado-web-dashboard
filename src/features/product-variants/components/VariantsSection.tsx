@@ -21,7 +21,10 @@ export interface ValorVariantes {
   conInventario: boolean
 }
 // eslint-disable-next-line react-refresh/only-export-components
-export const VARIANTES_INICIALES: ValorVariantes = { opciones: [{ name: '', values: [] }], filas: [], conInventario: false }
+export const VARIANTES_INICIALES: ValorVariantes = { opciones: [{ id: 'o0', name: '', values: [] }], filas: [], conInventario: false }
+let ultimaOpcion = 0
+/** Identidad de cada opción agregada en el alta (ver OpcionEditable.id). */
+const nuevaOpcion = (): OpcionEditable => ({ id: `o${++ultimaOpcion}`, name: '', values: [] })
 
 /** Errores que se pintan en rojo; los demás son pasos pendientes mientras el dueño teclea (gris). */
 const GRAVES = new Set(['demasiadasCombinaciones', 'demasiadosValores', 'textoLargo', 'opcionRepetida', 'demasiadasOpciones'])
@@ -63,7 +66,7 @@ export function VariantsSection({ venueId, nombrePadre, value, onChange, disable
 
   const cambiarOpciones = (opciones: OpcionEditable[]) => {
     const l = limpiarOpciones(opciones)
-    onChange({ ...value, opciones, filas: validarOpciones(l) === null ? sincronizarFilas(l, value.filas) : value.filas })
+    onChange({ ...value, opciones, filas: validarOpciones(l) === null ? sincronizarFilas(l, value.filas, opciones.map(o => o.id)) : value.filas })
   }
   const cambiarOpcion = (i: number, cambio: Partial<OpcionEditable>) =>
     cambiarOpciones(value.opciones.map((o, j) => (j === i ? { ...o, ...cambio } : o)))
@@ -104,7 +107,7 @@ export function VariantsSection({ venueId, nombrePadre, value, onChange, disable
           </div>
         ))}
         <Button type="button" variant="outline" disabled={disabled || value.opciones.length >= MAX_OPCIONES}
-          onClick={() => cambiarOpciones([...value.opciones, { name: '', values: [] }])} data-tour="product-variants-add-option">
+          onClick={() => cambiarOpciones([...value.opciones, nuevaOpcion()])} data-tour="product-variants-add-option">
           <Plus className="mr-2 h-4 w-4" />
           {value.opciones.length >= MAX_OPCIONES ? t('opciones.maximo') : t('opciones.agregar')}
         </Button>

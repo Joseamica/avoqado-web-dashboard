@@ -14,6 +14,8 @@ const DOS_DECIMALES = /^\d+(\.\d{1,2})?$/
 export const SEPARADOR = ' · '
 
 export interface OpcionEditable {
+  /** Identidad fija de la opción en el alta (no viaja al server): renombrarla no la cambia; quitarla y agregar otra, sí. */
+  id?: string
   name: string
   values: string[]
 }
@@ -27,7 +29,7 @@ export interface FilaVariante {
   sku?: string
   gtin?: string
   initialStock?: number
-  /** Con qué opciones nació la fila (nombres normalizados): sólo hereda si la opción nueva se agregó encima de ESAS. No viaja al server. */
+  /** Con qué opciones nació la fila (sus identificadores): sólo se conserva o hereda sobre ESAS opciones. No viaja al server. */
   deOpciones?: string
 }
 
@@ -125,16 +127,18 @@ export function sugerirSku(padre: string, values: string[]): string {
  * («S» → «S · Rojo»), como Shopify; los demás valores («S · Azul») salen vacíos. Decisión del founder (19-oct): nunca adivinar un
  * precio. Quitar una opción o renombrar un valor tampoco hereda. SKU, código y existencias nunca: son de una sola variante.
  */
-export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[]): FilaVariante[] {
+export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[], ids?: (string | undefined)[]): FilaVariante[] {
   const porLlave = new Map(previas.map(f => [f.key, f]))
-  const nombres = opciones.map(o => norm(o.name))
-  const deOpciones = JSON.stringify(nombres)
-  const deOpcionesAntes = JSON.stringify(nombres.slice(0, -1)) // las mismas opciones, sin la que se acaba de agregar
+  // `ids` (de las opciones sin limpiar) son la identidad de cada opción; sin ellos, el nombre.
+  const identidad = opciones.map((o, i) => ids?.[i] ?? norm(o.name))
+  const deOpciones = JSON.stringify(identidad)
+  const deOpcionesAntes = JSON.stringify(identidad.slice(0, -1)) // las mismas opciones, sin la que se acaba de agregar
   const primeroDeLaUltima = norm(opciones[opciones.length - 1]?.values[0] ?? '')
   return generarCombinaciones(opciones).map(values => {
     const key = llaveDeCombinacion(values)
     const previa = porLlave.get(key)
-    if (previa) return { ...previa, values, deOpciones }
+    // Mismos valores pero de OTRAS opciones (se quitó Talla y la «m» es de Modelo) no es la misma combinación.
+    if (previa && (previa.deOpciones === undefined || previa.deOpciones === deOpciones)) return { ...previa, values, deOpciones }
     const origen =
       values.length > 1 && norm(values[values.length - 1]) === primeroDeLaUltima
         ? porLlave.get(llaveDeCombinacion(values.slice(0, -1)))

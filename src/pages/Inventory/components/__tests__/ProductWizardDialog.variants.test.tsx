@@ -94,7 +94,11 @@ import { Currency } from '@/utils/currency'
 
 type Tipo = 'REGULAR' | 'FOOD_AND_BEV' | 'APPOINTMENTS_SERVICE' | 'CLASS' | 'EVENT' | 'DIGITAL' | 'DONATION' | 'OTHER'
 
-function pintar({ mode = 'create', productType = 'REGULAR' }: { mode?: 'create' | 'edit'; productType?: Tipo } = {}) {
+function pintar({
+  mode = 'create',
+  productType = 'REGULAR',
+  onSuccess,
+}: { mode?: 'create' | 'edit'; productType?: Tipo; onSuccess?: (id: string) => void } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const onOpenChange = vi.fn()
   const ui = (open: boolean) => (
@@ -105,6 +109,7 @@ function pintar({ mode = 'create', productType = 'REGULAR' }: { mode?: 'create' 
           onOpenChange={onOpenChange}
           mode={mode}
           productType={productType}
+          onSuccess={onSuccess}
           {...(mode === 'edit' ? { productId: 'p1' } : {})}
         />
       </MemoryRouter>
@@ -482,6 +487,46 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'alta.creada' })))
     expect(onOpenChange).not.toHaveBeenCalled()
     expect(screen.getByPlaceholderText('wizard.step1.namePlaceholder')).toHaveValue('Borrador B')
+  })
+
+  it('Codex r4 #2: con un guardado ANTERIOR todavía en camino, cerrar el alta nueva con algo escrito sí pregunta', async () => {
+    grupos.createProductGroup.mockReturnValue(new Promise(() => {}))
+    const { onOpenChange, abrir } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    abrir(false)
+    abrir(true)
+    onOpenChange.mockClear()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Borrador B' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('Codex r4 #3: el número del producto de un guardado anterior no llega al alta siguiente', async () => {
+    let terminarA: (v: unknown) => void = () => {}
+    productWizardApiMock.createProductWithInventory
+      .mockReturnValueOnce(new Promise(r => (terminarA = r)))
+      .mockResolvedValueOnce({ data: { data: { productId: 'producto-B' } } })
+    const alTerminar = vi.fn()
+    const { abrir } = pintar({ onSuccess: alTerminar })
+    await llenarNombreYCategoria('Agua A')
+    fireEvent.change(screen.getByLabelText(/^wizard\.step1\.price/), { target: { value: '20' } })
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(productWizardApiMock.createProductWithInventory).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    abrir(false)
+    abrir(true)
+    terminarA({ data: { data: { productId: 'producto-A' } } })
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'wizard.success' })))
+    await llenarNombreYCategoria('Agua B')
+    fireEvent.change(screen.getByLabelText(/^wizard\.step1\.price/), { target: { value: '25' } })
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(productWizardApiMock.createProductWithInventory).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(toastMock).toHaveBeenCalledTimes(2))
+    expect(alTerminar).not.toHaveBeenCalledWith('producto-A')
   })
 
   it('Codex r2 #5: una foto pendiente de recorte cuenta como captura', async () => {

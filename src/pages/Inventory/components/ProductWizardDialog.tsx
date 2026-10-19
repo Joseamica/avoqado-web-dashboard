@@ -258,6 +258,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Single-step wizard - no step navigation needed
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
   const sesion = useRef(0) // sube cada vez que el asistente se cierra (ver handleWizardComplete)
+  const sesionGuardando = useRef<number | null>(null) // de qué apertura es el guardado en camino (ver pedirCerrar)
+  const marcarEnvio = () => {
+    sesionGuardando.current = sesion.current
+    return { sesion: sesion.current }
+  }
   const [selectedInventoryMethod, setSelectedInventoryMethod] = useState<InventoryMethod | null>(null)
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
@@ -467,10 +472,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }) => {
       return productWizardApi.createProductWithInventory(venueId, data)
     },
-    onMutate: () => ({ sesion: sesion.current }),
+    onMutate: marcarEnvio,
+    onSettled: () => {
+      sesionGuardando.current = null
+    },
     onSuccess: (response, _variables, contexto) => {
       const productId = response.data.data.productId
-      setCreatedProductId(productId)
+      if (contexto?.sesion === sesion.current) setCreatedProductId(productId) // el de un alta anterior no se cuela en la siguiente
 
       toast({
         title: t('wizard.success'),
@@ -505,7 +513,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const invalidarCatalogo = useInvalidarCatalogo()
   const crearFamilia = useMutation({
     mutationFn: (body: CreateGroupBody) => createProductGroup(venueId!, body),
-    onMutate: () => ({ sesion: sesion.current }),
+    onMutate: marcarEnvio,
     onSuccess: (_data, _body, contexto) => {
       toast({ title: tv('alta.creada') })
       handleWizardComplete(contexto?.sesion) // el mismo cierre que el alta normal (invalida ['products', venueId], lo mismo que useInvalidarCatalogo)
@@ -518,6 +526,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     onSettled: () => {
       enviando.current = false
+      sesionGuardando.current = null
     },
   })
 
@@ -1228,7 +1237,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       JSON.stringify(variantes) !== JSON.stringify(VARIANTES_INICIALES) ||
       !!imageForCrop) // una foto elegida que aún no se recorta
   const pedirCerrar = () => {
-    if (isLoading) return onOpenChange(false) // guardando: lo que va en camino sí se guarda (y sin red no se queda sin salida)
+    // Guardando ESTA apertura: lo que va en camino sí se guarda (y sin red no se queda sin salida). Un guardado de una apertura
+    // anterior no cuenta: el alta de ahora pregunta como siempre (Codex r4).
+    if (isLoading && sesionGuardando.current === sesion.current) return onOpenChange(false)
     const textoPorConfirmar =
       mode === 'create' &&
       Array.from(document.querySelectorAll<HTMLInputElement>('input[data-por-confirmar]')).some(i => i.value.trim() !== '')

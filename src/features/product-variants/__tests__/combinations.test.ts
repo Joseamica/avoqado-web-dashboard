@@ -104,6 +104,19 @@ describe('filas', () => {
       expect(precio(filas)).toEqual({ 'm/Algodón': undefined })
     })
 
+    it('Codex r4 #1: con el identificador de cada opción, una opción NUEVA no toma precio ni SKU de otra con el mismo texto', () => {
+      const viejas = sincronizarFilas([op('Talla', ['S', 'M'])], [], ['o0']).map(f =>
+        f.values[0] === 'M' ? { ...f, price: 249, sku: 'TALLA-M' } : { ...f, price: 199 },
+      )
+      const filas = sincronizarFilas([op('Modelo', ['m'])], viejas, ['o1']) // se quitó Talla (o0); Modelo es otra opción (o1)
+      expect(filas.map(f => [f.values[0], f.price, f.sku])).toEqual([['m', undefined, undefined]])
+    })
+
+    it('renombrar una opción (mismo identificador) conserva lo tecleado', () => {
+      const filas = sincronizarFilas([op('Talla', ['S'])], [], ['o0']).map(f => ({ ...f, price: 199 }))
+      expect(sincronizarFilas([op('Size', ['S'])], filas, ['o0']).map(f => f.price)).toEqual([199])
+    })
+
     it('Codex r2: quitar una opción (la de en medio o la última) o reordenar valores nunca copia un precio de otra combinación', () => {
       let filas: FilaVariante[] = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul']), op('Material', ['Algodón'])], [])
       filas = filas.map(f => ({ ...f, price: f.values[1] === 'Rojo' ? 199 : 299 }))
