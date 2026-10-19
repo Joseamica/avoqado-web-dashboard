@@ -489,6 +489,16 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(screen.getByPlaceholderText('wizard.step1.namePlaceholder')).toHaveValue('Borrador B')
   })
 
+  it('Codex r5 #1: agregar una opción vacía y quitar la PRIMERA (también vacía) no es captura', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'opciones.agregar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /^opciones\.quitar$/ })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
   it('Codex r4 #2: con un guardado ANTERIOR todavía en camino, cerrar el alta nueva con algo escrito sí pregunta', async () => {
     grupos.createProductGroup.mockReturnValue(new Promise(() => {}))
     const { onOpenChange, abrir } = pintar()

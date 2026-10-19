@@ -1224,8 +1224,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // En el alta, Cancelar, la X y Esc preguntan antes de tirar lo capturado (guardar con éxito cierra por handleWizardComplete, sin
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
-  // `true` sin tocar nada (QA en navegador, 19-oct). Las variantes se comparan por contenido (agregar y quitar una opción vacía no es
-  // captura), y cuenta también un valor escrito en las fichas que aún no es ficha (`data-por-confirmar`, como ProductGroupDialog).
+  // `true` sin tocar nada (QA en navegador, 19-oct). En variantes cuenta lo escrito, no el identificador interno de cada opción
+  // (agregar y quitar opciones vacías no es captura), y también un valor en las fichas que aún no es ficha (`data-por-confirmar`).
   // Mientras se guarda cierra directo, sin «descartar»: el guardado sigue (Codex r3) y sin red no se queda sin salida (Codex r2).
   const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
   const hayCaptura =
@@ -1234,7 +1234,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       tocado(step2Form) ||
       tocado(step3SimpleForm) ||
       tocado(step3RecipeForm) ||
-      JSON.stringify(variantes) !== JSON.stringify(VARIANTES_INICIALES) ||
+      variantes.filas.length > 0 ||
+      variantes.conInventario ||
+      variantes.opciones.some(o => o.name.trim() !== '' || o.values.length > 0) ||
       !!imageForCrop) // una foto elegida que aún no se recorta
   const pedirCerrar = () => {
     // Guardando ESTA apertura: lo que va en camino sí se guarda (y sin red no se queda sin salida). Un guardado de una apertura
