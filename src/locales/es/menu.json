@@ -36,6 +36,7 @@
       "products": "Productos",
       "services": "Servicios",
       "modifierGroups": "Grupos Modificadores",
+      "productOptions": "Opciones",
       "creditPacks": "Paquetes de Créditos",
       "customers": "Clientes"
     }
@@ -454,7 +455,8 @@
     "toasts": {
       "activated": "Producto activado",
       "deactivated": "Producto desactivado",
-      "saved": "Los cambios se han guardado correctamente."
+      "saved": "Los cambios se han guardado correctamente.",
+      "statusError": "No se pudo cambiar el estado del producto."
     },
     "lowStock": {
       "alert": "{{count}} producto tiene stock bajo",

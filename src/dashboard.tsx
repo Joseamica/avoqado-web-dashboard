@@ -84,6 +84,7 @@ const routeKeyMap: Record<string, string> = {
   menus: 'menu:menumaker.nav.menus',
   services: 'menu:menumaker.nav.services',
   'modifier-groups': 'menu:menumaker.nav.modifierGroups',
+  'product-options': 'menu:menumaker.nav.productOptions',
   groups: 'sidebar:routes.customerGroups',
   bundles: 'sidebar:routes.bundles',
   'sales-summary': 'sidebar:routes.reportSalesSummary',

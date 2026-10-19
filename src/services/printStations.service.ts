@@ -80,6 +80,9 @@ export interface RoutingProduct {
   name: string
   categoryId: string | null
   printStationId: string | null
+  /** Variantes: si viene, es una variante de la familia; su impresora es del padre (el server rechaza cambiarla aquí). */
+  productGroupId?: string | null
+  productGroupName?: string | null
 }
 
 export interface RoutingData {

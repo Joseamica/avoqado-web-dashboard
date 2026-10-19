@@ -63,6 +63,7 @@ type GroupFormValues = {
 export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: ModifiersManagerDialogProps) {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
+  const { t: tv } = useTranslation('variants')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [subView, setSubView] = useState<SubView>({ kind: 'list' })
@@ -119,9 +120,10 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
       required: group.required ?? false,
       minSelections: typeof group.minSelections === 'number' ? group.minSelections : 0,
       maxSelections: typeof group.maxSelections === 'number' ? group.maxSelections : 1,
+      // Una variante que ya tiene el grupo (lo heredó de su familia) no se quita desde aquí: el server lo rechaza con 409.
       products: allProducts
         .filter(p => p.modifierGroups?.some(mg => mg.groupId === group.id))
-        .map(p => ({ label: p.name, value: p.id })),
+        .map(p => ({ label: p.name, value: p.id, fixed: !!p.productGroupId })),
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group, allProducts])
@@ -475,7 +477,14 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
                         <FormControl>
                           <DnDMultipleSelector
                             placeholder={t('modifiers.forms.selectProducts')}
-                            options={(allProducts ?? []).map(p => ({ label: p.name, value: p.id }))}
+                            // Los extras de una variante se cambian en su familia: sale deshabilitada con la razón.
+                            options={(allProducts ?? []).map(p => ({
+                              label: p.productGroupId
+                                ? `${p.name} (${tv('variante.extrasDesde', { familia: p.productGroupName ?? '' })})`
+                                : p.name,
+                              value: p.id,
+                              disable: !!p.productGroupId,
+                            }))}
                             value={field.value}
                             onChange={field.onChange}
                           />

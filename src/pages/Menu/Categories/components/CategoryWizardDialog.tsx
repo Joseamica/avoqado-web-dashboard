@@ -22,6 +22,7 @@ import { Receipt } from 'lucide-react'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { PrintStationField } from '@/components/PrintStationField'
+import { textoDelServidor } from '@/utils/apiError'
 
 interface CategoryWizardDialogProps {
   open: boolean
@@ -51,6 +52,7 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { t: tCfdi } = useTranslation('cfdi')
+  const { t: tv } = useTranslation('variants')
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
@@ -135,7 +137,9 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
     onError: (error: any) => {
       toast({
         title: t('forms.messages.saveError'),
-        description: error.message || t('forms.messages.saveErrorDesc'),
+        // El texto del server primero (un 409 de una variante); el propio de la validación del horario después. Un error de axios
+        // sin cuerpo (sin red, 502) no muestra su texto en inglés.
+        description: textoDelServidor(error) ?? (error?.isAxiosError ? t('forms.messages.saveErrorDesc') : error?.message || t('forms.messages.saveErrorDesc')),
         variant: 'destructive',
       })
     },
@@ -436,7 +440,14 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
                           <FormLabel>{t('forms.labels.addProductsToCategory')}</FormLabel>
                           <FormControl>
                             <MultiSelectCombobox
-                              options={(products ?? []).map(p => ({ label: p.name, value: p.id }))}
+                              // Una variante cambia de categoría desde su familia (el server rechaza el movimiento con 409): sale deshabilitada.
+                              options={(products ?? []).map(p => ({
+                                label: p.productGroupId
+                                  ? `${p.name} (${tv('variante.seCambiaDesde', { familia: p.productGroupName ?? '' })})`
+                                  : p.name,
+                                value: p.id,
+                                disabled: !!p.productGroupId,
+                              }))}
                               selected={field.value}
                               onChange={field.onChange}
                               placeholder={t('forms.labels.selectProducts')}

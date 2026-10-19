@@ -60,6 +60,8 @@ interface SearchComboboxProps {
    * «Suggestions», which screen readers announced on a Spanish dashboard — E6a-fix2 K5).
    */
   listLabel?: string
+  /** Sólo lectura: el campo no se puede enfocar ni abrir. Opcional, los usos de hoy no cambian. */
+  disabled?: boolean
 }
 
 /**
@@ -88,6 +90,7 @@ export function SearchCombobox({
   hasMore = false,
   isLoadingMore = false,
   listLabel,
+  disabled = false,
 }: SearchComboboxProps) {
   const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
@@ -149,8 +152,9 @@ export function SearchCombobox({
                 placeholder={placeholder}
                 autoFocus={autoFocus}
                 autoComplete="one-time-code"
+                disabled={disabled}
                 className={cn(
-                  'w-full h-12 px-4 text-base bg-transparent outline-none placeholder:text-muted-foreground rounded-lg border border-input transition-colors',
+                  'w-full h-12 px-4 text-base bg-transparent outline-none placeholder:text-muted-foreground rounded-lg border border-input transition-colors disabled:cursor-not-allowed disabled:opacity-50',
                   open && 'border-ring ring-1 ring-ring',
                 )}
               />
