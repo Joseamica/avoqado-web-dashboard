@@ -21,6 +21,11 @@ import {
   parseRawCSV,
   remapData,
   SYSTEM_FIELDS,
+  adivinarMapeo,
+  CONTADORES_DE_FAMILIA,
+  tieneFamilias,
+  type FilasDeFamiliaRechazadas,
+  type ImportResult,
   type ParsedCategory,
 } from '@/services/menuImport.service'
 import { Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown } from 'lucide-react'
@@ -38,7 +43,39 @@ interface MenuImportDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-type ImportStep = 'select' | 'mapping' | 'upload' | 'preview' | 'import'
+type ImportStep = 'select' | 'mapping' | 'upload' | 'preview' | 'import' | 'result'
+type ImportStats = NonNullable<ImportResult['stats']>
+
+/** Lo que el import hizo con las familias, y cada fila de familia que no entró con su motivo (el server manda hasta 50 y el total). */
+export function ResumenDeFamilias({ stats }: { stats: ImportStats }) {
+  const { t } = useTranslation('menuImport')
+  const rechazadas = stats.filasDeFamiliaRechazadas
+  const ocultas = rechazadas ? Math.max(0, rechazadas.total - rechazadas.ejemplos.length) : 0
+  return (
+    <div className="space-y-3 rounded-lg border border-input p-4" data-tour="menu-import-family-summary">
+      <p className="font-semibold">{t('resumen.titulo')}</p>
+      <ul className="space-y-1 text-sm">
+        {CONTADORES_DE_FAMILIA.filter(k => (stats[k] ?? 0) > 0).map(k => (
+          <li key={k}>{t(`resumen.${k}`, { count: stats[k] })}</li>
+        ))}
+      </ul>
+      {rechazadas && rechazadas.total > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-destructive">{t('resumen.rechazadas', { count: rechazadas.total })}</p>
+          <ul className="max-h-60 space-y-1 overflow-y-auto text-sm">
+            {rechazadas.ejemplos.map((e, i) => (
+              <li key={`${e.sku}-${i}`}>
+                <p className="font-medium">{`${e.sku} · ${e.name}`}</p>
+                <p className="text-muted-foreground">{e.motivo}</p>
+              </li>
+            ))}
+          </ul>
+          {ocultas > 0 && <p className="text-xs text-muted-foreground">{t('resumen.rechazadasOcultas', { count: ocultas })}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) {
   const { t } = useTranslation('menuImport')
@@ -82,6 +119,7 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
   const [rawHeaders, setRawHeaders] = useState<string[]>([])
   const [previewRows, setPreviewRows] = useState<any[]>([])
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
+  const [resultado, setResultado] = useState<ImportStats | null>(null)
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -98,6 +136,7 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
         setRawHeaders([])
         setPreviewRows([])
         setColumnMapping({})
+        setResultado(null)
       }, 300) // Wait for dialog close animation
     }
   }, [open])
@@ -164,21 +203,8 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
       setRawHeaders(headers)
       setPreviewRows(data)
 
-      // Auto-guess mapping
-      const initialMapping: Record<string, string> = {}
-      SYSTEM_FIELDS.forEach(field => {
-        // Try exact match
-        let match = headers.find(h => h.toLowerCase() === field.key.toLowerCase())
-        // Try label match
-        if (!match) match = headers.find(h => h.toLowerCase() === field.label.toLowerCase())
-        // Try partial match
-        if (!match) match = headers.find(h => h.toLowerCase().includes(field.key.toLowerCase()))
-
-        if (match) {
-          initialMapping[field.key] = match
-        }
-      })
-      setColumnMapping(initialMapping)
+      // Auto-guess mapping (exact key/label/alias first, then partial; one column per field)
+      setColumnMapping(adivinarMapeo(headers))
       setStep('mapping')
 
     } catch (error: any) {
@@ -281,7 +307,11 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
         queryClient.invalidateQueries({ queryKey: ['modifierGroups', venueId] }) // Modifier groups
         queryClient.invalidateQueries({ queryKey: ['menus', venueId] }) // Menus page
 
-        onOpenChange(false)
+        // Variantes (bloque 5): si tocó familias, se queda abierto con el resumen (las filas rechazadas no caben en un aviso).
+        if (result.stats && tieneFamilias(result.stats)) {
+          setResultado(result.stats)
+          setStep('result')
+        } else onOpenChange(false)
       } else {
         toast({
           title: t('errors.uploadError'),
@@ -290,6 +320,19 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
         })
       }
     } catch (error: any) {
+      // «Reemplazar» con alguna fila de familia mala: el server no reemplaza NADA y manda las filas con su motivo.
+      const rechazadas: FilasDeFamiliaRechazadas | undefined =
+        error?.response?.data?.code === 'MENU_IMPORT_FAMILY_ROWS_REJECTED' ? error.response.data.details?.filasDeFamiliaRechazadas : undefined
+      if (rechazadas) {
+        const ocultas = Math.max(0, rechazadas.total - (rechazadas.ejemplos?.length ?? 0))
+        setValidationErrors([
+          t('errors.familyRowsRejected'),
+          ...(rechazadas.ejemplos ?? []).map(e => `${e.sku} · ${e.name}: ${e.motivo}`),
+          ...(ocultas > 0 ? [t('resumen.rechazadasOcultas', { count: ocultas })] : []),
+        ])
+        setStep('preview')
+        return
+      }
       const catalogError = parseMasterCatalogError(error)
       if (catalogError) {
         handleMasterCatalogError(error)
@@ -547,6 +590,8 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
             </div>
           )}
 
+          {step === 'result' && resultado && <ResumenDeFamilias stats={resultado} />}
+
           {/* Step 2: Preview & Validation */}
           {step === 'preview' && file && (
             <>
@@ -671,6 +716,10 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
                  {t('actions.next', 'Next')}
                </Button>
              </>
+          ) : step === 'result' ? (
+            <Button onClick={() => onOpenChange(false)} data-tour="menu-import-done">
+              {t('resumen.cerrar')}
+            </Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>

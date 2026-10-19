@@ -7,5 +7,6 @@ export const productGroupKeys = {
   detail: (venueId: string, groupId: string) => ['products', venueId, 'groups', 'detail', groupId] as const,
   archived: (venueId: string, groupId: string) => ['products', venueId, 'groups', 'archived', groupId] as const,
   suggestions: (venueId: string) => ['products', venueId, 'groups', 'suggestions'] as const,
+  shopifyProposals: (venueId: string) => ['products', venueId, 'groups', 'shopify-proposals'] as const,
   optionLibrary: (venueId: string) => ['products', venueId, 'option-library'] as const,
 }

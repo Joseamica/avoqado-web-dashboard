@@ -78,4 +78,22 @@ describe('productGroups.service', () => {
     await s.deleteLibraryOption('v1', 'o1')
     expect(mockDelete).toHaveBeenCalledWith(`${O}/o1`)
   })
+
+  it('«Desde Shopify» (bloque 5): el gid viaja codificado en la ruta y del cuerpo sólo va lo de Avoqado', async () => {
+    const gid = 'gid://shopify/Product/12'
+    const P = `${G}/shopify-proposals`
+    const enRuta = `${P}/gid%3A%2F%2Fshopify%2FProduct%2F12`
+    await s.listShopifyProposals('v1', { limit: 20 })
+    expect(mockGet).toHaveBeenCalledWith(P, { params: { cursor: undefined, limit: 20 } })
+    await s.listShopifyProposals('v1', { cursor: gid, limit: 20 })
+    expect(mockGet).toHaveBeenLastCalledWith(P, { params: { cursor: gid, limit: 20 } })
+    await s.previewShopifyProposal('v1', gid, { categoryId: 'c1' })
+    expect(mockPost).toHaveBeenCalledWith(`${enRuta}/preview`, { categoryId: 'c1' })
+    await s.applyShopifyProposal('v1', gid, { categoryId: 'c1' }, 'huella')
+    expect(mockPost).toHaveBeenCalledWith(`${enRuta}/apply`, { categoryId: 'c1', expectedFingerprint: 'huella' })
+    await s.previewAllShopifyProposals('v1', gid)
+    expect(mockPost).toHaveBeenCalledWith(`${P}/preview-all`, { cursor: gid })
+    await s.applyShopifyProposalsBatch('v1', [{ shopifyProductId: gid, fingerprint: 'h' }])
+    expect(mockPost).toHaveBeenCalledWith(`${P}/apply-batch`, { items: [{ shopifyProductId: gid, fingerprint: 'h' }] })
+  })
 })

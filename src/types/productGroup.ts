@@ -191,3 +191,55 @@ export interface OptionLibraryBody {
   name: string
   values: string[]
 }
+
+/** «Desde Shopify» (bloque 5, server `shopifyFamilies.service.ts`): un renglón por producto de Shopify con tallas sueltas ligadas. */
+export interface ShopifyProposal {
+  shopifyProductId: string
+  mode: 'CREATE' | 'ADD'
+  groupId: string | null
+  groupName: string | null
+  /** null: ninguna pareja trae todavía el título de Shopify. */
+  title: string | null
+  /** false: alguna pareja se ligó antes del bloque 5 y se completa en la próxima sincronización. */
+  ready: boolean
+  blockedReason: string | null
+  members: Array<{ productId: string; name: string; sku: string }>
+}
+
+export interface CursorPage<T> {
+  items: T[]
+  total: number
+  nextCursor: string | null
+}
+
+/** Lo de Avoqado que el dueño elige al crear (nombre, opciones y miembros los arma el server con lo que dijo Shopify). */
+export interface ShopifyChoices {
+  categoryId?: string
+  ivaTratamiento?: string
+  printStationId?: string | null
+  modifierGroupIds?: string[]
+}
+
+export interface ShopifySkippedMember {
+  productId: string
+  name: string
+  motivo: string
+}
+
+export type ShopifyProposalPreview = GroupExistingPreview & {
+  mode: 'CREATE' | 'ADD'
+  groupId: string | null
+  skipped: ShopifySkippedMember[]
+}
+
+export interface ShopifyPreviewAllPage {
+  items: Array<{ shopifyProductId: string; mode: 'CREATE' | 'ADD'; groupName: string; preview: ShopifyProposalPreview }>
+  blocked: Array<{ shopifyProductId: string; motivo: string }>
+  total: number
+  nextCursor: string | null
+}
+
+export interface ShopifyBatchResult {
+  applied: Array<{ shopifyProductId: string; groupId: string; mode: 'CREATE' | 'ADD' }>
+  skipped: Array<{ shopifyProductId: string; motivo: string; groupId?: string }>
+}

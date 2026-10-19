@@ -8,7 +8,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const grupos = vi.hoisted(() => ({ previewGroupExisting: vi.fn(), applyGroupExisting: vi.fn() }))
+const grupos = vi.hoisted(() => ({
+  previewGroupExisting: vi.fn(),
+  applyGroupExisting: vi.fn(),
+  previewShopifyProposal: vi.fn(),
+  applyShopifyProposal: vi.fn(),
+}))
 const menu = vi.hoisted(() => ({ getMenuCategories: vi.fn(), getModifierGroups: vi.fn() }))
 const avisos = vi.hoisted(() => ({ toast: vi.fn() }))
 const estables = vi.hoisted(() => ({
@@ -256,5 +261,139 @@ describe('GroupExistingDialog', () => {
     expect(within(screen.getByText('agrupar.resumen.iva').parentElement!).getByText('menu:iva.opciones.IVA_16')).toBeInTheDocument()
     expect(screen.getByText('Cambia el IVA de 1 producto(s).')).toBeInTheDocument()
     expect(screen.getByText('Nombre: «Tenis - Talla 26» → «Tenis · 26»')).toBeInTheDocument()
+  })
+})
+
+describe('GroupExistingDialog — «Desde Shopify» (bloque 5)', () => {
+  const gid = 'gid://shopify/Product/7'
+  const deShopify = (mode: 'CREATE' | 'ADD', extra: Record<string, unknown> = {}) => ({
+    ...vistaPrevia(),
+    mode,
+    groupId: mode === 'ADD' ? 'g1' : null,
+    skipped: [],
+    ...extra,
+  })
+  function pintarShopify(mode: 'CREATE' | 'ADD') {
+    const onDone = vi.fn()
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <GroupExistingDialog
+          open
+          onClose={vi.fn()}
+          venueId="v1"
+          inicial={{ name: 'Tenis', optionNames: [], members: inicial.members.map(m => ({ ...m, values: [] })) }}
+          shopify={{ shopifyProductId: gid, mode, groupName: mode === 'ADD' ? 'Tenis' : null }}
+          onDone={onDone}
+        />
+      </QueryClientProvider>,
+    )
+    return { onDone }
+  }
+  beforeEach(() => {
+    grupos.previewShopifyProposal.mockResolvedValue(deShopify('CREATE'))
+    grupos.applyShopifyProposal.mockResolvedValue({ groupId: 'g9', productIds: ['p1', 'p2'], categoryId: 'c1', mode: 'CREATE' })
+  })
+
+  it('CREATE: pide la vista previa sola, el nombre, las opciones y los productos son de sólo lectura, y confirma con su huella', async () => {
+    const { onDone } = pintarShopify('CREATE')
+    await waitFor(() => expect(grupos.previewShopifyProposal).toHaveBeenCalledWith('v1', gid, {}))
+    expect(screen.getByLabelText('agrupar.nombre')).toHaveValue('Tenis')
+    expect(screen.getByLabelText('agrupar.nombre')).toHaveAttribute('readonly')
+    expect(screen.queryByRole('button', { name: 'agrupar.agregarOpcion' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/agrupar\.valorDe/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'agrupar.verCambios' })).not.toBeInTheDocument()
+    expect(await screen.findByText('Talla: 26, 27')).toBeInTheDocument()
+    expect(screen.getByText('Nombre: «Tenis - Talla 26» → «Tenis · 26»')).toBeInTheDocument()
+
+    // la categoría (lo de Avoqado) se elige y la vista previa se vuelve a pedir con ella; «Confirmar» manda esa misma elección
+    fireEvent.click(await screen.findByLabelText('agrupar.categoria'))
+    grupos.previewShopifyProposal.mockResolvedValue(deShopify('CREATE', { fingerprint: 'huella-2' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Calzado' }))
+    await waitFor(() => expect(grupos.previewShopifyProposal).toHaveBeenLastCalledWith('v1', gid, { categoryId: 'c1' }))
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    fireEvent.click(confirmar())
+    await waitFor(() => expect(grupos.applyShopifyProposal).toHaveBeenCalledWith('v1', gid, { categoryId: 'c1' }, 'huella-2'))
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith('g9'))
+    expect(grupos.applyGroupExisting).not.toHaveBeenCalled()
+  })
+
+  it('ADD: sin categoría que elegir; sólo los cambios de cada talla y las que se saltan con su motivo', async () => {
+    grupos.previewShopifyProposal.mockResolvedValue(
+      deShopify('ADD', { skipped: [{ productId: 'p3', name: 'Tenis - Talla 28', motivo: 'La combinación «28» ya existe, archivada.' }] }),
+    )
+    pintarShopify('ADD')
+    expect(await screen.findByText('Nombre: «Tenis - Talla 26» → «Tenis · 26»')).toBeInTheDocument()
+    expect(screen.getByText('shopify.agregarA:Tenis')).toBeInTheDocument()
+    expect(screen.queryByLabelText('agrupar.categoria')).not.toBeInTheDocument()
+    expect(screen.queryByText('agrupar.padreQueda')).not.toBeInTheDocument()
+    expect(screen.getByText('Tenis - Talla 28')).toBeInTheDocument()
+    expect(screen.getByText('La combinación «28» ya existe, archivada.')).toBeInTheDocument()
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    fireEvent.click(confirmar())
+    await waitFor(() => expect(grupos.applyShopifyProposal).toHaveBeenCalledWith('v1', gid, {}, 'huella-1'))
+  })
+
+  it('🔴 ADD enseña TODAS las tallas que se suman: la que no cambia nada dice «Se suma, sin cambios» (la caja nunca queda vacía)', async () => {
+    grupos.previewShopifyProposal.mockResolvedValue(
+      deShopify('ADD', {
+        members: [{ productId: 'p2', sku: 'T27', currentName: 'Tenis · 27', newName: 'Tenis · 27', values: ['27'], changes: [] }],
+      }),
+    )
+    pintarShopify('ADD')
+    const caja = (await screen.findByText('agrupar.cadaProducto')).parentElement!
+    expect(within(caja).getByText('Tenis · 27')).toBeInTheDocument()
+    expect(within(caja).getByText('shopify.seSumaSinCambios')).toBeInTheDocument()
+  })
+
+  it('🔴 409 PRODUCT_GROUP_PREVIEW_STALE: avisa, vuelve a pedir la vista previa y confirma con la huella NUEVA', async () => {
+    grupos.applyShopifyProposal.mockRejectedValueOnce(stale)
+    const { onDone } = pintarShopify('CREATE')
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    grupos.previewShopifyProposal.mockResolvedValue(deShopify('CREATE', { fingerprint: 'huella-2' }))
+    fireEvent.click(confirmar())
+    expect(await screen.findByText('agrupar.stale')).toBeInTheDocument()
+    await waitFor(() => expect(grupos.previewShopifyProposal).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    expect(avisos.toast).not.toHaveBeenCalled()
+    fireEvent.click(confirmar())
+    await waitFor(() => expect(grupos.applyShopifyProposal).toHaveBeenLastCalledWith('v1', gid, {}, 'huella-2'))
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith('g9'))
+  })
+
+  it('🔴 si el reintento tras el 409 falla, «Confirmar» queda apagado (no se manda la huella vieja)', async () => {
+    grupos.applyShopifyProposal.mockRejectedValueOnce(stale)
+    pintarShopify('CREATE')
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    grupos.previewShopifyProposal.mockRejectedValue({ response: { status: 500, data: { message: 'Error del servidor.' } } })
+    fireEvent.click(confirmar())
+    expect(await screen.findByText('Error del servidor.')).toBeInTheDocument()
+    expect(confirmar()).toBeDisabled()
+    expect(grupos.applyShopifyProposal).toHaveBeenCalledTimes(1)
+  })
+
+  it('PRODUCT_GROUP_BUSY: el texto del server en un aviso de error (useErrorDeEscritura) y se puede volver a confirmar', async () => {
+    const ocupado = 'Alguno de estos productos se está usando en este momento (una venta o una edición); intenta de nuevo en unos segundos.'
+    grupos.applyShopifyProposal.mockRejectedValueOnce({ response: { status: 409, data: { code: 'PRODUCT_GROUP_BUSY', message: ocupado } } })
+    pintarShopify('CREATE')
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+    fireEvent.click(confirmar())
+    await waitFor(() =>
+      expect(avisos.toast).toHaveBeenCalledWith({ variant: 'destructive', title: 'agrupar.noAgrupado', description: ocupado }),
+    )
+    expect(screen.queryByText('agrupar.stale')).not.toBeInTheDocument()
+    await waitFor(() => expect(confirmar()).toBeEnabled())
+  })
+
+  it('una propuesta que todavía no está lista dice por qué y no deja confirmar', async () => {
+    grupos.previewShopifyProposal.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { code: 'SHOPIFY_DATOS_PENDIENTES', message: 'Este producto se completa en la próxima sincronización con Shopify.' },
+      },
+    })
+    pintarShopify('CREATE')
+    expect(await screen.findByText('Este producto se completa en la próxima sincronización con Shopify.')).toBeInTheDocument()
+    expect(confirmar()).toBeDisabled()
   })
 })
