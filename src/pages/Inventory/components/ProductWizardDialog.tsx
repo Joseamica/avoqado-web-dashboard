@@ -68,7 +68,13 @@ import { useMasterCatalogError } from '@/features/master-catalog/use-master-cata
 import { PRODUCT_TYPE_LABELS } from '@/lib/product-types'
 import { VenueTierBadge } from '@/components/venue-tier-badge'
 import { VARIANTES_INICIALES, VariantsSection, type ValorVariantes } from '@/features/product-variants/components/VariantsSection'
-import { filaParaServidor, limpiarOpciones, validarFilas, validarOpciones } from '@/features/product-variants/combinations'
+import {
+  filaParaServidor,
+  limpiarOpciones,
+  resumenDeFamilia,
+  validarFilas,
+  validarOpciones,
+} from '@/features/product-variants/combinations'
 import { mensajeDeVariantes } from '@/features/product-variants/errors'
 import { VariantNotice } from '@/features/product-variants/components/VariantNotice'
 import { sinCamposDelPadre } from '@/features/product-variants/families'
@@ -249,6 +255,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Single-step wizard - no step navigation needed
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
+  const sesion = useRef(0) // sube cada vez que el asistente se cierra (ver handleWizardComplete)
+  const sesionGuardando = useRef<number | null>(null) // de qué apertura es el guardado en camino (ver pedirCerrar)
+  const marcarEnvio = () => {
+    sesionGuardando.current = sesion.current
+    return { sesion: sesion.current }
+  }
   const [selectedInventoryMethod, setSelectedInventoryMethod] = useState<InventoryMethod | null>(null)
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
@@ -453,9 +465,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }) => {
       return productWizardApi.createProductWithInventory(venueId, data)
     },
-    onSuccess: response => {
+    onMutate: marcarEnvio,
+    onSettled: () => {
+      sesionGuardando.current = null
+    },
+    onSuccess: (response, _variables, contexto) => {
       const productId = response.data.data.productId
-      setCreatedProductId(productId)
+      if (contexto?.sesion === sesion.current) setCreatedProductId(productId) // el de un alta anterior no se cuela en la siguiente
 
       toast({
         title: t('wizard.success'),
@@ -463,7 +479,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         variant: 'default',
       })
 
-      handleWizardComplete()
+      handleWizardComplete(contexto?.sesion)
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
@@ -483,14 +499,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const tipoAdmiteVariantes = (ALLOWED_GROUP_TYPES as readonly string[]).includes(String(effectiveProductType ?? ''))
   const [conVariantes, setConVariantes] = useState(false)
   const [variantes, setVariantes] = useState<ValorVariantes>(VARIANTES_INICIALES)
+  const [confirmarDescartar, setConfirmarDescartar] = useState(false) // «¿Descartar cambios?» (ver pedirCerrar)
   const conVariantesActiva = mode === 'create' && tipoAdmiteVariantes && conVariantes
+  const resumenVariantes = resumenDeFamilia(variantes.filas) // la vista previa: «6 variantes · $299»
   const enviando = useRef(false) // isPending no cambia entre dos clics del mismo instante
   const invalidarCatalogo = useInvalidarCatalogo()
   const crearFamilia = useMutation({
     mutationFn: (body: CreateGroupBody) => createProductGroup(venueId!, body),
-    onSuccess: () => {
+    onMutate: marcarEnvio,
+    onSuccess: (_data, _body, contexto) => {
       toast({ title: tv('alta.creada') })
-      handleWizardComplete() // el mismo cierre que el alta normal (invalida ['products', venueId], lo mismo que useInvalidarCatalogo)
+      handleWizardComplete(contexto?.sesion) // el mismo cierre que el alta normal (invalida ['products', venueId], lo mismo que useInvalidarCatalogo)
     },
     onError: error => {
       // Tras CUALQUIER error se relee: el reintento automático de src/api.ts pudo haber creado la familia (409 nombre ya usado).
@@ -500,6 +519,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     onSettled: () => {
       enviando.current = false
+      sesionGuardando.current = null
     },
   })
 
@@ -646,10 +666,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
   })
 
-  // Handle wizard completion
-  const handleWizardComplete = () => {
+  // Handle wizard completion. `sesionDelEnvio` (de onMutate): si el asistente se cerró desde que se envió, el guardado sólo refresca la
+  // lista; NO cierra ni limpia el alta que se haya abierto después (Codex r3 #3).
+  const handleWizardComplete = (sesionDelEnvio?: number) => {
     queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueId] })
+    if (sesionDelEnvio !== undefined && sesionDelEnvio !== sesion.current) return
 
     if (onSuccess && createdProductId) {
       onSuccess(createdProductId)
@@ -675,15 +697,18 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setHasLoadedProductDetails(false)
     setConVariantes(false) // el asistente sigue montado al cerrarse: el siguiente alta arranca sin la casilla
     setVariantes(VARIANTES_INICIALES)
+    setConfirmarDescartar(false) // la X durante el guardado no deja la pregunta abierta tras cerrar
+    setImageForCrop(null) // la foto sin recortar no reaparece en el siguiente alta
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
     step3RecipeForm.reset()
-  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm])
+  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm, setImageForCrop])
 
   // Handle dialog close
   useEffect(() => {
     if (!open) {
+      sesion.current += 1
       resetWizard()
     }
   }, [open, resetWizard])
@@ -1166,11 +1191,38 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // user can't submit empty data or close mid-fetch.
   const isInitialLoadingEdit = mode === 'edit' && open && !!productId && (isLoadingProduct || isLoadingExistingData)
 
+  // En el alta, Cancelar, la X y Esc preguntan antes de tirar lo capturado (guardar con éxito cierra por handleWizardComplete, sin
+  // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
+  // `true` sin tocar nada (QA en navegador, 19-oct). En variantes cuenta lo escrito, no el identificador interno de cada opción
+  // (agregar y quitar opciones vacías no es captura), y también un valor en las fichas que aún no es ficha (`data-por-confirmar`).
+  // Mientras se guarda cierra directo, sin «descartar»: el guardado sigue (Codex r3) y sin red no se queda sin salida (Codex r2).
+  const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
+  const hayCaptura =
+    mode === 'create' &&
+    (tocado(step1Form) ||
+      tocado(step2Form) ||
+      tocado(step3SimpleForm) ||
+      tocado(step3RecipeForm) ||
+      variantes.filas.length > 0 ||
+      variantes.conInventario ||
+      variantes.opciones.some(o => o.name.trim() !== '' || o.values.length > 0) ||
+      !!imageForCrop) // una foto elegida que aún no se recorta
+  const pedirCerrar = () => {
+    // Guardando ESTA apertura: lo que va en camino sí se guarda (y sin red no se queda sin salida). Un guardado de una apertura
+    // anterior no cuenta: el alta de ahora pregunta como siempre (Codex r4).
+    if (isLoading && sesionGuardando.current === sesion.current) return onOpenChange(false)
+    const textoPorConfirmar =
+      mode === 'create' &&
+      Array.from(document.querySelectorAll<HTMLInputElement>('input[data-por-confirmar]')).some(i => i.value.trim() !== '')
+    if (hayCaptura || textoPorConfirmar) setConfirmarDescartar(true)
+    else onOpenChange(false)
+  }
+
   // Render action buttons - single step, always show "Finish"
   const renderActions = () => {
     return (
       <>
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading || isInitialLoadingEdit}>
+        <Button type="button" variant="outline" onClick={pedirCerrar} disabled={isLoading || isInitialLoadingEdit}>
           {tCommon('cancel')}
         </Button>
         <Button
@@ -1191,7 +1243,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     <>
       <FullScreenModal
         open={open}
-        onClose={() => onOpenChange(false)}
+        onClose={pedirCerrar}
         title={
           // Show product name if available, otherwise show wizard title
           // For edit mode, also check existingProductData in case form hasn't loaded yet
@@ -1392,15 +1444,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           {/* SKU + GTIN — both optional. SKU auto-generated if empty. */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="product-wizard-codes">
                             <div data-tour="product-wizard-sku">
-                              <FieldLabel
-                                htmlFor="sku"
-                                label="SKU"
-                                tooltip="Código interno del producto. Si lo dejas vacío, se genera automáticamente."
-                              />
+                              <FieldLabel htmlFor="sku" label="SKU" tooltip={t('wizard.step1.skuTooltip')} />
                               <Input
                                 id="sku"
                                 {...step1Form.register('sku')}
-                                placeholder="Auto-generado si se deja vacío"
+                                placeholder={t('wizard.step1.skuPlaceholder')}
                                 className="h-12 text-base"
                                 autoComplete="off"
                               />
@@ -1408,13 +1456,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             <div data-tour="product-wizard-gtin">
                               <FieldLabel
                                 htmlFor="gtin"
-                                label="GTIN / Código de barras"
-                                tooltip="Código de barras universal (UPC/EAN). Opcional."
+                                label={`GTIN / ${t('wizard.step1.barcode')}`}
+                                tooltip={t('wizard.step1.gtinTooltip')}
                               />
                               <Input
                                 id="gtin"
                                 {...step1Form.register('gtin')}
-                                placeholder="Opcional"
+                                placeholder={t('wizard.step1.optional')}
                                 className="h-12 text-base"
                                 autoComplete="off"
                                 inputMode="numeric"
@@ -1674,7 +1722,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             id="track-inventory-left"
                             checked={step2Form.watch('useInventory')}
                             onCheckedChange={checked => {
-                              step2Form.setValue('useInventory', checked)
+                              step2Form.setValue('useInventory', checked, { shouldDirty: true })
                               if (!checked) {
                                 step2Form.setValue('inventoryMethod', undefined)
                                 setSelectedInventoryMethod(null)
@@ -1696,7 +1744,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 // RECIPE is a Premium (INVENTORY_TRACKING) capability — block selection
                                 // for Free venues without access (the option is also disabled below).
                                 if (value === 'RECIPE' && !hasInventoryTracking) return
-                                step2Form.setValue('inventoryMethod', value as InventoryMethod)
+                                step2Form.setValue('inventoryMethod', value as InventoryMethod, { shouldDirty: true })
                                 setSelectedInventoryMethod(value as InventoryMethod)
                               }}
                               className="grid grid-cols-1 md:grid-cols-2 gap-3"
@@ -2105,6 +2153,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                                   step3RecipeForm.setValue(
                                                     'ingredients',
                                                     current.filter((_, i) => i !== index),
+                                                    { shouldDirty: true },
                                                   )
                                                 }}
                                               >
@@ -2167,7 +2216,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           if (!val) step1Form.setValue('categoryId', '', { shouldValidate: true })
                         }}
                         onSelect={item => {
-                          step1Form.setValue('categoryId', item.id, { shouldValidate: true })
+                          step1Form.setValue('categoryId', item.id, { shouldValidate: true, shouldDirty: true })
                           setCategorySearch('')
                         }}
                         placeholder={t('wizard.step1.categoryPlaceholder')}
@@ -2270,7 +2319,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             onChange={setModifierGroupSearch}
                             onSelect={item => {
                               const current = step1Form.watch('modifierGroups') || []
-                              step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }])
+                              step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }], {
+                                shouldDirty: true,
+                              })
                               setModifierGroupSearch('')
                             }}
                             placeholder={t('wizard.step1.selectModifierGroups')}
@@ -2322,6 +2373,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                     step1Form.setValue(
                                       'modifierGroups',
                                       currentValues.filter(g => g.value !== selectedGroup.value),
+                                      { shouldDirty: true },
                                     )
                                   }}
                                 >
@@ -2366,6 +2418,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             </p>
                             {!conVariantesActiva && step1Form.watch('price') > 0 && (
                               <p className="text-sm text-muted-foreground">{Currency(step1Form.watch('price'))}</p>
+                            )}
+                            {conVariantesActiva && resumenVariantes.count > 0 && (
+                              <p className="text-sm text-muted-foreground">
+                                {[
+                                  tv('alta.vistaPrevia', { count: resumenVariantes.count }),
+                                  resumenVariantes.min === undefined
+                                    ? null
+                                    : resumenVariantes.min === resumenVariantes.max
+                                      ? Currency(resumenVariantes.min)
+                                      : `${Currency(resumenVariantes.min)} – ${Currency(resumenVariantes.max!)}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -2612,6 +2678,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         </div>
       </FullScreenModal>
 
+      <SimpleConfirmDialog
+        open={confirmarDescartar}
+        onOpenChange={setConfirmarDescartar}
+        title={t('wizard.discard.title')}
+        message={t('wizard.discard.description')}
+        confirmLabel={t('wizard.discard.confirm')}
+        cancelLabel={t('wizard.discard.keepEditing')}
+        variant="destructive"
+        onConfirm={() => {
+          setConfirmarDescartar(false)
+          onOpenChange(false)
+        }}
+      />
+
       {/* Conversion Dialog */}
       {conversionDirection && (
         <SimpleConfirmDialog
@@ -2637,7 +2717,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         mode="create"
         onAddTempIngredient={ingredient => {
           const current = step3RecipeForm.getValues('ingredients')
-          step3RecipeForm.setValue('ingredients', [...current, { ...ingredient, isOptional: ingredient.isOptional ?? false }])
+          step3RecipeForm.setValue('ingredients', [...current, { ...ingredient, isOptional: ingredient.isOptional ?? false }], {
+            shouldDirty: true,
+          })
           toast({
             title: t('recipes.messages.ingredientAdded'),
             variant: 'default',

@@ -63,20 +63,22 @@ vi.mock('@/hooks/use-tier-feature-access', async importOriginal => ({
       ? { hasAccess: plan.hasAccess, isResolved: plan.isResolved, requiredTier: 'PRO', isLoading: false }
       : { hasAccess: true, isResolved: true, requiredTier: 'PRO', isLoading: false },
 }))
+// Funciones ESTABLES (como el useState real): una nueva en cada pintado redispara la limpieza del asistente sin fin.
+const subida = vi.hoisted(() => ({ imageForCrop: null as string | null, nada: () => undefined }))
 vi.mock('@/hooks/use-image-uploader', () => ({
   useImageUploader: () => ({
     uploading: false,
     imageUrl: null,
-    imageForCrop: null,
+    imageForCrop: subida.imageForCrop,
     crop: { x: 0, y: 0 },
     zoom: 1,
-    onCropComplete: () => undefined,
-    handleFileUpload: () => undefined,
-    handleCropConfirm: () => undefined,
-    handleFileRemove: () => undefined,
-    setImageForCrop: () => undefined,
-    setCrop: () => undefined,
-    setZoom: () => undefined,
+    onCropComplete: subida.nada,
+    handleFileUpload: subida.nada,
+    handleCropConfirm: subida.nada,
+    handleFileRemove: subida.nada,
+    setImageForCrop: subida.nada,
+    setCrop: subida.nada,
+    setZoom: subida.nada,
   }),
 }))
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))
@@ -92,7 +94,11 @@ import { Currency } from '@/utils/currency'
 
 type Tipo = 'REGULAR' | 'FOOD_AND_BEV' | 'APPOINTMENTS_SERVICE' | 'CLASS' | 'EVENT' | 'DIGITAL' | 'DONATION' | 'OTHER'
 
-function pintar({ mode = 'create', productType = 'REGULAR' }: { mode?: 'create' | 'edit'; productType?: Tipo } = {}) {
+function pintar({
+  mode = 'create',
+  productType = 'REGULAR',
+  onSuccess,
+}: { mode?: 'create' | 'edit'; productType?: Tipo; onSuccess?: (id: string) => void } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const onOpenChange = vi.fn()
   const ui = (open: boolean) => (
@@ -103,6 +109,7 @@ function pintar({ mode = 'create', productType = 'REGULAR' }: { mode?: 'create' 
           onOpenChange={onOpenChange}
           mode={mode}
           productType={productType}
+          onSuccess={onSuccess}
           {...(mode === 'edit' ? { productId: 'p1' } : {})}
         />
       </MemoryRouter>
@@ -132,6 +139,7 @@ async function prepararFamiliaValida() {
 }
 
 beforeEach(() => {
+  subida.imageForCrop = null
   plan.hasAccess = true
   plan.isResolved = true
   catalogo.maestro = false
@@ -377,6 +385,7 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     fireEvent.click(await casilla())
     fireEvent.change(screen.getByLabelText('opciones.nombre'), { target: { value: 'Talla' } })
     fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'wizard.discard.confirm' }))
     expect(onOpenChange).toHaveBeenCalledWith(false)
 
     abrir(false) // el padre cierra: resetWizard corre por el efecto de `open`
@@ -385,6 +394,193 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(screen.queryByLabelText('opciones.nombre')).not.toBeInTheDocument()
     fireEvent.click(await casilla())
     expect(screen.getByLabelText('opciones.nombre')).toHaveValue('')
+  })
+
+  it('sin capturar nada, «Cancelar» cierra sin preguntar (marcar la casilla sola no cuenta como captura)', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+  })
+
+  it('🔴 con combinaciones capturadas, «Cancelar», la X y Esc preguntan antes de descartar; «Seguir editando» no pierde nada', async () => {
+    const { onOpenChange } = pintar()
+    await prepararFamiliaValida()
+
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.discard.keepEditing' }))
+    await waitFor(() => expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument())
+    expect(screen.getAllByLabelText('tabla.precio').map(i => (i as HTMLInputElement).value)).toEqual(['199', '199'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' })) // la X
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.discard.keepEditing' }))
+    await waitFor(() => expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument())
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.discard.confirm' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('🔴 tras descartar y volver a abrir, marcar sólo la casilla y cancelar cierra sin preguntar (QA en navegador)', async () => {
+    const { onOpenChange, abrir } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'wizard.discard.confirm' }))
+    abrir(false)
+    abrir(true)
+    onOpenChange.mockClear()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('Codex r1 P4: un valor escrito en las fichas sin Enter cuenta como captura (Esc pregunta)', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.change(screen.getByLabelText('opciones.valores'), { target: { value: 'S' } })
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('Codex r1 P5: agregar y quitar una opción vacía no es captura (cierra sin preguntar)', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'opciones.agregar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /^opciones\.quitar$/ })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('Codex r3 #2: la X mientras se guarda cierra sin preguntar «descartar» (lo que va en camino sí se guarda; sin red no se queda sin salida)', async () => {
+    grupos.createProductGroup.mockReturnValue(new Promise(() => {}))
+    const { onOpenChange } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+  })
+
+  it('Codex r3 #3: un guardado que termina tarde no cierra ni limpia el alta nueva que se abrió después', async () => {
+    let terminar: (v: unknown) => void = () => {}
+    grupos.createProductGroup.mockReturnValue(new Promise(r => (terminar = r)))
+    const { onOpenChange, abrir } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    abrir(false)
+    abrir(true)
+    onOpenChange.mockClear()
+    const nombre = await screen.findByPlaceholderText('wizard.step1.namePlaceholder')
+    fireEvent.change(nombre, { target: { value: 'Borrador B' } })
+    terminar({ id: 'g1' })
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'alta.creada' })))
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(screen.getByPlaceholderText('wizard.step1.namePlaceholder')).toHaveValue('Borrador B')
+  })
+
+  it('Codex r5 #1: agregar una opción vacía y quitar la PRIMERA (también vacía) no es captura', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'opciones.agregar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /^opciones\.quitar$/ })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('Codex r4 #2: con un guardado ANTERIOR todavía en camino, cerrar el alta nueva con algo escrito sí pregunta', async () => {
+    grupos.createProductGroup.mockReturnValue(new Promise(() => {}))
+    const { onOpenChange, abrir } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    abrir(false)
+    abrir(true)
+    onOpenChange.mockClear()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Borrador B' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('Codex r4 #3: el número del producto de un guardado anterior no llega al alta siguiente', async () => {
+    let terminarA: (v: unknown) => void = () => {}
+    productWizardApiMock.createProductWithInventory
+      .mockReturnValueOnce(new Promise(r => (terminarA = r)))
+      .mockResolvedValueOnce({ data: { data: { productId: 'producto-B' } } })
+    const alTerminar = vi.fn()
+    const { abrir } = pintar({ onSuccess: alTerminar })
+    await llenarNombreYCategoria('Agua A')
+    fireEvent.change(screen.getByLabelText(/^wizard\.step1\.price/), { target: { value: '20' } })
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(productWizardApiMock.createProductWithInventory).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    abrir(false)
+    abrir(true)
+    terminarA({ data: { data: { productId: 'producto-A' } } })
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'wizard.success' })))
+    await llenarNombreYCategoria('Agua B')
+    fireEvent.change(screen.getByLabelText(/^wizard\.step1\.price/), { target: { value: '25' } })
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(productWizardApiMock.createProductWithInventory).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(toastMock).toHaveBeenCalledTimes(2))
+    expect(alTerminar).not.toHaveBeenCalledWith('producto-A')
+  })
+
+  it('Codex r2 #5: una foto pendiente de recorte cuenta como captura', async () => {
+    subida.imageForCrop = 'blob:foto'
+    const { onOpenChange } = pintar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('Codex r1 P3: prender sólo el inventario cuenta como captura', async () => {
+    productWizardApiMock.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
+    const { onOpenChange } = pintar()
+    const usarInventario = await screen.findByRole('switch', { name: 'wizard.step2.useInventory' })
+    await waitFor(() => expect(usarInventario).toBeEnabled())
+    fireEvent.click(usarInventario)
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('elegir sólo la categoría también cuenta como captura', async () => {
+    const { onOpenChange } = pintar()
+    await userEvent.click(await screen.findByPlaceholderText('wizard.step1.categoryPlaceholder'))
+    await userEvent.click(await screen.findByRole('option', { name: 'Café' }))
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('con algo escrito en el alta normal (sin variantes) también pregunta', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Agua' } })
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('la vista previa dice cuántas variantes van y su precio (o el rango)', async () => {
+    pintar()
+    await prepararFamiliaValida()
+    expect(screen.getByText(`alta.vistaPrevia · ${Currency(199)}`)).toBeInTheDocument()
+    fireEvent.change(screen.getAllByLabelText('tabla.precio')[1], { target: { value: '249' } })
+    expect(screen.getByText(`alta.vistaPrevia · ${Currency(199)} – ${Currency(249)}`)).toBeInTheDocument()
   })
 
   it('🔴 sin la casilla, el alta sigue siendo la de siempre (y termina bien)', async () => {

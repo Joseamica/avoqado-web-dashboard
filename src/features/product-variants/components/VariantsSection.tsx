@@ -21,7 +21,10 @@ export interface ValorVariantes {
   conInventario: boolean
 }
 // eslint-disable-next-line react-refresh/only-export-components
-export const VARIANTES_INICIALES: ValorVariantes = { opciones: [{ name: '', values: [] }], filas: [], conInventario: false }
+export const VARIANTES_INICIALES: ValorVariantes = { opciones: [{ id: 'o0', name: '', values: [] }], filas: [], conInventario: false }
+let ultimaOpcion = 0
+/** Identidad de cada opción agregada en el alta (ver OpcionEditable.id). */
+const nuevaOpcion = (): OpcionEditable => ({ id: `o${++ultimaOpcion}`, name: '', values: [] })
 
 /** Errores que se pintan en rojo; los demás son pasos pendientes mientras el dueño teclea (gris). */
 const GRAVES = new Set(['demasiadasCombinaciones', 'demasiadosValores', 'textoLargo', 'opcionRepetida', 'demasiadasOpciones'])
@@ -56,11 +59,14 @@ export function VariantsSection({ venueId, nombrePadre, value, onChange, disable
   const { t } = useTranslation('variants')
   const limpias = useMemo(() => limpiarOpciones(value.opciones), [value.opciones])
   const problema = useMemo(() => validarOpciones(limpias), [limpias])
+  // Con una opción a medias (paso pendiente, no error) la tabla se queda con la última combinación válida: nada de lo capturado se
+  // esconde, y al completarla las combinaciones nuevas heredan su precio (sincronizarFilas).
+  const enEspera = !!problema && !GRAVES.has(problema.code) && value.filas.length > 0
   const padre = nombrePadre.trim() || t('alta.padreSinNombre')
 
   const cambiarOpciones = (opciones: OpcionEditable[]) => {
     const l = limpiarOpciones(opciones)
-    onChange({ ...value, opciones, filas: validarOpciones(l) === null ? sincronizarFilas(l, value.filas) : value.filas })
+    onChange({ ...value, opciones, filas: validarOpciones(l) === null ? sincronizarFilas(l, value.filas, opciones.map(o => o.id)) : value.filas })
   }
   const cambiarOpcion = (i: number, cambio: Partial<OpcionEditable>) =>
     cambiarOpciones(value.opciones.map((o, j) => (j === i ? { ...o, ...cambio } : o)))
@@ -101,17 +107,19 @@ export function VariantsSection({ venueId, nombrePadre, value, onChange, disable
           </div>
         ))}
         <Button type="button" variant="outline" disabled={disabled || value.opciones.length >= MAX_OPCIONES}
-          onClick={() => cambiarOpciones([...value.opciones, { name: '', values: [] }])} data-tour="product-variants-add-option">
+          onClick={() => cambiarOpciones([...value.opciones, nuevaOpcion()])} data-tour="product-variants-add-option">
           <Plus className="mr-2 h-4 w-4" />
           {value.opciones.length >= MAX_OPCIONES ? t('opciones.maximo') : t('opciones.agregar')}
         </Button>
       </div>
 
-      {problema ? (
+      {problema && (
         <p role="status" className={cn('text-sm', GRAVES.has(problema.code) ? 'text-destructive' : 'text-muted-foreground')}>
           {t(`validacion.${problema.code}`, problema)}
         </p>
-      ) : (
+      )}
+      {enEspera && <p className="text-sm text-muted-foreground">{t('validacion.tablaEnEspera')}</p>}
+      {(!problema || enEspera) && (
         <div className="space-y-4">
           {mostrarInventario && (
             <div className="flex items-center gap-3">
@@ -157,11 +165,12 @@ export function CombinationsTable(p: { padre: string; filas: FilaVariante[]; onC
         </Button>
         <p className="ml-auto text-sm text-muted-foreground">{t('tabla.conteo', { count: incluidas, total: filas.length })}</p>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-input">
-        <Table>
+      {/* La casilla y el nombre van en la primera columna, que se queda fija: al deslizar hasta «Código» o «Existencias» se sigue viendo
+          en qué talla/color se escribe. */}
+      <div className="overflow-hidden rounded-xl border border-input">
+        <Table stickyFirstColumn>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10" />
               <TableHead>{t('tabla.variante')}</TableHead>
               <TableHead>{t('tabla.precioCol')}</TableHead>
               <TableHead>{t('tabla.costoCol')}</TableHead>
@@ -174,12 +183,15 @@ export function CombinationsTable(p: { padre: string; filas: FilaVariante[]; onC
             {filas.map(f => {
               const nombre = nombreDeVariante(padre, f.values)
               return (
-                <TableRow key={f.key} className={cn(!f.incluida && 'opacity-50')}>
-                  <TableCell>
-                    <Checkbox aria-label={t('tabla.incluir', { name: nombre })} checked={f.incluida} disabled={disabled}
-                      onCheckedChange={v => cambiarFila(f.key, { incluida: v === true })} />
+                // Sin opacidad en el renglón: volvería transparente la celda fija y se verían por debajo las columnas al deslizar.
+                <TableRow key={f.key}>
+                  <TableCell className={cn('min-w-56 font-medium', !f.incluida && 'text-muted-foreground')}>
+                    <div className="flex items-center gap-3">
+                      <Checkbox aria-label={t('tabla.incluir', { name: nombre })} checked={f.incluida} disabled={disabled}
+                        onCheckedChange={v => cambiarFila(f.key, { incluida: v === true })} />
+                      {nombre}
+                    </div>
                   </TableCell>
-                  <TableCell className="min-w-48 font-medium">{nombre}</TableCell>
                   <TableCell><CampoNumero label={t('tabla.precio', { name: nombre })} value={f.price} disabled={disabled || !f.incluida} onChange={price => cambiarFila(f.key, { price })} /></TableCell>
                   <TableCell><CampoNumero label={t('tabla.costo', { name: nombre })} value={f.cost} disabled={disabled || !f.incluida} onChange={cost => cambiarFila(f.key, { cost })} /></TableCell>
                   <TableCell>

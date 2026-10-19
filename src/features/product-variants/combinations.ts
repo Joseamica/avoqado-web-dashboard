@@ -14,6 +14,8 @@ const DOS_DECIMALES = /^\d+(\.\d{1,2})?$/
 export const SEPARADOR = ' · '
 
 export interface OpcionEditable {
+  /** Identidad fija de la opción en el alta (no viaja al server): renombrarla no la cambia; quitarla y agregar otra, sí. */
+  id?: string
   name: string
   values: string[]
 }
@@ -27,6 +29,8 @@ export interface FilaVariante {
   sku?: string
   gtin?: string
   initialStock?: number
+  /** Con qué opciones nació la fila (sus identificadores): sólo se conserva o hereda sobre ESAS opciones. No viaja al server. */
+  deOpciones?: string
 }
 
 export type ProblemaDeOpciones =
@@ -117,14 +121,41 @@ export function sugerirSku(padre: string, values: string[]): string {
     .replace(/-+$/, '')
 }
 
-/** Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. */
-export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[]): FilaVariante[] {
+/**
+ * Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. Al agregar una opción (el
+ * asistente sólo agrega al final), cada fila pasa 1 a 1 al PRIMER valor de la opción nueva con su precio, costo e «incluida»
+ * («S» → «S · Rojo»), como Shopify; los demás valores («S · Azul») salen vacíos. Decisión del founder (19-oct): nunca adivinar un
+ * precio. Quitar una opción o renombrar un valor tampoco hereda. SKU, código y existencias nunca: son de una sola variante.
+ */
+export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[], ids?: (string | undefined)[]): FilaVariante[] {
   const porLlave = new Map(previas.map(f => [f.key, f]))
+  // `ids` (de las opciones sin limpiar) son la identidad de cada opción; sin ellos, el nombre.
+  const identidad = opciones.map((o, i) => ids?.[i] ?? norm(o.name))
+  const deOpciones = JSON.stringify(identidad)
+  const deOpcionesAntes = JSON.stringify(identidad.slice(0, -1)) // las mismas opciones, sin la que se acaba de agregar
+  const primeroDeLaUltima = norm(opciones[opciones.length - 1]?.values[0] ?? '')
   return generarCombinaciones(opciones).map(values => {
     const key = llaveDeCombinacion(values)
     const previa = porLlave.get(key)
-    return previa ? { ...previa, values } : { key, values, incluida: true }
+    // Mismos valores pero de OTRAS opciones (se quitó Talla y la «m» es de Modelo) no es la misma combinación.
+    if (previa && (previa.deOpciones === undefined || previa.deOpciones === deOpciones)) return { ...previa, values, deOpciones }
+    const origen =
+      values.length > 1 && norm(values[values.length - 1]) === primeroDeLaUltima
+        ? porLlave.get(llaveDeCombinacion(values.slice(0, -1)))
+        : undefined
+    return origen && origen.deOpciones === deOpcionesAntes
+      ? { key, values, incluida: origen.incluida, price: origen.price, cost: origen.cost, deOpciones }
+      : { key, values, incluida: true, deOpciones }
   })
+}
+
+/** Para la vista previa del alta: cuántas variantes van y el rango de los precios ya capturados. */
+export function resumenDeFamilia(filas: FilaVariante[]): { count: number; min?: number; max?: number } {
+  const incluidas = filas.filter(f => f.incluida)
+  const precios = incluidas.map(f => f.price).filter((p): p is number => p !== undefined)
+  return precios.length
+    ? { count: incluidas.length, min: Math.min(...precios), max: Math.max(...precios) }
+    : { count: incluidas.length }
 }
 
 export function validarFilas(padre: string, filas: FilaVariante[], conInventario: boolean): ProblemaDeFila | null {

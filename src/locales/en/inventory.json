@@ -1,7 +1,10 @@
 {
   "productTypes": {
     "recommended": "Recommended",
-    "recommendedHint": "Recommended for your business type"
+    "recommendedHint": "Recommended for your business type",
+    "title": "What type of item do you want to create?",
+    "description": "Choose the type that best describes what you want to sell.",
+    "label": "Item type"
   },
   "title": "Inventory Management",
   "subtitle": "Manage raw materials, recipes, and stock levels",
@@ -331,7 +334,12 @@
       "lowStock": "Low stock",
       "linkedGroup": "Linked group",
       "customerCanSubstitute": "Customer will be able to substitute this ingredient"
-    }
+    },
+    "cookTimeHelp": "Cooking time in minutes",
+    "ingredientsHelp": "Ingredients are deducted from inventory automatically when this product is sold",
+    "notesHelp": "Additional preparation instructions or notes",
+    "prepTimeHelp": "Preparation time in minutes",
+    "totalCost": "Total recipe cost"
   },
   "pricing": {
     "title": "Pricing Analysis",
@@ -609,7 +617,19 @@
       "success": "Product created successfully!",
       "error": "Failed to create product",
       "soldByWeight": "Sold by weight",
-      "soldByWeightDesc": "Price is per kilogram; the POS captures the weight from the scale at checkout."
+      "soldByWeightDesc": "Price is per kilogram; the POS captures the weight from the scale at checkout.",
+      "basicInfo": "Basic information",
+      "categoryHelp": "Organize your products into categories to make them easier to find.",
+      "descriptionTooltip": "Description customers see when ordering",
+      "modifierGroupsHelp": "Add options and extras customers can choose.",
+      "modifierOptional": "Optional",
+      "modifierRequired": "Required: {{min}}-{{max}}",
+      "noModifierGroupsAvailable": "No modifier groups available",
+      "skuTooltip": "Internal product code. If you leave it empty, it is generated automatically.",
+      "skuPlaceholder": "Auto-generated if left empty",
+      "barcode": "Barcode",
+      "gtinTooltip": "Universal barcode (UPC/EAN). Optional.",
+      "optional": "Optional"
     },
     "step2": {
       "title": "Inventory Configuration",
@@ -702,6 +722,13 @@
         "cost": "Cost",
         "withInventory": "with inventory"
       }
+    },
+    "newProduct": "New product",
+    "discard": {
+      "title": "Discard changes?",
+      "description": "What you entered for this product will be lost.",
+      "confirm": "Discard",
+      "keepEditing": "Keep editing"
     }
   },
   "conversion": {
