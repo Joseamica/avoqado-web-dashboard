@@ -13,12 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MAX_OPCIONES, MAX_TEXTO_OPCION } from '@/features/product-variants/combinations'
-import { codigoDelError } from '@/features/product-variants/errors'
+import { codigoDelError, mensajeDeVariantes } from '@/features/product-variants/errors'
 import { cuerpoDeAgrupar, partirEnOpciones, type EstadoAgrupar } from '@/features/product-variants/groupExisting'
 import { useInvalidarCatalogo } from '@/features/product-variants/hooks'
 import { useErrorDeEscritura } from '@/features/product-variants/useErrorDeEscritura'
@@ -26,8 +27,15 @@ import { usePrintStations } from '@/hooks/use-print-stations'
 import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
-import { applyGroupExisting, previewGroupExisting } from '@/services/productGroups.service'
-import type { GroupExistingBody, GroupExistingPreview } from '@/types/productGroup'
+import { applyGroupExisting, applyShopifyProposal, previewGroupExisting, previewShopifyProposal } from '@/services/productGroups.service'
+import type { GroupExistingBody, GroupExistingPreview, ShopifyChoices, ShopifySkippedMember } from '@/types/productGroup'
+
+/** «Desde Shopify» (bloque 5): de qué producto de Shopify sale la propuesta. Nombre, opciones y miembros los arma el server. */
+export interface OrigenShopify {
+  shopifyProductId: string
+  mode: 'CREATE' | 'ADD'
+  groupName: string | null
+}
 
 interface Props {
   open: boolean
@@ -36,6 +44,8 @@ interface Props {
   inicial: EstadoAgrupar
   /** Avisos de quien abre el diálogo (p. ej. renglones de Shopify que no se encontraron). */
   avisos?: string[]
+  /** Modo «Desde Shopify»: nombre, opciones y miembros de sólo lectura; en ADD sólo se ven los cambios de cada talla. */
+  shopify?: OrigenShopify
   onDone: (groupId: string) => void
 }
 
@@ -50,7 +60,54 @@ const VENCIDA = 'PRODUCT_GROUP_PREVIEW_STALE'
 
 /** Convertir productos sueltos en variantes de uno nuevo. Se monta al abrir: cada apertura arranca de `inicial`. */
 export function GroupExistingDialog(p: Props) {
-  return p.open ? <DialogoAbierto {...p} /> : null
+  if (!p.open) return null
+  return p.shopify ? <DialogoShopify {...p} shopify={p.shopify} /> : <DialogoAbierto {...p} />
+}
+
+const useCategorias = (venueId: string) =>
+  useQuery({ queryKey: ['menu-categories', venueId], queryFn: () => getMenuCategories(venueId), staleTime: 30_000 })
+
+/** Vacío = «La del primer producto» (el server toma la del primer miembro); esa opción también la quita. Si la lista falla, se reintenta. */
+function SelectorDeCategoria(p: { venueId: string; value?: string; onChange: (id: string | undefined) => void; disabled: boolean }) {
+  const { t } = useTranslation('variants')
+  const categorias = useCategorias(p.venueId)
+  const [busca, setBusca] = useState('')
+  const opciones = useMemo(
+    () => [
+      { id: PRIMERA, label: t('agrupar.categoriaPrimera') },
+      ...(categorias.data ?? [])
+        .filter(c => !busca.trim() || includesNormalized(c.name ?? '', busca))
+        .map(c => ({ id: c.id, label: c.name })),
+    ],
+    [categorias.data, busca, t],
+  )
+  const nombre = (p.value && categorias.data?.find(c => c.id === p.value)?.name) || ''
+  if (categorias.isError && !categorias.data)
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-input p-3">
+        <p className="text-sm text-destructive">{t('agrupar.errorCategorias')}</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void categorias.refetch()}>
+          {t('familia.reintentar')}
+        </Button>
+      </div>
+    )
+  return (
+    <div data-tour="group-existing-category">
+      <SearchCombobox
+        inputId="agrupar-categoria"
+        items={opciones}
+        value={busca || nombre}
+        onChange={setBusca}
+        onSelect={item => {
+          p.onChange(item.id === PRIMERA ? undefined : item.id)
+          setBusca('')
+        }}
+        placeholder={t('agrupar.categoriaPrimera')}
+        isLoading={categorias.isLoading}
+        disabled={p.disabled}
+      />
+    </div>
+  )
 }
 
 function DialogoAbierto({ onClose, venueId, inicial, avisos, onDone }: Props) {
@@ -64,10 +121,9 @@ function DialogoAbierto({ onClose, venueId, inicial, avisos, onDone }: Props) {
   const [intento, setIntento] = useState(false)
   const [vencida, setVencida] = useState(false)
   const [preguntarCierre, setPreguntarCierre] = useState(false)
-  const [buscaCategoria, setBuscaCategoria] = useState('')
   const enviando = useRef(false)
 
-  const categorias = useQuery({ queryKey: ['menu-categories', venueId], queryFn: () => getMenuCategories(venueId), staleTime: 30_000 })
+  const categorias = useCategorias(venueId)
   const extras = useQuery({
     queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId),
@@ -75,16 +131,6 @@ function DialogoAbierto({ onClose, venueId, inicial, avisos, onDone }: Props) {
     enabled: !!vista,
   })
   const estaciones = usePrintStations(vista ? venueId : null)
-  const opcionesCategoria = useMemo(
-    () => [
-      { id: PRIMERA, label: t('agrupar.categoriaPrimera') },
-      ...(categorias.data ?? [])
-        .filter(c => !buscaCategoria.trim() || includesNormalized(c.name ?? '', buscaCategoria))
-        .map(c => ({ id: c.id, label: c.name })),
-    ],
-    [categorias.data, buscaCategoria, t],
-  )
-  const nombreCategoria = (estado.categoryId && categorias.data?.find(c => c.id === estado.categoryId)?.name) || ''
 
   const resultado = useMemo(() => cuerpoDeAgrupar(estado), [estado])
   const desactualizada = !!vista && (!resultado.ok || JSON.stringify(resultado.body) !== JSON.stringify(vista.body))
@@ -196,31 +242,12 @@ function DialogoAbierto({ onClose, venueId, inicial, avisos, onDone }: Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="agrupar-categoria">{t('agrupar.categoria')}</Label>
-            {categorias.isError && !categorias.data ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-input p-3">
-                <p className="text-sm text-destructive">{t('agrupar.errorCategorias')}</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => void categorias.refetch()}>
-                  {t('familia.reintentar')}
-                </Button>
-              </div>
-            ) : (
-              /* Vacío = «La del primer producto» (el server toma la del primer miembro); esa opción también la quita. */
-              <div data-tour="group-existing-category">
-                <SearchCombobox
-                  inputId="agrupar-categoria"
-                  items={opcionesCategoria}
-                  value={buscaCategoria || nombreCategoria}
-                  onChange={setBuscaCategoria}
-                  onSelect={item => {
-                    editar(e => ({ ...e, categoryId: item.id === PRIMERA ? undefined : item.id }))
-                    setBuscaCategoria('')
-                  }}
-                  placeholder={t('agrupar.categoriaPrimera')}
-                  isLoading={categorias.isLoading}
-                  disabled={bloqueado}
-                />
-              </div>
-            )}
+            <SelectorDeCategoria
+              venueId={venueId}
+              value={estado.categoryId}
+              onChange={categoryId => editar(e => ({ ...e, categoryId }))}
+              disabled={bloqueado}
+            />
           </div>
         </section>
 
@@ -379,6 +406,9 @@ function ResumenDeVistaPrevia(p: {
   categoria?: string
   impresora?: string
   extras: string[]
+  /** «Agregar a X» desde Shopify: la familia no cambia; se ven todas las tallas que se suman (con sus cambios) y las que se saltan. */
+  soloCambios?: boolean
+  saltadas?: ShopifySkippedMember[]
 }) {
   const { t } = useTranslation('variants')
   const padre = p.preview.parent
@@ -410,39 +440,211 @@ function ResumenDeVistaPrevia(p: {
             </ul>
           </div>
         )}
-        <div className="space-y-2">
-          <h3 className="font-semibold">{t('agrupar.padreQueda')}</h3>
-          <dl className="grid gap-1 text-sm">
-            {filas
-              .filter(([, v]) => v)
-              .map(([k, v]) => (
-                <div key={k} className="flex gap-2">
-                  <dt className="text-muted-foreground">{t(`agrupar.resumen.${k}`)}</dt>
-                  <dd>{v}</dd>
-                </div>
-              ))}
-          </dl>
-        </div>
+        {!p.soloCambios && (
+          <div className="space-y-2">
+            <h3 className="font-semibold">{t('agrupar.padreQueda')}</h3>
+            <dl className="grid gap-1 text-sm">
+              {filas
+                .filter(([, v]) => v)
+                .map(([k, v]) => (
+                  <div key={k} className="flex gap-2">
+                    <dt className="text-muted-foreground">{t(`agrupar.resumen.${k}`)}</dt>
+                    <dd>{v}</dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        )}
         <div className="space-y-2">
           <h3 className="font-semibold">{t('agrupar.cadaProducto')}</h3>
           <ul className="space-y-2 text-sm">
-            {p.preview.members.map(m => (
-              <li key={m.productId}>
-                <p>
-                  {m.currentName} → <span className="font-medium">{m.newName}</span>
-                </p>
-                {m.changes.length > 0 && (
-                  <ul className="list-disc pl-5 text-muted-foreground">
-                    {m.changes.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
+            {p.preview.members.map(m =>
+              p.soloCambios && m.changes.length === 0 ? (
+                // «Agregar a X»: una talla que no cambia nada también se suma, y se dice.
+                <li key={m.productId}>
+                  <p className="font-medium">{m.newName}</p>
+                  <p className="text-muted-foreground">{t('shopify.seSumaSinCambios')}</p>
+                </li>
+              ) : (
+                <li key={m.productId}>
+                  <p>
+                    {m.currentName} → <span className="font-medium">{m.newName}</span>
+                  </p>
+                  {m.changes.length > 0 && (
+                    <ul className="list-disc pl-5 text-muted-foreground">
+                      {m.changes.map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ),
+            )}
           </ul>
         </div>
+        {p.saltadas && p.saltadas.length > 0 && (
+          <div className="space-y-2" data-tour="group-existing-skipped">
+            <h3 className="font-semibold">{t('shopify.saltadas', { count: p.saltadas.length })}</h3>
+            <ul className="space-y-2 text-sm">
+              {p.saltadas.map(m => (
+                <li key={m.productId}>
+                  <p className="font-medium">{m.name}</p>
+                  <p className="text-muted-foreground">{m.motivo}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </section>
+  )
+}
+
+/**
+ * «Desde Shopify»: el server arma nombre, opciones y miembros con lo que guardó cada pareja (el dueño no los teclea). La vista previa se
+ * pide sola y se vuelve a pedir al cambiar la categoría (lo único de Avoqado que se elige aquí, sólo al crear); «Confirmar» manda la MISMA
+ * elección que la generó, con su huella (la llave de la consulta es la elección: los datos en pantalla siempre son de ella).
+ */
+function DialogoShopify({ onClose, venueId, inicial, shopify, onDone }: Props & { shopify: OrigenShopify }) {
+  const { t } = useTranslation('variants')
+  const { toast } = useToast()
+  const invalidar = useInvalidarCatalogo()
+  const alFallar = useErrorDeEscritura(venueId)
+  const crear = shopify.mode === 'CREATE'
+  const [categoryId, setCategoryId] = useState<string | undefined>()
+  const [vencida, setVencida] = useState(false)
+  const enviando = useRef(false)
+  const choices = useMemo<ShopifyChoices>(() => (crear && categoryId ? { categoryId } : {}), [crear, categoryId])
+
+  // Fuera de ['products', venueId]: aplicar invalida el catálogo y no debe volver a pedir la vista previa de lo que ya se agrupó.
+  const vista = useQuery({
+    queryKey: ['shopify-proposal-preview', venueId, shopify.shopifyProductId, choices],
+    queryFn: () => previewShopifyProposal(venueId, shopify.shopifyProductId, choices),
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const categorias = useCategorias(venueId)
+  const extras = useQuery({
+    queryKey: ['modifier-groups', venueId],
+    queryFn: () => getModifierGroups(venueId),
+    staleTime: 30_000,
+    enabled: !!vista.data,
+  })
+  const estaciones = usePrintStations(vista.data ? venueId : null)
+
+  const aplicar = useMutation({
+    mutationFn: (v: { choices: ShopifyChoices; fingerprint: string }) =>
+      applyShopifyProposal(venueId, shopify.shopifyProductId, v.choices, v.fingerprint),
+    onSuccess: async r => {
+      await invalidar(venueId)
+      toast({ title: t('agrupar.listo', { count: r.productIds.length, name: vista.data?.parent.name ?? inicial.name }) })
+      onDone(r.groupId)
+    },
+    onError: (error: unknown) => {
+      if (codigoDelError(error) !== VENCIDA) return alFallar(t('agrupar.noAgrupado'))(error)
+      void invalidar(venueId)
+      setVencida(true)
+      void vista.refetch()
+    },
+    onSettled: () => {
+      enviando.current = false
+    },
+  })
+  // Tras un 409 de vista vencida se vuelve a pedir: si ESE reintento falla, `data` sigue siendo la vieja y no se debe confirmar.
+  const lista = !!vista.data && !vista.isFetching && !vista.isError
+  const confirmar = () => {
+    if (enviando.current || !lista || !vista.data) return
+    enviando.current = true
+    setVencida(false)
+    aplicar.mutate({ choices, fingerprint: vista.data.fingerprint })
+  }
+  const preview = vista.data
+
+  return (
+    <FullScreenModal
+      open
+      onClose={() => {
+        if (!aplicar.isPending) onClose()
+      }}
+      onEscapeKeyDown={e => {
+        if (aplicar.isPending) e.preventDefault()
+      }}
+      closeButtonTestId="cerrar-agrupar"
+      title={t('agrupar.titulo')}
+      contentClassName="bg-muted/30"
+      actions={
+        <Button disabled={!lista || aplicar.isPending} onClick={confirmar} data-tour="group-existing-confirm">
+          {t('agrupar.confirmar')}
+        </Button>
+      }
+    >
+      <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-6" data-tour="group-existing-dialog">
+        <section className="grid gap-4 rounded-2xl border border-border/50 bg-card p-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Label htmlFor="agrupar-nombre">{t('agrupar.nombre')}</Label>
+              <Badge variant="secondary">{crear ? t('shopify.crear') : t('shopify.agregarA', { name: shopify.groupName ?? '' })}</Badge>
+            </div>
+            <Input
+              id="agrupar-nombre"
+              className="h-12 text-base"
+              readOnly
+              value={preview?.parent.name ?? inicial.name}
+              data-tour="group-existing-name"
+            />
+            <p className="text-xs text-muted-foreground">{t(crear ? 'shopify.nombreDeShopify' : 'shopify.familiaNoCambia')}</p>
+          </div>
+          {crear && (
+            <div className="space-y-2">
+              <Label htmlFor="agrupar-categoria">{t('agrupar.categoria')}</Label>
+              <SelectorDeCategoria venueId={venueId} value={categoryId} onChange={setCategoryId} disabled={aplicar.isPending} />
+            </div>
+          )}
+        </section>
+
+        {crear && preview && preview.options.length > 0 && (
+          <section className="space-y-2 rounded-2xl border border-border/50 bg-card p-6" data-tour="group-existing-options">
+            <h3 className="font-semibold">{t('shopify.opciones')}</h3>
+            <ul className="space-y-1 text-sm">
+              {preview.options.map(o => (
+                <li key={o.name}>{`${o.name}: ${o.values.join(', ')}`}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {vista.isLoading && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t('shopify.cargandoVista')}
+          </p>
+        )}
+        {vista.isError && !vista.isFetching && (
+          <div role="alert" className="space-y-2 rounded-xl border border-input bg-card p-4 text-sm">
+            <p className="text-destructive">{mensajeDeVariantes(vista.error, t)}</p>
+            <Button variant="outline" size="sm" onClick={() => void vista.refetch()} data-tour="group-existing-retry">
+              {t('fuentes.reintentar')}
+            </Button>
+          </div>
+        )}
+        {vencida && (
+          <p role="status" className="rounded-xl border border-input bg-muted p-4 text-sm">
+            {t('agrupar.stale')}
+          </p>
+        )}
+        {preview && (
+          <ResumenDeVistaPrevia
+            preview={preview}
+            desactualizada={false}
+            soloCambios={!crear}
+            saltadas={preview.skipped}
+            categoria={categorias.data?.find(c => c.id === preview.parent.categoryId)?.name}
+            impresora={estaciones.data?.find(s => s.id === preview.parent.printStationId)?.name}
+            extras={preview.parent.modifierGroupIds.map(id => extras.data?.find(g => g.id === id)?.name).filter((x): x is string => !!x)}
+          />
+        )}
+      </div>
+    </FullScreenModal>
   )
 }
