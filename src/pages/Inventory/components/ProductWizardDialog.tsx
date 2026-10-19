@@ -695,11 +695,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setConVariantes(false) // el asistente sigue montado al cerrarse: el siguiente alta arranca sin la casilla
     setVariantes(VARIANTES_INICIALES)
     setConfirmarDescartar(false) // la X durante el guardado no deja la pregunta abierta tras cerrar
+    setImageForCrop(null) // la foto sin recortar no reaparece en el siguiente alta
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
     step3RecipeForm.reset()
-  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm])
+  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm, setImageForCrop])
 
   // Handle dialog close
   useEffect(() => {
@@ -1210,6 +1211,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
   // `true` sin tocar nada (QA en navegador, 19-oct). Las variantes se comparan por contenido (agregar y quitar una opción vacía no es
   // captura), y cuenta también un valor escrito en las fichas que aún no es ficha (`data-por-confirmar`, como ProductGroupDialog).
+  // No se bloquea mientras se guarda: sin red la mutación queda en pausa y el asistente se quedaría sin salida (Codex r2); si el
+  // guardado termina bien, resetWizard cierra la pregunta.
   const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
   const hayCaptura =
     mode === 'create' &&
@@ -1217,9 +1220,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       tocado(step2Form) ||
       tocado(step3SimpleForm) ||
       tocado(step3RecipeForm) ||
-      JSON.stringify(variantes) !== JSON.stringify(VARIANTES_INICIALES))
+      JSON.stringify(variantes) !== JSON.stringify(VARIANTES_INICIALES) ||
+      !!imageForCrop) // una foto elegida que aún no se recorta
   const pedirCerrar = () => {
-    if (isLoading) return // guardando: lo que va en camino no se descarta (Cancelar ya está deshabilitado; aquí la X y Esc)
     const textoPorConfirmar =
       mode === 'create' &&
       Array.from(document.querySelectorAll<HTMLInputElement>('input[data-por-confirmar]')).some(i => i.value.trim() !== '')

@@ -63,20 +63,22 @@ vi.mock('@/hooks/use-tier-feature-access', async importOriginal => ({
       ? { hasAccess: plan.hasAccess, isResolved: plan.isResolved, requiredTier: 'PRO', isLoading: false }
       : { hasAccess: true, isResolved: true, requiredTier: 'PRO', isLoading: false },
 }))
+// Funciones ESTABLES (como el useState real): una nueva en cada pintado redispara la limpieza del asistente sin fin.
+const subida = vi.hoisted(() => ({ imageForCrop: null as string | null, nada: () => undefined }))
 vi.mock('@/hooks/use-image-uploader', () => ({
   useImageUploader: () => ({
     uploading: false,
     imageUrl: null,
-    imageForCrop: null,
+    imageForCrop: subida.imageForCrop,
     crop: { x: 0, y: 0 },
     zoom: 1,
-    onCropComplete: () => undefined,
-    handleFileUpload: () => undefined,
-    handleCropConfirm: () => undefined,
-    handleFileRemove: () => undefined,
-    setImageForCrop: () => undefined,
-    setCrop: () => undefined,
-    setZoom: () => undefined,
+    onCropComplete: subida.nada,
+    handleFileUpload: subida.nada,
+    handleCropConfirm: subida.nada,
+    handleFileRemove: subida.nada,
+    setImageForCrop: subida.nada,
+    setCrop: subida.nada,
+    setZoom: subida.nada,
   }),
 }))
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))
@@ -132,6 +134,7 @@ async function prepararFamiliaValida() {
 }
 
 beforeEach(() => {
+  subida.imageForCrop = null
   plan.hasAccess = true
   plan.isResolved = true
   catalogo.maestro = false
@@ -451,7 +454,7 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('Codex r1 P6: la X mientras se guarda no abre la pregunta (lo que va en camino no se descarta)', async () => {
+  it('Codex r1 P6 + r2 #4: la X mientras se guarda pregunta, y si el guardado termina bien la pregunta se cierra sola', async () => {
     let terminar: (v: unknown) => void = () => {}
     grupos.createProductGroup.mockReturnValue(new Promise(r => (terminar = r)))
     const { onOpenChange } = pintar()
@@ -459,10 +462,29 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     fireEvent.click(botonGuardar())
     await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
     terminar({ id: 'g1' })
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument())
+  })
+
+  it('Codex r2 #4: un guardado que nunca responde (sin red) no deja el asistente sin salida', async () => {
+    grupos.createProductGroup.mockReturnValue(new Promise(() => {}))
+    const { onOpenChange } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    fireEvent.click(await screen.findByRole('button', { name: 'wizard.discard.confirm' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('Codex r2 #5: una foto pendiente de recorte cuenta como captura', async () => {
+    subida.imageForCrop = 'blob:foto'
+    const { onOpenChange } = pintar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
   })
 
   it('Codex r1 P3: prender sólo el inventario cuenta como captura', async () => {
