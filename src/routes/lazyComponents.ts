@@ -235,6 +235,7 @@ export const CfdiConfiguracion = lazyWithRetry(() => import('@/pages/Cfdi/CfdiCo
 
 // Delivery — visible teaser (Premium feature, 4 data-driven states inside the page)
 export const DeliveryPage = lazyWithRetry(() => import('@/pages/Delivery/DeliveryPage'))
+export const OnlineOrderingPage = lazyWithRetry(() => import('@/pages/OnlineOrdering/OnlineOrderingPage'))
 
 // Promotions
 export const Discounts = lazyWithRetry(() => import('@/pages/Promotions/Discounts'))

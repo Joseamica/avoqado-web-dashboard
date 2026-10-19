@@ -49,6 +49,7 @@
   Upload,
   Truck,
   Tags,
+  ShoppingBag,
 } from 'lucide-react'
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -468,6 +469,16 @@ export function AppSidebar({
         permission: 'orders:read',
         keywords: ['ordenes', 'comandas', 'tickets'],
       },
+      // Pedidos en línea (PRO): el ítem navega normal; la Bandeja no tiene candado y el <FeatureGate> vive en la página.
+      {
+        title: t('sidebar:salesMenu.onlineOrdering', { defaultValue: 'Pedidos en línea' }),
+        url: 'online-ordering',
+        icon: ShoppingBag,
+        permission: 'orders:read',
+        premiumLocked: !hasFeatureAccess('ONLINE_ORDERING'),
+        gatedFeature: 'ONLINE_ORDERING',
+        keywords: ['pedidos en linea', 'online', 'tienda en linea', 'para recoger', 'pickup', 'bandeja', 'pedir en linea'],
+      },
       // «Turnos» de caja: los cortes viven con Ventas; no es RH (fase 1a lo sacó del grupo de personal). Misma URL, permiso y
       // condición enableShifts de siempre.
       ...(activeVenue?.settings?.enableShifts
@@ -570,6 +581,7 @@ export function AppSidebar({
       if (isWhiteLabelVenue) {
         if (item.url === 'payments' && !canWL('AVOQADO_PAYMENTS')) return false
         if (item.url === 'orders' && !canWL('AVOQADO_ORDERS')) return false
+        if (item.url === 'online-ordering') return false
         if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
         if (item.url === '#payment-links' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
         if (item.url === 'ecommerce' && !canWL('AVOQADO_PAYMENT_LINKS')) return false

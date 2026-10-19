@@ -52,7 +52,8 @@
     "disputes": "Disputes",
     "back": "Sales",
     "ecommerce": "E-commerce",
-    "delivery": "Delivery"
+    "delivery": "Delivery",
+    "onlineOrdering": "Online ordering"
   },
   "growth": "Growth",
   "paymentProviders": "Payment Providers",
@@ -193,6 +194,7 @@
     "disputes": "Disputes",
     "subscriptions": "Subscriptions",
     "delivery": "Delivery",
+    "onlineOrdering": "Online ordering",
     "ecommerce": "Online Store",
     "calendar": "Calendar",
     "history": "History",
