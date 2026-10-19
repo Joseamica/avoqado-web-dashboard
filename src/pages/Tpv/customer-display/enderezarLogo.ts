@@ -1,29 +1,36 @@
 /**
- * La orientación EXIF (tag 0x0112 del IFD0) de un JPEG, leyendo su segmento APP1. 1-8, o null si no es JPEG, no trae
- * Exif o los bytes no alcanzan. Sólo hace falta la cabecera: el APP1 va antes de la imagen (SOS).
+ * La orientación EXIF (tag 0x0112 del IFD0) de un JPEG: 1-8, o null si no es JPEG, no trae Exif o viene truncado.
+ * 🔴 Codex r2: el APP1 «Exif» puede venir TARDE, tras APP0/APP2/COM/XMP que suman más que cualquier corte fijo. Por eso se
+ * salta de segmento en segmento desde el SOI leyendo sólo su cabecera de 4 bytes, hasta el Exif o hasta SOS/EOI: nunca se
+ * lee el archivo entero, sólo cabeceras y el APP1 que toque.
  */
-export function orientacionExif(bytes: Uint8Array): number | null {
+export async function orientacionExif(archivo: Blob): Promise<number | null> {
+  const leer = async (desde: number, largo: number) => new DataView(await archivo.slice(desde, desde + largo).arrayBuffer())
   try {
-    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-    if (v.getUint16(0) !== 0xffd8) return null // SOI
-    let i = 2
-    while (v.getUint8(i) === 0xff) {
-      const marca = v.getUint8(i + 1)
-      if (marca === 0xda) return null // SOS: empezó la imagen y no hubo Exif
-      if (marca === 0xe1 && v.getUint32(i + 4) === 0x45786966 && v.getUint16(i + 8) === 0) {
-        const tiff = i + 10 // tras «Exif\0\0»
-        const le = v.getUint16(tiff) === 0x4949 // «II» = Intel; «MM» = Motorola
-        const ifd = tiff + v.getUint32(tiff + 4, le)
-        for (let k = 0, n = v.getUint16(ifd, le); k < n; k++) {
-          const entrada = ifd + 2 + k * 12
-          if (v.getUint16(entrada, le) === 0x0112) {
-            const o = v.getUint16(entrada + 8, le)
-            return o >= 1 && o <= 8 ? o : null
+    if ((await leer(0, 2)).getUint16(0) !== 0xffd8) return null // SOI
+    for (let i = 2; i + 4 <= archivo.size;) {
+      const cabecera = await leer(i, 4)
+      const marca = cabecera.getUint16(0)
+      const largo = cabecera.getUint16(2) // incluye sus 2 bytes
+      if (marca === 0xffda || marca === 0xffd9 || marca >> 8 !== 0xff || largo < 2) return null // empezó la imagen: no hubo Exif
+      if (marca === 0xffe1) {
+        const v = await leer(i + 4, largo - 2)
+        if (v.byteLength >= 6 && v.getUint32(0) === 0x45786966 && v.getUint16(4) === 0) {
+          const tiff = 6 // tras «Exif\0\0»
+          const le = v.getUint16(tiff) === 0x4949 // «II» = Intel; «MM» = Motorola
+          const ifd = tiff + v.getUint32(tiff + 4, le)
+          for (let k = 0, n = v.getUint16(ifd, le); k < n; k++) {
+            const entrada = ifd + 2 + k * 12
+            if (v.getUint16(entrada, le) === 0x0112) {
+              const o = v.getUint16(entrada + 8, le)
+              return o >= 1 && o <= 8 ? o : null
+            }
           }
+          return null
         }
-        return null
+        // otro APP1 (XMP): se sigue buscando
       }
-      i += 2 + v.getUint16(i + 2)
+      i += 2 + largo
     }
     return null
   } catch {
@@ -44,7 +51,7 @@ export function orientacionExif(bytes: Uint8Array): number | null {
 export async function enderezarLogo(archivo: File): Promise<File> {
   if (archivo.type !== 'image/jpeg') return archivo
   try {
-    const orientacion = orientacionExif(new Uint8Array(await archivo.slice(0, 128 * 1024).arrayBuffer()))
+    const orientacion = await orientacionExif(archivo)
     if (orientacion === null || orientacion === 1) return archivo
     const mapa = await createImageBitmap(archivo, { imageOrientation: 'from-image' })
     try {
