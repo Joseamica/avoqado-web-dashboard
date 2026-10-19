@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   contarCombinaciones, filaParaServidor, generarCombinaciones, limpiarOpciones, llaveDeCombinacion, nombreDeVariante,
-  resumenDeFamilia, sincronizarFilas, sugerirSku, validarFilas, validarOpciones,
+  resumenDeFamilia, sincronizarFilas, sugerirSku, validarFilas, validarOpciones, type FilaVariante,
 } from '@/features/product-variants/combinations'
 
 describe('opciones', () => {
@@ -76,7 +76,7 @@ describe('filas', () => {
   it('🔴 tecleando los colores de uno en uno (Enter tras cada uno), cada color nuevo también hereda de su talla; una talla nueva no hereda', () => {
     const tallas = (vs: string[]) => ({ name: 'Talla', values: vs })
     const color = (vs: string[]) => ({ name: 'Color', values: vs })
-    let filas = sincronizarFilas([tallas(['S', 'M'])], []).map(f => ({ ...f, price: f.values[0] === 'S' ? 199 : 249 }))
+    let filas: FilaVariante[] = sincronizarFilas([tallas(['S', 'M'])], []).map(f => ({ ...f, price: f.values[0] === 'S' ? 199 : 249 }))
     filas = sincronizarFilas([tallas(['S', 'M']), color(['Rojo'])], filas)
     filas = sincronizarFilas([tallas(['S', 'M']), color(['Rojo', 'Azul'])], filas)
     expect(filas.map(f => [f.values.join('/'), f.price])).toEqual([['S/Rojo', 199], ['S/Azul', 199], ['M/Rojo', 249], ['M/Azul', 249]])
