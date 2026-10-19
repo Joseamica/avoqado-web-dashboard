@@ -24,6 +24,7 @@ import path from 'node:path'
 const activatePlan = vi.fn()
 const saveStep = vi.fn()
 const planSetupIntent = vi.fn()
+const getProgress = vi.fn()
 const confirmSetup = vi.fn()
 const trackPurchase = vi.fn()
 const track = vi.fn()
@@ -35,7 +36,12 @@ vi.mock('@/services/setup.service', () => ({
     activatePlan: (...a: unknown[]) => activatePlan(...a),
     saveStep: (...a: unknown[]) => saveStep(...a),
     planSetupIntent: (...a: unknown[]) => planSetupIntent(...a),
+    getProgress: (...a: unknown[]) => getProgress(...a),
   },
+}))
+// Sólo para montar el asistente corto REAL en la prueba I1 (el marco usa tema e idioma, que aquí no importan).
+vi.mock('@/components/layouts/SetupWizardLayout', () => ({
+  SetupWizardLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 vi.mock('@/lib/gtag', () => ({ trackPurchase: (...a: unknown[]) => trackPurchase(...a), trackSignup: vi.fn() }))
 vi.mock('@/lib/posthog', () => ({ track: (...a: unknown[]) => track(...a) }))
@@ -74,7 +80,10 @@ vi.mock('@stripe/react-stripe-js', () => ({
 }))
 vi.mock('react-i18next', () => import('./traduccionesDePrueba'))
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router-dom'
 import { OfferStep } from '../steps/OfferStep'
+import ShortSetupWizard from '../ShortSetupWizard'
 import type { LaunchOfferView, PlanQuote } from '../launchOffer.types'
 
 const OFERTA: LaunchOfferView = {
@@ -164,6 +173,7 @@ beforeEach(() => {
   activatePlan.mockReset()
   saveStep.mockReset().mockResolvedValue({})
   planSetupIntent.mockReset().mockResolvedValue({ data: { data: { clientSecret: 'seti_secret' } } })
+  getProgress.mockReset()
   confirmSetup.mockReset().mockResolvedValue({ setupIntent: { payment_method: 'pm_123' } })
   confirmCardPayment.mockReset().mockResolvedValue({ paymentIntent: { status: 'succeeded' } })
   trackPurchase.mockReset()
@@ -1058,6 +1068,97 @@ describe('🔴 D2: el banco pide autorizar el primer cobro', () => {
       mismosCuerpos()
     } finally {
       vi.useRealTimers()
+    }
+  })
+})
+
+/**
+ * 🔴 Revisión final I1 (18-oct): mientras el banco pregunta, el servidor tiene el cobro en `IN_PROGRESS`. Si la persona se va
+ * a la app de su banco (o a otra pestaña) y vuelve, react-query vuelve a leer el progreso al regresar la pantalla
+ * (`refetchOnWindowFocus` por defecto, `staleTime: 0`) y se queda con `IN_PROGRESS`. Si el reto falla, el 402 tiene que
+ * volver a leerlo: si no, los planes siguen apagados y la ventana dice «Tu último pago quedó sin confirmar» junto al rechazo
+ * (spec §3: tras un reto fallido el plan se puede cambiar). Se monta el asistente corto REAL con un QueryClient como el de
+ * `main.tsx`, y el regreso de la pantalla es el evento `visibilitychange` del navegador, no un `rerender` a mano.
+ */
+describe('🔴 I1: el reto falla después de ir a la app del banco y volver', () => {
+  const RETO = errorHttp(409, 'PLAN_PAYMENT_REQUIRES_ACTION', { details: { clientSecret: 'pi_1_secret_x' } })
+  const progresoDelAlta = (planActivationStatus: string) => ({
+    data: {
+      progress: {
+        legal: { consentRequired: false },
+        v2SetupData: { step2: { businessName: 'Café Testarudo' }, step3: { businessType: 'CAFE' } },
+        planActivationStatus,
+        launchOffer: OFERTA,
+        planQuote: QUOTE,
+        venueId: 'venue_1',
+      },
+    },
+  })
+  const pantallaEn = (estado: 'hidden' | 'visible') => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => estado })
+    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }))
+  }
+
+  it('tras el 402 se vuelve a leer el progreso: planes libres, sin «sin confirmar», y se puede elegir otro plan', async () => {
+    // Lo que diría el servidor en cada momento.
+    let enElServidor = 'NONE'
+    getProgress.mockImplementation(async () => progresoDelAlta(enElServidor))
+    confirmSetup.mockResolvedValue({ setupIntent: { payment_method: 'pm_1' } })
+    let terminarReto: (v: unknown) => void = () => {}
+    confirmCardPayment.mockImplementation(() => new Promise(r => (terminarReto = r)))
+    activatePlan
+      .mockImplementationOnce(async () => {
+        enElServidor = 'IN_PROGRESS' // el servidor tomó el cobro y espera al banco
+        throw RETO
+      })
+      .mockImplementationOnce(async () => {
+        enElServidor = 'DECLINED' // el reto falló: el servidor lo cierra como rechazo
+        throw errorHttp(402, 'PLAN_PAYMENT_DECLINED', { details: { declineCode: 'payment_intent_authentication_failure' } })
+      })
+    const client = new QueryClient()
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={client}>
+          <ShortSetupWizard organizationId="org_1" />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    try {
+      await pagar()
+      await waitFor(() => expect(confirmCardPayment).toHaveBeenCalledTimes(1))
+
+      // Con el reto abierto, la persona se va a la app de su banco y vuelve: react-query lee el progreso otra vez.
+      act(() => pantallaEn('hidden'))
+      act(() => pantallaEn('visible'))
+      await waitFor(() => expect(getProgress).toHaveBeenCalledTimes(2))
+      await waitFor(() =>
+        expect(
+          client.getQueryData<{ progress: { planActivationStatus: string } }>(['onboarding-progress', 'org_1'])?.progress,
+        ).toMatchObject({ planActivationStatus: 'IN_PROGRESS' }),
+      )
+
+      // El reto falla.
+      await act(async () => terminarReto({ error: { type: 'card_error', code: 'payment_intent_authentication_failure' } }))
+      await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(2))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No se completó la autorización de tu banco. Inténtalo otra vez o usa otra tarjeta.',
+      )
+
+      await waitFor(() => expect(screen.queryByTestId('offer-pending-locked')).not.toBeInTheDocument())
+      expect(screen.queryByText(/Tu último pago quedó sin confirmar/)).not.toBeInTheDocument()
+      await waitFor(() => expect(elegirPremium()).toBeEnabled())
+      expect(getProgress).toHaveBeenCalledTimes(3)
+
+      // Y de verdad se puede cambiar de plan: se cierra la ventana y se abre la de Premium.
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: /cerrar|close/i }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await user.click(elegirPremium())
+      expect(within(screen.getByRole('dialog')).getByText(/Premium/)).toBeInTheDocument()
+      expect(activatePlan).toHaveBeenCalledTimes(2)
+    } finally {
+      delete (document as { visibilityState?: unknown }).visibilityState
     }
   })
 })
