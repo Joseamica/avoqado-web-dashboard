@@ -54,7 +54,14 @@
       "cost": { "label": "Costo", "description": "Costo del artículo" },
       "tags": { "label": "Etiquetas", "description": "Etiquetas separadas por pipe (|)" },
       "modifier_groups": { "label": "Grupos de Modificadores", "description": "Configuración de grupos de modificadores" },
-      "modifiers": { "label": "Modificadores", "description": "Configuración de modificadores individuales" }
+      "modifiers": { "label": "Modificadores", "description": "Configuración de modificadores individuales" },
+      "family": { "label": "Familia", "description": "Nombre del producto con variantes al que pertenece la fila (con el plan de variantes)" },
+      "option1Name": { "label": "Opción 1", "description": "Nombre de la primera opción, por ejemplo «Talla»" },
+      "option1Value": { "label": "Valor 1", "description": "Valor de la primera opción en esta fila, por ejemplo «M»" },
+      "option2Name": { "label": "Opción 2", "description": "Nombre de la segunda opción, por ejemplo «Color»" },
+      "option2Value": { "label": "Valor 2", "description": "Valor de la segunda opción en esta fila" },
+      "option3Name": { "label": "Opción 3", "description": "Nombre de la tercera opción" },
+      "option3Value": { "label": "Valor 3", "description": "Valor de la tercera opción en esta fila" }
     }
   },
   "mode": {
@@ -100,6 +107,25 @@
     "uploadError": "Error al subir el menú",
     "emptyFile": "El archivo CSV está vacío",
     "invalidFormat": "Formato de CSV inválido",
-    "serverError": "Error del servidor: {{message}}"
+    "serverError": "Error del servidor: {{message}}",
+    "familyRowsRejected": "Algunas filas de familia no se pueden importar; corrígelas y vuelve a intentar. El menú no se reemplazó."
+  },
+  "resumen": {
+    "titulo": "Productos con variantes",
+    "familiasCreadas_one": "Se creó {{count}} producto con variantes",
+    "familiasCreadas_other": "Se crearon {{count}} productos con variantes",
+    "tallasEnFamilias_one": "{{count}} variante nueva entró a su familia",
+    "tallasEnFamilias_other": "{{count}} variantes nuevas entraron a su familia",
+    "filasConFamiliaSinPlan_one": "{{count}} fila con «Familia» entró suelta: tu plan no incluye productos con variantes",
+    "filasConFamiliaSinPlan_other": "{{count}} filas con «Familia» entraron sueltas: tu plan no incluye productos con variantes",
+    "sueltosQueYaExistian_one": "{{count}} producto ya existía suelto: se actualizó y no se agrupó (agrúpalo desde «Agrupar productos»)",
+    "sueltosQueYaExistian_other": "{{count}} productos ya existían sueltos: se actualizaron y no se agruparon (agrúpalos desde «Agrupar productos»)",
+    "variantesDeFamiliaReemplazada_one": "{{count}} variante archivada no volvió porque su familia ya fue reemplazada por otra",
+    "variantesDeFamiliaReemplazada_other": "{{count}} variantes archivadas no volvieron porque su familia ya fue reemplazada por otra",
+    "rechazadas_one": "{{count}} fila de familia no se importó",
+    "rechazadas_other": "{{count}} filas de familia no se importaron",
+    "rechazadasOcultas_one": "Y {{count}} fila más con el mismo problema; corrige el archivo y vuelve a importarlo.",
+    "rechazadasOcultas_other": "Y {{count}} filas más; corrige el archivo y vuelve a importarlo.",
+    "cerrar": "Listo"
   }
 }

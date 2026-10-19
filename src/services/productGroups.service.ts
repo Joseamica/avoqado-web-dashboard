@@ -9,6 +9,7 @@ import type {
   AddVariantsBody,
   ArchivedVariant,
   CreateGroupBody,
+  CursorPage,
   GroupExistingBody,
   GroupExistingPreview,
   GroupSuggestion,
@@ -19,7 +20,12 @@ import type {
   ProductGroupDetail,
   ProductGroupListItem,
   ProductGroupWriteResult,
+  ShopifyBatchResult,
+  ShopifyChoices,
   ShopifyFileProposalsResponse,
+  ShopifyPreviewAllPage,
+  ShopifyProposal,
+  ShopifyProposalPreview,
   UpdateGroupBody,
 } from '@/types/productGroup'
 
@@ -57,6 +63,35 @@ export const applyGroupExisting = async (venueId: string, body: GroupExistingBod
 /** El archivo viaja como texto en JSON (≤ 900 KB); el server no acepta multipart aquí. */
 export const shopifyFileProposals = async (venueId: string, csv: string) =>
   data<ShopifyFileProposalsResponse>(await api.post(`${groups(venueId)}/shopify-file/proposals`, { csv }))
+
+// «Desde Shopify» (bloque 5). El gid (`gid://shopify/Product/1`) va codificado en la ruta.
+const propuestas = (venueId: string) => `${groups(venueId)}/shopify-proposals`
+const propuesta = (venueId: string, shopifyProductId: string) => `${propuestas(venueId)}/${encodeURIComponent(shopifyProductId)}`
+
+export const listShopifyProposals = async (venueId: string, q: { cursor?: string; limit: number }) =>
+  data<CursorPage<ShopifyProposal>>(await api.get(propuestas(venueId), { params: { cursor: q.cursor, limit: q.limit } }))
+
+export const previewShopifyProposal = async (venueId: string, shopifyProductId: string, choices: ShopifyChoices) =>
+  data<ShopifyProposalPreview>(await api.post(`${propuesta(venueId, shopifyProductId)}/preview`, choices))
+
+/** `choices` debe ser IDÉNTICO al de la vista previa (la huella lo cubre). */
+export const applyShopifyProposal = async (
+  venueId: string,
+  shopifyProductId: string,
+  choices: ShopifyChoices,
+  expectedFingerprint: string,
+) =>
+  data<ProductGroupWriteResult & { mode: 'CREATE' | 'ADD' }>(
+    await api.post(`${propuesta(venueId, shopifyProductId)}/apply`, { ...choices, expectedFingerprint }),
+  )
+
+/** «Agrupar todas», paso 1: hasta 25 vistas previas completas por página, y las bloqueadas aparte con su motivo. */
+export const previewAllShopifyProposals = async (venueId: string, cursor?: string) =>
+  data<ShopifyPreviewAllPage>(await api.post(`${propuestas(venueId)}/preview-all`, { cursor }))
+
+/** «Agrupar todas», paso 2: EXACTAMENTE los pares que se vieron, hasta 25 por llamada. */
+export const applyShopifyProposalsBatch = async (venueId: string, items: Array<{ shopifyProductId: string; fingerprint: string }>) =>
+  data<ShopifyBatchResult>(await api.post(`${propuestas(venueId)}/apply-batch`, { items }))
 
 export const createProductGroup = async (venueId: string, body: CreateGroupBody) =>
   data<ProductGroupWriteResult>(await api.post(groups(venueId), body))

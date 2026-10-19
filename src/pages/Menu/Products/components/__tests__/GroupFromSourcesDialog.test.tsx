@@ -10,10 +10,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import en from '@/locales/en/variants.json'
 import es from '@/locales/es/variants.json'
 import type { EstadoAgrupar } from '@/features/product-variants/groupExisting'
-import type { GroupSuggestion, ShopifyFileProposalsResponse } from '@/types/productGroup'
+import type { GroupSuggestion, ShopifyFileProposalsResponse, ShopifyProposal } from '@/types/productGroup'
 
-const grupos = vi.hoisted(() => ({ getGroupSuggestions: vi.fn(), shopifyFileProposals: vi.fn() }))
-const revisado = vi.hoisted(() => ({ inicial: undefined as unknown, avisos: undefined as unknown }))
+const grupos = vi.hoisted(() => ({
+  getGroupSuggestions: vi.fn(),
+  shopifyFileProposals: vi.fn(),
+  listShopifyProposals: vi.fn(),
+  previewAllShopifyProposals: vi.fn(),
+  applyShopifyProposalsBatch: vi.fn(),
+}))
+const revisado = vi.hoisted(() => ({ inicial: undefined as unknown, avisos: undefined as unknown, shopify: undefined as unknown }))
 const estables = vi.hoisted(() => ({
   i18n: {
     t: (k: string, o?: Record<string, unknown>) =>
@@ -24,9 +30,16 @@ const estables = vi.hoisted(() => ({
 vi.mock('@/services/productGroups.service', () => grupos)
 vi.mock('react-i18next', () => ({ useTranslation: () => estables.i18n }))
 vi.mock('../GroupExistingDialog', () => ({
-  GroupExistingDialog: (p: { inicial: unknown; avisos?: string[]; onClose: () => void; onDone: (groupId: string) => void }) => {
+  GroupExistingDialog: (p: {
+    inicial: unknown
+    avisos?: string[]
+    shopify?: unknown
+    onClose: () => void
+    onDone: (groupId: string) => void
+  }) => {
     revisado.inicial = p.inicial
     revisado.avisos = p.avisos
+    revisado.shopify = p.shopify
     return (
       <div data-testid="agrupar-simulado">
         <button onClick={() => p.onDone('g9')}>agrupado</button>
@@ -95,6 +108,7 @@ const campoDeArchivo = () => screen.getByLabelText('fuentes.elegirArchivo') as H
 beforeEach(() => {
   revisado.inicial = undefined
   revisado.avisos = undefined
+  revisado.shopify = undefined
   grupos.getGroupSuggestions.mockResolvedValue(pagina([], 0))
 })
 
@@ -413,9 +427,238 @@ describe('GroupFromSourcesDialog — Archivo de Shopify, ronda de arreglos 1', (
   })
 })
 
-describe('textos de «fuentes»', () => {
+const gid = (n: number) => `gid://shopify/Product/${n}`
+const propuestaShopify = (n: number, extra: Partial<ShopifyProposal> = {}): ShopifyProposal => ({
+  shopifyProductId: gid(n),
+  mode: 'CREATE',
+  groupId: null,
+  groupName: null,
+  title: `Playera ${n}`,
+  ready: true,
+  blockedReason: null,
+  members: [
+    { productId: `p${n}a`, name: `Playera ${n} S`, sku: `S${n}` },
+    { productId: `p${n}b`, name: `Playera ${n} M`, sku: '' },
+  ],
+  ...extra,
+})
+const vistaDe = (n: number) => ({
+  shopifyProductId: gid(n),
+  mode: 'CREATE' as const,
+  groupName: `Playera ${n}`,
+  preview: {
+    parent: {
+      name: `Playera ${n}`,
+      categoryId: 'c1',
+      type: 'RETAIL',
+      ivaTratamiento: 'IVA_16',
+      description: null,
+      imageUrl: null,
+      printStationId: null,
+      satProductKey: null,
+      satUnitKey: null,
+      modifierGroupIds: [],
+    },
+    options: [{ name: 'Talla', values: ['S', 'M'] }],
+    members: [
+      {
+        productId: `p${n}a`,
+        sku: `S${n}`,
+        currentName: `Playera ${n} S`,
+        newName: `Playera ${n} · S`,
+        values: ['S'],
+        changes: [`IVA ${n}: Exento → 16 %`, `Categoría ${n}: Ropa → Playeras`, `Extras ${n}: se quitan «Bordado»`],
+      },
+    ],
+    warnings: [],
+    fingerprint: `h${n}`,
+    firstMemberIva: 'IVA_16',
+    mode: 'CREATE' as const,
+    groupId: null,
+    skipped: [],
+  },
+})
+const abrirShopify = (usuario: ReturnType<typeof userEvent.setup>) => usuario.click(screen.getByRole('tab', { name: 'fuentes.shopify' }))
+
+describe('GroupFromSourcesDialog — Desde Shopify', () => {
+  it('la pestaña lista CREATE y ADD, muestra no-listas con su texto y abre la vista previa con nombre bloqueado', async () => {
+    grupos.listShopifyProposals.mockImplementation(async (_v: string, q: { cursor?: string }) =>
+      q.cursor
+        ? { items: [propuestaShopify(5)], total: 5, nextCursor: null }
+        : {
+            items: [
+              propuestaShopify(1),
+              propuestaShopify(2, { mode: 'ADD', groupId: 'g2', groupName: 'Sudadera' }),
+              propuestaShopify(3, { ready: false, title: null }),
+              propuestaShopify(4, { blockedReason: 'No se puede agrupar: Shopify trae más de 3 opciones.' }),
+            ],
+            total: 5,
+            nextCursor: gid(4),
+          },
+    )
+    const { usuario, onDone } = pintar()
+    await screen.findByText('fuentes.vacio')
+    // pestaña oculta = no se pide (regla de datos acotados)
+    expect(grupos.listShopifyProposals).not.toHaveBeenCalled()
+
+    await abrirShopify(usuario)
+    await screen.findByText('Playera 1')
+    expect(grupos.listShopifyProposals).toHaveBeenCalledWith('v1', { cursor: undefined, limit: 20 })
+    expect(screen.getByText('shopify.total:5')).toBeInTheDocument()
+    const tarjeta = (n: number) => screen.getByText(`Playera ${n}`, { selector: 'p' }).closest('li')!
+    expect(within(tarjeta(1)).getByText('shopify.crear')).toBeInTheDocument()
+    expect(within(tarjeta(2)).getByText('shopify.agregarA:Sudadera')).toBeInTheDocument()
+    // sin título (pareja vieja): se nombra por su primera talla, dice que se completa sola y no ofrece agrupar
+    const pendiente = screen.getByText('Playera 3 S', { selector: 'p' }).closest('li')!
+    expect(within(pendiente).getByText('shopify.pendiente')).toBeInTheDocument()
+    expect(within(pendiente).queryByRole('button', { name: 'fuentes.revisar' })).not.toBeInTheDocument()
+    expect(within(tarjeta(4)).getByText('No se puede agrupar: Shopify trae más de 3 opciones.')).toBeInTheDocument()
+    expect(within(tarjeta(4)).queryByRole('button', { name: 'fuentes.revisar' })).not.toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('button', { name: 'shopify.verMas:1' }))
+    await screen.findByText('Playera 5')
+    expect(grupos.listShopifyProposals).toHaveBeenLastCalledWith('v1', { cursor: gid(4), limit: 20 })
+    expect(screen.queryByRole('button', { name: /shopify\.verMas/ })).not.toBeInTheDocument()
+
+    await usuario.click(within(tarjeta(2)).getByRole('button', { name: 'fuentes.revisar' }))
+    expect(revisado.shopify).toEqual({ shopifyProductId: gid(2), mode: 'ADD', groupName: 'Sudadera' })
+    await usuario.click(screen.getByRole('button', { name: 'cerrar-agrupar' }))
+    await usuario.click(within(tarjeta(1)).getByRole('button', { name: 'fuentes.revisar' }))
+    expect(revisado.shopify).toEqual({ shopifyProductId: gid(1), mode: 'CREATE', groupName: null })
+    expect(revisado.inicial).toMatchObject({ name: 'Playera 1', members: [{ productId: 'p1a' }, { productId: 'p1b' }] })
+    await usuario.click(screen.getByRole('button', { name: 'agrupado' }))
+    expect(onDone).toHaveBeenCalledWith('g9')
+  })
+
+  it('vacío: lo dice (no se confunde con cargando)', async () => {
+    grupos.listShopifyProposals.mockResolvedValue({ items: [], total: 0, nextCursor: null })
+    const { usuario } = pintar()
+    await abrirShopify(usuario)
+    expect(await screen.findByText('shopify.vacio')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /shopify\.agruparTodas/ })).not.toBeInTheDocument()
+  })
+
+  it(
+    'Agrupar todas muestra por propuesta los cambios concretos de IVA, categoría y extras de cada talla (no sólo un contador), manda los pares vistos en lotes de 25 y muestra aplicadas, saltadas y bloqueadas',
+    { timeout: 20_000 },
+    async () => {
+      grupos.listShopifyProposals.mockResolvedValue({ items: [propuestaShopify(1)], total: 29, nextCursor: gid(1) })
+      const primeras = Array.from({ length: 25 }, (_, i) => vistaDe(i + 1))
+      grupos.previewAllShopifyProposals.mockImplementation(async (_v: string, cursor?: string) =>
+        cursor
+          ? {
+              items: [vistaDe(27), vistaDe(28)],
+              blocked: [{ shopifyProductId: gid(29), motivo: 'No se puede agrupar: Shopify trae más de 3 opciones.' }],
+              total: 29,
+              nextCursor: null,
+            }
+          : {
+              items: primeras,
+              blocked: [{ shopifyProductId: gid(26), motivo: 'Este producto se completa en la próxima sincronización con Shopify.' }],
+              total: 29,
+              nextCursor: gid(26),
+            },
+      )
+      grupos.applyShopifyProposalsBatch.mockImplementation(async (_v: string, items: Array<{ shopifyProductId: string }>) =>
+        items.length === 25
+          ? {
+              applied: items
+                .filter(x => x.shopifyProductId !== gid(3))
+                .map(x => ({ shopifyProductId: x.shopifyProductId, groupId: 'g', mode: 'CREATE' })),
+              skipped: [{ shopifyProductId: gid(3), motivo: 'Cambió desde que lo viste' }],
+            }
+          : { applied: items.map(x => ({ shopifyProductId: x.shopifyProductId, groupId: 'g', mode: 'CREATE' })), skipped: [] },
+      )
+      const { usuario } = pintar()
+      await abrirShopify(usuario)
+      await usuario.click(await screen.findByRole('button', { name: 'shopify.agruparTodas:29' }))
+
+      await screen.findByText('shopify.todas.listas:27')
+      expect(grupos.previewAllShopifyProposals).toHaveBeenNthCalledWith(1, 'v1', undefined)
+      expect(grupos.previewAllShopifyProposals).toHaveBeenNthCalledWith(2, 'v1', gid(26))
+      expect(screen.getByText('shopify.todas.bloqueadas:2')).toBeInTheDocument()
+      // los cambios concretos de cada talla, no sólo «cambia el IVA de N»
+      expect(screen.getByText('IVA 1: Exento → 16 %')).toBeInTheDocument()
+      expect(screen.getByText('Categoría 27: Ropa → Playeras')).toBeInTheDocument()
+      expect(screen.getByText('Extras 28: se quitan «Bordado»')).toBeInTheDocument()
+      expect(screen.getByText('Este producto se completa en la próxima sincronización con Shopify.')).toBeInTheDocument()
+      expect(grupos.applyShopifyProposalsBatch).not.toHaveBeenCalled()
+
+      const confirmarTodas = screen.getByRole('button', { name: 'shopify.todas.confirmar:27' })
+      await usuario.dblClick(confirmarTodas)
+      await screen.findByText('shopify.todas.aplicadas:26')
+      expect(grupos.applyShopifyProposalsBatch).toHaveBeenCalledTimes(2) // el doble clic no manda dos veces
+      const par = (n: number) => ({ shopifyProductId: gid(n), fingerprint: `h${n}` })
+      expect(grupos.applyShopifyProposalsBatch).toHaveBeenNthCalledWith(
+        1,
+        'v1',
+        primeras.map((_, i) => par(i + 1)),
+      )
+      expect(grupos.applyShopifyProposalsBatch).toHaveBeenNthCalledWith(2, 'v1', [par(27), par(28)])
+
+      const saltadas = screen.getByText('shopify.todas.saltadas:1').closest('section')!
+      expect(within(saltadas).getByText('Playera 3')).toBeInTheDocument()
+      expect(within(saltadas).getByText('Cambió desde que lo viste')).toBeInTheDocument()
+      const bloqueadas = screen.getByText('shopify.todas.bloqueadas:2').closest('section')!
+      expect(within(bloqueadas).getByText('No se puede agrupar: Shopify trae más de 3 opciones.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /shopify\.todas\.confirmar/ })).not.toBeInTheDocument()
+    },
+  )
+})
+
+describe('GroupFromSourcesDialog — Agrupar todas, ronda de arreglos 1', () => {
+  it('🔴 el resumen sigue a la vista aunque la lista releída quede vacía; avisa las que no abriste; un lote sin respuesta va aparte, no como saltado', { timeout: 30_000 }, async () => {
+    grupos.listShopifyProposals
+      .mockResolvedValueOnce({ items: [propuestaShopify(1)], total: 60, nextCursor: null })
+      .mockResolvedValue({ items: [], total: 0, nextCursor: null })
+    grupos.previewAllShopifyProposals.mockImplementation(async (_v: string, cursor?: string) =>
+      cursor
+        ? { items: Array.from({ length: 30 }, (_, i) => vistaDe(i + 31)), blocked: [], total: 60, nextCursor: null }
+        : { items: Array.from({ length: 30 }, (_, i) => vistaDe(i + 1)), blocked: [], total: 60, nextCursor: gid(30) },
+    )
+    let lote = 0
+    grupos.applyShopifyProposalsBatch.mockImplementation(async (_v: string, items: Array<{ shopifyProductId: string }>) => {
+      lote++
+      if (lote === 2) throw new Error('Network Error') // sin respuesta: pudo haber entrado o no
+      return { applied: items.map(x => ({ shopifyProductId: x.shopifyProductId, groupId: 'g', mode: 'CREATE' })), skipped: [] }
+    })
+    const { usuario } = pintar()
+    await abrirShopify(usuario)
+    await usuario.click(await screen.findByRole('button', { name: 'shopify.agruparTodas:60' }))
+    await screen.findByText('shopify.todas.listas:60')
+    // se pintan 50; las 10 de abajo también se mandan y la confirmación lo dice
+    expect(screen.getByText('shopify.todas.noAbiertas:10')).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('button', { name: 'shopify.todas.confirmar:60' }))
+    await screen.findByText('shopify.todas.aplicadas:35', undefined, { timeout: 4000 })
+    expect(grupos.applyShopifyProposalsBatch).toHaveBeenCalledTimes(3)
+    expect(grupos.applyShopifyProposalsBatch.mock.calls.flatMap(c => c[1]).map((x: { shopifyProductId: string }) => x.shopifyProductId)).toEqual(
+      Array.from({ length: 60 }, (_, i) => gid(i + 1)),
+    )
+    // la lista se releyó y quedó vacía; el resumen NO se fue con ella (ni se volvió a montar: las vistas previas se pidieron una vez)
+    expect(await screen.findByText('shopify.vacio')).toBeInTheDocument()
+    expect(screen.getByText('shopify.todas.aplicadas:35')).toBeInTheDocument()
+    expect(grupos.previewAllShopifyProposals).toHaveBeenCalledTimes(2)
+    const sinRespuesta = screen.getByText('shopify.todas.sinRespuesta:25').closest('section')!
+    expect(within(sinRespuesta).getByText('Playera 26')).toBeInTheDocument()
+    expect(within(sinRespuesta).getByText('Playera 50')).toBeInTheDocument()
+    expect(screen.queryByText(/shopify\.todas\.saltadas/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'shopify.todas.cerrar' })).toBeInTheDocument()
+  })
+})
+
+describe('textos de «fuentes» y «shopify»', () => {
   it('es y en tienen las mismas claves', () => {
-    const claves = (o: Record<string, unknown>) => Object.keys(o).sort()
+    const claves = (o: Record<string, unknown>): string[] =>
+      Object.entries(o)
+        .flatMap(([k, v]) => (v && typeof v === 'object' ? claves(v as Record<string, unknown>).map(x => `${k}.${x}`) : [k]))
+        .sort()
     expect(claves(en.fuentes)).toEqual(claves(es.fuentes))
+    expect(claves(en.shopify)).toEqual(claves(es.shopify))
+    expect(es.fuentes.shopify).toBe('Desde Shopify')
+    expect(es.shopify.crear).toBe('Crear familia')
+    expect(es.shopify.agregarA).toBe('Agregar a «{{name}}»')
+    expect(es.shopify.pendiente).toBe('Se completa en la próxima sincronización')
+    expect(es.shopify.agruparTodas).toBe('Agrupar todas ({{count}})')
   })
 })
