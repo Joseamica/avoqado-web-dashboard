@@ -85,8 +85,12 @@ export function PlanCardForm({
     }
   }, [])
 
+  // 🔴 QA N1: el estado `submitting` no alcanza a pintarse entre dos clics del MISMO instante; salían dos `confirmSetup` y
+  // el perdedor dejaba un rojo falso junto a la autorización del banco. La ref se toma y se suelta junto con `submitting`.
+  const enviando = useRef(false)
   const confirm = async (payNow: boolean) => {
-    if (!stripe || !elements) return
+    if (!stripe || !elements || enviando.current) return
+    enviando.current = true
     setSubmitting(true)
     setCardError(null)
     try {
@@ -109,6 +113,7 @@ export function PlanCardForm({
         setCardError(legible || t('plan.chargeError', { defaultValue: 'No pudimos procesar el pago. Intenta de nuevo.' }))
       }
     } finally {
+      enviando.current = false
       setSubmitting(false)
     }
   }

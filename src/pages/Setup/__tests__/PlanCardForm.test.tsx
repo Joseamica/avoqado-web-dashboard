@@ -2,7 +2,7 @@
  * Los dos candados del formulario de tarjeta que destapó el /full-testing del 26-sep:
  * pagar antes de que Stripe termine de pintar, y un «ocupado» que nunca se soltaba al desmontar.
  */
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -106,5 +106,39 @@ describe('PlanCardForm — el foco tras un error (D1)', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Tu banco rechazó el cargo')
     expect(campo).toHaveFocus()
+  })
+})
+
+describe('PlanCardForm — dos clics en el MISMO instante (QA N1, 18-oct)', () => {
+  it('🔴 sale UN solo confirmSetup y no aparece un error falso junto a la autorización', async () => {
+    // El 1.º se queda abierto (el reto del banco); un 2.º, si saliera, fallaría como en la QA y pintaría un rojo falso.
+    let terminar: (v: unknown) => void = () => {}
+    stripe.confirmSetup
+      .mockImplementationOnce(() => new Promise(r => (terminar = r)))
+      .mockResolvedValue({
+        error: { message: 'No podemos autenticar tu método de pago. Elige otro método de pago y vuelve a intentarlo.' },
+      })
+    const onConfirmed = vi.fn()
+    render(<PlanCardForm payNowLabel="Pagar" onConfirmed={onConfirmed} />)
+    const boton = screen.getByRole('button', { name: /Pagar/ })
+
+    // Dos clics sin que React alcance a repintar entre ellos (el `click(); click()` de la QA).
+    await act(async () => {
+      boton.click()
+      boton.click()
+    })
+
+    expect(stripe.confirmSetup).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    await act(async () => terminar({ setupIntent: { payment_method: 'pm_1' } }))
+    expect(onConfirmed).toHaveBeenCalledTimes(1)
+    expect(onConfirmed).toHaveBeenCalledWith('pm_1', true)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    // El candado se suelta con el «enviando»: un clic posterior vuelve a funcionar.
+    await waitFor(() => expect(boton).toBeEnabled())
+    await userEvent.setup().click(boton)
+    expect(stripe.confirmSetup).toHaveBeenCalledTimes(2)
   })
 })
