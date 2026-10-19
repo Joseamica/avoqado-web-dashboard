@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   contarCombinaciones, filaParaServidor, generarCombinaciones, limpiarOpciones, llaveDeCombinacion, nombreDeVariante,
-  sincronizarFilas, sugerirSku, validarFilas, validarOpciones,
+  resumenDeFamilia, sincronizarFilas, sugerirSku, validarFilas, validarOpciones,
 } from '@/features/product-variants/combinations'
 
 describe('opciones', () => {
@@ -55,6 +55,41 @@ describe('filas', () => {
     const despues = sincronizarFilas([{ name: 'Talla', values: ['S', 'M', 'L'] }], tecleadas)
     expect(despues.map(f => [f.values[0], f.price])).toEqual([['S', 199], ['M', 199], ['L', undefined]])
     expect(despues.every(f => f.incluida)).toBe(true)
+  })
+
+  it('🔴 al agregar otra opción, cada combinación nueva hereda precio, costo e «incluida» de la talla de la que sale (SKU, código y existencias no)', () => {
+    const antes = sincronizarFilas([{ name: 'Talla', values: ['S', 'M'] }], []).map((f, i) =>
+      i === 0 ? { ...f, price: 199, cost: 80, sku: 'PS', gtin: '750', initialStock: 5 } : { ...f, incluida: false },
+    )
+    const despues = sincronizarFilas([{ name: 'Talla', values: ['S', 'M'] }, { name: 'Color', values: ['Rojo', 'Azul'] }], antes)
+    expect(despues.map(f => [f.values.join('/'), f.price, f.cost, f.incluida, f.sku, f.gtin, f.initialStock])).toEqual([
+      ['S/Rojo', 199, 80, true, undefined, undefined, undefined],
+      ['S/Azul', 199, 80, true, undefined, undefined, undefined],
+      ['M/Rojo', undefined, undefined, false, undefined, undefined, undefined],
+      ['M/Azul', undefined, undefined, false, undefined, undefined, undefined],
+    ])
+    // y al quitar la opción, la talla vuelve con el precio de su primera combinación
+    const conPrecio = despues.map(f => (f.values[0] === 'M' ? { ...f, price: 249, incluida: true } : f))
+    expect(sincronizarFilas([{ name: 'Talla', values: ['S', 'M'] }], conPrecio).map(f => [f.values[0], f.price])).toEqual([['S', 199], ['M', 249]])
+  })
+
+  it('🔴 tecleando los colores de uno en uno (Enter tras cada uno), cada color nuevo también hereda de su talla; una talla nueva no hereda', () => {
+    const tallas = (vs: string[]) => ({ name: 'Talla', values: vs })
+    const color = (vs: string[]) => ({ name: 'Color', values: vs })
+    let filas = sincronizarFilas([tallas(['S', 'M'])], []).map(f => ({ ...f, price: f.values[0] === 'S' ? 199 : 249 }))
+    filas = sincronizarFilas([tallas(['S', 'M']), color(['Rojo'])], filas)
+    filas = sincronizarFilas([tallas(['S', 'M']), color(['Rojo', 'Azul'])], filas)
+    expect(filas.map(f => [f.values.join('/'), f.price])).toEqual([['S/Rojo', 199], ['S/Azul', 199], ['M/Rojo', 249], ['M/Azul', 249]])
+    filas = sincronizarFilas([tallas(['S', 'M', 'XL']), color(['Rojo', 'Azul'])], filas)
+    expect(filas.filter(f => f.values[0] === 'XL').map(f => f.price)).toEqual([undefined, undefined])
+  })
+
+  it('resume la familia para la vista previa: cuántas incluidas y el rango de precios capturados', () => {
+    const f = (values: string[], x: object) => ({ key: values.join(), values, incluida: true, ...x })
+    expect(resumenDeFamilia([])).toEqual({ count: 0 })
+    expect(resumenDeFamilia([f(['S'], {}), f(['M'], {})])).toEqual({ count: 2 })
+    expect(resumenDeFamilia([f(['S'], { price: 299 }), f(['M'], { price: 299 }), f(['L'], { price: 9, incluida: false })])).toEqual({ count: 2, min: 299, max: 299 })
+    expect(resumenDeFamilia([f(['S'], { price: 199 }), f(['M'], { price: 249 }), f(['L'], {})])).toEqual({ count: 3, min: 199, max: 249 })
   })
 
   it('valida precio obligatorio > 0 con 2 decimales, costo > 0, SKU válido y sin repetir, código ≤ 14, existencias enteras', () => {

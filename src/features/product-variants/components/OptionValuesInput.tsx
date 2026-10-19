@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
+import { norm } from '../combinations'
 
 interface Props {
   values: string[]
@@ -11,16 +12,31 @@ interface Props {
   'aria-label': string
 }
 
-/** Valores de una opción como fichas: Enter o coma agrega; Retroceso en vacío quita el último; pegar «S, M, L» agrega tres. */
+/**
+ * Valores de una opción como fichas: Enter o coma agrega; Retroceso en vacío quita el último; pegar «S, M, L» agrega tres. Un valor que
+ * ya está («l» con «L» puesta, sin importar espacios) no entra y se avisa, igual que lo cuenta limpiarOpciones.
+ */
 export function OptionValuesInput({ values, onChange, disabled, placeholder, 'aria-label': ariaLabel }: Props) {
   const { t } = useTranslation('variants')
   const [texto, setTexto] = useState('')
+  const [repetido, setRepetido] = useState<string>()
   const agregar = (raw: string) => {
-    const nuevos = raw.split(',').map(s => s.trim()).filter(Boolean)
+    const vistos = new Set(values.map(norm))
+    const nuevos: string[] = []
+    let primerRepetido: string | undefined
+    for (const v of raw.split(',').map(s => s.trim()).filter(Boolean)) {
+      if (vistos.has(norm(v))) primerRepetido ??= v
+      else {
+        vistos.add(norm(v))
+        nuevos.push(v)
+      }
+    }
     setTexto('')
-    if (nuevos.length) onChange([...values, ...nuevos]) // repetidos y espacios los limpia limpiarOpciones
+    if (raw.trim()) setRepetido(primerRepetido)
+    if (nuevos.length) onChange([...values, ...nuevos])
   }
   return (
+    <div className="space-y-1">
     <div className="flex min-h-12 flex-wrap items-center gap-2 rounded-md border border-input px-3 py-2">
       {values.map((v, i) => (
         <Badge key={`${v}-${i}`} variant="secondary" className="gap-1 text-sm">
@@ -53,6 +69,12 @@ export function OptionValuesInput({ values, onChange, disabled, placeholder, 'ar
         }}
         onBlur={() => agregar(texto)}
       />
+    </div>
+    {repetido && (
+      <p role="status" className="text-sm text-muted-foreground">
+        {t('opciones.repetido', { name: repetido })}
+      </p>
+    )}
     </div>
   )
 }

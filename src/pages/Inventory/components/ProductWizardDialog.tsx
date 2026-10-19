@@ -75,7 +75,13 @@ import { useMasterCatalogError } from '@/features/master-catalog/use-master-cata
 import { PRODUCT_TYPE_LABELS } from '@/lib/product-types'
 import { VenueTierBadge } from '@/components/venue-tier-badge'
 import { VARIANTES_INICIALES, VariantsSection, type ValorVariantes } from '@/features/product-variants/components/VariantsSection'
-import { filaParaServidor, limpiarOpciones, validarFilas, validarOpciones } from '@/features/product-variants/combinations'
+import {
+  filaParaServidor,
+  limpiarOpciones,
+  resumenDeFamilia,
+  validarFilas,
+  validarOpciones,
+} from '@/features/product-variants/combinations'
 import { mensajeDeVariantes } from '@/features/product-variants/errors'
 import { VariantNotice } from '@/features/product-variants/components/VariantNotice'
 import { sinCamposDelPadre } from '@/features/product-variants/families'
@@ -491,6 +497,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [conVariantes, setConVariantes] = useState(false)
   const [variantes, setVariantes] = useState<ValorVariantes>(VARIANTES_INICIALES)
   const conVariantesActiva = mode === 'create' && tipoAdmiteVariantes && conVariantes
+  const resumenVariantes = resumenDeFamilia(variantes.filas) // la vista previa: «6 variantes · $299»
   const enviando = useRef(false) // isPending no cambia entre dos clics del mismo instante
   const invalidarCatalogo = useInvalidarCatalogo()
   const crearFamilia = useMutation({
@@ -1197,11 +1204,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // user can't submit empty data or close mid-fetch.
   const isInitialLoadingEdit = mode === 'edit' && open && !!productId && (isLoadingProduct || isLoadingExistingData)
 
+  // En el alta, Cancelar, la X y Esc preguntan antes de tirar lo capturado (guardar con éxito cierra por handleWizardComplete, sin
+  // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
+  // `true` sin tocar nada (QA en navegador, 19-oct). Marcar la casilla de variantes sola no cuenta: `variantes` sólo cambia de
+  // referencia al escribir algo en la sección.
+  const [confirmarDescartar, setConfirmarDescartar] = useState(false)
+  const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
+  const hayCaptura =
+    mode === 'create' &&
+    (tocado(step1Form) || tocado(step2Form) || tocado(step3SimpleForm) || tocado(step3RecipeForm) || variantes !== VARIANTES_INICIALES)
+  const pedirCerrar = () => (hayCaptura ? setConfirmarDescartar(true) : onOpenChange(false))
+
   // Render action buttons - single step, always show "Finish"
   const renderActions = () => {
     return (
       <>
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading || isInitialLoadingEdit}>
+        <Button type="button" variant="outline" onClick={pedirCerrar} disabled={isLoading || isInitialLoadingEdit}>
           {tCommon('cancel')}
         </Button>
         <Button
@@ -1222,7 +1240,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     <>
       <FullScreenModal
         open={open}
-        onClose={() => onOpenChange(false)}
+        onClose={pedirCerrar}
         title={
           // Show product name if available, otherwise show wizard title
           // For edit mode, also check existingProductData in case form hasn't loaded yet
@@ -1440,15 +1458,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           {/* SKU + GTIN — both optional. SKU auto-generated if empty. */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="product-wizard-codes">
                             <div data-tour="product-wizard-sku">
-                              <FieldLabel
-                                htmlFor="sku"
-                                label="SKU"
-                                tooltip="Código interno del producto. Si lo dejas vacío, se genera automáticamente."
-                              />
+                              <FieldLabel htmlFor="sku" label="SKU" tooltip={t('wizard.step1.skuTooltip')} />
                               <Input
                                 id="sku"
                                 {...step1Form.register('sku')}
-                                placeholder="Auto-generado si se deja vacío"
+                                placeholder={t('wizard.step1.skuPlaceholder')}
                                 className="h-12 text-base"
                                 autoComplete="off"
                               />
@@ -1456,13 +1470,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             <div data-tour="product-wizard-gtin">
                               <FieldLabel
                                 htmlFor="gtin"
-                                label="GTIN / Código de barras"
-                                tooltip="Código de barras universal (UPC/EAN). Opcional."
+                                label={`GTIN / ${t('wizard.step1.barcode')}`}
+                                tooltip={t('wizard.step1.gtinTooltip')}
                               />
                               <Input
                                 id="gtin"
                                 {...step1Form.register('gtin')}
-                                placeholder="Opcional"
+                                placeholder={t('wizard.step1.optional')}
                                 className="h-12 text-base"
                                 autoComplete="off"
                                 inputMode="numeric"
@@ -2215,7 +2229,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           if (!val) step1Form.setValue('categoryId', '', { shouldValidate: true })
                         }}
                         onSelect={item => {
-                          step1Form.setValue('categoryId', item.id, { shouldValidate: true })
+                          step1Form.setValue('categoryId', item.id, { shouldValidate: true, shouldDirty: true })
                           setCategorySearch('')
                         }}
                         placeholder={t('wizard.step1.categoryPlaceholder')}
@@ -2297,7 +2311,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             onChange={setModifierGroupSearch}
                             onSelect={item => {
                               const current = step1Form.watch('modifierGroups') || []
-                              step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }])
+                              step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }], {
+                                shouldDirty: true,
+                              })
                               setModifierGroupSearch('')
                             }}
                             placeholder={t('wizard.step1.selectModifierGroups')}
@@ -2393,6 +2409,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             </p>
                             {!conVariantesActiva && step1Form.watch('price') > 0 && (
                               <p className="text-sm text-muted-foreground">{Currency(step1Form.watch('price'))}</p>
+                            )}
+                            {conVariantesActiva && resumenVariantes.count > 0 && (
+                              <p className="text-sm text-muted-foreground">
+                                {[
+                                  tv('alta.vistaPrevia', { count: resumenVariantes.count }),
+                                  resumenVariantes.min === undefined
+                                    ? null
+                                    : resumenVariantes.min === resumenVariantes.max
+                                      ? Currency(resumenVariantes.min)
+                                      : `${Currency(resumenVariantes.min)} – ${Currency(resumenVariantes.max!)}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -2638,6 +2668,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           )}
         </div>
       </FullScreenModal>
+
+      <SimpleConfirmDialog
+        open={confirmarDescartar}
+        onOpenChange={setConfirmarDescartar}
+        title={t('wizard.discard.title')}
+        message={t('wizard.discard.description')}
+        confirmLabel={t('wizard.discard.confirm')}
+        cancelLabel={t('wizard.discard.keepEditing')}
+        variant="destructive"
+        onConfirm={() => {
+          setConfirmarDescartar(false)
+          onOpenChange(false)
+        }}
+      />
 
       {/* Primer encendido del IVA por producto (decisión del founder, 12-oct): sin «Continuar» no se guarda */}
       <ConfirmarEncendidoIva

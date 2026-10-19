@@ -1,7 +1,10 @@
 {
   "productTypes": {
     "recommended": "Recomendado",
-    "recommendedHint": "Recomendado para tu giro de negocio"
+    "recommendedHint": "Recomendado para tu giro de negocio",
+    "title": "¿Qué tipo de artículo quieres crear?",
+    "description": "Selecciona el tipo que mejor describe lo que quieres vender.",
+    "label": "Tipo de artículo"
   },
   "title": "Gestión de Inventario",
   "subtitle": "Administra materias primas, recetas y niveles de stock",
@@ -331,7 +334,12 @@
       "lowStock": "Stock bajo",
       "linkedGroup": "Grupo vinculado",
       "customerCanSubstitute": "El cliente podrá sustituir este ingrediente"
-    }
+    },
+    "cookTimeHelp": "Tiempo de cocción en minutos",
+    "ingredientsHelp": "Los ingredientes se descontarán automáticamente del inventario al vender este producto",
+    "notesHelp": "Instrucciones o notas adicionales para la preparación",
+    "prepTimeHelp": "Tiempo de preparación en minutos",
+    "totalCost": "Costo total de receta"
   },
   "pricing": {
     "title": "Análisis de Precios",
@@ -609,7 +617,19 @@
       "success": "¡Producto creado exitosamente!",
       "error": "Error al crear el producto",
       "soldByWeight": "Se vende por peso",
-      "soldByWeightDesc": "El precio es por kilogramo; el POS captura el peso con la báscula al cobrar."
+      "soldByWeightDesc": "El precio es por kilogramo; el POS captura el peso con la báscula al cobrar.",
+      "basicInfo": "Información básica",
+      "categoryHelp": "Organiza tus productos en categorías para facilitar la navegación.",
+      "descriptionTooltip": "Descripción que verán los clientes al ordenar",
+      "modifierGroupsHelp": "Agrega opciones y extras que los clientes pueden elegir.",
+      "modifierOptional": "Opcional",
+      "modifierRequired": "Requerido: {{min}}-{{max}}",
+      "noModifierGroupsAvailable": "No hay grupos de modificadores disponibles",
+      "skuTooltip": "Código interno del producto. Si lo dejas vacío, se genera automáticamente.",
+      "skuPlaceholder": "Auto-generado si se deja vacío",
+      "barcode": "Código de barras",
+      "gtinTooltip": "Código de barras universal (UPC/EAN). Opcional.",
+      "optional": "Opcional"
     },
     "step2": {
       "title": "Configuración de Inventario",
@@ -702,6 +722,13 @@
         "cost": "Costo",
         "withInventory": "con inventario"
       }
+    },
+    "newProduct": "Nuevo producto",
+    "discard": {
+      "title": "¿Descartar cambios?",
+      "description": "Lo que capturaste de este producto se va a perder.",
+      "confirm": "Descartar",
+      "keepEditing": "Seguir editando"
     }
   },
   "conversion": {

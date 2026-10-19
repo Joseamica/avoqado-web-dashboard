@@ -377,6 +377,7 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     fireEvent.click(await casilla())
     fireEvent.change(screen.getByLabelText('opciones.nombre'), { target: { value: 'Talla' } })
     fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'wizard.discard.confirm' }))
     expect(onOpenChange).toHaveBeenCalledWith(false)
 
     abrir(false) // el padre cierra: resetWizard corre por el efecto de `open`
@@ -385,6 +386,75 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(screen.queryByLabelText('opciones.nombre')).not.toBeInTheDocument()
     fireEvent.click(await casilla())
     expect(screen.getByLabelText('opciones.nombre')).toHaveValue('')
+  })
+
+  it('sin capturar nada, «Cancelar» cierra sin preguntar (marcar la casilla sola no cuenta como captura)', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+  })
+
+  it('🔴 con combinaciones capturadas, «Cancelar», la X y Esc preguntan antes de descartar; «Seguir editando» no pierde nada', async () => {
+    const { onOpenChange } = pintar()
+    await prepararFamiliaValida()
+
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.discard.keepEditing' }))
+    await waitFor(() => expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument())
+    expect(screen.getAllByLabelText('tabla.precio').map(i => (i as HTMLInputElement).value)).toEqual(['199', '199'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' })) // la X
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.discard.keepEditing' }))
+    await waitFor(() => expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument())
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.discard.confirm' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('🔴 tras descartar y volver a abrir, marcar sólo la casilla y cancelar cierra sin preguntar (QA en navegador)', async () => {
+    const { onOpenChange, abrir } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'wizard.discard.confirm' }))
+    abrir(false)
+    abrir(true)
+    onOpenChange.mockClear()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('elegir sólo la categoría también cuenta como captura', async () => {
+    const { onOpenChange } = pintar()
+    await userEvent.click(await screen.findByPlaceholderText('wizard.step1.categoryPlaceholder'))
+    await userEvent.click(await screen.findByRole('option', { name: 'Café' }))
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('con algo escrito en el alta normal (sin variantes) también pregunta', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Agua' } })
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('la vista previa dice cuántas variantes van y su precio (o el rango)', async () => {
+    pintar()
+    await prepararFamiliaValida()
+    expect(screen.getByText(`alta.vistaPrevia · ${Currency(199)}`)).toBeInTheDocument()
+    fireEvent.change(screen.getAllByLabelText('tabla.precio')[1], { target: { value: '249' } })
+    expect(screen.getByText(`alta.vistaPrevia · ${Currency(199)} – ${Currency(249)}`)).toBeInTheDocument()
   })
 
   it('🔴 sin la casilla, el alta sigue siendo la de siempre (y termina bien)', async () => {

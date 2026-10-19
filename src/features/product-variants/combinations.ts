@@ -27,6 +27,8 @@ export interface FilaVariante {
   sku?: string
   gtin?: string
   initialStock?: number
+  /** De qué fila salió al agregar una opción (sólo para heredar precio a las combinaciones hermanas; no viaja al server). */
+  base?: string[]
 }
 
 export type ProblemaDeOpciones =
@@ -117,14 +119,41 @@ export function sugerirSku(padre: string, values: string[]): string {
     .replace(/-+$/, '')
 }
 
-/** Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. */
+const contiene = (grande: string[], chica: string[]) => {
+  const g = grande.map(norm)
+  return chica.every(v => g.includes(norm(v)))
+}
+
+/**
+ * Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. Al agregar o quitar una
+ * opción ninguna llave sobrevive: la combinación nueva hereda precio, costo e «incluida» de la fila de la que sale («S» → «S · Rojo»,
+ * y de vuelta). Cada heredera recuerda su `base` («S»), así el siguiente color tecleado («S · Azul») hereda lo mismo; una talla nueva
+ * no tiene de dónde salir y queda vacía. SKU, código y existencias no se heredan: son de una sola variante.
+ */
 export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[]): FilaVariante[] {
   const porLlave = new Map(previas.map(f => [f.key, f]))
   return generarCombinaciones(opciones).map(values => {
     const key = llaveDeCombinacion(values)
     const previa = porLlave.get(key)
-    return previa ? { ...previa, values } : { key, values, incluida: true }
+    if (previa) return { ...previa, values }
+    const origen = previas.find(
+      f =>
+        (f.values.length !== values.length && (contiene(values, f.values) || contiene(f.values, values))) ||
+        (f.base !== undefined && contiene(values, f.base)),
+    )
+    if (!origen) return { key, values, incluida: true }
+    const base = origen.base ?? (origen.values.length < values.length ? origen.values : undefined)
+    return { key, values, incluida: origen.incluida, price: origen.price, cost: origen.cost, ...(base ? { base } : {}) }
   })
+}
+
+/** Para la vista previa del alta: cuántas variantes van y el rango de los precios ya capturados. */
+export function resumenDeFamilia(filas: FilaVariante[]): { count: number; min?: number; max?: number } {
+  const incluidas = filas.filter(f => f.incluida)
+  const precios = incluidas.map(f => f.price).filter((p): p is number => p !== undefined)
+  return precios.length
+    ? { count: incluidas.length, min: Math.min(...precios), max: Math.max(...precios) }
+    : { count: incluidas.length }
 }
 
 export function validarFilas(padre: string, filas: FilaVariante[], conInventario: boolean): ProblemaDeFila | null {

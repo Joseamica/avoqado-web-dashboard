@@ -24,7 +24,9 @@
     "casillaBloqueada": "Available on Pro and Premium.",
     "seccion": "Variants",
     "seccionAyuda": "Type the options and their values. Avoqado builds the combinations; untick the ones you don't sell.",
-    "creada": "Product with variants created"
+    "creada": "Product with variants created",
+    "vistaPrevia_one": "{{count}} variant",
+    "vistaPrevia_other": "{{count}} variants"
   },
   "opciones": {
     "nombre": "Option name",
@@ -34,7 +36,8 @@
     "quitarValor": "Remove “{{name}}”",
     "quitar": "Remove the {{name}} option",
     "agregar": "Add another option",
-    "maximo": "Maximum 3 options"
+    "maximo": "Maximum 3 options",
+    "repetido": "“{{name}}” is already in the list."
   },
   "tabla": {
     "llevarInventario": "Track stock for each variant",
@@ -73,7 +76,8 @@
     "skuInvalido": "The SKU of “{{nombre}}” can only contain letters, numbers, hyphens and underscores.",
     "skuRepetido": "The SKU “{{sku}}” is repeated.",
     "codigoLargo": "The barcode of “{{nombre}}” is longer than 14 digits.",
-    "existenciasInvalidas": "The initial stock of “{{nombre}}” must be a whole number."
+    "existenciasInvalidas": "The initial stock of “{{nombre}}” must be a whole number.",
+    "tablaEnEspera": "The table updates when you finish the option; what you already typed is kept."
   },
   "biblioteca": {
     "titulo": "Saved options",

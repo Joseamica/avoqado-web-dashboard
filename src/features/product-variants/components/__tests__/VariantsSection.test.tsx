@@ -63,6 +63,37 @@ describe('VariantsSection', () => {
     expect(estado()).toEqual([['S', null, true]])
   })
 
+  it('🔴 un valor repetido (sin importar mayúsculas ni espacios) no entra como ficha y lo dice', async () => {
+    render(<Arnes />)
+    fireEvent.change(screen.getByLabelText('opciones.nombre'), { target: { value: 'Talla' } })
+    fireEvent.change(screen.getByLabelText('opciones.valores'), { target: { value: 'L, l ,M,' } })
+    expect(screen.getAllByRole('button', { name: /^opciones\.quitarValor:/ }).map(b => b.getAttribute('aria-label'))).toEqual([
+      'opciones.quitarValor:L', 'opciones.quitarValor:M',
+    ])
+    expect(screen.getByText('opciones.repetido:l')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('opciones.valores'), 'm{Enter}')
+    expect(screen.getAllByRole('button', { name: /^opciones\.quitarValor:/ })).toHaveLength(2)
+    expect(screen.getByText('opciones.repetido:m')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('opciones.valores'), 'XL{Enter}')
+    expect(screen.queryByText(/^opciones\.repetido/)).not.toBeInTheDocument()
+    expect(estado().map((f: unknown[]) => f[0])).toEqual(['L', 'M', 'XL'])
+  })
+
+  it('🔴 agregar otra opción no esconde la tabla y, al completarla, las combinaciones nuevas conservan el precio', () => {
+    render(<Arnes />)
+    fireEvent.change(screen.getByLabelText('opciones.nombre'), { target: { value: 'Talla' } })
+    fireEvent.change(screen.getByLabelText('opciones.valores'), { target: { value: 'S, M,' } })
+    fireEvent.change(screen.getByLabelText('tabla.precio:Playera · S'), { target: { value: '199' } })
+    fireEvent.click(screen.getByRole('button', { name: 'opciones.agregar' }))
+    expect(screen.getByText('validacion.opcionSinNombre')).toBeInTheDocument()
+    expect(screen.getByText('validacion.tablaEnEspera')).toBeInTheDocument()
+    expect(screen.getByLabelText('tabla.precio:Playera · S')).toHaveValue(199)
+    fireEvent.change(screen.getAllByLabelText('opciones.nombre')[1], { target: { value: 'Color' } })
+    fireEvent.change(screen.getAllByLabelText('opciones.valores')[1], { target: { value: 'Rojo,' } })
+    expect(screen.queryByText('validacion.tablaEnEspera')).not.toBeInTheDocument()
+    expect(estado()).toEqual([['S/Rojo', 199, true], ['M/Rojo', null, true]])
+  })
+
   it('Enter en el nombre de la opción no envía el formulario que lo contiene', async () => {
     const enviar = vi.fn((e: { preventDefault: () => void }) => e.preventDefault())
     render(
