@@ -186,6 +186,14 @@ const CERO = { count: 0, amount: 0, tipAmount: 0 }
 /** El aviso al contador que manda el server (C4 `AVISO_PENDIENTES_CONTABLES`): se pinta tal cual, nunca se copia al locale. */
 const AVISO_CONTADOR =
   'Estos cobros no generan póliza automática: regístralos a mano en la contabilidad. El costo de la mercancía que se pagó con saldo ya está en la póliza de costo de ventas; falta el ingreso del canje y, en la venta de tarjetas, el saldo que se le debe al cliente.'
+/**
+ * Lo que pinta el panel EN INGLÉS (el E2E corre en inglés): desde los pendientes de la 1a (19-oct) traduce por código y ya no
+ * enseña el texto del server en español (`en/giftCards.json`: `actions.cancelSale.blocker.BLOCKED_OTHER` y
+ * `reports.pending.notice`). En español se sigue pintando el texto del server; eso lo fijan las pruebas de vitest.
+ */
+const NO_CANCELA_BLOQUEADA_EN = 'Unblock the card before canceling the sale.'
+const AVISO_CONTADOR_EN =
+  "These payments don't create an automatic journal entry: record them by hand in your accounting. The cost of the goods paid with balance is already in the cost-of-sales entry; what's missing is the income from the redemption and, for a card sale, the balance owed to the customer."
 /** Una venta de tarjetas pendiente de póliza, con sus totales POR TIPO (D5 r1: nunca sumados entre tipos). */
 const PENDIENTES = {
   items: [
@@ -367,8 +375,8 @@ test.describe('Tarjetas de regalo — lista y detalle', () => {
     await expect(hoja).toContainText('Blocked')
     // El motivo vigente sale de `currentBlock` del server (auditoría r1, D-2), no de la libreta.
     await expect(page.locator('[data-tour="gift-card-blocked-reason"]')).toContainText('Suspicious activity')
-    // Nota 2: el «no se puede cancelar» es el texto del server (`cancel.message`), no el genérico del locale.
-    await expect(page.locator('[data-tour="gift-card-cancel-sale-reason"]')).toHaveText(NO_CANCELA_BLOQUEADA)
+    // Nota 2 (revisada el 19-oct): en inglés y sin `reason`, la tarjeta bloqueada dice BLOCKED_OTHER, no el texto del server.
+    await expect(page.locator('[data-tour="gift-card-cancel-sale-reason"]')).toHaveText(NO_CANCELA_BLOQUEADA_EN)
     await page.screenshot({ path: 'test-results/gift-cards-detail-blocked-light.png' })
     await cerrarHoja(page)
     // 🔴 esto es la prueba, no el toast:
@@ -507,8 +515,8 @@ test.describe('Tarjetas de regalo — lista y detalle', () => {
     await hideDevtools(page)
     await page.goto('/venues/venue-alpha/gift-cards#reports')
     await expect(page.getByText(/6,000\.00/)).toBeVisible({ timeout: 15_000 })
-    // Pendientes contables: el aviso al contador es el del server (nota 3) y los totales van POR TIPO (D5 r1).
-    await expect(page.locator('[data-tour="gift-cards-pending-notice"]')).toHaveText(AVISO_CONTADOR)
+    // Pendientes contables: en inglés el aviso al contador es su traducción fija (19-oct) y los totales van POR TIPO (D5 r1).
+    await expect(page.locator('[data-tour="gift-cards-pending-notice"]')).toHaveText(AVISO_CONTADOR_EN)
     const pendientes = page.locator('[data-tour="gift-cards-pending-accounting"]')
     await expect(pendientes).toContainText('1 operation in the period')
     await expect(pendientes).toContainText('Gift card sale (1): $1,500.00')
