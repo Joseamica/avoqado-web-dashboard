@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Volume2, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -103,8 +103,14 @@ export function InboxTab() {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
 
+  // `isPending` llega en otro turno del navegador: dos clics seguidos (7 ms) se cuelan antes de que el botón se deshabilite.
+  // Este candado se cierra en el mismo clic y se suelta al terminar (con éxito o sin él), justo antes de que `isPending` baje.
+  const inFlight = useRef(false)
   const action = useMutation({
     mutationFn: (a: Act) => a.run(),
+    onSettled: () => {
+      inFlight.current = false
+    },
     onSuccess: () => refresh(),
     // onSuccess/onError DEVUELVEN el refresco: `isPending` lo cubre y los botones no se reactivan con la tarjeta vieja.
     onError: (err: unknown, a: Act) => {
@@ -126,6 +132,8 @@ export function InboxTab() {
   })
 
   const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>) => {
+    if (inFlight.current) return
+    inFlight.current = true
     setDialog(null)
     action.mutate({ target, run: fn })
   }
@@ -225,7 +233,7 @@ export function InboxTab() {
             {list.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('inbox.sections.empty')}</p>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {list.map(order => (
                   <OrderCard
                     key={order.orderId}

@@ -84,12 +84,12 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, onAction 
                 ))}
               </ul>
             )}
-            {item.note && <p className="pl-4 italic text-muted-foreground">{item.note}</p>}
+            {item.note && <p className="break-words pl-4 italic text-muted-foreground">{item.note}</p>}
           </li>
         ))}
       </ul>
 
-      {order.note && <p className="rounded-lg bg-muted/50 p-2 text-sm">{order.note}</p>}
+      {order.note && <p className="break-words rounded-lg bg-muted/50 p-2 text-sm">{order.note}</p>}
 
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{t('inbox.card.total')}</span>
