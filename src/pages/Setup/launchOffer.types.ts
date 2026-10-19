@@ -45,6 +45,9 @@ export function isOfferAvailable(offer: LaunchOfferState | null | undefined): of
 export interface PlanQuoteTier {
   monthlyCents: number
   annualCents: number
+  /** Precio SIN IVA que publica el servidor; opcional (un servidor viejo no lo manda). Nunca se deriva aquí. */
+  monthlyNetCents?: number
+  annualNetCents?: number
   intro: { monthlyCents: number; months: number; interval: 'monthly'; requiresPayNow: boolean } | null
 }
 
@@ -99,6 +102,7 @@ export interface ActivatePlanResult {
 /** Códigos de error de `activate-plan` que la pantalla trata de forma distinta (§4.5). */
 export type ActivatePlanErrorCode =
   | 'PLAN_PAYMENT_DECLINED'
+  | 'PLAN_PAYMENT_REQUIRES_ACTION'
   | 'PLAN_ALREADY_ACTIVATED'
   | 'PLAN_ACTIVE_WITHOUT_OFFER'
   | 'LAUNCH_OFFER_UNAVAILABLE'

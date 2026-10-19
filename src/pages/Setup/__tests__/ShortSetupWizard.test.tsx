@@ -54,18 +54,13 @@ vi.mock('@/components/layouts/SetupWizardLayout', () => ({
 const refrescoDevuelto = vi.hoisted(() => ({ valor: undefined as unknown }))
 vi.mock('../steps/OfferStep', () => ({
   OfferStep: ({
-    onVistaDePlanes,
     activacionEnCurso,
     onRefreshProgress,
   }: {
-    onVistaDePlanes?: (v: boolean) => void
     activacionEnCurso?: boolean
     onRefreshProgress?: () => void | Promise<void>
   }) => (
     <div data-testid="pantalla-oferta" data-activacion-en-curso={String(!!activacionEnCurso)}>
-      <button type="button" onClick={() => onVistaDePlanes?.(true)}>
-        simular-ver-planes
-      </button>
       <button type="button" onClick={() => (refrescoDevuelto.valor = onRefreshProgress?.())}>
         simular-volver-a-comprobar
       </button>
@@ -152,12 +147,16 @@ describe('ShortSetupWizard — dónde reanuda', () => {
     expect(await screen.findByTestId('pantalla-oferta')).toBeInTheDocument()
   })
 
-  it('al ver los 4 planes la columna se ensancha; en la tarjeta de la oferta se queda angosta', async () => {
-    const user = userEvent.setup()
+  it('antes del paso de planes la columna es angosta', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {} }))
+    pintar()
+    await screen.findByLabelText(/Nombre del negocio/i)
+    expect(screen.getByTestId('layout')).toHaveAttribute('data-wide', 'false')
+  })
+
+  it('la columna del paso de planes es ancha sin esperar ningún aviso de la pantalla', async () => {
     pintar()
     await screen.findByTestId('pantalla-oferta')
-    expect(screen.getByTestId('layout')).toHaveAttribute('data-wide', 'false')
-    await user.click(screen.getByRole('button', { name: 'simular-ver-planes' }))
     expect(screen.getByTestId('layout')).toHaveAttribute('data-wide', 'true')
   })
 
