@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 
@@ -127,6 +127,9 @@ const deferred = <T,>() => {
   const promise = new Promise<T>(r => (resolve = r))
   return { promise, resolve }
 }
+
+// `mutate()` llama al servicio ya dentro de una microtarea y avisa `isPending` en otra: se deja pasar un turno completo.
+const settleMutations = () => act(async () => void (await new Promise(r => setTimeout(r, 20))))
 
 describe('InboxTab', () => {
   beforeEach(() => {
@@ -333,6 +336,48 @@ describe('InboxTab', () => {
     ready.resolve({ status: 'READY' })
   })
 
+  // ── Revisión final (full-testingv2): dos clics a 7 ms. `userEvent.dblClick` espera entre clics y deja que React Query
+  // avise `isPending`; un doble clic real de la máquina no: el botón sigue habilitado y salían 2 POST (200 y 409). ──
+  it('🔴 dos clics seguidos en «Listo», antes de que React Query avise ⇒ una sola llamada; al terminar vuelve a dejar contestar', async () => {
+    getInbox.mockResolvedValueOnce(inbox([order({ status: 'ACCEPTED' })]))
+    getInbox.mockResolvedValue(inbox([order({ status: 'READY', remaining: 0 })]))
+    const ready = deferred<unknown>()
+    markReady.mockReturnValue(ready.promise)
+    markDelivered.mockResolvedValue({ status: 'COMPLETED' })
+    renderTab()
+    const button = await screen.findByRole('button', { name: 'inbox.actions.ready' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    await settleMutations()
+    expect(markReady).toHaveBeenCalledTimes(1)
+    await act(async () => ready.resolve({ status: 'READY' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.delivered' }))
+    expect(markDelivered).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 dos clics seguidos en «Entregado» ⇒ una sola llamada', async () => {
+    getInbox.mockResolvedValue(inbox([order({ status: 'READY', remaining: 0 })]))
+    const delivered = deferred<unknown>()
+    markDelivered.mockReturnValue(delivered.promise)
+    renderTab()
+    const button = await screen.findByRole('button', { name: 'inbox.actions.delivered' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    await settleMutations()
+    expect(markDelivered).toHaveBeenCalledTimes(1)
+    delivered.resolve({ status: 'COMPLETED' })
+  })
+
+  it('si la acción falla por red, el candado se suelta y se puede reintentar', async () => {
+    getInbox.mockResolvedValue(inbox([order({ status: 'ACCEPTED' })]))
+    markReady.mockRejectedValueOnce(networkError()).mockResolvedValue({ status: 'READY' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'inbox.actions.ready' })).toBeEnabled())
+    await userEvent.click(screen.getByRole('button', { name: 'inbox.actions.ready' }))
+    expect(markReady).toHaveBeenCalledTimes(2)
+  })
+
   it('doble clic en el tiempo de «Aceptar» ⇒ una sola llamada', async () => {
     getInbox.mockResolvedValue(inbox([order()]))
     const accepted = deferred<unknown>()
@@ -445,6 +490,17 @@ describe('InboxTab', () => {
     const time = within(card).getByText('T(2026-10-17T17:55:00.000Z)')
     const deadline = within(card).getByText(/^inbox\.card\.deadline\|/)
     expect(time.parentElement).not.toContainElement(deadline)
+  })
+
+  // ── Revisión final (full-testingv2): una nota del comensal con una palabra larga (una liga) no rompe las tarjetas ──
+  it('🔴 las notas cortan palabras largas y la cuadrícula tiene una columna acotada (a 375 px no ensancha)', async () => {
+    const link = `https://ejemplo.mx/${'n'.repeat(200)}`
+    getInbox.mockResolvedValue(inbox([order({ note: link, items: [{ name: 'Taco', quantity: 1, note: link, modifiers: [] }] })]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getAllByText(link)).toHaveLength(2)
+    for (const note of within(card).getAllByText(link)) expect(note.className).toContain('break-words')
+    expect(card.parentElement?.className).toContain('grid-cols-1')
   })
 
   // ── Ronda final · D6: el aviso de plan vencido se va solo al reactivar el plan ──
