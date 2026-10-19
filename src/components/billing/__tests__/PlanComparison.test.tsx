@@ -35,4 +35,60 @@ describe('PlanComparison', () => {
     expect(screen.getByText(/Todos los planes incluyen/)).toBeInTheDocument()
     expect(screen.getByTestId('compare-cfdi-FREE')).toBeInTheDocument()
   })
+  describe('ocultarGratis (el alta nunca enseña Gratis)', () => {
+    const abrir = async (ui: React.ReactElement) => {
+      render(ui)
+      await userEvent.setup().click(screen.getByRole('button', { name: /Ver todo lo que incluye/i }))
+    }
+
+    it('sin la prop sigue igual: tres columnas, Gratis incluida', async () => {
+      await abrir(<PlanComparison />)
+      expect(screen.getAllByRole('columnheader')).toHaveLength(4) // vacía + Gratis + Pro + Premium
+      expect(screen.getByTestId('compare-cfdi-FREE')).toBeInTheDocument()
+      expect(screen.getByTestId('compare-seats-FREE')).toBeInTheDocument()
+    })
+
+    it('con la prop no pinta la columna de Gratis: ni encabezado ni celdas', async () => {
+      await abrir(<PlanComparison ocultarGratis />)
+      expect(screen.getAllByRole('columnheader')).toHaveLength(3) // vacía + Pro + Premium
+      expect(screen.queryByText('plan.tiers.free.name')).not.toBeInTheDocument()
+      expect(screen.queryAllByTestId(/^compare-.*-FREE$/)).toHaveLength(0)
+      expect(screen.getByTestId('compare-cfdi-PRO')).toBeInTheDocument()
+      expect(screen.getByTestId('compare-cfdi-PREMIUM')).toBeInTheDocument()
+    })
+
+    it('lo «común a todos» se calcula sólo entre Pro y Premium', async () => {
+      await abrir(<PlanComparison ocultarGratis />)
+      // Tienen lo mismo en Pro y Premium (sólo cambiaban contra Gratis): pasan a la línea de arriba.
+      expect(screen.queryByTestId('compare-loyalty-PRO')).not.toBeInTheDocument()
+      // Lo que sí distingue a Pro de Premium se queda en la tabla.
+      expect(screen.getByTestId('compare-cfdi-PRO')).toBeInTheDocument()
+    })
+
+    it('«Usuarios» se queda en la tabla con su valor («Ilimitados») aunque Pro y Premium coincidan', async () => {
+      await abrir(<PlanComparison ocultarGratis />)
+      expect(screen.getByRole('rowheader', { name: 'plan.compare.rows.seats' })).toBeInTheDocument()
+      expect(screen.getByTestId('compare-seats-PRO')).toHaveTextContent('plan.compare.values.unlimited')
+      expect(screen.getByTestId('compare-seats-PREMIUM')).toHaveTextContent('plan.compare.values.unlimited')
+      expect(screen.queryByTestId('compare-seats-FREE')).not.toBeInTheDocument()
+    })
+
+    it('el plan resaltado sigue resaltándose', async () => {
+      await abrir(<PlanComparison ocultarGratis selectedTier="PREMIUM" />)
+      expect(screen.getByTestId('compare-cfdi-PREMIUM').className).toMatch(/bg-muted/)
+      expect(screen.getByTestId('compare-cfdi-PRO').className).not.toMatch(/bg-muted/)
+    })
+
+    it('defaultOpen la abre sin tocar el botón (así la monta el diálogo del alta)', () => {
+      render(<PlanComparison ocultarGratis defaultOpen />)
+      expect(screen.getByRole('table')).toBeInTheDocument()
+      expect(screen.queryAllByTestId(/^compare-.*-FREE$/)).toHaveLength(0)
+    })
+
+    it('siempreAbierta (el diálogo del alta): desplegada y SIN el botón de ocultar, que dejaba el diálogo vacío', () => {
+      render(<PlanComparison ocultarGratis siempreAbierta />)
+      expect(screen.getByRole('table')).toBeInTheDocument()
+      expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    })
+  })
 })

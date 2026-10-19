@@ -1,5 +1,7 @@
 /**
- * OfferStep — el momento 3 del alta corta: la oferta del anuncio, o el selector de planes (§4.5).
+ * OfferStep — el momento 3 del alta corta: Pro, Premium y Enterprise a lo ancho, y una ventana para
+ * pagar el que se elija (diseño D, spec 2026-10-17). Con campaña, la tarjeta de su plan lleva la oferta
+ * y se paga hoy; el otro plan de pago es la prueba de 30 días con tarjeta. Gratis no se ofrece.
  *
  * 🔴 Las reglas de dinero de esta pantalla, todas con prueba:
  *  - **No calcula nada.** Cada monto sale de `launchOffer` / `planQuote`, que los entrega el
@@ -10,8 +12,10 @@
  *    un cargo distinto del que la persona vio y aceptó.
  *  - **Ningún error es un callejón.** Los dos «ya tienes un plan activo» ofrecen un botón que
  *    termina el alta; nunca se presentan como si el cobro hubiera ocurrido.
- *  - **Una oferta agotada o cambiada no se reintenta sola.** Se vuelve a pedir el progreso y se
- *    enseña la vista estándar: el precio normal exige un consentimiento NUEVO.
+ *  - **Una oferta agotada o cambiada no se reintenta sola.** Se cierra la ventana, se vuelve a pedir
+ *    el progreso y las tarjetas pasan a la prueba: el precio normal exige un consentimiento NUEVO.
+ *  - **Con un cobro sin respuesta definitiva el plan no se cambia:** las tarjetas se apagan y la
+ *    ventana no se cierra (ni Esc ni la X).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,14 +24,19 @@ import { Elements } from '@stripe/react-stripe-js'
 import { AlertCircle, RotateCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { PlanComparison } from '@/components/billing/PlanComparison'
+import { salesWhatsAppLink } from '@/config/plan-catalog'
 import { setupService } from '@/services/setup.service'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { pedidoCompartido, type PedidoEnVuelo } from './pedidoCompartido'
 import { track } from '@/lib/posthog'
 import { trackPurchase } from '@/lib/gtag'
+import { focoPerdido } from '../offer/focoPerdido'
 import { formatMXN } from '../offer/formatMXN'
-import { FalloDeCobro } from '../offer/falloDeCobro'
 import { textoDeRechazo } from '../offer/mensajeDeRechazo'
 import { expectedStandardFirstChargeCents } from '../offer/standardQuote'
+import { textoDePrecio } from '../offer/textoDePrecio'
 import { BACKEND_STEP_BY_ID } from '../stepRegistry'
 import {
   isOfferAvailable,
@@ -39,7 +48,8 @@ import {
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
-import { PlanStep } from './PlanStep'
+import { TarjetasDePlanes } from './planes/TarjetasDePlanes'
+import { VentanaDePago } from './planes/VentanaDePago'
 import type { SetupData } from '../types'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
@@ -47,6 +57,12 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as 
 /** Espera entre reintentos de un desenlace desconocido, y cuántos se hacen antes de rendirse. */
 const REINTENTO_MS = 10_000
 const MAX_REINTENTOS = 3
+
+const DIA_MS = 24 * 60 * 60 * 1000
+// Nombres de marca: iguales en español e inglés (como en `TarjetasDePlanes`).
+const NOMBRE_DEL_PLAN = { PRO: 'Pro', PREMIUM: 'Premium' } as const
+
+type PlanDePago = 'PRO' | 'PREMIUM'
 
 export interface OfferStepProps {
   organizationId: string
@@ -60,10 +76,11 @@ export interface OfferStepProps {
   onFinish: () => void
   /** Vuelve a pedir el progreso (la oferta pudo agotarse o cambiar mientras se capturaba). */
   onRefreshProgress: () => void | Promise<void>
-  /** El plan GRATIS de la vista estándar: se guarda sin tarjeta. */
+  /**
+   * Cierra el paso con un plan que NO se cobra aquí: la compra híbrida («Ver ofertas y funciones»), cuyos
+   * contratos dan el acceso. Gratis ya no se ofrece en el alta.
+   */
   onFreePlan?: (plan: NonNullable<SetupData['plan']>) => void | Promise<boolean | void>
-  /** Avisa si se están mostrando los planes (4 tarjetas): el asistente ensancha su columna. */
-  onVistaDePlanes?: (viendoPlanes: boolean) => void
   /**
    * El servidor tiene un cobro de este alta SIN cerrar (`planActivation.status === 'IN_PROGRESS'`).
    * Llega así tras una recarga: el plan arranca bloqueado y se ofrece volver a comprobar.
@@ -106,7 +123,6 @@ export function OfferStep({
   onFinish,
   onRefreshProgress,
   onFreePlan,
-  onVistaDePlanes,
   activacionEnCurso = false,
 }: OfferStepProps) {
   const { t, i18n } = useTranslation('setup')
@@ -115,17 +131,17 @@ export function OfferStep({
   const oferta = isOfferAvailable(launchOffer) ? launchOffer : null
   const noDisponible = launchOffer && !launchOffer.available ? launchOffer : null
 
-  // «Ver otros planes» (D1) y la caída a la vista estándar tras un 409 comparten estado: en los dos
-  // casos la oferta deja de estar enfrente y el precio normal hay que volver a tocarlo.
+  // «Ignorar la oferta»: lo pone la caída tras un 409 (`caerAEstandar`). Las tarjetas pasan a la prueba
+  // de 30 días y el precio normal hay que volver a tocarlo.
   const [verEstandar, setVerEstandar] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  // Sólo quien SE FUE por gusto («Ver otros planes») puede volver. Tras un 409 la oferta ya no
-  // aplica, y ofrecer el regreso sería mandarlo a una tarjeta que el servidor va a rechazar.
-  const [puedeVolver, setPuedeVolver] = useState(false)
+  // El plan cuya ventana para pagar está abierta (null = viendo las 3 tarjetas).
+  const [planElegido, setPlanElegido] = useState<PlanDePago | null>(null)
+  const [comparando, setComparando] = useState(false)
   const [desenlace, setDesenlace] = useState<Desenlace>({ tipo: 'nada' })
   // 🔴 UNA regla para el candado del plan: desde que sale el cobro hasta que hay RESPUESTA DEFINITIVA,
-  // nada puede cambiar el plan (ni «Cambiar plan», ni Free, ni «Ver otros planes», ni volver a la
-  // oferta). Codex encontró el hueco por partes — el reintento del 503 (ronda 8), el `saveStep` tras
+  // nada puede cambiar el plan (ni otra tarjeta de plan, ni cerrar la ventana para pagar, ni la compra
+  // híbrida). Codex encontró el hueco por partes — el reintento del 503 (ronda 8), el `saveStep` tras
   // el éxito, el primer cobro de la oferta y el «sin confirmar» (ronda 9) — porque el candado colgaba
   // de «¿está reintentando?». Ahora cuelga del cobro:
   //   · se prende al llamar `cobrar`;
@@ -174,24 +190,9 @@ export function OfferStep({
 
   const mostrarOferta = !!oferta && !verEstandar
 
+  // SetupIntent para la tarjeta, para cualquier plan (oferta o prueba): se pide al montar, no al abrir
+  // la ventana, para que el formulario aparezca ya listo.
   useEffect(() => {
-    onVistaDePlanes?.(!mostrarOferta)
-  }, [mostrarOferta, onVistaDePlanes])
-
-  // Pro ES el plan de la oferta: sin este regreso, quien mira los planes por curiosidad se queda
-  // frente a Pro a precio de lista, pagando mucho más por lo mismo.
-  const volverALaOferta = useCallback(() => {
-    if (planBloqueado()) return
-    setPuedeVolver(false)
-    setAviso(null)
-    setDesenlace({ tipo: 'nada' })
-    setVerEstandar(false)
-  }, [])
-
-  // SetupIntent para la tarjeta. Solo hace falta en el camino de la oferta: la vista estándar es
-  // `PlanStep`, que pide el suyo.
-  useEffect(() => {
-    if (!mostrarOferta) return
     if (!venueId) {
       setIntentStatus('error')
       return
@@ -214,7 +215,7 @@ export function OfferStep({
     return () => {
       vivo = false
     }
-  }, [mostrarOferta, venueId, retryToken])
+  }, [venueId, retryToken])
 
   // El iframe de Stripe no hereda nuestro CSS: el tema y la tipografía se le pasan aquí, y se
   // actualizan solos si la persona cambia de tema con la pantalla abierta.
@@ -230,12 +231,16 @@ export function OfferStep({
 
   const caerAEstandar = useCallback(
     async (mensaje: string) => {
-      setPuedeVolver(false)
       setAviso(mensaje)
       // La oferta ya no aplica: ese cobro NO ocurrió, el plan se puede volver a elegir.
       marcarCobroEnCurso(false)
       setVerEstandar(true)
       setDesenlace({ tipo: 'nada' })
+      // La ventana mostraba un precio que ya no aplica: se cierra y el cliente vuelve a elegir.
+      setPlanElegido(null)
+      // 🔴 SetupIntent NUEVO: el anterior pudo quedar confirmado con esta tarjeta antes del 409, y volver a pagar
+      // con él da 400 en Stripe (antes lo renovaba de rebote el montaje de `PlanStep`).
+      setRetryToken(n => n + 1)
       await onRefreshProgress()
     },
     [marcarCobroEnCurso, onRefreshProgress],
@@ -244,11 +249,9 @@ export function OfferStep({
   /**
    * Cobra. `cuerpo` viaja idéntico en cada reintento: es el MISMO cobro, no uno nuevo.
    *
-   * 🔴 NO lanza: **devuelve** el desenlace. La pantalla de la oferta pinta el suyo desde
-   * `desenlace`, pero la vista estándar es `PlanStep`, que solo frena si su
-   * `activateBeforeContinue` lanza — por eso el resultado tiene que salir de aquí en vez de
-   * perderse en el `catch`. Lanzar desde dentro tampoco servía: el reintento del 503 se dispara
-   * en un `setTimeout` y su rechazo no lo capturaría nadie.
+   * 🔴 NO lanza: **devuelve** el desenlace (la ventana pinta el suyo desde `desenlace`). Lanzar desde
+   * dentro no servía: el reintento del 503 se dispara en un `setTimeout` y su rechazo no lo
+   * capturaría nadie.
    */
   const cobrar = useCallback(
     async (cuerpo: ActivatePlanBody, plan: NonNullable<SetupData['plan']>): Promise<ResultadoDeCobro> => {
@@ -407,38 +410,59 @@ export function OfferStep({
     [cobrar, idioma, oferta],
   )
 
-  /** La vista estándar cobra por el MISMO endpoint: un solo camino que crea dinero. */
-  const activarEstandar = useCallback(
-    async (args: { tier: 'PRO' | 'PREMIUM'; interval: 'monthly' | 'annual'; payNow: boolean; paymentMethodId: string }) => {
-      const esperado = expectedStandardFirstChargeCents(planQuote, args.tier, args.interval, args.payNow)
+  /**
+   * Cobra el plan de la ventana por el MISMO endpoint: un solo camino que crea dinero. El plan de la
+   * campaña (sin haberla ignorado) es el cuerpo LAUNCH de `pagarLaOferta`; cualquier otro es la prueba
+   * de 30 días con tarjeta (STANDARD, `payNow:false`, hoy se cobran 0).
+   */
+  const pagarPlan = useCallback(
+    async (tier: PlanDePago, paymentMethodId: string) => {
+      if (oferta && !verEstandar && tier === oferta.planTier) return pagarLaOferta(paymentMethodId)
+      const esperado = expectedStandardFirstChargeCents(planQuote, tier, 'monthly', false)
       if (esperado === null) {
-        // 🔴 Sin la cotización del servidor no hay monto que consentir, así que NO se cobra. Lo que
-        // no puede pasar —y pasaba— es que además se avance: este `return` era mudo y el asistente
-        // guardaba un plan de PAGO sin que nadie hubiera llamado a `activate-plan` ni una vez.
-        throw new FalloDeCobro(t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' }))
+        // 🔴 Sin la cotización del servidor no hay monto que consentir, así que NO se cobra ni se avanza.
+        setDesenlace({
+          tipo: 'rechazo',
+          mensaje: t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' }),
+        })
+        // La tarjeta ya confirmó este SetupIntent: el siguiente intento necesita uno nuevo.
+        setRetryToken(n => n + 1)
+        return
       }
       const cuerpo: ActivatePlanBody = {
-        tier: args.tier,
-        interval: args.interval,
-        payNow: args.payNow,
-        paymentMethodId: args.paymentMethodId,
+        tier,
+        interval: 'monthly',
+        payNow: false,
+        paymentMethodId,
         offer: { kind: 'STANDARD', expectedFirstChargeCents: esperado },
         language: idioma,
       }
       const plan: NonNullable<SetupData['plan']> = {
-        tier: args.tier,
-        paymentMethodId: args.paymentMethodId,
-        interval: args.interval,
-        payNow: args.payNow,
+        tier,
+        paymentMethodId,
+        interval: 'monthly',
+        payNow: false,
         acceptedAt: new Date().toISOString(),
       }
-      // 🔴 `PlanStep` solo frena si esto LANZA. Sin el throw, un rechazo del banco avanzaba el
-      // alta y guardaba `plan.payNow = true` sin cargo detrás.
-      const resultado = await cobrar(cuerpo, plan)
-      if (!resultado.ok) throw new FalloDeCobro(resultado.mensaje)
+      await cobrar(cuerpo, plan)
     },
-    [cobrar, idioma, planQuote, t],
+    [cobrar, idioma, oferta, pagarLaOferta, planQuote, t, verEstandar],
   )
+
+  // Abrir la ventana de un plan. Con un cobro sin cerrar no se elige otro (las tarjetas ya están apagadas).
+  const elegir = (tier: PlanDePago) => {
+    if (planBloqueado()) return
+    setDesenlace({ tipo: 'nada' })
+    setPlanElegido(tier)
+  }
+  // Tras una recarga con un cobro sin cerrar: la ventana del plan de la campaña (o Pro sin campaña) con el
+  // formulario HABILITADO. El servidor recupera el cobro del intento anterior y entrega lo cobrado, sin cobrar
+  // de nuevo. Sólo se bloquea con un cobro de ESTA pantalla en vuelo.
+  const confirmarMiPago = () => {
+    if (cobroEnCursoRef.current) return
+    setDesenlace({ tipo: 'nada' })
+    setPlanElegido(mostrarOferta ? oferta!.planTier : 'PRO')
+  }
 
   // Sin respuesta definitiva tras los reintentos: el plan sigue bloqueado (pudo cobrarse). La única
   // salida es preguntar otra vez por el MISMO cobro — mismo cuerpo, así que nunca es un cargo nuevo.
@@ -468,35 +492,56 @@ export function OfferStep({
       })
   }, [cobrar, onRefreshProgress])
 
-  const avisoSinConfirmar =
-    desenlace.tipo === 'sin-confirmar' || (activacionEnCurso && !cobroEnCurso) ? (
-      <div
-        role="status"
-        data-testid="offer-pending-locked"
-        className="flex flex-col gap-3 rounded-xl border border-input p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
-      >
-        <span className="flex items-start gap-2">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span>
-            {desenlace.tipo === 'sin-confirmar' ? (
-              <>
-                {t('offer.pending', { defaultValue: 'Tu pago se está confirmando; vuelve en unos minutos.' })}{' '}
-                {t('offer.pendingNoChange', {
-                  defaultValue: 'Mientras tanto no puedes cambiar de plan: el cobro puede haberse hecho.',
-                })}
-              </>
-            ) : (
-              // Tras una recarga: la salida es confirmar otra vez con la tarjeta (el servidor recupera el cobro).
-              t('offer.pendingAfterReload', {
+  // M6: tras rendirse de confirmar, el botón de pagar sigue apagado y el foco se queda en el aire: va a la única salida.
+  const volverAComprobarRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (desenlace.tipo === 'sin-confirmar' && focoPerdido()) volverAComprobarRef.current?.focus()
+  }, [desenlace.tipo])
+  // A dónde vuelve el foco al cerrar la ventana si el botón que la abrió ya no está («Confirmar mi pago» se desmonta).
+  const tituloRef = useRef<HTMLHeadingElement>(null)
+
+  // Un cobro sin respuesta definitiva: el que ESTA pantalla se rindió de confirmar, o el que el servidor tiene
+  // abierto tras una recarga. Va dentro de la ventana si está abierta (no se puede cerrar con un cobro en vuelo) y,
+  // si no, encima de las tarjetas.
+  const hayPendiente = desenlace.tipo === 'sin-confirmar' || (activacionEnCurso && !cobroEnCurso)
+  const avisoPendiente = hayPendiente ? (
+    <div
+      role="status"
+      data-testid="offer-pending-locked"
+      className="flex flex-col gap-3 rounded-xl border border-input p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
+    >
+      <span className="flex items-start gap-2">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span>
+          {desenlace.tipo === 'sin-confirmar' ? (
+            <>
+              {t('offer.pending', { defaultValue: 'Tu pago se está confirmando; vuelve en unos minutos.' })}{' '}
+              {t('offer.pendingNoChange', {
+                defaultValue: 'Mientras tanto no puedes cambiar de plan: el cobro puede haberse hecho.',
+              })}
+            </>
+          ) : (
+            // Tras una recarga: la salida es confirmar otra vez con la tarjeta (el servidor recupera el cobro).
+            <>
+              <span className="block font-semibold">{t('plans.pendingTitle')}</span>
+              {t('offer.pendingAfterReload', {
                 defaultValue:
                   'Tu último pago quedó sin confirmar. Vuelve a confirmar con tu tarjeta: si ya se había cobrado, lo recuperamos y no se cobra dos veces.',
-              })
-            )}
-          </span>
+              })}
+            </>
+          )}
         </span>
+      </span>
+      <span className="flex shrink-0 flex-wrap gap-2">
+        {desenlace.tipo !== 'sin-confirmar' && !planElegido && (
+          <Button className="rounded-full" data-tour="offer-confirm-payment" onClick={confirmarMiPago}>
+            {t('plans.confirmPayment')}
+          </Button>
+        )}
         <Button
+          ref={volverAComprobarRef}
           variant="outline"
-          className="shrink-0 gap-2 rounded-full"
+          className="gap-2 rounded-full"
           data-tour="offer-recheck-payment"
           onClick={volverAComprobar}
           disabled={comprobando}
@@ -504,8 +549,9 @@ export function OfferStep({
           <RotateCw className="h-4 w-4" aria-hidden="true" />
           {t('offer.recheck', { defaultValue: 'Volver a comprobar mi pago' })}
         </Button>
-      </div>
-    ) : null
+      </span>
+    </div>
+  ) : null
 
   // ── Callejón sin salida: NUNCA. Un plan ya activo se cierra con un botón que termina el alta ──
   if (desenlace.tipo === 'ya-activo') {
@@ -513,7 +559,8 @@ export function OfferStep({
       <div className="mx-auto flex w-full max-w-[640px] flex-col gap-4">
         <h1 className="text-2xl font-semibold sm:text-3xl">{t('offer.alreadyActiveTitle', { defaultValue: 'Tu plan ya está activo' })}</h1>
         <p className="text-sm text-muted-foreground">{desenlace.mensaje}</p>
-        <Button className="rounded-full" onClick={onFinish} data-tour="offer-enter">
+        {/* M6: la ventana se desmonta con el foco adentro; sin esto se perdía en el <body>. */}
+        <Button className="rounded-full" onClick={onFinish} data-tour="offer-enter" autoFocus>
           {t('offer.enter', { defaultValue: 'Entrar a Avoqado' })}
         </Button>
         <p className="text-xs text-muted-foreground">
@@ -523,12 +570,72 @@ export function OfferStep({
     )
   }
 
-  if (!mostrarOferta) {
-    return (
-      <div className="flex flex-col gap-6">
+  const abrirWhatsApp = (texto: string) => window.open(salesWhatsAppLink(texto), '_blank', 'noopener,noreferrer')
+
+  // ── Lo que dice la ventana del plan elegido. Sólo formatea montos del servidor; no calcula ninguno ──
+  const ventanaDeOferta = !!planElegido && mostrarOferta && planElegido === oferta!.planTier
+  const cotizado = planElegido ? planQuote?.tiers?.[planElegido] : undefined
+  // Informativa: la fecha real del primer cobro la fija Stripe al terminar la prueba.
+  const fechaDelCobro = cotizado ? new Date(Date.now() + planQuote!.trialDays * DIA_MS) : null
+  const fechaDelCobroTexto =
+    fechaDelCobro &&
+    new Intl.DateTimeFormat(getIntlLocale(i18n?.language), { day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' }).format(
+      fechaDelCobro,
+    )
+  const ventana = ventanaDeOferta
+    ? {
+        titulo: t('plans.offerTitle', { price: formatMXN(oferta!.promo.monthlyCents), count: oferta!.promo.months }),
+        subtitulo: t('offer.planLine', { defaultValue: 'Plan {{plan}} · IVA incluido', plan: oferta!.planName }),
+        hoyPagasCents: oferta!.firstChargeCents,
+        primerCobro: undefined,
+        legal: t('offer.legal', {
+          defaultValue:
+            'Al pagar autorizas a Avoqado a cobrar {{promo}} al mes durante {{count}} meses y después {{renewal}} al mes a esta tarjeta hasta que canceles. Cancela cuando quieras desde Facturación.',
+          promo: formatMXN(oferta!.promo.monthlyCents),
+          count: oferta!.promo.months,
+          renewal: formatMXN(oferta!.renewal.monthlyCents),
+          total: formatMXN(oferta!.promo.periodTotalCents),
+        }),
+        boton: t('offer.payAndEnter', { defaultValue: 'Pagar {{price}} y entrar', price: formatMXN(oferta!.firstChargeCents) }),
+      }
+    : {
+        titulo: t('plans.trialTitle', { plan: planElegido ? NOMBRE_DEL_PLAN[planElegido] : '' }),
+        subtitulo: t('plans.trialSubtitle'),
+        // Prueba de 30 días: hoy no se cobra nada.
+        hoyPagasCents: 0,
+        primerCobro: cotizado
+          ? { fecha: fechaDelCobro!, texto: textoDePrecio(t, cotizado.monthlyCents, cotizado.monthlyNetCents) }
+          : undefined,
+        // Sin cotización no hay monto que consentir (y el cobro tampoco sale): no se inventa un legal.
+        legal: cotizado ? t('plans.trialLegal', { fecha: fechaDelCobroTexto, monto: formatMXN(cotizado.monthlyCents) }) : '',
+        boton: t('plans.startTrial'),
+      }
+
+  return (
+    <>
+      {/* 🔴 `inert` con la ventana abierta: es `modal={false}` (por el 3D Secure de Stripe), así que sin esto el Tab
+          llegaba a «Elegir…» y al pie debajo de un cobro. React 18 no conoce `inert`: va como texto vacío (en React 19
+          es booleano y `''` contaría como apagado). */}
+      <div
+        data-testid="planes-del-alta"
+        className="flex flex-col gap-6"
+        // ponytail: React 18 sólo pinta `inert` como texto (''); al subir a React 19 aquí va `inert: true` ('' lo apagaría en silencio).
+        {...(planElegido ? { inert: '' } : {})}
+      >
+        <div className="flex flex-col gap-2">
+          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl font-semibold outline-none sm:text-3xl">
+            {mostrarOferta ? (oferta!.copy.headline ?? t('plans.title')) : t('plans.title')}
+          </h1>
+          {mostrarOferta ? (
+            oferta!.copy.subheadline && <p className="text-sm text-muted-foreground">{oferta!.copy.subheadline}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('plans.subtitle')}</p>
+          )}
+        </div>
+
         {(aviso || noDisponible) && (
           <div className="flex items-start gap-2 rounded-xl border border-input p-4 text-sm">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="flex-1">
               {aviso ??
                 t('offer.claimedUnavailable', {
@@ -536,170 +643,110 @@ export function OfferStep({
                   code: noDisponible?.code ?? '',
                 })}
             </span>
-            {puedeVolver && oferta && (
-              <button
-                type="button"
-                className="shrink-0 font-medium underline underline-offset-4 hover:text-foreground"
-                disabled={pagoEnVuelo}
-                onClick={volverALaOferta}
-              >
-                {t('offer.backToOffer', {
-                  defaultValue: 'Volver a la oferta de {{promo}}',
-                  promo: formatMXN(oferta.promo.monthlyCents),
-                })}
-              </button>
-            )}
           </div>
         )}
-        {avisoSinConfirmar}
-        <PlanStep
-          data={data ?? {}}
-          venueId={venueId ?? ''}
-          organizationId={organizationId}
-          quote={planQuote ?? null}
-          activateBeforeContinue={activarEstandar}
-          cobroEnVuelo={pagoEnVuelo}
-          pagoBloqueado={pagoBloqueado}
-          onTrabajandoChange={setTarjetaTrabajando}
-          onNext={stepData => {
-            const plan = stepData.plan
-            if (plan && plan.tier === 'FREE') {
-              // Con un cobro sin respuesta definitiva, Free NO: ese cobro puede terminar activando un plan.
-              if (planBloqueado()) return
-              return onFreePlan?.(plan)
-            }
-            // Los planes de pago ya pasaron por `activateBeforeContinue`; aquí solo se cierra.
-            if (plan) return onFreePlan?.(plan)
-          }}
-        />
-      </div>
-    )
-  }
+        {!planElegido && avisoPendiente}
 
-  const promoTotal = oferta!.promo.periodTotalCents
+        <TarjetasDePlanes oferta={mostrarOferta ? oferta : null} planQuote={planQuote} bloqueado={pagoEnVuelo} onElegir={elegir} />
 
-  return (
-    <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold sm:text-3xl">
-          {oferta!.copy.headline ?? t('offer.title', { defaultValue: 'Avoqado {{plan}}', plan: oferta!.planName })}
-        </h1>
-        {oferta!.copy.subheadline && <p className="text-sm text-muted-foreground">{oferta!.copy.subheadline}</p>}
-      </div>
-
-      <HybridOnboardingButton
-        initialSlug={data?.hybridOfferSlug}
-        venueId={venueId ?? ''}
-        disabled={pagoEnVuelo}
-        onNext={step => onFreePlan?.(step.plan!)}
-      />
-      <div className="flex flex-col gap-4 rounded-2xl border border-input p-5">
-        <div>
-          <p className="text-3xl font-semibold">
-            {t('offer.pricePerMonth', { defaultValue: '{{price}} al mes', price: formatMXN(oferta!.promo.monthlyCents) })}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {t('offer.planLine', { defaultValue: 'Plan {{plan}} · IVA incluido', plan: oferta!.planName })}
-          </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm">
+          <button
+            type="button"
+            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => setComparando(true)}
+          >
+            {t('plans.compare')}
+          </button>
+          <button
+            type="button"
+            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => abrirWhatsApp(t('plans.noCardWhatsApp'))}
+          >
+            {t('plans.noCard')}
+          </button>
+          <HybridOnboardingButton
+            initialSlug={data?.hybridOfferSlug}
+            venueId={venueId ?? ''}
+            disabled={pagoEnVuelo}
+            onNext={step => onFreePlan?.(step.plan!)}
+          />
         </div>
+      </div>
 
-        <dl className="flex flex-col gap-2 text-sm">
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">
-              {t('offer.firstMonths', { defaultValue: 'Primeros {{count}} meses', count: oferta!.promo.months })}
-            </dt>
-            <dd>{t('offer.perMonth', { defaultValue: '{{price}}/mes', price: formatMXN(oferta!.promo.monthlyCents) })}</dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">{t('offer.afterwards', { defaultValue: 'Después' })}</dt>
-            <dd>{t('offer.perMonth', { defaultValue: '{{price}}/mes', price: formatMXN(oferta!.renewal.monthlyCents) })}</dd>
-          </div>
-          {oferta!.promo.ivaCents > 0 && (
-            <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-muted-foreground">{t('offer.ivaIncluded', { defaultValue: 'IVA incluido en el precio promocional' })}</dt>
-              <dd>{formatMXN(oferta!.promo.ivaCents)}</dd>
-            </div>
-          )}
-          <div className="flex items-baseline justify-between gap-4 border-t border-border pt-2 font-semibold">
-            <dt>{t('offer.todayYouPay', { defaultValue: 'Hoy pagas' })}</dt>
-            <dd>{formatMXN(oferta!.firstChargeCents)}</dd>
-          </div>
-        </dl>
+      <Dialog open={comparando} onOpenChange={setComparando}>
+        <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto">
+          <DialogTitle>{t('plans.compareTitle')}</DialogTitle>
+          <DialogDescription className="sr-only">{t('plans.compare')}</DialogDescription>
+          <PlanComparison ocultarGratis siempreAbierta />
+        </DialogContent>
+      </Dialog>
 
-        {oferta!.copy.bullets.length > 0 && (
-          <ul className="ml-4 list-disc space-y-1 text-sm text-muted-foreground">
-            {oferta!.copy.bullets.map(b => (
-              <li key={b}>{b}</li>
-            ))}
-          </ul>
-        )}
-
-        <p className="text-xs text-muted-foreground">
-          {t('offer.legal', {
-            defaultValue:
-              'Al pagar autorizas a Avoqado a cobrar {{promo}} al mes durante {{count}} meses y después {{renewal}} al mes a esta tarjeta hasta que canceles. Cancela cuando quieras desde Facturación.',
-            promo: formatMXN(oferta!.promo.monthlyCents),
-            count: oferta!.promo.months,
-            renewal: formatMXN(oferta!.renewal.monthlyCents),
-            total: formatMXN(promoTotal),
-          })}
-        </p>
-
+      <VentanaDePago
+        abierta={!!planElegido}
+        // 🔴 No se cierra con un cobro de esta pantalla en vuelo. Tras una recarga (`activacionEnCurso`) sí: no hay
+        // nada en vuelo aquí y las tarjetas siguen apagadas, así que cerrar no deja cambiar de plan.
+        puedeCerrar={!pagoBloqueado}
+        focoDeRespaldo={tituloRef}
+        onCerrar={() => {
+          if (!pagoBloqueado) setPlanElegido(null)
+        }}
+        titulo={ventana.titulo}
+        subtitulo={ventana.subtitulo}
+        hoyPagasCents={ventana.hoyPagasCents}
+        primerCobro={ventana.primerCobro}
+        legal={ventana.legal}
+      >
         {desenlace.tipo === 'esperando' && (
           <p className="text-sm text-muted-foreground">{t('offer.confirming', { defaultValue: 'Confirmando tu pago…' })}</p>
         )}
-        {avisoSinConfirmar}
+        {avisoPendiente}
 
-        {intentStatus === 'error' || !options ? (
-          intentStatus === 'error' ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-2 text-sm text-destructive">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  {t('plan.setupIntentErrorBody', { defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.' })}
-                </span>
-              </div>
-              <Button variant="outline" className="rounded-full gap-2" onClick={() => setRetryToken(n => n + 1)}>
-                <RotateCw className="h-4 w-4" />
+        {!ventanaDeOferta && !cotizado ? (
+          // M2: sin la cotización del servidor no hay monto ni legal que consentir, así que no se pide la tarjeta
+          // (guardarla sin ese texto era recabar un método de pago sin consentimiento). `pagarPlan` sigue negándose solo.
+          <div className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' })}</span>
+          </div>
+        ) : intentStatus === 'error' ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start gap-2 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{t('plans.setupIntentError')}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="outline" className="gap-2 rounded-full" onClick={() => setRetryToken(n => n + 1)}>
+                <RotateCw className="h-4 w-4" aria-hidden="true" />
                 {t('plan.retry', { defaultValue: 'Reintentar' })}
               </Button>
+              <button
+                type="button"
+                className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                onClick={() => abrirWhatsApp(t('plans.problemsWhatsApp'))}
+              >
+                {t('plans.problems')}
+              </button>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
-          )
+          </div>
+        ) : !options ? (
+          <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
         ) : (
           // `key`: el `clientSecret` de <Elements> es INMUTABLE. Sin remontar, el SetupIntent nuevo que se pide tras un
           // rechazo nunca llegaba al formulario y el reintento confirmaba el gastado (full-testing, 26-sep).
           <Elements key={clientSecret ?? 'sin-intent'} stripe={stripePromise} options={options}>
             <PlanCardForm
-              dataTourPrefix="setup-offer"
-              payNowLabel={t('offer.payAndEnter', { defaultValue: 'Pagar {{price}} y entrar', price: formatMXN(oferta!.firstChargeCents) })}
+              dataTourPrefix={ventanaDeOferta ? 'setup-offer' : 'setup-plan'}
+              payNowLabel={ventana.boton}
               busy={pagoBloqueado}
               onBusyChange={setTarjetaTrabajando}
               errorMessage={desenlace.tipo === 'rechazo' ? desenlace.mensaje : null}
-              onConfirmed={pm => pagarLaOferta(pm)}
+              onConfirmed={pm => pagarPlan(planElegido!, pm)}
               // Stripe no cargó el formulario: se muestra el «Reintentar» de arriba, que pide un SetupIntent nuevo.
               onLoadError={() => setIntentStatus('error')}
             />
           </Elements>
         )}
-      </div>
-
-      <button
-        type="button"
-        disabled={pagoEnVuelo}
-        className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-        onClick={() =>
-          void caerAEstandar(
-            t('offer.otherPlansNote', {
-              defaultValue: 'La oferta de {{promo}} no aplica a otros planes.',
-              promo: formatMXN(oferta!.promo.monthlyCents),
-            }),
-          ).then(() => setPuedeVolver(true))
-        }
-      >
-        {t('offer.seeOtherPlans', { defaultValue: 'Ver otros planes' })}
-      </button>
-    </div>
+      </VentanaDePago>
+    </>
   )
 }

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { mensajeDeFalloDeCobro } from '../offer/falloDeCobro'
+import { focoPerdido } from '../offer/focoPerdido'
 
 interface PlanCardFormProps {
   /** Texto del botón que paga hoy. */
@@ -126,6 +127,15 @@ export function PlanCardForm({
   onBusyChangeRef.current = onBusyChange
   useEffect(() => () => onBusyChangeRef.current?.(false), [])
 
+  // D1: tras un reto 3D Secure fallido o cancelado, o tras un 402 que remonta este formulario, el foco caía al <body>
+  // (el botón de pagar estaba apagado) y quien usa teclado o lector de pantalla tenía que buscarlo. Se lleva al mensaje
+  // sólo si se perdió (`focoPerdido`): nunca se le quita a quien está tecleando su tarjeta. Desde el mensaje, Tab llega
+  // al botón de pagar y Shift+Tab a la tarjeta.
+  const alertaRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if ((cardError || errorMessage || falloCarga) && focoPerdido()) alertaRef.current?.focus()
+  }, [cardError, errorMessage, falloCarga])
+
   const opciones = trialLabel
     ? ([
         { id: 'trial', titulo: trialOptionTitle ?? trialLabel, detalle: trialHint },
@@ -215,7 +225,12 @@ export function PlanCardForm({
       </p>
 
       {(cardError || errorMessage || falloCarga) && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p
+          ref={alertaRef}
+          tabIndex={-1}
+          role="alert"
+          className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none"
+        >
           {cardError ||
             errorMessage ||
             t('plan.setupIntentErrorBody', { defaultValue: 'No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.' })}
