@@ -68,8 +68,9 @@ export function FullScreenModal({
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
             'duration-300',
-            // A caller that moves focus to the container itself must not get a focus ring around the whole page.
-            onOpenAutoFocus && 'outline-none'
+            // The container can end up focused (a caller moves focus to it, or Radix does: the family sheet, 19-oct): a focus ring
+            // around the whole page is never useful.
+            'outline-none'
           )}
           // Prevent auto-focus on first focusable element (we want natural flow)
           onOpenAutoFocus={onOpenAutoFocus ?? ((e) => e.preventDefault())}

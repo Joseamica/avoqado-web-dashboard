@@ -122,8 +122,9 @@ export function GroupVariantsTable({
           </Button>
         )}
       </div>
-      <div className="overflow-x-auto rounded-xl border border-input">
-        <Table>
+      {/* La variante se queda fija al deslizar (como en el alta): en pantallas angostas se sigue viendo qué talla se edita. */}
+      <div className="overflow-hidden rounded-xl border border-input">
+        <Table stickyFirstColumn>
           <TableHeader>
             <TableRow>
               <TableHead>{t('variantesTabla.variante')}</TableHead>

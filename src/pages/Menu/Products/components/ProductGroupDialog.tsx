@@ -81,7 +81,8 @@ export function ProductGroupDialog({ open, onClose, venueId, groupId }: Props) {
         if (conCambios() || renombrando || textoSinConfirmar(e.target)) e.preventDefault()
       }}
     >
-      <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-6" data-tour="product-group-dialog">
+      {/* 6xl: la tabla de variantes (8 columnas) no cabe en 5xl y el «⋯» de cada renglón quedaba fuera (guía de variantes, 19-oct). */}
+      <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6" data-tour="product-group-dialog">
         {q.isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-48 w-full rounded-2xl" />
