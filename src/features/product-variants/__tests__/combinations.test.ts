@@ -57,62 +57,56 @@ describe('filas', () => {
     expect(despues.every(f => f.incluida)).toBe(true)
   })
 
-  it('🔴 al agregar otra opción, cada combinación nueva hereda precio, costo e «incluida» de la talla de la que sale (SKU, código y existencias no)', () => {
-    const antes = sincronizarFilas([{ name: 'Talla', values: ['S', 'M'] }], []).map((f, i) =>
-      i === 0 ? { ...f, price: 199, cost: 80, sku: 'PS', gtin: '750', initialStock: 5 } : { ...f, incluida: false },
-    )
-    const despues = sincronizarFilas([{ name: 'Talla', values: ['S', 'M'] }, { name: 'Color', values: ['Rojo', 'Azul'] }], antes)
-    expect(despues.map(f => [f.values.join('/'), f.price, f.cost, f.incluida, f.sku, f.gtin, f.initialStock])).toEqual([
-      ['S/Rojo', 199, 80, true, undefined, undefined, undefined],
-      ['S/Azul', 199, 80, true, undefined, undefined, undefined],
-      ['M/Rojo', undefined, undefined, false, undefined, undefined, undefined],
-      ['M/Azul', undefined, undefined, false, undefined, undefined, undefined],
-    ])
-    // al quitar la opción no se hereda: «S» saldría de varias combinaciones que pueden tener precios distintos (como antes del cambio)
-    expect(sincronizarFilas([{ name: 'Talla', values: ['S', 'M'] }], despues).map(f => [f.values[0], f.price])).toEqual([['S', undefined], ['M', undefined]])
-  })
-
-  it('🔴 tecleando los colores de uno en uno (Enter tras cada uno), cada color nuevo también hereda de su talla; una talla nueva no hereda', () => {
-    const tallas = (vs: string[]) => ({ name: 'Talla', values: vs })
-    const color = (vs: string[]) => ({ name: 'Color', values: vs })
-    let filas: FilaVariante[] = sincronizarFilas([tallas(['S', 'M'])], []).map(f => ({ ...f, price: f.values[0] === 'S' ? 199 : 249 }))
-    filas = sincronizarFilas([tallas(['S', 'M']), color(['Rojo'])], filas)
-    filas = sincronizarFilas([tallas(['S', 'M']), color(['Rojo', 'Azul'])], filas)
-    expect(filas.map(f => [f.values.join('/'), f.price])).toEqual([['S/Rojo', 199], ['S/Azul', 199], ['M/Rojo', 249], ['M/Azul', 249]])
-    filas = sincronizarFilas([tallas(['S', 'M', 'XL']), color(['Rojo', 'Azul'])], filas)
-    expect(filas.filter(f => f.values[0] === 'XL').map(f => f.price)).toEqual([undefined, undefined])
-  })
-
-  describe('🔴 la herencia nunca cruza precios (Codex r1, P1 y P2)', () => {
+  describe('🔴 al agregar una opción, cada fila pasa 1 a 1 a su PRIMER valor (founder, 19-oct: como Shopify, nunca adivinar)', () => {
     const op = (name: string, values: string[]) => ({ name, values })
     const precio = (filas: FilaVariante[]) => Object.fromEntries(filas.map(f => [f.values.join('/'), f.price]))
+    const tallasConPrecio = (): FilaVariante[] =>
+      sincronizarFilas([op('Talla', ['S', 'M'])], []).map(f => ({ ...f, price: f.values[0] === 'S' ? 199 : 249 }))
 
-    it('una tercera opción hereda de SU combinación (S·Azul·Algodón = S·Azul, no S·Rojo)', () => {
+    it('el primer color se queda con precio, costo e «incluida»; SKU, código y existencias no pasan; los demás colores salen vacíos', () => {
+      const antes = sincronizarFilas([op('Talla', ['S', 'M'])], []).map((f, i) =>
+        i === 0 ? { ...f, price: 199, cost: 80, sku: 'PS', gtin: '750', initialStock: 5 } : { ...f, incluida: false },
+      )
+      const despues = sincronizarFilas([op('Talla', ['S', 'M']), op('Color', ['Rojo', 'Azul'])], antes)
+      expect(despues.map(f => [f.values.join('/'), f.price, f.cost, f.incluida, f.sku, f.gtin, f.initialStock])).toEqual([
+        ['S/Rojo', 199, 80, true, undefined, undefined, undefined],
+        ['S/Azul', undefined, undefined, true, undefined, undefined, undefined],
+        ['M/Rojo', undefined, undefined, false, undefined, undefined, undefined],
+        ['M/Azul', undefined, undefined, true, undefined, undefined, undefined],
+      ])
+    })
+
+    it('igual si los colores se teclean de uno en uno; una talla nueva sale vacía', () => {
+      let filas = sincronizarFilas([op('Talla', ['S', 'M']), op('Color', ['Rojo'])], tallasConPrecio())
+      filas = sincronizarFilas([op('Talla', ['S', 'M']), op('Color', ['Rojo', 'Azul'])], filas)
+      expect(precio(filas)).toEqual({ 'S/Rojo': 199, 'S/Azul': undefined, 'M/Rojo': 249, 'M/Azul': undefined })
+      filas = sincronizarFilas([op('Talla', ['S', 'M', 'XL']), op('Color', ['Rojo', 'Azul'])], filas)
+      expect(precio(filas)).toMatchObject({ 'XL/Rojo': undefined, 'XL/Azul': undefined })
+    })
+
+    it('Codex r1 P2: una talla nueva no hereda aunque su texto coincida con el valor de otra opción («Modelo: M»)', () => {
+      let filas = sincronizarFilas([op('Talla', ['S', 'M']), op('Modelo', ['M'])], tallasConPrecio())
+      filas = sincronizarFilas([op('Talla', ['S', 'M', 'L']), op('Modelo', ['M'])], filas)
+      expect(precio(filas)).toEqual({ 'S/M': 199, 'M/M': 249, 'L/M': undefined })
+    })
+
+    it('Codex r1 P1: una tercera opción hereda de SU combinación (S·Azul·Algodón = S·Azul)', () => {
       let filas: FilaVariante[] = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul'])], [])
       filas = filas.map(f => ({ ...f, price: f.values[1] === 'Rojo' ? 199 : 299 }))
       filas = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul']), op('Material', ['Algodón'])], filas)
       expect(precio(filas)).toEqual({ 'S/Rojo/Algodón': 199, 'S/Azul/Algodón': 299 })
     })
 
-    it('una talla nueva no hereda aunque su texto coincida con el valor de otra opción («Modelo: M»)', () => {
-      let filas: FilaVariante[] = sincronizarFilas([op('Talla', ['S', 'M'])], []).map(f => ({ ...f, price: f.values[0] === 'S' ? 199 : 249 }))
-      filas = sincronizarFilas([op('Talla', ['S', 'M']), op('Modelo', ['M'])], filas)
-      filas = sincronizarFilas([op('Talla', ['S', 'M', 'L']), op('Modelo', ['M'])], filas)
-      expect(precio(filas)).toEqual({ 'S/M': 199, 'M/M': 249, 'L/M': undefined })
-    })
-
-    it('quitar la opción de en medio no hereda (no se sabe de cuál de sus combinaciones saldría)', () => {
+    it('Codex r2: quitar una opción (la de en medio o la última) o reordenar valores nunca copia un precio de otra combinación', () => {
       let filas: FilaVariante[] = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul']), op('Material', ['Algodón'])], [])
       filas = filas.map(f => ({ ...f, price: f.values[1] === 'Rojo' ? 199 : 299 }))
-      filas = sincronizarFilas([op('Talla', ['S']), op('Material', ['Algodón'])], filas)
-      expect(precio(filas)).toEqual({ 'S/Algodón': undefined })
-    })
-
-    it('un color nuevo cuyas hermanas ya tienen precios distintos queda vacío (no adivina cuál)', () => {
-      let filas: FilaVariante[] = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo'])], sincronizarFilas([op('Talla', ['S'])], []).map(f => ({ ...f, price: 199 })))
-      filas = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul'])], filas).map(f => (f.values[1] === 'Azul' ? { ...f, price: 299 } : f))
-      filas = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul', 'Verde'])], filas)
-      expect(precio(filas)).toEqual({ 'S/Rojo': 199, 'S/Azul': 299, 'S/Verde': undefined })
+      expect(precio(sincronizarFilas([op('Talla', ['S']), op('Material', ['Algodón'])], filas))).toEqual({ 'S/Algodón': undefined })
+      expect(precio(sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul'])], filas))).toEqual({ 'S/Rojo': undefined, 'S/Azul': undefined })
+      let dos: FilaVariante[] = sincronizarFilas([op('Talla', ['S']), op('Color', ['Rojo', 'Azul'])], [])
+      dos = dos.map(f => ({ ...f, price: f.values[1] === 'Rojo' ? 199 : 299 }))
+      dos = sincronizarFilas([op('Talla', ['S']), op('Color', ['Azul'])], dos) // quita Rojo
+      dos = sincronizarFilas([op('Talla', ['S']), op('Color', ['Azul', 'Rojo'])], dos) // y lo vuelve a agregar al final
+      expect(precio(dos)).toEqual({ 'S/Azul': 299, 'S/Rojo': undefined })
     })
   })
 

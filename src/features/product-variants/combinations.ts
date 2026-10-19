@@ -27,8 +27,6 @@ export interface FilaVariante {
   sku?: string
   gtin?: string
   initialStock?: number
-  /** De qué fila salió al agregar una opción (sólo para heredar precio a las combinaciones hermanas; no viaja al server). */
-  base?: string[]
 }
 
 export type ProblemaDeOpciones =
@@ -119,35 +117,26 @@ export function sugerirSku(padre: string, values: string[]): string {
     .replace(/-+$/, '')
 }
 
-/** `corto` son las primeras posiciones de `largo` (opción por opción, en su lugar: la «M» de Talla no es la «M» de Modelo). */
-const esPrefijo = (corto: string[], largo: string[]) => corto.length < largo.length && corto.every((v, i) => norm(v) === norm(largo[i]))
-
 /**
  * Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. Al agregar una opción (el
- * asistente sólo agrega al final) ninguna llave sobrevive: la combinación nueva hereda precio, costo e «incluida» de la fila de la que
- * sale («S» → «S · Rojo»). Cada heredera recuerda su `base` («S»), así el siguiente color tecleado («S · Azul») hereda lo mismo.
- * Sólo se hereda sin duda: de la fila con el prefijo más largo, y si varias empatan (hermanas con precios distintos) no se adivina.
- * Una talla nueva, quitar una opción o renombrar un valor quedan vacíos. SKU, código y existencias no se heredan: son de una variante.
+ * asistente sólo agrega al final), cada fila pasa 1 a 1 al PRIMER valor de la opción nueva con su precio, costo e «incluida»
+ * («S» → «S · Rojo»), como Shopify; los demás valores («S · Azul») salen vacíos. Decisión del founder (19-oct): nunca adivinar un
+ * precio. Quitar una opción o renombrar un valor tampoco hereda. SKU, código y existencias nunca: son de una sola variante.
  */
 export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[]): FilaVariante[] {
   const porLlave = new Map(previas.map(f => [f.key, f]))
+  const primeroDeLaUltima = norm(opciones[opciones.length - 1]?.values[0] ?? '')
   return generarCombinaciones(opciones).map(values => {
     const key = llaveDeCombinacion(values)
     const previa = porLlave.get(key)
     if (previa) return { ...previa, values }
-    let largo = 0
-    let candidatas: FilaVariante[] = []
-    for (const f of previas)
-      for (const p of [f.values, f.base]) {
-        if (!p || !esPrefijo(p, values) || p.length < largo) continue
-        if (p.length > largo) candidatas = []
-        largo = p.length
-        if (!candidatas.includes(f)) candidatas.push(f)
-      }
-    const [o] = candidatas
-    const sinDuda = o !== undefined && candidatas.every(f => f.price === o.price && f.cost === o.cost && f.incluida === o.incluida)
-    if (!sinDuda) return { key, values, incluida: true }
-    return { key, values, incluida: o.incluida, price: o.price, cost: o.cost, base: values.slice(0, largo) }
+    const origen =
+      values.length > 1 && norm(values[values.length - 1]) === primeroDeLaUltima
+        ? porLlave.get(llaveDeCombinacion(values.slice(0, -1)))
+        : undefined
+    return origen
+      ? { key, values, incluida: origen.incluida, price: origen.price, cost: origen.cost }
+      : { key, values, incluida: true }
   })
 }
 
