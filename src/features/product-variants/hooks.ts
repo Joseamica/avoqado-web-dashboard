@@ -10,7 +10,10 @@ const CONSULTA = { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } as
 const siguiente = <T>(last: Paged<T> | undefined) => (last?.page && last.page * last.pageSize < last.total ? last.page + 1 : undefined)
 
 /** Une las páginas sin repetidos (una página puede moverse si alguien agrega mientras tanto). */
-export function unirPaginas<T>(data: InfiniteData<Paged<T>> | undefined, id: (x: T) => string): { items: T[]; total: number } {
+export function unirPaginas<T>(
+  data: InfiniteData<Pick<Paged<T>, 'items' | 'total'>> | undefined,
+  id: (x: T) => string,
+): { items: T[]; total: number } {
   const vistos = new Set<string>()
   const items: T[] = []
   for (const p of data?.pages ?? [])
@@ -53,6 +56,18 @@ export function useGroupSuggestions(venueId: string | null | undefined, enabled:
     enabled: !!venueId && enabled,
     ...CONSULTA,
     staleTime: 5 * 60_000,
+  })
+}
+
+/** «Desde Shopify»: por cursor (el id de Shopify), de 20 en 20. Cuelga de ['products', venueId]: agrupar la refresca sola. */
+export function useShopifyProposals(venueId: string | null | undefined, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: productGroupKeys.shopifyProposals(venueId ?? ''),
+    queryFn: ({ pageParam }) => svc.listShopifyProposals(venueId!, { cursor: pageParam, limit: 20 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: last => last?.nextCursor ?? undefined,
+    enabled: !!venueId && enabled,
+    ...CONSULTA,
   })
 }
 
