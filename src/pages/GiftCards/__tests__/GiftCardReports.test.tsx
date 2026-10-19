@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import i18next from 'i18next'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const h = vi.hoisted(() => ({
   summary: {} as Record<string, unknown>,
@@ -32,6 +33,8 @@ vi.mock('@/utils/datetime', () => ({
 
 import { Currency } from '@/utils/currency'
 import type { GiftCardAging, GiftCardSummary, PendingAccountingPage, PendingAccountingRow } from '@/types/giftCard'
+import en from '@/locales/en/giftCards.json'
+import es from '@/locales/es/giftCards.json'
 import { GiftCardReports } from '../components/GiftCardReports'
 
 /** Formas de C4 TAL CUAL (F3). */
@@ -215,5 +218,39 @@ describe('GiftCardReports', () => {
     // Rango vacío = consulta apagada (los hooks piden `!!from && !!to`).
     expect(h.rangos.summary).toEqual(['v1', '', ''])
     expect(h.rangos.pending).toEqual(['v1', '', ''])
+  })
+})
+
+// Task 5: el aviso al contador es texto fijo del server (español); con el panel en inglés sale `reports.pending.notice`.
+describe('GiftCardReports · aviso de pendientes con el panel en inglés', () => {
+  const conPendientes = () => {
+    h.pending = pendientes({ ...SIN_PENDIENTES, items: [fila({})], total: 1, totals: { ...SIN_PENDIENTES.totals, VENTA_DE_TARJETAS: { count: 1, amount: 1000, tipAmount: 0 } } })
+  }
+  beforeAll(async () => {
+    await i18next.init({ lng: 'en', fallbackLng: 'en', resources: { en: { giftCards: en } } })
+  })
+  afterAll(async () => {
+    await i18next.changeLanguage('es')
+  })
+
+  it('en inglés, el aviso de pendientes usa reports.pending.notice (no el texto del server)', () => {
+    conPendientes()
+    pintar()
+    const aviso = screen.getByText('reports.pending.notice')
+    expect(aviso.closest('[data-tour="gift-cards-pending-notice"]')).not.toBeNull()
+    expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
+  })
+
+  it('sin `notice` del server no aparece aviso (el idioma no lo inventa)', () => {
+    h.pending = pendientes({ ...SIN_PENDIENTES, items: [fila({})], total: 1, notice: '' })
+    const { container } = pintar()
+    expect(container.querySelector('[data-tour="gift-cards-pending-notice"]')).toBeNull()
+  })
+
+  it('la llave existe de verdad en es y en en, con el mismo sentido (contabilidad a mano, costo de ventas ya en póliza)', () => {
+    expect(en.reports.pending.notice).toMatch(/journal|accounting/i)
+    expect(es.reports.pending.notice).toBe(
+      'Estos cobros no generan póliza automática: regístralos a mano en la contabilidad. El costo de la mercancía que se pagó con saldo ya está en la póliza de costo de ventas; falta el ingreso del canje y, en la venta de tarjetas, el saldo que se le debe al cliente.',
+    )
   })
 })

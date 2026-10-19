@@ -41,6 +41,12 @@ export interface IsrProvisionalResponse {
    * este aviso en español, con las cifras, sólo cuando hay alguna. Opcional: un server sin tarjetas no lo manda.
    */
   avisoTarjetasDeRegalo?: string
+  /**
+   * Las cifras con las que el server arma ese aviso (centavos, sin IVA, netas de devoluciones; negativas = más devoluciones que
+   * ventas). Con ellas el panel arma el aviso en su idioma; opcionales: un server viejo no las manda.
+   */
+  tarjetasCobradasNoIncluidasCents?: number
+  pagadoConSaldoIncluidoCents?: number
 }
 
 export async function getIsrProvisional(venueId: string, period?: string, regime: IsrRegime = 'RESICO'): Promise<IsrProvisionalResponse> {

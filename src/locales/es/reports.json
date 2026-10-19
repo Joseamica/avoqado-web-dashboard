@@ -1259,6 +1259,15 @@
     },
     "disclosureEstimate": "Es una estimación: el ISR definitivo lo calcula y presenta tu contador.",
     "disclosureRegime": "RESICO aplica una tasa baja (1%–2.5%) sobre lo cobrado, sin deducciones. El régimen general aplica la tarifa progresiva sobre tu utilidad (ingresos − deducciones).",
+    "giftCardsNotice": {
+      "main": "El ISR estimado {{sold}} y {{balance}}; tu contador debe ajustarlo con el reporte de tarjetas.",
+      "soldNotIncluded": "no incluye {{amount}} de tarjetas de regalo cobradas {{when}}",
+      "refundedNotDeducted": "no descuenta {{amount}} de tarjetas de regalo devueltas {{when}}",
+      "balanceIncluded": "sí incluye {{amount}} pagado con saldo de tarjetas",
+      "balanceRefunded": "sí resta {{amount}} de devoluciones de lo pagado con saldo de tarjetas",
+      "whenPeriod": "en el periodo",
+      "whenYear": "en lo que va del ejercicio"
+    },
     "disclosureTariff": "No incluye IVA, IMSS, ISR de nómina ni impuesto sobre nóminas estatal; esos se calculan aparte.",
     "retencion": {
       "title": "Retención en ventas del periodo",

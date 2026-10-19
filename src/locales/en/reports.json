@@ -1259,6 +1259,15 @@
     },
     "disclosureEstimate": "This is an estimate: your accountant computes and files the final income tax.",
     "disclosureRegime": "RESICO applies a low rate (1%–2.5%) on collections, with no deductions. The general regime applies the progressive tariff on your profit (income − deductions).",
+    "giftCardsNotice": {
+      "main": "The estimated income tax {{sold}} and {{balance}}; your accountant should adjust it using the gift cards report.",
+      "soldNotIncluded": "does not include {{amount}} of gift cards sold {{when}}",
+      "refundedNotDeducted": "does not deduct {{amount}} of gift cards refunded {{when}}",
+      "balanceIncluded": "does include {{amount}} paid with gift card balance",
+      "balanceRefunded": "does subtract {{amount}} of refunds on what was paid with gift card balance",
+      "whenPeriod": "in the period",
+      "whenYear": "so far this fiscal year"
+    },
     "disclosureTariff": "It excludes VAT, social security, payroll income-tax withholding and state payroll tax; those are computed separately.",
     "retencion": {
       "title": "Sales withholding for the period",

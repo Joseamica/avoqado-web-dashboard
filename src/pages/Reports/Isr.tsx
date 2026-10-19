@@ -13,6 +13,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useIsrProvisional } from '@/hooks/useIsr'
+import { avisoDeTarjetasDelIsr } from './avisoTarjetasIsr'
 import { useSalesRetention, useSetSalesRetention } from '@/hooks/useSalesRetention'
 import { useFiscalLoss, useSetFiscalLoss } from '@/hooks/useFiscalLoss'
 import { useToast } from '@/hooks/use-toast'
@@ -243,6 +244,7 @@ function IsrInner() {
 
   const query = useIsrProvisional(period, regime, { enabled: hasAccess })
   const data = hasAccess ? query.data : SAMPLE
+  const avisoTarjetas = data ? avisoDeTarjetasDelIsr(data, t) : undefined
   const needsFiscalSetup = hasAccess && query.data?.needsFiscalSetup
 
   return (
@@ -313,11 +315,12 @@ function IsrInner() {
             </div>
           )}
 
-          {/* Tarjetas de regalo (ruling B4): aviso informativo con las cifras que el estimado deja fuera o incluye. Es texto del server. */}
-          {data?.avisoTarjetasDeRegalo && (
+          {/* Tarjetas de regalo (ruling B4): aviso informativo con las cifras que el estimado deja fuera o incluye. Texto del server en español;
+              con el panel en otro idioma se arma con las mismas cifras y las llaves locales de `reports`. */}
+          {avisoTarjetas && (
             <div className="flex items-start gap-2 rounded-lg border border-input bg-muted/40 p-3 text-foreground" data-tour="isr-gift-cards-notice">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <p className="text-xs font-medium">{data.avisoTarjetasDeRegalo}</p>
+              <p className="text-xs font-medium">{avisoTarjetas}</p>
             </div>
           )}
 

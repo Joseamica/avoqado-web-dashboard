@@ -1,9 +1,11 @@
 /**
- * Tarjetas de regalo — funciones puras del panel (sin React ni i18n): qué se enseña de una tarjeta, el signo de cada
- * renglón de la libreta, cómo se leen los montos tecleados, las validaciones de los formularios y qué acciones aplican.
+ * Tarjetas de regalo — funciones puras del panel (sin React; el idioma sólo se lee de i18next en `esIdiomaEspanol`): qué se enseña de
+ * una tarjeta, el signo de cada renglón de la libreta, cómo se leen los montos tecleados, las validaciones de los formularios y qué
+ * acciones aplican.
  * El server vuelve a decidir todo; aquí sólo se evita mandar lo que de seguro rechaza y se explica antes. Leen los tipos de
  * C4 TAL CUAL (F3): lo poco que el server no manda («vencida») se calcula aquí, con su prueba.
  */
+import i18next from 'i18next'
 import { conSigno } from '@/pages/StaffPay/conSigno'
 import type {
   GiftCardActivityType,
@@ -84,13 +86,35 @@ export function textoDelServidorConCodigo(err: unknown): string | undefined {
 }
 
 /**
- * El texto de un error en las pantallas de tarjetas (full-testing v2 #2): el del server si trae `code`; un 403 SIN `code` (los de
- * permisos, `checkPermission`/`verifyAccess`, en inglés) dice que falta permiso; lo demás, el respaldo de la pantalla. `t` es el de
- * `useTranslation('giftCards')`.
+ * ¿El panel está en español? Lee el singleton que inicializa `src/i18n.ts`. Sin i18n inicializado (las pruebas que simulan
+ * `react-i18next`) `language` es `undefined` y se toma como español: así lo que ya se probaba con el texto del server no cambia.
+ */
+export const esIdiomaEspanol = (): boolean => !i18next.language || i18next.language.startsWith('es')
+
+/**
+ * El texto de un error del server en el idioma del panel. El server escribe sus avisos en español y manda su `code` estable:
+ * en español se enseña el texto del server (`textoDelServidorConCodigo`); en otro idioma, `serverCodes.<code>` del namespace
+ * `giftCards` si existe (se pregunta a i18next: una llave que falta nunca sale cruda) y, si no, el texto del server.
+ * `t` es el de `useTranslation('giftCards')`. `undefined` en los mismos casos que `textoDelServidorConCodigo`, salvo que con la
+ * traducción por `code` no hace falta que el server mande `message`.
+ */
+export function textoDelServidorEnIdioma(err: unknown, t: (clave: string) => string): string | undefined {
+  const delServidor = textoDelServidorConCodigo(err)
+  if (esIdiomaEspanol()) return delServidor
+  const code = (err as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code
+  if (typeof code === 'string' && code !== '' && i18next.exists(`giftCards:serverCodes.${code}`)) return t(`serverCodes.${code}`)
+  return delServidor
+}
+
+/**
+ * El texto de un error en las pantallas de tarjetas (full-testing v2 #2): el del server si trae `code` (traducido por su `code` si el
+ * panel no está en español, Task 5); un 403 SIN `code` (los de permisos, `checkPermission`/`verifyAccess`, en inglés) dice que falta
+ * permiso; lo demás, el respaldo de la pantalla. `t` es el de `useTranslation('giftCards')`. Es el único punto por el que pasan las
+ * pantallas: el idioma se resuelve aquí, no en cada una.
  */
 export function avisoDeError(err: unknown, t: (clave: string) => string, respaldo = 'errors.generic'): string {
   const status = (err as { response?: { status?: unknown } } | null)?.response?.status
-  return textoDelServidorConCodigo(err) ?? t(status === 403 && !tieneCodigo(err) ? 'errors.forbidden' : respaldo)
+  return textoDelServidorEnIdioma(err, t) ?? t(status === 403 && !tieneCodigo(err) ? 'errors.forbidden' : respaldo)
 }
 
 function tieneCodigo(err: unknown): boolean {

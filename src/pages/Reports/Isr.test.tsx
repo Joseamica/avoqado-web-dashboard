@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
+import i18next from 'i18next'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useIsrProvisional } from '@/hooks/useIsr'
 import type { IsrProvisionalResponse } from '@/services/fiscal/isr.service'
@@ -144,5 +145,48 @@ describe('Isr · aviso de tarjetas de regalo (ruling B4, nota 4 del coordinador)
     const { container } = pantalla()
     expect(container.querySelector('[data-tour="isr-gift-cards-notice"]')).toBeNull()
     expect(screen.queryByText(/tarjetas de regalo/i)).not.toBeInTheDocument()
+  })
+})
+
+// Task 5 (Codex r1 #4): con el panel en inglés el aviso se arma con las cifras de la respuesta y las llaves locales de `reports`.
+// `react-i18next` está simulado (devuelve «llave valores»); el idioma lo da i18next. El texto real en inglés: avisoTarjetasIsr.test.ts.
+describe('Isr · aviso de tarjetas de regalo con el panel en inglés', () => {
+  const REPORTE_EN: IsrProvisionalResponse = {
+    needsFiscalSetup: false, organizationId: 'org1', rfc: 'TESC900101AAA', period: '2026-10', regime: 'RESICO', venueIds: ['v1'],
+    ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, costoVentasAcumCents: 0, deduccionInversionesAcumCents: 0,
+    perdidasFiscalesAplicadaCents: 0, utilidadFiscalCents: 0, tasaResico: 0.011, isrCausadoCents: 49500, pagosProvisionalesPreviosCents: 0,
+    retencionesIsrCents: 0, isrAPagarCents: 49500, excedeTopeResico: false, zeroActivity: false, computedAt16Percent: true,
+    rfcSpansMultipleOrgs: false, isEstimate: true,
+    tarjetasCobradasNoIncluidasCents: 150000, pagadoConSaldoIncluidoCents: 30000,
+    avisoTarjetasDeRegalo: 'El ISR estimado no incluye $1,500.00 de tarjetas de regalo cobradas en el periodo y sí incluye $300.00 pagado con saldo de tarjetas; tu contador debe ajustarlo con el reporte de tarjetas.',
+  }
+  beforeAll(async () => {
+    await i18next.init({ lng: 'en', fallbackLng: 'en', resources: {} })
+  })
+  beforeEach(() => {
+    vi.mocked(useIsrProvisional).mockReset()
+  })
+  afterAll(async () => {
+    await i18next.changeLanguage('es')
+  })
+
+  it('en inglés, el aviso de tarjetas del ISR usa su llave local con las cifras, no el texto del server', () => {
+    vi.mocked(useIsrProvisional).mockReturnValue({ isLoading: false, isError: false, error: null, data: REPORTE_EN, refetch: vi.fn() } as never)
+    const { container } = pantalla()
+    const caja = container.querySelector('[data-tour="isr-gift-cards-notice"]')
+    expect(caja).not.toBeNull()
+    expect(caja?.textContent).toMatch(/isr\.giftCardsNotice\.main/)
+    expect(caja?.textContent).toContain('$1,500.00')
+    expect(caja?.textContent).toContain('$300.00')
+    expect(screen.queryByText(REPORTE_EN.avisoTarjetasDeRegalo as string)).not.toBeInTheDocument()
+    expect(caja?.closest('[role="alert"]')).toBeNull()
+  })
+
+  it('en inglés y sin `avisoTarjetasDeRegalo` no aparece nada', () => {
+    vi.mocked(useIsrProvisional).mockReturnValue({
+      isLoading: false, isError: false, error: null, data: { ...REPORTE_EN, avisoTarjetasDeRegalo: undefined }, refetch: vi.fn(),
+    } as never)
+    const { container } = pantalla()
+    expect(container.querySelector('[data-tour="isr-gift-cards-notice"]')).toBeNull()
   })
 })

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import i18next from 'i18next'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type {
   GiftCardActivityType,
   GiftCardCancelReason,
@@ -18,6 +19,7 @@ import {
   motivoSinVenta,
   signoDe,
   avisoDeError,
+  esIdiomaEspanol,
   textoDelServidorConCodigo,
   ultimos4,
   validarAjuste,
@@ -338,5 +340,102 @@ describe('avisoDeError (full-testing v2 #2: el texto que enseña cada pantalla a
     expect(avisoDeError(conCuerpo(500, { message: 'Internal Server Error' }), t)).toBe('t:errors.generic')
     expect(avisoDeError(conCuerpo(401, { message: 'No venue context found' }), t, 'reports.aging.error')).toBe('t:reports.aging.error')
     expect(avisoDeError(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }), t)).toBe('t:errors.generic')
+  })
+})
+
+/** Los códigos que el server manda con mensaje en español: los 22 de `GiftCardErrorCode` + el de los términos (`giftCardSettings.service.ts`). */
+const CODIGOS_DEL_SERVER = [
+  'GIFT_CARDS_DISABLED',
+  'GIFT_CARDS_NOT_IN_PLAN',
+  'GIFT_CARD_NOT_FOUND',
+  'GIFT_CARD_INSUFFICIENT_BALANCE',
+  'GIFT_CARD_BLOCKED',
+  'GIFT_CARD_EXPIRED',
+  'GIFT_CARD_ORDER_IMMUTABLE',
+  'GIFT_CARD_AMOUNT_OUT_OF_RANGE',
+  'GIFT_CARD_OPERATION_LIMIT',
+  'GIFT_CARD_TENDER_NOT_ALLOWED',
+  'GIFT_CARD_REFUND_TO_BALANCE_ONLY',
+  'GIFT_CARD_ALREADY_USED',
+  'GIFT_CARD_CANCEL_NOT_STARTED',
+  'GIFT_CARD_CANCEL_WINDOW_CLOSED',
+  'GIFT_CARD_KEYS_MISSING',
+  'IDEMPOTENCY_KEY_REUSED',
+  'GIFT_CARD_SALE_NOT_PAID',
+  'GIFT_CARD_SALE_ALREADY_CANCELLED',
+  'GIFT_CARD_FOLIO_MISMATCH',
+  'GIFT_CARD_STATE_CHANGED',
+  'GIFT_CARD_SALE_REFUND_MUST_BE_FULL',
+  'GIFT_CARD_UNLINKED_REFUND_BLOCKED',
+  'GIFT_CARD_TERMS_REQUIRED',
+] as const
+
+// i18next REAL con los recursos REALES (no un `exists` simulado): una llave mal escrita en el JSON o en el código tiene que fallar aquí.
+describe('avisoDeError con el panel en inglés (Task 5; Codex r1 #3)', () => {
+  const conCuerpo = (status: number, data: unknown) => Object.assign(new Error(String(status)), { response: { status, data } })
+  const SERVER = 'Texto en español del server.'
+  const t = () => i18next.getFixedT(null, 'giftCards')
+
+  beforeAll(async () => {
+    await i18next.init({
+      lng: 'en',
+      fallbackLng: 'en',
+      resources: { en: { giftCards: en }, es: { giftCards: es } },
+      interpolation: { escapeValue: false },
+    })
+  })
+  afterAll(async () => {
+    await i18next.changeLanguage('es')
+  })
+
+  it('en inglés, un 409 con code GIFT_CARD_BLOCKED sale con serverCodes.GIFT_CARD_BLOCKED', () => {
+    expect(esIdiomaEspanol()).toBe(false)
+    const aviso = avisoDeError(conCuerpo(409, { code: 'GIFT_CARD_BLOCKED', message: SERVER }), t())
+    expect(aviso).toBe(en.serverCodes.GIFT_CARD_BLOCKED)
+    expect(aviso).not.toBe(SERVER)
+    expect(aviso).not.toMatch(/serverCodes/)
+  })
+
+  it.each(CODIGOS_DEL_SERVER)('en inglés, %s sale traducido (existe en en y en es, y no es la llave ni el texto del server)', code => {
+    const aviso = avisoDeError(conCuerpo(409, { code, message: SERVER }), t())
+    const texto = (en.serverCodes as Record<string, string>)[code]
+    expect(texto, `falta serverCodes.${code} en en`).toBeTruthy()
+    expect((es.serverCodes as Record<string, string>)[code], `falta serverCodes.${code} en es`).toBeTruthy()
+    expect(aviso).toBe(texto)
+    expect(aviso).not.toMatch(/serverCodes|[áéíóúñ¿¡]/i)
+  })
+
+  it('en inglés, un code sin traducción sale con el texto del server, nunca la llave', () => {
+    const aviso = avisoDeError(conCuerpo(409, { code: 'GIFT_CARD_CODIGO_NUEVO', message: SERVER }), t())
+    expect(aviso).toBe(SERVER)
+    expect(aviso).not.toMatch(/serverCodes/)
+  })
+
+  it('en inglés, un 403 sin code y lo demás sin code salen con el genérico EN INGLÉS (no el texto crudo)', () => {
+    expect(avisoDeError(conCuerpo(403, { message: 'Insufficient permissions' }), t())).toBe(en.errors.forbidden)
+    expect(avisoDeError(conCuerpo(500, { message: 'Internal Server Error' }), t())).toBe(en.errors.generic)
+  })
+
+  it('en español, igual que hoy: el texto del server aunque la llave exista (es-MX también)', async () => {
+    try {
+      for (const lng of ['es', 'es-MX']) {
+        await i18next.changeLanguage(lng)
+        expect(esIdiomaEspanol()).toBe(true)
+        expect(avisoDeError(conCuerpo(409, { code: 'GIFT_CARD_BLOCKED', message: SERVER }), t())).toBe(SERVER)
+        expect(avisoDeError(conCuerpo(500, { message: 'x' }), t())).toBe(es.errors.generic)
+      }
+    } finally {
+      await i18next.changeLanguage('en')
+    }
+  })
+
+  it('sin i18n inicializado (las pruebas que mockean react-i18next) se toma como español', () => {
+    const idioma = i18next.language
+    try {
+      ;(i18next as { language: string | undefined }).language = undefined
+      expect(esIdiomaEspanol()).toBe(true)
+    } finally {
+      ;(i18next as { language: string | undefined }).language = idioma
+    }
   })
 })

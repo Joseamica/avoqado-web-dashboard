@@ -19,7 +19,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cn } from '@/lib/utils'
 import type { PendingAccountingKind, PendingAccountingRow } from '@/types/giftCard'
-import { avisoDeError } from '../giftCardText'
+import { avisoDeError, esIdiomaEspanol } from '../giftCardText'
 
 const hoyEn = (zona: string) => DateTime.now().setZone(zona).toISODate() ?? ''
 const inicioDeMesEn = (zona: string) => DateTime.now().setZone(zona).startOf('month').toISODate() ?? ''
@@ -210,11 +210,13 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
           !pending.isPlaceholderData && <p className="text-sm text-muted-foreground">{t('reports.pending.empty')}</p>
         ) : (
           <>
-            {/* El aviso al contador es del server (qué falta registrar a mano y qué ya está en libros): nunca se copia al locale. */}
+            {/* El aviso al contador es del server (qué falta registrar a mano y qué ya está en libros) y lo escribe en español: con el
+                panel en español se enseña tal cual; en otro idioma, su traducción fija (`reports.pending.notice`: si el server cambia su
+                texto, se cambia también esa llave). */}
             {ultimaPendiente?.notice && (
               <Alert className="border-input bg-muted/40" data-tour="gift-cards-pending-notice">
                 <Info className="h-4 w-4" />
-                <AlertDescription className="text-sm">{ultimaPendiente.notice}</AlertDescription>
+                <AlertDescription className="text-sm">{esIdiomaEspanol() ? ultimaPendiente.notice : t('reports.pending.notice')}</AlertDescription>
               </Alert>
             )}
             {/* Mientras llega el rango nuevo (`keepPreviousData`), lo del rango anterior se ve atenuado y no se toca (M4). */}

@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import i18next from 'i18next'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GiftCardDetail, GiftCardReason } from '@/types/giftCard'
 
 const svc = vi.hoisted(() => ({
@@ -614,5 +615,42 @@ describe('GiftCardManagerActions', () => {
     expect(screen.getByText('actions.cancelSale.blocker.BLOCKED_OTHER')).toBeInTheDocument()
     expect(boton('actions.cancelSale.button')).toBeDisabled()
     expect(boton('actions.unblock.button')).toBeInTheDocument()
+  })
+})
+
+// Task 5: con el panel en inglés el motivo de no cancelar sale de las llaves REALES `actions.cancelSale.blocker.<REASON>`, no del
+// `cancel.message` (que el server escribe en español). `react-i18next` está simulado (devuelve la llave); el idioma lo da i18next.
+describe('«Cancelar venta» imposible con el panel en inglés', () => {
+  beforeAll(async () => {
+    await i18next.init({ lng: 'en', fallbackLng: 'en', resources: { en: { giftCards: en } } })
+  })
+  afterAll(async () => {
+    await i18next.changeLanguage('es')
+  })
+
+  it('en inglés, el motivo de no cancelar usa actions.cancelSale.blocker.<REASON> (llaves REALES), no cancel.message', () => {
+    const texto = 'No se puede cancelar: el cobro ya se reembolsó. Habla a soporte.'
+    pintar(detalle({ cancel: { allowed: false, reason: 'NOT_PAID', message: texto } }))
+    expect(screen.getByText('actions.cancelSale.blocker.NOT_PAID')).toBeInTheDocument()
+    expect(screen.queryByText(texto)).not.toBeInTheDocument()
+    expect(boton('actions.cancelSale.button')).toBeDisabled()
+  })
+
+  it('las llaves del motivo existen DE VERDAD en en (y no hay `actions.cancelSale.reasons.*`)', () => {
+    const bloqueantes = en.actions.cancelSale.blocker as Record<string, string>
+    for (const reason of ['NOT_PAID', 'NOT_SAME_DAY', 'ALREADY_USED', 'ALREADY_CANCELLED', 'BLOCKED_OTHER', 'GENERIC'])
+      expect(bloqueantes[reason], `actions.cancelSale.blocker.${reason}`).toBeTruthy()
+    expect((en.actions.cancelSale as Record<string, unknown>).reasons).toBeUndefined()
+  })
+
+  it('en inglés y sin motivo (`reason: null`), la tarjeta bloqueada dice BLOCKED_OTHER aunque el server mande su texto', () => {
+    pintar(
+      detalle({
+        status: 'BLOCKED',
+        cancel: { allowed: false, reason: null, message: 'Una de las tarjetas de esta venta está bloqueada por otro motivo.' },
+        currentBlock: bloqueo('SUSPICIOUS_ACTIVITY'),
+      }),
+    )
+    expect(screen.getByText('actions.cancelSale.blocker.BLOCKED_OTHER')).toBeInTheDocument()
   })
 })
