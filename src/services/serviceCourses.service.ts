@@ -1,10 +1,10 @@
 import api from '@/api'
+import { isOrganizationOwner } from '@/lib/permissions/organizationOwner'
 import type { User } from '@/types'
 
+/** Los tiempos de servicio de la organización son del dueño de la organización (la regla única de `isOrganizationOwner`). */
 export function canManageOrganizationCourses(user: User | null | undefined, organizationId: string): boolean {
-  return (
-    user?.role === 'SUPERADMIN' || !!user?.organizationMemberships?.some(m => m.organizationId === organizationId && m.role === 'OWNER')
-  )
+  return isOrganizationOwner(user, organizationId)
 }
 
 /** Mirrors service-courses/serviceCourseContract.ts in avoqado-server. */

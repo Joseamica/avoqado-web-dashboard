@@ -120,10 +120,14 @@ export function valorDeCelda(fila: FilaDeComparacion, tier: TierComparado): Valo
   })
 }
 
-/** ¿Los tres planes dicen lo mismo en esta fila? Esas filas no ayudan a elegir: van en una sola línea. */
-export function esComun(fila: FilaDeComparacion): boolean {
-  const [a, ...resto] = TIERS_COMPARADOS.map(t => valorDeCelda(fila, t))
-  return resto.every(v => v === a)
+/**
+ * ¿Los planes que se enseñan (por default los tres) dicen lo mismo en esta fila? Esas filas no ayudan a elegir: van en
+ * una sola línea. Una fila con TEXTO («Ilimitados») nunca es común: en la línea de arriba sólo cabe «lo tienen», y
+ * se perdería el valor (con Gratis oculta, «Usuarios» quedaría sin decir «Ilimitados»).
+ */
+export function esComun(fila: FilaDeComparacion, tiers: readonly TierComparado[] = TIERS_COMPARADOS): boolean {
+  const [a, ...resto] = tiers.map(t => valorDeCelda(fila, t))
+  return typeof a !== 'string' && resto.every(v => v === a)
 }
 
 /** Lo que `tier` agrega sobre el plan de abajo (Pro sobre Free, Premium sobre Pro), por categoría. */
