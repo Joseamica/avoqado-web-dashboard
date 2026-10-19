@@ -51,6 +51,22 @@ const clavesDe = (huella: string): Map<string, string> => {
 /** Sólo para las pruebas: olvida las operaciones pendientes. */
 export const olvidarPendientes = () => pendientes.clear()
 
+/**
+ * Olvida la operación pendiente de UNA huella: el siguiente envío con esa huella es una operación NUEVA, con clave nueva.
+ * Para quien sabe que el intento en duda se abandonó (se cerró su diálogo) o que otra acción ya lo dejó atrás.
+ */
+export const olvidar = (huella: string) => {
+  pendientes.delete(huella)
+}
+
+/**
+ * Devuelve a la memoria la clave del paso `nombre` de una operación que quedó en duda ANTES de recargar la página (quien la
+ * guardó, p. ej. en sessionStorage, la trae de vuelta): el siguiente envío con esa huella la reusa y el servidor deduplica.
+ */
+export const recordarClave = (huella: string, nombre: string, clave: string) => {
+  clavesDe(huella).set(nombre, clave)
+}
+
 export function useEnvioUnico() {
   const enVuelo = useRef(false)
   const [enviando, setEnviando] = useState(false)

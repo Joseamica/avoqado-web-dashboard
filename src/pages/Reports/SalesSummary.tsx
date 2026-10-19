@@ -50,6 +50,7 @@ import {
   Store,
   Clock,
   QrCode,
+  WalletCards,
   Filter,
   X,
   Lock,
@@ -514,7 +515,8 @@ const SalesPieChart: React.FC<{
                         'cursor-pointer transition-opacity hover:opacity-80',
                         segment.color === 'bg-blue-500' && 'text-blue-500',
                         segment.color === 'bg-green-500' && 'text-green-500',
-                        segment.color === 'bg-orange-500' && 'text-orange-500'
+                        segment.color === 'bg-orange-500' && 'text-orange-500',
+                        segment.color === 'bg-purple-500' && 'text-purple-500'
                       )}
                       style={{
                         strokeDasharray: `${strokeDasharray} ${circumference}`,
@@ -1081,6 +1083,18 @@ export default function SalesSummary() {
 
     const totalPaymentAmount = paymentMethods.reduce((sum, p) => sum + p.amount, 0)
 
+    // La barra de arriba reparte el «Total de Ventas», que es VENTAS (full-testing v2 #1): con tarjetas de regalo el server manda
+    // `salesByPaymentMethod` (sin las cargas, con lo pagado con saldo como GIFT_CARD); sin él, ventas y dinero son lo mismo.
+    const ventas = apiResponse.salesByPaymentMethod ?? paymentMethods
+    const esTarjeta = (m: string) => ['CREDIT_CARD', 'DEBIT_CARD', 'CARD'].includes(m)
+    const ventasDe = (es: (m: string) => boolean) => ventas.filter(p => es(p.method)).reduce((sum, p) => sum + p.amount, 0)
+    const repartoDeVentas = {
+      card: ventasDe(esTarjeta),
+      cash: ventasDe(m => m === 'CASH'),
+      other: ventasDe(m => !esTarjeta(m) && m !== 'CASH' && m !== 'GIFT_CARD'),
+      giftCard: ventasDe(m => m === 'GIFT_CARD'),
+    }
+
     return {
       summary: {
         totalGross: apiResponse.summary.grossSales,
@@ -1097,6 +1111,10 @@ export default function SalesSummary() {
         staffCommissions: apiResponse.summary.staffCommissions, // Commissions paid to staff
         totalCollected: apiResponse.summary.totalCollected,
         netProfit: apiResponse.summary.netProfit,             // True profit after all costs
+        // Tarjetas de regalo (spec §7, B5): cifras aparte, opcionales — un server sin la función no las manda.
+        giftCardLoads: apiResponse.summary.giftCardLoads ?? null,
+        giftCardLoadsCount: apiResponse.summary.giftCardLoadsCount ?? null,
+        paidWithGiftCardBalance: apiResponse.summary.paidWithGiftCardBalance ?? null,
       },
       transactions: {
         total: apiResponse.summary.transactionCount,
@@ -1105,6 +1123,7 @@ export default function SalesSummary() {
         voided: 0,
         deferred: 0,
       },
+      repartoDeVentas,
       paymentMethods: {
         card: {
           amount: cardAmount,
@@ -1167,6 +1186,50 @@ export default function SalesSummary() {
       </div>
     )
   }
+
+  // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo
+  // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
+  // Sin nada que repartir (los métodos suman 0: p. ej. el único cobro del rango fue con saldo), la barra, la dona y la tabla de
+  // arriba no pintan «0 %» por método (lote ⭐ r1). El total y su conteo siguen; «Métodos de pago» dice su estado vacío.
+  // La barra, la dona y la tabla de arriba: UN arreglo (antes se repetía tres veces). El saldo de tarjeta sale sólo si hubo.
+  // Sin nada que repartir, o con un método en negativo (una devolución del día, Codex r1 #1), no se pintan: serían «0 %» o
+  // porcentajes imposibles. El total, su conteo y «Métodos de pago» siguen.
+  const rv = data.repartoDeVentas
+  const totalVendido = rv.card + rv.cash + rv.other + rv.giftCard
+  const hayReparto = totalVendido > 0 && [rv.card, rv.cash, rv.other, rv.giftCard].every(v => v >= 0)
+  const segmentosDeVentas = [
+    { label: t('salesSummary.paymentTypes.card'), value: rv.card, color: 'bg-blue-500' },
+    { label: t('salesSummary.paymentTypes.cash'), value: rv.cash, color: 'bg-green-500' },
+    { label: t('salesSummary.paymentTypes.other'), value: rv.other, color: 'bg-orange-500' },
+    ...(rv.giftCard !== 0 ? [{ label: t('salesSummary.paymentTypes.giftCardBalance'), value: rv.giftCard, color: 'bg-purple-500' }] : []),
+  ].map(seg => ({ ...seg, percentage: totalVendido > 0 ? (seg.value / totalVendido) * 100 : 0 }))
+  const hayCifrasDeTarjetas =
+    !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
+  // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
+  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
+  const tooltipTotalCobrado = !hayCifrasDeTarjetas
+    ? t('salesSummary.tooltips.totalCollected')
+    : hayRenglonDeCargas
+      ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
+      : t('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')
+  // Lo pagado con saldo NO es un bucket (B5): va aparte y sin porcentaje, porque no es dinero que entró en el periodo (entró
+  // cuando se vendió la tarjeta). BRUTO como los buckets; lo que regresó al saldo se dice aparte, sin restar en el panel (M2).
+  // Sale después del estado de cuenta (Pro, M1) o en «Métodos de pago» (Free, o sin buckets), FUERA de la rama de los buckets:
+  // si el único cobro del rango fue con saldo, el server manda `byPaymentMethodDetailed: []` y la línea igual se dice (lote ⭐).
+  const saldoDeRegalo = apiResponse?.giftCardBalanceBreakdown
+  const lineaDeSaldo = (className: string) =>
+    saldoDeRegalo && (saldoDeRegalo.count > 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0) ? (
+      <p className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)} data-tour="sales-summary-gift-balance">
+        <WalletCards className="w-4 h-4 shrink-0" />
+        {saldoDeRegalo.refunds > 0
+          ? t('salesSummary.giftBalanceLineWithRefunds', {
+              amount: Currency(saldoDeRegalo.amount),
+              count: saldoDeRegalo.count,
+              refunds: Currency(saldoDeRegalo.refunds),
+            })
+          : t('salesSummary.giftBalanceLine', { amount: Currency(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
+      </p>
+    ) : null
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -1971,78 +2034,21 @@ export default function SalesSummary() {
         {/* Dynamic visualization based on viewType — hidden under a payment
             filter (the distribution would be a tautological 100% of the
             filtered method). */}
-        {!isFiltered && viewType === 'gauge' && (
+        {!isFiltered && hayReparto && viewType === 'gauge' && (
           <SalesBreakdownBar
-            segments={[
-              {
-                label: t('salesSummary.paymentTypes.card'),
-                value: data.paymentMethods.card.amount,
-                color: 'bg-blue-500',
-                percentage: data.paymentMethods.card.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.cash'),
-                value: data.paymentMethods.cash.amount,
-                color: 'bg-green-500',
-                percentage: data.paymentMethods.cash.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.other'),
-                value: data.paymentMethods.other.amount,
-                color: 'bg-orange-500',
-                percentage: data.paymentMethods.other.percentage,
-              },
-            ]}
+            segments={segmentosDeVentas}
           />
         )}
 
-        {!isFiltered && viewType === 'pie' && (
+        {!isFiltered && hayReparto && viewType === 'pie' && (
           <SalesPieChart
-            segments={[
-              {
-                label: t('salesSummary.paymentTypes.card'),
-                value: data.paymentMethods.card.amount,
-                color: 'bg-blue-500',
-                percentage: data.paymentMethods.card.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.cash'),
-                value: data.paymentMethods.cash.amount,
-                color: 'bg-green-500',
-                percentage: data.paymentMethods.cash.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.other'),
-                value: data.paymentMethods.other.amount,
-                color: 'bg-orange-500',
-                percentage: data.paymentMethods.other.percentage,
-              },
-            ]}
+            segments={segmentosDeVentas}
           />
         )}
 
-        {!isFiltered && viewType === 'table' && (
+        {!isFiltered && hayReparto && viewType === 'table' && (
           <SalesTable
-            segments={[
-              {
-                label: t('salesSummary.paymentTypes.card'),
-                value: data.paymentMethods.card.amount,
-                color: 'bg-blue-500',
-                percentage: data.paymentMethods.card.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.cash'),
-                value: data.paymentMethods.cash.amount,
-                color: 'bg-green-500',
-                percentage: data.paymentMethods.cash.percentage,
-              },
-              {
-                label: t('salesSummary.paymentTypes.other'),
-                value: data.paymentMethods.other.amount,
-                color: 'bg-orange-500',
-                percentage: data.paymentMethods.other.percentage,
-              },
-            ]}
+            segments={segmentosDeVentas}
             columns={{
               method: t('salesSummary.tableColumns.method'),
               amount: t('salesSummary.columns.amount'),
@@ -2189,6 +2195,17 @@ export default function SalesSummary() {
                     bold
                     tooltip={t('salesSummary.tooltips.totalSales')}
                   />
+                  {/* Tarjetas de regalo (spec §7, B5): PARTE de las ventas y propinas de arriba, con sangría bajo su padre y con su
+                      mismo gate (M3). El server la manda sólo sin filtro de pago; se pinta si no es cero. */}
+                  {typeof data.summary.paidWithGiftCardBalance === 'number' && data.summary.paidWithGiftCardBalance !== 0 && (
+                    <SummaryRow
+                      label={t('salesSummary.rows.paidWithGiftCardBalance')}
+                      value={data.summary.paidWithGiftCardBalance}
+                      type="neutral"
+                      indent={1}
+                      tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
+                    />
+                  )}
                 </>
               )}
 
@@ -2233,8 +2250,8 @@ export default function SalesSummary() {
                     bold
                     tooltip={
                       settlementConfigs.length > 0
-                        ? `${t('salesSummary.tooltips.totalCollected')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
-                        : t('salesSummary.tooltips.totalCollected')
+                        ? `${tooltipTotalCobrado.replace(/\.$/, '')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
+                        : tooltipTotalCobrado
                     }
                   />
                 </>
@@ -2250,6 +2267,23 @@ export default function SalesSummary() {
                     type="positive"
                     bold
                     tooltip={t('salesSummary.tooltips.netProfit')}
+                  />
+                </>
+              )}
+
+              {/* Tarjetas de regalo cargadas (spec §7, B5): NO es venta ni entra a «Total cobrado» (ruling del contador, D5 r1):
+                  renglón aparte, debajo de todo, con su conteo. Sólo sin filtro de pago y si no es cero. */}
+              {hayRenglonDeCargas && (
+                <>
+                  <div className="h-px bg-border/50 mx-4 my-3" />
+                  <SummaryRow
+                    label={t('salesSummary.rows.giftCardLoads')}
+                    value={data.summary.giftCardLoads ?? 0}
+                    // Sólo con tarjetas cargadas en el rango: un neto de puras cancelaciones no dice «0 tarjetas» (lote ⭐).
+                    count={data.summary.giftCardLoadsCount || undefined}
+                    countLabel={t('salesSummary.giftCardsCountLabel', { count: data.summary.giftCardLoadsCount ?? 0 })}
+                    type="neutral"
+                    tooltip={t('salesSummary.tooltips.giftCardLoads')}
                   />
                 </>
               )}
@@ -2279,6 +2313,7 @@ export default function SalesSummary() {
             venueTimezone={venueTimezone}
             formatCurrency={Currency}
           />
+          {lineaDeSaldo('px-1')}
           {venueId && <SettlementWeekStrip venueId={venueId} venueTimezone={venueTimezone} />}
         </>
       )}
@@ -2330,8 +2365,9 @@ export default function SalesSummary() {
                   <span>{t('salesSummary.controls.filterBy.filteredMessage')}</span>
                 </div>
               ) : apiResponse?.byPaymentMethodDetailed && apiResponse.byPaymentMethodDetailed.length > 0 ? (
-                // Enriched breakdown: Card expands to Credit/Debit/AMEX/International with commission.
-                apiResponse.byPaymentMethodDetailed.map(bucket => {
+                <>
+                {/* Enriched breakdown: Card expands to Credit/Debit/AMEX/International with commission. */}
+                {apiResponse.byPaymentMethodDetailed.map(bucket => {
                   const bucketConfig: Record<
                     PaymentMethodDetailedBreakdown['bucket'],
                     { icon: React.ReactNode; label: string; settlementLabel?: string }
@@ -2377,7 +2413,13 @@ export default function SalesSummary() {
                       }}
                     />
                   )
-                })
+                })}
+                </>
+              ) : apiResponse?.byPaymentMethodDetailed ? (
+                // Buckets vacíos (p. ej. el único cobro fue con saldo): estado vacío honesto, nunca $0.00 / 0 % (lote ⭐).
+                <p className="px-4 py-3 text-sm text-muted-foreground" data-tour="sales-summary-payment-methods-empty">
+                  {t('salesSummary.paymentMethodsEmpty')}
+                </p>
               ) : (
                 // Fallback flat layout (e.g. groupBy != paymentMethod or no detailed data).
                 <>
@@ -2406,6 +2448,7 @@ export default function SalesSummary() {
                   />
                 </>
               )}
+              {!isFiltered && lineaDeSaldo('px-4 py-3')}
             </div>
           </CollapsibleContent>
         </GlassCard>

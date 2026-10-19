@@ -898,7 +898,7 @@ export default function ShiftId() {
                 <p className="text-[10px] text-muted-foreground">{t('detail.stats.payments')}</p>
               </div>
               <div className="text-center p-2 rounded-lg bg-muted/50">
-                <p className="text-lg font-bold">{stats.totalOrders || orders.length}</p>
+                <p className="text-lg font-bold">{stats.totalOrders ?? orders.length}</p>
                 <p className="text-[10px] text-muted-foreground">{t('detail.stats.orders')}</p>
               </div>
               <div className="text-center p-2 rounded-lg bg-muted/50">

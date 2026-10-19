@@ -41,6 +41,7 @@ import {
   Users,
   UtensilsCrossed,
   Wallet,
+  WalletCards,
   WifiOff,
   type LucideIcon,
 } from 'lucide-react'
@@ -89,6 +90,8 @@ const ICONS: Record<string, LucideIcon> = {
   VARIABLE_WEIGHT_BARCODE: Barcode,
   MASTER_CATALOG: Library,
   AGGREGATOR_PASSES: Dumbbell,
+  // Tarjetas de regalo: `Gift` ya es de lealtad; dos funciones con el mismo ícono se confunden en la cuadrícula.
+  GIFT_CARDS: WalletCards,
 }
 
 export const FEATURE_ICON_IDS = Object.keys(ICONS)

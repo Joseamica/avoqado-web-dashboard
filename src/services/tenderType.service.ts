@@ -18,6 +18,9 @@ export interface TenderType {
   /** System rows mirror the built-in methods; custom rows are always OTHER. */
   baseMethod: 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'DIGITAL_WALLET' | 'BANK_TRANSFER' | 'CRYPTOCURRENCY' | 'OTHER'
   isSystem: boolean
+  /** Tender de sistema con dueño fijo (R4 del plan de tarjetas de regalo): `GIFT_CARD` = cobrar con saldo. Nunca se
+   *  edita ni se apaga (el server lo rechaza). Opcional: un server anterior no lo manda. */
+  systemKind?: 'GIFT_CARD' | null
   countsAsPhysicalCash: boolean
   captureTip: boolean
   showOnPos: boolean

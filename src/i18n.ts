@@ -187,6 +187,8 @@ import shopifyEn from '@/locales/en/shopify.json'
 import shopifyEs from '@/locales/es/shopify.json'
 import floorPlanEn from '@/locales/en/floorPlan.json'
 import floorPlanEs from '@/locales/es/floorPlan.json'
+import giftCardsEn from '@/locales/en/giftCards.json'
+import giftCardsEs from '@/locales/es/giftCards.json'
 import variantsEn from '@/locales/en/variants.json'
 import variantsEs from '@/locales/es/variants.json'
 // Lightweight language detector (avoids external dependency)
@@ -852,6 +854,16 @@ i18n
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'floorPlan', bundle as Record<string, unknown>, true, true)
 })
+// Tarjetas de regalo (fase 1a) — es y en; el francés no se soporta desde el 28-sep-2026.
+;(
+  [
+    ['en', giftCardsEn],
+    ['es', giftCardsEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'giftCards', bundle as Record<string, unknown>, true, true)
+})
+
 // Variantes de producto (familias, opciones, agrupar existentes) — es y en; el francés no se soporta desde el 28-sep-2026.
 ;(
   [

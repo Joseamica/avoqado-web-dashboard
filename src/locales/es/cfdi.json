@@ -390,7 +390,8 @@
         "YA_EXTRAIDO": "ya está en una nota de extracción",
         "DEVUELTA": "devuelta completa",
         "OTRO": "otro motivo",
-        "SIN_TERMINAL": "cobrada fuera de la terminal"
+        "SIN_TERMINAL": "cobrada fuera de la terminal",
+        "TARJETA_DE_REGALO": "venta de tarjetas de regalo (se factura cuando se usan)"
       },
       "byReason": "Por qué: {{list}}."
     },

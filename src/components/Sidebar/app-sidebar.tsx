@@ -750,6 +750,20 @@ export function AppSidebar({
         })
       }
 
+      // Tarjetas de regalo (fase 1a) — TEASER VISIBLE, como lealtad: se ve con la insignia del plan y la página decide el
+      // cartel. 🔴 Sólo VENDER y PRENDER son de Pro (R9): ver saldos e historial sigue al bajar de plan, así que la entrada
+      // nunca desaparece por el plan (sólo por el permiso). Fuera de marca blanca en la fase 1.
+      if (!isWhiteLabelVenue) {
+        items.push({
+          title: t('sidebar:customersMenu.giftCards', { defaultValue: 'Tarjetas de regalo' }),
+          url: 'gift-cards',
+          permission: 'giftCards:read',
+          premiumLocked: !hasFeatureAccess('GIFT_CARDS'),
+          gatedFeature: 'GIFT_CARDS',
+          keywords: ['tarjeta de regalo', 'regalo', 'gift card', 'saldo', 'certificado', 'monedero'],
+        })
+      }
+
       // Campañas de correo del negocio a SUS clientes (PRO) — TEASER VISIBLE, igual que
       // lealtad: la entrada se ve con la insignia del plan y la pantalla pinta el
       // <FeatureGate>. 🔴 El permiso es `marketing:manage`, NO `:read` — `:read` lo tienen

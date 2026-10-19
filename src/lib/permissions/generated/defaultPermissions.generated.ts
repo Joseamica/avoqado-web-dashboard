@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella e3d94d9e5019916a.
- * ADMIN 112 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 133 · OWNER 118 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella e1e6c9bc89c7e57e.
+ * ADMIN 113 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 134 · OWNER 119 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -63,6 +63,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'giftCards:*',
     'marketing:*',
     'referral:read',
     'referral:configure',
@@ -168,6 +169,9 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'creditPacks:read',
     'creditPacks:sell',
     'creditPacks:redeem',
+    'giftCards:read',
+    'giftCards:sell',
+    'giftCards:redeem',
     'referral:read',
     'commissions:view_own',
     'teams:read',
@@ -307,6 +311,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'giftCards:*',
     'referral:read',
     'referral:override-existing-customer',
     'referral:fulfill-courtesy',
@@ -393,6 +398,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'giftCards:*',
     'marketing:*',
     'referral:read',
     'referral:configure',
@@ -540,4 +546,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'e3d94d9e5019916a'
+export const DEFAULT_PERMISSIONS_DIGEST = 'e1e6c9bc89c7e57e'

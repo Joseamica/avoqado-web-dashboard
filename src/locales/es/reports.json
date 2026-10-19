@@ -587,7 +587,9 @@
       "staffCommissions": "Comisiones a empleados",
       "totalSales": "Total de las ventas",
       "totalCollected": "Total cobrado",
-      "netProfit": "Ganancia neta"
+      "netProfit": "Ganancia neta",
+      "giftCardLoads": "Tarjetas de regalo cargadas",
+      "paidWithGiftCardBalance": "Pagado con saldo"
     },
     "tooltips": {
       "grossSales": "Importe total de ventas antes de aplicar descuentos y reembolsos",
@@ -603,9 +605,20 @@
       "staffCommissions": "Comisiones pagadas a empleados según las configuraciones de comisiones del venue",
       "totalSales": "Ventas netas (los impuestos ya están incluidos en los precios)",
       "totalCollected": "Dinero recibido: ventas netas + propinas - comisiones de plataforma",
+      "totalCollectedWithGiftCards": "Ventas netas + propinas − comisiones. No incluye lo cargado en tarjetas de regalo (va en su renglón) y sí incluye lo que se pagó con saldo de tarjeta.",
+      "totalCollectedWithGiftCardsNoLoadsRow": "Ventas netas + propinas − comisiones. No incluye lo cargado en tarjetas de regalo y sí incluye lo que se pagó con saldo de tarjeta.",
       "totalCollectedSettlement": "El tiempo de depósito varía según el método de pago: tarjetas de débito y crédito se liquidan en {{debitDays}} día(s) hábil(es), mientras que Amex e internacionales tardan {{amexDays}} día(s) hábil(es).",
-      "netProfit": "Ganancia real después de todos los costos: ventas netas - comisiones de plataforma - comisiones a empleados"
+      "netProfit": "Ganancia real después de todos los costos: ventas netas - comisiones de plataforma - comisiones a empleados",
+      "giftCardLoads": "Saldo que vendiste en tarjetas de regalo, menos las cancelaciones. No es venta todavía: cuenta como venta cuando el cliente lo usa.",
+      "paidWithGiftCardBalance": "Parte de las ventas y propinas que se pagó con saldo de tarjetas de regalo, menos lo devuelto al saldo. Ese dinero entró cuando se vendió la tarjeta."
     },
+    "giftBalanceLine_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro). Ese dinero entró cuando se vendieron.",
+    "giftBalanceLine_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros). Ese dinero entró cuando se vendieron.",
+    "giftBalanceLineWithRefunds_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro); {{refunds}} regresó al saldo. Ese dinero entró cuando se vendieron.",
+    "giftBalanceLineWithRefunds_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros); {{refunds}} regresó al saldo. Ese dinero entró cuando se vendieron.",
+    "giftCardsCountLabel_one": "tarjeta",
+    "giftCardsCountLabel_other": "tarjetas",
+    "paymentMethodsEmpty": "En este periodo no hubo cobros con tarjeta, efectivo u otros métodos.",
     "settlement": {
       "label": "Liquidación",
       "businessDay": "{{count}} día hábil",
@@ -615,7 +628,8 @@
     "paymentTypes": {
       "card": "Tarjeta",
       "cash": "Efectivo",
-      "other": "Otros"
+      "other": "Otros",
+      "giftCardBalance": "Saldo de tarjeta de regalo"
     },
     "controls": {
       "title": "Controles",
@@ -1249,6 +1263,15 @@
     },
     "disclosureEstimate": "Es una estimación: el ISR definitivo lo calcula y presenta tu contador.",
     "disclosureRegime": "RESICO aplica una tasa baja (1%–2.5%) sobre lo cobrado, sin deducciones. El régimen general aplica la tarifa progresiva sobre tu utilidad (ingresos − deducciones).",
+    "giftCardsNotice": {
+      "main": "El ISR estimado {{sold}} y {{balance}}; tu contador debe ajustarlo con el reporte de tarjetas.",
+      "soldNotIncluded": "no incluye {{amount}} de tarjetas de regalo cobradas {{when}}",
+      "refundedNotDeducted": "no descuenta {{amount}} de tarjetas de regalo devueltas {{when}}",
+      "balanceIncluded": "sí incluye {{amount}} pagado con saldo de tarjetas",
+      "balanceRefunded": "sí resta {{amount}} de devoluciones de lo pagado con saldo de tarjetas",
+      "whenPeriod": "en el periodo",
+      "whenYear": "en lo que va del ejercicio"
+    },
     "disclosureTariff": "No incluye IVA, IMSS, ISR de nómina ni impuesto sobre nóminas estatal; esos se calculan aparte.",
     "retencion": {
       "title": "Retención en ventas del periodo",

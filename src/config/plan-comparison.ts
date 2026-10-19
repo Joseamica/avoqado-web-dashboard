@@ -35,9 +35,11 @@ const TODOS: Record<TierComparado, ValorDeCelda> = { FREE: true, PRO: true, PREM
  * Funciones que ya están en `includes` (el paywall debe conocerlas) pero que TODAVÍA NO se ofrecen a clientes: no salen
  * en la tabla hasta que se abre su puerta de calidad. `KITCHEN_DISPLAY` se quita de aquí —y gana su fila— en la fase 3.6
  * de la pantalla de cocina, junto con `PANTALLA_ABIERTA_A_CLIENTES` del servidor. `AGGREGATOR_PASSES` (conector de pases,
- * Pro) sale de aquí cuando el founder decida anunciarla.
+ * Pro) sale de aquí cuando el founder decida anunciarla. `GIFT_CARDS` (tarjetas de regalo, Pro) sale de aquí —y gana su
+ * fila `{ key: 'giftCards', codes: ['GIFT_CARDS'] }` en «customers»; el texto ya está en billing.json— cuando el POS las
+ * venda (fase 1b): en la 1a sólo existe el panel y anunciarla prometería algo que el POS todavía no hace.
  */
-export const FUNCIONES_SIN_LANZAR: readonly string[] = ['KITCHEN_DISPLAY', 'AGGREGATOR_PASSES']
+export const FUNCIONES_SIN_LANZAR: readonly string[] = ['KITCHEN_DISPLAY', 'AGGREGATOR_PASSES', 'GIFT_CARDS']
 
 export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
   {
