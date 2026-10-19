@@ -37,7 +37,7 @@ function Movimiento({ m, venta }: { m: GiftCardActivityRow; venta: GiftCardDetai
           {m.staff ? t('detail.whenBy', { date: formatDateTime(m.createdAt), name: m.staff.name }) : formatDateTime(m.createdAt)}
         </p>
         {m.reason && <p className="text-xs text-foreground">{t(`reason.${m.reason}`)}</p>}
-        {m.note && <p className="text-xs text-muted-foreground">{t('detail.note', { note: m.note })}</p>}
+        {m.note && <p className="break-words text-xs text-muted-foreground">{t('detail.note', { note: m.note })}</p>}
         {folio && <p className="text-xs text-muted-foreground">{t('detail.inOrder', { folio })}</p>}
       </div>
       <div className="shrink-0 text-right">

@@ -133,4 +133,10 @@ describe('GiftCardDetailSheet', () => {
       unmount()
     }
   })
+
+  it('full-testing v2 #6: la nota del historial parte las palabras largas (500 letras sin espacios no desbordan la hoja)', () => {
+    pintar()
+    // El renglón ya tiene `min-w-0`; sin `break-words`, una palabra de 500 letras empuja la hoja hacia la derecha a 375 px.
+    expect(screen.getByText('detail.note')).toHaveClass('break-words')
+  })
 })
