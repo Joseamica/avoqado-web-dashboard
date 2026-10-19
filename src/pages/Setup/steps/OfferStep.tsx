@@ -337,6 +337,9 @@ export function OfferStep({
           marcarCobroEnCurso(false) // el banco dijo que no: no hay cobro
           // Tarjeta nueva ⇒ SetupIntent nuevo.
           setRetryToken(n => n + 1)
+          // 🔴 I1: si la pantalla se ocultó durante el reto (la app del banco, otra pestaña), react-query releyó el progreso
+          // con el cobro todavía IN_PROGRESS y nadie más lo pregunta: los planes quedaban apagados con «sin confirmar».
+          void onRefreshProgress()
           return { ok: false, mensaje }
         }
 
@@ -415,7 +418,7 @@ export function OfferStep({
         return { ok: false, mensaje }
       }
     },
-    [caerAEstandar, marcarCobroEnCurso, onActivated, organizationId, t],
+    [caerAEstandar, marcarCobroEnCurso, onActivated, onRefreshProgress, organizationId, t],
   )
 
   const pagarLaOferta = useCallback(
