@@ -432,6 +432,50 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
+  it('Codex r1 P4: un valor escrito en las fichas sin Enter cuenta como captura (Esc pregunta)', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.change(screen.getByLabelText('opciones.valores'), { target: { value: 'S' } })
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('Codex r1 P5: agregar y quitar una opción vacía no es captura (cierra sin preguntar)', async () => {
+    const { onOpenChange } = pintar()
+    fireEvent.click(await casilla())
+    fireEvent.click(screen.getByRole('button', { name: 'opciones.agregar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /^opciones\.quitar$/ })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('Codex r1 P6: la X mientras se guarda no abre la pregunta (lo que va en camino no se descarta)', async () => {
+    let terminar: (v: unknown) => void = () => {}
+    grupos.createProductGroup.mockReturnValue(new Promise(r => (terminar = r)))
+    const { onOpenChange } = pintar()
+    await prepararFamiliaValida()
+    fireEvent.click(botonGuardar())
+    await waitFor(() => expect(grupos.createProductGroup).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    terminar({ id: 'g1' })
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+  })
+
+  it('Codex r1 P3: prender sólo el inventario cuenta como captura', async () => {
+    productWizardApiMock.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
+    const { onOpenChange } = pintar()
+    const usarInventario = await screen.findByRole('switch', { name: 'wizard.step2.useInventory' })
+    await waitFor(() => expect(usarInventario).toBeEnabled())
+    fireEvent.click(usarInventario)
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
+    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
   it('elegir sólo la categoría también cuenta como captura', async () => {
     const { onOpenChange } = pintar()
     await userEvent.click(await screen.findByPlaceholderText('wizard.step1.categoryPlaceholder'))

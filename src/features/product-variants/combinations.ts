@@ -119,16 +119,15 @@ export function sugerirSku(padre: string, values: string[]): string {
     .replace(/-+$/, '')
 }
 
-const contiene = (grande: string[], chica: string[]) => {
-  const g = grande.map(norm)
-  return chica.every(v => g.includes(norm(v)))
-}
+/** `corto` son las primeras posiciones de `largo` (opción por opción, en su lugar: la «M» de Talla no es la «M» de Modelo). */
+const esPrefijo = (corto: string[], largo: string[]) => corto.length < largo.length && corto.every((v, i) => norm(v) === norm(largo[i]))
 
 /**
- * Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. Al agregar o quitar una
- * opción ninguna llave sobrevive: la combinación nueva hereda precio, costo e «incluida» de la fila de la que sale («S» → «S · Rojo»,
- * y de vuelta). Cada heredera recuerda su `base` («S»), así el siguiente color tecleado («S · Azul») hereda lo mismo; una talla nueva
- * no tiene de dónde salir y queda vacía. SKU, código y existencias no se heredan: son de una sola variante.
+ * Regenera las filas (opciones YA válidas) y conserva lo tecleado en cada combinación que sigue existiendo. Al agregar una opción (el
+ * asistente sólo agrega al final) ninguna llave sobrevive: la combinación nueva hereda precio, costo e «incluida» de la fila de la que
+ * sale («S» → «S · Rojo»). Cada heredera recuerda su `base` («S»), así el siguiente color tecleado («S · Azul») hereda lo mismo.
+ * Sólo se hereda sin duda: de la fila con el prefijo más largo, y si varias empatan (hermanas con precios distintos) no se adivina.
+ * Una talla nueva, quitar una opción o renombrar un valor quedan vacíos. SKU, código y existencias no se heredan: son de una variante.
  */
 export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVariante[]): FilaVariante[] {
   const porLlave = new Map(previas.map(f => [f.key, f]))
@@ -136,14 +135,19 @@ export function sincronizarFilas(opciones: OpcionEditable[], previas: FilaVarian
     const key = llaveDeCombinacion(values)
     const previa = porLlave.get(key)
     if (previa) return { ...previa, values }
-    const origen = previas.find(
-      f =>
-        (f.values.length !== values.length && (contiene(values, f.values) || contiene(f.values, values))) ||
-        (f.base !== undefined && contiene(values, f.base)),
-    )
-    if (!origen) return { key, values, incluida: true }
-    const base = origen.base ?? (origen.values.length < values.length ? origen.values : undefined)
-    return { key, values, incluida: origen.incluida, price: origen.price, cost: origen.cost, ...(base ? { base } : {}) }
+    let largo = 0
+    let candidatas: FilaVariante[] = []
+    for (const f of previas)
+      for (const p of [f.values, f.base]) {
+        if (!p || !esPrefijo(p, values) || p.length < largo) continue
+        if (p.length > largo) candidatas = []
+        largo = p.length
+        if (!candidatas.includes(f)) candidatas.push(f)
+      }
+    const [o] = candidatas
+    const sinDuda = o !== undefined && candidatas.every(f => f.price === o.price && f.cost === o.cost && f.incluida === o.incluida)
+    if (!sinDuda) return { key, values, incluida: true }
+    return { key, values, incluida: o.incluida, price: o.price, cost: o.cost, base: values.slice(0, largo) }
   })
 }
 

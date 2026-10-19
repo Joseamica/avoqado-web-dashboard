@@ -496,6 +496,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const tipoAdmiteVariantes = (ALLOWED_GROUP_TYPES as readonly string[]).includes(String(effectiveProductType ?? ''))
   const [conVariantes, setConVariantes] = useState(false)
   const [variantes, setVariantes] = useState<ValorVariantes>(VARIANTES_INICIALES)
+  const [confirmarDescartar, setConfirmarDescartar] = useState(false) // «¿Descartar cambios?» (ver pedirCerrar)
   const conVariantesActiva = mode === 'create' && tipoAdmiteVariantes && conVariantes
   const resumenVariantes = resumenDeFamilia(variantes.filas) // la vista previa: «6 variantes · $299»
   const enviando = useRef(false) // isPending no cambia entre dos clics del mismo instante
@@ -693,6 +694,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setPorConfirmarIva(null)
     setConVariantes(false) // el asistente sigue montado al cerrarse: el siguiente alta arranca sin la casilla
     setVariantes(VARIANTES_INICIALES)
+    setConfirmarDescartar(false) // la X durante el guardado no deja la pregunta abierta tras cerrar
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
@@ -1206,14 +1208,24 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // En el alta, Cancelar, la X y Esc preguntan antes de tirar lo capturado (guardar con éxito cierra por handleWizardComplete, sin
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
-  // `true` sin tocar nada (QA en navegador, 19-oct). Marcar la casilla de variantes sola no cuenta: `variantes` sólo cambia de
-  // referencia al escribir algo en la sección.
-  const [confirmarDescartar, setConfirmarDescartar] = useState(false)
+  // `true` sin tocar nada (QA en navegador, 19-oct). Las variantes se comparan por contenido (agregar y quitar una opción vacía no es
+  // captura), y cuenta también un valor escrito en las fichas que aún no es ficha (`data-por-confirmar`, como ProductGroupDialog).
   const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
   const hayCaptura =
     mode === 'create' &&
-    (tocado(step1Form) || tocado(step2Form) || tocado(step3SimpleForm) || tocado(step3RecipeForm) || variantes !== VARIANTES_INICIALES)
-  const pedirCerrar = () => (hayCaptura ? setConfirmarDescartar(true) : onOpenChange(false))
+    (tocado(step1Form) ||
+      tocado(step2Form) ||
+      tocado(step3SimpleForm) ||
+      tocado(step3RecipeForm) ||
+      JSON.stringify(variantes) !== JSON.stringify(VARIANTES_INICIALES))
+  const pedirCerrar = () => {
+    if (isLoading) return // guardando: lo que va en camino no se descarta (Cancelar ya está deshabilitado; aquí la X y Esc)
+    const textoPorConfirmar =
+      mode === 'create' &&
+      Array.from(document.querySelectorAll<HTMLInputElement>('input[data-por-confirmar]')).some(i => i.value.trim() !== '')
+    if (hayCaptura || textoPorConfirmar) setConfirmarDescartar(true)
+    else onOpenChange(false)
+  }
 
   // Render action buttons - single step, always show "Finish"
   const renderActions = () => {
@@ -1736,7 +1748,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             id="track-inventory-left"
                             checked={step2Form.watch('useInventory')}
                             onCheckedChange={checked => {
-                              step2Form.setValue('useInventory', checked)
+                              step2Form.setValue('useInventory', checked, { shouldDirty: true })
                               if (!checked) {
                                 step2Form.setValue('inventoryMethod', undefined)
                                 setSelectedInventoryMethod(null)
@@ -1758,7 +1770,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 // RECIPE is a Premium (INVENTORY_TRACKING) capability — block selection
                                 // for Free venues without access (the option is also disabled below).
                                 if (value === 'RECIPE' && !hasInventoryTracking) return
-                                step2Form.setValue('inventoryMethod', value as InventoryMethod)
+                                step2Form.setValue('inventoryMethod', value as InventoryMethod, { shouldDirty: true })
                                 setSelectedInventoryMethod(value as InventoryMethod)
                               }}
                               className="grid grid-cols-1 md:grid-cols-2 gap-3"
@@ -2167,6 +2179,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                                   step3RecipeForm.setValue(
                                                     'ingredients',
                                                     current.filter((_, i) => i !== index),
+                                                    { shouldDirty: true },
                                                   )
                                                 }}
                                               >
@@ -2365,6 +2378,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                     step1Form.setValue(
                                       'modifierGroups',
                                       currentValues.filter(g => g.value !== selectedGroup.value),
+                                      { shouldDirty: true },
                                     )
                                   }}
                                 >
@@ -2718,7 +2732,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         mode="create"
         onAddTempIngredient={ingredient => {
           const current = step3RecipeForm.getValues('ingredients')
-          step3RecipeForm.setValue('ingredients', [...current, { ...ingredient, isOptional: ingredient.isOptional ?? false }])
+          step3RecipeForm.setValue('ingredients', [...current, { ...ingredient, isOptional: ingredient.isOptional ?? false }], {
+            shouldDirty: true,
+          })
           toast({
             title: t('recipes.messages.ingredientAdded'),
             variant: 'default',
