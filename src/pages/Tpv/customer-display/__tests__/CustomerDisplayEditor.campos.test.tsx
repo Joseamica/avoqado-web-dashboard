@@ -11,6 +11,7 @@ import {
 } from '@/services/customerDisplay.service'
 import { DEFAULT_TPV_SETTINGS } from '@/services/tpv-settings.service'
 import { CustomerDisplayEditor } from '../CustomerDisplayEditor'
+import { enderezarLogo } from '../enderezarLogo'
 import { medirImagen } from '../medirImagen'
 import { DISENO_DE_FABRICA } from '../model'
 
@@ -30,6 +31,8 @@ vi.mock('@/services/customerDisplay.service', () => ({
   uploadCustomerDisplayLogo: vi.fn(),
 }))
 vi.mock('../medirImagen', () => ({ medirImagen: vi.fn() }))
+// Por defecto deja pasar el archivo tal cual (PNG o JPEG derecho); `enderezarLogo.test.ts` prueba el enderezado en sí.
+vi.mock('../enderezarLogo', () => ({ enderezarLogo: vi.fn(async (archivo: File) => archivo) }))
 
 const ficha = (extra: Partial<CustomerDisplayFicha> = {}): CustomerDisplayFicha => ({
   schemaVersion: 1,
@@ -196,6 +199,40 @@ describe('CustomerDisplayEditor — campos y vista previa', () => {
     vi.mocked(medirImagen).mockResolvedValue({ ancho: 200, alto: 200 })
     await user.upload(screen.getByTestId('customer-display-logo-input'), new File([new Uint8Array(10)], 'chica.png', { type: 'image/png' }))
     expect(await screen.findByText('editor.logoErrors.medidas')).toBeInTheDocument()
+    expect(uploadCustomerDisplayLogo).not.toHaveBeenCalled()
+  })
+
+  it('🔴 un JPEG girado por EXIF sube YA enderezado: se mide y se sube el archivo nuevo, no el original (Codex bloque 3 #2)', async () => {
+    const enderezado = new File([new Uint8Array(20)], 'foto.jpg', { type: 'image/jpeg' })
+    vi.mocked(enderezarLogo).mockResolvedValueOnce(enderezado)
+    vi.mocked(medirImagen).mockResolvedValue({ ancho: 600, alto: 800 })
+    vi.mocked(uploadCustomerDisplayLogo).mockResolvedValue({
+      assetId: 'asset-2',
+      url: 'https://storage.googleapis.com/b/y.jpg',
+      sha256: 'h2',
+      width: 600,
+      height: 800,
+    })
+    const user = userEvent.setup()
+    await pintar()
+    await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
+    const original = new File([new Uint8Array(10)], 'foto.jpg', { type: 'image/jpeg' })
+    await user.upload(screen.getByTestId('customer-display-logo-input'), original)
+    await waitFor(() => expect(uploadCustomerDisplayLogo).toHaveBeenCalled())
+    expect(vi.mocked(enderezarLogo).mock.calls[0][0]).toBe(original)
+    expect(vi.mocked(medirImagen).mock.calls[0][0]).toBe(enderezado)
+    expect(vi.mocked(uploadCustomerDisplayLogo).mock.calls[0][2]).toBe(enderezado)
+    await waitFor(() => expect(ultimoCuerpo()).toMatchObject({ logoAssetId: 'asset-2' }))
+  })
+
+  it('el peso se revisa en el archivo que de verdad se sube: si el enderezado pasa de 5 MB, se avisa y no se sube', async () => {
+    vi.mocked(enderezarLogo).mockResolvedValueOnce(new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'foto.jpg', { type: 'image/jpeg' }))
+    vi.mocked(medirImagen).mockResolvedValue({ ancho: 800, alto: 800 })
+    const user = userEvent.setup()
+    await pintar()
+    await user.click(screen.getByRole('radio', { name: 'editor.logoOwn' }))
+    await user.upload(screen.getByTestId('customer-display-logo-input'), new File([new Uint8Array(10)], 'foto.jpg', { type: 'image/jpeg' }))
+    expect(await screen.findByText('editor.logoErrors.peso')).toBeInTheDocument()
     expect(uploadCustomerDisplayLogo).not.toHaveBeenCalled()
   })
 

@@ -29,6 +29,7 @@ import {
 import type { TpvSettings } from '@/services/tpv-settings.service'
 import { BrandFields, PromosTeaser, TextFields } from './EditorFields'
 import { claseDeConflicto, mensajeDelServidor, resultadoIncierto, type ClaseDeConflicto } from './errores'
+import { enderezarLogo } from './enderezarLogo'
 import { LogoField } from './LogoField'
 import { medirImagen } from './medirImagen'
 import {
@@ -301,13 +302,16 @@ export function CustomerDisplayEditor({
     const mia = ++subidaVigente.current
     setSubiendoLogo(true)
     try {
-      const medidas = await medirImagen(archivo)
-      const porMedidas = medidas ? revisarMedidas(medidas.ancho, medidas.alto) : 'tipo'
-      if (porMedidas) {
-        setErrorDeLogo(t(`editor.logoErrors.${porMedidas}`))
+      // Un JPEG girado por EXIF se re-codifica derecho (Codex F2 bloque 3 #2); peso y medidas se revisan en lo que SE SUBE.
+      const aSubir = await enderezarLogo(archivo)
+      const porPeso = revisarArchivo(aSubir)
+      const medidas = porPeso ? null : await medirImagen(aSubir)
+      const motivo = porPeso ?? (medidas ? revisarMedidas(medidas.ancho, medidas.alto) : 'tipo')
+      if (motivo) {
+        setErrorDeLogo(t(`editor.logoErrors.${motivo}`))
         return
       }
-      const subido = await uploadCustomerDisplayLogo(venueId, terminalId, archivo)
+      const subido = await uploadCustomerDisplayLogo(venueId, terminalId, aSubir)
       if (mia !== subidaVigente.current) return // la selección cambió mientras subía: este resultado ya no aplica
       setUltimoLogoPropio(subido.assetId)
       cambiar({ logoAssetId: subido.assetId })
