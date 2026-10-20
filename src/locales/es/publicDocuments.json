@@ -66,6 +66,8 @@
   "restoredUpload": "Esta carga quedó sin confirmar. Quítala y vuelve a elegir el archivo para continuar.",
   "terminalSummary": "Conoce tu terminal",
   "terminalPresentation": "Presentación completa",
+  "platformSummary": "Conoce Avoqado",
+  "platformPresentation": "Presentación de Avoqado",
   "terminalPrinterAlt": "Terminal Avoqado con impresora",
   "terminalCompactAlt": "Terminal Avoqado compacta"
 }

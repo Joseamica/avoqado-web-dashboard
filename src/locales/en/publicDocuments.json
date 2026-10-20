@@ -66,6 +66,8 @@
   "restoredUpload": "This upload was not confirmed. Remove it and choose the file again to continue.",
   "terminalSummary": "Meet your terminal",
   "terminalPresentation": "Full presentation",
+  "platformSummary": "Meet Avoqado",
+  "platformPresentation": "Avoqado presentation",
   "terminalPrinterAlt": "Avoqado terminal with printer",
   "terminalCompactAlt": "Compact Avoqado terminal"
 }
