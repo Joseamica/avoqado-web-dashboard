@@ -94,6 +94,10 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Promos en reposo de la pantalla del cliente (spec «personalizar la pantalla del cliente», D7, 16-sep-2026). Pro;
       // espejo de LEGACY_PLAN_CODES del server. 🔴 Sin anunciar: `FUNCIONES_SIN_LANZAR` la esconde de la tabla hasta F3.
       'CUSTOMER_DISPLAY_PROMOS',
+      // Tarjetas de regalo (fase 1a, D1 del spec, 14-oct-2026): Pro; suelta $249/mes con IVA. Espejo de LEGACY_PLAN_CODES
+      // del server, por nombre exacto. 🔴 Sólo VENDER y PRENDER se gatean (R9): ver saldos, cobrar con saldo y reportes no.
+      'GIFT_CARDS',
+      'PRODUCT_VARIANTS', // espejo exacto del server (featureCatalog.ts: minimumTier PRO, offering CONFIGURABLE)
     ],
   },
   {

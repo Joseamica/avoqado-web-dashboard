@@ -17,6 +17,7 @@
 //   VITE_POSTHOG_HOST=https://us.i.posthog.com   (optional, defaults to US)
 import posthog from 'posthog-js'
 import type { User } from '@/types'
+import { isPrivateDocumentPage } from './privateDocumentPage'
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com'
@@ -24,11 +25,12 @@ const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https
 let initialized = false
 
 export function initPostHog(): void {
-  if (initialized || !KEY || typeof window === 'undefined') return
+  if (initialized || !KEY || typeof window === 'undefined' || isPrivateDocumentPage()) return
   try {
     posthog.init(KEY, {
       api_host: HOST,
       person_profiles: 'identified_only',
+      before_send: event => (isPrivateDocumentPage() ? null : event),
       capture_pageview: true,
       capture_pageleave: true,
       autocapture: true,
@@ -42,6 +44,14 @@ export function initPostHog(): void {
       session_recording: { maskAllInputs: true },
     })
     initialized = true
+    window.addEventListener('avoqado:private-documents', () => {
+      try {
+        posthog.stopSessionRecording()
+        posthog.set_config({ autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true })
+      } catch {
+        /* Analytics must not interrupt private navigation. */
+      }
+    })
   } catch (e) {
     // Never let analytics break the app.
     console.error('[posthog] init failed', e)
@@ -50,7 +60,7 @@ export function initPostHog(): void {
 
 /** Fire a product/funnel event. No-op until PostHog is initialized. */
 export function track(event: string, props?: Record<string, unknown>): void {
-  if (!initialized) return
+  if (!initialized || isPrivateDocumentPage()) return
   try {
     posthog.capture(event, props)
   } catch {
@@ -62,7 +72,7 @@ type IdentifiableUser = Pick<User, 'id' | 'email' | 'firstName' | 'lastName' | '
 
 /** Tie subsequent events to the logged-in person (so you see WHO got stuck). */
 export function identifyUser(user: IdentifiableUser): void {
-  if (!initialized) return
+  if (!initialized || isPrivateDocumentPage()) return
   try {
     posthog.identify(user.id, {
       email: user.email,
@@ -77,7 +87,7 @@ export function identifyUser(user: IdentifiableUser): void {
 
 /** Clear identity on logout so the next user isn't merged into the previous one. */
 export function resetUser(): void {
-  if (!initialized) return
+  if (!initialized || isPrivateDocumentPage()) return
   try {
     posthog.reset()
   } catch {
@@ -91,7 +101,7 @@ export function resetUser(): void {
  * /setup so we see where people drop off, without recording the whole dashboard.
  */
 export function startSessionReplay(): void {
-  if (!initialized) return
+  if (!initialized || isPrivateDocumentPage()) return
   try {
     posthog.startSessionRecording()
   } catch {

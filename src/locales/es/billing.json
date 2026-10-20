@@ -171,8 +171,10 @@
         "promotions": "Promociones",
         "campaigns": "Campañas por correo a tus clientes",
         "googleReviews": "Reseñas en Google",
+        "giftCards": "Tarjetas de regalo (vender y cobrar con saldo)",
         "inventoryBasic": "Inventario básico",
         "priceLabels": "Etiquetas de precios",
+        "productVariants": "Variantes de producto (talla, color, tamaño)",
         "inventoryFifo": "Inventario FIFO, recetas y costeo",
         "autoReorder": "Reorden automático",
         "serialized": "Inventario por número de serie",
@@ -799,7 +801,9 @@
       "VARIABLE_WEIGHT_BARCODE": "Códigos de peso variable",
       "MASTER_CATALOG": "Catálogo maestro",
       "PRICE_LABELS": "Etiquetas de precios",
-      "AGGREGATOR_PASSES": "Pases (TotalPass · Wellhub)"
+      "PRODUCT_VARIANTS": "Variantes de producto",
+      "AGGREGATOR_PASSES": "Pases (TotalPass · Wellhub)",
+      "GIFT_CARDS": "Tarjetas de regalo"
     },
     "restoreChanged": "Una oferta de tu selección guardada cambió o ya no está disponible. Reintenta o vuelve a elegir antes de cotizar.",
     "draftSaveFailed": "No pudimos guardar tu selección en este navegador. Mantén esta página abierta para conservarla.",

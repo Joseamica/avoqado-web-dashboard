@@ -18,13 +18,16 @@ import {
   TicketCheck,
   User,
   Wallet,
+  WalletCards,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAccess } from '@/hooks/use-access'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
+import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { cn } from '@/lib/utils'
+import { verTarjetasEnAjustes } from '@/pages/GiftCards/vista'
 
 interface HubItem {
   to: string
@@ -58,6 +61,8 @@ export default function SettingsLayout() {
   const navigate = useNavigate()
   const { can, role, isWhiteLabelEnabled, canFeature } = useAccess()
   const { hasFeatureAccess } = useVenueTier()
+  // La entrada de tarjetas sigue la MISMA señal de marca blanca que el menú lateral (el módulo de la sede), no la de `/access` (lote ⭐).
+  const { isWhiteLabelEnabled: menuEnMarcaBlanca } = useWhiteLabelConfig()
 
   const isAdmin = ADMIN_ROLES.includes(role ?? '')
   const showVenueGroup = !isWhiteLabelEnabled || canFeature('AVOQADO_SETTINGS')
@@ -122,6 +127,18 @@ export default function SettingsLayout() {
           : []),
         ...(can('tender-types:read')
           ? [{ to: 'tender-types', label: t('hub.items.tenderTypes'), icon: Wallet, dataTour: 'settings-nav-tender-types' }]
+          : []),
+        ...(verTarjetasEnAjustes({ puedeLeer: can('giftCards:read'), marcaBlanca: menuEnMarcaBlanca })
+          ? [
+              {
+                to: 'gift-cards',
+                label: t('hub.items.giftCards'),
+                icon: WalletCards,
+                dataTour: 'settings-nav-gift-cards',
+                // Insignia del plan: vender es Pro (R9). La página explica y deja apagar aunque haya bajado de plan.
+                premiumLocked: !hasFeatureAccess('GIFT_CARDS'),
+              },
+            ]
           : []),
         ...(can('area-tickets:configure')
           ? [

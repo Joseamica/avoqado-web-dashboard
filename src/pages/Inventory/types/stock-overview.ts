@@ -1,4 +1,5 @@
 import type { RawMaterial } from '@/services/inventory.service'
+import type { VariantOption } from '@/types/productGroup'
 
 export interface InventoryProduct {
   id: string
@@ -12,6 +13,10 @@ export interface InventoryProduct {
   inventory?: {
     minimumStock?: number | null
   } | null
+  /** Variantes: la familia del producto (null/ausente = suelto) y sus valores («Talla: M»), como los manda GET /products. */
+  productGroupId?: string | null
+  productGroupName?: string | null
+  variantOptions?: VariantOption[] | null
 }
 
 export type StockOverviewRowKind = 'product' | 'ingredient'
@@ -30,6 +35,10 @@ export interface StockOverviewRow {
   confirmedStock: number | null
   /** Reference to the raw entity for mutations / dialogs. */
   source: InventoryProduct | RawMaterial
+  /** Variantes (sólo productos): para agrupar la familia en una fila y ordenar sus variantes por opción. */
+  productGroupId?: string | null
+  productGroupName?: string | null
+  variantOptions?: VariantOption[] | null
 }
 
 export function productToStockOverviewRow(p: InventoryProduct): StockOverviewRow {
@@ -45,6 +54,9 @@ export function productToStockOverviewRow(p: InventoryProduct): StockOverviewRow
     price: Number(p.price) || 0,
     confirmedStock: null,
     source: p,
+    productGroupId: p.productGroupId ?? null,
+    productGroupName: p.productGroupName ?? null,
+    variantOptions: p.variantOptions ?? null,
   }
 }
 

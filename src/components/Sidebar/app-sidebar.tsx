@@ -49,6 +49,7 @@
   Upload,
   Truck,
   Tags,
+  ShoppingBag,
 } from 'lucide-react'
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -349,6 +350,15 @@ export function AppSidebar({
       { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
       { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
       {
+        title: t('menu:menumaker.nav.productOptions'),
+        url: 'menumaker/product-options',
+        permission: 'menu:read',
+        // Espeja el <FeatureGate feature="PRODUCT_VARIANTS"> de la página: la insignia Pro sale cuando la página sale borrosa.
+        premiumLocked: !hasFeatureAccess('PRODUCT_VARIANTS'),
+        gatedFeature: 'PRODUCT_VARIANTS',
+        keywords: ['talla', 'color', 'tamaño', 'variantes', 'plantillas'],
+      },
+      {
         title: t('sidebar:creditPacks'),
         url: 'menumaker/credit-packs',
         permission: 'creditPacks:read',
@@ -459,6 +469,16 @@ export function AppSidebar({
         permission: 'orders:read',
         keywords: ['ordenes', 'comandas', 'tickets'],
       },
+      // Pedidos en línea (PRO): el ítem navega normal; la Bandeja no tiene candado y el <FeatureGate> vive en la página.
+      {
+        title: t('sidebar:salesMenu.onlineOrdering', { defaultValue: 'Pedidos en línea' }),
+        url: 'online-ordering',
+        icon: ShoppingBag,
+        permission: 'orders:read',
+        premiumLocked: !hasFeatureAccess('ONLINE_ORDERING'),
+        gatedFeature: 'ONLINE_ORDERING',
+        keywords: ['pedidos en linea', 'online', 'tienda en linea', 'para recoger', 'pickup', 'bandeja', 'pedir en linea'],
+      },
       // «Turnos» de caja: los cortes viven con Ventas; no es RH (fase 1a lo sacó del grupo de personal). Misma URL, permiso y
       // condición enableShifts de siempre.
       ...(activeVenue?.settings?.enableShifts
@@ -561,6 +581,7 @@ export function AppSidebar({
       if (isWhiteLabelVenue) {
         if (item.url === 'payments' && !canWL('AVOQADO_PAYMENTS')) return false
         if (item.url === 'orders' && !canWL('AVOQADO_ORDERS')) return false
+        if (item.url === 'online-ordering') return false
         if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
         if (item.url === '#payment-links' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
         if (item.url === 'ecommerce' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
@@ -726,6 +747,20 @@ export function AppSidebar({
           premiumLocked: !hasFeatureAccess('LOYALTY_PROGRAM'),
           gatedFeature: 'LOYALTY_PROGRAM',
           keywords: ['tarjeta', 'sellos', 'wallet', 'cartera', 'credencial', 'apple'],
+        })
+      }
+
+      // Tarjetas de regalo (fase 1a) — TEASER VISIBLE, como lealtad: se ve con la insignia del plan y la página decide el
+      // cartel. 🔴 Sólo VENDER y PRENDER son de Pro (R9): ver saldos e historial sigue al bajar de plan, así que la entrada
+      // nunca desaparece por el plan (sólo por el permiso). Fuera de marca blanca en la fase 1.
+      if (!isWhiteLabelVenue) {
+        items.push({
+          title: t('sidebar:customersMenu.giftCards', { defaultValue: 'Tarjetas de regalo' }),
+          url: 'gift-cards',
+          permission: 'giftCards:read',
+          premiumLocked: !hasFeatureAccess('GIFT_CARDS'),
+          gatedFeature: 'GIFT_CARDS',
+          keywords: ['tarjeta de regalo', 'regalo', 'gift card', 'saldo', 'certificado', 'monedero'],
         })
       }
 

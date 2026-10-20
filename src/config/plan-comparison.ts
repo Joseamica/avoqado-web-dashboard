@@ -36,9 +36,11 @@ const TODOS: Record<TierComparado, ValorDeCelda> = { FREE: true, PRO: true, PREM
  * en la tabla hasta que se abre su puerta de calidad. `KITCHEN_DISPLAY` se quita de aquí —y gana su fila— en la fase 3.6
  * de la pantalla de cocina, junto con `PANTALLA_ABIERTA_A_CLIENTES` del servidor. `AGGREGATOR_PASSES` (conector de pases,
  * Pro) sale de aquí cuando el founder decida anunciarla. `CUSTOMER_DISPLAY_PROMOS` (promos en reposo, Pro) sale de aquí en
- * F3, con el carrusel y su precio.
+ * F3, con el carrusel y su precio. `GIFT_CARDS` (tarjetas de regalo, Pro) sale de aquí —y gana su
+ * fila `{ key: 'giftCards', codes: ['GIFT_CARDS'] }` en «customers»; el texto ya está en billing.json— cuando el POS las
+ * venda (fase 1b): en la 1a sólo existe el panel y anunciarla prometería algo que el POS todavía no hace.
  */
-export const FUNCIONES_SIN_LANZAR: readonly string[] = ['KITCHEN_DISPLAY', 'AGGREGATOR_PASSES', 'CUSTOMER_DISPLAY_PROMOS']
+export const FUNCIONES_SIN_LANZAR: readonly string[] = ['KITCHEN_DISPLAY', 'AGGREGATOR_PASSES', 'CUSTOMER_DISPLAY_PROMOS', 'GIFT_CARDS']
 
 export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
   {
@@ -70,6 +72,7 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
     rows: [
       { key: 'inventoryBasic', values: TODOS },
       { key: 'priceLabels', codes: ['PRICE_LABELS'] },
+      { key: 'productVariants', codes: ['PRODUCT_VARIANTS'] },
       { key: 'inventoryFifo', codes: ['INVENTORY_TRACKING'] },
       { key: 'autoReorder', codes: ['AUTO_REORDER'] },
       { key: 'serialized', codes: ['SERIALIZED_INVENTORY'] },
@@ -119,10 +122,14 @@ export function valorDeCelda(fila: FilaDeComparacion, tier: TierComparado): Valo
   })
 }
 
-/** ¿Los tres planes dicen lo mismo en esta fila? Esas filas no ayudan a elegir: van en una sola línea. */
-export function esComun(fila: FilaDeComparacion): boolean {
-  const [a, ...resto] = TIERS_COMPARADOS.map(t => valorDeCelda(fila, t))
-  return resto.every(v => v === a)
+/**
+ * ¿Los planes que se enseñan (por default los tres) dicen lo mismo en esta fila? Esas filas no ayudan a elegir: van en
+ * una sola línea. Una fila con TEXTO («Ilimitados») nunca es común: en la línea de arriba sólo cabe «lo tienen», y
+ * se perdería el valor (con Gratis oculta, «Usuarios» quedaría sin decir «Ilimitados»).
+ */
+export function esComun(fila: FilaDeComparacion, tiers: readonly TierComparado[] = TIERS_COMPARADOS): boolean {
+  const [a, ...resto] = tiers.map(t => valorDeCelda(fila, t))
+  return typeof a !== 'string' && resto.every(v => v === a)
 }
 
 /** Lo que `tier` agrega sobre el plan de abajo (Pro sobre Free, Premium sobre Pro), por categoría. */

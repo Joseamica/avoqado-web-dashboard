@@ -171,8 +171,10 @@
         "promotions": "Promotions",
         "campaigns": "Email campaigns to your customers",
         "googleReviews": "Google reviews",
+        "giftCards": "Gift cards (sell and pay with balance)",
         "inventoryBasic": "Basic inventory",
         "priceLabels": "Price labels",
+        "productVariants": "Product variants (size, color…)",
         "inventoryFifo": "FIFO inventory, recipes and costing",
         "autoReorder": "Auto-reorder",
         "serialized": "Serialized inventory",
@@ -799,7 +801,9 @@
       "VARIABLE_WEIGHT_BARCODE": "Variable-weight barcodes",
       "MASTER_CATALOG": "Master catalog",
       "PRICE_LABELS": "Price labels",
-      "AGGREGATOR_PASSES": "Passes (TotalPass · Wellhub)"
+      "PRODUCT_VARIANTS": "Product variants",
+      "AGGREGATOR_PASSES": "Passes (TotalPass · Wellhub)",
+      "GIFT_CARDS": "Gift cards"
     },
     "restoreChanged": "An offer in your saved selection changed or is no longer available. Retry or select again before requesting a quote.",
     "draftSaveFailed": "We could not save your selection in this browser. Keep this page open to preserve it.",

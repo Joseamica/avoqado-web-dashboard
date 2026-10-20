@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
@@ -81,6 +82,7 @@ export function IssueRefundSheet({
 }: IssueRefundSheetProps) {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
+  const { t: tGiftCards } = useTranslation('giftCards')
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -185,7 +187,8 @@ export function IssueRefundSheet({
     onError: (err: any) => {
       toast({
         title: t('refund.error', { defaultValue: 'No se pudo emitir el reembolso' }),
-        description: err?.response?.data?.message || err?.message,
+        // Los rechazos de tarjetas de regalo llegan en español con su `code`: con el panel en otro idioma, su traducción.
+        description: textoDelServidorEnIdioma(err, tGiftCards) ?? (err?.response?.data?.message || err?.message),
         variant: 'destructive',
       })
     },

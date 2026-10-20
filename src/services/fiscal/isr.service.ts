@@ -36,6 +36,17 @@ export interface IsrProvisionalResponse {
   rfcSpansMultipleOrgs: boolean
   /** SIEMPRE true: es una estimación preliminar, no la cifra final a declarar. */
   isEstimate?: boolean
+  /**
+   * Tarjetas de regalo (ruling B4): el ISR estimado NO incluye las tarjetas cobradas y SÍ lo pagado con saldo; el server manda
+   * este aviso en español, con las cifras, sólo cuando hay alguna. Opcional: un server sin tarjetas no lo manda.
+   */
+  avisoTarjetasDeRegalo?: string
+  /**
+   * Las cifras con las que el server arma ese aviso (centavos, sin IVA, netas de devoluciones; negativas = más devoluciones que
+   * ventas). Con ellas el panel arma el aviso en su idioma; opcionales: un server viejo no las manda.
+   */
+  tarjetasCobradasNoIncluidasCents?: number
+  pagadoConSaldoIncluidoCents?: number
 }
 
 export async function getIsrProvisional(venueId: string, period?: string, regime: IsrRegime = 'RESICO'): Promise<IsrProvisionalResponse> {

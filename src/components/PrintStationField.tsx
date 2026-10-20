@@ -15,6 +15,8 @@ interface PrintStationFieldProps {
   onChange: (value: string | null) => void
   /** Which i18n namespace + key path to read copy from (product wizard vs category forms). */
   namespace: 'inventory' | 'menu'
+  /** Sólo lectura (p. ej. sin plan o sin permiso); opcional, los usos de hoy no cambian. */
+  disabled?: boolean
 }
 
 /**
@@ -26,7 +28,7 @@ interface PrintStationFieldProps {
  * can hide itself completely with no empty container left behind. See
  * avoqado-server print-stations service for the underlying model.
  */
-export function PrintStationField({ venueId, value, onChange, namespace }: PrintStationFieldProps) {
+export function PrintStationField({ venueId, value, onChange, namespace, disabled }: PrintStationFieldProps) {
   const { t } = useTranslation(namespace)
   const { term } = useTerminology()
   const { data: printStations, isLoading } = usePrintStations(venueId)
@@ -44,7 +46,7 @@ export function PrintStationField({ venueId, value, onChange, namespace }: Print
   return (
     <section data-tour="print-station-field" className="bg-card rounded-2xl border border-border/50 p-6 space-y-1.5">
       <Label className="text-sm font-medium">{t(`${keyPrefix}.label`, { defaultValue: term('printStation') })}</Label>
-      <Select value={selectValue} onValueChange={val => onChange(val === INHERIT_VALUE ? null : val)}>
+      <Select value={selectValue} onValueChange={val => onChange(val === INHERIT_VALUE ? null : val)} disabled={disabled}>
         <SelectTrigger className="h-12 text-base">
           <SelectValue />
         </SelectTrigger>

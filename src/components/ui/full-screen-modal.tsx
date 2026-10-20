@@ -37,6 +37,11 @@ interface FullScreenModalProps {
   onEscapeKeyDown?: (event: KeyboardEvent) => void
   /** `data-testid` del botón de cerrar (para pruebas: «Cerrar» por nombre choca con el de un aviso abierto). */
   closeButtonTestId?: string
+  /**
+   * Clases del bloque del título. Sin ellas, un título largo puede encimarse con las acciones en un celular: pasa un ancho máximo que
+   * deje libre lo que ocupan la X y las acciones, y `*:truncate` para que se recorte con «…».
+   */
+  titleClassName?: string
 }
 
 export function FullScreenModal({
@@ -51,6 +56,7 @@ export function FullScreenModal({
   onCloseAutoFocus,
   onEscapeKeyDown,
   closeButtonTestId,
+  titleClassName,
 }: FullScreenModalProps) {
   const { t } = useTranslation()
   return (
@@ -64,8 +70,9 @@ export function FullScreenModal({
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
             'duration-300',
-            // A caller that moves focus to the container itself must not get a focus ring around the whole page.
-            onOpenAutoFocus && 'outline-none'
+            // The container can end up focused (a caller moves focus to it, or Radix does: the family sheet, 19-oct): a focus ring
+            // around the whole page is never useful.
+            'outline-none'
           )}
           // Prevent auto-focus on first focusable element (we want natural flow)
           onOpenAutoFocus={onOpenAutoFocus ?? ((e) => e.preventDefault())}
@@ -89,7 +96,7 @@ export function FullScreenModal({
             </DialogPrimitive.Close>
 
             {/* Center - Title */}
-            <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <div className={cn('absolute left-1/2 -translate-x-1/2 text-center', titleClassName)}>
               {subtitle && (
                 <p className="text-xs text-muted-foreground leading-tight">{subtitle}</p>
               )}

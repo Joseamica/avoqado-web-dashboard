@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 74 categorías · 246 permisos · derivado de avoqado-server · huella 5afd9390a7e44fbd.
+ * 76 categorías · 252 permisos · derivado de avoqado-server · huella a3994ee331e60f41.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -73,6 +73,10 @@ export const PERMISSION_CATEGORIES = {
       'orders:void',
       'orders:merge',
     ],
+  },
+  ONLINE_ORDERS: {
+    label: 'Pedidos en línea',
+    permissions: ['online-orders:manage', 'online-orders:pause'],
   },
   ESTIMATES: {
     label: 'Cotizaciones',
@@ -355,6 +359,10 @@ export const PERMISSION_CATEGORIES = {
       'creditPacks:redeem',
     ],
   },
+  GIFT_CARDS: {
+    label: 'Tarjetas de regalo',
+    permissions: ['giftCards:read', 'giftCards:sell', 'giftCards:redeem', 'giftCards:manage'],
+  },
   MARKETING: {
     label: 'Marketing',
     permissions: ['marketing:read', 'marketing:manage', 'marketing:send'],
@@ -443,6 +451,7 @@ export const SUPER_CATEGORY_KEYS = {
     'MENU',
     'PRODUCTS',
     'ORDERS',
+    'ONLINE_ORDERS',
     'ESTIMATES',
     'MANUAL_SALES',
     'PAYMENTS',
@@ -484,7 +493,17 @@ export const SUPER_CATEGORY_KEYS = {
     'CFDI',
     'VENUE_FISCAL_PROFILE',
   ],
-  'marketing-loyalty': ['CUSTOMERS', 'CUSTOMER_GROUPS', 'LOYALTY', 'REFERRAL', 'DISCOUNTS', 'COUPONS', 'CREDIT_PACKS', 'MARKETING'],
+  'marketing-loyalty': [
+    'CUSTOMERS',
+    'CUSTOMER_GROUPS',
+    'LOYALTY',
+    'REFERRAL',
+    'DISCOUNTS',
+    'COUPONS',
+    'CREDIT_PACKS',
+    'GIFT_CARDS',
+    'MARKETING',
+  ],
   'terminal-operations': ['TPV_TERMINAL', 'TPV_DEVICES', 'TPV_SHIFTS', 'TPV_KIOSK', 'TPV_FACTORY_RESET'],
   'tpv-orders-payments': ['TPV_ORDERS', 'TPV_PAYMENTS'],
   'floor-management': ['TPV_TABLES', 'TPV_FLOOR_ELEMENTS'],
@@ -492,4 +511,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '5afd9390a7e44fbd'
+export const CATALOG_DIGEST = 'a3994ee331e60f41'

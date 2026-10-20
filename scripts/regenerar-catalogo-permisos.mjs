@@ -94,6 +94,7 @@ const CURACION = {
     ['MENU', ['menu'], 'Menu Management'],
     ['PRODUCTS', ['products'], 'Products'],
     ['ORDERS', ['orders'], 'Orders'],
+    ['ONLINE_ORDERS', ['online-orders'], 'Pedidos en línea'],
     ['ESTIMATES', ['estimates'], 'Cotizaciones'],
     ['MANUAL_SALES', ['manual-sales'], 'Ventas manuales'],
     ['PAYMENTS', ['payments', 'payment'], 'Payments'],
@@ -149,6 +150,8 @@ const CURACION = {
     ['DISCOUNTS', ['discounts'], 'Discounts'],
     ['COUPONS', ['coupons'], 'Coupons'],
     ['CREDIT_PACKS', ['creditPacks'], 'Paquetes y membresías'],
+    // Tarjetas de regalo (fase 1a): vender y cobrar (cajero), ver (cajero) y administrar (gerente y dueño).
+    ['GIFT_CARDS', ['giftCards'], 'Tarjetas de regalo'],
     // Fase 0 (campañas de correo): aviso de privacidad hoy; editor de campañas en Fase 1.
     ['MARKETING', ['marketing'], 'Marketing'],
   ],

@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella 58112039c70f8714.
- * ADMIN 113 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 132 · OWNER 117 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella 25e86a4b1677740d.
+ * ADMIN 116 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 135 · OWNER 120 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -64,6 +64,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'giftCards:*',
     'marketing:*',
     'referral:read',
     'referral:configure',
@@ -132,6 +133,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:connect_self',
     'calendar:disconnect_staff',
     'calendar:view_status',
+    'online-orders:manage',
+    'online-orders:pause',
     'cfdi:configure',
     'cfdi:issue',
     'cfdi:view',
@@ -169,6 +172,9 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'creditPacks:read',
     'creditPacks:sell',
     'creditPacks:redeem',
+    'giftCards:read',
+    'giftCards:sell',
+    'giftCards:redeem',
     'referral:read',
     'commissions:view_own',
     'teams:read',
@@ -309,6 +315,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'giftCards:*',
     'referral:read',
     'referral:override-existing-customer',
     'referral:fulfill-courtesy',
@@ -342,6 +349,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'sale-verifications:review',
     'calendar:connect_self',
     'calendar:view_status',
+    'online-orders:manage',
+    'online-orders:pause',
     'cfdi:issue',
     'cfdi:view',
     'delivery-channels:snooze',
@@ -394,6 +403,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'upsells:*',
     'coupons:*',
     'creditPacks:*',
+    'giftCards:*',
     'marketing:*',
     'referral:read',
     'referral:configure',
@@ -459,6 +469,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'calendar:view_status',
     'venue-crypto:manage',
     'venue-fiscal-profile:manage',
+    'online-orders:manage',
+    'online-orders:pause',
     'cfdi:configure',
     'cfdi:issue',
     'cfdi:view',
@@ -539,4 +551,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = '58112039c70f8714'
+export const DEFAULT_PERMISSIONS_DIGEST = '25e86a4b1677740d'

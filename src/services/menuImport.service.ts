@@ -22,6 +22,14 @@ export interface AdvancedCSVRow extends BasicCSVRow {
   min_stock?: string
   modifier_groups?: string
   modifiers?: string
+  // Variantes (bloque 5, V8): la familia de la fila y hasta 3 opciones.
+  family?: string
+  option1Name?: string
+  option1Value?: string
+  option2Name?: string
+  option2Value?: string
+  option3Name?: string
+  option3Value?: string
 }
 
 export interface ParsedCategory {
@@ -44,6 +52,8 @@ export interface ParsedProduct {
   currentStock?: number
   minStock?: number
   modifierGroups?: ParsedModifierGroup[]
+  /** Con PRODUCT_VARIANTS la fila es una variante de esta familia; sin el plan, el server la ignora y la fila entra suelta. */
+  family?: { name: string; options: Array<{ name: string; value: string }> }
 }
 
 export interface ParsedModifierGroup {
@@ -60,6 +70,12 @@ export interface ParsedModifier {
   price: number
 }
 
+/** El server manda hasta 50 ejemplos con el total (el «reemplazar» con una fila mala responde 400 con lo mismo en `details`). */
+export interface FilasDeFamiliaRechazadas {
+  total: number
+  ejemplos: Array<{ sku: string; name: string; motivo: string }>
+}
+
 export interface ImportResult {
   success: boolean
   message: string
@@ -68,9 +84,28 @@ export interface ImportResult {
     products: number
     modifierGroups: number
     modifiers: number
+    // Variantes (bloque 5): opcionales, un server viejo no los manda.
+    familiasCreadas?: number
+    tallasEnFamilias?: number
+    filasConFamiliaSinPlan?: number
+    sueltosQueYaExistian?: number
+    variantesDeFamiliaReemplazada?: number
+    filasDeFamiliaRechazadas?: FilasDeFamiliaRechazadas
   }
   errors?: string[]
 }
+
+export const CONTADORES_DE_FAMILIA = [
+  'familiasCreadas',
+  'tallasEnFamilias',
+  'filasConFamiliaSinPlan',
+  'sueltosQueYaExistian',
+  'variantesDeFamiliaReemplazada',
+] as const
+
+/** Variantes (bloque 5): ¿el import tocó familias? Sin nada de familia, el diálogo cierra con el aviso de siempre. */
+export const tieneFamilias = (stats?: ImportResult['stats']) =>
+  !!stats && (CONTADORES_DE_FAMILIA.some(k => (stats[k] ?? 0) > 0) || (stats.filasDeFamiliaRechazadas?.total ?? 0) > 0)
 
 /**
  * Parse CSV file and return structured data
@@ -167,7 +202,76 @@ export const SYSTEM_FIELDS = [
   { key: 'tags', label: 'Tags', required: false, description: 'Pipe separated tags' },
   { key: 'modifier_groups', label: 'Modifier Groups', required: false, description: 'Complex modifier string' },
   { key: 'modifiers', label: 'Modifiers', required: false, description: 'Complex modifiers string' },
+  { key: 'family', label: 'Family', required: false, description: 'Product with variants this row belongs to' },
+  { key: 'option1Name', label: 'Option 1 Name', required: false, description: 'First option name, e.g. Size' },
+  { key: 'option1Value', label: 'Option 1 Value', required: false, description: 'First option value, e.g. M' },
+  { key: 'option2Name', label: 'Option 2 Name', required: false, description: 'Second option name' },
+  { key: 'option2Value', label: 'Option 2 Value', required: false, description: 'Second option value' },
+  { key: 'option3Name', label: 'Option 3 Name', required: false, description: 'Third option name' },
+  { key: 'option3Value', label: 'Option 3 Value', required: false, description: 'Third option value' },
 ] as const
+
+/** Los encabezados de familia de la plantilla en español, de Shopify («Option1 Name») y de Square («Option Name 1»). */
+const ALIAS: Partial<Record<(typeof SYSTEM_FIELDS)[number]['key'], string[]>> = {
+  family: ['familia'],
+  ...Object.fromEntries(
+    [1, 2, 3].flatMap(n => [
+      [`option${n}Name`, [`opcion ${n}`, `option${n} name`, `option name ${n}`]],
+      [`option${n}Value`, [`valor ${n}`, `option${n} value`, `option value ${n}`]],
+    ]),
+  ),
+}
+const normal = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+/**
+ * Adivina qué columna del CSV va a cada campo: primero por nombre exacto (clave, etiqueta o alias), luego por parecido. Una columna se
+ * asigna a un solo campo: sin esto, «Option1 Name» de Shopify también se volvía el nombre del producto.
+ */
+export function adivinarMapeo(headers: string[]): Record<string, string> {
+  const mapeo: Record<string, string> = {}
+  const usadas = new Set<string>()
+  const tomar = (campo: string, h: string | undefined) => {
+    if (!h) return
+    mapeo[campo] = h
+    usadas.add(h)
+  }
+  for (const f of SYSTEM_FIELDS) {
+    const nombres = [f.key, f.label, ...(ALIAS[f.key] ?? [])].map(normal)
+    tomar(
+      f.key,
+      headers.find(h => !usadas.has(h) && nombres.includes(normal(h))),
+    )
+  }
+  for (const f of SYSTEM_FIELDS)
+    if (!mapeo[f.key])
+      tomar(
+        f.key,
+        headers.find(h => !usadas.has(h) && h.toLowerCase().includes(f.key.toLowerCase())),
+      )
+  return mapeo
+}
+
+/**
+ * La familia de una fila, tal como viene: el server la valida y rechaza la incompleta con su motivo (nunca entra suelta), así que aquí no
+ * se descarta nada. Las opciones se quedan en su posición (una «Opción 1» vacía antes de la 2 viaja vacía); sólo se quitan las del final.
+ * Sólo con la columna «Familia» asignada (`remapData` deja la clave en `undefined` si no): columnas de opciones solas —el «Title /
+ * Default Title» de Shopify— nunca vuelven familia una fila.
+ */
+function familiaDe(row: AdvancedCSVRow): ParsedProduct['family'] | undefined {
+  if (row.family === undefined) return undefined
+  const options = ([1, 2, 3] as const).map(n => ({
+    name: (row[`option${n}Name`] ?? '').trim(),
+    value: (row[`option${n}Value`] ?? '').trim(),
+  }))
+  while (options.length && !options[options.length - 1].name && !options[options.length - 1].value) options.pop()
+  const name = (row.family ?? '').trim()
+  return name || options.length ? { name, options } : undefined
+}
 
 /**
  * Remap raw CSV data to System format based on user mapping
@@ -313,6 +417,9 @@ export function transformCSVData(data: AdvancedCSVRow[], isAdvanced: boolean): P
       description: row.description?.trim() || '',
       type: productType,
     }
+
+    const family = familiaDe(row)
+    if (family) product.family = family
 
     // Add advanced fields if present
     if (isAdvanced) {

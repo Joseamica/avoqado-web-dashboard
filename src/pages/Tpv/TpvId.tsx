@@ -1327,7 +1327,6 @@ function TpvIdContent() {
                     isInMaintenance={isInMaintenance}
                     activationPending={actionPolicy.activationPending}
                     isSuperadmin={isSuperAdmin}
-                    isOwnerPlus={user?.role === StaffRole.OWNER || isSuperAdmin}
                     venueId={venueId!}
                     currentVersion={tpv?.version}
                     currentVersionCode={tpv?.systemInfo?.versionCode as number | undefined}

@@ -16,7 +16,8 @@
     "loyalty": "Programa de Lealtad",
     "referrals": "Programa de Referidos",
     "walletCard": "Tarjeta digital",
-    "campaigns": "Campañas de correo"
+    "campaigns": "Campañas de correo",
+    "giftCards": "Tarjetas de regalo"
   },
   "promotionsMenu": {
     "title": "Promociones",
@@ -50,7 +51,8 @@
     "disputes": "Disputas",
     "back": "Ventas",
     "ecommerce": "E-commerce",
-    "delivery": "Delivery"
+    "delivery": "Delivery",
+    "onlineOrdering": "Pedidos en línea"
   },
   "growth": "Crecimiento",
   "paymentProviders": "Proveedores de pago",
@@ -149,7 +151,7 @@
     "overview": "Resumen",
     "inventory": "Inventario",
     "payments": "Pagos",
-    "orders": "Órdenes",
+    "orders": "Pedidos",
     "shifts": "Turnos de caja",
     "tpv": "Dispositivos",
     "reviews": "Reseñas",
@@ -172,6 +174,7 @@
     "creditPacks": "Paquetes de Créditos",
     "paymentLinks": "Ligas de Pago",
     "suppliers": "Proveedores",
+    "detail": "Detalle",
     "purchaseOrders": "Órdenes de compra",
     "rawMaterials": "Insumos",
     "ingredients": "Ingredientes",
@@ -189,6 +192,7 @@
     "disputes": "Disputas",
     "subscriptions": "Suscripciones",
     "delivery": "Reparto",
+    "onlineOrdering": "Pedidos en línea",
     "ecommerce": "Tienda en línea",
     "calendar": "Calendario",
     "history": "Historial",

@@ -15,7 +15,13 @@
     "noTip": "No tip",
     "commission": "{{percent}}% commission",
     "sat": "Invoiceable — SAT form {{code}}",
-    "notInvoiceable": "Not individually invoiceable"
+    "notInvoiceable": "Not individually invoiceable",
+    "giftCard": "Gift card"
+  },
+  "giftCardTender": {
+    "hint": "To take payments with gift card balance. It doesn't show in the point of sale payment list.",
+    "alwaysOn": "Always on: paying with balance is never turned off",
+    "alwaysOnLabel": "Always on"
   },
   "form": {
     "createTitle": "New payment type",

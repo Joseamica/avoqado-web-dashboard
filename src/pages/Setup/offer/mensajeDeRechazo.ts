@@ -45,6 +45,11 @@ const POR_DECLINE: Readonly<Record<string, TextoDeRechazo>> = {
     clave: 'offer.declineProcessing',
     porDefecto: 'Hubo un problema al procesar tu tarjeta. Intenta de nuevo o usa otra.',
   },
+  // 3D Secure: el cliente no completó el reto de su banco. No es un rechazo: puede reintentar.
+  payment_intent_authentication_failure: {
+    clave: 'offer.declineAuthentication',
+    porDefecto: 'No se completó la autorización de tu banco. Inténtalo otra vez o usa otra tarjeta.',
+  },
 }
 
 export function textoDeRechazo(declineCode?: string | null): TextoDeRechazo {

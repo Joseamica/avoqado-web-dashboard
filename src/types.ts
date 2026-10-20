@@ -900,6 +900,12 @@ export interface Product {
   upsellEnabled?: boolean
   /** IVA por producto (plan 6b): 'IVA_16' | 'IVA_0' | 'EXENTO' | 'IVA_8' | 'BLOQUEADO_…' (por revisar). El servidor ya lo manda. */
   ivaTratamiento?: string
+  /** Variantes (bloque 1): la familia ACTUAL de este producto. `null`/ausente = producto suelto. Nunca hay un campo `variants`. */
+  productGroupId?: string | null
+  productGroupName?: string | null
+  productGroupImageUrl?: string | null
+  /** Valores de la variante («Talla: M», «Color: Azul»), ordenados por `namePosition`. `null` en un producto suelto. */
+  variantOptions?: import('@/types/productGroup').VariantOption[] | null
   /** El producto tuvo un ajuste de Uber (regla C): su IVA ya no se puede cambiar. */
   ajusteDeliveryAlgunaVez?: boolean
 

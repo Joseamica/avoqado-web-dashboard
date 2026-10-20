@@ -14,6 +14,7 @@ import { CollectSimDialog, type CollectFrom } from '../components/CollectSimDial
 import { AssignToPromoterDialog } from '../components/AssignToPromoterDialog'
 import { ReassignPromoterDialog } from '../components/ReassignPromoterDialog'
 import { ReassignSupervisorDialog } from '../components/ReassignSupervisorDialog'
+import { CollectFromSupervisorBulkDialog } from '../components/CollectFromSupervisorBulkDialog'
 import { ChangeCategoryDialog } from '../components/ChangeCategoryDialog'
 import { collectFromPromoter, collectFromSupervisor, type SimCustodyState } from '@/services/simCustody.service'
 import { useAccess } from '@/hooks/use-access'
@@ -50,6 +51,7 @@ export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDeta
   const [assignPromoterSerials, setAssignPromoterSerials] = useState<string[] | null>(null)
   const [reassignPromoterOpen, setReassignPromoterOpen] = useState(false)
   const [reassignSupervisorOpen, setReassignSupervisorOpen] = useState(false)
+  const [collectBulkOpen, setCollectBulkOpen] = useState(false)
   const [changeCategoryOpen, setChangeCategoryOpen] = useState(false)
 
   // Mirror OrgUsersPage pattern: useAccess stays empty on org-level routes
@@ -117,6 +119,11 @@ export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDeta
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h3 className="text-lg font-semibold">Detalle SIMs</h3>
         <div className="flex items-center gap-2">
+          {canCollectSupervisor && (
+            <Button variant="outline" size="sm" data-tour="sim-collect-bulk-btn" onClick={() => setCollectBulkOpen(true)}>
+              Recolectar del Supervisor
+            </Button>
+          )}
           {canReassignSupervisor && (
             <Button variant="outline" size="sm" onClick={() => setReassignSupervisorOpen(true)}>
               Reasignar a Supervisor
@@ -339,6 +346,8 @@ export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDeta
       )}
 
       {orgId && <ReassignSupervisorDialog open={reassignSupervisorOpen} onOpenChange={setReassignSupervisorOpen} orgId={orgId} />}
+
+      {orgId && <CollectFromSupervisorBulkDialog open={collectBulkOpen} onOpenChange={setCollectBulkOpen} orgId={orgId} />}
 
       {orgId && <ReassignPromoterDialog open={reassignPromoterOpen} onOpenChange={setReassignPromoterOpen} orgId={orgId} />}
 

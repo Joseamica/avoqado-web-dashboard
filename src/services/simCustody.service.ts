@@ -83,6 +83,11 @@ export interface ReassignToSupervisorInput {
   serialNumbers: string[]
 }
 
+export interface CollectFromSupervisorBulkInput {
+  serialNumbers: string[]
+  reason: SimCustodyCollectionReason
+}
+
 export interface ChangeCategoryInput {
   categoryId: string
   serialNumbers: string[]
@@ -185,6 +190,26 @@ export async function collectFromSupervisor(
   venueId?: string | null,
 ): Promise<{ custodyState: SimCustodyState }> {
   const { data } = await api.post(`${base(orgId)}/collect-from-supervisor`, body, { headers: venueHeaders(venueId) })
+  return data
+}
+
+/**
+ * Admin bulk collect: send SIMs back from their supervisors to the admin warehouse.
+ * ONLY SUPERVISOR_HELD SIMs move — a SIM a promoter carries comes back as
+ * HAS_DOWNSTREAM_CUSTODY (collect it from the promoter first; Isaac, "opción A").
+ * SIMs already in the admin warehouse come back as ok without changes.
+ * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
+ */
+export async function collectSimsFromSupervisor(
+  orgId: string,
+  body: CollectFromSupervisorBulkInput,
+  venueId?: string | null,
+  /** Reuse the same key when the user retries the SAME list, so the server replays instead of re-running. */
+  idempotencyKey: string = uuidv4(),
+): Promise<BulkResponse> {
+  const { data } = await api.post(`${base(orgId)}/collect-from-supervisor-bulk`, body, {
+    headers: { 'Idempotency-Key': idempotencyKey, ...venueHeaders(venueId) },
+  })
   return data
 }
 

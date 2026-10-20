@@ -22,6 +22,7 @@ export const MenuMakerLayout = lazyWithRetry(() => import('@/pages/Menu/MenuMake
 export const CreateMenu = lazyWithRetry(() => import('@/pages/Menu/Menus/createMenu'))
 export const Menus = lazyWithRetry(() => import('@/pages/Menu/Menus/Menus'))
 export const ModifierGroups = lazyWithRetry(() => import('@/pages/Menu/Modifiers/ModifierGroups'))
+export const ProductOptions = lazyWithRetry(() => import('@/pages/Menu/ProductOptions/ProductOptions'))
 export const CreateModifierGroup = lazyWithRetry(() => import('@/pages/Menu/Modifiers/createModifierGroup'))
 export const MenuOverview = lazyWithRetry(() => import('@/pages/Menu/MenuOverview'))
 export const CreateProduct = lazyWithRetry(() => import('@/pages/Menu/Products/createProduct'))
@@ -224,12 +225,17 @@ export const WalletCardDesigner = lazyWithRetry(() => import('@/pages/Loyalty/Wa
 // Referrals
 export const ReferralsSettings = lazyWithRetry(() => import('@/pages/Referrals/ReferralsSettings'))
 
+// Tarjetas de regalo (fase 1a): la lista con sus reportes, y su configuración en el hub de Ajustes.
+export const GiftCardsPage = lazyWithRetry(() => import('@/pages/GiftCards/GiftCardsPage'))
+export const GiftCardSettings = lazyWithRetry(() => import('@/pages/Settings/GiftCardSettings'))
+
 // Facturación (CFDI)
 export const CfdiList = lazyWithRetry(() => import('@/pages/Cfdi/CfdiList'))
 export const CfdiConfiguracion = lazyWithRetry(() => import('@/pages/Cfdi/CfdiConfiguracion'))
 
 // Delivery — visible teaser (Premium feature, 4 data-driven states inside the page)
 export const DeliveryPage = lazyWithRetry(() => import('@/pages/Delivery/DeliveryPage'))
+export const OnlineOrderingPage = lazyWithRetry(() => import('@/pages/OnlineOrdering/OnlineOrderingPage'))
 
 // Promotions
 export const Discounts = lazyWithRetry(() => import('@/pages/Promotions/Discounts'))

@@ -38,6 +38,8 @@ import { inventoryKeys, invalidateStockOverviewQueries, invalidateWasteQueries }
 import { formatWasteQuantity, previewAfterWaste, readWasteSummary } from '@/lib/inventoryWaste'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { buildSummaryAdjustment, isSummaryAmountValid, isSummaryLossAction, type SummaryStockAction } from './summaryAdjustment'
+import { NombreDeFamilia, TablaConFamilias } from './components/TablaConFamilias'
+import { familiaDeProducto, filasDeExistencias, sumarExistencias, type FilaConFamilia } from './stockFamilies'
 import {
   isProductRow,
   productToStockOverviewRow,
@@ -45,6 +47,12 @@ import {
   type InventoryProduct,
   type StockOverviewRow,
 } from './types/stock-overview'
+
+type FilaFisica = FilaConFamilia<StockOverviewRow>
+
+const bajoMinimo = (r: StockOverviewRow) => r.minStock != null && r.stock <= r.minStock
+// Una familia avisa «Stock Bajo» si ALGUNA variante lo está: una talla agotada no se esconde en la suma.
+const estaBaja = (r: FilaFisica) => (r.__familia ? r.__familia.variantes.some(bajoMinimo) : bajoMinimo(r))
 
 export default function InventorySummary() {
   const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
@@ -125,6 +133,8 @@ export default function InventorySummary() {
       toast({ title: 'Error al actualizar stock', description: 'Inténtalo de nuevo', variant: 'destructive' })
     },
   })
+  // `mutate` es estable; el objeto de useMutation es nuevo en cada render y, en las dependencias de las columnas, remontaría las celdas.
+  const { mutate: ajustarExistencias } = adjustStockMutation
 
   // Stock filter options
   const stockFilterOptions = useMemo(() => [{ value: 'low_stock', label: '⚠️ Stock Bajo' }], [])
@@ -248,6 +258,18 @@ export default function InventorySummary() {
     })
   }, [productPhysicalRows, ingredientRows, debouncedSearchTerm, stockFilter, disponibleFilter, priceFilter])
 
+  // Cada familia, UNA fila con la suma de sus variantes (los filtros de arriba ya se evaluaron por variante). Sin familias es la
+  // misma lista, objeto por objeto.
+  const filasFisicas = useMemo(
+    () => filasDeExistencias<StockOverviewRow>(filteredPhysicalRows, familiaDeProducto, sumarExistencias),
+    [filteredPhysicalRows],
+  )
+  const hayFiltro =
+    debouncedSearchTerm !== '' ||
+    stockFilter.length > 0 ||
+    disponibleFilter.length > 0 ||
+    (priceFilter != null && priceFilter.value !== null)
+
   // Filter recipes by search only (other filters are irrelevant for calculated yields)
   const filteredRecipeItems = useMemo<InventoryProduct[]>(
     () =>
@@ -260,14 +282,21 @@ export default function InventorySummary() {
   )
 
   // Column definitions for unified physical tab (products + ingredients)
-  const physicalColumns = useMemo<ColumnDef<StockOverviewRow>[]>(
+  const physicalColumns = useMemo<ColumnDef<FilaFisica>[]>(
     () => [
       {
         accessorKey: 'name',
         header: 'Artículo',
         cell: ({ row }) => {
           const item = row.original
-          const isLowStock = item.minStock != null && item.stock <= item.minStock
+          const isLowStock = estaBaja(item)
+          const avisoBajo = isLowStock && (
+            <span className="text-xs text-amber-600 flex items-center font-semibold">
+              <AlertTriangle className="w-3 h-3 mr-1" /> Stock Bajo
+            </span>
+          )
+
+          if (item.__familia) return <NombreDeFamilia familia={item.__familia}>{avisoBajo}</NombreDeFamilia>
 
           return (
             <div className="flex flex-col gap-1">
@@ -284,11 +313,7 @@ export default function InventorySummary() {
                   {item.kind === 'ingredient' ? 'Ingrediente' : 'Producto'}
                 </Badge>
               </div>
-              {isLowStock && (
-                <span className="text-xs text-amber-600 flex items-center font-semibold">
-                  <AlertTriangle className="w-3 h-3 mr-1" /> Stock Bajo
-                </span>
-              )}
+              {avisoBajo}
             </div>
           )
         },
@@ -304,7 +329,7 @@ export default function InventorySummary() {
         header: 'Disponible',
         cell: ({ row }) => {
           const item = row.original
-          const isLowStock = item.minStock != null && item.stock <= item.minStock
+          const isLowStock = estaBaja(item)
           const unitSuffix = item.unitLabel ? ` ${getShortLabel(item.unitLabel)}` : ''
           return (
             <Badge variant={isLowStock ? 'destructive' : 'secondary'} className="min-w-[60px] justify-center">
@@ -352,6 +377,9 @@ export default function InventorySummary() {
         cell: ({ row }) => {
           const item = row.original
 
+          // La fila de una familia sólo suma: cada variante se ajusta en su renglón al desplegarla.
+          if (item.__familia) return <span className="text-muted-foreground">{item.stock}</span>
+
           if (isProductRow(item)) {
             const product = item.source
             return (
@@ -364,7 +392,7 @@ export default function InventorySummary() {
                   currentStock={item.stock}
                   defaultUnitCost={item.cost ?? undefined}
                   onSave={(action, quantity, unitCost, supplier) =>
-                    adjustStockMutation.mutate({ productId: product.id, payload: buildSummaryAdjustment(action, quantity, { unitCost, supplier }) })
+                    ajustarExistencias({ productId: product.id, payload: buildSummaryAdjustment(action, quantity, { unitCost, supplier }) })
                   }
                 />
               </PermissionGate>
@@ -438,7 +466,7 @@ export default function InventorySummary() {
         size: 50,
       },
     ],
-    [adjustStockMutation, getShortLabel],
+    [ajustarExistencias, getShortLabel],
   )
 
   // Column definitions for recipe items
@@ -690,13 +718,11 @@ export default function InventorySummary() {
       <div className="px-4 sm:px-6 pt-5">
 
       <TabsContent value="physical" className="mt-4">
-        <DataTable
-          data={filteredPhysicalRows}
-          rowCount={filteredPhysicalRows.length}
+        <TablaConFamilias<StockOverviewRow>
+          data={filasFisicas}
           columns={physicalColumns}
+          conFiltro={hayFiltro}
           isLoading={isLoading}
-          enableSearch={false}
-          showColumnCustomizer={false}
           tableId="inventory:mixed"
           tableTabLeft={filterRow}
           tableTab={importExportTab}

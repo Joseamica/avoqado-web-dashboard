@@ -1,0 +1,209 @@
+{
+  "page": {
+    "title": "Pedidos en línea",
+    "noPlanNotice": "Tu plan no incluye Pedidos en línea: puedes terminar los pedidos que ya llegaron.",
+    "needManage": "Para configurar la tienda necesitas el permiso “Configurar pedidos en línea”; pídeselo a tu administrador."
+  },
+  "tabs": {
+    "tray": "Bandeja",
+    "menu": "Menú en línea",
+    "settings": "Configuración"
+  },
+  "settings": {
+    "saved": "Configuración guardada",
+    "saveFailed": "No se pudo guardar. Intenta de nuevo.",
+    "loadFailed": "No se pudo cargar la configuración.",
+    "save": "Guardar",
+    "status": {
+      "label": "Estado de la tienda",
+      "OPEN": "Abierta",
+      "CLOSED": "Cerrada por horario",
+      "PAUSED": "Pausada",
+      "pausedUntil": "Pausada hasta {{time}}",
+      "pausedManual": "Pausada desde Configuración",
+      "pausedBusy": "Pausada: muchos pedidos por aceptar",
+      "OFFLINE": "Sin aparato conectado: deja la Bandeja abierta y visible en una computadora o tableta para recibir pedidos",
+      "DISABLED": "Apagada"
+    },
+    "requirements": {
+      "title": "Antes de encender la tienda te falta:",
+      "address": {
+        "label": "El domicilio del negocio.",
+        "link": "Capturar domicilio"
+      },
+      "phone": {
+        "label": "El teléfono del negocio.",
+        "link": "Capturar teléfono"
+      },
+      "privacyNotice": {
+        "label": "Publicar el aviso de privacidad.",
+        "link": "Publicar aviso en Clientes"
+      }
+    },
+    "store": {
+      "title": "Tienda en línea"
+    },
+    "enable": "Encender la tienda",
+    "enableHelp": "Los clientes podrán pedir para recoger desde tu liga.",
+    "enableBlocked": "Completa lo que falta arriba para poder encenderla.",
+    "payAtPickup": "Pagar al recoger",
+    "cardOnline": "Tarjeta en línea",
+    "soon": "Muy pronto",
+    "minOrder": "Pedido mínimo (MXN)",
+    "minOrderHelp": "El precio ya incluye IVA. Déjalo en blanco para no cambiarlo.",
+    "prepTime": "Tiempo de preparación",
+    "prepOption": "{{minutes}} min",
+    "manualPause": "Pausar pedidos",
+    "manualPauseHelp": "Mientras esté pausada no llegan pedidos nuevos.",
+    "hours": {
+      "title": "Horario",
+      "use": "Usar horario",
+      "onHelp": "La tienda recibe pedidos sólo dentro de este horario.",
+      "offHelp": "Recibe pedidos siempre que alguien tenga la Bandeja abierta.",
+      "overnight": "{{day}}: cierra a las {{time}} del {{nextDay}}",
+      "errors": {
+        "dayNeedsRange": "Un día abierto necesita al menos un horario",
+        "sameTime": "La hora de apertura y la de cierre no pueden ser iguales",
+        "incompleteRange": "Completa la hora de apertura y la de cierre"
+      }
+    },
+    "share": {
+      "title": "Compartir tu tienda",
+      "description": "Pon tu liga o el QR donde tus clientes te vean.",
+      "link": "Liga de tu tienda",
+      "copy": "Copiar",
+      "open": "Abrir",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar",
+      "downloadQr": "Descargar QR",
+      "snippetTitle": "Para tu sitio web",
+      "snippetHelp": "Pega este código en tu página. Si tu sitio no acepta scripts, usa la liga o un botón que la abra.",
+      "copySnippet": "Copiar código",
+      "preview": "Vista previa",
+      "previewTitle": "Vista previa de la tienda",
+      "openInTab": "Abrir la tienda en otra pestaña"
+    },
+    "minOrderErrors": {
+      "range": "El pedido mínimo va de $0 a $100,000",
+      "decimals": "Usa máximo 2 decimales"
+    }
+  },
+  "menu": {
+    "saveFailed": "No se pudo guardar el cambio",
+    "loadFailed": "No se pudo cargar el menú",
+    "truncated": "Hay más categorías de las que se muestran. Los totales sí las incluyen.",
+    "summary": {
+      "online": "{{online}} de {{total}} productos en línea",
+      "noPhoto": "{{count}} en línea sin foto"
+    },
+    "category": {
+      "count": "{{online}}/{{total}} en línea",
+      "toggle": "Mostrar {{name}} en línea",
+      "inactive": "Inactiva en el POS",
+      "removeFromOnline": "Quitar categoría de línea"
+    },
+    "product": {
+      "total": "{{count}} productos",
+      "searchToggle": "Buscar producto",
+      "searchPlaceholder": "Buscar producto…",
+      "searchClear": "Borrar búsqueda",
+      "noResults": "Ningún producto coincide con la búsqueda.",
+      "empty": "Esta categoría no tiene productos.",
+      "noPhoto": "Sin foto",
+      "inactive": "Inactivo en el POS",
+      "toggle": "Mostrar {{name}} en línea",
+      "loadMore": "Cargar más"
+    },
+    "bulk": {
+      "showAll": "Mostrar todo el menú",
+      "hideAll": "Quitar todo de línea",
+      "showAllConfirm": "Todos los productos quedarán visibles en tu tienda en línea.",
+      "hideAllConfirm": "Ningún producto se verá en tu tienda en línea. Los pedidos que ya llegaron no cambian.",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
+    }
+  },
+  "inbox": {
+    "loadFailed": "No pudimos cargar los pedidos. Revisa tu conexión y vuelve a intentar.",
+    "offline": "Sin conexión: no llegan pedidos nuevos",
+    "keepsOpen": "Mientras esta pestaña esté abierta y visible, tu tienda recibe pedidos; si nadie la tiene a la vista, se pausa sola a los 2 minutos.",
+    "viewOnly": "Puedes ver los pedidos, pero tu cuenta no mantiene abierta la tienda.",
+    "status": {
+      "noPlan": "Sin plan: no llegan pedidos nuevos",
+      "offlineNobody": "Nadie con permiso de contestar tiene la Bandeja abierta"
+    },
+    "sections": {
+      "pending": "Por aceptar",
+      "accepted": "En preparación",
+      "ready": "Listos",
+      "done": "Últimas 24 horas",
+      "empty": "Sin pedidos por ahora",
+      "showing": "Mostrando {{shown}} de {{total}}"
+    },
+    "sound": {
+      "toggle": "Activar sonido",
+      "unlock": "Toca para activar el sonido",
+      "nag": "Activa el sonido para que no se te pase un pedido",
+      "unsupported": "Tu navegador no permite sonido"
+    },
+    "card": {
+      "pickup": "Para recoger",
+      "total": "Total (IVA incluido)",
+      "payAtPickup": "Cobrar al recoger {{amount}}",
+      "paid": "Pagado",
+      "noCharge": "Sin cobro",
+      "collectFirst": "Falta cobrarlo",
+      "deadline": "Quedan {{time}} para aceptar",
+      "expired": "Se acabó el tiempo para aceptar",
+      "status": {
+        "COMPLETED": "Entregado",
+        "REJECTED": "Rechazado",
+        "EXPIRED": "Venció sin respuesta",
+        "CANCELLED_BY_CUSTOMER": "Lo canceló el cliente",
+        "CANCELLED_BY_STAFF": "Cancelado"
+      }
+    },
+    "actions": {
+      "accept": "Aceptar",
+      "reject": "Rechazar",
+      "ready": "Listo",
+      "delivered": "Entregado",
+      "cancel": "Cancelar"
+    },
+    "accept": {
+      "title": "Aceptar el pedido #{{number}}",
+      "description": "¿En cuánto tiempo estará listo para recoger?",
+      "minutes": "{{minutes}} min"
+    },
+    "reject": {
+      "title": "Rechazar el pedido #{{number}}",
+      "description": "Elige el motivo.",
+      "reasons": {
+        "OUT_OF_ITEMS": "Sin ingredientes",
+        "CLOSED": "Cerrado",
+        "TOO_BUSY": "Muy ocupados",
+        "OTHER": "Otro"
+      },
+      "note": "Nota (opcional)",
+      "confirm": "Rechazar"
+    },
+    "cancel": {
+      "title": "¿Cancelar el pedido #{{number}}?",
+      "description": "Esto no se puede deshacer.",
+      "confirm": "Sí, cancelar",
+      "back": "Volver"
+    },
+    "outcome": {
+      "gone": "Ese pedido ya no está disponible",
+      "hasPayments": "Este pedido ya tiene un cobro; cancélalo desde el POS.",
+      "network": "Reintenta cuando vuelva la conexión",
+      "error": "No se pudo completar. Vuelve a intentar."
+    },
+    "pause": {
+      "label": "Pausar pedidos",
+      "minutes": "{{minutes}} min",
+      "resume": "Reanudar",
+      "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
+    }
+  }
+}

@@ -283,16 +283,20 @@ export function useIssueCfdi() {
         })
         return
       }
-      const extra =
+      const extras = [
         data?.devoluciones === 'DESCONTADAS'
           ? t('issueDialog.toast.successNet')
           : notas.length
             ? t('issueDialog.toast.successWithNote', { count: notas.length }) // plural: una nota o varias (D3)
-            : ''
+            : '',
+        // C3: el ticket iba en la factura global; también salió la nota que lo saca de ella (si no, el dueño ve una NC «de más» en la lista).
+        data?.conExtraccion ? t('issueDialog.toast.successWithExtraction') : '',
+      ].filter(Boolean)
       toast({
         title: t('issueDialog.toast.success'),
-        description: cfdi ? [t('issueDialog.toast.successDetail', { folio, uuid: cfdi.uuid }), extra].filter(Boolean).join(' ') : undefined,
-        ...(extra ? { duration: DURACION_AVISO_LARGO_MS } : {}),
+        // Con punto: sin él, la frase quedaba pegada al UUID («…DC6F8851166C La factura salió…»).
+        description: cfdi ? [t('issueDialog.toast.successDetail', { folio, uuid: cfdi.uuid }), extras.join(' ')].filter(Boolean).join('. ') : undefined,
+        ...(extras.length ? { duration: DURACION_AVISO_LARGO_MS } : {}),
       })
     },
     // Error handling is intentionally left to the caller (status-specific UX).

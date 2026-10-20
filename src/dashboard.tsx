@@ -34,6 +34,7 @@ import { useTourProgressSync } from './hooks/useTourProgressSync'
 import { useDemoTour } from './hooks/useDemoTour'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
+import { esIdDeRegistro } from './lib/esIdDeRegistro'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './api'
@@ -72,6 +73,7 @@ const routeKeyMap: Record<string, string> = {
   card: 'sidebar:customersMenu.walletCard',
   referrals: 'sidebar:customersMenu.referrals',
   campaigns: 'sidebar:customersMenu.campaigns',
+  'gift-cards': 'sidebar:customersMenu.giftCards',
   // Tercera vez que aparece el mismo descuido (promociones, luego la tarjeta digital), asi que
   // esta pasada mapea el resto de las secciones navegables de una vez. Un segmento sin entrada
   // aqui NO falla: cae al fallback de abajo, que humaniza el slug de la URL — y como los slugs
@@ -82,6 +84,7 @@ const routeKeyMap: Record<string, string> = {
   menus: 'menu:menumaker.nav.menus',
   services: 'menu:menumaker.nav.services',
   'modifier-groups': 'menu:menumaker.nav.modifierGroups',
+  'product-options': 'menu:menumaker.nav.productOptions',
   groups: 'sidebar:routes.customerGroups',
   bundles: 'sidebar:routes.bundles',
   'sales-summary': 'sidebar:routes.reportSalesSummary',
@@ -109,6 +112,7 @@ const routeKeyMap: Record<string, string> = {
   passes: 'sidebar:routes.passes',
   reviews: 'sidebar:routes.reviews',
   delivery: 'sidebar:routes.delivery',
+  'online-ordering': 'sidebar:routes.onlineOrdering',
   ecommerce: 'sidebar:routes.ecommerce',
   calendar: 'sidebar:routes.calendar',
   history: 'sidebar:routes.history',
@@ -383,6 +387,9 @@ function DashboardContent() {
     if (routeKeyMap[lowerSegment]) {
       return t(routeKeyMap[lowerSegment])
     }
+
+    // El id de un registro no se lee: «Pagos › Detalle». Un nombre propio (setCustomSegment, arriba) sigue mandando.
+    if (esIdDeRegistro(segment)) return t('sidebar:routes.detail')
 
     // Segmento sin mapear: se humaniza aqui (guiones -> espacios, solo la
     // primera letra en mayuscula). Antes lo hacia `capitalize` de CSS, que

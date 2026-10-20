@@ -36,6 +36,7 @@
       "products": "Productos",
       "services": "Servicios",
       "modifierGroups": "Grupos Modificadores",
+      "productOptions": "Opciones",
       "creditPacks": "Paquetes de Créditos",
       "customers": "Clientes"
     }
@@ -454,7 +455,8 @@
     "toasts": {
       "activated": "Producto activado",
       "deactivated": "Producto desactivado",
-      "saved": "Los cambios se han guardado correctamente."
+      "saved": "Los cambios se han guardado correctamente.",
+      "statusError": "No se pudo cambiar el estado del producto."
     },
     "lowStock": {
       "alert": "{{count}} producto tiene stock bajo",
@@ -470,7 +472,7 @@
       "sku": "SKU",
       "skuPlaceholder": "SKU (p.ej., TACO-001)",
       "skuRequired": "El SKU es requerido.",
-      "skuPattern": "El SKU solo puede contener letras mayúsculas, números, guiones y guiones bajos.",
+      "skuPattern": "El SKU solo puede contener letras, números, guiones y guiones bajos.",
       "gtin": "GTIN",
       "gtinPlaceholder": "Ej: 7501234567890",
       "namePlaceholder": "Introduce un nombre",

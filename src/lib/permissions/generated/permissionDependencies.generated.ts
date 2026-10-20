@@ -12,12 +12,12 @@
  * "viene incluido" es exactamente lo que el backend va a reponer.
  *
  * 🔴 POR QUÉ NO SE ESCRIBE A MANO: la copia anterior había derivado a 68 entradas contra
- * 204 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
+ * 210 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
  * `discounts:apply` y `coupons:redeem` — justo las que el editor de roles necesita para
  * avisar "este permiso viene incluido en aquél". Sin ellas la pantalla dejaba desmarcar algo
  * que el backend repone en silencio: mentía.
  *
- * 192 entradas · derivado de avoqado-server · huella 8a7445063ea8cc42.
+ * 198 entradas · derivado de avoqado-server · huella 2c4aec1ef671ea50.
  * (12 excluidas: vertical white-label de PlayTelecom.)
  */
 
@@ -82,6 +82,10 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'features:read': ['features:read'],
   'features:update': ['features:update', 'features:write', 'features:read'],
   'features:write': ['features:write', 'features:update', 'features:read'],
+  'giftCards:manage': ['giftCards:manage', 'giftCards:read'],
+  'giftCards:read': ['giftCards:read'],
+  'giftCards:redeem': ['giftCards:redeem', 'giftCards:read'],
+  'giftCards:sell': ['giftCards:sell', 'giftCards:read'],
   'goals:org-manage': ['goals:org-manage', 'commissions:read'],
   'home:read': ['home:read', 'orders:read', 'payments:read', 'analytics:read'],
   'inventory-transfers:approve': ['inventory-transfers:read', 'inventory-transfers:approve', 'inventory:read'],
@@ -104,6 +108,8 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'menu:read': ['menu:read'],
   'menu:update': ['menu:read', 'menu:update'],
   'notifications:send': ['notifications:send', 'teams:read'],
+  'online-orders:manage': ['online-orders:manage', 'orders:read', 'products:read', 'menu:read', 'online-orders:pause'],
+  'online-orders:pause': ['online-orders:pause', 'orders:read'],
   'orders:cancel': ['orders:read', 'orders:cancel', 'payments:read', 'orders:cancel-unpaid'],
   'orders:cancel-unpaid': ['orders:cancel-unpaid', 'orders:read'],
   'orders:create': ['orders:read', 'orders:create', 'estimates:create', 'products:read', 'menu:read', 'inventory:read'],
@@ -216,4 +222,4 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'venues:update': ['venues:read', 'venues:update'],
 }
 
-export const PERMISSION_DEPENDENCIES_DIGEST = '8a7445063ea8cc42'
+export const PERMISSION_DEPENDENCIES_DIGEST = '2c4aec1ef671ea50'

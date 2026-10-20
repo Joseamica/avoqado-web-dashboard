@@ -53,7 +53,14 @@
       "cost": { "label": "Cost", "description": "Item cost" },
       "tags": { "label": "Tags", "description": "Pipe separated tags (|)" },
       "modifier_groups": { "label": "Modifier Groups", "description": "Modifier groups configuration" },
-      "modifiers": { "label": "Modifiers", "description": "Individual modifiers configuration" }
+      "modifiers": { "label": "Modifiers", "description": "Individual modifiers configuration" },
+      "family": { "label": "Family", "description": "Name of the product with variants this row belongs to (with the variants plan)" },
+      "option1Name": { "label": "Option 1", "description": "Name of the first option, e.g. \"Size\"" },
+      "option1Value": { "label": "Value 1", "description": "Value of the first option in this row, e.g. \"M\"" },
+      "option2Name": { "label": "Option 2", "description": "Name of the second option, e.g. \"Color\"" },
+      "option2Value": { "label": "Value 2", "description": "Value of the second option in this row" },
+      "option3Name": { "label": "Option 3", "description": "Name of the third option" },
+      "option3Value": { "label": "Value 3", "description": "Value of the third option in this row" }
     }
   },
   "mode": {
@@ -99,6 +106,25 @@
     "uploadError": "Failed to upload menu",
     "emptyFile": "CSV file is empty",
     "invalidFormat": "Invalid CSV format",
-    "serverError": "Server error: {{message}}"
+    "serverError": "Server error: {{message}}",
+    "familyRowsRejected": "Some family rows can't be imported; fix them and try again. The menu was not replaced."
+  },
+  "resumen": {
+    "titulo": "Products with variants",
+    "familiasCreadas_one": "{{count}} product with variants was created",
+    "familiasCreadas_other": "{{count}} products with variants were created",
+    "tallasEnFamilias_one": "{{count}} new variant joined its family",
+    "tallasEnFamilias_other": "{{count}} new variants joined their family",
+    "filasConFamiliaSinPlan_one": "{{count}} row with \"Family\" came in as a single product: your plan doesn't include products with variants",
+    "filasConFamiliaSinPlan_other": "{{count}} rows with \"Family\" came in as single products: your plan doesn't include products with variants",
+    "sueltosQueYaExistian_one": "{{count}} product already existed on its own: it was updated, not grouped (group it from \"Group products\")",
+    "sueltosQueYaExistian_other": "{{count}} products already existed on their own: they were updated, not grouped (group them from \"Group products\")",
+    "variantesDeFamiliaReemplazada_one": "{{count}} archived variant did not come back because its family was replaced by another one",
+    "variantesDeFamiliaReemplazada_other": "{{count}} archived variants did not come back because their family was replaced by another one",
+    "rechazadas_one": "{{count}} family row was not imported",
+    "rechazadas_other": "{{count}} family rows were not imported",
+    "rechazadasOcultas_one": "And {{count}} more row; fix the file and import it again.",
+    "rechazadasOcultas_other": "And {{count}} more rows; fix the file and import it again.",
+    "cerrar": "Done"
   }
 }

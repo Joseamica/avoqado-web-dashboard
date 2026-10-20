@@ -31,3 +31,9 @@
 /*.ico
   ! Cache-Control
   Cache-Control: public, max-age=604800
+
+# Document delivery links must not be indexed or sent as referrers.
+/documentos/*
+  ! Referrer-Policy
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
