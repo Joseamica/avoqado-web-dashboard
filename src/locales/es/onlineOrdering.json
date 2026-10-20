@@ -32,11 +32,13 @@
       "pending": "Falta:",
       "address": {
         "label": "Domicilio del negocio",
-        "link": "Capturar domicilio"
+        "link": "Capturar domicilio",
+        "askAdmin": "Pídele a quien administra el negocio que capture el domicilio."
       },
       "phone": {
         "label": "Teléfono del negocio",
-        "link": "Capturar teléfono"
+        "link": "Capturar teléfono",
+        "askAdmin": "Pídele a quien administra el negocio que capture el teléfono."
       },
       "privacyNotice": {
         "label": "Aviso de privacidad publicado",

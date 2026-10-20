@@ -1,5 +1,5 @@
 import { CheckCircle2, Circle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 
@@ -11,6 +11,8 @@ import { tieneAvisoPublicado } from '@/lib/privacy-notice'
 import { PrivacyNoticeModal } from '@/pages/Customers/components/PrivacyNoticeModal'
 import marketingService from '@/services/marketing.service'
 import { useVenueDateTime } from '@/utils/datetime'
+
+import { useVenueEditActions } from '../VenueEditLayout'
 
 const USES = ['customers', 'campaigns', 'onlineOrdering'] as const
 
@@ -24,6 +26,13 @@ export default function PrivacyNotice() {
   const { venueId } = useCurrentVenue()
   const { formatDate } = useVenueDateTime()
   const [editorOpen, setEditorOpen] = useState(false)
+  // La cabecera de VenueEditLayout es compartida y las pestañas hermanas no la limpian al salir: aquí no hay nada que guardar
+  // arriba (el editor guarda solo), así que se vacía al entrar, o se vería el «Guardar» de la pestaña anterior. Con llaves: lo que
+  // devolviera `setActions` lo tomaría React como función de limpieza.
+  const { setActions } = useVenueEditActions()
+  useEffect(() => {
+    setActions({})
+  }, [setActions])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['privacy-notice', venueId],
@@ -48,7 +57,8 @@ export default function PrivacyNotice() {
           ) : (
             <p className="flex items-center gap-2 text-sm">
               {published ? (
-                <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+                // `text-success` no se genera: el @theme no registra --color-success (sólo la variable --success).
+                <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-(--success)" />
               ) : (
                 <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
               )}

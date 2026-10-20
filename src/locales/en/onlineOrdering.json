@@ -32,11 +32,13 @@
       "pending": "Missing:",
       "address": {
         "label": "Business address",
-        "link": "Add address"
+        "link": "Add address",
+        "askAdmin": "Ask whoever manages the business to add the address."
       },
       "phone": {
         "label": "Business phone",
-        "link": "Add phone"
+        "link": "Add phone",
+        "askAdmin": "Ask whoever manages the business to add the phone."
       },
       "privacyNotice": {
         "label": "Published privacy notice",

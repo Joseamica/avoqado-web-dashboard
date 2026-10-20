@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -16,11 +16,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { PrivacyNoticeModal } from '@/pages/Customers/components/PrivacyNoticeModal'
 import { OperatingHoursEditor } from '@/pages/Reservations/components/OperatingHoursEditor'
 import { getSettings, onlineOrderingKeys, serverMessage, updateSettings } from '@/services/onlineOrdering.service'
+import { StaffRole } from '@/types'
 import type { OnlineOrderingSettings, OnlineOrderingSettingsInput, StoreRequirement } from '@/types/onlineOrdering'
 import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -69,65 +71,78 @@ function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderi
 /**
  * Los pasos para encender la tienda, cada uno con ✅ o ⬜. El aviso de privacidad se escribe y publica AQUÍ MISMO, con el editor de
  * Clientes (uno solo por negocio); quien no puede editarlo (`marketing:manage`, el mismo permiso de Clientes) ve a quién pedírselo.
+ * Domicilio y teléfono ligan a la configuración del negocio sólo si quien mira puede abrirla (`settings/local` es de ADMIN o más);
+ * si no, también ve a quién pedírselo, en vez de una liga que termina en «acceso denegado».
  */
 function RequirementsList({
   missing,
   basePath,
+  canOpenBusinessSettings,
+  focusRef,
   onWriteNotice,
 }: {
   missing: StoreRequirement[]
   basePath: string
+  canOpenBusinessSettings: boolean
+  focusRef: RefObject<HTMLDivElement>
   onWriteNotice: () => void
 }) {
   const { t } = useTranslation('onlineOrdering')
   return (
-    <Alert data-tour="online-ordering-requirements">
-      <AlertDescription className="space-y-2">
-        <p className="font-medium">{t(missing.length > 0 ? 'settings.requirements.title' : 'settings.requirements.allSet')}</p>
-        <ul className="space-y-2">
-          {REQUIREMENTS.map(r => {
-            const done = !missing.includes(r)
-            return (
-              <li key={r} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {done ? (
-                  <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
-                ) : (
-                  <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
-                )}
-                <span className="sr-only">{t(done ? 'settings.requirements.done' : 'settings.requirements.pending')}</span>
-                <span>{t(`settings.requirements.${r}.label`)}</span>
-                {!done &&
-                  (r === 'privacyNotice' ? (
-                    <PermissionGate
-                      permission="marketing:manage"
-                      fallback={<span className="text-muted-foreground">{t('settings.requirements.privacyNotice.askAdmin')}</span>}
-                    >
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 cursor-pointer"
-                        onClick={onWriteNotice}
-                        data-tour="online-ordering-privacy-notice-btn"
-                      >
-                        {t('settings.requirements.privacyNotice.action')}
-                      </Button>
-                    </PermissionGate>
+    // Destino estable del foco tras publicar (el botón que abrió el editor desaparece). `Alert` no reenvía `ref` en React 18.
+    <div ref={focusRef} tabIndex={-1} className="outline-none">
+      <Alert role="status" data-tour="online-ordering-requirements">
+        <AlertDescription className="space-y-2">
+          <p className="font-medium">{t(missing.length > 0 ? 'settings.requirements.title' : 'settings.requirements.allSet')}</p>
+          {/* Sin viñetas, Safari/VoiceOver deja de anunciarla como lista si no lleva el rol explícito. */}
+          <ul role="list" className="space-y-2">
+            {REQUIREMENTS.map(r => {
+              const done = !missing.includes(r)
+              return (
+                <li key={r} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {done ? (
+                    // `text-success` no se genera: el @theme no registra --color-success (sólo la variable --success).
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-(--success)" />
                   ) : (
-                    // Cada dato liga a la pestaña donde se captura: el teléfono vive en «Contacto e Imágenes».
-                    <Link
-                      to={`${basePath}/settings/local/${r === 'phone' ? 'contact-images' : 'basic-info'}`}
-                      className="text-primary underline underline-offset-2"
-                    >
-                      {t(`settings.requirements.${r}.link`)}
-                    </Link>
-                  ))}
-              </li>
-            )
-          })}
-        </ul>
-      </AlertDescription>
-    </Alert>
+                    <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="sr-only">{t(done ? 'settings.requirements.done' : 'settings.requirements.pending')}</span>
+                  <span>{t(`settings.requirements.${r}.label`)}</span>
+                  {!done &&
+                    (r === 'privacyNotice' ? (
+                      <PermissionGate
+                        permission="marketing:manage"
+                        fallback={<span className="text-muted-foreground">{t('settings.requirements.privacyNotice.askAdmin')}</span>}
+                      >
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 cursor-pointer"
+                          onClick={onWriteNotice}
+                          data-tour="online-ordering-privacy-notice-btn"
+                        >
+                          {t('settings.requirements.privacyNotice.action')}
+                        </Button>
+                      </PermissionGate>
+                    ) : canOpenBusinessSettings ? (
+                      // Cada dato liga a la pestaña donde se captura: el teléfono vive en «Contacto e Imágenes».
+                      <Link
+                        to={`${basePath}/settings/local/${r === 'phone' ? 'contact-images' : 'basic-info'}`}
+                        className="text-primary underline underline-offset-2"
+                      >
+                        {t(`settings.requirements.${r}.link`)}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">{t(`settings.requirements.${r}.askAdmin`)}</span>
+                    ))}
+                </li>
+              )
+            })}
+          </ul>
+        </AlertDescription>
+      </Alert>
+    </div>
   )
 }
 
@@ -137,10 +152,14 @@ export function SettingsTab() {
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { formatTime } = useVenueDateTime()
   const { toast } = useToast()
+  const { role } = useAccess()
+  // La misma regla que la guardia de `settings/local` (AdminProtectedRoute, nivel ADMIN): ADMIN, OWNER o SUPERADMIN.
+  const canOpenBusinessSettings = role === StaffRole.ADMIN || role === StaffRole.OWNER || role === StaffRole.SUPERADMIN
   const qc = useQueryClient()
   const [serverMissing, setServerMissing] = useState<StoreRequirement[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
   const [noticeOpen, setNoticeOpen] = useState(false)
+  const stepsRef = useRef<HTMLDivElement>(null)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
@@ -200,11 +219,16 @@ export function SettingsTab() {
   })
 
   // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo se vuelven a pedir para
-  // que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un 422 anterior sobre el aviso ya no manda: decide el GET nuevo.
+  // que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya
+  // no manda: decide el GET nuevo. Si quedó publicado, el botón que abrió el editor desaparece y el foco caería a <body>: se lleva a la
+  // lista de pasos, que se queda (sin publicar, el botón sigue y el editor le devuelve el foco solo).
   const closeNotice = () => {
     setNoticeOpen(false)
     setServerMissing(prev => prev.filter(r => r !== 'privacyNotice'))
-    void qc.invalidateQueries({ queryKey: onlineOrderingKeys.settings(venueId) })
+    const key = onlineOrderingKeys.settings(venueId)
+    void qc.invalidateQueries({ queryKey: key }).then(() => {
+      if (qc.getQueryData<OnlineOrderingSettings>(key)?.requirements?.privacyNotice) stepsRef.current?.focus({ preventScroll: true })
+    })
   }
 
   const store = settings.store
@@ -234,9 +258,16 @@ export function SettingsTab() {
       )}
 
       {/* Los pasos se ven mientras la tienda GUARDADA esté apagada (el servidor sólo los exige al encenderla), también con todo
-          listo. Sin `requirements` no se sabe qué falta: sólo se pinta si un 422 lo dijo, nunca un «Todo listo» inventado. */}
+          listo. Sin `requirements` no se sabe qué falta: sólo se pinta si un 400 `STORE_REQUIREMENTS_MISSING` lo dijo, nunca un
+          «Todo listo» inventado. */}
       {!settings.enabled && (!!settings.requirements || serverMissing.length > 0) && (
-        <RequirementsList missing={missing} basePath={fullBasePath} onWriteNotice={() => setNoticeOpen(true)} />
+        <RequirementsList
+          missing={missing}
+          basePath={fullBasePath}
+          canOpenBusinessSettings={canOpenBusinessSettings}
+          focusRef={stepsRef}
+          onWriteNotice={() => setNoticeOpen(true)}
+        />
       )}
 
       <Card>
@@ -247,8 +278,10 @@ export function SettingsTab() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label htmlFor="oo-enabled">{t('settings.enable')}</Label>
+              {/* Sólo bloquea si la tienda GUARDADA está apagada: con ella encendida, apagarla sin guardar debe poder volverse a
+                  encender, y la lista de pasos (que el texto señala) ni se ve. */}
               <p className="text-xs text-muted-foreground">
-                {!enabled && missing.length > 0 ? t('settings.enableBlocked') : t('settings.enableHelp')}
+                {!settings.enabled && !enabled && missing.length > 0 ? t('settings.enableBlocked') : t('settings.enableHelp')}
               </p>
             </div>
             <Controller
@@ -259,7 +292,7 @@ export function SettingsTab() {
                   id="oo-enabled"
                   aria-label={t('settings.enable')}
                   checked={!!field.value}
-                  disabled={!field.value && missing.length > 0}
+                  disabled={!settings.enabled && !field.value && missing.length > 0}
                   onCheckedChange={field.onChange}
                 />
               )}
