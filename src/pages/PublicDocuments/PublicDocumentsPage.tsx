@@ -297,6 +297,25 @@ function DocumentForm({ requestId }: { requestId: string }) {
                       <ArrowUpRight className="size-3.5" aria-hidden="true" />
                     </a>
                   </div>
+                  <div className="document-presentation-links">
+                    <Button variant="outline" asChild className="min-h-11" data-tour="documents-platform-summary">
+                      <a href="/presentacion/avoqado-resumen.pdf" target="_blank" rel="noopener noreferrer">
+                        <FileText className="size-4" aria-hidden="true" />
+                        {t('platformSummary')}
+                        <ArrowUpRight className="size-3.5" aria-hidden="true" />
+                      </a>
+                    </Button>
+                    <a
+                      className="document-presentation-full"
+                      href="/presentacion/avoqado-plataforma.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-tour="documents-platform-presentation"
+                    >
+                      {t('platformPresentation')}
+                      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+                    </a>
+                  </div>
                 </div>
                 <div className="document-terminal-visual">
                   <img
