@@ -44,6 +44,10 @@
         "label": "Published privacy notice",
         "action": "Write and publish notice",
         "askAdmin": "Ask whoever manages the business to publish the privacy notice."
+      },
+      "payment": {
+        "label": "A payment method",
+        "hint": "Turn on “{{name}}” below"
       }
     },
     "store": {

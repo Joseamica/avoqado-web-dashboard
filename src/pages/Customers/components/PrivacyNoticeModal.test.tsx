@@ -74,7 +74,10 @@ describe('PrivacyNoticeModal — qué pasa al guardar', () => {
 		const onClose = vi.fn()
 		renderModal({ onSaved, onClose })
 		await guardar()
-		await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+		await waitFor(() => expect(onSaved).toHaveBeenCalled())
+		// Se deja asentar, como las pruebas hermanas: una segunda llamada tardía también se vería.
+		await new Promise(r => setTimeout(r, 30))
+		expect(onSaved).toHaveBeenCalledTimes(1)
 		expect(onClose).not.toHaveBeenCalled()
 	})
 

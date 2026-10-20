@@ -44,6 +44,10 @@
         "label": "Aviso de privacidad publicado",
         "action": "Escribir y publicar aviso",
         "askAdmin": "Pídele a quien administra el negocio que publique el aviso de privacidad."
+      },
+      "payment": {
+        "label": "Una forma de cobro",
+        "hint": "Activa «{{name}}» abajo"
       }
     },
     "store": {

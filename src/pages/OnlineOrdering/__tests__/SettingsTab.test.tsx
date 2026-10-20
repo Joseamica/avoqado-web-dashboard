@@ -18,9 +18,11 @@ vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: (p: string) => !access.denied.includes(p), canAny: () => true, canAll: () => true, role: access.role }),
 }))
 // El editor es el MISMO de Clientes y tiene sus propias pruebas: aquí sólo importa que se abra con el negocio y qué pasa al cerrarlo.
+// `sigueMontado` imita la animación de salida de Radix (300 ms en el navegador): el editor sigue en el DOM tras cerrarse.
+const editor = { sigueMontado: false }
 vi.mock('@/pages/Customers/components/PrivacyNoticeModal', () => ({
   PrivacyNoticeModal: ({ venueId, open, onClose }: { venueId: string; open: boolean; onClose: () => void }) =>
-    open ? (
+    open || editor.sigueMontado ? (
       <div role="dialog" aria-label="editor-del-aviso" data-venue-id={venueId}>
         <button type="button" onClick={onClose}>
           cerrar-editor
@@ -79,6 +81,7 @@ describe('SettingsTab', () => {
     toast.mockReset()
     access.denied = []
     access.role = 'ADMIN'
+    editor.sigueMontado = false
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -209,13 +212,14 @@ describe('SettingsTab', () => {
     )
   })
 
-  it('con todo listo y la tienda apagada la lista sigue: tres ✅ y «Todo listo», y «Encender» se puede usar', async () => {
+  it('con todo listo y la tienda apagada la lista sigue: cuatro ✅ (con la forma de cobro) y «Todo listo», y «Encender» se puede usar', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
     expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeEnabled()
     expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
     expect(screen.queryByText('settings.requirements.title')).toBeNull()
-    for (const r of ['address', 'phone', 'privacyNotice']) {
+    expect(screen.queryByText(/settings\.requirements\.payment\.hint/)).toBeNull()
+    for (const r of ['address', 'phone', 'privacyNotice', 'payment']) {
       expect(within(paso(r)).getByText('settings.requirements.done')).toBeInTheDocument()
       expect(within(paso(r)).queryByRole('link')).toBeNull()
       expect(within(paso(r)).queryByRole('button')).toBeNull()
@@ -227,6 +231,45 @@ describe('SettingsTab', () => {
     expect(within(screen.getByRole('status')).getByRole('list')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('settings.requirements.allSet')
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  // ── La forma de cobro (Codex r1): el servidor rechaza una tienda encendida sin medio de pago (`NO_PAYMENT_MODE`) ──
+  it('con los tres datos listos, apagar «Pagar al recoger» sin guardar quita el «Todo listo»: falta una forma de cobro y no deja encender', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    await userEvent.click(await screen.findByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByText('settings.requirements.title')).toBeInTheDocument()
+    expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
+    expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(within(paso('payment')).getByText('settings.requirements.payment.hint|settings.payAtPickup')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+    expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
+  })
+
+  it('con «Pagar al recoger» guardado apagado, el cobro está ⬜; al prenderlo dice «Todo listo» y encender + guardar manda los dos', async () => {
+    getSettings.mockResolvedValue(base({ acceptsPayAtPickup: false }))
+    updateSettings.mockResolvedValue(base({ enabled: true, acceptsPayAtPickup: true }))
+    renderTab()
+    expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+    expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
+    expect(within(paso('payment')).getByText('settings.requirements.done')).toBeInTheDocument()
+    const encender = screen.getByRole('switch', { name: 'settings.enable' })
+    expect(encender).toBeEnabled()
+    await userEvent.click(encender)
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { acceptsPayAtPickup: true, enabled: true }))
+  })
+
+  it('con la tienda guardada encendida, apagar «Pagar al recoger» sin guardar no bloquea «Encender» ni muestra la lista', async () => {
+    const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue(base({ enabled: true, store: open }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeEnabled()
+    expect(screen.queryByText('settings.requirements.title')).toBeNull()
+    expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
   })
 
   it('sin acceso a la configuración del negocio (sólo ADMIN o más), domicilio y teléfono piden a quien administra, sin liga sin salida', async () => {
@@ -324,6 +367,33 @@ describe('SettingsTab', () => {
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })))
+  })
+
+  it('N-4: si el foco está en el botón que abrió el editor y la recarga dice publicado, pasa a la lista (el botón se va)', async () => {
+    let soltar: (v: unknown) => void = () => {}
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockImplementationOnce(() => new Promise(r => (soltar = r)))
+    renderTab()
+    const abrir = await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })
+    await userEvent.click(abrir)
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    abrir.focus()
+    soltar(base())
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('tabindex', '-1'))
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
+  })
+
+  it('N-6: con el editor aún montado (su animación de salida) y el foco en su botón cuando llega la recarga, el foco pasa a la lista', async () => {
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockResolvedValue(base())
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    editor.sigueMontado = true
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('tabindex', '-1'))
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
   })
 
   it('si el foco ya se movió a otro lado cuando llega la recarga, no se lo roba', async () => {

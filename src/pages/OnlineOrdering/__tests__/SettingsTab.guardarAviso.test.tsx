@@ -87,7 +87,9 @@ describe('SettingsTab + el editor real del aviso', () => {
     expect(updatePrivacyNotice).toHaveBeenCalledWith('venue-1', { content: 'Propuesta del aviso', language: 'es' })
     expect(await screen.findByText('settings.requirements.allSet')).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeEnabled()
-    await waitFor(() => expect(document.activeElement).toHaveTextContent('settings.requirements.allSet'))
+    // Estricto (N-5): `<body>` también «contiene» ese texto; el foco tiene que estar en la caja de pasos misma.
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('tabindex', '-1'))
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
   })
 
   it('al cerrar el editor real con la X sin guardar, el foco vuelve al botón que lo abrió (Radix no lo devuelve: no hay Dialog.Trigger)', async () => {
