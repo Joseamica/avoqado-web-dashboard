@@ -79,12 +79,14 @@ function RequirementsList({
   basePath,
   canOpenBusinessSettings,
   focusRef,
+  noticeButtonRef,
   onWriteNotice,
 }: {
   missing: StoreRequirement[]
   basePath: string
   canOpenBusinessSettings: boolean
   focusRef: RefObject<HTMLDivElement>
+  noticeButtonRef: RefObject<HTMLButtonElement>
   onWriteNotice: () => void
 }) {
   const { t } = useTranslation('onlineOrdering')
@@ -115,6 +117,7 @@ function RequirementsList({
                         fallback={<span className="text-muted-foreground">{t('settings.requirements.privacyNotice.askAdmin')}</span>}
                       >
                         <Button
+                          ref={noticeButtonRef}
                           type="button"
                           size="sm"
                           variant="outline"
@@ -160,6 +163,7 @@ export function SettingsTab() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
+  const noticeButtonRef = useRef<HTMLButtonElement>(null)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
@@ -218,16 +222,22 @@ export function SettingsTab() {
     if (Object.keys(patch).length) mutation.mutate(patch)
   })
 
-  // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo se vuelven a pedir para
-  // que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya
-  // no manda: decide el GET nuevo. Si quedó publicado, el botón que abrió el editor desaparece y el foco caería a <body>: se lleva a la
-  // lista de pasos, que se queda (sin publicar, el botón sigue y el editor le devuelve el foco solo).
+  // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo (al publicar, por
+  // `onSaved`; sin publicar, con la X) se vuelven a pedir para que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un
+  // 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya no manda: decide el GET nuevo.
+  // 🔴 El foco lo pone este componente: el editor es un Dialog de Radix SIN `Dialog.Trigger`, así que al cerrar no lo devuelve a nadie y
+  // caería a <body>. Publicado, el botón que lo abrió ya no existe: va a la lista de pasos. Sin publicar: de vuelta a ese botón. Sólo si
+  // el foco se perdió o sigue en el editor que se cierra: si la persona ya pasó a otro campo mientras llegaba la recarga, no se le roba.
   const closeNotice = () => {
     setNoticeOpen(false)
     setServerMissing(prev => prev.filter(r => r !== 'privacyNotice'))
     const key = onlineOrderingKeys.settings(venueId)
     void qc.invalidateQueries({ queryKey: key }).then(() => {
-      if (qc.getQueryData<OnlineOrderingSettings>(key)?.requirements?.privacyNotice) stepsRef.current?.focus({ preventScroll: true })
+      const active = document.activeElement
+      if (active && active !== document.body && !active.closest('[role="dialog"]')) return
+      const published = qc.getQueryData<OnlineOrderingSettings>(key)?.requirements?.privacyNotice
+      const target = published ? stepsRef.current : noticeButtonRef.current
+      target?.focus({ preventScroll: true })
     })
   }
 
@@ -266,6 +276,7 @@ export function SettingsTab() {
           basePath={fullBasePath}
           canOpenBusinessSettings={canOpenBusinessSettings}
           focusRef={stepsRef}
+          noticeButtonRef={noticeButtonRef}
           onWriteNotice={() => setNoticeOpen(true)}
         />
       )}
@@ -426,7 +437,8 @@ export function SettingsTab() {
 
       {/* El editor se pinta en un portal (FullScreenModal = Radix Dialog): en el DOM queda fuera de este <form>, así que su
           «Guardar aviso» nunca manda el formulario de la tienda. */}
-      <PrivacyNoticeModal venueId={venueId} open={noticeOpen} onClose={closeNotice} />
+      {/* Al publicar se cierra solo (`onSaved`): la lista de pasos se actualiza sin tener que cerrar con la X. */}
+      <PrivacyNoticeModal venueId={venueId} open={noticeOpen} onClose={closeNotice} onSaved={closeNotice} />
     </form>
   )
 }

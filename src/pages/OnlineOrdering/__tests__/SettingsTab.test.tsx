@@ -316,15 +316,30 @@ describe('SettingsTab', () => {
     expect(document.activeElement).toContainElement(screen.getByRole('status'))
   })
 
-  it('si se cierra el editor sin publicar, el foco no se lleva a la lista (el botón sigue ahí para volver)', async () => {
+  it('si se cierra el editor sin publicar, el foco vuelve al botón «Escribir y publicar aviso» (el editor no lo devuelve solo)', async () => {
+    // El doble del editor no devuelve el foco, igual que el real (Radix sin `Dialog.Trigger`): lo pone el componente.
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
     renderTab()
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })))
+  })
+
+  it('si el foco ya se movió a otro lado cuando llega la recarga, no se lo roba', async () => {
+    let soltar: (v: unknown) => void = () => {}
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockImplementationOnce(() => new Promise(r => (soltar = r)))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    const minimo = screen.getByLabelText('settings.minOrder')
+    minimo.focus()
+    soltar(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
     await new Promise(r => setTimeout(r, 30))
-    expect(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeInTheDocument()
-    expect(document.activeElement).not.toHaveAttribute('tabindex', '-1')
+    expect(document.activeElement).toBe(minimo)
   })
 
   it('sin marketing:manage no hay botón: dice que lo publique quien administra el negocio', async () => {
