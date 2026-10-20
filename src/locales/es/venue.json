@@ -290,7 +290,23 @@
       "documents": "Documentación",
       "fiscal": "Datos de facturación",
       "integrations": "Integraciones",
-      "terminal": "Terminal"
+      "terminal": "Terminal",
+      "privacy": "Aviso de privacidad"
+    },
+    "privacy": {
+      "title": "Aviso de privacidad",
+      "description": "Le dice a tus clientes cómo usa tu negocio sus datos. Es uno solo para todo el negocio: el mismo que ves en Clientes y en Pedidos en línea.",
+      "published": "Publicado. Versión vigente del {{date}}.",
+      "notPublished": "Sin publicar: por ahora sólo existe la propuesta que armamos con los datos de tu negocio.",
+      "loadFailed": "No se pudo consultar el aviso de privacidad. Intenta de nuevo en un momento.",
+      "usedFor": "Se usa en:",
+      "uses": {
+        "customers": "Clientes: para pedirles permiso de enviarles promociones.",
+        "campaigns": "Campañas de correo a tus clientes.",
+        "onlineOrdering": "Pedidos en línea: sin aviso publicado no se puede encender la tienda."
+      },
+      "write": "Escribir y publicar aviso",
+      "edit": "Editar aviso"
     },
     "fiscal": {
       "title": "Datos de facturación",

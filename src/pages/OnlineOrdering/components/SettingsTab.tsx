@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { CheckCircle2, Circle } from 'lucide-react'
 import { z } from 'zod'
 
+import { PermissionGate } from '@/components/PermissionGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { PrivacyNoticeModal } from '@/pages/Customers/components/PrivacyNoticeModal'
 import { OperatingHoursEditor } from '@/pages/Reservations/components/OperatingHoursEditor'
 import { getSettings, onlineOrderingKeys, serverMessage, updateSettings } from '@/services/onlineOrdering.service'
 import type { OnlineOrderingSettings, OnlineOrderingSettingsInput, StoreRequirement } from '@/types/onlineOrdering'
@@ -63,22 +66,65 @@ function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderi
   return patch as Partial<OnlineOrderingSettingsInput>
 }
 
-function RequirementsList({ missing, basePath }: { missing: StoreRequirement[]; basePath: string }) {
+/**
+ * Los pasos para encender la tienda, cada uno con ✅ o ⬜. El aviso de privacidad se escribe y publica AQUÍ MISMO, con el editor de
+ * Clientes (uno solo por negocio); quien no puede editarlo (`marketing:manage`, el mismo permiso de Clientes) ve a quién pedírselo.
+ */
+function RequirementsList({
+  missing,
+  basePath,
+  onWriteNotice,
+}: {
+  missing: StoreRequirement[]
+  basePath: string
+  onWriteNotice: () => void
+}) {
   const { t } = useTranslation('onlineOrdering')
-  const to = (r: StoreRequirement) => (r === 'privacyNotice' ? `${basePath}/customers` : `${basePath}/settings/local/basic-info`)
   return (
     <Alert data-tour="online-ordering-requirements">
       <AlertDescription className="space-y-2">
-        <p className="font-medium">{t('settings.requirements.title')}</p>
-        <ul className="list-disc space-y-1 pl-5">
-          {missing.map(r => (
-            <li key={r}>
-              {t(`settings.requirements.${r}.label`)}{' '}
-              <Link to={to(r)} className="text-primary underline underline-offset-2">
-                {t(`settings.requirements.${r}.link`)}
-              </Link>
-            </li>
-          ))}
+        <p className="font-medium">{t(missing.length > 0 ? 'settings.requirements.title' : 'settings.requirements.allSet')}</p>
+        <ul className="space-y-2">
+          {REQUIREMENTS.map(r => {
+            const done = !missing.includes(r)
+            return (
+              <li key={r} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {done ? (
+                  <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+                ) : (
+                  <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <span className="sr-only">{t(done ? 'settings.requirements.done' : 'settings.requirements.pending')}</span>
+                <span>{t(`settings.requirements.${r}.label`)}</span>
+                {!done &&
+                  (r === 'privacyNotice' ? (
+                    <PermissionGate
+                      permission="marketing:manage"
+                      fallback={<span className="text-muted-foreground">{t('settings.requirements.privacyNotice.askAdmin')}</span>}
+                    >
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 cursor-pointer"
+                        onClick={onWriteNotice}
+                        data-tour="online-ordering-privacy-notice-btn"
+                      >
+                        {t('settings.requirements.privacyNotice.action')}
+                      </Button>
+                    </PermissionGate>
+                  ) : (
+                    // Cada dato liga a la pestaña donde se captura: el teléfono vive en «Contacto e Imágenes».
+                    <Link
+                      to={`${basePath}/settings/local/${r === 'phone' ? 'contact-images' : 'basic-info'}`}
+                      className="text-primary underline underline-offset-2"
+                    >
+                      {t(`settings.requirements.${r}.link`)}
+                    </Link>
+                  ))}
+              </li>
+            )
+          })}
         </ul>
       </AlertDescription>
     </Alert>
@@ -94,6 +140,7 @@ export function SettingsTab() {
   const qc = useQueryClient()
   const [serverMissing, setServerMissing] = useState<StoreRequirement[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [noticeOpen, setNoticeOpen] = useState(false)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
@@ -152,6 +199,14 @@ export function SettingsTab() {
     if (Object.keys(patch).length) mutation.mutate(patch)
   })
 
+  // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo se vuelven a pedir para
+  // que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un 422 anterior sobre el aviso ya no manda: decide el GET nuevo.
+  const closeNotice = () => {
+    setNoticeOpen(false)
+    setServerMissing(prev => prev.filter(r => r !== 'privacyNotice'))
+    void qc.invalidateQueries({ queryKey: onlineOrderingKeys.settings(venueId) })
+  }
+
   const store = settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
@@ -178,7 +233,11 @@ export function SettingsTab() {
         </Alert>
       )}
 
-      {missing.length > 0 && <RequirementsList missing={missing} basePath={fullBasePath} />}
+      {/* Los pasos se ven mientras la tienda GUARDADA esté apagada (el servidor sólo los exige al encenderla), también con todo
+          listo. Sin `requirements` no se sabe qué falta: sólo se pinta si un 422 lo dijo, nunca un «Todo listo» inventado. */}
+      {!settings.enabled && (!!settings.requirements || serverMissing.length > 0) && (
+        <RequirementsList missing={missing} basePath={fullBasePath} onWriteNotice={() => setNoticeOpen(true)} />
+      )}
 
       <Card>
         <CardHeader>
@@ -331,6 +390,10 @@ export function SettingsTab() {
       </Card>
 
       {venueSlug && <StorefrontShareCard slug={venueSlug} />}
+
+      {/* El editor se pinta en un portal (FullScreenModal = Radix Dialog): en el DOM queda fuera de este <form>, así que su
+          «Guardar aviso» nunca manda el formulario de la tienda. */}
+      <PrivacyNoticeModal venueId={venueId} open={noticeOpen} onClose={closeNotice} />
     </form>
   )
 }

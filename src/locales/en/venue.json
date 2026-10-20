@@ -290,7 +290,23 @@
       "documents": "Documentation",
       "fiscal": "Billing Details",
       "integrations": "Integrations",
-      "terminal": "Terminal"
+      "terminal": "Terminal",
+      "privacy": "Privacy notice"
+    },
+    "privacy": {
+      "title": "Privacy notice",
+      "description": "It tells your customers how your business uses their data. There is only one for the whole business: the same one you see in Customers and in Online ordering.",
+      "published": "Published. Current version from {{date}}.",
+      "notPublished": "Not published: for now there is only the draft we prepared with your business details.",
+      "loadFailed": "Couldn't load the privacy notice. Please try again in a moment.",
+      "usedFor": "Used in:",
+      "uses": {
+        "customers": "Customers: to ask them for permission to send promotions.",
+        "campaigns": "Email campaigns to your customers.",
+        "onlineOrdering": "Online ordering: the store can't be turned on without a published notice."
+      },
+      "write": "Write and publish notice",
+      "edit": "Edit notice"
     },
     "fiscal": {
       "title": "Billing details",

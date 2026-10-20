@@ -167,6 +167,7 @@ import {
   TpvId,
   VenueDocuments,
   VenueFiscalProfile,
+  VenuePrivacyNotice,
   VenueActivityLog,
   VenueEditLayout,
   VenueIntegrations,
@@ -808,6 +809,13 @@ export function createVenueRoutes(): RouteObject[] {
                 { path: 'basic-info', element: <BasicInfo /> },
                 { path: 'contact-images', element: <ContactImages /> },
                 { path: 'documents', element: <VenueDocuments /> },
+                // El aviso de privacidad del negocio (uno solo: lo usan Clientes, campañas y Pedidos en línea). Mismo permiso con
+                // el que se edita en Clientes.
+                {
+                  path: 'privacy',
+                  element: <PermissionProtectedRoute permission="marketing:manage" />,
+                  children: [{ index: true, element: <VenuePrivacyNotice /> }],
+                },
                 // Datos fiscales del venue como receptor de las facturas de Avoqado — más
                 // estricto que el resto de "local" (ADMIN): sólo OWNER captura estos datos.
                 {
