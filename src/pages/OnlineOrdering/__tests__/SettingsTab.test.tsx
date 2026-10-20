@@ -13,9 +13,9 @@ vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
   OperatingHoursEditor: () => <div data-testid="hours-editor" />,
 }))
 vi.mock('qrcode.react', () => ({ QRCodeCanvas: ({ value }: { value: string }) => <canvas data-testid="qr" data-value={value} /> }))
-const access = { denied: [] as string[] }
+const access = { denied: [] as string[], role: 'ADMIN' }
 vi.mock('@/hooks/use-access', () => ({
-  useAccess: () => ({ can: (p: string) => !access.denied.includes(p), canAny: () => true, canAll: () => true }),
+  useAccess: () => ({ can: (p: string) => !access.denied.includes(p), canAny: () => true, canAll: () => true, role: access.role }),
 }))
 // El editor es el MISMO de Clientes y tiene sus propias pruebas: aquí sólo importa que se abra con el negocio y qué pasa al cerrarlo.
 vi.mock('@/pages/Customers/components/PrivacyNoticeModal', () => ({
@@ -78,6 +78,7 @@ describe('SettingsTab', () => {
     updateSettings.mockReset()
     toast.mockReset()
     access.denied = []
+    access.role = 'ADMIN'
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -218,7 +219,35 @@ describe('SettingsTab', () => {
       expect(within(paso(r)).getByText('settings.requirements.done')).toBeInTheDocument()
       expect(within(paso(r)).queryByRole('link')).toBeNull()
       expect(within(paso(r)).queryByRole('button')).toBeNull()
+      // `text-success` no se genera (el @theme no registra --color-success): el verde va por la variable `--success`.
+      expect(paso(r).querySelector('svg')).toHaveClass('text-(--success)')
     }
+    expect(screen.getByText('settings.enableHelp')).toBeInTheDocument()
+    // Un aviso cortés (status), no una alarma (alert) en cada visita; y la lista se anuncia como lista aunque no lleve viñetas.
+    expect(within(screen.getByRole('status')).getByRole('list')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('settings.requirements.allSet')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('sin acceso a la configuración del negocio (sólo ADMIN o más), domicilio y teléfono piden a quien administra, sin liga sin salida', async () => {
+    access.role = 'MANAGER'
+    getSettings.mockResolvedValue(base({ requirements: { address: false, phone: false, privacyNotice: true } }))
+    renderTab()
+    expect(await screen.findByText('settings.requirements.address.askAdmin')).toBeInTheDocument()
+    expect(screen.getByText('settings.requirements.phone.askAdmin')).toBeInTheDocument()
+    expect(within(paso('address')).queryByRole('link')).toBeNull()
+    expect(within(paso('phone')).queryByRole('link')).toBeNull()
+  })
+
+  it('con la tienda guardada encendida, apagarla sin guardar no bloquea el interruptor ni apunta a una lista escondida', async () => {
+    const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue(base({ enabled: true, store: open, requirements: { address: true, phone: false, privacyNotice: true } }))
+    renderTab()
+    const interruptor = await screen.findByRole('switch', { name: 'settings.enable' })
+    await userEvent.click(interruptor)
+    expect(interruptor).not.toBeChecked()
+    expect(interruptor).toBeEnabled()
+    expect(screen.queryByText('settings.enableBlocked')).toBeNull()
     expect(screen.getByText('settings.enableHelp')).toBeInTheDocument()
   })
 
@@ -273,6 +302,29 @@ describe('SettingsTab', () => {
     expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
     expect(within(paso('privacyNotice')).getByText('settings.requirements.done')).toBeInTheDocument()
     expect(getSettings).toHaveBeenCalledTimes(2)
+  })
+
+  it('al publicar aquí el botón desaparece: el foco pasa a la lista de pasos (que ahora dice «Todo listo»), no a <body>', async () => {
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockResolvedValue(base())
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(document.activeElement).toHaveTextContent('settings.requirements.allSet'))
+    expect(document.activeElement).toHaveAttribute('tabindex', '-1')
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
+  })
+
+  it('si se cierra el editor sin publicar, el foco no se lleva a la lista (el botón sigue ahí para volver)', async () => {
+    getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    await new Promise(r => setTimeout(r, 30))
+    expect(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeInTheDocument()
+    expect(document.activeElement).not.toHaveAttribute('tabindex', '-1')
   })
 
   it('sin marketing:manage no hay botón: dice que lo publique quien administra el negocio', async () => {
