@@ -45,7 +45,7 @@ export const useVenueEditActions = () => {
 export default function VenueEditLayout() {
   const { fullBasePath } = useCurrentVenue()
   const { t } = useTranslation('venue')
-  const { role } = useAccess()
+  const { role, can } = useAccess()
   // Pestaña de datos fiscales: gate más estricto que el resto de "local" (ADMIN) — sólo
   // OWNER captura el RFC/razón social con el que Avoqado factura al venue. La ruta ya lo
   // exige vía su propio <AdminProtectedRoute requiredRole={OWNER}>; esto sólo evita mostrar
@@ -145,6 +145,15 @@ export default function VenueEditLayout() {
             { to: `${fullBasePath}/settings/local/basic-info`, label: t('edit.nav.basicInfo', { defaultValue: 'Información Básica' }) },
             { to: `${fullBasePath}/settings/local/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
             { to: `${fullBasePath}/settings/local/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
+            // El aviso de privacidad del negocio: mismo permiso con el que se edita en Clientes (la ruta también lo exige).
+            ...(can('marketing:manage')
+              ? [
+                  {
+                    to: `${fullBasePath}/settings/local/privacy`,
+                    label: t('edit.nav.privacy', { defaultValue: 'Aviso de privacidad' }),
+                  } satisfies NavTabItem,
+                ]
+              : []),
             ...(isOwner
               ? [
                   {
