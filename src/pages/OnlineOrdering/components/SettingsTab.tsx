@@ -33,6 +33,9 @@ import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
 const REQUIREMENTS: StoreRequirement[] = ['address', 'phone', 'privacyNotice']
+// El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago.
+// Hoy el único es «Pagar al recoger» (la tarjeta en línea es «Muy pronto»); cuando exista, este paso cuenta cualquiera de los dos.
+const STEPS: (StoreRequirement | 'payment')[] = [...REQUIREMENTS, 'payment']
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -76,6 +79,7 @@ function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderi
  */
 function RequirementsList({
   missing,
+  payAtPickup,
   basePath,
   canOpenBusinessSettings,
   focusRef,
@@ -83,6 +87,8 @@ function RequirementsList({
   onWriteNotice,
 }: {
   missing: StoreRequirement[]
+  /** El valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
+  payAtPickup: boolean
   basePath: string
   canOpenBusinessSettings: boolean
   focusRef: RefObject<HTMLDivElement>
@@ -90,16 +96,17 @@ function RequirementsList({
   onWriteNotice: () => void
 }) {
   const { t } = useTranslation('onlineOrdering')
+  const allSet = missing.length === 0 && payAtPickup
   return (
     // Destino estable del foco tras publicar (el botón que abrió el editor desaparece). `Alert` no reenvía `ref` en React 18.
     <div ref={focusRef} tabIndex={-1} className="outline-none">
       <Alert role="status" data-tour="online-ordering-requirements">
         <AlertDescription className="space-y-2">
-          <p className="font-medium">{t(missing.length > 0 ? 'settings.requirements.title' : 'settings.requirements.allSet')}</p>
+          <p className="font-medium">{t(allSet ? 'settings.requirements.allSet' : 'settings.requirements.title')}</p>
           {/* Sin viñetas, Safari/VoiceOver deja de anunciarla como lista si no lleva el rol explícito. */}
           <ul role="list" className="space-y-2">
-            {REQUIREMENTS.map(r => {
-              const done = !missing.includes(r)
+            {STEPS.map(r => {
+              const done = r === 'payment' ? payAtPickup : !missing.includes(r)
               return (
                 <li key={r} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {done ? (
@@ -128,6 +135,11 @@ function RequirementsList({
                           {t('settings.requirements.privacyNotice.action')}
                         </Button>
                       </PermissionGate>
+                    ) : r === 'payment' ? (
+                      // El nombre sale de la misma etiqueta del interruptor de abajo: nunca se desfasan.
+                      <span className="text-muted-foreground">
+                        {t('settings.requirements.payment.hint', { name: t('settings.payAtPickup') })}
+                      </span>
                     ) : canOpenBusinessSettings ? (
                       // Cada dato liga a la pestaña donde se captura: el teléfono vive en «Contacto e Imágenes».
                       <Link
@@ -176,6 +188,7 @@ export function SettingsTab() {
   const { control, watch, setValue, handleSubmit, reset, formState } = form
   const hours = watch('hours')
   const enabled = watch('enabled')
+  const payAtPickup = !!watch('acceptsPayAtPickup')
 
   const watched = watch()
   const hasChanges = !!saved && Object.keys(buildPatch(watched, saved)).length > 0
@@ -225,21 +238,28 @@ export function SettingsTab() {
   // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo (al publicar, por
   // `onSaved`; sin publicar, con la X) se vuelven a pedir para que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un
   // 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya no manda: decide el GET nuevo.
-  // 🔴 El foco lo pone este componente: el editor es un Dialog de Radix SIN `Dialog.Trigger`, así que al cerrar no lo devuelve a nadie y
-  // caería a <body>. Publicado, el botón que lo abrió ya no existe: va a la lista de pasos. Sin publicar: de vuelta a ese botón. Sólo si
-  // el foco se perdió o sigue en el editor que se cierra: si la persona ya pasó a otro campo mientras llegaba la recarga, no se le roba.
+  // 🔴 El foco lo pone este componente: el editor es un Dialog de Radix SIN `Dialog.Trigger`, así que al cerrar no lo devuelve a
+  // nadie y caería a <body>. Publicado, el botón que lo abrió ya no existe: va a la lista de pasos. Sin publicar: de vuelta a ese
+  // botón. Sólo si el foco se perdió o sigue en el editor que se cierra: si la persona ya pasó a otro campo mientras llegaba la
+  // recarga, no se le roba.
   const closeNotice = () => {
     setNoticeOpen(false)
     setServerMissing(prev => prev.filter(r => r !== 'privacyNotice'))
     const key = onlineOrderingKeys.settings(venueId)
     void qc.invalidateQueries({ queryKey: key }).then(() => {
       const active = document.activeElement
-      if (active && active !== document.body && !active.closest('[role="dialog"]')) return
+      // N-4: el botón que abrió el editor también cuenta como «foco nuestro» (X o Esc con el guardado en vuelo, o el que puso este
+      // componente): si la recarga dice publicado, ese botón se va y el foco caería a <body>.
+      if (active && active !== document.body && active !== noticeButtonRef.current && !active.closest('[role="dialog"]')) return
       const published = qc.getQueryData<OnlineOrderingSettings>(key)?.requirements?.privacyNotice
       const target = published ? stepsRef.current : noticeButtonRef.current
       target?.focus({ preventScroll: true })
     })
   }
+
+  // «Encender» se bloquea, y su texto lo dice, sólo con la tienda GUARDADA apagada y algo pendiente: un dato del negocio o la forma de
+  // cobro. Con ella encendida, apagarla sin guardar debe poder volverse a encender, y la lista que el texto señala ni se ve.
+  const enableBlocked = !settings.enabled && (missing.length > 0 || !payAtPickup)
 
   const store = settings.store
   const pause = pauseLabel(store, formatTime)
@@ -273,6 +293,7 @@ export function SettingsTab() {
       {!settings.enabled && (!!settings.requirements || serverMissing.length > 0) && (
         <RequirementsList
           missing={missing}
+          payAtPickup={payAtPickup}
           basePath={fullBasePath}
           canOpenBusinessSettings={canOpenBusinessSettings}
           focusRef={stepsRef}
@@ -289,10 +310,9 @@ export function SettingsTab() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label htmlFor="oo-enabled">{t('settings.enable')}</Label>
-              {/* Sólo bloquea si la tienda GUARDADA está apagada: con ella encendida, apagarla sin guardar debe poder volverse a
-                  encender, y la lista de pasos (que el texto señala) ni se ve. */}
+              {/* El texto y el interruptor usan la MISMA condición (`enableBlocked`, arriba): nunca se contradicen. */}
               <p className="text-xs text-muted-foreground">
-                {!settings.enabled && !enabled && missing.length > 0 ? t('settings.enableBlocked') : t('settings.enableHelp')}
+                {!enabled && enableBlocked ? t('settings.enableBlocked') : t('settings.enableHelp')}
               </p>
             </div>
             <Controller
@@ -303,7 +323,7 @@ export function SettingsTab() {
                   id="oo-enabled"
                   aria-label={t('settings.enable')}
                   checked={!!field.value}
-                  disabled={!settings.enabled && !field.value && missing.length > 0}
+                  disabled={!field.value && enableBlocked}
                   onCheckedChange={field.onChange}
                 />
               )}
