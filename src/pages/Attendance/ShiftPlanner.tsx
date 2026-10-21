@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { attendanceService, type WorkShiftAssignment, type WorkShiftTemplate, type WorkShiftTemplateInput } from '@/services/attendance.service'
 import { teamService } from '@/services/team.service'
 import { LoadError } from './PunctualityReport'
+import { checaAsistencia } from './checaAsistencia'
 import { crossesMidnight, shiftWeek, shiftWeekOffset, type ShiftWeek } from './shiftWeek'
 
 /**
@@ -73,7 +74,6 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
 
   const templates = useMemo(() => templatesQ.data ?? [], [templatesQ.data])
   const activeTemplates = useMemo(() => templates.filter(x => x.active), [templates])
-  const members = useMemo(() => (teamQ.data?.data ?? []).filter(m => m.active), [teamQ.data])
   // Por celda conviven una fila PUBLISHED y una DRAFT (Codex, 2ª auditoría): el borrador NO despublica.
   const byCell = useMemo(() => {
     const map = new Map<string, { published?: WorkShiftAssignment; draft?: WorkShiftAssignment }>()
@@ -86,6 +86,14 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
     }
     return map
   }, [assignmentsQ.data])
+  // Sólo quien checa asistencia (inversionistas fuera). Quien ya tiene un turno en esta semana sigue saliendo: esconderlo
+  // dejaría un turno vivo que nadie ve. Los ocultos se cuentan abajo, con dónde cambiarlo.
+  const { members, ocultos } = useMemo(() => {
+    const activos = (teamQ.data?.data ?? []).filter(m => m.active)
+    const tieneTurno = new Set([...byCell.keys()].map(k => k.split('|')[0]))
+    const visibles = activos.filter(m => tieneTurno.has(m.id) || checaAsistencia(m.role, m.currentAssignments ?? []))
+    return { members: visibles, ocultos: activos.length - visibles.length }
+  }, [teamQ.data, byCell])
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['work-shift-assignments', venueId] })
@@ -325,6 +333,11 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
             </tbody>
           </table>
         </div>
+      )}
+      {ocultos > 0 && (
+        <p className="text-xs text-muted-foreground" data-tour="shifts-hidden-people">
+          {t('shifts.week.hiddenPeople', { count: ocultos })}
+        </p>
       )}
       <p className="text-xs text-muted-foreground">{t('shifts.week.legend')}</p>
 

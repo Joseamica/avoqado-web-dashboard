@@ -13,6 +13,7 @@ import { useRoleConfig } from '@/hooks/use-role-config'
 import { useCreatePosition, useUpdatePosition } from '@/hooks/useRh'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
 import { ROLES_SUGERIBLES, type Puesto, type WorkRelation } from '@/types/rh'
+import { checaPorDefault } from '@/pages/Attendance/checaAsistencia'
 
 /** Lo que abre el diálogo: un puesto (editar), o un nombre y rol sugeridos (crear). `clave` renueva el formulario en cada apertura. */
 export interface DatosPuestoDialog {
@@ -43,7 +44,9 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
   const [name, setName] = useState(puesto?.name ?? datos.name ?? '')
   const [rol, setRol] = useState(puesto?.suggestedRole ?? datos.suggestedRole ?? '')
   const [relacion, setRelacion] = useState<string>(puesto?.suggestedRelation ?? SIN_DEFINIR)
-  const [checa, setChecaEntrada] = useState(puesto?.tracksAttendanceDefault ?? true)
+  // Un puesto nuevo de «Solo ver» (inversionistas) nace sin checar; si la persona ya movió la casilla, se respeta.
+  const [checa, setChecaEntrada] = useState(puesto?.tracksAttendanceDefault ?? checaPorDefault(puesto?.suggestedRole ?? datos.suggestedRole ?? ''))
+  const checaTocado = useRef(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Candado SÍNCRONO: el estado no alcanza a apagar «Guardar» entre dos clics seguidos.
@@ -124,7 +127,14 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="rh-puesto-rol">{t('positions.suggestedRole')}</Label>
-            <Select name="suggestedRole" value={rol} onValueChange={setRol}>
+            <Select
+              name="suggestedRole"
+              value={rol}
+              onValueChange={r => {
+                setRol(r)
+                if (!puesto && !checaTocado.current) setChecaEntrada(checaPorDefault(r))
+              }}
+            >
               <SelectTrigger id="rh-puesto-rol" className="h-12 text-base">
                 <SelectValue placeholder={t('positions.rolePlaceholder')} />
               </SelectTrigger>
@@ -155,7 +165,10 @@ export function PuestoDialog({ open, datos, onClose }: Props) {
             <p className="text-sm text-muted-foreground">{t('relation.help')}</p>
           </div>
           <div className="flex min-h-11 items-center gap-3">
-            <Checkbox id="rh-puesto-checa" className="h-5 w-5" checked={checa} onCheckedChange={v => setChecaEntrada(v === true)} />
+            <Checkbox id="rh-puesto-checa" className="h-5 w-5" checked={checa} onCheckedChange={v => {
+                checaTocado.current = true
+                setChecaEntrada(v === true)
+              }} />
             <Label htmlFor="rh-puesto-checa" className="cursor-pointer text-base">
               {t('positions.tracksAttendance')}
             </Label>
