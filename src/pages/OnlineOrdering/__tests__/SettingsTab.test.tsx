@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -13,6 +13,23 @@ vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
   OperatingHoursEditor: () => <div data-testid="hours-editor" />,
 }))
 vi.mock('qrcode.react', () => ({ QRCodeCanvas: ({ value }: { value: string }) => <canvas data-testid="qr" data-value={value} /> }))
+const access = { denied: [] as string[], role: 'ADMIN' }
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({ can: (p: string) => !access.denied.includes(p), canAny: () => true, canAll: () => true, role: access.role }),
+}))
+// El editor es el MISMO de Clientes y tiene sus propias pruebas: aquí sólo importa que se abra con el negocio y qué pasa al cerrarlo.
+// `sigueMontado` imita la animación de salida de Radix (300 ms en el navegador): el editor sigue en el DOM tras cerrarse.
+const editor = { sigueMontado: false }
+vi.mock('@/pages/Customers/components/PrivacyNoticeModal', () => ({
+  PrivacyNoticeModal: ({ venueId, open, onClose }: { venueId: string; open: boolean; onClose: () => void }) =>
+    open || editor.sigueMontado ? (
+      <div role="dialog" aria-label="editor-del-aviso" data-venue-id={venueId}>
+        <button type="button" onClick={onClose}>
+          cerrar-editor
+        </button>
+      </div>
+    ) : null,
+}))
 
 const getSettings = vi.fn()
 const updateSettings = vi.fn()
@@ -54,11 +71,17 @@ const renderTab = () => {
   )
 }
 
+/** El renglón de un paso de la lista («Antes de encender la tienda»). */
+const paso = (r: string) => screen.getByText(`settings.requirements.${r}.label`).closest('li') as HTMLElement
+
 describe('SettingsTab', () => {
   beforeEach(() => {
     getSettings.mockReset()
     updateSettings.mockReset()
     toast.mockReset()
+    access.denied = []
+    access.role = 'ADMIN'
+    editor.sigueMontado = false
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -117,6 +140,9 @@ describe('SettingsTab', () => {
     renderTab()
     expect(await screen.findByLabelText('settings.minOrder')).toHaveValue(50)
     expect(screen.getByText('settings.status.label', { exact: false })).toBeInTheDocument()
+    // Sin `requirements` no se sabe qué falta: no se inventa un «Todo listo» con tres ✅.
+    expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
+    expect(screen.queryByText('settings.requirements.title')).toBeNull()
   })
 
   it('pedido mínimo vacío no manda 0', async () => {
@@ -157,18 +183,242 @@ describe('SettingsTab', () => {
     expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
   })
 
-  it('con phone:false «Encender» está deshabilitado y se ve la liga del faltante', async () => {
+  // ── Lista de pasos para encender la tienda (aviso de privacidad sin salir de Pedidos en línea, 20-oct) ──
+  it('lista de pasos con lo que falta: domicilio ✅, teléfono ⬜ con su liga, aviso ✅; «Encender» deshabilitado', async () => {
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: false, privacyNotice: true } }))
     renderTab()
     expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
-    expect(screen.getByRole('link', { name: 'settings.requirements.phone.link' })).toHaveAttribute('href', '/venues/taqueria/settings/local/basic-info')
-    expect(screen.queryByText('settings.requirements.address.label')).toBeNull()
+    expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
+    expect(screen.getByText('settings.requirements.title')).toBeInTheDocument()
+    expect(within(paso('address')).getByText('settings.requirements.done')).toBeInTheDocument()
+    expect(within(paso('address')).queryByRole('link')).toBeNull()
+    expect(within(paso('phone')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(within(paso('phone')).getByRole('link', { name: 'settings.requirements.phone.link' })).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.done')).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).queryByRole('button')).toBeNull()
   })
 
-  it('aviso de privacidad faltante liga a Clientes', async () => {
+  it('cada dato faltante liga a la pestaña donde se captura: domicilio → Información básica, teléfono → Contacto e Imágenes', async () => {
+    getSettings.mockResolvedValue(base({ requirements: { address: false, phone: false, privacyNotice: true } }))
+    renderTab()
+    await screen.findByRole('switch', { name: 'settings.enable' })
+    expect(within(paso('address')).getByRole('link', { name: 'settings.requirements.address.link' })).toHaveAttribute(
+      'href',
+      '/venues/taqueria/settings/local/basic-info',
+    )
+    expect(within(paso('phone')).getByRole('link', { name: 'settings.requirements.phone.link' })).toHaveAttribute(
+      'href',
+      '/venues/taqueria/settings/local/contact-images',
+    )
+  })
+
+  it('con todo listo y la tienda apagada la lista sigue: cuatro ✅ (con la forma de cobro) y «Todo listo», y «Encender» se puede usar', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeEnabled()
+    expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
+    expect(screen.queryByText('settings.requirements.title')).toBeNull()
+    expect(screen.queryByText(/settings\.requirements\.payment\.hint/)).toBeNull()
+    for (const r of ['address', 'phone', 'privacyNotice', 'payment']) {
+      expect(within(paso(r)).getByText('settings.requirements.done')).toBeInTheDocument()
+      expect(within(paso(r)).queryByRole('link')).toBeNull()
+      expect(within(paso(r)).queryByRole('button')).toBeNull()
+      // `text-success` no se genera (el @theme no registra --color-success): el verde va por la variable `--success`.
+      expect(paso(r).querySelector('svg')).toHaveClass('text-(--success)')
+    }
+    expect(screen.getByText('settings.enableHelp')).toBeInTheDocument()
+    // Un aviso cortés (status), no una alarma (alert) en cada visita; y la lista se anuncia como lista aunque no lleve viñetas.
+    expect(within(screen.getByRole('status')).getByRole('list')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('settings.requirements.allSet')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  // ── La forma de cobro (Codex r1): el servidor rechaza una tienda encendida sin medio de pago (`NO_PAYMENT_MODE`) ──
+  it('con los tres datos listos, apagar «Pagar al recoger» sin guardar quita el «Todo listo»: falta una forma de cobro y no deja encender', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    await userEvent.click(await screen.findByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByText('settings.requirements.title')).toBeInTheDocument()
+    expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
+    expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(within(paso('payment')).getByText('settings.requirements.payment.hint|settings.payAtPickup')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+    expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
+  })
+
+  it('con «Pagar al recoger» guardado apagado, el cobro está ⬜; al prenderlo dice «Todo listo» y encender + guardar manda los dos', async () => {
+    getSettings.mockResolvedValue(base({ acceptsPayAtPickup: false }))
+    updateSettings.mockResolvedValue(base({ enabled: true, acceptsPayAtPickup: true }))
+    renderTab()
+    expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+    expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
+    expect(within(paso('payment')).getByText('settings.requirements.done')).toBeInTheDocument()
+    const encender = screen.getByRole('switch', { name: 'settings.enable' })
+    expect(encender).toBeEnabled()
+    await userEvent.click(encender)
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { acceptsPayAtPickup: true, enabled: true }))
+  })
+
+  it('con la tienda guardada encendida, apagar «Pagar al recoger» sin guardar no bloquea «Encender» ni muestra la lista', async () => {
+    const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue(base({ enabled: true, store: open }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeEnabled()
+    expect(screen.queryByText('settings.requirements.title')).toBeNull()
+    expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
+  })
+
+  it('sin acceso a la configuración del negocio (sólo ADMIN o más), domicilio y teléfono piden a quien administra, sin liga sin salida', async () => {
+    access.role = 'MANAGER'
+    getSettings.mockResolvedValue(base({ requirements: { address: false, phone: false, privacyNotice: true } }))
+    renderTab()
+    expect(await screen.findByText('settings.requirements.address.askAdmin')).toBeInTheDocument()
+    expect(screen.getByText('settings.requirements.phone.askAdmin')).toBeInTheDocument()
+    expect(within(paso('address')).queryByRole('link')).toBeNull()
+    expect(within(paso('phone')).queryByRole('link')).toBeNull()
+  })
+
+  it('con la tienda guardada encendida, apagarla sin guardar no bloquea el interruptor ni apunta a una lista escondida', async () => {
+    const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue(base({ enabled: true, store: open, requirements: { address: true, phone: false, privacyNotice: true } }))
+    renderTab()
+    const interruptor = await screen.findByRole('switch', { name: 'settings.enable' })
+    await userEvent.click(interruptor)
+    expect(interruptor).not.toBeChecked()
+    expect(interruptor).toBeEnabled()
+    expect(screen.queryByText('settings.enableBlocked')).toBeNull()
+    expect(screen.getByText('settings.enableHelp')).toBeInTheDocument()
+  })
+
+  it('con la tienda ya encendida no hay lista de pasos aunque falte algo (los requisitos sólo cuentan para encenderla)', async () => {
+    const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue(base({ enabled: true, store: open, requirements: { address: true, phone: false, privacyNotice: true } }))
+    renderTab()
+    expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeChecked()
+    expect(screen.queryByText('settings.requirements.title')).toBeNull()
+    expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
+  })
+
+  it('aviso faltante: ya no manda a Clientes; «Escribir y publicar aviso» abre el editor AHÍ MISMO con el negocio', async () => {
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
     renderTab()
-    expect(await screen.findByRole('link', { name: 'settings.requirements.privacyNotice.link' })).toHaveAttribute('href', '/venues/taqueria/customers')
+    const boton = await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /privacyNotice/ })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'editor-del-aviso' })).toBeNull()
+    // Con un cambio pendiente en el formulario: si el botón lo mandara (botón «submit» dentro del <form>), se vería aquí.
+    fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+    await userEvent.click(boton)
+    expect(screen.getByRole('dialog', { name: 'editor-del-aviso' })).toHaveAttribute('data-venue-id', 'venue-1')
+    await new Promise(r => setTimeout(r, 30))
+    expect(updateSettings).not.toHaveBeenCalled()
+  })
+
+  it('al cerrar el editor se vuelven a pedir los ajustes: el aviso pasa a ✅ y lo demás que falte sigue ⬜', async () => {
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: false, privacyNotice: false } }))
+      .mockResolvedValue(base({ requirements: { address: true, phone: false, privacyNotice: true } }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    expect(getSettings).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('dialog', { name: 'editor-del-aviso' })).toBeNull()
+    await waitFor(() => expect(within(paso('privacyNotice')).getByText('settings.requirements.done')).toBeInTheDocument())
+    expect(within(paso('phone')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+  })
+
+  it('si el aviso era lo único que faltaba, al cerrar el editor pasa a ✅, dice «Todo listo» y «Encender» se habilita solo', async () => {
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockResolvedValue(base())
+    renderTab()
+    expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeEnabled())
+    expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.done')).toBeInTheDocument()
+    expect(getSettings).toHaveBeenCalledTimes(2)
+  })
+
+  it('al publicar aquí el botón desaparece: el foco pasa a la lista de pasos (que ahora dice «Todo listo»), no a <body>', async () => {
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockResolvedValue(base())
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(document.activeElement).toHaveTextContent('settings.requirements.allSet'))
+    expect(document.activeElement).toHaveAttribute('tabindex', '-1')
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
+  })
+
+  it('si se cierra el editor sin publicar, el foco vuelve al botón «Escribir y publicar aviso» (el editor no lo devuelve solo)', async () => {
+    // El doble del editor no devuelve el foco, igual que el real (Radix sin `Dialog.Trigger`): lo pone el componente.
+    getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })))
+  })
+
+  it('N-4: si el foco está en el botón que abrió el editor y la recarga dice publicado, pasa a la lista (el botón se va)', async () => {
+    let soltar: (v: unknown) => void = () => {}
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockImplementationOnce(() => new Promise(r => (soltar = r)))
+    renderTab()
+    const abrir = await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })
+    await userEvent.click(abrir)
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    abrir.focus()
+    soltar(base())
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('tabindex', '-1'))
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
+  })
+
+  it('N-6: con el editor aún montado (su animación de salida) y el foco en su botón cuando llega la recarga, el foco pasa a la lista', async () => {
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockResolvedValue(base())
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    editor.sigueMontado = true
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('tabindex', '-1'))
+    expect(document.activeElement).toContainElement(screen.getByRole('status'))
+  })
+
+  it('si el foco ya se movió a otro lado cuando llega la recarga, no se lo roba', async () => {
+    let soltar: (v: unknown) => void = () => {}
+    getSettings
+      .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      .mockImplementationOnce(() => new Promise(r => (soltar = r)))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    const minimo = screen.getByLabelText('settings.minOrder')
+    minimo.focus()
+    soltar(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    await new Promise(r => setTimeout(r, 30))
+    expect(document.activeElement).toBe(minimo)
+  })
+
+  it('sin marketing:manage no hay botón: dice que lo publique quien administra el negocio', async () => {
+    access.denied = ['marketing:manage']
+    getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+    renderTab()
+    expect(await screen.findByText('settings.requirements.privacyNotice.askAdmin')).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeNull()
   })
 
   it('STORE_REQUIREMENTS_MISSING pinta la lista que manda el servidor', async () => {
@@ -177,7 +427,26 @@ describe('SettingsTab', () => {
     renderTab()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
-    expect(await screen.findByRole('link', { name: 'settings.requirements.privacyNotice.link' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.pending')).toBeInTheDocument()
+  })
+
+  it('🔴 tras un STORE_REQUIREMENTS_MISSING, publicar el aviso y cerrar el editor lo quita de lo que falta (manda el GET nuevo)', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockRejectedValue({
+      response: { data: { code: 'STORE_REQUIREMENTS_MISSING', details: { missing: ['privacyNotice'] } } },
+    })
+    renderTab()
+    await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('settings.requirements.allSet')).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.done')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeNull()
+    // Lo que el usuario ya había movido en el formulario sigue ahí para volver a guardar.
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked()
   })
 
   it('NO_PAYMENT_MODE muestra el mensaje del servidor', async () => {

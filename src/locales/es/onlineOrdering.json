@@ -26,18 +26,28 @@
       "DISABLED": "Apagada"
     },
     "requirements": {
-      "title": "Antes de encender la tienda te falta:",
+      "title": "Para encender la tienda completa estos pasos:",
+      "allSet": "Todo listo: ya puedes encender la tienda",
+      "done": "Listo:",
+      "pending": "Falta:",
       "address": {
-        "label": "El domicilio del negocio.",
-        "link": "Capturar domicilio"
+        "label": "Domicilio del negocio",
+        "link": "Capturar domicilio",
+        "askAdmin": "Pídele a quien administra el negocio que capture el domicilio."
       },
       "phone": {
-        "label": "El teléfono del negocio.",
-        "link": "Capturar teléfono"
+        "label": "Teléfono del negocio",
+        "link": "Capturar teléfono",
+        "askAdmin": "Pídele a quien administra el negocio que capture el teléfono."
       },
       "privacyNotice": {
-        "label": "Publicar el aviso de privacidad.",
-        "link": "Publicar aviso en Clientes"
+        "label": "Aviso de privacidad publicado",
+        "action": "Escribir y publicar aviso",
+        "askAdmin": "Pídele a quien administra el negocio que publique el aviso de privacidad."
+      },
+      "payment": {
+        "label": "Una forma de cobro",
+        "hint": "Activa «{{name}}» abajo"
       }
     },
     "store": {

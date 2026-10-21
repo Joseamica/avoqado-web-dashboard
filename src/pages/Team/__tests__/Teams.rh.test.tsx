@@ -133,11 +133,11 @@ const pagina = (data: TeamMember[], totalCount: number, currentPage = 1) => ({
   meta: { totalCount, pageSize: 20, currentPage, totalPages: Math.ceil(totalCount / 20), hasNextPage: false, hasPrevPage: false },
 })
 
-function montar() {
+function montar(ruta = '/') {
   const cliente = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } })
   const arbol = () => (
     <QueryClientProvider client={cliente}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[ruta]}>
         <Teams />
       </MemoryRouter>
     </QueryClientProvider>
@@ -490,5 +490,21 @@ describe('Personas: el número sin filtro, sin arrastre entre sucursales y el de
 
     fireEvent.change(screen.getByPlaceholderText('Buscar por nombre o correo'), { target: { value: '  ana  ' } })
     await waitFor(() => expect(ultimaLista()).toEqual(['v1', 1, 20, 'ana', undefined]))
+  })
+})
+
+// Los avisos de Asistencia («Prenderlo…») mandan a team#asistencia: la pestaña tiene que abrirse desde el enlace.
+describe('Personas: la pestaña sale del hash de la URL', () => {
+  const textoAsistencia = /Cómo funciona el checador de tu equipo/
+
+  it('con #asistencia abre la pestaña Asistencia', async () => {
+    montar('/venues/demo/team#asistencia')
+    expect(await screen.findByText(textoAsistencia)).toBeInTheDocument()
+  })
+
+  it('sin hash, o con uno que no es pestaña, abre Miembros', async () => {
+    montar('/venues/demo/team#otra')
+    await screen.findByText('Ana López')
+    expect(screen.queryByText(textoAsistencia)).not.toBeInTheDocument()
   })
 })

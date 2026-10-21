@@ -18,6 +18,11 @@ interface PrivacyNoticeModalProps {
 	venueId: string
 	open: boolean
 	onClose: () => void
+	/**
+	 * Opcional: se llama SÓLO tras guardar con éxito. Pedidos en línea lo usa para cerrar el editor y actualizar sus pasos; sin él
+	 * (Clientes, la pestaña del negocio) el editor se queda abierto mostrando la versión vigente, como siempre.
+	 */
+	onSaved?: () => void
 }
 
 const LANGUAGES: PrivacyNoticeLanguage[] = ['es', 'en', 'fr']
@@ -31,7 +36,7 @@ const LANGUAGES: PrivacyNoticeLanguage[] = ['es', 'en', 'fr']
  * nueva (`content` + su `language`), nunca edita la anterior — así que lo que se ve
  * aquí es un punto de partida editable, no el registro que se va a modificar en sitio.
  */
-export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModalProps) {
+export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyNoticeModalProps) {
 	const { t } = useTranslation('customers')
 	const { toast } = useToast()
 	const queryClient = useQueryClient()
@@ -80,6 +85,7 @@ export function PrivacyNoticeModal({ venueId, open, onClose }: PrivacyNoticeModa
 			// en silencio (la trampa de caché ya documentada en el repo).
 			queryClient.invalidateQueries({ queryKey: ['privacy-notice', venueId] })
 			setContent('')
+			onSaved?.()
 		},
 		onError: (error: any) => {
 			toast({

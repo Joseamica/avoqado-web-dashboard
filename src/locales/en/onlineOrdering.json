@@ -26,18 +26,28 @@
       "DISABLED": "Off"
     },
     "requirements": {
-      "title": "Before turning the store on you still need:",
+      "title": "To turn the store on, complete these steps:",
+      "allSet": "All set: you can turn on your store",
+      "done": "Done:",
+      "pending": "Missing:",
       "address": {
-        "label": "The business address.",
-        "link": "Add address"
+        "label": "Business address",
+        "link": "Add address",
+        "askAdmin": "Ask whoever manages the business to add the address."
       },
       "phone": {
-        "label": "The business phone.",
-        "link": "Add phone"
+        "label": "Business phone",
+        "link": "Add phone",
+        "askAdmin": "Ask whoever manages the business to add the phone."
       },
       "privacyNotice": {
-        "label": "Publish the privacy notice.",
-        "link": "Publish notice in Customers"
+        "label": "Published privacy notice",
+        "action": "Write and publish notice",
+        "askAdmin": "Ask whoever manages the business to publish the privacy notice."
+      },
+      "payment": {
+        "label": "A payment method",
+        "hint": "Turn on “{{name}}” below"
       }
     },
     "store": {

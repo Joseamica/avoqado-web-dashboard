@@ -87,7 +87,7 @@
   "disabled": {
     "title": "Attendance tracking is off",
     "description": "Staff cannot clock in while it is off. What was already recorded stays here.",
-    "cta": "Turn it on in Settings"
+    "cta": "Turn it on in People"
   },
   "loadError": {
     "title": "Could not load",
@@ -148,8 +148,8 @@
   "shifts": {
     "disabled": {
       "title": "Rotating shifts are off",
-      "description": "Staff are judged by their fixed schedule. If shifts rotate in your business (open, mid, close), turn them on in Settings.",
-      "cta": "Turn on in Settings"
+      "description": "Staff are judged by their fixed schedule. If shifts rotate in your business (open, mid, close), turn them on in People → Attendance.",
+      "cta": "Turn on in People"
     },
     "templates": {
       "title": "Shifts",

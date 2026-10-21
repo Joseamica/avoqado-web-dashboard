@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, MoreHorizontal, Pencil, UserMinus, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -59,6 +59,14 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
 // Columnas de RH: en marca blanca no se pintan (ni se ofrecen en «Columnas»).
 const COLUMNAS_RH = ['position', 'checks', 'relation']
+
+// La pestaña vive en el hash de la URL (ui-patterns: «URL Hash-Based Tabs»): los avisos de Asistencia mandan a #asistencia.
+const TEAM_TABS = ['members', 'invitations', 'asistencia'] as const
+type TeamTab = (typeof TEAM_TABS)[number]
+const tabDelHash = (hash: string): TeamTab => {
+  const h = hash.replace('#', '')
+  return (TEAM_TABS as readonly string[]).includes(h) ? (h as TeamTab) : 'members'
+}
 
 // ⚠️ COHERENCIA con tours interactivos:
 // Esta página tiene un tour driver.js (`useTeamInvitationTour`) que guía al
@@ -185,7 +193,12 @@ function TeamsContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   // Puesto elegido en los chips ('' = Todos). La búsqueda y el puesto los resuelve el SERVIDOR; el resto de filtros, todavía no.
   const [positionId, setPositionId] = useState('')
-  const [activeTeamTab, setActiveTeamTab] = useState<'members' | 'invitations' | 'asistencia'>('members')
+  const location = useLocation()
+  const [activeTeamTab, setActiveTeamTab] = useState<TeamTab>(() => tabDelHash(location.hash))
+  const cambiarTab = (v: TeamTab) => {
+    setActiveTeamTab(v)
+    navigate(`${location.pathname}${location.search}#${v}`, { replace: true })
+  }
 
   // La llave cuelga de ['team-members', sede]: las mutaciones de RH y de equipo invalidan ese prefijo.
   const teamMembersQueryKey = ['team-members', venueId, pagination.pageIndex, pagination.pageSize, debouncedSearchTerm, positionId] as const
@@ -950,11 +963,11 @@ function TeamsContent() {
         </PermissionGate>
       </div>
 
-      <Tabs value={activeTeamTab} onValueChange={v => setActiveTeamTab(v as any)} className="space-y-6">
+      <Tabs value={activeTeamTab} onValueChange={v => cambiarTab(v as TeamTab)} className="space-y-6">
         <div className="border-b border-border">
           <nav className="flex items-center gap-6">
             <button
-              onClick={() => setActiveTeamTab('members')}
+              onClick={() => cambiarTab('members')}
               className={`relative pb-3 text-sm font-medium transition-colors ${
                 activeTeamTab === 'members' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -966,7 +979,7 @@ function TeamsContent() {
               )}
             </button>
             <button
-              onClick={() => setActiveTeamTab('invitations')}
+              onClick={() => cambiarTab('invitations')}
               className={`relative pb-3 text-sm font-medium transition-colors ${
                 activeTeamTab === 'invitations' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -978,7 +991,7 @@ function TeamsContent() {
               )}
             </button>
             <button
-              onClick={() => setActiveTeamTab('asistencia')}
+              onClick={() => cambiarTab('asistencia')}
               className={`relative pb-3 text-sm font-medium transition-colors ${
                 activeTeamTab === 'asistencia' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}

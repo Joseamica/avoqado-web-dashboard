@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { CheckCircle2, Circle } from 'lucide-react'
 import { z } from 'zod'
 
+import { PermissionGate } from '@/components/PermissionGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,10 +16,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { PrivacyNoticeModal } from '@/pages/Customers/components/PrivacyNoticeModal'
 import { OperatingHoursEditor } from '@/pages/Reservations/components/OperatingHoursEditor'
 import { getSettings, onlineOrderingKeys, serverMessage, updateSettings } from '@/services/onlineOrdering.service'
+import { StaffRole } from '@/types'
 import type { OnlineOrderingSettings, OnlineOrderingSettingsInput, StoreRequirement } from '@/types/onlineOrdering'
 import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -28,6 +33,9 @@ import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
 const REQUIREMENTS: StoreRequirement[] = ['address', 'phone', 'privacyNotice']
+// El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago.
+// Hoy el único es «Pagar al recoger» (la tarjeta en línea es «Muy pronto»); cuando exista, este paso cuenta cualquiera de los dos.
+const STEPS: (StoreRequirement | 'payment')[] = [...REQUIREMENTS, 'payment']
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -63,25 +71,93 @@ function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderi
   return patch as Partial<OnlineOrderingSettingsInput>
 }
 
-function RequirementsList({ missing, basePath }: { missing: StoreRequirement[]; basePath: string }) {
+/**
+ * Los pasos para encender la tienda, cada uno con ✅ o ⬜. El aviso de privacidad se escribe y publica AQUÍ MISMO, con el editor de
+ * Clientes (uno solo por negocio); quien no puede editarlo (`marketing:manage`, el mismo permiso de Clientes) ve a quién pedírselo.
+ * Domicilio y teléfono ligan a la configuración del negocio sólo si quien mira puede abrirla (`settings/local` es de ADMIN o más);
+ * si no, también ve a quién pedírselo, en vez de una liga que termina en «acceso denegado».
+ */
+function RequirementsList({
+  missing,
+  payAtPickup,
+  basePath,
+  canOpenBusinessSettings,
+  focusRef,
+  noticeButtonRef,
+  onWriteNotice,
+}: {
+  missing: StoreRequirement[]
+  /** El valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
+  payAtPickup: boolean
+  basePath: string
+  canOpenBusinessSettings: boolean
+  focusRef: RefObject<HTMLDivElement>
+  noticeButtonRef: RefObject<HTMLButtonElement>
+  onWriteNotice: () => void
+}) {
   const { t } = useTranslation('onlineOrdering')
-  const to = (r: StoreRequirement) => (r === 'privacyNotice' ? `${basePath}/customers` : `${basePath}/settings/local/basic-info`)
+  const allSet = missing.length === 0 && payAtPickup
   return (
-    <Alert data-tour="online-ordering-requirements">
-      <AlertDescription className="space-y-2">
-        <p className="font-medium">{t('settings.requirements.title')}</p>
-        <ul className="list-disc space-y-1 pl-5">
-          {missing.map(r => (
-            <li key={r}>
-              {t(`settings.requirements.${r}.label`)}{' '}
-              <Link to={to(r)} className="text-primary underline underline-offset-2">
-                {t(`settings.requirements.${r}.link`)}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </AlertDescription>
-    </Alert>
+    // Destino estable del foco tras publicar (el botón que abrió el editor desaparece). `Alert` no reenvía `ref` en React 18.
+    <div ref={focusRef} tabIndex={-1} className="outline-none">
+      <Alert role="status" data-tour="online-ordering-requirements">
+        <AlertDescription className="space-y-2">
+          <p className="font-medium">{t(allSet ? 'settings.requirements.allSet' : 'settings.requirements.title')}</p>
+          {/* Sin viñetas, Safari/VoiceOver deja de anunciarla como lista si no lleva el rol explícito. */}
+          <ul role="list" className="space-y-2">
+            {STEPS.map(r => {
+              const done = r === 'payment' ? payAtPickup : !missing.includes(r)
+              return (
+                <li key={r} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {done ? (
+                    // `text-success` no se genera: el @theme no registra --color-success (sólo la variable --success).
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-(--success)" />
+                  ) : (
+                    <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="sr-only">{t(done ? 'settings.requirements.done' : 'settings.requirements.pending')}</span>
+                  <span>{t(`settings.requirements.${r}.label`)}</span>
+                  {!done &&
+                    (r === 'privacyNotice' ? (
+                      <PermissionGate
+                        permission="marketing:manage"
+                        fallback={<span className="text-muted-foreground">{t('settings.requirements.privacyNotice.askAdmin')}</span>}
+                      >
+                        <Button
+                          ref={noticeButtonRef}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 cursor-pointer"
+                          onClick={onWriteNotice}
+                          data-tour="online-ordering-privacy-notice-btn"
+                        >
+                          {t('settings.requirements.privacyNotice.action')}
+                        </Button>
+                      </PermissionGate>
+                    ) : r === 'payment' ? (
+                      // El nombre sale de la misma etiqueta del interruptor de abajo: nunca se desfasan.
+                      <span className="text-muted-foreground">
+                        {t('settings.requirements.payment.hint', { name: t('settings.payAtPickup') })}
+                      </span>
+                    ) : canOpenBusinessSettings ? (
+                      // Cada dato liga a la pestaña donde se captura: el teléfono vive en «Contacto e Imágenes».
+                      <Link
+                        to={`${basePath}/settings/local/${r === 'phone' ? 'contact-images' : 'basic-info'}`}
+                        className="text-primary underline underline-offset-2"
+                      >
+                        {t(`settings.requirements.${r}.link`)}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">{t(`settings.requirements.${r}.askAdmin`)}</span>
+                    ))}
+                </li>
+              )
+            })}
+          </ul>
+        </AlertDescription>
+      </Alert>
+    </div>
   )
 }
 
@@ -91,9 +167,15 @@ export function SettingsTab() {
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { formatTime } = useVenueDateTime()
   const { toast } = useToast()
+  const { role } = useAccess()
+  // La misma regla que la guardia de `settings/local` (AdminProtectedRoute, nivel ADMIN): ADMIN, OWNER o SUPERADMIN.
+  const canOpenBusinessSettings = role === StaffRole.ADMIN || role === StaffRole.OWNER || role === StaffRole.SUPERADMIN
   const qc = useQueryClient()
   const [serverMissing, setServerMissing] = useState<StoreRequirement[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [noticeOpen, setNoticeOpen] = useState(false)
+  const stepsRef = useRef<HTMLDivElement>(null)
+  const noticeButtonRef = useRef<HTMLButtonElement>(null)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
@@ -106,6 +188,7 @@ export function SettingsTab() {
   const { control, watch, setValue, handleSubmit, reset, formState } = form
   const hours = watch('hours')
   const enabled = watch('enabled')
+  const payAtPickup = !!watch('acceptsPayAtPickup')
 
   const watched = watch()
   const hasChanges = !!saved && Object.keys(buildPatch(watched, saved)).length > 0
@@ -152,6 +235,32 @@ export function SettingsTab() {
     if (Object.keys(patch).length) mutation.mutate(patch)
   })
 
+  // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo (al publicar, por
+  // `onSaved`; sin publicar, con la X) se vuelven a pedir para que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un
+  // 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya no manda: decide el GET nuevo.
+  // 🔴 El foco lo pone este componente: el editor es un Dialog de Radix SIN `Dialog.Trigger`, así que al cerrar no lo devuelve a
+  // nadie y caería a <body>. Publicado, el botón que lo abrió ya no existe: va a la lista de pasos. Sin publicar: de vuelta a ese
+  // botón. Sólo si el foco se perdió o sigue en el editor que se cierra: si la persona ya pasó a otro campo mientras llegaba la
+  // recarga, no se le roba.
+  const closeNotice = () => {
+    setNoticeOpen(false)
+    setServerMissing(prev => prev.filter(r => r !== 'privacyNotice'))
+    const key = onlineOrderingKeys.settings(venueId)
+    void qc.invalidateQueries({ queryKey: key }).then(() => {
+      const active = document.activeElement
+      // N-4: el botón que abrió el editor también cuenta como «foco nuestro» (X o Esc con el guardado en vuelo, o el que puso este
+      // componente): si la recarga dice publicado, ese botón se va y el foco caería a <body>.
+      if (active && active !== document.body && active !== noticeButtonRef.current && !active.closest('[role="dialog"]')) return
+      const published = qc.getQueryData<OnlineOrderingSettings>(key)?.requirements?.privacyNotice
+      const target = published ? stepsRef.current : noticeButtonRef.current
+      target?.focus({ preventScroll: true })
+    })
+  }
+
+  // «Encender» se bloquea, y su texto lo dice, sólo con la tienda GUARDADA apagada y algo pendiente: un dato del negocio o la forma de
+  // cobro. Con ella encendida, apagarla sin guardar debe poder volverse a encender, y la lista que el texto señala ni se ve.
+  const enableBlocked = !settings.enabled && (missing.length > 0 || !payAtPickup)
+
   const store = settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
@@ -178,7 +287,20 @@ export function SettingsTab() {
         </Alert>
       )}
 
-      {missing.length > 0 && <RequirementsList missing={missing} basePath={fullBasePath} />}
+      {/* Los pasos se ven mientras la tienda GUARDADA esté apagada (el servidor sólo los exige al encenderla), también con todo
+          listo. Sin `requirements` no se sabe qué falta: sólo se pinta si un 400 `STORE_REQUIREMENTS_MISSING` lo dijo, nunca un
+          «Todo listo» inventado. */}
+      {!settings.enabled && (!!settings.requirements || serverMissing.length > 0) && (
+        <RequirementsList
+          missing={missing}
+          payAtPickup={payAtPickup}
+          basePath={fullBasePath}
+          canOpenBusinessSettings={canOpenBusinessSettings}
+          focusRef={stepsRef}
+          noticeButtonRef={noticeButtonRef}
+          onWriteNotice={() => setNoticeOpen(true)}
+        />
+      )}
 
       <Card>
         <CardHeader>
@@ -188,8 +310,9 @@ export function SettingsTab() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label htmlFor="oo-enabled">{t('settings.enable')}</Label>
+              {/* El texto y el interruptor usan la MISMA condición (`enableBlocked`, arriba): nunca se contradicen. */}
               <p className="text-xs text-muted-foreground">
-                {!enabled && missing.length > 0 ? t('settings.enableBlocked') : t('settings.enableHelp')}
+                {!enabled && enableBlocked ? t('settings.enableBlocked') : t('settings.enableHelp')}
               </p>
             </div>
             <Controller
@@ -200,7 +323,7 @@ export function SettingsTab() {
                   id="oo-enabled"
                   aria-label={t('settings.enable')}
                   checked={!!field.value}
-                  disabled={!field.value && missing.length > 0}
+                  disabled={!field.value && enableBlocked}
                   onCheckedChange={field.onChange}
                 />
               )}
@@ -331,6 +454,11 @@ export function SettingsTab() {
       </Card>
 
       {venueSlug && <StorefrontShareCard slug={venueSlug} />}
+
+      {/* El editor se pinta en un portal (FullScreenModal = Radix Dialog): en el DOM queda fuera de este <form>, así que su
+          «Guardar aviso» nunca manda el formulario de la tienda. */}
+      {/* Al publicar se cierra solo (`onSaved`): la lista de pasos se actualiza sin tener que cerrar con la X. */}
+      <PrivacyNoticeModal venueId={venueId} open={noticeOpen} onClose={closeNotice} onSaved={closeNotice} />
     </form>
   )
 }

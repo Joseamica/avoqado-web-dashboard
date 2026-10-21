@@ -146,6 +146,7 @@ const routeKeyMap: Record<string, string> = {
   preferences: 'sidebar:routes.preferences',
   notifications: 'sidebar:routes.notifications',
   documents: 'sidebar:routes.documents',
+  privacy: 'venue:edit.nav.privacy',
   general: 'sidebar:routes.general',
   branding: 'sidebar:routes.branding',
   integrations: 'sidebar:routes.integrations',

@@ -52,8 +52,10 @@ vi.mock('@/hooks/use-current-venue', () => ({
 const toastMock = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastMock }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: false }) }))
-vi.mock('@/hooks/use-image-uploader', () => ({
-  useImageUploader: () => ({
+// El hook real devuelve SIEMPRE las mismas funciones (son de `useState`). Un objeto nuevo en cada llamada hace que `resetWizard`
+// (depende de `setImageForCrop`) cambie en cada pintado y el efecto de «cerrar» corra sin fin: la prueba se colgaba al 105 % de CPU.
+vi.mock('@/hooks/use-image-uploader', () => {
+  const subida = {
     uploading: false,
     imageUrl: null,
     imageForCrop: null,
@@ -66,8 +68,9 @@ vi.mock('@/hooks/use-image-uploader', () => ({
     setImageForCrop: () => undefined,
     setCrop: () => undefined,
     setZoom: () => undefined,
-  }),
-}))
+  }
+  return { useImageUploader: () => subida }
+})
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))
 vi.mock('@/features/master-catalog/use-master-catalog-error', () => ({ useMasterCatalogError: () => () => false }))
 vi.mock('react-i18next', () => ({

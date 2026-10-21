@@ -55,6 +55,7 @@ export const BasicInfo = lazyWithRetry(() => import('@/pages/Venue/Edit/BasicInf
 export const ContactImages = lazyWithRetry(() => import('@/pages/Venue/Edit/ContactImages'))
 export const VenueDocuments = lazyWithRetry(() => import('@/pages/Venue/Edit/Documents'))
 export const VenueFiscalProfile = lazyWithRetry(() => import('@/pages/Venue/Edit/FiscalProfile'))
+export const VenuePrivacyNotice = lazyWithRetry(() => import('@/pages/Venue/Edit/PrivacyNotice'))
 export const VenueIntegrations = lazyWithRetry(() => import('@/pages/Venue/Edit/Integrations'))
 export const VenueActivityLog = lazyWithRetry(() => import('@/pages/Venue/VenueActivityLog'))
 export const VenuePaymentConfig = lazyWithRetry(() => import('@/pages/Venue/VenuePaymentConfig'))
