@@ -429,6 +429,23 @@ describe('Ficha de la persona en pestañas (RH 1a)', () => {
     )
   })
 
+  it('Cambiar: apagar «Checa entrada y salida» (un inversionista) basta para guardar y lo manda', async () => {
+    conPuestos([asignacion()])
+    await montar()
+    abrirPestana('profile.tabs.positionAndPay')
+    fireEvent.click(await screen.findByRole('button', { name: 'profile.changeAria:{"name":"Mesero"}' }))
+    const casilla = screen.getByRole('checkbox', { name: 'positions.tracksAttendance' })
+    expect(casilla).toBeChecked()
+    fireEvent.click(casilla)
+    fireEvent.click(screen.getByRole('button', { name: 'positions.save' }))
+    await waitFor(() =>
+      expect(cambiar.mutateAsync).toHaveBeenCalledWith({
+        assignmentId: 'a1',
+        body: { positionId: 'p1', relation: null, fecha: hoy, tracksAttendance: false },
+      }),
+    )
+  })
+
   it('el 409 de Cambiar («Esta asignación cambió…») se muestra tal cual', async () => {
     cambiar.mutateAsync.mockRejectedValue({
       response: { status: 409, data: { message: 'Esta asignación cambió mientras la editabas. Recarga e inténtalo de nuevo.' } },

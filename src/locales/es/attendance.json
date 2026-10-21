@@ -177,8 +177,8 @@
       "publish": "Publicar semana",
       "noTeam": "No hay personal activo en este negocio.",
       "person": "Persona",
-      "hiddenPeople_one": "1 persona no sale aquí porque no checa entrada y salida (por ejemplo, un inversionista). Para que salga, enciende «Checa entrada y salida» en su puesto, en RH → Puestos.",
-      "hiddenPeople_other": "{{count}} personas no salen aquí porque no checan entrada y salida (por ejemplo, inversionistas). Para que salgan, enciende «Checa entrada y salida» en su puesto, en RH → Puestos.",
+      "hiddenPeople_one": "1 persona no sale aquí porque no checa entrada y salida (por ejemplo, un inversionista). Para que salga: Personas → abre su ficha → Puesto y pago → Cambiar → enciende «Checa entrada y salida».",
+      "hiddenPeople_other": "{{count}} personas no salen aquí porque no checan entrada y salida (por ejemplo, inversionistas). Para que alguien salga: Personas → abre su ficha → Puesto y pago → Cambiar → enciende «Checa entrada y salida».",
       "legend": "Borde punteado = borrador. Al publicar, el turno asignado gana sobre la jornada fija; unas vacaciones o un día libre capturado en la persona siguen ganando sobre todo.",
       "discard": "Descartar cambios"
     },

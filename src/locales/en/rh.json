@@ -89,7 +89,7 @@
     "phase1bNote": "Salary, hours and bonus are coming soon.",
     "current": "Current positions",
     "assigned": "Position assigned",
-    "changeTitle": "Change position or relationship",
+    "changeTitle": "Change position, relationship or attendance",
     "changeHelp": "The change applies from this date. If it is the same day the current version started, it replaces it instead of creating another one.",
     "changed": "Change saved",
     "changeAria": "Change the position «{{name}}»",
