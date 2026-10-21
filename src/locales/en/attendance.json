@@ -177,6 +177,8 @@
       "publish": "Publish week",
       "noTeam": "No active staff in this venue.",
       "person": "Person",
+      "hiddenPeople_one": "1 person is not listed because they do not clock in and out (for example, an investor). To list them, turn on «Clocks in and out» on their position, in HR → Positions.",
+      "hiddenPeople_other": "{{count}} people are not listed because they do not clock in and out (for example, investors). To list them, turn on «Clocks in and out» on their position, in HR → Positions.",
       "legend": "Dashed border = draft. Once published, the assigned shift overrides the fixed schedule; a vacation or day off captured on the person still wins over everything.",
       "discard": "Discard changes"
     },
