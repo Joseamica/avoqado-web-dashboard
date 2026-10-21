@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Avoqado — Terminal de cobro · One Pager</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+:root{
+  --bg:#FBFBFA; --card:#ffffff; --soft:#FAFAF9;
+  --ink:#0a0a0a; --ink2:#3f3f46; --ink3:#6b6b72; --ink4:#8a8a8f;
+  --line:#ECECE8; --line2:#F2F2EF;
+  --green:#7ADD2C; --green-ink:#4A8A14; --green-deep:#5BB814; --green-soft:#7ADD2C14; --green-tint:#F0F7E8;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+@page{ size:letter; margin:0; }
+html,body{ background:var(--bg); color:var(--ink); font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; -webkit-font-smoothing:antialiased;}
+.page{ width:8.5in; height:11in; padding:0.32in 0.54in 0.16in; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+.page::before{ content:""; position:absolute; inset:0 0 auto 0; height:2.6in; pointer-events:none;
+  background:radial-gradient(90% 80% at 93% -28%, var(--green-soft) 0%, transparent 56%);}
+h1,h2,h3{ font-weight:600; letter-spacing:-0.03em;}
+.grad{ color:var(--green-ink); }
+.top{ display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:2;}
+.top img{ height:27px; display:block;}
+.top .tag{ font-family:'DM Mono',monospace; font-size:9px; color:var(--ink4); letter-spacing:0.08em; text-transform:uppercase; text-align:right; line-height:1.4;}
+.hero{ margin-top:8px; position:relative; z-index:2;}
+.hero h1{ font-size:28px; line-height:1.04; letter-spacing:-0.035em; white-space:nowrap;}
+.hero p{ font-size:11.5px; color:var(--ink2); line-height:1.48; margin-top:7px;}
+.hero p b{ color:var(--ink); font-weight:600;}
+.sec{ margin-top:6px; position:relative; z-index:2;}
+.sec-h{ font-family:'DM Mono',monospace; font-size:9.2px; font-weight:500; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink3); margin-bottom:5px; display:flex; align-items:center; gap:8px;}
+.sec-h::before{ content:""; width:16px; height:2px; background:var(--green-deep); border-radius:2px;}
+.sub{ font-size:15px; font-weight:600; letter-spacing:-0.025em; line-height:1.1; margin-bottom:4px;}
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px;}
+.grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px;}
+.card{ background:var(--card); border:1px solid var(--line); border-radius:11px; padding:4px 11px; position:relative; overflow:hidden; box-shadow:0 1px 0 rgba(10,10,10,0.03);}
+.card.ac::before{ content:""; position:absolute; top:0; left:0; right:0; height:2px; background:var(--green-deep);}
+.card .t{ font-size:11.5px; font-weight:600; color:var(--ink); margin-bottom:2px; letter-spacing:-0.01em;}
+.card .d{ font-size:9.8px; color:var(--ink2); line-height:1.36;}
+.dev{ display:flex; gap:6px; align-items:center; padding:6px 8px;}
+.dev .im{ flex:none; width:0.5in; height:0.77in; display:flex; align-items:center; justify-content:center;}
+.dev .im img{ max-width:100%; max-height:100%; display:block;}
+.dev .t{ font-size:12.5px; margin-bottom:4px;}
+.feat{ display:flex; gap:8px; align-items:flex-start; font-size:10.3px; line-height:1.34; color:var(--ink2); margin-bottom:2px;}
+.feat .mk{ flex:none; width:5px; height:5px; border-radius:1px; background:var(--ink); margin-top:4.5px; transform:rotate(45deg);}
+.feat b{ color:var(--ink); font-weight:600;}
+.lead{ font-size:10.5px; color:var(--ink2); line-height:1.4; margin-bottom:4px;}
+.lead b{ color:var(--ink); font-weight:600;}
+.note{ margin-top:5px; position:relative; background:var(--green-tint); border:1px solid #7add2c40; border-radius:10px; padding:5px 11px 5px 14px; font-size:10.2px; line-height:1.38; color:var(--ink2); overflow:hidden;}
+.note::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--green-deep);}
+.note b{ color:var(--ink); font-weight:600;}
+.price{ padding:6px 13px 7px;}
+.price .lab{ white-space:nowrap; font-size:11.5px; font-weight:600; letter-spacing:-0.01em; margin-bottom:1px;}
+.price .head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;}
+.price .big{ display:flex; align-items:baseline; gap:5px; white-space:nowrap;}
+.price .big .n{ font-size:25px; font-weight:600; letter-spacing:-0.04em; line-height:1;}
+.price .big .n.g{ color:var(--green-ink);}
+.price .big .u{ font-size:9px; color:var(--ink3);}
+.price .big .d{ font-size:10px; font-weight:500; color:var(--ink3); margin-right:1px;}
+.price .sep{ border-top:1px solid var(--line2); margin:3px 0 4px;}
+.price .cm{ font-size:9.5px; color:var(--ink3); margin-top:3px;}
+.chips{ display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;}
+.chip{ font-size:9.6px; padding:2px 8px; border-radius:999px; background:#fff; border:1px solid var(--line); color:var(--ink2);}
+.chip b{ color:var(--ink); font-weight:600;}
+.fine{ font-size:8.6px; color:var(--ink4); margin-top:4px; line-height:1.32;}
+.fine.rate-conditions{ font-size:9.5px; color:var(--ink3); }
+.step{ padding:5px 11px;}
+.step .t span{ color:var(--green-ink);}
+.cta{ flex:none; margin-top:auto; display:flex; align-items:center; gap:16px; border-radius:14px; padding:7px 16px; position:relative; z-index:2; overflow:hidden;
+  background:var(--soft); border:1px solid var(--line);}
+.cta img{ width:0.66in; height:0.66in; flex:none; border-radius:8px; background:#fff; position:relative; z-index:2;}
+.cta .ct1{ font-size:13.5px; font-weight:700; color:var(--ink); letter-spacing:-0.01em; position:relative; z-index:2;}
+.cta .ct2{ font-size:10.8px; color:var(--ink2); margin-top:3px; position:relative; z-index:2; line-height:1.4;}
+.cta .ct3{ font-size:11px; color:var(--ink2); margin-top:4px; position:relative; z-index:2;}
+.cta .ct3 b{ color:var(--ink);}
+.cta .ct3 .g{ color:var(--green-ink); font-weight:600;}
+.foot{ flex:none; margin-top:4px; padding-top:6px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; position:relative; z-index:2;}
+.foot .l{ font-size:10px; color:var(--ink2);}
+.foot .l b{ color:var(--green-ink);}
+.foot .r{ font-family:'DM Mono',monospace; font-size:9px; color:var(--ink4); letter-spacing:0.05em;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="presentation-web.css">
+<link rel="stylesheet" href="presentation-terminal.css">
+</head>
+<body class="avq-web avq-terminal-page"><header class="avq-toolbar">
+<a class="avq-brand" href="terminal-avoqado.html">Avoqado</a>
+<details class="avq-index"><summary>Índice</summary><nav aria-label="Índice de la presentación"><ol><li class="avq-story-nav" hidden><a href="#elige-terminal">Elegir terminal</a></li><li class="avq-story-nav" hidden><a href="#prueba-terminal">Probar selección de cuenta</a></li><li><a href="#tema-1">El equipo · PAX y NexGo, tres formatos para tu negocio</a></li><li><a href="#tema-2">Cómo cobra · acepta como quiera pagar tu cliente</a></li><li><a href="#tema-3">En la práctica</a></li><li><a href="#tema-4">Único en México</a></li><li><a href="#tema-5">Lo que te cuesta cada venta</a></li><li><a href="#tema-6">Cómo empezar · de la llamada a tu primer cobro</a></li></ol></nav></details>
+<a class="avq-other" href="terminal-avoqado.html">Ver presentación completa</a>
+<a class="avq-download" href="terminal-avoqado-resumen.pdf" download>Descargar PDF</a>
+</header>
+<p class="avq-hint">Explora a tu ritmo. Elige un equipo, abre las formas de pago y toca las fotos para verlas de cerca.</p><main><div class="avq-terminal avq-screen-only" hidden>
+<section class="avq-terminal-hero" id="elige-terminal" aria-labelledby="avq-terminal-title">
+  <img class="avq-terminal-logo" src="assets/logo-h-black.png" alt="Avoqado">
+  <div class="avq-terminal-layout"><div class="avq-terminal-intro">
+    <h1 id="avq-terminal-title">Tu cobro.<br><span>Con mucho más<br> detrás.</span></h1>
+    <p>PAX y NexGo, conectadas con tu negocio. Elige el equipo que te acompaña al cobrar.</p>
+    <a class="avq-terminal-cta" href="#prueba-terminal" data-tour="presentation-terminal-explore">Descubrir la diferencia <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+  </div><div class="avq-terminal-showcase"><div class="avq-terminal-stage"><figure class="avq-terminal-photo" data-terminal-id="pax"><img src="assets/pax-terminal.png" alt="Terminal PAX A910S"></figure><figure class="avq-terminal-photo" data-terminal-id="n86"><img src="assets/nexgo86-avoqado.png" alt="Terminal NexGo N86"></figure><figure class="avq-terminal-photo" data-terminal-id="n62"><img src="assets/nexgo62-avoqado.png" alt="Terminal NexGo N62"></figure></div>
+    <div class="avq-terminal-controls" role="group" aria-label="Elige tu terminal"><button type="button" data-terminal-select="pax" aria-pressed="false">PAX A910S</button><button type="button" data-terminal-select="n86" aria-pressed="false">N86 · con impresora</button><button type="button" data-terminal-select="n62" aria-pressed="false">N62 · compacta</button></div>
+  </div></div>
+  <div class="avq-terminal-profile" aria-live="polite"><div data-terminal-profile="pax" hidden><h2>PAX A910S</h2><ul><li>Android portátil con pantalla táctil</li><li>Chip, banda y contactless</li><li>Cobra directo, sin lector externo</li><li>Recibo por impresora térmica Bluetooth</li></ul></div><div data-terminal-profile="n86" hidden><h2>N86 · con impresora</h2><ul><li>Imprime el ticket ahí mismo</li><li>Portátil — cobra en mesa, en piso o en la puerta</li><li>Batería de turno completo</li><li>Lector de códigos para cobrar por producto</li></ul></div><div data-terminal-profile="n62" hidden><h2>N62 · compacta</h2><ul><li>Ocupa mínimo espacio en el mostrador</li><li>Pantalla grande para el catálogo</li><li>Recibo digital al celular del cliente</li><li>Ideal para tienda, barra y consultorio</li></ul></div><p>Selecciona un modelo. Toca la foto para verla de cerca.</p></div>
+</section>
+<section class="avq-terminal-example" id="prueba-terminal" aria-labelledby="avq-terminal-example-title">
+  <div class="avq-terminal-example-copy"><h2 id="avq-terminal-example-title">El dinero entra<br><span>donde tú decides.</span></h2>
+    <p>Elige la cuenta de depósito desde la terminal. Separa ingresos, proveedores o negocios que comparten local.</p>
+    <p class="avq-terminal-demo-note">Ejemplo interactivo con cuentas ilustrativas. No se envía dinero ni se crea una venta.</p>
+  </div><div class="avq-terminal-account-demo"><h3>Elige la cuenta para esta venta</h3>
+    <div role="group" aria-label="Cuentas de ejemplo"><button type="button" data-terminal-account="0" aria-pressed="false"><span><strong>BBVA</strong><small>Cuenta de pago a proveedores</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button><button type="button" data-terminal-account="1" aria-pressed="false"><span><strong>Santander</strong><small>Cuenta de ingresos</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button><button type="button" data-terminal-account="2" aria-pressed="false"><span><strong>Inbursa</strong><small>Cuenta general</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div><p data-terminal-output role="status"></p>
+  </div>
+</section>
+<div class="avq-terminal-continuation"><h2>Conoce todos los detalles.</h2><p>Equipo, formas de pago, comisiones y cómo empezar.</p></div>
+</div>
+<div class="page">
+
+  <div class="top">
+    <img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado">
+    <div class="tag">Terminal de cobro<br>Información de producto · 2026</div>
+  </div>
+
+  <div class="hero">
+    <h1>La terminal de cobro <span class="grad">que además entiende tu negocio.</span></h1>
+    <p>Una terminal solo mueve el dinero: no sabe <b>qué</b> vendiste, no toca tu inventario ni factura. La de Avoqado cobra con todo lo que paga tu cliente y, conectada al sistema, <b>cada venta sabe qué se vendió</b>.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-1">El equipo · PAX y NexGo, tres formatos para tu negocio</div>
+    <div class="grid3 devices">
+      <div class="card ac dev">
+        <div class="im"><img loading="lazy" src="assets/eq-pax-a910s.jpg" alt="Terminal PAX A910S"></div>
+        <div>
+          <div class="t">PAX A910S</div>
+          <div class="feat"><span class="mk"></span><span><b>Android portátil</b> táctil</span></div>
+          <div class="feat"><span class="mk"></span><span>Chip, banda y contactless</span></div>
+          <div class="feat"><span class="mk"></span><span>Recibo por <b>Bluetooth</b></span></div>
+        </div>
+      </div>
+      <div class="card ac dev">
+        <div class="im"><img loading="lazy" src="assets/nexgo86-avoqado.png" alt="Terminal N86"></div>
+        <div>
+          <div class="t">N86 · con impresora</div>
+          <div class="feat"><span class="mk"></span><span><b>Ticket impreso</b> en el equipo</span></div>
+          <div class="feat"><span class="mk"></span><span>Portátil; batería de turno completo</span></div>
+          <div class="feat"><span class="mk"></span><span>Lector de códigos</span></div>
+        </div>
+      </div>
+      <div class="card ac dev">
+        <div class="im"><img loading="lazy" src="assets/nexgo62-avoqado.png" alt="Terminal N62"></div>
+        <div>
+          <div class="t">N62 · compacta</div>
+          <div class="feat"><span class="mk"></span><span><b>Compacta</b> para mostrador</span></div>
+          <div class="feat"><span class="mk"></span><span>Pantalla para tu catálogo</span></div>
+          <div class="feat"><span class="mk"></span><span><b>Recibo digital</b> al cliente</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-2">Cómo cobra · acepta como quiera pagar tu cliente</div>
+    <div class="grid3">
+      <details class="avq-payment avq-screen-only"><summary>Contactless</summary><p>Tarjeta, celular o reloj. El cobro más rápido y el que menos fila hace.</p></details><div class="card avq-print-only"><div class="t">Contactless</div><div class="d">Tarjeta, celular o reloj. El cobro más rápido y el que menos fila hace.</div></div>
+      <details class="avq-payment avq-screen-only"><summary>Chip y PIN</summary><p>El estándar seguro para montos altos.</p></details><div class="card avq-print-only"><div class="t">Chip y PIN</div><div class="d">El estándar seguro para montos altos.</div></div>
+      <details class="avq-payment avq-screen-only"><summary>Banda magnética</summary><p>Para tarjetas sin chip. Nadie se queda sin pagar.</p></details><div class="card avq-print-only"><div class="t">Banda magnética</div><div class="d">Para tarjetas sin chip. Nadie se queda sin pagar.</div></div>
+      <details class="avq-payment avq-screen-only"><summary>Propina, recibo y efectivo</summary><p>Propina en pantalla, ticket impreso o digital, y efectivo registrado para que el corte cuadre.</p></details><div class="card avq-print-only"><div class="t">Propina, recibo y efectivo</div><div class="d">Propina en pantalla, ticket impreso o digital, y efectivo registrado para que el corte cuadre.</div></div>
+      <details class="avq-payment avq-screen-only"><summary>Tarjetas internacionales</summary><p>Cobra a turistas y clientes del extranjero sin trámites aparte.</p></details><div class="card avq-print-only ac"><div class="t">Tarjetas internacionales</div><div class="d">Cobra a turistas y clientes del extranjero sin trámites aparte.</div></div>
+      <details class="avq-payment avq-screen-only"><summary>American Express</summary><p>Aceptada igual que Visa y Mastercard. No pierdes al cliente que solo trae AMEX.</p></details><div class="card avq-print-only ac"><div class="t">American Express</div><div class="d">Aceptada igual que Visa y Mastercard. No pierdes al cliente que solo trae AMEX.</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="grid2" style="gap:22px;">
+      <div>
+        <div class="sec-h" id="tema-3">En la práctica</div>
+        <div class="sub">No solo cobra: <span class="grad">levanta la orden.</span></div>
+        <div class="lead">Otras solo esperan un monto. La de Avoqado <b>trae tu catálogo</b>.</div>
+        <div class="feat"><span class="mk"></span><span><b>Toma la orden</b> — tu catálogo con precios, en la terminal</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Cuenta abierta</b> — agrega durante el consumo y cobras al final</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Divide la cuenta</b> entre varias personas, sin calculadora</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Propina sugerida</b> — 10, 15 o 20 %, la elige el cliente</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Cobro rápido</b> — si solo quieres teclear un monto, también</span></div>
+      </div>
+      <div>
+        <div class="sec-h" id="tema-4">Único en México</div>
+        <div class="sub">Tú decides a qué cuenta <span class="grad">entra cada peso.</span></div>
+        <div class="lead">Otras mandan todo a una cuenta. Aquí <b>eliges al cobrar</b>.</div>
+        <div class="feat"><span class="mk"></span><span><b>Varias cuentas bancarias</b> — BBVA, Santander, Inbursa, la que uses</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Separa por destino</b> — proveedores, ingresos, nómina, socios</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Cada quien su cuenta</b> si comparten local</span></div>
+        <div class="note">Hoy&nbsp;<b>ninguna otra terminal en México</b>&nbsp;te deja escoger la cuenta de depósito venta por venta.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-5">Lo que te cuesta cada venta</div>
+    <div class="grid2 rate-options" style="margin-bottom:5px;">
+      <div class="card ac price">
+        <div class="head"><div class="lab">Tarifa por giro</div><div class="big"><span class="d">desde</span><span class="n g">0.8%</span><span class="u">+ IVA</span></div></div>
+        <div class="cm" style="color:var(--ink2);">Con actividad económica acreditada en la Constancia de Situación Fiscal.</div>
+      </div>
+      <div class="card ac price">
+        <div class="head"><div class="lab">Tarifa agregador</div><div class="big"><span class="d">desde</span><span class="n g">2.2%</span><span class="u">+ IVA</span></div></div>
+        <div class="cm" style="color:var(--ink2);">Una alternativa si aún no acreditas tu actividad en la constancia. Te acompañamos en el alta.</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card price">
+        <div class="head"><div class="lab">Terminal sola</div></div>
+        <div class="sep"></div>
+        <div class="feat"><span class="mk"></span><span>Cobras con tarjeta</span></div>
+        <div class="feat"><span class="mk"></span><span>Imprimes ticket</span></div>
+        <div class="feat" style="margin-bottom:0"><span class="mk"></span><span>Recibes tu depósito</span></div>
+      </div>
+      <div class="card ac price" style="background:#FCFEF9; border-color:#7add2c66;">
+        <div class="head"><div class="lab">Terminal + sistema Avoqado</div></div>
+        <div class="sep"></div>
+        <div class="feat"><span class="mk"></span><span>Sabe <b>qué</b> producto vendiste en cada cobro</span></div>
+        <div class="feat"><span class="mk"></span><span>Descuenta el inventario solo</span></div>
+        <div class="feat"><span class="mk"></span><span>Factura CFDI desde el mismo ticket</span></div>
+        <div class="feat" style="margin-bottom:0"><span class="mk"></span><span>El corte de caja sale hecho</span></div>
+      </div>
+    </div>
+    <div class="note"><span>Usa la misma terminal sola o conecta el sistema cuando quieras. Conectada, <b>cada venta sabe qué se vendió</b>.</span></div>
+    <div class="chips">
+      <span class="chip"><b>Tu tasa</b> confirmada al cotizar</span>
+      <span class="chip"><b>Sin renta</b> ni mínimos</span>
+      <span class="chip"><b>Sin costo</b> de instalación</span>
+      <span class="chip"><b>Depósito</b> directo a tu banco</span>
+      <span class="chip"><b>Cada cobro</b> identificado</span>
+    </div>
+    <div class="fine rate-conditions">Ambas opciones requieren validación de identidad y expediente. La tasa por venta depende del giro, volumen y tipo de tarjeta; se confirma antes de contratar.</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-6">Cómo empezar · de la llamada a tu primer cobro</div>
+    <div class="grid4">
+      <div class="card step"><div class="t"><span>1 ·</span> Nos cuentas</div><div class="d">Qué vendes y cuánto cobras al mes con tarjeta. Con eso definimos tu tasa.</div></div>
+      <div class="card step"><div class="t"><span>2 ·</span> Alta</div><div class="d">Nos das tus documentos y damos de alta tu negocio. Sin costo.</div></div>
+      <div class="card step"><div class="t"><span>3 ·</span> Te llega</div><div class="d">Llega configurada y lista. La prendes y cobras.</div></div>
+      <div class="card step"><div class="t"><span>4 ·</span> Te acompañamos</div><div class="d">Te enseñamos a usarla y quedamos de soporte por WhatsApp.</div></div>
+    </div>
+    <div class="note">¿Ya tienes terminal de otro proveedor? <b>No hay problema:</b> puedes tener las dos mientras compruebas la diferencia, sin exclusividad.</div>
+  </div>
+
+  <div class="cta" style="margin-top:auto;">
+    <img loading="lazy" src="assets/qr-wa.png" alt="QR WhatsApp Avoqado">
+    <div>
+      <div class="ct1">Cotiza tu terminal y te decimos tu tasa exacta.</div>
+      <div class="ct2">Te confirmamos la comisión para tu giro y volumen. Sin compromiso.</div>
+      <div class="ct3">WhatsApp <b><a href="https://wa.me/525640070001" target="_blank" rel="noopener noreferrer">56 4007 0001</a></b> &nbsp;·&nbsp; <b>hola@avoqado.io</b> &nbsp;·&nbsp; <span class="g">avoqado.io</span></div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="l"><b>avoqado.io</b> &nbsp;·&nbsp; Terminal de cobro &nbsp;·&nbsp; Hecho a la medida de México</div>
+    <div class="r">2026</div>
+  </div>
+</div>
+</main><script id="avq-features" type="application/json">[]</script>
+<script id="avq-terminal-data" type="application/json">{"equipment": [{"id": "pax", "title": "PAX A910S", "image": "assets/eq-pax-a910s.jpg", "alt": "Terminal PAX A910S", "features": ["Android portátil con pantalla táctil", "Chip, banda y contactless", "Cobra directo, sin lector externo", "Recibo por impresora térmica Bluetooth"]}, {"id": "n86", "title": "N86 · con impresora", "image": "assets/nexgo86-avoqado.png", "alt": "Terminal NexGo N86", "features": ["Imprime el ticket ahí mismo", "Portátil — cobra en mesa, en piso o en la puerta", "Batería de turno completo", "Lector de códigos para cobrar por producto"]}, {"id": "n62", "title": "N62 · compacta", "image": "assets/nexgo62-avoqado.png", "alt": "Terminal NexGo N62", "features": ["Ocupa mínimo espacio en el mostrador", "Pantalla grande para el catálogo", "Recibo digital al celular del cliente", "Ideal para tienda, barra y consultorio"]}], "payments": [{"title": "Contactless", "description": "El cliente acerca su tarjeta, celular o reloj. Es el cobro más rápido y el que menos fila hace."}, {"title": "Chip y PIN", "description": "Inserta la tarjeta y teclea su NIP. El estándar seguro para montos altos."}, {"title": "Banda magnética", "description": "Para las tarjetas que todavía no traen chip. Nadie se queda sin pagar."}, {"title": "Propina, recibo y efectivo", "description": "Propina en pantalla, ticket impreso o digital, y registro de ventas en efectivo para que el corte cuadre."}, {"title": "Tarjetas internacionales", "description": "Cobra a turistas y clientes del extranjero sin trámites aparte."}, {"title": "American Express", "description": "Aceptada igual que Visa y Mastercard. No pierdes al cliente que solo trae AMEX."}], "accounts": [{"bank": "BBVA", "destination": "Cuenta de pago a proveedores"}, {"bank": "Santander", "destination": "Cuenta de ingresos"}, {"bank": "Inbursa", "destination": "Cuenta general"}]}</script>
+<dialog class="avq-dialog" aria-labelledby="avq-dialog-title">
+<button class="avq-close" type="button" autofocus>Cerrar</button>
+<h2 id="avq-dialog-title"></h2><div class="avq-dialog-content"></div>
+</dialog>
+<script src="presentation-terminal.js" defer></script>
+<script src="presentation-web.js" defer></script>
+</body>
+</html>
