@@ -30,6 +30,11 @@ export function useLeaveGuard({ dirty, saving, conflict = false }: { dirty: bool
   }, [held, saving, dirty, conflict, blocker])
 
   return {
+    /**
+     * Hay una navegación detenida (esperando a que termine de guardar, o a «¿Salir sin guardar?»). Sirve a quien CIERRA el
+     * editor al guardar: desmontarlo borra el `useBlocker` y la navegación retenida se perdería; antes de cerrar, `leave()`.
+     */
+    held,
     /** Una navegación detenida espera la respuesta a «¿Salir sin guardar?». */
     asking: held && !saving && dirty && !conflict,
     leave: () => blocker.proceed?.(),

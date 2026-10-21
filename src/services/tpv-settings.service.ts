@@ -140,6 +140,9 @@ export interface VenueTpvSettings {
   enableSerializedInventory: boolean
 }
 
+/** Lo que responde el guardado por sucursal: los ajustes y a cuántas terminales llegó (opcionales: un server viejo no los manda). */
+export type VenueTpvSettingsSaved = VenueTpvSettings & { terminalsUpdated?: number; terminalsOmitted?: number }
+
 const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
   attendanceTracking: false,
   trackPromoterLocation: false,
@@ -217,7 +220,7 @@ export const tpvSettingsService = {
    * Update venue-level TPV settings (bulk updates ALL terminals)
    * @permission venues:update (ADMIN+)
    */
-  async updateVenueSettings(venueId: string, settings: Partial<VenueTpvSettings>): Promise<VenueTpvSettings> {
+  async updateVenueSettings(venueId: string, settings: Partial<VenueTpvSettings>): Promise<VenueTpvSettingsSaved> {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/settings/tpv`, settings)
     return response.data
   },

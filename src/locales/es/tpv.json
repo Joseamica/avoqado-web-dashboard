@@ -430,7 +430,8 @@
       "venueOrTpvUndefined": "El ID del Venue o TPV no está definido",
       "updateFailed": "Error al actualizar el terminal",
       "loadError": "Error al cargar el terminal",
-      "tpvIdUndefined": "El ID del TPV no está definido"
+      "tpvIdUndefined": "El ID del TPV no está definido",
+      "refreshError": "No pudimos actualizar los datos de este dispositivo; se muestran los últimos."
     },
     "toast": {
       "updateSuccess": "Terminal actualizado",
@@ -474,6 +475,9 @@
     "tipPlaceholder": "Ej: 25",
     "tipAlreadyExists": "Este porcentaje ya existe",
     "tipInvalidRange": "Ingresa un valor entre 1 y 100",
+    "tipMaxReached": "Máximo {{max}} porcentajes. Quita uno para agregar otro.",
+    "tipOverMax": "Hay {{total}} porcentajes de propina y el máximo es {{max}}. Quita {{remove}} más: el cambio no se guarda hasta que queden {{max}} o menos.",
+    "removeTipOption": "Quitar {{value}}%",
     "updateSuccess": "Configuración actualizada",
     "updateError": "Error al actualizar configuración",
     "loadError": "Error al cargar configuración del terminal",

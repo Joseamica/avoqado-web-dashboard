@@ -343,6 +343,16 @@
     "subtitle": "Manage goals, commissions, terminal and catalog",
     "pageTitle": "Configuration",
     "pageSubtitle": "Manage goals, commissions, terminal and catalog",
+    "saveResult": {
+      "title": "Settings saved",
+      "all_one": "Applied to {{count}} terminal.",
+      "all_other": "Applied to {{count}} terminals.",
+      "partial": "Applied to {{updated}} terminals. {{omitted}} moved to another location while you were saving and didn't get the change.",
+      "noneTitle": "No terminal got the change",
+      "none_one": "The terminal moved to another location while you were saving. Reload the page and try again.",
+      "none_other": "All {{count}} terminals moved to another location while you were saving. Reload the page and try again.",
+      "legacy": "Changes will sync with the terminals."
+    },
     "tabs": {
       "general": "General",
       "organizacional": "Organizational",

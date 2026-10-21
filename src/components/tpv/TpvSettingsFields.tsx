@@ -38,6 +38,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { agregarPorcentaje, MAX_PORCENTAJES_DE_PROPINA, quitarPorcentaje } from '@/pages/Tpv/customer-display/model'
 import type { TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
 
 interface Merchant {
@@ -132,8 +134,14 @@ export function TpvSettingsFields({
 }: TpvSettingsFieldsProps) {
   const { t } = useTranslation('tpv')
   const [newTipValue, setNewTipValue] = useState('')
+  // Lista de propinas con quitas anotadas que AÚN no se mandan (sólo cuando lo guardado pasa del tope; ver handleRemoveTipOption).
+  const [draftTips, setDraftTips] = useState<number[] | null>(null)
 
   const isDisabled = disabled || isPending
+
+  const tipOptions = draftTips ?? settings.tipSuggestions ?? [10, 15, 20]
+  const tipsOverMax = tipOptions.length > MAX_PORCENTAJES_DE_PROPINA
+  const tipsFull = tipOptions.length >= MAX_PORCENTAJES_DE_PROPINA
 
   // Offline card-payment kill-switch gate: only meaningful on terminals running v2.5.0+.
   const offlineCardStatus = offlineCardPaymentGate ? offlineCardVersionStatus(offlineCardPaymentGate) : null
@@ -171,22 +179,25 @@ export function TpvSettingsFields({
 
   const handleAddTipOption = () => {
     if (isDisabled) return
-    const num = parseInt(newTipValue, 10)
-    if (isNaN(num) || num < 1 || num > 100) return
-    const current = settings.tipSuggestions || [10, 15, 20]
-    if (current.includes(num)) return
-    const updated = [...current, num].sort((a, b) => a - b)
+    const updated = agregarPorcentaje(tipOptions, newTipValue) // null: lleno (6), repetido o fuera de 1-100
+    if (!updated) return
     onUpdate({ tipSuggestions: updated })
     setNewTipValue('')
   }
 
   const handleRemoveTipOption = (value: number) => {
     if (isDisabled) return
-    const current = settings.tipSuggestions || [10, 15, 20]
-    const updated = current.filter(v => v !== value)
-    if (updated.length === 0) return
-    const resetDefault = settings.defaultTipPercentage === value ? { defaultTipPercentage: null } : {}
-    onUpdate({ tipSuggestions: updated, ...resetDefault })
+    const updated = quitarPorcentaje(tipOptions, value) // null: era la última (el servidor exige al menos una)
+    if (!updated) return
+    // Lo guardado pasa del tope (terminales viejas): el servidor rechaza con 400 cualquier lista de más de 6 y la quita se
+    // revertiría una y otra vez. Se anota aquí y se manda UNA vez, cuando ya cabe.
+    if (updated.length > MAX_PORCENTAJES_DE_PROPINA) {
+      setDraftTips(updated)
+      return
+    }
+    setDraftTips(null)
+    const defaultQuitada = settings.defaultTipPercentage != null && !updated.includes(settings.defaultTipPercentage)
+    onUpdate({ tipSuggestions: updated, ...(defaultQuitada ? { defaultTipPercentage: null } : {}) })
   }
 
   const handleKioskMerchantChange = (value: string) => {
@@ -205,8 +216,6 @@ export function TpvSettingsFields({
     const override = value === 'on' ? true : value === 'off' ? false : null
     onUpdate({ trackPromoterLocation: override })
   }
-
-  const tipOptions = settings.tipSuggestions || [10, 15, 20]
 
   return (
     <div className="space-y-6">
@@ -322,6 +331,7 @@ export function TpvSettingsFields({
                                   type="button"
                                   onClick={() => handleRemoveTipOption(tip)}
                                   disabled={isPending}
+                                  aria-label={t('tpvSettings.removeTipOption', { value: tip })}
                                   className="ml-0.5 hover:text-destructive transition-colors disabled:opacity-50"
                                 >
                                   <X className="h-3 w-3" />
@@ -346,20 +356,36 @@ export function TpvSettingsFields({
                                 }
                               }}
                               className="w-24 h-8 text-sm"
-                              disabled={isPending}
+                              disabled={isPending || tipsFull}
                             />
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={handleAddTipOption}
-                              disabled={!newTipValue || isPending}
+                              disabled={!newTipValue || isPending || tipsFull}
                               className="h-8"
                             >
                               <Plus className="h-3.5 w-3.5 mr-1" />
                               {t('tpvSettings.addTipOption')}
                             </Button>
                           </div>
+                        )}
+                        {!disabled && tipsOverMax && (
+                          <Alert className="mt-3 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800">
+                            <AlertDescription className="text-amber-800 dark:text-amber-200">
+                              {t('tpvSettings.tipOverMax', {
+                                total: tipOptions.length,
+                                max: MAX_PORCENTAJES_DE_PROPINA,
+                                remove: tipOptions.length - MAX_PORCENTAJES_DE_PROPINA,
+                              })}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {!disabled && tipsFull && !tipsOverMax && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {t('tpvSettings.tipMaxReached', { max: MAX_PORCENTAJES_DE_PROPINA })}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -375,7 +401,11 @@ export function TpvSettingsFields({
                       </div>
                     </div>
                     <Select
-                      value={settings.defaultTipPercentage?.toString() ?? 'none'}
+                      value={
+                        settings.defaultTipPercentage != null && tipOptions.includes(settings.defaultTipPercentage)
+                          ? settings.defaultTipPercentage.toString()
+                          : 'none'
+                      }
                       onValueChange={handleSelectChange}
                       disabled={isDisabled}
                     >

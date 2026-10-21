@@ -101,7 +101,7 @@ describe('ReceiptDesignerModal', () => {
     const { onClose } = abrir()
     await userEvent.click(await screen.findByTestId('block-row-logo'))
     await userEvent.click(await screen.findByTestId('block-size-logo-L'))
-    await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'common:close' }))
     expect(await screen.findByTestId('receipt-layout-discard')).toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
     await userEvent.click(screen.getByTestId('receipt-layout-discard'))
@@ -111,7 +111,7 @@ describe('ReceiptDesignerModal', () => {
   it('cerrar SIN cambios no molesta con un diálogo', async () => {
     const { onClose } = abrir()
     await screen.findByTestId('receipt-layout-save')
-    await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'common:close' }))
     expect(onClose).toHaveBeenCalled()
     expect(screen.queryByTestId('receipt-layout-discard')).toBeNull()
   })

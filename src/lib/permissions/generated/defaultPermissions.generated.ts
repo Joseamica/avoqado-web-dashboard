@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella e3d94d9e5019916a.
- * ADMIN 112 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 133 · OWNER 118 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella 92e588ef57af21b7.
+ * ADMIN 115 · CASHIER 41 · HOST 18 · KITCHEN 9 · MANAGER 134 · OWNER 119 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -45,6 +45,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'estimates:create',
     'printers:*',
     'receipt-layout:*',
+    'customer-display:*',
     'payments:*',
     'payments:resolve-no-instrument',
     'payments:reconcile-uncharged',
@@ -101,6 +102,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'products:*',
     'settings:manage',
     'role-config:*',
+    'tpv-settings:read',
+    'tpv-settings:update',
     'tpv-terminal:settings',
     'tpv-devices:manage',
     'tpv-kiosk:enable',
@@ -231,6 +234,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'tender-types:read',
     'printers:read',
     'printers:manage',
+    'customer-display:*',
     'menu:read',
     'menu:create',
     'menu:update',
@@ -367,6 +371,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'financialConnections:*',
     'printers:*',
     'receipt-layout:*',
+    'customer-display:*',
     'commissions:*',
     'staffpay:read',
     'staffpay:manage',
@@ -540,4 +545,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'e3d94d9e5019916a'
+export const DEFAULT_PERMISSIONS_DIGEST = '92e588ef57af21b7'

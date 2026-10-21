@@ -285,8 +285,8 @@ test.describe('Commission Setup Panel', () => {
     // 2 de 2
     await expect(page.getByText(/2 de 2/)).toBeVisible({ timeout: 3_000 })
 
-    // Close via "Cerrar" button
-    await page.getByRole('button', { name: /Cerrar/i }).click()
+    // Close via the FullScreenModal X (its accessible name is translated: this spec runs in English)
+    await page.getByRole('button', { name: 'Close', exact: true }).click()
 
     // Panel gone (0 dialogs)
     await expect(page.locator('[role="dialog"]')).toHaveCount(0, { timeout: 3_000 })

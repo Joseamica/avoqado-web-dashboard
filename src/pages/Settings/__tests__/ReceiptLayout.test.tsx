@@ -137,7 +137,7 @@ describe('ReceiptLayout (sección de Ajustes)', () => {
     await userEvent.click(await screen.findByTestId('receipt-layout-templates'))
     await userEvent.click(await screen.findByTestId('receipt-layout-template-minimal'))
     await waitFor(() => expect(screen.getByTestId('block-row-fiscal')).toBeInTheDocument())
-    await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'common:close' }))
     await userEvent.click(await screen.findByTestId('receipt-layout-design'))
     await waitFor(() => expect(screen.getByTestId('block-row-signature')).toBeInTheDocument())
   })

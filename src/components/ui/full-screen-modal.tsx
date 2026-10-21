@@ -12,6 +12,7 @@
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +58,7 @@ export function FullScreenModal({
   closeButtonTestId,
   titleClassName,
 }: FullScreenModalProps) {
+  const { t } = useTranslation()
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogPrimitive.Portal>
@@ -89,7 +91,7 @@ export function FullScreenModal({
                 data-testid={closeButtonTestId}
               >
                 <X className="h-6 w-6" />
-                <span className="sr-only">Cerrar</span>
+                <span className="sr-only">{t('common:close')}</span>
               </Button>
             </DialogPrimitive.Close>
 

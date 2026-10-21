@@ -33,6 +33,7 @@ import { useSocket } from '@/context/SocketContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI, TerminalStatus } from '@/services/superadmin-terminals.service'
@@ -45,6 +46,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   AppWindow,
   BatteryMedium,
   ChevronDown,
@@ -80,9 +82,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as z from 'zod'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { CommandHistoryTable } from './components/CommandHistoryTable'
-import { DisplayModeRequestControl, getDisplayModeRefetchInterval } from './components/DisplayModeRequestControl'
+import { getDisplayModeRefetchInterval } from './components/DisplayModeRequestControl'
 import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
+import { CustomerDisplaySection } from './customer-display/CustomerDisplaySection'
 import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
@@ -615,8 +618,15 @@ function TpvIdContent() {
     )
   }
 
+  // 🔴 Las páginas de error COMPLETAS sólo cuando no hay nada que enseñar (Codex #1, revisión final I2). Una reconsulta de
+  // fondo que falla (foco, socket) prende `isError` y CONSERVA `tpv` (TanStack v5): devolver aquí desmontaría la sección y un
+  // editor abierto, y el borrador se perdería sin la pregunta de salida. Con datos, el árbol se queda y se avisa arriba. Un
+  // 404 en una reconsulta (el aparato se borró o se movió) tampoco desmonta: mismo aviso, y si se guarda, el guardado da su
+  // propio 404 con el mensaje del servidor.
+  const errorDeFondo = isError && Boolean(tpv)
+
   // Handle 404 error - TPV not found
-  if (isError && (error as any)?.response?.status === 404) {
+  if (isError && !tpv && (error as any)?.response?.status === 404) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Card className="w-full max-w-md">
@@ -647,7 +657,7 @@ function TpvIdContent() {
   }
 
   // Handle other errors
-  if (isError) {
+  if (isError && !tpv) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Alert variant="destructive" className="max-w-md">
@@ -683,9 +693,10 @@ function TpvIdContent() {
   const maintenanceTransition = isInMaintenance ? TpvCommandType.EXIT_MAINTENANCE : TpvCommandType.MAINTENANCE_MODE
   const lockTransition = tpv.isLocked ? TpvCommandType.UNLOCK : TpvCommandType.LOCK
   const canRestart = canSendCommand(tpv.capabilities, TpvCommandType.RESTART)
-  const showDisplayModeControl =
-    tpv.capabilities.customerDisplay.presence !== 'UNSUPPORTED' &&
-    tpv.capabilities.customerDisplay.invertibility !== 'UNSUPPORTED'
+  // La columna derecha de Información sólo tiene el bloque de SUPERADMIN: sin él, la principal ocupa todo el ancho (un
+  // tercio vacío a ≥1280 px se veía roto desde que la pantalla del cliente subió a la columna principal).
+  const conColumnaDerecha =
+    isSuperAdmin && (actionPolicy.canConfigurePayments || actionPolicy.canDeactivate || actionPolicy.activationPending)
 
   // Lo que el menú «Acciones» ofrece: mismos permisos y capacidades que los botones y switches de antes.
   const canCommand = can('tpv:command')
@@ -741,6 +752,16 @@ function TpvIdContent() {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          {/* Una reconsulta de fondo falló: se enseña lo último que se supo, sin desmontar nada (ver `errorDeFondo`). */}
+          {errorDeFondo && (
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-lg border border-warning-border bg-warning-muted px-3 py-2 text-sm text-warning-foreground"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              {t('detail.errors.refreshError')}
+            </p>
+          )}
           {/* Encabezado (maqueta E, 8-oct-2026): quién es, cómo está, y UN botón con las acciones. */}
           <div className="space-y-4">
             <Link to={from} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -913,8 +934,26 @@ function TpvIdContent() {
 
             {/* Info Tab */}
             <TabsContent value="info" className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="space-y-6 xl:col-span-2">
+              <div className={cn('grid grid-cols-1 gap-6', conColumnaDerecha && 'xl:grid-cols-3')}>
+                <div className={cn('space-y-6', conColumnaDerecha && 'xl:col-span-2')}>
+                  {/* Pantalla del cliente (F1): diseño, pasos del cobro y orientación. La sección decide qué ve cada tipo. */}
+                  {venueId && tpvId && (
+                    <CustomerDisplaySection
+                      key={`${venueId}:${tpvId}`}
+                      venueId={venueId}
+                      terminalId={tpvId}
+                      deviceType={tpv.type}
+                      deviceName={tpv.name}
+                      venueName={venue?.name ?? ''}
+                      versionCode={typeof tpv.systemInfo?.versionCode === 'number' ? tpv.systemInfo.versionCode : null}
+                      capabilities={tpv.capabilities}
+                      customerDisplayInverted={tpv.customerDisplayInverted}
+                      customerDisplayRequest={tpv.customerDisplayRequest}
+                      canUpdateDevice={canUpdate}
+                      lastHeartbeat={tpv.lastHeartbeat ?? null}
+                    />
+                  )}
+
                   {/* Este dispositivo: lo que el dueño revisa cuando algo falla. */}
                   <section className="rounded-2xl border border-input bg-card p-5">
                     <h2 className="mb-2 text-base font-semibold">{t('device.sections.thisDevice')}</h2>
@@ -1119,24 +1158,9 @@ function TpvIdContent() {
                   </section>
                 </div>
 
-                <div className="space-y-6">
-                  {venueId && tpvId && showDisplayModeControl && (
-                    <section className="rounded-2xl border border-input bg-card p-5">
-                      <h2 className="mb-3 text-base font-semibold">{t('device.sections.customerDisplay')}</h2>
-                      <DisplayModeRequestControl
-                        key={`${venueId}:${tpvId}`}
-                        venueId={venueId}
-                        terminalId={tpvId}
-                        capabilities={tpv.capabilities}
-                        customerDisplayInverted={tpv.customerDisplayInverted}
-                        request={tpv.customerDisplayRequest}
-                        canUpdate={canUpdate}
-                      />
-                    </section>
-                  )}
-
-                  {/* SUPERADMIN: todo lo suyo junto, con su degradado (ui-patterns.md). */}
-                  {isSuperAdmin && (actionPolicy.canConfigurePayments || actionPolicy.canDeactivate || actionPolicy.activationPending) && (
+                {/* SUPERADMIN: todo lo suyo junto, con su degradado (ui-patterns.md). */}
+                {conColumnaDerecha && (
+                  <div className="space-y-6">
                     <section className="rounded-2xl border border-amber-300/60 bg-card p-5 dark:border-amber-700/50">
                       <div className="mb-3 flex items-center gap-2">
                         <Shield className="h-4 w-4 text-amber-500" />
@@ -1284,8 +1308,8 @@ function TpvIdContent() {
                         </div>
                       )}
                     </section>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

@@ -281,7 +281,7 @@ describe('PassCapacitySection', () => {
     await waitFor(() => expect(svc.getPassCapacity).toHaveBeenCalledTimes(2))
     expect(screen.getByLabelText('capacity.dialog.spots')).toHaveValue('2')
     // al cerrar y volver a abrir, el error viejo ya no está
-    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await user.click(screen.getByRole('button', { name: 'common:close' })) // la X de FullScreenModal, ya traducida
     await user.click(await screen.findByRole('button', { name: 'capacity.weekly.add' }))
     expect(await screen.findByLabelText('capacity.dialog.spots')).toHaveValue('')
     expect(screen.queryByText(TOO_MANY)).not.toBeInTheDocument()
