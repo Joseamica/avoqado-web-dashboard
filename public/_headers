@@ -37,3 +37,8 @@
   ! Referrer-Policy
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow
+
+# Presentation URLs stay stable; revalidate images as well as HTML after an update.
+/presentacion/*
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Avoqado — One Pager (V2)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+:root{
+  --bg:#FBFBFA; --card:#ffffff; --soft:#FAFAF9;
+  --ink:#0a0a0a; --ink2:#3f3f46; --ink3:#6b6b72; --ink4:#8a8a8f;
+  --line:#ECECE8; --line2:#F2F2EF;
+  --black:#000; --green:#7ADD2C; --green-ink:#4A8A14; --green-deep:#5BB814; --green-soft:#7ADD2C14;
+  --dink2:#bdbdb8; --dink3:#7d7d78;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+@page{ size:letter; margin:0; }
+html,body{ background:var(--bg); color:var(--ink); font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; -webkit-font-smoothing:antialiased;}
+.page{ width:8.5in; height:11in; padding:0.24in 0.54in 0.16in; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+.page::before{ content:""; position:absolute; inset:0 0 auto 0; height:2.6in; pointer-events:none;
+  background:radial-gradient(90% 80% at 93% -28%, var(--green-soft) 0%, transparent 56%);}
+h1,h2,h3{ font-weight:600; letter-spacing:-0.03em;}
+.grad{ color:var(--green-ink); }
+.top{ display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:2;}
+.top img{ height:27px; display:block;}
+.top .tag{ display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-family:'DM Mono',monospace; font-size:9px; color:var(--ink4); letter-spacing:0.08em; text-transform:uppercase; text-align:right; line-height:1.2;}
+.formula{ display:flex; align-items:center; letter-spacing:0; text-transform:none; font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+.formula .c{ font-size:9.5px; font-weight:700; line-height:1.3; letter-spacing:0.01em; color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:999px; padding:2px 7px;}
+.formula .c.m{ background:var(--green-soft); border-color:#7add2c66; color:var(--green-ink);}
+.formula .p{ font-family:'DM Mono',monospace; font-size:10px; font-weight:500; color:var(--green-deep); width:9px; text-align:center;}
+.hero{ margin-top:10px; position:relative; z-index:2;}
+.hero h1{ font-size:31px; line-height:1.04; max-width:7in; letter-spacing:-0.035em;}
+.hero p{ font-size:12.5px; color:var(--ink2); line-height:1.52; margin-top:8px; max-width:7in;}
+.sec{ margin-top:5px; position:relative; z-index:2;}
+.sec-h{ font-family:'DM Mono',monospace; font-size:9.5px; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3); margin-bottom:5px; display:flex; align-items:center; gap:8px;}
+.sec-h::before{ content:""; width:16px; height:2px; background:var(--green-deep); border-radius:2px;}
+.grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px;}
+.card{ background:var(--card); border:1px solid var(--line); border-radius:11px; padding:5px 11px; position:relative; overflow:hidden; box-shadow:0 1px 0 rgba(10,10,10,0.03);}
+.card.ac::before{ content:""; position:absolute; top:0; left:0; width:3px; height:100%; background:var(--green-deep);}
+.card .t{ font-size:12px; font-weight:600; color:var(--ink); margin-bottom:3px; letter-spacing:-0.01em; display:flex; align-items:center; gap:6px;}
+.t .ico{ width:14px; height:14px; flex:none; stroke:var(--green-ink); stroke-width:1.9; fill:none; stroke-linecap:round; stroke-linejoin:round;}
+.card .d{ font-size:10px; color:var(--ink2); line-height:1.38;}
+.chips{ display:flex; flex-wrap:wrap; gap:3px;}
+.chip{ font-size:10.5px; padding:1px 10px; border-radius:999px; background:#fff; border:1px solid var(--line); color:var(--ink2);}
+.chip b{ color:var(--ink); font-weight:600;}
+.feat{ display:flex; gap:8px; align-items:flex-start; font-size:11px; line-height:1.38; color:var(--ink2); margin-bottom:2px;}
+.feat .mk{ flex:none; width:6px; height:6px; border-radius:1px; background:var(--ink); margin-top:4px; transform:rotate(45deg);}
+.feat b{ color:var(--ink); font-weight:600;}
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:0 24px;}
+.cta{ flex:none; margin-top:auto; display:flex; align-items:center; gap:16px; border-radius:14px; padding:9px 16px; position:relative; z-index:2; overflow:hidden;
+  background:var(--soft); border:1px solid var(--line);}
+.cta img{ width:0.72in; height:0.72in; flex:none; border-radius:8px; background:#fff; position:relative; z-index:2;}
+.cta .ct1{ font-size:13.5px; font-weight:700; color:var(--ink); letter-spacing:-0.01em; position:relative; z-index:2;}
+.cta .ct2{ font-size:11px; color:var(--ink2); margin-top:4px; position:relative; z-index:2;}
+.cta .ct2 b{ color:var(--ink);}
+.cta .ct2 .g{ color:var(--green-ink); font-weight:600;}
+.foot{ flex:none; margin-top:5px; padding-top:6px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; position:relative; z-index:2;}
+.foot .l{ font-size:10.5px; color:var(--ink2);}
+.foot .l b{ color:var(--green-ink);}
+.foot .r{ font-family:'DM Mono',monospace; font-size:9px; color:var(--ink4); letter-spacing:0.05em;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="presentation-web.css">
+<link rel="stylesheet" href="presentation-story.css">
+</head>
+<body class="avq-web"><header class="avq-toolbar">
+<a class="avq-brand" href="avoqado-plataforma.html">Avoqado</a>
+<details class="avq-index"><summary>Índice</summary><nav aria-label="Índice de la presentación"><ol><li class="avq-story-nav" hidden><a href="#explora">Explorar productos</a></li><li class="avq-story-nav" hidden><a href="#equipos">Elegir equipo</a></li><li><a href="#tema-1">Para quién es</a></li><li><a href="#tema-2">8 productos, una plataforma</a></li><li><a href="#tema-3">Todo lo que hace</a></li><li><a href="#tema-4">Por qué Avoqado gana</a></li></ol></nav></details>
+<a class="avq-other" href="avoqado-plataforma.html">Ver presentación completa</a>
+<a class="avq-download" href="avoqado-resumen.pdf" download>Descargar PDF</a>
+</header>
+<p class="avq-hint">Explora a tu ritmo. Toca los nombres para ver qué significan. En la presentación completa puedes explorar los equipos y ampliar sus fotos.</p><main><div class="avq-story avq-screen-only" hidden>
+<template data-preview="dashboard"><div class="avq-mini avq-demo" data-demo="dashboard"><div class="avq-mini-top"><strong>Tu negocio</strong><span>Todo en un lugar</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Ventas" aria-pressed="true">Ventas</button><button type="button" data-demo-action="Inventario" aria-pressed="false">Inventario</button><button type="button" data-demo-action="Equipo" aria-pressed="false">Equipo</button></div>
+          <div class="avq-mini-ledger"><div class="avq-ledger-head"><span data-demo-column>Actividad</span><span>Estado</span></div>
+            <div><span data-demo-row>Mostrador</span><b>Al día</b></div><div><span data-demo-row>En línea</span><b>Al día</b></div><div><span data-demo-row>Reservas</span><b>Al día</b></div></div>
+          <p data-demo-output role="status">Ventas, pagos y reservas en un mismo lugar.</p><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template><template data-preview="reservas"><div class="avq-mini avq-demo" data-demo="reservas"><div class="avq-mini-top"><strong>Elige tu momento</strong><span>Citas y clases</span></div>
+          <div class="avq-mini-week" aria-hidden="true"><span>Lun<b>19</b></span><span>Mar<b>20</b></span><span class="avq-day-picked">Mié<b>21</b></span><span>Jue<b>22</b></span><span>Vie<b>23</b></span></div>
+          <p class="avq-mini-label">Horarios de ejemplo</p><div class="avq-mini-times"><button type="button" data-demo-action="10:00" aria-pressed="false">10:00</button><button type="button" data-demo-action="11:30" aria-pressed="false">11:30</button><button type="button" data-demo-action="12:00" aria-pressed="false">12:00</button></div>
+          <p data-demo-output role="status">Elige un horario. No se crea una reserva.</p><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template><template data-preview="pedidos"><div class="avq-mini avq-demo" data-demo="pedidos"><div class="avq-mini-top"><strong>Tu tienda, en línea</strong><span>Para recoger</span></div>
+          <div class="avq-mini-order"><div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 13h19v12a7 7 0 0 1-7 7h-5a7 7 0 0 1-7-7V13Zm19 2h3a5 5 0 0 1 0 10h-3M14 5v3M22 5v3M7 35h26"/></svg><span><strong>Café</strong><small>Hecho al momento</small></span><button type="button" data-demo-action="add" aria-label="Añadir café"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+          <div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 27c-3-10 4-20 13-20s16 10 13 20l-3 6H10l-3-6ZM13 15l3 5M22 12l3 5M7 27h26"/></svg><span><strong>Pan artesanal</strong><small>Recién hecho</small></span><button type="button" data-demo-action="add" aria-label="Añadir pan artesanal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+          <div class="avq-mini-cart"><p data-demo-output role="status">Tu carrito está vacío</p><button type="button" data-demo-action="clear">Vaciar ejemplo</button></div><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template><template data-preview="checkout"><div class="avq-mini avq-demo" data-demo="checkout"><div class="avq-mini-top"><strong>Tu cobro. Tu marca.</strong><span>Checkout Avoqado</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Liga de pago" aria-pressed="true">Liga de pago</button><button type="button" data-demo-action="Código QR" aria-pressed="false">Código QR</button><button type="button" data-demo-action="En tu web" aria-pressed="false">En tu web</button></div>
+          <div class="avq-checkout-surface"><svg class="avq-checkout-symbol" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="11" width="36" height="27" rx="4"/><path d="M6 20h36M13 29h8M30 29h5"/></svg><strong data-checkout-heading>Cobro por liga</strong><span>Monto fijo o abierto</span><span>Propina opcional</span></div>
+          <p data-demo-output role="status">Liga de pago: compártela con tu cliente.</p><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template>
+<section class="avq-story-hero" id="avq-inicio" aria-labelledby="avq-story-title">
+  <div class="top avq-intro-head"><img src="assets/logo-h-black.png" alt="Avoqado">
+    <div class="avq-hero-grid">
+      <div class="avq-hero-copy"><h1 id="avq-story-title">Tu negocio.<br><span>Todo conectado.</span></h1>
+        <p>La plataforma todo‑en‑uno para operar negocios físicos en México: pagos, punto de venta, inventario, reservaciones, facturación y analítica — conectados en tiempo real, multi‑sucursal.</p><a class="avq-story-cta" href="#explora">Explorar Avoqado <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+        <a class="avq-story-secondary" href="#equipos">Encontrar mi equipo</a>
+      </div>
+      <div class="avq-hero-showcase"><div class="avq-assembly" role="group" aria-label="Cartas de productos Avoqado"><article class="avq-product-card" data-card-product="pos"><div class="avq-card-face">
+          <p class="avq-card-title">Punto de venta</p><figure class="avq-card-image"><img src="assets/eq-d3-doble-15.jpg" alt="Sunmi D3 doble pantalla 15.6&quot; — Estación de mostrador, dos pantallas iguales"></figure>
+        </div></article><article class="avq-product-card" data-card-product="dashboard"><div class="avq-card-face">
+          <p class="avq-card-title">Panel del negocio</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="dashboard"><div class="avq-mini-top"><strong>Tu negocio</strong><span>Todo en un lugar</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Ventas" aria-pressed="true">Ventas</button><button type="button" data-demo-action="Inventario" aria-pressed="false">Inventario</button><button type="button" data-demo-action="Equipo" aria-pressed="false">Equipo</button></div>
+          <div class="avq-mini-ledger"><div class="avq-ledger-head"><span data-demo-column>Actividad</span><span>Estado</span></div>
+            <div><span data-demo-row>Mostrador</span><b>Al día</b></div><div><span data-demo-row>En línea</span><b>Al día</b></div><div><span data-demo-row>Reservas</span><b>Al día</b></div></div>
+          <p data-demo-output role="status">Ventas, pagos y reservas en un mismo lugar.</p><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article><article class="avq-product-card" data-card-product="reservas"><div class="avq-card-face">
+          <p class="avq-card-title">Reservas y citas</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="reservas"><div class="avq-mini-top"><strong>Elige tu momento</strong><span>Citas y clases</span></div>
+          <div class="avq-mini-week" aria-hidden="true"><span>Lun<b>19</b></span><span>Mar<b>20</b></span><span class="avq-day-picked">Mié<b>21</b></span><span>Jue<b>22</b></span><span>Vie<b>23</b></span></div>
+          <p class="avq-mini-label">Horarios de ejemplo</p><div class="avq-mini-times"><button type="button" data-demo-action="10:00" aria-pressed="false">10:00</button><button type="button" data-demo-action="11:30" aria-pressed="false">11:30</button><button type="button" data-demo-action="12:00" aria-pressed="false">12:00</button></div>
+          <p data-demo-output role="status">Elige un horario. No se crea una reserva.</p><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article><article class="avq-product-card" data-card-product="tpv"><div class="avq-card-face">
+          <p class="avq-card-title">Terminal de cobro</p><figure class="avq-card-image"><img src="assets/eq-pax-a910s.jpg" alt="PAX A910S — Terminal de cobro portátil"></figure>
+        </div></article><article class="avq-product-card" data-card-product="pedidos"><div class="avq-card-face">
+          <p class="avq-card-title">Pedidos en línea</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="pedidos"><div class="avq-mini-top"><strong>Tu tienda, en línea</strong><span>Para recoger</span></div>
+          <div class="avq-mini-order"><div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 13h19v12a7 7 0 0 1-7 7h-5a7 7 0 0 1-7-7V13Zm19 2h3a5 5 0 0 1 0 10h-3M14 5v3M22 5v3M7 35h26"/></svg><span><strong>Café</strong><small>Hecho al momento</small></span><button type="button" data-demo-action="add" aria-label="Añadir café"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+          <div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 27c-3-10 4-20 13-20s16 10 13 20l-3 6H10l-3-6ZM13 15l3 5M22 12l3 5M7 27h26"/></svg><span><strong>Pan artesanal</strong><small>Recién hecho</small></span><button type="button" data-demo-action="add" aria-label="Añadir pan artesanal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+          <div class="avq-mini-cart"><p data-demo-output role="status">Tu carrito está vacío</p><button type="button" data-demo-action="clear">Vaciar ejemplo</button></div><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article><article class="avq-product-card" data-card-product="checkout"><div class="avq-card-face">
+          <p class="avq-card-title">Checkout y ligas</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="checkout"><div class="avq-mini-top"><strong>Tu cobro. Tu marca.</strong><span>Checkout Avoqado</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Liga de pago" aria-pressed="true">Liga de pago</button><button type="button" data-demo-action="Código QR" aria-pressed="false">Código QR</button><button type="button" data-demo-action="En tu web" aria-pressed="false">En tu web</button></div>
+          <div class="avq-checkout-surface"><svg class="avq-checkout-symbol" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="11" width="36" height="27" rx="4"/><path d="M6 20h36M13 29h8M30 29h5"/></svg><strong data-checkout-heading>Cobro por liga</strong><span>Monto fijo o abierto</span><span>Propina opcional</span></div>
+          <p data-demo-output role="status">Liga de pago: compártela con tu cliente.</p><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article></div>
+        <div class="avq-card-controls" role="group" aria-label="Elige una carta"><button type="button" data-hero-product="pos" aria-pressed="false" aria-label="POS Android: ver carta">POS</button><button type="button" data-hero-product="dashboard" aria-pressed="false" aria-label="Dashboard Web: ver carta">Panel</button><button type="button" data-hero-product="reservas" aria-pressed="false" aria-label="Widget de Reservas: ver carta">Reservas</button><button type="button" data-hero-product="tpv" aria-pressed="false" aria-label="TPV: ver carta">Terminal</button><button type="button" data-hero-product="pedidos" aria-pressed="false" aria-label="Pedidos en línea: ver carta">Pedidos</button><button type="button" data-hero-product="checkout" aria-pressed="false" aria-label="Checkout en línea: ver carta">Checkout</button></div></div>
+    </div>
+    <div class="avq-hero-modules"><p>Toca una pieza. Descubre lo que hace.</p><div class="formula"><span class="c m">POS</span><span class="p">+</span><span class="c m">ERP</span><span class="p">+</span><span class="c m">CRM</span><span class="p">+</span><span class="c">Pagos</span><span class="p">+</span><span class="c">CFDI</span><span class="p">+</span><span class="c">Reservas</span><span class="p">+</span><span class="c">Equipo</span><span class="p">+</span><span class="c">BI</span><span class="p">+</span><span class="c">IA</span><span class="p">+</span><span class="c">Delivery</span><span class="p">+</span><span class="c">Hardware</span></div></div>
+  </div>
+</section>
+<section class="avq-explorer" id="explora" aria-labelledby="avq-explorer-title">
+  <div class="avq-section-heading"><h2 id="avq-explorer-title">Una plataforma.<br>Tu forma de trabajar.</h2><p>Elige un producto para explorarlo. Cada pieza se conecta con el resto de Avoqado.</p></div>
+  <div class="avq-product-controls" role="group" aria-label="Productos Avoqado"><button type="button" data-product="pos" aria-pressed="false">POS Android</button><button type="button" data-product="dashboard" aria-pressed="false">Dashboard Web</button><button type="button" data-product="reservas" aria-pressed="false">Widget de Reservas</button><button type="button" data-product="tpv" aria-pressed="false">TPV</button><button type="button" data-product="pedidos" aria-pressed="false">Pedidos en línea</button><button type="button" data-product="checkout" aria-pressed="false">Checkout en línea</button></div>
+  <div class="avq-product-view" aria-labelledby="avq-product-title"><div class="avq-product-copy"><h3 id="avq-product-title"></h3><p class="avq-story-subtitle"></p><p class="avq-preview-note">Una muestra de lo que puedes hacer:</p><ul></ul><a class="avq-story-detail">Ver todos los detalles <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a></div><figure class="avq-story-media"></figure></div>
+</section>
+<section class="avq-equipment" id="equipos" aria-labelledby="avq-equipment-title">
+  <div class="avq-section-heading"><h2 id="avq-equipment-title">El equipo cambia.<br>Avoqado te acompaña.</h2><p>De una estación de mostrador a una terminal portátil. Explora las fotos y características del catálogo.</p></div>
+  <label class="avq-equipment-label" for="avq-equipment-select">Elige tu equipo</label><select id="avq-equipment-select"><option value="hw-d3-una">Sunmi D3 una pantalla</option><option value="hw-d3-doble-15">Sunmi D3 doble pantalla 15.6&quot;</option><option value="hw-cpad-11">Sunmi CPad 11&quot;</option><option value="hw-kds-d2s">Sunmi D2s KDS 15.6&quot;</option><option value="hw-pax">PAX A910S</option><option value="hw-nexgo-n86">NexGo N86</option></select>
+  <div class="avq-equipment-view" aria-labelledby="avq-equipment-name"><figure class="avq-story-media"></figure><div class="avq-equipment-copy"><h3 id="avq-equipment-name"></h3><p class="avq-story-subtitle"></p><ul></ul><a class="avq-story-detail">Ver ficha completa <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a></div></div>
+</section>
+<div class="avq-story-continuation"><h2>Conoce cada pieza.</h2><p>La presentación, con todo el detalle.</p></div>
+</div>
+<div class="page">
+  <div class="top">
+    <img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado">
+    <div class="tag"><div class="formula"><span class="c m">POS</span><span class="p">+</span><span class="c m">ERP</span><span class="p">+</span><span class="c m">CRM</span><span class="p">+</span><span class="c">Pagos</span><span class="p">+</span><span class="c">CFDI</span><span class="p">+</span><span class="c">Reservas</span><span class="p">+</span><span class="c">Equipo</span><span class="p">+</span><span class="c">BI</span><span class="p">+</span><span class="c">IA</span><span class="p">+</span><span class="c">Delivery</span><span class="p">+</span><span class="c">Hardware</span></div>Plataforma de gestión para negocios físicos · México</div>
+  </div>
+
+  <div class="hero">
+    <h1>Para todo tipo de negocio. <span class="grad">El primer sistema todo‑en‑uno en México para cobrar, operar, administrar y crecer tu negocio.</span></h1>
+    <p>Avoqado conecta pagos, punto de venta, inventario, reservaciones, facturación CFDI, contabilidad y analítica en un solo sistema multi‑sucursal, en tiempo real. Lo que hoy se hace con 4 o 5 herramientas sueltas, Avoqado lo hace junto — y hecho a la medida de México.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-1">Para quién es</div>
+    <div class="grid3">
+      <div class="card ac"><div class="t"><svg class="ico" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Retail / comercio</div><div class="d">Abarrotes, ropa y zapaterías, joyería, electrónica, farmacia, conveniencia, telecom (SIMs), mueblerías, ferreterías.</div></div>
+      <div class="card ac"><div class="t"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Servicios con cita</div><div class="d">Gimnasios, spas, salones, estética, clínicas, clases grupales, entretenimiento.</div></div>
+      <div class="card ac"><div class="t"><svg class="ico" viewBox="0 0 24 24"><path d="M4 2v6a2 2 0 0 0 4 0V2"/><path d="M6 10v12"/><path d="M17 2a2 3 0 0 0-2 3v5h4V5a2 3 0 0 0-2-3Z"/><path d="M17 10v12"/></svg>Alimentos y bebidas</div><div class="d">Restaurantes, bares, cafés, panaderías, food trucks, catering, dark kitchens.</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-2">8 productos, una plataforma</div>
+    <div class="grid3">
+      <div class="card ac"><div class="t">Dashboard Web</div><div class="d">Centro de control del negocio</div></div>
+      <div class="card ac"><div class="t">TPV (PAX/NexGo)</div><div class="d">Cobro con tarjeta integrado</div></div>
+      <div class="card ac"><div class="t">POS Android</div><div class="d">Menú, órdenes y mesas</div></div>
+      <div class="card ac"><div class="t">POS iOS</div><div class="d">El mismo POS en iPad/iPhone</div></div>
+      <div class="card ac"><div class="t">App Consumidor</div><div class="d">Descubre y reserva</div></div>
+      <div class="card ac"><div class="t">Widget Reservas</div><div class="d">Citas con profesionista en cualquier web</div></div>
+      <div class="card ac"><div class="t">Checkout</div><div class="d">Pago por liga / QR</div></div>
+      <div class="card ac"><div class="t">POS Escritorio</div><div class="d">POS nativo en PC Windows</div></div>
+      <div class="card"><div class="t" style="color:var(--ink3)">+ Infraestructura</div><div class="d">Superadmin · Integración con otros POS</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-3">Todo lo que hace</div>
+    <div class="chips">
+      <span class="chip"><b>Pagos</b> · terminal, en línea, ligas, divididos, tus propios tipos de pago (Uber Eats, vales) con reporte de comisiones, ruteo inteligente de cuentas, banco conectado y SPEI</span>
+      <span class="chip"><b>POS</b> · órdenes, menú y combos, tiempos y urgencias por producto en Android/iOS (Pro), sugerencias al cobrar</span>
+      <span class="chip"><b>Mesas (Pro)</b> · plano del salón editable en la web, cuentas por mesa y por mesero, nota por platillo («sin aceite»), rondas a cocina, cargo por servicio y pre-cuenta; sin internet se sigue tomando la orden (Android, Sunmi y Windows)</span>
+      <span class="chip"><b>Delivery</b> · integración con Rappi y DiDi Food (Premium)</span>
+      <span class="chip"><b>Pedidos en línea (Pro)</b> · tu tienda web para recoger: ya disponible</span>
+      <span class="chip"><b>Inventario</b> · PEPS, recetas, serializado, compras en caja, re‑orden automático, etiquetas de precio, stock compartido con Shopify (piloto)</span>
+      <span class="chip"><b>Reservaciones</b> · profesionista, horarios de equipo, tiempo de limpieza entre citas, depósito, lista de espera, clases</span>
+      <span class="chip"><b>CFDI 4.0</b> · facturación SAT nativa</span>
+      <span class="chip"><b>Diseñador de tickets</b> · tu recibo a tu gusto</span>
+      <span class="chip"><b>Variantes (Pro)</b> · talla, color, presentación</span>
+      <span class="chip"><b>Contabilidad fiscal</b> · pólizas, IVA en flujo, DIOT, ISR, nómina + ISN, activos fijos (depreciación), contab. electrónica SAT, cierre de periodo</span>
+      <span class="chip"><b>Clientes y lealtad</b> · puntos, referidos, grupos, tarjeta con sellos en Wallet (Pro)</span>
+      <span class="chip"><b>Reseñas</b> · califica en el recibo, 5★ a Google</span>
+      <span class="chip"><b>Equipo</b> · roles, permisos, código de encargado, bitácora, comisiones, pago al personal (clases, comisiones y propinas en un recibo), asistencia</span>
+      <span class="chip"><b>Dispositivos</b> · alta automática, tipo y quién lo usó</span>
+      <span class="chip"><b>Analítica</b> · ventas en vivo, reportes, exporta Excel/CSV/PDF</span>
+      <span class="chip"><b>IA</b> · asistente + conecta tu Claude / ChatGPT (MCP)</span>
+      <span class="chip"><b>Tarjetas de regalo (Pro)</b> · próximamente</span>
+      <span class="chip"><b>Catálogo corporativo</b> · reglas por giro, import/export y publicación por sucursal · región/precios regionales: próxima fase</span>
+      <span class="chip"><b>A la medida</b> · implementación por giro, entrega en días · white label</span>
+      <span class="chip"><b>Pantalla del cliente</b> · con tu marca: próximamente</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h" id="tema-4">Por qué Avoqado gana</div>
+    <div class="two">
+      <div class="feat"><span class="mk"></span><span><b>Hecho para México:</b> Blumon y MercadoPago nativos + CFDI 4.0 e IVA.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Todo conectado:</b> cobro, POS, inventario y reservas en un sistema, en vivo.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Multi‑sucursal de origen:</b> sin cobrar extra por ubicación.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Inventario serializado:</b> SIMs, joyería y electrónica pieza por pieza.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Reservas embebibles:</b> widget con elección o autoasignación de profesionista.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Conecta tu IA (MCP):</b> Claude/ChatGPT a tus datos; <b>marca blanca</b> para agencias.</span></div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <img loading="lazy" src="assets/qr-wa.png" alt="QR WhatsApp Avoqado">
+    <div>
+      <div class="ct1">Afíliate por liga, sin crear una cuenta. Escanea y hablemos.</div>
+      <div class="ct2">WhatsApp <b>+52 56 4007 0001</b> &nbsp;·&nbsp; <b>hola@avoqado.io</b> &nbsp;·&nbsp; <span class="g">avoqado.io</span></div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="l"><b>avoqado.io</b> &nbsp;·&nbsp; En producción hoy &nbsp;·&nbsp; Material para socios comerciales</div>
+    <div class="r">CONFIDENCIAL · 2026</div>
+  </div>
+</div>
+</main><script id="avq-features" type="application/json">[{"label": "Pagos", "description": "terminal, en línea, ligas, divididos, tus propios tipos de pago (Uber Eats, vales) con reporte de comisiones, ruteo inteligente de cuentas, banco conectado y SPEI"}, {"label": "POS", "description": "órdenes, menú y combos, tiempos y urgencias por producto en Android/iOS (Pro), sugerencias al cobrar"}, {"label": "Mesas (Pro)", "description": "plano del salón editable en la web, cuentas por mesa y por mesero, nota por platillo («sin aceite»), rondas a cocina, cargo por servicio y pre-cuenta; sin internet se sigue tomando la orden (Android, Sunmi y Windows)"}, {"label": "Delivery", "description": "integración con Rappi y DiDi Food (Premium)"}, {"label": "Pedidos en línea (Pro)", "description": "tu tienda web para recoger: ya disponible"}, {"label": "Inventario", "description": "PEPS, recetas, serializado, compras en caja, re‑orden automático, etiquetas de precio, stock compartido con Shopify (piloto)"}, {"label": "Reservaciones", "description": "profesionista, horarios de equipo, tiempo de limpieza entre citas, depósito, lista de espera, clases"}, {"label": "CFDI 4.0", "description": "facturación SAT nativa"}, {"label": "Diseñador de tickets", "description": "tu recibo a tu gusto"}, {"label": "Variantes (Pro)", "description": "talla, color, presentación"}, {"label": "Contabilidad fiscal", "description": "pólizas, IVA en flujo, DIOT, ISR, nómina + ISN, activos fijos (depreciación), contab. electrónica SAT, cierre de periodo"}, {"label": "Clientes y lealtad", "description": "puntos, referidos, grupos, tarjeta con sellos en Wallet (Pro)"}, {"label": "Reseñas", "description": "califica en el recibo, 5★ a Google"}, {"label": "Equipo", "description": "roles, permisos, código de encargado, bitácora, comisiones, pago al personal (clases, comisiones y propinas en un recibo), asistencia"}, {"label": "Dispositivos", "description": "alta automática, tipo y quién lo usó"}, {"label": "Analítica", "description": "ventas en vivo, reportes, exporta Excel/CSV/PDF"}, {"label": "IA", "description": "asistente + conecta tu Claude / ChatGPT (MCP)"}, {"label": "Tarjetas de regalo (Pro)", "description": "próximamente"}, {"label": "Catálogo corporativo", "description": "reglas por giro, import/export y publicación por sucursal · región/precios regionales: próxima fase"}, {"label": "A la medida", "description": "implementación por giro, entrega en días · white label"}, {"label": "Pantalla del cliente", "description": "con tu marca: próximamente"}, {"label": "Hardware", "description": "Sunmi D3 una pantalla, Sunmi D3 doble pantalla 15.6\" + 10.1\", Sunmi D3 doble pantalla 15.6\", Sunmi CPad 8.7\", Sunmi CPad 11\", Sunmi CPad 14\", Sunmi D2s KDS 15.6\", Sunmi FLEX 3 18.5\", PAX A910S, NexGo N86, NexGo N62, Impresora térmica de tickets, Cajón de dinero mini"}]</script>
+<script id="avq-story-data" type="application/json">{"products": [{"id": "pos", "title": "POS Android", "subtitle": "Punto de venta completo en celular o tablet", "features": ["Cualquier celular o tablet Android se convierte en POS — o en hardware Sunmi dedicado (pantalla sencilla o doble), mismo software. También hay versión nativa para iOS.", "Menú con cuadrícula de productos, imágenes, categorías y selección rápida.", "Carrito con cliente, descuentos, cupones, propinas y guardar venta.", "Cobro con teclado y ruteo a terminal (Blumon PAX + AngelPay Nexgo).", "Pagos divididos, pagar‑después, reembolsos e impresión de recibo.", "Checada de personal con PIN para control de turnos.", "Mesas: el plano del salón, varias cuentas por mesa con su mesero, nota por platillo, rondas a cocina, pre-cuenta y cobro en efectivo o con terminal.", "Inventario, stock serializado y etiquetas de precio con código de barras.", "Sin internet sigue vendiendo: la orden y el efectivo se guardan en el aparato y se sincronizan solos. Layouts para tablet (50/50) y teléfono."], "target": "seccion-17", "image": "assets/eq-d3-una.jpg", "alt": "Sunmi D3 una pantalla"}, {"id": "dashboard", "title": "Dashboard Web", "subtitle": "El centro de control del negocio", "features": ["Administra menús, productos y modificadores de varias sucursales en tiempo real.", "Sigue cada orden, de la toma al cobro, con actualizaciones en vivo.", "Gestiona personal, roles y permisos a detalle.", "Ve pagos e historial de transacciones, conectado a las terminales.", "Registro automático de dispositivos — cada terminal, tablet o celular que instala Avoqado y entra aparece solo en la lista, con qué tipo de aparato es, si está en línea y quién lo usó al último. Sin dar de alta nada a mano.", "Reportes y analítica de ventas, productos y empleados.", "Exportación de reportes en CSV, Excel y PDF.", "Reseñas y feedback de clientes en un solo lugar.", "Marca blanca: el negocio puede ponerle su logo y dominio.", "Centro de integraciones: Stripe Connect, Google, Shopify (piloto, por invitación) y POS heredado.", "Búsqueda global (⌘K) para saltar a cualquier módulo o acción.", "Multi‑idioma (ES/EN/FR) y manejo correcto de zona horaria."], "target": "seccion-15", "preview": "dashboard", "image": "assets/dashboard-demo.png", "alt": "Dashboard Avoqado"}, {"id": "reservas", "title": "Widget de Reservas", "subtitle": "Reservas en la web del propio negocio", "features": ["Se integra con una sola etiqueta \u003cscript> + \u003cavoqado-booking>.", "Aislado (Shadow DOM): no rompe ni hereda estilos de la página.", "Flujo completo: servicio → profesionista (o cualquiera) → fecha → horario → datos → depósito → confirmación.", "Personalizable: idioma, tema claro/oscuro, color de acento, modo popup.", "Eventos para analítica (GA4/GTM): confirmado, cancelado, paso cambiado.", "Atajo para WordPress: [avoqado_booking].", "También impulsa la página hospedada book.avoqado.io."], "target": "seccion-21", "preview": "reservas", "image": "assets/widget-booking.png", "alt": "Página de reservas Avoqado en vivo"}, {"id": "tpv", "title": "TPV", "subtitle": "Cobro con tarjeta en terminal dedicada", "features": ["Cobro rápido: teclado numérico, atajos de descuento, propina, void y pagar‑después.", "SDK de Blumon integrado: la terminal cobra directo, sin lector externo.", "Pagos divididos y cobro del saldo restante.", "Impresión de recibo por impresora térmica Bluetooth.", "Cambio de comercio a media operación (franquicias / multi‑sucursal).", "Órdenes y turno funcionan sin conexión y sincronizan al reconectar; el cobro con tarjeta requiere señal (lo pide el banco).", "Gestión de turno: entrada/salida con PIN y corte de caja.", "Monitoreo de errores en vivo (Crashlytics): se ven fallas antes de que el cliente llame."], "target": "seccion-16", "image": "assets/pax-terminal.png", "alt": "Terminal PAX A910S Avoqado"}, {"id": "pedidos", "title": "Pedidos en línea", "subtitle": "Tu tienda web para recoger", "features": ["Tu propia tienda web con tu carta, por liga o QR. El cliente pide para pasar a recoger y tú aceptas el pedido desde la caja o el panel."], "target": "seccion-13", "preview": "pedidos"}, {"id": "checkout", "title": "Checkout en línea", "subtitle": "Página de pago hospedada — por liga, QR o correo", "features": ["Multi‑procesador: Stripe, MercadoPago y Blumon E‑commerce.", "El procesador maneja la tarjeta: Avoqado nunca ve datos sensibles (PCI).", "Sirve para depósitos de reserva, pedidos en línea, membresías y paquetes.", "Liga por sesión: se manda en correo, QR o SMS, sin necesidad de login.", "Meses sin intereses / pagos divididos (según procesador).", "Recibo automático y manejo claro de errores con reintento.", "Embebible en el sitio del negocio (widget e‑commerce).", "Ligas con la marca del negocio: logo y colores propios."], "target": "seccion-22", "preview": "checkout"}], "equipment": [{"id": "hw-d3-una", "title": "Sunmi D3 una pantalla", "subtitle": "Estación de mostrador", "features": ["Pantalla táctil Full HD de 15.6\"", "Impresora de tickets de 80 mm integrada en la base", "Octa-core 2.2 GHz · SUNMI OS sobre Android", "Cuerpo metálico, cables ocultos"], "target": "hw-d3-una", "image": "assets/eq-d3-una.jpg", "alt": "Sunmi D3 una pantalla — Estación de mostrador"}, {"id": "hw-d3-doble-15", "title": "Sunmi D3 doble pantalla 15.6\"", "subtitle": "Estación de mostrador, dos pantallas iguales", "features": ["Dos pantallas Full HD de 15.6\": una para el cajero, otra para el cliente", "Impresora de tickets de 80 mm integrada en la base", "Octa-core 2.2 GHz · SUNMI OS sobre Android", "Cuerpo metálico, cables ocultos"], "target": "hw-d3-doble-15", "image": "assets/eq-d3-doble-15.jpg", "alt": "Sunmi D3 doble pantalla 15.6\" — Estación de mostrador, dos pantallas iguales"}, {"id": "hw-cpad-11", "title": "Sunmi CPad 11\"", "subtitle": "La de todos los días", "features": ["Pantalla WUXGA de 11\" (1920 × 1200) · 526 g", "Batería de 8,000 mAh · protección IP54", "NFC integrado; lector de códigos 2D opcional"], "target": "hw-cpad-11", "image": "assets/eq-cpad-11.jpg", "alt": "Sunmi CPad 11\" — La de todos los días"}, {"id": "hw-kds-d2s", "title": "Sunmi D2s KDS 15.6\"", "subtitle": "Pantalla de cocina sellada", "features": ["Pantalla Full HD de 15.6\", táctil", "Sellada IP55: resiste grasa y se limpia con trapo húmedo", "Se alimenta por el mismo cable de red (PoE)", "Brazo VESA se cotiza aparte"], "target": "hw-kds-d2s", "image": "assets/eq-kds-d2s.jpg", "alt": "Sunmi D2s KDS 15.6\" — Pantalla de cocina sellada"}, {"id": "hw-pax", "title": "PAX A910S", "subtitle": "Terminal de cobro portátil", "features": ["Terminal portátil Android con pantalla táctil.", "Cobra con tarjeta: chip, banda y contactless.", "SDK Blumon integrado — cobra directo, sin lector externo.", "Impresión de recibo por impresora térmica Bluetooth."], "target": "hw-pax", "image": "assets/eq-pax-a910s.jpg", "alt": "PAX A910S — Terminal de cobro portátil"}, {"id": "hw-nexgo-n86", "title": "NexGo N86", "subtitle": "Terminal bancaria y punto de venta en un solo equipo", "features": ["Terminal portátil Android con impresora integrada.", "Cobra con tarjeta: chip, banda y contactless.", "SDK AngelPay integrado."], "target": "hw-nexgo-n86", "image": "assets/eq-nexgo-n86.jpg", "alt": "NexGo N86 — Terminal bancaria y punto de venta en un solo equipo"}]}</script>
+<dialog class="avq-dialog" aria-labelledby="avq-dialog-title">
+<button class="avq-close" type="button" autofocus>Cerrar</button>
+<h2 id="avq-dialog-title"></h2><div class="avq-dialog-content"></div>
+</dialog>
+<script src="presentation-story.js" defer></script>
+<script src="presentation-web.js" defer></script>
+</body>
+</html>
