@@ -25,7 +25,7 @@ export const rhService = {
   async assign(venueId: string, staffId: string, body: { positionId: string; relation?: WorkRelation | null; fecha?: string; tracksAttendance?: boolean }): Promise<Asignacion> {
     return (await api.post(`${base(venueId)}/staff/${staffId}/assignments`, body)).data
   },
-  async change(venueId: string, assignmentId: string, body: { positionId?: string; relation?: WorkRelation | null; fecha?: string }): Promise<Asignacion> {
+  async change(venueId: string, assignmentId: string, body: { positionId?: string; relation?: WorkRelation | null; fecha?: string; tracksAttendance?: boolean }): Promise<Asignacion> {
     return (await api.post(`${base(venueId)}/assignments/${assignmentId}/change`, body)).data
   },
   async end(venueId: string, assignmentId: string, fecha?: string): Promise<Asignacion> {

@@ -89,7 +89,7 @@
     "phase1bNote": "Sueldo, horas y bono llegan pronto.",
     "current": "Puestos vigentes",
     "assigned": "Puesto asignado",
-    "changeTitle": "Cambiar puesto o relación",
+    "changeTitle": "Cambiar puesto, relación o asistencia",
     "changeHelp": "Lo nuevo aplica desde esta fecha. Si es el mismo día en que empezó la versión actual, la reemplaza en vez de crear otra.",
     "changed": "Cambio guardado",
     "changeAria": "Cambiar el puesto «{{name}}»",

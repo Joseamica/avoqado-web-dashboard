@@ -2,7 +2,9 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useChangeAssignment, usePositions } from '@/hooks/useRh'
 import { AvisoSinConexion } from '@/pages/StaffPay/components/AvisoSinConexion'
@@ -30,6 +32,8 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
 
   const [positionId, setPositionId] = useState(a.positionId)
   const [relacion, setRelacion] = useState<WorkRelation | null>(a.relation)
+  // «Checa entrada y salida» decide si la persona sale en Turnos y Asistencia (un inversionista, no).
+  const [checa, setChecaEntrada] = useState(a.tracksAttendance)
   const [fecha, setFecha] = useState(hoy)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +41,7 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
 
   // Sin cambios no hay nada que guardar (el servidor devolvería la misma). La fecha no puede ser anterior al inicio de esta versión
   // (el mismo día sí: la reemplaza).
-  const sinCambios = positionId === a.positionId && relacion === a.relation
+  const sinCambios = positionId === a.positionId && relacion === a.relation && checa === a.tracksAttendance
   const valido = !sinCambios && positionId !== '' && fecha !== '' && fecha >= a.effectiveFrom && fecha <= hoy
 
   const cerrar = () => {
@@ -55,7 +59,7 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
     setGuardando(true)
     setError(null)
     try {
-      await cambiar.mutateAsync({ assignmentId: a.id, body: { positionId, relation: relacion, fecha } })
+      await cambiar.mutateAsync({ assignmentId: a.id, body: { positionId, relation: relacion, fecha, ...(checa !== a.tracksAttendance ? { tracksAttendance: checa } : {}) } })
       toast({ title: t('profile.changed') })
       const nuevo = activos.find(p => p.id === positionId)
       if (positionId !== a.positionId && nuevo) onCambioDePuesto(nuevo)
@@ -99,8 +103,20 @@ export function CambiarAsignacionDialog({ open, asignacion: a, hoy, onClose, onC
           {/* Sin catálogo (fallo, sin red o cargando) se dice, con «Reintentar»: la relación y la fecha se pueden cambiar igual. */}
           {puestos.data ? <CampoPuesto value={positionId} onChange={setPositionId} puestos={lista} total={puestos.data.total} /> : <PuestosSinDatos q={puestos} />}
           <CampoRelacion value={relacion} onChange={setRelacion} />
+          <div className="flex min-h-11 items-center gap-3">
+            <Checkbox
+              id="rh-cambiar-checa"
+              className="h-5 w-5"
+              checked={checa}
+              onCheckedChange={v => setChecaEntrada(v === true)}
+              data-tour="rh-change-tracks-attendance"
+            />
+            <Label htmlFor="rh-cambiar-checa" className="cursor-pointer text-base">
+              {t('positions.tracksAttendance')}
+            </Label>
+          </div>
           <CampoFecha value={fecha} onChange={setFecha} hoy={hoy} min={a.effectiveFrom} nota={t('profile.changeHelp')} />
-          {relacion === 'INDEPENDIENTE_FACTURA' && a.tracksAttendance && <AvisoIndependiente />}
+          {relacion === 'INDEPENDIENTE_FACTURA' && checa && <AvisoIndependiente />}
         </section>
       </form>
     </FullScreenModal>
