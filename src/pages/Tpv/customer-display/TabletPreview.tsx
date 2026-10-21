@@ -1,6 +1,8 @@
 import { QrCode, Star } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
+import logoAvoqadoBlanco from '@/assets/logo/avoqado-logo-dark.png'
+import logoAvoqadoNegro from '@/assets/logo/avoqado-logo-light.png'
 import { cn } from '@/lib/utils'
 import type { CustomerDisplayFicha } from '@/services/customerDisplay.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -66,8 +68,18 @@ export function TabletPreview({ ficha, momento, nombreDelNegocio, pasos, tamano 
                 {nombreDelNegocio}
               </p>
               <p className="max-w-[90%] text-[4.6cqi] font-semibold leading-tight">{ficha.welcomeText ?? t('preview.defaultWelcome')}</p>
-              <p className="absolute inset-x-0 bottom-[2.4cqi] text-center text-[1.6cqi]" style={secundario}>
+              <p
+                className="absolute inset-x-0 bottom-[2.4cqi] flex items-center justify-center gap-[0.8cqi] text-[1.6cqi]"
+                style={secundario}
+              >
                 {t('preview.poweredBy')}
+                {/* El logo horizontal sigue el tema de la TABLET (letras negras en claro, blancas en oscuro), no el del dashboard. */}
+                <img
+                  data-testid="tablet-preview-avoqado"
+                  src={ficha.theme === 'DARK' ? logoAvoqadoBlanco : logoAvoqadoNegro}
+                  alt="Avoqado"
+                  className="h-[2.4cqi] w-auto"
+                />
               </p>
             </div>
           )}

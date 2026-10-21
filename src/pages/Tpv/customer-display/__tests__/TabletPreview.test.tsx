@@ -33,6 +33,13 @@ describe('TabletPreview', () => {
     expect(screen.getByText('Testarudo')).toBeInTheDocument()
     expect(screen.getByText('preview.poweredBy')).toBeInTheDocument()
   })
+  it('🔴 «Powered by» lleva el logo horizontal de Avoqado: letras negras en tema claro, blancas en oscuro', () => {
+    const { rerender } = render(<TabletPreview ficha={base} momento="espera" nombreDelNegocio="X" pasos={pasos} />)
+    expect(screen.getByTestId('tablet-preview-avoqado')).toHaveAttribute('src', expect.stringContaining('avoqado-logo-light'))
+    rerender(<TabletPreview ficha={{ ...base, theme: 'DARK' }} momento="espera" nombreDelNegocio="X" pasos={pasos} />)
+    expect(screen.getByTestId('tablet-preview-avoqado')).toHaveAttribute('src', expect.stringContaining('avoqado-logo-dark'))
+    expect(screen.getByTestId('tablet-preview-avoqado')).toHaveAttribute('alt', 'Avoqado')
+  })
   it('pinta el texto de la ficha del servidor, no otro', () => {
     render(<TabletPreview ficha={{ ...base, welcomeText: '¡Hola!' }} momento="espera" nombreDelNegocio="X" pasos={pasos} />)
     expect(screen.getByText('¡Hola!')).toBeInTheDocument()
