@@ -106,7 +106,7 @@ const enCurso = (total = 3) =>
     currentBlock: bloqueo('CANCEL_IN_PROGRESS'),
     activities: { items: [], nextCursor: null, total },
   })
-const cerrarModal = () => fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+const cerrarModal = () => fireEvent.click(screen.getByRole('button', { name: /^(Cerrar|common:close)$/ }))
 async function reabrirTrasCerrar(abrir: string, rol: 'dialog' | 'alertdialog') {
   await waitFor(() => expect(screen.queryByRole(rol)).not.toBeInTheDocument())
   fireEvent.click(boton(abrir))
@@ -171,11 +171,11 @@ describe('GiftCardManagerActions', () => {
     fireEvent.click(boton('actions.adjust.button'))
     expect(screen.getByRole('dialog', { name: 'actions.adjust.title' })).toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    fireEvent.click(screen.getByRole('button', { name: /^(Cerrar|common:close)$/ }))
     fireEvent.click(boton('actions.replace.button'))
     expect(screen.getByRole('dialog', { name: 'actions.replace.title' })).toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    fireEvent.click(screen.getByRole('button', { name: /^(Cerrar|common:close)$/ }))
     fireEvent.click(boton('actions.block.button'))
     expect(screen.getByRole('alertdialog')).toBeInTheDocument()
   })

@@ -106,7 +106,7 @@ describe('SettingsTab + el editor real del aviso', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await screen.findByTestId('privacy-notice-textarea')
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await userEvent.click(screen.getByRole('button', { name: /^(Cerrar|common:close)$/ }))
 
     await waitFor(() => expect(screen.queryByTestId('privacy-notice-save')).toBeNull())
     expect(updatePrivacyNotice).not.toHaveBeenCalled()
