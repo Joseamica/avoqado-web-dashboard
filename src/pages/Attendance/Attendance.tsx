@@ -95,7 +95,7 @@ export default function Attendance() {
                 <p className="text-sm text-muted-foreground">{t('disabled.description')}</p>
               </div>
             </div>
-            <Link to={`${fullBasePath}/settings/local/basic-info`} className="text-sm font-medium underline underline-offset-4 shrink-0">
+            <Link to={`${fullBasePath}/team#asistencia`} className="text-sm font-medium underline underline-offset-4 shrink-0">
               {t('disabled.cta')}
             </Link>
           </CardContent>
@@ -193,7 +193,7 @@ export default function Attendance() {
           todayIso={todayIso}
           enabled={rotatingShifts}
           canManage={can('attendance:manage')}
-          settingsPath={`${fullBasePath}/settings/local/basic-info`}
+          settingsPath={`${fullBasePath}/team#asistencia`}
         />
       ) : view === 'payroll' ? (
         <PayrollReport venueId={venueId!} startDate={startDate} endDate={endDate} />

@@ -20,7 +20,7 @@ import { crossesMidnight, shiftWeek, shiftWeekOffset, type ShiftWeek } from './s
  * Turnos ROTATIVOS (fase 1 "como Sesame"): plantillas de turno + cuadrante semanal persona×día que
  * se arma en BORRADOR y se PUBLICA. Convive con la jornada fija de cada persona (WorkScheduleSection):
  * la asignación publicada gana sobre la jornada fija; una excepción manual (vacaciones) gana sobre
- * las dos. Sólo cuenta si el negocio prendió el interruptor en Ajustes — apagado se VE y se EXPLICA.
+ * las dos. Sólo cuenta si el negocio prendió el interruptor en Personas → Asistencia — apagado se VE y se EXPLICA.
  */
 interface Props {
   venueId: string
