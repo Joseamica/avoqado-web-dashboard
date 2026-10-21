@@ -87,7 +87,7 @@
   "disabled": {
     "title": "El control de asistencia está apagado",
     "description": "El personal no puede checar entrada mientras esté apagado. Lo que ya se registró sigue aquí.",
-    "cta": "Prenderlo en Ajustes"
+    "cta": "Prenderlo en Personas"
   },
   "loadError": {
     "title": "No se pudo cargar",
@@ -148,8 +148,8 @@
   "shifts": {
     "disabled": {
       "title": "Los turnos rotativos están apagados",
-      "description": "Tu personal se juzga con su jornada fija. Si en tu negocio los turnos rotan (abre, intermedio, cierre), préndelos en Ajustes.",
-      "cta": "Prenderlos en Ajustes"
+      "description": "Tu personal se juzga con su jornada fija. Si en tu negocio los turnos rotan (abre, intermedio, cierre), préndelos en Personas → Asistencia.",
+      "cta": "Prenderlos en Personas"
     },
     "templates": {
       "title": "Turnos",
