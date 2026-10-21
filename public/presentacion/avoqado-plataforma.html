@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Avoqado — Presentación de Plataforma (V2)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+
+:root{
+  /* restrained V1 palette — white · black · single green · hairlines */
+  --bg:#FBFBFA; --card:#ffffff; --soft:#FAFAF9;
+  --ink:#0a0a0a; --ink2:#3f3f46; --ink3:#6b6b72; --ink4:#8a8a8f;
+  --line:#ECECE8; --line2:#F2F2EF;
+  --black:#000000; --green:#7ADD2C; --green-ink:#4A8A14; --green-deep:#5BB814; --green-soft:#7ADD2C14;
+  /* dark beats */
+  --dbg:#0a0a0a; --dsurf:#151515; --dsurf2:#1c1c1c; --dline:#272727; --dline2:#363636;
+  --dink:#fafafa; --dink2:#bdbdb8; --dink3:#7d7d78;
+  --ac:var(--green-ink);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+@page{ size:13.333in 7.5in; margin:0; }
+html,body{
+  background:#e9e9e6; color:var(--ink);
+  font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.slide{
+  position:relative; width:13.333in; height:7.5in;
+  padding:0.66in 0.86in 0.6in; overflow:hidden;
+  page-break-after:always; display:flex; flex-direction:column;
+  background:var(--bg); color:var(--ink);
+}
+.slide:last-child{ page-break-after:auto; }
+.slide.dark{ background:var(--dbg); color:var(--dink); }
+/* whisper of green at top-right — the only gradient, very subtle */
+.slide:not(.dark)::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:3.2in; pointer-events:none; z-index:0;
+  background:radial-gradient(95% 75% at 92% -28%, var(--green-soft) 0%, transparent 56%);
+}
+
+/* ---------- type ---------- */
+h1,h2,h3{ font-weight:600; line-height:1.04; letter-spacing:-0.025em; }
+.eyebrow{ font-family:'DM Mono',monospace; font-size:10.5px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink3); margin-bottom:18px; display:flex; align-items:center; gap:10px; position:relative; z-index:2;}
+.eyebrow::before{ content:""; width:22px; height:2px; background:var(--green-deep); display:inline-block; border-radius:2px;}
+.dark .eyebrow{ color:var(--dink3);}
+.dark .eyebrow::before{ background:var(--green);}
+.title{ font-size:43px; font-weight:600; color:var(--ink); margin-bottom:12px; max-width:11in; letter-spacing:-0.03em; position:relative; z-index:2;}
+.title.big{ font-size:56px; letter-spacing:-0.034em;}
+.dark .title{ color:#fff;}
+.grad{ color:var(--green-ink); }
+.dark .grad{ color:var(--green); }
+.lead{ font-size:17px; line-height:1.55; color:var(--ink2); max-width:8.5in; font-weight:400; position:relative; z-index:2;}
+.dark .lead{ color:var(--dink2);}
+.kicker{ font-size:13px; color:var(--ink3); letter-spacing:0.005em; position:relative; z-index:2; line-height:1.5;}
+.dark .kicker{ color:var(--dink3);}
+b{ font-weight:600;}
+a{ text-decoration:none; color:inherit; cursor:pointer;}
+
+/* ---------- footer ---------- */
+.foot{ position:absolute; left:0.86in; right:0.86in; bottom:0.42in; display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--ink4); letter-spacing:0.05em; border-top:1px solid var(--line); padding-top:12px; z-index:3;}
+.foot .brand img{ height:15px; display:block;}
+.foot .pg{ font-family:'DM Mono',monospace; font-variant-numeric:tabular-nums; color:var(--ink4);}
+.dark .foot{ color:var(--dink3); border-top-color:var(--dline);}
+.dark .foot .pg{ color:var(--dink3);}
+
+/* ---------- layout ---------- */
+.body{ flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0; position:relative; z-index:2;}
+.slide:has(.phead) .body{ justify-content:flex-start; padding-top:0.14in;}
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:26px; }
+.grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+.grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.row{ display:flex; gap:28px; align-items:stretch;}
+
+/* ---------- cards ---------- */
+.card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px 23px 20px; position:relative; overflow:hidden;
+  box-shadow:0 1px 0 rgba(10,10,10,0.04);}
+.card .ct{ font-size:16px; font-weight:600; color:var(--ink); margin-bottom:11px; letter-spacing:-0.012em; display:flex; align-items:center; gap:9px;}
+.ct .ico{ width:18px; height:18px; flex:none; stroke:var(--green-ink); stroke-width:1.85; fill:none; stroke-linecap:round; stroke-linejoin:round;}
+.dark .ct .ico{ stroke:var(--green);}
+.card .cd{ font-size:13.5px; line-height:1.5; color:var(--ink2);}
+.card.accent{ border-color:#e3e3df;}
+.dark .card{ background:var(--dsurf); border-color:var(--dline); box-shadow:none;}
+.dark .card .ct{ color:#fff;}
+.dark .card .cd{ color:var(--dink2);}
+.card .ribbon{ position:absolute; top:0; left:0; right:0; height:2px; background:var(--green-deep);}
+.dark .card .ribbon{ background:var(--green);}
+
+/* ---------- feature rows (V1 diamond marker) ---------- */
+.feat{ display:flex; gap:11px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--ink2); margin-bottom:12px;}
+.feat:last-child{ margin-bottom:0;}
+.feat .mk{ flex:none; width:7px; height:7px; border-radius:1.5px; background:var(--ink); margin-top:6px; transform:rotate(45deg);}
+.feat b{ color:var(--ink); font-weight:600;}
+.dark .feat{ color:var(--dink2);}
+.dark .feat .mk{ background:var(--green);}
+.dark .feat b{ color:#fff;}
+
+.two-col{ column-count:2; column-gap:40px;}
+.two-col .feat{ break-inside:avoid;}
+
+/* ---------- pills ---------- */
+.pill{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:500; letter-spacing:0.01em; padding:5px 12px; border-radius:999px; background:#fff; border:1px solid var(--line); color:var(--ink2);}
+.pill.on{ background:var(--green-soft); border-color:#7add2c55; color:var(--green-ink); font-weight:600;}
+.pill.on::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--green-deep);}
+.dark .pill{ background:var(--dsurf2); border-color:var(--dline2); color:var(--dink2);}
+.dark .pill.on{ background:#7add2c1c; border-color:#7add2c55; color:var(--green);}
+.tag-prem{ display:inline-flex; align-items:center; font-size:9.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; padding:2px 8px; border-radius:999px; vertical-align:middle; margin-left:5px;
+  background:var(--green-soft); border:1px solid #7add2c55; color:var(--green-ink);}
+.nw-tags{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px;}
+.nw-tags .pill{ font-size:10.5px; padding:4px 10px;}
+.nw-tags .tag-prem{ margin-left:0;}
+#lo-nuevo .card{ display:flex; flex-direction:column;}
+#lo-nuevo .nw-tags{ margin-top:auto; padding-top:12px;}
+
+/* ---------- stats ---------- */
+.statrow{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.stat{ padding:18px 20px; border-radius:13px; background:var(--card); border:1px solid var(--line); box-shadow:0 1px 0 rgba(10,10,10,0.03);}
+.num{ font-size:34px; line-height:1; font-weight:700; letter-spacing:-0.035em; color:var(--ink);}
+.statlbl{ font-size:11.5px; color:var(--ink3); margin-top:8px; letter-spacing:0.01em; line-height:1.3;}
+.dark .stat{ background:var(--dsurf); border-color:var(--dline);}
+.dark .num{ color:var(--green);}
+.dark .statlbl{ color:var(--dink3);}
+
+.hl{ color:var(--green-ink); font-weight:600;}
+.dark .hl{ color:var(--green);}
+code{ font-family:'DM Mono',monospace; font-size:0.9em; color:var(--green-ink); background:var(--green-soft); padding:1px 5px; border-radius:4px;}
+.dark code{ color:var(--green); background:#7add2c14;}
+
+/* ---------- single subtle green glow on dark beats ---------- */
+.glowbg{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0;}
+.glowbg i{ position:absolute; border-radius:50%; display:block;}
+.glowbg .g1{ width:780px; height:780px; right:-280px; top:-320px; background:radial-gradient(circle,#7ADD2C26 0%, transparent 60%);}
+.glowbg .g2{ width:560px; height:560px; left:-240px; bottom:-300px; background:radial-gradient(circle,#7ADD2C10 0%, transparent 62%);}
+.glowbg .g1.dim{ background:radial-gradient(circle,#7ADD2C1B 0%, transparent 60%);}
+
+/* ---------- cover / closing ---------- */
+.cover{ justify-content:space-between; padding:0.86in 0.92in;}
+.cover .logo{ position:relative; z-index:2;}
+.cover .logo img{ height:34px; display:block;}
+.cover h1{ font-size:66px; max-width:10in; letter-spacing:-0.036em; line-height:0.99; font-weight:600; color:#fff;}
+.cover .sub{ font-size:19px; color:var(--dink2); margin-top:26px; max-width:8.2in; line-height:1.55;}
+.cover .strip{ display:flex; gap:9px; margin-top:34px; flex-wrap:wrap; max-width:10.2in;}
+
+/* ---------- fórmula del título (portada, en chico): POS + ERP + CRM + … PDF-safe: sin blur/filter/opacity ---------- */
+.cover .strip.formula{ flex-wrap:nowrap; align-items:center; gap:0; max-width:none;}
+.formula .fc{ display:inline-flex; align-items:center; gap:6px; padding:6px 11px 6px 9px; border-radius:10px; background:var(--dsurf2); border:1px solid var(--dline2); box-shadow:inset 0 1px 0 #ffffff0d; font-size:13px; font-weight:600; letter-spacing:-0.005em; line-height:1.2; color:#fff; white-space:nowrap;}
+.formula .fc svg{ width:15px; height:15px; flex:none; fill:none; stroke:var(--dink2); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+.formula .fc.m{ background:#7add2c14; border-color:#7add2c66; box-shadow:inset 0 1px 0 #7add2c2e;}
+.formula .fc.m svg{ stroke:var(--green);}
+.formula .fp{ flex:none; width:17px; text-align:center; font-family:'DM Mono',monospace; font-size:14px; font-weight:500; line-height:1; color:var(--green);}
+.cover .meta{ position:relative; z-index:2; font-family:'DM Mono',monospace; font-size:11.5px; color:var(--dink3); letter-spacing:0.06em;}
+
+/* ---------- ecosystem diagram ---------- */
+.eco{ display:grid; grid-template-columns:1fr auto 1fr; gap:32px; align-items:center; margin-top:8px;}
+.eco-col .lbl{ font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--dink3); margin-bottom:14px; text-align:center;}
+.node{ background:var(--dsurf); border:1px solid var(--dline); border-radius:12px; padding:14px 16px; margin-bottom:12px;}
+.node b{ color:#fff; font-weight:600; display:block; font-size:13.5px; letter-spacing:-0.01em;}
+.node span{ color:var(--dink3); font-size:11.5px;}
+.hub{ position:relative; background:linear-gradient(165deg,#15231a,#0d130f); border:1.5px solid #3a7d2a; border-radius:20px; padding:30px 24px; text-align:center; width:2.55in;
+  box-shadow:inset 0 1px 0 #ffffff0a;}
+.hub::before{ content:""; position:absolute; z-index:-1; left:-64px; right:-64px; top:-64px; bottom:-64px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(closest-side, #7add2c24 0%, #7add2c0f 55%, transparent 100%);}
+.hub .ht{ font-size:22px; color:var(--green); margin-bottom:7px; font-weight:600; letter-spacing:-0.015em;}
+.hub .hs{ font-size:12.5px; color:var(--dink2); line-height:1.45;}
+.hub .hmeta{ margin-top:15px; font-family:'DM Mono',monospace; font-size:9.5px; color:var(--dink3); letter-spacing:0.05em; border-top:1px solid var(--dline2); padding-top:11px;}
+.conn{ display:flex; flex-direction:column; align-items:center; gap:12px;}
+.conn .arr{ width:1.5px; height:28px; background:linear-gradient(#3a7d2a,#7add2c66); opacity:0.8;}
+
+/* ---------- product header ---------- */
+.pbar{ position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--green-deep) 0%, #7add2c33 60%, transparent 100%); z-index:3;}
+.phead{ display:flex; align-items:baseline; gap:16px; margin-bottom:5px; position:relative; z-index:2;}
+.phead .pname{ font-size:38px; color:var(--ink); font-weight:700; letter-spacing:-0.036em;}
+.phead .pwhat{ font-size:14px; color:var(--ink3); font-weight:500; letter-spacing:0.005em;}
+.meta-row{ display:flex; gap:9px; margin:15px 0 22px; flex-wrap:wrap; position:relative; z-index:2;}
+
+/* ---------- product media (neutral device frames) ---------- */
+.prow{ display:flex; gap:42px; align-items:flex-start;}
+.prow .ptext{ flex:1.12; min-width:0;}
+.prow .pmedia{ flex:1; display:flex; gap:22px; justify-content:flex-end; align-items:flex-start;}
+.cap{ font-family:'DM Mono',monospace; font-size:9.5px; color:var(--ink4); text-align:center; margin-top:10px; letter-spacing:0.02em;}
+
+.browser{ border-radius:13px; overflow:hidden; background:#fff; border:1px solid #d6d6d1;
+  box-shadow:0 1px 0 rgba(10,10,10,0.06);}
+.browser .bar{ height:30px; background:#f7f7f5; border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 12px; gap:6px;}
+.browser .dot{ width:9px; height:9px; border-radius:50%; flex:none; background:#dcdcd8;}
+.browser .url{ flex:1; margin-left:8px; height:16px; border-radius:5px; background:#fff; border:1px solid var(--line); display:flex; align-items:center; padding:0 8px;
+  font-family:'DM Mono',monospace; font-size:8px; color:var(--ink4); letter-spacing:0.02em;}
+.browser img{ display:block; width:100%; height:auto;}
+.browser.w-dash{ width:4.7in;}
+.browser.w-widget{ width:4.55in;}
+
+.phone{ position:relative; border-radius:22px; padding:8px 7px; background:linear-gradient(155deg,#2a2a2a,#0d0d0d); box-shadow:0 1px 0 rgba(10,10,10,0.1);}
+.phone::before{ content:""; position:absolute; top:13px; left:50%; transform:translateX(-50%); width:34%; height:5px; border-radius:99px; background:#000; z-index:3;}
+.phone .scr{ border-radius:15px; overflow:hidden; background:#000; display:block;}
+.phone .scr img{ display:block; width:100%; height:auto;}
+.phone.p-keypad{ width:1.62in;}
+.phone.p-pos{ width:1.78in;}
+
+.bare{ background:transparent;}
+.bare img{ display:block; width:100%; height:auto;}
+.bare.w-pax{ width:2.55in;}
+
+/* ---------- callout ---------- */
+.callout{ position:relative; border-radius:13px; padding:17px 20px 17px 22px; margin-top:24px;
+  background:var(--green-soft); border:1px solid #7add2c33;}
+.callout::before{ content:""; position:absolute; left:0; top:13px; bottom:13px; width:3px; border-radius:3px; background:var(--green-deep);}
+.callout .cd{ font-size:13.5px; line-height:1.5; color:var(--ink2);}
+
+/* lámina densa (10): menos aire vertical para que el texto de cierre no pise el pie */
+.slide.tight .body{ justify-content:flex-start; padding-top:0.12in;}
+.slide.tight .card{ padding:17px 23px 15px;}
+.slide.tight .feat{ margin-bottom:8px;}
+.slide.tight .feat:last-child{ margin-bottom:0;}
+
+/* ---------- plans ---------- */
+.plan{ border-radius:14px; padding:21px 20px; background:var(--card); border:1px solid var(--line); position:relative; box-shadow:0 1px 0 rgba(10,10,10,0.03);}
+.plan .pt{ font-family:'DM Mono',monospace; font-size:15px; font-weight:500; letter-spacing:0.03em; color:var(--ink); margin-bottom:11px;}
+.plan .pd{ font-size:12.5px; line-height:1.48; color:var(--ink2);}
+.plan.feature{ border-color:#7add2c99; background:#f7fcf1; box-shadow:0 1px 0 rgba(10,10,10,0.03);}
+.plan.feature .pt{ color:var(--green-ink);}
+.plan .pbadge{ position:absolute; top:-9px; right:14px; font-size:9px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; background:var(--green-deep); color:#fff;}
+
+.btn{ display:inline-block; background:var(--black); color:#fff; padding:13px 26px; border-radius:8px; font-weight:600; font-size:14px; text-decoration:none;}
+
+/* ---------- hardware (láminas de equipos): fotos y precios de avoqado.io/equipos. PDF-safe: sin blur/filter/opacity ---------- */
+.hw .card{ display:flex; flex-direction:column; padding:17px 21px 15px;}
+.hwn{ font-size:16px; font-weight:600; letter-spacing:-0.012em; color:var(--ink); line-height:1.2;}
+.hws{ font-size:12px; color:var(--ink3); margin-top:3px; line-height:1.3;}
+.hwph{ height:var(--ph,1.3in); display:flex; align-items:center; justify-content:center; margin:8px 0 9px;}
+.hwph img{ max-width:100%; max-height:100%; display:block;}
+.hw .feat{ font-size:13px; margin-bottom:7px; line-height:1.4;}
+.hw .feat .mk{ margin-top:5.5px;}
+.hwp{ margin-top:auto; padding-top:10px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink); letter-spacing:-0.01em;}
+.hwp small{ font-size:11px; font-weight:500; color:var(--ink3); letter-spacing:0;}
+.hwvh{ margin-top:auto; padding-top:9px; border-top:1px solid var(--line); margin-bottom:4px; font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink4);}
+.hwv{ display:flex; justify-content:space-between; gap:12px; align-items:baseline; font-size:12px; line-height:1.35; color:var(--ink2); padding:2.5px 0;}
+.hwv b{ flex:none; font-size:13.5px; color:var(--green-ink); font-weight:700;}
+.hw .card.hwrow{ flex-direction:row; gap:22px; align-items:stretch; padding:20px 22px 18px;}
+.hwph.tall{ flex:none; width:2.15in; height:auto; margin:0;}
+.hwtx{ flex:1; min-width:0; display:flex; flex-direction:column;}
+.hwl{ display:grid; grid-template-columns:1fr 1fr; gap:11px 22px;}
+.hwl .it{ display:flex; gap:14px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:13px; padding:8px 18px 8px 10px; box-shadow:0 1px 0 rgba(10,10,10,0.04);}
+.hwl .im{ flex:none; width:0.95in; height:0.72in; display:flex; align-items:center; justify-content:center;}
+.hwl .im img{ max-width:100%; max-height:100%; display:block;}
+.hwl .tx{ flex:1; min-width:0;}
+.hwl .tn{ font-size:14px; font-weight:600; color:var(--ink); letter-spacing:-0.01em; line-height:1.2;}
+.hwl .ts{ font-size:11.5px; color:var(--ink3); margin-top:2px; line-height:1.3;}
+.hwl .tv{ font-size:11px; color:var(--ink2); margin-top:3px; line-height:1.3;}
+.hwl .pr{ flex:none; text-align:right; font-size:14.5px; font-weight:700; color:var(--green-ink); line-height:1.2; letter-spacing:-0.01em;}
+.hwl .pr small{ display:block; margin-top:2px; font-size:10px; font-weight:500; color:var(--ink3); letter-spacing:0;}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="presentation-web.css">
+<link rel="stylesheet" href="presentation-story.css">
+</head>
+<body class="avq-web"><header class="avq-toolbar">
+<a class="avq-brand" href="avoqado-resumen.html">Avoqado</a>
+<details class="avq-index"><summary>Índice</summary><nav aria-label="Índice de la presentación"><ol><li class="avq-story-nav" hidden><a href="#explora">Explorar productos</a></li><li class="avq-story-nav" hidden><a href="#equipos">Elegir equipo</a></li><li><a href="#seccion-1">Inicio</a></li><li><a href="#seccion-2">Un solo cerebro para todo el negocio.</a></li><li><a href="#seccion-3">11 piezas, una sola fuente de verdad.</a></li><li><a href="#seccion-4">Hecho para negocios físicos de todo tipo.</a></li><li><a href="#seccion-5">Pagos: cobra como sea, donde sea.</a></li><li><a href="#seccion-6">Punto de venta y órdenes.</a></li><li><a href="#seccion-7">Inventario que se cuida solo.</a></li><li><a href="#seccion-8">Reservaciones y citas.</a></li><li><a href="#seccion-9">Facturación CFDI, clientes y lealtad.</a></li><li><a href="#seccion-10">Contabilidad que se lleva sola.</a></li><li><a href="#seccion-11">Equipo, permisos y multi‑sucursal.</a></li><li><a href="#seccion-12">Analítica, IA y tiempo real.</a></li><li><a href="#lo-nuevo">Lo nuevo. Y lo que ya viene.</a></li><li><a href="#seccion-14">8 productos. Una sola plataforma.</a></li><li><a href="#seccion-15">Dashboard Web</a></li><li><a href="#seccion-16">TPV</a></li><li><a href="#seccion-17">POS Android</a></li><li><a href="#seccion-18">POS iOS</a></li><li><a href="#seccion-19">POS de Escritorio</a></li><li><a href="#seccion-20">App de Consumidor</a></li><li><a href="#seccion-21">Widget de Reservas</a></li><li><a href="#seccion-22">Checkout en línea</a></li><li><a href="#seccion-23">Tras bambalinas</a></li><li><a href="#seccion-24">Lo que casi nadie más junta.</a></li><li><a href="#seccion-25">A quién le hablas y con qué gancho.</a></li><li><a href="#seccion-26">Cuatro niveles, una sola plataforma.</a></li><li><a href="#seccion-27">Estaciones Sunmi D3. Mismo software, tres formatos.</a></li><li><a href="#seccion-28">Tablets Sunmi CPad. Tres tamaños, el mismo POS.</a></li><li><a href="#seccion-29">Pantallas de cocina. Adiós al papel en el pase.</a></li><li><a href="#seccion-30">Terminales de cobro. Ligeras, portátiles, listas.</a></li><li><a href="#seccion-31">Impresora y cajón. Para completar tu mostrador.</a></li><li><a href="#seccion-32">Accesorios de la CPad. Para montarla y protegerla.</a></li><li><a href="#seccion-33">Hablemos</a></li></ol></nav></details>
+<a class="avq-other" href="avoqado-resumen.html">Ver resumen</a>
+<a class="avq-download" href="avoqado-plataforma.pdf" download>Descargar PDF</a>
+</header>
+<p class="avq-hint">Explora a tu ritmo. Toca los nombres para ver qué significan y las fotos para ampliarlas.</p><main><div class="avq-story avq-screen-only" hidden>
+<template data-preview="dashboard"><div class="avq-mini avq-demo" data-demo="dashboard"><div class="avq-mini-top"><strong>Tu negocio</strong><span>Todo en un lugar</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Ventas" aria-pressed="true">Ventas</button><button type="button" data-demo-action="Inventario" aria-pressed="false">Inventario</button><button type="button" data-demo-action="Equipo" aria-pressed="false">Equipo</button></div>
+          <div class="avq-mini-ledger"><div class="avq-ledger-head"><span data-demo-column>Actividad</span><span>Estado</span></div>
+            <div><span data-demo-row>Mostrador</span><b>Al día</b></div><div><span data-demo-row>En línea</span><b>Al día</b></div><div><span data-demo-row>Reservas</span><b>Al día</b></div></div>
+          <p data-demo-output role="status">Ventas, pagos y reservas en un mismo lugar.</p><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template><template data-preview="reservas"><div class="avq-mini avq-demo" data-demo="reservas"><div class="avq-mini-top"><strong>Elige tu momento</strong><span>Citas y clases</span></div>
+          <div class="avq-mini-week" aria-hidden="true"><span>Lun<b>19</b></span><span>Mar<b>20</b></span><span class="avq-day-picked">Mié<b>21</b></span><span>Jue<b>22</b></span><span>Vie<b>23</b></span></div>
+          <p class="avq-mini-label">Horarios de ejemplo</p><div class="avq-mini-times"><button type="button" data-demo-action="10:00" aria-pressed="false">10:00</button><button type="button" data-demo-action="11:30" aria-pressed="false">11:30</button><button type="button" data-demo-action="12:00" aria-pressed="false">12:00</button></div>
+          <p data-demo-output role="status">Elige un horario. No se crea una reserva.</p><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template><template data-preview="pedidos"><div class="avq-mini avq-demo" data-demo="pedidos"><div class="avq-mini-top"><strong>Tu tienda, en línea</strong><span>Para recoger</span></div>
+          <div class="avq-mini-order"><div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 13h19v12a7 7 0 0 1-7 7h-5a7 7 0 0 1-7-7V13Zm19 2h3a5 5 0 0 1 0 10h-3M14 5v3M22 5v3M7 35h26"/></svg><span><strong>Café</strong><small>Hecho al momento</small></span><button type="button" data-demo-action="add" aria-label="Añadir café"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+          <div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 27c-3-10 4-20 13-20s16 10 13 20l-3 6H10l-3-6ZM13 15l3 5M22 12l3 5M7 27h26"/></svg><span><strong>Pan artesanal</strong><small>Recién hecho</small></span><button type="button" data-demo-action="add" aria-label="Añadir pan artesanal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+          <div class="avq-mini-cart"><p data-demo-output role="status">Tu carrito está vacío</p><button type="button" data-demo-action="clear">Vaciar ejemplo</button></div><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template><template data-preview="checkout"><div class="avq-mini avq-demo" data-demo="checkout"><div class="avq-mini-top"><strong>Tu cobro. Tu marca.</strong><span>Checkout Avoqado</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Liga de pago" aria-pressed="true">Liga de pago</button><button type="button" data-demo-action="Código QR" aria-pressed="false">Código QR</button><button type="button" data-demo-action="En tu web" aria-pressed="false">En tu web</button></div>
+          <div class="avq-checkout-surface"><svg class="avq-checkout-symbol" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="11" width="36" height="27" rx="4"/><path d="M6 20h36M13 29h8M30 29h5"/></svg><strong data-checkout-heading>Cobro por liga</strong><span>Monto fijo o abierto</span><span>Propina opcional</span></div>
+          <p data-demo-output role="status">Liga de pago: compártela con tu cliente.</p><p class="avq-demo-note">Ejemplo interactivo · no crea operaciones reales</p></div></template>
+<section class="avq-story-hero" id="avq-inicio" aria-labelledby="avq-story-title">
+  <div class="top avq-intro-head"><img src="assets/logo-h-black.png" alt="Avoqado">
+    <div class="avq-hero-grid">
+      <div class="avq-hero-copy"><h1 id="avq-story-title">Tu negocio.<br><span>Todo conectado.</span></h1>
+        <p>La plataforma todo‑en‑uno para operar negocios físicos en México: pagos, punto de venta, inventario, reservaciones, facturación y analítica — conectados en tiempo real, multi‑sucursal.</p><a class="avq-story-cta" href="#explora">Explorar Avoqado <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+        <a class="avq-story-secondary" href="#equipos">Encontrar mi equipo</a>
+      </div>
+      <div class="avq-hero-showcase"><div class="avq-assembly" role="group" aria-label="Cartas de productos Avoqado"><article class="avq-product-card" data-card-product="pos"><div class="avq-card-face">
+          <p class="avq-card-title">Punto de venta</p><figure class="avq-card-image"><img src="assets/eq-d3-doble-15.jpg" alt="Sunmi D3 doble pantalla 15.6&quot; — Estación de mostrador, dos pantallas iguales"></figure>
+        </div></article><article class="avq-product-card" data-card-product="dashboard"><div class="avq-card-face">
+          <p class="avq-card-title">Panel del negocio</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="dashboard"><div class="avq-mini-top"><strong>Tu negocio</strong><span>Todo en un lugar</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Ventas" aria-pressed="true">Ventas</button><button type="button" data-demo-action="Inventario" aria-pressed="false">Inventario</button><button type="button" data-demo-action="Equipo" aria-pressed="false">Equipo</button></div>
+          <div class="avq-mini-ledger"><div class="avq-ledger-head"><span data-demo-column>Actividad</span><span>Estado</span></div>
+            <div><span data-demo-row>Mostrador</span><b>Al día</b></div><div><span data-demo-row>En línea</span><b>Al día</b></div><div><span data-demo-row>Reservas</span><b>Al día</b></div></div>
+          <p data-demo-output role="status">Ventas, pagos y reservas en un mismo lugar.</p><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article><article class="avq-product-card" data-card-product="reservas"><div class="avq-card-face">
+          <p class="avq-card-title">Reservas y citas</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="reservas"><div class="avq-mini-top"><strong>Elige tu momento</strong><span>Citas y clases</span></div>
+          <div class="avq-mini-week" aria-hidden="true"><span>Lun<b>19</b></span><span>Mar<b>20</b></span><span class="avq-day-picked">Mié<b>21</b></span><span>Jue<b>22</b></span><span>Vie<b>23</b></span></div>
+          <p class="avq-mini-label">Horarios de ejemplo</p><div class="avq-mini-times"><button type="button" data-demo-action="10:00" aria-pressed="false">10:00</button><button type="button" data-demo-action="11:30" aria-pressed="false">11:30</button><button type="button" data-demo-action="12:00" aria-pressed="false">12:00</button></div>
+          <p data-demo-output role="status">Elige un horario. No se crea una reserva.</p><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article><article class="avq-product-card" data-card-product="tpv"><div class="avq-card-face">
+          <p class="avq-card-title">Terminal de cobro</p><figure class="avq-card-image"><img src="assets/eq-pax-a910s.jpg" alt="PAX A910S — Terminal de cobro portátil"></figure>
+        </div></article><article class="avq-product-card" data-card-product="pedidos"><div class="avq-card-face">
+          <p class="avq-card-title">Pedidos en línea</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="pedidos"><div class="avq-mini-top"><strong>Tu tienda, en línea</strong><span>Para recoger</span></div>
+          <div class="avq-mini-order"><div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 13h19v12a7 7 0 0 1-7 7h-5a7 7 0 0 1-7-7V13Zm19 2h3a5 5 0 0 1 0 10h-3M14 5v3M22 5v3M7 35h26"/></svg><span><strong>Café</strong><small>Hecho al momento</small></span><button type="button" data-demo-action="add" aria-label="Añadir café"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+          <div class="avq-order-item"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 27c-3-10 4-20 13-20s16 10 13 20l-3 6H10l-3-6ZM13 15l3 5M22 12l3 5M7 27h26"/></svg><span><strong>Pan artesanal</strong><small>Recién hecho</small></span><button type="button" data-demo-action="add" aria-label="Añadir pan artesanal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+          <div class="avq-mini-cart"><p data-demo-output role="status">Tu carrito está vacío</p><button type="button" data-demo-action="clear">Vaciar ejemplo</button></div><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article><article class="avq-product-card" data-card-product="checkout"><div class="avq-card-face">
+          <p class="avq-card-title">Checkout y ligas</p><div class="avq-mini avq-mini--compact" inert aria-hidden="true" data-demo="checkout"><div class="avq-mini-top"><strong>Tu cobro. Tu marca.</strong><span>Checkout Avoqado</span></div>
+          <div class="avq-mini-tabs"><button type="button" data-demo-action="Liga de pago" aria-pressed="true">Liga de pago</button><button type="button" data-demo-action="Código QR" aria-pressed="false">Código QR</button><button type="button" data-demo-action="En tu web" aria-pressed="false">En tu web</button></div>
+          <div class="avq-checkout-surface"><svg class="avq-checkout-symbol" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="11" width="36" height="27" rx="4"/><path d="M6 20h36M13 29h8M30 29h5"/></svg><strong data-checkout-heading>Cobro por liga</strong><span>Monto fijo o abierto</span><span>Propina opcional</span></div>
+          <p data-demo-output role="status">Liga de pago: compártela con tu cliente.</p><p class="avq-demo-note">Vista ilustrativa</p></div>
+        </div></article></div>
+        <div class="avq-card-controls" role="group" aria-label="Elige una carta"><button type="button" data-hero-product="pos" aria-pressed="false" aria-label="POS Android: ver carta">POS</button><button type="button" data-hero-product="dashboard" aria-pressed="false" aria-label="Dashboard Web: ver carta">Panel</button><button type="button" data-hero-product="reservas" aria-pressed="false" aria-label="Widget de Reservas: ver carta">Reservas</button><button type="button" data-hero-product="tpv" aria-pressed="false" aria-label="TPV: ver carta">Terminal</button><button type="button" data-hero-product="pedidos" aria-pressed="false" aria-label="Pedidos en línea: ver carta">Pedidos</button><button type="button" data-hero-product="checkout" aria-pressed="false" aria-label="Checkout en línea: ver carta">Checkout</button></div></div>
+    </div>
+    <div class="avq-hero-modules"><p>Toca una pieza. Descubre lo que hace.</p><div class="formula"><span class="c m">POS</span><span class="p">+</span><span class="c m">ERP</span><span class="p">+</span><span class="c m">CRM</span><span class="p">+</span><span class="c">Pagos</span><span class="p">+</span><span class="c">CFDI</span><span class="p">+</span><span class="c">Reservas</span><span class="p">+</span><span class="c">Equipo</span><span class="p">+</span><span class="c">BI</span><span class="p">+</span><span class="c">IA</span><span class="p">+</span><span class="c">Delivery</span><span class="p">+</span><span class="c">Hardware</span></div></div>
+  </div>
+</section>
+<section class="avq-explorer" id="explora" aria-labelledby="avq-explorer-title">
+  <div class="avq-section-heading"><h2 id="avq-explorer-title">Una plataforma.<br>Tu forma de trabajar.</h2><p>Elige un producto para explorarlo. Cada pieza se conecta con el resto de Avoqado.</p></div>
+  <div class="avq-product-controls" role="group" aria-label="Productos Avoqado"><button type="button" data-product="pos" aria-pressed="false">POS Android</button><button type="button" data-product="dashboard" aria-pressed="false">Dashboard Web</button><button type="button" data-product="reservas" aria-pressed="false">Widget de Reservas</button><button type="button" data-product="tpv" aria-pressed="false">TPV</button><button type="button" data-product="pedidos" aria-pressed="false">Pedidos en línea</button><button type="button" data-product="checkout" aria-pressed="false">Checkout en línea</button></div>
+  <div class="avq-product-view" aria-labelledby="avq-product-title"><div class="avq-product-copy"><h3 id="avq-product-title"></h3><p class="avq-story-subtitle"></p><p class="avq-preview-note">Una muestra de lo que puedes hacer:</p><ul></ul><a class="avq-story-detail">Ver todos los detalles <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a></div><figure class="avq-story-media"></figure></div>
+</section>
+<section class="avq-equipment" id="equipos" aria-labelledby="avq-equipment-title">
+  <div class="avq-section-heading"><h2 id="avq-equipment-title">El equipo cambia.<br>Avoqado te acompaña.</h2><p>De una estación de mostrador a una terminal portátil. Explora las fotos y características del catálogo.</p></div>
+  <label class="avq-equipment-label" for="avq-equipment-select">Elige tu equipo</label><select id="avq-equipment-select"><option value="hw-d3-una">Sunmi D3 una pantalla</option><option value="hw-d3-doble-15">Sunmi D3 doble pantalla 15.6&quot;</option><option value="hw-cpad-11">Sunmi CPad 11&quot;</option><option value="hw-kds-d2s">Sunmi D2s KDS 15.6&quot;</option><option value="hw-pax">PAX A910S</option><option value="hw-nexgo-n86">NexGo N86</option></select>
+  <div class="avq-equipment-view" aria-labelledby="avq-equipment-name"><figure class="avq-story-media"></figure><div class="avq-equipment-copy"><h3 id="avq-equipment-name"></h3><p class="avq-story-subtitle"></p><ul></ul><a class="avq-story-detail">Ver ficha completa <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a></div></div>
+</section>
+<div class="avq-story-continuation"><h2>Conoce cada pieza.</h2><p>La presentación, con todo el detalle.</p></div>
+</div>
+
+<!-- 01. COVER (dark beat) -->
+<section class="slide dark cover" id="seccion-1">
+  <div class="glowbg"><i class="g1"></i><i class="g2"></i></div>
+  <div class="logo"><img loading="lazy" src="assets/logo-h-white.png" alt="Avoqado"></div>
+  <div style="position:relative; z-index:2;">
+    <h1 style="font-size:52px; line-height:1.02; max-width:10.4in;">Para todo tipo de negocio.<br><span class="grad">El primer sistema todo‑en‑uno en México para cobrar, operar, administrar y crecer tu negocio.</span></h1>
+    <p class="sub">La plataforma todo‑en‑uno para operar negocios físicos en México: pagos, punto de venta, inventario, reservaciones, facturación y analítica — conectados en tiempo real, multi‑sucursal.</p>
+    <div class="strip formula"><span class="fc m"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M9 6h6"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h.01M15.5 18h.01"/></svg>POS</span><span class="fp">+</span><span class="fc m"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>ERP</span><span class="fp">+</span><span class="fc m"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>CRM</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>Pagos</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>CFDI</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Reservas</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>Equipo</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v-3M12 15V9M17 15v-6"/></svg>BI</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>IA</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>Delivery</span><span class="fp">+</span><span class="fc"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Hardware</span></div>
+  </div>
+  <div class="meta">Presentación de plataforma · Material para socios comerciales · 2026 · Confidencial</div>
+</section>
+
+<!-- 02. QUÉ ES (light) -->
+<section class="slide" id="seccion-2">
+  <div class="eyebrow">Qué es Avoqado</div>
+  <h2 class="title big">Un solo cerebro para <span class="grad">todo el negocio.</span></h2>
+  <div class="body">
+    <div class="row" style="gap:40px; align-items:stretch;">
+      <div style="flex:1.12; align-self:center;">
+        <p class="lead" style="margin-bottom:20px;">Avoqado conecta el <b style="color:var(--ink)">cobro</b>, la <b style="color:var(--ink)">operación</b> y los <b style="color:var(--ink)">datos</b> de un negocio en una sola plataforma multi‑sucursal. Lo que hoy se hace con 4 o 5 herramientas sueltas, Avoqado lo hace junto — y todo se actualiza en vivo entre la terminal, el celular del vendedor, la cocina y el dashboard del dueño.</p>
+        <p class="lead">Un mismo servidor, una sola base de datos, una sola verdad. El dueño deja de "exportar de aquí, copiar allá": ve su negocio completo desde un solo lugar, esté donde esté.</p>
+      </div>
+      <div class="card accent" style="flex:0.88;">
+        <div class="ribbon"></div>
+        <div class="ct">Lo que Avoqado reemplaza</div>
+        <div class="feat"><span class="mk"></span><span>Terminal bancaria suelta + conciliación manual</span></div>
+        <div class="feat"><span class="mk"></span><span>POS genérico que no habla con nada</span></div>
+        <div class="feat"><span class="mk"></span><span>Excel de inventario y mermas</span></div>
+        <div class="feat"><span class="mk"></span><span>Agenda de reservas / citas en papel o WhatsApp</span></div>
+        <div class="feat"><span class="mk"></span><span>Facturador (CFDI) externo</span></div>
+        <div class="feat"><span class="mk"></span><span>Reportes armados a mano cada semana</span></div>
+        <div style="margin-top:17px; padding-top:15px; border-top:1px solid var(--line); font-size:14px; font-weight:600;" class="hl">→ Todo en uno: Avoqado.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">02 / 32</span></div>
+</section>
+
+<!-- 03. ECOSISTEMA (dark beat) -->
+<section class="slide dark" id="seccion-3">
+  <div class="glowbg"><i class="g1 dim"></i></div>
+  <div class="eyebrow">El ecosistema</div>
+  <h2 class="title">11 piezas, <span class="grad">una sola fuente de verdad.</span></h2>
+  <p class="kicker" style="margin-bottom:4px; max-width:8.6in;">Todo cliente —terminal, celular, web— habla con el mismo servidor. Si algo cambia en un punto, cambia en todos al instante.</p>
+  <div class="body">
+    <div class="eco">
+      <div class="eco-col">
+        <div class="lbl">Apps de tu equipo</div>
+        <div class="node"><b>TPV (PAX/NexGo)</b><span>Cobro con tarjeta integrado</span></div>
+        <div class="node"><b>POS Android · iOS · Windows</b><span>Menú, órdenes, mesas</span></div>
+        <div class="node"><b>Dashboard Web</b><span>Administración del negocio</span></div>
+      </div>
+      <div class="conn">
+        <div class="arr"></div>
+        <div class="hub">
+          <div class="ht">Servidor Avoqado</div>
+          <div class="hs">API + base de datos<br>El centro de todo</div>
+          <div class="hmeta">TIEMPO REAL · MULTI‑SUCURSAL · SEGURO</div>
+        </div>
+        <div class="arr"></div>
+      </div>
+      <div class="eco-col">
+        <div class="lbl">De cara al cliente</div>
+        <div class="node"><b>App de consumidor</b><span>Descubre y reserva</span></div>
+        <div class="node"><b>Widget de reservas</b><span>En la web del negocio</span></div>
+        <div class="node"><b>Checkout en línea</b><span>Pago por liga / QR</span></div>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:center; gap:10px; margin-top:22px; flex-wrap:wrap;">
+      <span class="pill">+ Integración con otros sistemas POS — sincroniza tu POS actual</span>
+      <span class="pill on">+ Conecta tu IA: Claude · ChatGPT · Gemini a tus datos (MCP)</span>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-white.png" alt="Avoqado"></div><span class="pg">03 / 32</span></div>
+</section>
+
+<!-- 04. PARA QUIÉN (light) -->
+<section class="slide" id="seccion-4">
+  <div class="eyebrow">Para quién es</div>
+  <h2 class="title">Hecho para negocios físicos <span class="grad">de todo tipo.</span></h2>
+  <p class="kicker" style="margin-bottom:2px; max-width:8.8in;">La plataforma se adapta al giro: cambian las palabras, los flujos y los reportes según el sector ("mesa" vs "cita" vs "ticket").</p>
+  <div class="body">
+    <div class="grid3">
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Retail / comercio</div>
+        <div class="cd" style="line-height:1.7;">Tiendas en general · Joyería · Ropa · Electrónica · Farmacias · Conveniencia · Supermercados · Vinaterías · Mueblerías · Telecom (SIMs)</div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Servicios con cita</div>
+        <div class="cd" style="line-height:1.7;">Gimnasios · Spas · Salones de belleza · Estética · Barberías · Clínicas / dental · Clases grupales · Entretenimiento</div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M4 2v6a2 2 0 0 0 4 0V2"/><path d="M6 10v12"/><path d="M17 2a2 3 0 0 0-2 3v5h4V5a2 3 0 0 0-2-3Z"/><path d="M17 10v12"/></svg>Alimentos y bebidas</div>
+        <div class="cd" style="line-height:1.7;">Restaurantes · Bares · Cafés · Panaderías · Food trucks · Comida rápida · Catering · Cocinas fantasma (dark kitchens)</div>
+      </div>
+    </div>
+    <div class="statrow" style="margin-top:22px;">
+      <div class="stat"><div class="num">3</div><div class="statlbl">grandes sectores</div></div>
+      <div class="stat"><div class="num">25+</div><div class="statlbl">giros configurados</div></div>
+      <div class="stat"><div class="num">∞</div><div class="statlbl">sucursales por cuenta</div></div>
+      <div class="stat"><div class="num">ES·EN·FR</div><div class="statlbl">multi‑idioma</div></div>
+    </div>
+    <div class="callout" style="margin-top:20px;"><div class="cd"><b class="hl">Hecho a la medida, con entrega en días:</b> configuramos e implementamos la plataforma según tu giro y la dejamos lista en días, no meses — disponible en <b>marca blanca (white label)</b>: con tu logo, colores y dominio.</div></div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">04 / 32</span></div>
+</section>
+
+<!-- 05. CAP: PAGOS (light) -->
+<section class="slide" id="seccion-5">
+  <div class="eyebrow">Capacidades · 1 de 8</div>
+  <h2 class="title">Pagos: cobra como sea, <span class="grad">donde sea.</span></h2>
+  <div class="body">
+    <div class="two-col">
+      <div class="feat"><span class="mk"></span><span><b>Tarjeta en terminal (Blumon TPV)</b> — chip, contactless y banda en terminales PAX, con liquidación real.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Pago en línea</b> — Stripe, MercadoPago y Blumon E‑commerce desde una liga, QR o correo.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Ligas de pago con tu marca</b> — links de cobro (WhatsApp/QR/correo) con logo y colores del negocio.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Cobros en tu propia web</b> — checkout embebible (e‑commerce) en el sitio del negocio.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Pagos divididos</b> — una cuenta entre varios métodos (efectivo + tarjeta) o entre comensales.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Pagar después</b> — abre cuenta, cobra al final; propinas configurables; cuentas por cobrar.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Reembolsos</b> — totales o parciales, con ruteo al comercio correcto.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Paquetes y créditos prepagados</b> — vende membresías, paquetes de clases o créditos canjeables.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Depósitos directos (Stripe Connect)</b> — el dinero llega a la cuenta del negocio, con visibilidad de liquidaciones.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Cuenta bancaria conectada</b> — ve tu saldo y estado de cuenta en vivo, sin salir del dashboard.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Transferencias y SPEI</b> — mueve dinero entre tus cuentas o envíalo a cualquier banco por CLABE, con confirmación y auditoría.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Multi‑comercio</b> — cambia de cuenta de cobro a media operación (franquicias / multi‑sucursal).</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Enrutamiento inteligente de cuentas <span class="tag-prem">Premium</span></b> — la terminal muestra solo la cuenta de cobro correcta según sucursal, horario, quién cobra y montos del período; si solo una aplica, la elige sola. Cero cobros en la cuenta equivocada.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Tus propios tipos de pago</b> — da de alta “Uber Eats”, “Vale de despensa” o “Terminal BBVA” y cóbralos desde el punto de venta. Cada uno con su comisión, su forma de pago SAT y si entra o no al corte de efectivo; con el reporte de cuánto te cobró cada uno.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Recibos</b> — impresión Bluetooth o envío digital automático.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Sin guardar tarjetas</b> — tokenización del procesador (cumplimiento PCI SAQ‑A).</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">05 / 32</span></div>
+</section>
+
+<!-- 06. CAP: POS Y ÓRDENES (light) -->
+<section class="slide" id="seccion-6">
+  <div class="eyebrow">Capacidades · 2 de 8</div>
+  <h2 class="title">Punto de venta <span class="grad">y órdenes.</span></h2>
+  <div class="body">
+    <div class="two-col">
+      <div class="feat"><span class="mk"></span><span><b>POS móvil</b> — toma de órdenes en tablet o celular (iOS y Android), en tiempo real.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Plano del salón editable desde la web (Pro)</b> — dibujas cada área (salón, terraza) en el dashboard con mesas del tamaño que quieras, paredes, barra y puertas, y el mesero lo ve igual en la tablet, aun sin internet.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Servicio de mesas (Pro)</b> — varias cuentas por mesa, cada una con su mesero; rondas a cocina, nota por platillo («sin aceite») sin configurar modificadores, cargo por servicio y pre-cuenta «NO ACREDITA PAGO». En Android, Sunmi y Windows.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Tipos de orden</b> — en sitio, para llevar y a domicilio.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Pantalla de cocina por estación (KDS)</b> — Pendiente, Preparando y Listo por producto; quien atiende libera tiempos y confirma entregas desde el POS Android/iOS.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Tiempos y combos (Pro)</b> — nombres por sucursal o compartidos desde la organización, tiempo por componente y envío urgente con acuse de cocina.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Catálogo de menú</b> — categorías, precios, modificadores, combos y paquetes.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Descuentos, promociones, cupones y propinas</b> — % off, 2x1, por horario o por lealtad, con reglas de apilado.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Sugerencias al cobrar</b> — “¿algo más?” justo antes de pagar. La plataforma propone qué ofrecer leyendo tus propias ventas; tú apruebas.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Guardar carrito</b> — retoma una venta a medias sin perder nada.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Funciona sin internet</b> — la orden, las rondas y el cobro en efectivo se guardan en el aparato y suben solos al volver la red; la tarjeta y la pre-cuenta esperan a la señal.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Inventario serializado</b> — artículos con código único (SIMs, joyería, electrónica) rastreados pieza por pieza.</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">06 / 32</span></div>
+</section>
+
+<!-- 07. CAP: INVENTARIO (light) -->
+<section class="slide" id="seccion-7">
+  <div class="eyebrow">Capacidades · 3 de 8</div>
+  <h2 class="title">Inventario que <span class="grad">se cuida solo.</span></h2>
+  <div class="body">
+    <div class="grid2" style="gap:40px;">
+      <div>
+        <div class="feat"><span class="mk"></span><span><b>Lotes PEPS (FIFO)</b> — descuenta primero lo que entró primero; control de caducidades.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Materias primas y recetas</b> — costeo por ingrediente, consumo y merma.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Descuento al pagar</b> — el stock baja solo cuando el pago se confirma (sin "fugas").</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Alertas de stock bajo</b> — avisos por umbral para resurtir a tiempo.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Órdenes de compra</b> — pedidos a proveedores con seguimiento de recepción.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Compras en caja, consumo en pieza</b> — defines cuántas unidades trae cada presentación (caja, cono, costal) y Avoqado convierte solo: entran 50 cajas, el inventario cuenta 18 000 piezas al costo correcto.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Conteos físicos</b> — auditorías de inventario con ajuste de existencias.</span></div>
+      </div>
+      <div>
+        <div class="feat"><span class="mk"></span><span><b>Sugerencias de reorden</b> — prioriza qué pedir según urgencia y demanda.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Re‑orden automático <span class="tag-prem">Premium</span></b> — cuando un insumo baja a su punto de reorden, Avoqado genera la orden de compra por proveedor y le manda el correo automáticamente, cada noche.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Proveedores</b> — alta, comparación de precios y métricas de desempeño.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Inventario serializado</b> — cada pieza única con su historia (ideal telecom, joyería, electrónica).</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Rentabilidad y costos</b> — margen, utilidad y rotación por producto.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Transferencias</b> — traslados de stock entre sucursales.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Historial completo</b> — cada movimiento de inventario, registrado y buscable.</span></div>
+      </div>
+    </div>
+    <div class="callout"><div class="cd"><b class="hl">Diferenciador PREMIUM:</b> el seguimiento de inventario completo + recetas es de las pocas soluciones que lo trae nativo y conectado al cobro — no un módulo aparte que hay que cuadrar a mano.</div></div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">07 / 32</span></div>
+</section>
+
+<!-- 08. CAP: RESERVACIONES (light) -->
+<section class="slide" id="seccion-8">
+  <div class="eyebrow">Capacidades · 4 de 8</div>
+  <h2 class="title">Reservaciones <span class="grad">y citas.</span></h2>
+  <div class="body">
+    <div class="two-col">
+      <div class="feat"><span class="mk"></span><span><b>Reservas con depósito</b> — cobra un anticipo (Stripe) al apartar, reduce no‑shows.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Lista de espera</b> — gestiona la demanda cuando no hay lugar.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Clases grupales</b> — reserva por sesión para gimnasios y wellness.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Recordatorios automáticos</b> — avisos previos por correo y mensaje.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Marca de no‑show</b> — detecta y marca citas perdidas automáticamente.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Conciliación de depósitos</b> — el anticipo se cruza solo con el pago.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Horarios del equipo</b> — jornadas y excepciones por profesionista; las reservas también sincronizan con Google Calendar.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Tiempo de limpieza entre citas</b> — aparta minutos extra tras cada servicio; el cliente ve la hora en que termina el suyo, no la del bloqueo.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Elección o autoasignación</b> — el cliente elige quién lo atiende o Avoqado asigna a alguien libre, sin cruces.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Paquetes de clases y créditos</b> — packs prepagados que el cliente canjea al reservar.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Con tu marca</b> — logo, colores y tipografía propios en el widget y la página de reservas.</span></div>
+    </div>
+    <div class="callout"><div class="cd"><b class="hl">Se reserva desde donde sea:</b> la app del cliente, un widget en la web del negocio (1 línea de código) o tu página hospedada en <i>book.avoqado.io</i>. La misma agenda, tres puertas de entrada.</div></div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">08 / 32</span></div>
+</section>
+
+<!-- 09. CAP: CFDI + CRM/LEALTAD (light) -->
+<section class="slide" id="seccion-9">
+  <div class="eyebrow">Capacidades · 5 de 8</div>
+  <h2 class="title">Facturación CFDI, clientes <span class="grad">y lealtad.</span></h2>
+  <div class="body">
+    <div class="grid2" style="gap:26px;">
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Facturación CFDI 4.0 <span class="tag-prem">Premium</span></div>
+        <div class="feat"><span class="mk"></span><span>Emisión de facturas conforme al SAT (México).</span></div>
+        <div class="feat"><span class="mk"></span><span>Factura por orden, automática, y le llega por correo a tu cliente.</span></div>
+        <div class="feat"><span class="mk"></span><span>Multi‑RFC para negocios con varias razones sociales.</span></div>
+        <div class="feat"><span class="mk"></span><span>Historial y bitácora de facturas buscable.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cálculo y reporte de IVA.</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.04 3 5.5l7 7Z"/></svg>Clientes y lealtad</div>
+        <div class="feat"><span class="mk"></span><span>Base de clientes con historial de visitas y gasto.</span></div>
+        <div class="feat"><span class="mk"></span><span>Grupos de clientes y segmentación por gasto, frecuencia y preferencias.</span></div>
+        <div class="feat"><span class="mk"></span><span>Programa de lealtad: puntos, niveles y canje de recompensas.</span></div>
+        <div class="feat"><span class="mk"></span><span>Programa de referidos: códigos, atribución y recompensas por recomendar.</span></div>
+        <div class="feat"><span class="mk"></span><span>Reseñas: captura, respuesta y sentimiento.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Reseñas en el recibo</b> — el cliente califica al pagar; las de 5★ se canalizan a Google, las demás quedan internas para el negocio.</span></div>
+        <div class="feat"><span class="mk"></span><span>Gestión de contacto con opt‑in / opt‑out.</span></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:20px; text-align:center;">La facturación CFDI nativa es un imán en el sector formal mexicano: muchos competidores obligan a facturar por fuera.</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">09 / 32</span></div>
+</section>
+
+<!-- 10. CAP: CONTABILIDAD (light) -->
+<section class="slide tight" id="seccion-10">
+  <div class="eyebrow">Capacidades · 6 de 8</div>
+  <h2 class="title">Contabilidad que <span class="grad">se lleva sola.</span></h2>
+  <div class="body">
+    <div class="grid2" style="gap:26px;">
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>Contabilidad fiscal completa <span class="tag-prem">Premium</span></div>
+        <div class="feat"><span class="mk"></span><span>Cada venta, gasto, cobro y nómina se vuelve una <b>póliza de doble partida</b> — sin capturar nada.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Estado de Resultados</b>, <b>Balance General</b>, <b>libro diario</b> y <b>balanza</b> en tiempo real, siempre cuadrados.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Buzón de CFDIs recibidos</b> → IVA acreditable, gastos y costos reales (captura manual o por XML).</span></div>
+        <div class="feat"><span class="mk"></span><span><b>IVA en flujo, DIOT, ISR</b> (RESICO o general) y <b>nómina</b> (ISR + IMSS) — tus declaraciones, listas.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Activos fijos con depreciación automática</b> (tasas del SAT), <b>ISN</b>, retenciones y pérdidas de años anteriores — un ISR estimado más real.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Contabilidad electrónica del SAT</b> (XML del catálogo y la balanza, Anexo 24) lista para sellar, con <b>cierre de periodo</b> que blinda los meses ya declarados.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Catálogo de cuentas</b> con código agrupador del SAT por giro. Empaquetada con Facturación CFDI 4.0.</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M3 22h18"/><path d="M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="M4 7 12 2l8 5Z"/></svg>Finanzas del día a día</div>
+        <div class="feat"><span class="mk"></span><span><b>¿Cuánto gané?</b> — ingresos, utilidad y resumen del negocio.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Bancos y cajas</b> — entradas por método de cobro, separando efectivo de banco (neto de comisiones).</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Conciliación bancaria con IA</b> — sube tu estado de cuenta y la IA empata cada movimiento.</span></div>
+        <div class="feat"><span class="mk"></span><span>Lo que cuadra se concilia solo; lo que no, se marca para revisar.</span></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:10px; text-align:center;">La contabilidad y las declaraciones que normalmente exigen un software aparte, dentro del mismo sistema que ya cobra y factura — sin hojas de cálculo ni doble captura. Tu contador recibe todo como lo espera.</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">10 / 32</span></div>
+</section>
+
+<!-- 11. CAP: STAFF + MULTI-SUCURSAL (light) -->
+<section class="slide" id="seccion-11">
+  <div class="eyebrow">Capacidades · 7 de 8</div>
+  <h2 class="title">Equipo, permisos <span class="grad">y multi‑sucursal.</span></h2>
+  <div class="body">
+    <div class="grid2" style="gap:34px;">
+      <div>
+        <div class="feat"><span class="mk"></span><span><b>8 roles de venue</b> — Dueño, Admin, Gerente, Cajero, Vendedor, Cocina, Anfitrión, Solo‑lectura.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Permisos granulares</b> — 50+ pares acción:recurso (crear orden, reembolsar, editar inventario…).</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Roles a la medida</b> — el admin activa/desactiva cada permiso por rol.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Autorización con código de encargado</b> — si a un empleado le falta permiso (anular, dar cortesía, descontar, juntar cuentas), un encargado lo autoriza al momento con su código: esa acción, esa vez. La terminal nunca queda con permisos abiertos y en la bitácora queda quién autorizó qué. Incluido en todos los planes.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Invitaciones por correo</b> — onboarding con liga mágica y asignación multi‑sucursal.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Asistencia (opcional)</b> — checada con PIN, GPS y foto, anti‑fraude.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Turnos y cortes de caja</b> — apertura y cierre con arqueo por turno.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Comisiones (Premium)</b> — metas de venta, niveles, cálculo de pago y reglas de descuento.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Pago al personal</b> — un recibo por persona y periodo con sus clases, sus propinas si quieres y, con Comisiones (Premium), sus comisiones de venta. Cierras el periodo, marcas lo pagado y descargas PDF o Excel. Incluido en Pro o suelto por sucursal.</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/></svg>Multi‑sucursal y organización</div>
+        <div class="feat"><span class="mk"></span><span>Control centralizado de sucursales ilimitadas.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Catálogo maestro corporativo</b> — atributos, reglas por giro, importación/exportación y publicación controlada por sucursal. Región y precios regionales: próxima fase.</span></div>
+        <div class="feat"><span class="mk"></span><span>Config a nivel organización heredada por cada venue (pagos, marca, roles).</span></div>
+        <div class="feat"><span class="mk"></span><span>Dashboards consolidados de todo el grupo.</span></div>
+        <div class="feat"><span class="mk"></span><span>Personalización por sucursal: menú, precios, horarios, equipo.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Bitácora de auditoría por sucursal</b> — quién hizo qué y cuándo: ventas, pagos, reembolsos, inventario, recepción y custodia, accesos; filtrable por fecha y empleado.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">11 / 32</span></div>
+</section>
+
+<!-- 12. CAP: ANALÍTICA + IA + TIEMPO REAL (light) -->
+<section class="slide" id="seccion-12">
+  <div class="eyebrow">Capacidades · 8 de 8</div>
+  <h2 class="title">Analítica, IA <span class="grad">y tiempo real.</span></h2>
+  <div class="body">
+    <div class="grid3">
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v-3M12 15V9M17 15v-6"/></svg>Analítica</div>
+        <div class="feat"><span class="mk"></span><span>Centro de mando: ventas, órdenes e ingresos en vivo.</span></div>
+        <div class="feat"><span class="mk"></span><span>Tendencias por día/semana/mes y top de productos.</span></div>
+        <div class="feat"><span class="mk"></span><span>Desempeño por empleado y por método de pago.</span></div>
+        <div class="feat"><span class="mk"></span><span>Conciliación, liquidaciones y balance disponible.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cuentas por cobrar: saldos de "pagar después" con antigüedad.</span></div>
+        <div class="feat"><span class="mk"></span><span><b class="hl">PREMIUM:</b> exporta tus ventas en CSV, Excel o PDF — resumen agregado o transacción por transacción.</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>Inteligencia artificial</div>
+        <div class="feat"><span class="mk"></span><span>Asistente que responde en lenguaje natural sobre tus datos.</span></div>
+        <div class="feat"><span class="mk"></span><span>"¿Cuántos cafés vendí ayer?" → respuesta al instante.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Conecta tu propia IA</b> — enlaza <b>Claude, ChatGPT o Gemini</b> a tus datos vía MCP, con permisos y de forma segura.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Sugerencias escritas por IA</b> <span class="tag-prem">Premium</span> — lee tu menú y propone qué ofrecer al cobrar, con el gancho ya redactado. Tú apruebas antes de que salga a caja.</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>Tiempo real e integraciones</div>
+        <div class="feat"><span class="mk"></span><span>Órdenes, mesas y cocina sincronizadas al instante.</span></div>
+        <div class="feat"><span class="mk"></span><span>Chat con clientes vía WhatsApp (relay a tu equipo).</span></div>
+        <div class="feat"><span class="mk"></span><span>Webhooks de pagos y calendario; perfil de Google Business.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Integración de delivery</b> (Rappi, DiDi Food) <span class="tag-prem">Premium</span> — pedidos entran directo a tu punto de venta, sin costo adicional de Avoqado (la comisión de cada plataforma la paga el negocio directamente, igual que sin Avoqado).</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">12 / 32</span></div>
+</section>
+
+<!-- 12b. LO NUEVO (light) -->
+<section class="slide" id="lo-nuevo">
+  <div class="eyebrow">Novedades · octubre 2026</div>
+  <h2 class="title">Lo nuevo. <span class="grad">Y lo que ya viene.</span></h2>
+  <div class="body">
+    <div class="grid3" style="gap:16px;">
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>Tarjeta del cliente en su celular</div>
+        <div class="cd">Tu cliente guarda la tarjeta de tu negocio en Apple Wallet (Google Wallet, muy pronto). Cada compra suma un sello solo y al llenar la cartilla gana su premio. Tú la diseñas con tu logo y colores.</div>
+        <div class="nw-tags"><span class="pill on">Ya disponible</span><span class="tag-prem">Pro</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>Variantes de producto</div>
+        <div class="cd">Un producto con tallas, colores o presentaciones. Das de alta todas las combinaciones de una vez, cada una con su precio, código y existencia, y en la caja se elige con un toque.</div>
+        <div class="nw-tags"><span class="pill on">Ya disponible</span><span class="tag-prem">Pro</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Diseñador de tickets</div>
+        <div class="cd">Decide cómo sale tu recibo en papel: acomoda sus secciones en el orden que quieras y revisa la vista previa antes de imprimir. Lo cambias en el panel y llega solo a tu punto de venta.</div>
+        <div class="nw-tags"><span class="pill on">Ya disponible</span><span class="tag-prem">Todos los planes</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>Tarjetas de regalo</div>
+        <div class="cd">Vende tarjetas con saldo en tu caja o en línea y mándalas por WhatsApp o correo. Tu cliente paga con su saldo en su siguiente visita.</div>
+        <div class="nw-tags"><span class="pill">Próximamente</span><span class="tag-prem">Pro</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Pedidos en línea para recoger</div>
+        <div class="cd">Tu propia tienda web con tu carta, por liga o QR. El cliente pide para pasar a recoger y tú aceptas el pedido desde la caja o el panel.</div>
+        <div class="nw-tags"><span class="pill on">Ya disponible</span><span class="tag-prem">Pro</span></div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Pantalla del cliente con tu marca</div>
+        <div class="cd">Diseña desde el panel lo que ve tu cliente en la segunda pantalla de cada caja: tu logo, colores y textos; en Pro, también tus promociones.</div>
+        <div class="nw-tags"><span class="pill">Próximamente</span><span class="tag-prem">Todos los planes</span></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">«Ya disponible»: lo usas hoy · «Próximamente»: en construcción, te avisamos en cuanto salga.</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">13 / 32</span></div>
+</section>
+
+<!-- 13. PRODUCTOS INDEX (dark beat) -->
+<section class="slide dark" id="seccion-14">
+  <div class="glowbg"><i class="g1 dim"></i><i class="g2"></i></div>
+  <div class="eyebrow">Los productos, uno por uno</div>
+  <h2 class="title big">8 productos. <span class="grad">Una sola plataforma.</span></h2>
+  <div class="body">
+    <div class="grid4" style="gap:16px;">
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">Dashboard Web</div><div class="cd" style="font-size:12.5px;">Centro de control del negocio</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">TPV (PAX/NexGo)</div><div class="cd" style="font-size:12.5px;">Cobro con tarjeta integrado</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">POS Android</div><div class="cd" style="font-size:12.5px;">Menú, órdenes y mesas</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">POS iOS</div><div class="cd" style="font-size:12.5px;">El mismo POS en iPad/iPhone</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">App de Consumidor</div><div class="cd" style="font-size:12.5px;">Descubre y reserva</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">Widget de Reservas</div><div class="cd" style="font-size:12.5px;">Reservas en cualquier web</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">Checkout en línea</div><div class="cd" style="font-size:12.5px;">Pago por liga / QR</div></div>
+      <div class="card"><div class="ribbon"></div><div class="ct" style="font-size:15px;">POS de Escritorio</div><div class="cd" style="font-size:12.5px;">El mismo POS, nativo en PC Windows</div></div>
+      <div class="card" style="border-style:dashed; box-shadow:none;"><div class="ct" style="font-size:15px; color:var(--dink2);">+ Tras bambalinas</div><div class="cd" style="font-size:12.5px;">Superadmin · Integración con otros POS · Sitio web</div></div>
+    </div>
+    <p class="kicker" style="margin-top:24px;">En las siguientes láminas: qué es cada uno, dónde corre y todo lo que permite hacer.</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-white.png" alt="Avoqado"></div><span class="pg">14 / 32</span></div>
+</section>
+
+<!-- 14. DASHBOARD (light) -->
+<section class="slide" id="seccion-15">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">Dashboard Web</span><span class="pwhat">El centro de control del negocio</span></div>
+  <div class="meta-row"><span class="pill">Navegador web</span><span class="pill on">En producción</span><span class="pill">Para dueños, gerentes y staff</span></div>
+  <div class="body">
+    <div class="prow">
+      <div class="ptext">
+        <div class="feat"><span class="mk"></span><span>Administra menús, productos y modificadores de varias sucursales en tiempo real.</span></div>
+        <div class="feat"><span class="mk"></span><span>Sigue cada orden, de la toma al cobro, con actualizaciones en vivo.</span></div>
+        <div class="feat"><span class="mk"></span><span>Gestiona personal, roles y permisos a detalle.</span></div>
+        <div class="feat"><span class="mk"></span><span>Ve pagos e historial de transacciones, conectado a las terminales.</span></div>
+        <div class="feat"><span class="mk"></span><span><b>Registro automático de dispositivos</b> — cada terminal, tablet o celular que instala Avoqado y entra aparece solo en la lista, con qué tipo de aparato es, si está en línea y quién lo usó al último. Sin dar de alta nada a mano.</span></div>
+        <div class="feat"><span class="mk"></span><span>Reportes y analítica de ventas, productos y empleados.</span></div>
+        <div class="feat"><span class="mk"></span><span>Exportación de reportes en CSV, Excel y PDF.</span></div>
+        <div class="feat"><span class="mk"></span><span>Reseñas y feedback de clientes en un solo lugar.</span></div>
+        <div class="feat"><span class="mk"></span><span>Marca blanca: el negocio puede ponerle su logo y dominio.</span></div>
+        <div class="feat"><span class="mk"></span><span>Centro de integraciones: Stripe Connect, Google, Shopify (piloto, por invitación) y POS heredado.</span></div>
+        <div class="feat"><span class="mk"></span><span>Búsqueda global (<code>⌘K</code>) para saltar a cualquier módulo o acción.</span></div>
+        <div class="feat"><span class="mk"></span><span>Multi‑idioma (ES/EN/FR) y manejo correcto de zona horaria.</span></div>
+      </div>
+      <div class="pmedia">
+        <div>
+          <div class="browser w-dash">
+            <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">dashboard.avoqado.io</span></div>
+            <img loading="lazy" src="assets/dashboard-demo.png" alt="Dashboard Avoqado">
+          </div>
+          <div class="cap">Pantalla real — dashboard en español (venue demo en vivo)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">15 / 32</span></div>
+</section>
+
+<!-- 15. TPV (light) -->
+<section class="slide" id="seccion-16">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">TPV</span><span class="pwhat">Cobro con tarjeta en terminal dedicada</span></div>
+  <div class="meta-row"><span class="pill">PAX · NexGo N86 · NexGo N62 (Android)</span><span class="pill on">En producción · dinero real</span><span class="pill">Blumon + AngelPay</span></div>
+  <div class="body">
+    <div class="prow">
+      <div class="ptext">
+        <div class="feat"><span class="mk"></span><span>Cobro rápido: teclado numérico, atajos de descuento, propina, void y pagar‑después.</span></div>
+        <div class="feat"><span class="mk"></span><span>SDK de Blumon integrado: la terminal cobra directo, sin lector externo.</span></div>
+        <div class="feat"><span class="mk"></span><span>Pagos divididos y cobro del saldo restante.</span></div>
+        <div class="feat"><span class="mk"></span><span>Impresión de recibo por impresora térmica Bluetooth.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cambio de comercio a media operación (franquicias / multi‑sucursal).</span></div>
+        <div class="feat"><span class="mk"></span><span>Órdenes y turno funcionan sin conexión y sincronizan al reconectar; el cobro con tarjeta requiere señal (lo pide el banco).</span></div>
+        <div class="feat"><span class="mk"></span><span>Gestión de turno: entrada/salida con PIN y corte de caja.</span></div>
+        <div class="feat"><span class="mk"></span><span>Monitoreo de errores en vivo (Crashlytics): se ven fallas antes de que el cliente llame.</span></div>
+      </div>
+      <div class="pmedia">
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.6in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-pax"><img loading="lazy" src="assets/pax-terminal.png" alt="Terminal PAX A910S Avoqado" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">PAX A910S</div>
+        </div>
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.6in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-nexgo-n86"><img loading="lazy" src="assets/nexgo86-avoqado.png" alt="Terminal NexGo N86 Avoqado" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">NexGo N86</div>
+        </div>
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.6in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-nexgo-n62"><img loading="lazy" src="assets/nexgo62-avoqado.png" alt="Terminal NexGo N62 Avoqado" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">NexGo N62</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">16 / 32</span></div>
+</section>
+
+<!-- 16. POS ANDROID (light) -->
+<section class="slide" id="seccion-17">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">POS Android</span><span class="pwhat">Punto de venta completo en celular o tablet</span></div>
+  <div class="meta-row"><span class="pill">Android (teléfono / tablet)</span><span class="pill on">En producción · maduro</span><span class="pill">Blumon + AngelPay</span></div>
+  <div class="body">
+    <div class="prow">
+      <div class="ptext">
+        <div class="feat"><span class="mk"></span><span><b>Cualquier celular o tablet Android se convierte en POS</b> — o en hardware Sunmi dedicado (pantalla sencilla o doble), mismo software. También hay versión nativa para iOS.</span></div>
+        <div class="feat"><span class="mk"></span><span>Menú con cuadrícula de productos, imágenes, categorías y selección rápida.</span></div>
+        <div class="feat"><span class="mk"></span><span>Carrito con cliente, descuentos, cupones, propinas y guardar venta.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cobro con teclado y ruteo a terminal (Blumon PAX + AngelPay Nexgo).</span></div>
+        <div class="feat"><span class="mk"></span><span>Pagos divididos, pagar‑después, reembolsos e impresión de recibo.</span></div>
+        <div class="feat"><span class="mk"></span><span>Checada de personal con PIN para control de turnos.</span></div>
+        <div class="feat"><span class="mk"></span><span>Mesas: el plano del salón, varias cuentas por mesa con su mesero, nota por platillo, rondas a cocina, pre-cuenta y cobro en efectivo o con terminal.</span></div>
+        <div class="feat"><span class="mk"></span><span>Inventario, stock serializado y etiquetas de precio con código de barras.</span></div>
+        <div class="feat"><span class="mk"></span><span>Sin internet sigue vendiendo: la orden y el efectivo se guardan en el aparato y se sincronizan solos. Layouts para tablet (50/50) y teléfono.</span></div>
+      </div>
+      <div class="pmedia">
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.9in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-d3-una"><img loading="lazy" src="assets/eq-d3-una.jpg" alt="Sunmi D3 una pantalla" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">Sunmi D3 — una pantalla</div>
+        </div>
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.9in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-d3-doble-15"><img loading="lazy" src="assets/eq-d3-doble-15.jpg" alt="Sunmi D3 doble pantalla" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">Sunmi D3 — doble pantalla</div>
+        </div>
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.9in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-cpad-11"><img loading="lazy" src="assets/eq-cpad-11.jpg" alt="Sunmi CPad — tablet POS portátil" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">Tablet — Sunmi CPad</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">17 / 32</span></div>
+</section>
+
+<!-- 17. POS iOS (light) -->
+<section class="slide" id="seccion-18">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">POS iOS</span><span class="pwhat">El mismo punto de venta, nativo en iPad y iPhone</span></div>
+  <div class="meta-row"><span class="pill">iPad / iPhone (iOS 15+)</span><span class="pill on">En producción</span><span class="pill">SwiftUI nativo</span></div>
+  <div class="body">
+    <div class="two-col">
+      <div class="feat"><span class="mk"></span><span><b>Cualquier iPhone o iPad se convierte en POS</b> — mismo software, nativo en SwiftUI.</span></div>
+      <div class="feat"><span class="mk"></span><span>iPad: pantalla dividida — captura a la izquierda, carrito y cobro a la derecha.</span></div>
+      <div class="feat"><span class="mk"></span><span>iPhone: navegación adaptada con barra de carrito al pie.</span></div>
+      <div class="feat"><span class="mk"></span><span>Cobro con terminal PAX por Bluetooth, pantalla de propina y recibo.</span></div>
+      <div class="feat"><span class="mk"></span><span>Solicitud de calificación/reseña tras el pago.</span></div>
+      <div class="feat"><span class="mk"></span><span>Checada de empleado con biometría + PIN.</span></div>
+      <div class="feat"><span class="mk"></span><span>Centro de notificaciones estilo Square.</span></div>
+      <div class="feat"><span class="mk"></span><span>Modo oscuro y claro; carrito offline con sincronización.</span></div>
+      <div class="feat"><span class="mk"></span><span>Notificaciones push (Firebase).</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">18 / 32</span></div>
+</section>
+
+<!-- 18. POS DE ESCRITORIO (Windows) (light) -->
+<section class="slide" id="seccion-19">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">POS de Escritorio</span><span class="pwhat">El mismo punto de venta, nativo en PC con Windows</span></div>
+  <div class="meta-row"><span class="pill">Windows (PC / laptop)</span><span class="pill on">Nuevo</span><span class="pill">Portátil — corre desde USB</span></div>
+  <div class="body">
+    <div class="prow">
+      <div class="ptext">
+        <div class="feat"><span class="mk"></span><span>Ejecutable portátil: corre desde una USB, sin instalar y sin permisos de administrador.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cobrar y vender de mostrador: carrito con cliente, descuentos, propinas y guardar venta.</span></div>
+        <div class="feat"><span class="mk"></span><span>Gestión de catálogo desde el propio POS: crear y editar productos, categorías y clases.</span></div>
+        <div class="feat"><span class="mk"></span><span>Mapa de piso editable con mesas y áreas para servicio en restaurante.</span></div>
+        <div class="feat"><span class="mk"></span><span>Calendario de citas y reservas, por día y por semana.</span></div>
+        <div class="feat"><span class="mk"></span><span>Caja y cortes, ventas del día, inventario y checada de personal con PIN.</span></div>
+        <div class="feat"><span class="mk"></span><span>Impresión de recibos y comandas ruteadas por estación (cocina, barra) a impresoras de red; carrito listo para trabajar offline.</span></div>
+        <div class="feat"><span class="mk"></span><span>Corre en cualquier PC con Windows — no necesitas una computadora especial. Conecta la terminal de cobro que prefieras: Sunmi, PAX o NexGo.</span></div>
+      </div>
+      <div class="pmedia">
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.9in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-d3-una"><img loading="lazy" src="assets/eq-d3-una.jpg" alt="Sunmi D3 una pantalla" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">Sunmi D3 — una pantalla</div>
+        </div>
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.9in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-d3-doble-15"><img loading="lazy" src="assets/eq-d3-doble-15.jpg" alt="Sunmi D3 doble pantalla" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">Sunmi D3 — doble pantalla</div>
+        </div>
+        <div style="width:1.6in;">
+          <div class="card" style="padding:12px; height:1.9in; display:flex; align-items:center; justify-content:center;">
+            <a href="#hw-cpad-11"><img loading="lazy" src="assets/eq-cpad-11.jpg" alt="Sunmi CPad" style="max-width:100%; max-height:100%; display:block;"></a>
+          </div>
+          <div class="cap">Tablet — Sunmi CPad</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">19 / 32</span></div>
+</section>
+
+<!-- 18. CONSUMER APP (light) -->
+<section class="slide" id="seccion-20">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">App de Consumidor</span><span class="pwhat">Para que el cliente final descubra y reserve</span></div>
+  <div class="meta-row"><span class="pill">iOS y Android</span><span class="pill on">En producción</span><span class="pill">Wellness · Belleza · Salud · Retail con cita</span></div>
+  <div class="body">
+    <div class="two-col">
+      <div class="feat"><span class="mk"></span><span>Descubrimiento de negocios estilo "Airbnb": búsqueda visual y curada.</span></div>
+      <div class="feat"><span class="mk"></span><span>Reserva de cita: calendario, horario, datos y pago de depósito (Stripe).</span></div>
+      <div class="feat"><span class="mk"></span><span>Inicio de sesión con Google o Apple.</span></div>
+      <div class="feat"><span class="mk"></span><span>Gestión de reservas: ver, reprogramar y cancelar.</span></div>
+      <div class="feat"><span class="mk"></span><span>Notificaciones push de confirmación, recordatorio y cambios.</span></div>
+      <div class="feat"><span class="mk"></span><span>Diseño adaptado por giro (wellness, salud, retail) con tono propio.</span></div>
+      <div class="feat"><span class="mk"></span><span>Pensada para público urbano mid‑upper en CDMX, GDL y MTY.</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">20 / 32</span></div>
+</section>
+
+<!-- 19. BOOKING WIDGET (light) -->
+<section class="slide" id="seccion-21">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">Widget de Reservas</span><span class="pwhat">Reservas en la web del propio negocio</span></div>
+  <div class="meta-row"><span class="pill">Cualquier sitio web · 1 línea</span><span class="pill on">En producción</span><span class="pill">WordPress incluido</span></div>
+  <div class="body">
+    <div class="prow">
+      <div class="ptext">
+        <div class="feat"><span class="mk"></span><span>Se integra con una sola etiqueta <code>&lt;script&gt;</code> + <code>&lt;avoqado-booking&gt;</code>.</span></div>
+        <div class="feat"><span class="mk"></span><span>Aislado (Shadow DOM): no rompe ni hereda estilos de la página.</span></div>
+        <div class="feat"><span class="mk"></span><span>Flujo completo: servicio → profesionista (o cualquiera) → fecha → horario → datos → depósito → confirmación.</span></div>
+        <div class="feat"><span class="mk"></span><span>Personalizable: idioma, tema claro/oscuro, color de acento, modo popup.</span></div>
+        <div class="feat"><span class="mk"></span><span>Eventos para analítica (GA4/GTM): confirmado, cancelado, paso cambiado.</span></div>
+        <div class="feat"><span class="mk"></span><span>Atajo para WordPress: <code>[avoqado_booking]</code>.</span></div>
+        <div class="feat"><span class="mk"></span><span>También impulsa la página hospedada <i>book.avoqado.io</i>.</span></div>
+        <p class="kicker" style="margin-top:14px;">Clave para negocios que ya tienen su propia web: reservan en su sitio, sin mandar al cliente a otro lado.</p>
+      </div>
+      <div class="pmedia">
+        <div>
+          <div class="browser w-widget">
+            <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">book.avoqado.io</span></div>
+            <img loading="lazy" src="assets/widget-booking.png" alt="Página de reservas Avoqado en vivo">
+          </div>
+          <div class="cap">En vivo — book.avoqado.io (citas y clases, con la marca del negocio)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">21 / 32</span></div>
+</section>
+
+<!-- 20. CHECKOUT (light) -->
+<section class="slide" id="seccion-22">
+  <div class="pbar"></div>
+  <div class="phead"><span class="pname">Checkout en línea</span><span class="pwhat">Página de pago hospedada — por liga, QR o correo</span></div>
+  <div class="meta-row"><span class="pill">Navegador web</span><span class="pill on">En producción</span><span class="pill">Stripe · MercadoPago · Blumon</span></div>
+  <div class="body">
+    <div class="two-col">
+      <div class="feat"><span class="mk"></span><span>Multi‑procesador: Stripe, MercadoPago y Blumon E‑commerce.</span></div>
+      <div class="feat"><span class="mk"></span><span>El procesador maneja la tarjeta: Avoqado nunca ve datos sensibles (PCI).</span></div>
+      <div class="feat"><span class="mk"></span><span>Sirve para depósitos de reserva, pedidos en línea, membresías y paquetes.</span></div>
+      <div class="feat"><span class="mk"></span><span>Liga por sesión: se manda en correo, QR o SMS, sin necesidad de login.</span></div>
+      <div class="feat"><span class="mk"></span><span>Meses sin intereses / pagos divididos (según procesador).</span></div>
+      <div class="feat"><span class="mk"></span><span>Recibo automático y manejo claro de errores con reintento.</span></div>
+      <div class="feat"><span class="mk"></span><span>Embebible en el sitio del negocio (widget e‑commerce).</span></div>
+      <div class="feat"><span class="mk"></span><span>Ligas con la marca del negocio: logo y colores propios.</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">22 / 32</span></div>
+</section>
+
+<!-- 21. TRAS BAMBALINAS (light) -->
+<section class="slide" id="seccion-23">
+  <div class="pbar" style="background:linear-gradient(90deg,#bdbdb8,transparent);"></div>
+  <div class="phead"><span class="pname">Tras bambalinas</span><span class="pwhat">Lo que sostiene la plataforma</span></div>
+  <div class="meta-row"><span class="pill">Infraestructura y operación</span></div>
+  <div class="body">
+    <div class="grid3">
+      <div class="card accent"><div class="ribbon" style="background:#bdbdb8;"></div>
+        <div class="ct">Superadmin</div>
+        <div class="cd">Consola interna del equipo Avoqado: alta de negocios, cuentas de cobro, KYC, terminales TPV, logs y soporte. No se vende — opera la plataforma.</div>
+      </div>
+      <div class="card accent"><div class="ribbon" style="background:#bdbdb8;"></div>
+        <div class="ct">Integración con otros POS</div>
+        <div class="cd">Puente de sincronización para negocios que ya usan otro punto de venta: sincroniza órdenes y turnos hacia Avoqado. Permite migrar sin tirar lo que ya tienen.</div>
+      </div>
+      <div class="card accent"><div class="ribbon" style="background:#bdbdb8;"></div>
+        <div class="ct">Sitio web (Landing)</div>
+        <div class="cd">avoqado.io: el sitio de marketing y captación. Muestra productos, casos y planes — el primer punto de contacto del cliente.</div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:24px; text-align:center;">Estas piezas no se venden por separado, pero explican por qué la plataforma es <b style="color:var(--ink)">completa y operable</b>: alguien la administra, se conecta con sistemas viejos y tiene su propio motor de adquisición.</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">23 / 32</span></div>
+</section>
+
+<!-- 22. DIFERENCIADORES (dark beat) -->
+<section class="slide dark" id="seccion-24">
+  <div class="glowbg"><i class="g1"></i><i class="g2"></i></div>
+  <div class="eyebrow">Por qué Avoqado gana</div>
+  <h2 class="title">Lo que casi nadie más <span class="grad">junta.</span></h2>
+  <div class="body">
+    <div class="grid2" style="gap:16px 34px;">
+      <div class="feat"><span class="mk"></span><span><b>Hecho para México / LATAM</b> — Blumon y MercadoPago nativos + cumplimiento fiscal (CFDI 4.0, IVA). No es un POS gringo traducido.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Facturación CFDI nativa</b> — emite directo; muchos rivales te mandan a facturar por fuera.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Todo conectado</b> — cobro, POS, inventario, reservas y facturación en un solo sistema, en tiempo real.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Multi‑sucursal de origen</b> — sucursales ilimitadas sin pagar extra por ubicación.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Inventario serializado</b> — SIMs, joyería, electrónica pieza por pieza; con presets por giro.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Conecta tu IA (MCP)</b> — el negocio enlaza Claude, ChatGPT o Gemini a sus datos, con permisos y de forma segura.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Reservas embebibles</b> — widget en la web del propio negocio, no solo en un portal ajeno.</span></div>
+      <div class="feat"><span class="mk"></span><span><b>Marca blanca</b> — agencias y franquicias revenden con su propia identidad.</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-white.png" alt="Avoqado"></div><span class="pg">24 / 32</span></div>
+</section>
+
+<!-- 23. CÓMO POSICIONARLO (light) -->
+<section class="slide" id="seccion-25">
+  <div class="eyebrow">Cómo posicionarlo</div>
+  <h2 class="title">A quién le hablas <span class="grad">y con qué gancho.</span></h2>
+  <div class="body">
+    <div class="grid3">
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Retail y telecom</div>
+        <div class="cd" style="margin-bottom:10px;"><b style="color:var(--ink)">Gancho:</b> inventario serializado real (cada pieza/SIM con su historia) + cobro + factura.</div>
+        <div class="cd"><b style="color:var(--ink)">Ideal:</b> joyería, electrónica, telecom; quien necesita rastrear unidades únicas.</div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Servicios con cita</div>
+        <div class="cd" style="margin-bottom:10px;"><b style="color:var(--ink)">Gancho:</b> reservas con depósito (menos no‑shows), widget en su web y app del cliente.</div>
+        <div class="cd"><b style="color:var(--ink)">Ideal:</b> gimnasios, spas, salones, clínicas con agenda y clases.</div>
+      </div>
+      <div class="card accent"><div class="ribbon"></div>
+        <div class="ct"><svg class="ico" viewBox="0 0 24 24"><path d="M4 2v6a2 2 0 0 0 4 0V2"/><path d="M6 10v12"/><path d="M17 2a2 3 0 0 0-2 3v5h4V5a2 3 0 0 0-2-3Z"/><path d="M17 10v12"/></svg>Restaurantes y bares</div>
+        <div class="cd" style="margin-bottom:10px;"><b style="color:var(--ink)">Gancho:</b> cobra, factura y controla inventario sin tres sistemas. Meseros y cocina sincronizados: cuentas por mesa, rondas y pre-cuenta, y el salón sigue tomando pedidos sin internet.</div>
+        <div class="cd"><b style="color:var(--ink)">Ideal:</b> de 1 a varias sucursales que ya cobran con tarjeta y batallan con CFDI.</div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:22px; text-align:center;">Una venta, tres conversaciones distintas. La plataforma es la misma; el dolor que resuelves cambia por giro.</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">25 / 32</span></div>
+</section>
+
+<!-- 24. PLANES (teaser) (light) -->
+<section class="slide" id="seccion-26">
+  <div class="eyebrow">Empaquetado</div>
+  <h2 class="title">Cuatro niveles, <span class="grad">una sola plataforma.</span></h2>
+  <div class="body">
+    <div class="grid4">
+      <div class="plan"><div class="pt">FREE</div><div class="pd">Lo esencial para empezar: POS, cobro y básicos.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--ink);">$0</div></div>
+      <div class="plan feature"><div class="pt">PRO</div><div class="pd">Reservas, servicio de mesas, lealtad, referidos, promociones, pantalla de cocina, IA, pago al personal, reportes avanzados, marca blanca.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink);">$999 <span style="font-size:11px; font-weight:500; color:var(--ink3);">+IVA/mes</span></div></div>
+      <div class="plan feature"><div class="pbadge">Más completo</div><div class="pt">PREMIUM</div><div class="pd">Todo lo de PRO + facturación CFDI, contabilidad, comisiones e inventario completo.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink);">$1,699 <span style="font-size:11px; font-weight:500; color:var(--ink3);">+IVA/mes</span></div></div>
+      <div class="plan"><div class="pt">ENTERPRISE</div><div class="pd">Paquetes a la medida, SLA y soporte prioritario.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--ink);">Cotización</div></div>
+    </div>
+    <div class="callout" style="margin-top:26px; text-align:center;">
+      <div class="cd" style="text-align:center;">Precios <b style="color:var(--ink)">+ IVA</b>, facturación mensual (en avoqado.io los ves con IVA incluido: Pro $1,158.84 · Premium $1,970.84). Con pago anual: <b class="hl">2 meses gratis</b> (Pro $9,990/año · Premium $16,990/año). Esquema de comisiones para socios disponible aparte.</div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">26 / 32</span></div>
+</section>
+
+<!-- 26. HARDWARE — ESTACIONES SUNMI D3 (light) -->
+<section class="slide hw" id="seccion-27">
+  <div class="eyebrow">Hardware · 1 de 6</div>
+  <h2 class="title">Estaciones Sunmi D3. <span class="grad">Mismo software, tres formatos.</span></h2>
+  <div class="body">
+    <div class="grid3" style="--ph:1.45in">
+      <div class="card accent" id="hw-d3-una"><div class="ribbon"></div>
+        <div class="hwn">Sunmi D3 una pantalla</div><div class="hws">Estación de mostrador</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-d3-una.jpg" alt="Sunmi D3 una pantalla — Estación de mostrador"></div>
+        <div class="feat"><span class="mk"></span><span>Pantalla táctil Full HD de 15.6"</span></div>
+        <div class="feat"><span class="mk"></span><span>Impresora de tickets de 80 mm integrada en la base</span></div>
+        <div class="feat"><span class="mk"></span><span>Octa-core 2.2 GHz · SUNMI OS sobre Android</span></div>
+        <div class="feat"><span class="mk"></span><span>Cuerpo metálico, cables ocultos</span></div>
+        <div class="hwp">$14,294.43 <small>+ IVA</small></div>
+      </div>
+      <div class="card accent" id="hw-d3-doble-10"><div class="ribbon"></div>
+        <div class="hwn">Sunmi D3 doble pantalla 15.6" + 10.1"</div><div class="hws">Estación de mostrador, pantalla del cliente compacta</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-d3-doble-10.jpg" alt="Sunmi D3 doble pantalla 15.6&quot; + 10.1&quot; — Estación de mostrador, pantalla del cliente compacta"></div>
+        <div class="feat"><span class="mk"></span><span>Pantalla Full HD de 15.6" para el cajero + 10.1" HD para el cliente</span></div>
+        <div class="feat"><span class="mk"></span><span>Impresora de tickets de 80 mm integrada en la base</span></div>
+        <div class="feat"><span class="mk"></span><span>Octa-core 2.2 GHz · SUNMI OS sobre Android</span></div>
+        <div class="feat"><span class="mk"></span><span>Cuerpo metálico, cables ocultos</span></div>
+        <div class="hwp">$15,803.14 <small>+ IVA</small></div>
+      </div>
+      <div class="card accent" id="hw-d3-doble-15"><div class="ribbon"></div>
+        <div class="hwn">Sunmi D3 doble pantalla 15.6"</div><div class="hws">Estación de mostrador, dos pantallas iguales</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-d3-doble-15.jpg" alt="Sunmi D3 doble pantalla 15.6&quot; — Estación de mostrador, dos pantallas iguales"></div>
+        <div class="feat"><span class="mk"></span><span>Dos pantallas Full HD de 15.6": una para el cajero, otra para el cliente</span></div>
+        <div class="feat"><span class="mk"></span><span>Impresora de tickets de 80 mm integrada en la base</span></div>
+        <div class="feat"><span class="mk"></span><span>Octa-core 2.2 GHz · SUNMI OS sobre Android</span></div>
+        <div class="feat"><span class="mk"></span><span>Cuerpo metálico, cables ocultos</span></div>
+        <div class="hwp">$17,330.79 <small>+ IVA</small></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">Precios en MXN, antes de IVA · vigentes al 14 de octubre de 2026 · catálogo completo en avoqado.io/equipos</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">27 / 32</span></div>
+</section>
+
+<!-- 27. HARDWARE — TABLETS SUNMI CPAD (light) -->
+<section class="slide hw" id="seccion-28">
+  <div class="eyebrow">Hardware · 2 de 6</div>
+  <h2 class="title">Tablets Sunmi CPad. <span class="grad">Tres tamaños, el mismo POS.</span></h2>
+  <div class="body">
+    <div class="grid3" style="--ph:1.12in">
+      <div class="card accent" id="hw-cpad-87"><div class="ribbon"></div>
+        <div class="hwn">Sunmi CPad 8.7"</div><div class="hws">La chica, para andar en la mano</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-cpad-87.jpg" alt="Sunmi CPad 8.7&quot; — La chica, para andar en la mano"></div>
+        <div class="feat"><span class="mk"></span><span>Pantalla HD de 8.7" · 384 g</span></div>
+        <div class="feat"><span class="mk"></span><span>Batería de 6,000 mAh · protección IP54</span></div>
+        <div class="feat"><span class="mk"></span><span>NFC integrado; lector de códigos 2D opcional</span></div>
+        <div class="hwvh">Versiones · precio + IVA</div>
+          <div class="hwv"><span>Básica · 4+64 GB, solo WiFi</span><b>$7,111.41</b></div>
+          <div class="hwv"><span>Con lector de códigos · 8+128 GB, 4G, eSIM y huella</span><b>$10,008.66</b></div>
+      </div>
+      <div class="card accent" id="hw-cpad-11"><div class="ribbon"></div>
+        <div class="hwn">Sunmi CPad 11"</div><div class="hws">La de todos los días</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-cpad-11.jpg" alt="Sunmi CPad 11&quot; — La de todos los días"></div>
+        <div class="feat"><span class="mk"></span><span>Pantalla WUXGA de 11" (1920 × 1200) · 526 g</span></div>
+        <div class="feat"><span class="mk"></span><span>Batería de 8,000 mAh · protección IP54</span></div>
+        <div class="feat"><span class="mk"></span><span>NFC integrado; lector de códigos 2D opcional</span></div>
+        <div class="hwvh">Versiones · precio + IVA</div>
+          <div class="hwv"><span>Básica · 4+64 GB, solo WiFi</span><b>$7,748.14</b></div>
+          <div class="hwv"><span>Completa · 8+128 GB, 4G, eSIM, NFC y huella</span><b>$10,509.09</b></div>
+          <div class="hwv"><span>Completa con lector de códigos</span><b>$11,826.01</b></div>
+      </div>
+      <div class="card accent" id="hw-cpad-14"><div class="ribbon"></div>
+        <div class="hwn">Sunmi CPad 14"</div><div class="hws">La grande, casi una estación en la mano</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-cpad-14.jpg" alt="Sunmi CPad 14&quot; — La grande, casi una estación en la mano"></div>
+        <div class="feat"><span class="mk"></span><span>Pantalla WUXGA de 14" (1920 × 1200) · 792 g</span></div>
+        <div class="feat"><span class="mk"></span><span>Batería de 8,000 mAh · cargador de 30 W</span></div>
+        <div class="feat"><span class="mk"></span><span>No se fabrica con lector adentro: si escaneas, va el lector externo</span></div>
+        <div class="hwvh">Versiones · precio + IVA</div>
+          <div class="hwv"><span>4+64 GB, solo WiFi</span><b>$12,352.79</b></div>
+          <div class="hwv"><span>8+128 GB, 4G, eSIM, NFC y huella</span><b>$13,783</b></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">Las tres con SUNMI OS 4.0 sobre Android 14 · Precios en MXN, antes de IVA · vigentes al 14 de octubre de 2026 · catálogo completo en avoqado.io/equipos</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">28 / 32</span></div>
+</section>
+
+<!-- 28. HARDWARE — PANTALLAS DE COCINA (KDS) (light) -->
+<section class="slide hw" id="seccion-29">
+  <div class="eyebrow">Hardware · 3 de 6</div>
+  <h2 class="title">Pantallas de cocina. <span class="grad">Adiós al papel en el pase.</span></h2>
+  <div class="body">
+    <div class="grid2">
+      <div class="card accent hwrow" id="hw-kds-d2s"><div class="ribbon"></div>
+        <div class="hwph tall"><img loading="lazy" src="assets/eq-kds-d2s.jpg" alt="Sunmi D2s KDS 15.6&quot; — Pantalla de cocina sellada"></div>
+        <div class="hwtx">
+          <div class="hwn">Sunmi D2s KDS 15.6"</div><div class="hws">Pantalla de cocina sellada</div>
+          <div style="margin-top:12px;">
+        <div class="feat"><span class="mk"></span><span>Pantalla Full HD de 15.6", táctil</span></div>
+        <div class="feat"><span class="mk"></span><span>Sellada IP55: resiste grasa y se limpia con trapo húmedo</span></div>
+        <div class="feat"><span class="mk"></span><span>Se alimenta por el mismo cable de red (PoE)</span></div>
+        <div class="feat"><span class="mk"></span><span>Brazo VESA se cotiza aparte</span></div>
+          </div>
+        <div class="hwp">$11,035.86 <small>+ IVA</small></div>
+        </div>
+      </div>
+      <div class="card accent hwrow" id="hw-flex3"><div class="ribbon"></div>
+        <div class="hwph tall"><img loading="lazy" src="assets/eq-flex3.jpg" alt="Sunmi FLEX 3 18.5&quot; — Pantalla grande, de cocina o de tablero"></div>
+        <div class="hwtx">
+          <div class="hwn">Sunmi FLEX 3 18.5"</div><div class="hws">Pantalla grande, de cocina o de tablero</div>
+          <div style="margin-top:12px;">
+        <div class="feat"><span class="mk"></span><span>Pantalla Full HD de 18.5", formato alargado</span></div>
+        <div class="feat"><span class="mk"></span><span>Sirve de pantalla de cocina, de autoservicio o de tablero de pedidos</span></div>
+        <div class="feat"><span class="mk"></span><span>Soportes de mesa y de piso disponibles</span></div>
+          </div>
+        <div class="hwp">$16,040.19 <small>+ IVA</small></div>
+        </div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">Lo que se toma en el POS aparece solo en la cocina. Precios en MXN, antes de IVA · vigentes al 14 de octubre de 2026 · catálogo completo en avoqado.io/equipos</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">29 / 32</span></div>
+</section>
+
+<!-- 29. HARDWARE — TERMINALES DE COBRO (light) -->
+<section class="slide hw" id="seccion-30">
+  <div class="eyebrow">Hardware · 4 de 6</div>
+  <h2 class="title">Terminales de cobro. <span class="grad">Ligeras, portátiles, listas.</span></h2>
+  <div class="body">
+    <div class="grid3" style="--ph:1.5in">
+      <div class="card accent" id="hw-pax"><div class="ribbon"></div>
+        <div class="hwn">PAX A910S</div><div class="hws">Terminal de cobro portátil</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-pax-a910s.jpg" alt="PAX A910S — Terminal de cobro portátil"></div>
+        <div class="feat"><span class="mk"></span><span>Terminal portátil Android con pantalla táctil.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cobra con tarjeta: chip, banda y contactless.</span></div>
+        <div class="feat"><span class="mk"></span><span>SDK Blumon integrado — cobra directo, sin lector externo.</span></div>
+        <div class="feat"><span class="mk"></span><span>Impresión de recibo por impresora térmica Bluetooth.</span></div>
+        <div class="hwp">Cotiza <small>con tu plan</small></div>
+      </div>
+      <div class="card accent" id="hw-nexgo-n86"><div class="ribbon"></div>
+        <div class="hwn">NexGo N86</div><div class="hws">Terminal bancaria y punto de venta en un solo equipo</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-nexgo-n86.jpg" alt="NexGo N86 — Terminal bancaria y punto de venta en un solo equipo"></div>
+        <div class="feat"><span class="mk"></span><span>Terminal portátil Android con impresora integrada.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cobra con tarjeta: chip, banda y contactless.</span></div>
+        <div class="feat"><span class="mk"></span><span>SDK AngelPay integrado.</span></div>
+        <div class="hwp">$3,990 <small>+ IVA</small></div>
+      </div>
+      <div class="card accent" id="hw-nexgo-n62"><div class="ribbon"></div>
+        <div class="hwn">NexGo N62</div><div class="hws">Terminal compacta, sin impresora</div>
+        <div class="hwph"><img loading="lazy" src="assets/eq-nexgo-n62.jpg" alt="NexGo N62 — Terminal compacta, sin impresora"></div>
+        <div class="feat"><span class="mk"></span><span>Versión compacta, sin impresora — el ticket se manda digital.</span></div>
+        <div class="feat"><span class="mk"></span><span>Cobra con tarjeta: chip, banda y contactless.</span></div>
+        <div class="feat"><span class="mk"></span><span>SDK AngelPay integrado.</span></div>
+        <div class="feat"><span class="mk"></span><span>Ideal para cobro ligero o como segunda terminal.</span></div>
+        <div class="hwp">$1,800 <small>+ IVA</small></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">Precios en MXN, antes de IVA · vigentes al 14 de octubre de 2026 · catálogo completo en avoqado.io/equipos</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">30 / 32</span></div>
+</section>
+
+<!-- 30. HARDWARE — IMPRESORA Y CAJÓN (light) -->
+<section class="slide hw" id="seccion-31">
+  <div class="eyebrow">Hardware · 5 de 6</div>
+  <h2 class="title">Impresora y cajón. <span class="grad">Para completar tu mostrador.</span></h2>
+  <div class="body">
+    <div class="grid2">
+      <div class="card accent" id="hw-printer"><div class="ribbon"></div>
+        <div class="hwn">Impresora térmica de tickets</div><div class="hws">Para la cocina o un segundo mostrador</div>
+        <div class="hwph" style="--ph:1.35in"><img loading="lazy" src="assets/eq-impresora.jpg" alt="Impresora térmica de tickets — Para la cocina o un segundo mostrador"></div>
+        <div class="feat"><span class="mk"></span><span>80mm, velocidad 250mm/s, cortadora automática.</span></div>
+        <div class="feat"><span class="mk"></span><span>Sensores de papel y tapa · memoria 64MB.</span></div>
+        <div class="feat"><span class="mk"></span><span>RJ45, WiFi 2.4GHz y Bluetooth · altavoz 3W.</span></div>
+        <div class="feat"><span class="mk"></span><span>Soporte para cajón de efectivo · IP52.</span></div>
+        <div class="feat"><span class="mk"></span><span>130×130×130mm · 855g.</span></div>
+        <div class="hwp">$4,609.26 <small>+ IVA</small></div>
+      </div>
+      <div class="card accent" id="hw-cashdrawer"><div class="ribbon"></div>
+        <div class="hwn">Cajón de dinero mini</div><div class="hws">Se abre solo cuando cobras en efectivo</div>
+        <div class="hwph" style="--ph:1.35in"><img loading="lazy" src="assets/eq-cajon.jpg" alt="Cajón de dinero mini — Se abre solo cuando cobras en efectivo"></div>
+        <div class="feat"><span class="mk"></span><span>Metálico y plástico, gris · 4 bandejas de billetes + 3 de monedas.</span></div>
+        <div class="feat"><span class="mk"></span><span>Soporta hasta 10kg · conexión RJ12 a la estación o a la impresora.</span></div>
+        <div class="feat"><span class="mk"></span><span>Vida útil ≥1,000,000 aperturas.</span></div>
+        <div class="feat"><span class="mk"></span><span>2.3kg · opera de 0° a 45°C.</span></div>
+        <div class="hwp">$3,397.67 <small>+ IVA</small></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">Precios en MXN, antes de IVA · vigentes al 14 de octubre de 2026 · catálogo completo en avoqado.io/equipos</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">31 / 32</span></div>
+</section>
+
+<!-- 31. HARDWARE — ACCESORIOS DE LA CPAD (light) -->
+<section class="slide hw" id="seccion-32">
+  <div class="eyebrow">Hardware · 6 de 6</div>
+  <h2 class="title">Accesorios de la CPad. <span class="grad">Para montarla y protegerla.</span></h2>
+  <div class="body">
+    <div class="hwl">
+      <div class="it" id="hw-lector">
+        <div class="im"><img loading="lazy" src="assets/eq-lector-externo.jpg" alt="Lector de códigos externo"></div>
+        <div class="tx"><div class="tn">Lector de códigos externo</div><div class="ts">Se acopla por atrás de la CPad 11" y 14" (no es compatible con la 8.7")</div></div>
+        <div class="pr">$1,264.26<small>+ IVA</small></div>
+      </div>
+      <div class="it" id="hw-base-escritorio">
+        <div class="im"><img loading="lazy" src="assets/eq-base-escritorio.jpg" alt="Base de escritorio"></div>
+        <div class="tx"><div class="tn">Base de escritorio</div><div class="ts">Sostiene y carga la CPad</div><div class="tv">Sin lector $2,054.41 · lista para el lector $2,250.29</div></div>
+        <div class="pr">desde $2,054.41<small>2 versiones · + IVA</small></div>
+      </div>
+      <div class="it" id="hw-base-giratoria">
+        <div class="im"><img loading="lazy" src="assets/eq-base-giratoria.jpg" alt="Base giratoria multifunción"></div>
+        <div class="tx"><div class="tn">Base giratoria multifunción</div><div class="ts">La tablet gira para enseñarle la pantalla al cliente</div></div>
+        <div class="pr">$3,134.29<small>+ IVA</small></div>
+      </div>
+      <div class="it" id="hw-soporte-mesa">
+        <div class="im"><img loading="lazy" src="assets/eq-soporte-mesa.jpg" alt="Soporte de mesa"></div>
+        <div class="tx"><div class="tn">Soporte de mesa</div><div class="ts">Para dejar la CPad fija en la mesa o el mostrador</div><div class="tv">Ligero $1,448.63 · fijo, atornillado $1,896.37</div></div>
+        <div class="pr">desde $1,448.63<small>2 versiones · + IVA</small></div>
+      </div>
+      <div class="it" id="hw-soporte-pared">
+        <div class="im"><img loading="lazy" src="assets/eq-soporte-pared.jpg" alt="Soporte de pared"></div>
+        <div class="tx"><div class="tn">Soporte de pared</div><div class="ts">Cuelga la CPad y la carga</div></div>
+        <div class="pr">$1,369.60<small>+ IVA</small></div>
+      </div>
+      <div class="it" id="hw-correa-mano">
+        <div class="im"><img loading="lazy" src="assets/eq-correa-mano.jpg" alt="Correa de mano"></div>
+        <div class="tx"><div class="tn">Correa de mano</div><div class="ts">Para la CPad 11"</div></div>
+        <div class="pr">$421.41<small>+ IVA</small></div>
+      </div>
+      <div class="it" id="hw-funda">
+        <div class="im"><img loading="lazy" src="assets/eq-funda.jpg" alt="Funda protectora"></div>
+        <div class="tx"><div class="tn">Funda protectora</div><div class="ts">Para la CPad</div><div class="tv">8.7" y 11" $368.74 · 14" $474.10</div></div>
+        <div class="pr">desde $368.74<small>2 versiones · + IVA</small></div>
+      </div>
+      <div class="it" id="hw-correa-hombro">
+        <div class="im"><img loading="lazy" src="assets/eq-correa-hombro.jpg" alt="Correa de hombro"></div>
+        <div class="tx"><div class="tn">Correa de hombro</div><div class="ts">Para cargar la CPad colgada</div></div>
+        <div class="pr">$184.37<small>+ IVA</small></div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px; text-align:center;">Precios en MXN, antes de IVA · vigentes al 14 de octubre de 2026 · catálogo completo en avoqado.io/equipos</p>
+  </div>
+  <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">32 / 32</span></div>
+</section>
+
+<!-- 25. CIERRE (dark beat) -->
+<section class="slide dark cover" style="justify-content:center;" id="seccion-33">
+  <div class="glowbg"><i class="g1"></i><i class="g2"></i></div>
+  <div style="position:relative; z-index:2;">
+    <img loading="lazy" src="assets/logo-h-white.png" alt="Avoqado" style="height:34px; display:block;">
+    <h1 style="font-size:54px; margin-top:32px; max-width:9.4in; line-height:1.0;">Una plataforma. Todo el negocio.<br><span class="grad">Listo para vender.</span></h1>
+    <p class="sub" style="margin-top:22px;">Pagos, punto de venta, inventario, reservaciones, facturación y datos — en un solo sistema, hecho para México, en producción hoy.</p>
+    <div style="margin-top:42px; display:flex; gap:34px; align-items:center;">
+      <div style="background:#fff; border-radius:16px; padding:10px; flex:none;"><img loading="lazy" src="assets/qr-wa.png" alt="QR WhatsApp Avoqado" style="width:1.12in; height:1.12in; display:block;"></div>
+      <div>
+        <div style="font-size:22px; font-weight:700; color:#fff; letter-spacing:-0.015em;">WhatsApp&nbsp; +52 56 4007 0001</div>
+        <div class="statlbl" style="margin-top:4px; color:var(--dink3);">Afiliación por liga: sube tus documentos sin crear una cuenta.</div>
+        <div style="display:flex; gap:26px; margin-top:18px; align-items:center;">
+          <div><div style="font-size:15px; font-weight:600; color:#fff;">hola@avoqado.io</div><div class="statlbl" style="color:var(--dink3);">correo comercial</div></div>
+          <div style="width:1px; height:34px; background:var(--dline2);"></div>
+          <div><div style="font-size:15px; font-weight:600; color:var(--green);">avoqado.io</div><div class="statlbl" style="color:var(--dink3);">conoce la plataforma</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main><script id="avq-features" type="application/json">[{"label": "Pagos", "description": "terminal, en línea, ligas, divididos, tus propios tipos de pago (Uber Eats, vales) con reporte de comisiones, ruteo inteligente de cuentas, banco conectado y SPEI"}, {"label": "POS", "description": "órdenes, menú y combos, tiempos y urgencias por producto en Android/iOS (Pro), sugerencias al cobrar"}, {"label": "Mesas (Pro)", "description": "plano del salón editable en la web, cuentas por mesa y por mesero, nota por platillo («sin aceite»), rondas a cocina, cargo por servicio y pre-cuenta; sin internet se sigue tomando la orden (Android, Sunmi y Windows)"}, {"label": "Delivery", "description": "integración con Rappi y DiDi Food (Premium)"}, {"label": "Pedidos en línea (Pro)", "description": "tu tienda web para recoger: ya disponible"}, {"label": "Inventario", "description": "PEPS, recetas, serializado, compras en caja, re‑orden automático, etiquetas de precio, stock compartido con Shopify (piloto)"}, {"label": "Reservaciones", "description": "profesionista, horarios de equipo, tiempo de limpieza entre citas, depósito, lista de espera, clases"}, {"label": "CFDI 4.0", "description": "facturación SAT nativa"}, {"label": "Diseñador de tickets", "description": "tu recibo a tu gusto"}, {"label": "Variantes (Pro)", "description": "talla, color, presentación"}, {"label": "Contabilidad fiscal", "description": "pólizas, IVA en flujo, DIOT, ISR, nómina + ISN, activos fijos (depreciación), contab. electrónica SAT, cierre de periodo"}, {"label": "Clientes y lealtad", "description": "puntos, referidos, grupos, tarjeta con sellos en Wallet (Pro)"}, {"label": "Reseñas", "description": "califica en el recibo, 5★ a Google"}, {"label": "Equipo", "description": "roles, permisos, código de encargado, bitácora, comisiones, pago al personal (clases, comisiones y propinas en un recibo), asistencia"}, {"label": "Dispositivos", "description": "alta automática, tipo y quién lo usó"}, {"label": "Analítica", "description": "ventas en vivo, reportes, exporta Excel/CSV/PDF"}, {"label": "IA", "description": "asistente + conecta tu Claude / ChatGPT (MCP)"}, {"label": "Tarjetas de regalo (Pro)", "description": "próximamente"}, {"label": "Catálogo corporativo", "description": "reglas por giro, import/export y publicación por sucursal · región/precios regionales: próxima fase"}, {"label": "A la medida", "description": "implementación por giro, entrega en días · white label"}, {"label": "Pantalla del cliente", "description": "con tu marca: próximamente"}, {"label": "Hardware", "description": "Sunmi D3 una pantalla, Sunmi D3 doble pantalla 15.6\" + 10.1\", Sunmi D3 doble pantalla 15.6\", Sunmi CPad 8.7\", Sunmi CPad 11\", Sunmi CPad 14\", Sunmi D2s KDS 15.6\", Sunmi FLEX 3 18.5\", PAX A910S, NexGo N86, NexGo N62, Impresora térmica de tickets, Cajón de dinero mini"}]</script>
+<script id="avq-story-data" type="application/json">{"products": [{"id": "pos", "title": "POS Android", "subtitle": "Punto de venta completo en celular o tablet", "features": ["Cualquier celular o tablet Android se convierte en POS — o en hardware Sunmi dedicado (pantalla sencilla o doble), mismo software. También hay versión nativa para iOS.", "Menú con cuadrícula de productos, imágenes, categorías y selección rápida.", "Carrito con cliente, descuentos, cupones, propinas y guardar venta.", "Cobro con teclado y ruteo a terminal (Blumon PAX + AngelPay Nexgo).", "Pagos divididos, pagar‑después, reembolsos e impresión de recibo.", "Checada de personal con PIN para control de turnos.", "Mesas: el plano del salón, varias cuentas por mesa con su mesero, nota por platillo, rondas a cocina, pre-cuenta y cobro en efectivo o con terminal.", "Inventario, stock serializado y etiquetas de precio con código de barras.", "Sin internet sigue vendiendo: la orden y el efectivo se guardan en el aparato y se sincronizan solos. Layouts para tablet (50/50) y teléfono."], "target": "seccion-17", "image": "assets/eq-d3-una.jpg", "alt": "Sunmi D3 una pantalla"}, {"id": "dashboard", "title": "Dashboard Web", "subtitle": "El centro de control del negocio", "features": ["Administra menús, productos y modificadores de varias sucursales en tiempo real.", "Sigue cada orden, de la toma al cobro, con actualizaciones en vivo.", "Gestiona personal, roles y permisos a detalle.", "Ve pagos e historial de transacciones, conectado a las terminales.", "Registro automático de dispositivos — cada terminal, tablet o celular que instala Avoqado y entra aparece solo en la lista, con qué tipo de aparato es, si está en línea y quién lo usó al último. Sin dar de alta nada a mano.", "Reportes y analítica de ventas, productos y empleados.", "Exportación de reportes en CSV, Excel y PDF.", "Reseñas y feedback de clientes en un solo lugar.", "Marca blanca: el negocio puede ponerle su logo y dominio.", "Centro de integraciones: Stripe Connect, Google, Shopify (piloto, por invitación) y POS heredado.", "Búsqueda global (⌘K) para saltar a cualquier módulo o acción.", "Multi‑idioma (ES/EN/FR) y manejo correcto de zona horaria."], "target": "seccion-15", "preview": "dashboard", "image": "assets/dashboard-demo.png", "alt": "Dashboard Avoqado"}, {"id": "reservas", "title": "Widget de Reservas", "subtitle": "Reservas en la web del propio negocio", "features": ["Se integra con una sola etiqueta \u003cscript> + \u003cavoqado-booking>.", "Aislado (Shadow DOM): no rompe ni hereda estilos de la página.", "Flujo completo: servicio → profesionista (o cualquiera) → fecha → horario → datos → depósito → confirmación.", "Personalizable: idioma, tema claro/oscuro, color de acento, modo popup.", "Eventos para analítica (GA4/GTM): confirmado, cancelado, paso cambiado.", "Atajo para WordPress: [avoqado_booking].", "También impulsa la página hospedada book.avoqado.io."], "target": "seccion-21", "preview": "reservas", "image": "assets/widget-booking.png", "alt": "Página de reservas Avoqado en vivo"}, {"id": "tpv", "title": "TPV", "subtitle": "Cobro con tarjeta en terminal dedicada", "features": ["Cobro rápido: teclado numérico, atajos de descuento, propina, void y pagar‑después.", "SDK de Blumon integrado: la terminal cobra directo, sin lector externo.", "Pagos divididos y cobro del saldo restante.", "Impresión de recibo por impresora térmica Bluetooth.", "Cambio de comercio a media operación (franquicias / multi‑sucursal).", "Órdenes y turno funcionan sin conexión y sincronizan al reconectar; el cobro con tarjeta requiere señal (lo pide el banco).", "Gestión de turno: entrada/salida con PIN y corte de caja.", "Monitoreo de errores en vivo (Crashlytics): se ven fallas antes de que el cliente llame."], "target": "seccion-16", "image": "assets/pax-terminal.png", "alt": "Terminal PAX A910S Avoqado"}, {"id": "pedidos", "title": "Pedidos en línea", "subtitle": "Tu tienda web para recoger", "features": ["Tu propia tienda web con tu carta, por liga o QR. El cliente pide para pasar a recoger y tú aceptas el pedido desde la caja o el panel."], "target": "seccion-13", "preview": "pedidos"}, {"id": "checkout", "title": "Checkout en línea", "subtitle": "Página de pago hospedada — por liga, QR o correo", "features": ["Multi‑procesador: Stripe, MercadoPago y Blumon E‑commerce.", "El procesador maneja la tarjeta: Avoqado nunca ve datos sensibles (PCI).", "Sirve para depósitos de reserva, pedidos en línea, membresías y paquetes.", "Liga por sesión: se manda en correo, QR o SMS, sin necesidad de login.", "Meses sin intereses / pagos divididos (según procesador).", "Recibo automático y manejo claro de errores con reintento.", "Embebible en el sitio del negocio (widget e‑commerce).", "Ligas con la marca del negocio: logo y colores propios."], "target": "seccion-22", "preview": "checkout"}], "equipment": [{"id": "hw-d3-una", "title": "Sunmi D3 una pantalla", "subtitle": "Estación de mostrador", "features": ["Pantalla táctil Full HD de 15.6\"", "Impresora de tickets de 80 mm integrada en la base", "Octa-core 2.2 GHz · SUNMI OS sobre Android", "Cuerpo metálico, cables ocultos"], "target": "hw-d3-una", "image": "assets/eq-d3-una.jpg", "alt": "Sunmi D3 una pantalla — Estación de mostrador"}, {"id": "hw-d3-doble-15", "title": "Sunmi D3 doble pantalla 15.6\"", "subtitle": "Estación de mostrador, dos pantallas iguales", "features": ["Dos pantallas Full HD de 15.6\": una para el cajero, otra para el cliente", "Impresora de tickets de 80 mm integrada en la base", "Octa-core 2.2 GHz · SUNMI OS sobre Android", "Cuerpo metálico, cables ocultos"], "target": "hw-d3-doble-15", "image": "assets/eq-d3-doble-15.jpg", "alt": "Sunmi D3 doble pantalla 15.6\" — Estación de mostrador, dos pantallas iguales"}, {"id": "hw-cpad-11", "title": "Sunmi CPad 11\"", "subtitle": "La de todos los días", "features": ["Pantalla WUXGA de 11\" (1920 × 1200) · 526 g", "Batería de 8,000 mAh · protección IP54", "NFC integrado; lector de códigos 2D opcional"], "target": "hw-cpad-11", "image": "assets/eq-cpad-11.jpg", "alt": "Sunmi CPad 11\" — La de todos los días"}, {"id": "hw-kds-d2s", "title": "Sunmi D2s KDS 15.6\"", "subtitle": "Pantalla de cocina sellada", "features": ["Pantalla Full HD de 15.6\", táctil", "Sellada IP55: resiste grasa y se limpia con trapo húmedo", "Se alimenta por el mismo cable de red (PoE)", "Brazo VESA se cotiza aparte"], "target": "hw-kds-d2s", "image": "assets/eq-kds-d2s.jpg", "alt": "Sunmi D2s KDS 15.6\" — Pantalla de cocina sellada"}, {"id": "hw-pax", "title": "PAX A910S", "subtitle": "Terminal de cobro portátil", "features": ["Terminal portátil Android con pantalla táctil.", "Cobra con tarjeta: chip, banda y contactless.", "SDK Blumon integrado — cobra directo, sin lector externo.", "Impresión de recibo por impresora térmica Bluetooth."], "target": "hw-pax", "image": "assets/eq-pax-a910s.jpg", "alt": "PAX A910S — Terminal de cobro portátil"}, {"id": "hw-nexgo-n86", "title": "NexGo N86", "subtitle": "Terminal bancaria y punto de venta en un solo equipo", "features": ["Terminal portátil Android con impresora integrada.", "Cobra con tarjeta: chip, banda y contactless.", "SDK AngelPay integrado."], "target": "hw-nexgo-n86", "image": "assets/eq-nexgo-n86.jpg", "alt": "NexGo N86 — Terminal bancaria y punto de venta en un solo equipo"}]}</script>
+<dialog class="avq-dialog" aria-labelledby="avq-dialog-title">
+<button class="avq-close" type="button" autofocus>Cerrar</button>
+<h2 id="avq-dialog-title"></h2><div class="avq-dialog-content"></div>
+</dialog>
+<script src="presentation-story.js" defer></script>
+<script src="presentation-web.js" defer></script>
+</body>
+</html>
