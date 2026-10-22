@@ -114,6 +114,13 @@ export interface GiftCardRow {
   source: GiftCardSource
   customer: { id: string; name: string } | null
   order: { id: string; orderNumber: string } | null
+  /**
+   * 1b S-10 (aditivos y opcionales): cuándo el proveedor aceptó el envío, el código del último fallo de la entrega y su texto en
+   * español. La lista no los pinta (E14 = el detalle, `entrega`); van aquí para que el tipo siga siendo el espejo de la respuesta.
+   */
+  deliveredAt?: string | null
+  deliveryErrorCode?: string | null
+  deliveryError?: string | null
 }
 
 /** Lo que el panel PIDE (query de `GET /gift-cards`; no es una respuesta). */
@@ -196,6 +203,50 @@ export interface GiftCardDetail extends GiftCardRow {
    */
   currentBlock: { reason: GiftCardReason | null; note: string | null; at: string } | null
   activities: { items: GiftCardActivityRow[]; nextCursor: string | null; total: number }
+  /**
+   * 1b S7 (aditivo y opcional): cómo va la entrega. Sin ella (un server sin S7) el detalle se ve como en la 1a: sólo el canal.
+   * 🔴 El panel pinta `entrega.destino` (ENMASCARADO); `recipientPhone` y `recipientEmail` siguen llegando completos por
+   * compatibilidad y nunca se enseñan en la entrega (contrato 1b § 8).
+   */
+  entrega?: GiftCardDelivery
+}
+
+// ── Entrega (1b S7; contrato 1b § 3.4 y § 8) ─────────────────────────────
+
+/** Por qué no se entregó (S-7 + P-1). El panel traduce por código; uno que no conoce cae al texto del server o al genérico. */
+export type GiftCardDeliveryErrorCode =
+  'TEMPLATE_NOT_AVAILABLE' | 'WHATSAPP_SEND_FAILED' | 'WHATSAPP_UNDELIVERED' | 'EMAIL_SEND_FAILED' | 'EMAIL_INVALID_ADDRESS' | 'UNCONFIRMED'
+
+/**
+ * `entrega` del detalle. `status`: «Enviada» (`SENT`) = el proveedor la aceptó, nunca «entregada» (E7); en `PRINTED` y
+ * `HANDED_TO_BUYER` se queda `PENDING` y `destino` es `null` (S-8). `error` es el texto en español del server para `errorCode`.
+ */
+export interface GiftCardDelivery {
+  channel: GiftCardDeliveryChannel
+  status: GiftCardDeliveryStatus
+  deliveredAt: string | null
+  error: string | null
+  errorCode?: GiftCardDeliveryErrorCode | null
+  destino: string | null
+  intentos: number
+}
+
+/**
+ * El cuerpo de `POST …/:giftCardId/resend` sin su llave. Sin destino = reenviar al MISMO (no repone); con destino = cambiarlo (uno
+ * nuevo repone el código y la liga, E15; el mismo se porta como reenvío). El panel manda el teléfono en 10 dígitos (P-2). La
+ * variante «mismo destino» se escribe con campos `never` (y no con `Record<string, never>`) para que `& { operationKey }` compile.
+ */
+export type GiftCardResendBody =
+  | { deliveryChannel?: never; recipientPhone?: never; recipientEmail?: never }
+  | { deliveryChannel: 'WHATSAPP'; recipientPhone: string }
+  | { deliveryChannel: 'EMAIL'; recipientEmail: string }
+
+/** Respuesta de reenviar (la misma del POS). `repuesta: true` ⇒ se repuso el código y `ultimos4` es el folio NUEVO. */
+export interface GiftCardResendResult {
+  giftCardId: string
+  deliveryStatus: GiftCardDeliveryStatus
+  repuesta: boolean
+  ultimos4: string
 }
 
 // ── Acciones del gerente (cuerpos de C3) ─────────────────────────────────

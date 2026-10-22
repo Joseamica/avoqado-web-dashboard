@@ -79,7 +79,7 @@ function useTextoDeError() {
  * D4 r1 (I2): `ocupado` se prende con el clic y tras el éxito se QUEDA prendido: el diálogo terminó y ni un segundo clic ni
  * Enter mandan otra operación (antes, con la relectura pendiente, el botón seguía vivo y el segundo clic llevaba llave nueva).
  */
-function useEnvioDeDialogo(enDudaInicial: boolean) {
+export function useEnvioDeDialogo(enDudaInicial: boolean) {
   const { t } = useTranslation('giftCards')
   const [enDuda, setEnDuda] = useState(enDudaInicial)
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -106,7 +106,7 @@ function useEnvioDeDialogo(enDudaInicial: boolean) {
 }
 
 /** Avisos del diálogo. `descartar` sólo llega cuando el intento en duda viene de una apertura anterior (D4 r1, I1). */
-function Avisos({
+export function Avisos({
   error,
   errorServidor,
   enDuda,

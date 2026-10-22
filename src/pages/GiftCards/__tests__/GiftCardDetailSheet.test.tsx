@@ -13,6 +13,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o?.last4 ? `${k} ${String(o.last4)}` : k) }),
 }))
 vi.mock('../components/GiftCardManagerActions', () => ({ GiftCardManagerActions: () => <div data-testid="acciones" /> }))
+vi.mock('../components/GiftCardDelivery', () => ({ GiftCardDelivery: () => <div data-testid="entrega" /> }))
 
 import { Currency } from '@/utils/currency'
 import { GiftCardDetailSheet } from '../components/GiftCardDetailSheet'
@@ -123,13 +124,34 @@ describe('GiftCardDetailSheet', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('detail.loadMoreError')
   })
 
-  it('🔴 en la 1a ningún canal pinta estado de envío (todo nace PENDING y nada lo mueve): sólo el canal (lote ⭐ r1)', () => {
+  it('🔴 sin `entrega` (server sin S7) ningún canal pinta estado: sólo el canal', () => {
     for (const canal of ['WHATSAPP', 'EMAIL', 'PRINTED', 'CUSTOMER_CARD', 'HANDED_TO_BUYER'] as const) {
       q.current = listo({ data: { pages: [{ ...DETAIL, deliveryChannel: canal, deliveryStatus: 'PENDING' }], pageParams: [null] } })
       const { unmount } = pintar()
       expect(screen.getByText(`delivery.${canal}`)).toBeInTheDocument()
       expect(screen.queryByText('detail.facts.deliveryValue')).not.toBeInTheDocument()
       expect(screen.queryByText(/^deliveryStatus\./)).not.toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('🔴 1b: con `entrega`, WhatsApp y correo dicen canal · estado; los demás canales sólo el canal; la sección de entrega se monta', () => {
+    const entrega = (channel: GiftCardDetail['deliveryChannel'], status: 'PENDING' | 'SENT' | 'FAILED') => ({
+      channel, status, deliveredAt: null, error: null, errorCode: null, destino: channel === 'WHATSAPP' ? '55•••••678' : null, intentos: 0,
+    })
+    for (const canal of ['WHATSAPP', 'EMAIL'] as const) {
+      q.current = listo({ data: { pages: [{ ...DETAIL, deliveryChannel: canal, entrega: entrega(canal, 'FAILED') }], pageParams: [null] } })
+      const { unmount } = pintar()
+      expect(screen.getByText('detail.facts.deliveryValue')).toBeInTheDocument()
+      expect(screen.getByTestId('entrega')).toBeInTheDocument()
+      unmount()
+    }
+    for (const canal of ['PRINTED', 'HANDED_TO_BUYER', 'CUSTOMER_CARD'] as const) {
+      q.current = listo({ data: { pages: [{ ...DETAIL, deliveryChannel: canal, entrega: entrega(canal, 'PENDING') }], pageParams: [null] } })
+      const { unmount } = pintar()
+      expect(screen.getByText(`delivery.${canal}`)).toBeInTheDocument()
+      expect(screen.queryByText('detail.facts.deliveryValue')).not.toBeInTheDocument()
+      expect(screen.getByTestId('entrega')).toBeInTheDocument()
       unmount()
     }
   })
