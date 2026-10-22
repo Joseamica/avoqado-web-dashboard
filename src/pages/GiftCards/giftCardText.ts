@@ -94,6 +94,23 @@ export function textoDelServidorConCodigo(err: unknown): string | undefined {
  */
 export const esIdiomaEspanol = (): boolean => !i18next.language || i18next.language.startsWith('es')
 
+// Notas fijas de giftCardCancel.service.ts:410-422 y contrato 1b, adición 3; las demás son de una persona.
+const NOTAS_DEL_SISTEMA: ReadonlyArray<[RegExp, string]> = [
+  [/^Cancelación de la venta (\S+)$/, 'systemNotes.cancelSaleWithFolio'],
+  [/^Cancelación de la venta$/, 'systemNotes.cancelSale'],
+  [/^Se liberó la cancelación: el reembolso no se hizo\.$/, 'systemNotes.cancelReleased'],
+  [/^Cambio de destino de la entrega$/, 'systemNotes.deliveryChanged'],
+]
+
+export function notaVisible(note: string | null, t: (k: string, o?: Record<string, unknown>) => string): string | null {
+  if (note == null || esIdiomaEspanol()) return note
+  for (const [patron, clave] of NOTAS_DEL_SISTEMA) {
+    const coincidencia = note.match(patron)
+    if (coincidencia) return t(clave, coincidencia[1] ? { folio: coincidencia[1] } : undefined)
+  }
+  return note
+}
+
 /**
  * El texto de un error del server en el idioma del panel. El server escribe sus avisos en español y manda su `code` estable:
  * en español se enseña el texto del server (`textoDelServidorConCodigo`); en otro idioma, `serverCodes.<code>` del namespace

@@ -444,5 +444,11 @@
   "errors": {
     "generic": "Algo salió mal. Inténtalo otra vez.",
     "forbidden": "No tienes permiso para hacer esto. Pídeselo a quien administra el negocio."
+  },
+  "systemNotes": {
+    "cancelSale": "Cancelación de la venta",
+    "cancelSaleWithFolio": "Cancelación de la venta {{folio}}",
+    "cancelReleased": "Se liberó la cancelación: el reembolso no se hizo.",
+    "deliveryChanged": "Cambio de destino de la entrega"
   }
 }

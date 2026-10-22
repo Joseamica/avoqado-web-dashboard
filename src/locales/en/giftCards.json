@@ -444,5 +444,11 @@
   "errors": {
     "generic": "Something went wrong. Try again.",
     "forbidden": "You don't have permission to do this. Ask whoever manages the business."
+  },
+  "systemNotes": {
+    "cancelSale": "Sale cancellation",
+    "cancelSaleWithFolio": "Cancellation of sale {{folio}}",
+    "cancelReleased": "Cancellation released: the refund wasn't made.",
+    "deliveryChanged": "Delivery destination changed"
   }
 }

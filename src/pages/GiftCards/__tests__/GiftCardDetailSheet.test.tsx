@@ -1,16 +1,18 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import i18next from 'i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GiftCardDetail } from '@/types/giftCard'
 
 const q = vi.hoisted(() => ({ current: {} as Record<string, unknown> }))
+const traducir = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-gift-cards', () => ({ useGiftCardDetail: () => q.current }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
 vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({ formatDateTime: (d: string) => `fecha ${d}`, formatDate: (d: string) => `día ${d}` }),
 }))
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o?.last4 ? `${k} ${String(o.last4)}` : k) }),
+  useTranslation: () => ({ t: traducir }),
 }))
 vi.mock('../components/GiftCardManagerActions', () => ({ GiftCardManagerActions: () => <div data-testid="acciones" /> }))
 vi.mock('../components/GiftCardDelivery', () => ({ GiftCardDelivery: () => <div data-testid="entrega" /> }))
@@ -56,10 +58,27 @@ const pintar = () =>
   )
 
 beforeEach(() => {
+  traducir.mockImplementation((k: string, o?: Record<string, unknown>) => (o?.last4 ? `${k} ${String(o.last4)}` : k))
   q.current = listo()
 })
 
 describe('GiftCardDetailSheet', () => {
+  it('pasa a detail.note la nota del sistema traducida y conserva la nota humana', () => {
+    const idioma = i18next.language
+    try {
+      i18next.language = 'en'
+      q.current = listo({ data: { pages: [{ ...DETAIL, activities: { ...DETAIL.activities, items: [
+        { ...DETAIL.activities.items[0], id: 'sistema', note: 'Cancelación de la venta ORD-1792' },
+        DETAIL.activities.items[0],
+      ] } }], pageParams: [null] } })
+      pintar()
+      expect(traducir).toHaveBeenCalledWith('systemNotes.cancelSaleWithFolio', { folio: 'ORD-1792' })
+      expect(traducir).toHaveBeenCalledWith('detail.note', { note: 'systemNotes.cancelSaleWithFolio' })
+      expect(traducir).toHaveBeenCalledWith('detail.note', { note: 'Dos intentos raros' })
+    } finally {
+      i18next.language = idioma
+    }
+  })
   it('enseña los últimos 4 (nunca el código), el saldo y la libreta con su signo', () => {
     pintar()
     expect(screen.getByTestId('acciones')).toBeInTheDocument()

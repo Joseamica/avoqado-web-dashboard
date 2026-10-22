@@ -20,6 +20,7 @@ import {
   leerMonto,
   limpiarTelefono,
   montoDelMovimiento,
+  notaVisible,
   motivoSinVenta,
   signoDe,
   avisoDeError,
@@ -435,6 +436,23 @@ describe('avisoDeError con el panel en inglés (Task 5; Codex r1 #3)', () => {
   })
   afterAll(async () => {
     await i18next.changeLanguage('es')
+  })
+
+  it.each(['es', 'en'])('notaVisible en %s: traduce sólo las notas fijas del sistema', async lng => {
+    try {
+      await i18next.changeLanguage(lng)
+      const tt = (k: string, o?: Record<string, unknown>) => `${k}|${String(o?.folio ?? '')}`
+      const es = lng === 'es'
+      expect(notaVisible('Cancelación de la venta ORD-1792', tt)).toBe(es ? 'Cancelación de la venta ORD-1792' : 'systemNotes.cancelSaleWithFolio|ORD-1792')
+      expect(notaVisible('Cancelación de la venta', tt)).toBe(es ? 'Cancelación de la venta' : 'systemNotes.cancelSale|')
+      expect(notaVisible('Se liberó la cancelación: el reembolso no se hizo.', tt)).toBe(es ? 'Se liberó la cancelación: el reembolso no se hizo.' : 'systemNotes.cancelReleased|')
+      expect(notaVisible('Cambio de destino de la entrega', tt)).toBe(es ? 'Cambio de destino de la entrega' : 'systemNotes.deliveryChanged|')
+      for (const humana of ['Dos intentos raros', 'Cancelación de la venta según pidió Ana', 'Cambio de destino de la entrega: lo pidió Ana', ''])
+        expect(notaVisible(humana, tt)).toBe(humana)
+      expect(notaVisible(null, tt)).toBeNull()
+    } finally {
+      await i18next.changeLanguage('en')
+    }
   })
 
   it('en inglés, un 409 con code GIFT_CARD_BLOCKED sale con serverCodes.GIFT_CARD_BLOCKED', () => {
