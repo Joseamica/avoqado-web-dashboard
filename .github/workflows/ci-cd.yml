@@ -93,6 +93,18 @@ jobs:
       - name: 🔍 TypeScript compilation check
         run: npm run typecheck
 
+      # Two tests compare the dashboard against the REAL avoqado-server source, read from the sibling folder our
+      # machines have: ExternalRouteAreaCard (Prisma @defaults; throws without it) and providerDeviceCompatibility.sync
+      # (passes silently without it). Bring only those files, from the server branch this one ships with
+      # (main ↔ main, everything else ↔ develop). Both repos are public: no token needed.
+      - name: 📥 Fetch the avoqado-server files the tests compare against
+        env:
+          SERVER_REF: ${{ (github.ref_name == 'main' || github.base_ref == 'main') && 'main' || 'develop' }}
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse --branch "$SERVER_REF" https://github.com/Joseamica/avoqado-server.git ../avoqado-server
+          git -C ../avoqado-server sparse-checkout set --no-cone /prisma/schema.prisma /src/lib/providerDeviceCompatibility.ts
+          ls -l ../avoqado-server/prisma/schema.prisma ../avoqado-server/src/lib/providerDeviceCompatibility.ts
+
       # The WHOLE vitest suite, not only the 8 auth/routing files that used to be the only unit gate
       # (`test:auth-routing` is a subset of this run). On 2026-10-18 a selective publish shipped a red
       # test to main (productId.variant.test.tsx:171) and this pipeline stayed green because it never

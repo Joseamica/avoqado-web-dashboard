@@ -71,6 +71,14 @@ const renderTab = () => {
   )
 }
 
+/**
+ * Espera a que el formulario tenga lo que mandó el servidor. `values` de react-hook-form se copia en un EFECTO
+ * (`useForm`, 7.66), así que el primer render con datos todavía trae el formulario vacío: interruptores apagados y el
+ * mínimo sin número. En una máquina lenta la prueba alcanzaba a mirar ese cuadro (CI del 21-oct: «Encender» apagado con
+ * la tienda encendida). Úsalo antes de mirar o tocar un valor del formulario justo después de que aparece.
+ */
+const formularioCargado = () => waitFor(() => expect(screen.getByLabelText('settings.minOrder')).not.toHaveValue(null))
+
 /** El renglón de un paso de la lista («Antes de encender la tienda»). */
 const paso = (r: string) => screen.getByText(`settings.requirements.${r}.label`).closest('li') as HTMLElement
 
@@ -88,7 +96,8 @@ describe('SettingsTab', () => {
   it('rehidrata el formulario y Guardar empieza deshabilitado', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
-    expect(await screen.findByLabelText('settings.minOrder')).toHaveValue(50)
+    await formularioCargado()
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(50)
     expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
     expect(screen.queryByTestId('hours-editor')).toBeNull()
   })
@@ -138,7 +147,8 @@ describe('SettingsTab', () => {
   it('si el servidor llega a contestar sin store, la pestaña no truena', async () => {
     getSettings.mockResolvedValue(putToday())
     renderTab()
-    expect(await screen.findByLabelText('settings.minOrder')).toHaveValue(50)
+    await formularioCargado()
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(50)
     expect(screen.getByText('settings.status.label', { exact: false })).toBeInTheDocument()
     // Sin `requirements` no se sabe qué falta: no se inventa un «Todo listo» con tres ✅.
     expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
@@ -266,7 +276,8 @@ describe('SettingsTab', () => {
     const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
     getSettings.mockResolvedValue(base({ enabled: true, store: open }))
     renderTab()
-    await userEvent.click(await screen.findByRole('switch', { name: 'settings.payAtPickup' }))
+    await formularioCargado()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
     expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeEnabled()
     expect(screen.queryByText('settings.requirements.title')).toBeNull()
     expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
@@ -286,7 +297,8 @@ describe('SettingsTab', () => {
     const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
     getSettings.mockResolvedValue(base({ enabled: true, store: open, requirements: { address: true, phone: false, privacyNotice: true } }))
     renderTab()
-    const interruptor = await screen.findByRole('switch', { name: 'settings.enable' })
+    await formularioCargado()
+    const interruptor = screen.getByRole('switch', { name: 'settings.enable' })
     await userEvent.click(interruptor)
     expect(interruptor).not.toBeChecked()
     expect(interruptor).toBeEnabled()
@@ -298,7 +310,8 @@ describe('SettingsTab', () => {
     const open = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
     getSettings.mockResolvedValue(base({ enabled: true, store: open, requirements: { address: true, phone: false, privacyNotice: true } }))
     renderTab()
-    expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeChecked()
+    await formularioCargado()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked()
     expect(screen.queryByText('settings.requirements.title')).toBeNull()
     expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
   })
