@@ -298,6 +298,24 @@ describe('GiftCardDelivery — «Reenviar»', () => {
     expect(cuerpo(1)).toEqual(cuerpo(0))
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'deliveryActions.resendDone' }))
   })
+
+  it('«Reenviar» en duda conserva su llave y el aviso tras un reintento limitado (I1 vecino)', async () => {
+    const texto = 'Espera antes de reenviar.'
+    svc.resendGiftCard
+      .mockRejectedValueOnce(sinRespuesta())
+      .mockRejectedValueOnce({ response: { status: 429, data: { code: 'GIFT_CARD_RESEND_RATE_LIMITED', message: texto } } })
+      .mockResolvedValueOnce(HECHO)
+    pintar(DETALLE)
+    await user.click(boton('deliveryActions.resend'))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'deliveryActions.resend' }))
+    await screen.findByText('actions.inDoubt')
+    await user.click(boton('actions.retry'))
+    expect(await screen.findByText(texto)).toBeInTheDocument()
+    expect(screen.getByText('actions.inDoubt')).toBeInTheDocument()
+    await user.click(boton('actions.retry'))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'deliveryActions.resendDone' }))
+    expect(cuerpo(2)).toEqual(cuerpo(0))
+  })
 })
 
 describe('GiftCardDelivery — «Cambiar destino»', () => {
@@ -345,6 +363,111 @@ describe('GiftCardDelivery — «Cambiar destino»', () => {
         recipientEmail: 'ana@correo.com',
       }),
     )
+  })
+
+  it.each(['maría@gmail.com', 'nuñez@gmail.com', 'ana@correo.c'])(
+    'rechaza %s en el formulario antes de mandar al servidor (m2)',
+    async correo => {
+      pintar(DETALLE)
+      await cambiarA('EMAIL', correo)
+      expect(screen.getByText('deliveryActions.errors.email')).toBeInTheDocument()
+      expect(svc.resendGiftCard).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['reabrir', 'recargar'] as const)(
+    'en duda → reintento 429 → %s conserva el destino congelado y la MISMA llave (I1)',
+    async recuperacion => {
+      const texto = 'Ya reenviamos esta tarjeta varias veces. Espera un rato y vuelve a intentar.'
+      svc.resendGiftCard
+        .mockRejectedValueOnce(sinRespuesta())
+        .mockRejectedValueOnce({ response: { status: 429, data: { code: 'GIFT_CARD_RESEND_RATE_LIMITED', message: texto } } })
+        .mockResolvedValueOnce({ ...HECHO, repuesta: true })
+      const { unmount } = pintar(DETALLE)
+      await cambiarA('WHATSAPP', '+52 55 1234 5678')
+      await screen.findByText('actions.inDoubt')
+      await user.click(boton('actions.retry'))
+      expect(await screen.findByText(texto)).toBeInTheDocument()
+      expect(screen.getByText('actions.inDoubt')).toBeInTheDocument()
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toBeDisabled()
+      expect(screen.getByLabelText('delivery.EMAIL')).toBeDisabled()
+      expect(boton('actions.retry')).toBeEnabled()
+      expect(cuerpo(1)).toEqual(cuerpo(0))
+      if (recuperacion === 'recargar') {
+        unmount()
+        olvidarPendientes()
+        olvidarIntentosEnDuda()
+        pintar(DETALLE)
+      } else {
+        await cerrarModal()
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      }
+      await user.click(boton('deliveryActions.changeDestination'))
+      expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toHaveValue('5512345678')
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toBeDisabled()
+      await user.click(boton('actions.retry'))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'deliveryActions.changeDone' }))
+      expect(cuerpo(2)).toEqual(cuerpo(0))
+      expect(sessionStorage.getItem('gc-en-duda:v1:u1:g1:resend-cambiar')).toBeNull()
+    },
+  )
+
+  it('un 429 en el PRIMER cambio es definitivo: permite corregir y reabrir sin duda (I1)', async () => {
+    const texto = 'Espera antes de reenviar.'
+    svc.resendGiftCard.mockRejectedValueOnce({
+      response: { status: 429, data: { code: 'GIFT_CARD_RESEND_RATE_LIMITED', message: texto } },
+    })
+    pintar(DETALLE)
+    await cambiarA('WHATSAPP', '5512345678')
+    expect(await screen.findByText(texto)).toBeInTheDocument()
+    expect(screen.getByLabelText('deliveryActions.changePhone')).toBeEnabled()
+    expect(screen.queryByText('actions.inDoubt')).toBeNull()
+    expect(sessionStorage.getItem('gc-en-duda:v1:u1:g1:resend-cambiar')).toBeNull()
+    await cerrarModal()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await user.click(boton('deliveryActions.changeDestination'))
+    expect(screen.queryByText('actions.inDoubtBefore')).toBeNull()
+    expect(screen.getByLabelText('deliveryActions.changePhone')).toBeEnabled()
+  })
+
+  it('un cambio incierto → 409 IDEMPOTENCY_KEY_REUSED explica que ya se registró y la tarjeta cambió (m1)', async () => {
+    const texto = 'Esta operación ya se registró con otros datos. Cierra el diálogo y vuelve a intentarlo.'
+    svc.resendGiftCard
+      .mockRejectedValueOnce(sinRespuesta())
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'IDEMPOTENCY_KEY_REUSED', message: texto } } })
+    pintar(DETALLE)
+    await cambiarA('WHATSAPP', '5512345678')
+    await screen.findByText('actions.inDoubt')
+    await user.click(boton('actions.retry'))
+    expect(await screen.findByText('serverCodes.GIFT_CARD_STATE_CHANGED')).toBeInTheDocument()
+    expect(screen.queryByText(texto)).toBeNull()
+    expect(screen.queryByText('actions.inDoubt')).toBeNull()
+    expect(screen.getByLabelText('deliveryActions.changePhone')).toBeEnabled()
+    expect(cuerpo(1)).toEqual(cuerpo(0))
+    expect(sessionStorage.getItem('gc-en-duda:v1:u1:g1:resend-cambiar')).toBeNull()
+  })
+
+  it('IDEMPOTENCY_KEY_REUSED en un PRIMER cambio mantiene su texto; otro 4xx en duda sigue siendo definitivo', async () => {
+    const texto = 'Esta operación ya se registró con otros datos.'
+    const textoDefinitivo = 'No puedes cambiar esta tarjeta.'
+    svc.resendGiftCard
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'IDEMPOTENCY_KEY_REUSED', message: texto } } })
+      .mockRejectedValueOnce(sinRespuesta())
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'GIFT_CARD_ALREADY_USED', message: textoDefinitivo } } })
+    pintar(DETALLE)
+    await cambiarA('WHATSAPP', '5512345678')
+    expect(await screen.findByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText('serverCodes.GIFT_CARD_STATE_CHANGED')).toBeNull()
+    await user.click(boton('deliveryActions.changeConfirm'))
+    await screen.findByText('actions.inDoubt')
+    await user.click(boton('actions.retry'))
+    expect(await screen.findByText(textoDefinitivo)).toBeInTheDocument()
+    expect(screen.queryByText('actions.inDoubt')).toBeNull()
+    expect(screen.getByLabelText('deliveryActions.changePhone')).toBeEnabled()
+    expect(cuerpo(1).operationKey).not.toBe(cuerpo(0).operationKey)
+    expect(cuerpo(2)).toEqual(cuerpo(1))
+    expect(sessionStorage.getItem('gc-en-duda:v1:u1:g1:resend-cambiar')).toBeNull()
   })
 
   it('🔴 doble clic en «Reponer y enviar»: sale UN solo POST', async () => {

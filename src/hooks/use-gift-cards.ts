@@ -337,7 +337,7 @@ const PASO_DE_REENVIO = 'reenvio'
  * - `reenviar` devuelve `undefined` si ya hay un envío en vuelo (candado síncrono: un doble clic no manda dos);
  * - pase lo que pase, la tarjeta se relee SIN esperarlo (lista, detalle y reportes de ESA tarjeta);
  * - un «cambiar» que sale bien deja atrás un «mismo» en duda: su llave vieja ya no describe la entrega de hoy.
- * El tope de reenvíos (`429 GIFT_CARD_RESEND_RATE_LIMITED`) es una respuesta definitiva, como cualquier 4xx.
+ * El 429 del límite ocurre ANTES del servicio: rechaza un primer envío, pero no resuelve uno que ya estaba en duda.
  */
 export function useGiftCardResend(venueId: string | undefined, giftCardId: string) {
   const { enviar, enviando } = useEnvioUnico()
@@ -368,10 +368,13 @@ export function useGiftCardResend(venueId: string | undefined, giftCardId: strin
       if (!venueId) return undefined
       const k = llaveDe(modo)
       const huella = huellaDe(modo, cuerpo)
+      const estabaEnDuda = intentoEnDuda(modo) !== undefined
+      let llaveUsada: string | undefined
       const cambio: GiftCardChange = { kind: 'card', giftCardId }
       try {
         const r = await enviar(huella, paso =>
           paso(PASO_DE_REENVIO, operationKey => {
+            llaveUsada = operationKey
             if (userId) guardarEnSesion(k, { huella, clave: operationKey, cuerpo, accion: `resend-${modo}` })
             return resendGiftCard(venueId, giftCardId, { ...cuerpo, operationKey })
           }),
@@ -383,12 +386,16 @@ export function useGiftCardResend(venueId: string | undefined, giftCardId: strin
         }
         return r
       } catch (err) {
-        anotarFallo(k, cuerpo, err)
+        const respuesta = (err as { response?: { status?: number; data?: { code?: string } } } | null)?.response
+        if (estabaEnDuda && respuesta?.status === 429 && respuesta.data?.code === 'GIFT_CARD_RESEND_RATE_LIMITED' && llaveUsada) {
+          recordarClave(huella, PASO_DE_REENVIO, llaveUsada)
+          enDuda.set(k, cuerpo)
+        } else anotarFallo(k, cuerpo, err)
         void invalidate(venueId, cambio)
         throw err
       }
     },
-    [venueId, userId, giftCardId, enviar, invalidate, llaveDe, huellaDe, descartarIntento],
+    [venueId, userId, giftCardId, enviar, invalidate, llaveDe, huellaDe, intentoEnDuda, descartarIntento],
   )
   return { reenviar, enviando, intentoEnDuda, descartarIntento }
 }

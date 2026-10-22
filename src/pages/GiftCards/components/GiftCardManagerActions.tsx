@@ -78,8 +78,12 @@ function useTextoDeError() {
  * Un envío de diálogo: listo, en duda (se reintenta con la misma llave) o rechazado con el texto del server.
  * D4 r1 (I2): `ocupado` se prende con el clic y tras el éxito se QUEDA prendido: el diálogo terminó y ni un segundo clic ni
  * Enter mandan otra operación (antes, con la relectura pendiente, el botón seguía vivo y el segundo clic llevaba llave nueva).
+ * Un reenvío puede seguir en duda tras un 429: su hook decide si conservó el intento y el diálogo muestra ambos avisos.
  */
-export function useEnvioDeDialogo(enDudaInicial: boolean) {
+export function useEnvioDeDialogo(
+  enDudaInicial: boolean,
+  opciones?: { mantieneLaDuda?: () => boolean; errorDeReintento?: (err: unknown) => string | undefined },
+) {
   const { t } = useTranslation('giftCards')
   const [enDuda, setEnDuda] = useState(enDudaInicial)
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -97,8 +101,8 @@ export function useEnvioDeDialogo(enDudaInicial: boolean) {
         setEnDuda(true)
         setErrorServidor(null)
       } else {
-        setEnDuda(false)
-        setErrorServidor(avisoDeError(err, t))
+        setEnDuda(enDuda && opciones?.mantieneLaDuda?.() === true)
+        setErrorServidor((enDuda && opciones?.errorDeReintento?.(err)) || avisoDeError(err, t))
       }
     }
   }

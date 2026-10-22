@@ -124,6 +124,13 @@ describe('correoValido', () => {
   it.each([
     ['ana@correo.com', true],
     [' ana@correo.com ', true],
+    ['Ana.Lopez+regalo@correo.com.mx', true],
+    ['maría@gmail.com', false],
+    ['nuñez@gmail.com', false],
+    ['ana@correo.c', false],
+    ['ana..b@correo.com', false],
+    ['.ana@correo.com', false],
+    ['ana@correo.com.', false],
     ['ana@', false],
     ['ana correo.com', false],
     ['ana@correo', false],
@@ -132,7 +139,7 @@ describe('correoValido', () => {
 })
 
 describe('validarAjuste', () => {
-  const base ={ direccion: 'INCREMENT' as const, cantidad: 100, saldo: 500, motivo: 'CASHIER_ERROR' as const, nota: 'Se cobró de menos' }
+  const base = { direccion: 'INCREMENT' as const, cantidad: 100, saldo: 500, motivo: 'CASHIER_ERROR' as const, nota: 'Se cobró de menos' }
   it('pasa un ajuste completo', () => expect(validarAjuste(base)).toBeNull())
   it('monto vacío o cero', () => {
     expect(validarAjuste({ ...base, cantidad: null })?.key).toBe('actions.adjust.errors.amount')

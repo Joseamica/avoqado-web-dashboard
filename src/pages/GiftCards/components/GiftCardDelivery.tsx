@@ -73,7 +73,7 @@ function ReenviarDialog({
   const { reenviar, enviando, intentoEnDuda, descartarIntento } = useGiftCardResend(venueId, giftCardId)
   // Un reenvío en duda de una apertura anterior vuelve con su aviso, «Intentar otra vez» (misma llave) y «Descartar».
   const [previo] = useState(() => intentoEnDuda('mismo') != null)
-  const envio = useEnvioDeDialogo(previo)
+  const envio = useEnvioDeDialogo(previo, { mantieneLaDuda: () => intentoEnDuda('mismo') != null })
 
   const confirmar = () =>
     envio.correr(
@@ -138,7 +138,15 @@ function CambiarDestinoModal({
     const b = intentoEnDuda('cambiar')
     return b && esDigital(b.deliveryChannel) ? (b as Destino) : null
   })
-  const envio = useEnvioDeDialogo(previo != null)
+  const envio = useEnvioDeDialogo(previo != null, {
+    mantieneLaDuda: () => intentoEnDuda('cambiar') != null,
+    errorDeReintento: err => {
+      const respuesta = (err as { response?: { status?: number; data?: { code?: string } } } | null)?.response
+      return respuesta?.status === 409 && respuesta.data?.code === 'IDEMPOTENCY_KEY_REUSED'
+        ? t('serverCodes.GIFT_CARD_STATE_CHANGED')
+        : undefined
+    },
+  })
   const [canal, setCanal] = useState<CanalDigital>(previo?.deliveryChannel ?? (esDigital(canalActual) ? canalActual : 'WHATSAPP'))
   const [telefono, setTelefono] = useState(previo?.deliveryChannel === 'WHATSAPP' ? previo.recipientPhone : '')
   const [correo, setCorreo] = useState(previo?.deliveryChannel === 'EMAIL' ? previo.recipientEmail : '')

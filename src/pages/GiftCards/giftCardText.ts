@@ -6,6 +6,7 @@
  * C4 TAL CUAL (F3): lo poco que el server no manda («vencida») se calcula aquí, con su prueba.
  */
 import i18next from 'i18next'
+import { z } from 'zod'
 import { conSigno } from '@/pages/StaffPay/conSigno'
 import type {
   GiftCardActivityType,
@@ -151,8 +152,8 @@ export function limpiarTelefono(texto: string): string | null {
   return digitos.length === 10 ? digitos : null
 }
 
-/** Un correo con forma de correo (`algo@algo.algo`), ya recortado. El server vuelve a validarlo. */
-export const correoValido = (texto: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto.trim())
+/** El mismo criterio de correo que `resendSchema` del server; evita su 400 sin código. */
+export const correoValido = (texto: string): boolean => z.string().trim().email().safeParse(texto).success
 
 /** Por qué no se entregó una tarjeta (S-7 + P-1; contrato 1b § 3.4): los seis códigos que el panel traduce, en ese orden. */
 export const CODIGOS_DE_FALLO_DE_ENTREGA: readonly GiftCardDeliveryErrorCode[] = [
