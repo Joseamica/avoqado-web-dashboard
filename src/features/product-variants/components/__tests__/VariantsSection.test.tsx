@@ -108,6 +108,23 @@ describe('VariantsSection', () => {
     expect(enviar).not.toHaveBeenCalled()
   })
 
+  it('uses one labelled set of responsive row controls and keeps every variant field', () => {
+    render(<Arnes />)
+    fireEvent.change(screen.getByLabelText('opciones.nombre'), { target: { value: 'Talla' } })
+    fireEvent.change(screen.getByLabelText('opciones.valores'), { target: { value: 'S,' } })
+    fireEvent.click(screen.getByRole('switch'))
+    const table = screen.getByRole('table')
+    expect(table.className).toContain('lg:table')
+    expect(screen.getAllByLabelText('tabla.precio:Playera · S')).toHaveLength(1)
+    for (const label of ['tabla.precioCol', 'tabla.costoCol', 'tabla.skuCol', 'tabla.codigoCol', 'tabla.existenciasCol']) {
+      expect(table.querySelector(`td[data-label="${label}"]`)).toBeInTheDocument()
+    }
+    expect(screen.getByLabelText('tabla.sku:Playera · S')).toHaveClass('h-12')
+    expect(screen.getByLabelText('tabla.codigo:Playera · S')).toHaveClass('min-w-0')
+    fireEvent.change(screen.getByLabelText('tabla.existencias:Playera · S'), { target: { value: '0' } })
+    expect(screen.getByLabelText('tabla.existencias:Playera · S')).toHaveValue(0)
+  })
+
   describe('🔴 desde una tabla válida, crecer por la interfaz hasta pasar de 250 no truena', () => {
     const muchos = (p: string, n: number) => Array.from({ length: n }, (_, i) => `${p}${i}`)
     const opciones = [{ name: 'A', values: muchos('a', 20) }, { name: 'B', values: muchos('b', 10) }]
