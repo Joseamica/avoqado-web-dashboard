@@ -192,7 +192,8 @@ export default function ProductId() {
       }
       toast({
         title: t('products.detail.toasts.saveError'),
-        description: error.message || t('products.detail.toasts.saveErrorDesc'),
+        // El texto del servidor primero (el 409 de «este dato se edita en el producto…»), no el genérico de Axios.
+        description: error.response?.data?.message || error.message || t('products.detail.toasts.saveErrorDesc'),
         variant: 'destructive',
       })
     },
