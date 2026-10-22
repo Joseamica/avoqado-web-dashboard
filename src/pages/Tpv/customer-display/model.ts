@@ -211,15 +211,25 @@ export function superficieDeLaPantalla(type: string | null | undefined): Superfi
 }
 
 /**
- * Spec §6.2: «Ofrecer recibo» sólo tiene efecto desde la versión de la app que lo obedece (F2). Arrancan en
- * MAX_SAFE_INTEGER y se bajan EN EL MISMO CAMBIO en que se publica cada app.
+ * Spec §6.2: «Ofrecer recibo» sólo tiene efecto desde la versión de la app que lo obedece (F2). Se compara por NOMBRE de
+ * versión (`Terminal.version`, «2.25.10» o «2.25.10-escritorio»), no por número: WINDOWS manda siempre el número fijo del
+ * archivo de Android (tablero D3, 21-oct), igual que el diseñador de tickets del server (`posSoportaDiseno`).
+ * `null` = esa app aún no lo obedece; se pone el nombre EN EL MISMO CAMBIO en que se publica (iOS: «1.15.6»).
  */
-export const CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID = Number.MAX_SAFE_INTEGER
-export const CHECKOUT_RECEIPT_TOGGLE_MIN_POS_IOS = Number.MAX_SAFE_INTEGER
+export const CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID: string | null = '2.25.10'
+export const CHECKOUT_RECEIPT_TOGGLE_MIN_POS_IOS: string | null = null
 
-export function reciboNecesitaActualizar(type: string | null | undefined, versionCode: number | null | undefined): boolean {
-  const minimo =
-    type === 'POS_ANDROID' ? CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID : type === 'POS_IOS' ? CHECKOUT_RECEIPT_TOGGLE_MIN_POS_IOS : null
-  if (minimo === null) return false
-  return typeof versionCode !== 'number' || versionCode < minimo
+/** «X.Y.Z» del principio del nombre (ignora sufijos como «-escritorio» o «-dev»); null si no lo trae. */
+function partesDeVersion(nombre: string | null | undefined): number[] | null {
+  const m = /^(\d+)\.(\d+)\.(\d+)/.exec(nombre ?? '')
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null
+}
+
+export function reciboNecesitaActualizar(type: string | null | undefined, versionName: string | null | undefined): boolean {
+  if (type !== 'POS_ANDROID' && type !== 'POS_IOS') return false
+  const minimo = partesDeVersion(type === 'POS_ANDROID' ? CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID : CHECKOUT_RECEIPT_TOGGLE_MIN_POS_IOS)
+  const actual = partesDeVersion(versionName)
+  if (!minimo || !actual) return true
+  for (let i = 0; i < 3; i++) if (actual[i] !== minimo[i]) return actual[i] < minimo[i]
+  return false
 }

@@ -22,7 +22,7 @@ function pintar(tipo = 'POS_ANDROID') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
-      <CheckoutStepsSection tpvId="t1" deviceType={tipo} versionCode={null} />
+      <CheckoutStepsSection tpvId="t1" deviceType={tipo} versionName={null} />
     </QueryClientProvider>,
   )
   return { qc }

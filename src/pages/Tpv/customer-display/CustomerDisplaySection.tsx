@@ -13,7 +13,7 @@ export interface CustomerDisplaySectionProps {
   deviceType: string | undefined
   deviceName: string
   venueName: string
-  versionCode: number | null
+  versionName: string | null
   capabilities: EffectiveDeviceCapabilities
   customerDisplayInverted: boolean
   customerDisplayRequest?: DisplayModeRequest | null
@@ -60,7 +60,7 @@ export function CustomerDisplaySection(props: CustomerDisplaySectionProps) {
       {superficie !== 'ninguna' && (
         <>
           <Separator />
-          <CheckoutStepsSection tpvId={props.terminalId} deviceType={props.deviceType} versionCode={props.versionCode} />
+          <CheckoutStepsSection tpvId={props.terminalId} deviceType={props.deviceType} versionName={props.versionName} />
         </>
       )}
 
