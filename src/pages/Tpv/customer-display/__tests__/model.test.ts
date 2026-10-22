@@ -6,6 +6,7 @@ import {
   agregarPorcentaje,
   cambioDePaso,
   CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID,
+  CHECKOUT_RECEIPT_TOGGLE_MIN_POS_IOS,
   colorDelHex,
   contarCaracteres,
   crearSecuencia,
@@ -146,11 +147,20 @@ describe('pasos del cobro', () => {
     expect(quitarPorcentaje([10], 10)).toBeNull()
     expect(quitarPorcentaje([10, 15], 30)).toBeNull()
   })
-  it('🔴 «Ofrecer recibo» pide actualizar en POS mientras el mínimo siga en MAX_SAFE_INTEGER (F2 lo baja)', () => {
-    expect(CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID).toBe(Number.MAX_SAFE_INTEGER)
-    expect(reciboNecesitaActualizar('POS_ANDROID', 240)).toBe(true)
-    expect(reciboNecesitaActualizar('POS_IOS', null)).toBe(true)
-    expect(reciboNecesitaActualizar('TPV_ANDROID', 76)).toBe(false)
+  it('🔴 «Ofrecer recibo» se compara por NOMBRE de versión: WINDOWS manda siempre el número 55 (tablero D3, 21-oct)', () => {
+    expect(CHECKOUT_RECEIPT_TOGGLE_MIN_POS_ANDROID).toBe('2.25.10')
+    expect(reciboNecesitaActualizar('POS_ANDROID', '2.25.10')).toBe(false)
+    expect(reciboNecesitaActualizar('POS_ANDROID', '2.25.10-escritorio')).toBe(false) // WINDOWS
+    expect(reciboNecesitaActualizar('POS_ANDROID', '2.26.0')).toBe(false)
+    expect(reciboNecesitaActualizar('POS_ANDROID', '2.25.9')).toBe(true)
+    expect(reciboNecesitaActualizar('POS_ANDROID', '2.25.8-escritorio')).toBe(true)
+    expect(reciboNecesitaActualizar('POS_ANDROID', '2.9.99')).toBe(true) // por partes, no como texto
+    expect(reciboNecesitaActualizar('POS_ANDROID', null)).toBe(true)
+    expect(reciboNecesitaActualizar('POS_ANDROID', 'basura')).toBe(true)
+    // iOS: hasta que salga la 1.15.6 no hay mínimo ⇒ siempre pide actualizar.
+    expect(CHECKOUT_RECEIPT_TOGGLE_MIN_POS_IOS).toBeNull()
+    expect(reciboNecesitaActualizar('POS_IOS', '1.15.5')).toBe(true)
+    expect(reciboNecesitaActualizar('TPV_ANDROID', '1.0.0')).toBe(false)
   })
 })
 

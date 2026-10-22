@@ -16,7 +16,7 @@ const capacidades = (presence: 'SUPPORTED' | 'UNSUPPORTED' | 'UNKNOWN', invertib
 })
 const pintar = (deviceType: string, caps: EffectiveDeviceCapabilities, lastHeartbeat?: string | null) =>
   render(
-    <CustomerDisplaySection venueId="v1" terminalId="t1" deviceType={deviceType} deviceName="X" venueName="Y" versionCode={null}
+    <CustomerDisplaySection venueId="v1" terminalId="t1" deviceType={deviceType} deviceName="X" venueName="Y" versionName={null}
       capabilities={caps} customerDisplayInverted={false} customerDisplayRequest={null} canUpdateDevice lastHeartbeat={lastHeartbeat} />,
   )
 

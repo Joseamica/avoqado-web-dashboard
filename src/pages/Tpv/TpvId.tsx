@@ -945,7 +945,7 @@ function TpvIdContent() {
                       deviceType={tpv.type}
                       deviceName={tpv.name}
                       venueName={venue?.name ?? ''}
-                      versionCode={typeof tpv.systemInfo?.versionCode === 'number' ? tpv.systemInfo.versionCode : null}
+                      versionName={tpv.version ?? null}
                       capabilities={tpv.capabilities}
                       customerDisplayInverted={tpv.customerDisplayInverted}
                       customerDisplayRequest={tpv.customerDisplayRequest}

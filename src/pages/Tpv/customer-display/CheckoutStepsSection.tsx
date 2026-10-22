@@ -31,7 +31,7 @@ const FILAS: { clave: PasoConInterruptor; etiqueta: string; tour: string }[] = [
 export interface CheckoutStepsSectionProps {
   tpvId: string
   deviceType: string | undefined
-  versionCode: number | null
+  versionName: string | null
 }
 
 /**
@@ -42,7 +42,7 @@ export interface CheckoutStepsSectionProps {
  * no se adivina: se olvida lo supuesto, cada paso se ve «sin confirmar» y se relee lo que el server tiene.
  * La clave de caché es A PROPÓSITO la de `TpvSettingsForm` (`['tpvSettings', id]`): las dos pantallas leen la misma ficha.
  */
-export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: CheckoutStepsSectionProps) {
+export function CheckoutStepsSection({ tpvId, deviceType, versionName }: CheckoutStepsSectionProps) {
   const { t } = useTranslation('customerDisplay')
   const { can } = useAccess()
   const { toast } = useToast()
@@ -241,7 +241,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionCode }: Checkou
                 </>
               )}
 
-              {fila.clave === 'showReceiptScreen' && reciboNecesitaActualizar(deviceType, versionCode) && (
+              {fila.clave === 'showReceiptScreen' && reciboNecesitaActualizar(deviceType, versionName) && (
                 // Mismo texto de aviso que la tarjeta: tokens semánticos (en oscuro, el ámbar; `warning-foreground` es casi blanco).
                 <p className="mt-1.5 flex items-start gap-1.5 text-xs text-warning-foreground dark:text-warning">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
