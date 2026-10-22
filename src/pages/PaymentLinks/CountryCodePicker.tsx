@@ -1,5 +1,6 @@
 import { ChevronsUpDown } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -128,6 +129,7 @@ interface Props {
  */
 export function CountryCodePicker({ value, onChange, disabled }: Props) {
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation('paymentLinks')
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -136,6 +138,8 @@ export function CountryCodePicker({ value, onChange, disabled }: Props) {
           type="button"
           variant="outline"
           role="combobox"
+          aria-label={t('customer.country')}
+          data-tour="payment-link-phone-country"
           aria-expanded={open}
           disabled={disabled}
           className="h-10 px-2.5 gap-1.5 font-medium"
@@ -154,9 +158,9 @@ export function CountryCodePicker({ value, onChange, disabled }: Props) {
             return itemValue.toLowerCase().includes(q) ? 1 : 0
           }}
         >
-          <CommandInput placeholder="Buscar país o código…" />
+          <CommandInput placeholder={t('customer.countrySearch')} />
           <CommandList>
-            <CommandEmpty>Sin resultados</CommandEmpty>
+            <CommandEmpty>{t('customer.noResults')}</CommandEmpty>
             <CommandGroup>
               {COUNTRIES.map(c => (
                 <CommandItem

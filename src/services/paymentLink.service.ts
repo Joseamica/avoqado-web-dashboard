@@ -40,6 +40,8 @@ export interface PaymentLink {
   venueId: string
   ecommerceMerchantId: string
   createdById: string
+  customerId?: string | null
+  customer?: PaymentLinkCustomer | null
   purpose: 'PAYMENT' | 'ITEM' | 'DONATION'
   /** Bundle line items for ITEM-purpose links. Empty for PAYMENT/DONATION. */
   items?: PaymentLinkBundleItem[]
@@ -65,7 +67,16 @@ export interface PaymentLink {
   }
 }
 
+export interface PaymentLinkCustomer {
+  id: string
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  phone: string | null
+}
+
 export interface CreatePaymentLinkRequest {
+  customerId?: string | null
   title: string
   description?: string
   imageUrl?: string
@@ -134,8 +145,14 @@ export const paymentLinkService = {
     return response.data
   },
 
-  async createPaymentLink(venueId: string, data: CreatePaymentLinkRequest): Promise<{ success: boolean; data: PaymentLink }> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-links`, data)
+  async createPaymentLink(
+    venueId: string,
+    data: CreatePaymentLinkRequest,
+    creationKey?: string,
+  ): Promise<{ success: boolean; data: PaymentLink }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-links`, data, {
+      ...(creationKey ? { headers: { 'Idempotency-Key': creationKey } } : {}),
+    })
     return response.data
   },
 
@@ -158,15 +175,8 @@ export const paymentLinkService = {
    * `payment_link_share` Meta template. `phone` should be E.164 (`+52...`);
    * the backend normalizes further.
    */
-  async shareViaWhatsapp(
-    venueId: string,
-    linkId: string,
-    phone: string,
-  ): Promise<{ success: boolean; data: { sent: boolean } }> {
-    const response = await api.post(
-      `/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}/share-whatsapp`,
-      { phone },
-    )
+  async shareViaWhatsapp(venueId: string, linkId: string, phone: string): Promise<{ success: boolean; data: { sent: boolean } }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}/share-whatsapp`, { phone })
     return response.data
   },
 

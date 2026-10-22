@@ -1,22 +1,16 @@
-import { useMutation } from '@tanstack/react-query'
 import { ExternalLink, Loader2, MessageCircle, Send } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import paymentLinkService, { type PaymentLink } from '@/services/paymentLink.service'
 
-import { CountryCodePicker, DEFAULT_COUNTRY, parsePhoneInput, type Country } from './CountryCodePicker'
+import { CountryCodePicker, DEFAULT_COUNTRY, type Country } from './CountryCodePicker'
+import { customerPhoneNumber, parseStoredCustomerPhone } from './stored-customer-phone'
 
 interface Props {
   open: boolean
@@ -40,44 +34,52 @@ interface Props {
  * so the operator can send from their own WhatsApp account instead — useful
  * when they're already chatting with the customer there.
  */
-export function SharePaymentLinkDialog({ open, onOpenChange, link, venueId, checkoutBaseUrl }: Props) {
+export function SharePaymentLinkDialog(props: Props) {
+  const { user } = useAuth()
+  return props.open ? <SharePaymentLinkForm key={`${props.venueId}:${user?.id}:${props.link?.id}`} {...props} /> : null
+}
+
+function SharePaymentLinkForm({ open, onOpenChange, link, venueId, checkoutBaseUrl }: Props) {
   const { t } = useTranslation('paymentLinks')
   const { toast } = useToast()
 
-  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY)
-  const [phone, setPhone] = useState('')
-
-  // Reset on close so the next open is a clean slate. Wait for the close
-  // animation by tying the reset to the `open` prop transitioning to false.
+  const parsedPhone = parseStoredCustomerPhone(link?.customer?.phone)
+  const [country, setCountry] = useState<Country>(parsedPhone?.country ?? DEFAULT_COUNTRY)
+  const [phone, setPhone] = useState(parsedPhone?.localDigits ?? '')
+  const [isSending, setIsSending] = useState(false)
+  const [sendFailed, setSendFailed] = useState(false)
+  const inFlight = useRef(false)
+  const alive = useRef(true)
   useEffect(() => {
-    if (!open) {
-      setPhone('')
-      setCountry(DEFAULT_COUNTRY)
+    alive.current = true
+    return () => {
+      alive.current = false
     }
-  }, [open])
+  }, [])
+  const changeOpen = (next: boolean) => {
+    if (!next) alive.current = false
+    onOpenChange(next)
+  }
+  const recipient = customerPhoneNumber(phone, country)
+  const isValid = !!recipient && !!link
 
-  const sendMutation = useMutation({
-    mutationFn: async () => {
-      if (!link) throw new Error('No link selected')
-      const localDigits = phone.replace(/\D/g, '')
-      const fullPhone = `+${country.dial}${localDigits}`
-      return paymentLinkService.shareViaWhatsapp(venueId, link.id, fullPhone)
-    },
-    onSuccess: () => {
-      toast({ title: t('share.sentTitle', { defaultValue: 'Liga enviada' }) })
-      onOpenChange(false)
-    },
-    onError: (err: any) => {
-      toast({
-        title: t('share.sendFailed', { defaultValue: 'No se pudo enviar' }),
-        description: err?.response?.data?.error || err?.message,
-        variant: 'destructive',
-      })
-    },
-  })
-
-  const localDigits = phone.replace(/\D/g, '')
-  const isValid = localDigits.length >= 7 && !!link
+  async function send() {
+    if (!link || !isValid || inFlight.current) return
+    inFlight.current = true
+    setIsSending(true)
+    setSendFailed(false)
+    try {
+      await paymentLinkService.shareViaWhatsapp(venueId, link.id, recipient)
+      if (!alive.current) return
+      toast({ title: t('share.sentTitle') })
+      changeOpen(false)
+    } catch {
+      if (alive.current) setSendFailed(true)
+    } finally {
+      inFlight.current = false
+      if (alive.current) setIsSending(false)
+    }
+  }
 
   const handleManualWhatsapp = () => {
     if (!link) return
@@ -87,7 +89,7 @@ export function SharePaymentLinkDialog({ open, onOpenChange, link, venueId, chec
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('share.dialogTitle', { defaultValue: 'Compartir por WhatsApp' })}</DialogTitle>
@@ -100,32 +102,25 @@ export function SharePaymentLinkDialog({ open, onOpenChange, link, venueId, chec
         </DialogHeader>
 
         <div className="space-y-3">
+          {((link?.customer?.phone && !parsedPhone) || (phone.trim() && !recipient)) && (
+            <p className="text-sm text-muted-foreground">{t('customer.reviewPhone')}</p>
+          )}
           <div>
-            <label className="text-sm font-medium text-foreground/80">
+            <label htmlFor="pl-share-phone" className="text-sm font-medium text-foreground/80">
               {t('share.phoneLabel', { defaultValue: 'Teléfono del cliente' })}
             </label>
             <div className="mt-1.5 flex gap-2 items-stretch">
-              <CountryCodePicker value={country} onChange={setCountry} disabled={sendMutation.isPending} />
+              <CountryCodePicker value={country} onChange={setCountry} disabled={isSending} />
               <Input
+                id="pl-share-phone"
+                data-tour="payment-link-share-phone"
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="55 1234 5678"
                 value={phone}
-                onChange={e => {
-                  // Detect leading dial code from autofill / paste (e.g.
-                  // "+525512345678") and remap the picker + strip the prefix
-                  // so the local digits we send are unambiguous.
-                  const raw = e.target.value
-                  const parsed = parsePhoneInput(raw, country)
-                  if (parsed) {
-                    setCountry(parsed.country)
-                    setPhone(parsed.localDigits)
-                  } else {
-                    setPhone(raw)
-                  }
-                }}
-                disabled={sendMutation.isPending}
+                onChange={e => setPhone(e.target.value)}
+                disabled={isSending}
                 className="flex-1 h-10"
                 autoFocus
               />
@@ -137,6 +132,12 @@ export function SharePaymentLinkDialog({ open, onOpenChange, link, venueId, chec
             </p>
           </div>
         </div>
+
+        {sendFailed && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('share.sendFailed')}
+          </p>
+        )}
 
         <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2 pt-2">
           <Button
@@ -150,24 +151,16 @@ export function SharePaymentLinkDialog({ open, onOpenChange, link, venueId, chec
             <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
             {t('share.manualFallback', { defaultValue: 'Enviar desde mi WhatsApp' })}
           </Button>
-          <Button type="button" onClick={() => sendMutation.mutate()} disabled={!isValid || sendMutation.isPending}>
-            {sendMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4 mr-1.5" />
-            )}
-            {sendMutation.isPending
-              ? t('share.sending', { defaultValue: 'Enviando…' })
-              : t('share.sendButton', { defaultValue: 'Enviar liga' })}
+          <Button type="button" data-tour="payment-link-share-send" onClick={send} disabled={!isValid || isSending}>
+            {isSending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />}
+            {isSending ? t('share.sending', { defaultValue: 'Enviando…' }) : t('share.sendButton', { defaultValue: 'Enviar liga' })}
           </Button>
         </DialogFooter>
 
         {/* Tiny visual hint that this goes through WhatsApp Business API. */}
         <div className="flex items-center justify-center gap-1.5 pt-2 text-[11px] text-muted-foreground border-t border-border/40 -mb-1 mt-1">
           <MessageCircle className="h-3 w-3 text-emerald-600" />
-          <span>
-            {t('share.poweredBy', { defaultValue: 'Mensaje enviado vía WhatsApp Business · Plantilla aprobada por Meta' })}
-          </span>
+          <span>{t('share.poweredBy', { defaultValue: 'Mensaje enviado vía WhatsApp Business · Plantilla aprobada por Meta' })}</span>
         </div>
       </DialogContent>
     </Dialog>

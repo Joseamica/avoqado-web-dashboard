@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Banknote, Calendar, ChevronDown, DollarSign, Heart, Plus, Settings, Tag, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -14,10 +14,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/context/AuthContext'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import type {
   CreatePaymentLinkRequest,
+  PaymentLink,
+  PaymentLinkCustomer,
   CustomFieldDefinition,
   TippingConfig,
   UpdatePaymentLinkRequest,
@@ -27,6 +31,8 @@ import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import teamService from '@/services/team.service'
 import type { Product } from '@/types'
 
+import { PaymentLinkCustomerSection } from './PaymentLinkCustomerSection'
+import { parseStoredCustomerPhone } from './stored-customer-phone'
 import { DonationPreview } from './components/DonationPreview'
 import { ItemFormSection, type BundleItem } from './components/ItemFormSection'
 import { ItemPreview } from './components/ItemPreview'
@@ -48,7 +54,13 @@ const PURPOSES: { key: LinkPurpose; icon: typeof DollarSign; comingSoon?: boolea
   { key: 'donation', icon: Heart },
 ]
 
-export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }: CreatePaymentLinkDialogProps) {
+export default function CreatePaymentLinkDialog(props: CreatePaymentLinkDialogProps) {
+  const { venueId } = useCurrentVenue()
+  const { user } = useAuth()
+  return props.open ? <PaymentLinkForm key={`${venueId}:${user?.id}:${props.editingLinkId || 'new'}`} {...props} /> : null
+}
+
+function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDialogProps) {
   const { venueId, venue, fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -57,6 +69,24 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
   const { t: tCommon } = useTranslation()
 
   const isEditing = !!editingLinkId
+  const { can } = useAccess()
+  const [customer, setCustomer] = useState<PaymentLinkCustomer | null>(null)
+  const [customerBusy, setCustomerBusy] = useState(false)
+  const [createdLink, setCreatedLink] = useState<PaymentLink | null>(null)
+  const [sendFailed, setSendFailed] = useState(false)
+  const alive = useRef(true)
+  const inFlight = useRef(false)
+  const creationAttempt = useRef<{ body: string; key: string } | null>(null)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
+  const selectedCustomer = can('customers:read') ? customer : null
+  const parsedCustomerPhone = parseStoredCustomerPhone(selectedCustomer?.phone)
+  const customerPhone = parsedCustomerPhone ? `+${parsedCustomerPhone.country.dial}${parsedCustomerPhone.localDigits}` : ''
+  const canSend = /^\+[0-9]{10,15}$/.test(customerPhone)
 
   // ─── Wizard state ──────────────────────────────────────
   const [step, setStep] = useState<'type' | 'details'>(isEditing ? 'details' : 'type')
@@ -95,15 +125,10 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
     enabled: !!venueId && open && !isEditing,
     staleTime: 60_000,
   })
-  const activeStaff = useMemo(
-    () => (teamPage?.data ?? []).filter(m => m.active && m.staffId),
-    [teamPage?.data],
-  )
+  const activeStaff = useMemo(() => (teamPage?.data ?? []).filter(m => m.active && m.staffId), [teamPage?.data])
   const attributedStaffNames = useMemo(() => {
     if (attributedStaffIds.length === 0) return null
-    return activeStaff
-      .filter(s => attributedStaffIds.includes(s.staffId))
-      .map(s => `${s.firstName} ${s.lastName}`.trim())
+    return activeStaff.filter(s => attributedStaffIds.includes(s.staffId)).map(s => `${s.firstName} ${s.lastName}`.trim())
   }, [attributedStaffIds, activeStaff])
 
   // ─── Channel (ecommerce merchant) selection ──────────────
@@ -149,7 +174,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
   // Auto-select the only usable merchant so the user never has to pick when
   // there's no real choice. Reruns if the underlying list changes.
   useEffect(() => {
-    if (!showMerchantPicker && usableMerchants.length === 1 && !selectedMerchantId) {
+    if (!inFlight.current && !creationAttempt.current && !showMerchantPicker && usableMerchants.length === 1 && !selectedMerchantId) {
       setSelectedMerchantId(usableMerchants[0].id)
     }
   }, [usableMerchants, showMerchantPicker, selectedMerchantId])
@@ -220,42 +245,21 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
     }
   }, [existingLink])
 
-  // Reset form state whenever the dialog opens (for new links) or closes.
-  // Seeds tipping + custom-fields from venue settings so the operator's
-  // "Ajustes generales" defaults are actually applied. `customerNotesEnabled`
-  // is shorthand: if it's on AND defaultCustomFields is empty, seed a single
-  // "Nota" text field so the customer gets a free-text comment box.
+  // The keyed form resets on close, actor, venue or link change. Seed defaults
+  // once; late settings must never erase what the operator already entered.
+  const seededDefaults = useRef(false)
   useEffect(() => {
-    if (open && !isEditing) {
-      setTitle('')
-      setDescription('')
-      setAmountType('FIXED')
-      setAmount('')
-      setIsReusable(false)
-      setRedirectUrl('')
-      setRedirectEnabled(false)
-      setSelectedItems([])
-
-      const seededFields = (venueSettings?.defaultCustomFields && venueSettings.defaultCustomFields.length > 0)
-        ? venueSettings.defaultCustomFields
-        : venueSettings?.customerNotesEnabled
-          ? [{ id: `cf_note_${Date.now()}`, type: 'TEXT' as const, label: 'Nota', required: false }]
-          : []
-      setCustomFields(seededFields)
-      setCustomFieldsEnabled(seededFields.length > 0)
-
-      setTippingConfig(venueSettings?.defaultTippingConfig ?? null)
-
-      setPurposeDropdownOpen(false)
-      setStep('type')
-      setSelectedPurpose(null)
-    }
-    if (!open) {
-      setStep(isEditing ? 'details' : 'type')
-      setSelectedPurpose(null)
-      setPurposeDropdownOpen(false)
-    }
-  }, [open, isEditing, venueSettings])
+    if (isEditing || !venueSettings || seededDefaults.current || inFlight.current || creationAttempt.current) return
+    seededDefaults.current = true
+    const fields = venueSettings.defaultCustomFields?.length
+      ? venueSettings.defaultCustomFields
+      : venueSettings.customerNotesEnabled
+        ? [{ id: `cf_note_${Date.now()}`, type: 'TEXT' as const, label: t('customer.noteField'), required: false }]
+        : []
+    setCustomFields(fields)
+    setCustomFieldsEnabled(fields.length > 0)
+    setTippingConfig(venueSettings.defaultTippingConfig ?? null)
+  }, [isEditing, venueSettings, t])
 
   const handlePurposeSelect = (purpose: LinkPurpose) => {
     const def = PURPOSES.find(p => p.key === purpose)
@@ -285,40 +289,31 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
     if (selectedPurpose) setStep('details')
   }
 
-  // ─── Mutations ─────────────────────────────────────────
-  const createMutation = useMutation({
-    mutationFn: (data: CreatePaymentLinkRequest) => paymentLinkService.createPaymentLink(venueId, data),
-    onSuccess: () => {
-      toast({ title: t('toasts.created') })
-      queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
+  async function sendCreatedLink(link: PaymentLink, phone: string) {
+    try {
+      await paymentLinkService.shareViaWhatsapp(venueId, link.id, phone)
+      if (!alive.current) return
+      toast({ title: t('share.sentTitle') })
       onClose()
-    },
-    onError: (error: any) => {
-      toast({
-        title: tCommon('error'),
-        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
-        variant: 'destructive',
-      })
-    },
-  })
+    } catch {
+      if (alive.current) setSendFailed(true)
+    }
+  }
 
-  const updateMutation = useMutation({
-    mutationFn: (data: UpdatePaymentLinkRequest) => paymentLinkService.updatePaymentLink(venueId, editingLinkId!, data),
-    onSuccess: () => {
-      toast({ title: t('toasts.updated') })
-      queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
-      onClose()
-    },
-    onError: (error: any) => {
-      toast({
-        title: tCommon('error'),
-        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
-        variant: 'destructive',
-      })
-    },
-  })
-
-  const handleSave = () => {
+  const handleSave = async (send = false) => {
+    if (inFlight.current || customerBusy) return
+    if (createdLink) {
+      if (!send || !canSend) return
+      inFlight.current = true
+      setIsSaving(true)
+      try {
+        await sendCreatedLink(createdLink, customerPhone)
+      } finally {
+        inFlight.current = false
+        if (alive.current) setIsSaving(false)
+      }
+      return
+    }
     // For ITEM (bundle) purpose: derive title + amount from the items list.
     // With 1 product use its name + description; with N show "N artículos".
     // Total = sum(qty × price). The backend recomputes this too as a guard.
@@ -335,15 +330,9 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
             : ''
         : title.trim()
     const effectiveAmount =
-      selectedPurpose === 'item' && selectedItems.length > 0
-        ? bundleSubtotal
-        : amount
-          ? parseFloat(amount)
-          : undefined
+      selectedPurpose === 'item' && selectedItems.length > 0 ? bundleSubtotal : amount ? parseFloat(amount) : undefined
     const effectiveDescription =
-      selectedPurpose === 'item' && selectedItems.length === 1
-        ? selectedItems[0].product.description || ''
-        : description.trim()
+      selectedPurpose === 'item' && selectedItems.length === 1 ? selectedItems[0].product.description || '' : description.trim()
 
     if (!effectiveTitle) return
 
@@ -374,46 +363,74 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       ...(tippingConfig ? { tippingConfig } : { tippingConfig: null }),
     }
 
+    inFlight.current = true
     setIsSaving(true)
-    if (isEditing) {
-      const updateData: UpdatePaymentLinkRequest = {
-        ...baseData,
-        // Explicitly null when disabled so backend clears existing value
-        redirectUrl: redirectEnabled && redirectUrl.trim() ? redirectUrl.trim() : null,
-        // Replace bundle items list for ITEM links (incl. their modifiers)
-        ...(selectedPurpose === 'item'
-          ? {
-              items: selectedItems.map(it => ({
-                productId: it.product.id,
-                quantity: it.quantity,
-                modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
-              })),
-            }
-          : {}),
+    try {
+      if (isEditing) {
+        const updateData: UpdatePaymentLinkRequest = {
+          ...baseData,
+          // Explicitly null when disabled so backend clears existing value
+          redirectUrl: redirectEnabled && redirectUrl.trim() ? redirectUrl.trim() : null,
+          // Replace bundle items list for ITEM links (incl. their modifiers)
+          ...(selectedPurpose === 'item'
+            ? {
+                items: selectedItems.map(it => ({
+                  productId: it.product.id,
+                  quantity: it.quantity,
+                  modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
+                })),
+              }
+            : {}),
+        }
+        await paymentLinkService.updatePaymentLink(venueId, editingLinkId!, updateData)
+        if (!alive.current) return
+        toast({ title: t('toasts.updated') })
+        queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
+        onClose()
+      } else {
+        const createData: CreatePaymentLinkRequest = {
+          ...baseData,
+          ...(redirectEnabled && redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
+          purpose: selectedPurpose ? purposeMap[selectedPurpose] : 'PAYMENT',
+          ...(selectedPurpose === 'item'
+            ? {
+                items: selectedItems.map(it => ({
+                  productId: it.product.id,
+                  quantity: it.quantity,
+                  modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
+                })),
+              }
+            : {}),
+          // Pin to selected channel when set. Only matters with >1 active
+          // merchants — for the 1-channel case it's still set, harmlessly.
+          ...(selectedMerchantId ? { ecommerceMerchantId: selectedMerchantId } : {}),
+          // Commission attribution. Empty array → no commission. N IDs → backend
+          // splits commission equally across all attributed staff (1/N each).
+          attributedStaffIds,
+          ...(selectedCustomer ? { customerId: selectedCustomer.id } : {}),
+        }
+        const body = JSON.stringify(createData)
+        if (creationAttempt.current?.body !== body) creationAttempt.current = { body, key: crypto.randomUUID() }
+        const recipient = customerPhone
+        const response = await paymentLinkService.createPaymentLink(venueId, createData, creationAttempt.current.key)
+        queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
+        if (!alive.current) return
+        setCreatedLink(response.data)
+        toast({ title: t('toasts.created') })
+        if (send && canSend) await sendCreatedLink(response.data, recipient)
+        else onClose()
       }
-      updateMutation.mutate(updateData, { onSettled: () => setIsSaving(false) })
-    } else {
-      const createData: CreatePaymentLinkRequest = {
-        ...baseData,
-        ...(redirectEnabled && redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
-        purpose: selectedPurpose ? purposeMap[selectedPurpose] : 'PAYMENT',
-        ...(selectedPurpose === 'item'
-          ? {
-              items: selectedItems.map(it => ({
-                productId: it.product.id,
-                quantity: it.quantity,
-                modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
-              })),
-            }
-          : {}),
-        // Pin to selected channel when set. Only matters with >1 active
-        // merchants — for the 1-channel case it's still set, harmlessly.
-        ...(selectedMerchantId ? { ecommerceMerchantId: selectedMerchantId } : {}),
-        // Commission attribution. Empty array → no commission. N IDs → backend
-        // splits commission equally across all attributed staff (1/N each).
-        attributedStaffIds,
-      }
-      createMutation.mutate(createData, { onSettled: () => setIsSaving(false) })
+    } catch (error) {
+      if (!alive.current) return
+      const response = (error as { response?: { data?: { message?: string; error?: string } } }).response
+      toast({
+        title: tCommon('error'),
+        description: response?.data?.message || response?.data?.error || t('toasts.error'),
+        variant: 'destructive',
+      })
+    } finally {
+      inFlight.current = false
+      if (alive.current) setIsSaving(false)
     }
   }
 
@@ -423,6 +440,11 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0))
 
   const handleClose = () => {
+    if (inFlight.current || createdLink || customerBusy) {
+      alive.current = false
+      onClose()
+      return
+    }
     if (step === 'details' && !isEditing) {
       setStep('type')
     } else {
@@ -494,9 +516,24 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
             {isEditing && existingLink?.data && (
               <ShareActions shortCode={existingLink.data.shortCode} title={existingLink.data.title} asDropdown />
             )}
-            <Button onClick={handleSave} disabled={!canSave || isSaving} className="cursor-pointer">
+            <Button
+              onClick={() => handleSave()}
+              data-tour="payment-link-save"
+              disabled={!canSave || isSaving || customerBusy || !!createdLink}
+              className="cursor-pointer"
+            >
               {t('form.save')}
             </Button>
+            {!isEditing && canSend && (
+              <Button
+                type="button"
+                data-tour="payment-link-create-send"
+                onClick={() => handleSave(true)}
+                disabled={!canSave || isSaving || customerBusy}
+              >
+                {t(createdLink ? 'customer.retrySend' : 'customer.createAndSend')}
+              </Button>
+            )}
           </div>
         )
       }
@@ -556,7 +593,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
         <div className="mx-auto max-w-6xl p-6">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Form (2 cols) */}
-            <div className="lg:col-span-2 space-y-6">
+            <fieldset disabled={isSaving || !!createdLink} className="lg:col-span-2 min-w-0 space-y-6">
               {/* Purpose selector dropdown (Square-style) */}
               {!isEditing && (
                 <div className="relative">
@@ -608,6 +645,12 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                 </div>
               )}
 
+              {sendFailed && (
+                <div role="alert" className="rounded-lg border border-input bg-card p-4 space-y-2">
+                  <p>{t('customer.sendFailedCreated')}</p>
+                  <p className="text-sm text-muted-foreground">{createdLink?.title}</p>
+                </div>
+              )}
               {/* Purpose-specific form content */}
               {selectedPurpose === 'item' ? (
                 <ItemFormSection
@@ -929,6 +972,15 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                 </div>
               )}
 
+              <PaymentLinkCustomerSection
+                venueId={venueId}
+                selected={isEditing ? (existingLink?.data.customer ?? null) : selectedCustomer}
+                onChange={setCustomer}
+                readOnly={isEditing}
+                reusable={isReusable}
+                onBusyChange={setCustomerBusy}
+              />
+
               {/* Shared Configuración — channel picker + commission attribution.
                   Renders for ALL purposes (PAYMENT/ITEM/DONATION). Sits outside
                   the purpose-specific branches so the ITEM flow gets them too.
@@ -971,7 +1023,8 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                     <div className="space-y-0.5">
                       <span className="text-sm font-medium">Atribuir comisión a</span>
                       <p className="text-xs text-muted-foreground">
-                        Elige uno o varios miembros del equipo. Si seleccionas más de uno, la comisión se divide en partes iguales (ej. 2 personas = 50/50, 3 = 33/33/33). Si dejas vacío, no se genera comisión.
+                        Elige uno o varios miembros del equipo. Si seleccionas más de uno, la comisión se divide en partes iguales (ej. 2
+                        personas = 50/50, 3 = 33/33/33). Si dejas vacío, no se genera comisión.
                       </p>
                     </div>
                     <Popover open={staffPopoverOpen} onOpenChange={setStaffPopoverOpen}>
@@ -987,17 +1040,14 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                               <span className="text-muted-foreground">Sin atribución (no genera comisión)</span>
                             ) : attributedStaffNames.length <= 3 ? (
                               attributedStaffNames.map(name => (
-                                <span
-                                  key={name}
-                                  className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
-                                >
+                                <span key={name} className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
                                   {name}
                                 </span>
                               ))
                             ) : (
                               <span>
-                                {attributedStaffNames.length} personas · split{' '}
-                                {(100 / attributedStaffNames.length).toFixed(0)}/{(100 / attributedStaffNames.length).toFixed(0)}…
+                                {attributedStaffNames.length} personas · split {(100 / attributedStaffNames.length).toFixed(0)}/
+                                {(100 / attributedStaffNames.length).toFixed(0)}…
                               </span>
                             )}
                           </span>
@@ -1017,9 +1067,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                                     key={m.staffId}
                                     value={`${m.firstName} ${m.lastName} ${m.role}`}
                                     onSelect={() => {
-                                      setAttributedStaffIds(prev =>
-                                        checked ? prev.filter(id => id !== m.staffId) : [...prev, m.staffId],
-                                      )
+                                      setAttributedStaffIds(prev => (checked ? prev.filter(id => id !== m.staffId) : [...prev, m.staffId]))
                                     }}
                                     className="cursor-pointer gap-2"
                                   >
@@ -1055,7 +1103,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                   </div>
                 </section>
               )}
-            </div>
+            </fieldset>
 
             {/* Right: Preview (3 cols) */}
             <div className="lg:col-span-3">
