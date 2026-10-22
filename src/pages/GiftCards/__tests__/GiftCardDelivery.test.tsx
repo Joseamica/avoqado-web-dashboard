@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import api from '@/api'
 import type { GiftCardDelivery as Entrega, GiftCardDetail, GiftCardResendResult } from '@/types/giftCard'
 
 const svc = vi.hoisted(() => ({
@@ -92,6 +94,10 @@ const detalle = (over: Partial<GiftCardDetail> = {}, entrega: Partial<Entrega> =
 
 let client: QueryClient
 let user: ReturnType<typeof userEvent.setup>
+const adaptadorOriginal = api.defaults.adapter
+afterEach(() => {
+  api.defaults.adapter = adaptadorOriginal
+})
 const pintar = (d: GiftCardDetail = DETALLE) =>
   render(
     <MemoryRouter>
@@ -319,6 +325,57 @@ describe('GiftCardDelivery — «Reenviar»', () => {
 })
 
 describe('GiftCardDelivery — «Cambiar destino»', () => {
+  it.each([429, 409])('transporte REAL: respuesta perdida → reintento automático %s conserva el desenlace correcto', async status => {
+    const real = await vi.importActual<typeof import('@/services/giftCard.service')>('@/services/giftCard.service')
+    svc.resendGiftCard.mockImplementation(real.resendGiftCard)
+    const llamadas: Array<{ cuerpo: Llamada; reintento: boolean }> = []
+    const texto = status === 429 ? 'Espera antes de reenviar.' : 'Esta operación ya se registró con otros datos.'
+    api.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      llamadas.push({
+        cuerpo: JSON.parse(config.data as string) as Llamada,
+        reintento: (config as { _retry?: unknown })._retry === true,
+      })
+      if (llamadas.length === 1) throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config)
+      if (llamadas.length === 2) {
+        throw new AxiosError('Request failed', AxiosError.ERR_BAD_REQUEST, config, undefined, {
+          status,
+          statusText: 'Rejected',
+          headers: {},
+          config,
+          data: { code: status === 429 ? 'GIFT_CARD_RESEND_RATE_LIMITED' : 'IDEMPOTENCY_KEY_REUSED', message: texto },
+        })
+      }
+      return { status: 200, statusText: 'OK', headers: {}, config, data: { success: true, data: { ...HECHO, repuesta: true } } }
+    }
+    const { unmount } = pintar(DETALLE)
+    await cambiarA('WHATSAPP', '5512345678')
+    if (status === 409) {
+      expect(await screen.findByText('serverCodes.GIFT_CARD_STATE_CHANGED', {}, { timeout: 4000 })).toBeInTheDocument()
+      expect(screen.queryByText(texto)).toBeNull()
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toBeEnabled()
+      expect(sessionStorage.getItem('gc-en-duda:v1:u1:g1:resend-cambiar')).toBeNull()
+    } else {
+      expect(await screen.findByText(texto, {}, { timeout: 4000 })).toBeInTheDocument()
+      expect(screen.getByText('actions.inDoubt')).toBeInTheDocument()
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toBeDisabled()
+      unmount()
+      olvidarPendientes()
+      olvidarIntentosEnDuda()
+      pintar(DETALLE)
+      await user.click(boton('deliveryActions.changeDestination'))
+      expect(screen.getByText('actions.inDoubtBefore')).toBeInTheDocument()
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toHaveValue('5512345678')
+      expect(screen.getByLabelText('deliveryActions.changePhone')).toBeDisabled()
+      await user.click(boton('actions.retry'))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'deliveryActions.changeDone' }))
+      expect(llamadas[2].cuerpo).toEqual(llamadas[0].cuerpo)
+      expect(llamadas[2].reintento).toBe(false)
+    }
+    expect(llamadas[1].cuerpo).toEqual(llamadas[0].cuerpo)
+    expect(llamadas[0].reintento).toBe(false)
+    expect(llamadas[1].reintento).toBe(true)
+  }, 10_000)
+
   it('es un formulario (FullScreenModal) que avisa que repone, con sus `data-tour`', async () => {
     pintar(DETALLE)
     await user.click(boton('deliveryActions.changeDestination'))

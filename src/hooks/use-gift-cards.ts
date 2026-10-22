@@ -337,7 +337,8 @@ const PASO_DE_REENVIO = 'reenvio'
  * - `reenviar` devuelve `undefined` si ya hay un envío en vuelo (candado síncrono: un doble clic no manda dos);
  * - pase lo que pase, la tarjeta se relee SIN esperarlo (lista, detalle y reportes de ESA tarjeta);
  * - un «cambiar» que sale bien deja atrás un «mismo» en duda: su llave vieja ya no describe la entrega de hoy.
- * El 429 del límite ocurre ANTES del servicio: rechaza un primer envío, pero no resuelve uno que ya estaba en duda.
+ * El 429 del límite ocurre ANTES del servicio: rechaza un primer envío conocido, pero no resuelve uno ya incierto
+ * (incluido el reintento automático tras perder la respuesta en `api.ts`).
  */
 export function useGiftCardResend(venueId: string | undefined, giftCardId: string) {
   const { enviar, enviando } = useEnvioUnico()
@@ -386,8 +387,14 @@ export function useGiftCardResend(venueId: string | undefined, giftCardId: strin
         }
         return r
       } catch (err) {
-        const respuesta = (err as { response?: { status?: number; data?: { code?: string } } } | null)?.response
-        if (estabaEnDuda && respuesta?.status === 429 && respuesta.data?.code === 'GIFT_CARD_RESEND_RATE_LIMITED' && llaveUsada) {
+        const error = err as { response?: { status?: number; data?: { code?: string } }; config?: { _retry?: unknown } } | null
+        const respuesta = error?.response
+        if (
+          (estabaEnDuda || error?.config?._retry === true) &&
+          respuesta?.status === 429 &&
+          respuesta.data?.code === 'GIFT_CARD_RESEND_RATE_LIMITED' &&
+          llaveUsada
+        ) {
           recordarClave(huella, PASO_DE_REENVIO, llaveUsada)
           enDuda.set(k, cuerpo)
         } else anotarFallo(k, cuerpo, err)

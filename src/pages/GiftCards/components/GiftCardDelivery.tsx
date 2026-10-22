@@ -140,9 +140,12 @@ function CambiarDestinoModal({
   })
   const envio = useEnvioDeDialogo(previo != null, {
     mantieneLaDuda: () => intentoEnDuda('cambiar') != null,
-    errorDeReintento: err => {
-      const respuesta = (err as { response?: { status?: number; data?: { code?: string } } } | null)?.response
-      return respuesta?.status === 409 && respuesta.data?.code === 'IDEMPOTENCY_KEY_REUSED'
+    errorDeReintento: (err, estabaEnDuda) => {
+      const error = err as { response?: { status?: number; data?: { code?: string } }; config?: { _retry?: unknown } } | null
+      const respuesta = error?.response
+      return (estabaEnDuda || error?.config?._retry === true) &&
+        respuesta?.status === 409 &&
+        respuesta.data?.code === 'IDEMPOTENCY_KEY_REUSED'
         ? t('serverCodes.GIFT_CARD_STATE_CHANGED')
         : undefined
     },
