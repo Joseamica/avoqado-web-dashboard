@@ -72,10 +72,13 @@ const renderTab = () => {
 }
 
 /**
- * Espera a que el formulario tenga lo que mandó el servidor. `values` de react-hook-form se copia en un EFECTO
- * (`useForm`, 7.66), así que el primer render con datos todavía trae el formulario vacío: interruptores apagados y el
- * mínimo sin número. En una máquina lenta la prueba alcanzaba a mirar ese cuadro (CI del 21-oct: «Encender» apagado con
- * la tienda encendida). Úsalo antes de mirar o tocar un valor del formulario justo después de que aparece.
+ * Espera a que el formulario tenga lo que mandó el servidor. Va después de CADA `renderTab()` que carga datos.
+ * `values` de react-hook-form se copia en un EFECTO (`useForm`, 7.66), así que el primer render con datos todavía trae el
+ * formulario vacío: interruptores apagados, «Encender» bloqueado y el mínimo sin número. En una máquina lenta la prueba
+ * alcanzaba a mirar ese cuadro (CI del 21-oct: dos pruebas distintas en rojo), y «pedido mínimo vacío» pasaba sin probar
+ * nada porque vaciaba un campo que todavía estaba vacío.
+ * 🔴 No se «arregla» escondiendo ese primer cuadro (esqueleto hasta que cargue): el Controller del mínimo se monta en él y se
+ * queda con «vacío» como respaldo, y eso es lo que deja borrar el número; montado ya con 50, al borrarlo vuelve el 50.
  */
 const formularioCargado = () => waitFor(() => expect(screen.getByLabelText('settings.minOrder')).not.toHaveValue(null))
 
@@ -105,6 +108,7 @@ describe('SettingsTab', () => {
   it('pausada por muchos pedidos (TOO_BUSY) no dice «Pausada desde Configuración»', async () => {
     getSettings.mockResolvedValue(base({ enabled: true, store: { status: 'PAUSED', reason: 'TOO_BUSY', pausedUntil: null, manualPause: false } }))
     renderTab()
+    await formularioCargado()
     expect(await screen.findByText('settings.status.pausedBusy')).toBeInTheDocument()
     expect(screen.queryByText('settings.status.pausedManual')).toBeNull()
   })
@@ -113,6 +117,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base())
     updateSettings.mockResolvedValue(base({ minOrderAmount: 80 }))
     renderTab()
+    await formularioCargado()
     const input = await screen.findByLabelText('settings.minOrder')
     fireEvent.change(input, { target: { value: '80' } })
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
@@ -123,6 +128,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValueOnce(base()).mockResolvedValue(base({ minOrderAmount: 80 }))
     updateSettings.mockResolvedValue(putToday({ minOrderAmount: 80 }))
     renderTab()
+    await formularioCargado()
     fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '80' } })
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
@@ -138,6 +144,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValueOnce(base()).mockResolvedValue(base({ enabled: true, store: open }))
     updateSettings.mockResolvedValue(base({ enabled: true, store: open }))
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     expect(await screen.findByText('settings.status.OPEN|OPEN')).toBeInTheDocument()
@@ -159,6 +166,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base())
     updateSettings.mockResolvedValue(base({ defaultPrepMinutes: 20, manualPause: true }))
     renderTab()
+    await formularioCargado()
     const input = await screen.findByLabelText('settings.minOrder')
     fireEvent.change(input, { target: { value: '' } })
     expect(input).toHaveValue(null)
@@ -171,6 +179,7 @@ describe('SettingsTab', () => {
   it('pedido mínimo fuera de rango muestra el error y no llama updateSettings', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '200000' } })
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     expect(await screen.findByText('settings.minOrderErrors.range')).toBeInTheDocument()
@@ -180,6 +189,7 @@ describe('SettingsTab', () => {
   it('pedido mínimo con 3 decimales muestra error de decimales', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '80.555' } })
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     expect(await screen.findByText('settings.minOrderErrors.decimals')).toBeInTheDocument()
@@ -189,6 +199,7 @@ describe('SettingsTab', () => {
   it('vaciar el mínimo sin otro cambio deja Guardar deshabilitado', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '' } })
     expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
   })
@@ -197,6 +208,7 @@ describe('SettingsTab', () => {
   it('lista de pasos con lo que falta: domicilio ✅, teléfono ⬜ con su liga, aviso ✅; «Encender» deshabilitado', async () => {
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: false, privacyNotice: true } }))
     renderTab()
+    await formularioCargado()
     expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
     expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
     expect(screen.getByText('settings.requirements.title')).toBeInTheDocument()
@@ -211,6 +223,7 @@ describe('SettingsTab', () => {
   it('cada dato faltante liga a la pestaña donde se captura: domicilio → Información básica, teléfono → Contacto e Imágenes', async () => {
     getSettings.mockResolvedValue(base({ requirements: { address: false, phone: false, privacyNotice: true } }))
     renderTab()
+    await formularioCargado()
     await screen.findByRole('switch', { name: 'settings.enable' })
     expect(within(paso('address')).getByRole('link', { name: 'settings.requirements.address.link' })).toHaveAttribute(
       'href',
@@ -225,6 +238,7 @@ describe('SettingsTab', () => {
   it('con todo listo y la tienda apagada la lista sigue: cuatro ✅ (con la forma de cobro) y «Todo listo», y «Encender» se puede usar', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeEnabled()
     expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
     expect(screen.queryByText('settings.requirements.title')).toBeNull()
@@ -247,6 +261,7 @@ describe('SettingsTab', () => {
   it('con los tres datos listos, apagar «Pagar al recoger» sin guardar quita el «Todo listo»: falta una forma de cobro y no deja encender', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.payAtPickup' }))
     expect(screen.getByText('settings.requirements.title')).toBeInTheDocument()
     expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
@@ -260,6 +275,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base({ acceptsPayAtPickup: false }))
     updateSettings.mockResolvedValue(base({ enabled: true, acceptsPayAtPickup: true }))
     renderTab()
+    await formularioCargado()
     expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
     expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
@@ -287,6 +303,7 @@ describe('SettingsTab', () => {
     access.role = 'MANAGER'
     getSettings.mockResolvedValue(base({ requirements: { address: false, phone: false, privacyNotice: true } }))
     renderTab()
+    await formularioCargado()
     expect(await screen.findByText('settings.requirements.address.askAdmin')).toBeInTheDocument()
     expect(screen.getByText('settings.requirements.phone.askAdmin')).toBeInTheDocument()
     expect(within(paso('address')).queryByRole('link')).toBeNull()
@@ -319,6 +336,7 @@ describe('SettingsTab', () => {
   it('aviso faltante: ya no manda a Clientes; «Escribir y publicar aviso» abre el editor AHÍ MISMO con el negocio', async () => {
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
     renderTab()
+    await formularioCargado()
     const boton = await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })
     expect(within(paso('privacyNotice')).getByText('settings.requirements.pending')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /privacyNotice/ })).toBeNull()
@@ -336,6 +354,7 @@ describe('SettingsTab', () => {
       .mockResolvedValueOnce(base({ requirements: { address: true, phone: false, privacyNotice: false } }))
       .mockResolvedValue(base({ requirements: { address: true, phone: false, privacyNotice: true } }))
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     expect(getSettings).toHaveBeenCalledTimes(1)
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
@@ -351,6 +370,7 @@ describe('SettingsTab', () => {
       .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
       .mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     expect(await screen.findByRole('switch', { name: 'settings.enable' })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
@@ -365,6 +385,7 @@ describe('SettingsTab', () => {
       .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
       .mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     await waitFor(() => expect(document.activeElement).toHaveTextContent('settings.requirements.allSet'))
@@ -376,6 +397,7 @@ describe('SettingsTab', () => {
     // El doble del editor no devuelve el foco, igual que el real (Radix sin `Dialog.Trigger`): lo pone el componente.
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
@@ -388,6 +410,7 @@ describe('SettingsTab', () => {
       .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
       .mockImplementationOnce(() => new Promise(r => (soltar = r)))
     renderTab()
+    await formularioCargado()
     const abrir = await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })
     await userEvent.click(abrir)
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
@@ -402,6 +425,7 @@ describe('SettingsTab', () => {
       .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
       .mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     editor.sigueMontado = true
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
@@ -415,6 +439,7 @@ describe('SettingsTab', () => {
       .mockResolvedValueOnce(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
       .mockImplementationOnce(() => new Promise(r => (soltar = r)))
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     const minimo = screen.getByLabelText('settings.minOrder')
@@ -429,6 +454,7 @@ describe('SettingsTab', () => {
     access.denied = ['marketing:manage']
     getSettings.mockResolvedValue(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
     renderTab()
+    await formularioCargado()
     expect(await screen.findByText('settings.requirements.privacyNotice.askAdmin')).toBeInTheDocument()
     expect(within(paso('privacyNotice')).getByText('settings.requirements.pending')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeNull()
@@ -438,6 +464,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base())
     updateSettings.mockRejectedValue({ response: { data: { code: 'STORE_REQUIREMENTS_MISSING', details: { missing: ['privacyNotice'] } } } })
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     expect(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeInTheDocument()
@@ -450,6 +477,7 @@ describe('SettingsTab', () => {
       response: { data: { code: 'STORE_REQUIREMENTS_MISSING', details: { missing: ['privacyNotice'] } } },
     })
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
@@ -466,6 +494,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base())
     updateSettings.mockRejectedValue({ response: { data: { code: 'NO_PAYMENT_MODE', message: 'Activa un modo de pago' } } })
     renderTab()
+    await formularioCargado()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     expect(await screen.findByText('Activa un modo de pago')).toBeInTheDocument()
@@ -478,6 +507,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base({ enabled: true, hours: week }))
     updateSettings.mockResolvedValue(base({ enabled: true, hours: null }))
     renderTab()
+    await formularioCargado()
     expect(await screen.findByTestId('hours-editor')).toBeInTheDocument()
     expect(screen.getByText('settings.hours.errors.sameTime')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('switch', { name: 'settings.hours.use' }))
@@ -488,6 +518,7 @@ describe('SettingsTab', () => {
   it('compartir: liga, snippet de script (sin iframe) y QR con el slug', async () => {
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     const link = 'https://pedidos.avoqado.io/taqueria'
     expect(await screen.findByDisplayValue(link)).toBeInTheDocument()
     expect(screen.getByTestId('qr')).toHaveAttribute('data-value', link)
@@ -516,6 +547,7 @@ describe('SettingsTab', () => {
     openedFrom(origin)
     getSettings.mockResolvedValue(base())
     renderTab()
+    await formularioCargado()
     expect(await screen.findByTitle('settings.share.previewTitle')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'settings.share.openInTab' })).toBeNull()
   })
@@ -526,6 +558,7 @@ describe('SettingsTab', () => {
       openedFrom(origin)
       getSettings.mockResolvedValue(base())
       renderTab()
+      await formularioCargado()
       const link = await screen.findByRole('link', { name: 'settings.share.openInTab' })
       expect(link).toHaveAttribute('href', 'https://pedidos.avoqado.io/taqueria')
       expect(link).toHaveAttribute('target', '_blank')
@@ -538,6 +571,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValueOnce(base()).mockRejectedValue(new Error('Network Error'))
     updateSettings.mockResolvedValue(putToday({ minOrderAmount: 80 }))
     renderTab()
+    await formularioCargado()
     fireEvent.change(await screen.findByLabelText('settings.minOrder'), { target: { value: '80' } })
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
