@@ -93,9 +93,13 @@ jobs:
       - name: 🔍 TypeScript compilation check
         run: npm run typecheck
 
-      - name: 🔐 Run auth/routing regression suite
-        timeout-minutes: 15
-        run: npm run test:auth-routing -- --pool=forks --maxWorkers=1 --testTimeout=20000 --hookTimeout=20000
+      # The WHOLE vitest suite, not only the 8 auth/routing files that used to be the only unit gate
+      # (`test:auth-routing` is a subset of this run). On 2026-10-18 a selective publish shipped a red
+      # test to main (productId.variant.test.tsx:171) and this pipeline stayed green because it never
+      # ran it.
+      - name: 🧪 Run unit test suite (vitest)
+        timeout-minutes: 30
+        run: npm run test:run -- --pool=forks --maxWorkers=3 --testTimeout=20000 --hookTimeout=20000
 
       - name: 🏗️ Build application (CI validation only)
         run: npm run build
