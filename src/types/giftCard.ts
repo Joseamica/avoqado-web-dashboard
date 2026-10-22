@@ -171,7 +171,8 @@ export interface CancelacionDeVenta {
   /**
    * El texto del server cuando NO se puede cancelar (nota 1 del coordinador; C4, `giftCardCancel.service.ts`): distingue los
    * tres `NOT_PAID` (cancelar en el POS, reembolsar el cobro o hablar a soporte) y también viene con `reason: null` (bloqueada
-   * por otro motivo). `null` sólo sin venta o con `IN_PROGRESS`. Se enseña tal cual; nunca se copia al locale.
+   * por otro motivo). `null` sólo sin venta o con `IN_PROGRESS`. En español se enseña tal cual; en otro idioma manda
+   * `actions.cancelSale.blocker.<reason>` (`GiftCardManagerActions`), y un `reason` sin traducción cae al texto del server (ola final E).
    */
   message: string | null
 }
