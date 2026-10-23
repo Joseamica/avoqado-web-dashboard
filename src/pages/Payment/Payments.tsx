@@ -42,6 +42,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
 import { commissionService } from '@/services/commission.service'
 import { PaymentMethod, PaymentRecordType, PaymentStatus, Payment as PaymentType, StaffRole } from '@/types'
+import { apiErrorDescription } from '@/utils/apiError'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { DateTime } from 'luxon'
@@ -261,10 +262,11 @@ export default function Payments() {
       setDeleteDialogOpen(false)
       setPaymentToDelete(null)
     },
+    // El motivo del server («Un cobro ya hecho no se borra. Para devolver dinero usa Reembolso.»), no el genérico de axios.
     onError: (error: Error) => {
       toast({
         title: tCommon('superadmin.delete.error'),
-        description: error.message,
+        description: apiErrorDescription(error),
         variant: 'destructive',
       })
     },
@@ -292,7 +294,7 @@ export default function Payments() {
     onError: (error: Error) => {
       toast({
         title: tCommon('superadmin.edit.error'),
-        description: error.message,
+        description: apiErrorDescription(error),
         variant: 'destructive',
       })
     },
