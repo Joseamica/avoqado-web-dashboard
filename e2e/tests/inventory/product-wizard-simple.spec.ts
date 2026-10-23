@@ -138,6 +138,39 @@ test('simple creation appears without reload; quantity preserves the exact paylo
   expect(reloads).toBe(0)
 })
 
+for (const [width, height] of [[320, 568], [1024, 600]]) {
+  test(`missing category scrolls to its inline error and can be corrected at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height })
+    const state = await setup(page)
+    await open(page)
+    await page.locator('input#name').fill('Libreta sin categoría')
+    await page.locator('input#price').fill('149')
+    await target(page, 'add-description').click()
+    await page.locator('#description').fill('Conservar este texto')
+    const scroll = page.getByRole('dialog').locator('[data-fsm-content]')
+    const category = target(page, 'category')
+    const error = category.getByRole('alert')
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await scroll.evaluate(el => { el.scrollTop = el.scrollHeight })
+      await target(page, 'finish').click()
+      await expect(error).toHaveText('La categoría es requerida')
+      await expect.poll(async () => {
+        const field = await category.locator('input').boundingBox()
+        const message = await error.boundingBox()
+        return !!field && !!message && field.y >= 64 && message.y >= field.y + field.height && message.y + message.height <= height
+      }).toBe(true)
+    }
+    expect(state.bodies).toHaveLength(0)
+    await expect(page.locator('#description')).toHaveValue('Conservar este texto')
+    await category.locator('input').click()
+    await page.getByRole('option', { name: CATEGORY.name, exact: true }).click()
+    await expect(error).toHaveCount(0)
+    await target(page, 'finish').click()
+    await expect(page.getByRole('cell', { name: 'Libreta sin categoría', exact: true })).toBeVisible()
+    expect(state.bodies).toHaveLength(1)
+  })
+}
+
 test('existing recipe opens with its saved values', async ({ page }) => {
   await setup(page, { recipe: true })
   await page.getByRole('cell', { name: 'Latte', exact: true }).click()

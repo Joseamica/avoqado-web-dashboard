@@ -180,6 +180,22 @@ const remove = (id: string) => within(section(id)).getByRole('button', { name: '
 const changeValue = (id: string, value: string) => change(document.getElementById(id)!, value)
 
 describe('simple product sections', () => {
+  it.each(['REGULAR', 'FOOD_AND_BEV', 'APPOINTMENTS_SERVICE', 'CLASS', 'EVENT', 'OTHER'] as const)('requires category before sending %s and allows saving after selection', async productType => {
+    mount({ productType })
+    await fillProduct('Libreta', '149', false)
+    await userEvent.click(screen.getByRole('button', { name: 'wizard.finish' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).toHaveTextContent('wizard.step1.categoryRequired'), { timeout: 1000 })
+    expect(within(document.querySelector('[data-tour="product-wizard-category"]') as HTMLElement).getByRole('alert')).toHaveTextContent('wizard.step1.categoryRequired')
+    expect(inventory.productWizardApi.createProductWithInventory).not.toHaveBeenCalled()
+    expect(http.put).not.toHaveBeenCalled()
+    expect(screen.getByPlaceholderText('wizard.step1.namePlaceholder')).toHaveValue('Libreta')
+    expect(screen.getByLabelText(/^wizard\.step1\.price/)).toHaveValue(149)
+    await userEvent.click(screen.getByPlaceholderText('wizard.step1.categoryPlaceholder'))
+    await userEvent.click(await screen.findByRole('option', { name: 'General' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    await saveCreate()
+    expect(inventory.productWizardApi.createProductWithInventory.mock.calls[0][1].product.categoryId).toBe('c1')
+  })
   it('starts with only the four core fields and no sidebar preview', async () => {
     mount()
     await screen.findByPlaceholderText('wizard.step1.namePlaceholder')

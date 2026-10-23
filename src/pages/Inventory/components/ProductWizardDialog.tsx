@@ -951,11 +951,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // sin IVA (nace al 16 %, P4).
     if (conVariantesActiva) {
       if (enviando.current) return
-      // El server exige la categoría. Toast y no setError: categoryId no está registrado, el error nunca se borraría y el form se atoraría.
-      if (!data.categoryId) {
-        toast({ title: t('wizard.step1.categoryRequired'), variant: 'destructive' })
-        return
-      }
       const opciones = limpiarOpciones(variantes.opciones)
       const problema = validarOpciones(opciones) ?? validarFilas(data.name, variantes.filas, variantes.conInventario)
       if (problema) {
@@ -1280,7 +1275,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const estadoIva = useEstadoIva(mode === 'edit' && open ? venueId : null)
   const ivaCambio = mode === 'edit' && iva !== undefined && iva !== existingProduct?.ivaTratamiento
   const pideAvisoIva = ivaCambio && iva !== 'IVA_16' && estadoIva.data?.encendido !== true
+  const scrollToCategoryError = () => requestAnimationFrame(() => {
+    // Enfocarlo abriría las sugerencias encima del mensaje de error.
+    document.querySelector<HTMLInputElement>('[data-tour="product-wizard-category"] input')?.scrollIntoView?.({ block: 'center' })
+  })
   const handleStep1Intercept = (data: Step1FormData) => {
+    if (!esVariante && !NO_CATEGORY_TYPES.includes(effectiveProductType as ProductType) && !data.categoryId) {
+      step1Form.setError('categoryId', { type: 'required', message: t('wizard.step1.categoryRequired') })
+      toast({ title: t('wizard.step1.categoryRequired'), variant: 'destructive' })
+      scrollToCategoryError()
+      return
+    }
     if (pideAvisoIva) {
       setPorConfirmarIva(data)
       return
@@ -1558,14 +1563,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                         }}
                         onSelect={item => {
                           step1Form.setValue('categoryId', item.id, { shouldValidate: true, shouldDirty: true })
+                          // El combobox no registra el campo en RHF: su error manual se limpia al elegir.
+                          step1Form.clearErrors('categoryId')
                           setCategorySearch('')
                         }}
                         placeholder={t('wizard.step1.categoryPlaceholder')}
+                        className={step1Form.formState.errors.categoryId ? '[&_input]:border-destructive' : undefined}
                         isLoading={isCategoriesLoading}
                         disabled={esVariante}
                       />
                       {step1Form.formState.errors.categoryId && (
-                        <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
+                        <p role="alert" className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
                       )}
                     </section>
                   )}
@@ -2562,6 +2570,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           ) : (
             /* Single step wizard - product configuration form */
             <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Intercept, errors => {
+              if (errors.categoryId && !errors.name && !errors.price) {
+                scrollToCategoryError()
+                return
+              }
               const optionalErrors: Array<[keyof Step1FormData, OptionalSectionId]> = [['sku', 'codes'], ['gtin', 'codes'], ['description', 'description'], ['satProductKey', 'fiscal'], ['satUnitKey', 'fiscal']]
               const target = optionalErrors.find(([field]) => errors[field])
               if (target) revealSection(target[1])
