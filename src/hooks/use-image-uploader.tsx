@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
 import { storage } from '@/firebase'
@@ -44,23 +44,43 @@ export function useImageUploader(
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const session = useRef(0)
+
+  // Cerrar un formulario limpia sólo su captura; los archivos ya guardados siguen en Firebase.
+  const resetImage = useCallback(() => {
+    session.current += 1
+    setUploading(false)
+    setImageUrl(null)
+    setFileRef(null)
+    setExistingImageUrl(null)
+    setImageForCrop(null)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setCroppedAreaPixels(null)
+  }, [])
 
   // Cuando se completa el recorte
+  const cropSession = session.current
   const onCropComplete = useCallback((_: any, croppedAreaPixelsValue: any) => {
+    if (cropSession !== session.current) return
     setCroppedAreaPixels(croppedAreaPixelsValue)
-  }, [])
+  }, [cropSession])
 
   // Al seleccionar el archivo, leemos y lo mostramos para recortar
   const handleFileUpload = (file: File) => {
     if (!file) return
+    const uploadSession = session.current
     const reader = new FileReader()
-    reader.onload = () => setImageForCrop(reader.result as string)
+    reader.onload = () => {
+      if (uploadSession === session.current) setImageForCrop(reader.result as string)
+    }
     reader.readAsDataURL(file)
   }
 
   // Confirma el recorte -> valida y sube la imagen a Firebase
   const handleCropConfirm = async () => {
     if (!imageForCrop || !croppedAreaPixels) return
+    const uploadSession = session.current
 
     // Check if storage is available
     if (!storage) {
@@ -92,7 +112,9 @@ export function useImageUploader(
 
     try {
       const croppedImage = await getCroppedImg(imageForCrop, croppedAreaPixels, { maxWidth, maxHeight })
+      if (uploadSession !== session.current) return
       const blob = await fetch(croppedImage).then(res => res.blob())
+      if (uploadSession !== session.current) return
 
       // Creamos un nombre de archivo único
       const fileName = `${assignedFileName}-${Date.now()}.jpg`
@@ -100,6 +122,17 @@ export function useImageUploader(
 
       setUploading(true)
       const uploadTask = uploadBytesResumable(storageRef, blob)
+      const onUploadError = (error: unknown) => {
+        if (uploadSession !== session.current) return
+        // El fallo debe ser visible tanto al subir como al obtener la URL.
+        console.error('Error uploading file:', error)
+        setUploading(false)
+        toast({
+          title: t('imageUploader.uploadFailedTitle'),
+          description: t('imageUploader.uploadFailed'),
+          variant: 'destructive',
+        })
+      }
 
       uploadTask.on(
         'state_changed',
@@ -107,26 +140,23 @@ export function useImageUploader(
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
           console.log(`Upload is ${progress}% done`)
         },
-        error => {
-          // Sin este aviso el usuario tocaba Confirmar y no pasaba nada: el recorte seguia
-          // en pantalla y no habia forma de saber que la subida habia fallado.
-          console.error('Error uploading file:', error)
-          setUploading(false)
-          toast({
-            title: t('imageUploader.uploadFailedTitle'),
-            description: t('imageUploader.uploadFailed'),
-            variant: 'destructive',
-          })
-        },
+        onUploadError,
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
-          setImageUrl(downloadURL)
-          setFileRef(storageRef)
-          setUploading(false)
-          setImageForCrop(null)
+          if (uploadSession !== session.current) return
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
+            if (uploadSession !== session.current) return
+            setImageUrl(downloadURL)
+            setFileRef(storageRef)
+            setUploading(false)
+            setImageForCrop(null)
+          } catch (error) {
+            onUploadError(error)
+          }
         },
       )
     } catch (error) {
+      if (uploadSession !== session.current) return
       console.error('Error processing crop:', error)
       setUploading(false)
       toast({
@@ -167,6 +197,7 @@ export function useImageUploader(
 
   // Eliminar archivo de Firebase y limpiar estados
   const handleFileRemove = useCallback(async () => {
+    const removalSession = session.current
     // Delete newly uploaded image if exists
     if (fileRef) {
       try {
@@ -184,6 +215,7 @@ export function useImageUploader(
       await deleteExistingImage(imageUrl)
     }
 
+    if (removalSession !== session.current) return
     setImageUrl(null)
     setFileRef(null)
     setExistingImageUrl(null)
@@ -220,6 +252,7 @@ export function useImageUploader(
     handleFileUpload,
     handleCropConfirm,
     handleFileRemove,
+    resetImage,
     initializeWithExistingUrl,
     handleReplaceImage,
     deleteExistingImage,

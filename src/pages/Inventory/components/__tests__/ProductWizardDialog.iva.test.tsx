@@ -65,12 +65,14 @@ vi.mock('@/hooks/use-image-uploader', () => {
     handleFileUpload: () => undefined,
     handleCropConfirm: () => undefined,
     handleFileRemove: () => undefined,
+    resetImage: () => undefined,
     setImageForCrop: () => undefined,
     setCrop: () => undefined,
     setZoom: () => undefined,
   }
   return { useImageUploader: () => subida }
 })
+vi.mock('@/hooks/use-print-stations', () => ({ usePrintStations: () => ({ data: [], isLoading: false }) }))
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))
 vi.mock('@/features/master-catalog/use-master-catalog-error', () => ({ useMasterCatalogError: () => () => false }))
 vi.mock('react-i18next', () => ({
@@ -111,7 +113,7 @@ function montar() {
   const onOpenChange = vi.fn()
   const ui = (open: boolean) => (
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ProductWizardDialog open={open} onOpenChange={onOpenChange} mode="edit" productId="p1" productType="REGULAR" />
       </MemoryRouter>
     </QueryClientProvider>
