@@ -65,12 +65,27 @@ describe('EntrarConBoleto', () => {
     pintar()
     await waitFor(() => expect(navigate).toHaveBeenCalled())
     expect(orden).toEqual([
+      'status:["status"]',
       'entrar:abc',
       'cancel:{"queryKey":["status"]}',
       'status:["status"]',
       'track:["alta_entrada",{"via":"codigo"}]',
       'navigate:["/setup",{"replace":true}]',
     ])
+  })
+
+  it('espera a que termine el status que ya iba en vuelo ANTES de canjear', async () => {
+    let soltar!: () => void
+    const primero = new Promise(r => (soltar = () => r({ authenticated: false })))
+    let llamadas = 0
+    estado = () => (llamadas++ === 0 ? primero : Promise.resolve({ authenticated: true }))
+    pintar()
+    await waitFor(() => expect(orden).toContain('status:["status"]'))
+    await new Promise(r => setTimeout(r, 20))
+    expect(orden.filter(o => o.startsWith('entrar:'))).toEqual([])
+    soltar()
+    await waitFor(() => expect(navigate).toHaveBeenCalled())
+    expect(orden.findIndex(o => o.startsWith('entrar:'))).toBeGreaterThan(0)
   })
 
   it('si el refresco de sesión falla no mide ni navega, y Reintentar solo refresca (no recanjea)', async () => {

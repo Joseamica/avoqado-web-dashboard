@@ -40,7 +40,14 @@ export default function EntrarConBoleto() {
   const canjear = (boleto: string) => {
     setSinRed(false)
     // Ya canjeado: «Reintentar» solo refresca la sesión, nunca gasta el boleto dos veces.
-    ;(canjeado.current ? Promise.resolve() : entrarConBoleto(boleto).then(() => void (canjeado.current = true)))
+    // Antes de canjear se espera el status que ya iba en vuelo (sesión vieja A): si llegara DESPUÉS de las
+    // cookies B, su 401 borraría la sesión nueva. fetchQuery se une a la petición pendiente.
+    const esperarEnVuelo = () =>
+      queryClient.fetchQuery({ queryKey: AUTH_STATUS_QUERY_KEY, queryFn: getAuthStatus }).then(() => undefined, () => undefined)
+    ;(canjeado.current
+      ? Promise.resolve()
+      : esperarEnVuelo().then(() => entrarConBoleto(boleto)).then(() => void (canjeado.current = true))
+    )
       .then(refrescar)
       // Sin respuesta del servidor (red caída): el boleto sigue vivo, se puede reintentar.
       // 410 (usado/vencido), 404 (interruptor apagado), 429 y cualquier otra respuesta: la misma tarjeta.
