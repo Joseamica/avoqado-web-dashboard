@@ -266,5 +266,26 @@
     "total_one": "{{count}} cliente · Página {{page}} de {{pages}}",
     "total_other": "{{count}} clientes · Página {{page}} de {{pages}}",
     "reviewPhone": "Revisa el número y el código de país antes de enviar. No pudimos interpretar el teléfono guardado con seguridad."
+  },
+  "discount": {
+    "title": "Descuento",
+    "none": "Sin descuento",
+    "manual": "Escribir descuento",
+    "catalog": "Elegir del catálogo",
+    "valueField": "Valor del descuento",
+    "nameField": "Nombre (opcional)",
+    "namePlaceholder": "Descuento",
+    "noApplyPermission": "Necesitas permiso para dar descuentos",
+    "noReadPermission": "Necesitas permiso para ver descuentos",
+    "loading": "Cargando descuentos…",
+    "loadError": "No se pudieron cargar los descuentos.",
+    "emptyCatalog": "No hay descuentos vigentes para elegir.",
+    "expiresSoon": "Este descuento vence el {{date}} (en {{days}} días). Si tu cliente paga después, ya no tendrá el descuento.",
+    "alsoExpire": "Que la liga también venza el {{date}}",
+    "expiresOn": "La liga vencerá el {{date}}",
+    "liveTotal": "Total:",
+    "liveOff": "descuento de {{amount}}",
+    "openAmountHint": "Se aplica sobre el importe que escriba tu cliente",
+    "remove": "Quitar"
   }
 }

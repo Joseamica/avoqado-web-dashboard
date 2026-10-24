@@ -68,6 +68,9 @@ export interface Discount {
 	active: boolean
 	createdAt: string
 	updatedAt: string
+
+	/** Si cabe en una liga de pago (la lista del servidor lo calcula). */
+	paymentLinkCompatibility?: { ok: boolean; razon: string | null }
 }
 
 export interface Coupon {

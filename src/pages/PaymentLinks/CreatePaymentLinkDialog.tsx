@@ -32,6 +32,12 @@ import teamService from '@/services/team.service'
 import type { Product } from '@/types'
 
 import { PaymentLinkCustomerSection } from './PaymentLinkCustomerSection'
+import {
+  PaymentLinkDiscountSection,
+  discountFromLink,
+  discountPayload,
+  type DiscountFormValue,
+} from './PaymentLinkDiscountSection'
 import { parseStoredCustomerPhone } from './stored-customer-phone'
 import { DonationPreview } from './components/DonationPreview'
 import { ItemFormSection, type BundleItem } from './components/ItemFormSection'
@@ -101,6 +107,11 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   const [redirectUrl, setRedirectUrl] = useState('')
   const [redirectEnabled, setRedirectEnabled] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  // Descuento: `discountTouched` evita reenviarlo al editar si el usuario no lo tocó.
+  const [discount, setDiscount] = useState<DiscountFormValue>({ mode: 'NONE' })
+  const [discountTouched, setDiscountTouched] = useState(false)
+  // Vencimiento de la liga: sólo se manda si el usuario lo fijó (botón del descuento).
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
 
   // ─── Item-specific state ──────────────────────────────
   // Bundle line items for ITEM-purpose links. Multi-product: each entry has
@@ -197,6 +208,8 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
       setRedirectUrl(link.redirectUrl || '')
       setRedirectEnabled(!!link.redirectUrl)
       setStep('details')
+      setDiscount(discountFromLink(link.discount))
+      setDiscountTouched(false)
 
       // Restore custom fields
       if (link.customFields && link.customFields.length > 0) {
@@ -300,6 +313,13 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
     }
   }
 
+  const bundleSubtotal = selectedItems.reduce((sum, it) => {
+    const modSum = it.modifiers.reduce((m, mm) => m + mm.price * mm.quantity, 0)
+    return sum + (Number(it.product.price) + modSum) * it.quantity
+  }, 0)
+  const discountBase =
+    selectedPurpose === 'item' ? (selectedItems.length > 0 ? bundleSubtotal : null) : amountType === 'FIXED' && parseFloat(amount) > 0 ? parseFloat(amount) : null
+
   const handleSave = async (send = false) => {
     if (inFlight.current || customerBusy) return
     if (createdLink) {
@@ -317,10 +337,6 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
     // For ITEM (bundle) purpose: derive title + amount from the items list.
     // With 1 product use its name + description; with N show "N artículos".
     // Total = sum(qty × price). The backend recomputes this too as a guard.
-    const bundleSubtotal = selectedItems.reduce((sum, it) => {
-      const modSum = it.modifiers.reduce((m, mm) => m + mm.price * mm.quantity, 0)
-      return sum + (Number(it.product.price) + modSum) * it.quantity
-    }, 0)
     const effectiveTitle =
       selectedPurpose === 'item'
         ? selectedItems.length === 1
@@ -361,6 +377,8 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
       isReusable,
       ...(customFieldsEnabled && sanitizedFields.length > 0 ? { customFields: sanitizedFields } : { customFields: null }),
       ...(tippingConfig ? { tippingConfig } : { tippingConfig: null }),
+      ...discountPayload(discount, discountTouched),
+      ...(expiresAt ? { expiresAt } : {}),
     }
 
     inFlight.current = true
@@ -973,6 +991,22 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
                   </section>
                 </div>
               )}
+
+              <hr className="border-border my-6" />
+              <PaymentLinkDiscountSection
+                value={discount}
+                onChange={v => {
+                  setDiscount(v)
+                  setDiscountTouched(true)
+                }}
+                base={discountBase}
+                amountType={selectedPurpose === 'item' ? 'FIXED' : amountType}
+                canApply={can('discounts:apply')}
+                canRead={can('discounts:read')}
+                onSetExpiry={setExpiresAt}
+                expiresAt={expiresAt}
+              />
+              <hr className="border-border my-6" />
 
               <PaymentLinkCustomerSection
                 venueId={venueId}
