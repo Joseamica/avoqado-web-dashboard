@@ -9,7 +9,10 @@ let boleto: string | null = 'abc'
 const navigate = vi.fn((...a: unknown[]) => orden.push(`navigate:${JSON.stringify(a)}`))
 const track = vi.fn((...a: unknown[]) => orden.push(`track:${JSON.stringify(a)}`))
 
+let estado: () => Promise<unknown> = () => Promise.resolve({ authenticated: true })
 vi.mock('@/services/auth.service', () => ({
+  AUTH_STATUS_QUERY_KEY: ['status'],
+  getAuthStatus: () => estado(),
   entrarConBoleto: (b: string) => {
     orden.push(`entrar:${b}`)
     return respuesta()
@@ -19,9 +22,13 @@ vi.mock('@/lib/boleto-de-alta-capture', () => ({ tomarBoletoDeAlta: () => boleto
 vi.mock('@/lib/posthog', () => ({ track: (...a: unknown[]) => track(...a) }))
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
-    refetchQueries: (o: unknown) => {
-      orden.push(`status:${JSON.stringify(o)}`)
+    cancelQueries: (o: unknown) => {
+      orden.push(`cancel:${JSON.stringify(o)}`)
       return Promise.resolve()
+    },
+    fetchQuery: (o: { queryKey: unknown; queryFn: () => Promise<unknown> }) => {
+      orden.push(`status:${JSON.stringify(o.queryKey)}`)
+      return o.queryFn()
     },
   }),
 }))
@@ -50,6 +57,7 @@ beforeEach(() => {
   track.mockClear()
   boleto = 'abc'
   respuesta = () => Promise.resolve()
+  estado = () => Promise.resolve({ authenticated: true })
 })
 
 describe('EntrarConBoleto', () => {
@@ -58,10 +66,31 @@ describe('EntrarConBoleto', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalled())
     expect(orden).toEqual([
       'entrar:abc',
-      'status:{"queryKey":["status"]}',
+      'cancel:{"queryKey":["status"]}',
+      'status:["status"]',
       'track:["alta_entrada",{"via":"codigo"}]',
       'navigate:["/setup",{"replace":true}]',
     ])
+  })
+
+  it('si el refresco de sesión falla no mide ni navega, y Reintentar solo refresca (no recanjea)', async () => {
+    estado = () => Promise.reject(new Error('Network Error'))
+    pintar()
+    expect(await screen.findByText('entrarConBoleto.offlineTitle')).toBeInTheDocument()
+    expect(track).not.toHaveBeenCalled()
+    expect(navigate).not.toHaveBeenCalled()
+    estado = () => Promise.resolve({ authenticated: true })
+    fireEvent.click(screen.getByText('entrarConBoleto.retry'))
+    await waitFor(() => expect(navigate).toHaveBeenCalled())
+    expect(orden.filter(o => o.startsWith('entrar:'))).toEqual(['entrar:abc'])
+  })
+
+  it('si tras refrescar no hay sesión no mide ni navega', async () => {
+    estado = () => Promise.resolve({ authenticated: false })
+    pintar()
+    expect(await screen.findByText('entrarConBoleto.offlineTitle')).toBeInTheDocument()
+    expect(track).not.toHaveBeenCalled()
+    expect(navigate).not.toHaveBeenCalled()
   })
 
   it.each([

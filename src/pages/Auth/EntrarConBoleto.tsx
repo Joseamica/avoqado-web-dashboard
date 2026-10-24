@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { tomarBoletoDeAlta } from '@/lib/boleto-de-alta-capture'
 import { track } from '@/lib/posthog'
-import { entrarConBoleto } from '@/services/auth.service'
+import { AUTH_STATUS_QUERY_KEY, entrarConBoleto, getAuthStatus } from '@/services/auth.service'
 
 export default function EntrarConBoleto() {
   const { t } = useTranslation('auth')
@@ -25,18 +25,27 @@ export default function EntrarConBoleto() {
   const iniciado = useRef(false)
   const boletoRef = useRef<string | null>(null)
 
+  const canjeado = useRef(false)
+
+  // Tras canjear, la sesión nueva (cookies B) debe reemplazar a cualquier sesión A que el contexto
+  // tuviera en vuelo: se cancela esa petición y se pide una fresca; si falla o no hay sesión, no se navega.
+  const refrescar = async () => {
+    await queryClient.cancelQueries({ queryKey: AUTH_STATUS_QUERY_KEY })
+    const estado = await queryClient.fetchQuery({ queryKey: AUTH_STATUS_QUERY_KEY, queryFn: getAuthStatus, staleTime: 0 })
+    if (!estado?.authenticated) throw new Error('sin sesión tras canjear')
+    track('alta_entrada', { via: 'codigo' })
+    navigate('/setup', { replace: true })
+  }
+
   const canjear = (boleto: string) => {
     setSinRed(false)
-    entrarConBoleto(boleto)
-      // Como /signup tras verificar el código: esperar la sesión antes de navegar.
-      .then(() => queryClient.refetchQueries({ queryKey: ['status'] }))
-      .then(() => {
-        track('alta_entrada', { via: 'codigo' })
-        navigate('/setup', { replace: true })
-      })
+    // Ya canjeado: «Reintentar» solo refresca la sesión, nunca gasta el boleto dos veces.
+    ;(canjeado.current ? Promise.resolve() : entrarConBoleto(boleto).then(() => void (canjeado.current = true)))
+      .then(refrescar)
       // Sin respuesta del servidor (red caída): el boleto sigue vivo, se puede reintentar.
       // 410 (usado/vencido), 404 (interruptor apagado), 429 y cualquier otra respuesta: la misma tarjeta.
-      .catch((e: { response?: unknown }) => (e?.response ? setFallo(true) : setSinRed(true)))
+      // Fallo al refrescar tras canjear: mismo estado con «Reintentar» (solo refresca).
+      .catch((e: { response?: unknown }) => (e?.response && !canjeado.current ? setFallo(true) : setSinRed(true)))
   }
 
   useEffect(() => {

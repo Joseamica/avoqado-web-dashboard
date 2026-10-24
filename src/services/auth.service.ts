@@ -75,6 +75,8 @@ export const logout = async (allDevices = false): Promise<{ success?: boolean; a
   return response.data
 }
 
+export const AUTH_STATUS_QUERY_KEY = ['status'] as const
+
 export const getAuthStatus = async (): Promise<AuthStatusResponse> => {
   const response = await api.get<AuthStatusResponse>('/api/v1/dashboard/auth/status')
   return response.data

@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Get auth status first
   // staleTime reduced from 5min to 1min to ensure KYC status changes reflect faster
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
-    queryKey: ['status'],
+    queryKey: authService.AUTH_STATUS_QUERY_KEY,
     queryFn: authService.getAuthStatus,
     staleTime: 1 * 60 * 1000, // 1 minute - faster sync for KYC/status changes
     retry: false,
