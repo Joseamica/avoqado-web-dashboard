@@ -9,6 +9,7 @@ let boleto: string | null = 'abc'
 const navigate = vi.fn((...a: unknown[]) => orden.push(`navigate:${JSON.stringify(a)}`))
 const track = vi.fn((...a: unknown[]) => orden.push(`track:${JSON.stringify(a)}`))
 
+let enVuelo = 0
 let estado: () => Promise<unknown> = () => Promise.resolve({ authenticated: true })
 vi.mock('@/services/auth.service', () => ({
   AUTH_STATUS_QUERY_KEY: ['status'],
@@ -22,6 +23,8 @@ vi.mock('@/lib/boleto-de-alta-capture', () => ({ tomarBoletoDeAlta: () => boleto
 vi.mock('@/lib/posthog', () => ({ track: (...a: unknown[]) => track(...a) }))
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
+    isFetching: () => enVuelo,
+    setQueryData: (k: unknown) => orden.push(`set:${JSON.stringify(k)}`),
     cancelQueries: (o: unknown) => {
       orden.push(`cancel:${JSON.stringify(o)}`)
       return Promise.resolve()
@@ -56,6 +59,7 @@ beforeEach(() => {
   navigate.mockClear()
   track.mockClear()
   boleto = 'abc'
+  enVuelo = 0
   respuesta = () => Promise.resolve()
   estado = () => Promise.resolve({ authenticated: true })
 })
@@ -65,10 +69,9 @@ describe('EntrarConBoleto', () => {
     pintar()
     await waitFor(() => expect(navigate).toHaveBeenCalled())
     expect(orden).toEqual([
-      'status:["status"]',
       'entrar:abc',
       'cancel:{"queryKey":["status"]}',
-      'status:["status"]',
+      'set:["status"]',
       'track:["alta_entrada",{"via":"codigo"}]',
       'navigate:["/setup",{"replace":true}]',
     ])
@@ -79,6 +82,7 @@ describe('EntrarConBoleto', () => {
     const primero = new Promise(r => (soltar = () => r({ authenticated: false })))
     let llamadas = 0
     estado = () => (llamadas++ === 0 ? primero : Promise.resolve({ authenticated: true }))
+    enVuelo = 1
     pintar()
     await waitFor(() => expect(orden).toContain('status:["status"]'))
     await new Promise(r => setTimeout(r, 20))

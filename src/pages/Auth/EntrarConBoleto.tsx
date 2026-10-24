@@ -31,7 +31,10 @@ export default function EntrarConBoleto() {
   // tuviera en vuelo: se cancela esa petición y se pide una fresca; si falla o no hay sesión, no se navega.
   const refrescar = async () => {
     await queryClient.cancelQueries({ queryKey: AUTH_STATUS_QUERY_KEY })
-    const estado = await queryClient.fetchQuery({ queryKey: AUTH_STATUS_QUERY_KEY, queryFn: getAuthStatus, staleTime: 0 })
+    // Sin fetchQuery: reiniciar una query en error y sin datos la pondría en 'pending' y AuthProvider
+    // cambiaría esta pantalla por la de carga (se perdería el boleto). Se pide directo y se guarda.
+    const estado = await getAuthStatus()
+    queryClient.setQueryData(AUTH_STATUS_QUERY_KEY, estado)
     if (!estado?.authenticated) throw new Error('sin sesión tras canjear')
     track('alta_entrada', { via: 'codigo' })
     navigate('/setup', { replace: true })
@@ -42,8 +45,11 @@ export default function EntrarConBoleto() {
     // Ya canjeado: «Reintentar» solo refresca la sesión, nunca gasta el boleto dos veces.
     // Antes de canjear se espera el status que ya iba en vuelo (sesión vieja A): si llegara DESPUÉS de las
     // cookies B, su 401 borraría la sesión nueva. fetchQuery se une a la petición pendiente.
+    // Solo si ya hay uno en vuelo; si no, no se inicia nada (iniciarlo provocaría una carga en AuthProvider).
     const esperarEnVuelo = () =>
-      queryClient.fetchQuery({ queryKey: AUTH_STATUS_QUERY_KEY, queryFn: getAuthStatus }).then(() => undefined, () => undefined)
+      queryClient.isFetching({ queryKey: AUTH_STATUS_QUERY_KEY }) > 0
+        ? queryClient.fetchQuery({ queryKey: AUTH_STATUS_QUERY_KEY, queryFn: getAuthStatus }).then(() => undefined, () => undefined)
+        : Promise.resolve()
     ;(canjeado.current
       ? Promise.resolve()
       : esperarEnVuelo().then(() => entrarConBoleto(boleto)).then(() => void (canjeado.current = true))
