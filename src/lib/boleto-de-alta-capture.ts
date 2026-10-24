@@ -11,6 +11,13 @@ const RUTA = '/auth/entrar'
 // Respaldo si el sessionStorage está bloqueado (navegación privada, políticas).
 let enMemoria: string | null = null
 
+// /document-privacy.js (primer script del <head>) ya lo limpia antes de gtag/PostHog y deja este respaldo.
+declare global {
+  interface Window {
+    __avqBoletoAlta?: string
+  }
+}
+
 export function capturarBoletoDeAlta(): void {
   if (window.location.pathname !== RUTA) return
   const boleto = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('boleto')
@@ -26,8 +33,9 @@ export function capturarBoletoDeAlta(): void {
 
 /** Lo lee y lo borra: un boleto se canjea una sola vez. */
 export function tomarBoletoDeAlta(): string | null {
-  let boleto = enMemoria
+  let boleto = enMemoria ?? window.__avqBoletoAlta ?? null
   enMemoria = null
+  delete window.__avqBoletoAlta
   try {
     boleto = sessionStorage.getItem(BOLETO_STORAGE_KEY) ?? boleto
     sessionStorage.removeItem(BOLETO_STORAGE_KEY)

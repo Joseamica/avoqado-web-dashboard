@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { Loader2, XCircle } from 'lucide-react'
+import { Loader2, WifiOff, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { tomarBoletoDeAlta } from '@/lib/boleto-de-alta-capture'
@@ -19,17 +19,14 @@ export default function EntrarConBoleto() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [fallo, setFallo] = useState(false)
-  // El boleto se toma (y se borra) UNA vez: StrictMode monta dos veces.
+  const [sinRed, setSinRed] = useState(false)
+  // El boleto se toma (y se borra del storage) UNA vez: StrictMode monta dos veces. Se queda aquí
+  // para poder reintentar si falló la red; nunca vuelve a storage.
   const iniciado = useRef(false)
+  const boletoRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    if (iniciado.current) return
-    iniciado.current = true
-    const boleto = tomarBoletoDeAlta()
-    if (!boleto) {
-      setFallo(true)
-      return
-    }
+  const canjear = (boleto: string) => {
+    setSinRed(false)
     entrarConBoleto(boleto)
       // Como /signup tras verificar el código: esperar la sesión antes de navegar.
       .then(() => queryClient.refetchQueries({ queryKey: ['status'] }))
@@ -37,18 +34,37 @@ export default function EntrarConBoleto() {
         track('alta_entrada', { via: 'codigo' })
         navigate('/setup', { replace: true })
       })
-      // 410 (usado/vencido), 404 (interruptor apagado), 429 y cualquier otro: la misma tarjeta.
-      .catch(() => setFallo(true))
-  }, [navigate, queryClient])
+      // Sin respuesta del servidor (red caída): el boleto sigue vivo, se puede reintentar.
+      // 410 (usado/vencido), 404 (interruptor apagado), 429 y cualquier otra respuesta: la misma tarjeta.
+      .catch((e: { response?: unknown }) => (e?.response ? setFallo(true) : setSinRed(true)))
+  }
+
+  useEffect(() => {
+    if (iniciado.current) return
+    iniciado.current = true
+    boletoRef.current = tomarBoletoDeAlta()
+    if (boletoRef.current) canjear(boletoRef.current)
+    else setFallo(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          {fallo ? <XCircle className="mx-auto h-8 w-8 text-destructive" /> : <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />}
-          <CardTitle className="mt-2">{fallo ? t('entrarConBoleto.usedTitle') : t('entrarConBoleto.loading')}</CardTitle>
+          {sinRed ? <WifiOff className="mx-auto h-8 w-8 text-muted-foreground" /> : fallo ? <XCircle className="mx-auto h-8 w-8 text-destructive" /> : <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />}
+          <CardTitle className="mt-2">
+            {sinRed ? t('entrarConBoleto.offlineTitle') : fallo ? t('entrarConBoleto.usedTitle') : t('entrarConBoleto.loading')}
+          </CardTitle>
           {fallo && <CardDescription>{t('entrarConBoleto.usedDesc')}</CardDescription>}
         </CardHeader>
+        {sinRed && (
+          <CardContent>
+            <Button className="w-full" onClick={() => boletoRef.current && canjear(boletoRef.current)}>
+              {t('entrarConBoleto.retry')}
+            </Button>
+          </CardContent>
+        )}
         {fallo && (
           <CardContent className="flex flex-col gap-2">
             <Button asChild className="w-full">

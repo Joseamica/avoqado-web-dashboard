@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -75,6 +75,17 @@ describe('EntrarConBoleto', () => {
     expect(screen.getByText('entrarConBoleto.login').closest('a')).toHaveAttribute('href', '/login')
     expect(screen.getByText('entrarConBoleto.forgot').closest('a')).toHaveAttribute('href', '/auth/forgot-password')
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('sin respuesta del servidor (red) ofrece reintentar con el MISMO boleto', async () => {
+    respuesta = () => Promise.reject(new Error('Network Error'))
+    pintar()
+    expect(await screen.findByText('entrarConBoleto.offlineTitle')).toBeInTheDocument()
+    expect(screen.queryByText('entrarConBoleto.usedTitle')).toBeNull()
+    respuesta = () => Promise.resolve()
+    fireEvent.click(screen.getByText('entrarConBoleto.retry'))
+    await waitFor(() => expect(navigate).toHaveBeenCalled())
+    expect(orden.filter(o => o.startsWith('entrar:'))).toEqual(['entrar:abc', 'entrar:abc'])
   })
 
   it('sin boleto no llama al servidor y muestra la tarjeta', async () => {

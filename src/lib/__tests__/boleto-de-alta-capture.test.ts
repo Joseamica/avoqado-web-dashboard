@@ -39,13 +39,29 @@ describe('capturarBoletoDeAlta', () => {
   })
 })
 
-describe('dashboard-main', () => {
-  it('captura el boleto ANTES de iniciar PostHog', () => {
+describe('orden de la captura', () => {
+  it('index.html corre document-privacy.js (que captura) antes de gtag, oaiq y la app', () => {
+    const html = readFileSync(resolve(__dirname, '../../../index.html'), 'utf8')
+    const cap = html.indexOf('/document-privacy.js')
+    for (const despues of ["gtag('config'", "oaiq('init'", 'dashboard-main']) {
+      const i = html.indexOf(despues)
+      if (i > -1) expect(cap).toBeLessThan(i)
+    }
+    expect(cap).toBeGreaterThan(-1)
+    const js = readFileSync(resolve(__dirname, '../../../public/document-privacy.js'), 'utf8')
+    expect(js).toContain("'/auth/entrar'")
+    expect(js).toContain('avq_boleto_alta')
+  })
+
+  it('dashboard-main la repite antes de initPostHog (cinturón)', () => {
     const fuente = readFileSync(resolve(__dirname, '../../dashboard-main.tsx'), 'utf8')
-    const a = fuente.indexOf('capturarBoletoDeAlta()')
-    const b = fuente.indexOf('initPostHog()')
-    expect(a).toBeGreaterThan(-1)
-    expect(a).toBeLessThan(b)
+    expect(fuente.indexOf('capturarBoletoDeAlta()')).toBeLessThan(fuente.indexOf('initPostHog()'))
+  })
+
+  it('tomarBoletoDeAlta lee y borra el respaldo global del head', () => {
+    window.__avqBoletoAlta = 'g1'
+    expect(tomarBoletoDeAlta()).toBe('g1')
+    expect(window.__avqBoletoAlta).toBeUndefined()
   })
 })
 import { readFileSync } from 'node:fs'
