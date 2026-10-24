@@ -286,6 +286,13 @@
     "liveTotal": "Total:",
     "liveOff": "discount of {{amount}}",
     "openAmountHint": "Applied to the amount your customer enters",
-    "remove": "Remove"
+    "remove": "Remove",
+    "search": "Search discounts",
+    "selected": "Selected:",
+    "count": "{{shown}} of {{total}}",
+    "refine": "Refine your search",
+    "minPurchase": "This discount requires a minimum purchase of {{amount}}",
+    "errorPick": "Choose a catalog discount to be able to save.",
+    "errorValue": "Enter a discount value greater than 0."
   }
 }

@@ -1,43 +1,21 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { Lock } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import discountService from '@/services/discount.service'
-import type { PaymentLinkDiscountInput, PaymentLinkDiscountView } from '@/services/paymentLink.service'
+import { discountError, type DiscountFormValue } from './payment-link-discount.utils'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
-export type DiscountFormValue =
-  | { mode: 'NONE' }
-  | { mode: 'MANUAL'; type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: string; name: string }
-  | { mode: 'CATALOG'; discountId: string }
-
 /** Avisar «vence en N días» cuando faltan 7 o menos (umbral del spec). */
 const EXPIRY_WARNING_DAYS = 7
-
-/** Precarga el formulario con el descuento que ya tiene la liga. */
-export function discountFromLink(d: PaymentLinkDiscountView | null | undefined): DiscountFormValue {
-  if (!d) return { mode: 'NONE' }
-  if (d.origen === 'CATALOGO' && d.discountId) return { mode: 'CATALOG', discountId: d.discountId }
-  return { mode: 'MANUAL', type: d.type, value: String(d.value), name: d.name }
-}
-
-/**
- * Lo que se manda al servidor. Sin tocar → ni la llave (una liga con descuento vencido sigue aceptando
- * cambios de precio/título); quitar → `discount: null`.
- */
-export function discountPayload(v: DiscountFormValue, touched: boolean): { discount?: PaymentLinkDiscountInput | null } {
-  if (!touched) return {}
-  if (v.mode === 'NONE') return { discount: null }
-  if (v.mode === 'CATALOG') return { discount: { mode: 'CATALOG', discountId: v.discountId } }
-  const name = v.name.trim()
-  return { discount: { mode: 'MANUAL', type: v.type, value: Number(v.value), ...(name ? { name } : {}) } }
-}
 
 /** Descuento en pesos de la vista previa (centavos, mitad hacia arriba); el servidor es quien manda. */
 function previewDiscount(base: number, type: 'PERCENTAGE' | 'FIXED_AMOUNT', value: number): number | null {
@@ -65,31 +43,52 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
   const zone = activeVenue?.timezone || 'America/Mexico_City'
   const locale = getIntlLocale(i18n?.language)
 
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search.trim(), 300)
+  const catalogOpen = !!venueId && canApply && canRead && value.mode === 'CATALOG'
   const catalog = useQuery({
-    queryKey: ['discounts', venueId, 'payment-link-picker'],
-    queryFn: () => discountService.getDiscounts(venueId, { active: true, scope: 'ORDER', pageSize: 100 }),
-    enabled: !!venueId && canApply && canRead && value.mode === 'CATALOG',
+    queryKey: ['discounts', venueId, 'payment-link-picker', debouncedSearch],
+    queryFn: () =>
+      discountService.getDiscounts(venueId, {
+        active: true,
+        scope: 'ORDER',
+        pageSize: 100,
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      }),
+    enabled: catalogOpen,
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   })
   const now = Date.now()
   const options = (catalog.data?.data ?? []).filter(
-    d =>
-      d.active &&
-      d.type !== 'COMP' &&
-      !d.requiresApproval &&
-      (!d.validFrom || new Date(d.validFrom).getTime() <= now) &&
-      (!d.validUntil || new Date(d.validUntil).getTime() >= now),
+    d => d.active && (!d.validFrom || new Date(d.validFrom).getTime() <= now) && (!d.validUntil || new Date(d.validUntil).getTime() >= now),
   )
-  const selected = value.mode === 'CATALOG' ? options.find(d => d.id === value.discountId) : undefined
+  const total = catalog.data?.meta?.totalCount ?? options.length
+  const pickedId = value.mode === 'CATALOG' ? value.discountId : ''
+  const inPage = options.find(d => d.id === pickedId)
+  // Un descuento ya elegido (p. ej. al editar) puede no estar en esta página: se trae por id.
+  const picked = useQuery({
+    queryKey: ['discount', venueId, pickedId],
+    queryFn: () => discountService.getDiscount(venueId, pickedId),
+    enabled: catalogOpen && !!pickedId && !inPage,
+    staleTime: 30_000,
+  })
+  const selected = inPage ?? (pickedId ? picked.data : undefined)
 
   const shownDiscount =
     value.mode === 'MANUAL'
       ? { type: value.type, value: Number(value.value) }
-      : selected && selected.type !== 'COMP'
-        ? { type: selected.type, value: Number(selected.value) }
+      : selected
+        ? { type: selected.type as 'PERCENTAGE' | 'FIXED_AMOUNT', value: Number(selected.value) }
         : null
   const fixedBase = amountType === 'FIXED' && base != null && base > 0 ? base : null
-  const off = shownDiscount && fixedBase != null ? previewDiscount(fixedBase, shownDiscount.type, shownDiscount.value) : null
+  const minPurchase = selected?.minPurchaseAmount ? Number(selected.minPurchaseAmount) : 0
+  const belowMin = fixedBase != null && minPurchase > 0 && fixedBase < minPurchase
+  let off = shownDiscount && fixedBase != null ? previewDiscount(fixedBase, shownDiscount.type, shownDiscount.value) : null
+  // Tope del catálogo (0 = sin tope, igual que el servidor).
+  const cap = selected?.maxDiscountAmount ? Number(selected.maxDiscountAmount) : 0
+  if (off != null && cap > 0) off = Math.min(off, cap)
+  const error = discountError(value)
 
   // Días de calendario del negocio hasta que venza el descuento elegido.
   const days = selected?.validUntil
@@ -191,9 +190,20 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
 
       {value.mode === 'CATALOG' && (
         <div className="space-y-2 rounded-lg border border-input p-3">
+          <Input
+            aria-label={t('discount.search')}
+            placeholder={t('discount.search')}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
           {catalog.isLoading && <p className="text-sm text-muted-foreground">{t('discount.loading')}</p>}
           {catalog.isError && <p className="text-sm text-destructive">{t('discount.loadError')}</p>}
           {catalog.data && options.length === 0 && <p className="text-sm text-muted-foreground">{t('discount.emptyCatalog')}</p>}
+          {pickedId && !inPage && selected && (
+            <p className="text-sm">
+              {t('discount.selected')} <strong>{selected.name}</strong>
+            </p>
+          )}
           {options.map(d => {
             const ok = d.paymentLinkCompatibility?.ok !== false
             const isSel = value.discountId === d.id
@@ -220,6 +230,12 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
               </button>
             )
           })}
+          {catalog.data && options.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {t('discount.count', { shown: options.length, total })}
+              {total > options.length && ` · ${t('discount.refine')}`}
+            </p>
+          )}
         </div>
       )}
 
@@ -238,12 +254,16 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
         </div>
       )}
 
+      {value.mode !== 'NONE' && error && <p className="text-sm text-destructive">{t(`discount.${error}`)}</p>}
+
       {expiresAt && <p className="text-sm text-muted-foreground">{t('discount.expiresOn', { date: expiresLabel })}</p>}
 
       {value.mode !== 'NONE' && shownDiscount && (
         <p className="text-sm">
           {amountType === 'OPEN' || fixedBase == null ? (
             <span className="text-muted-foreground">{t('discount.openAmountHint')}</span>
+          ) : belowMin ? (
+            <span className="text-destructive">{t('discount.minPurchase', { amount: Currency(minPurchase) })}</span>
           ) : off != null ? (
             <span>
               {t('discount.liveTotal')} <strong>{Currency(fixedBase - off)}</strong>{' '}

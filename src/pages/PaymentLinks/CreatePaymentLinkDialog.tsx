@@ -32,12 +32,8 @@ import teamService from '@/services/team.service'
 import type { Product } from '@/types'
 
 import { PaymentLinkCustomerSection } from './PaymentLinkCustomerSection'
-import {
-  PaymentLinkDiscountSection,
-  discountFromLink,
-  discountPayload,
-  type DiscountFormValue,
-} from './PaymentLinkDiscountSection'
+import { PaymentLinkDiscountSection } from './PaymentLinkDiscountSection'
+import { discountError, discountFromLink, discountPayload, type DiscountFormValue } from './payment-link-discount.utils'
 import { parseStoredCustomerPhone } from './stored-customer-phone'
 import { DonationPreview } from './components/DonationPreview'
 import { ItemFormSection, type BundleItem } from './components/ItemFormSection'
@@ -455,9 +451,10 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   }
 
   const canSave =
-    selectedPurpose === 'item'
+    !discountError(discount) &&
+    (selectedPurpose === 'item'
       ? selectedItems.length > 0
-      : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0))
+      : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0)))
 
   const handleClose = () => {
     if (inFlight.current || createdLink || customerBusy) {
@@ -996,6 +993,8 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
               <PaymentLinkDiscountSection
                 value={discount}
                 onChange={v => {
+                  // El vencimiento que fijó el aviso era de OTRO descuento: se suelta.
+                  if (!(v.mode === 'CATALOG' && discount.mode === 'CATALOG' && v.discountId === discount.discountId)) setExpiresAt(null)
                   setDiscount(v)
                   setDiscountTouched(true)
                 }}
