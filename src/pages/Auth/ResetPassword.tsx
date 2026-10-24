@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { contrasenaNuevaZod, CONTRASENA_MIN } from '@/lib/contrasenaNueva'
+import { track } from '@/lib/posthog'
 import { validateResetToken, resetPassword } from '@/services/auth.service'
 
 interface ResetPasswordFormData {
@@ -125,6 +126,7 @@ const ResetPassword: React.FC = () => {
     try {
       await resetPassword(tokenValue, data.newPassword)
       setResetSuccess(true)
+      if (esCuentaNueva) track('alta_contrasena_creada', { via: 'link' })
 
       toast({
         title: t('toast.password_reset_success'),

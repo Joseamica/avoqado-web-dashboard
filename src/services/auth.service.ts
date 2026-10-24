@@ -237,6 +237,11 @@ export const verifyEmail = async (data: VerifyEmailDto): Promise<VerifyEmailResp
   return response.data
 }
 
+/** Alta con código: canjea el boleto de un solo uso por la sesión (cookies). 410/404/429 → rechaza. */
+export const entrarConBoleto = async (boleto: string): Promise<void> => {
+  await api.post('/api/v1/dashboard/auth/entrar-con-boleto', { boleto })
+}
+
 // Service object for convenience
 export const authService = {
   login,
