@@ -233,6 +233,7 @@
     "search": "Buscar por nombre, correo o teléfono",
     "remove": "Quitar cliente",
     "none": "Sin cliente asociado.",
+    "addLater": "Esta liga no tiene cliente. Puedes agregar uno: contará para los pagos que empiecen después y ya no se podrá cambiar.",
     "readOnly": "El cliente asociado no se puede cambiar después de crear la liga.",
     "loadFailed": "No se pudieron cargar los clientes. Revisa la conexión y reintenta.",
     "retry": "Reintentar",

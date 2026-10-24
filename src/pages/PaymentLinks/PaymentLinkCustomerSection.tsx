@@ -17,11 +17,13 @@ interface Props {
   selected: PaymentLinkCustomer | null
   onChange: (customer: PaymentLinkCustomer | null) => void
   readOnly?: boolean
+  /** Editar una liga sin cliente: se puede agregar uno, pero sólo cuenta de aquí en adelante. */
+  addingLater?: boolean
   reusable: boolean
   onBusyChange: (busy: boolean) => void
 }
 
-export function PaymentLinkCustomerSection({ venueId, selected, onChange, readOnly, reusable, onBusyChange }: Props) {
+export function PaymentLinkCustomerSection({ venueId, selected, onChange, readOnly, addingLater, reusable, onBusyChange }: Props) {
   const { t } = useTranslation('paymentLinks')
   const { can } = useAccess()
   const queryClient = useQueryClient()
@@ -125,6 +127,7 @@ export function PaymentLinkCustomerSection({ venueId, selected, onChange, readOn
     <section className="space-y-4 rounded-2xl border border-input bg-card p-6" data-tour="payment-link-customer">
       <h2 className="text-lg font-semibold">{t('customer.title')}</h2>
       <p className="text-sm text-muted-foreground">{t('customer.hint')}</p>
+      {addingLater && canRead && <p className="text-sm text-muted-foreground">{t('customer.addLater')}</p>}
       {!canRead ? (
         <p className="text-sm text-muted-foreground">{t('customer.noReadPermission')}</p>
       ) : (
