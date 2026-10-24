@@ -233,6 +233,7 @@
     "search": "Search by name, email or phone",
     "remove": "Remove customer",
     "none": "No customer assigned.",
+    "addLater": "This link has no customer. You can add one: it counts for payments that start after this, and it cannot be changed later.",
     "readOnly": "The assigned customer cannot be changed after creating the link.",
     "loadFailed": "Customers could not be loaded. Check your connection and try again.",
     "retry": "Retry",

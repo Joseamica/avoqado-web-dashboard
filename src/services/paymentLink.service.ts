@@ -104,6 +104,8 @@ export interface CreatePaymentLinkRequest {
 }
 
 export interface UpdatePaymentLinkRequest {
+  /** Sólo para agregar a una liga sin cliente; el servidor rechaza cambiarlo. */
+  customerId?: string
   title?: string
   description?: string
   imageUrl?: string
