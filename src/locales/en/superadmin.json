@@ -2074,9 +2074,6 @@
     "processingError": "An error occurred while processing the invitation",
     "validation": {
       "passwordMin": "Password must be at least 8 characters",
-      "passwordUppercase": "Password must contain at least one uppercase letter",
-      "passwordLowercase": "Password must contain at least one lowercase letter",
-      "passwordNumber": "Password must contain at least one number",
       "passwordsMismatch": "Passwords do not match"
     }
   },

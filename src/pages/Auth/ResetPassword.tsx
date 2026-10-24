@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { contrasenaNuevaZod, CONTRASENA_MIN } from '@/lib/contrasenaNueva'
 import { validateResetToken, resetPassword } from '@/services/auth.service'
 
 interface ResetPasswordFormData {
@@ -42,23 +43,12 @@ const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('')
 
   // Password requirements validation
-  const hasMinLength = password.length >= 8
-  const hasUppercase = /[A-Z]/.test(password)
-  const hasLowercase = /[a-z]/.test(password)
-  const hasNumber = /[0-9]/.test(password)
-  const hasSpecial = /[^A-Za-z0-9]/.test(password)
-  const allRequirementsMet = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial
+  const allRequirementsMet = password.length >= CONTRASENA_MIN
 
   // Create schema using translations
   const resetPasswordSchema = z
     .object({
-      newPassword: z
-        .string({ required_error: t('resetPassword.newPasswordRequired') })
-        .min(8, t('resetPassword.passwordMinLength'))
-        .regex(/[A-Z]/, t('resetPassword.requirementUppercase'))
-        .regex(/[a-z]/, t('resetPassword.requirementLowercase'))
-        .regex(/[0-9]/, t('resetPassword.requirementNumber'))
-        .regex(/[^A-Za-z0-9]/, t('resetPassword.requirementSpecial')),
+      newPassword: contrasenaNuevaZod(t),
       confirmPassword: z.string({ required_error: t('resetPassword.confirmPasswordRequired') }),
     })
     .refine(data => data.newPassword === data.confirmPassword, {
@@ -258,11 +248,7 @@ const ResetPassword: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <p className="font-medium text-foreground">{t('resetPassword.passwordRequirements')}</p>
                       <div className="space-y-1">
-                        <RequirementItem met={hasMinLength} text={t('resetPassword.requirementMinLength')} />
-                        <RequirementItem met={hasUppercase} text={t('resetPassword.requirementUppercase')} />
-                        <RequirementItem met={hasLowercase} text={t('resetPassword.requirementLowercase')} />
-                        <RequirementItem met={hasNumber} text={t('resetPassword.requirementNumber')} />
-                        <RequirementItem met={hasSpecial} text={t('resetPassword.requirementSpecial')} />
+                        <RequirementItem met={allRequirementsMet} text={t('resetPassword.requirementMinLength')} />
                       </div>
                     </div>
 
