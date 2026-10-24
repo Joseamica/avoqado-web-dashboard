@@ -10,6 +10,8 @@ export type DiscountScope =
 	| 'QUANTITY'
 
 export interface Discount {
+	/** Usos del descuento (servidor reciente; ausente en uno viejo). */
+	usage?: { total: number; pos: number; ligasPagadas: number }
 	id: string
 	venueId: string
 	name: string

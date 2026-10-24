@@ -45,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -57,6 +58,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import CreatePaymentLinkDialog from './CreatePaymentLinkDialog'
+import { PaymentLinkDiscountStatus } from './PaymentLinkDiscountStatus'
 import { SharePaymentLinkDialog } from './SharePaymentLinkDialog'
 
 const CHECKOUT_BASE_URL = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
@@ -68,6 +70,7 @@ export default function PaymentLinks() {
   const { t, i18n } = useTranslation('paymentLinks')
   const { t: tCommon } = useTranslation()
   const { formatDate } = useVenueDateTime()
+  const { can } = useAccess()
 
   // ─── State ───────────────────────────────────────────────
   const [activeStatusTab, setActiveStatusTab] = useState('all')
@@ -194,6 +197,22 @@ export default function PaymentLinks() {
       toast({ title: t('toasts.archived') })
       queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
       setArchivingLink(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Quitar un descuento no pide `discounts:apply`: sólo `payment-link:update`.
+  const removeDiscountMutation = useMutation({
+    mutationFn: (linkId: string) => paymentLinkService.updatePaymentLink(venueId, linkId, { discount: null }),
+    onSuccess: () => {
+      toast({ title: t('discountStatus.removed') })
+      queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
     },
     onError: (error: any) => {
       toast({
@@ -350,12 +369,22 @@ export default function PaymentLinks() {
       {
         accessorKey: 'amount',
         header: t('list.columns.amount'),
-        cell: ({ row }) =>
-          row.original.amountType === 'FIXED' && row.original.amount ? (
-            <span className="font-medium">{formatPrice(row.original.amount, row.original.currency)}</span>
-          ) : (
-            <span className="text-sm text-muted-foreground">{t('list.openAmount')}</span>
-          ),
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start" onClick={e => e.stopPropagation()}>
+            {row.original.amountType === 'FIXED' && row.original.amount ? (
+              <span className="font-medium">{formatPrice(row.original.amount, row.original.currency)}</span>
+            ) : (
+              <span className="text-sm text-muted-foreground">{t('list.openAmount')}</span>
+            )}
+            <PaymentLinkDiscountStatus
+              link={row.original}
+              canUpdate={can('payment-link:update')}
+              onRemove={() => removeDiscountMutation.mutate(row.original.id)}
+              onReplace={() => openEdit(row.original.id)}
+              onArchive={() => setArchivingLink(row.original)}
+            />
+          </div>
+        ),
       },
       {
         accessorKey: 'status',
@@ -470,7 +499,7 @@ export default function PaymentLinks() {
         ),
       },
     ],
-    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation],
+    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation, removeDiscountMutation, can],
   )
 
   // ─── Render ──────────────────────────────────────────────

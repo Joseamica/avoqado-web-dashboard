@@ -294,5 +294,17 @@
     "minPurchase": "This discount requires a minimum purchase of {{amount}}",
     "errorPick": "Choose a catalog discount to be able to save.",
     "errorValue": "Enter a discount value greater than 0."
+  },
+  "discountStatus": {
+    "VENCIDO": "Discount expired",
+    "INACTIVO": "Discount unavailable",
+    "NO_INICIA": "Discount hasn't started yet",
+    "FUERA_DE_HORARIO": "Discount outside its hours",
+    "MINIMO": "Discount doesn't fit the amount",
+    "AGOTADO": "Discount used up",
+    "remove": "Remove discount",
+    "replace": "Choose another",
+    "archive": "Archive",
+    "removed": "Discount removed"
   }
 }

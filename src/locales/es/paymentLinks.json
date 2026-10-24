@@ -294,5 +294,17 @@
     "minPurchase": "Este descuento pide una compra mínima de {{amount}}",
     "errorPick": "Elige un descuento del catálogo para poder guardar.",
     "errorValue": "Escribe un valor mayor a 0 para el descuento."
+  },
+  "discountStatus": {
+    "VENCIDO": "Descuento vencido",
+    "INACTIVO": "Descuento no disponible",
+    "NO_INICIA": "El descuento aún no empieza",
+    "FUERA_DE_HORARIO": "Descuento fuera de horario",
+    "MINIMO": "El descuento no cabe en el importe",
+    "AGOTADO": "Descuento agotado",
+    "remove": "Quitar descuento",
+    "replace": "Poner otro",
+    "archive": "Archivar",
+    "removed": "Descuento quitado"
   }
 }
