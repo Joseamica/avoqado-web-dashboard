@@ -8,8 +8,8 @@ import paymentLinkService from '@/services/paymentLink.service'
 import customerService from '@/services/customer.service'
 import type { PaymentLink } from '@/services/paymentLink.service'
 
-const state = vi.hoisted(() => ({ venueId: 'venue-a', actor: 'staff-a', read: true, create: true }))
-const mocks = vi.hoisted(() => ({ create: vi.fn(), share: vi.fn(), customers: vi.fn(), customerCreate: vi.fn(), toast: vi.fn() }))
+const state = vi.hoisted(() => ({ venueId: 'venue-a', actor: 'staff-a', read: true, create: true, linkHasCustomer: true }))
+const mocks = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn(), share: vi.fn(), customers: vi.fn(), customerCreate: vi.fn(), toast: vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ venueId: state.venueId, venue: { name: 'Shop' }, fullBasePath: '/venues/shop' }),
@@ -22,8 +22,8 @@ vi.mock('@/services/paymentLink.service', () => ({
     createPaymentLink: mocks.create,
     shareViaWhatsapp: mocks.share,
     getSettings: async () => ({}),
-    getPaymentLink: async () => ({ data: { ...link, customer: alice } }),
-    updatePaymentLink: vi.fn(),
+    getPaymentLink: async () => ({ data: { ...link, customer: state.linkHasCustomer ? alice : null } }),
+    updatePaymentLink: mocks.update,
   },
 }))
 vi.mock('@/services/customer.service', () => ({ default: { getCustomers: mocks.customers, createCustomer: mocks.customerCreate } }))
@@ -86,7 +86,8 @@ async function details() {
   await screen.findByRole('button', { name: /Alice/ })
 }
 beforeEach(() => {
-  Object.assign(state, { venueId: 'venue-a', actor: 'staff-a', read: true, create: true })
+  Object.assign(state, { venueId: 'venue-a', actor: 'staff-a', read: true, create: true, linkHasCustomer: true })
+  mocks.update.mockResolvedValue({ success: true, data: link })
   mocks.customers.mockResolvedValue(page())
   mocks.create.mockResolvedValue({ success: true, data: link })
   mocks.share.mockResolvedValue({ success: true, data: { sent: true } })
@@ -731,6 +732,36 @@ describe('customer payment links', () => {
     expect(screen.queryByLabelText('customer.search')).not.toBeInTheDocument()
     expect(screen.queryByText('customer.remove')).not.toBeInTheDocument()
     expect(mocks.customers).not.toHaveBeenCalled()
+  })
+
+  // Founder 23-oct: una liga SIN cliente puede recibir uno al editarla (sólo agregar, nunca cambiar).
+  it('editing a link without customer lets you add one and saves it', async () => {
+    state.linkHasCustomer = false
+    render(wrap(<CreatePaymentLinkDialog open editingLinkId="link-a" onClose={vi.fn()} />))
+    expect(await screen.findByText('customer.addLater')).toBeVisible()
+    fireEvent.click(await screen.findByRole('button', { name: /Alice/ }))
+    expect(screen.getByTestId('selected-customer')).toHaveTextContent('Alice')
+    fireEvent.click(screen.getByText('form.save'))
+    await waitFor(() =>
+      expect(mocks.update).toHaveBeenCalledWith('venue-a', 'link-a', expect.objectContaining({ customerId: alice.id })),
+    )
+  })
+
+  it('editing without choosing a customer never sends customerId', async () => {
+    state.linkHasCustomer = false
+    render(wrap(<CreatePaymentLinkDialog open editingLinkId="link-a" onClose={vi.fn()} />))
+    await screen.findByText('customer.addLater')
+    fireEvent.click(screen.getByText('form.save'))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled())
+    expect(mocks.update.mock.calls[0][2]).not.toHaveProperty('customerId')
+  })
+
+  it('editing a link that already has a customer never sends customerId', async () => {
+    render(wrap(<CreatePaymentLinkDialog open editingLinkId="link-a" onClose={vi.fn()} />))
+    await screen.findByTestId('selected-customer')
+    fireEvent.click(screen.getByText('form.save'))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled())
+    expect(mocks.update.mock.calls[0][2]).not.toHaveProperty('customerId')
   })
 
   it('keeps reusable donation links and explains attribution for every payment', async () => {
