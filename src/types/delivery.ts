@@ -42,6 +42,14 @@ export interface DeliveryChannelLink {
     estado: 'SIN_DATOS' | 'OK' | 'ALERTA' | 'CRITICO'
   } | null
   externalLocationId: string
+  /** El nombre de la tienda en el proveedor, si lo trae (Rappi: el nombre que eligió el dueño al conectar). */
+  externalAccountId?: string | null
+  /** Rappi fase 3 (sólo vínculos RAPPI): pedidos de Rappi en curso; con ≥1, «Desconectar» sale en gris. */
+  pedidosEnCurso?: number
+  /** Rappi fase 3 (sólo vínculos RAPPI): la conexión que se ve; se manda de vuelta al desconectar. */
+  conexionId?: string
+  /** Última escritura del vínculo (ISO). Con PENDING, cuándo empezó a esperar la confirmación del proveedor. */
+  updatedAt?: string
   /**
    * Ajustes propios del canal. Es UNA columna JSON con VARIAS cosas adentro, así que el
    * backend la MEZCLA en vez de reemplazarla: mandar sólo `deliveryHours` no borra
