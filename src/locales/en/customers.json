@@ -134,6 +134,33 @@
     "confirm": "Delete Customer",
     "cancel": "Cancel"
   },
+  "stamps": {
+    "summary": "{{earned}} of {{required}} stamps",
+    "rewards_one": "{{count}} reward to redeem",
+    "rewards_other": "{{count}} rewards to redeem",
+    "adjust": {
+      "button": "Adjust stamps",
+      "title": "Adjust stamps",
+      "description": "Set how many stamps this customer has on their current card.",
+      "fields": {
+        "stamps": "How many stamps do they have?",
+        "reason": "Reason"
+      },
+      "placeholders": {
+        "reason": "E.g. Came from another loyalty system"
+      },
+      "preview": {
+        "change": "Goes from {{from}} to {{to}} stamps",
+        "complete": "Completes the card: earns «{{rewardLabel}}» and starts a new one at 0"
+      },
+      "cancel": "Cancel",
+      "save": "Save",
+      "success": "Stamps adjusted",
+      "changed": "This customer's stamps changed in the meantime: they now have {{n}}. Review and try again",
+      "disabled": "The stamps program is turned off",
+      "error": "Could not adjust the stamps"
+    }
+  },
   "adjustPoints": {
     "title": "Adjust Loyalty Points",
     "description": "Manually adjust loyalty points for {{name}}",

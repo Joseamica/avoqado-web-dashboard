@@ -55,6 +55,7 @@ import type { CreditPackPurchase } from '@/types/creditPack'
 import CustomerForm from './components/CustomerForm'
 import ReferralCard from './components/ReferralCard'
 import WalletPassCard from './components/WalletPassCard'
+import { StampCardSection } from './components/StampCardSection'
 
 export default function CustomerDetail() {
 	const { venueId, fullBasePath, venue } = useCurrentVenue()
@@ -461,6 +462,11 @@ export default function CustomerDetail() {
 						fullBasePath={fullBasePath}
 						stampsEnabled={loyaltyConfig?.stampsEnabled}
 					/>
+
+					{/* Montada siempre que haya config: apagar los sellos no desmonta un ajuste abierto (lo explica y lo frena). */}
+					{loyaltyConfig && (
+						<StampCardSection key={customerId} venueId={venueId} customerId={customerId!} enabled={!!loyaltyConfig.stampsEnabled} />
+					)}
 
 					{/* Tabs */}
 					<Tabs defaultValue="orders" className="space-y-4">

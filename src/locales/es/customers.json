@@ -134,6 +134,33 @@
     "confirm": "Eliminar Cliente",
     "cancel": "Cancelar"
   },
+  "stamps": {
+    "summary": "{{earned}} de {{required}} sellos",
+    "rewards_one": "{{count}} premio por canjear",
+    "rewards_other": "{{count}} premios por canjear",
+    "adjust": {
+      "button": "Ajustar sellos",
+      "title": "Ajustar sellos",
+      "description": "Fija cuántos sellos tiene este cliente en su tarjeta actual.",
+      "fields": {
+        "stamps": "¿Cuántos sellos tiene?",
+        "reason": "Motivo"
+      },
+      "placeholders": {
+        "reason": "Ej. Venía de otro sistema de lealtad"
+      },
+      "preview": {
+        "change": "Pasa de {{from}} a {{to}} sellos",
+        "complete": "Completa la tarjeta: gana «{{rewardLabel}}» y empieza una nueva en 0"
+      },
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "success": "Sellos ajustados",
+      "changed": "Los sellos de este cliente cambiaron mientras tanto: ahora tiene {{n}}. Revisa y vuelve a intentar",
+      "disabled": "El programa de sellos está apagado",
+      "error": "No se pudieron ajustar los sellos"
+    }
+  },
   "adjustPoints": {
     "title": "Ajustar Puntos de Lealtad",
     "description": "Ajustar manualmente los puntos de lealtad de {{name}}",
