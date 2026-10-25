@@ -16,6 +16,7 @@ import { Currency } from '@/utils/currency'
 import { useToast } from '@/hooks/use-toast'
 import { getDeliverySummary, pauseChannel, updateChannel } from '@/services/delivery.service'
 import { ChannelSettingsDialog } from './ChannelSettingsDialog'
+import { RappiStoreActions } from './RappiConnectionSection'
 import { providerLabel } from '../providerLabels'
 import type { DeliveryChannelLink, DeliveryChannelStatus } from '@/types/delivery'
 
@@ -149,7 +150,13 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
               <Card key={channel.id}>
                 <CardContent className="space-y-3 p-5">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{providerLabel(channel.provider)}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium">{providerLabel(channel.provider)}</p>
+                      {/* Rappi fase 3: con varias tiendas, cada tarjeta dice cuál es (pausar, ajustes y desconectar son por tienda). */}
+                      {channel.provider === 'RAPPI' && (
+                        <p className="truncate text-xs text-muted-foreground">{channel.externalAccountId || channel.externalLocationId}</p>
+                      )}
+                    </div>
                     <Badge variant={STATUS_VARIANT[channel.status]}>{t(STATUS_LABEL_KEY[channel.status])}</Badge>
                   </div>
 
@@ -244,6 +251,9 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                     {t('live.settingsAction')}
                   </Button>
 
+                  {/* Rappi fase 3: desconectar / reconectar esta tienda, aquí mismo (la sección de arriba sólo conecta otra). */}
+                  {channel.provider === 'RAPPI' && <RappiStoreActions venueId={venueId} channel={channel} />}
+
                   {isTogglable && (
                     <div className="flex items-center justify-between border-t border-input pt-3">
                       <span className="text-sm">{channel.status === 'ACTIVE' ? t('live.pauseAction') : t('live.resumeAction')}</span>
@@ -261,9 +271,7 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
         </div>
       </div>
 
-      {ajustesDe && (
-        <ChannelSettingsDialog open onClose={() => setAjustesDe(null)} venueId={venueId} channel={ajustesDe} />
-      )}
+      {ajustesDe && <ChannelSettingsDialog open onClose={() => setAjustesDe(null)} venueId={venueId} channel={ajustesDe} />}
 
       {/* (c) Link into the EXISTING Orders view — reused, not rebuilt. */}
       <Link to={`${fullBasePath}/orders`} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">

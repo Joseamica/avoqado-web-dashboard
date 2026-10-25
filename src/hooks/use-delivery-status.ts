@@ -7,7 +7,7 @@
  *   - LOCKED  — el venue no tiene el feature PREMIUM `DELIVERY_CHANNELS`.
  *   - TEASER  — tiene el feature, pero no ha activado nada (sin canal ACTIVE, sin solicitud viva).
  *   - PENDING — tiene el feature y una solicitud de activación viva, pero aún ningún canal ACTIVE.
- *   - LIVE    — tiene ≥1 canal ACTIVE. Gana sobre PENDING aunque exista una solicitud (ya activo).
+ *   - LIVE    — tiene ≥1 canal ACTIVE o PAUSED. Gana sobre PENDING aunque exista una solicitud (ya activo).
  *
  * `enabled: !!venueId && hasFeature` evita pegarle al API de activación cuando el venue no tiene el
  * feature — evita un 403 innecesario contra `/api/v1/delivery-channels/...` (mismo patrón que el
@@ -27,6 +27,17 @@ export interface DeliveryStatus {
   isLoading: boolean
 }
 
+const tieneRappi = (canales?: DeliveryChannelLink[]) => !!canales?.some(c => c.provider === 'RAPPI')
+
+/** Cada cuánto se refresca la lista con tiendas de Rappi: 10 s si alguna espera confirmación desde hace < 5 min, si no 30 s. */
+export function intervaloDeRappi(canales?: DeliveryChannelLink[], ahora = Date.now()): number | false {
+  if (!tieneRappi(canales)) return false
+  const esperando = canales!.some(
+    c => c.provider === 'RAPPI' && c.status === 'PENDING' && !!c.updatedAt && ahora - Date.parse(c.updatedAt) < 5 * 60_000,
+  )
+  return esperando ? 10_000 : 30_000
+}
+
 export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
   const { hasFeatureAccess, isLoading: tierLoading } = useVenueTier()
   const hasFeature = hasFeatureAccess('DELIVERY_CHANNELS')
@@ -42,6 +53,13 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
     queryFn: () => getChannels(venueId!),
     enabled,
     staleTime: 60_000,
+    // Rappi fase 3: con alguna tienda de Rappi la lista se refresca sola (sólo con la pestaña visible: sin
+    // `refetchIntervalInBackground`) para ver pausas o bajas hechas desde Rappi y para que «Desconectar» se desbloquee al
+    // terminar el último pedido; cada 10 s mientras una tienda espera la confirmación de Rappi (tope de 5 min). Y al volver
+    // a la pestaña SIEMPRE, aunque la lista sea reciente y todavía no traiga Rappi: así el dueño que regresa de autorizar su
+    // PRIMERA tienda la ve sin recargar (con `true`, el `staleTime` de 60 s se saltaba esa lectura).
+    refetchInterval: query => intervaloDeRappi(query.state.data),
+    refetchOnWindowFocus: 'always',
   })
   const { data: activationRequest = null, isLoading: reqLoading } = useQuery({
     queryKey: ['deliveryActivation', venueId],
@@ -53,7 +71,8 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
   // While disabled (no feature / no venueId) the channel/activation queries never run, so their
   // isLoading must not hold the overall isLoading true — only the tier check gates that path.
   const isLoading = tierLoading || (enabled && (chLoading || reqLoading))
-  const hasActive = channels.some(channel => channel.status === 'ACTIVE')
+  // PAUSED también cuenta: el canal pausado sigue en el panel vivo, que es donde está el control para reanudarlo.
+  const hasActive = channels.some(channel => channel.status === 'ACTIVE' || channel.status === 'PAUSED')
 
   const state: DeliveryState = !hasFeature ? 'LOCKED' : hasActive ? 'LIVE' : activationRequest ? 'PENDING' : 'TEASER'
 

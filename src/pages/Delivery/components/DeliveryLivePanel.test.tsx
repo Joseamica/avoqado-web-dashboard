@@ -33,6 +33,10 @@ vi.mock('@/services/delivery.service', () => ({
   updateChannel: (...args: unknown[]) => mockUpdateChannel(...args),
 }))
 
+vi.mock('./RappiConnectionSection', () => ({
+  RappiStoreActions: ({ channel }: { channel: DeliveryChannelLink }) => <div data-testid={`rappi-actions-${channel.id}`} />,
+}))
+
 import { DeliveryLivePanel } from './DeliveryLivePanel'
 
 function channel(overrides: Partial<DeliveryChannelLink> = {}): DeliveryChannelLink {
@@ -100,6 +104,21 @@ describe('DeliveryLivePanel', () => {
 
     // PAUSED → checked=false; clicking turns it on → onCheckedChange(true) → paused = !true = false.
     await waitFor(() => expect(mockPauseChannel).toHaveBeenCalledWith('venue-1', 'link-2', false))
+  })
+
+  it('Rappi fase 3: con dos tiendas de Rappi cada tarjeta dice cuál es (nombre, o su id si no lo trae) (Codex código r1 #4)', async () => {
+    renderPanel([
+      channel({ id: 'r1', provider: 'RAPPI', externalAccountId: 'Tacos Centro', externalLocationId: '900' }),
+      channel({ id: 'r2', provider: 'RAPPI', externalAccountId: null, externalLocationId: '901' }),
+    ])
+    expect(await screen.findByText('Tacos Centro')).toBeInTheDocument()
+    expect(screen.getByText('901')).toBeInTheDocument()
+  })
+
+  it('Rappi fase 3: la tarjeta de una tienda de Rappi trae sus acciones (desconectar/reconectar); la de Uber no', async () => {
+    renderPanel([channel({ id: 'r1', provider: 'RAPPI' }), channel({ id: 'u1', provider: 'UBER_EATS' })])
+    expect(await screen.findByTestId('rappi-actions-r1')).toBeInTheDocument()
+    expect(screen.queryByTestId('rappi-actions-u1')).not.toBeInTheDocument()
   })
 
   it('canal PENDING (no togglable) → sin switch', async () => {

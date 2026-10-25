@@ -7,6 +7,7 @@ import { useDeliveryStatus } from '@/hooks/use-delivery-status'
 import { DeliveryTeaser } from './components/DeliveryTeaser'
 import { DeliveryPending } from './components/DeliveryPending'
 import { DeliveryLivePanel } from './components/DeliveryLivePanel'
+import { RappiConnectionSection } from './components/RappiConnectionSection'
 
 /**
  * Delivery — single page, 4 data-driven states ("readiness = dato", no manual flags; design
@@ -16,12 +17,14 @@ import { DeliveryLivePanel } from './components/DeliveryLivePanel'
  *      own `enabled` gate keeps this from ever hitting the (feature-gated) activation API.
  *   2. TEASER  — PREMIUM, no activation request yet → DeliveryTeaser (sales copy + CTA).
  *   3. PENDING — activation request PENDING/CONTACTED, no channel ACTIVE yet → DeliveryPending.
- *   4. LIVE    — ≥1 channel ACTIVE → DeliveryLivePanel (stats + channel cards + Orders link).
+ *   4. LIVE    — ≥1 channel ACTIVE or PAUSED → DeliveryLivePanel (stats + channel cards + Orders link).
+ * Above the last three, the Rappi section (Rappi fase 3): connect, reconnect and disconnect without anyone in between.
  */
 export default function DeliveryPage() {
   const { t } = useTranslation('delivery')
   const { venueId } = useCurrentVenue()
   const { state, channels, activationRequest, isLoading } = useDeliveryStatus(venueId ?? undefined)
+  const rappiChannels = channels.filter(channel => channel.provider === 'RAPPI')
 
   return (
     <FeatureGate feature="DELIVERY_CHANNELS">
@@ -37,15 +40,22 @@ export default function DeliveryPage() {
           <div className="flex items-center justify-center py-24" role="status" aria-label={t('page.loading')}>
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : state === 'PENDING' && activationRequest ? (
-          <DeliveryPending request={activationRequest} />
-        ) : state === 'LIVE' ? (
-          <DeliveryLivePanel venueId={venueId} channels={channels} />
         ) : (
-          // TEASER default — LOCKED falls through here too: FeatureGate (above) already blurs
-          // this whole subtree behind its paywall card, so the teaser just becomes the "sample
-          // content" visible behind the blur (mirrors CfdiList's SAMPLE_CFDIS under FeatureGate).
-          <DeliveryTeaser venueId={venueId} />
+          <>
+            {/* Rappi fase 3: el dueño conecta, reconecta y desconecta Rappi solo. En LIVE las tiendas ya tienen su tarjeta
+                (con sus acciones adentro), así que aquí sólo va el botón de conectar. Detrás del paywall (LOCKED) no. */}
+            {state !== 'LOCKED' && <RappiConnectionSection venueId={venueId} rappiChannels={rappiChannels} showRows={state !== 'LIVE'} />}
+            {state === 'PENDING' && activationRequest ? (
+              <DeliveryPending request={activationRequest} />
+            ) : state === 'LIVE' ? (
+              <DeliveryLivePanel venueId={venueId} channels={channels} />
+            ) : (
+              // TEASER default — LOCKED falls through here too: FeatureGate (above) already blurs
+              // this whole subtree behind its paywall card, so the teaser just becomes the "sample
+              // content" visible behind the blur (mirrors CfdiList's SAMPLE_CFDIS under FeatureGate).
+              <DeliveryTeaser venueId={venueId} />
+            )}
+          </>
         )}
       </div>
     </FeatureGate>

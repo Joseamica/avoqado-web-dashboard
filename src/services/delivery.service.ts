@@ -45,3 +45,24 @@ export const updateChannel = async (
   // `precios` intacto. Mandar `null` sí limpia todo — es el borrado explícito.
   body: { orderAcceptanceMode?: 'AUTO' | 'MANUAL'; autoSyncMenu?: boolean; config?: DeliveryChannelConfig | null },
 ): Promise<DeliveryChannelLink> => (await api.patch(`${base(venueId)}/channels/${linkId}`, body)).data.data
+
+/**
+ * GET .../channels/rappi/connect-url — Rappi fase 3: el enlace (vence en 10 min) con el que el dueño conecta o reconecta su
+ * tienda de Rappi. 🔴 Esta ruta responde `{ ok, url, instrucciones }` SIN la envoltura `data` de las demás.
+ */
+export const getRappiConnectUrl = async (venueId: string): Promise<{ ok: boolean; url: string; instrucciones?: string }> =>
+  (await api.get(`${base(venueId)}/channels/rappi/connect-url`)).data
+
+/**
+ * POST .../channels/:linkId/disconnect — Rappi fase 3: avisa a Rappi «no integrada» y deja la tienda DISABLED. `conexionId` es
+ * el que trajo el listado (si la conexión cambió, el servidor responde 409 sin tocar nada). `forzar` sólo tras un 502 y una
+ * segunda confirmación del dueño.
+ */
+export const disconnectChannel = async (
+  venueId: string,
+  linkId: string,
+  conexionId: string,
+  opciones?: { forzar?: boolean },
+): Promise<DeliveryChannelLink> =>
+  (await api.post(`${base(venueId)}/channels/${linkId}/disconnect`, { conexionId, ...(opciones?.forzar ? { forzar: true } : {}) })).data
+    .data
