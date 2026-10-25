@@ -382,6 +382,8 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
               }
             : {}),
         }
+        // Sólo AGREGAR a una liga que no tenía cliente; una que ya tiene nunca lo manda (founder, 23-oct).
+        if (!existingLink?.data.customer && selectedCustomer) updateData.customerId = selectedCustomer.id
         await paymentLinkService.updatePaymentLink(venueId, editingLinkId!, updateData)
         if (!alive.current) return
         toast({ title: t('toasts.updated') })
@@ -974,9 +976,10 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
 
               <PaymentLinkCustomerSection
                 venueId={venueId}
-                selected={isEditing ? (existingLink?.data.customer ?? null) : selectedCustomer}
+                selected={isEditing ? (existingLink?.data.customer ?? selectedCustomer) : selectedCustomer}
                 onChange={setCustomer}
-                readOnly={isEditing}
+                readOnly={isEditing && (!existingLink?.data || !!existingLink.data.customer)}
+                addingLater={isEditing && !!existingLink?.data && !existingLink.data.customer}
                 reusable={isReusable}
                 onBusyChange={setCustomerBusy}
               />
