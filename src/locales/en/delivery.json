@@ -88,5 +88,35 @@
       "saturday": "Saturday",
       "sunday": "Sunday"
     }
+  },
+  "rappi": {
+    "connect": "Connect Rappi",
+    "connectAnother": "Connect another store",
+    "subtitleEmpty": "Connect your Rappi store and its orders flow into Avoqado automatically.",
+    "subtitleConnected": "Your Rappi stores in Avoqado.",
+    "needsAdmin": "Ask an administrator to connect Rappi.",
+    "connectError": "Couldn't open the Rappi connection",
+    "statusActive": "Connected",
+    "statusPaused": "Paused (here or from Rappi)",
+    "statusPending": "Waiting for Rappi to confirm",
+    "statusDisabled": "Disconnected",
+    "pendingHint": "Waiting for Rappi to confirm (it can take a few minutes).",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "cancel": "Cancel",
+    "ordersInProgress_one": "You have 1 Rappi order in progress; finish it before disconnecting.",
+    "ordersInProgress_other": "You have {{count}} Rappi orders in progress; finish them before disconnecting.",
+    "errorNotAccepted": "Rappi didn't accept the disconnection. Your store is still connected; try again in a few minutes.",
+    "errorUnconfirmed": "We couldn't confirm whether Rappi applied the disconnection. In Avoqado your store is still connected and orders Rappi sends are accepted. Try again.",
+    "errorConnectionChanged": "The connection changed in the meantime; check its status and try again.",
+    "errorStillConnecting": "Rappi is still finishing connecting this store; try again in a minute.",
+    "errorGeneric": "Couldn't disconnect the store. Try again.",
+    "confirmTitle": "Disconnect {{store}} from Rappi?",
+    "confirmDescription": "New Rappi orders will stop reaching Avoqado. You can reconnect whenever you want.",
+    "forceAction": "Disconnect anyway",
+    "forceTitle": "Disconnect anyway?",
+    "forceDescription": "Rappi might keep sending orders that won't show up here. Receive them on your Rappi tablet or the partners portal.",
+    "disconnectSuccess": "Store disconnected",
+    "openLinkFallback": "Rappi didn't open? Open it here"
   }
 }
