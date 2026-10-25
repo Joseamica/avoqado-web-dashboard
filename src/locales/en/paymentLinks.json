@@ -223,6 +223,9 @@
     "archiveTitle": "Archive this payment link?",
     "archiveDescription": "This link will no longer be accessible to customers. This action cannot be undone.",
     "archiveConfirm": "Archive",
+    "removeDiscountTitle": "Remove the discount from this link?",
+    "removeDiscountDescription": "Anyone who opens the link will pay the full price, including people who already received it.",
+    "removeDiscountConfirm": "Remove discount",
     "cancel": "Cancel"
   },
   "customer": {
@@ -266,5 +269,46 @@
     "total_one": "{{count}} customer · Page {{page}} of {{pages}}",
     "total_other": "{{count}} customers · Page {{page}} of {{pages}}",
     "reviewPhone": "Review the number and country calling code before sending. The saved phone number could not be interpreted safely."
+  },
+  "discount": {
+    "title": "Discount",
+    "none": "No discount",
+    "manual": "Enter a discount",
+    "catalog": "Choose from catalog",
+    "valueField": "Discount value",
+    "nameField": "Name (optional)",
+    "namePlaceholder": "Discount",
+    "noApplyPermission": "You need permission to give discounts",
+    "noReadPermission": "You need permission to view discounts",
+    "loading": "Loading discounts…",
+    "loadError": "Discounts could not be loaded.",
+    "emptyCatalog": "There are no current discounts to choose from.",
+    "expiresSoon": "This discount ends on {{date}} (in {{days}} days). If your customer pays later, they will no longer get the discount.",
+    "alsoExpire": "Make the link expire on {{date}} too",
+    "expiresOn": "The link will expire on {{date}}",
+    "liveTotal": "Total:",
+    "liveOff": "discount of {{amount}}",
+    "openAmountHint": "Applied to the amount your customer enters",
+    "remove": "Remove",
+    "search": "Search discounts",
+    "selected": "Selected:",
+    "count": "{{shown}} of {{total}}",
+    "countPartial": "{{shown}} shown",
+    "refine": "Refine your search",
+    "minPurchase": "This discount requires a minimum purchase of {{amount}}",
+    "errorPick": "Choose a catalog discount to be able to save.",
+    "errorValue": "Enter a discount value greater than 0."
+  },
+  "discountStatus": {
+    "VENCIDO": "Discount expired",
+    "INACTIVO": "Discount unavailable",
+    "NO_INICIA": "Discount hasn't started yet",
+    "FUERA_DE_HORARIO": "Discount outside its hours",
+    "MINIMO": "Discount doesn't fit the amount",
+    "AGOTADO": "Discount used up",
+    "remove": "Remove discount",
+    "replace": "Choose another",
+    "archive": "Archive",
+    "removed": "Discount removed"
   }
 }

@@ -34,6 +34,21 @@ export interface PaymentLinkBundleItem {
   }>
 }
 
+export type PaymentLinkDiscountInput =
+  | { mode: 'MANUAL'; type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: number; name?: string }
+  | { mode: 'CATALOG'; discountId: string }
+
+export type PaymentLinkDiscountStatus = 'OK' | 'VENCIDO' | 'NO_INICIA' | 'FUERA_DE_HORARIO' | 'MINIMO' | 'INACTIVO' | 'AGOTADO'
+
+export interface PaymentLinkDiscountView {
+  name: string
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+  value: number
+  origen: 'MANUAL' | 'CATALOGO'
+  /** Sólo en la respuesta autenticada del panel. */
+  discountId?: string | null
+}
+
 export interface PaymentLink {
   id: string
   shortCode: string
@@ -56,6 +71,9 @@ export interface PaymentLink {
   redirectUrl?: string
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
+  discount?: PaymentLinkDiscountView | null
+  discountStatus?: PaymentLinkDiscountStatus | null
+  discountValidUntil?: string | null
   status: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'ARCHIVED'
   totalCollected: number
   paymentCount: number
@@ -101,6 +119,8 @@ export interface CreatePaymentLinkRequest {
   /** Staff members who share commission when sales come via this link.
    *  [] / omitted = no commission. N IDs = commission split equally (1/N each). */
   attributedStaffIds?: string[]
+  /** Descuento opcional; omitirlo = sin descuento. */
+  discount?: PaymentLinkDiscountInput
 }
 
 export interface UpdatePaymentLinkRequest {
@@ -123,6 +143,8 @@ export interface UpdatePaymentLinkRequest {
   }> | null
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
+  /** Omitir = no cambiar; null = quitar. Sólo mandarlo si el usuario lo tocó. */
+  discount?: PaymentLinkDiscountInput | null
 }
 
 export const paymentLinkService = {
