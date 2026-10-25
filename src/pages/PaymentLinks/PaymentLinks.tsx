@@ -17,7 +17,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -210,8 +210,13 @@ export default function PaymentLinks() {
   })
 
   // Quitar un descuento no pide `discounts:apply`: sólo `payment-link:update`.
+  // Un doble clic llega antes de que `isPending` se pinte: el ref frena el segundo en el mismo instante.
+  const removingDiscount = useRef(false)
   const removeDiscountMutation = useMutation({
     mutationFn: (linkId: string) => paymentLinkService.updatePaymentLink(venueId, linkId, { discount: null }),
+    onSettled: () => {
+      removingDiscount.current = false
+    },
     onSuccess: () => {
       toast({ title: t('discountStatus.removed') })
       queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
@@ -641,7 +646,11 @@ export default function PaymentLinks() {
           <AlertDialogFooter>
             <AlertDialogCancel className="cursor-pointer">{t('confirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => removingDiscountLink && removeDiscountMutation.mutate(removingDiscountLink.id)}
+              onClick={() => {
+                if (!removingDiscountLink || removingDiscount.current) return
+                removingDiscount.current = true
+                removeDiscountMutation.mutate(removingDiscountLink.id)
+              }}
               disabled={removeDiscountMutation.isPending}
               className="cursor-pointer"
             >

@@ -175,13 +175,27 @@ describe('PaymentLinkDiscountSection', () => {
 })
 
 describe('catálogo grande, tope y mínimo', () => {
-  it('busca en el servidor y muestra «N de total» con «Refina tu búsqueda»', async () => {
-    mocks.getDiscounts.mockResolvedValue({ data: [disc({})], meta: { totalCount: 250 } })
+  it('con más páginas en el servidor no promete un total (puede haber vencidos allá) y pide refinar', async () => {
+    mocks.getDiscounts.mockResolvedValue({
+      data: [...Array.from({ length: 99 }, (_, i) => disc({ id: `d${i}` })), disc({ id: 'dv', validUntil: new Date(Date.now() - day).toISOString() })],
+      meta: { totalCount: 150 },
+    })
     render(<Harness initial={{ mode: 'CATALOG', discountId: '' }} />)
-    expect(await screen.findByText(/discount\.count.*"total":250/)).toBeInTheDocument()
+    expect(await screen.findByText(/discount\.countPartial.*"shown":99/)).toBeInTheDocument()
+    expect(screen.queryByText(/"total"/)).toBeNull()
     expect(screen.getByText(/discount\.refine/)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('discount.search'), { target: { value: 'may' } })
     await waitFor(() => expect(mocks.getDiscounts).toHaveBeenLastCalledWith('venue-a', expect.objectContaining({ search: 'may' })))
+  })
+
+  it('un vencido escondido no cuenta en el total ni pide refinar la búsqueda', async () => {
+    mocks.getDiscounts.mockResolvedValue({
+      data: [disc({}), disc({ id: 'd2' }), disc({ id: 'd3' }), disc({ id: 'd4', validUntil: new Date(Date.now() - day).toISOString() })],
+      meta: { totalCount: 4 },
+    })
+    render(<Harness initial={{ mode: 'CATALOG', discountId: '' }} />)
+    expect(await screen.findByText(/discount\.count.*"shown":3,"total":3/)).toBeInTheDocument()
+    expect(screen.queryByText(/discount\.refine/)).toBeNull()
   })
 
   it('un descuento elegido que no está en la página se trae por id y alimenta el aviso', async () => {

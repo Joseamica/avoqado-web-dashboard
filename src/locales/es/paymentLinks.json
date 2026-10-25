@@ -293,6 +293,7 @@
     "search": "Buscar descuento",
     "selected": "Elegido:",
     "count": "{{shown}} de {{total}}",
+    "countPartial": "{{shown}} mostrados",
     "refine": "Refina tu búsqueda",
     "minPurchase": "Este descuento pide una compra mínima de {{amount}}",
     "errorPick": "Elige un descuento del catálogo para poder guardar.",

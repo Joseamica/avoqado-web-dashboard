@@ -293,6 +293,7 @@
     "search": "Search discounts",
     "selected": "Selected:",
     "count": "{{shown}} of {{total}}",
+    "countPartial": "{{shown}} shown",
     "refine": "Refine your search",
     "minPurchase": "This discount requires a minimum purchase of {{amount}}",
     "errorPick": "Choose a catalog discount to be able to save.",

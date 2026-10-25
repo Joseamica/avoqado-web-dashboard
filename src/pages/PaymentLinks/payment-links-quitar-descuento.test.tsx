@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import PaymentLinks from './PaymentLinks'
 
@@ -70,5 +70,22 @@ describe('lista de ligas: quitar descuento', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'discountStatus.remove' }))
     fireEvent.click(await screen.findByRole('button', { name: 'confirm.removeDiscountConfirm' }))
     await waitFor(() => expect(mocks.update).toHaveBeenCalledWith('venue-a', 'l1', { discount: null }))
+  })
+
+  it('doble clic en confirmar manda una sola petición', async () => {
+    mocks.update.mockReturnValue(new Promise(() => {}))
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <PaymentLinks />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'discountStatus.remove' }))
+    const confirmar = await screen.findByRole('button', { name: 'confirm.removeDiscountConfirm' })
+    // Los dos clics llegan antes de que React vuelva a pintar (así pasa en el navegador con un doble clic).
+    await act(async () => {
+      confirmar.click()
+      confirmar.click()
+    })
+    expect(mocks.update).toHaveBeenCalledTimes(1)
   })
 })

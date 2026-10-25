@@ -60,10 +60,13 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
     staleTime: 30_000,
   })
   const now = Date.now()
-  const options = (catalog.data?.data ?? []).filter(
+  const rows = catalog.data?.data ?? []
+  const options = rows.filter(
     d => d.active && (!d.validFrom || new Date(d.validFrom).getTime() <= now) && (!d.validUntil || new Date(d.validUntil).getTime() >= now),
   )
-  const total = catalog.data?.meta?.totalCount ?? options.length
+  // El servidor no filtra por fechas: con más páginas no se sabe cuántos vigentes hay (puede haber vencidos allá),
+  // así que no se promete un total y se pide refinar.
+  const morePages = (catalog.data?.meta?.totalCount ?? rows.length) > rows.length
   const pickedId = value.mode === 'CATALOG' ? value.discountId : ''
   const inPage = options.find(d => d.id === pickedId)
   // Un descuento ya elegido (p. ej. al editar) puede no estar en esta página: se trae por id.
@@ -232,8 +235,9 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
           })}
           {catalog.data && options.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              {t('discount.count', { shown: options.length, total })}
-              {total > options.length && ` · ${t('discount.refine')}`}
+              {morePages
+                ? `${t('discount.countPartial', { shown: options.length })} · ${t('discount.refine')}`
+                : t('discount.count', { shown: options.length, total: options.length })}
             </p>
           )}
         </div>
