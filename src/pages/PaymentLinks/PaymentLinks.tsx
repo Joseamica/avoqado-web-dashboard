@@ -79,6 +79,8 @@ export default function PaymentLinks() {
   const debouncedSearch = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [archivingLink, setArchivingLink] = useState<PaymentLink | null>(null)
+  // Quitar el descuento cambia el precio de una liga que ya se compartió: se confirma antes.
+  const [removingDiscountLink, setRemovingDiscountLink] = useState<PaymentLink | null>(null)
 
   // FullScreenModal state
   const [showForm, setShowForm] = useState(false)
@@ -379,7 +381,7 @@ export default function PaymentLinks() {
             <PaymentLinkDiscountStatus
               link={row.original}
               canUpdate={can('payment-link:update')}
-              onRemove={() => removeDiscountMutation.mutate(row.original.id)}
+              onRemove={() => setRemovingDiscountLink(row.original)}
               onReplace={() => openEdit(row.original.id)}
               onArchive={() => setArchivingLink(row.original)}
             />
@@ -499,7 +501,7 @@ export default function PaymentLinks() {
         ),
       },
     ],
-    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation, removeDiscountMutation, can],
+    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation, can],
   )
 
   // ─── Render ──────────────────────────────────────────────
@@ -624,6 +626,26 @@ export default function PaymentLinks() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
             >
               {t('confirm.archiveConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Quitar descuento: confirmación */}
+      <AlertDialog open={!!removingDiscountLink} onOpenChange={open => !open && setRemovingDiscountLink(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('confirm.removeDiscountTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirm.removeDiscountDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">{t('confirm.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => removingDiscountLink && removeDiscountMutation.mutate(removingDiscountLink.id)}
+              disabled={removeDiscountMutation.isPending}
+              className="cursor-pointer"
+            >
+              {t('confirm.removeDiscountConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -270,3 +270,24 @@ describe('editar una liga con descuento', () => {
     expect(mocks.update.mock.calls[0][2]).toHaveProperty('discount', null)
   })
 })
+
+describe('donaciones', () => {
+  it('al crear un donativo no aparece la sección «Descuento»; en un pago sí', async () => {
+    const pintar = () =>
+      render(
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+          <CreatePaymentLinkDialog open onClose={vi.fn()} />
+        </QueryClientProvider>,
+      )
+    pintar()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.donationTitle' }))
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.continue' }))
+    await screen.findByRole('button', { name: 'form.save' })
+    expect(screen.queryByText('discount.title')).not.toBeInTheDocument()
+    cleanup()
+    pintar()
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.paymentTitle' }))
+    fireEvent.click(screen.getByRole('button', { name: 'wizard.continue' }))
+    expect(await screen.findByText('discount.title')).toBeInTheDocument()
+  })
+})

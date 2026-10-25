@@ -373,7 +373,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
       isReusable,
       ...(customFieldsEnabled && sanitizedFields.length > 0 ? { customFields: sanitizedFields } : { customFields: null }),
       ...(tippingConfig ? { tippingConfig } : { tippingConfig: null }),
-      ...discountPayload(discount, discountTouched),
+      ...(selectedPurpose === 'donation' ? {} : discountPayload(discount, discountTouched)),
       ...(expiresAt ? { expiresAt } : {}),
     }
 
@@ -451,7 +451,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   }
 
   const canSave =
-    !discountError(discount) &&
+    (selectedPurpose === 'donation' || !discountError(discount)) &&
     (selectedPurpose === 'item'
       ? selectedItems.length > 0
       : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0)))
@@ -989,22 +989,27 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
                 </div>
               )}
 
-              <hr className="border-border my-6" />
-              <PaymentLinkDiscountSection
-                value={discount}
-                onChange={v => {
-                  // El vencimiento que fijó el aviso era de OTRO descuento: se suelta.
-                  if (!(v.mode === 'CATALOG' && discount.mode === 'CATALOG' && v.discountId === discount.discountId)) setExpiresAt(null)
-                  setDiscount(v)
-                  setDiscountTouched(true)
-                }}
-                base={discountBase}
-                amountType={selectedPurpose === 'item' ? 'FIXED' : amountType}
-                canApply={can('discounts:apply')}
-                canRead={can('discounts:read')}
-                onSetExpiry={setExpiresAt}
-                expiresAt={expiresAt}
-              />
+              {/* Las donaciones no llevan descuento (el SERVIDOR lo rechaza). */}
+              {selectedPurpose !== 'donation' && (
+                <>
+                  <hr className="border-border my-6" />
+                  <PaymentLinkDiscountSection
+                    value={discount}
+                    onChange={v => {
+                      // El vencimiento que fijó el aviso era de OTRO descuento: se suelta.
+                      if (!(v.mode === 'CATALOG' && discount.mode === 'CATALOG' && v.discountId === discount.discountId)) setExpiresAt(null)
+                      setDiscount(v)
+                      setDiscountTouched(true)
+                    }}
+                    base={discountBase}
+                    amountType={selectedPurpose === 'item' ? 'FIXED' : amountType}
+                    canApply={can('discounts:apply')}
+                    canRead={can('discounts:read')}
+                    onSetExpiry={setExpiresAt}
+                    expiresAt={expiresAt}
+                  />
+                </>
+              )}
               <hr className="border-border my-6" />
 
               <PaymentLinkCustomerSection

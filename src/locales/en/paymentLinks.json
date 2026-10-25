@@ -223,6 +223,9 @@
     "archiveTitle": "Archive this payment link?",
     "archiveDescription": "This link will no longer be accessible to customers. This action cannot be undone.",
     "archiveConfirm": "Archive",
+    "removeDiscountTitle": "Remove the discount from this link?",
+    "removeDiscountDescription": "Anyone who opens the link will pay the full price, including people who already received it.",
+    "removeDiscountConfirm": "Remove discount",
     "cancel": "Cancel"
   },
   "customer": {

@@ -223,6 +223,9 @@
     "archiveTitle": "¿Archivar esta liga de pago?",
     "archiveDescription": "Esta liga dejará de ser accesible para los clientes. Esta acción no se puede deshacer.",
     "archiveConfirm": "Archivar",
+    "removeDiscountTitle": "¿Quitar el descuento de esta liga?",
+    "removeDiscountDescription": "Quien abra la liga pagará el precio completo, también quien ya la recibió.",
+    "removeDiscountConfirm": "Quitar descuento",
     "cancel": "Cancelar"
   },
   "customer": {
