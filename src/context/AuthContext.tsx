@@ -120,6 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     queryFn: authService.getAuthStatus,
     staleTime: 1 * 60 * 1000, // 1 minute - faster sync for KYC/status changes
     retry: false,
+    // /auth/entrar canjea un boleto y pone cookies nuevas: ahí el proveedor NUNCA consulta /status (ni al
+    // montar ni por foco/reconexión), porque una respuesta tardía con la cookie vieja (401) borraría la nueva.
+    // La página pide su propio status tras el canje y lo guarda con setQueryData.
+    enabled: location.pathname !== '/auth/entrar',
   })
 
   const isAuthenticated = !!statusData?.authenticated
