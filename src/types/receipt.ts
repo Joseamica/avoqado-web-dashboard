@@ -40,11 +40,25 @@ export interface ReceiptOrderItem {
   price: number
   totalPrice: number
   modifiers: ReceiptModifier[]
+  /** Producto por peso (D8): `price` es por kilo y `quantity` vale 1. */
+  weightKg?: number | null
 }
 
 export interface ReceiptModifier {
   name: string
   price: number
+  /** Veces que va el extra (D8); sin el campo o 1, una. */
+  quantity?: number
+}
+
+/** Un producto como lo guarda el recibo de la terminal, en `items` fuera de `order` (D8). */
+export interface ReceiptTerminalItem {
+  productName?: string
+  quantity: number
+  unitPrice: number
+  total: number
+  weightKg?: number | null
+  modifiers?: { name: string; quantity?: number; price: number }[]
 }
 
 export interface ReceiptTable {
@@ -100,6 +114,8 @@ export interface UnifiedReceiptData {
   customer?: ReceiptCustomer
   /** Aditivo (plan 7 de IVA). Ausente en recibos viejos: el visor muestra lo cobrado sin desglose. */
   ticketTotals?: ReceiptTicketTotals | null
+  /** Los productos del recibo de la terminal (D8); el visor los lee con `productosDelRecibo`. */
+  items?: ReceiptTerminalItem[]
 }
 
 // Full receipt with metadata

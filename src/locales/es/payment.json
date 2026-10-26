@@ -193,6 +193,8 @@
       "customer": "Cliente",
       "itemsTitle": "Productos ordenados",
       "quantity": "Cantidad: {{count}}",
+      "weightPrice": "{{weight}} kg × {{price}}/kg",
+      "weight": "Peso: {{weight}} kg",
       "unitPrice": "{{count}}× {{price}}",
       "noItems": "No se registraron productos individuales",
       "orderTotal": "Total de la orden",
