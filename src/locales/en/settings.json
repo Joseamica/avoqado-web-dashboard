@@ -568,6 +568,7 @@
       "cash-out_report": "View withdrawal reports",
       "activity_read": "View activity log",
       "orders_cancel-unpaid": "Cancel unpaid checks",
+      "orders_attach-customer": "Assign customers to paid sales (manager or above)",
       "orders_comp": "Comp a check",
       "orders_void": "Void checks",
       "estimates_create": "Create estimates",
