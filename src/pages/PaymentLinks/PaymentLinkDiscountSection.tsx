@@ -220,14 +220,16 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
                   isSel ? 'border-primary bg-primary/10' : 'border-border'
                 } ${ok ? 'cursor-pointer hover:bg-muted/50' : 'cursor-not-allowed opacity-60'}`}
               >
-                <span className="flex items-center gap-2">
-                  {!ok && <Lock className="h-4 w-4" aria-hidden />}
-                  <span className="font-medium">{d.name}</span>
-                  {!ok && d.paymentLinkCompatibility?.razon && (
-                    <span className="text-xs text-muted-foreground">{d.paymentLinkCompatibility.razon}</span>
-                  )}
+                <span className="flex min-w-0 items-start gap-2">
+                  {!ok && <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />}
+                  <span className="min-w-0">
+                    <span className="block font-medium">{d.name}</span>
+                    {!ok && d.paymentLinkCompatibility?.razon && (
+                      <span className="block text-xs text-muted-foreground">{d.paymentLinkCompatibility.razon}</span>
+                    )}
+                  </span>
                 </span>
-                <span className="text-muted-foreground">
+                <span className="shrink-0 whitespace-nowrap pl-3 text-muted-foreground">
                   {d.type === 'PERCENTAGE' ? `${Number(d.value)} %` : Currency(Number(d.value))}
                 </span>
               </button>

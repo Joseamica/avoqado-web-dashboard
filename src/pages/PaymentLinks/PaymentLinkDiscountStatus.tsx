@@ -34,13 +34,15 @@ export function PaymentLinkDiscountStatus({ link, canUpdate, onRemove, onReplace
         ⚠ {t(`discountStatus.${discountStatus}`)}
       </Badge>
       {canUpdate && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           <Button variant="link" size="sm" className="h-auto p-0 text-xs cursor-pointer" onClick={onRemove}>
             {t('discountStatus.remove')}
           </Button>
+          <span aria-hidden>·</span>
           <Button variant="link" size="sm" className="h-auto p-0 text-xs cursor-pointer" onClick={onReplace}>
             {t('discountStatus.replace')}
           </Button>
+          <span aria-hidden>·</span>
           <Button variant="link" size="sm" className="h-auto p-0 text-xs text-destructive cursor-pointer" onClick={onArchive}>
             {t('discountStatus.archive')}
           </Button>
