@@ -1,4 +1,20 @@
 ;(function () {
+  // Boleto del alta con código (/auth/entrar#boleto=...): credencial de un solo uso. Este es el primer
+  // script del <head>, ANTES de gtag/oaiq/PostHog, que leen la URL. Lo guarda y lo borra de ella.
+  // Espejo de src/lib/boleto-de-alta-capture.ts (que lo recoge de aquí).
+  if (window.location.pathname === '/auth/entrar') {
+    var m = /(?:^#|&)boleto=([^&]+)/.exec(window.location.hash)
+    if (m) {
+      var b = decodeURIComponent(m[1])
+      window.__avqBoletoAlta = b
+      try {
+        sessionStorage.setItem('avq_boleto_alta', b)
+      } catch (e) {}
+      window.history.replaceState(null, '', '/auth/entrar')
+    }
+  }
+})()
+;(function () {
   var isPrivate = function (pathname) {
     return /^\/documentos(?:\/|$)/.test(pathname)
   }

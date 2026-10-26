@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { contrasenaNuevaZod } from '@/lib/contrasenaNueva'
 
 export default function SecuritySettings() {
   const { t } = useTranslation(['settings', 'account', 'common'])
@@ -75,7 +76,13 @@ export default function SecuritySettings() {
               <FormField
                 control={passwordForm.control}
                 name="password"
-                rules={{ required: t('account:password.dialog.newPasswordRequired') }}
+                rules={{
+                  required: t('account:password.dialog.newPasswordRequired'),
+                  validate: value => {
+                    const r = contrasenaNuevaZod(t).safeParse(value)
+                    return r.success || r.error.issues[0].message
+                  },
+                }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('settings:security.newPassword')}</FormLabel>

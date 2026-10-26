@@ -1527,9 +1527,6 @@
       "processingError": "Ocurrió un error al procesar la invitación",
       "validation": {
         "passwordMin": "La contraseña debe tener al menos 8 caracteres",
-        "passwordUppercase": "La contraseña debe contener al menos una letra mayúscula",
-        "passwordLowercase": "La contraseña debe contener al menos una letra minúscula",
-        "passwordNumber": "La contraseña debe contener al menos un número",
         "passwordsMismatch": "Las contraseñas no coinciden"
       }
     },

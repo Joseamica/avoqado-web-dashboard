@@ -76,6 +76,7 @@ import {
   SettlementReport,
   ResetPassword,
   ConfirmEmailChange,
+  EntrarConBoleto,
   RevenueDashboard,
   SerializedSalesDemo,
   SettlementConfigurations,
@@ -161,6 +162,11 @@ const router = createBrowserRouter(
           // El correo de una cuenta cambia SÓLO aquí, al abrir el enlace que llegó al correo nuevo.
           path: '/auth/confirm-email-change',
           element: <ConfirmEmailChange />,
+        },
+        {
+          // Alta con código: canjea el boleto (guardado por capturarBoletoDeAlta) por la sesión.
+          path: '/auth/entrar',
+          element: <EntrarConBoleto />,
         },
         {
           path: '/auth/verify-email',
