@@ -35,6 +35,7 @@ import type { UnifiedReceiptData, DigitalReceipt } from '@/types/receipt'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { totalesDelRecibo } from '@/components/receipts/totalesDelRecibo'
+import { productosDelRecibo } from '@/components/receipts/productosDelRecibo'
 
 // Component Props
 interface ModernReceiptDesignProps {
@@ -187,10 +188,12 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   // Error state
   if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} />
 
-  const { payment, venue, order, processedBy, customer } = data
+  const { payment, venue, processedBy, customer } = data
   // IVA por producto, plan 7 (D3; r1 #2, #8, #9; A7-R6): el visor NO calcula IVA. Los totales los congela el servidor; sin ellos
   // (recibo viejo), lo cobrado en ESE pago sin desglose. Una devolución va en magnitudes aunque quien abre el visor no pase `isRefund`.
   const totales = totalesDelRecibo(data)
+  // D8: los productos del panel (`order.items`) o los de la terminal (`items`, otro formato).
+  const productos = productosDelRecibo(data)
   // T5 ronda 1: el tipo congelado decide TODO el visor (encabezado, método de pago, pie y totales); `?refund=true` sólo respalda a un
   // recibo viejo que no lo trae. Una devolución nunca dice «Pago completado».
   const tipoCongelado = data.ticketTotals && typeof data.ticketTotals.total === 'number' ? data.ticketTotals.kind : null
@@ -447,7 +450,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               )}
 
               {/* Order Items - Only show if there are items */}
-              {(order?.items?.length ?? 0) > 0 && (
+              {productos.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-amber-500" />
@@ -455,7 +458,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   </h2>
 
                   <div className="space-y-3">
-                    {order!.items!.map((item, index) => (
+                    {productos.map((item, index) => (
                       <div key={index} className="bg-background border border-border/50 rounded-xl p-4 hover:shadow-sm transition-shadow">
                         <div className="flex justify-between items-start">
                           <div className="flex-1 space-y-2">
@@ -464,14 +467,18 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                               <div className="text-right ml-4">
                                 <div className="font-bold text-lg">{formatCurrency(item.totalPrice)}</div>
                                 <div className="text-xs text-muted-foreground">
-                                  {t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
+                                  {item.weightKg
+                                    ? t('receipt.labels.weightPrice', { weight: item.weightKg, price: formatCurrency(item.price) })
+                                    : t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
                                 </div>
                               </div>
                             </div>
 
                             {/* Quantity Badge */}
                             <Badge variant="secondary" className="w-fit text-xs">
-                              {t('receipt.labels.quantity', { count: item.quantity })}
+                              {item.weightKg
+                                ? t('receipt.labels.weight', { weight: item.weightKg })
+                                : t('receipt.labels.quantity', { count: item.quantity })}
                             </Badge>
 
                             {/* Modifiers */}
@@ -479,7 +486,10 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                               <div className="space-y-1 mt-2 pl-3 border-l-2 border-muted">
                                 {item.modifiers.map((modifier, modIndex) => (
                                   <div key={modIndex} className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">+ {modifier.name}</span>
+                                    <span className="text-muted-foreground">
+                                      + {(modifier.quantity ?? 1) > 1 ? `${modifier.quantity}× ` : ''}
+                                      {modifier.name}
+                                    </span>
                                     <span className="font-medium">{formatCurrency(modifier.price)}</span>
                                   </div>
                                 ))}
