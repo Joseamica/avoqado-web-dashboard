@@ -573,6 +573,7 @@
       "cash-out_report": "Ver reportes de retiros",
       "activity_read": "Ver registro de actividad",
       "orders_cancel-unpaid": "Cancelar cuentas sin cobrar",
+      "orders_attach-customer": "Asignar cliente a ventas cobradas (gerente o superior)",
       "orders_comp": "Dar cortesía a una cuenta",
       "orders_void": "Anular cuentas",
       "estimates_create": "Crear cotizaciones",
