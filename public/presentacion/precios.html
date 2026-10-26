@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Precios de Avoqado</title>
+<link rel="icon" href="https://avoqado.io/isotipo.svg">
+<!--
+  Presentación de precios (spec docs/superpowers/specs/2026-10-26-presentacion-de-precios-design.md).
+  Los precios NO viven aquí: se leen en vivo del SERVIDOR (GET /api/v1/public/price-list), que los toma del tablero
+  «Precios» del SUPERADMIN. El look copia los correos de Avoqado (buildPlanEmailHtml en avoqado-server).
+-->
+<style>
+  :root { --ink: #000; --muted: #666; --line: #e0e0e0; --soft: #f6f6f6; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: #fff; color: var(--ink); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 32px 16px 320px; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; padding-bottom: 32px; }
+  h1 { margin: 0 0 8px; font-size: 32px; font-weight: 400; line-height: 1.2; }
+  .sub { margin: 0 0 24px; font-size: 14px; color: var(--muted); }
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 32px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  .card b { display: block; font-size: 16px; }
+  .card .p { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .card small { color: var(--muted); font-size: 12px; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+    margin: 28px 0 4px; }
+  .row { display: grid; grid-template-columns: 24px 1fr auto; gap: 4px 12px; padding: 12px 0;
+    border-bottom: 1px solid var(--line); align-items: start; }
+  .row input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: #000; }
+  .row label, .row .name { font-size: 15px; font-weight: 600; cursor: pointer; }
+  .row .name { cursor: default; }
+  .row .price { font-size: 15px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .row .price.muted { color: var(--muted); font-weight: 400; }
+  .row .meta { grid-column: 2 / 4; font-size: 13px; color: var(--muted); }
+  .row .meta span { display: block; }
+  .row .need { color: var(--ink); }
+  .row.on { background: var(--soft); margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 6px; }
+  .btn { background: #000; color: #fff; border: 0; border-radius: 6px; padding: 14px 24px; font-weight: 600;
+    font-size: 14px; cursor: pointer; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.ghost { background: #fff; color: #000; border: 1px solid var(--line); }
+  :focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+  .state { border: 1px solid var(--line); border-radius: 8px; padding: 20px; font-size: 14px; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.06); }
+  .bar .in { max-width: 600px; margin: 0 auto; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .bar .sum { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .bar .total { font-size: 22px; font-variant-numeric: tabular-nums; }
+  .bar .count { font-size: 13px; color: var(--muted); }
+  .advice { margin: 8px 0 0; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .form { display: grid; gap: 8px; margin: 10px 0 0; }
+  .form input { font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; }
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .actions .btn { flex: 1; }
+  .msg { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .msg.err { color: #b00020; }
+  footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .print-only { display: none; }
+  @media (max-width: 420px) { .plans { grid-template-columns: 1fr; } h1 { font-size: 28px; } }
+  @page { margin: 14mm; }
+  @media print {
+    .bar, .no-print, .row input { display: none !important; }
+    .print-only { display: block; }
+    .wrap { padding: 0; max-width: none; }
+    .row { grid-template-columns: 1fr auto; break-inside: avoid; }
+    .row .meta { grid-column: 1 / 3; }
+    .row.on { background: none; margin: 0; padding-left: 0; padding-right: 0; }
+    h2 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand"><img src="https://avoqado.io/isotipo.svg" alt="" width="32" height="32"> Avoqado</div>
+  <h1 id="hola">Precios de Avoqado</h1>
+  <p class="sub">Elige lo que necesita tu negocio. Precios mensuales en pesos, IVA incluido.</p>
+  <p class="sub print-only" id="vigencia"></p>
+  <div id="estado" class="state" role="status">Cargando precios…</div>
+  <section id="planes" class="plans" hidden></section>
+  <section id="lista"></section>
+  <p class="no-print" id="pdf-wrap" hidden><button class="btn ghost" id="pdf" type="button">Descargar PDF</button></p>
+  <footer>
+    <strong style="color:#000">Avoqado</strong><br>
+    Servicios Tecnológicos Avo S.A. de C.V. · Ciudad de México, México
+  </footer>
+</main>
+
+<div class="bar" id="barra" hidden>
+  <div class="in">
+    <div class="sum">
+      <div><span class="total" id="total">$0.00</span> <span class="count">/mes</span></div>
+      <div class="count" id="cuenta">Ningún módulo</div>
+    </div>
+    <p class="advice" id="consejo" hidden></p>
+    <form class="form" id="datos" hidden novalidate>
+      <input id="f-nombre" name="nombre" autocomplete="name" maxlength="80" placeholder="Tu nombre" aria-label="Tu nombre">
+      <input id="f-tel" name="telefono" type="tel" autocomplete="tel" maxlength="20" placeholder="Tu teléfono" aria-label="Tu teléfono">
+    </form>
+    <div class="actions"><button class="btn" id="enviar" type="button" disabled>Enviar</button></div>
+    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Destino FIJO por dominio: una liga no puede mandar los datos de nadie a otro servidor. En localhost (sólo QA) se
+  // acepta ?api= únicamente hacia otro puerto de la misma máquina.
+  const API = (() => {
+    const host = location.hostname
+    if (host !== 'localhost' && host !== '127.0.0.1') return 'https://api.avoqado.io'
+    const pedido = new URLSearchParams(location.search).get('api') || ''
+    return /^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}$/.test(pedido) ? pedido : 'http://localhost:3000'
+  })() + '/api/v1/public'
+
+  const q = new URLSearchParams(location.search)
+  const persona = {
+    nombre: (q.get('nombre') || '').trim().slice(0, 80),
+    telefono: (q.get('telefono') || q.get('tel') || '').trim().slice(0, 20),
+  }
+  const conocida = !!(persona.nombre || persona.telefono)
+
+  const $ = id => document.getElementById(id)
+  const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+  const fmt = cents => money.format(cents / 100)
+  const cents = price => Math.round(price * 100)
+  const el = (tag, props, ...kids) => {
+    const node = Object.assign(document.createElement(tag), props || {})
+    for (const kid of kids) if (kid != null) node.append(kid)
+    return node
+  }
+
+  let lista = null          // { plans, features } del SERVIDOR
+  const elegidos = new Set() // lo que la persona palomeó (los requisitos se agregan solos al calcular)
+  let enviando = false
+
+  // Espejo de priceSelection (SERVIDOR, publicPriceList.service.ts) SÓLO para pintar: el correo usa la cuenta del servidor.
+  function cuenta(ids) {
+    const porId = new Map(lista.features.map(f => [f.id, f]))
+    const tomados = new Set()
+    const agrega = id => {
+      const f = porId.get(id)
+      if (!f || f.kind !== 'SUELTA' || tomados.has(id)) return
+      tomados.add(id)
+      f.requires.forEach(agrega)
+    }
+    ids.forEach(agrega)
+    const chosen = lista.features.filter(f => tomados.has(f.id))
+    const quoted = lista.features.filter(f => f.kind === 'SE_COTIZA' && ids.includes(f.id))
+    const suma = fs => fs.reduce((t, f) => t + cents(f.price), 0)
+    const options = [{ kind: 'SUELTO', totalCents: suma(chosen), extras: [] }].concat(
+      lista.plans.map(p => {
+        const extras = chosen.filter(f => !f.includedIn.includes(p.tier))
+        return { kind: p.tier, name: p.name, totalCents: cents(p.price) + suma(extras), extras }
+      }),
+    )
+    const best = options.reduce((min, o) => (o.totalCents < min.totalCents ? o : min))
+    return { chosen, quoted, options, best, savingsCents: options[0].totalCents - best.totalCents }
+  }
+
+  // Quién obliga a quién: «Inventario FIFO» queda palomeada y bloqueada mientras «Reorden automático» siga elegida.
+  function forzadoPor(id) {
+    for (const otro of elegidos) {
+      if (otro === id) continue
+      const visto = new Set()
+      const pila = [otro]
+      while (pila.length) {
+        const siguiente = pila.pop()
+        const f = lista.features.find(x => x.id === siguiente)
+        if (!f || visto.has(f.id)) continue
+        visto.add(f.id)
+        if (f.requires.includes(id)) return lista.features.find(x => x.id === otro)
+        pila.push(...f.requires)
+      }
+    }
+    return null
+  }
+
+  function pintar() {
+    $('estado').hidden = true
+    $('hola').textContent = persona.nombre ? `Hola, ${persona.nombre}` : 'Precios de Avoqado'
+    const fecha = new Intl.DateTimeFormat('es-MX', { dateStyle: 'long', timeZone: 'America/Mexico_City' }).format(new Date())
+    $('vigencia').textContent = `Precios vigentes al ${fecha}${persona.nombre ? ` · Preparado para ${persona.nombre}` : ''}`
+
+    const planes = $('planes')
+    planes.replaceChildren(
+      ...lista.plans.map(p => {
+        const n = lista.features.filter(f => f.kind === 'SUELTA' && f.includedIn.includes(p.tier)).length
+        return el('div', { className: 'card' },
+          el('b', { textContent: `Plan ${p.name}` }),
+          el('div', { className: 'p', textContent: `${money.format(p.price)}/mes` }),
+          el('small', { textContent: `IVA incluido · trae ${n} de las funciones de abajo` }))
+      }),
+    )
+    planes.hidden = lista.plans.length === 0
+
+    const secciones = []
+    let actual = null
+    for (const f of lista.features) {
+      if (!actual || actual.cat !== f.category) {
+        actual = { cat: f.category, nodo: el('div', null, el('h2', { textContent: f.categoryLabel })) }
+        secciones.push(actual.nodo)
+      }
+      actual.nodo.append(fila(f))
+    }
+    $('lista').replaceChildren(...secciones)
+    $('pdf-wrap').hidden = false
+    $('barra').hidden = false
+    total()
+  }
+
+  function fila(f) {
+    const id = `f-${f.id}`
+    const forz = f.kind === 'SUELTA' ? forzadoPor(f.id) : null
+    const marcado = elegidos.has(f.id) || !!forz
+    const meta = el('div', { className: 'meta' }, el('span', { textContent: f.description }))
+    if (f.requirement) meta.append(el('span', { textContent: f.requirement }))
+    if (forz) meta.append(el('span', { className: 'need', textContent: `La necesita ${forz.name}` }))
+    if (f.kind === 'SUELTA' && f.includedIn.length)
+      meta.append(el('span', { textContent: `Incluida en ${f.includedIn.map(t => (t === 'PRO' ? 'Pro' : 'Premium')).join(' y ')}` }))
+    const precio =
+      f.kind === 'SUELTA' ? el('div', { className: 'price', textContent: money.format(f.price) })
+      : el('div', { className: 'price muted', textContent: f.kind === 'INCLUIDO' ? 'Incluido' : 'Se cotiza' })
+    if (f.kind === 'INCLUIDO') {
+      meta.append(el('span', { textContent: 'Viene en todos los planes, también en el gratis.' }))
+      return el('div', { className: 'row' }, el('span', { className: 'no-print' }), el('span', { className: 'name', textContent: f.name }), precio, meta)
+    }
+    const caja = el('input', { type: 'checkbox', id, checked: marcado, disabled: !!forz })
+    caja.addEventListener('change', () => {
+      caja.checked ? elegidos.add(f.id) : elegidos.delete(f.id)
+      pintar()
+      document.getElementById(id)?.focus()
+    })
+    return el('div', { className: `row${marcado ? ' on' : ''}` }, caja, el('label', { htmlFor: id, textContent: f.name }), precio, meta)
+  }
+
+  function total() {
+    const r = cuenta([...elegidos])
+    const n = r.chosen.length + r.quoted.length
+    $('total').textContent = fmt(r.options[0].totalCents)
+    $('cuenta').textContent = n === 0 ? 'Ningún módulo' : `${n} ${n === 1 ? 'módulo' : 'módulos'}${r.quoted.length ? ` · ${r.quoted.length} se cotiza aparte` : ''}`
+    const consejo = $('consejo')
+    if (r.best.kind === 'SUELTO') consejo.hidden = true
+    else {
+      const extra = r.best.extras.length ? ` + ${r.best.extras.map(f => f.name).join(', ')}` : ''
+      const mas = lista.features.filter(f => f.kind === 'SUELTA' && f.includedIn.includes(r.best.kind) && !r.chosen.includes(f)).length
+      consejo.textContent = `💡 Te conviene el plan ${r.best.name}${extra}: ${fmt(r.best.totalCents)}/mes, ahorras ${fmt(r.savingsCents)} al mes` +
+        (mas ? ` y trae ${mas} funciones más.` : '.')
+      consejo.hidden = false
+    }
+    $('enviar').disabled = enviando || n === 0
+  }
+
+  async function cargar() {
+    const r = await fetch(`${API}/price-list`, { cache: 'no-store' })
+    if (!r.ok) throw new Error(String(r.status))
+    lista = (await r.json()).data
+    // Lo palomeado que ya no está a la venta se suelta; lo demás se conserva.
+    for (const id of [...elegidos]) if (!lista.features.some(f => f.id === id && f.kind !== 'INCLUIDO')) elegidos.delete(id)
+  }
+
+  async function iniciar() {
+    $('estado').hidden = false
+    $('estado').replaceChildren('Cargando precios…')
+    try {
+      await cargar()
+      pintar()
+    } catch {
+      const otra = el('button', { className: 'btn ghost', type: 'button', textContent: 'Reintentar' })
+      otra.addEventListener('click', iniciar)
+      $('estado').replaceChildren(el('p', { textContent: 'No pudimos cargar los precios. Revisa tu conexión y vuelve a intentar.', style: 'margin:0 0 12px' }), otra)
+    }
+  }
+
+  function aviso(texto, error) {
+    $('msg').textContent = texto
+    $('msg').className = error ? 'msg err' : 'msg'
+  }
+
+  $('enviar').addEventListener('click', async () => {
+    if (enviando) return
+    let { nombre, telefono } = persona
+    if (!conocida) {
+      if ($('datos').hidden) {
+        $('datos').hidden = false
+        $('f-nombre').focus()
+        aviso('Escribe tu nombre y tu teléfono y vuelve a tocar Enviar.')
+        return
+      }
+      nombre = $('f-nombre').value.trim()
+      telefono = $('f-tel').value.trim()
+      if (!nombre || !/\d{7,}/.test(telefono.replace(/\D/g, ''))) {
+        aviso('Escribe tu nombre y un teléfono para que te contactemos.', true)
+        ;(nombre ? $('f-tel') : $('f-nombre')).focus()
+        return
+      }
+    }
+    enviando = true
+    total()
+    $('enviar').textContent = 'Enviando…'
+    aviso('')
+    try {
+      const r = await fetch(`${API}/price-list/selection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombre || undefined, telefono: telefono || undefined, ids: [...elegidos], pageUri: location.href }),
+      })
+      const body = await r.json().catch(() => ({}))
+      if (r.ok) {
+        // Se ocultan el botón y el formulario pero NO se quitan: el PDF vuelve a pintar el total (Codex r1 #1).
+        $('enviar').hidden = true
+        $('datos').hidden = true
+        $('consejo').hidden = true
+        aviso(`Listo${nombre ? `, ${nombre}` : ''}. Recibimos tu selección; te contactamos pronto.`)
+        $('msg').style.fontSize = '16px'
+        return
+      }
+      if (body.code === 'PRICE_LIST_CHANGED') {
+        await cargar()
+        pintar()
+        aviso('Algunos precios cambiaron. Revisa tu selección y vuelve a enviar.', true)
+      } else if (r.status === 429) aviso('Espera un minuto y vuelve a intentar.', true)
+      else aviso(r.status === 400 && body.message ? body.message.replace(/^Error de validación: /, '').replace(/(^|, )[a-zA-Z.]+: /g, '$1') : 'No pudimos enviar tu selección. Intenta de nuevo.', true)
+    } catch {
+      aviso('No pudimos enviar tu selección. Revisa tu conexión e intenta de nuevo.', true)
+    } finally {
+      enviando = false
+      $('enviar').textContent = 'Enviar'
+      total()
+    }
+  })
+
+  // Enter en el formulario envía; nunca recarga la página (se perdería lo palomeado).
+  $('datos').addEventListener('submit', e => {
+    e.preventDefault()
+    $('enviar').click()
+  })
+
+  // El PDF siempre sale con el precio de ESE momento: se relee la lista antes de imprimir.
+  $('pdf').addEventListener('click', async () => {
+    try {
+      await cargar()
+      pintar()
+    } catch {
+      // Sin relectura no hay PDF: imprimiría precios que quizá ya cambiaron con la fecha de hoy.
+      aviso('No pudimos actualizar los precios para el PDF. Revisa tu conexión e intenta de nuevo.', true)
+      return
+    }
+    window.print()
+  })
+
+  iniciar()
+})()
+</script>
+</body>
+</html>
