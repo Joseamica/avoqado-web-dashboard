@@ -191,6 +191,19 @@
       "unavailableError": "We could not verify or save the setting. Please try again.",
       "saveError": "An error occurred while saving the setting."
     },
+    "exchanges": {
+      "title": "Product exchanges",
+      "switchLabel": "Product exchanges",
+      "enabledDescription": "Cashiers can exchange the size or product of a paid sale from the POS.",
+      "disabledDescription": "The \"Exchange\" button does not appear in the POS.",
+      "enabledTitle": "Product exchanges enabled",
+      "disabledTitle": "Product exchanges disabled",
+      "saved": "Settings saved successfully.",
+      "readOnly": "You need permission to update venue settings.",
+      "errorTitle": "Change not saved",
+      "permissionError": "You do not have permission to change this setting.",
+      "saveError": "An error occurred while saving the setting."
+    },
     "managerPinOverride": {
       "title": "Manager passcode approval",
       "description": "When someone tries an action they don't have permission for, the point of sale asks a manager for their code to approve it that one time. The terminal is never left elevated.",

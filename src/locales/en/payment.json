@@ -1,4 +1,71 @@
 {
+  "exchange": {
+    "title": "Exchange",
+    "asOriginal": "Exchanged in {{order}}",
+    "asNew": "Exchange from {{order}}",
+    "more": "and {{count}} more · View all",
+    "status": {
+      "completed": "Completed",
+      "pendingPayment": "Collecting the difference",
+      "needsReview": "Needs review",
+      "cancelled": "Cancelled"
+    },
+    "reviewed": "Reviewed",
+    "viewDetail": "View detail: {{order}}",
+    "hideDetail": "Hide detail: {{order}}",
+    "viewDetailShort": "View detail",
+    "hideDetailShort": "Hide detail",
+    "loading": "Loading exchange…",
+    "loadError": "Could not load the exchange.",
+    "retry": "Retry",
+    "requestedReturned": "Products requested to return",
+    "returned": "Returned products",
+    "taken": "Took",
+    "requestedTaken": "Requested to take",
+    "restocked": "Returned to inventory",
+    "requestedRestock": "Requested to return to inventory",
+    "noRestock": "No return to inventory",
+    "quantityValue": "Quantity: {{quantity}} · Value: {{value}}",
+    "quantityPrice": "Quantity: {{quantity}} · Total value: {{price}}",
+    "inheritedPrice": "Inherited price: {{price}}",
+    "piecePrice": "Price per piece: {{price}}",
+    "difference": "Difference: {{amount}}",
+    "returnedTotal": "Value of products to return: {{amount}}",
+    "takenTotal": "New products value: {{amount}}",
+    "settled": "Settlement",
+    "requestedSettlement": "Planned settlement",
+    "settlementAmount": "Amount: {{amount}}",
+    "settlement": {
+      "even": "Even exchange",
+      "collect": "Collect the difference",
+      "payout": "Pay out the difference"
+    },
+    "methods": {
+      "cash": "Cash",
+      "card": "Card on terminal",
+      "bankTransfer": "Bank transfer",
+      "giftCard": "Store credit",
+      "tender": "Original payment method"
+    },
+    "reasons": {
+      "size": "Size",
+      "taste": "Preference",
+      "defect": "Defect"
+    },
+    "reviewReasons": {
+      "chargeAmountMismatch": "The terminal charged a different amount",
+      "lateChargeAfterRelease": "The charge arrived after cancelling the exchange",
+      "originalChangedWhilePending": "The original sale changed while collecting payment"
+    },
+    "staff": "Performed by: {{name}}",
+    "expectedCharge": "Expected amount: {{amount}}",
+    "charged": "Charged: {{amount}}",
+    "chargedCount": "Charged: {{amount}} in {{count}} payments",
+    "chargedCount_one": "Charged: {{amount}} in {{count}} payment",
+    "chargedCount_other": "Charged: {{amount}} in {{count}} payments",
+    "viewPayment": "View payment {{id}}",
+    "reviewedAt": "Reviewed: {{date}}"
+  },
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",
   "errorPrefix": "Failed to load payments",
