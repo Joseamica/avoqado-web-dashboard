@@ -91,7 +91,7 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
       },
       {
         id: 'reason',
-        header: t('refunds.columns.reason'),
+        header: t('refunds.exchangesToReview.reviewReason'),
         cell: ({ row }) => (row.original.reviewReason ? exchangeReviewReasonLabel(row.original.reviewReason, paymentT) : '—'),
       },
       { id: 'staff', header: t('refunds.exchangesToReview.staff'), cell: ({ row }) => row.original.staffName ?? '—' },
@@ -204,7 +204,9 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
           onClose={() => setDetail(null)}
           title={paymentT('exchange.viewDetail', { order: detail.newOrderNumber ?? detail.originalOrderNumber ?? '—' })}
         >
-          <ExchangeDetailContent key={`${venueId}:${detail.id}`} exchangeId={detail.id} />
+          <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
+            <ExchangeDetailContent key={`${venueId}:${detail.id}`} exchangeId={detail.id} />
+          </div>
         </FullScreenModal>
       )}
       {selected && (

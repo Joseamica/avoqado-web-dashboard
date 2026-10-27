@@ -119,7 +119,9 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
             <p>{t('exchange.quantityPrice', { quantity: line.quantity, price: money(line.priceCents) })}</p>
             {line.pieces.map((piece, i) => (
               <p key={i} className="text-muted-foreground">
-                {t(piece.inheritedFromOrderItemId ? 'exchange.inheritedPrice' : 'exchange.piecePrice', { price: money(piece.priceCents) })}
+                {t(piece.inheritedFromOrderItemId && piece.priceCents < line.listCents ? 'exchange.inheritedPrice' : 'exchange.piecePrice', {
+                  price: money(piece.priceCents),
+                })}
               </p>
             ))}
           </div>

@@ -213,6 +213,13 @@ describe('ExchangeLinksCard', () => {
     expect(screen.queryByText(/Importe esperado/)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Ver cobro/ })).not.toBeInTheDocument()
   })
+  it('does not call an inherited piece «heredado» when it costs the same as the list', async () => {
+    m.detail.taken[0].pieces = [{ priceCents: 18000, inheritedFromOrderItemId: 'i1' }]
+    card()
+    await expand()
+    expect(screen.queryByText(/Precio heredado/)).not.toBeInTheDocument()
+    expect(screen.getByText('Precio por pieza: $180.00')).toBeInTheDocument()
+  })
   it('does not describe requested stock or goods as applied and shows all review charges', async () => {
     Object.assign(m.detail, {
       status: 'NEEDS_REVIEW',
