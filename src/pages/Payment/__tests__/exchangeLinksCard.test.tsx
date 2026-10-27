@@ -292,6 +292,15 @@ describe('ExchangeLinksCard', () => {
     const link = await screen.findByRole('link', { name: 'Cambiada en ORD-002' })
     expect(link.compareDocumentPosition(screen.getByText('IQ')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
+  it('with orders:read and without payments:read hides the detail and shows "Ver todos" as text', async () => {
+    m.permissions = ['orders:read']
+    const { container } = card({ asOriginal: [original()], asOriginalTotal: 3, asNew: null })
+    expect(screen.getByRole('link', { name: 'Cambiada en ORD-002' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Ver detalle/ })).not.toBeInTheDocument()
+    expect(container.querySelector('a[href*="/payments/exchanges"]')).toBeNull()
+    expect(screen.getByText(es.exchange.more.replace('{{count}}', '2'))).toBeVisible()
+    expect(m.get).not.toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges/x1')
+  })
   it('orderDrawerContent shows the section between payments and activity', async () => {
     mount(<OrderDrawerContent orderId="o1" onClose={() => {}} />)
     const link = await screen.findByRole('link', { name: 'Cambiada en ORD-002' })

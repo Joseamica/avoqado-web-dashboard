@@ -190,20 +190,23 @@ function ExchangeLinkRow({
         )}
         <Badge variant="secondary">{exchangeStatusLabel(status, t)}</Badge>
         {status === 'NEEDS_REVIEW' && reviewedAt && <Badge variant="outline">{t('exchange.reviewed')}</Badge>}
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="cursor-pointer"
-            data-tour="exchange-expand"
-            aria-label={t(open ? 'exchange.hideDetail' : 'exchange.viewDetail', { order: label })}
-          >
-            <ChevronDown aria-hidden="true" className={`h-4 w-4 ${open ? 'rotate-180' : ''}`} />
-            {t(open ? 'exchange.hideDetailShort' : 'exchange.viewDetailShort')}
-          </Button>
-        </CollapsibleTrigger>
+        {/* The detail endpoint requires payments:read; the order drawer can be opened without it. */}
+        {can('payments:read') && (
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="cursor-pointer"
+              data-tour="exchange-expand"
+              aria-label={t(open ? 'exchange.hideDetail' : 'exchange.viewDetail', { order: label })}
+            >
+              <ChevronDown aria-hidden="true" className={`h-4 w-4 ${open ? 'rotate-180' : ''}`} />
+              {t(open ? 'exchange.hideDetailShort' : 'exchange.viewDetailShort')}
+            </Button>
+          </CollapsibleTrigger>
+        )}
       </div>
-      <CollapsibleContent>{open && <ExchangeDetailContent exchangeId={exchangeId} />}</CollapsibleContent>
+      <CollapsibleContent>{open && can('payments:read') && <ExchangeDetailContent exchangeId={exchangeId} />}</CollapsibleContent>
     </Collapsible>
   )
 }
@@ -211,6 +214,7 @@ function ExchangeLinkRow({
 export function ExchangeLinksCard({ orderId, links }: { orderId: string; links?: ExchangeLinks }) {
   const { t } = useTranslation('payment')
   const { fullBasePath } = useCurrentVenue()
+  const { can } = useAccess()
   if (!links || (!links.asOriginal.length && !links.asNew && !links.asOriginalTotal)) return null
   const remaining = links.asOriginalTotal - links.asOriginal.length
   return (
@@ -235,11 +239,14 @@ export function ExchangeLinksCard({ orderId, links }: { orderId: string; links?:
           reviewedAt={links.asNew.reviewedAt}
         />
       )}
-      {remaining > 0 && (
-        <Link to={`${fullBasePath}/payments/exchanges?order=${encodeURIComponent(orderId)}`} className="block text-primary underline">
-          {t('exchange.more', { count: remaining })}
-        </Link>
-      )}
+      {remaining > 0 &&
+        (can('payments:read') ? (
+          <Link to={`${fullBasePath}/payments/exchanges?order=${encodeURIComponent(orderId)}`} className="block text-primary underline">
+            {t('exchange.more', { count: remaining })}
+          </Link>
+        ) : (
+          <span className="block text-muted-foreground">{t('exchange.more', { count: remaining })}</span>
+        ))}
     </section>
   )
 }
