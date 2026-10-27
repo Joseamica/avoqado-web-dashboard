@@ -522,7 +522,7 @@ export default function CustomerDetail() {
 														<div className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</div>
 													</div>
 													<div className="flex items-center gap-3 shrink-0">
-														<Badge variant="outline">{order.status}</Badge>
+														<Badge variant="outline">{t(`orders:detail.statuses.${order.status}`, { defaultValue: order.status })}</Badge>
 														<span className="font-medium tabular-nums">{formatCurrency(order.total)}</span>
 													</div>
 												</button>
