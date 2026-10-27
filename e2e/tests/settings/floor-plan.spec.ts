@@ -168,6 +168,27 @@ test('vacío → arranque rápido → guardar → la tarjeta del área aparece s
   await expect(page.getByTestId('floor-plan-empty')).toHaveCount(0)
 })
 
+test('arranque rápido: picar la caja y escribir reemplaza el número que traía', async ({ page }) => {
+  // PostHog, 19 y 23-oct: los dueños picaban 3-4 veces la caja para borrar el número; escribir detrás de él daba 620 o 46
+  // y la caja saltaba al tope. `fill` (arriba) reemplaza sin picar y por eso no lo veía.
+  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
+  await mockFloorPlan(page, emptyPlan())
+  await abrir(page)
+  await page.getByTestId('floor-plan-start').click()
+  await page.getByTestId('new-area-name').fill('Salón')
+  await page.getByTestId('new-area-count').click()
+  await page.keyboard.type('20')
+  await page.getByTestId('new-area-capacity').click()
+  await page.keyboard.type('6')
+  await expect(page.getByTestId('new-area-count')).toHaveValue('20')
+  await expect(page.getByTestId('new-area-capacity')).toHaveValue('6')
+  await page.getByTestId('new-area-create').click()
+  // Las de 6 que no caben en el área se quedan en «sin acomodar»: se cuentan las dos partes.
+  const enBandeja = page.getByTestId('floor-plan-unplaced').locator('[data-testid^="floor-unplaced-"]')
+  await expect.poll(async () => (await mesasEnLienzo(page).count()) + (await enBandeja.count())).toBe(20)
+  await expect(mesaEnLienzo(page, '1')).toContainText('6p')
+})
+
 test('cargando, error y vacío se distinguen; Reintentar recupera', async ({ page }) => {
   await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue()], planState: PRO })
   let soltar!: () => void
