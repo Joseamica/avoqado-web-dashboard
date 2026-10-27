@@ -42,6 +42,7 @@ export const ProfileSettings = lazyWithRetry(() => import('@/pages/Account/Profi
 export const SecuritySettings = lazyWithRetry(() => import('@/pages/Account/SecuritySettings'))
 export const PreferenceSettings = lazyWithRetry(() => import('@/pages/Account/PreferenceSettings'))
 export const Payments = lazyWithRetry(() => import('@/pages/Payment/Payments'))
+export const Exchanges = lazyWithRetry(() => import('@/pages/Payment/Exchanges'))
 export const PaymentId = lazyWithRetry(() => import('@/pages/Payment/PaymentId'))
 export const MenuId = lazyWithRetry(() => import('@/pages/Menu/Menus/menuId'))
 export const Reviews = lazyWithRetry(() => import('@/pages/Review/Reviews'))

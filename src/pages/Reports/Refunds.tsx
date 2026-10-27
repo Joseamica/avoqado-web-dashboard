@@ -13,6 +13,7 @@ import { getLast7Days, useVenueDateTime } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { fetchRefunds, refundsKeys, type RefundReason } from '@/services/reports/refunds.service'
 import { RotateCcw, Download } from 'lucide-react'
+import { ExchangesToReviewSection } from './components/ExchangesToReviewSection'
 
 // ============================================
 // GlassCard Component
@@ -33,7 +34,7 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 // Loading Skeleton
 // ============================================
 const RefundsSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
+  <div className="space-y-6">
     <div className="flex items-center justify-between">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-10 w-32" />
@@ -70,7 +71,12 @@ export default function Refunds() {
     [venueId, dateRange.from, dateRange.to],
   )
 
-  const { data: apiResponse, isLoading, isError, error } = useQuery({
+  const {
+    data: apiResponse,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: refundsKeys.report(apiFilters),
     queryFn: () => fetchRefunds(apiFilters),
     staleTime: 1000 * 60 * 5,
@@ -82,7 +88,8 @@ export default function Refunds() {
     }
   }
 
-  const getReasonLabel = (reason: RefundReason | 'UNKNOWN' | null) => t(`refunds.reasons.${reason ?? 'UNKNOWN'}`, { defaultValue: reason ?? '—' })
+  const getReasonLabel = (reason: RefundReason | 'UNKNOWN' | null) =>
+    t(`refunds.reasons.${reason ?? 'UNKNOWN'}`, { defaultValue: reason ?? '—' })
   const getMethodLabel = (method: string) => t(`refunds.methods.${method}`, { defaultValue: method })
 
   // Export CSV
@@ -137,31 +144,25 @@ export default function Refunds() {
     URL.revokeObjectURL(link.href)
   }
 
-  if (isLoading) {
-    return <RefundsSkeleton />
-  }
-
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('refunds.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.refunds', {
-              defaultValue: 'Todos los reembolsos emitidos en el período, con monto, método, motivo y quién los procesó.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading refunds data'}</p>
-        </GlassCard>
+  const reportError = isError ? (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <PageTitleWithInfo
+          title={t('refunds.title')}
+          className="text-2xl font-bold"
+          tooltip={t('info.refunds', {
+            defaultValue: 'Todos los reembolsos emitidos en el período, con monto, método, motivo y quién los procesó.',
+          })}
+        />
       </div>
-    )
-  }
+      <GlassCard className="p-6">
+        <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading refunds data'}</p>
+      </GlassCard>
+    </div>
+  ) : null
 
-  return (
-    <div className="p-4 md:p-6 space-y-6">
+  const reportHeader = (
+    <>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -236,7 +237,11 @@ export default function Refunds() {
           </div>
         </GlassCard>
       )}
+    </>
+  )
 
+  const reportBody = (
+    <>
       {/* Refunds Table */}
       {apiResponse && apiResponse.refunds.length > 0 && (
         <GlassCard className="overflow-hidden">
@@ -306,7 +311,9 @@ export default function Refunds() {
                   <td className="px-4 py-3 hidden md:table-cell" />
                   <td className="px-4 py-3" />
                   <td className="px-4 py-3 text-right hidden lg:table-cell">
-                    <span className="text-sm font-mono">{apiResponse.totals.totalTips > 0 ? `-${Currency(apiResponse.totals.totalTips)}` : '—'}</span>
+                    <span className="text-sm font-mono">
+                      {apiResponse.totals.totalTips > 0 ? `-${Currency(apiResponse.totals.totalTips)}` : '—'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="text-sm font-mono">-{Currency(apiResponse.totals.totalRefunded)}</span>
@@ -326,6 +333,14 @@ export default function Refunds() {
           <p className="text-muted-foreground">{t('refunds.noData')}</p>
         </GlassCard>
       )}
+    </>
+  )
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      {isLoading ? <RefundsSkeleton /> : isError ? reportError : reportHeader}
+      <ExchangesToReviewSection />
+      {!isLoading && !isError && reportBody}
     </div>
   )
 }
