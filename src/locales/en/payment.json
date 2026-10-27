@@ -23,7 +23,7 @@
     "taken": "Took",
     "requestedTaken": "Requested to take",
     "restocked": "Returned to inventory",
-    "requestedRestock": "Requested to return to inventory",
+    "requestedRestock": "Return to inventory requested",
     "noRestock": "No return to inventory",
     "quantityValue": "Quantity: {{quantity}} · Value: {{value}}",
     "quantityPrice": "Quantity: {{quantity}} · Total value: {{price}}",

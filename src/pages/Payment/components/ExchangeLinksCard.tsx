@@ -13,7 +13,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
-// The stored lines describe the request; only `applied` confirms its effects.
+// `applied` confirms the exchange, but inventory posting may still be pending.
 interface ExchangeDetail {
   id: string
   status: string
@@ -106,7 +106,7 @@ function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
             <p>{line.productName}</p>
             <p>{t('exchange.quantityValue', { quantity: line.quantity, value: money(line.valueCents) })}</p>
             <p className="text-muted-foreground">{reasonKeys[line.reason] ? t(reasonKeys[line.reason]) : line.reason}</p>
-            <p>{line.restock ? t(data.applied ? 'exchange.restocked' : 'exchange.requestedRestock') : t('exchange.noRestock')}</p>
+            <p>{t(line.restock ? 'exchange.requestedRestock' : 'exchange.noRestock')}</p>
           </div>
         ))}
       </section>

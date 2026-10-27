@@ -80,14 +80,15 @@ beforeEach(() => {
 describe('ExchangesToReviewSection', () => {
   it('lists pending reviews with order numbers, difference, reason in plain words and who made it', async () => {
     mount()
-    expect(await screen.findByText('ORD-001 → ORD-x1')).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'ORD-x1' })).toBeVisible()
     expect(screen.getByText('$50.50')).toBeVisible()
     expect(screen.getByText('La terminal cobró otro importe')).toBeVisible()
     expect(screen.getByText('Ana López')).toBeVisible()
     expect(screen.getByText('2026-10-26T18:00:00Z')).toBeVisible()
     expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges', { params: { pendingReview: true, limit: 25 } })
   })
-  it('shows totals and loads the 26th row by cursor after another manager removes a previous row', async () => {
+  it('reconciles totals and removes a reviewed row after loading more', async () => {
+    let finish!: (value: unknown) => void
     m.get
       .mockResolvedValueOnce(
         response(
@@ -97,19 +98,56 @@ describe('ExchangesToReviewSection', () => {
         ),
       )
       .mockResolvedValueOnce(response([row('last')], 25))
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            finish = resolve
+          }),
+      )
     mount()
     expect(await screen.findByText('Mostrando 25 de 26')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
-    expect(await screen.findByText('ORD-001 → ORD-last')).toBeVisible()
+    await waitFor(() => expect(m.get).toHaveBeenCalledTimes(3))
     expect(m.get.mock.calls[1][1].params).toEqual({ pendingReview: true, limit: 25, cursor: 'opaque+/==' })
+    expect(m.get.mock.calls[2][1].params).toEqual({ pendingReview: true, limit: 25 })
+    expect(screen.getByText('Actualizando…')).toBeVisible()
+    expect(screen.queryByText(/Mostrando/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Marcar revisado' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    await act(async () => {
+      finish(response([...Array.from({ length: 24 }, (_, i) => row(`x${i + 1}`)), row('last')], 25))
+    })
+    expect(await screen.findByText('Mostrando 25 de 25')).toBeVisible()
+    expect(screen.getAllByRole('row')).toHaveLength(26)
+    expect(screen.getAllByRole('button', { name: 'Marcar revisado' })).toHaveLength(25)
+    expect(screen.queryByText(/ORD-x0\b/)).not.toBeInTheDocument()
+    expect(screen.getByText(/ORD-last/)).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+  })
+  it('links each order separately, including the new order', async () => {
+    mount()
+    expect(await screen.findByRole('link', { name: 'ORD-x1' })).toHaveAttribute('href', '/venues/iq/orders/o2')
+    expect(screen.getByRole('link', { name: 'ORD-001' })).toHaveAttribute('href', '/venues/iq/orders/o1')
+  })
+  it.each([
+    { newOrderId: null, newOrderNumber: 'ORD-x1' },
+    { newOrderId: undefined, newOrderNumber: 'ORD-x1' },
+    { newOrderId: 'o2', newOrderNumber: null },
+    { newOrderId: 'o2', newOrderNumber: undefined },
+  ])('uses text when the new order id or number is missing (%j)', async missing => {
+    m.get.mockResolvedValue({ data: { data: { items: [{ ...row(), ...missing }], total: 1, nextCursor: null } } })
+    mount()
+    await screen.findByText('Mostrando 1 de 1')
+    expect(screen.getAllByRole('link')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: 'ORD-001' })).toHaveAttribute('href', '/venues/iq/orders/o1')
+    expect(screen.getByText(missing.newOrderNumber ?? '—')).toBeVisible()
   })
   it('deduplicates repeated ids across pages', async () => {
     m.get.mockResolvedValueOnce(response([row()], 2, 'next')).mockResolvedValueOnce(response([row(), row('last')], 2))
     mount()
     fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
     expect(await screen.findByText('Mostrando 2 de 2')).toBeVisible()
-    expect(screen.getAllByText('ORD-001 → ORD-x1')).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'ORD-x1' })).toHaveLength(1)
   })
   it('does not carry rows or a review note into another venue', async () => {
     const { rerender, client } = mount()
@@ -124,7 +162,7 @@ describe('ExchangesToReviewSection', () => {
         </QueryClientProvider>
       </MemoryRouter>,
     )
-    expect(screen.queryByText('ORD-001 → ORD-x1')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'ORD-x1' })).not.toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   })
   it('keeps the review note when the refunds report finishes loading', async () => {
@@ -171,7 +209,7 @@ describe('ExchangesToReviewSection', () => {
     if (state === 'loading') m.refunds.mockImplementation(() => new Promise(() => {}))
     else m.refunds.mockRejectedValue(new Error('Refund report failed'))
     mount(<Refunds />)
-    expect(await screen.findByText('ORD-001 → ORD-x1')).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'ORD-x1' })).toBeVisible()
     if (state === 'failed') expect(await screen.findByText('Refund report failed')).toBeVisible()
   })
   it.each(['loading', 'failed'])('keeps the refund report visible when exchanges are %s', async state => {

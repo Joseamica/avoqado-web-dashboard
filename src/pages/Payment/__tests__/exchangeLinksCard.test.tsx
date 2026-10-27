@@ -3,12 +3,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import es from '@/locales/es/payment.json'
+import en from '@/locales/en/payment.json'
 import ordersEs from '@/locales/es/orders.json'
 import { ExchangeLinksCard } from '../components/ExchangeLinksCard'
 import { PaymentDrawerContent } from '../PaymentDrawerContent'
 import { OrderDrawerContent } from '@/pages/Order/OrderDrawerContent'
 
-const m = vi.hoisted(() => ({ get: vi.fn(), detail: {} as any, payment: {} as any, order: {} as any, base: '/venues/iq' }))
+const m = vi.hoisted(() => ({ get: vi.fn(), detail: {} as any, payment: {} as any, order: {} as any, base: '/venues/iq', language: 'es' }))
 vi.mock('@/api', () => ({ default: { get: (...args: unknown[]) => m.get(...args) } }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', venue: { name: 'IQ' }, fullBasePath: m.base }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDateTime: (value: string) => value }) }))
@@ -27,10 +28,10 @@ vi.mock('@/pages/Order/components/sections/ActivitySection', () => ({ ActivitySe
 vi.mock('react-i18next', () => ({
   useTranslation: (ns: string) => ({
     t: (key: string, opts?: Record<string, unknown>) => {
-      const raw = key.split('.').reduce<any>((obj, part) => obj?.[part], ns === 'orders' ? ordersEs : es)
+      const raw = key.split('.').reduce<any>((obj, part) => obj?.[part], ns === 'orders' ? ordersEs : m.language === 'en' ? en : es)
       return typeof raw === 'string' ? raw.replace(/\{\{(\w+)\}\}/g, (_, part) => String(opts?.[part] ?? '')) : (opts?.defaultValue ?? key)
     },
-    i18n: { language: 'es' },
+    i18n: { language: m.language },
   }),
 }))
 
@@ -65,6 +66,7 @@ async function expand() {
 }
 
 beforeEach(() => {
+  m.language = 'es'
   m.base = '/venues/iq'
   m.detail = {
     id: 'x1',
@@ -132,6 +134,19 @@ beforeEach(() => {
 })
 
 describe('ExchangeLinksCard', () => {
+  it.each([
+    ['es', 'Regreso al inventario solicitado', 'Productos que regresó', 'Se llevó'],
+    ['en', 'Return to inventory requested', 'Returned products', 'Took'],
+  ])('does not claim inventory was restored for a completed exchange (%s)', async (language, request, returned, taken) => {
+    m.language = language
+    card()
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalle|View detail/ }))
+    expect(await screen.findByText(request)).toBeVisible()
+    expect(screen.getByRole('heading', { name: returned })).toBeVisible()
+    expect(screen.getByRole('heading', { name: taken })).toBeVisible()
+    expect(screen.queryByText('Regresó al inventario')).not.toBeInTheDocument()
+    expect(screen.queryByText('Returned to inventory')).not.toBeInTheDocument()
+  })
   it('shows each original link with its status and a link to that order', () => {
     card()
     expect(screen.getByRole('link', { name: 'Cambiada en ORD-002' })).toHaveAttribute('href', '/venues/iq/orders/o2')
@@ -166,7 +181,7 @@ describe('ExchangeLinksCard', () => {
     card()
     await expand()
     expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges/x1')
-    expect(screen.getByText('Regresó al inventario')).toBeInTheDocument()
+    expect(screen.getByText('Regreso al inventario solicitado')).toBeInTheDocument()
     expect(screen.getByText('Se llevó')).toBeInTheDocument()
     expect(screen.getByText('Vestido azul L')).toBeInTheDocument()
     expect(screen.getByText('Talla')).toBeInTheDocument()
@@ -188,7 +203,7 @@ describe('ExchangeLinksCard', () => {
     card({ ...links(), asOriginal: [original('NEEDS_REVIEW')] })
     await expand()
     expect(screen.getByText('Productos que pidió regresar')).toBeInTheDocument()
-    expect(screen.getByText('Pidió regresar al inventario')).toBeInTheDocument()
+    expect(screen.getByText('Regreso al inventario solicitado')).toBeInTheDocument()
     expect(screen.getByText('Pidió llevarse')).toBeInTheDocument()
     expect(screen.queryByText('Regresó al inventario')).not.toBeInTheDocument()
     expect(screen.queryByText('Se llevó')).not.toBeInTheDocument()

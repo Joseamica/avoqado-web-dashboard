@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
@@ -47,6 +47,11 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
     [query.data],
   )
   const total = query.data?.pages[query.data.pages.length - 1]?.total ?? 0
+  const mixedTotals = query.data?.pages.some(page => page.total !== query.data.pages[0].total) ?? false
+  const { refetch, isFetching, isError } = query
+  useEffect(() => {
+    if (mixedTotals && !isFetching && !isError) void refetch()
+  }, [mixedTotals, isFetching, isError, refetch])
   const columns = useMemo<ColumnDef<ExchangeReviewRow>[]>(
     () => [
       { id: 'date', header: t('refunds.columns.date'), cell: ({ row }) => formatDateTime(row.original.createdAt) },
@@ -54,9 +59,19 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
         id: 'orders',
         header: t('refunds.columns.order'),
         cell: ({ row: { original: row } }) => (
-          <Link className="underline underline-offset-4" to={`${fullBasePath}/orders/${row.originalOrderId}`}>
-            {t('refunds.exchangesToReview.orders', { original: row.originalOrderNumber ?? '—', next: row.newOrderNumber ?? '—' })}
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link className="underline underline-offset-4" to={`${fullBasePath}/orders/${row.originalOrderId}`}>
+              {row.originalOrderNumber ?? '—'}
+            </Link>
+            <span aria-hidden="true">→</span>
+            {row.newOrderId && row.newOrderNumber ? (
+              <Link className="underline underline-offset-4" to={`${fullBasePath}/orders/${row.newOrderId}`}>
+                {row.newOrderNumber}
+              </Link>
+            ) : (
+              <span>{row.newOrderNumber ?? '—'}</span>
+            )}
+          </div>
         ),
       },
       {
@@ -112,7 +127,7 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
     >
       <h2 className="text-lg font-semibold">{t(pendingReview ? 'refunds.exchangesToReview.title' : 'refunds.exchangesToReview.all')}</h2>
       {query.isPending && <p role="status">{t('refunds.exchangesToReview.loading')}</p>}
-      {query.isPlaceholderData && <p role="status">{t('refunds.exchangesToReview.updating')}</p>}
+      {(query.isPlaceholderData || mixedTotals) && <p role="status">{t('refunds.exchangesToReview.updating')}</p>}
       {query.isError && (
         <div role="alert" className="space-y-2">
           <p>{t('refunds.exchangesToReview.loadError')}</p>
@@ -127,10 +142,10 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
           </Button>
         </div>
       )}
-      {!query.isPending && !query.isError && !query.isPlaceholderData && rows.length === 0 && (
+      {!query.isPending && !query.isError && !query.isPlaceholderData && !mixedTotals && rows.length === 0 && (
         <p>{t(pendingReview ? 'refunds.exchangesToReview.empty' : 'refunds.exchangesToReview.noMatches')}</p>
       )}
-      {rows.length > 0 && (
+      {!mixedTotals && rows.length > 0 && (
         <DataTable
           data={rows}
           columns={columns}
@@ -142,7 +157,7 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
           showColumnCustomizer={false}
         />
       )}
-      {query.data && (
+      {query.data && !mixedTotals && (
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">{t('refunds.exchangesToReview.showing', { shown: rows.length, total })}</p>
           {query.hasNextPage && (

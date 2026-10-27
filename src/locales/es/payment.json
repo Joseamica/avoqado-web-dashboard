@@ -23,7 +23,7 @@
     "taken": "Se llevó",
     "requestedTaken": "Pidió llevarse",
     "restocked": "Regresó al inventario",
-    "requestedRestock": "Pidió regresar al inventario",
+    "requestedRestock": "Regreso al inventario solicitado",
     "noRestock": "Sin devolución al inventario",
     "quantityValue": "Cantidad: {{quantity}} · Valor: {{value}}",
     "quantityPrice": "Cantidad: {{quantity}} · Valor total: {{price}}",

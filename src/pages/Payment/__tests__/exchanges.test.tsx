@@ -56,13 +56,19 @@ beforeEach(() => {
   m.get.mockResolvedValue(page())
 })
 describe('Exchanges page', () => {
+  it('opens an old exchange through its new order in white-label mode', async () => {
+    m.get.mockResolvedValue(page(['oldest']))
+    mount()
+    expect(await screen.findByRole('link', { name: 'ORD-oldest' })).toHaveAttribute('href', '/wl/venues/iq/orders/o2')
+    expect(screen.getByRole('link', { name: 'ORD-001' })).toHaveAttribute('href', `/wl/venues/iq/orders/${originalOrderId}`)
+  })
   it('is reachable through the shared venue routes with payments:read without reports:read', async () => {
     mount(undefined, true)
     expect(await screen.findByRole('heading', { level: 1, name: 'Cambios' })).toBeVisible()
     expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges', {
       params: { pendingReview: false, originalOrderId, limit: 25 },
     })
-    expect(await screen.findByRole('link', { name: 'ORD-001 → ORD-x1' })).toHaveAttribute('href', `/wl/venues/iq/orders/${originalOrderId}`)
+    expect(await screen.findByRole('link', { name: 'ORD-001' })).toHaveAttribute('href', `/wl/venues/iq/orders/${originalOrderId}`)
   })
   it('does not fetch or show exchanges through the actual route without payments:read', async () => {
     m.permissions = []
@@ -74,7 +80,7 @@ describe('Exchanges page', () => {
     m.get.mockResolvedValueOnce(page(['x1'], 'first-cursor')).mockResolvedValueOnce(page(['x2']))
     mount('/wl/venues/iq/payments/exchanges')
     fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
-    await screen.findByText('ORD-001 → ORD-x2')
+    await screen.findByRole('link', { name: 'ORD-x2' })
     fireEvent.click(screen.getByRole('button', { name: /Estado.*Por revisar/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
     await waitFor(() => expect(m.get.mock.lastCall?.[1].params).toEqual({ pendingReview: false, limit: 25 }))
@@ -100,7 +106,7 @@ describe('Exchanges page', () => {
     await screen.findByText('Mostrando 50 de 51')
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(await screen.findByText('Mostrando 51 de 51')).toBeVisible()
-    expect(screen.getByText('ORD-001 → ORD-x50')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'ORD-x50' })).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Quitar filtro de venta' }))
     await waitFor(() => expect(m.get.mock.lastCall?.[1].params).toEqual({ pendingReview: false, limit: 25 }))
   })
