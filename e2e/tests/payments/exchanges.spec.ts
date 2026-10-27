@@ -52,7 +52,7 @@ test('review writes a note and removes the row without reloading', async ({ page
     return route.fulfill({ json: { success: true, data: { ...exchange, reviewedAt: '2026-10-26T19:00:00Z' } } })
   })
   await page.goto('/venues/venue-alpha/payments/exchanges')
-  await expect(page.getByText('ORD-IQ-001 → ORD-IQ-002')).toBeVisible()
+  await expect(page.getByRole('row', { name: /ORD-IQ-001 ORD-IQ-002/ })).toBeVisible()
   await page.getByRole('button', { name: 'Marcar revisado', exact: true }).click()
   const dialog = page.getByRole('alertdialog')
   await expect(dialog.getByRole('button', { name: 'Marcar revisado' })).toBeDisabled()
@@ -60,7 +60,7 @@ test('review writes a note and removes the row without reloading', async ({ page
   await dialog.getByRole('button', { name: 'Marcar revisado' }).click()
   await expect(dialog).not.toBeVisible()
   await expect(page.getByText('No hay cambios por revisar')).toBeVisible()
-  await expect(page.getByText('ORD-IQ-001 → ORD-IQ-002')).toHaveCount(0)
+  await expect(page.getByRole('row', { name: /ORD-IQ-001 ORD-IQ-002/ })).toHaveCount(0)
   expect(note).toEqual({ note: 'Revisado con Ana' })
 })
 
@@ -75,7 +75,7 @@ test('read access without refund or report permissions shows the row without a r
     }),
   )
   await page.goto('/venues/venue-alpha/payments/exchanges')
-  await expect(page.getByText('ORD-IQ-001 → ORD-IQ-002')).toBeVisible()
+  await expect(page.getByRole('row', { name: /ORD-IQ-001 ORD-IQ-002/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Marcar revisado' })).toHaveCount(0)
 })
 
