@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { exchangeReviewReasonLabel, exchangeStatusLabel } from '@/lib/exchangeStatus'
 import type { ExchangeLinks } from '@/types'
 import { Currency } from '@/utils/currency'
@@ -52,7 +53,7 @@ interface ExchangeDetail {
   chargePaymentId: string | null
 }
 
-function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
+export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
   const { t } = useTranslation('payment')
   const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDateTime } = useVenueDateTime()
@@ -175,13 +176,18 @@ function ExchangeLinkRow({
 }) {
   const { t } = useTranslation('payment')
   const { fullBasePath } = useCurrentVenue()
+  const { can } = useAccess()
   const [open, setOpen] = useState(false)
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="border-t border-input pt-3 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Link to={`${fullBasePath}/orders/${orderId}`} className="text-primary underline">
-          {label}
-        </Link>
+        {can('orders:read') ? (
+          <Link to={`${fullBasePath}/orders/${orderId}`} className="text-primary underline">
+            {label}
+          </Link>
+        ) : (
+          <span>{label}</span>
+        )}
         <Badge variant="secondary">{exchangeStatusLabel(status, t)}</Badge>
         {status === 'NEEDS_REVIEW' && reviewedAt && <Badge variant="outline">{t('exchange.reviewed')}</Badge>}
         <CollapsibleTrigger asChild>

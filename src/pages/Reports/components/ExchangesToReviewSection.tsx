@@ -7,7 +7,10 @@ import DataTable from '@/components/data-table'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { ExchangeDetailContent } from '@/pages/Payment/components/ExchangeLinksCard'
 import { exchangeReviewReasonLabel, exchangeStatusLabel } from '@/lib/exchangeStatus'
 import { exchangesKeys, listExchangesForReview, type ExchangeReviewRow } from '@/services/exchanges.service'
 import { Currency } from '@/utils/currency'
@@ -28,6 +31,9 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
   const { t: paymentT } = useTranslation('payment')
   const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDateTime } = useVenueDateTime()
+  const { can } = useAccess()
+  const canReadOrders = can('orders:read')
+  const [detail, setDetail] = useState<ExchangeReviewRow | null>(null)
   const [selected, setSelected] = useState<ExchangeReviewRow | null>(null)
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 })
   const filters = useMemo(() => ({ pendingReview, ...(originalOrderId ? { originalOrderId } : {}) }), [pendingReview, originalOrderId])
@@ -60,11 +66,15 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
         header: t('refunds.columns.order'),
         cell: ({ row: { original: row } }) => (
           <div className="flex items-center gap-1">
-            <Link className="underline underline-offset-4" to={`${fullBasePath}/orders/${row.originalOrderId}`}>
-              {row.originalOrderNumber ?? '—'}
-            </Link>
+            {canReadOrders ? (
+              <Link className="underline underline-offset-4" to={`${fullBasePath}/orders/${row.originalOrderId}`}>
+                {row.originalOrderNumber ?? '—'}
+              </Link>
+            ) : (
+              <span>{row.originalOrderNumber ?? '—'}</span>
+            )}
             <span aria-hidden="true">→</span>
-            {row.newOrderId && row.newOrderNumber ? (
+            {canReadOrders && row.newOrderId && row.newOrderNumber ? (
               <Link className="underline underline-offset-4" to={`${fullBasePath}/orders/${row.newOrderId}`}>
                 {row.newOrderNumber}
               </Link>
@@ -98,6 +108,20 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
         ),
       },
       {
+        id: 'detail',
+        cell: ({ row }) => (
+          <Button
+            variant="outline"
+            size="sm"
+            data-tour="exchange-view-detail"
+            aria-label={paymentT('exchange.viewDetail', { order: row.original.newOrderNumber ?? row.original.originalOrderNumber ?? '—' })}
+            onClick={() => setDetail(row.original)}
+          >
+            {paymentT('exchange.viewDetailShort')}
+          </Button>
+        ),
+      },
+      {
         id: 'review',
         cell: ({ row }) =>
           row.original.status === 'NEEDS_REVIEW' &&
@@ -116,7 +140,7 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
           ),
       },
     ],
-    [t, paymentT, formatDateTime, fullBasePath, query.isPlaceholderData],
+    [t, paymentT, formatDateTime, fullBasePath, canReadOrders, query.isPlaceholderData],
   )
 
   return (
@@ -173,6 +197,15 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
             </Button>
           )}
         </div>
+      )}
+      {detail && (
+        <FullScreenModal
+          open
+          onClose={() => setDetail(null)}
+          title={paymentT('exchange.viewDetail', { order: detail.newOrderNumber ?? detail.originalOrderNumber ?? '—' })}
+        >
+          <ExchangeDetailContent key={`${venueId}:${detail.id}`} exchangeId={detail.id} />
+        </FullScreenModal>
       )}
       {selected && (
         <PermissionGate permission="payments:refund">

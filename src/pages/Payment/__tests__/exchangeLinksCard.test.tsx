@@ -9,7 +9,16 @@ import { ExchangeLinksCard } from '../components/ExchangeLinksCard'
 import { PaymentDrawerContent } from '../PaymentDrawerContent'
 import { OrderDrawerContent } from '@/pages/Order/OrderDrawerContent'
 
-const m = vi.hoisted(() => ({ get: vi.fn(), detail: {} as any, payment: {} as any, order: {} as any, base: '/venues/iq', language: 'es' }))
+const m = vi.hoisted(() => ({
+  get: vi.fn(),
+  detail: {} as any,
+  payment: {} as any,
+  order: {} as any,
+  base: '/venues/iq',
+  language: 'es',
+  permissions: [] as string[],
+}))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.permissions.includes(p) }) }))
 vi.mock('@/api', () => ({ default: { get: (...args: unknown[]) => m.get(...args) } }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', venue: { name: 'IQ' }, fullBasePath: m.base }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDateTime: (value: string) => value }) }))
@@ -66,6 +75,7 @@ async function expand() {
 }
 
 beforeEach(() => {
+  m.permissions = ['payments:read', 'orders:read']
   m.language = 'es'
   m.base = '/venues/iq'
   m.detail = {
@@ -134,6 +144,18 @@ beforeEach(() => {
 })
 
 describe('ExchangeLinksCard', () => {
+  it.each(['original', 'new'])('shows order text and opens detail without orders:read (%s)', async side => {
+    m.permissions = ['payments:read']
+    m.base = '/wl/venues/iq'
+    const { container } = card(side === 'original' ? links() : { asOriginal: [], asOriginalTotal: 0, asNew: asNew() })
+    expect(screen.getByText(side === 'original' ? 'Cambiada en ORD-002' : 'Cambio de ORD-001')).toBeVisible()
+    expect(container.querySelector('a[href*="/orders/"]')).toBeNull()
+    await expand()
+    expect(screen.getByText('Vestido azul L')).toBeVisible()
+    expect(screen.getByText('Diferencia: $50.00')).toBeVisible()
+    expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges/x1')
+  })
+
   it.each([
     ['es', 'Regreso al inventario solicitado', 'Productos que regresó', 'Se llevó'],
     ['en', 'Return to inventory requested', 'Returned products', 'Took'],

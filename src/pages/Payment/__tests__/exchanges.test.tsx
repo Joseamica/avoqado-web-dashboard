@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, useRoutes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import reports from '@/locales/es/reports.json'
@@ -52,7 +52,7 @@ function mount(route = `/wl/venues/iq/payments/exchanges?order=${originalOrderId
   )
 }
 beforeEach(() => {
-  m.permissions = ['payments:read']
+  m.permissions = ['payments:read', 'orders:read']
   m.get.mockResolvedValue(page())
 })
 describe('Exchanges page', () => {
@@ -62,13 +62,16 @@ describe('Exchanges page', () => {
     expect(await screen.findByRole('link', { name: 'ORD-oldest' })).toHaveAttribute('href', '/wl/venues/iq/orders/o2')
     expect(screen.getByRole('link', { name: 'ORD-001' })).toHaveAttribute('href', `/wl/venues/iq/orders/${originalOrderId}`)
   })
-  it('is reachable through the shared venue routes with payments:read without reports:read', async () => {
-    mount(undefined, true)
+  it('is reachable through the shared venue routes with only payments:read', async () => {
+    m.permissions = ['payments:read']
+    const { container } = mount(undefined, true)
     expect(await screen.findByRole('heading', { level: 1, name: 'Cambios' })).toBeVisible()
     expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges', {
       params: { pendingReview: false, originalOrderId, limit: 25 },
     })
-    expect(await screen.findByRole('link', { name: 'ORD-001' })).toHaveAttribute('href', `/wl/venues/iq/orders/${originalOrderId}`)
+    expect(await screen.findByText('ORD-001')).toBeVisible()
+    expect(screen.getByRole('button', { name: /Ver detalle/ })).toBeVisible()
+    expect(container.querySelector('a[href*="/orders/"]')).toBeNull()
   })
   it('does not fetch or show exchanges through the actual route without payments:read', async () => {
     m.permissions = []
@@ -87,6 +90,7 @@ describe('Exchanges page', () => {
     expect(m.get.mock.calls[1][1].params.cursor).toBe('first-cursor')
   })
   it('can reach all 51 exchanges for the overflow order and clear the order filter', async () => {
+    m.permissions = ['payments:read']
     m.get
       .mockResolvedValueOnce(
         page(
@@ -106,7 +110,36 @@ describe('Exchanges page', () => {
     await screen.findByText('Mostrando 50 de 51')
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(await screen.findByText('Mostrando 51 de 51')).toBeVisible()
-    expect(screen.getByRole('link', { name: 'ORD-x50' })).toBeVisible()
+    expect(screen.getByText('ORD-x50')).toBeVisible()
+    expect(document.querySelector('a[href*="/orders/"]')).toBeNull()
+    m.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/exchanges/x50'))
+        return {
+          data: {
+            data: {
+              id: 'x50',
+              status: 'COMPLETED',
+              applied: true,
+              returned: [],
+              taken: [],
+              returnedCents: 10000,
+              takenCents: 10000,
+              differenceCents: 0,
+              settlement: { kind: 'EVEN', method: null, amountCents: 0 },
+              staffName: 'Ana',
+              reviewedAt: null,
+              reviewNote: 'Cambio antiguo',
+              reviewReason: null,
+            },
+          },
+        }
+      return page()
+    })
+    fireEvent.click(within(screen.getByText('ORD-x50').closest('tr')!).getByRole('button', { name: /Ver detalle/ }))
+    expect(await screen.findByText('Cambio antiguo')).toBeVisible()
+    expect(screen.getByText('Diferencia: $0.00')).toBeVisible()
+    expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges/x50')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     fireEvent.click(screen.getByRole('button', { name: 'Quitar filtro de venta' }))
     await waitFor(() => expect(m.get.mock.lastCall?.[1].params).toEqual({ pendingReview: false, limit: 25 }))
   })

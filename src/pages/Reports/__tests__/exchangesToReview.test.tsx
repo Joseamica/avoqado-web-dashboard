@@ -70,7 +70,7 @@ async function openReview() {
 }
 beforeEach(() => {
   m.venueId = 'v1'
-  m.permissions = ['payments:read', 'payments:refund']
+  m.permissions = ['payments:read', 'payments:refund', 'orders:read']
   m.get.mockResolvedValue(response())
   m.post.mockResolvedValue({ data: { success: true, data: { ...row(), reviewedAt: '2026-10-26' } } })
   m.refunds.mockResolvedValue(refundData)
@@ -78,6 +78,57 @@ beforeEach(() => {
 })
 
 describe('ExchangesToReviewSection', () => {
+  it.each([
+    [true, false],
+    [false, false],
+    [true, true],
+  ])('opens the exchange detail (applied=%s, orders:read=%s)', async (applied, canReadOrders) => {
+    m.permissions = canReadOrders ? ['payments:read', 'orders:read'] : ['payments:read']
+    m.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/exchanges')) return response()
+      if (url.endsWith('/exchanges/x1'))
+        return {
+          data: {
+            data: {
+              id: 'x1',
+              status: 'NEEDS_REVIEW',
+              applied,
+              returned: [{ orderItemId: 'i1', productName: 'Vestido M', quantity: 1, valueCents: 10000, reason: 'SIZE', restock: true }],
+              taken: [{ productId: 'pr2', productName: 'Vestido L', quantity: 1, priceCents: 15050, pieces: [] }],
+              returnedCents: 10000,
+              takenCents: 15050,
+              differenceCents: 5050,
+              settlement: { kind: 'COLLECT', method: 'CASH', amountCents: 5050 },
+              staffName: 'Ana',
+              reviewReason: 'CHARGE_AMOUNT_MISMATCH',
+              expectedChargeCents: 5050,
+              chargedCents: 5000,
+              chargePaymentCount: 1,
+              paymentIds: ['p2'],
+              chargePaymentId: 'p2',
+              reviewedAt: '2026-10-26',
+              reviewNote: 'Revisado con Ana',
+            },
+          },
+        }
+      throw new Error(`Unexpected GET: ${url}`)
+    })
+    const { container } = mount()
+    expect(await screen.findByText('ORD-001')).toBeVisible()
+    expect(screen.getByText('ORD-x1')).toBeVisible()
+    if (!canReadOrders) expect(container.querySelector('a[href*="/orders/"]')).toBeNull()
+    expect(m.get).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }))
+    expect(await screen.findByText('Vestido M')).toBeVisible()
+    expect(screen.getByText('Vestido L')).toBeVisible()
+    expect(screen.getByRole('heading', { name: applied ? 'Productos que regresó' : 'Productos que pidió regresar' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: applied ? 'Se llevó' : 'Pidió llevarse' })).toBeVisible()
+    expect(screen.getByText('Diferencia: $50.50')).toBeVisible()
+    expect(screen.getByText('Importe esperado: $50.50')).toBeVisible()
+    expect(screen.getByText('Revisado con Ana')).toBeVisible()
+    expect(m.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/exchanges/x1')
+  })
+
   it('lists pending reviews with order numbers, difference, reason in plain words and who made it', async () => {
     mount()
     expect(await screen.findByRole('link', { name: 'ORD-x1' })).toBeVisible()
