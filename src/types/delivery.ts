@@ -85,6 +85,11 @@ export interface DeliveryChannelPrices {
 export interface DeliveryChannelConfig {
   deliveryHours?: DeliveryWeeklyHours | null
   precios?: DeliveryChannelPrices | null
+  /**
+   * D4 (SERVIDOR): el proveedor avisó que la tienda se cerró de SU lado (Rappi: desde su portal). La escribe y la borra el
+   * SERVIDOR (llave del sistema: el PATCH del panel no la toca); se borra al reanudar desde este panel y que el proveedor acepte.
+   */
+  cerradaEnElProveedor?: { desde: string } | null
   [key: string]: unknown
 }
 

@@ -146,6 +146,11 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
           {channels.map(channel => {
             const isTogglable = channel.status === 'ACTIVE' || channel.status === 'PAUSED'
             const isMutatingThis = pauseMutation.isPending && pauseMutation.variables?.linkId === channel.id
+            // D11 (27-oct): la tienda se cerró desde el portal del proveedor (nota D4 del SERVIDOR). Sin esto sólo se leía
+            // «Pausado», sin el porqué ni que «Reanudar» la vuelve a abrir allá.
+            const desde = channel.config?.cerradaEnElProveedor?.desde
+            const cerradaDesde = isTogglable && typeof desde === 'string' ? desde : null
+            const aviso = { proveedor: providerLabel(channel.provider), fecha: cerradaDesde ? formatDateTime(cerradaDesde) : '' }
             return (
               <Card key={channel.id}>
                 <CardContent className="space-y-3 p-5">
@@ -159,6 +164,12 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                     </div>
                     <Badge variant={STATUS_VARIANT[channel.status]}>{t(STATUS_LABEL_KEY[channel.status])}</Badge>
                   </div>
+
+                  {cerradaDesde && (
+                    <p className="text-xs text-muted-foreground" role="status">
+                      {channel.status === 'PAUSED' ? t('live.closedByProviderPaused', aviso) : t('live.closedByProviderActive', aviso)}
+                    </p>
+                  )}
 
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <p>

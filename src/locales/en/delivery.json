@@ -48,6 +48,8 @@
     "modeManual": "Manual",
     "pauseAction": "Pause",
     "resumeAction": "Resume",
+    "closedByProviderPaused": "Closed from the {{proveedor}} portal (notice recorded in Avoqado {{fecha}}). Resuming it here reopens it on {{proveedor}}.",
+    "closedByProviderActive": "{{proveedor}} reported that this store was closed from its portal (notice recorded in Avoqado {{fecha}}). To reopen it, pause and resume the channel here.",
     "pauseToastSuccess": "Channel paused",
     "resumeToastSuccess": "Channel resumed",
     "pauseToastError": "Couldn't update the channel",
