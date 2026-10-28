@@ -47,3 +47,39 @@ describe('productosDelRecibo', () => {
     expect(p).toMatchObject({ weightKg: 0.5, price: 100, totalPrice: 50, modifiers: [{ name: 'Extra', quantity: 2, price: 10 }] })
   })
 })
+
+// D15 (28-oct): el recibo de UNA parte de una venta dividida (`ticketTotals.parcial`) enseña un renglón «Pago parcial» con lo que
+// cobró, como el papel del cobro; sin la marca, sus productos como siempre.
+describe('productosDelRecibo · parte de una venta dividida (D15)', () => {
+  const parcial = { kind: 'COBRO' as const, desglosado: false, parcial: true as const, subtotal: 15, serviceCharge: 0, addedTax: 0, tip: 2, total: 17 }
+  const pagoParcial = [{ name: 'Pago parcial', quantity: 1, price: 15, totalPrice: 15, weightKg: null, modifiers: [] }]
+
+  it('recibo de la terminal de una parte: un renglón «Pago parcial»', () => {
+    expect(
+      productosDelRecibo({
+        ticketTotals: parcial,
+        items: [
+          { productName: 'Agua', quantity: 1, unitPrice: 20, total: 20 },
+          { productName: 'Café', quantity: 1, unitPrice: 10, total: 10 },
+        ],
+      }),
+    ).toEqual(pagoParcial)
+  })
+
+  it('recibo del panel de una parte: también «Pago parcial»', () => {
+    expect(
+      productosDelRecibo({ ticketTotals: parcial, order: { items: [{ name: 'Gorra', quantity: 1, price: 30, totalPrice: 30, modifiers: [] }] } as never }),
+    ).toEqual(pagoParcial)
+  })
+
+  it('sin la marca (venta completa o recibo de antes de D15): sus productos', () => {
+    const { parcial: _sinMarca, ...completo } = parcial
+    expect(productosDelRecibo({ ticketTotals: completo, items: [{ productName: 'Agua', quantity: 1, unitPrice: 20, total: 20 }] })).toEqual([
+      { name: 'Agua', quantity: 1, price: 20, totalPrice: 20, weightKg: null, modifiers: [] },
+    ])
+  })
+
+  it('una parte sin productos guardados: lista vacía', () => {
+    expect(productosDelRecibo({ ticketTotals: parcial, items: [] })).toEqual([])
+  })
+})
