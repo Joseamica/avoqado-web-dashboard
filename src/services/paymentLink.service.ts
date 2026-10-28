@@ -149,21 +149,36 @@ export interface UpdatePaymentLinkRequest {
   discount?: PaymentLinkDiscountInput | null
 }
 
+/** Pestañas de la lista. «used» = de un solo uso ya cobrada (en la base sigue ACTIVE); lo resuelve el servidor. */
+export type PaymentLinkView = 'all' | 'active' | 'used' | 'paused' | 'expired'
+
+export interface PaymentLinksPage {
+  paymentLinks: PaymentLink[]
+  /** Ligas de la pestaña y filtros, no sólo las de esta página. */
+  total: number
+  /** Contadores por pestaña (con la búsqueda y los estados, sin la pestaña). */
+  counts?: Record<PaymentLinkView, number>
+  /** Totales de la pestaña y filtros para las tarjetas. */
+  summary?: { totalCollected: number; paidLinks: number }
+}
+
 export const paymentLinkService = {
   async getPaymentLinks(
     venueId: string,
-    params?: { page?: number; pageSize?: number; status?: string; search?: string },
-  ): Promise<PaymentLink[]> {
+    params: { view?: PaymentLinkView; statuses?: string[]; search?: string; limit: number; offset: number },
+  ): Promise<PaymentLinksPage> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-links`, {
       params: {
-        ...(params?.page && { page: params.page }),
-        ...(params?.pageSize && { pageSize: params.pageSize }),
-        ...(params?.status && { status: params.status }),
-        ...(params?.search && { search: params.search }),
+        limit: params.limit,
+        offset: params.offset,
+        ...(params.view && { view: params.view }),
+        ...(params.statuses?.length && { statuses: params.statuses.join(',') }),
+        ...(params.search && { search: params.search }),
       },
     })
-    // Backend returns { success, data: { paymentLinks, total, ... } }
-    return response.data?.data?.paymentLinks || []
+    // Backend returns { success, data: { paymentLinks, total, counts, summary, ... } }
+    const data = response.data?.data
+    return { paymentLinks: data?.paymentLinks || [], total: data?.total ?? 0, counts: data?.counts, summary: data?.summary }
   },
 
   async getPaymentLink(venueId: string, linkId: string): Promise<{ success: boolean; data: PaymentLink }> {
