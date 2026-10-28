@@ -96,6 +96,34 @@ describe('DeliveryLivePanel', () => {
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['deliveryChannels', 'venue-1'] }))
   })
 
+  // D11 (27-oct): el dueño cerró la tienda desde el portal de Rappi; el SERVIDOR lo anota en `config.cerradaEnElProveedor`
+  // (D4). Sin esto el panel sólo decía «Pausado», sin el porqué ni que «Reanudar» la vuelve a abrir en Rappi.
+  it('D11: pausada desde el portal de Rappi → dice que la cerró Rappi y que reanudar la vuelve a abrir', async () => {
+    renderPanel([
+      channel({ provider: 'RAPPI', status: 'PAUSED', config: { cerradaEnElProveedor: { desde: '2026-10-26T18:00:00.000Z' } } }),
+    ])
+    expect(await screen.findByText('live.closedByProviderPaused')).toBeInTheDocument()
+    expect(screen.queryByText('live.closedByProviderActive')).not.toBeInTheDocument()
+  })
+
+  it('D11: activa pero con la nota (Rappi la cerró mientras se reabría) → avisa, con el texto de activa', async () => {
+    renderPanel([
+      channel({ provider: 'RAPPI', status: 'ACTIVE', config: { cerradaEnElProveedor: { desde: '2026-10-26T18:00:00.000Z' } } }),
+    ])
+    expect(await screen.findByText('live.closedByProviderActive')).toBeInTheDocument()
+    expect(screen.queryByText('live.closedByProviderPaused')).not.toBeInTheDocument()
+  })
+
+  it('D11: pausada por el dueño (sin la nota, o borrada con null) → no inventa un cierre de Rappi', async () => {
+    renderPanel([
+      channel({ id: 'a', provider: 'RAPPI', status: 'PAUSED', config: { cerradaEnElProveedor: null } }),
+      channel({ id: 'b', provider: 'RAPPI', status: 'PAUSED' }),
+    ])
+    await screen.findByText('live.channelsTitle')
+    expect(screen.queryByText('live.closedByProviderPaused')).not.toBeInTheDocument()
+    expect(screen.queryByText('live.closedByProviderActive')).not.toBeInTheDocument()
+  })
+
   it('toggle de un canal PAUSED → pauseChannel(venueId, linkId, false) (reanudar)', async () => {
     renderPanel([channel({ id: 'link-2', status: 'PAUSED' })])
 
