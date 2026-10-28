@@ -19,10 +19,12 @@
       "status": "Estado",
       "payments": "Pagos",
       "totalCollected": "Total cobrado",
+      "lastPaidAt": "Pagada el",
       "createdAt": "Creada"
     },
     "search": "Buscar ligas...",
-    "openAmount": "El cliente ingresa el monto"
+    "openAmount": "El cliente ingresa el monto",
+    "lastOfPayments": "el último de {{count}} pagos"
   },
   "status": {
     "active": "Activa",

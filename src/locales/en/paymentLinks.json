@@ -19,10 +19,12 @@
       "status": "Status",
       "payments": "Payments",
       "totalCollected": "Total collected",
+      "lastPaidAt": "Paid on",
       "createdAt": "Created"
     },
     "search": "Search links...",
-    "openAmount": "Customer enters amount"
+    "openAmount": "Customer enters amount",
+    "lastOfPayments": "latest of {{count}} payments"
   },
   "status": {
     "active": "Active",
