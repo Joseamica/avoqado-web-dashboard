@@ -11,6 +11,7 @@ const reasonKeys: Record<string, string> = {
   CHARGE_AMOUNT_MISMATCH: 'exchange.reviewReasons.chargeAmountMismatch',
   LATE_CHARGE_AFTER_RELEASE: 'exchange.reviewReasons.lateChargeAfterRelease',
   ORIGINAL_CHANGED_WHILE_PENDING: 'exchange.reviewReasons.originalChangedWhilePending',
+  TERMINAL_REFUND_AFTER_EXCHANGE: 'exchange.reviewReasons.terminalRefundAfterExchange',
 }
 
 export function exchangeStatusLabel(status: string, t: TFunction<'payment'>): string {

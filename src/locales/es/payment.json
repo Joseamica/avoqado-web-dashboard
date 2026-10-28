@@ -55,6 +55,7 @@
     "reviewReasons": {
       "chargeAmountMismatch": "La terminal cobró otro importe",
       "lateChargeAfterRelease": "El cobro llegó después de cancelar el cambio",
+      "terminalRefundAfterExchange": "La terminal devolvió a la tarjeta lo que ya respaldaba este cambio",
       "originalChangedWhilePending": "La venta original cambió mientras se cobraba"
     },
     "staff": "Lo hizo: {{name}}",

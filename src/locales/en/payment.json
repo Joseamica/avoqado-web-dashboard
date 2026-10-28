@@ -55,6 +55,7 @@
     "reviewReasons": {
       "chargeAmountMismatch": "The terminal charged a different amount",
       "lateChargeAfterRelease": "The charge arrived after cancelling the exchange",
+      "terminalRefundAfterExchange": "The terminal refunded to the card what this exchange already used",
       "originalChangedWhilePending": "The original sale changed while collecting payment"
     },
     "staff": "Performed by: {{name}}",
