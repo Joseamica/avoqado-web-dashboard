@@ -1120,6 +1120,14 @@ export interface Order {
   refundState?: OrderRefundState
   /** Lo devuelto, en PESOS y positivo. 0 cuando no hay reembolsos. */
   refundedAmount?: number
+  /**
+   * «Nueva factura» (28-oct-2026), sólo con `conFactura`: la venta ya tiene su factura vigente (la regla del candado de emisión del
+   * servidor). Opcional a propósito: un servidor anterior no lo manda y la venta sale sin marca; el servidor sigue impidiendo la doble
+   * factura.
+   */
+  facturada?: boolean
+  /** La cancelación de su factura está pedida: sólo el servidor (preguntándole al PAC) sabe si ya se puede volver a facturar. */
+  facturaEnCancelacion?: boolean
 }
 
 // Junction table for many-to-many Order <-> Customer relationship

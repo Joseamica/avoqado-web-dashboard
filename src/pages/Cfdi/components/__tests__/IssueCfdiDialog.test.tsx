@@ -557,3 +557,45 @@ describe('IssueCfdiDialog — F6: la factura de una venta con devolución', () =
     expect(aviso).toEqual({ title: es.issueDialog.toast.success, description: 'Folio F-9 · UUID U-1' })
   })
 })
+
+// ─── «Nueva factura» (28-oct-2026): al timbrar avisa con el RFC del receptor, para que Facturas enseñe la factura nueva ─────────────────
+describe('IssueCfdiDialog · onIssued', () => {
+  const emitida = { id: 'c1', uuid: 'U-1', serie: 'F', folio: '9', status: 'STAMPED', xmlUrl: null, pdfUrl: null }
+
+  function renderConAviso(onIssued: (f: { receptorRfc: string }) => void) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <IssueCfdiDialog open onOpenChange={() => {}} orderId="order-1" onIssued={onIssued} />
+      </QueryClientProvider>,
+    )
+  }
+
+  it('🔴 Codex código r3: avisa con el RFC de la factura DEVUELTA (una recuperación puede devolver otra), no con el capturado', async () => {
+    svc.issueCfdiForOrder.mockResolvedValue({ cfdi: { ...emitida, receptorRfc: 'AAA010101AAA' } })
+    const onIssued = vi.fn()
+    renderConAviso(onIssued)
+    llenarReceptor()
+    facturar()
+    await waitFor(() => expect(onIssued).toHaveBeenCalledWith({ receptorRfc: 'AAA010101AAA' }))
+  })
+
+  it('con un servidor anterior (sin el RFC en la respuesta) avisa con el RFC capturado, en mayúsculas', async () => {
+    svc.issueCfdiForOrder.mockResolvedValue({ cfdi: emitida })
+    const onIssued = vi.fn()
+    renderConAviso(onIssued)
+    llenarReceptor({ ...RECEPTOR, rfc: 'mav010101ab1' })
+    facturar()
+    await waitFor(() => expect(onIssued).toHaveBeenCalledWith({ receptorRfc: 'MAV010101AB1' }))
+  })
+
+  it('control — si no se timbró (422), no avisa', async () => {
+    svc.issueCfdiForOrder.mockRejectedValue(errorHttp(422, { reasons: ['Falta la clave SAT de un producto.'] }))
+    const onIssued = vi.fn()
+    renderConAviso(onIssued)
+    llenarReceptor()
+    facturar()
+    await screen.findByText('Falta la clave SAT de un producto.')
+    expect(onIssued).not.toHaveBeenCalled()
+  })
+})

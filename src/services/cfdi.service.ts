@@ -417,6 +417,8 @@ export interface IssuedCfdi {
   status: string
   xmlUrl: string | null
   pdfUrl: string | null
+  /** ADITIVO (28-oct): el RFC de la factura devuelta; en una recuperación puede no ser el capturado. Un servidor anterior no lo manda. */
+  receptorRfc?: string
 }
 
 /** F6: cómo se facturó una venta que ya tenía devoluciones (aditivo). */

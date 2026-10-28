@@ -30,6 +30,8 @@ import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
 import { ExtraccionesPendientesAviso } from './components/ExtraccionesPendientesAviso'
 import { GlobalComplementariaDialog } from './components/GlobalComplementariaDialog'
+import { IssueCfdiDialog } from './components/IssueCfdiDialog'
+import { PickOrderToInvoiceDialog } from './components/PickOrderToInvoiceDialog'
 import { ReplaceCfdiDialog } from './components/ReplaceCfdiDialog'
 import { SendCfdiEmailDialog } from './components/SendCfdiEmailDialog'
 import {
@@ -174,6 +176,11 @@ export default function CfdiList() {
   const canConfigure = can('cfdi:configure')
   // Reenviar por correo pide lo mismo que facturar (el servidor lo valida igual).
   const canIssue = can('cfdi:issue')
+  // «Nueva factura» (founder, 28-oct: los mismos que facturan desde Pedidos). El buscador lee el listado de ventas, que pide
+  // `orders:read`: Pedidos → ⋯ → Facturar exige lo mismo de hecho.
+  const canStartInvoice = hasCfdi && canIssue && can('orders:read')
+  const [pickOrderOpen, setPickOrderOpen] = useState(false)
+  const [orderToInvoice, setOrderToInvoice] = useState<string | null>(null)
 
   const [cancelTarget, setCancelTarget] = useState<Cfdi | null>(null)
   const [replaceTarget, setReplaceTarget] = useState<Cfdi | null>(null)
@@ -448,9 +455,17 @@ export default function CfdiList() {
   return (
     <FeatureGate feature="CFDI">
       <div className="p-4 bg-background text-foreground">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">{t('list.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('list.description')}</p>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t('list.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('list.description')}</p>
+          </div>
+          {canStartInvoice && (
+            <Button size="sm" className="h-9" onClick={() => setPickOrderOpen(true)} data-tour="cfdi-new-invoice-btn">
+              <FilePlus2 className="mr-2 h-4 w-4" />
+              {t('list.newInvoice')}
+            </Button>
+          )}
         </div>
 
         {hasCfdi && extraccionesPendientes && (
@@ -569,6 +584,32 @@ export default function CfdiList() {
 
         {hasCfdi && <CancelCfdiDialog cfdi={cancelTarget} onOpenChange={open => !open && setCancelTarget(null)} />}
         {hasCfdi && <ReplaceCfdiDialog cfdi={replaceTarget} onOpenChange={open => !open && setReplaceTarget(null)} />}
+        {canStartInvoice && (
+          <PickOrderToInvoiceDialog
+            open={pickOrderOpen}
+            onOpenChange={setPickOrderOpen}
+            onSelect={orderId => {
+              setPickOrderOpen(false)
+              setOrderToInvoice(orderId)
+            }}
+          />
+        )}
+        {canStartInvoice && orderToInvoice && (
+          <IssueCfdiDialog
+            open
+            onOpenChange={open => !open && setOrderToInvoice(null)}
+            orderId={orderToInvoice}
+            // Codex plan r1 #4 y código r1/r2 #1: con un filtro puesto (otro estado, otro RFC, otro mes, una página posterior) la factura
+            // nueva quedaría fuera; y sin filtros tampoco basta, porque el servidor pone primero las NO timbradas (aun del mismo RFC). Se
+            // dejan sólo las timbradas del mes, de la más reciente a la más vieja, y del RFC de la factura nueva: sale la primera.
+            onIssued={({ receptorRfc: rfc }) => {
+              resetFilters()
+              setStatusFilter(['STAMPED'])
+              setReceptorRfc(rfc)
+              setIsSearchOpen(true)
+            }}
+          />
+        )}
         {hasCfdi && <SendCfdiEmailDialog cfdi={emailTarget} onOpenChange={open => !open && setEmailTarget(null)} />}
         {hasCfdi && (
           <GlobalComplementariaDialog

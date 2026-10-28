@@ -39,6 +39,8 @@ interface IssueCfdiDialogProps {
    * autofactura page (Flow A) — it is not required for staff issuance.
    */
   venueId?: string
+  /** Se llama al quedar timbrada, con el RFC del receptor (antes de cerrar). «Nueva factura» lo usa para que la lista la enseñe. */
+  onIssued?: (factura: { receptorRfc: string }) => void
 }
 
 /**
@@ -48,7 +50,7 @@ interface IssueCfdiDialogProps {
  * The receptor form itself lives in `receptor-fields.tsx` so the public
  * autofactura page (Flow A) can reuse the exact same fields + schema later.
  */
-export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialogProps) {
+export function IssueCfdiDialog({ open, onOpenChange, orderId, onIssued }: IssueCfdiDialogProps) {
   const { t, i18n } = useTranslation('cfdi')
   const { toast } = useToast()
   const { can } = useAccess()
@@ -131,8 +133,10 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId }: IssueCfdiDialog
     clearPriceContract()
     intentoRef.current = null
     issueMutation.mutate(intento, {
-      onSuccess: () => {
-        // Success toast + list invalidation handled by the hook.
+      onSuccess: data => {
+        // Success toast + list invalidation handled by the hook. Manda el RFC de la factura DEVUELTA (en una recuperación puede ser
+        // otro que el capturado; Codex código r3); con un servidor anterior que no lo trae, el de ESTE intento.
+        onIssued?.({ receptorRfc: data?.cfdi?.receptorRfc || intento.receptor.rfc })
         close()
       },
       onError: (err: any) => {
