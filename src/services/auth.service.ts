@@ -146,6 +146,8 @@ export interface SignupDto {
   hybridOfferSlug?: string
   /** UTMs y click ids, con la misma lista permitida que la landing. */
   utm?: Record<string, string>
+  /** Host del sitio de donde llegó (`avoqado.io`), sin protocolo ni ruta. */
+  referrer?: string
 }
 
 export interface SignupResponse {
@@ -199,6 +201,8 @@ export interface ResetPasswordDto {
 export interface ResetPasswordResponse {
   success: boolean
   message: string
+  /** Sólo para un prospecto de la landing: liga de entrada (`…/auth/entrar#boleto=…`) para entrar sin teclear. */
+  entrarUrl?: string
 }
 
 export const requestPasswordReset = async (email: string): Promise<RequestPasswordResetResponse> => {
