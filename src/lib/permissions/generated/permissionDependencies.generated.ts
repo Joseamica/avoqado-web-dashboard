@@ -12,12 +12,12 @@
  * "viene incluido" es exactamente lo que el backend va a reponer.
  *
  * 🔴 POR QUÉ NO SE ESCRIBE A MANO: la copia anterior había derivado a 68 entradas contra
- * 211 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
+ * 213 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
  * `discounts:apply` y `coupons:redeem` — justo las que el editor de roles necesita para
  * avisar "este permiso viene incluido en aquél". Sin ellas la pantalla dejaba desmarcar algo
  * que el backend repone en silencio: mentía.
  *
- * 199 entradas · derivado de avoqado-server · huella 1384ff7acfcb336a.
+ * 201 entradas · derivado de avoqado-server · huella 6fe425570f31d04e.
  * (12 excluidas: vertical white-label de PlayTelecom.)
  */
 
@@ -138,17 +138,19 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'referral:override-existing-customer': ['referral:read', 'referral:override-existing-customer'],
   'referral:read': ['referral:read', 'customers:read'],
   'referral:void-manual': ['referral:read', 'referral:void-manual'],
+  'reservations:*': ['reservations:*', 'self-service:check-in'],
   'reservations:cancel': ['reservations:read', 'reservations:cancel'],
   'reservations:create': ['reservations:read', 'reservations:create'],
   'reservations:manage-passes': ['reservations:read', 'reservations:manage-passes'],
   'reservations:read': ['reservations:read'],
-  'reservations:update': ['reservations:read', 'reservations:update'],
+  'reservations:update': ['reservations:read', 'reservations:update', 'self-service:check-in'],
   'reviews:read': ['reviews:read', 'orders:read'],
   'reviews:respond': ['reviews:read', 'reviews:respond'],
   'role-config:read': ['role-config:read'],
   'role-config:update': ['role-config:read', 'role-config:update'],
   'scale:configure': ['scale:configure', 'scale:use', 'tpv:read', 'tpv-settings:read', 'tpv-settings:update'],
   'scale:use': ['scale:use', 'products:read'],
+  'self-service:check-in': ['self-service:check-in'],
   'settings:manage': ['settings:read', 'settings:manage'],
   'settings:read': ['settings:read'],
   'settlements:read': ['settlements:read', 'payments:read', 'analytics:read'],
@@ -223,4 +225,4 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'venues:update': ['venues:read', 'venues:update'],
 }
 
-export const PERMISSION_DEPENDENCIES_DIGEST = '1384ff7acfcb336a'
+export const PERMISSION_DEPENDENCIES_DIGEST = '6fe425570f31d04e'
