@@ -76,6 +76,13 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
 
   const progress = (progressData as { progress?: Record<string, any> } | undefined)?.progress
   const datos = useMemo(() => aplanarV2(progress?.v2SetupData), [progress?.v2SetupData])
+  // Lo que ya escribió en el formulario de la landing (el SERVIDOR lo manda como sugerencia): el paso «Tu negocio» ya no
+  // le pide en blanco el nombre que acaba de dar (27-oct). Lo guardado en el alta siempre gana.
+  const sugerido = progress?.suggestedBusiness as { name?: string; phone?: string | null } | undefined
+  const datosDelNegocio = useMemo(
+    () => ({ ...datos, businessName: datos.businessName || sugerido?.name, phone: datos.phone || sugerido?.phone || undefined }),
+    [datos, sugerido?.name, sugerido?.phone],
+  )
   const launchOffer = (progress?.launchOffer ?? null) as LaunchOfferState | null
   const planQuote = (progress?.planQuote ?? null) as PlanQuote | null
   const venueId: string | undefined = progress?.venueId ?? undefined
@@ -212,7 +219,7 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
 
         {pantalla === 'businessBasics' && (
           <BusinessBasicsStep
-            data={datos}
+            data={datosDelNegocio}
             saving={guardando}
             onNext={async stepData => {
               await guardarYAvanzar(

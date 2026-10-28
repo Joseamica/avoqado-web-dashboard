@@ -490,14 +490,23 @@ export function OfferStep({
     if (planBloqueado()) return
     setDesenlace({ tipo: 'nada' })
     setPlanElegido(tier)
+    // La pantalla de la tarjeta es donde se cae casi todo el alta (7 de 8 el 26-oct): abrirla y cerrarla sin pagar son
+    // los pasos del embudo, y el cierre dispara la encuesta «¿qué te detuvo?» de PostHog.
+    abiertaDesde.current = Date.now()
+    track('plan_card_opened', { tier, launch_offer_code: mostrarOferta ? oferta?.code : undefined, flow: 'short' })
   }
+  const abiertaDesde = useRef(0)
   // Tras una recarga con un cobro sin cerrar: la ventana del plan de la campaña (o Pro sin campaña) con el
   // formulario HABILITADO. El servidor recupera el cobro del intento anterior y entrega lo cobrado, sin cobrar
   // de nuevo. Sólo se bloquea con un cobro de ESTA pantalla en vuelo.
   const confirmarMiPago = () => {
     if (cobroEnCursoRef.current) return
     setDesenlace({ tipo: 'nada' })
-    setPlanElegido(mostrarOferta ? oferta!.planTier : 'PRO')
+    const tier = mostrarOferta ? oferta!.planTier : 'PRO'
+    setPlanElegido(tier)
+    // También es abrir la tarjeta: sin esto, cerrarla contaba un «cerró» sin «abrió» y medía el tiempo desde 1970 (Codex r1).
+    abiertaDesde.current = Date.now()
+    track('plan_card_opened', { tier, launch_offer_code: mostrarOferta ? oferta?.code : undefined, flow: 'short', recovery: true })
   }
 
   // Sin respuesta definitiva tras los reintentos: el plan sigue bloqueado (pudo cobrarse). La única
@@ -734,7 +743,16 @@ export function OfferStep({
         puedeCerrar={!pagoBloqueado}
         focoDeRespaldo={tituloRef}
         onCerrar={() => {
-          if (!pagoBloqueado) setPlanElegido(null)
+          if (pagoBloqueado) return
+          if (abiertaDesde.current > 0)
+            track('plan_card_closed', {
+              tier: planElegido,
+              seconds_open: Math.round((Date.now() - abiertaDesde.current) / 1000),
+              launch_offer_code: mostrarOferta ? oferta?.code : undefined,
+              flow: 'short',
+            })
+          abiertaDesde.current = 0
+          setPlanElegido(null)
         }}
         titulo={ventana.titulo}
         subtitulo={ventana.subtitulo}

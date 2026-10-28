@@ -27,6 +27,7 @@ import { useAuth } from '@/context/AuthContext'
 import { authService } from '@/services/auth.service'
 import { cn } from '@/lib/utils'
 import { trackSignup } from '@/lib/gtag'
+import { startSessionReplay, stopSessionReplay } from '@/lib/posthog'
 import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
 import { LEGAL_DOCS_VERSION } from '@/config/legal'
 import { captureHybridOffer, readHybridOffer } from '@/lib/hybridIntent'
@@ -45,6 +46,13 @@ export default function SignupWizard() {
   const queryClient = useQueryClient()
   const { signup, loginWithGoogle, isLoading } = useAuth()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+
+  // Grabación también aquí: quien entra directo (sin la landing) empieza en esta pantalla, y sólo grabábamos /setup.
+  // Los campos van enmascarados (initPostHog: maskAllInputs), así que la contraseña nunca se graba.
+  useEffect(() => {
+    startSessionReplay()
+    return () => stopSessionReplay()
+  }, [])
 
   const {
     register,

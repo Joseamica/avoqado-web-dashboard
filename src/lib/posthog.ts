@@ -42,6 +42,8 @@ export function initPostHog(): void {
       disable_session_recording: true,
       // Privacy: even in onboarding, never record input values (bank, RFC/CURP, KYC).
       session_recording: { maskAllInputs: true },
+      // Errores de la página que le salen al cliente (Error tracking de PostHog). Antes no veíamos ninguno (27-oct).
+      capture_exceptions: true,
     })
     initialized = true
     window.addEventListener('avoqado:private-documents', () => {
