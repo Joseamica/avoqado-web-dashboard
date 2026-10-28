@@ -281,6 +281,7 @@
       "attendance": "Attendance",
       "staff_documents": "Staff documents",
       "class_sessions": "Assigned classes",
+      "self_service": "Self-service",
       "staff_pay": "Staff pay",
       "marketing": "Marketing",
       "cash_drawer": "Cash Drawer"
@@ -646,6 +647,7 @@
       "staff-documents_read": "View staff documents",
       "staff-documents_write": "Upload and remove staff documents",
       "class-sessions_read-assigned": "View own assigned class",
+      "self-service_check-in": "Check in at the kiosk",
       "customers_approve": "Approve new customers",
       "cash-drawer_view-expected": "See expected drawer cash (not a blind count)",
       "marketing_read": "View the privacy notice",
