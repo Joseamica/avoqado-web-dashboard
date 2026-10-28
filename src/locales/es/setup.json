@@ -20,7 +20,7 @@
     "passwordPlaceholder": "Mínimo 8 caracteres",
     "passwordRequired": "La contraseña es requerida",
     "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
-    "passwordHint": "Usa 8 caracteres o más con una combinación de letras, números y símbolos",
+    "passwordHint": "Usa 8 caracteres o más",
     "createAccount": "Siguiente",
     "alreadyHaveAccount": "¿Ya tienes una cuenta?",
     "signIn": "Inicia sesión",
