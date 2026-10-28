@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 
@@ -19,6 +19,8 @@ type Inputs = LoginDto
 
 export function UserAuthForm({ className, ...props }: React.ComponentProps<'form'>) {
   const { t } = useTranslation('auth')
+  // «Regístrate» se lleva la `?oferta=`/UTMs con que llegó al login: /signup las captura.
+  const { search } = useLocation()
   // NOTE: Redirect logic moved to AuthContext - it handles ALL login redirects synchronously
   // after refetch completes to avoid race conditions with useEffect-based redirects
   const { login, loginWithGoogle, isLoading, loginError, clearLoginError } = useAuth()
@@ -245,12 +247,12 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
           {t('login.continueWithGoogle')}
         </Button>
       </div>
-      {/* <div className="text-center text-sm">
+      <div className="text-center text-sm">
         {t('login.noAccount')}{' '}
-        <a href="#" className="underline underline-offset-4">
+        <Link to={`/signup${search}`} className="underline underline-offset-4">
           {t('login.signUp')}
-        </a>
-      </div> */}
+        </Link>
+      </div>
       {/* Auth errors are surfaced via toasts in AuthContext */}
     </form>
   )

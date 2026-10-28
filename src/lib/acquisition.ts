@@ -38,7 +38,31 @@ export interface Atribucion {
   /** Lo que venía en `?oferta=`: puede ser el código (`POS22`) o el slug (`pos-22`). */
   offerParam: string | null
   utm: Partial<Record<UtmKey, string>>
+  /**
+   * HOST del sitio de donde llegó la visita (`document.referrer`), p. ej. `avoqado.io`. Sólo de fuera
+   * del dashboard: separa «vino de la landing» de «tecleó dashboard.avoqado.io». `null` = no se sabe.
+   */
+  referrer: string | null
   savedAt: string
+}
+
+const HOST_VALIDO = /^[a-z0-9.-]{1,100}$/
+
+/** Host en minúsculas, sin protocolo, ruta ni puerto; `null` si no sirve. */
+function hostValido(host: unknown): string | null {
+  return typeof host === 'string' && HOST_VALIDO.test(host) ? host : null
+}
+
+/** El host del referrer, salvo que esté vacío, sea ilegible o sea el propio dashboard. */
+function hostDeReferencia(referrer: string): string | null {
+  if (!referrer) return null
+  try {
+    const url = new URL(referrer)
+    if (url.host.toLowerCase() === window.location.host.toLowerCase()) return null
+    return hostValido(url.hostname.toLowerCase())
+  } catch {
+    return null
+  }
 }
 
 function almacen(): Storage | null {
@@ -59,18 +83,31 @@ function limpiarUtms(params: URLSearchParams): Partial<Record<UtmKey, string>> {
 }
 
 /**
- * Lee la URL y guarda la atribución si trae algo. Devuelve lo capturado, o `null` si la visita no
- * traía nada — en ese caso **no se borra** lo que ya estaba: el usuario pudo llegar por el anuncio
- * y volver por una URL limpia desde su correo.
+ * Lee la URL (y el referrer) y guarda la atribución si trae algo. Devuelve lo capturado, o `null` si
+ * la visita no traía nada — en ese caso **no se borra** lo que ya estaba: el usuario pudo llegar por
+ * el anuncio y volver por una URL limpia desde su correo. Por lo mismo, una visita con sólo referrer
+ * conserva la oferta y las UTMs guardadas, y una sin referrer conserva el referrer guardado.
  */
-export function capturarAtribucion(search: string = typeof window !== 'undefined' ? window.location.search : ''): Atribucion | null {
+export function capturarAtribucion(
+  search: string = typeof window !== 'undefined' ? window.location.search : '',
+  referrerCrudo: string = typeof document !== 'undefined' ? document.referrer : '',
+): Atribucion | null {
   const params = new URLSearchParams(search)
   const offerParam = params.get('oferta')?.trim() || null
   const utm = limpiarUtms(params)
+  const referrer = hostDeReferencia(referrerCrudo)
+  const traeParametros = Boolean(offerParam) || Object.keys(utm).length > 0
 
-  if (!offerParam && Object.keys(utm).length === 0) return null
+  if (!traeParametros && !referrer) return null
 
-  const atribucion: Atribucion = { offerParam, utm, savedAt: new Date().toISOString() }
+  const previa = leerAtribucion()
+  const atribucion: Atribucion = {
+    offerParam: traeParametros ? offerParam : (previa?.offerParam ?? null),
+    utm: traeParametros ? utm : (previa?.utm ?? {}),
+    referrer: referrer ?? previa?.referrer ?? null,
+    // Sólo una oferta/UTMs nuevas renuevan la fecha: un referrer suelto no alarga las 24 h de lo guardado.
+    savedAt: traeParametros || !previa ? new Date().toISOString() : previa.savedAt,
+  }
   try {
     almacen()?.setItem(ACQUISITION_STORAGE_KEY, JSON.stringify(atribucion))
   } catch {
@@ -91,6 +128,7 @@ export function leerAtribucion(): Atribucion | null {
     return {
       offerParam: typeof parsed.offerParam === 'string' ? parsed.offerParam : null,
       utm: (parsed.utm ?? {}) as Partial<Record<UtmKey, string>>,
+      referrer: hostValido(parsed.referrer),
       savedAt: parsed.savedAt as string,
     }
   } catch {
