@@ -143,6 +143,8 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
     [t, paymentT, formatDateTime, fullBasePath, canReadOrders, query.isPlaceholderData],
   )
 
+  // Un SERVIDOR que todavía no trae el Cambio no tiene esta ruta (404): la sección no aparece, sin error en Reembolsos.
+  if ((query.error as { response?: { status?: number } } | null)?.response?.status === 404) return null
   return (
     <section
       className="rounded-2xl border border-input bg-card p-4 space-y-4"

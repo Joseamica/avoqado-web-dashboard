@@ -78,6 +78,13 @@ beforeEach(() => {
 })
 
 describe('ExchangesToReviewSection', () => {
+  // Un SERVIDOR que todavía no trae el Cambio responde 404: la sección no aparece (el panel puede salir antes que el servidor).
+  it('no aparece si el servidor todavía no tiene la ruta del Cambio', async () => {
+    m.get.mockRejectedValue({ isAxiosError: true, response: { status: 404 } })
+    const { container } = mount()
+    await waitFor(() => expect(m.get).toHaveBeenCalled())
+    await waitFor(() => expect(container).toBeEmptyDOMElement())
+  })
   it.each([
     [true, false],
     [false, false],
