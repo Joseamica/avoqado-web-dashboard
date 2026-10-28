@@ -299,3 +299,21 @@ describe('🔴 Codex ronda 10 — recargar con un cobro sin cerrar', () => {
     expect(await screen.findByTestId('pantalla-oferta')).toHaveAttribute('data-activacion-en-curso', 'false')
   })
 })
+
+describe('ShortSetupWizard — lo que ya escribió en la landing (27-oct)', () => {
+  it('«Tu negocio» llega con el nombre y el WhatsApp del formulario, no en blanco', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {}, suggestedBusiness: { name: 'Tacos Lupita', phone: '5512345678' } }))
+    pintar()
+    expect(await screen.findByLabelText(/Nombre del negocio/i)).toHaveValue('Tacos Lupita')
+    expect(screen.getByLabelText(/Teléfono/i)).toHaveValue('5512345678')
+  })
+
+  it('lo que ya guardó en el alta gana sobre la sugerencia', async () => {
+    getProgress.mockResolvedValue(
+      progresoDe({ v2SetupData: { step2: { phone: '5599999999' } }, suggestedBusiness: { name: 'Tacos Lupita', phone: '5512345678' } }),
+    )
+    pintar()
+    expect(await screen.findByLabelText(/Nombre del negocio/i)).toHaveValue('Tacos Lupita')
+    expect(screen.getByLabelText(/Teléfono/i)).toHaveValue('5599999999')
+  })
+})

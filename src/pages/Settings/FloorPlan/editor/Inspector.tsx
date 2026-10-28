@@ -102,7 +102,8 @@ function Stepper({
   unknown?: string
 }) {
   return (
-    <div className="flex items-center gap-2" data-testid={testId} data-tour={tour}>
+    // ph-no-rageclick: picar + o − varias veces seguidas es usarlo, no enojo; PostHog lo contaba como «clic de enojo».
+    <div className="ph-no-rageclick flex items-center gap-2" data-testid={testId} data-tour={tour}>
       <Button type="button" variant="outline" size="icon" className="h-11 w-11 cursor-pointer" aria-label={less} disabled={value <= min || canLess === false} onClick={() => onChange(Math.max(min, value - 1))}>
         <Minus className="h-4 w-4" />
       </Button>
