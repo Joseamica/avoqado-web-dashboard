@@ -281,6 +281,7 @@
       "attendance": "Asistencia",
       "staff_documents": "Expediente del personal",
       "class_sessions": "Clases asignadas",
+      "self_service": "Autoservicio",
       "staff_pay": "Pago al personal",
       "marketing": "Marketing",
       "cash_drawer": "Cajón de efectivo"
@@ -651,6 +652,7 @@
       "staff-documents_read": "Ver expediente del personal",
       "staff-documents_write": "Subir y dar de baja documentos del expediente",
       "class-sessions_read-assigned": "Ver su propia clase asignada",
+      "self-service_check-in": "Hacer check-in en el kiosco",
       "customers_approve": "Aprobar clientes nuevos",
       "cash-drawer_view-expected": "Ver el efectivo esperado del cajón (sin conteo ciego)",
       "marketing_read": "Ver el aviso de privacidad",

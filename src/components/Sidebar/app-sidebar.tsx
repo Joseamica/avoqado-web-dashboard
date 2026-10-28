@@ -457,6 +457,11 @@ export function AppSidebar({
         keywords: ['cobros', 'pagos', 'dinero'],
       },
       {
+        title: t('sidebar:salesMenu.exchanges'),
+        url: 'payments/exchanges',
+        permission: 'payments:read',
+      },
+      {
         title: t('merchantRouting:sidebar', { defaultValue: 'Reglas de cobro' }),
         url: 'payments/routing-rules',
         permission: 'payments:routing-read',

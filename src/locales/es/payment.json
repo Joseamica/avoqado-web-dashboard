@@ -1,4 +1,72 @@
 {
+  "exchange": {
+    "title": "Cambio",
+    "asOriginal": "Cambiada en {{order}}",
+    "asNew": "Cambio de {{order}}",
+    "more": "y {{count}} más · Ver todos",
+    "status": {
+      "completed": "Hecho",
+      "pendingPayment": "Cobrando la diferencia",
+      "needsReview": "Por revisar",
+      "cancelled": "Cancelado"
+    },
+    "reviewed": "Revisado",
+    "viewDetail": "Ver detalle: {{order}}",
+    "hideDetail": "Ocultar detalle: {{order}}",
+    "viewDetailShort": "Ver detalle",
+    "hideDetailShort": "Ocultar detalle",
+    "loading": "Cargando cambio…",
+    "loadError": "No se pudo cargar el cambio.",
+    "retry": "Reintentar",
+    "requestedReturned": "Productos que pidió regresar",
+    "returned": "Productos que regresó",
+    "taken": "Se llevó",
+    "requestedTaken": "Pidió llevarse",
+    "restocked": "Regresó al inventario",
+    "requestedRestock": "Regreso al inventario solicitado",
+    "noRestock": "Sin devolución al inventario",
+    "quantityValue": "Cantidad: {{quantity}} · Valor: {{value}}",
+    "quantityPrice": "Cantidad: {{quantity}} · Valor total: {{price}}",
+    "inheritedPrice": "Precio heredado: {{price}}",
+    "piecePrice": "Precio por pieza: {{price}}",
+    "difference": "Diferencia: {{amount}}",
+    "returnedTotal": "Valor de los productos que regresa: {{amount}}",
+    "takenTotal": "Valor de los productos nuevos: {{amount}}",
+    "settled": "Liquidación",
+    "requestedSettlement": "Liquidación prevista",
+    "settlementAmount": "Importe: {{amount}}",
+    "settlement": {
+      "even": "Sin diferencia",
+      "collect": "Cobro de la diferencia",
+      "payout": "Devolución de la diferencia"
+    },
+    "methods": {
+      "cash": "Efectivo",
+      "card": "Tarjeta en terminal",
+      "bankTransfer": "Transferencia",
+      "giftCard": "Saldo a favor",
+      "tender": "Forma de pago original"
+    },
+    "reasons": {
+      "size": "Talla",
+      "taste": "Gusto",
+      "defect": "Defecto"
+    },
+    "reviewReasons": {
+      "chargeAmountMismatch": "La terminal cobró otro importe",
+      "lateChargeAfterRelease": "El cobro llegó después de cancelar el cambio",
+      "terminalRefundAfterExchange": "La terminal devolvió a la tarjeta lo que ya respaldaba este cambio",
+      "originalChangedWhilePending": "La venta original cambió mientras se cobraba"
+    },
+    "staff": "Lo hizo: {{name}}",
+    "expectedCharge": "Importe esperado: {{amount}}",
+    "charged": "Cobrado: {{amount}}",
+    "chargedCount": "Cobrado: {{amount}} en {{count}} cobros",
+    "chargedCount_one": "Cobrado: {{amount}} en {{count}} cobro",
+    "chargedCount_other": "Cobrado: {{amount}} en {{count}} cobros",
+    "viewPayment": "Ver cobro {{id}}",
+    "reviewedAt": "Revisado: {{date}}"
+  },
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",
   "errorPrefix": "Error al cargar pagos",

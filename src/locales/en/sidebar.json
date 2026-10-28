@@ -43,6 +43,7 @@
   },
   "creditPacks": "Credit Packs",
   "salesMenu": {
+    "exchanges": "Exchanges",
     "title": "Sales",
     "orders": "Orders",
     "transactions": "Transactions",
@@ -147,6 +148,7 @@
     "delete": "Delete"
   },
   "routes": {
+    "exchanges": "Exchanges",
     "home": "Home",
     "menu": "Products",
     "menumaker": "Products",

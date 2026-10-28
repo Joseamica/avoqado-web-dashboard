@@ -43,6 +43,7 @@ import { LoadingScreen } from './components/spinner'
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
   payments: 'sidebar:routes.payments',
+  exchanges: 'sidebar:routes.exchanges',
   orders: 'sidebar:routes.orders',
   home: 'sidebar:routes.home',
   menu: 'sidebar:routes.menu',

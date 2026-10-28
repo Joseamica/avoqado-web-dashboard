@@ -22,6 +22,7 @@ import SettingsIndexRedirect from './SettingsIndexRedirect'
 
 import {
   AvailableBalance,
+  Exchanges,
   BasicInfo,
   BillingHistory,
   BillingLayout,
@@ -250,6 +251,7 @@ export function createVenueRoutes(): RouteObject[] {
         // crea la aprobación del KYC), así que aquí no hay cobros con tarjeta que reembolsar; un
         // reembolso en efectivo no usa procesador.
         { path: 'payments', element: <Payments /> },
+        { path: 'payments/exchanges', element: <Exchanges /> },
         { path: 'payments/:paymentId', element: <Payments /> },
         // 🔴 Reglas de cuentas de cobro: DECIDEN a qué cuenta procesadora va el dinero, así que
         // conservan el candado. Self-gates además con <FeatureGate feature="MERCHANT_ROUTING_RULES"> (PREMIUM).

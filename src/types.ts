@@ -561,6 +561,7 @@ export interface Organization {
 
 // Venue (establecimiento)
 export interface Venue {
+  exchangesEnabledEffective?: boolean
   id: string
   organizationId: string
   organization?: Organization
@@ -655,6 +656,8 @@ export interface VenueSettings {
   requirePinLogin: boolean
   /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
   enforceTableOwnership?: boolean
+  /** Nullable override; the server provides the effective default for the venue type. */
+  exchangesEnabled?: boolean | null
   /** PIN de autorización de gerente. Core (sin candado de plan), nace OFF; el POS sólo lo lee. */
   managerPinOverrideEnabled?: boolean
 
@@ -1037,7 +1040,26 @@ export interface MenuCategoryAssignment {
 }
 
 // Modelo Order completo según el schema Prisma
+export interface ExchangeLinks {
+  asOriginalTotal: number
+  asOriginal: Array<{
+    exchangeId: string
+    newOrderId: string
+    newOrderNumber: string
+    status: string
+    reviewedAt: string | null
+  }>
+  asNew: {
+    exchangeId: string
+    originalOrderId: string
+    originalOrderNumber: string
+    status: string
+    reviewedAt: string | null
+  } | null
+}
+
 export interface Order {
+  exchange?: ExchangeLinks
   id: string
   venueId: string
   venue?: Venue
@@ -1126,6 +1148,7 @@ export interface OrderCustomer {
 
 // Modelo Payment completo según el schema Prisma
 export interface Payment {
+  exchange?: ExchangeLinks
   id: string
   venueId: string
   venue?: Venue
