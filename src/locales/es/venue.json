@@ -191,6 +191,19 @@
       "unavailableError": "No pudimos verificar o guardar la configuración. Intenta de nuevo.",
       "saveError": "Ocurrió un error al guardar la configuración."
     },
+    "exchanges": {
+      "title": "Cambios de producto",
+      "switchLabel": "Cambios de producto",
+      "enabledDescription": "Las cajeras pueden cambiar la talla o el producto de una venta ya cobrada desde el POS.",
+      "disabledDescription": "El botón \"Cambio\" no aparece en el POS.",
+      "enabledTitle": "Cambios de producto activados",
+      "disabledTitle": "Cambios de producto desactivados",
+      "saved": "La configuración se guardó correctamente.",
+      "readOnly": "Necesitas permiso para actualizar la configuración del local.",
+      "errorTitle": "No se guardó el cambio",
+      "permissionError": "No tienes permiso para cambiar esta configuración.",
+      "saveError": "Ocurrió un error al guardar la configuración."
+    },
     "managerPinOverride": {
       "title": "Autorización con código de encargado",
       "description": "Cuando alguien intente una acción para la que no tiene permiso, el punto de venta pedirá el código de un encargado para autorizarla esa vez. No deja la terminal con permisos abiertos.",

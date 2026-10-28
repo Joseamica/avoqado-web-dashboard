@@ -7,6 +7,7 @@
  */
 
 import api from '@/api'
+import { ExchangeLinksCard } from './components/ExchangeLinksCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -329,6 +330,8 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
             t={t}
           />
         ))}
+
+        <ExchangeLinksCard orderId={payment.orderId ?? payment.order?.id} links={payment.exchange} />
 
         {/* Amount + meta card */}
         <div className="rounded-xl border border-border/60 bg-card p-6 space-y-5">
