@@ -69,7 +69,7 @@ export default function PaymentLinks() {
   const queryClient = useQueryClient()
   const { t, i18n } = useTranslation('paymentLinks')
   const { t: tCommon } = useTranslation()
-  const { formatDate } = useVenueDateTime()
+  const { formatDate, formatDateTime } = useVenueDateTime()
   const { can } = useAccess()
 
   // ─── State ───────────────────────────────────────────────
@@ -424,6 +424,23 @@ export default function PaymentLinks() {
         cell: ({ row }) => <span className="text-sm font-medium">{formatPrice(row.original.totalCollected, row.original.currency)}</span>,
       },
       {
+        // Cuándo se pagó (en la zona del venue). Se ve aunque la liga ya esté archivada; en una reutilizable es el último pago.
+        accessorKey: 'lastPaidAt',
+        header: t('list.columns.lastPaidAt'),
+        cell: ({ row }) => {
+          const { lastPaidAt, paymentCount } = row.original
+          if (!lastPaidAt) return <span className="text-sm text-muted-foreground">—</span>
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm whitespace-nowrap">{formatDateTime(lastPaidAt)}</span>
+              {paymentCount > 1 && (
+                <span className="text-xs text-muted-foreground">{t('list.lastOfPayments', { count: paymentCount })}</span>
+              )}
+            </div>
+          )
+        },
+      },
+      {
         accessorKey: 'createdAt',
         header: t('list.columns.createdAt'),
         cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatDate(row.original.createdAt)}</span>,
@@ -506,7 +523,7 @@ export default function PaymentLinks() {
         ),
       },
     ],
-    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation, can],
+    [t, formatPrice, formatDate, formatDateTime, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation, can],
   )
 
   // ─── Render ──────────────────────────────────────────────

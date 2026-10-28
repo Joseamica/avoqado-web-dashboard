@@ -77,6 +77,8 @@ export interface PaymentLink {
   status: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'ARCHIVED'
   totalCollected: number
   paymentCount: number
+  /** Cuándo se completó el último cobro de la liga (null si nadie la ha pagado). Sólo lo trae el listado; un servidor viejo no lo manda. */
+  lastPaidAt?: string | null
   createdAt: string
   updatedAt: string
   createdBy?: {
