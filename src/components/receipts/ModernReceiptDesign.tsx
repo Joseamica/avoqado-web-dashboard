@@ -474,6 +474,13 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                               </div>
                             </div>
 
+                            {/* D1: lo que también imprimió el papel del cobro (de la copia del ticket) */}
+                            {[item.peso, item.area, item.nota].filter(Boolean).map((linea, i) => (
+                              <p key={i} className="text-xs text-muted-foreground">
+                                {linea}
+                              </p>
+                            ))}
+
                             {/* Quantity Badge */}
                             <Badge variant="secondary" className="w-fit text-xs">
                               {item.weightKg

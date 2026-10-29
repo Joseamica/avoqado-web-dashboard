@@ -82,4 +82,12 @@ describe('productosDelRecibo · parte de una venta dividida (D15)', () => {
   it('una parte sin productos guardados: lista vacía', () => {
     expect(productosDelRecibo({ ticketTotals: parcial, items: [] })).toEqual([])
   })
+
+  it('D1 fotocopia: con la copia del ticket mandan sus renglones, con o sin «parcial»', () => {
+    const lineasDelTicket = { lineas: [{ nombre: 'Café', cantidad: 1, unitarioCents: 3000, totalCents: 3000, nota: 'sin azúcar' }], subtotalCents: 3000, descuentoCents: 300 }
+    const esperado = [{ name: 'Café', quantity: 1, price: 30, totalPrice: 30, weightKg: null, nota: 'sin azúcar', modifiers: [] }]
+    const items = [{ productName: 'Agua', quantity: 1, unitPrice: 20, total: 20 }]
+    expect(productosDelRecibo({ items, ticketTotals: { subtotal: 27, parcial: true }, lineasDelTicket })).toEqual(esperado)
+    expect(productosDelRecibo({ items, ticketTotals: { subtotal: 27 }, lineasDelTicket })).toEqual(esperado)
+  })
 })

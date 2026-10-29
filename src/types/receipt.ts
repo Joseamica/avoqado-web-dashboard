@@ -42,6 +42,32 @@ export interface ReceiptOrderItem {
   modifiers: ReceiptModifier[]
   /** Producto por peso (D8): `price` es por kilo y `quantity` vale 1. */
   weightKg?: number | null
+  /** D1, sólo de una copia del ticket: el resumen impreso del peso, la nota del renglón y el área del vale. */
+  peso?: string
+  nota?: string
+  area?: string
+}
+
+/**
+ * D1 «fotocopia del ticket» (avoqado-server `lineasDelTicket.ts`): los renglones que imprimió el cobro de UNA parte, en centavos y sin
+ * propina. El SERVIDOR sólo la guarda si cuadró con lo cobrado; con ella, el visor pinta esos renglones y el subtotal y «Descuento»
+ * del papel.
+ */
+export interface ReceiptLineasDelTicket {
+  lineas: Array<{
+    nombre: string
+    cantidad: number
+    unitarioCents: number
+    totalCents: number
+    modificadores?: string[]
+    cortesia?: boolean
+    pieza?: boolean
+    peso?: string
+    nota?: string
+    area?: string
+  }>
+  subtotalCents: number
+  descuentoCents: number
 }
 
 export interface ReceiptModifier {
@@ -118,6 +144,8 @@ export interface UnifiedReceiptData {
   ticketTotals?: ReceiptTicketTotals | null
   /** Los productos del recibo de la terminal (D8); el visor los lee con `productosDelRecibo`. */
   items?: ReceiptTerminalItem[]
+  /** D1: la copia del ticket de esta parte. Con ella mandan sus renglones y los totales del papel. */
+  lineasDelTicket?: ReceiptLineasDelTicket
 }
 
 // Full receipt with metadata

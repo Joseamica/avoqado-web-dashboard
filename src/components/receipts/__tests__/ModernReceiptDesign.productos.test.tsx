@@ -46,4 +46,18 @@ describe('ModernReceiptDesign · productos', () => {
     expect(screen.queryByText('receipt.labels.quantity')).not.toBeInTheDocument()
     expect(screen.getByText('+ 2× Extra')).toBeInTheDocument()
   })
+
+  it('D1 fotocopia: con la copia del ticket enseña SUS renglones (con su peso y nota), no los de toda la venta', () => {
+    const recibo = JSON.parse(JSON.stringify(reciboDeLaTerminal)) as typeof reciboDeLaTerminal
+    ;(recibo.dataSnapshot as unknown as Record<string, unknown>).lineasDelTicket = {
+      lineas: [{ nombre: 'Queso Oaxaca', cantidad: 1, unitarioCents: 42000, totalCents: 12000, peso: '0.286 kg × $420.00/kg', nota: 'en rebanadas' }],
+      subtotalCents: 12000,
+      descuentoCents: 0,
+    }
+    render(<ModernReceiptDesign receipt={recibo} showActions={false} />)
+    expect(screen.getByText('Queso Oaxaca')).toBeInTheDocument()
+    expect(screen.getByText('0.286 kg × $420.00/kg')).toBeInTheDocument()
+    expect(screen.getByText('en rebanadas')).toBeInTheDocument()
+    expect(screen.queryByText('Latte')).not.toBeInTheDocument()
+  })
 })

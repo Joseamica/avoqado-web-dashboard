@@ -1,4 +1,4 @@
-import type { ReceiptOrderItem, ReceiptTerminalItem, ReceiptTicketTotals, UnifiedReceiptData } from '@/types/receipt'
+import type { ReceiptLineasDelTicket, ReceiptOrderItem, ReceiptTerminalItem, ReceiptTicketTotals, UnifiedReceiptData } from '@/types/receipt'
 
 /**
  * D8 (26-oct): los productos que pinta el visor. El recibo del panel los trae en `order.items` con el formato del visor; el de
@@ -9,7 +9,23 @@ export function productosDelRecibo(data: {
   order?: Pick<UnifiedReceiptData['order'], 'items'> | null
   items?: ReceiptTerminalItem[]
   ticketTotals?: Pick<ReceiptTicketTotals, 'subtotal' | 'parcial'> | null
+  lineasDelTicket?: ReceiptLineasDelTicket | null
 }): ReceiptOrderItem[] {
+  // D1 «fotocopia del ticket»: si el cobro guardó los renglones que imprimió, esos mandan, con o sin `parcial`.
+  const copia = copiaDelRecibo(data)
+  if (copia) {
+    return copia.lineas.map(l => ({
+      name: l.nombre,
+      quantity: l.cantidad,
+      price: l.unitarioCents / 100,
+      totalPrice: l.totalCents / 100,
+      weightKg: null,
+      ...(l.peso ? { peso: l.peso } : {}),
+      ...(l.nota ? { nota: l.nota } : {}),
+      ...(l.area ? { area: l.area } : {}),
+      modifiers: (l.modificadores ?? []).map(name => ({ name, price: 0 })),
+    }))
+  }
   const productos = productosGuardados(data)
   // D15: el recibo de UNA parte de una venta dividida (`ticketTotals.parcial`, lo decide el SERVIDOR) enseña un renglón «Pago
   // parcial» con lo que cobró, como el papel del cobro. Sin la marca (venta completa o recibo de antes de D15), sus productos.
@@ -18,6 +34,14 @@ export function productosDelRecibo(data: {
     return [{ name: 'Pago parcial', quantity: 1, price: totales.subtotal, totalPrice: totales.subtotal, weightKg: null, modifiers: [] }]
   }
   return productos
+}
+
+/** La copia del ticket del recibo, si viene bien formada (el SERVIDOR ya la validó al guardarla). */
+export function copiaDelRecibo(data: { lineasDelTicket?: ReceiptLineasDelTicket | null }): ReceiptLineasDelTicket | null {
+  const c = data.lineasDelTicket
+  return c && Array.isArray(c.lineas) && c.lineas.length > 0 && typeof c.subtotalCents === 'number' && typeof c.descuentoCents === 'number'
+    ? c
+    : null
 }
 
 function productosGuardados(data: { order?: Pick<UnifiedReceiptData['order'], 'items'> | null; items?: ReceiptTerminalItem[] }): ReceiptOrderItem[] {
