@@ -59,6 +59,8 @@ import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import CreatePaymentLinkDialog from './CreatePaymentLinkDialog'
 import { PaymentLinkDiscountStatus } from './PaymentLinkDiscountStatus'
+import { PaymentLinkDetailSheet } from './PaymentLinkDetailSheet'
+import { etiquetaDelEstado, varianteDelEstado } from './paymentLinkStatus'
 import { SharePaymentLinkDialog } from './SharePaymentLinkDialog'
 
 const CHECKOUT_BASE_URL = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
@@ -79,6 +81,7 @@ export default function PaymentLinks() {
   const debouncedSearch = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [archivingLink, setArchivingLink] = useState<PaymentLink | null>(null)
+  const [detailLink, setDetailLink] = useState<PaymentLink | null>(null)
   // Quitar el descuento cambia el precio de una liga que ya se compartió: se confirma antes.
   const [removingDiscountLink, setRemovingDiscountLink] = useState<PaymentLink | null>(null)
 
@@ -109,7 +112,7 @@ export default function PaymentLinks() {
   // ─── Data ────────────────────────────────────────────────
   // El servidor pagina, filtra por pestaña y cuenta: antes llegaban sólo 20 ligas y aquí se filtraban y contaban esas 20.
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
-  // Cambiar de pestaña, de estados o de búsqueda vuelve a la primera página (la 3 de «Todas» puede no existir en «Usadas»).
+  // Cambiar de pestaña, de estados o de búsqueda vuelve a la primera página (la 3 de «Todas» puede no existir en «Pagadas»).
   const irAPrimeraPagina = () => setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
   useEffect(() => {
     setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
@@ -174,7 +177,7 @@ export default function PaymentLinks() {
   const plStatusTabs = useMemo<StatusTab[]>(() => [
     { value: 'all', label: t('statusTabs.all'), count: counts?.all },
     { value: 'active', label: t('statusTabs.active'), count: counts?.active },
-    { value: 'used', label: t('statusTabs.used', { defaultValue: 'Usadas' }), count: counts?.used },
+    { value: 'used', label: t('statusTabs.used'), count: counts?.used },
     { value: 'paused', label: t('statusTabs.paused'), count: counts?.paused },
     { value: 'expired', label: t('statusTabs.expired'), count: counts?.expired },
   ], [t, counts])
@@ -267,21 +270,6 @@ export default function PaymentLinks() {
     }),
     [t],
   )
-
-  const statusBadgeVariant = useCallback((status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'default' as const
-      case 'PAUSED':
-        return 'secondary' as const
-      case 'EXPIRED':
-        return 'outline' as const
-      case 'ARCHIVED':
-        return 'outline' as const
-      default:
-        return 'outline' as const
-    }
-  }, [])
 
   const getFilterDisplayLabel = useCallback((values: string[], label: string, labels: Record<string, string>): string => {
     if (values.length === 0) return label
@@ -393,22 +381,8 @@ export default function PaymentLinks() {
       {
         accessorKey: 'status',
         header: t('list.columns.status'),
-        cell: ({ row }) => {
-          // Single-use links are stored as status=ACTIVE even after they've
-          // been paid (paymentCount>0). Without this distinction the
-          // dashboard showed "Activa" for a link that the customer-facing
-          // checkout rejects with "Esta liga ya fue utilizada" — confusing
-          // because the badge claims it's still live. Surface a dedicated
-          // "Usada" badge so the operator sees the link is consumed.
-          const isUsedUp =
-            row.original.status === 'ACTIVE' && !row.original.isReusable && (row.original.paymentCount || 0) > 0
-          if (isUsedUp) {
-            return <Badge variant="outline">{t('status.used', { defaultValue: 'Usada' })}</Badge>
-          }
-          return (
-            <Badge variant={statusBadgeVariant(row.original.status)}>{statusLabels[row.original.status] || row.original.status}</Badge>
-          )
-        },
+        // Una de un solo uso ya cobrada sigue ACTIVE en la base pero el checkout la rechaza: se ve «Pagada», no «Activa».
+        cell: ({ row }) => <Badge variant={varianteDelEstado(row.original)}>{t(etiquetaDelEstado(row.original))}</Badge>,
       },
       {
         accessorKey: 'paymentCount',
@@ -520,7 +494,7 @@ export default function PaymentLinks() {
         ),
       },
     ],
-    [t, formatPrice, formatDate, formatDateTime, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation, can],
+    [t, formatPrice, formatDate, formatDateTime, handleCopyLink, handleWhatsApp, toggleStatusMutation, can],
   )
 
   // ─── Render ──────────────────────────────────────────────
@@ -628,7 +602,7 @@ export default function PaymentLinks() {
           pagination={pagination}
           setPagination={setPagination}
           isLoading={isLoading}
-          onRowClick={(row: PaymentLink) => openEdit(row.id)}
+          onRowClick={(row: PaymentLink) => setDetailLink(row)}
           tableId="payment-links:list"
         />
       </div>
@@ -715,6 +689,20 @@ export default function PaymentLinks() {
         venueId={venueId}
         checkoutBaseUrl={CHECKOUT_BASE_URL}
       />
+
+      {/* Al picar una liga se ve su estado y sus pagos con «Ver recibo»; editar queda dentro del detalle y en «…». */}
+      {detailLink && (
+        <PaymentLinkDetailSheet
+          link={detailLink}
+          open={!!detailLink}
+          onOpenChange={open => !open && setDetailLink(null)}
+          onEdit={linkId => {
+            setDetailLink(null)
+            openEdit(linkId)
+          }}
+          onCopy={handleCopyLink}
+        />
+      )}
     </div>
   )
 }
