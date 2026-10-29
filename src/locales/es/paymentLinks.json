@@ -31,15 +31,24 @@
     "paused": "Pausada",
     "expired": "Expirada",
     "archived": "Archivada",
-    "used": "Usada",
+    "used": "Pagada",
     "label": "Estado"
   },
   "statusTabs": {
     "all": "Todas",
     "active": "Activas",
-    "used": "Usadas",
+    "used": "Pagadas",
     "paused": "Pausadas",
     "expired": "Expiradas"
+  },
+  "detail": {
+    "paymentsTitle": "Pagos",
+    "noPayments": "Esta liga todavía no tiene pagos.",
+    "viewReceipt": "Ver recibo",
+    "shownOf": "Se muestran los {{shown}} pagos más recientes de {{total}}.",
+    "loadError": "No se pudieron cargar los pagos de esta liga.",
+    "retry": "Reintentar",
+    "edit": "Editar liga"
   },
   "summaryCards": {
     "links": "Ligas",

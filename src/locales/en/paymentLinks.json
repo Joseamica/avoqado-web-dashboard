@@ -31,15 +31,24 @@
     "paused": "Paused",
     "expired": "Expired",
     "archived": "Archived",
-    "used": "Used",
+    "used": "Paid",
     "label": "Status"
   },
   "statusTabs": {
     "all": "All",
     "active": "Active",
-    "used": "Used",
+    "used": "Paid",
     "paused": "Paused",
     "expired": "Expired"
+  },
+  "detail": {
+    "paymentsTitle": "Payments",
+    "noPayments": "This link has no payments yet.",
+    "viewReceipt": "View receipt",
+    "shownOf": "Showing the {{shown}} most recent payments of {{total}}.",
+    "loadError": "Couldn't load this link's payments.",
+    "retry": "Retry",
+    "edit": "Edit link"
   },
   "summaryCards": {
     "links": "Links",

@@ -79,6 +79,10 @@ export interface PaymentLink {
   paymentCount: number
   /** Cuándo se completó el último cobro de la liga (null si nadie la ha pagado). Sólo lo trae el listado; un servidor viejo no lo manda. */
   lastPaidAt?: string | null
+  /** Sólo en el detalle: los pagos completados más recientes (hasta 50), cada uno con el pago donde vive su recibo. */
+  completedPayments?: Array<{ id: string; amount: number; completedAt: string | null; paymentId: string | null }>
+  /** Sólo en el detalle: cuántos pagos completados tiene en total (puede ser más que los que llegan). */
+  completedPaymentsTotal?: number
   createdAt: string
   updatedAt: string
   createdBy?: {
