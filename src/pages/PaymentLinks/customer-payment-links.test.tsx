@@ -751,6 +751,8 @@ describe('customer payment links', () => {
     state.linkHasCustomer = false
     render(wrap(<CreatePaymentLinkDialog open editingLinkId="link-a" onClose={vi.fn()} />))
     await screen.findByText('customer.addLater')
+    // Guardar antes de que el formulario cargue la liga no llama a update (falta el título): en el CI lento pasaba.
+    await screen.findByDisplayValue('Service')
     fireEvent.click(screen.getByText('form.save'))
     await waitFor(() => expect(mocks.update).toHaveBeenCalled())
     expect(mocks.update.mock.calls[0][2]).not.toHaveProperty('customerId')
@@ -759,6 +761,7 @@ describe('customer payment links', () => {
   it('editing a link that already has a customer never sends customerId', async () => {
     render(wrap(<CreatePaymentLinkDialog open editingLinkId="link-a" onClose={vi.fn()} />))
     await screen.findByTestId('selected-customer')
+    await screen.findByDisplayValue('Service')
     fireEvent.click(screen.getByText('form.save'))
     await waitFor(() => expect(mocks.update).toHaveBeenCalled())
     expect(mocks.update.mock.calls[0][2]).not.toHaveProperty('customerId')
