@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BarChart3,
   Bell,
+  CalendarDays,
   Check,
   ChevronDown,
   CreditCard,
@@ -38,6 +39,7 @@ import { canShowNotifications, requestNotificationPermission } from '@/utils/not
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BarChart3,
   Bell,
+  CalendarDays,
   CreditCard,
   Settings,
   Shield,
@@ -53,6 +55,10 @@ const channelConfig = [
 
 const allNotificationTypes = getAllNotificationTypes()
 const notificationTypeMetadataMap = new Map(allNotificationTypes.map(td => [td.type, td]))
+
+/** ¿Este canal se puede prender o apagar para el tipo? (`availableChannels` ausente = todos.) */
+const isChannelAvailable = (td: { availableChannels?: NotificationChannel[] }, channel: NotificationChannel): boolean =>
+  !td.availableChannels || td.availableChannels.includes(channel)
 
 export default function NotificationPreferences5() {
   const { toast } = useToast()
@@ -120,7 +126,8 @@ export default function NotificationPreferences5() {
       const pref = getPreference(td.type)
       if (!pref.enabled) continue
       for (const ch of channelConfig) {
-        if (pref.channels?.includes(ch.channel)) counts[ch.channel]++
+        // Un canal que no se puede apagar para este tipo no cuenta: si no, el interruptor general nunca llegaría a cero.
+        if (isChannelAvailable(td, ch.channel) && pref.channels?.includes(ch.channel)) counts[ch.channel]++
       }
     }
     return counts
@@ -184,6 +191,7 @@ export default function NotificationPreferences5() {
 
     const changes: { type: NotificationType; channels: NotificationChannel[] }[] = []
     for (const td of allNotificationTypes) {
+      if (!isChannelAvailable(td, channel)) continue
       const pref = getPreference(td.type)
       if (!pref.enabled) continue
       const curr = pref.channels || []
@@ -413,6 +421,7 @@ export default function NotificationPreferences5() {
                 <div className="border-t border-input/60">
                   {visibleTypes.map((typeData, i) => {
                     const pref = getPreference(typeData.type)
+                    const typeChannels = channelConfig.filter(({ channel }) => isChannelAvailable(typeData, channel))
                     return (
                       <div key={typeData.type} className={cn('px-4 py-3 pl-16', i < visibleTypes.length - 1 && 'border-b border-input/40')}>
                         <div className="flex items-center justify-between">
@@ -420,16 +429,19 @@ export default function NotificationPreferences5() {
                             <span className="text-sm font-medium text-foreground">{t(`types.${typeData.type}`)}</span>
                             <p className="text-xs text-muted-foreground mt-0.5">{t(`typeDescriptions.${typeData.type}`)}</p>
                           </div>
-                          <Switch
-                            checked={pref.enabled}
-                            onCheckedChange={enabled => handleToggle(typeData.type, enabled)}
-                            disabled={masterPending || pendingKeys.has(`toggle-${typeData.type}`)}
-                          />
+                          {/* Un tipo que no se puede apagar (canDisable: false) no lleva interruptor: sólo se eligen sus canales. */}
+                          {typeData.canDisable && (
+                            <Switch
+                              checked={pref.enabled}
+                              onCheckedChange={enabled => handleToggle(typeData.type, enabled)}
+                              disabled={masterPending || pendingKeys.has(`toggle-${typeData.type}`)}
+                            />
+                          )}
                         </div>
 
-                        {pref.enabled && (
+                        {(pref.enabled || !typeData.canDisable) && (
                           <div className="flex items-center gap-1.5 mt-2">
-                            {channelConfig.map(({ channel, icon: ChannelIcon, label }) => {
+                            {typeChannels.map(({ channel, icon: ChannelIcon, label }) => {
                               const isActive = pref.channels?.includes(channel) || false
                               const isPending = masterPending || pendingKeys.has(`channel-${typeData.type}-${channel}`)
                               return (

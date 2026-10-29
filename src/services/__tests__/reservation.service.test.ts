@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { http, HttpResponse } from 'msw'
 import { reservationService } from '@/services/reservation.service'
+import { server } from '@/test/setup'
 import { mockStore, createMockReservation, createMockWaitlistEntry } from '@/test/mocks/handlers'
 
 describe('Reservation Service', () => {
@@ -307,6 +309,71 @@ describe('Reservation Service', () => {
 
       expect(response.scheduling.slotIntervalMin).toBe(30)
       expect(response.scheduling.autoConfirm).toBe(true)
+    })
+  })
+  // ==================== D4 · «SÍ LLEGÓ» (deshacer un No asistió) ====================
+
+  describe('deshacer un No asistió', () => {
+    const base = `*/api/v1/dashboard/venues/${venueId}/reservations/res-1/no-show/undo`
+    const plan = { creditToReconsume: 1, clearFee: true, restoreDeposit: false, pending: [] }
+
+    it('previewUndoNoShow() hace GET a la ruta de la vista previa y devuelve el plan', async () => {
+      server.use(http.get(base, () => HttpResponse.json({ plan })))
+
+      const response = await reservationService.previewUndoNoShow(venueId, 'res-1')
+
+      expect(response.plan).toEqual(plan)
+    })
+
+    it('undoNoShow() hace POST con el motivo y devuelve outcome, plan y corrección', async () => {
+      let body: unknown
+      server.use(
+        http.post(base, async ({ request }) => {
+          body = await request.json()
+          return HttpResponse.json({
+            outcome: 'UNDONE',
+            reservation: { id: 'res-1', status: 'CHECKED_IN' },
+            plan,
+            correction: { id: 'cor-1', pending: [], resolvedAt: null },
+          })
+        }),
+      )
+
+      const response = await reservationService.undoNoShow(venueId, 'res-1', 'Sí vino')
+
+      expect(body).toEqual({ reason: 'Sí vino' })
+      expect(response.outcome).toBe('UNDONE')
+      expect(response.correction.id).toBe('cor-1')
+    })
+
+    it('undoNoShow() sin motivo manda un cuerpo vacío (no `reason: undefined`)', async () => {
+      let body: unknown
+      server.use(
+        http.post(base, async ({ request }) => {
+          body = await request.json()
+          return HttpResponse.json({ outcome: 'ALREADY_UNDONE', reservation: {}, plan, correction: { id: 'c', pending: [], resolvedAt: null } })
+        }),
+      )
+
+      const response = await reservationService.undoNoShow(venueId, 'res-1')
+
+      expect(body).toEqual({})
+      expect(response.outcome).toBe('ALREADY_UNDONE')
+    })
+
+    it('resolveNoShowCorrection() hace POST a /resolve con la nota y devuelve resolvedAt', async () => {
+      let body: unknown
+      server.use(
+        http.post(`${base}/resolve`, async ({ request }) => {
+          body = await request.json()
+          return HttpResponse.json({ resolvedAt: '2026-10-28T16:00:00.000Z' })
+        }),
+      )
+
+      const response = await reservationService.resolveNoShowCorrection(venueId, 'res-1', 'Ya la cobré')
+
+      expect(body).toEqual({ note: 'Ya la cobré' })
+      expect(response.resolvedAt).toBe('2026-10-28T16:00:00.000Z')
     })
   })
 })

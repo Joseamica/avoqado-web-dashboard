@@ -91,6 +91,8 @@ export interface Reservation {
   internalNotes: string | null
   tags: string[]
   statusLog: StatusLogEntry[] | null
+  /** D4: la corrección «Sí llegó» de esta reserva (una sola por reserva). `null`/ausente = nunca se corrigió (o server anterior). */
+  noShowCorrection?: NoShowCorrectionSummary | null
   createdAt: string
   updatedAt: string
 }
@@ -100,6 +102,39 @@ export interface StatusLogEntry {
   at: string
   by: string | null
   reason?: string
+  /** D4: la entrada que corrige un «No asistió» trae `'NO_SHOW'`. */
+  correctionOf?: 'NO_SHOW'
+}
+
+/** Lo que una persona tiene que resolver después de «Sí llegó» (los textos viven en `undoNoShow.pending.*`). */
+export type NoShowPending = 'CREDIT_NOT_RECONSUMED' | 'CLASS_UNPAID' | 'FEE_CAPTURED'
+
+export interface NoShowCorrectionSummary {
+  pending: string[]
+  resolvedAt: string | null
+  source: string
+  createdAt: string
+  /** Nombre corto de quien la hizo; `null` si no hay persona (p. ej. el kiosco). Ausente = server anterior. */
+  actorName?: string | null
+}
+
+/** Qué revierte «Sí llegó» (vista previa y resultado). */
+export interface UndoNoShowPlan {
+  creditToReconsume: number
+  clearFee: boolean
+  restoreDeposit: boolean
+  pending: NoShowPending[]
+  /** Montos y paquete para decirlo en la confirmación; `null` o ausentes (un plan guardado antes de existir) = texto genérico. */
+  feeAmount?: number | null
+  depositAmount?: number | null
+  packName?: string | null
+}
+
+export interface UndoNoShowResult {
+  outcome: 'UNDONE' | 'ALREADY_UNDONE'
+  reservation: Reservation
+  plan: UndoNoShowPlan
+  correction: { id: string; pending: string[]; resolvedAt: string | null }
 }
 
 export interface WaitlistEntry {
