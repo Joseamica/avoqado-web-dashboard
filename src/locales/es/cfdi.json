@@ -2,6 +2,7 @@
   "list": {
     "title": "Facturas",
     "description": "Comprobantes fiscales (CFDI) emitidos por esta sucursal.",
+    "newInvoice": "Nueva factura",
     "empty": "Aún no hay facturas emitidas.",
     "emptyHint": "Las facturas aparecerán aquí cuando se emitan a tus clientes.",
     "loadError": "No se pudieron cargar las facturas.",
@@ -86,6 +87,26 @@
     "substituteUuidHint": "Requerido por el SAT cuando el motivo es 01.",
     "confirm": "Cancelar factura",
     "cancel": "No, regresar"
+  },
+  "pickOrder": {
+    "title": "Nueva factura",
+    "subtitle": "Elige la venta que quieres facturar",
+    "search": "Buscar",
+    "searchPlaceholder": "Folio, nombre, teléfono o monto",
+    "searchHint": "Las más recientes primero. Busca por folio, por monto, o por el nombre, el apellido (uno a la vez) o el teléfono del cliente registrado en la venta. Una venta pagada que sigue abierta se factura desde Pedidos.",
+    "clearSearch": "Borrar búsqueda",
+    "loading": "Cargando ventas…",
+    "error": "No se pudieron cargar las ventas.",
+    "retry": "Reintentar",
+    "empty": "Todavía no hay ventas cerradas para facturar.",
+    "noMatches": "Ninguna venta coincide con «{{search}}».",
+    "count_one": "{{count}} venta cerrada",
+    "count_other": "{{count}} ventas cerradas",
+    "alreadyInvoiced": "Ya facturada",
+    "cancellationPending": "Su factura se está cancelando: si el SAT ya la aceptó, se puede facturar otra vez.",
+    "select": "Facturar",
+    "selectAria": "Facturar la venta {{folio}}",
+    "loadMore": "Cargar más"
   },
   "issueDialog": {
     "openButton": "Facturar",

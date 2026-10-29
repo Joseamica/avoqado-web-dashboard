@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ReactNode } from 'react'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import es from '@/locales/es/cfdi.json'
 import type { Cfdi } from '@/services/cfdi.service'
@@ -27,15 +27,20 @@ const m = vi.hoisted(() => ({
   consultar: vi.fn(),
   consultando: false,
   extracciones: undefined as { total: number; enProceso: number } | undefined,
+  conFacturacion: true,
+  ultimosFiltros: {} as Record<string, unknown>,
 }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.permisos.includes(p) }) }))
-vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: true }) }))
+vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: m.conFacturacion }) }))
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ venueId: 'v1', venue: { timezone: 'America/Mexico_City' }, fullBasePath: '/venues/demo' }),
 }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (d: string) => `fecha(${d})` }) }))
 vi.mock('@/hooks/use-cfdi', () => ({
-  useCfdis: () => ({ data: { cfdis: m.filas, total: m.filas.length }, isLoading: false, isError: false }),
+  useCfdis: (filtros: Record<string, unknown>) => {
+    m.ultimosFiltros = filtros
+    return { data: { cfdis: m.filas, total: m.filas.length }, isLoading: false, isError: false }
+  },
   useDownloadCfdiFile: () => ({ mutate: () => {} }),
   // C3 (ola final, I-1): el aviso de ventas sacadas de la global sin factura del cliente.
   useExtraccionesPendientes: () => ({ data: m.extracciones }),
@@ -46,8 +51,9 @@ vi.mock('@/hooks/use-cfdi', () => ({
 vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
 // La tabla real (paginación, columnas guardadas) no es lo que se prueba: cada fila pinta sus celdas.
 vi.mock('@/components/data-table', () => ({
-  default: ({ data, columns }: { data: any[]; columns: any[] }) => (
+  default: ({ data, columns, toolbarLeft }: { data: any[]; columns: any[]; toolbarLeft?: ReactNode }) => (
     <div>
+      {toolbarLeft}
       {data.map(row => (
         <div key={row.id} data-testid={`fila-${row.id}`}>
           {columns.map(c => (
@@ -83,6 +89,52 @@ vi.mock('../components/ReplaceCfdiDialog', () => ({
   ReplaceCfdiDialog: ({ cfdi }: { cfdi: { id: string } | null }) => (cfdi ? <div data-testid="sustituir">{cfdi.id}</div> : null),
 }))
 vi.mock('../components/SendCfdiEmailDialog', () => ({ SendCfdiEmailDialog: () => null }))
+// «Nueva factura»: el buscador y la ventana de «Facturar» tienen sus propias pruebas; aquí sólo importa qué se abre y con qué venta.
+vi.mock('../components/PickOrderToInvoiceDialog', () => ({
+  PickOrderToInvoiceDialog: ({ open, onSelect }: { open: boolean; onSelect: (id: string) => void }) =>
+    open ? (
+      <button type="button" data-testid="buscador" onClick={() => onSelect('orden-7')}>
+        elegir
+      </button>
+    ) : null,
+}))
+vi.mock('../components/IssueCfdiDialog', () => ({
+  IssueCfdiDialog: ({
+    orderId,
+    onOpenChange,
+    onIssued,
+  }: {
+    orderId: string
+    onOpenChange: (o: boolean) => void
+    onIssued?: (factura: { receptorRfc: string; stampedAt?: string }) => void
+  }) => (
+    <>
+      <button type="button" data-testid="facturar" onClick={() => onOpenChange(false)}>
+        {orderId}
+      </button>
+      <button
+        type="button"
+        data-testid="timbrada"
+        onClick={() => {
+          onIssued?.({ receptorRfc: 'EKU9003173C9' })
+          onOpenChange(false)
+        }}
+      >
+        timbrar
+      </button>
+      <button
+        type="button"
+        data-testid="timbrada-vieja"
+        onClick={() => {
+          onIssued?.({ receptorRfc: 'EKU9003173C9', stampedAt: '2025-01-15T18:00:00.000Z' })
+          onOpenChange(false)
+        }}
+      >
+        timbrar (recuperada de otro mes)
+      </button>
+    </>
+  ),
+}))
 vi.mock('../components/GlobalComplementariaDialog', () => ({
   GlobalComplementariaDialog: ({ emisorId, principalId }: { emisorId: string | null; principalId: string | null }) =>
     principalId ? <div data-testid="complementaria">{`${emisorId}:${principalId}`}</div> : null,
@@ -552,6 +604,74 @@ describe('CfdiList — F6: la factura por el total con notas automáticas que fa
         .filter(a => a.getAttribute('href')?.includes('/payments/'))
       expect([id, aPagos]).toEqual([id, []])
       expect(within(fila(id)).queryByText(/Faltan? \d+ notas? de crédito/)).not.toBeInTheDocument()
+    }
+  })
+})
+
+// ─── «Nueva factura» (founder, 28-oct): el botón lo ven los mismos que facturan desde Pedidos ─────────────────────────────────────────
+describe('CfdiList · «Nueva factura»', () => {
+  const BOTON = es.list.newInvoice
+
+  beforeEach(() => {
+    m.filas = []
+    m.conFacturacion = true
+  })
+
+  it('con `cfdi:issue` y `orders:read` aparece; elegir una venta abre «Facturar» con ESA venta y al cerrarla se va', () => {
+    m.permisos = ['cfdi:view', 'cfdi:issue', 'orders:read']
+    render(<CfdiList />)
+
+    expect(screen.queryByTestId('buscador')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    fireEvent.click(screen.getByTestId('buscador'))
+
+    expect(screen.queryByTestId('buscador')).not.toBeInTheDocument()
+    expect(screen.getByTestId('facturar').textContent).toBe('orden-7')
+    fireEvent.click(screen.getByTestId('facturar'))
+    expect(screen.queryByTestId('facturar')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex plan r1 #4 y código r1 #2: al timbrar se quitan los filtros y se busca por el RFC de la factura nueva', async () => {
+    m.permisos = ['cfdi:view', 'cfdi:issue', 'orders:read']
+    render(<CfdiList />)
+
+    fireEvent.click(screen.getByRole('button', { name: es.filters.receptorRfc }))
+    fireEvent.change(screen.getByLabelText(es.filters.receptorRfc), { target: { value: 'xaxx' } })
+    await waitFor(() => expect(m.ultimosFiltros.receptorRfc).toBe('XAXX'))
+
+    fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    fireEvent.click(screen.getByTestId('buscador'))
+    fireEvent.click(screen.getByTestId('timbrada'))
+
+    await waitFor(() => expect(m.ultimosFiltros.receptorRfc).toBe('EKU9003173C9'))
+    expect(m.ultimosFiltros).toMatchObject({ page: 1, status: ['STAMPED'] })
+    expect(screen.getByLabelText(es.filters.receptorRfc)).toHaveValue('EKU9003173C9')
+    expect(screen.queryByTestId('timbrada')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex código r4: una factura recuperada de un mes anterior amplía el rango desde su día, en el huso del negocio', async () => {
+    m.permisos = ['cfdi:view', 'cfdi:issue', 'orders:read']
+    render(<CfdiList />)
+
+    fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    fireEvent.click(screen.getByTestId('buscador'))
+    fireEvent.click(screen.getByTestId('timbrada-vieja'))
+
+    await waitFor(() => expect(m.ultimosFiltros.receptorRfc).toBe('EKU9003173C9'))
+    expect(m.ultimosFiltros).toMatchObject({ page: 1, status: ['STAMPED'], from: '2025-01-15' })
+  })
+
+  it('control — sin permiso de facturar, sin ver ventas o sin la función de facturación, no aparece', () => {
+    for (const [permisos, conFacturacion] of [
+      [['cfdi:view', 'orders:read'], true],
+      [['cfdi:view', 'cfdi:issue'], true],
+      [['cfdi:view', 'cfdi:issue', 'orders:read'], false],
+    ] as const) {
+      m.permisos = [...permisos]
+      m.conFacturacion = conFacturacion
+      const { unmount } = render(<CfdiList />)
+      expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+      unmount()
     }
   })
 })
