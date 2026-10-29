@@ -46,6 +46,10 @@ export interface ReceiptOrderItem {
   peso?: string
   nota?: string
   area?: string
+  /** D1: «Cortesía» en vez del precio, como el papel. */
+  cortesia?: boolean
+  /** D1: componente de un combo: «1x Papas», sin precio, debajo del combo. */
+  pieza?: boolean
 }
 
 /**
@@ -72,7 +76,8 @@ export interface ReceiptLineasDelTicket {
 
 export interface ReceiptModifier {
   name: string
-  price: number
+  /** Sin precio: el modificador de una copia del ticket (D1), que sólo trae su texto. */
+  price?: number
   /** Veces que va el extra (D8); sin el campo o 1, una. */
   quantity?: number
 }

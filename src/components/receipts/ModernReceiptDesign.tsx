@@ -463,30 +463,43 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                         <div className="flex justify-between items-start">
                           <div className="flex-1 space-y-2">
                             <div className="flex items-start justify-between">
-                              <h3 className="font-medium text-card-foreground leading-tight">{item.name}</h3>
-                              <div className="text-right ml-4">
-                                <div className="font-bold text-lg">{formatCurrency(item.totalPrice)}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {item.weightKg
-                                    ? t('receipt.labels.weightPrice', { weight: item.weightKg, price: formatCurrency(item.price) })
-                                    : t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
+                              <h3 className={`text-card-foreground leading-tight ${item.pieza ? 'pl-4 text-sm' : 'font-medium'}`}>
+                                {item.pieza ? `${item.quantity}x ${item.name}` : item.name}
+                              </h3>
+                              {/* D1: la pieza de un combo va sin precio y la cortesía dice «Cortesía», como el papel del cobro. */}
+                              {!item.pieza && (
+                                <div className="text-right ml-4">
+                                  {item.cortesia ? (
+                                    <div className="font-bold text-lg">{t('receipt.labels.courtesy')}</div>
+                                  ) : (
+                                    <>
+                                      <div className="font-bold text-lg">{formatCurrency(item.totalPrice)}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {item.weightKg
+                                          ? t('receipt.labels.weightPrice', { weight: item.weightKg, price: formatCurrency(item.price) })
+                                          : t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
-                              </div>
+                              )}
                             </div>
 
                             {/* D1: lo que también imprimió el papel del cobro (de la copia del ticket) */}
-                            {[item.peso, item.area, item.nota].filter(Boolean).map((linea, i) => (
+                            {[item.peso, item.area, item.nota && t('receipt.labels.note', { note: item.nota })].filter(Boolean).map((linea, i) => (
                               <p key={i} className="text-xs text-muted-foreground">
                                 {linea}
                               </p>
                             ))}
 
                             {/* Quantity Badge */}
-                            <Badge variant="secondary" className="w-fit text-xs">
-                              {item.weightKg
-                                ? t('receipt.labels.weight', { weight: item.weightKg })
-                                : t('receipt.labels.quantity', { count: item.quantity })}
-                            </Badge>
+                            {!item.pieza && (
+                              <Badge variant="secondary" className="w-fit text-xs">
+                                {item.weightKg
+                                  ? t('receipt.labels.weight', { weight: item.weightKg })
+                                  : t('receipt.labels.quantity', { count: item.quantity })}
+                              </Badge>
+                            )}
 
                             {/* Modifiers */}
                             {item.modifiers?.length > 0 && (
@@ -497,7 +510,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                                       + {(modifier.quantity ?? 1) > 1 ? `${modifier.quantity}× ` : ''}
                                       {modifier.name}
                                     </span>
-                                    <span className="font-medium">{formatCurrency(modifier.price)}</span>
+                                    {modifier.price != null && <span className="font-medium">{formatCurrency(modifier.price)}</span>}
                                   </div>
                                 ))}
                               </div>

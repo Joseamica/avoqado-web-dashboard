@@ -23,7 +23,10 @@ export function productosDelRecibo(data: {
       ...(l.peso ? { peso: l.peso } : {}),
       ...(l.nota ? { nota: l.nota } : {}),
       ...(l.area ? { area: l.area } : {}),
-      modifiers: (l.modificadores ?? []).map(name => ({ name, price: 0 })),
+      ...(l.cortesia ? { cortesia: true } : {}),
+      ...(l.pieza ? { pieza: true } : {}),
+      // La copia sólo trae el texto del modificador: no se inventa un precio (Codex código r1 #1).
+      modifiers: (l.modificadores ?? []).map(name => ({ name })),
     }))
   }
   const productos = productosGuardados(data)

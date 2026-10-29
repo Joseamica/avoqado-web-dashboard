@@ -57,7 +57,26 @@ describe('ModernReceiptDesign · productos', () => {
     render(<ModernReceiptDesign receipt={recibo} showActions={false} />)
     expect(screen.getByText('Queso Oaxaca')).toBeInTheDocument()
     expect(screen.getByText('0.286 kg × $420.00/kg')).toBeInTheDocument()
-    expect(screen.getByText('en rebanadas')).toBeInTheDocument()
+    // La nota va con su etiqueta «Nota: …», como el papel (el `t` de la prueba devuelve la llave).
+    expect(screen.getByText('receipt.labels.note')).toBeInTheDocument()
     expect(screen.queryByText('Latte')).not.toBeInTheDocument()
+  })
+
+  it('D1 fotocopia: «Cortesía» en vez del precio, la pieza del combo sin precio y el modificador sin precio (Codex código r1 #1)', () => {
+    const recibo = JSON.parse(JSON.stringify(reciboDeLaTerminal)) as typeof reciboDeLaTerminal
+    ;(recibo.dataSnapshot as unknown as Record<string, unknown>).lineasDelTicket = {
+      lineas: [
+        { nombre: 'Combo Desayuno', cantidad: 1, unitarioCents: 4500, totalCents: 4500, modificadores: ['Sin azúcar'] },
+        { nombre: 'Papas', cantidad: 1, unitarioCents: 0, totalCents: 0, pieza: true },
+        { nombre: 'Galleta', cantidad: 1, unitarioCents: 1500, totalCents: 1500, cortesia: true },
+      ],
+      subtotalCents: 6000,
+      descuentoCents: 1500,
+    }
+    render(<ModernReceiptDesign receipt={recibo} showActions={false} />)
+    expect(screen.getByText('receipt.labels.courtesy')).toBeInTheDocument()
+    expect(screen.getByText('1x Papas')).toBeInTheDocument()
+    expect(screen.getByText('+ Sin azúcar')).toBeInTheDocument()
+    expect(screen.queryByText('N/A')).not.toBeInTheDocument()
   })
 })
