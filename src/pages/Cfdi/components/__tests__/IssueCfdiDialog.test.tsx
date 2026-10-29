@@ -572,12 +572,14 @@ describe('IssueCfdiDialog · onIssued', () => {
   }
 
   it('🔴 Codex código r3: avisa con el RFC de la factura DEVUELTA (una recuperación puede devolver otra), no con el capturado', async () => {
-    svc.issueCfdiForOrder.mockResolvedValue({ cfdi: { ...emitida, receptorRfc: 'AAA010101AAA' } })
+    svc.issueCfdiForOrder.mockResolvedValue({
+      cfdi: { ...emitida, receptorRfc: 'AAA010101AAA', stampedAt: '2025-01-15T18:00:00.000Z' },
+    })
     const onIssued = vi.fn()
     renderConAviso(onIssued)
     llenarReceptor()
     facturar()
-    await waitFor(() => expect(onIssued).toHaveBeenCalledWith({ receptorRfc: 'AAA010101AAA' }))
+    await waitFor(() => expect(onIssued).toHaveBeenCalledWith({ receptorRfc: 'AAA010101AAA', stampedAt: '2025-01-15T18:00:00.000Z' }))
   })
 
   it('con un servidor anterior (sin el RFC en la respuesta) avisa con el RFC capturado, en mayúsculas', async () => {

@@ -419,6 +419,8 @@ export interface IssuedCfdi {
   pdfUrl: string | null
   /** ADITIVO (28-oct): el RFC de la factura devuelta; en una recuperación puede no ser el capturado. Un servidor anterior no lo manda. */
   receptorRfc?: string
+  /** ADITIVO (28-oct): cuándo se timbró (ISO). Una recuperada puede ser de un mes anterior. Un servidor anterior no lo manda. */
+  stampedAt?: string
 }
 
 /** F6: cómo se facturó una venta que ya tenía devoluciones (aditivo). */

@@ -602,11 +602,16 @@ export default function CfdiList() {
             // Codex plan r1 #4 y código r1/r2 #1: con un filtro puesto (otro estado, otro RFC, otro mes, una página posterior) la factura
             // nueva quedaría fuera; y sin filtros tampoco basta, porque el servidor pone primero las NO timbradas (aun del mismo RFC). Se
             // dejan sólo las timbradas del mes, de la más reciente a la más vieja, y del RFC de la factura nueva: sale la primera.
-            onIssued={({ receptorRfc: rfc }) => {
+            onIssued={({ receptorRfc: rfc, stampedAt }) => {
               resetFilters()
               setStatusFilter(['STAMPED'])
               setReceptorRfc(rfc)
               setIsSearchOpen(true)
+              // Codex código r4: una factura RECUPERADA (el PAC ya la había timbrado) puede ser de un mes anterior; el rango arranca
+              // en el día en que se timbró, en el huso del negocio, para que también se vea.
+              const mes = mesEnCurso(tz)
+              const dia = stampedAt ? DateTime.fromISO(stampedAt).setZone(tz).startOf('day') : null
+              if (dia?.isValid && dia.toJSDate() < mes.from) setDateRange({ from: dia.toJSDate(), to: mes.to })
             }}
           />
         )}

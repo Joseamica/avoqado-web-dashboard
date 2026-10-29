@@ -106,7 +106,7 @@ vi.mock('../components/IssueCfdiDialog', () => ({
   }: {
     orderId: string
     onOpenChange: (o: boolean) => void
-    onIssued?: (factura: { receptorRfc: string }) => void
+    onIssued?: (factura: { receptorRfc: string; stampedAt?: string }) => void
   }) => (
     <>
       <button type="button" data-testid="facturar" onClick={() => onOpenChange(false)}>
@@ -121,6 +121,16 @@ vi.mock('../components/IssueCfdiDialog', () => ({
         }}
       >
         timbrar
+      </button>
+      <button
+        type="button"
+        data-testid="timbrada-vieja"
+        onClick={() => {
+          onIssued?.({ receptorRfc: 'EKU9003173C9', stampedAt: '2025-01-15T18:00:00.000Z' })
+          onOpenChange(false)
+        }}
+      >
+        timbrar (recuperada de otro mes)
       </button>
     </>
   ),
@@ -637,6 +647,18 @@ describe('CfdiList · «Nueva factura»', () => {
     expect(m.ultimosFiltros).toMatchObject({ page: 1, status: ['STAMPED'] })
     expect(screen.getByLabelText(es.filters.receptorRfc)).toHaveValue('EKU9003173C9')
     expect(screen.queryByTestId('timbrada')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex código r4: una factura recuperada de un mes anterior amplía el rango desde su día, en el huso del negocio', async () => {
+    m.permisos = ['cfdi:view', 'cfdi:issue', 'orders:read']
+    render(<CfdiList />)
+
+    fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    fireEvent.click(screen.getByTestId('buscador'))
+    fireEvent.click(screen.getByTestId('timbrada-vieja'))
+
+    await waitFor(() => expect(m.ultimosFiltros.receptorRfc).toBe('EKU9003173C9'))
+    expect(m.ultimosFiltros).toMatchObject({ page: 1, status: ['STAMPED'], from: '2025-01-15' })
   })
 
   it('control — sin permiso de facturar, sin ver ventas o sin la función de facturación, no aparece', () => {

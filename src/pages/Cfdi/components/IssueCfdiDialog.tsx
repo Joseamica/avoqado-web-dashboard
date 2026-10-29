@@ -40,7 +40,7 @@ interface IssueCfdiDialogProps {
    */
   venueId?: string
   /** Se llama al quedar timbrada, con el RFC del receptor (antes de cerrar). «Nueva factura» lo usa para que la lista la enseñe. */
-  onIssued?: (factura: { receptorRfc: string }) => void
+  onIssued?: (factura: { receptorRfc: string; stampedAt?: string }) => void
 }
 
 /**
@@ -136,7 +136,10 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId, onIssued }: Issue
       onSuccess: data => {
         // Success toast + list invalidation handled by the hook. Manda el RFC de la factura DEVUELTA (en una recuperación puede ser
         // otro que el capturado; Codex código r3); con un servidor anterior que no lo trae, el de ESTE intento.
-        onIssued?.({ receptorRfc: data?.cfdi?.receptorRfc || intento.receptor.rfc })
+        onIssued?.({
+          receptorRfc: data?.cfdi?.receptorRfc || intento.receptor.rfc,
+          ...(data?.cfdi?.stampedAt ? { stampedAt: data.cfdi.stampedAt } : {}),
+        })
         close()
       },
       onError: (err: any) => {
