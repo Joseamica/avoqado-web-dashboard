@@ -76,9 +76,9 @@
 <body>
 <main class="wrap">
   <div class="brand"><img src="https://avoqado.io/isotipo.svg" alt="" width="32" height="32"> Avoqado</div>
-  <h1 id="hola">Precios de Avoqado</h1>
+  <h1 id="hola" data-ph-mask>Precios de Avoqado</h1>
   <p class="sub">Elige lo que necesita tu negocio. Precios mensuales en pesos, IVA incluido.</p>
-  <p class="sub print-only" id="vigencia"></p>
+  <p class="sub print-only" id="vigencia" data-ph-mask></p>
   <div id="estado" class="state" role="status">Cargando precios…</div>
   <section id="planes" class="plans" hidden></section>
   <section id="lista"></section>
@@ -101,7 +101,7 @@
       <input id="f-tel" name="telefono" type="tel" autocomplete="tel" maxlength="20" placeholder="Tu teléfono" aria-label="Tu teléfono">
     </form>
     <div class="actions"><button class="btn" id="enviar" type="button" disabled>Enviar</button></div>
-    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+    <p class="msg" id="msg" role="status" aria-live="polite" data-ph-mask></p>
   </div>
 </div>
 
@@ -316,6 +316,12 @@
         $('consejo').hidden = true
         aviso(`Listo${nombre ? `, ${nombre}` : ''}. Recibimos tu selección; te contactamos pronto.`)
         $('msg').style.fontSize = '16px'
+        try {
+          const paquete = cuenta([...elegidos])
+          window.posthog?.capture('presentacion_paquete_enviado', { funciones: paquete.chosen.length + paquete.quoted.length, total_mxn: paquete.options[0].totalCents / 100, sugerencia: paquete.best.kind })
+        } catch {
+          /* La medición nunca cambia el resultado del envío. */
+        }
         return
       }
       if (body.code === 'PRICE_LIST_CHANGED') {
@@ -355,5 +361,6 @@
   iniciar()
 })()
 </script>
+<script src="presentation-analytics.js" defer></script>
 </body>
 </html>
