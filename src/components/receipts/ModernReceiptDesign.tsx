@@ -474,11 +474,14 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                                   ) : (
                                     <>
                                       <div className="font-bold text-lg">{formatCurrency(item.totalPrice)}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {item.weightKg
-                                          ? t('receipt.labels.weightPrice', { weight: item.weightKg, price: formatCurrency(item.price) })
-                                          : t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
-                                      </div>
+                                      {/* D1 (Codex código r2): con el resumen impreso del peso, el precio por kilo no se explica como «1 × …». */}
+                                      {!item.peso && (
+                                        <div className="text-xs text-muted-foreground">
+                                          {item.weightKg
+                                            ? t('receipt.labels.weightPrice', { weight: item.weightKg, price: formatCurrency(item.price) })
+                                            : t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
+                                        </div>
+                                      )}
                                     </>
                                   )}
                                 </div>

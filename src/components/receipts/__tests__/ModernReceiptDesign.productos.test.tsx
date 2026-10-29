@@ -57,6 +57,8 @@ describe('ModernReceiptDesign · productos', () => {
     render(<ModernReceiptDesign receipt={recibo} showActions={false} />)
     expect(screen.getByText('Queso Oaxaca')).toBeInTheDocument()
     expect(screen.getByText('0.286 kg × $420.00/kg')).toBeInTheDocument()
+    // Con el resumen del peso no se agrega «1 × $420.00» (Codex código r2).
+    expect(screen.queryByText('receipt.labels.unitPrice')).not.toBeInTheDocument()
     // La nota va con su etiqueta «Nota: …», como el papel (el `t` de la prueba devuelve la llave).
     expect(screen.getByText('receipt.labels.note')).toBeInTheDocument()
     expect(screen.queryByText('Latte')).not.toBeInTheDocument()
