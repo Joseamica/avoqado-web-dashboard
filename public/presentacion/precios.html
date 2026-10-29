@@ -302,6 +302,8 @@
     total()
     $('enviar').textContent = 'Enviando…'
     aviso('')
+    // La foto de lo que se manda: lo que se palomee mientras llega la respuesta no cambia lo medido.
+    const paquete = cuenta([...elegidos])
     try {
       const r = await fetch(`${API}/price-list/selection`, {
         method: 'POST',
@@ -317,7 +319,6 @@
         aviso(`Listo${nombre ? `, ${nombre}` : ''}. Recibimos tu selección; te contactamos pronto.`)
         $('msg').style.fontSize = '16px'
         try {
-          const paquete = cuenta([...elegidos])
           window.posthog?.capture('presentacion_paquete_enviado', { funciones: paquete.chosen.length + paquete.quoted.length, total_mxn: paquete.options[0].totalCents / 100, sugerencia: paquete.best.kind })
         } catch {
           /* La medición nunca cambia el resultado del envío. */
