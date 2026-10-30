@@ -441,7 +441,9 @@
       "error": "Error saving configuration",
       "soloDuenoOrg": "Only the organization owner can change this configuration, because it applies to every store. If you need a change, ask the organization owner.",
       "loadError": "The saved configuration could not be loaded. Reload the page before changing it, so you do not replace it with the factory values."
-    }
+    },
+    "timezoneReloadPending": "You saved a different time zone. Reload the page so the whole dashboard uses it.",
+    "reload": "Reload"
   },
   "supervisor": {
     "goalDialog": {
