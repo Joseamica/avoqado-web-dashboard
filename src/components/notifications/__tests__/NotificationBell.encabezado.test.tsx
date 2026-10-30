@@ -16,8 +16,11 @@ vi.mock('@/context/NotificationContext', () => ({
   useNotificationBadge: () => ({ unreadCount: estado.unreadCount, hasUnread: estado.unreadCount > 0 }),
   useNotifications: () => ({ notifications: estado.notifications, markAsRead: vi.fn(), markAllAsRead: vi.fn(), loading: false }),
 }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ fullBasePath: '/venues/demo', venueSlug: 'demo' }) }))
-vi.mock('@/services/notification.service', () => ({ formatNotificationTime: () => 'hace 3 min' }))
+vi.mock('@/hooks/use-current-venue', () => ({
+  useCurrentVenue: () => ({ fullBasePath: '/venues/demo', venueBasePath: '/venues', venueSlug: 'demo' }),
+}))
+vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ allVenues: [] }) }))
+vi.mock('@/services/notification.service', () => ({ formatNotificationTime: () => 'hace 3 min', destinoDelAviso: () => '' }))
 vi.mock('@/components/announcements/AnnouncementModal', () => ({ AnnouncementModal: () => null }))
 
 import { NotificationBell } from '../NotificationBell'
