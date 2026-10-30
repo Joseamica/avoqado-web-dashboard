@@ -567,7 +567,9 @@
       "logoRemovedTitle": "Logo removed",
       "logoRemovedDesc": "The logo has been removed successfully",
       "logoErrorTitle": "Logo error",
-      "logoErrorDesc": "Failed to process logo image"
+      "logoErrorDesc": "Failed to process logo image",
+      "timezoneReloadPending": "You saved a different time zone. Reload the page so the whole dashboard uses it.",
+      "reload": "Reload"
     },
     "deleteDialog": {
       "title": "Delete Venue",

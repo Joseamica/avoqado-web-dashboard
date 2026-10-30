@@ -571,7 +571,9 @@
       "logoRemovedTitle": "Logo eliminado",
       "logoRemovedDesc": "El logo se ha eliminado exitosamente",
       "logoErrorTitle": "Error con el logo",
-      "logoErrorDesc": "No se pudo procesar la imagen del logo"
+      "logoErrorDesc": "No se pudo procesar la imagen del logo",
+      "timezoneReloadPending": "Guardaste otra zona horaria. Recarga la página para que todo el panel la use.",
+      "reload": "Recargar"
     },
     "deleteDialog": {
       "title": "Eliminar Local",
