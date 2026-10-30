@@ -14,6 +14,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
+import { DateTime } from 'luxon'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
@@ -110,8 +111,9 @@ export function ManagersDashboard() {
   const { data: storePerformanceData } = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
 
   // Staff attendance using venue-level hook — pass YYYY-MM-DD strings (venue local dates)
-  const startDateLocal = `${selectedRange.from.getFullYear()}-${String(selectedRange.from.getMonth() + 1).padStart(2, '0')}-${String(selectedRange.from.getDate()).padStart(2, '0')}`
-  const endDateLocal = `${selectedRange.to.getFullYear()}-${String(selectedRange.to.getMonth() + 1).padStart(2, '0')}-${String(selectedRange.to.getDate()).padStart(2, '0')}`
+  // Se leen en la zona del negocio: con la del navegador, desde otra zona se pedía un día de más (D1).
+  const startDateLocal = DateTime.fromJSDate(selectedRange.from).setZone(venueTimezone).toISODate() as string
+  const endDateLocal = DateTime.fromJSDate(selectedRange.to).setZone(venueTimezone).toISODate() as string
 
   const { data: attendanceData, isLoading: attendanceLoading } = useStoresStaffAttendance({
     startDate: startDateLocal,
