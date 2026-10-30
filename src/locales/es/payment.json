@@ -765,5 +765,68 @@
     "venueCharge": "Cargo a Sucursal",
     "netProfit": "Beneficio Neto",
     "margin": "margen"
+  },
+  "refund": {
+    "success": "Reembolso emitido",
+    "errorUnknownTitle": "Reembolso sin confirmar",
+    "error": "No se pudo emitir el reembolso",
+    "errors": {
+      "unknown": "No supimos si se emitió el reembolso. Revisa los reembolsos de este pago antes de intentarlo otra vez.",
+      "forbidden": "No tienes permiso para emitir reembolsos. Pídeselo a quien administra el negocio."
+    },
+    "reasons": {
+      "RETURNED_GOODS": "Productos devueltos",
+      "ACCIDENTAL_CHARGE": "Cargo accidental",
+      "CANCELLED_ORDER": "Pedido cancelado",
+      "FRAUDULENT_CHARGE": "Cargo fraudulento",
+      "OTHER": "Otro"
+    },
+    "restock": {
+      "title": "Reabastecer existencias",
+      "skip": "Omitir",
+      "confirm": "Reabastecer existencias",
+      "heading": "Seleccionar artículos para reabastecer",
+      "note": "Los artículos se reabastecerán en el lugar de compra original: {{venue}}"
+    },
+    "title": "Emitir reembolso",
+    "description": "Elige qué devolver y por qué.",
+    "tabs": {
+      "items": "Reembolsar artículos",
+      "amount": "Reembolsos por importe"
+    },
+    "processing": "Procesando...",
+    "confirm": "Reembolsar",
+    "items": {
+      "heading": "Selecciona los artículos a reembolsar",
+      "note": "El importe del artículo incluye impuestos y descuentos, si aplica. La comisión del empleado obtenida de la venta original no será modificada.",
+      "column": {
+        "item": "Artículos",
+        "amount": "Importe"
+      },
+      "customLabel": "Importe personalizado",
+      "alreadyRefunded": "Reembolsado",
+      "each": "c/u",
+      "tipUntouched": "Sin tocar la propina del mesero",
+      "includeTip": "Incluir propina en el reembolso",
+      "includeTipOn": "Se devuelve también la propina del cobro.",
+      "includeTipOff": "Solo se reembolsan los artículos; la propina del mesero queda intacta.",
+      "partialRefunded": "{{refunded}} de {{total}} ya se reembolsó",
+      "tipIncluded": "Incluye {{amount}} de propina"
+    },
+    "confirmHeading": "Selecciona el motivo del reembolso",
+    "amount": {
+      "refundTo": "Reembolsar a",
+      "importe": "Importe",
+      "reason": "Motivo del reembolso",
+      "selectReason": "Selecciona un motivo",
+      "heading": "Selecciona el importe a reembolsar",
+      "note1": "Al devolver un importe (en lugar de un artículo específico) puede haber discrepancias en tu inventario y en tus informes de ventas de artículos.",
+      "asMax": "como máximo",
+      "includeTip": "Incluir propina en el reembolso",
+      "includeTipOn": "El reembolso se divide proporcionalmente entre la venta y la propina del pago original.",
+      "includeTipOff": "Solo se reembolsa el producto; la propina del mesero queda intacta.",
+      "exceeds": "El importe excede el máximo reembolsable"
+    },
+    "confirmTitle": "Reembolso de {{amount}}"
   }
 }

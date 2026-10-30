@@ -7,15 +7,20 @@ import type {
   GiftCardSettingsView,
 } from '@/types/giftCard'
 import {
+  CODIGOS_DE_FALLO_DE_ENTREGA,
   MINIMO_POR_SOBRE,
   MOTIVOS_POR_ACCION,
   NOTA_MAXIMA,
   TOPE_POR_TARJETA,
   accionesDisponibles,
   borradorDesde,
+  correoValido,
+  errorDeEntrega,
   estadoVisible,
   leerMonto,
+  limpiarTelefono,
   montoDelMovimiento,
+  notaVisible,
   motivoSinVenta,
   signoDe,
   avisoDeError,
@@ -95,6 +100,43 @@ describe('montos tecleados', () => {
   it('«0» se lee 0: quien llama valida que sea positivo', () => {
     expect(leerMonto('0')).toBe(0)
   })
+})
+
+// 1b P1 (Review Focus 3): «Cambiar destino» manda los 10 dígitos limpios; lo que no los trae se rechaza ANTES de mandar.
+describe('limpiarTelefono (cambiar destino)', () => {
+  it.each([
+    ['5512345678', '5512345678'],
+    ['55 1234 5678', '5512345678'],
+    ['55-1234-5678', '5512345678'],
+    ['55 1234-5678', '5512345678'],
+    ['(55) 1234 5678', '5512345678'],
+    ['+52 55 1234 5678', '5512345678'],
+    ['52 5512345678', '5512345678'],
+    [' 55.1234.5678 ', '5512345678'],
+    ['551234567', null],
+    ['55123456789', null],
+    ['abc', null],
+    ['55a1234 5678', null],
+    ['', null],
+  ])('%s → %s', (entrada, salida) => expect(limpiarTelefono(entrada)).toBe(salida))
+})
+
+describe('correoValido', () => {
+  it.each([
+    ['ana@correo.com', true],
+    [' ana@correo.com ', true],
+    ['Ana.Lopez+regalo@correo.com.mx', true],
+    ['maría@gmail.com', false],
+    ['nuñez@gmail.com', false],
+    ['ana@correo.c', false],
+    ['ana..b@correo.com', false],
+    ['.ana@correo.com', false],
+    ['ana@correo.com.', false],
+    ['ana@', false],
+    ['ana correo.com', false],
+    ['ana@correo', false],
+    ['', false],
+  ])('%s → %s', (c, ok) => expect(correoValido(c)).toBe(ok))
 })
 
 describe('validarAjuste', () => {
@@ -343,7 +385,10 @@ describe('avisoDeError (full-testing v2 #2: el texto que enseña cada pantalla a
   })
 })
 
-/** Los códigos que el server manda con mensaje en español: los 22 de `GiftCardErrorCode` + el de los términos (`giftCardSettings.service.ts`). */
+/**
+ * Los códigos que el server manda con mensaje en español: los 22 de `GiftCardErrorCode` + el de los términos
+ * (`giftCardSettings.service.ts`) + los que puede responder `POST …/resend` del panel en la 1b (contrato 1b § 8 y § 3.1-§ 3.2).
+ */
 const CODIGOS_DEL_SERVER = [
   'GIFT_CARDS_DISABLED',
   'GIFT_CARDS_NOT_IN_PLAN',
@@ -368,6 +413,11 @@ const CODIGOS_DEL_SERVER = [
   'GIFT_CARD_SALE_REFUND_MUST_BE_FULL',
   'GIFT_CARD_UNLINKED_REFUND_BLOCKED',
   'GIFT_CARD_TERMS_REQUIRED',
+  'GIFT_CARD_NOT_DELIVERABLE',
+  'GIFT_CARD_RESEND_RATE_LIMITED',
+  'GIFT_CARD_DESTINATION_CHANNEL_INVALID',
+  'GIFT_CARD_USE_CHANGE_DESTINATION',
+  'GIFT_CARD_PHONE_INVALID',
 ] as const
 
 // i18next REAL con los recursos REALES (no un `exists` simulado): una llave mal escrita en el JSON o en el código tiene que fallar aquí.
@@ -386,6 +436,23 @@ describe('avisoDeError con el panel en inglés (Task 5; Codex r1 #3)', () => {
   })
   afterAll(async () => {
     await i18next.changeLanguage('es')
+  })
+
+  it.each(['es', 'en'])('notaVisible en %s: traduce sólo las notas fijas del sistema', async lng => {
+    try {
+      await i18next.changeLanguage(lng)
+      const tt = (k: string, o?: Record<string, unknown>) => `${k}|${String(o?.folio ?? '')}`
+      const es = lng === 'es'
+      expect(notaVisible('Cancelación de la venta ORD-1792', tt)).toBe(es ? 'Cancelación de la venta ORD-1792' : 'systemNotes.cancelSaleWithFolio|ORD-1792')
+      expect(notaVisible('Cancelación de la venta', tt)).toBe(es ? 'Cancelación de la venta' : 'systemNotes.cancelSale|')
+      expect(notaVisible('Se liberó la cancelación: el reembolso no se hizo.', tt)).toBe(es ? 'Se liberó la cancelación: el reembolso no se hizo.' : 'systemNotes.cancelReleased|')
+      expect(notaVisible('Cambio de destino de la entrega', tt)).toBe(es ? 'Cambio de destino de la entrega' : 'systemNotes.deliveryChanged|')
+      for (const humana of ['Dos intentos raros', 'Cancelación de la venta según pidió Ana', 'Cambio de destino de la entrega: lo pidió Ana', ''])
+        expect(notaVisible(humana, tt)).toBe(humana)
+      expect(notaVisible(null, tt)).toBeNull()
+    } finally {
+      await i18next.changeLanguage('en')
+    }
   })
 
   it('en inglés, un 409 con code GIFT_CARD_BLOCKED sale con serverCodes.GIFT_CARD_BLOCKED', () => {
@@ -432,6 +499,73 @@ describe('avisoDeError con el panel en inglés (Task 5; Codex r1 #3)', () => {
     } finally {
       await i18next.changeLanguage('en')
     }
+  })
+
+  it('🔴 1b (Cierre A): el tope de reenvíos (429, cuerpo de los límites de ruta) en español dice el texto del server; en inglés, su traducción', async () => {
+    const tope = conCuerpo(429, {
+      success: false,
+      code: 'GIFT_CARD_RESEND_RATE_LIMITED',
+      message: 'Ya reenviamos esta tarjeta varias veces. Espera un rato y vuelve a intentar.',
+      retryAfter: 3600,
+    })
+    expect(avisoDeError(tope, t())).toBe(en.serverCodes.GIFT_CARD_RESEND_RATE_LIMITED)
+    try {
+      await i18next.changeLanguage('es')
+      expect(avisoDeError(tope, t())).toBe('Ya reenviamos esta tarjeta varias veces. Espera un rato y vuelve a intentar.')
+    } finally {
+      await i18next.changeLanguage('en')
+    }
+  })
+
+  // 1b P1 (Review Focus 4): el motivo del fallo de la entrega se traduce por su código en los dos idiomas; un código que el panel
+  // todavía no conoce sale con el texto del server sólo en español (en otro idioma, el genérico: nunca el español crudo).
+  describe('errorDeEntrega', () => {
+    it.each(['es', 'en'])('en %s', async lng => {
+      try {
+        await i18next.changeLanguage(lng)
+        const tt = (k: string, o?: Record<string, unknown>) => `${k}|${String(o?.error ?? '')}`
+        for (const code of CODIGOS_DE_FALLO_DE_ENTREGA)
+          expect(errorDeEntrega({ error: 'Texto del server.', errorCode: code }, tt)).toBe(`deliveryErrors.${code}|`)
+        expect(errorDeEntrega({ error: 'Texto del server.', errorCode: 'NUEVO' as never }, tt)).toBe(
+          lng === 'es' ? 'deliveryInfo.failed|Texto del server.' : 'deliveryInfo.failedGeneric|',
+        )
+        expect(errorDeEntrega({ error: null, errorCode: null }, tt)).toBe('deliveryInfo.failedGeneric|')
+        expect(errorDeEntrega({ error: 'Texto del server.' }, tt)).toBe(
+          lng === 'es' ? 'deliveryInfo.failed|Texto del server.' : 'deliveryInfo.failedGeneric|',
+        )
+      } finally {
+        await i18next.changeLanguage('en')
+      }
+    })
+
+    it('los seis códigos, en el orden del contrato (§ 3.4)', () => {
+      expect(CODIGOS_DE_FALLO_DE_ENTREGA).toEqual([
+        'TEMPLATE_NOT_AVAILABLE',
+        'WHATSAPP_SEND_FAILED',
+        'WHATSAPP_UNDELIVERED',
+        'EMAIL_SEND_FAILED',
+        'EMAIL_INVALID_ADDRESS',
+        'UNCONFIRMED',
+      ])
+    })
+
+    it('cada código de fallo de entrega tiene su texto en es y en (y el de en no trae español)', () => {
+      for (const code of CODIGOS_DE_FALLO_DE_ENTREGA) {
+        expect((es.deliveryErrors as Record<string, string>)[code], `es deliveryErrors.${code}`).toBeTruthy()
+        expect((en.deliveryErrors as Record<string, string>)[code], `en deliveryErrors.${code}`).toBeTruthy()
+        expect((en.deliveryErrors as Record<string, string>)[code]).not.toMatch(/[áéíóúñ¿¡]/i)
+      }
+    })
+
+    it('con el i18n REAL en inglés: un fallo conocido sale traducido y uno nuevo, el genérico (nunca la llave ni el español)', () => {
+      const tt = i18next.getFixedT(null, 'giftCards')
+      expect(errorDeEntrega({ error: 'No se pudo enviar por WhatsApp.', errorCode: 'WHATSAPP_SEND_FAILED' }, tt)).toBe(
+        en.deliveryErrors.WHATSAPP_SEND_FAILED,
+      )
+      expect(errorDeEntrega({ error: 'No se pudo entregar la tarjeta.', errorCode: 'NUEVO' as never }, tt)).toBe(
+        en.deliveryInfo.failedGeneric,
+      )
+    })
   })
 
   it('sin i18n inicializado (las pruebas que mockean react-i18next) se toma como español', () => {

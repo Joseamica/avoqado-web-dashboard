@@ -765,5 +765,68 @@
     "venueCharge": "Venue Charge",
     "netProfit": "Net Profit",
     "margin": "margin"
+  },
+  "refund": {
+    "success": "Refund issued",
+    "error": "Couldn't issue the refund",
+    "description": "Choose what to refund and why.",
+    "processing": "Processing...",
+    "errorUnknownTitle": "Refund not confirmed",
+    "errors": {
+      "unknown": "We don't know if the refund went through. Check this payment's refunds before trying again.",
+      "forbidden": "You don't have permission to issue refunds. Ask whoever manages the business."
+    },
+    "reasons": {
+      "RETURNED_GOODS": "Returned goods",
+      "ACCIDENTAL_CHARGE": "Accidental charge",
+      "CANCELLED_ORDER": "Canceled order",
+      "FRAUDULENT_CHARGE": "Fraudulent charge",
+      "OTHER": "Other"
+    },
+    "title": "Issue refund",
+    "confirmTitle": "Refund of {{amount}}",
+    "confirm": "Refund",
+    "confirmHeading": "Select the refund reason",
+    "tabs": {
+      "items": "Refund items",
+      "amount": "Refund by amount"
+    },
+    "restock": {
+      "title": "Restock items",
+      "confirm": "Restock items",
+      "skip": "Skip",
+      "heading": "Select items to restock",
+      "note": "Items will be restocked at the original purchase location: {{venue}}"
+    },
+    "items": {
+      "heading": "Select the items to refund",
+      "note": "The item amount includes taxes and discounts, if any. The employee's commission from the original sale won't change.",
+      "column": {
+        "item": "Items",
+        "amount": "Amount"
+      },
+      "customLabel": "Custom amount",
+      "alreadyRefunded": "Refunded",
+      "each": "each",
+      "partialRefunded": "{{refunded}} of {{total}} already refunded",
+      "tipIncluded": "Includes {{amount}} tip",
+      "tipUntouched": "Server's tip untouched",
+      "includeTip": "Include tip in the refund",
+      "includeTipOn": "The payment's tip is refunded too.",
+      "includeTipOff": "Only the items are refunded; the server's tip stays untouched."
+    },
+    "amount": {
+      "heading": "Select the amount to refund",
+      "note1": "Refunding an amount (instead of a specific item) can cause discrepancies in your inventory and item sales reports.",
+      "refundTo": "Refund to",
+      "importe": "Amount",
+      "asMax": "maximum",
+      "reason": "Refund reason",
+      "selectReason": "Select a reason",
+      "includeTip": "Include tip in the refund",
+      "includeTipOn": "The refund is split proportionally between the sale and the original payment's tip.",
+      "includeTipOff": "Only the product is refunded; the server's tip stays untouched.",
+      "exceeds": "The amount exceeds the maximum refundable"
+    }
   }
 }

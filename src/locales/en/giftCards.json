@@ -72,6 +72,39 @@
     "SENT": "Sent",
     "FAILED": "Couldn't send"
   },
+  "deliveryInfo": {
+    "destination": "Destination",
+    "sentAt": "Sent",
+    "attempts": "Attempts",
+    "failed": "Couldn't send: {{error}}",
+    "failedGeneric": "Couldn't send it. Resend it or change where it goes."
+  },
+  "deliveryErrors": {
+    "TEMPLATE_NOT_AVAILABLE": "WhatsApp isn't available for gift cards yet; print it, email it, or show the link.",
+    "WHATSAPP_SEND_FAILED": "WhatsApp didn't accept the message. Resend it or change where it goes.",
+    "WHATSAPP_UNDELIVERED": "WhatsApp reported the message didn't reach that phone. Check the number or change where it goes.",
+    "EMAIL_SEND_FAILED": "The email couldn't be sent. Resend it or change where it goes.",
+    "EMAIL_INVALID_ADDRESS": "The recipient's email isn't valid. Change where it goes.",
+    "UNCONFIRMED": "We don't know if it went out. Resend it to be sure."
+  },
+  "deliveryActions": {
+    "resend": "Resend",
+    "changeDestination": "Change destination",
+    "cantChange": "It was already used or is saved on a customer's card: its destination can't be changed.",
+    "resendTitle": "Resend the card?",
+    "resendDescription": "It goes again to {{destino}}. The code doesn't change.",
+    "resendDone": "Done: the card is on its way to {{destino}}.",
+    "changeWarning": "The current code and link stop working: the card gets a new code and goes to the new destination. If you printed it, that paper no longer works.",
+    "changeChannel": "How should we send it?",
+    "changePhone": "Recipient's phone",
+    "changeEmail": "Recipient's email",
+    "changeConfirm": "Replace and send",
+    "changeDone": "The code was replaced and the card is on its way to the new destination.",
+    "errors": {
+      "phone": "Enter the phone's 10 digits.",
+      "email": "Enter a valid email, for example ana@mail.com."
+    }
+  },
   "list": {
     "searchPlaceholder": "Search by last 4, name, phone or email",
     "clearSearch": "Clear search",
@@ -401,10 +434,21 @@
     "GIFT_CARD_STATE_CHANGED": "This action was already recorded, but the card changed afterwards. Reopen it to see its status.",
     "GIFT_CARD_SALE_REFUND_MUST_BE_FULL": "A gift card sale is refunded in full: refund the entire payment.",
     "GIFT_CARD_UNLINKED_REFUND_BLOCKED": "In a business that sells gift cards, refunds are done from the sale itself, so a card's balance is never refunded in cash.",
-    "GIFT_CARD_TERMS_REQUIRED": "To turn on gift cards, accept the terms."
+    "GIFT_CARD_TERMS_REQUIRED": "To turn on gift cards, accept the terms.",
+    "GIFT_CARD_NOT_DELIVERABLE": "This card was delivered on paper or in person. To send it by WhatsApp or email, change its destination.",
+    "GIFT_CARD_RESEND_RATE_LIMITED": "We've already resent this card several times. Wait a while and try again.",
+    "GIFT_CARD_DESTINATION_CHANNEL_INVALID": "To change the destination, choose WhatsApp or email.",
+    "GIFT_CARD_USE_CHANGE_DESTINATION": "To send it to another phone or email, use «Change destination».",
+    "GIFT_CARD_PHONE_INVALID": "The phone number isn't valid."
   },
   "errors": {
     "generic": "Something went wrong. Try again.",
     "forbidden": "You don't have permission to do this. Ask whoever manages the business."
+  },
+  "systemNotes": {
+    "cancelSale": "Sale cancellation",
+    "cancelSaleWithFolio": "Cancellation of sale {{folio}}",
+    "cancelReleased": "Cancellation released: the refund wasn't made.",
+    "deliveryChanged": "Delivery destination changed"
   }
 }

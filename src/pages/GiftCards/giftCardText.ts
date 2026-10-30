@@ -6,9 +6,12 @@
  * C4 TAL CUAL (F3): lo poco que el server no manda («vencida») se calcula aquí, con su prueba.
  */
 import i18next from 'i18next'
+import { z } from 'zod'
 import { conSigno } from '@/pages/StaffPay/conSigno'
 import type {
   GiftCardActivityType,
+  GiftCardDelivery,
+  GiftCardDeliveryErrorCode,
   GiftCardDetail,
   GiftCardListStatus,
   GiftCardNotSellableReason,
@@ -91,6 +94,23 @@ export function textoDelServidorConCodigo(err: unknown): string | undefined {
  */
 export const esIdiomaEspanol = (): boolean => !i18next.language || i18next.language.startsWith('es')
 
+// Notas fijas de giftCardCancel.service.ts:410-422 y contrato 1b, adición 3; las demás son de una persona.
+const NOTAS_DEL_SISTEMA: ReadonlyArray<[RegExp, string]> = [
+  [/^Cancelación de la venta (\S+)$/, 'systemNotes.cancelSaleWithFolio'],
+  [/^Cancelación de la venta$/, 'systemNotes.cancelSale'],
+  [/^Se liberó la cancelación: el reembolso no se hizo\.$/, 'systemNotes.cancelReleased'],
+  [/^Cambio de destino de la entrega$/, 'systemNotes.deliveryChanged'],
+]
+
+export function notaVisible(note: string | null, t: (k: string, o?: Record<string, unknown>) => string): string | null {
+  if (note == null || esIdiomaEspanol()) return note
+  for (const [patron, clave] of NOTAS_DEL_SISTEMA) {
+    const coincidencia = note.match(patron)
+    if (coincidencia) return t(clave, coincidencia[1] ? { folio: coincidencia[1] } : undefined)
+  }
+  return note
+}
+
 /**
  * El texto de un error del server en el idioma del panel. El server escribe sus avisos en español y manda su `code` estable:
  * en español se enseña el texto del server (`textoDelServidorConCodigo`); en otro idioma, `serverCodes.<code>` del namespace
@@ -133,6 +153,47 @@ export function leerMonto(texto: string): number | null {
   const limpio = texto.trim().replace(/^\$\s*/, '')
   if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d{1,2})?$/.test(limpio)) return null
   return Number(limpio.replace(/,/g, ''))
+}
+
+// ── Entrega (1b P1: E14, E15) ────────────────────────────────────────────
+
+/**
+ * El teléfono de «Cambiar destino», como lo manda el panel: sus 10 dígitos (contrato 1b § 8, P-2). Acepta lo que la gente
+ * teclea —espacios, guiones, puntos, paréntesis y el `+52`/`52` de lada— y devuelve `null` con cualquier otra cosa (letras, 9 u
+ * 11 dígitos) para que se corrija ANTES de mandar (Review Focus 3): nunca se adivina un número.
+ */
+export function limpiarTelefono(texto: string): string | null {
+  if (/[^\d\s().+-]/.test(texto)) return null
+  const digitos = texto.replace(/\D/g, '')
+  if (digitos.length === 12 && digitos.startsWith('52')) return digitos.slice(2)
+  return digitos.length === 10 ? digitos : null
+}
+
+/** El mismo criterio de correo que `resendSchema` del server; evita su 400 sin código. */
+export const correoValido = (texto: string): boolean => z.string().trim().email().safeParse(texto).success
+
+/** Por qué no se entregó una tarjeta (S-7 + P-1; contrato 1b § 3.4): los seis códigos que el panel traduce, en ese orden. */
+export const CODIGOS_DE_FALLO_DE_ENTREGA: readonly GiftCardDeliveryErrorCode[] = [
+  'TEMPLATE_NOT_AVAILABLE',
+  'WHATSAPP_SEND_FAILED',
+  'WHATSAPP_UNDELIVERED',
+  'EMAIL_SEND_FAILED',
+  'EMAIL_INVALID_ADDRESS',
+  'UNCONFIRMED',
+]
+
+/**
+ * El motivo del fallo de la entrega en el idioma del panel (Review Focus 4). Un código conocido se traduce en CUALQUIER idioma
+ * (`deliveryErrors.<code>`); uno que el panel todavía no conoce sale con el texto del server sólo en español
+ * (`deliveryInfo.failed`); en otro idioma, o sin texto, el genérico. Nunca el español crudo con el panel en inglés.
+ */
+export function errorDeEntrega(
+  e: Pick<GiftCardDelivery, 'error' | 'errorCode'>,
+  t: (clave: string, opciones?: Record<string, unknown>) => string,
+): string {
+  if (e.errorCode && (CODIGOS_DE_FALLO_DE_ENTREGA as readonly string[]).includes(e.errorCode)) return t(`deliveryErrors.${e.errorCode}`)
+  if (esIdiomaEspanol() && e.error) return t('deliveryInfo.failed', { error: e.error })
+  return t('deliveryInfo.failedGeneric')
 }
 
 /** Motivos que el gerente puede escoger en cada acción: la lista cerrada del server, sólo los que tienen sentido aquí. */

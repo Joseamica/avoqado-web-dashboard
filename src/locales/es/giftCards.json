@@ -72,6 +72,39 @@
     "SENT": "Enviada",
     "FAILED": "No se pudo enviar"
   },
+  "deliveryInfo": {
+    "destination": "Destino",
+    "sentAt": "Enviada",
+    "attempts": "Intentos",
+    "failed": "No se pudo enviar: {{error}}",
+    "failedGeneric": "No se pudo enviar. Reenvíala o cambia el destino."
+  },
+  "deliveryErrors": {
+    "TEMPLATE_NOT_AVAILABLE": "WhatsApp todavía no está disponible para tarjetas; imprímela, mándala por correo o enseña la liga.",
+    "WHATSAPP_SEND_FAILED": "WhatsApp no aceptó el envío. Reenvíala o cambia el destino.",
+    "WHATSAPP_UNDELIVERED": "WhatsApp avisó que el mensaje no llegó a ese teléfono. Revisa el número o cambia el destino.",
+    "EMAIL_SEND_FAILED": "El correo no se pudo mandar. Reenvíala o cambia el destino.",
+    "EMAIL_INVALID_ADDRESS": "El correo de quien la recibe no es válido. Cambia el destino.",
+    "UNCONFIRMED": "No supimos si salió el envío. Reenvíala para estar seguros."
+  },
+  "deliveryActions": {
+    "resend": "Reenviar",
+    "changeDestination": "Cambiar destino",
+    "cantChange": "Ya se usó o está guardada en la tarjeta de un cliente: su destino no se puede cambiar.",
+    "resendTitle": "¿Reenviar la tarjeta?",
+    "resendDescription": "Se manda otra vez a {{destino}}. El código no cambia.",
+    "resendDone": "Listo: la tarjeta va en camino a {{destino}}.",
+    "changeWarning": "El código y la liga de ahora dejan de servir: la tarjeta se repone y sale al destino nuevo. Si ya la imprimiste, ese papel ya no sirve.",
+    "changeChannel": "¿Cómo la mandamos?",
+    "changePhone": "Teléfono de quien la recibe",
+    "changeEmail": "Correo de quien la recibe",
+    "changeConfirm": "Reponer y enviar",
+    "changeDone": "Se repuso el código y la tarjeta va en camino al destino nuevo.",
+    "errors": {
+      "phone": "Escribe los 10 dígitos del teléfono.",
+      "email": "Escribe un correo válido, por ejemplo ana@correo.com."
+    }
+  },
   "list": {
     "searchPlaceholder": "Buscar por últimos 4, nombre, teléfono o correo",
     "clearSearch": "Borrar búsqueda",
@@ -401,10 +434,21 @@
     "GIFT_CARD_STATE_CHANGED": "Esta acción ya se había registrado, pero la tarjeta cambió después. Vuelve a abrirla para ver su estado.",
     "GIFT_CARD_SALE_REFUND_MUST_BE_FULL": "La venta de tarjetas se devuelve completa: reembolsa el cobro entero.",
     "GIFT_CARD_UNLINKED_REFUND_BLOCKED": "En un negocio que vende tarjetas de regalo, la devolución se hace desde su venta, para que el saldo de una tarjeta nunca se devuelva en efectivo.",
-    "GIFT_CARD_TERMS_REQUIRED": "Para activar las tarjetas de regalo acepta los términos."
+    "GIFT_CARD_TERMS_REQUIRED": "Para activar las tarjetas de regalo acepta los términos.",
+    "GIFT_CARD_NOT_DELIVERABLE": "Esta tarjeta se entregó en papel o en mano. Para mandarla por WhatsApp o correo, cambia el destino.",
+    "GIFT_CARD_RESEND_RATE_LIMITED": "Ya reenviamos esta tarjeta varias veces. Espera un rato y vuelve a intentar.",
+    "GIFT_CARD_DESTINATION_CHANNEL_INVALID": "Para cambiar el destino elige WhatsApp o correo.",
+    "GIFT_CARD_USE_CHANGE_DESTINATION": "Para mandarla a otro teléfono o correo usa «Cambiar destino».",
+    "GIFT_CARD_PHONE_INVALID": "El teléfono no es válido."
   },
   "errors": {
     "generic": "Algo salió mal. Inténtalo otra vez.",
     "forbidden": "No tienes permiso para hacer esto. Pídeselo a quien administra el negocio."
+  },
+  "systemNotes": {
+    "cancelSale": "Cancelación de la venta",
+    "cancelSaleWithFolio": "Cancelación de la venta {{folio}}",
+    "cancelReleased": "Se liberó la cancelación: el reembolso no se hizo.",
+    "deliveryChanged": "Cambio de destino de la entrega"
   }
 }

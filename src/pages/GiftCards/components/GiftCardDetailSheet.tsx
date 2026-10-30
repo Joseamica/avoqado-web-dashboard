@@ -11,7 +11,8 @@ import { useGiftCardDetail } from '@/hooks/use-gift-cards'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { GiftCardActivityRow, GiftCardDetail } from '@/types/giftCard'
-import { estadoVisible, montoDelMovimiento, avisoDeError, ultimos4, varianteDeEstado } from '../giftCardText'
+import { estadoVisible, montoDelMovimiento, notaVisible, avisoDeError, ultimos4, varianteDeEstado } from '../giftCardText'
+import { GiftCardDelivery } from './GiftCardDelivery'
 import { GiftCardManagerActions } from './GiftCardManagerActions'
 
 function Dato({ label, value }: { label: string; value: ReactNode }) {
@@ -37,7 +38,7 @@ function Movimiento({ m, venta }: { m: GiftCardActivityRow; venta: GiftCardDetai
           {m.staff ? t('detail.whenBy', { date: formatDateTime(m.createdAt), name: m.staff.name }) : formatDateTime(m.createdAt)}
         </p>
         {m.reason && <p className="text-xs text-foreground">{t(`reason.${m.reason}`)}</p>}
-        {m.note && <p className="break-words text-xs text-muted-foreground">{t('detail.note', { note: m.note })}</p>}
+        {m.note && <p className="break-words text-xs text-muted-foreground">{t('detail.note', { note: notaVisible(m.note, t) })}</p>}
         {folio && <p className="text-xs text-muted-foreground">{t('detail.inOrder', { folio })}</p>}
       </div>
       <div className="shrink-0 text-right">
@@ -139,9 +140,19 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
               <Dato label={t('detail.facts.recipient')} value={card.recipientName ?? t('list.noName')} />
               <Dato label={t('detail.facts.purchaser')} value={card.purchaserName ?? t('list.noName')} />
               <Dato label={t('detail.facts.customer')} value={card.customer?.name ?? t('detail.facts.notSaved')} />
-              {/* Sólo el canal (lote ⭐ r1): en la 1a toda tarjeta nace PENDING y nada la mueve (Avoqado todavía no envía), así que
-                  el estado de envío mentiría. Vuelve con la 1c (`detail.facts.deliveryValue` y `deliveryStatus.*` se quedan para eso). */}
-              <Dato label={t('detail.facts.delivery')} value={t(`delivery.${card.deliveryChannel}`)} />
+              {/* 1b (E14): con `entrega` (S7), WhatsApp y correo dicen «canal · estado»: la 1b ya los envía de verdad. Los demás
+                  canales —y un server sin S7, donde todo nace PENDING y nada lo mueve— sólo el canal: ahí el estado mentiría. */}
+              <Dato
+                label={t('detail.facts.delivery')}
+                value={
+                  card.entrega && (card.entrega.channel === 'WHATSAPP' || card.entrega.channel === 'EMAIL')
+                    ? t('detail.facts.deliveryValue', {
+                        channel: t(`delivery.${card.entrega.channel}`),
+                        status: t(`deliveryStatus.${card.entrega.status}`),
+                      })
+                    : t(`delivery.${card.deliveryChannel}`)
+                }
+              />
               <Dato
                 label={t('detail.facts.folio')}
                 value={
@@ -160,6 +171,9 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
                 value={card.validityMonths == null ? t('list.noExpiry') : t(`settings.rules.validityOption.${String(card.validityMonths)}`)}
               />
             </dl>
+
+            {/* 1b (E14, E15): cómo va la entrega (giftCards:read) y «Reenviar» / «Cambiar destino» (giftCards:manage adentro). */}
+            {primera && <GiftCardDelivery venueId={venueId} detail={primera} />}
 
             {/* Sólo con giftCards:manage (PermissionGate adentro); el server vuelve a pedirlo. */}
             {primera && <GiftCardManagerActions venueId={venueId} detail={primera} />}
