@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { ToastAction } from '@/components/ui/toast'
 import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
@@ -31,6 +32,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import countryList from 'react-select-country-list'
 import { z } from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
 import { useVenueEditActions } from '../VenueEditLayout'
@@ -133,6 +135,7 @@ export default function BasicInfo() {
   const { can } = useAccess()
   const canEdit = can('venues:update')
   const { setActions } = useVenueEditActions()
+  const { activeVenue } = useAuth()
 
   const countries = useMemo(() => {
     const list = countryList().getData()
@@ -246,12 +249,25 @@ export default function BasicInfo() {
       // Save venue basic info only - enableShifts is handled by separate mutation
       await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
     },
-    onSuccess: () => {
+    onSuccess: (_, data) => {
       toast({
         title: t('edit.toast.updateSuccess'),
         description: t('edit.toast.updateSuccessDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      // Casi todas las pantallas arman su rango con la zona al abrirse: si la guardada no es la que usa el panel, hay que
+      // recargar para que todas tomen la nueva (D5). Se ofrece y no se hace sola: una recarga al terminar el guardado
+      // puede caer encima de algo a medio capturar (Codex r1-r5).
+      if (data.timezone === (activeVenue?.timezone || 'America/Mexico_City')) return
+      toast({
+        title: t('edit.toast.timezoneReloadPending'),
+        duration: Infinity, // se queda hasta que la persona recargue o lo cierre: no debe pasar de largo
+        action: (
+          <ToastAction altText={t('edit.toast.reload')} onClick={() => window.location.reload()}>
+            {t('edit.toast.reload')}
+          </ToastAction>
+        ),
+      })
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.message || t('edit.toast.updateError')
