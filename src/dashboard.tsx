@@ -178,7 +178,7 @@ function DashboardContent() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, authorizeVenue, allVenues } = useAuth()
+  const { user, authorizeVenue, allVenues, activeVenue } = useAuth()
   const { venue, venueSlug, fullBasePath, isLoading, hasVenueAccess } = useCurrentVenue()
   const { customSegments } = useBreadcrumb()
 
@@ -351,6 +351,10 @@ function DashboardContent() {
     )
   }
 
+  // Con acceso, authorizeVenue siempre deja activeVenue en la sucursal de la URL, así que esto se cumple
+  // al siguiente render; sin acceso o sin sucursal no hay nada que esperar.
+  const sucursalActivaAlDia = !venue || !hasVenueAccess || activeVenue?.id === venue.id
+
   // Determine the route prefix based on current location
   const isWhiteLabelRoute = location.pathname.startsWith('/wl/')
   const routePrefix = isWhiteLabelRoute ? '/wl' : '/venues'
@@ -486,7 +490,11 @@ function DashboardContent() {
         <div className="flex flex-col flex-1 gap-4 p-4">
           {/* Main Content */}
           <div className={`flex-1 rounded-xl bg-background transition-colors duration-200`}>
-            <Outlet />
+            {/* Lo que una pantalla arma al montarse (el rango de fechas en la zona del negocio, filtros
+                con ids de la sucursal) debe salir de la sucursal de la URL. Por eso: (1) la key la vuelve
+                a montar al cambiar de sucursal, y (2) no se monta mientras `activeVenue` (de donde casi
+                todas leen la zona) siga en la anterior; se pone al día en el efecto de authorizeVenue. */}
+            {sucursalActivaAlDia && <Outlet key={venueSlug ?? undefined} />}
           </div>
         </div>
 
