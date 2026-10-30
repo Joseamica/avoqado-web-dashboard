@@ -93,7 +93,7 @@
     "subtitle": "Choose the sale you want to invoice",
     "search": "Search",
     "searchPlaceholder": "Number, name, phone or amount",
-    "searchHint": "Most recent first. Search by number, by amount, or by the first name, last name (one at a time) or phone of the customer registered on the sale. A paid sale that is still open is invoiced from Orders.",
+    "searchHint": "Most recent first. Search by number, by amount, or by the name (full names work too, like “Ana López”) or phone of the customer registered on the sale. A paid sale that is still open is invoiced from Orders.",
     "clearSearch": "Clear search",
     "loading": "Loading sales…",
     "error": "Could not load sales.",

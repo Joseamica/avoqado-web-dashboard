@@ -93,7 +93,7 @@
     "subtitle": "Elige la venta que quieres facturar",
     "search": "Buscar",
     "searchPlaceholder": "Folio, nombre, teléfono o monto",
-    "searchHint": "Las más recientes primero. Busca por folio, por monto, o por el nombre, el apellido (uno a la vez) o el teléfono del cliente registrado en la venta. Una venta pagada que sigue abierta se factura desde Pedidos.",
+    "searchHint": "Las más recientes primero. Busca por folio, por monto, o por el nombre (también completo, como «Ana López») o el teléfono del cliente registrado en la venta. Una venta pagada que sigue abierta se factura desde Pedidos.",
     "clearSearch": "Borrar búsqueda",
     "loading": "Cargando ventas…",
     "error": "No se pudieron cargar las ventas.",
