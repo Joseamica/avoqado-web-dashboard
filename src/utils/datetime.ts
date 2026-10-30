@@ -308,7 +308,17 @@ export const getLast30Days = (timezone: string = 'America/Mexico_City'): DateRan
  * const prev = getPreviousPeriod(currentRange)
  * // Returns: Oct 15-22 (7 days before)
  */
-export const getPreviousPeriod = (currentRange: DateRange): DateRange => {
+export const getPreviousPeriod = (currentRange: DateRange, timezone?: string): DateRange => {
+  // Días completos del negocio → el mismo número de días completos justo antes. Restar milisegundos corría la comparación una
+  // hora al cruzar un cambio de horario (Tijuana, 1-nov), ahora que el panel recibe la zona real de cada sucursal (D4).
+  if (timezone) {
+    const desde = DateTime.fromJSDate(currentRange.from).setZone(timezone)
+    const hasta = DateTime.fromJSDate(currentRange.to).setZone(timezone)
+    if (desde.isValid && +desde === +desde.startOf('day') && +hasta === +hasta.endOf('day')) {
+      const dias = Math.round(hasta.startOf('day').diff(desde, 'days').days) + 1
+      return { from: desde.minus({ days: dias }).toJSDate(), to: desde.minus({ milliseconds: 1 }).toJSDate() }
+    }
+  }
   const duration = currentRange.to.getTime() - currentRange.from.getTime()
   const compareEnd = new Date(currentRange.from.getTime() - 1)
   const compareStart = new Date(compareEnd.getTime() - duration)
