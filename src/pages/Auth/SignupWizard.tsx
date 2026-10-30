@@ -83,7 +83,9 @@ export default function SignupWizard() {
       }
     }
     const utm = atribucion && Object.keys(atribucion.utm).length > 0 ? atribucion.utm : undefined
-    return { launchCampaignCode, utm, hybridOfferSlug: readHybridOffer() ?? undefined }
+    // De qué sitio llegó (sólo el host): el aviso al equipo distingue la landing de «tecleó el dashboard».
+    const referrer = atribucion?.referrer ?? undefined
+    return { launchCampaignCode, utm, referrer, hybridOfferSlug: readHybridOffer() ?? undefined }
   }
 
   const pedirConsentimiento = () =>
@@ -101,12 +103,13 @@ export default function SignupWizard() {
     }
     setConsentError('')
     setIsGoogleLoading(true)
-    const { launchCampaignCode, hybridOfferSlug, utm } = await resolverAtribucion()
+    const { launchCampaignCode, hybridOfferSlug, utm, referrer } = await resolverAtribucion()
     guardarIntentoDeAltaGoogle({
       legalVersion: LEGAL_DOCS_VERSION,
       ...(launchCampaignCode ? { launchCampaignCode } : {}),
       ...(hybridOfferSlug ? { hybridOfferSlug } : {}),
       ...(utm ? { utm } : {}),
+      ...(referrer ? { referrer } : {}),
     })
     try {
       await loginWithGoogle()
@@ -131,7 +134,7 @@ export default function SignupWizard() {
     }
     setConsentError('')
 
-    const { launchCampaignCode, hybridOfferSlug, utm } = await resolverAtribucion()
+    const { launchCampaignCode, hybridOfferSlug, utm, referrer } = await resolverAtribucion()
 
     try {
       // V2 signup: only email + password, empty names/org (backend defaults)
@@ -146,6 +149,7 @@ export default function SignupWizard() {
         ...(launchCampaignCode ? { launchCampaignCode } : {}),
         ...(hybridOfferSlug ? { hybridOfferSlug } : {}),
         ...(utm ? { utm } : {}),
+        ...(referrer ? { referrer } : {}),
       })
 
       // Account created → GA4 sign_up event so ad-driven signups attribute in

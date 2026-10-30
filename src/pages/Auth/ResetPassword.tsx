@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { capturarAtribucion } from '@/lib/acquisition'
 import { contrasenaNuevaZod, CONTRASENA_MIN } from '@/lib/contrasenaNueva'
 import { track } from '@/lib/posthog'
 import { validateResetToken, resetPassword } from '@/services/auth.service'
@@ -65,6 +66,11 @@ const ResetPassword: React.FC = () => {
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
   })
+
+  // La liga del correo de la landing puede traer `?oferta=`/UTMs: se guardan para el asistente (/setup).
+  useEffect(() => {
+    capturarAtribucion()
+  }, [])
 
   // Watch password field for real-time validation
   const watchPassword = watch('newPassword')
@@ -122,11 +128,22 @@ const ResetPassword: React.FC = () => {
     if (!tokenValue) return
 
     setIsSubmitting(true)
+    let entrando = false
 
     try {
-      await resetPassword(tokenValue, data.newPassword)
-      setResetSuccess(true)
+      const respuesta = await resetPassword(tokenValue, data.newPassword)
       if (esCuentaNueva) track('alta_contrasena_creada', { via: 'link' })
+
+      // Prospecto de la landing: el servidor da una liga de entrada (/auth/entrar#boleto=…) y se entra
+      // directo, sin volver a teclear la contraseña. Sólo si es de ESTE dashboard; si no, el camino de siempre.
+      const entrarUrl = ligaDeEntradaPropia(respuesta?.entrarUrl)
+      if (entrarUrl) {
+        entrando = true
+        window.location.assign(entrarUrl)
+        return
+      }
+
+      setResetSuccess(true)
 
       toast({
         title: t('toast.password_reset_success'),
@@ -145,7 +162,8 @@ const ResetPassword: React.FC = () => {
         description: error?.response?.data?.message || t('toast.password_reset_failed_desc'),
       })
     } finally {
-      setIsSubmitting(false)
+      // Mientras el navegador sale a /auth/entrar el botón sigue ocupado: el token ya se gastó.
+      if (!entrando) setIsSubmitting(false)
     }
   }
 
@@ -317,6 +335,15 @@ const ResetPassword: React.FC = () => {
       </div>
     </div>
   )
+}
+
+function ligaDeEntradaPropia(entrarUrl: string | undefined): string | null {
+  if (!entrarUrl) return null
+  try {
+    return new URL(entrarUrl).origin === window.location.origin ? entrarUrl : null
+  } catch {
+    return null
+  }
 }
 
 // Helper component for password requirements

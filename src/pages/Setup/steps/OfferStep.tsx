@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { PlanComparison } from '@/components/billing/PlanComparison'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
+import { deriveBusinessCategory } from '@/config/sector-terminology'
 import { setupService } from '@/services/setup.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { pedidoCompartido, type PedidoEnVuelo } from './pedidoCompartido'
@@ -48,9 +49,10 @@ import {
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
-import { TarjetasDePlanes } from './planes/TarjetasDePlanes'
+import { TarjetasDePlanes, type JuegoDeBeneficios } from './planes/TarjetasDePlanes'
 import { VentanaDePago } from './planes/VentanaDePago'
 import type { SetupData } from '../types'
+import type { BusinessCategory } from '@/types'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
 
@@ -63,6 +65,21 @@ const DIA_MS = 24 * 60 * 60 * 1000
 const NOMBRE_DEL_PLAN = { PRO: 'Pro', PREMIUM: 'Premium' } as const
 
 type PlanDePago = 'PRO' | 'PREMIUM'
+
+const BENEFICIOS_POR_CATEGORIA: Partial<Record<BusinessCategory, JuegoDeBeneficios>> = {
+  FOOD_SERVICE: 'restaurante',
+  RETAIL: 'comercio',
+  SERVICES: 'servicios',
+}
+
+/**
+ * Las viñetas de Pro/Premium hablan el idioma del giro del paso 3. Sin giro va el genérico: el default de
+ * `deriveBusinessCategory` es restaurante (lo usan otras pantallas) y aquí le hablaría de «Mesas» a cualquiera.
+ */
+function beneficiosDelGiro(businessType: string | undefined): JuegoDeBeneficios {
+  if (!businessType) return 'generico'
+  return BENEFICIOS_POR_CATEGORIA[deriveBusinessCategory(businessType)] ?? 'generico'
+}
 
 export interface OfferStepProps {
   organizationId: string
@@ -702,7 +719,13 @@ export function OfferStep({
         )}
         {!planElegido && avisoPendiente}
 
-        <TarjetasDePlanes oferta={mostrarOferta ? oferta : null} planQuote={planQuote} bloqueado={pagoEnVuelo} onElegir={elegir} />
+        <TarjetasDePlanes
+          oferta={mostrarOferta ? oferta : null}
+          planQuote={planQuote}
+          bloqueado={pagoEnVuelo}
+          onElegir={elegir}
+          beneficios={beneficiosDelGiro(data?.businessType)}
+        />
 
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm">
           <button

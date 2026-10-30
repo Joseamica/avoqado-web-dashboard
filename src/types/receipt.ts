@@ -104,6 +104,8 @@ export interface ReceiptTicketTotals {
   addedTax: number
   tip: number
   total: number
+  /** D15: sólo existe en el comprobante de UNA parte de una venta dividida. El visor pinta entonces «Pago parcial». */
+  parcial?: true
 }
 
 export interface UnifiedReceiptData {

@@ -101,6 +101,85 @@ describe('capturarAtribucion', () => {
   })
 })
 
+describe('capturarAtribucion — de qué sitio llegó (referrer)', () => {
+  // jsdom sirve la página en http://localhost:3000 (host del dashboard en la prueba).
+  it('guarda sólo el HOST de un referrer externo: https://avoqado.io/ → avoqado.io', () => {
+    const guardado = capturarAtribucion('', 'https://Avoqado.io/precios?x=1#a')
+    expect(guardado?.referrer).toBe('avoqado.io')
+    expect(leerAtribucion()?.referrer).toBe('avoqado.io')
+  })
+
+  it('quita el puerto y la ruta', () => {
+    expect(capturarAtribucion('', 'http://landing.avoqado.io:8080/alta')?.referrer).toBe('landing.avoqado.io')
+  })
+
+  it('un referrer del MISMO dashboard no cuenta (navegar dentro de la app no es llegar de fuera)', () => {
+    expect(capturarAtribucion('', `${window.location.origin}/login`)).toBeNull()
+    expect(almacen.datos.size).toBe(0)
+  })
+
+  it('vacío, inválido o con caracteres raros se ignora', () => {
+    expect(capturarAtribucion('', '')).toBeNull()
+    expect(capturarAtribucion('', 'no es una url')).toBeNull()
+    expect(capturarAtribucion('', 'https://[::1]/')).toBeNull()
+    expect(capturarAtribucion('', `https://${'a'.repeat(101)}.mx/`)).toBeNull()
+    expect(almacen.datos.size).toBe(0)
+  })
+
+  it('viaja junto con la oferta y las UTMs en el mismo sobre', () => {
+    const guardado = capturarAtribucion('?oferta=pos-22&utm_source=google', 'https://www.google.com/')
+    expect(guardado).toMatchObject({ offerParam: 'pos-22', utm: { utm_source: 'google' }, referrer: 'www.google.com' })
+  })
+
+  it('una visita sin referrer NO borra el que ya estaba', () => {
+    capturarAtribucion('', 'https://avoqado.io/')
+    capturarAtribucion('?oferta=pos-22', '')
+    expect(leerAtribucion()).toMatchObject({ offerParam: 'pos-22', referrer: 'avoqado.io' })
+  })
+
+  it('una visita con SÓLO referrer conserva la oferta y las UTMs que ya estaban', () => {
+    capturarAtribucion('?oferta=pos-22&utm_source=meta', '')
+    capturarAtribucion('', 'https://avoqado.io/')
+    expect(leerAtribucion()).toMatchObject({ offerParam: 'pos-22', utm: { utm_source: 'meta' }, referrer: 'avoqado.io' })
+  })
+
+  it('🔴 una visita con sólo referrer NO alarga la vida de la oferta guardada (caduca a las 24 h de su captura)', () => {
+    vi.useFakeTimers()
+    const t0 = new Date('2026-10-28T10:00:00Z').getTime()
+    vi.setSystemTime(t0)
+    capturarAtribucion('?oferta=pos-22&utm_source=meta', '')
+
+    vi.setSystemTime(t0 + 23 * 60 * 60 * 1000)
+    capturarAtribucion('', 'https://avoqado.io/')
+    expect(leerAtribucion()).toMatchObject({ offerParam: 'pos-22', referrer: 'avoqado.io' })
+
+    vi.setSystemTime(t0 + 25 * 60 * 60 * 1000)
+    expect(leerAtribucion()).toBeNull()
+  })
+
+  it('una visita con sólo referrer y sin nada vigente guardado se guarda con fecha nueva', () => {
+    vi.useFakeTimers()
+    const t0 = new Date('2026-10-28T10:00:00Z').getTime()
+    vi.setSystemTime(t0)
+    capturarAtribucion('?oferta=pos-22', '')
+
+    vi.setSystemTime(t0 + 25 * 60 * 60 * 1000) // la oferta ya caducó
+    capturarAtribucion('', 'https://avoqado.io/')
+    expect(leerAtribucion()).toMatchObject({ offerParam: null, utm: {}, referrer: 'avoqado.io' })
+
+    vi.setSystemTime(t0 + 48 * 60 * 60 * 1000) // 23 h después del referrer: sigue vigente
+    expect(leerAtribucion()?.referrer).toBe('avoqado.io')
+  })
+
+  it('un referrer alterado en el almacenamiento no se lee', () => {
+    almacen.datos.set(
+      ACQUISITION_STORAGE_KEY,
+      JSON.stringify({ offerParam: null, utm: {}, referrer: 'https://x.com/<script>', savedAt: new Date().toISOString() }),
+    )
+    expect(leerAtribucion()?.referrer).toBeNull()
+  })
+})
+
 describe('leerAtribucion', () => {
   it('caduca a las 24 h', () => {
     vi.useFakeTimers()

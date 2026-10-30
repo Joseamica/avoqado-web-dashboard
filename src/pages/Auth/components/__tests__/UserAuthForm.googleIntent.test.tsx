@@ -36,3 +36,26 @@ it('🔴 «Iniciar sesión con Google» descarta un intento de alta abandonado a
   await waitFor(() => expect(loginWithGoogle).toHaveBeenCalled())
   expect(sessionStorage.getItem(GOOGLE_SIGNUP_INTENT_KEY)).toBeNull()
 })
+
+it('D11: el login ofrece «¿No tienes una cuenta? Regístrate» con liga real a /signup', async () => {
+  const [es, en] = await Promise.all([import('@/locales/es/auth.json'), import('@/locales/en/auth.json')])
+  expect(es.login.signUp).toBe('Regístrate')
+  expect(en.login.signUp).toBe('Sign up')
+
+  render(
+    <MemoryRouter>
+      <UserAuthForm />
+    </MemoryRouter>,
+  )
+  expect(screen.getByText(/login\.noAccount/)).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'login.signUp' })).toHaveAttribute('href', '/signup')
+})
+
+it('D11: «Regístrate» conserva la oferta y las UTMs con que llegó al login', () => {
+  render(
+    <MemoryRouter initialEntries={['/login?oferta=pos-22&utm_source=meta']}>
+      <UserAuthForm />
+    </MemoryRouter>,
+  )
+  expect(screen.getByRole('link', { name: 'login.signUp' })).toHaveAttribute('href', '/signup?oferta=pos-22&utm_source=meta')
+})

@@ -17,21 +17,24 @@ vi.mock('@/services/ecommerceMerchant.service', () => ({ ecommerceMerchantAPI: {
 vi.mock('@/services/paymentLink.service', () => ({
   default: {
     updatePaymentLink: mocks.update,
-    getPaymentLinks: async () => [
-      {
-        id: 'l1',
-        shortCode: 'A',
-        title: 'Clase',
-        amountType: 'FIXED',
-        amount: 1000,
-        currency: 'MXN',
-        status: 'ACTIVE',
-        isReusable: true,
-        paymentCount: 0,
-        discount: { name: 'Mayo', type: 'PERCENTAGE', value: 15, origen: 'CATALOGO', discountId: 'd1' },
-        discountStatus: 'VENCIDO',
-      },
-    ],
+    getPaymentLinks: async () => ({
+      total: 1,
+      paymentLinks: [
+        {
+          id: 'l1',
+          shortCode: 'A',
+          title: 'Clase',
+          amountType: 'FIXED',
+          amount: 1000,
+          currency: 'MXN',
+          status: 'ACTIVE',
+          isReusable: true,
+          paymentCount: 0,
+          discount: { name: 'Mayo', type: 'PERCENTAGE', value: 15, origen: 'CATALOGO', discountId: 'd1' },
+          discountStatus: 'VENCIDO',
+        },
+      ],
+    }),
   },
 }))
 // La tabla real no es el objeto de la prueba: pinta la celda del importe de cada fila.

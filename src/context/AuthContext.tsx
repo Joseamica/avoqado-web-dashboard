@@ -29,6 +29,8 @@ type SignupData = {
   launchCampaignCode?: string
   hybridOfferSlug?: string
   utm?: Record<string, string>
+  /** Host del sitio de donde llegó (`avoqado.io`). */
+  referrer?: string
 }
 
 interface AuthContextType {
