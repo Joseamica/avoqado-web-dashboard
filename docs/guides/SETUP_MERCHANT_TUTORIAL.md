@@ -290,4 +290,4 @@ Solo se pueden eliminar agregadores SIN merchants ni VenueCommission ligados. Si
 
 1. **Backend logs**: betterstack (busca por `merchantAccountId` o el venue slug)
 2. **TPV crashlytics**: Firebase Crashlytics (TPV side)
-3. **Reproducir en local**: `npm run dev` en ambos repos + `DATABASE_URL=postgresql://postgres:exitosoy777@localhost:5432/av-db-25` para tener data
+3. **Reproducir en local**: `npm run dev` en ambos repos + `DATABASE_URL=postgresql://postgres:<contraseña de avoqado-server/.env>@localhost:5432/av-db-25` para tener data
