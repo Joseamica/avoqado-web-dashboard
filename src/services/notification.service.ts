@@ -145,6 +145,10 @@ export enum NotificationType {
   // Report notifications
   DAILY_SALES_SUMMARY = 'DAILY_SALES_SUMMARY',
 
+  // Reservation notifications (D4: «Sí llegó»)
+  RESERVATION_NO_SHOW_SUMMARY = 'RESERVATION_NO_SHOW_SUMMARY',
+  RESERVATION_NEEDS_REVIEW = 'RESERVATION_NEEDS_REVIEW',
+
   // Admin notifications
   VENUE_APPROVAL_NEEDED = 'VENUE_APPROVAL_NEEDED',
   VENUE_SUSPENDED = 'VENUE_SUSPENDED',

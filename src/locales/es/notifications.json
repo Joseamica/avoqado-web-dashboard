@@ -77,7 +77,9 @@
     "ANNOUNCEMENT": "Anuncio",
     "REMINDER": "Recordatorio",
     "ALERT": "Alerta",
-    "ATTENDANCE_LATE": "Retardo sin checar"
+    "ATTENDANCE_LATE": "Retardo sin checar",
+    "RESERVATION_NO_SHOW_SUMMARY": "Resumen de «No Show» por clase",
+    "RESERVATION_NEEDS_REVIEW": "Llegadas que necesitan revisión"
   },
   "priorities": {
     "LOW": "Baja",
@@ -115,7 +117,8 @@
     "system": "Sistema",
     "admin": "Administración",
     "reports": "Reportes",
-    "general": "General"
+    "general": "General",
+    "reservations": "Reservaciones"
   },
   "categoryDescriptions": {
     "orders": "Recibe actualizaciones sobre el estado de pedidos, nuevos pedidos y cancelaciones",
@@ -125,7 +128,8 @@
     "system": "Salud del sistema, conexión POS y alertas de inventario",
     "admin": "Alertas administrativas solo para gerentes y propietarios",
     "reports": "Reportes diarios y periódicos de ventas por correo electrónico",
-    "general": "Anuncios generales, recordatorios y alertas"
+    "general": "Anuncios generales, recordatorios y alertas",
+    "reservations": "Faltas por clase y llegadas que necesitan revisión"
   },
   "typeDescriptions": {
     "NEW_ORDER": "Notificación inmediata cuando se recibe un nuevo pedido",
@@ -154,7 +158,9 @@
     "ANNOUNCEMENT": "Anuncios y noticias de la plataforma",
     "REMINDER": "Recordatorios personalizados y notificaciones programadas",
     "ALERT": "Alertas generales que requieren tu atención",
-    "ATTENDANCE_LATE": "Avisar cuando alguien no ha checado y ya pasó su hora de entrada"
+    "ATTENDANCE_LATE": "Avisar cuando alguien no ha checado y ya pasó su hora de entrada",
+    "RESERVATION_NO_SHOW_SUMMARY": "Un correo por clase cuando termina, con quién quedó como «No Show» y su liga para corregirlo. Si lo apagas, dejas de recibir el correo.",
+    "RESERVATION_NEEDS_REVIEW": "Cuando una llegada se corrige y queda algo por revisar (clase sin pagar, multa ya cobrada, llegada del kiosco). Si lo apagas, dejas de recibir el correo."
   },
   "channelNames": {
     "IN_APP": "Web",

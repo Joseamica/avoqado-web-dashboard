@@ -33,6 +33,25 @@ export interface ClassSession {
    * un plan del proveedor o cancelada); ausente = server anterior. Las clases ya terminadas sí lo traen (historial).
    */
   passes?: SessionPasses | null
+  /**
+   * D4: quienes quedaron como «No Show» en esta clase, APARTE de los asistentes (`reservations`/`enrolled` no cambian).
+   * Ausente = server anterior. Una falta con `aggregatorBooking` viene de un pase (TotalPass/Wellhub) y no se corrige aquí.
+   */
+  noShows?: ClassSessionNoShow[]
+  /** Cuántas faltas tiene la clase en total; si es mayor que `noShows.length`, la lista viene recortada por el servidor. */
+  noShowsTotal?: number
+}
+
+export interface ClassSessionNoShow {
+  id: string
+  confirmationCode: string
+  partySize: number
+  guestName: string | null
+  guestPhone: string | null
+  customer: { id: string; firstName: string; lastName: string; phone: string | null } | null
+  noShowAt: string | null
+  status: string
+  aggregatorBooking: { id: string; provider: string } | null
 }
 
 export interface ClassSessionAttendee {

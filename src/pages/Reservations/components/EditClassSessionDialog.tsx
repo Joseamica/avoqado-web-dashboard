@@ -34,6 +34,7 @@ import { teamService } from '@/services/team.service'
 import classSessionService from '@/services/classSession.service'
 import { PagoDeClaseCard } from './PagoDeClaseCard'
 import { SessionPassCapField } from './SessionPassCapField'
+import { UndoNoShowButton } from './UndoNoShow'
 
 const editSchema = z
   .object({
@@ -242,6 +243,9 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
   // Attendees are stored as reservations on the session
   const attendees = useMemo(() => (session as any)?.reservations ?? [], [session])
+  // D4: las faltas van aparte (no cuentan en el cupo) y se pueden corregir con «Sí llegó» aunque la clase ya haya terminado.
+  const noShows = session?.noShows ?? []
+  const noShowsHidden = Math.max(0, (session?.noShowsTotal ?? 0) - noShows.length) // la lista llega recortada: «y N más»
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -478,6 +482,56 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* No Show: debajo de los asistentes, con «Sí llegó» (se oculta solo sin reservations:update). Una falta de un pase
+                  se etiqueta y no lleva el botón: se corrige desde la app del proveedor. */}
+              {noShows.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      {t('undoNoShow.rosterTitle')} ({noShows.length + noShowsHidden})
+                    </Label>
+                    <div className="space-y-1.5">
+                      {noShows.map(n => {
+                        const nombre = n.customer ? `${n.customer.firstName} ${n.customer.lastName}` : n.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })
+                        return (
+                          <div key={n.id} className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
+                            <div className="min-w-0">
+                              <span className="block truncate font-medium">{nombre}</span>
+                              {(n.guestPhone || n.customer?.phone) && (
+                                <span className="text-xs text-muted-foreground">{n.guestPhone || n.customer?.phone}</span>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {t('status.NO_SHOW')}
+                              </Badge>
+                              {n.aggregatorBooking ? (
+                                <Badge variant="secondary" className="text-xs" title={t('undoNoShow.passBooking')}>
+                                  {t('undoNoShow.pass')}
+                                </Badge>
+                              ) : (
+                                <UndoNoShowButton
+                                  venueId={venueId!}
+                                  reservationId={n.id}
+                                  guestName={nombre}
+                                  serviceName={session.product.name}
+                                  startsAt={session.startsAt}
+                                  classSessionId={sessionId}
+                                  size="sm"
+                                  variant="outline"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {noShowsHidden > 0 && <p className="px-3 text-xs text-muted-foreground">{t('undoNoShow.rosterMore', { count: noShowsHidden })}</p>}
                     </div>
                   </div>
                 </>

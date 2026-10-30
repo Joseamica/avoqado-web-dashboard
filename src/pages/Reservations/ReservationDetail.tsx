@@ -29,6 +29,7 @@ import reservationService from '@/services/reservation.service'
 import type { RescheduleNotificationChannel } from '@/types/reservation'
 
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
+import { NoShowPendingBanner, UndoNoShowButton } from './components/UndoNoShow'
 
 export default function ReservationDetail() {
   const { t } = useTranslation('reservations')
@@ -193,6 +194,7 @@ export default function ReservationDetail() {
   const canCheckIn = reservation.status === 'CONFIRMED'
   const canComplete = reservation.status === 'CHECKED_IN'
   const canNoShow = reservation.status === 'CONFIRMED'
+  const canUndoNoShow = reservation.status === 'NO_SHOW' // «Sí llegó»: el botón se oculta solo sin reservations:update
   const canCancel = ['PENDING', 'CONFIRMED'].includes(reservation.status)
   const canReschedule = ['PENDING', 'CONFIRMED'].includes(reservation.status)
 
@@ -206,6 +208,17 @@ export default function ReservationDetail() {
             <ReservationStatusBadge status={reservation.status} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">{guestName}</p>
+          {reservation.noShowCorrection && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {(() => {
+                const { createdAt, actorName, source } = reservation.noShowCorrection
+                const when = { date: formatDate(createdAt), time: formatTime(createdAt) }
+                // Quién: la persona; sin nombre y desde el kiosco, «el kiosco»; si no hay a quién nombrar, sin «por».
+                const actor = actorName || (source === 'KIOSK' ? t('undoNoShow.kiosk') : null)
+                return actor ? t('undoNoShow.correctedNote', { ...when, actor }) : t('undoNoShow.correctedNoteNoActor', when)
+              })()}
+            </p>
+          )}
         </div>
 
         {/* Action buttons: edge-to-edge horizontal scroll on mobile, wrap on md+. */}
@@ -242,6 +255,16 @@ export default function ReservationDetail() {
               {t('actions.markNoShow')}
             </Button>
           )}
+          {canUndoNoShow && (
+            <UndoNoShowButton
+              venueId={venueId}
+              reservationId={reservation.id}
+              guestName={guestName}
+              serviceName={reservation.product?.name}
+              startsAt={reservation.startsAt}
+              classSessionId={reservation.classSessionId}
+            />
+          )}
           {canCancel && (
             <Button variant="destructive" className="shrink-0" onClick={() => setShowCancelDialog(true)}>
               <X className="mr-2 h-4 w-4" />
@@ -250,6 +273,13 @@ export default function ReservationDetail() {
           )}
         </div>
       </div>
+
+      <NoShowPendingBanner
+        venueId={venueId}
+        reservationId={reservation.id}
+        correction={reservation.noShowCorrection}
+        classSessionId={reservation.classSessionId}
+      />
 
       {/* Content grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
@@ -427,6 +457,7 @@ export default function ReservationDetail() {
                         {entry.by && ` — ${entry.by}`}
                       </div>
                       {entry.reason && <div className="text-sm text-muted-foreground italic">{entry.reason}</div>}
+                      {entry.correctionOf && <div className="text-sm text-muted-foreground italic">{t('undoNoShow.timelineCorrection')}</div>}
                     </div>
                   </div>
                 ))}

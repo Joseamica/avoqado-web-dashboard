@@ -12,6 +12,8 @@ import type {
   StaffSchedulePayload,
   StaffScheduleResult,
   ProductStaffResult,
+  UndoNoShowPlan,
+  UndoNoShowResult,
 } from '@/types/reservation'
 
 // Query parameters
@@ -112,6 +114,22 @@ export const reservationService = {
 
   async markNoShow(venueId: string, id: string): Promise<Reservation> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/reservations/${id}/no-show`)
+    return response.data
+  },
+
+  // D4 «Sí llegó»: vista previa (no escribe), deshacer y «Marcar resuelto». Permiso `reservations:update`.
+  async previewUndoNoShow(venueId: string, id: string): Promise<{ plan: UndoNoShowPlan }> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/reservations/${id}/no-show/undo`)
+    return response.data
+  },
+
+  async undoNoShow(venueId: string, id: string, reason?: string): Promise<UndoNoShowResult> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/reservations/${id}/no-show/undo`, reason ? { reason } : {})
+    return response.data
+  },
+
+  async resolveNoShowCorrection(venueId: string, id: string, note?: string): Promise<{ resolvedAt: string }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/reservations/${id}/no-show/undo/resolve`, note ? { note } : {})
     return response.data
   },
 
