@@ -33,6 +33,7 @@ import { OrgBulkUploadDialog } from './StockControl/components/OrgBulkUploadDial
 import { ReassignPromoterDialog } from './StockControl/components/ReassignPromoterDialog'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
+import { DateTime } from 'luxon'
 import { useSimRegistrationRequestsCount } from './StockControl/hooks/useSimRegistrationRequests'
 import { useStockApprovalsCount } from './StockControl/hooks/useStockApprovals'
 
@@ -50,24 +51,22 @@ type TabValue = (typeof TABS)[number]['value']
 // when the OWNER lands on Control de Stock. The user can still narrow the
 // range via the DateRangePicker. Filtering by createdAt would otherwise hide
 // items currently in custody whose registration is older than the window.
-function defaultRangeStart(): Date {
-  const d = new Date()
-  d.setFullYear(d.getFullYear() - 1)
-  d.setHours(0, 0, 0, 0)
-  return d
+// Del inicio del día de hace un año al final de hoy, en la zona del NEGOCIO: es lo que pinta el selector de fechas.
+function defaultRangeStart(timezone: string): Date {
+  return DateTime.now().setZone(timezone).minus({ years: 1 }).startOf('day').toJSDate()
 }
 
-function todayEndOfDay(): Date {
-  const d = new Date()
-  d.setHours(23, 59, 59, 999)
-  return d
+function todayEndOfDay(timezone: string): Date {
+  return DateTime.now().setZone(timezone).endOf('day').toJSDate()
 }
 
 export default function OrgStockControlPage() {
   const { orgId } = useParams<{ orgId: string }>()
   const { organization, venues } = useCurrentOrganization()
   const { can } = useAccess()
-  const { user, staffInfo } = useAuth()
+  const { user, staffInfo, activeVenue } = useAuth()
+  // La misma zona con que el selector de fechas pinta y manda los días.
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const [activeTab, setActiveTab] = useState<TabValue>('resumen')
   const [assignOpen, setAssignOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
@@ -83,8 +82,8 @@ export default function OrgStockControlPage() {
   // Mirrors OrgDetalleSimsTab.tsx's canReassignPromoter exactly — same action, same door.
   const canReassignPromoter = can('sim-custody:reassign') || isAdminOrAbove
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
-    from: defaultRangeStart(),
-    to: todayEndOfDay(),
+    from: defaultRangeStart(venueTimezone),
+    to: todayEndOfDay(venueTimezone),
   }))
 
   // IMPORTANT: guard against infinite re-renders. DateRangePicker re-emits

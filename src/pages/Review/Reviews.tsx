@@ -29,6 +29,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { includesNormalized } from '@/lib/utils'
+import { DateTime } from 'luxon'
 
 type SortOption = 'newest' | 'oldest' | 'highestRated' | 'lowestRated' | 'unresponded'
 
@@ -39,16 +40,15 @@ export default function ReviewSummary() {
   const { toast } = useToast()
   const { t, i18n } = useTranslation('reviews')
   const { t: tCommon } = useTranslation('common')
-  const { user } = useAuth()
+  const { user, activeVenue } = useAuth()
   const queryClient = useQueryClient()
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
 
   // Initialize with a default date range (last 365 days)
+  // Días enteros del negocio (los mismos que pinta el selector): hasta «ahora» dejaba fuera lo que llegara esa misma noche.
   const getDefaultRange = () => {
-    const to = new Date()
-    const from = new Date()
-    from.setFullYear(from.getFullYear() - 1)
-    return { from, to }
+    const ahora = DateTime.now().setZone(activeVenue?.timezone || 'America/Mexico_City')
+    return { from: ahora.minus({ years: 1 }).startOf('day').toJSDate(), to: ahora.endOf('day').toJSDate() }
   }
 
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(getDefaultRange())
@@ -208,8 +208,6 @@ export default function ReviewSummary() {
     setResponseDialogOpen(true)
   }
 
-  const defaultRange = getDefaultRange()
-
   // Show loading state
   if (isLoading) {
     return (
@@ -272,8 +270,8 @@ export default function ReviewSummary() {
                 setCurrentPage(1)
               }
             }}
-            initialDateFrom={defaultRange.from.toISOString().split('T')[0]}
-            initialDateTo={defaultRange.to.toISOString().split('T')[0]}
+            initialDateFrom={selectedRange.from}
+            initialDateTo={selectedRange.to}
             align="end"
             locale={getIntlLocale(i18n.language)}
           />
