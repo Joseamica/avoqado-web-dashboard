@@ -49,7 +49,7 @@ export const useDashboardData = () => {
   // Handler for "Last 7 days" filter
   const handleLast7Days = useCallback(() => {
     const range = getLast7Days(venueTimezone)
-    const prevRange = getPreviousPeriod(range)
+    const prevRange = getPreviousPeriod(range, venueTimezone)
 
     setSelectedRange(range)
     setCompareRange(prevRange)
@@ -61,7 +61,7 @@ export const useDashboardData = () => {
   // Handler for "Last 30 days" filter
   const handleLast30Days = useCallback(() => {
     const range = getLast30Days(venueTimezone)
-    const prevRange = getPreviousPeriod(range)
+    const prevRange = getPreviousPeriod(range, venueTimezone)
 
     setSelectedRange(range)
     setCompareRange(prevRange)
