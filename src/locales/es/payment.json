@@ -262,6 +262,8 @@
       "itemsTitle": "Productos ordenados",
       "quantity": "Cantidad: {{count}}",
       "weightPrice": "{{weight}} kg × {{price}}/kg",
+      "courtesy": "Cortesía",
+      "note": "Nota: {{note}}",
       "weight": "Peso: {{weight}} kg",
       "unitPrice": "{{count}}× {{price}}",
       "noItems": "No se registraron productos individuales",
