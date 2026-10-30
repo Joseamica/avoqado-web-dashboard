@@ -32,6 +32,8 @@ export interface Notification {
     name: string
     slug: string
   }
+  /** Sólo en el aviso que llega por socket (la lista trae `venue`). */
+  venueId?: string
 }
 
 export interface NotificationPreference {
@@ -416,6 +418,24 @@ const getDefaultTimeTranslations = (locale: string): NotificationTimeTranslation
         ? `il y a ${days} ${days === 1 ? 'jour' : 'jours'}`
         : `${days} ${days === 1 ? 'day' : 'days'} ago`,
 })
+
+/**
+ * A dónde lleva tocar un aviso. Una liga relativa («reservations/<id>») es de la sucursal DEL AVISO,
+ * no de la que está abierta: un dueño con varias sucursales recibe avisos de todas. La lista trae
+ * `venue.slug`; el aviso que llega por socket sólo trae `venueId`, y se traduce con las sucursales
+ * del usuario. Sin saber la sucursal del aviso se queda como antes (la abierta).
+ */
+export function destinoDelAviso(
+  actionUrl: string,
+  aviso: { venue?: { slug?: string } | null; venueId?: string | null },
+  actual: { venueBasePath: string; fullBasePath: string; venueSlug: string | null },
+  slugDeId: (venueId: string) => string | null,
+): string {
+  if (actionUrl.startsWith('http') || actionUrl.startsWith('/')) return actionUrl
+  const slug = aviso.venue?.slug || (aviso.venueId ? slugDeId(aviso.venueId) : null)
+  if (slug) return `${actual.venueBasePath}/${slug}/${actionUrl}`
+  return actual.venueSlug ? `${actual.fullBasePath}/${actionUrl}` : `/${actionUrl}`
+}
 
 /**
  * Format notification time
