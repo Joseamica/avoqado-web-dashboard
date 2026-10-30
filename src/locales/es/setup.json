@@ -20,7 +20,7 @@
     "passwordPlaceholder": "Mínimo 8 caracteres",
     "passwordRequired": "La contraseña es requerida",
     "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
-    "passwordHint": "Usa 8 caracteres o más con una combinación de letras, números y símbolos",
+    "passwordHint": "Usa 8 caracteres o más",
     "createAccount": "Siguiente",
     "alreadyHaveAccount": "¿Ya tienes una cuenta?",
     "signIn": "Inicia sesión",
@@ -373,6 +373,48 @@
         "2": "Marca propia",
         "3": "API e integraciones",
         "4": "Soporte dedicado"
+      },
+      "comercio": {
+        "pro": {
+          "1": "Cobra con tarjeta y efectivo",
+          "2": "Usuarios y cajas ilimitados",
+          "3": "Corte y arqueo de caja",
+          "4": "Lealtad y promociones"
+        },
+        "premium": {
+          "1": "Todo lo de Pro",
+          "2": "Facturación CFDI",
+          "3": "Inventario y existencias por tienda",
+          "4": "Reorden automático de mercancía"
+        }
+      },
+      "servicios": {
+        "pro": {
+          "1": "Cobra con tarjeta y efectivo",
+          "2": "Citas y reservas",
+          "3": "Usuarios ilimitados",
+          "4": "Lealtad y promociones"
+        },
+        "premium": {
+          "1": "Todo lo de Pro",
+          "2": "Facturación CFDI",
+          "3": "Comisiones del personal",
+          "4": "Control de asistencia del equipo"
+        }
+      },
+      "generico": {
+        "pro": {
+          "1": "Cobra con tarjeta y efectivo",
+          "2": "Usuarios ilimitados",
+          "3": "Corte y arqueo de caja",
+          "4": "Lealtad, promociones y reservas"
+        },
+        "premium": {
+          "1": "Todo lo de Pro",
+          "2": "Facturación CFDI",
+          "3": "Control de inventario",
+          "4": "Comisiones del personal"
+        }
       }
     },
     "trialLegal": "Al empezar aceptas que desde el {{fecha}} se cobren {{monto}} al mes a esta tarjeta hasta que canceles. Te avisamos 7 días antes. Cancela cuando quieras desde Facturación.",

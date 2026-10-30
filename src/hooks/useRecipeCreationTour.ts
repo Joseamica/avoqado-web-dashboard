@@ -3,6 +3,7 @@ import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
+import { openProductWizardSection } from '@/lib/open-product-wizard-section'
 
 /**
  * Interactive onboarding tour for RECIPE-based product creation.
@@ -69,6 +70,7 @@ export function useRecipeCreationTour() {
       nextBtnText: t('tour.next', { defaultValue: 'Siguiente →' }),
       prevBtnText: t('tour.prev', { defaultValue: '← Anterior' }),
       doneBtnText: t('tour.done', { defaultValue: '¡Listo!' }),
+      onDestroyed: () => { driverRef.current = null },
       progressText: t('tour.progress', {
         defaultValue: 'Paso {{current}} de {{total}}',
       }),
@@ -106,10 +108,10 @@ export function useRecipeCreationTour() {
                 try {
                   await waitForElement('[data-tour="product-type-food"]')
                 } catch {
-                  /* noop */
+                  return
                 }
               }
-              d.moveNext()
+              if (driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -134,6 +136,7 @@ export function useRecipeCreationTour() {
                 )
                 food?.click()
                 await new Promise(r => setTimeout(r, 120))
+                if (driverRef.current !== d) return
                 const nextBtn = document.querySelector<HTMLButtonElement>(
                   '[data-tour="product-type-next"]',
                 )
@@ -141,10 +144,10 @@ export function useRecipeCreationTour() {
                 try {
                   await waitForElement('[data-tour="product-wizard-name"]')
                 } catch {
-                  /* noop */
+                  return
                 }
               }
-              d.moveNext()
+              if (driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -174,6 +177,9 @@ export function useRecipeCreationTour() {
             }),
             side: 'bottom',
             align: 'start',
+            onNextClick: async () => {
+              if (await openProductWizardSection('codes', '[data-tour="product-wizard-sku"]', waitForElement) && driverRef.current === d) d.moveNext()
+            },
           },
         },
 
@@ -220,6 +226,9 @@ export function useRecipeCreationTour() {
             }),
             side: 'left',
             align: 'start',
+            onNextClick: async () => {
+              if (await openProductWizardSection('recipe', '[data-tour="product-wizard-portion-yield"]', waitForElement) && driverRef.current === d) d.moveNext()
+            },
           },
         },
 
@@ -228,31 +237,16 @@ export function useRecipeCreationTour() {
           element: '[data-tour="product-wizard-track-inventory"]',
           popover: {
             title: t('tourRecipe.step6.title', {
-              defaultValue: 'Activa el control de inventario',
+              defaultValue: 'Abre la receta',
             }),
             description: t('tourRecipe.step6.description', {
               defaultValue:
-                'Al prender este switch podrás elegir el método de rastreo. Para recetas, cada venta descontará los ingredientes automáticamente.',
+                'Con el botón + de Receta abres los ingredientes. Cada venta descontará las cantidades que definas.',
             }),
             side: 'top',
             align: 'start',
             onNextClick: async () => {
-              // Ensure tracking is on so method selector appears
-              if (!exists('[data-tour="product-wizard-method-recipe"]')) {
-                const wrapper = document.querySelector(
-                  '[data-tour="product-wizard-track-inventory"]',
-                )
-                const toggle = wrapper?.querySelector<HTMLButtonElement>(
-                  'button[role="switch"]',
-                )
-                toggle?.click()
-                try {
-                  await waitForElement('[data-tour="product-wizard-method-recipe"]')
-                } catch {
-                  /* noop */
-                }
-              }
-              d.moveNext()
+              if (await openProductWizardSection('recipe', '[data-tour="product-wizard-portion-yield"]', waitForElement) && driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -271,19 +265,15 @@ export function useRecipeCreationTour() {
             side: 'right',
             align: 'start',
             onNextClick: async () => {
-              // Ensure Recipe is selected so the recipe section shows
               if (!exists('[data-tour="product-wizard-portion-yield"]')) {
-                const recipeTile = document.querySelector<HTMLElement>(
-                  '[data-tour="product-wizard-method-recipe"]',
-                )
-                recipeTile?.click()
+                document.querySelector<HTMLElement>('[data-tour="product-wizard-method-recipe"]')?.click()
                 try {
                   await waitForElement('[data-tour="product-wizard-portion-yield"]')
                 } catch {
-                  /* noop */
+                  return
                 }
               }
-              d.moveNext()
+              if (driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -375,19 +365,24 @@ export function useRecipeCreationTour() {
   }, [t])
 
   const start = useCallback(() => {
-    driverRef.current?.destroy()
+    const previous = driverRef.current
+    driverRef.current = null
+    previous?.destroy()
     driverRef.current = buildDriver()
     driverRef.current.drive()
   }, [buildDriver])
 
   const stop = useCallback(() => {
-    driverRef.current?.destroy()
+    const current = driverRef.current
     driverRef.current = null
+    current?.destroy()
   }, [])
 
   useEffect(() => {
     return () => {
-      driverRef.current?.destroy()
+      const current = driverRef.current
+      driverRef.current = null
+      current?.destroy()
     }
   }, [])
 

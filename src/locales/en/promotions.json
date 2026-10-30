@@ -36,6 +36,7 @@
     "detail": {
       "title": "Discount Details",
       "notFound": "Discount not found",
+      "usage": {"total": "Uses: {{count}}", "pos": "At the POS: {{count}}", "links": "In paid links: {{count}}"},
       "tabs": {
         "general": "General",
         "scope": "Scope",

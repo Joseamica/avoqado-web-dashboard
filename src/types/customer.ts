@@ -2,6 +2,7 @@
 
 export interface Customer {
 	id: string
+	active?: boolean
 	venueId: string
 	firstName: string
 	lastName: string
@@ -126,6 +127,8 @@ export interface LoyaltyTransaction {
 // Paginated Responses
 
 export interface PaginationMeta {
+	totalMatches?: number
+	searchCapped?: boolean
 	totalCount: number
 	pageSize: number
 	currentPage: number
@@ -227,10 +230,10 @@ export interface CustomerGroupStats {
 // Request DTOs
 
 export interface CreateCustomerRequest {
-	firstName: string
-	lastName: string
-	email: string
-	phone: string
+	firstName?: string
+	lastName?: string
+	email?: string
+	phone?: string
 	customerGroupId?: string
 	/** Fecha civil 'YYYY-MM-DD'. Se OMITE (no se manda '') cuando el campo va vacío. */
 	birthDate?: string
@@ -252,7 +255,9 @@ export interface UpdateCustomerRequest {
  * pero el consentimiento de marketing NO se pudo capturar (p.ej. el venue no tiene aviso
  * de privacidad todavía). Nunca revierte la operación — sólo avisa. Ver Task 5 del server.
  */
-export interface CustomerMutationResult extends Customer {
+export interface CustomerMutationResult {
+	message: string
+	customer: Customer
 	warning?: 'CONSENT_NOT_CAPTURED'
 	reason?: string
 }

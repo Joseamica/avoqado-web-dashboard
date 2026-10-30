@@ -36,10 +36,10 @@ import SignupWizard from '../SignupWizard'
 import { ACQUISITION_STORAGE_KEY } from '@/lib/acquisition'
 import { LEGAL_DOCS_VERSION } from '@/config/legal'
 
-function sembrarAtribucion(offerParam: string | null, utm: Record<string, string> = {}) {
+function sembrarAtribucion(offerParam: string | null, utm: Record<string, string> = {}, referrer: string | null = null) {
   const datos = new Map<string, string>()
-  if (offerParam || Object.keys(utm).length) {
-    datos.set(ACQUISITION_STORAGE_KEY, JSON.stringify({ offerParam, utm, savedAt: new Date().toISOString() }))
+  if (offerParam || Object.keys(utm).length || referrer) {
+    datos.set(ACQUISITION_STORAGE_KEY, JSON.stringify({ offerParam, utm, referrer, savedAt: new Date().toISOString() }))
   }
   Object.defineProperty(window, 'sessionStorage', {
     value: {
@@ -131,6 +131,24 @@ describe('SignupWizard — consentimiento y campaña', () => {
 
     await waitFor(() => expect(signup).toHaveBeenCalled())
     expect(signup.mock.calls[0][0].launchCampaignCode).toBeUndefined()
+  })
+
+  it('manda de qué sitio llegó (`referrer`, sólo el host) como campo propio, junto a `utm`', async () => {
+    sembrarAtribucion(null, {}, 'avoqado.io')
+    render(<SignupWizard />)
+    await llenarYEnviar(true)
+    await waitFor(() => expect(signup).toHaveBeenCalled())
+    const cuerpo = signup.mock.calls[0][0]
+    expect(cuerpo.referrer).toBe('avoqado.io')
+    expect(cuerpo.utm).toBeUndefined()
+  })
+
+  it('sin referrer guardado el cuerpo no lleva el campo', async () => {
+    sembrarAtribucion('pos-22', { utm_source: 'google' })
+    render(<SignupWizard />)
+    await llenarYEnviar(true)
+    await waitFor(() => expect(signup).toHaveBeenCalled())
+    expect(signup.mock.calls[0][0]).not.toHaveProperty('referrer')
   })
 
   it('sin atribución guardada no se consulta la API pública', async () => {

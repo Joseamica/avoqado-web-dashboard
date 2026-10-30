@@ -75,6 +75,8 @@ export const logout = async (allDevices = false): Promise<{ success?: boolean; a
   return response.data
 }
 
+export const AUTH_STATUS_QUERY_KEY = ['status'] as const
+
 export const getAuthStatus = async (): Promise<AuthStatusResponse> => {
   const response = await api.get<AuthStatusResponse>('/api/v1/dashboard/auth/status')
   return response.data
@@ -144,6 +146,8 @@ export interface SignupDto {
   hybridOfferSlug?: string
   /** UTMs y click ids, con la misma lista permitida que la landing. */
   utm?: Record<string, string>
+  /** Host del sitio de donde llegó (`avoqado.io`), sin protocolo ni ruta. */
+  referrer?: string
 }
 
 export interface SignupResponse {
@@ -197,6 +201,8 @@ export interface ResetPasswordDto {
 export interface ResetPasswordResponse {
   success: boolean
   message: string
+  /** Sólo para un prospecto de la landing: liga de entrada (`…/auth/entrar#boleto=…`) para entrar sin teclear. */
+  entrarUrl?: string
 }
 
 export const requestPasswordReset = async (email: string): Promise<RequestPasswordResetResponse> => {
@@ -235,6 +241,11 @@ export interface VerifyEmailResponse {
 export const verifyEmail = async (data: VerifyEmailDto): Promise<VerifyEmailResponse> => {
   const response = await api.post('/api/v1/onboarding/verify-email', data)
   return response.data
+}
+
+/** Alta con código: canjea el boleto de un solo uso por la sesión (cookies). 410/404/429 → rechaza. */
+export const entrarConBoleto = async (boleto: string): Promise<void> => {
+  await api.post('/api/v1/dashboard/auth/entrar-con-boleto', { boleto })
 }
 
 // Service object for convenience

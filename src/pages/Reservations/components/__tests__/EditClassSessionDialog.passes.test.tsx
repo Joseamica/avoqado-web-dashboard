@@ -110,6 +110,8 @@ describe('EditClassSessionDialog + lugares para pases', () => {
       .mockResolvedValueOnce({ ...SESSION, passes: { taken: 1, cap: 1, sessionCap: 1 } })
     renderDialog()
     const notes = await screen.findByLabelText(NOTES)
+    // escribir hasta que el efecto haya llenado el formulario; si no, su reset() se come lo tecleado (CI lento, 23-oct)
+    await waitFor(() => expect(screen.getByLabelText('classSession.fields.capacity')).toHaveValue(12))
     await user.type(notes, 'traer tapetes extra')
     const cap = screen.getByLabelText(PASS_CAP)
     await user.clear(cap)
@@ -141,7 +143,8 @@ describe('EditClassSessionDialog + lugares para pases', () => {
   // y sí se inicializa al abrir (lo que el reset siempre hizo bien)
   it('al abrir carga la fecha y el cupo de la sesión', async () => {
     renderDialog()
-    expect(await screen.findByLabelText('classSession.fields.capacity')).toHaveValue(12)
+    // el formulario se dibuja antes de que el efecto lo llene: esperar el valor, no sólo el campo (CI lento, 23-oct)
+    await waitFor(() => expect(screen.getByLabelText('classSession.fields.capacity')).toHaveValue(12))
     expect(screen.getByLabelText('form.fields.date')).toHaveValue('2030-01-10')
   })
 

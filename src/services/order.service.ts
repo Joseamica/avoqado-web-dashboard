@@ -10,6 +10,11 @@ export interface OrderFilters {
   search?: string
   startDate?: string
   endDate?: string
+  /**
+   * «Nueva factura» (28-oct-2026): cada venta trae `facturada` / `facturaEnCancelacion`. Sólo lo pide el buscador de Facturas; un
+   * servidor anterior lo ignora y las ventas llegan sin esos campos.
+   */
+  conFactura?: boolean
 }
 
 export const getOrders = async (venueId: string, pagination: { pageIndex: number; pageSize: number }, filters?: OrderFilters) => {
@@ -25,6 +30,7 @@ export const getOrders = async (venueId: string, pagination: { pageIndex: number
       ...(filters?.search && { search: filters.search }),
       ...(filters?.startDate && { startDate: filters.startDate }),
       ...(filters?.endDate && { endDate: filters.endDate }),
+      ...(filters?.conFactura && { conFactura: '1' }),
     },
   })
   return response.data

@@ -40,6 +40,8 @@ interface Props {
    * legacy 30-day window frozen at mount time.
    */
   dateRange?: { from: Date; to: Date }
+  /** Zona del negocio con que se escriben las fechas del rango (la misma del selector de fechas). */
+  timeZone?: string
 }
 
 // A SIM is "stuck" when it's been with a promoter (pending or accepted, not
@@ -47,7 +49,7 @@ interface Props {
 const STUCK_DAYS_THRESHOLD = 7
 type FilterKey = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos' | 'estancados'
 
-export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
+export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Props) {
   // Memoize ISO string params — using the date refs directly would re-emit on
   // every render of the parent, thrashing react-query. Comparing by ms keeps
   // the query stable as long as the caller passes the same range instance or
@@ -147,7 +149,7 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   }
 
   const rangeLabel = dateRange
-    ? `${dateRange.from.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })} – ${dateRange.to.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    ? `${dateRange.from.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone })} – ${dateRange.to.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone })}`
     : 'Últimos 30 días'
 
   return (

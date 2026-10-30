@@ -29,6 +29,8 @@ type SignupData = {
   launchCampaignCode?: string
   hybridOfferSlug?: string
   utm?: Record<string, string>
+  /** Host del sitio de donde llegó (`avoqado.io`). */
+  referrer?: string
 }
 
 interface AuthContextType {
@@ -116,10 +118,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Get auth status first
   // staleTime reduced from 5min to 1min to ensure KYC status changes reflect faster
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
-    queryKey: ['status'],
+    queryKey: authService.AUTH_STATUS_QUERY_KEY,
     queryFn: authService.getAuthStatus,
     staleTime: 1 * 60 * 1000, // 1 minute - faster sync for KYC/status changes
     retry: false,
+    // /auth/entrar canjea un boleto y pone cookies nuevas: ahí el proveedor NUNCA consulta /status (ni al
+    // montar ni por foco/reconexión), porque una respuesta tardía con la cookie vieja (401) borraría la nueva.
+    // La página pide su propio status tras el canje y lo guarda con setQueryData.
+    enabled: location.pathname !== '/auth/entrar',
   })
 
   const isAuthenticated = !!statusData?.authenticated

@@ -11,6 +11,11 @@ export interface NotificationTypeMetadata {
   defaultChannels: NotificationChannel[]
   defaultPriority: NotificationPriority
   canDisable: boolean // Some critical notifications can't be disabled
+  /**
+   * Si viene, sólo estos canales se pueden prender o apagar para el tipo (los demás ni se muestran ni los tocan los
+   * interruptores generales). Ausente = todos, como siempre.
+   */
+  availableChannels?: NotificationChannel[]
   description: string
 }
 
@@ -252,6 +257,33 @@ export const notificationCategories: NotificationCategory[] = [
         defaultPriority: NotificationPriority.NORMAL,
         canDisable: true,
         description: 'Celebrate when revenue milestones are reached',
+      },
+    ],
+  },
+  {
+    id: 'reservations',
+    icon: 'CalendarDays',
+    description: 'No-show summaries and arrivals that need review',
+    types: [
+      {
+        type: NotificationType.RESERVATION_NO_SHOW_SUMMARY,
+        // Campanita + correo (el default del servidor cuando no hay fila). La campanita es la marca de «ya se avisó» del servidor:
+        // no se puede apagar, ni el tipo entero. Sólo se elige el correo.
+        defaultEnabled: true,
+        defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+        defaultPriority: NotificationPriority.NORMAL,
+        canDisable: false,
+        availableChannels: [NotificationChannel.EMAIL],
+        description: 'One email per class once it ends, listing who was marked as no-show',
+      },
+      {
+        type: NotificationType.RESERVATION_NEEDS_REVIEW,
+        defaultEnabled: true,
+        defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+        defaultPriority: NotificationPriority.HIGH,
+        canDisable: false,
+        availableChannels: [NotificationChannel.EMAIL],
+        description: 'An arrival was corrected and something is left for a person to check',
       },
     ],
   },

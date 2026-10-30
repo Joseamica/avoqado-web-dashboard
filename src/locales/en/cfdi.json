@@ -2,6 +2,7 @@
   "list": {
     "title": "Invoices",
     "description": "Fiscal receipts (CFDI) issued by this venue.",
+    "newInvoice": "New invoice",
     "empty": "No invoices issued yet.",
     "emptyHint": "Invoices will appear here once they are issued to your customers.",
     "loadError": "Could not load invoices.",
@@ -86,6 +87,26 @@
     "substituteUuidHint": "Required by the SAT when the reason is 01.",
     "confirm": "Cancel invoice",
     "cancel": "No, go back"
+  },
+  "pickOrder": {
+    "title": "New invoice",
+    "subtitle": "Choose the sale you want to invoice",
+    "search": "Search",
+    "searchPlaceholder": "Number, name, phone or amount",
+    "searchHint": "Most recent first. Search by number, by amount, or by the first name, last name (one at a time) or phone of the customer registered on the sale. A paid sale that is still open is invoiced from Orders.",
+    "clearSearch": "Clear search",
+    "loading": "Loading sales…",
+    "error": "Could not load sales.",
+    "retry": "Retry",
+    "empty": "There are no closed sales to invoice yet.",
+    "noMatches": "No sale matches “{{search}}”.",
+    "count_one": "{{count}} closed sale",
+    "count_other": "{{count}} closed sales",
+    "alreadyInvoiced": "Already invoiced",
+    "cancellationPending": "Its invoice is being cancelled: if the SAT already accepted it, it can be invoiced again.",
+    "select": "Invoice",
+    "selectAria": "Invoice sale {{folio}}",
+    "loadMore": "Load more"
   },
   "issueDialog": {
     "openButton": "Invoice",

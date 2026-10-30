@@ -34,12 +34,29 @@ export interface PaymentLinkBundleItem {
   }>
 }
 
+export type PaymentLinkDiscountInput =
+  | { mode: 'MANUAL'; type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: number; name?: string }
+  | { mode: 'CATALOG'; discountId: string }
+
+export type PaymentLinkDiscountStatus = 'OK' | 'VENCIDO' | 'NO_INICIA' | 'FUERA_DE_HORARIO' | 'MINIMO' | 'INACTIVO' | 'AGOTADO'
+
+export interface PaymentLinkDiscountView {
+  name: string
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+  value: number
+  origen: 'MANUAL' | 'CATALOGO'
+  /** Sólo en la respuesta autenticada del panel. */
+  discountId?: string | null
+}
+
 export interface PaymentLink {
   id: string
   shortCode: string
   venueId: string
   ecommerceMerchantId: string
   createdById: string
+  customerId?: string | null
+  customer?: PaymentLinkCustomer | null
   purpose: 'PAYMENT' | 'ITEM' | 'DONATION'
   /** Bundle line items for ITEM-purpose links. Empty for PAYMENT/DONATION. */
   items?: PaymentLinkBundleItem[]
@@ -54,9 +71,18 @@ export interface PaymentLink {
   redirectUrl?: string
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
+  discount?: PaymentLinkDiscountView | null
+  discountStatus?: PaymentLinkDiscountStatus | null
+  discountValidUntil?: string | null
   status: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'ARCHIVED'
   totalCollected: number
   paymentCount: number
+  /** Cuándo se completó el último cobro de la liga (null si nadie la ha pagado). Sólo lo trae el listado; un servidor viejo no lo manda. */
+  lastPaidAt?: string | null
+  /** Sólo en el detalle: los pagos completados más recientes (hasta 50), cada uno con el pago donde vive su recibo. */
+  completedPayments?: Array<{ id: string; amount: number; completedAt: string | null; paymentId: string | null }>
+  /** Sólo en el detalle: cuántos pagos completados tiene en total (puede ser más que los que llegan). */
+  completedPaymentsTotal?: number
   createdAt: string
   updatedAt: string
   createdBy?: {
@@ -65,7 +91,16 @@ export interface PaymentLink {
   }
 }
 
+export interface PaymentLinkCustomer {
+  id: string
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  phone: string | null
+}
+
 export interface CreatePaymentLinkRequest {
+  customerId?: string | null
   title: string
   description?: string
   imageUrl?: string
@@ -90,9 +125,13 @@ export interface CreatePaymentLinkRequest {
   /** Staff members who share commission when sales come via this link.
    *  [] / omitted = no commission. N IDs = commission split equally (1/N each). */
   attributedStaffIds?: string[]
+  /** Descuento opcional; omitirlo = sin descuento. */
+  discount?: PaymentLinkDiscountInput
 }
 
 export interface UpdatePaymentLinkRequest {
+  /** Sólo para agregar a una liga sin cliente; el servidor rechaza cambiarlo. */
+  customerId?: string
   title?: string
   description?: string
   imageUrl?: string
@@ -110,23 +149,40 @@ export interface UpdatePaymentLinkRequest {
   }> | null
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
+  /** Omitir = no cambiar; null = quitar. Sólo mandarlo si el usuario lo tocó. */
+  discount?: PaymentLinkDiscountInput | null
+}
+
+/** Pestañas de la lista. «used» = de un solo uso ya cobrada (en la base sigue ACTIVE); lo resuelve el servidor. */
+export type PaymentLinkView = 'all' | 'active' | 'used' | 'paused' | 'expired'
+
+export interface PaymentLinksPage {
+  paymentLinks: PaymentLink[]
+  /** Ligas de la pestaña y filtros, no sólo las de esta página. */
+  total: number
+  /** Contadores por pestaña (con la búsqueda y los estados, sin la pestaña). */
+  counts?: Record<PaymentLinkView, number>
+  /** Totales de la pestaña y filtros para las tarjetas. */
+  summary?: { totalCollected: number; paidLinks: number }
 }
 
 export const paymentLinkService = {
   async getPaymentLinks(
     venueId: string,
-    params?: { page?: number; pageSize?: number; status?: string; search?: string },
-  ): Promise<PaymentLink[]> {
+    params: { view?: PaymentLinkView; statuses?: string[]; search?: string; limit: number; offset: number },
+  ): Promise<PaymentLinksPage> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-links`, {
       params: {
-        ...(params?.page && { page: params.page }),
-        ...(params?.pageSize && { pageSize: params.pageSize }),
-        ...(params?.status && { status: params.status }),
-        ...(params?.search && { search: params.search }),
+        limit: params.limit,
+        offset: params.offset,
+        ...(params.view && { view: params.view }),
+        ...(params.statuses?.length && { statuses: params.statuses.join(',') }),
+        ...(params.search && { search: params.search }),
       },
     })
-    // Backend returns { success, data: { paymentLinks, total, ... } }
-    return response.data?.data?.paymentLinks || []
+    // Backend returns { success, data: { paymentLinks, total, counts, summary, ... } }
+    const data = response.data?.data
+    return { paymentLinks: data?.paymentLinks || [], total: data?.total ?? 0, counts: data?.counts, summary: data?.summary }
   },
 
   async getPaymentLink(venueId: string, linkId: string): Promise<{ success: boolean; data: PaymentLink }> {
@@ -134,8 +190,14 @@ export const paymentLinkService = {
     return response.data
   },
 
-  async createPaymentLink(venueId: string, data: CreatePaymentLinkRequest): Promise<{ success: boolean; data: PaymentLink }> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-links`, data)
+  async createPaymentLink(
+    venueId: string,
+    data: CreatePaymentLinkRequest,
+    creationKey?: string,
+  ): Promise<{ success: boolean; data: PaymentLink }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-links`, data, {
+      ...(creationKey ? { headers: { 'Idempotency-Key': creationKey } } : {}),
+    })
     return response.data
   },
 
@@ -158,15 +220,8 @@ export const paymentLinkService = {
    * `payment_link_share` Meta template. `phone` should be E.164 (`+52...`);
    * the backend normalizes further.
    */
-  async shareViaWhatsapp(
-    venueId: string,
-    linkId: string,
-    phone: string,
-  ): Promise<{ success: boolean; data: { sent: boolean } }> {
-    const response = await api.post(
-      `/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}/share-whatsapp`,
-      { phone },
-    )
+  async shareViaWhatsapp(venueId: string, linkId: string, phone: string): Promise<{ success: boolean; data: { sent: boolean } }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}/share-whatsapp`, { phone })
     return response.data
   },
 

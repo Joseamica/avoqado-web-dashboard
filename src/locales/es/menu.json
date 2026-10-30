@@ -887,6 +887,10 @@
       "title": "Define el precio de venta",
       "description": "Escribe el precio en pesos. Lo podrás cambiar después si hace falta."
     },
+    "stepDescription": {
+      "title": "Agrega una descripción",
+      "description": "El botón + de Descripción abre este campo opcional. Cuenta brevemente qué vendes; puedes dejarlo vacío."
+    },
     "stepSku": {
       "title": "SKU (código interno)",
       "description": "Código único para identificar el producto en reportes. <br/><br/>💡 Puedes dejarlo en blanco y se <b>genera automáticamente</b>. Úsalo solo si ya tienes una nomenclatura propia (ej. <b>HOODIE-BLANCA-M</b>)."
@@ -900,8 +904,8 @@
       "description": "Selecciona dónde aparecerá en el menú (ej. <b>Merch</b>, <b>Bebidas</b>, <b>Comida</b>). Si no existe la categoría, créala primero en la sección de <b>Categorías</b>."
     },
     "step6": {
-      "title": "Activa el control de inventario",
-      "description": "Al prender este switch, cada venta descontará automáticamente del stock. Te avisará cuando esté por agotarse."
+      "title": "Abre el inventario",
+      "description": "Con el botón + de Inventario abres el conteo por piezas. Cada venta descontará del stock que registres."
     },
     "step7": {
       "title": "Ingresa el stock actual",
@@ -989,8 +993,8 @@
       "description": "Selecciona dónde aparecerá en el menú: <b>Bebidas</b>, <b>Shakes</b>, <b>Comida</b>, etc."
     },
     "step6": {
-      "title": "Activa el control de inventario",
-      "description": "Al prender este switch podrás elegir el método de rastreo. Para recetas, cada venta descontará los ingredientes automáticamente."
+      "title": "Abre la receta",
+      "description": "Con el botón + de Receta abres los ingredientes. Cada venta descontará las cantidades que definas."
     },
     "step7": {
       "title": "Elige \"Basado en Recetas\"",

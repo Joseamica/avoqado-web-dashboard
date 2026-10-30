@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   AlertTriangle,
@@ -17,7 +17,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -45,18 +45,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useVenueDateTime } from '@/utils/datetime'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import { EcommerceMerchantWizard } from '@/pages/Venue/components/EcommerceMerchantWizard'
-import paymentLinkService, { type PaymentLink } from '@/services/paymentLink.service'
+import paymentLinkService, { type PaymentLink, type PaymentLinkView } from '@/services/paymentLink.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import CreatePaymentLinkDialog from './CreatePaymentLinkDialog'
+import { PaymentLinkDiscountStatus } from './PaymentLinkDiscountStatus'
+import { PaymentLinkDetailSheet } from './PaymentLinkDetailSheet'
+import { etiquetaDelEstado, varianteDelEstado } from './paymentLinkStatus'
 import { SharePaymentLinkDialog } from './SharePaymentLinkDialog'
 
 const CHECKOUT_BASE_URL = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
@@ -67,7 +71,8 @@ export default function PaymentLinks() {
   const queryClient = useQueryClient()
   const { t, i18n } = useTranslation('paymentLinks')
   const { t: tCommon } = useTranslation()
-  const { formatDate } = useVenueDateTime()
+  const { formatDate, formatDateTime } = useVenueDateTime()
+  const { can } = useAccess()
 
   // ─── State ───────────────────────────────────────────────
   const [activeStatusTab, setActiveStatusTab] = useState('all')
@@ -76,6 +81,9 @@ export default function PaymentLinks() {
   const debouncedSearch = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [archivingLink, setArchivingLink] = useState<PaymentLink | null>(null)
+  const [detailLink, setDetailLink] = useState<PaymentLink | null>(null)
+  // Quitar el descuento cambia el precio de una liga que ya se compartió: se confirma antes.
+  const [removingDiscountLink, setRemovingDiscountLink] = useState<PaymentLink | null>(null)
 
   // FullScreenModal state
   const [showForm, setShowForm] = useState(false)
@@ -102,14 +110,42 @@ export default function PaymentLinks() {
   }, [location.search, location.pathname, location.hash, navigate])
 
   // ─── Data ────────────────────────────────────────────────
-  const { data: allLinks = [], isLoading } = useQuery({
-    queryKey: ['payment-links', venueId, statusFilter, debouncedSearch],
+  // El servidor pagina, filtra por pestaña y cuenta: antes llegaban sólo 20 ligas y aquí se filtraban y contaban esas 20.
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
+  // Cambiar de pestaña, de estados o de búsqueda vuelve a la primera página (la 3 de «Todas» puede no existir en «Pagadas»).
+  const irAPrimeraPagina = () => setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
+  useEffect(() => {
+    setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
+  }, [debouncedSearch])
+  const cambiarPestana = (tab: string) => {
+    setActiveStatusTab(tab)
+    irAPrimeraPagina()
+  }
+  const cambiarEstados = (estados: string[]) => {
+    setStatusFilter(estados)
+    irAPrimeraPagina()
+  }
+
+  const { data: page, isLoading } = useQuery({
+    queryKey: ['payment-links', venueId, activeStatusTab, statusFilter, debouncedSearch, pagination.pageIndex, pagination.pageSize],
     queryFn: () =>
       paymentLinkService.getPaymentLinks(venueId, {
-        status: statusFilter.length === 1 ? statusFilter[0] : undefined,
+        view: activeStatusTab as PaymentLinkView,
+        statuses: statusFilter.length ? statusFilter : undefined,
         search: debouncedSearch || undefined,
+        limit: pagination.pageSize,
+        offset: pagination.pageIndex * pagination.pageSize,
       }),
+    // Al pasar de página se queda la anterior a la vista mientras llega la nueva (sin parpadeo a «vacío»).
+    placeholderData: keepPreviousData,
   })
+  const links = useMemo(() => page?.paymentLinks ?? [], [page])
+  const total = page?.total ?? 0
+  // Si se archiva la última liga de la última página, esa página deja de existir: se regresa a la última que sí tiene.
+  const ultimaPagina = Math.max(0, Math.ceil(total / pagination.pageSize) - 1)
+  useEffect(() => {
+    if (page && pagination.pageIndex > ultimaPagina) setPagination(p => ({ ...p, pageIndex: ultimaPagina }))
+  }, [page, pagination.pageIndex, ultimaPagina])
 
   const {
     data: ecommerceMerchants = [],
@@ -135,58 +171,27 @@ export default function PaymentLinks() {
   const isEcommerceExplicitlyMissing = isEcommerceCheckSuccess && !ecommerceMerchants.some(puedeCobrar)
   const [setupWizardOpen, setSetupWizardOpen] = useState(false)
 
-  // Single-use links stay status=ACTIVE in the DB even after being paid —
-  // the public checkout rejects them via `!isReusable && paymentCount > 0`.
-  // Surface this as a synthetic "used" bucket so the Activas tab doesn't
-  // mix live + spent links in the same view.
-  const isUsedUp = (l: PaymentLink) => l.status === 'ACTIVE' && !l.isReusable && (l.paymentCount || 0) > 0
-
-  const links = useMemo(() => {
-    let result = allLinks
-    // Status tab filter — `used` is a derived state, all others map to the
-    // backend status enum directly. Activas excludes spent single-use links.
-    if (activeStatusTab === 'used') {
-      result = result.filter(isUsedUp)
-    } else if (activeStatusTab === 'active') {
-      result = result.filter(l => l.status === 'ACTIVE' && !isUsedUp(l))
-    } else if (activeStatusTab !== 'all') {
-      result = result.filter(l => l.status === activeStatusTab.toUpperCase())
-    }
-    // Client-side multi-status filter (API supports single status)
-    if (statusFilter.length > 1) {
-      result = result.filter(l => statusFilter.includes(l.status))
-    }
-    return result
-  }, [allLinks, activeStatusTab, statusFilter])
-
-  // Status tab counts
-  const plStatusTabCounts = useMemo(() => ({
-    all: allLinks.length,
-    active: allLinks.filter(l => l.status === 'ACTIVE' && !isUsedUp(l)).length,
-    used: allLinks.filter(isUsedUp).length,
-    paused: allLinks.filter(l => l.status === 'PAUSED').length,
-    expired: allLinks.filter(l => l.status === 'EXPIRED').length,
-  }), [allLinks])
-
+  // Contadores de las pestañas: los da el servidor (una liga de un solo uso ya cobrada sigue ACTIVE en la base y cuenta
+  // como «Usada», no como «Activa»). Mientras llega la primera respuesta no se pinta número.
+  const counts = page?.counts
   const plStatusTabs = useMemo<StatusTab[]>(() => [
-    { value: 'all', label: t('statusTabs.all'), count: plStatusTabCounts.all },
-    { value: 'active', label: t('statusTabs.active'), count: plStatusTabCounts.active },
-    { value: 'used', label: t('statusTabs.used', { defaultValue: 'Usadas' }), count: plStatusTabCounts.used },
-    { value: 'paused', label: t('statusTabs.paused'), count: plStatusTabCounts.paused },
-    { value: 'expired', label: t('statusTabs.expired'), count: plStatusTabCounts.expired },
-  ], [t, plStatusTabCounts])
+    { value: 'all', label: t('statusTabs.all'), count: counts?.all },
+    { value: 'active', label: t('statusTabs.active'), count: counts?.active },
+    { value: 'used', label: t('statusTabs.used'), count: counts?.used },
+    { value: 'paused', label: t('statusTabs.paused'), count: counts?.paused },
+    { value: 'expired', label: t('statusTabs.expired'), count: counts?.expired },
+  ], [t, counts])
 
-  // Summary cards
+  // Tarjetas: totales de la pestaña y filtros completos (del servidor), no de la página que se ve.
   const plSummaryCards = useMemo<SummaryCardItem[]>(() => {
-    const count = links.length
-    const totalCollected = links.reduce((sum, l) => sum + (Number(l.totalCollected) || 0), 0)
-    const usageRate = count > 0 ? (links.filter(l => l.paymentCount > 0).length / count) * 100 : 0
+    const totalCollected = page?.summary?.totalCollected ?? 0
+    const usageRate = total > 0 ? ((page?.summary?.paidLinks ?? 0) / total) * 100 : 0
     return [
-      { label: t('summaryCards.links'), value: count, format: 'number' as const },
+      { label: t('summaryCards.links'), value: total, format: 'number' as const },
       { label: t('summaryCards.collected'), value: totalCollected, format: 'currency' as const },
       { label: t('summaryCards.usageRate'), value: usageRate, format: 'percent' as const },
     ]
-  }, [links, t])
+  }, [page, total, t])
 
   const archiveMutation = useMutation({
     mutationFn: (linkId: string) => paymentLinkService.archivePaymentLink(venueId, linkId),
@@ -194,6 +199,27 @@ export default function PaymentLinks() {
       toast({ title: t('toasts.archived') })
       queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
       setArchivingLink(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Quitar un descuento no pide `discounts:apply`: sólo `payment-link:update`.
+  // Un doble clic llega antes de que `isPending` se pinte: el ref frena el segundo en el mismo instante.
+  const removingDiscount = useRef(false)
+  const removeDiscountMutation = useMutation({
+    mutationFn: (linkId: string) => paymentLinkService.updatePaymentLink(venueId, linkId, { discount: null }),
+    onSettled: () => {
+      removingDiscount.current = false
+    },
+    onSuccess: () => {
+      toast({ title: t('discountStatus.removed') })
+      queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
     },
     onError: (error: any) => {
       toast({
@@ -244,21 +270,6 @@ export default function PaymentLinks() {
     }),
     [t],
   )
-
-  const statusBadgeVariant = useCallback((status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'default' as const
-      case 'PAUSED':
-        return 'secondary' as const
-      case 'EXPIRED':
-        return 'outline' as const
-      case 'ARCHIVED':
-        return 'outline' as const
-      default:
-        return 'outline' as const
-    }
-  }, [])
 
   const getFilterDisplayLabel = useCallback((values: string[], label: string, labels: Record<string, string>): string => {
     if (values.length === 0) return label
@@ -350,32 +361,28 @@ export default function PaymentLinks() {
       {
         accessorKey: 'amount',
         header: t('list.columns.amount'),
-        cell: ({ row }) =>
-          row.original.amountType === 'FIXED' && row.original.amount ? (
-            <span className="font-medium">{formatPrice(row.original.amount, row.original.currency)}</span>
-          ) : (
-            <span className="text-sm text-muted-foreground">{t('list.openAmount')}</span>
-          ),
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start" onClick={e => e.stopPropagation()}>
+            {row.original.amountType === 'FIXED' && row.original.amount ? (
+              <span className="font-medium">{formatPrice(row.original.amount, row.original.currency)}</span>
+            ) : (
+              <span className="text-sm text-muted-foreground">{t('list.openAmount')}</span>
+            )}
+            <PaymentLinkDiscountStatus
+              link={row.original}
+              canUpdate={can('payment-link:update')}
+              onRemove={() => setRemovingDiscountLink(row.original)}
+              onReplace={() => openEdit(row.original.id)}
+              onArchive={() => setArchivingLink(row.original)}
+            />
+          </div>
+        ),
       },
       {
         accessorKey: 'status',
         header: t('list.columns.status'),
-        cell: ({ row }) => {
-          // Single-use links are stored as status=ACTIVE even after they've
-          // been paid (paymentCount>0). Without this distinction the
-          // dashboard showed "Activa" for a link that the customer-facing
-          // checkout rejects with "Esta liga ya fue utilizada" — confusing
-          // because the badge claims it's still live. Surface a dedicated
-          // "Usada" badge so the operator sees the link is consumed.
-          const isUsedUp =
-            row.original.status === 'ACTIVE' && !row.original.isReusable && (row.original.paymentCount || 0) > 0
-          if (isUsedUp) {
-            return <Badge variant="outline">{t('status.used', { defaultValue: 'Usada' })}</Badge>
-          }
-          return (
-            <Badge variant={statusBadgeVariant(row.original.status)}>{statusLabels[row.original.status] || row.original.status}</Badge>
-          )
-        },
+        // Una de un solo uso ya cobrada sigue ACTIVE en la base pero el checkout la rechaza: se ve «Pagada», no «Activa».
+        cell: ({ row }) => <Badge variant={varianteDelEstado(row.original)}>{t(etiquetaDelEstado(row.original))}</Badge>,
       },
       {
         accessorKey: 'paymentCount',
@@ -386,6 +393,23 @@ export default function PaymentLinks() {
         accessorKey: 'totalCollected',
         header: t('list.columns.totalCollected'),
         cell: ({ row }) => <span className="text-sm font-medium">{formatPrice(row.original.totalCollected, row.original.currency)}</span>,
+      },
+      {
+        // Cuándo se pagó (en la zona del venue). Se ve aunque la liga ya esté archivada; en una reutilizable es el último pago.
+        accessorKey: 'lastPaidAt',
+        header: t('list.columns.lastPaidAt'),
+        cell: ({ row }) => {
+          const { lastPaidAt, paymentCount } = row.original
+          if (!lastPaidAt) return <span className="text-sm text-muted-foreground">—</span>
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm whitespace-nowrap">{formatDateTime(lastPaidAt)}</span>
+              {paymentCount > 1 && (
+                <span className="text-xs text-muted-foreground">{t('list.lastOfPayments', { count: paymentCount })}</span>
+              )}
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'createdAt',
@@ -470,7 +494,7 @@ export default function PaymentLinks() {
         ),
       },
     ],
-    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation],
+    [t, formatPrice, formatDate, formatDateTime, handleCopyLink, handleWhatsApp, toggleStatusMutation, can],
   )
 
   // ─── Render ──────────────────────────────────────────────
@@ -495,7 +519,7 @@ export default function PaymentLinks() {
       <StatusFilterTabs
         tabs={plStatusTabs}
         activeTab={activeStatusTab}
-        onTabChange={setActiveStatusTab}
+        onTabChange={cambiarPestana}
         className="mb-4"
       />
 
@@ -558,13 +582,13 @@ export default function PaymentLinks() {
         <FilterPill
           label={getFilterDisplayLabel(statusFilter, t('status.label'), statusLabels)}
           isActive={statusFilter.length > 0}
-          onClear={() => setStatusFilter([])}
+          onClear={() => cambiarEstados([])}
         >
           <CheckboxFilterContent
             title={t('status.label')}
             options={statusOptions}
             selectedValues={statusFilter}
-            onApply={setStatusFilter}
+            onApply={cambiarEstados}
           />
         </FilterPill>
       </div>
@@ -574,9 +598,11 @@ export default function PaymentLinks() {
         <DataTable
           columns={columns}
           data={links}
-          rowCount={links.length}
+          rowCount={total}
+          pagination={pagination}
+          setPagination={setPagination}
           isLoading={isLoading}
-          onRowClick={(row: PaymentLink) => openEdit(row.id)}
+          onRowClick={(row: PaymentLink) => setDetailLink(row)}
           tableId="payment-links:list"
         />
       </div>
@@ -595,6 +621,30 @@ export default function PaymentLinks() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
             >
               {t('confirm.archiveConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Quitar descuento: confirmación */}
+      <AlertDialog open={!!removingDiscountLink} onOpenChange={open => !open && setRemovingDiscountLink(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('confirm.removeDiscountTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirm.removeDiscountDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">{t('confirm.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!removingDiscountLink || removingDiscount.current) return
+                removingDiscount.current = true
+                removeDiscountMutation.mutate(removingDiscountLink.id)
+              }}
+              disabled={removeDiscountMutation.isPending}
+              className="cursor-pointer"
+            >
+              {t('confirm.removeDiscountConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -639,6 +689,20 @@ export default function PaymentLinks() {
         venueId={venueId}
         checkoutBaseUrl={CHECKOUT_BASE_URL}
       />
+
+      {/* Al picar una liga se ve su estado y sus pagos con «Ver recibo»; editar queda dentro del detalle y en «…». */}
+      {detailLink && (
+        <PaymentLinkDetailSheet
+          link={detailLink}
+          open={!!detailLink}
+          onOpenChange={open => !open && setDetailLink(null)}
+          onEdit={linkId => {
+            setDetailLink(null)
+            openEdit(linkId)
+          }}
+          onCopy={handleCopyLink}
+        />
+      )}
     </div>
   )
 }

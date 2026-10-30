@@ -20,7 +20,7 @@
     "passwordPlaceholder": "At least 8 characters",
     "passwordRequired": "Password is required",
     "passwordMinLength": "Password must be at least 8 characters",
-    "passwordHint": "Use 8 or more characters with a mix of letters, numbers and symbols",
+    "passwordHint": "Use 8 or more characters",
     "createAccount": "Next",
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
@@ -373,6 +373,48 @@
         "2": "Your own branding",
         "3": "API and integrations",
         "4": "Dedicated support"
+      },
+      "comercio": {
+        "pro": {
+          "1": "Take card and cash payments",
+          "2": "Unlimited users and registers",
+          "3": "Cash cut and register count",
+          "4": "Loyalty and promotions"
+        },
+        "premium": {
+          "1": "Everything in Pro",
+          "2": "CFDI invoicing",
+          "3": "Inventory and stock per store",
+          "4": "Automatic stock reordering"
+        }
+      },
+      "servicios": {
+        "pro": {
+          "1": "Take card and cash payments",
+          "2": "Appointments and bookings",
+          "3": "Unlimited users",
+          "4": "Loyalty and promotions"
+        },
+        "premium": {
+          "1": "Everything in Pro",
+          "2": "CFDI invoicing",
+          "3": "Staff commissions",
+          "4": "Team attendance tracking"
+        }
+      },
+      "generico": {
+        "pro": {
+          "1": "Take card and cash payments",
+          "2": "Unlimited users",
+          "3": "Cash cut and register count",
+          "4": "Loyalty, promotions and reservations"
+        },
+        "premium": {
+          "1": "Everything in Pro",
+          "2": "CFDI invoicing",
+          "3": "Inventory control",
+          "4": "Staff commissions"
+        }
       }
     },
     "trialLegal": "By starting you agree that from {{fecha}} {{monto}} per month will be charged to this card until you cancel. We'll notify you 7 days before. Cancel any time from Billing.",

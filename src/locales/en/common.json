@@ -208,7 +208,7 @@
     "dismissButton": "Dismiss banner",
     "liveDemo": {
       "title": "🚀 This is just the demo",
-      "description": "Create your free account and start accepting real payments in minutes. No card required.",
+      "description": "Create your free account and start accepting real payments in minutes. We'll ask for a card when you pick your plan.",
       "signupButton": "Create my free account",
       "salesButton": "Talk to sales"
     }

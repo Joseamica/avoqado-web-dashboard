@@ -55,6 +55,7 @@ import type { CreditPackPurchase } from '@/types/creditPack'
 import CustomerForm from './components/CustomerForm'
 import ReferralCard from './components/ReferralCard'
 import WalletPassCard from './components/WalletPassCard'
+import { StampCardSection } from './components/StampCardSection'
 
 export default function CustomerDetail() {
 	const { venueId, fullBasePath, venue } = useCurrentVenue()
@@ -462,6 +463,11 @@ export default function CustomerDetail() {
 						stampsEnabled={loyaltyConfig?.stampsEnabled}
 					/>
 
+					{/* Montada siempre que haya config: apagar los sellos no desmonta un ajuste abierto (lo explica y lo frena). */}
+					{loyaltyConfig && (
+						<StampCardSection key={customerId} venueId={venueId} customerId={customerId!} enabled={!!loyaltyConfig.stampsEnabled} />
+					)}
+
 					{/* Tabs */}
 					<Tabs defaultValue="orders" className="space-y-4">
 						<TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
@@ -516,7 +522,7 @@ export default function CustomerDetail() {
 														<div className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</div>
 													</div>
 													<div className="flex items-center gap-3 shrink-0">
-														<Badge variant="outline">{order.status}</Badge>
+														<Badge variant="outline">{t(`orders:detail.statuses.${order.status}`, { defaultValue: order.status })}</Badge>
 														<span className="font-medium tabular-nums">{formatCurrency(order.total)}</span>
 													</div>
 												</button>
