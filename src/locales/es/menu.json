@@ -125,7 +125,8 @@
     "validation": {
       "nameRequired": "El nombre es requerido.",
       "nameMinLength": "El nombre debe tener al menos 3 caracteres.",
-      "nameMaxLength": "El nombre no debe tener más de 30 caracteres."
+      "nameMaxLength": "El nombre no debe tener más de 30 caracteres.",
+      "productNameMaxLength": "El nombre no debe tener más de 255 caracteres."
     },
     "buttons": {
       "create": "Crear",
