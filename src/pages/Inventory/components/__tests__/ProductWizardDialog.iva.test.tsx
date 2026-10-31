@@ -207,6 +207,15 @@ describe('asistente de producto (modo edición): el IVA (6b)', () => {
     await waitFor(() => expect(svc.getIvaPorProducto.mock.calls.length).toBeGreaterThan(1))
   })
 
+  it('guardar un producto que ya existe dice «Producto guardado», nunca «Producto creado» (guía del IVA, 31-oct)', async () => {
+    svc.getIvaPorProducto.mockResolvedValue(estado({ encendido: true }))
+    montar()
+    await elegirIva('EXENTO')
+    await guardar()
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'products.detail.toasts.saved' })))
+    expect(toastMock).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'wizard.success' }))
+  })
+
   it('si encender necesita algo, la lista aparece junto al selector (guardado sin inventario)', async () => {
     svc.getIvaPorProducto.mockResolvedValue(estado({ encendido: true }))
     http.put.mockRejectedValue({

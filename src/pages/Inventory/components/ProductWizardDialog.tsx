@@ -1080,9 +1080,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
             if (sesionDelEnvio !== sesion.current) return
 
+            // Es una edición: el texto de la ficha («Producto guardado»), no el del alta («Producto creado»).
             toast({
-              title: t('wizard.success'),
-              description: t('wizard.successMessage'),
+              title: tMenu('products.detail.toasts.saved'),
+              description: tMenu('products.detail.toasts.savedDesc'),
               variant: 'default',
             })
 
