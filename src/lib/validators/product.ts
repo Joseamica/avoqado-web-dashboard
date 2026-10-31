@@ -10,12 +10,14 @@
 // ============================================================================
 
 /**
- * SKU Pattern: letters (either case), numbers, hyphens, and underscores — the same rule as the server
- * (`SKU_REGEX`). The forms still uppercase what the user types; a lowercase SKU saved by the wizard, the MCP or an
- * import must not block saving the product (D5, full-testing integral 15-oct).
- * Examples: PROD-001, ITEM_123, ABC123
+ * SKU Pattern: letters without accents (either case), numbers, hyphens, underscores, dots, and spaces between
+ * characters (never at the start or the end) — the same rule as the server (`SKU_REGEX`, menu.schema.ts). Spaces and
+ * dots came in on 30-oct (D3): codes from other POS carry them (MyBusiness: «Q. AHUMADO», «LALA1.5»). The forms still
+ * uppercase what the user types; a lowercase SKU saved by the wizard, the MCP or an import must not block saving the
+ * product (D5, full-testing integral 15-oct).
+ * Examples: PROD-001, ITEM_123, ABC123, Q. AHUMADO
  */
-export const SKU_PATTERN = /^[A-Za-z0-9_-]+$/
+export const SKU_PATTERN = /^[A-Za-z0-9._-](?:[A-Za-z0-9 ._-]*[A-Za-z0-9._-])?$/
 
 /**
  * Get SKU validation rules for react-hook-form

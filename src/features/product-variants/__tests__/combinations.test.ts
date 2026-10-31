@@ -146,7 +146,8 @@ describe('filas', () => {
     expect(validarFilas('P', [f({ price: 19.999 })], false)).toEqual({ code: 'precioInvalido', nombre: 'P · M' })
     expect(validarFilas('P', [f({ price: 1e-7 })], false)).toEqual({ code: 'precioInvalido', nombre: 'P · M' })
     expect(validarFilas('P', [f({ price: 10, cost: 0 })], false)).toEqual({ code: 'costoInvalido', nombre: 'P · M' })
-    expect(validarFilas('P', [f({ price: 10, sku: 'A B' })], false)).toEqual({ code: 'skuInvalido', nombre: 'P · M' })
+    expect(validarFilas('P', [f({ price: 10, sku: 'A/B' })], false)).toEqual({ code: 'skuInvalido', nombre: 'P · M' })
+    expect(validarFilas('P', [f({ price: 10, sku: 'A B.1' })], false)).toBeNull() // D3: espacio y punto entran
     expect(validarFilas('P', [f({ price: 10, sku: 'X' }), { ...f({ price: 10, sku: 'X' }), key: 'k2', values: ['L'] }], false)).toEqual({ code: 'skuRepetido', sku: 'X' })
     expect(validarFilas('P', [f({ price: 10, sku: 'x' }), { ...f({ price: 10, sku: 'X' }), key: 'k2', values: ['L'] }], false)).toBeNull() // el server distingue mayúsculas
     expect(validarFilas('P', [f({ price: 10, gtin: '1'.repeat(15) })], false)).toEqual({ code: 'codigoLargo', nombre: 'P · M' })
