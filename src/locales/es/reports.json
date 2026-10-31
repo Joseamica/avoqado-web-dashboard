@@ -418,7 +418,8 @@
     "rowActions": {
       "viewOrder": "Ver Orden",
       "viewCustomer": "Ver Cliente",
-      "settle": "Liquidar Orden"
+      "settle": "Liquidar Orden",
+      "cancel": "Cancelar orden"
     },
     "detailTitle": "Detalle de Órdenes",
     "detailSubtitle": "Pendientes de pago, ordenadas de más a menos vencidas",
@@ -447,6 +448,21 @@
       "cancel": "Cancelar",
       "confirm": "Liquidar Orden",
       "submitting": "Liquidando..."
+    },
+    "cancelOrder": {
+      "dialogTitle": "¿Cancelar la orden {{order}}?",
+      "dialogDesc": "Úsalo para una cuenta que nunca se va a cobrar, por ejemplo una abierta por error. Sale de Cuentas por cobrar y no se puede deshacer.",
+      "reasonLabel": "Motivo",
+      "reasonPlaceholder": "Ej: la abrí por error, el cliente nunca vino...",
+      "reasonHelp": "Queda en la bitácora con tu nombre.",
+      "back": "Regresar",
+      "confirm": "Cancelar orden",
+      "submitting": "Cancelando...",
+      "successTitle": "Orden cancelada",
+      "successDesc": "La orden {{order}} quedó cancelada.",
+      "alreadyTitle": "Ya estaba cancelada",
+      "alreadyDesc": "La orden {{order}} ya estaba cancelada.",
+      "errorTitle": "No se canceló"
     }
   },
   "salesSummary": {

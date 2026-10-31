@@ -418,7 +418,8 @@
     "rowActions": {
       "viewOrder": "View Order",
       "viewCustomer": "View Customer",
-      "settle": "Settle Order"
+      "settle": "Settle Order",
+      "cancel": "Cancel order"
     },
     "detailTitle": "Order Details",
     "detailSubtitle": "Pending payment, sorted from most to least overdue",
@@ -447,6 +448,21 @@
       "cancel": "Cancel",
       "confirm": "Settle Order",
       "submitting": "Settling..."
+    },
+    "cancelOrder": {
+      "dialogTitle": "Cancel order {{order}}?",
+      "dialogDesc": "Use it for an account that will never be paid, for example one opened by mistake. It leaves Accounts Receivable and can't be undone.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "E.g. opened by mistake, the customer never came...",
+      "reasonHelp": "It is saved in the activity log with your name.",
+      "back": "Go back",
+      "confirm": "Cancel order",
+      "submitting": "Cancelling...",
+      "successTitle": "Order cancelled",
+      "successDesc": "Order {{order}} was cancelled.",
+      "alreadyTitle": "Already cancelled",
+      "alreadyDesc": "Order {{order}} was already cancelled.",
+      "errorTitle": "Not cancelled"
     }
   },
   "salesSummary": {

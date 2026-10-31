@@ -15,11 +15,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { StatusPulse } from '@/components/ui/status-pulse'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { describeOrderMutationError } from '@/pages/Order/orderMutationError'
 import api from '@/api'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -27,6 +38,7 @@ import { cn } from '@/lib/utils'
 import {
   AlertCircle,
   AlertTriangle,
+  Ban,
   CheckCircle,
   Eye,
   MoreHorizontal,
@@ -146,6 +158,12 @@ export default function PayLaterAging() {
   const [orderToSettle, setOrderToSettle] = useState<AgingOrder | null>(null)
   const [settleNotes, setSettleNotes] = useState('')
   const [selectedBucket, setSelectedBucket] = useState<BucketKey | null>(null)
+  // «Cancelar orden» (Amaena, 30-oct): una cuenta sin nada pagado y que no es de mesa. El servidor decide; esto sólo esconde
+  // el botón donde no aplica.
+  const { can } = useAccess()
+  const { t: tOrders } = useTranslation('orders')
+  const [orderToCancel, setOrderToCancel] = useState<AgingOrder | null>(null)
+  const [cancelReason, setCancelReason] = useState('')
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['pay-later-aging', venueId],
@@ -185,6 +203,33 @@ export default function PayLaterAging() {
       })
     },
   })
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
+      await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cancel`, { reason })
+    },
+    onSuccess: () => cerrarCancelacion('successTitle', 'successDesc'),
+    onError: (error: any) => {
+      // El cliente HTTP reintenta solo un error de red: si la primera llegó, la segunda dice que ya estaba cancelada.
+      if (error.response?.data?.code === 'ORDER_ALREADY_CANCELLED') return cerrarCancelacion('alreadyTitle', 'alreadyDesc')
+      toast({
+        title: t('payLaterAging.cancelOrder.errorTitle'),
+        description: describeOrderMutationError(error, tOrders),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const cerrarCancelacion = (title: string, description: string) => {
+    toast({
+      title: t(`payLaterAging.cancelOrder.${title}`),
+      description: t(`payLaterAging.cancelOrder.${description}`, { order: orderToCancel?.orderNumber }),
+    })
+    queryClient.invalidateQueries({ queryKey: ['pay-later-aging', venueId] })
+    queryClient.invalidateQueries({ queryKey: ['customers', venueId] })
+    setOrderToCancel(null)
+    setCancelReason('')
+  }
 
   const handleSettleClick = (order: AgingOrder) => {
     setOrderToSettle(order)
@@ -363,12 +408,24 @@ export default function PayLaterAging() {
                 <CheckCircle className="mr-2 h-4 w-4" />
                 {t('payLaterAging.rowActions.settle')}
               </DropdownMenuItem>
+              {can('orders:cancel-unpaid') && row.original.paidAmount === 0 && !row.original.tableName && (
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => {
+                    setOrderToCancel(row.original)
+                    setCancelReason('')
+                  }}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  {t('payLaterAging.rowActions.cancel')}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         ),
       },
     ],
-    [formatDate, navigate, t, daysLabel]
+    [formatDate, navigate, t, daysLabel, can]
   )
 
   if (error) {
@@ -602,6 +659,58 @@ export default function PayLaterAging() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Order Dialog */}
+      <AlertDialog
+        open={orderToCancel !== null}
+        onOpenChange={open => {
+          if (!open && !cancelOrderMutation.isPending) setOrderToCancel(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('payLaterAging.cancelOrder.dialogTitle', { order: orderToCancel?.orderNumber })}</AlertDialogTitle>
+            <AlertDialogDescription>{t('payLaterAging.cancelOrder.dialogDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-xl border border-input bg-muted/30 p-4 space-y-2.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{t('payLaterAging.settle.customer')}</span>
+                <span className="font-medium">{orderToCancel?.customer?.name || t('payLaterAging.noName')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{t('payLaterAging.settle.balance')}</span>
+                <span className="font-semibold tabular-nums">{Currency(orderToCancel?.remainingBalance || 0)}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pay-later-cancel-reason">{t('payLaterAging.cancelOrder.reasonLabel')}</Label>
+              <Textarea
+                id="pay-later-cancel-reason"
+                placeholder={t('payLaterAging.cancelOrder.reasonPlaceholder')}
+                value={cancelReason}
+                maxLength={300}
+                onChange={e => setCancelReason(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">{t('payLaterAging.cancelOrder.reasonHelp')}</p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setOrderToCancel(null)} disabled={cancelOrderMutation.isPending}>
+              {t('payLaterAging.cancelOrder.back')}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={cancelReason.trim().length < 3 || cancelOrderMutation.isPending}
+              onClick={() =>
+                orderToCancel && cancelOrderMutation.mutate({ orderId: orderToCancel.id, reason: cancelReason.trim() })
+              }
+            >
+              {cancelOrderMutation.isPending ? t('payLaterAging.cancelOrder.submitting') : t('payLaterAging.cancelOrder.confirm')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
