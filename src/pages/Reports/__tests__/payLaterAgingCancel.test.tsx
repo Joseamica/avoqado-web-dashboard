@@ -4,7 +4,7 @@
  * HTTP) cuenta como hecho.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -113,6 +113,24 @@ describe('Cuentas por cobrar — Cancelar orden', () => {
     )
     await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.objectContaining({ title: reports.payLaterAging.cancelOrder.successTitle })))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['pay-later-aging', 'v1'] })
+  })
+
+  it('🔴 dos clics en el mismo instante mandan UNA sola cancelación (full-testing 30-oct: salían dos y un aviso rojo falso)', async () => {
+    m.post.mockReturnValue(new Promise(() => {})) // la primera sigue en vuelo
+    const user = userEvent.setup()
+    montar()
+    await abrirMenu(user)
+    await user.click(await screen.findByRole('menuitem', { name: CANCELAR }))
+    await user.type(screen.getByLabelText(reports.payLaterAging.cancelOrder.reasonLabel), 'duplicada')
+    const confirmar = screen.getByRole('button', { name: reports.payLaterAging.cancelOrder.confirm })
+
+    act(() => {
+      confirmar.click()
+      confirmar.click() // antes de que React vuelva a pintar el botón apagado
+    })
+
+    await waitFor(() => expect(m.post).toHaveBeenCalledTimes(1))
+    expect(m.post).toHaveBeenCalledTimes(1)
   })
 
   it('«ya estaba cancelada» (el reintento) cuenta como hecho, no como error', async () => {

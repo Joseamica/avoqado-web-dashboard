@@ -48,7 +48,7 @@ import {
 } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -164,6 +164,9 @@ export default function PayLaterAging() {
   const { t: tOrders } = useTranslation('orders')
   const [orderToCancel, setOrderToCancel] = useState<AgingOrder | null>(null)
   const [cancelReason, setCancelReason] = useState('')
+  // Candado síncrono: `isPending` apaga el botón en el SIGUIENTE render y un doble clic llegaba antes; salían dos y el aviso
+  // rojo de la segunda contradecía al de la primera (full-testing 30-oct).
+  const cancelando = useRef(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['pay-later-aging', venueId],
@@ -207,6 +210,9 @@ export default function PayLaterAging() {
   const cancelOrderMutation = useMutation({
     mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
       await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cancel`, { reason })
+    },
+    onSettled: () => {
+      cancelando.current = false
     },
     onSuccess: () => cerrarCancelacion('successTitle', 'successDesc'),
     onError: (error: any) => {
@@ -702,9 +708,11 @@ export default function PayLaterAging() {
             <Button
               variant="destructive"
               disabled={cancelReason.trim().length < 3 || cancelOrderMutation.isPending}
-              onClick={() =>
-                orderToCancel && cancelOrderMutation.mutate({ orderId: orderToCancel.id, reason: cancelReason.trim() })
-              }
+              onClick={() => {
+                if (!orderToCancel || cancelando.current) return
+                cancelando.current = true
+                cancelOrderMutation.mutate({ orderId: orderToCancel.id, reason: cancelReason.trim() })
+              }}
             >
               {cancelOrderMutation.isPending ? t('payLaterAging.cancelOrder.submitting') : t('payLaterAging.cancelOrder.confirm')}
             </Button>
