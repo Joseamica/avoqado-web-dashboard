@@ -286,7 +286,8 @@
     "subtitle": "Con esto ya puedes empezar. Lo demás se completa después.",
     "nameLabel": "Nombre del negocio",
     "nameRequired": "Escribe el nombre de tu negocio",
-    "phoneLabel": "Teléfono (opcional)",
+    "phoneLabel": "Teléfono del negocio",
+    "phoneRequired": "Escribe un teléfono para que podamos ayudarte a empezar",
     "phoneInvalid": "El teléfono necesita al menos 8 dígitos",
     "continue": "Continuar"
   },

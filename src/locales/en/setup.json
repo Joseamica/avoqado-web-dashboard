@@ -286,7 +286,8 @@
     "subtitle": "This is enough to get started. The rest can wait.",
     "nameLabel": "Business name",
     "nameRequired": "Enter your business name",
-    "phoneLabel": "Phone (optional)",
+    "phoneLabel": "Business phone",
+    "phoneRequired": "Enter a phone number so we can help you get started",
     "phoneInvalid": "The phone number needs at least 8 digits",
     "continue": "Continue"
   },

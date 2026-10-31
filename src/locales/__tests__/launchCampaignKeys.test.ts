@@ -23,7 +23,7 @@ import frTpv from '../fr/tpv.json'
 
 const LLAVES_SETUP = [
   'consent.title', 'consent.subtitle', 'consent.continue', 'consent.checkbox', 'consent.termsTitle', 'consent.privacyTitle', 'consent.required',
-  'basics.title', 'basics.subtitle', 'basics.nameLabel', 'basics.nameRequired', 'basics.phoneLabel', 'basics.phoneInvalid', 'basics.continue',
+  'basics.title', 'basics.subtitle', 'basics.nameLabel', 'basics.nameRequired', 'basics.phoneLabel', 'basics.phoneRequired', 'basics.phoneInvalid', 'basics.continue',
   'offer.title', 'offer.planLine', 'offer.pricePerMonth', 'offer.firstMonths', 'offer.afterwards', 'offer.perMonth', 'offer.ivaIncluded',
   'offer.todayYouPay', 'offer.legal', 'offer.payAndEnter', 'offer.seeOtherPlans', 'offer.otherPlansNote', 'offer.confirming', 'offer.pending',
   'offer.declined', 'offer.genericError', 'offer.alreadyActivated', 'offer.activeWithoutOffer', 'offer.alreadyActiveTitle', 'offer.enter',
