@@ -8,14 +8,17 @@
  * 🔴 El teléfono es obligatorio desde el 30-oct (founder, «A»): el registro directo sólo pide correo, así que sin él
  * ventas no puede escribirle a quien se queda en «Elige tu plan». Se pide aquí y no en el registro para no frenar el
  * primer paso, y porque aquí también pasa quien entra con Google. Es el teléfono del NEGOCIO (`Venue.phone`).
+ * Lleva lada, México (+52) por default, y se guarda como E.164 (`+525512345678`), igual que el resto del panel.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { PhoneInput } from '@/components/phone-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { DEFAULT_COUNTRY, parsePhoneInput } from '@/pages/PaymentLinks/CountryCodePicker'
 import type { SetupData } from '../types'
 
 interface BusinessBasicsStepProps {
@@ -24,15 +27,22 @@ interface BusinessBasicsStepProps {
   saving?: boolean
 }
 
-/** Un teléfono capturado a medias no sirve para llamar a nadie. */
-function telefonoValido(valor: string): boolean {
-  return valor.replace(/\D/g, '').length >= 8
+/** El teléfono sugerido por la landing llega sin lada («5512345678»): se le pone la de México. */
+function conLada(valor: string): string {
+  const digitos = valor.replace(/\D/g, '')
+  if (!digitos || valor.trim().startsWith('+')) return valor.trim()
+  return `+${DEFAULT_COUNTRY.dial}${digitos}`
+}
+
+/** Un teléfono capturado a medias no sirve para llamar a nadie. Se cuentan los dígitos SIN la lada. */
+function telefonoValido(e164: string): boolean {
+  return (parsePhoneInput(e164)?.localDigits ?? e164.replace(/\D/g, '')).length >= 8
 }
 
 export function BusinessBasicsStep({ data, onNext, saving }: BusinessBasicsStepProps) {
   const { t } = useTranslation('setup')
   const [businessName, setBusinessName] = useState(data.businessName ?? '')
-  const [phone, setPhone] = useState(data.phone ?? '')
+  const [phone, setPhone] = useState(() => conLada(data.phone ?? ''))
   const [errores, setErrores] = useState<{ businessName?: string; phone?: string }>({})
 
   const continuar = () => {
@@ -72,14 +82,14 @@ export function BusinessBasicsStep({ data, onNext, saving }: BusinessBasicsStepP
           <Label htmlFor="businessPhone">
             {t('basics.phoneLabel', { defaultValue: 'Teléfono del negocio' })}
           </Label>
-          <Input
+          {/* La altura se iguala al nombre desde aquí, sin tocar el `PhoneInput` que comparten otras pantallas. */}
+          <PhoneInput
             id="businessPhone"
-            type="tel"
-            autoComplete="tel"
             value={phone}
-            onChange={e => setPhone(e.target.value)}
+            onChange={setPhone}
             disabled={saving}
-            className={cn('rounded-lg h-12 text-base', errores.phone && 'border-destructive')}
+            invalid={!!errores.phone}
+            className="[&>button]:h-12 [&>button]:rounded-lg [&_input]:h-12 [&_input]:rounded-lg [&_input]:text-base"
           />
           {errores.phone && <p className="text-xs text-destructive">{errores.phone}</p>}
         </div>
