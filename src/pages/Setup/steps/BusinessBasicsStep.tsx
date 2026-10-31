@@ -1,9 +1,13 @@
 /**
- * Momento 2 — lo mínimo del negocio: cómo se llama y, si quiere, un teléfono.
+ * Momento 2 — lo mínimo del negocio: cómo se llama y un teléfono.
  *
  * 🔴 La DIRECCIÓN ya no se pide aquí (§4.1): se captura en «Activar cobros», donde es obligatoria.
  * Aquí solo va lo que el producto necesita para existir: sin nombre no hay local provisional, y sin
  * local provisional no hay tarjeta ni cobro.
+ *
+ * 🔴 El teléfono es obligatorio desde el 30-oct (founder, «A»): el registro directo sólo pide correo, así que sin él
+ * ventas no puede escribirle a quien se queda en «Elige tu plan». Se pide aquí y no en el registro para no frenar el
+ * primer paso, y porque aquí también pasa quien entra con Google. Es el teléfono del NEGOCIO (`Venue.phone`).
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,13 +20,12 @@ import type { SetupData } from '../types'
 
 interface BusinessBasicsStepProps {
   data: SetupData
-  onNext: (stepData: { businessName: string; phone?: string }) => Promise<void> | void
+  onNext: (stepData: { businessName: string; phone: string }) => Promise<void> | void
   saving?: boolean
 }
 
-/** Un teléfono capturado a medias no sirve para llamar a nadie; vacío sí es válido. */
+/** Un teléfono capturado a medias no sirve para llamar a nadie. */
 function telefonoValido(valor: string): boolean {
-  if (!valor.trim()) return true
   return valor.replace(/\D/g, '').length >= 8
 }
 
@@ -35,10 +38,11 @@ export function BusinessBasicsStep({ data, onNext, saving }: BusinessBasicsStepP
   const continuar = () => {
     const nuevos: { businessName?: string; phone?: string } = {}
     if (!businessName.trim()) nuevos.businessName = t('basics.nameRequired', { defaultValue: 'Escribe el nombre de tu negocio' })
-    if (!telefonoValido(phone)) nuevos.phone = t('basics.phoneInvalid', { defaultValue: 'El teléfono necesita al menos 8 dígitos' })
+    if (!phone.trim()) nuevos.phone = t('basics.phoneRequired', { defaultValue: 'Escribe un teléfono para que podamos ayudarte a empezar' })
+    else if (!telefonoValido(phone)) nuevos.phone = t('basics.phoneInvalid', { defaultValue: 'El teléfono necesita al menos 8 dígitos' })
     setErrores(nuevos)
     if (Object.keys(nuevos).length > 0) return
-    void onNext({ businessName: businessName.trim(), ...(phone.trim() ? { phone: phone.trim() } : {}) })
+    void onNext({ businessName: businessName.trim(), phone: phone.trim() })
   }
 
   return (
@@ -66,10 +70,12 @@ export function BusinessBasicsStep({ data, onNext, saving }: BusinessBasicsStepP
 
         <div className="grid gap-2">
           <Label htmlFor="businessPhone">
-            {t('basics.phoneLabel', { defaultValue: 'Teléfono (opcional)' })}
+            {t('basics.phoneLabel', { defaultValue: 'Teléfono del negocio' })}
           </Label>
           <Input
             id="businessPhone"
+            type="tel"
+            autoComplete="tel"
             value={phone}
             onChange={e => setPhone(e.target.value)}
             disabled={saving}
