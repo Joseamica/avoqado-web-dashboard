@@ -73,7 +73,7 @@
     "sinPrecio": "Falta el precio de «{{nombre}}».",
     "precioInvalido": "El precio de «{{nombre}}» debe ser mayor a 0 y con hasta 2 decimales.",
     "costoInvalido": "El costo de «{{nombre}}» debe ser mayor a 0 y con hasta 2 decimales (déjalo vacío si no lo sabes).",
-    "skuInvalido": "El SKU de «{{nombre}}» sólo puede llevar letras, números, guion y guion bajo.",
+    "skuInvalido": "El SKU de «{{nombre}}» sólo puede llevar letras sin acento, números, espacios, puntos, guion y guion bajo.",
     "skuRepetido": "El SKU «{{sku}}» está repetido.",
     "codigoLargo": "El código de barras de «{{nombre}}» pasa de 14 dígitos.",
     "existenciasInvalidas": "Las existencias de «{{nombre}}» deben ser un número entero.",
@@ -175,7 +175,7 @@
       "precioInvalido": "El precio debe ser mayor a 0 y con hasta 2 decimales.",
       "costoInvalido": "El costo debe ser mayor a 0 (o déjalo vacío).",
       "skuVacio": "El SKU no puede quedar vacío.",
-      "skuInvalido": "El SKU sólo puede llevar letras, números, guion y guion bajo.",
+      "skuInvalido": "El SKU sólo puede llevar letras sin acento, números, espacios, puntos, guion y guion bajo.",
       "codigoLargo": "El código de barras pasa de 14 dígitos."
     },
     "accionesCol": "Acciones"
