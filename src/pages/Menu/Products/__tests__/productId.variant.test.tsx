@@ -185,23 +185,33 @@ describe('ficha de una variante (Tarea 13)', () => {
     expect(svc.updateProduct.mock.calls[0][2]).toMatchObject({ name: 'Playera · M', type: 'REGULAR', categoryId: 'c1', price: 219 })
   })
 
-  it('🔴 QA ALTO-1: una variante con nombre de más de 30 caracteres SÍ guarda (el nombre es del padre: no se valida ni se manda)', async () => {
-    svc.getProduct.mockResolvedValue({ ...variante, name: 'Playera QA Pro · S · Azul · Corta' })
+  it('🔴 QA ALTO-1: una variante con nombre más largo que el tope SÍ guarda (el nombre es del padre: no se valida ni se manda)', async () => {
+    // 268 caracteres: más que el tope de un producto suelto (255), así que sólo pasa si la variante no valida el nombre.
+    const nombreDeFamilia = `Playera QA Pro · S · Azul · ${'x'.repeat(240)}`
+    svc.getProduct.mockResolvedValue({ ...variante, name: nombreDeFamilia })
     pintar()
-    expect(await screen.findByDisplayValue('Playera QA Pro · S · Azul · Corta')).toBeDisabled()
+    expect(await screen.findByDisplayValue(nombreDeFamilia)).toBeDisabled()
     await cambiarPrecioYGuardar()
     await waitFor(() => expect(svc.updateProduct).toHaveBeenCalledTimes(1))
     expect(svc.updateProduct.mock.calls[0][2]).toMatchObject({ price: 219 })
     expect(svc.updateProduct.mock.calls[0][2]).not.toHaveProperty('name')
-    expect(screen.queryByText('forms.validation.nameMaxLength')).not.toBeInTheDocument()
+    expect(screen.queryByText('forms.validation.productNameMaxLength')).not.toBeInTheDocument()
   })
 
-  it('regresión: un producto suelto sigue con el tope de 30 en el nombre', async () => {
+  it('regresión: un producto suelto sigue validando su nombre, con el tope del servidor (255)', async () => {
+    svc.getProduct.mockResolvedValue({ ...suelto, name: 'x'.repeat(256) })
+    pintar()
+    await cambiarPrecioYGuardar()
+    expect(await screen.findByText('forms.validation.productNameMaxLength')).toBeInTheDocument()
+    expect(svc.updateProduct).not.toHaveBeenCalled()
+  })
+
+  it('🔴 D2 (30-oct): un producto suelto con nombre de 33 caracteres ya guarda (con el tope de 30 la ficha lo bloqueaba)', async () => {
     svc.getProduct.mockResolvedValue({ ...suelto, name: 'Playera QA Pro · S · Azul · Corta' })
     pintar()
     await cambiarPrecioYGuardar()
-    expect(await screen.findByText('forms.validation.nameMaxLength')).toBeInTheDocument()
-    expect(svc.updateProduct).not.toHaveBeenCalled()
+    await waitFor(() => expect(svc.updateProduct).toHaveBeenCalledTimes(1))
+    expect(svc.updateProduct.mock.calls[0][2]).toMatchObject({ name: 'Playera QA Pro · S · Azul · Corta', price: 219 })
   })
 
   it('🔴 Codex C4: si otra sesión lo volvió variante, el 409 relee la ficha (modo variante) y conserva el precio tecleado', async () => {

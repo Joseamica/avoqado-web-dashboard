@@ -34,13 +34,20 @@ export const getSkuValidationRules = (t: (key: string) => string) => ({
 // ============================================================================
 
 /**
+ * Most characters a product name can have: the same limit as the server (`ProductBodyBase.name`, `.max(255)` in
+ * `avoqado-server/src/schemas/dashboard/menu.schema.ts`). It was 30, so products that came in with a longer name
+ * (imports, the MCP, a catalog load: 265 of La Galeterie's 934) could not be saved from their product page (D2, 30-oct).
+ */
+export const PRODUCT_NAME_MAX_LENGTH = 255
+
+/**
  * Get product name validation rules
  * @param t - Translation function
  */
 export const getNameValidationRules = (t: (key: string) => string) => ({
   required: { value: true, message: t('forms.validation.nameRequired') },
   minLength: { value: 3, message: t('forms.validation.nameMinLength') },
-  maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
+  maxLength: { value: PRODUCT_NAME_MAX_LENGTH, message: t('forms.validation.productNameMaxLength') },
 })
 
 // ============================================================================
