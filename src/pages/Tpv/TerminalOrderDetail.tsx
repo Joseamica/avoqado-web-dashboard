@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Check, Copy, FileText, Upload } from 'lucide-react'
 
+import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -384,6 +385,19 @@ function SpeiPaymentSection({ order }: { order: TerminalOrder }) {
 
       {/* Upload dropzone (only when AWAITING_PROOF or REJECTED) */}
       {showUpload && (
+        <PermissionGate
+          permission="tpv:create"
+          fallback={
+            <Card className="border-input">
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                {t('orders.detail.spei.uploadNoPermission', {
+                  defaultValue:
+                    'El comprobante lo sube quien puede comprar terminales. Pídele a tu administrador que lo suba.',
+                })}
+              </CardContent>
+            </Card>
+          }
+        >
         <Card className="border-input">
           <CardHeader>
             <CardTitle className="text-base">
@@ -443,6 +457,7 @@ function SpeiPaymentSection({ order }: { order: TerminalOrder }) {
             )}
           </CardContent>
         </Card>
+        </PermissionGate>
       )}
 
       {/* Proof uploaded — awaiting verification */}
