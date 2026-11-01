@@ -875,6 +875,7 @@
         "amount": "Monto exacto",
         "concept": "Concepto",
         "uploadTitle": "Sube tu comprobante",
+        "uploadNoPermission": "El comprobante lo sube quien puede comprar terminales. Pídele a tu administrador que lo suba.",
         "uploading": "Subiendo comprobante…",
         "fileTooLarge": "El archivo es demasiado grande (máximo 10 MB).",
         "dropzone": {

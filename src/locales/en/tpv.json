@@ -854,6 +854,7 @@
         "amount": "Exact amount",
         "concept": "Concept",
         "uploadTitle": "Upload your receipt",
+        "uploadNoPermission": "The receipt is uploaded by someone who can buy terminals. Ask your administrator to upload it.",
         "uploading": "Uploading receipt…",
         "fileTooLarge": "File is too large (maximum 10 MB).",
         "dropzone": {
