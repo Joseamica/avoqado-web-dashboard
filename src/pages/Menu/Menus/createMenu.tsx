@@ -434,7 +434,6 @@ export default function MenuScheduleWithMenuDayModel() {
               setValue('appliesToDevices', v.appliesToDevices)
               setValue('appliesToOnline', v.appliesToOnline)
             }}
-            tieneHorario={!isAllDay}
           />
         </div>
         <h2 className="mt-4 mb-2 text-lg font-semibold">{t('createMenu.fields.categories')}</h2>

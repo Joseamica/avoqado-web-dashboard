@@ -360,7 +360,6 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess, defaults }: Me
                             form.setValue('appliesToDevices', v.appliesToDevices)
                             form.setValue('appliesToOnline', v.appliesToOnline)
                           }}
-                          tieneHorario={!form.watch('isAllDay')}
                         />
                       )}
                     />

@@ -9,7 +9,7 @@ const both = { appliesToDevices: true, appliesToOnline: true }
 describe('DondeSeUsaField', () => {
   it('no deja apagar la última casilla', () => {
     const onChange = vi.fn()
-    render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={onChange} tieneHorario={false} />)
+    render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={onChange} />)
     const devices = screen.getByRole('checkbox', { name: /aparatos/ })
     expect(devices.hasAttribute('disabled') || devices.getAttribute('data-disabled') !== null).toBe(true)
     fireEvent.click(devices)
@@ -18,18 +18,18 @@ describe('DondeSeUsaField', () => {
 
   it('apaga una casilla cuando la otra sigue marcada', () => {
     const onChange = vi.fn()
-    render(<DondeSeUsaField value={both} onChange={onChange} tieneHorario={false} />)
+    render(<DondeSeUsaField value={both} onChange={onChange} />)
     fireEvent.click(screen.getByRole('checkbox', { name: /tiendaEnLinea/ }))
     expect(onChange).toHaveBeenCalledWith({ appliesToDevices: true, appliesToOnline: false })
   })
 
-  it('con horario avisa al apagar la tienda en línea', () => {
-    render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={vi.fn()} tieneHorario />)
+  it('si la tienda en línea usaba el horario, avisa al apagarla', () => {
+    render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={vi.fn()} tiendaUsabaHorario />)
     expect(screen.getByText('menus.dondeSeUsa.avisoHorario')).toBeDefined()
   })
 
-  it('sin horario no avisa', () => {
-    render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={vi.fn()} tieneHorario={false} />)
+  it('sin horario en la tienda (p. ej. un menú nuevo) no avisa', () => {
+    render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={vi.fn()} />)
     expect(screen.queryByText('menus.dondeSeUsa.avisoHorario')).toBeNull()
   })
 })

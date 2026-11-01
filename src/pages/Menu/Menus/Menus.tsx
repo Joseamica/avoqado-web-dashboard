@@ -14,6 +14,7 @@ import { getMenus } from '@/services/menu.service'
 import { MenuWizardDialog } from './components/MenuWizardDialog'
 import { useMenuMakerHeader } from '../MenuMakerLayout'
 
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Menu, MenuCategory } from '@/types'
 import { includesNormalized } from '@/lib/utils'
@@ -21,6 +22,8 @@ import { includesNormalized } from '@/lib/utils'
 export default function Menus() {
   const { t } = useTranslation('menu')
   const { venueId, fullBasePath } = useCurrentVenue()
+  // La ruta de Dispositivos pide tpv:read: sin él, el enlace llevaría a una página prohibida.
+  const puedeVerAparatos = useAccess().can('tpv:read')
 
   const location = useLocation()
 
@@ -46,9 +49,11 @@ export default function Menus() {
       ),
       actions: (
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link to={`${fullBasePath}/devices?tab=menus`}>{t('menus.dondeSeUsa.enQueAparatos')}</Link>
-          </Button>
+          {puedeVerAparatos && (
+            <Button variant="outline" asChild>
+              <Link to={`${fullBasePath}/devices?tab=menus`}>{t('menus.dondeSeUsa.enQueAparatos')}</Link>
+            </Button>
+          )}
           <Button onClick={() => setWizardOpen(true)} className="flex items-center space-x-2">
             <span>{t('menus.newMenu')}</span>
           </Button>
@@ -56,7 +61,7 @@ export default function Menus() {
       ),
     })
     return () => setHeader({})
-  }, [t, setHeader, fullBasePath])
+  }, [t, setHeader, fullBasePath, puedeVerAparatos])
 
   const columns: ColumnDef<Menu, unknown>[] = [
     {

@@ -3,14 +3,18 @@ import { Checkbox } from '@/components/ui/checkbox'
 
 export type DondeSeUsa = { appliesToDevices: boolean; appliesToOnline: boolean }
 
+/**
+ * `tiendaUsabaHorario`: lo GUARDADO tenía la tienda en línea y un horario, así que apagarla le quita ese horario a la tienda.
+ * Un menú nuevo no lo pasa: nunca tuvo uso en línea que perder (revisión final I1).
+ */
 export function DondeSeUsaField({
   value,
   onChange,
-  tieneHorario,
+  tiendaUsabaHorario = false,
 }: {
   value: DondeSeUsa
   onChange: (v: DondeSeUsa) => void
-  tieneHorario: boolean
+  tiendaUsabaHorario?: boolean
 }) {
   const { t } = useTranslation('menu')
   const base = 'menus.dondeSeUsa'
@@ -43,7 +47,7 @@ export function DondeSeUsaField({
           </div>
         )
       })}
-      {tieneHorario && !value.appliesToOnline && <p className="text-xs text-muted-foreground">{t(`${base}.avisoHorario`)}</p>}
+      {tiendaUsabaHorario && !value.appliesToOnline && <p className="text-xs text-muted-foreground">{t(`${base}.avisoHorario`)}</p>}
     </div>
   )
 }
