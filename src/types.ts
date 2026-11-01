@@ -562,6 +562,8 @@ export interface Organization {
 // Venue (establecimiento)
 export interface Venue {
   exchangesEnabledEffective?: boolean
+  storeCreditOnly?: boolean
+  storeCreditAvailable?: boolean
   id: string
   organizationId: string
   organization?: Organization

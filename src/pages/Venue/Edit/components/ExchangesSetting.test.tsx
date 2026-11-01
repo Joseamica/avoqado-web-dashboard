@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ExchangesSetting } from './ExchangesSetting'
+import { ExchangesSetting, StoreCreditSetting } from './ExchangesSetting'
 import es from '@/locales/es/venue.json'
 
 const mockPut = vi.fn()
@@ -91,5 +91,54 @@ describe('ExchangesSetting', () => {
     expect(screen.getByRole('switch')).toBeDisabled()
     fireEvent.click(screen.getByRole('switch'))
     await waitFor(() => expect(mockPut).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('StoreCreditSetting', () => {
+  beforeEach(() => {
+    mockCan.mockImplementation((permission: string) => permission === 'venues:update')
+    mockPut.mockResolvedValue({ data: {} })
+  })
+  const renderCredit = (props: { storeCreditOnly?: boolean; available?: boolean }) => {
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    return render(
+      <QueryClientProvider client={client}>
+        <StoreCreditSetting venueId="venue-1" storeCreditOnly={props.storeCreditOnly ?? false} available={props.available as boolean} />
+      </QueryClientProvider>,
+    )
+  }
+
+  it('available: shows the texts and a usable switch', () => {
+    renderCredit({ available: true })
+    expect(screen.getByText('Saldo a favor')).toBeInTheDocument()
+    expect(screen.getByText(/ya no podrás devolver dinero sin la venta original/)).toBeInTheDocument()
+    expect(screen.getByText('Defecto y cobro por error siempre se devuelven como se pagó')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Sólo saldo a favor' })).toBeEnabled()
+    expect(screen.queryByText('Pide a Avoqado que active el saldo a favor')).not.toBeInTheDocument()
+  })
+
+  it.each([false, undefined])('unavailable (%s): shown, greyed out with the reason, no PUT', available => {
+    renderCredit({ available })
+    expect(screen.getByText('Saldo a favor')).toBeInTheDocument()
+    expect(screen.getByText('Pide a Avoqado que active el saldo a favor')).toBeInTheDocument()
+    expect(screen.getByRole('switch')).toBeDisabled()
+    fireEvent.click(screen.getByRole('switch'))
+    expect(mockPut).not.toHaveBeenCalled()
+  })
+
+  it.each([false, true])('toggling sends PUT with storeCreditOnly (%s)', async only => {
+    renderCredit({ available: true, storeCreditOnly: only })
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() =>
+      expect(mockPut).toHaveBeenCalledWith('/api/v1/dashboard/venues/venue-1/settings', { storeCreditOnly: !only }),
+    )
+  })
+
+  it('rolls back on error', async () => {
+    mockPut.mockRejectedValueOnce({ response: { status: 403, data: {} } })
+    renderCredit({ available: true })
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })))
+    expect(screen.getByRole('switch')).not.toBeChecked()
   })
 })
