@@ -70,8 +70,8 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
       s
         ? [
             { label: t('reports.cards.sold', { count: s.sold.cards }), value: Currency(s.sold.amount) },
-            // Saldo a favor abonado (Cambios y Reembolsos): aparte de lo vendido. Un server viejo no lo manda.
-            ...(s.storeCredit
+            // Saldo a favor abonado (Cambios y Reembolsos): aparte de lo vendido. Sale sólo si hubo movimiento o importe en el periodo; un server viejo no lo manda.
+            ...(s.storeCredit && (s.storeCredit.movements > 0 || s.storeCredit.cards > 0 || s.storeCredit.amount > 0)
               ? [{ label: t('reports.cards.storeCredit', { count: s.storeCredit.movements }), value: Currency(s.storeCredit.amount) }]
               : []),
             // «Usadas» = canjes del periodo, netos de reversos (C4 `redeemed.net`).

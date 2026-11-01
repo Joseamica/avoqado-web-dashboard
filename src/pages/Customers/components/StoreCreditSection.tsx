@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { Wallet } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PermissionGate } from '@/components/PermissionGate'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { changeStoreCreditPhone } from '@/services/giftCard.service'
 import { limpiarTelefono } from '@/pages/GiftCards/giftCardText'
@@ -33,13 +35,14 @@ export function StoreCreditSection({
   const { t } = useTranslation('customers')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { fullBasePath } = useCurrentVenue()
   const [open, setOpen] = useState(false)
   const [phone, setPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const cambiar = useMutation({
     mutationFn: (p: { phone: string }) =>
-      changeStoreCreditPhone(venueId, storeCredit!.giftCardId, { phone: p.phone, expectedPhoneLast4: storeCredit!.phoneLast4 }),
+      changeStoreCreditPhone(venueId, storeCredit!.giftCardId, { phone: p.phone, ...(storeCredit!.phoneLast4 ? { expectedPhoneLast4: storeCredit!.phoneLast4 } : {}) }),
     onSuccess: () => {
       toast({ title: t('storeCredit.changed') })
       setOpen(false)
@@ -54,8 +57,8 @@ export function StoreCreditSection({
             ? t('storeCredit.notAllowed')
             : t('storeCredit.error'),
       )
-      // Si ya cambió, se relee la ficha para que el siguiente intento lleve los 4 nuevos.
-      if (code === 'STORE_CREDIT_PHONE_OUTDATED') void queryClient.invalidateQueries({ queryKey: ['customer', venueId, customerId] })
+      // Tras CUALQUIER error se relee la ficha: lo que se ve debe ser lo que hay (y el siguiente intento lleva los 4 vigentes).
+      void queryClient.invalidateQueries({ queryKey: ['customer', venueId, customerId] })
     },
   })
 
@@ -83,6 +86,10 @@ export function StoreCreditSection({
               <>
                 <p className="font-semibold">{t('storeCredit.blocked')}</p>
                 <p className="text-muted-foreground">{t('storeCredit.blockedWhy')}</p>
+                {/* El server no manda la razón del bloqueo: la tarjeta de ese sobre la muestra en su detalle. */}
+                <Link className="underline underline-offset-4" to={`${fullBasePath}/gift-cards?card=${storeCredit.giftCardId}`}>
+                  {t('storeCredit.seeCard')}
+                </Link>
               </>
             ) : (
               <p className="font-semibold">{t('storeCredit.balance', { amount: Currency(storeCredit.balanceCents, true) })}</p>

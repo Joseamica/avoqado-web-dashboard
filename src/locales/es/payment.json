@@ -68,7 +68,7 @@
     "viewPayment": "Ver cobro {{id}}",
     "reviewedAt": "Revisado: {{date}}",
     "storeCreditFor": "Saldo a favor para {{name}}: {{amount}}",
-    "storeCreditPhoneMismatch": "El saldo de {{name}} se usa con el teléfono que termina en {{last4}}, no con el de su ficha. Un gerente lo cambia en el DASHBOARD."
+    "storeCreditPhoneMismatch": "El saldo de {{name}} se usa con el teléfono que termina en {{last4}}, no con el de su ficha. Un gerente puede cambiarlo en la ficha del cliente."
   },
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",

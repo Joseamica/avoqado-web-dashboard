@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Devuelve la llave (+ valores interpolados): la convención del repo.
@@ -17,18 +18,25 @@ const access = vi.hoisted(() => ({ allowed: ['giftCards:manage'] as string[] }))
 vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: (p: string) => access.allowed.includes(p), canAny: () => true, canAll: () => true, access: { userId: 'u1' } }),
 }))
+vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/demo' }) }))
 const change = vi.hoisted(() => vi.fn())
 vi.mock('@/services/giftCard.service', () => ({ changeStoreCreditPhone: change }))
 
 import { StoreCreditSection } from '../StoreCreditSection'
 
 const CON_SALDO = { balanceCents: 15050, phoneLast4: '5678', giftCardId: 'g1' }
+let client: QueryClient
 const wrap = (ui: React.ReactElement) =>
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>)
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+    </MemoryRouter>,
+  )
 
 describe('StoreCreditSection (ficha del cliente)', () => {
   beforeEach(() => {
     change.mockReset()
+    client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
     toast.mockReset()
     access.allowed = ['giftCards:manage']
   })
@@ -100,5 +108,36 @@ describe('StoreCreditSection (ficha del cliente)', () => {
     expect(screen.getByText('storeCredit.blocked')).toBeInTheDocument()
     expect(screen.getByText('storeCredit.blockedWhy')).toBeInTheDocument()
     expect(screen.queryByText(/storeCredit\.balance/)).toBeNull()
+  })
+
+  it.each([
+    ['OUTDATED', { response: { status: 409, data: { code: 'STORE_CREDIT_PHONE_OUTDATED' } } }],
+    ['NOT_ALLOWED', { response: { status: 409, data: { code: 'STORE_CREDIT_PHONE_NOT_ALLOWED' } } }],
+    ['404', { response: { status: 404, data: {} } }],
+  ])('tras un error %s la ficha se vuelve a leer', async (_n, err) => {
+    change.mockRejectedValue(err)
+    const spy = vi.spyOn(client, 'invalidateQueries')
+    const user = userEvent.setup()
+    wrap(<StoreCreditSection venueId="v1" customerId="c1" storeCredit={CON_SALDO} />)
+    await user.click(screen.getByRole('button', { name: 'storeCredit.change' }))
+    await user.type(screen.getByLabelText('storeCredit.newPhone'), '5512344321')
+    await user.click(screen.getByRole('button', { name: 'storeCredit.save' }))
+    await screen.findByRole('alert')
+    expect(spy).toHaveBeenCalledWith({ queryKey: ['customer', 'v1', 'c1'] })
+  })
+
+  it('sin phoneLast4 (vacío) no manda expectedPhoneLast4', async () => {
+    change.mockResolvedValue({ giftCardId: 'g1', phoneLast4: '4321' })
+    const user = userEvent.setup()
+    wrap(<StoreCreditSection venueId="v1" customerId="c1" storeCredit={{ ...CON_SALDO, phoneLast4: '' }} />)
+    await user.click(screen.getByRole('button', { name: 'storeCredit.change' }))
+    await user.type(screen.getByLabelText('storeCredit.newPhone'), '5512344321')
+    await user.click(screen.getByRole('button', { name: 'storeCredit.save' }))
+    await waitFor(() => expect(change).toHaveBeenCalledWith('v1', 'g1', { phone: '5512344321' }))
+  })
+
+  it('congelado: lleva a la tarjeta de ese sobre', () => {
+    wrap(<StoreCreditSection venueId="v1" customerId="c1" storeCredit={{ ...CON_SALDO, balanceCents: 0, blocked: true }} />)
+    expect(screen.getByRole('link', { name: 'storeCredit.seeCard' })).toHaveAttribute('href', '/venues/demo/gift-cards?card=g1')
   })
 })

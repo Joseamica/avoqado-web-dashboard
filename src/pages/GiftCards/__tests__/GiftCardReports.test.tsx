@@ -90,6 +90,12 @@ describe('GiftCardReports', () => {
     expect(screen.queryByText(/reports\.cards\.storeCredit/)).toBeNull()
   })
 
+  it('un negocio sin saldo a favor (todo en 0) no ve «Saldo a favor (0) $0.00»', () => {
+    h.summary = listo({ ...SUMMARY, storeCredit: { cards: 0, movements: 0, amount: 0 } })
+    pintar()
+    expect(screen.queryByText(/reports\.cards\.storeCredit/)).toBeNull()
+  })
+
   it('las tarjetas de cifras salen del agregado del server', () => {
     pintar()
     expect(screen.getByText(Currency(6000))).toBeInTheDocument()

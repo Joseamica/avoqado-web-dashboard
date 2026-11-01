@@ -68,7 +68,7 @@
     "viewPayment": "View payment {{id}}",
     "reviewedAt": "Reviewed: {{date}}",
     "storeCreditFor": "Store credit for {{name}}: {{amount}}",
-    "storeCreditPhoneMismatch": "{{name}}'s balance is spent with the phone ending in {{last4}}, not the one on their record. A manager can change it in the DASHBOARD."
+    "storeCreditPhoneMismatch": "{{name}}'s balance is spent with the phone ending in {{last4}}, not the one on their record. A manager can change it on the customer's page."
   },
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",

@@ -456,8 +456,9 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "changed": "Teléfono del saldo a favor actualizado",
-    "outdated": "El teléfono cambió, recarga",
+    "outdated": "El teléfono cambió mientras lo editabas; ya ves el actual.",
     "notAllowed": "Sólo se puede cambiar el teléfono de un saldo a favor.",
-    "error": "No se pudo cambiar el teléfono. Intenta de nuevo."
+    "error": "No se pudo cambiar el teléfono. Intenta de nuevo.",
+    "seeCard": "Ver la tarjeta de este saldo"
   }
 }

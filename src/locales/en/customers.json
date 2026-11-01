@@ -456,8 +456,9 @@
     "save": "Save",
     "cancel": "Cancel",
     "changed": "Store credit phone updated",
-    "outdated": "The phone changed, reload",
+    "outdated": "The phone changed while you were editing; you now see the current one.",
     "notAllowed": "Only a store credit balance's phone can be changed.",
-    "error": "Could not change the phone. Try again."
+    "error": "Could not change the phone. Try again.",
+    "seeCard": "See this balance's card"
   }
 }
