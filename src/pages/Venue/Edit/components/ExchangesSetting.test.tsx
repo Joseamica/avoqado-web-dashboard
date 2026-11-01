@@ -126,6 +126,22 @@ describe('StoreCreditSetting', () => {
     expect(mockPut).not.toHaveBeenCalled()
   })
 
+  it('D-1: prendido en el servidor pero SIN llaves: se ve prendido, se puede apagar y no se puede volver a prender', async () => {
+    const a = renderCredit({ available: false, storeCreditOnly: true })
+    const sw = screen.getByRole('switch')
+    expect(sw).toBeChecked()
+    expect(sw).toBeEnabled()
+    expect(screen.getByText('Pide a Avoqado que active el saldo a favor')).toBeInTheDocument()
+    fireEvent.click(sw)
+    await waitFor(() => expect(mockPut).toHaveBeenCalledWith('/api/v1/dashboard/venues/venue-1/settings', { storeCreditOnly: false }))
+    a.unmount()
+    mockPut.mockClear()
+    renderCredit({ available: false, storeCreditOnly: false })
+    expect(screen.getByRole('switch')).toBeDisabled()
+    fireEvent.click(screen.getByRole('switch'))
+    expect(mockPut).not.toHaveBeenCalled()
+  })
+
   it.each([false, true])('toggling sends PUT with storeCreditOnly (%s)', async only => {
     renderCredit({ available: true, storeCreditOnly: only })
     fireEvent.click(screen.getByRole('switch'))

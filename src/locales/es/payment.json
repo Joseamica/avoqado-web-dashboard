@@ -207,7 +207,8 @@
     "digitalWallet": "Monedero Digital",
     "bankTransfer": "Transferencia Bancaria",
     "cryptocurrency": "Criptomoneda",
-    "other": "Otro"
+    "other": "Otro",
+    "storeCredit": "Saldo a favor"
   },
   "statuses": {
     "pending": "Pendiente",

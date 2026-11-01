@@ -99,7 +99,7 @@ export function ExchangesSetting({ venueId, effective }: ExchangesSettingProps) 
 interface StoreCreditSettingProps {
   venueId: string
   storeCreditOnly: boolean
-  /** false (o ausente, servidor viejo) = faltan las llaves: se muestra apagado y con la razón. */
+  /** false (o ausente, servidor viejo) = faltan las llaves: no se puede PRENDER (con la razón); si ya estaba prendido se ve prendido y se puede apagar. */
   available: boolean
 }
 
@@ -142,7 +142,8 @@ export function StoreCreditSetting({ venueId, storeCreditOnly, available }: Stor
   })
 
   const handleCheckedChange = (next: boolean) => {
-    if (!available || !canUpdate || toggle.isPending) return
+    // Sin llaves sólo se deja APAGAR (limpiar el valor guardado); prender sigue bloqueado.
+    if ((!available && next) || !canUpdate || toggle.isPending) return
     const previous = only
     setOnly(next)
     toggle.mutate({ next, previous })
@@ -170,9 +171,9 @@ export function StoreCreditSetting({ venueId, storeCreditOnly, available }: Stor
         <div className="flex shrink-0 items-center gap-2 pt-1">
           {toggle.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           <Switch
-            checked={available && only}
+            checked={only}
             onCheckedChange={handleCheckedChange}
-            disabled={!available || !canUpdate || toggle.isPending}
+            disabled={(!available && !only) || !canUpdate || toggle.isPending}
             aria-label={t('edit.storeCredit.switchLabel')}
           />
         </div>

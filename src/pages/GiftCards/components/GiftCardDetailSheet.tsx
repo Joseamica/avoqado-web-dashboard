@@ -121,7 +121,10 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
                     {Currency(card.balance)}
                   </p>
                   {/* Monto inicial y saldo actual, nada más: «lo usado» no lo manda el server (decisión 1 del coordinador). */}
-                  <p className="mt-1 text-xs text-muted-foreground">{t('detail.ofInitial', { amount: Currency(card.initialAmount) })}</p>
+                  {/* Un sobre de saldo a favor se recarga con cada abono: su primera carga no es «lo inicial». */}
+                  {!card.storeCredit && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('detail.ofInitial', { amount: Currency(card.initialAmount) })}</p>
+                  )}
                 </div>
                 {estado && <Badge variant={varianteDeEstado(estado)}>{t(`status.${estado}`)}</Badge>}
               </div>

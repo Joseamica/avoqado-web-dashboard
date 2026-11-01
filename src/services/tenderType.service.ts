@@ -20,7 +20,7 @@ export interface TenderType {
   isSystem: boolean
   /** Tender de sistema con dueño fijo (R4 del plan de tarjetas de regalo): `GIFT_CARD` = cobrar con saldo. Nunca se
    *  edita ni se apaga (el server lo rechaza). Opcional: un server anterior no lo manda. */
-  systemKind?: 'GIFT_CARD' | null
+  systemKind?: 'GIFT_CARD' | 'STORE_CREDIT' | null
   countsAsPhysicalCash: boolean
   captureTip: boolean
   showOnPos: boolean

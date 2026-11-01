@@ -69,9 +69,12 @@ describe('GiftCardDetailSheet · saldo a favor', () => {
     const a = pintar()
     expect(screen.getByText('detail.storeCreditOf Ana López')).toBeInTheDocument()
     expect(screen.queryByText('delivery.WHATSAPP')).toBeNull()
+    // D-2: un sobre recargado no dice «de {carga inicial}»
+    expect(screen.queryByText('detail.ofInitial')).toBeNull()
     a.unmount()
     q.current = listo()
     pintar()
+    expect(screen.getByText('detail.ofInitial')).toBeInTheDocument()
     expect(screen.queryByText(/detail\.storeCreditOf/)).toBeNull()
     expect(screen.getByText('delivery.WHATSAPP')).toBeInTheDocument()
   })

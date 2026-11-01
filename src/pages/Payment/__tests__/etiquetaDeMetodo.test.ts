@@ -16,6 +16,7 @@ describe('etiquetaDeMetodo — una sola traducción para la tabla, los filtros y
     ['BANK_TRANSFER', 'methods.bankTransfer'],
     ['CRYPTOCURRENCY', 'methods.cryptocurrency'],
     ['OTHER', 'methods.other'],
+    ['STORE_CREDIT', 'methods.storeCredit'],
   ])('%s → %s (nunca «Tarjeta» genérica)', (metodo, llave) => {
     expect(etiquetaDeMetodo(metodo, t)).toBe(llave)
   })
@@ -29,7 +30,7 @@ describe('etiquetaDeMetodo — una sola traducción para la tabla, los filtros y
   })
 
   it('todas las llaves existen en español y en inglés', () => {
-    for (const metodo of ['CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER', 'CRYPTOCURRENCY', 'OTHER', 'CARD']) {
+    for (const metodo of ['CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER', 'CRYPTOCURRENCY', 'OTHER', 'STORE_CREDIT', 'CARD']) {
       const llave = etiquetaDeMetodo(metodo, t).replace('methods.', '')
       expect((es.methods as Record<string, string>)[llave]).toBeTruthy()
       expect((en.methods as Record<string, string>)[llave]).toBeTruthy()

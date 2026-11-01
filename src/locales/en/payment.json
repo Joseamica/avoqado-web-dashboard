@@ -207,7 +207,8 @@
     "digitalWallet": "Digital Wallet",
     "bankTransfer": "Bank Transfer",
     "cryptocurrency": "Cryptocurrency",
-    "other": "Other"
+    "other": "Other",
+    "storeCredit": "Store credit"
   },
   "statuses": {
     "pending": "Pending",

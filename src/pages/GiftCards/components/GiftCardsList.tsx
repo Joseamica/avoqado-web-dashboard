@@ -100,7 +100,9 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
         cell: ({ row }) => (
           <div>
             <p className="text-sm font-medium tabular-nums">{Currency(row.original.balance)}</p>
-            <p className="text-xs text-muted-foreground">{t('list.balanceOf', { amount: Currency(row.original.initialAmount) })}</p>
+            {!row.original.storeCredit && (
+              <p className="text-xs text-muted-foreground">{t('list.balanceOf', { amount: Currency(row.original.initialAmount) })}</p>
+            )}
           </div>
         ),
       },

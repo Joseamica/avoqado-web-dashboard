@@ -62,6 +62,8 @@ describe('GiftCardsList · saldo a favor', () => {
     })
     const a = render(<GiftCardsList venueId="v1" />)
     expect(screen.getByText('list.storeCreditOf(name=Ana López)')).toBeInTheDocument()
+    // D-2: ni «de {carga inicial}»
+    expect(screen.queryByText(/list\.balanceOf/)).toBeNull()
     a.unmount()
     q.current = consulta({ data: { pages: [{ ...PAGINA, items: [{ ...FILA, storeCredit: null }, { ...FILA, id: 'g2' }] }], pageParams: [1] } })
     render(<GiftCardsList venueId="v1" />)

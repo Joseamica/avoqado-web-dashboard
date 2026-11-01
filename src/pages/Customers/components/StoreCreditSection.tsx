@@ -78,8 +78,8 @@ export function StoreCreditSection({
 
   return (
     <Card className="border-input" data-tour="customer-store-credit">
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex items-start gap-3">
+      <CardContent className="flex items-center justify-between gap-3 p-4">
+        <div className="flex min-w-0 items-start gap-3">
           <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <div className="space-y-1 text-sm">
             {storeCredit.blocked ? (
@@ -98,7 +98,7 @@ export function StoreCreditSection({
           </div>
         </div>
         <PermissionGate permission="giftCards:manage">
-          <Button variant="outline" size="sm" className="cursor-pointer" onClick={abrir}>
+          <Button variant="outline" size="sm" className="shrink-0 cursor-pointer" onClick={abrir}>
             {t('storeCredit.change')}
           </Button>
         </PermissionGate>

@@ -11,6 +11,7 @@ const LLAVES: Record<string, string> = {
   BANK_TRANSFER: 'methods.bankTransfer',
   CRYPTOCURRENCY: 'methods.cryptocurrency',
   OTHER: 'methods.other',
+  STORE_CREDIT: 'methods.storeCredit',
 }
 
 export function etiquetaDeMetodo(method: string | undefined | null, t: (llave: string) => string): string {
