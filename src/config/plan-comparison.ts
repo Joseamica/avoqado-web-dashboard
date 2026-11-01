@@ -39,8 +39,18 @@ const TODOS: Record<TierComparado, ValorDeCelda> = { FREE: true, PRO: true, PREM
  * F3, con el carrusel y su precio. `GIFT_CARDS` (tarjetas de regalo, Pro) sale de aquí —y gana su
  * fila `{ key: 'giftCards', codes: ['GIFT_CARDS'] }` en «customers»; el texto ya está en billing.json— cuando el POS las
  * venda (fase 1b): en la 1a sólo existe el panel y anunciarla prometería algo que el POS todavía no hace.
+ * `DEVICE_MENUS` (menú de cada aparato, Pro; Ruling 16) sale de aquí —y gana su fila `{ key: 'deviceMenus', codes:
+ * ['DEVICE_MENUS'] }` en «sell»; el texto ya está en billing.json— cuando se publiquen las apps que aplican el filtro
+ * (Parte E, paso 4): antes, ningún aparato lo aplica.
+ * 🔴 Esta lista NO esconde filas: sólo exime al código de «cada función aparece en alguna fila». Lo sin lanzar va SIN fila.
  */
-export const FUNCIONES_SIN_LANZAR: readonly string[] = ['KITCHEN_DISPLAY', 'AGGREGATOR_PASSES', 'CUSTOMER_DISPLAY_PROMOS', 'GIFT_CARDS']
+export const FUNCIONES_SIN_LANZAR: readonly string[] = [
+  'KITCHEN_DISPLAY',
+  'AGGREGATOR_PASSES',
+  'CUSTOMER_DISPLAY_PROMOS',
+  'GIFT_CARDS',
+  'DEVICE_MENUS',
+]
 
 export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
   {
@@ -49,7 +59,6 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
       { key: 'pos', values: TODOS },
       { key: 'menuOrders', values: TODOS },
       { key: 'tables', codes: ['TABLE_SERVICE'] },
-      { key: 'deviceMenus', codes: ['DEVICE_MENUS'] },
       { key: 'reservations', codes: ['RESERVATIONS'] },
       { key: 'onlineOrdering', codes: ['ONLINE_ORDERING'] },
       { key: 'upsell', codes: ['UPSELL'] },
