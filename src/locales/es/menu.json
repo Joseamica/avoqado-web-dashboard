@@ -50,6 +50,18 @@
       "schedules": "Horarios del menú",
       "categories": "Categorías",
       "alwaysAvailable": "Siempre disponible"
+    },
+    "dondeSeUsa": {
+      "title": "¿Dónde se usa?",
+      "aparatos": "Aparatos",
+      "tiendaEnLinea": "Tienda en línea",
+      "pistaAparatos": "los aparatos lo pueden mostrar y Mesas lo ofrece",
+      "pistaTienda": "la tienda en línea vende sus categorías en el horario de este menú",
+      "avisoHorario": "La tienda en línea dejará de usar el horario de este menú. Para que algo no se venda en línea, apágalo en Pedidos en línea",
+      "soloAparatos": "Sólo aparatos",
+      "soloTiendaEnLinea": "Sólo tienda en línea",
+      "alMenosUna": "Debe quedar al menos una",
+      "enQueAparatos": "¿En qué aparatos se ve?"
     }
   },
   "categories": {

@@ -50,6 +50,18 @@
       "schedules": "Menu Schedules",
       "categories": "Categories",
       "alwaysAvailable": "Always available"
+    },
+    "dondeSeUsa": {
+      "title": "Where is it used?",
+      "aparatos": "Devices",
+      "tiendaEnLinea": "Online store",
+      "pistaAparatos": "devices can show it and Tables offers it",
+      "pistaTienda": "the online store sells its categories during this menu's schedule",
+      "avisoHorario": "The online store will stop using this menu's schedule. To keep something from being sold online, turn it off in Online orders",
+      "soloAparatos": "Devices only",
+      "soloTiendaEnLinea": "Online store only",
+      "alMenosUna": "At least one must remain",
+      "enQueAparatos": "Which devices show it?"
     }
   },
   "categories": {

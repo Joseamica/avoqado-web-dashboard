@@ -1,4 +1,5 @@
 import { createMenu, getMenuCategories } from '@/services/menu.service'
+import { DondeSeUsaField } from './components/DondeSeUsaField'
 import { LoadingButton } from '@/components/loading-button'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { LoadingScreen } from '@/components/spinner'
@@ -110,6 +111,8 @@ export default function MenuScheduleWithMenuDayModel() {
       endTime: '19:30',
       isActive: true,
       isAllDay: false,
+      appliesToDevices: true,
+      appliesToOnline: true,
     },
     mode: 'onSubmit',
   })
@@ -130,6 +133,8 @@ export default function MenuScheduleWithMenuDayModel() {
   const endTime = watch('endTime')
   const isAllDay = watch('isAllDay')
   const isActive = watch('isActive')
+  const appliesToDevices = watch('appliesToDevices')
+  const appliesToOnline = watch('appliesToOnline')
   const from = (location.state as any)?.from || '/'
 
   // 2) Mutación con react-query
@@ -147,7 +152,7 @@ export default function MenuScheduleWithMenuDayModel() {
     onError: (error: any) => {
       toast({
         title: t('createMenu.toast.errorSaving'),
-        description: error.message || t('createMenu.toast.errorSavingDesc'),
+        description: error.response?.data?.message || error.message || t('createMenu.toast.errorSavingDesc'),
         variant: 'destructive',
       })
     },
@@ -196,7 +201,8 @@ export default function MenuScheduleWithMenuDayModel() {
   function onSubmit(formValues: any) {
     clearErrors() // Limpia cualquier error previo
 
-    const { name, avoqadoMenus, avoqadoProducts, days, startTime, endTime, isAllDay, isActive } = formValues
+    const { name, avoqadoMenus, avoqadoProducts, days, startTime, endTime, isAllDay, isActive, appliesToDevices, appliesToOnline } =
+      formValues
 
     // 1) Nombre obligatorio
     if (!name.trim()) {
@@ -255,6 +261,8 @@ export default function MenuScheduleWithMenuDayModel() {
       avoqadoProducts,
       menuDays,
       active: isActive,
+      appliesToDevices,
+      appliesToOnline,
     }
 
     createMenuMutation.mutate(payload)
@@ -418,6 +426,16 @@ export default function MenuScheduleWithMenuDayModel() {
               {t('createMenu.fields.allDay')}
             </label>
           </div>
+        </div>
+        <div className="mt-4">
+          <DondeSeUsaField
+            value={{ appliesToDevices, appliesToOnline }}
+            onChange={v => {
+              setValue('appliesToDevices', v.appliesToDevices)
+              setValue('appliesToOnline', v.appliesToOnline)
+            }}
+            tieneHorario={!isAllDay}
+          />
         </div>
         <h2 className="mt-4 mb-2 text-lg font-semibold">{t('createMenu.fields.categories')}</h2>
         <MultiSelectCombobox
