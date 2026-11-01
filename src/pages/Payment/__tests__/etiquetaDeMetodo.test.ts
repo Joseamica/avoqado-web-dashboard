@@ -25,6 +25,13 @@ describe('etiquetaDeMetodo — una sola traducción para la tabla, los filtros y
     expect(etiquetaDeMetodo('CARD', t)).toBe('methods.card')
   })
 
+  it('OTHER con tenderSystemKind STORE_CREDIT dice «Saldo a favor»; sin el campo (servidor viejo) o con otro valor sigue «Otro»', () => {
+    expect(etiquetaDeMetodo('OTHER', t, 'STORE_CREDIT')).toBe('methods.storeCredit')
+    expect(etiquetaDeMetodo('OTHER', t)).toBe('methods.other')
+    expect(etiquetaDeMetodo('OTHER', t, null)).toBe('methods.other')
+    expect(etiquetaDeMetodo('OTHER', t, 'GIFT_CARD')).toBe('methods.other')
+  })
+
   it('sin método no truena', () => {
     expect(etiquetaDeMetodo(undefined, t)).toBe('-')
   })
