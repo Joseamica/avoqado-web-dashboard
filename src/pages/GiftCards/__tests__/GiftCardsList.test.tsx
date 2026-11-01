@@ -55,6 +55,20 @@ beforeEach(() => {
   q.current = consulta()
 })
 
+describe('GiftCardsList · saldo a favor', () => {
+  it('un sobre de saldo a favor dice «Saldo a favor de {cliente}»; una tarjeta normal o un server viejo, nada', () => {
+    q.current = consulta({
+      data: { pages: [{ ...PAGINA, items: [{ ...FILA, storeCredit: { customerId: 'c1', customerName: 'Ana López' } }] }], pageParams: [1] },
+    })
+    const a = render(<GiftCardsList venueId="v1" />)
+    expect(screen.getByText('list.storeCreditOf(name=Ana López)')).toBeInTheDocument()
+    a.unmount()
+    q.current = consulta({ data: { pages: [{ ...PAGINA, items: [{ ...FILA, storeCredit: null }, { ...FILA, id: 'g2' }] }], pageParams: [1] } })
+    render(<GiftCardsList venueId="v1" />)
+    expect(screen.queryByText(/list\.storeCreditOf/)).toBeNull()
+  })
+})
+
 describe('GiftCardsList · pie de la lista (lote ⭐)', () => {
   it('en la primera carga no sale «Mostrando 0 de 0» debajo del esqueleto', () => {
     q.current = consulta({ isLoading: true, isFetching: true })

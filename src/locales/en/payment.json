@@ -45,7 +45,8 @@
       "card": "Card on terminal",
       "bankTransfer": "Bank transfer",
       "giftCard": "Store credit",
-      "tender": "Original payment method"
+      "tender": "Original payment method",
+      "storeCredit": "Store credit"
     },
     "reasons": {
       "size": "Size",
@@ -65,7 +66,9 @@
     "chargedCount_one": "Charged: {{amount}} in {{count}} payment",
     "chargedCount_other": "Charged: {{amount}} in {{count}} payments",
     "viewPayment": "View payment {{id}}",
-    "reviewedAt": "Reviewed: {{date}}"
+    "reviewedAt": "Reviewed: {{date}}",
+    "storeCreditFor": "Store credit for {{name}}: {{amount}}",
+    "storeCreditPhoneMismatch": "{{name}}'s balance is spent with the phone ending in {{last4}}, not the one on their record. A manager can change it in the DASHBOARD."
   },
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",

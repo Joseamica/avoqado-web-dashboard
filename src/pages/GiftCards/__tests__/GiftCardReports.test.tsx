@@ -77,6 +77,19 @@ beforeEach(() => {
 })
 
 describe('GiftCardReports', () => {
+  it('saldo a favor: una línea aparte de «Vendidas», con su monto; un server viejo (sin storeCredit) no la pinta', () => {
+    h.summary = listo({ ...SUMMARY, storeCredit: { cards: 2, movements: 5, amount: 800 } })
+    const a = pintar()
+    expect(screen.getByText('reports.cards.storeCredit(count=5)')).toBeInTheDocument()
+    expect(screen.getByText(Currency(800))).toBeInTheDocument()
+    // lo vendido sigue siendo lo vendido
+    expect(screen.getByText('reports.cards.sold(count=4)')).toBeInTheDocument()
+    a.unmount()
+    h.summary = listo(SUMMARY)
+    pintar()
+    expect(screen.queryByText(/reports\.cards\.storeCredit/)).toBeNull()
+  })
+
   it('las tarjetas de cifras salen del agregado del server', () => {
     pintar()
     expect(screen.getByText(Currency(6000))).toBeInTheDocument()

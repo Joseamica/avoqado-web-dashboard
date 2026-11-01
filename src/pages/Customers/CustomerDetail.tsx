@@ -56,6 +56,7 @@ import CustomerForm from './components/CustomerForm'
 import ReferralCard from './components/ReferralCard'
 import WalletPassCard from './components/WalletPassCard'
 import { StampCardSection } from './components/StampCardSection'
+import { StoreCreditSection } from './components/StoreCreditSection'
 
 export default function CustomerDetail() {
 	const { venueId, fullBasePath, venue } = useCurrentVenue()
@@ -462,6 +463,9 @@ export default function CustomerDetail() {
 						fullBasePath={fullBasePath}
 						stampsEnabled={loyaltyConfig?.stampsEnabled}
 					/>
+
+					{/* Saldo a favor: sin `storeCredit` (server viejo o sin sobre) no pinta nada. */}
+					<StoreCreditSection venueId={venueId} customerId={customerId!} storeCredit={customer.storeCredit} />
 
 					{/* Montada siempre que haya config: apagar los sellos no desmonta un ajuste abierto (lo explica y lo frena). */}
 					{loyaltyConfig && (

@@ -145,7 +145,9 @@ export function GiftCardDetailSheet({ venueId, giftCardId, onClose }: { venueId:
               <Dato
                 label={t('detail.facts.delivery')}
                 value={
-                  card.entrega && (card.entrega.channel === 'WHATSAPP' || card.entrega.channel === 'EMAIL')
+                  card.storeCredit
+                    ? t('detail.storeCreditOf', { name: card.storeCredit.customerName })
+                    : card.entrega && (card.entrega.channel === 'WHATSAPP' || card.entrega.channel === 'EMAIL')
                     ? t('detail.facts.deliveryValue', {
                         channel: t(`delivery.${card.entrega.channel}`),
                         status: t(`deliveryStatus.${card.entrega.status}`),

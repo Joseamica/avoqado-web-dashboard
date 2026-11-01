@@ -133,6 +133,21 @@ beforeEach(() => {
   user = userEvent.setup()
 })
 
+describe('GiftCardDelivery — saldo a favor', () => {
+  it('un sobre de saldo a favor no ofrece Reenviar ni Cambiar destino (el server igual responde 409), ni siquiera al gerente', () => {
+    pintar({ ...DETALLE, storeCredit: { customerId: 'c1', customerName: 'Ana López' } })
+    sinBoton('deliveryActions.resend')
+    sinBoton('deliveryActions.changeDestination')
+    expect(screen.queryByText('55•••••678')).toBeNull()
+  })
+
+  it('con storeCredit en null (tarjeta normal) todo sigue como siempre', () => {
+    pintar({ ...DETALLE, storeCredit: null })
+    boton('deliveryActions.resend')
+    boton('deliveryActions.changeDestination')
+  })
+})
+
 describe('GiftCardDelivery — cómo va la entrega', () => {
   it('un cajero (sólo giftCards:read) ve destino, intentos y el motivo del fallo, pero ninguna acción', () => {
     access.allowed = ['giftCards:read']

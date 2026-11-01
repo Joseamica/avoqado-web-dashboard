@@ -213,6 +213,17 @@ describe('accionesDisponibles', () => {
     ...over,
   })
 
+  it('saldo a favor: no se repone el código (no hay código que mostrar); el resto igual', () => {
+    expect(accionesDisponibles(d({ storeCredit: { customerId: 'c1', customerName: 'Ana' } }))).toEqual({
+      ajustar: true,
+      bloquear: true,
+      desbloquear: false,
+      reponer: false,
+      cancelarVenta: true,
+      ventaEnCancelacion: false,
+    })
+  })
+
   it('activa: ajustar, bloquear, reponer y cancelar la venta', () => {
     expect(accionesDisponibles(d())).toEqual({
       ajustar: true,

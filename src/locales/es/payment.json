@@ -45,7 +45,8 @@
       "card": "Tarjeta en terminal",
       "bankTransfer": "Transferencia",
       "giftCard": "Saldo a favor",
-      "tender": "Forma de pago original"
+      "tender": "Forma de pago original",
+      "storeCredit": "Saldo a favor"
     },
     "reasons": {
       "size": "Talla",
@@ -65,7 +66,9 @@
     "chargedCount_one": "Cobrado: {{amount}} en {{count}} cobro",
     "chargedCount_other": "Cobrado: {{amount}} en {{count}} cobros",
     "viewPayment": "Ver cobro {{id}}",
-    "reviewedAt": "Revisado: {{date}}"
+    "reviewedAt": "Revisado: {{date}}",
+    "storeCreditFor": "Saldo a favor para {{name}}: {{amount}}",
+    "storeCreditPhoneMismatch": "El saldo de {{name}} se usa con el teléfono que termina en {{last4}}, no con el de su ficha. Un gerente lo cambia en el DASHBOARD."
   },
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",

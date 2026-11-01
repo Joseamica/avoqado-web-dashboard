@@ -80,6 +80,9 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
             <div className="space-y-1">
               {/* El motivo del bloqueo sólo se ve en el detalle (la lista del server no lo trae; decisión 1 del coordinador). */}
               <Badge variant={varianteDeEstado(estado)}>{t(`status.${estado}`)}</Badge>
+              {row.original.storeCredit && (
+                <p className="text-xs text-muted-foreground">{t('list.storeCreditOf', { name: row.original.storeCredit.customerName })}</p>
+              )}
             </div>
           )
         },

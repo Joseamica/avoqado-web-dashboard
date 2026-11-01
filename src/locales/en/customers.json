@@ -442,5 +442,22 @@
       "subject": "Happy birthday!",
       "body": "We want to wish you a very happy birthday. Thank you for being part of our story — we hope to see you soon to celebrate."
     }
+  },
+  "storeCredit": {
+    "balance": "Store credit: {{amount}}",
+    "phone": "Store credit phone: ••{{last4}}",
+    "change": "Change",
+    "blocked": "Store credit frozen",
+    "blockedWhy": "The balance is blocked and cannot be spent. A manager can unblock it in Gift cards.",
+    "changeTitle": "Change the store credit phone",
+    "changeDescription": "This phone is used to spend the balance. No page or code is sent; codes already sent to the previous phone stop working.",
+    "newPhone": "New phone (10 digits)",
+    "invalidPhone": "Enter a 10-digit phone.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "changed": "Store credit phone updated",
+    "outdated": "The phone changed, reload",
+    "notAllowed": "Only a store credit balance's phone can be changed.",
+    "error": "Could not change the phone. Try again."
   }
 }

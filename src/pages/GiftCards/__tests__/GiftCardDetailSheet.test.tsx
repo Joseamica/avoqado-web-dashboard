@@ -62,6 +62,21 @@ beforeEach(() => {
   q.current = listo()
 })
 
+describe('GiftCardDetailSheet · saldo a favor', () => {
+  it('en vez del estado de entrega dice «Saldo a favor de {cliente}»; sin storeCredit (server viejo) queda el canal de siempre', () => {
+    traducir.mockImplementation((k: string, o?: Record<string, unknown>) => (o?.name ? `${k} ${String(o.name)}` : k))
+    q.current = listo({ data: { pages: [{ ...DETAIL, storeCredit: { customerId: 'c1', customerName: 'Ana López' } }], pageParams: [null] } })
+    const a = pintar()
+    expect(screen.getByText('detail.storeCreditOf Ana López')).toBeInTheDocument()
+    expect(screen.queryByText('delivery.WHATSAPP')).toBeNull()
+    a.unmount()
+    q.current = listo()
+    pintar()
+    expect(screen.queryByText(/detail\.storeCreditOf/)).toBeNull()
+    expect(screen.getByText('delivery.WHATSAPP')).toBeInTheDocument()
+  })
+})
+
 describe('GiftCardDetailSheet', () => {
   it('pasa a detail.note la nota del sistema traducida y conserva la nota humana', () => {
     const idioma = i18next.language
