@@ -280,7 +280,8 @@ export function GiftCardDelivery({ venueId, detail }: { venueId: string; detail:
   const { can } = useAccess()
   const [dialogo, setDialogo] = useState<Dialogo>(null)
   const entrega = detail.entrega
-  if (!entrega) return null
+  // Saldo a favor: no se entrega nada (el detalle ya dice «Saldo a favor de …»); ni Reenviar ni Cambiar destino.
+  if (!entrega || detail.storeCredit) return null
   const digital = esDigital(entrega.channel)
   // S-4: sólo una tarjeta ACTIVA y vigente se reenvía o cambia de destino. La guardada en la tarjeta de un cliente es de la 1c.
   const conAcciones = estadoVisible(detail) === 'ACTIVE' && entrega.channel !== 'CUSTOMER_CARD'

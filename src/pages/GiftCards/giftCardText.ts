@@ -252,14 +252,15 @@ export function motivoSinVenta(
  * 🔴 Auditoría r1 (D-2): la cancelación se protege con `cancel.reason === 'IN_PROGRESS'` y el motivo vigente sale de
  * `currentBlock` (una consulta propia del server), NUNCA de la libreta paginada.
  */
-export function accionesDisponibles(d: Pick<GiftCardDetail, 'status' | 'canReplaceCode' | 'cancel' | 'currentBlock' | 'order'>) {
+export function accionesDisponibles(d: Pick<GiftCardDetail, 'status' | 'canReplaceCode' | 'cancel' | 'currentBlock' | 'order'> & Partial<Pick<GiftCardDetail, 'storeCredit'>>) {
   const ventaEnCancelacion = d.cancel.reason === 'IN_PROGRESS'
   const enCancelacion = ventaEnCancelacion || d.currentBlock?.reason === 'CANCEL_IN_PROGRESS'
   return {
     ajustar: (d.status === 'ACTIVE' || d.status === 'BLOCKED') && !enCancelacion,
     bloquear: d.status === 'ACTIVE',
     desbloquear: d.status === 'BLOCKED' && !enCancelacion,
-    reponer: d.canReplaceCode && d.status !== 'DEACTIVATED' && !enCancelacion,
+    // Un sobre de saldo a favor no tiene código que reponer ni mostrar (el server responde 409 STORE_CREDIT_CARD_NOT_ELIGIBLE).
+    reponer: d.canReplaceCode && d.status !== 'DEACTIVATED' && !enCancelacion && !d.storeCredit,
     // Lo decide el server con el mismo predicado que la cancelación (B2): el panel no lo deduce.
     cancelarVenta: d.order != null && d.cancel.allowed === true,
     ventaEnCancelacion,

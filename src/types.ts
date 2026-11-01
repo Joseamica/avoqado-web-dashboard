@@ -562,6 +562,8 @@ export interface Organization {
 // Venue (establecimiento)
 export interface Venue {
   exchangesEnabledEffective?: boolean
+  storeCreditOnly?: boolean
+  storeCreditAvailable?: boolean
   id: string
   organizationId: string
   organization?: Organization
@@ -1157,6 +1159,8 @@ export interface OrderCustomer {
 // Modelo Payment completo según el schema Prisma
 export interface Payment {
   exchange?: ExchangeLinks
+  /** Medio de sistema (`STORE_CREDIT`, `GIFT_CARD`…), opcional: un servidor viejo no lo manda. */
+  tenderSystemKind?: string | null
   id: string
   venueId: string
   venue?: Venue

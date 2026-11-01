@@ -11,9 +11,16 @@ const LLAVES: Record<string, string> = {
   BANK_TRANSFER: 'methods.bankTransfer',
   CRYPTOCURRENCY: 'methods.cryptocurrency',
   OTHER: 'methods.other',
+  STORE_CREDIT: 'methods.storeCredit',
 }
 
-export function etiquetaDeMetodo(method: string | undefined | null, t: (llave: string) => string): string {
+export function etiquetaDeMetodo(
+  method: string | undefined | null,
+  t: (llave: string) => string,
+  /** Medio de sistema de la fila (opcional; un servidor viejo no lo manda): una devolución a saldo a favor llega como `OTHER`. */
+  tenderSystemKind?: string | null,
+): string {
+  if (tenderSystemKind === 'STORE_CREDIT') return t(LLAVES.STORE_CREDIT)
   if (!method) return '-'
   // «CARD» es el valor viejo (antes de CREDIT_CARD/DEBIT_CARD) y cualquier otro desconocido: se queda como Tarjeta.
   return t(LLAVES[method.toUpperCase()] ?? 'methods.card')

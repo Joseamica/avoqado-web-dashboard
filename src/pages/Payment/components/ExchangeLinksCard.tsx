@@ -41,7 +41,13 @@ interface ExchangeDetail {
     pieces: Array<{ priceCents: number; inheritedFromOrderItemId: string | null }>
     newOrderItemIds: string[]
   }>
-  settlement: { kind: string; method: string | null; amountCents: number }
+  settlement: {
+    kind: string
+    method: string | null
+    amountCents: number
+    /** Saldo a favor (opcional: un server viejo o un cambio sin saldo no lo manda). */
+    storeCredit?: { customerName: string; amountCents: number; newBalanceCents: number; phoneLast4: string; phoneMismatch: boolean }
+  }
   staffName: string | null
   reviewedAt: string | null
   reviewNote: string | null
@@ -89,6 +95,7 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
     BANK_TRANSFER: 'exchange.methods.bankTransfer',
     GIFT_CARD_BALANCE: 'exchange.methods.giftCard',
     TENDER: 'exchange.methods.tender',
+    STORE_CREDIT: 'exchange.methods.storeCredit',
   }
   const settlementKeys: Record<string, string> = {
     EVEN: 'exchange.settlement.even',
@@ -137,6 +144,24 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
           <p>{methodKeys[data.settlement.method] ? t(methodKeys[data.settlement.method]) : data.settlement.method}</p>
         )}
         <p>{t('exchange.settlementAmount', { amount: money(data.settlement.amountCents) })}</p>
+        {data.settlement.storeCredit && (
+          <>
+            <p>
+              {t('exchange.storeCreditFor', {
+                name: data.settlement.storeCredit.customerName,
+                amount: money(data.settlement.storeCredit.amountCents),
+              })}
+            </p>
+            {data.settlement.storeCredit.phoneMismatch && (
+              <p className="text-muted-foreground">
+                {t('exchange.storeCreditPhoneMismatch', {
+                  name: data.settlement.storeCredit.customerName,
+                  last4: data.settlement.storeCredit.phoneLast4,
+                })}
+              </p>
+            )}
+          </>
+        )}
       </div>
       <div className="space-y-1">
         <p>{t('exchange.staff', { name: data.staffName ?? '—' })}</p>

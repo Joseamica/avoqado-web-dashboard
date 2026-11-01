@@ -23,6 +23,10 @@ describe('decidirVista', () => {
   it('🔴 con tarjetas vendidas SIEMPRE la lista, aunque esté apagado y sin plan (spec §6)', () => {
     expect(decidirVista({ ...base, settings: { ...S, hasCards: true }, hasAccess: false })).toBe('lista')
   })
+  it('🔴 saldo a favor: un negocio con sólo sobres de saldo (sin vender tarjetas, sin módulo ni plan) ve la lista y sus reportes, no el cartel', () => {
+    // El sobre es una GiftCard: `hasCards` (EXISTS en GiftCard) es true, así que las devoluciones a saldo siempre se pueden revisar.
+    expect(decidirVista({ ...base, settings: { ...S, enabled: false, hasCards: true }, hasAccess: false, tierResolved: true })).toBe('lista')
+  })
   it('prendido: la lista (aunque todavía no haya ninguna)', () => {
     expect(decidirVista({ ...base, settings: { ...S, enabled: true } })).toBe('lista')
   })

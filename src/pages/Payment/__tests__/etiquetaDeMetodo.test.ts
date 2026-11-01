@@ -16,6 +16,7 @@ describe('etiquetaDeMetodo — una sola traducción para la tabla, los filtros y
     ['BANK_TRANSFER', 'methods.bankTransfer'],
     ['CRYPTOCURRENCY', 'methods.cryptocurrency'],
     ['OTHER', 'methods.other'],
+    ['STORE_CREDIT', 'methods.storeCredit'],
   ])('%s → %s (nunca «Tarjeta» genérica)', (metodo, llave) => {
     expect(etiquetaDeMetodo(metodo, t)).toBe(llave)
   })
@@ -24,12 +25,19 @@ describe('etiquetaDeMetodo — una sola traducción para la tabla, los filtros y
     expect(etiquetaDeMetodo('CARD', t)).toBe('methods.card')
   })
 
+  it('OTHER con tenderSystemKind STORE_CREDIT dice «Saldo a favor»; sin el campo (servidor viejo) o con otro valor sigue «Otro»', () => {
+    expect(etiquetaDeMetodo('OTHER', t, 'STORE_CREDIT')).toBe('methods.storeCredit')
+    expect(etiquetaDeMetodo('OTHER', t)).toBe('methods.other')
+    expect(etiquetaDeMetodo('OTHER', t, null)).toBe('methods.other')
+    expect(etiquetaDeMetodo('OTHER', t, 'GIFT_CARD')).toBe('methods.other')
+  })
+
   it('sin método no truena', () => {
     expect(etiquetaDeMetodo(undefined, t)).toBe('-')
   })
 
   it('todas las llaves existen en español y en inglés', () => {
-    for (const metodo of ['CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER', 'CRYPTOCURRENCY', 'OTHER', 'CARD']) {
+    for (const metodo of ['CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER', 'CRYPTOCURRENCY', 'OTHER', 'STORE_CREDIT', 'CARD']) {
       const llave = etiquetaDeMetodo(metodo, t).replace('methods.', '')
       expect((es.methods as Record<string, string>)[llave]).toBeTruthy()
       expect((en.methods as Record<string, string>)[llave]).toBeTruthy()

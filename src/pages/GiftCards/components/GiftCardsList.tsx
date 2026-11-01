@@ -34,7 +34,14 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [statuses, setStatuses] = useState<GiftCardListStatus[]>([])
-  const [abierta, setAbierta] = useState<string | null>(null)
+  const [abierta, setAbierta] = useState<string | null>(() => {
+    // «?card=<id>» (la liga de «Saldo a favor congelado» en la ficha del cliente) abre el detalle de esa tarjeta.
+    try {
+      return new URLSearchParams(window.location.search).get('card')
+    } catch {
+      return null
+    }
+  })
   const debouncedSearch = useDebounce(searchTerm.trim(), 300)
   // Estados ordenados: el mismo filtro en otro orden es la MISMA clave (no una consulta de más).
   const filters = useMemo<GiftCardListFilters>(() => ({ search: debouncedSearch, status: [...statuses].sort() }), [debouncedSearch, statuses])
@@ -80,6 +87,9 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
             <div className="space-y-1">
               {/* El motivo del bloqueo sólo se ve en el detalle (la lista del server no lo trae; decisión 1 del coordinador). */}
               <Badge variant={varianteDeEstado(estado)}>{t(`status.${estado}`)}</Badge>
+              {row.original.storeCredit && (
+                <p className="text-xs text-muted-foreground">{t('list.storeCreditOf', { name: row.original.storeCredit.customerName })}</p>
+              )}
             </div>
           )
         },
@@ -90,7 +100,9 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
         cell: ({ row }) => (
           <div>
             <p className="text-sm font-medium tabular-nums">{Currency(row.original.balance)}</p>
-            <p className="text-xs text-muted-foreground">{t('list.balanceOf', { amount: Currency(row.original.initialAmount) })}</p>
+            {!row.original.storeCredit && (
+              <p className="text-xs text-muted-foreground">{t('list.balanceOf', { amount: Currency(row.original.initialAmount) })}</p>
+            )}
           </div>
         ),
       },

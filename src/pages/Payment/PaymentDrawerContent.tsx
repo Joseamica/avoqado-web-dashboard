@@ -137,7 +137,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const amount = Number(payment.amount) || 0
   const tip = Number(payment.tipAmount) || 0
   const total = amount + tip
-  const methodLabel = formatMethod(payment.method, t)
+  const methodLabel = formatMethod(payment.method, t, payment.tenderSystemKind)
   const createdAt = DateTime.fromISO(payment.createdAt, { zone: 'utc' }).setZone(venueTimezone)
   const dateShort = createdAt.toFormat("d 'de' LLL. yyyy HH:mm", { locale: 'es' })
 
@@ -320,7 +320,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
             refundId={r.id}
             amount={Math.abs(Number(r.amount) || 0)}
             createdAt={r.createdAt}
-            methodLabel={formatMethod(r.method, t)}
+            methodLabel={formatMethod(r.method, t, r.tenderSystemKind)}
             reason={
               (r.processorData as any)?.refundReason as string | undefined
             }

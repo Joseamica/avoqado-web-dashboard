@@ -39,7 +39,7 @@ import { useVenueEditActions } from '../VenueEditLayout'
 import { BusinessType } from '@/types'
 import type { FieldErrors } from 'react-hook-form'
 import { CashReconciliationSetting } from './components/CashReconciliationSetting'
-import { ExchangesSetting } from './components/ExchangesSetting'
+import { ExchangesSetting, StoreCreditSetting } from './components/ExchangesSetting'
 import { ManagerPinOverrideSetting } from './components/ManagerPinOverrideSetting'
 
 const LEGACY_BUSINESS_TYPE_MAP: Record<string, BusinessType> = {
@@ -1232,6 +1232,11 @@ export default function BasicInfo() {
                     {venueId && venue.exchangesEnabledEffective !== undefined && (
                       <div className="mt-3">
                         <ExchangesSetting venueId={venueId} effective={venue.exchangesEnabledEffective} />
+                      </div>
+                    )}
+                    {venueId && (
+                      <div className="mt-3">
+                        <StoreCreditSetting venueId={venueId} storeCreditOnly={venue.storeCreditOnly ?? false} available={venue.storeCreditAvailable ?? false} />
                       </div>
                     )}
                   </div>

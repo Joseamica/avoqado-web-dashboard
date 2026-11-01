@@ -121,6 +121,12 @@ export interface GiftCardRow {
   deliveredAt?: string | null
   deliveryErrorCode?: string | null
   deliveryError?: string | null
+  /**
+   * Saldo a favor (spec 2026-10-30): la tarjeta es el sobre de saldo de un cliente. Con él, el panel dice «Saldo a favor de
+   * {cliente}» en vez del estado de entrega y no ofrece Reenviar, Cambiar destino ni reponer el código. Opcional: un server
+   * viejo no lo manda y todo se ve como siempre.
+   */
+  storeCredit?: { customerId: string; customerName: string } | null
 }
 
 /** Lo que el panel PIDE (query de `GET /gift-cards`; no es una respuesta). */
@@ -280,6 +286,8 @@ export interface GiftCardSummary {
   timezone: string
   /** Activadas en el periodo (= vendidas y cobradas). */
   sold: { cards: number; amount: number }
+  /** Saldo a favor abonado en el periodo (pesos), aparte de `sold`. Opcional: un server viejo no lo manda. */
+  storeCredit?: { cards: number; movements: number; amount: number }
   /** Saldo usado en el periodo, neto de los reversos (`net`). */
   redeemed: { movements: number; amount: number; reversed: number; net: number }
   cancelled: { cards: number; amount: number }

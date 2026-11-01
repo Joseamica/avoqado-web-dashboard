@@ -442,5 +442,23 @@
       "subject": "¡Feliz cumpleaños!",
       "body": "Queremos desearte un feliz cumpleaños. Gracias por ser parte de nuestra historia — te esperamos pronto para celebrarlo."
     }
+  },
+  "storeCredit": {
+    "balance": "Saldo a favor: {{amount}}",
+    "phone": "Teléfono del saldo a favor: ••{{last4}}",
+    "change": "Cambiar",
+    "blocked": "Saldo a favor congelado",
+    "blockedWhy": "El saldo está bloqueado y no se puede gastar. Un gerente lo puede desbloquear en Tarjetas de regalo.",
+    "changeTitle": "Cambiar el teléfono del saldo a favor",
+    "changeDescription": "Con este teléfono se gasta el saldo. No se manda ninguna página ni código; los códigos ya enviados al teléfono anterior dejan de servir.",
+    "newPhone": "Teléfono nuevo (10 dígitos)",
+    "invalidPhone": "Escribe un teléfono de 10 dígitos.",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "changed": "Teléfono del saldo a favor actualizado",
+    "outdated": "El teléfono cambió mientras lo editabas; ya ves el actual.",
+    "notAllowed": "Sólo se puede cambiar el teléfono de un saldo a favor.",
+    "error": "No se pudo cambiar el teléfono. Intenta de nuevo.",
+    "seeCard": "Ver la tarjeta de este saldo"
   }
 }
