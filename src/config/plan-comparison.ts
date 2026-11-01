@@ -49,6 +49,7 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
       { key: 'pos', values: TODOS },
       { key: 'menuOrders', values: TODOS },
       { key: 'tables', codes: ['TABLE_SERVICE'] },
+      { key: 'deviceMenus', codes: ['DEVICE_MENUS'] },
       { key: 'reservations', codes: ['RESERVATIONS'] },
       { key: 'onlineOrdering', codes: ['ONLINE_ORDERING'] },
       { key: 'upsell', codes: ['UPSELL'] },

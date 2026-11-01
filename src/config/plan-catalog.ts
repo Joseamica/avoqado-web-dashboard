@@ -97,6 +97,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       // Tarjetas de regalo (fase 1a, D1 del spec, 14-oct-2026): Pro; suelta $249/mes con IVA. Espejo de LEGACY_PLAN_CODES
       // del server, por nombre exacto. 🔴 Sólo VENDER y PRENDER se gatean (R9): ver saldos, cobrar con saldo y reportes no.
       'GIFT_CARDS',
+      'DEVICE_MENUS', // espejo del server (featureCatalog.ts: minimumTier PRO, CONFIGURABLE)
       'PRODUCT_VARIANTS', // espejo exacto del server (featureCatalog.ts: minimumTier PRO, offering CONFIGURABLE)
     ],
   },
