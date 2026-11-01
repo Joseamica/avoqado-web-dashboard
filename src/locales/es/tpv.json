@@ -1114,14 +1114,14 @@
     "todosLosMenus": "Todos los menús",
     "nuevoMenu": "Nuevo menú",
     "actualizaLaApp": "Actualiza la app para que lo aplique",
-    "categorias_one": "{{count, number}} categoría",
-    "categorias_other": "{{count, number}} categorías",
-    "productos_one": "{{count, number}} producto",
-    "productos_other": "{{count, number}} productos",
+    "categorias_one": "{{count}} categoría",
+    "categorias_other": "{{count}} categorías",
+    "productos_one": "{{count}} producto",
+    "productos_other": "{{count}} productos",
     "ve": "{{categorias}} · {{productos}}",
     "veAlActualizar": "Al actualizar verá: {{cuenta}}",
-    "categoriasDelMenu_one": "{{count, number}} categoría del menú",
-    "categoriasDelMenu_other": "{{count, number}} categorías del menú",
+    "categoriasDelMenu_one": "{{count}} categoría del menú",
+    "categoriasDelMenu_other": "{{count}} categorías del menú",
     "buscarMenus": "Buscar menú",
     "sinResultadosMenus": "Ningún menú para aparatos con ese nombre",
     "sinAparatos": "Todavía no hay aparatos con el POS de Avoqado. Aparecen aquí solos al iniciar sesión en la app (Android, iPad o Windows).",
@@ -1133,6 +1133,9 @@
     "errorAlGuardar": "No se pudo guardar",
     "rango": "{{desde}}–{{hasta}} de {{total}}",
     "anterior": "Anterior",
-    "siguiente": "Siguiente"
+    "siguiente": "Siguiente",
+    "sinPermisoEditar": "Para cambiar qué muestra cada aparato, pide a tu administrador el permiso «Editar terminales».",
+    "menusCargados": "{{cargados}} de {{total}} menús",
+    "mostrarMasMenus": "Mostrar más menús"
   }
 }

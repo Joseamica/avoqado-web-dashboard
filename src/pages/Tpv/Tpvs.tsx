@@ -814,7 +814,7 @@ export default function Tpvs() {
           </div>
         </div>
 
-        {/* Pill tabs: Dispositivos vs Pedidos (órdenes de compra de terminales) */}
+        {/* Pill tabs: Dispositivos · Pedidos (órdenes de compra de terminales) · Qué muestra cada aparato (Menú del aparato) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
           <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-input h-auto w-fit">
             <TabsTrigger

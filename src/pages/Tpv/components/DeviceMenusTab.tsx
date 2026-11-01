@@ -1,6 +1,6 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Monitor, Plus, Search, Tablet } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { FeatureGate } from '@/components/billing/FeatureGate'
@@ -70,36 +70,48 @@ function DeviceMenusContent() {
     staleTime: 30_000,
     retry: 1,
     refetchOnWindowFocus: false,
+    // Los menús se cambian en «Menús»: al volver a la pestaña se relee, aunque no hayan pasado 30 s (Codex r1 #2).
+    refetchOnMount: 'always',
     enabled: !!venueId,
   })
 
-  const menuOptions = useQuery({
+  const menuOptions = useInfiniteQuery({
     queryKey: ['device-menu-options', venueId, debouncedMenuSearch],
-    queryFn: () => getDeviceMenuOptions(venueId, { search: debouncedMenuSearch || undefined, page: 1, pageSize: OPTIONS_PAGE_SIZE }),
+    queryFn: ({ pageParam }) =>
+      getDeviceMenuOptions(venueId, { search: debouncedMenuSearch || undefined, page: pageParam, pageSize: OPTIONS_PAGE_SIZE }),
+    initialPageParam: 1,
+    // Sin `last.menus.length` una página vacía (se borraron menús) pediría «más» para siempre.
+    getNextPageParam: (last, all) =>
+      last.menus.length > 0 && all.reduce((n, p) => n + p.menus.length, 0) < last.total ? all.length + 1 : undefined,
     // La búsqueda va en la llave: sin esto cada tecla vacía las opciones (bounded-data-and-query-load.md).
     placeholderData: keepPreviousData,
     staleTime: 30_000,
     retry: 1,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
     enabled: !!venueId,
   })
 
-  const options = useMemo<Option[]>(
-    () =>
-      (menuOptions.data?.menus ?? []).map(m => ({
+  const options = useMemo<Option[]>(() => {
+    // Por id: si un menú se movió de página entre una lectura y otra, no sale dos veces.
+    const vistos = new Set<string>()
+    return (menuOptions.data?.pages ?? [])
+      .flatMap(p => p.menus)
+      .filter(m => !vistos.has(m.id) && !!vistos.add(m.id))
+      .map(m => ({
         value: m.id,
         label: m.name,
         // Categorías DIRECTAS del menú: no es la cuenta de «En su pantalla ve» (ésa suma subcategorías con productos).
         description: t('deviceMenus.categoriasDelMenu', { count: m.categoryCount }),
-      })),
-    [menuOptions.data, t],
-  )
+      }))
+  }, [menuOptions.data, t])
 
   const canEdit = can('tpv:update')
   const canCreateMenu = can('menu:create')
-  const optionsTotal = menuOptions.data?.total ?? 0
-  // Visible si no cupieron todas, o si ya hay una búsqueda (si no, al filtrar se escondería a sí mismo).
-  const showMenuSearch = menuSearch !== '' || optionsTotal > (menuOptions.data?.menus.length ?? 0)
+  const optionsPages = menuOptions.data?.pages ?? []
+  const optionsTotal = optionsPages[optionsPages.length - 1]?.total ?? 0
+  // Visible si no cupieron en una página, o si ya hay una búsqueda (si no, al filtrar se escondería a sí mismo).
+  const showMenuSearch = menuSearch !== '' || optionsTotal > OPTIONS_PAGE_SIZE
 
   const newMenuButton = canCreateMenu && (
     <Button size="sm" className="h-9" data-tour="device-menus-new-menu" onClick={() => setWizardOpen(true)}>
@@ -109,6 +121,14 @@ function DeviceMenusContent() {
   )
 
   const total = devices.data?.total ?? 0
+  const ultimaPagina = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  // Se retiraron aparatos y la página ya no existe: a la última que sí, releyendo (las demás traen el total viejo).
+  const fueraDeRango = !!devices.data && !devices.isPlaceholderData && page > ultimaPagina
+  useEffect(() => {
+    if (!fueraDeRango) return
+    queryClient.invalidateQueries({ queryKey: ['device-menus', venueId], refetchType: 'none' })
+    setPage(ultimaPagina)
+  }, [fueraDeRango, ultimaPagina, queryClient, venueId])
   // Sólo con aparatos: sin ninguno ya se dice «sinAparatos», y dos avisos a la vez confunden.
   const noDeviceMenus = total > 0 && menuOptions.isSuccess && optionsTotal === 0 && debouncedMenuSearch === ''
   const desde = (page - 1) * PAGE_SIZE + 1
@@ -120,6 +140,8 @@ function DeviceMenusContent() {
         <p className="max-w-2xl text-sm text-muted-foreground">{t('deviceMenus.subtitulo')}</p>
         {newMenuButton}
       </div>
+
+      {!canEdit && <p className="text-sm text-muted-foreground">{t('deviceMenus.sinPermisoEditar')}</p>}
 
       {noDeviceMenus && (
         <div
@@ -141,15 +163,26 @@ function DeviceMenusContent() {
       )}
 
       {showMenuSearch && (
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label={t('deviceMenus.buscarMenus')}
-            placeholder={t('deviceMenus.buscarMenus')}
-            value={menuSearch}
-            onChange={e => setMenuSearch(e.target.value)}
-            className="h-9 rounded-full pl-8 text-sm"
-          />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label={t('deviceMenus.buscarMenus')}
+              placeholder={t('deviceMenus.buscarMenus')}
+              value={menuSearch}
+              maxLength={100}
+              onChange={e => setMenuSearch(e.target.value)}
+              className="h-9 rounded-full pl-8 text-sm"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {t('deviceMenus.menusCargados', { cargados: options.length, total: optionsTotal })}
+          </span>
+          {menuOptions.hasNextPage && (
+            <Button size="sm" variant="outline" disabled={menuOptions.isFetchingNextPage} onClick={() => menuOptions.fetchNextPage()}>
+              {t('deviceMenus.mostrarMasMenus')}
+            </Button>
+          )}
         </div>
       )}
 
@@ -187,7 +220,8 @@ function DeviceMenusContent() {
                   page={page}
                   options={options}
                   optionsLoading={menuOptions.isFetching}
-                  canEdit={canEdit}
+                  // Con la página pedida aún en camino, estas filas son de la anterior: no se editan (Codex r1 #1).
+                  canEdit={canEdit && !devices.isPlaceholderData}
                 />
               ))}
             </TableBody>
@@ -246,10 +280,11 @@ function DeviceMenusRow({
   const selected = useMemo<Option[]>(() => row.menus.map(m => ({ value: m.id, label: m.name })), [row.menus])
 
   const save = useMutation({
-    mutationFn: (menuIds: string[]) => setTerminalMenus(venueId, row.id, menuIds),
-    onSuccess: saved => {
+    // `page` viaja con la elección: si el dueño cambió de página mientras guardaba, lo guardado va a la página de la fila.
+    mutationFn: ({ menuIds }: { menuIds: string[]; page: number }) => setTerminalMenus(venueId, row.id, menuIds),
+    onSuccess: (saved, { page: paginaDeLaFila }) => {
       // 🔴 ANTES de desbloquear: la siguiente elección parte de lo guardado, no de la relectura que todavía no llega (Codex r2-2).
-      queryClient.setQueryData<DeviceMenusPage>(['device-menus', venueId, page], old =>
+      queryClient.setQueryData<DeviceMenusPage>(['device-menus', venueId, paginaDeLaFila], old =>
         old ? { ...old, terminals: old.terminals.map(r => (r.id === saved.id ? saved : r)) } : old,
       )
       // Sin `return`: si se esperara la relectura, el selector seguiría bloqueado hasta que contestara.
@@ -257,6 +292,9 @@ function DeviceMenusRow({
       toast({ title: t('deviceMenus.guardado') })
     },
     onError: (error: any) => {
+      // El 400 suele ser un menú que ya no está (se apagó o se borró en «Menús»): se relee la fila y las opciones.
+      queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['device-menu-options', venueId] })
       toast({
         title: t('deviceMenus.errorAlGuardar'),
         description: error?.response?.data?.message ?? error?.message,
@@ -275,7 +313,10 @@ function DeviceMenusRow({
           <div className="flex min-w-0 flex-col">
             <span className="truncate font-medium">{row.name}</span>
             {system.label && <span className="truncate text-xs text-muted-foreground">{system.label}</span>}
-            {row.needsAppUpdate && <span className="text-xs text-muted-foreground">{t('deviceMenus.actualizaLaApp')}</span>}
+            {/* Con «Todos los menús» la app vieja ya muestra todo: no hay nada que aplicar (Ruling 18). */}
+            {row.needsAppUpdate && row.menus.length > 0 && (
+              <span className="text-xs text-muted-foreground">{t('deviceMenus.actualizaLaApp')}</span>
+            )}
           </div>
         </div>
       </TableCell>
@@ -284,7 +325,7 @@ function DeviceMenusRow({
         <MultiSelectCombobox
           options={options}
           selected={selected}
-          onChange={next => save.mutate(next.map(o => o.value))}
+          onChange={next => save.mutate({ menuIds: next.map(o => o.value), page })}
           placeholder={t('deviceMenus.todosLosMenus')}
           emptyText={t('deviceMenus.sinResultadosMenus')}
           isLoading={optionsLoading && options.length === 0}

@@ -46,6 +46,7 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
+import esTpv from '@/locales/es/tpv.json'
 import DeviceMenusTab from '../components/DeviceMenusTab'
 
 const nunca = () => new Promise<never>(() => {})
@@ -76,8 +77,8 @@ const menu = (id: string, name: string, categoryCount = 3) => ({ id, name, appli
 const paginaMenus = (menus: ReturnType<typeof menu>[], total = menus.length) => ({ menus, total, page: 1, pageSize: 100 })
 const NOMBRES: Record<string, string> = { m1: 'Desayunos', m2: 'Comidas' }
 
-function pintar() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } })
+const cliente = () => new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } })
+function pintar(qc = cliente()) {
   return render(
     <QueryClientProvider client={qc}>
       <DeviceMenusTab />
@@ -221,6 +222,26 @@ describe('DeviceMenusTab — qué muestra cada aparato', () => {
     await waitFor(() => expect(svc.getDeviceMenuOptions).toHaveBeenCalledWith('v1', { search: 'des', page: 1, pageSize: 100 }))
     // La búsqueda va en la llave: el buscador no se desmonta ni pierde lo escrito.
     expect(screen.getByLabelText('deviceMenus.buscarMenus')).toHaveValue('des')
+    // El SERVIDOR rechaza búsquedas de más de 100 caracteres.
+    expect(buscador).toHaveAttribute('maxLength', '100')
+  })
+
+  it('con más de 100 menús, «Mostrar más menús» trae la página siguiente y el 101 se puede elegir', async () => {
+    const cien = Array.from({ length: 100 }, (_, i) => menu(`m${i + 1}`, `Menú ${i + 1}`))
+    svc.getDeviceMenuOptions.mockImplementation((_v: string, { page }: { page: number }) =>
+      Promise.resolve({ ...paginaMenus(page === 1 ? cien : [menu('m101', 'Menú 101')], 101), page }),
+    )
+    const user = userEvent.setup()
+    pintar()
+    expect(await screen.findByText('deviceMenus.menusCargados(100,101)')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'deviceMenus.mostrarMasMenus' }))
+    await waitFor(() => expect(svc.getDeviceMenuOptions).toHaveBeenCalledWith('v1', { search: undefined, page: 2, pageSize: 100 }))
+    expect(await screen.findByText('deviceMenus.menusCargados(101,101)')).toBeInTheDocument()
+    // Ya no queda más que traer.
+    expect(screen.queryByRole('button', { name: 'deviceMenus.mostrarMasMenus' })).not.toBeInTheDocument()
+    await user.click(selector('t1'))
+    await user.click(await opcion(/Menú 101/))
+    await waitFor(() => expect(svc.setTerminalMenus).toHaveBeenCalledWith('v1', 't1', ['m101']))
   })
 
   it('un menú elegido que no está en la página de opciones se pinta con su nombre', async () => {
@@ -230,12 +251,17 @@ describe('DeviceMenusTab — qué muestra cada aparato', () => {
     expect(enFila('t1').getByText('Menú viejo')).toBeInTheDocument()
   })
 
-  it('aparato viejo dice Actualiza la app para que lo aplique', async () => {
+  it('aparato viejo con menús elegidos dice Actualiza la app para que lo aplique; con Todos no (Ruling 18)', async () => {
     svc.getDeviceMenus.mockResolvedValue(
       paginaAparatos([
-        fila('t1', 'Caja', { needsAppUpdate: true, seesAfterUpdate: { categories: 4, products: 88 } }),
+        fila('t1', 'Caja', {
+          needsAppUpdate: true,
+          menus: [{ id: 'm1', name: 'Desayunos' }],
+          seesAfterUpdate: { categories: 4, products: 88 },
+        }),
+        // Con «Todos los menús» no hay nada que aplicar: la app vieja ya muestra todo.
         fila('t2', 'Barra', { needsAppUpdate: true, seesAfterUpdate: null }),
-        fila('t3', 'Mostrador'),
+        fila('t3', 'Mostrador', { menus: [{ id: 'm1', name: 'Desayunos' }] }),
       ]),
     )
     pintar()
@@ -244,17 +270,24 @@ describe('DeviceMenusTab — qué muestra cada aparato', () => {
     // HOY ve todo; lo filtrado es lo que verá al actualizar (Ruling 11).
     expect(enFila('t1').getByText(ve(20, 1022))).toBeInTheDocument()
     expect(enFila('t1').getByText(`deviceMenus.veAlActualizar(${ve(4, 88)})`)).toBeInTheDocument()
-    expect(enFila('t2').getByText('deviceMenus.actualizaLaApp')).toBeInTheDocument()
+    expect(enFila('t2').queryByText('deviceMenus.actualizaLaApp')).not.toBeInTheDocument()
     expect(enFila('t2').queryByText(/deviceMenus.veAlActualizar/)).not.toBeInTheDocument()
     expect(enFila('t3').queryByText('deviceMenus.actualizaLaApp')).not.toBeInTheDocument()
   })
 
-  it('sin tpv:update el selector está deshabilitado', async () => {
+  it('sin tpv:update el selector está deshabilitado y dice por qué', async () => {
     acceso.permisos = ['tpv:read']
     pintar()
     await screen.findByText('Caja')
     expect(selector('t1')).toBeDisabled()
+    expect(screen.getByText('deviceMenus.sinPermisoEditar')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'deviceMenus.nuevoMenu' })).not.toBeInTheDocument()
+  })
+
+  it('con tpv:update no sale el aviso de permiso', async () => {
+    pintar()
+    await screen.findByText('Caja')
+    expect(screen.queryByText('deviceMenus.sinPermisoEditar')).not.toBeInTheDocument()
   })
 
   it('sin aparatos POS enseña sinAparatos', async () => {
@@ -306,5 +339,91 @@ describe('DeviceMenusTab — qué muestra cada aparato', () => {
     expect(screen.getByText('deviceMenus.rango(1,50,120)')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'deviceMenus.siguiente' }))
     await waitFor(() => expect(svc.getDeviceMenus).toHaveBeenCalledWith('v1', { page: 2, pageSize: 50 }))
+  })
+
+  // Codex DASHBOARD r1 #1: con la página siguiente cargando, las filas de la anterior seguían editables y el PUT se escribía
+  // en la caché de la página nueva; la segunda elección mandaba [B] y borraba A.
+  it('mientras llega la página siguiente, las filas de la anterior no se editan', async () => {
+    svc.getDeviceMenus.mockImplementation((_v: string, { page }: { page: number }) =>
+      page === 1 ? Promise.resolve(paginaAparatos([fila('t1', 'Caja')], 120)) : nunca(),
+    )
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Caja')
+    expect(selector('t1')).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'deviceMenus.siguiente' }))
+    await waitFor(() => expect(svc.getDeviceMenus).toHaveBeenCalledWith('v1', { page: 2, pageSize: 50 }))
+    expect(screen.getByText('Caja')).toBeInTheDocument()
+    expect(selector('t1')).toBeDisabled()
+  })
+
+  it('un guardado que termina después de cambiar de página queda en la página de su fila', async () => {
+    const lecturas: Record<number, number> = {}
+    svc.getDeviceMenus.mockImplementation((_v: string, { page }: { page: number }) => {
+      lecturas[page] = (lecturas[page] ?? 0) + 1
+      if (lecturas[page] > 1) return nunca() // la relectura no llega: lo que se vea sólo puede venir del PUT
+      return Promise.resolve(paginaAparatos(page === 1 ? [fila('t1', 'Caja')] : [fila('t51', 'Barra')], 120, page))
+    })
+    let terminaPut: (fila: unknown) => void = () => {}
+    svc.setTerminalMenus.mockReturnValue(new Promise(resolve => (terminaPut = resolve)))
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Caja')
+    await user.click(selector('t1'))
+    await user.click(await opcion(/Desayunos/))
+    await waitFor(() => expect(svc.setTerminalMenus).toHaveBeenCalledWith('v1', 't1', ['m1']))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'deviceMenus.siguiente' }))
+    await screen.findByText('Barra')
+    terminaPut(fila('t1', 'Caja', { menus: [{ id: 'm1', name: 'Desayunos' }] }))
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'deviceMenus.guardado' })))
+    await user.click(screen.getByRole('button', { name: 'deviceMenus.anterior' }))
+    await screen.findByText('Caja')
+    expect(selector('t1')).toHaveTextContent('Desayunos')
+  })
+
+  // Codex DASHBOARD r1 #2: un menú que se apagó o se borró en «Menús» seguía ofreciéndose hasta 30 s.
+  it('volver a abrir la pestaña vuelve a pedir aparatos y opciones', async () => {
+    const qc = cliente()
+    const { unmount } = pintar(qc)
+    await screen.findByText('Caja')
+    unmount()
+    pintar(qc)
+    await screen.findByText('Caja')
+    await waitFor(() => expect(svc.getDeviceMenus).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(svc.getDeviceMenuOptions).toHaveBeenCalledTimes(2))
+  })
+
+  it('un error al guardar (menú que ya no está) vuelve a pedir la fila y las opciones', async () => {
+    svc.setTerminalMenus.mockRejectedValue({ response: { status: 400, data: { message: 'Ese menú ya no está disponible.' } } })
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Caja')
+    await waitFor(() => expect(svc.getDeviceMenuOptions).toHaveBeenCalledTimes(1))
+    await user.click(selector('t1'))
+    await user.click(await opcion(/Desayunos/))
+    await waitFor(() => expect(svc.getDeviceMenus).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(svc.getDeviceMenuOptions).toHaveBeenCalledTimes(2))
+  })
+
+  it('si la página queda fuera de rango (se retiraron aparatos), regresa a la última página válida', async () => {
+    const lecturas: Record<number, number> = {}
+    svc.getDeviceMenus.mockImplementation((_v: string, { page }: { page: number }) => {
+      lecturas[page] = (lecturas[page] ?? 0) + 1
+      // Al pedir la 2 ya sólo quedan 40 aparatos: cabe todo en la 1.
+      if (page === 2) return Promise.resolve(paginaAparatos([], 40, 2))
+      return Promise.resolve(paginaAparatos([fila('t1', 'Caja')], lecturas[1] === 1 ? 120 : 40))
+    })
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Caja')
+    await user.click(screen.getByRole('button', { name: 'deviceMenus.siguiente' }))
+    await waitFor(() => expect(lecturas[1]).toBe(2))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'deviceMenus.siguiente' })).not.toBeInTheDocument())
+    expect(screen.getByText('Caja')).toBeInTheDocument()
+  })
+
+  it('los conteos en español no usan el formato de número de España («12.345»)', () => {
+    expect(JSON.stringify(esTpv.deviceMenus)).not.toContain(', number')
   })
 })

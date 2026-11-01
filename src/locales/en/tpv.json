@@ -1112,6 +1112,9 @@
     "errorAlGuardar": "Could not save",
     "rango": "{{desde}}–{{hasta}} of {{total}}",
     "anterior": "Previous",
-    "siguiente": "Next"
+    "siguiente": "Next",
+    "sinPermisoEditar": "To change what each device shows, ask your administrator for the «Edit terminals» permission.",
+    "menusCargados": "{{cargados}} of {{total}} menus",
+    "mostrarMasMenus": "Show more menus"
   }
 }
