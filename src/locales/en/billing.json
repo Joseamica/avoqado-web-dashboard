@@ -160,6 +160,7 @@
         "pos": "Card payments (terminal)",
         "menuOrders": "Menu and orders",
         "tables": "Table service",
+        "kitchenDisplay": "Kitchen display (instead of paper, or alongside it)",
         "reservations": "Reservations and appointments",
         "onlineOrdering": "Online ordering",
         "upsell": "Upsell prompts at checkout",

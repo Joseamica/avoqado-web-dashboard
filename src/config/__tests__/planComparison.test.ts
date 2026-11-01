@@ -18,10 +18,10 @@ describe('tabla de comparación de planes', () => {
     expect(faltan).toEqual([])
   })
 
-  it('🔴 la pantalla de cocina no se anuncia en la tabla antes de su lanzamiento (fase 3.6)', () => {
+  it('la pantalla de cocina ya se anuncia: tiene su fila y no está «sin lanzar» (founder, 1-nov)', () => {
     const enTabla = new Set(PLAN_COMPARISON.flatMap(c => c.rows.flatMap(r => r.codes ?? [])))
-    expect(enTabla.has('KITCHEN_DISPLAY')).toBe(false)
-    expect(FUNCIONES_SIN_LANZAR).toContain('KITCHEN_DISPLAY')
+    expect(enTabla.has('KITCHEN_DISPLAY')).toBe(true)
+    expect(FUNCIONES_SIN_LANZAR).not.toContain('KITCHEN_DISPLAY')
   })
 
   it('cada función «sin lanzar» sigue en el catálogo (la lista no se queda con basura)', () => {

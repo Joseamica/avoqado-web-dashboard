@@ -32,9 +32,16 @@ export interface CategoriaDeComparacion {
 const TODOS: Record<TierComparado, ValorDeCelda> = { FREE: true, PRO: true, PREMIUM: true }
 
 /**
+ * Funciones del catálogo cuyo código TODAVÍA NO EXISTE (founder, 1-nov: «no la escondas, corrígela»). En Ajustes →
+ * Suscripciones se ven con «Próximamente», nunca «En tu plan» ni con compra o mejora de plan. `CUSTOMER_DISPLAY_PROMOS` sale
+ * de aquí en F3, cuando exista el carrusel de promos de la pantalla del cliente.
+ */
+export const FUNCIONES_PROXIMAMENTE: readonly string[] = ['CUSTOMER_DISPLAY_PROMOS']
+
+/**
  * Funciones que ya están en `includes` (el paywall debe conocerlas) pero que TODAVÍA NO se ofrecen a clientes: no salen
- * en la tabla hasta que se abre su puerta de calidad. `KITCHEN_DISPLAY` se quita de aquí —y gana su fila— en la fase 3.6
- * de la pantalla de cocina, junto con `PANTALLA_ABIERTA_A_CLIENTES` del servidor. `AGGREGATOR_PASSES` (conector de pases,
+ * en la tabla hasta que se abre su puerta de calidad. `KITCHEN_DISPLAY` ya salió de aquí y tiene su fila (founder, 1-nov:
+ * abierta a clientes junto con `PANTALLA_ABIERTA_A_CLIENTES` del servidor). `AGGREGATOR_PASSES` (conector de pases,
  * Pro) sale de aquí cuando el founder decida anunciarla. `CUSTOMER_DISPLAY_PROMOS` (promos en reposo, Pro) sale de aquí en
  * F3, con el carrusel y su precio. `GIFT_CARDS` (tarjetas de regalo, Pro) sale de aquí —y gana su
  * fila `{ key: 'giftCards', codes: ['GIFT_CARDS'] }` en «customers»; el texto ya está en billing.json— cuando el POS las
@@ -44,13 +51,7 @@ const TODOS: Record<TierComparado, ValorDeCelda> = { FREE: true, PRO: true, PREM
  * (Parte E, paso 4): antes, ningún aparato lo aplica.
  * 🔴 Esta lista NO esconde filas: sólo exime al código de «cada función aparece en alguna fila». Lo sin lanzar va SIN fila.
  */
-export const FUNCIONES_SIN_LANZAR: readonly string[] = [
-  'KITCHEN_DISPLAY',
-  'AGGREGATOR_PASSES',
-  'CUSTOMER_DISPLAY_PROMOS',
-  'GIFT_CARDS',
-  'DEVICE_MENUS',
-]
+export const FUNCIONES_SIN_LANZAR: readonly string[] = ['AGGREGATOR_PASSES', 'CUSTOMER_DISPLAY_PROMOS', 'GIFT_CARDS', 'DEVICE_MENUS']
 
 export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
   {
@@ -59,6 +60,7 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
       { key: 'pos', values: TODOS },
       { key: 'menuOrders', values: TODOS },
       { key: 'tables', codes: ['TABLE_SERVICE'] },
+      { key: 'kitchenDisplay', codes: ['KITCHEN_DISPLAY'] },
       { key: 'reservations', codes: ['RESERVATIONS'] },
       { key: 'onlineOrdering', codes: ['ONLINE_ORDERING'] },
       { key: 'upsell', codes: ['UPSELL'] },
