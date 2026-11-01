@@ -11,6 +11,8 @@ interface Option {
   value: string
   /** No se puede elegir ni quitar: en la lista no responde y, si ya está elegida, su chip sale sin la X (p. ej. una variante). */
   disabled?: boolean
+  /** Línea secundaria en la lista (no en el chip), p. ej. «3 categorías del menú». */
+  description?: string
 }
 
 interface MultiSelectComboboxProps {
@@ -21,6 +23,12 @@ interface MultiSelectComboboxProps {
   emptyText: string
   isLoading?: boolean
   className?: string
+  /** No abre ni deja quitar chips (p. ej. mientras se guarda la elección). */
+  disabled?: boolean
+  /** Nombre para lectores de pantalla, cuando hay varios selectores iguales en la página (p. ej. uno por aparato). */
+  ariaLabel?: string
+  /** Texto del buscador de la lista; sin él usa `placeholder`. */
+  searchPlaceholder?: string
 }
 
 export function MultiSelectCombobox({
@@ -31,6 +39,9 @@ export function MultiSelectCombobox({
   emptyText,
   isLoading,
   className,
+  disabled,
+  ariaLabel,
+  searchPlaceholder,
 }: MultiSelectComboboxProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -39,13 +50,16 @@ export function MultiSelectCombobox({
 
   return (
     <div className={cn('space-y-2', className)}>
-      <Popover open={open} onOpenChange={setOpen} modal={true}>
+      {/* Deshabilitado no abre; si ya estaba abierto, sus opciones quedan inertes (abajo) y se puede cerrar. */}
+      <Popover open={open} onOpenChange={next => (!next || !disabled) && setOpen(next)} modal={true}>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-label={ariaLabel}
+            disabled={disabled}
             className="w-full justify-between h-auto min-h-12 py-2 px-3 text-left font-normal bg-transparent shadow-xs text-sm overflow-hidden"
           >
             <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden">
@@ -55,16 +69,16 @@ export function MultiSelectCombobox({
                   key={item.value}
                   className={cn(
                     'flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-                    !item.disabled && 'cursor-pointer hover:bg-primary/20',
+                    !item.disabled && !disabled && 'cursor-pointer hover:bg-primary/20',
                   )}
                   onClick={e => {
                     e.stopPropagation()
-                    if (item.disabled) return
+                    if (item.disabled || disabled) return
                     onChange(selected.filter(i => i.value !== item.value))
                   }}
                 >
                   {item.label}
-                  {!item.disabled && <X className="h-3 w-3 opacity-60 hover:opacity-100" />}
+                  {!item.disabled && !disabled && <X className="h-3 w-3 opacity-60 hover:opacity-100" />}
                 </div>
               ))}
             </div>
@@ -77,7 +91,7 @@ export function MultiSelectCombobox({
           style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
           <Command shouldFilter={false} className="bg-card">
-            <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
+            <CommandInput placeholder={searchPlaceholder ?? placeholder} value={search} onValueChange={setSearch} />
             <CommandList>
               {isLoading && (
                 <div className="py-6 text-center text-sm text-muted-foreground">
@@ -93,7 +107,7 @@ export function MultiSelectCombobox({
                       <CommandItem
                         key={option.value}
                         value={option.value}
-                        disabled={option.disabled}
+                        disabled={option.disabled || disabled}
                         onSelect={() => {
                           if (isSelected) {
                             onChange(selected.filter(item => item.value !== option.value))
@@ -101,12 +115,16 @@ export function MultiSelectCombobox({
                             onChange([...selected, option])
                           }
                         }}
-                        className={cn('flex items-center gap-3 py-3', option.disabled ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer')}
+                        className={cn(
+                          'flex items-center gap-3 py-3',
+                          option.disabled || disabled ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer',
+                        )}
                       >
-                        <Check
-                          className={cn('h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')}
-                        />
-                        <span className="truncate text-sm">{option.label}</span>
+                        <Check className={cn('h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')} />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate text-sm">{option.label}</span>
+                          {option.description && <span className="truncate text-xs text-muted-foreground">{option.description}</span>}
+                        </span>
                       </CommandItem>
                     )
                   })}

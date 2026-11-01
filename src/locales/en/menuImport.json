@@ -69,7 +69,7 @@
     "mergeDesc": "Add new products and categories. Update existing products by SKU. Don't delete anything.",
     "replace": "Replace All",
     "replaceDesc": "Delete all existing menu data and replace with CSV contents. This cannot be undone!",
-    "warning": "⚠️ Warning: Replace mode will permanently delete your current menu"
+    "warning": "⚠️ Warning: Replace mode will permanently delete your current menu and what each device shows (they go back to showing everything)"
   },
   "preview": {
     "title": "Preview",

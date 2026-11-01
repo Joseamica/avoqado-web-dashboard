@@ -348,6 +348,9 @@ export default function Overview() {
     mutationFn: ({ menuId, active }: { menuId: string; active: boolean }) => menuService.updateMenu(venueId!, menuId, { active }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menus', venueId] })
+      // Un menú apagado deja de ofrecerse en «Qué muestra cada aparato» (Codex r1 #2).
+      queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['device-menu-options', venueId] })
     },
   })
 

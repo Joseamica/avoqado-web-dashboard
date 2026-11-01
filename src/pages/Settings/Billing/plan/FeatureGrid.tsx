@@ -1,6 +1,7 @@
 // src/pages/Settings/Billing/plan/FeatureGrid.tsx
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
+import { FUNCIONES_PROXIMAMENTE } from '@/config/plan-comparison'
 import { cn } from '@/lib/utils'
 import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -57,7 +58,11 @@ export function FeatureGrid({
   }
   const intro = !purchasesEnabled ? 'plan.grid.introClosed' : mode === 'DROP' ? 'plan.grid.introDrop' : 'plan.grid.intro'
 
+  const proximamente = (entry: FeatureGridEntry) => !!entry.featureCode && FUNCIONES_PROXIMAMENTE.includes(entry.featureCode)
+
   const status = (entry: FeatureGridEntry): { text: string | null; owned: boolean } => {
+    // Todavía no existe: ni «En tu plan» ni el nombre del plan que la trae (founder, 1-nov).
+    if (proximamente(entry)) return { text: t('common:comingSoon'), owned: false }
     const { source, paidThrough, cancelAt } = entry.access
     if (source === 'GRANDFATHERED') return { text: t('plan.grid.founder'), owned: true }
     if (source === 'FREE') return { text: t('plan.grid.included'), owned: true }
@@ -81,9 +86,13 @@ export function FeatureGrid({
     const Icon = featureIcon(entry.id)
     const code = entry.featureCode
     const checked = !!code && marked.includes(code)
-    const markable = !!code && purchasesEnabled && mode !== 'VIEW' && canManage && isMarkable(entry) && (checked || !full)
+    const markable =
+      !!code && !proximamente(entry) && purchasesEnabled && mode !== 'VIEW' && canManage && isMarkable(entry) && (checked || !full)
     const upsellTier =
-      entry.access.source === 'NONE' && !entry.offer && (entry.minimumTier === 'PRO' || entry.minimumTier === 'PREMIUM')
+      !proximamente(entry) &&
+      entry.access.source === 'NONE' &&
+      !entry.offer &&
+      (entry.minimumTier === 'PRO' || entry.minimumTier === 'PREMIUM')
         ? entry.minimumTier
         : null
     const { text, owned } = status(entry)

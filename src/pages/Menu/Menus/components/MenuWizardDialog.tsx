@@ -19,20 +19,24 @@ import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/componen
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { DondeSeUsaField } from './DondeSeUsaField'
 
 interface MenuWizardDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: (menuId: string) => void
+  defaults?: Partial<MenuFormData>
 }
 
 type WizardStep = 1 | 2 | 3
 
 type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
-interface MenuFormData {
+export interface MenuFormData {
   name: string
   active: boolean
+  appliesToDevices: boolean
+  appliesToOnline: boolean
   isAllDay: boolean
   startTime: string
   endTime: string
@@ -47,7 +51,7 @@ interface MenuFormData {
 
 const DAY_ORDER: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
-export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDialogProps) {
+export function MenuWizardDialog({ open, onOpenChange, onSuccess, defaults }: MenuWizardDialogProps) {
   const { t, i18n } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
@@ -77,12 +81,15 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
     defaultValues: {
       name: '',
       active: true,
+      appliesToDevices: true,
+      appliesToOnline: true,
       isAllDay: false,
       startTime: '09:00',
       endTime: '19:30',
       days: getInitialDays(),
       selectedCategories: [],
       type: MenuType.REGULAR,
+      ...defaults,
     },
   })
 
@@ -108,6 +115,8 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
       const payload = {
         name: data.name,
         active: data.active,
+        appliesToDevices: data.appliesToDevices,
+        appliesToOnline: data.appliesToOnline,
         type: data.type,
         categoryIds: data.selectedCategories.map(c => c.value),
         avoqadoProducts: [], // Not supporting direct product assignment in Menu Wizard for now, consistent with createMenu.tsx
@@ -128,7 +137,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
     onError: (error: any) => {
       toast({
         title: t('createMenu.toast.errorSaving'),
-        description: error.message || t('createMenu.toast.errorSavingDesc'),
+        description: error.response?.data?.message || error.message || t('createMenu.toast.errorSavingDesc'),
         variant: 'destructive',
       })
     },
@@ -178,12 +187,15 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
     form.reset({
       name: '',
       active: true,
+      appliesToDevices: true,
+      appliesToOnline: true,
       isAllDay: false,
       startTime: '09:00',
       endTime: '19:30',
       days: getInitialDays(),
       selectedCategories: [],
       type: MenuType.REGULAR,
+      ...defaults,
     })
     setCurrentStep(1)
     onOpenChange(false)
@@ -336,6 +348,19 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                         </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="appliesToDevices"
+                      render={() => (
+                        <DondeSeUsaField
+                          value={{ appliesToDevices: form.watch('appliesToDevices'), appliesToOnline: form.watch('appliesToOnline') }}
+                          onChange={v => {
+                            form.setValue('appliesToDevices', v.appliesToDevices)
+                            form.setValue('appliesToOnline', v.appliesToOnline)
+                          }}
+                        />
                       )}
                     />
                   </CardContentShadcn>

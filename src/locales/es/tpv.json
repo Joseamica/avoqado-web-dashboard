@@ -814,7 +814,8 @@
   },
   "tabs": {
     "terminals": "Dispositivos",
-    "orders": "Pedidos"
+    "orders": "Pedidos",
+    "menus": "Qué muestra cada aparato"
   },
   "orders": {
     "loadingPlaceholder": "Cargando pedidos…",
@@ -1102,5 +1103,41 @@
       "activationFailed": "La terminal se creó, pero no se pudo activar",
       "activationFailedDesc": "Va a pedir código al encenderla. Ábrela y usa «Activar sin código». {{error}}"
     }
+  },
+  "deviceMenus": {
+    "subtitulo": "Elige qué menús muestra cada aparato en Cobrar y Mesas. La búsqueda y la pistola siempre encuentran todo.",
+    "columnas": {
+      "aparato": "Aparato",
+      "area": "Área",
+      "muestra": "Muestra",
+      "enSuPantallaVe": "En su pantalla ve"
+    },
+    "todosLosMenus": "Todos los menús",
+    "nuevoMenu": "Nuevo menú",
+    "actualizaLaApp": "Actualiza la app para que lo aplique",
+    "categorias_one": "{{count}} categoría",
+    "categorias_other": "{{count}} categorías",
+    "productos_one": "{{count}} producto",
+    "productos_other": "{{count}} productos",
+    "ve": "{{categorias}} · {{productos}}",
+    "veAlActualizar": "Al actualizar verá: {{cuenta}}",
+    "categoriasDelMenu_one": "{{count}} categoría del menú",
+    "categoriasDelMenu_other": "{{count}} categorías del menú",
+    "buscarMenus": "Buscar menú",
+    "sinResultadosMenus": "Ningún menú para aparatos con ese nombre",
+    "sinAparatos": "Todavía no hay aparatos con el POS de Avoqado. Aparecen aquí solos al iniciar sesión en la app (Android, iPad o Windows).",
+    "sinMenusParaAparatos": "Todavía no hay menús para aparatos: cada aparato muestra todo. Crea uno, o marca «Aparatos» en «¿Dónde se usa?» de un menú que ya tengas.",
+    "error": "No se pudieron cargar los aparatos.",
+    "errorMenus": "No se pudieron cargar los menús.",
+    "reintentar": "Reintentar",
+    "guardado": "Guardado",
+    "errorAlGuardar": "No se pudo guardar",
+    "rango": "{{desde}}–{{hasta}} de {{total}}",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente",
+    "sinPermisoEditar": "Para cambiar qué muestra cada aparato, pide a tu administrador el permiso «Editar terminales».",
+    "menusCargados": "{{cargados}} de {{total}} menús",
+    "mostrarMasMenus": "Mostrar más menús",
+    "menusDelAparato": "Menús de {{aparato}}: {{menus}}"
   }
 }

@@ -160,6 +160,7 @@
         "pos": "Card payments (terminal)",
         "menuOrders": "Menu and orders",
         "tables": "Table service",
+        "kitchenDisplay": "Kitchen display (instead of paper, or alongside it)",
         "reservations": "Reservations and appointments",
         "onlineOrdering": "Online ordering",
         "upsell": "Upsell prompts at checkout",
@@ -174,6 +175,7 @@
         "giftCards": "Gift cards (sell and pay with balance)",
         "inventoryBasic": "Basic inventory",
         "priceLabels": "Price labels",
+        "deviceMenus": "Menu per device",
         "productVariants": "Product variants (size, color…)",
         "inventoryFifo": "FIFO inventory, recipes and costing",
         "autoReorder": "Auto-reorder",
@@ -801,6 +803,7 @@
       "VARIABLE_WEIGHT_BARCODE": "Variable-weight barcodes",
       "MASTER_CATALOG": "Master catalog",
       "PRICE_LABELS": "Price labels",
+      "DEVICE_MENUS": "Menu per device",
       "PRODUCT_VARIANTS": "Product variants",
       "AGGREGATOR_PASSES": "Passes (TotalPass · Wellhub)",
       "GIFT_CARDS": "Gift cards"
