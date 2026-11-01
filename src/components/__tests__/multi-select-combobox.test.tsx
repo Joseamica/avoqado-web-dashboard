@@ -37,4 +37,28 @@ describe('MultiSelectCombobox', () => {
     expect(onChange).not.toHaveBeenCalled()
     expect(screen.queryByRole('option')).not.toBeInTheDocument()
   })
+
+  it('sin searchPlaceholder el buscador usa placeholder; con él, su propio texto', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(
+      <MultiSelectCombobox options={opciones} selected={[]} onChange={vi.fn()} placeholder="Todos" emptyText="Nada" />,
+    )
+    await user.click(screen.getByRole('combobox'))
+    expect(await screen.findByPlaceholderText('Todos')).toBeInTheDocument()
+    unmount()
+    render(
+      <MultiSelectCombobox
+        options={opciones}
+        selected={[]}
+        onChange={vi.fn()}
+        placeholder="Todos"
+        emptyText="Nada"
+        searchPlaceholder="Buscar"
+        ariaLabel="Menús de Caja"
+      />,
+    )
+    expect(screen.getByRole('combobox', { name: 'Menús de Caja' })).toBeInTheDocument()
+    await user.click(screen.getByRole('combobox'))
+    expect(await screen.findByPlaceholderText('Buscar')).toBeInTheDocument()
+  })
 })

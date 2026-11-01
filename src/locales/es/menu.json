@@ -704,7 +704,9 @@
     "dialogs": {
       "deleteTitle": "Eliminar menú",
       "deleteMessage": "¿Estás seguro de que quieres eliminar este menú? Esta acción no se puede deshacer.",
-      "deleteButton": "Eliminar menú"
+      "deleteButton": "Eliminar menú",
+      "deleteMessageNombre": "¿Eliminar «{{name}}»? Esta acción no se puede deshacer.",
+      "deleteMessageAparatos": "¿Eliminar «{{name}}»? Los aparatos que lo tienen elegido dejan de mostrarlo; si era su único menú, vuelven a mostrar todos. Esta acción no se puede deshacer."
     },
     "toast": {
       "menuUpdated": "Menú {{name}} actualizado",

@@ -111,4 +111,22 @@ describe('menuId — Menú del aparato', () => {
     await waitFor(() => expect(svc.deleteMenu).toHaveBeenCalledWith('v1', 'm1'))
     await waitFor(() => refrescaAparatos(invalidar))
   })
+
+  it('la confirmación de borrar avisa qué pasa con los aparatos (W1)', async () => {
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('menus.dondeSeUsa.title')
+    await user.click(screen.getByRole('button', { name: 'menuId.dialogs.deleteButton' }))
+    expect(await screen.findByText('menuId.dialogs.deleteMessageAparatos')).toBeInTheDocument()
+  })
+
+  it('un menú sólo de tienda en línea no habla de aparatos al borrarlo (W1)', async () => {
+    svc.getMenu.mockResolvedValue(menu({ appliesToDevices: false }))
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('menus.dondeSeUsa.title')
+    await user.click(screen.getByRole('button', { name: 'menuId.dialogs.deleteButton' }))
+    expect(await screen.findByText('menuId.dialogs.deleteMessageNombre')).toBeInTheDocument()
+    expect(screen.queryByText('menuId.dialogs.deleteMessageAparatos')).not.toBeInTheDocument()
+  })
 })

@@ -1115,6 +1115,7 @@
     "siguiente": "Next",
     "sinPermisoEditar": "To change what each device shows, ask your administrator for the «Edit terminals» permission.",
     "menusCargados": "{{cargados}} of {{total}} menus",
-    "mostrarMasMenus": "Show more menus"
+    "mostrarMasMenus": "Show more menus",
+    "menusDelAparato": "Menus for {{aparato}}: {{menus}}"
   }
 }

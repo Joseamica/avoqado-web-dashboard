@@ -16,6 +16,13 @@ describe('DondeSeUsaField', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('la razón de la casilla bloqueada se ve sin pasar el mouse (W4)', () => {
+    const { rerender } = render(<DondeSeUsaField value={{ appliesToDevices: true, appliesToOnline: false }} onChange={vi.fn()} />)
+    expect(screen.getByText('menus.dondeSeUsa.alMenosUna')).toBeVisible()
+    rerender(<DondeSeUsaField value={both} onChange={vi.fn()} />)
+    expect(screen.queryByText('menus.dondeSeUsa.alMenosUna')).not.toBeInTheDocument()
+  })
+
   it('apaga una casilla cuando la otra sigue marcada', () => {
     const onChange = vi.fn()
     render(<DondeSeUsaField value={both} onChange={onChange} />)

@@ -1136,6 +1136,7 @@
     "siguiente": "Siguiente",
     "sinPermisoEditar": "Para cambiar qué muestra cada aparato, pide a tu administrador el permiso «Editar terminales».",
     "menusCargados": "{{cargados}} de {{total}} menús",
-    "mostrarMasMenus": "Mostrar más menús"
+    "mostrarMasMenus": "Mostrar más menús",
+    "menusDelAparato": "Menús de {{aparato}}: {{menus}}"
   }
 }

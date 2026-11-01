@@ -377,7 +377,11 @@ export default function MenuId() {
             }
             triggerVariant="outline"
             title={t('menuId.dialogs.deleteTitle')}
-            message={t('menuId.dialogs.deleteMessage')}
+            message={
+              menuData?.appliesToDevices
+                ? t('menuId.dialogs.deleteMessageAparatos', { name: menuData.name })
+                : t('menuId.dialogs.deleteMessageNombre', { name: menuData?.name ?? '' })
+            }
             rightButtonLabel={t('menuId.dialogs.deleteButton')}
             rightButtonVariant="destructive"
             onRightButtonClick={() => deleteMenuMutation.mutate()}

@@ -25,6 +25,10 @@ interface MultiSelectComboboxProps {
   className?: string
   /** No abre ni deja quitar chips (p. ej. mientras se guarda la elección). */
   disabled?: boolean
+  /** Nombre para lectores de pantalla, cuando hay varios selectores iguales en la página (p. ej. uno por aparato). */
+  ariaLabel?: string
+  /** Texto del buscador de la lista; sin él usa `placeholder`. */
+  searchPlaceholder?: string
 }
 
 export function MultiSelectCombobox({
@@ -36,6 +40,8 @@ export function MultiSelectCombobox({
   isLoading,
   className,
   disabled,
+  ariaLabel,
+  searchPlaceholder,
 }: MultiSelectComboboxProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -52,6 +58,7 @@ export function MultiSelectCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-label={ariaLabel}
             disabled={disabled}
             className="w-full justify-between h-auto min-h-12 py-2 px-3 text-left font-normal bg-transparent shadow-xs text-sm overflow-hidden"
           >
@@ -84,7 +91,7 @@ export function MultiSelectCombobox({
           style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
           <Command shouldFilter={false} className="bg-card">
-            <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
+            <CommandInput placeholder={searchPlaceholder ?? placeholder} value={search} onValueChange={setSearch} />
             <CommandList>
               {isLoading && (
                 <div className="py-6 text-center text-sm text-muted-foreground">
@@ -113,9 +120,7 @@ export function MultiSelectCombobox({
                           option.disabled || disabled ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer',
                         )}
                       >
-                        <Check
-                          className={cn('h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')}
-                        />
+                        <Check className={cn('h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')} />
                         <span className="flex min-w-0 flex-col">
                           <span className="truncate text-sm">{option.label}</span>
                           {option.description && <span className="truncate text-xs text-muted-foreground">{option.description}</span>}

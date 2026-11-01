@@ -128,6 +128,18 @@ describe('DeviceMenusTab — qué muestra cada aparato', () => {
     expect(svc.getDeviceMenus).toHaveBeenCalledWith('v1', { page: 1, pageSize: 50 })
   })
 
+  it('cada selector se llama como su aparato y lo que muestra; el buscador dice Buscar menú (W3, W5)', async () => {
+    svc.getDeviceMenus.mockResolvedValueOnce(paginaAparatos([fila('t1', 'Caja')])).mockReturnValue(nunca())
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Caja')
+    expect(selector('t1')).toHaveAccessibleName('deviceMenus.menusDelAparato(Caja,deviceMenus.todosLosMenus)')
+    await user.click(selector('t1'))
+    expect(await screen.findByPlaceholderText('deviceMenus.buscarMenus')).toBeInTheDocument()
+    await user.click(await opcion(/Desayunos/))
+    await waitFor(() => expect(selector('t1')).toHaveAccessibleName('deviceMenus.menusDelAparato(Caja,Desayunos)'))
+  })
+
   it('lista vacía se lee Todos los menús', async () => {
     pintar()
     await screen.findByText('Caja')

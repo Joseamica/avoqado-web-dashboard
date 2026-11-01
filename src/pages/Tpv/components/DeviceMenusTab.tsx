@@ -327,6 +327,11 @@ function DeviceMenusRow({
           selected={selected}
           onChange={next => save.mutate({ menuIds: next.map(o => o.value), page })}
           placeholder={t('deviceMenus.todosLosMenus')}
+          searchPlaceholder={t('deviceMenus.buscarMenus')}
+          ariaLabel={t('deviceMenus.menusDelAparato', {
+            aparato: row.name,
+            menus: selected.length > 0 ? selected.map(o => o.label).join(', ') : t('deviceMenus.todosLosMenus'),
+          })}
           emptyText={t('deviceMenus.sinResultadosMenus')}
           isLoading={optionsLoading && options.length === 0}
           disabled={!canEdit || save.isPending}

@@ -36,13 +36,13 @@ export function DondeSeUsaField({
               id={id}
               checked={value[key]}
               disabled={bloqueada}
-              title={bloqueada ? t(`${base}.alMenosUna`) : undefined}
               onCheckedChange={checked => onChange({ ...value, [key]: checked === true })}
               className="mt-0.5"
             />
             <label htmlFor={id} className="text-sm leading-tight">
               {label}
               <span className="block text-xs text-muted-foreground">{hint}</span>
+              {bloqueada && <span className="block text-xs text-muted-foreground">{t(`${base}.alMenosUna`)}</span>}
             </label>
           </div>
         )

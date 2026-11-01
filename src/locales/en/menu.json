@@ -709,7 +709,9 @@
     "dialogs": {
       "deleteTitle": "Delete menu",
       "deleteMessage": "Are you sure you want to delete this menu? This action cannot be undone.",
-      "deleteButton": "Delete menu"
+      "deleteButton": "Delete menu",
+      "deleteMessageNombre": "Delete “{{name}}”? This action cannot be undone.",
+      "deleteMessageAparatos": "Delete “{{name}}”? Devices that chose it stop showing it; if it was their only menu, they go back to showing all menus. This action cannot be undone."
     },
     "toast": {
       "menuUpdated": "Menu {{name}} updated",
