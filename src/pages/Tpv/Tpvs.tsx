@@ -65,6 +65,7 @@ import { DeviceRowMenu } from './components/DeviceRowMenu'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 import { TerminalOrdersTab } from './components/TerminalOrdersTab'
+import DeviceMenusTab from './components/DeviceMenusTab'
 import { canConfigurePayments, canSendCommand } from './deviceCapabilities'
 
 // ⚠️ COHERENCIA con tours interactivos:
@@ -105,7 +106,9 @@ export default function Tpvs() {
   }, [searchParams, setSearchParams, toast, tTpv])
 
   // Pill-tab state synced to ?tab=...
-  const activeTab = searchParams.get('tab') === 'orders' ? 'orders' : 'terminals'
+  // `menus` = «Qué muestra cada aparato» (Menú del aparato); la lista de Menús enlaza aquí con `?tab=menus`.
+  const tabParam = searchParams.get('tab')
+  const activeTab = tabParam === 'orders' || tabParam === 'menus' ? tabParam : 'terminals'
   const setActiveTab = (value: string) => {
     const next = new URLSearchParams(searchParams)
     next.set('tab', value)
@@ -826,6 +829,13 @@ export default function Tpvs() {
             >
               {tTpv('tabs.orders', { defaultValue: 'Pedidos' })}
             </TabsTrigger>
+            <TabsTrigger
+              value="menus"
+              data-tour="device-menus-tab"
+              className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background text-xs px-3 py-1"
+            >
+              {tTpv('tabs.menus')}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="terminals" className="space-y-4">
@@ -1022,6 +1032,11 @@ export default function Tpvs() {
 
           <TabsContent value="orders">
             <TerminalOrdersTab />
+          </TabsContent>
+
+          {/* Lleva su propio candado de plan (FeatureGate DEVICE_MENUS) adentro. */}
+          <TabsContent value="menus">
+            <DeviceMenusTab />
           </TabsContent>
         </Tabs>
 

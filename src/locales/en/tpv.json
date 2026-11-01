@@ -793,7 +793,8 @@
   },
   "tabs": {
     "terminals": "Devices",
-    "orders": "Orders"
+    "orders": "Orders",
+    "menus": "What each device shows"
   },
   "orders": {
     "loadingPlaceholder": "Loading orders…",
@@ -1080,5 +1081,37 @@
       "activationFailed": "The terminal was created, but it couldn't be activated",
       "activationFailedDesc": "It will ask for a code when turned on. Open it and use \"Activate without code\". {{error}}"
     }
+  },
+  "deviceMenus": {
+    "subtitulo": "Choose which menus each device shows in Charge and Tables. Search and the scanner always find everything.",
+    "columnas": {
+      "aparato": "Device",
+      "area": "Area",
+      "muestra": "Shows",
+      "enSuPantallaVe": "On its screen"
+    },
+    "todosLosMenus": "All menus",
+    "nuevoMenu": "New menu",
+    "actualizaLaApp": "Update the app to apply it",
+    "categorias_one": "{{count, number}} category",
+    "categorias_other": "{{count, number}} categories",
+    "productos_one": "{{count, number}} product",
+    "productos_other": "{{count, number}} products",
+    "ve": "{{categorias}} · {{productos}}",
+    "veAlActualizar": "After updating: {{cuenta}}",
+    "categoriasDelMenu_one": "{{count, number}} category in the menu",
+    "categoriasDelMenu_other": "{{count, number}} categories in the menu",
+    "buscarMenus": "Search menu",
+    "sinResultadosMenus": "No device menu with that name",
+    "sinAparatos": "There are no devices with the Avoqado POS yet. They show up here on their own when someone signs in to the app (Android, iPad or Windows).",
+    "sinMenusParaAparatos": "There are no menus for devices yet, so every device shows everything. Create one, or tick «Devices» under «Where is it used?» in a menu you already have.",
+    "error": "Devices could not be loaded.",
+    "errorMenus": "Menus could not be loaded.",
+    "reintentar": "Retry",
+    "guardado": "Saved",
+    "errorAlGuardar": "Could not save",
+    "rango": "{{desde}}–{{hasta}} of {{total}}",
+    "anterior": "Previous",
+    "siguiente": "Next"
   }
 }
