@@ -77,7 +77,7 @@ const inDoubt = (err: unknown) => {
   return typeof status !== 'number' || status >= 500
 }
 
-export const isCardCaptured = (o: Pick<InboxOrder, 'paymentMode' | 'card'>) => o.paymentMode === 'CARD_ONLINE' && o.card?.status === 'CAPTURED'
+const isCardCaptured = (o: Pick<InboxOrder, 'paymentMode' | 'card'>) => o.paymentMode === 'CARD_ONLINE' && o.card?.status === 'CAPTURED'
 
 /** El botón y su hoja. Quien lo pinta ya comprobó `payments:refund` (el servidor lo vuelve a exigir). */
 export function CardRefundButton({ venueId, order }: { venueId: string; order: InboxOrder }) {
