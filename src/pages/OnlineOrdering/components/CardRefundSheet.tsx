@@ -4,7 +4,7 @@
  * 🔴 Nada se decide aquí que el servidor ya decide: el tope es una pista (manda su `400 CARD_REFUND_EXCEEDS_REMAINING`) y el texto de
  * cada desenlace sale de `cardRefundStatus`.
  */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -82,30 +82,55 @@ type RefundBody = { amount: string; reason: CardRefundReason; note?: string }
 const bodyOf = (amount: string, reason: CardRefundReason, note: string): RefundBody => ({ amount, reason, ...(note ? { note } : {}) })
 
 /**
- * Codex panel r1 #1: un envío sin desenlace definitivo (sin respuesta, 5xx, UNKNOWN o PENDING) se queda guardado por negocio y
- * cuenta, con SU llave: cerrar la hoja o recargar la página no inventa otra llave para la misma devolución (el servidor deduplica
- * por llave, no por monto). Se guarda ANTES de mandar y se borra sólo con un desenlace definitivo de ESA llave. Best effort: sin
- * almacenamiento, la protección dura lo que la hoja abierta.
+ * El servidor deduplica por LLAVE, no por monto: dos llaves para la misma devolución pueden devolver dos veces (Codex panel r1 #1,
+ * r2 #1). Por eso hay UN intento pendiente por negocio y cuenta, compartido entre pestañas (localStorage):
+ * - se guarda ANTES de mandar y se LEE AL ENVIAR (no sólo al abrir): el mismo cuerpo reusa SU llave; otro cuerpo NO se manda
+ *   mientras siga vivo (nunca lo reemplaza);
+ * - se borra con un desenlace definitivo de su llave, o cuando la lista del servidor ya trae su devolución terminada (r2 #2);
+ * - sin almacenamiento queda en la memoria de la hoja, y protege la confirmación de «otra devolución del mismo monto».
  */
-type SavedAttempt = { key: string; amount: string; reason: CardRefundReason; note: string }
+type SavedAttempt = { key: string; amount: string; reason: CardRefundReason; note: string; savedAt: number }
+type Mem = MutableRefObject<SavedAttempt | null>
 const savedKey = (venueId: string, orderId: string) => `avq:card-refund-attempt:${venueId}:${orderId}`
-const readSaved = (k: string): SavedAttempt | null => {
+const loadPending = (k: string, mem: Mem): SavedAttempt | null => {
   try {
     const v = JSON.parse(window.localStorage.getItem(k) ?? 'null') as Partial<SavedAttempt> | null
-    if (!v || typeof v.key !== 'string' || typeof v.amount !== 'string' || !REASONS.includes(v.reason as CardRefundReason)) return null
-    return { key: v.key, amount: v.amount, reason: v.reason as CardRefundReason, note: typeof v.note === 'string' ? v.note : '' }
+    if (!v || typeof v.key !== 'string' || typeof v.amount !== 'string' || !REASONS.includes(v.reason as CardRefundReason)) return mem.current
+    const note = typeof v.note === 'string' ? v.note : ''
+    return { key: v.key, amount: v.amount, reason: v.reason as CardRefundReason, note, savedAt: typeof v.savedAt === 'number' ? v.savedAt : 0 }
   } catch {
-    return null
+    return mem.current
   }
 }
-const writeSaved = (k: string, v: SavedAttempt | null) => {
+const savePending = (k: string, mem: Mem, v: SavedAttempt) => {
   try {
-    if (v) window.localStorage.setItem(k, JSON.stringify(v))
-    else window.localStorage.removeItem(k)
+    window.localStorage.setItem(k, JSON.stringify(v))
+    mem.current = null
   } catch {
-    // Sin almacenamiento (modo privado, lleno): queda la llave en memoria mientras la hoja siga abierta.
+    mem.current = v // modo privado o lleno: lo recuerda esta hoja
   }
 }
+const clearPending = (k: string, mem: Mem, key: string) => {
+  if (mem.current?.key === key) mem.current = null
+  try {
+    if (loadPending(k, mem)?.key === key) window.localStorage.removeItem(k)
+  } catch {
+    // sin almacenamiento: no hay nada que borrar
+  }
+}
+const sigOf = (b: RefundBody) => JSON.stringify(b)
+const sigOfSaved = (p: SavedAttempt) => sigOf(bodyOf(p.amount, p.reason, p.note))
+
+const IN_FLIGHT: ReadonlySet<string> = new Set(['REQUESTED', 'SENDING', 'PENDING'])
+/** La devolución del intento en la lista: mismo monto, creada desde un minuto antes de guardarlo (relojes distintos). */
+const findAttempt = (p: SavedAttempt, refunds: CardRefund[]) =>
+  refunds.find(r => cents(r.amount) === cents(p.amount) && Date.parse(r.createdAt) >= p.savedAt - 60_000)
+const RECENT_MS = 10 * 60_000
+/** Sin intento guardado (otra pestaña con el almacenamiento roto): una del mismo monto de hace ≤ 10 min que sí devolvió o va en curso. */
+const recentTwin = (amount: string, refunds: CardRefund[], now: number) =>
+  refunds.find(
+    r => cents(r.amount) === cents(amount) && r.status !== 'FAILED' && r.status !== 'CANCELED' && now - Date.parse(r.createdAt) <= RECENT_MS,
+  )
 
 const isCardCaptured = (o: Pick<InboxOrder, 'paymentMode' | 'card'>) => o.paymentMode === 'CARD_ONLINE' && o.card?.status === 'CAPTURED'
 
@@ -149,22 +174,32 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const qc = useQueryClient()
 
   const storeKey = savedKey(venueId, order.orderId)
-  // Una devolución en duda de antes (otra apertura de la hoja u otra carga de la página): se avisa y precarga el formulario.
-  const [pending, setPending] = useState(() => readSaved(storeKey))
+  const mem = useRef<SavedAttempt | null>(null)
+  // Una devolución en duda de antes (otra apertura, otra pestaña u otra carga de la página): se avisa y precarga el formulario.
+  const [pending, setPending] = useState(() => loadPending(storeKey, mem))
   // null = el cajero no ha tocado el monto: va lo que queda (la pista).
   const [amountStr, setAmountStr] = useState<string | null>(pending?.amount ?? null)
   const [reason, setReason] = useState<CardRefundReason | null>(pending?.reason ?? null)
   const [note, setNote] = useState(pending?.note ?? '')
-  // La llave es de la OPERACIÓN: nueva con otro cuerpo; la MISMA en sus reintentos, también los de una hoja o página anterior.
-  const attempt = useRef<{ body: string; key: string } | null>(
-    pending ? { body: JSON.stringify(bodyOf(pending.amount, pending.reason, pending.note)), key: pending.key } : null,
-  )
+  const [blocked, setBlocked] = useState(false)
+  const [confirm, setConfirm] = useState<{ sig: string; amount: string; minutes: number } | null>(null)
+  const [checking, setChecking] = useState(false)
+  const busy = useRef(false) // candado síncrono: dos clics no corren dos revisiones
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   const list = useQuery({ queryKey: listKey, queryFn: () => listCardRefunds(venueId, order.orderId) })
   const hint = list.data ? refundableCents(order.card?.capturedAmount, list.data) : null
   const shownAmount = amountStr ?? (hint ? (hint / 100).toFixed(2) : '')
   const amountCents = parseCents(shownAmount)
+  const currentSig = amountCents && reason ? sigOf(bodyOf((amountCents / 100).toFixed(2), reason, note.trim())) : null
+
+  // Cada lectura de la lista (al abrir, tras enviar, al refrescar) concilia el intento: terminado en el servidor ⇒ se borra.
+  useEffect(() => {
+    const p = loadPending(storeKey, mem)
+    const r = p && list.data ? findAttempt(p, list.data) : undefined
+    if (p && r && !IN_FLIGHT.has(r.status)) clearPending(storeKey, mem, p.key)
+    setPending(loadPending(storeKey, mem))
+  }, [list.data, storeKey])
 
   const reread = () => {
     void qc.invalidateQueries({ queryKey: listKey })
@@ -172,13 +207,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     void qc.invalidateQueries({ queryKey: ['order', venueId, order.orderId] })
   }
 
-  /** Desenlace definitivo de `key` ⇒ se olvida su llave (memoria y almacenamiento); si no, queda guardada y se avisa. */
+  /** Desenlace definitivo de `key` ⇒ se olvida su llave; si no, queda guardada y se avisa. */
   const settle = (key: string, definitive: boolean) => {
-    if (definitive) {
-      if (attempt.current?.key === key) attempt.current = null
-      if (readSaved(storeKey)?.key === key) writeSaved(storeKey, null)
-    }
-    setPending(readSaved(storeKey))
+    if (definitive) clearPending(storeKey, mem, key)
+    setPending(loadPending(storeKey, mem))
   }
 
   const refund = useMutation({
@@ -212,15 +244,46 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     onSettled: reread,
   })
 
-  const submit = () => {
-    if (!amountCents || !reason) return
+  /** Con un intento pendiente (de aquí o de otra pestaña): mismo cuerpo ⇒ con SU llave; otro ⇒ no se manda. `false` si no hay. */
+  const viaPending = (body: RefundBody): boolean => {
+    const p = loadPending(storeKey, mem)
+    if (!p) return false
+    setPending(p)
+    if (sigOfSaved(p) === sigOf(body)) refund.mutate({ body, key: p.key })
+    else setBlocked(true)
+    return true
+  }
+
+  const submit = async (confirmed = false) => {
+    if (!amountCents || !reason || busy.current) return
     const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim())
-    const sig = JSON.stringify(body)
-    if (attempt.current?.body !== sig) attempt.current = { body: sig, key: crypto.randomUUID() }
-    const key = attempt.current.key
-    // ANTES de tocar la red: una recarga a medio envío tampoco inventa otra llave.
-    writeSaved(storeKey, { key, amount: body.amount, reason, note: body.note ?? '' })
-    refund.mutate({ body, key })
+    setBlocked(false)
+    if (viaPending(body)) return
+    busy.current = true
+    setChecking(true)
+    try {
+      if (!confirmed) {
+        // Antes de una devolución NUEVA se relee la lista: ¿ya hay una igual de hace poco? (otra pestaña sin almacenamiento)
+        const fresh = await list.refetch()
+        // Sin la lista fresca no se sabe si ya hay una igual: no se manda (los datos viejos de la caché no cuentan).
+        if (fresh.isError || !fresh.data) return void toast({ title: t('cardRefund.loadFailed'), variant: 'destructive' })
+        const now = Date.now()
+        const twin = recentTwin(body.amount, fresh.data, now)
+        if (twin) {
+          const minutes = Math.max(0, Math.round((now - Date.parse(twin.createdAt)) / 60_000))
+          return void setConfirm({ sig: sigOf(body), amount: body.amount, minutes })
+        }
+      }
+      if (viaPending(body)) return // otra pestaña guardó uno mientras se releía
+      const key = crypto.randomUUID()
+      // ANTES de tocar la red: una recarga a medio envío tampoco inventa otra llave.
+      savePending(storeKey, mem, { key, amount: body.amount, reason: body.reason, note: body.note ?? '', savedAt: Date.now() })
+      setConfirm(null)
+      refund.mutate({ body, key })
+    } finally {
+      busy.current = false
+      setChecking(false)
+    }
   }
 
   return (
@@ -289,6 +352,21 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
               <AlertDescription>{t('cardRefund.pendingAttempt', { amount: Currency(Number(pending.amount)) })}</AlertDescription>
             </Alert>
           )}
+          {blocked && pending && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {t('cardRefund.blocked', { amount: Currency(Number(pending.amount)) })}
+            </p>
+          )}
+          {confirm && confirm.sig === currentSig && (
+            <Alert role="alert">
+              <AlertDescription className="space-y-2">
+                <p>{t('cardRefund.confirmAnother', { amount: Currency(Number(confirm.amount)), minutes: confirm.minutes })}</p>
+                <Button type="button" size="sm" variant="destructive" disabled={refund.isPending || checking} onClick={() => void submit(true)}>
+                  {t('cardRefund.confirmYes')}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
           {hint !== null && <p className="text-sm font-medium">{t('cardRefund.upTo', { amount: Currency(hint / 100) })}</p>}
           <div className="space-y-1.5">
             <Label htmlFor="card-refund-amount">{t('cardRefund.amount')}</Label>
@@ -323,7 +401,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={!amountCents || !reason || refund.isPending} onClick={submit}>
+          <Button type="button" disabled={!amountCents || !reason || refund.isPending || checking} onClick={() => void submit()}>
             {refund.isPending ? t('cardRefund.sending') : t('cardRefund.submit')}
           </Button>
         </DialogFooter>
