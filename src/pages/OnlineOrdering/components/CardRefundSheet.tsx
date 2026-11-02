@@ -86,7 +86,9 @@ const bodyOf = (amount: string, reason: CardRefundReason, note: string): RefundB
  * r2 #1). Por eso hay UN intento pendiente por negocio y cuenta, compartido entre pestañas (localStorage):
  * - se guarda ANTES de mandar y se LEE AL ENVIAR (no sólo al abrir): el mismo cuerpo reusa SU llave; otro cuerpo NO se manda
  *   mientras siga vivo (nunca lo reemplaza);
- * - se borra con un desenlace definitivo de su llave, o cuando la lista del servidor ya trae su devolución terminada (r2 #2);
+ * - se borra con un desenlace definitivo de su llave, o cuando la lista trae SU LLAVE (S9) en un estado terminado (r3: exacto, nunca
+ *   por monto ni fecha). Si la lista no trae su llave: los primeros 2 min «todavía puede estar en camino»; después «no llegó al
+ *   servidor» y se puede descartar. Con un servidor que no manda llaves no se adivina: sólo descartar, pasados 2 min;
  * - sin almacenamiento queda en la memoria de la hoja, y protege la confirmación de «otra devolución del mismo monto».
  */
 type SavedAttempt = { key: string; amount: string; reason: CardRefundReason; note: string; savedAt: number }
@@ -122,9 +124,27 @@ const sigOf = (b: RefundBody) => JSON.stringify(b)
 const sigOfSaved = (p: SavedAttempt) => sigOf(bodyOf(p.amount, p.reason, p.note))
 
 const IN_FLIGHT: ReadonlySet<string> = new Set(['REQUESTED', 'SENDING', 'PENDING'])
-/** La devolución del intento en la lista: mismo monto, creada desde un minuto antes de guardarlo (relojes distintos). */
-const findAttempt = (p: SavedAttempt, refunds: CardRefund[]) =>
-  refunds.find(r => cents(r.amount) === cents(p.amount) && Date.parse(r.createdAt) >= p.savedAt - 60_000)
+const ARRIVAL_MS = 2 * 60_000
+
+/** Con la lista FRESCA: si trae la llave del pendiente en un estado terminado, se borra. Devuelve el pendiente que sigue vivo. */
+const reconcilePending = (k: string, mem: Mem, refunds: CardRefund[]): SavedAttempt | null => {
+  const p = loadPending(k, mem)
+  const r = p ? refunds.find(x => x.key === p.key) : undefined
+  if (p && r && !IN_FLIGHT.has(r.status)) clearPending(k, mem, p.key)
+  return loadPending(k, mem)
+}
+
+/**
+ * Qué decir del pendiente vivo. `inFlight` = su llave está en la lista (en curso). Sin su llave: si la lista sí sabe de llaves (o está
+ * vacía) es `mayArrive` y, pasados 2 min, `notArrived`; si no (servidor viejo, o sin lista) no se sabe: `unknown`.
+ */
+const pendingView = (p: SavedAttempt, refunds: CardRefund[] | undefined, now: number) => {
+  const late = now - p.savedAt >= ARRIVAL_MS
+  const knowsKeys = !!refunds && (refunds.length === 0 || refunds.some(r => typeof r.key === 'string'))
+  if (refunds?.some(r => r.key === p.key)) return { text: 'cardRefund.pendingAttempt', canDiscard: false }
+  if (!knowsKeys) return { text: 'cardRefund.pendingAttempt', canDiscard: late }
+  return late ? { text: 'cardRefund.notArrived', canDiscard: true } : { text: 'cardRefund.mayArrive', canDiscard: false }
+}
 const RECENT_MS = 10 * 60_000
 /** Sin intento guardado (otra pestaña con el almacenamiento roto): una del mismo monto de hace ≤ 10 min que sí devolvió o va en curso. */
 const recentTwin = (amount: string, refunds: CardRefund[], now: number) =>
@@ -185,6 +205,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const [confirm, setConfirm] = useState<{ sig: string; amount: string; minutes: number } | null>(null)
   const [checking, setChecking] = useState(false)
   const busy = useRef(false) // candado síncrono: dos clics no corren dos revisiones
+  const [, setTick] = useState(0)
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   const list = useQuery({ queryKey: listKey, queryFn: () => listCardRefunds(venueId, order.orderId) })
@@ -193,13 +214,29 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const amountCents = parseCents(shownAmount)
   const currentSig = amountCents && reason ? sigOf(bodyOf((amountCents / 100).toFixed(2), reason, note.trim())) : null
 
-  // Cada lectura de la lista (al abrir, tras enviar, al refrescar) concilia el intento: terminado en el servidor ⇒ se borra.
+  // Cada lectura de la lista (al abrir, tras enviar, al refrescar) concilia el intento por su llave.
   useEffect(() => {
-    const p = loadPending(storeKey, mem)
-    const r = p && list.data ? findAttempt(p, list.data) : undefined
-    if (p && r && !IN_FLIGHT.has(r.status)) clearPending(storeKey, mem, p.key)
-    setPending(loadPending(storeKey, mem))
+    setPending(list.data ? reconcilePending(storeKey, mem, list.data) : loadPending(storeKey, mem))
   }, [list.data, storeKey])
+
+  // A los 2 min de guardado, se relee la lista y se vuelve a pintar: «todavía en camino» pasa a «no llegó» si no aparece.
+  useEffect(() => {
+    if (!pending) return
+    const left = pending.savedAt + ARRIVAL_MS - Date.now()
+    if (left <= 0) return
+    const id = setTimeout(() => {
+      setTick(n => n + 1)
+      void qc.invalidateQueries({ queryKey: onlineOrderingKeys.cardRefunds(venueId, order.orderId) })
+    }, left + 500)
+    return () => clearTimeout(id)
+  }, [pending, qc, venueId, order.orderId])
+  const view = pending ? pendingView(pending, list.isError ? undefined : list.data, Date.now()) : null
+
+  const discard = () => {
+    if (pending) clearPending(storeKey, mem, pending.key)
+    setPending(loadPending(storeKey, mem))
+    setBlocked(false)
+  }
 
   const reread = () => {
     void qc.invalidateQueries({ queryKey: listKey })
@@ -244,29 +281,28 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     onSettled: reread,
   })
 
-  /** Con un intento pendiente (de aquí o de otra pestaña): mismo cuerpo ⇒ con SU llave; otro ⇒ no se manda. `false` si no hay. */
-  const viaPending = (body: RefundBody): boolean => {
-    const p = loadPending(storeKey, mem)
-    if (!p) return false
-    setPending(p)
-    if (sigOfSaved(p) === sigOf(body)) refund.mutate({ body, key: p.key })
-    else setBlocked(true)
-    return true
-  }
-
   const submit = async (confirmed = false) => {
     if (!amountCents || !reason || busy.current) return
     const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim())
     setBlocked(false)
-    if (viaPending(body)) return
+    // El mismo cuerpo que el pendiente (de aquí o de otra pestaña) siempre se puede reenviar con SU llave: el servidor repite.
+    const same = loadPending(storeKey, mem)
+    if (same && sigOfSaved(same) === sigOf(body)) return refund.mutate({ body, key: same.key })
     busy.current = true
     setChecking(true)
     try {
+      // Se relee la lista ANTES de decidir: concilia el pendiente por su llave y busca una devolución igual de hace poco.
+      const fresh = await list.refetch()
+      // Sin la lista fresca no se sabe nada: no se manda (los datos viejos de la caché no cuentan).
+      if (fresh.isError || !fresh.data) return void toast({ title: t('cardRefund.loadFailed'), variant: 'destructive' })
+      const alive = reconcilePending(storeKey, mem, fresh.data)
+      setPending(alive)
+      if (alive) {
+        if (sigOfSaved(alive) === sigOf(body)) return refund.mutate({ body, key: alive.key })
+        return setBlocked(true) // otro cuerpo con un pendiente vivo: nunca lo reemplaza
+      }
       if (!confirmed) {
-        // Antes de una devolución NUEVA se relee la lista: ¿ya hay una igual de hace poco? (otra pestaña sin almacenamiento)
-        const fresh = await list.refetch()
-        // Sin la lista fresca no se sabe si ya hay una igual: no se manda (los datos viejos de la caché no cuentan).
-        if (fresh.isError || !fresh.data) return void toast({ title: t('cardRefund.loadFailed'), variant: 'destructive' })
+        // ¿Ya hay una igual de hace poco? (otra pestaña sin almacenamiento, o un pendiente descartado)
         const now = Date.now()
         const twin = recentTwin(body.amount, fresh.data, now)
         if (twin) {
@@ -274,7 +310,6 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
           return void setConfirm({ sig: sigOf(body), amount: body.amount, minutes })
         }
       }
-      if (viaPending(body)) return // otra pestaña guardó uno mientras se releía
       const key = crypto.randomUUID()
       // ANTES de tocar la red: una recarga a medio envío tampoco inventa otra llave.
       savePending(storeKey, mem, { key, amount: body.amount, reason: body.reason, note: body.note ?? '', savedAt: Date.now() })
@@ -347,12 +382,20 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         </section>
 
         <div className="space-y-4">
-          {pending && (
+          {pending && view && (
             <Alert role="status">
-              <AlertDescription>{t('cardRefund.pendingAttempt', { amount: Currency(Number(pending.amount)) })}</AlertDescription>
+              <AlertDescription className="space-y-2">
+                <p>{t(view.text, { amount: Currency(Number(pending.amount)) })}</p>
+                {view.canDiscard && (
+                  <Button type="button" size="sm" variant="outline" onClick={discard}>
+                    {t('cardRefund.discard')}
+                  </Button>
+                )}
+              </AlertDescription>
             </Alert>
           )}
-          {blocked && pending && (
+          {/* Con «Descartar y hacer otra» a la vista, el aviso de arriba ya dice qué hacer. */}
+          {blocked && pending && !view?.canDiscard && (
             <p role="alert" className="text-sm font-medium text-destructive">
               {t('cardRefund.blocked', { amount: Currency(Number(pending.amount)) })}
             </p>

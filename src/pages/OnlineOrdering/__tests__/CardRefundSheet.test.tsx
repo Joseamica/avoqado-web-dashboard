@@ -107,6 +107,7 @@ const devolver = () => userEvent.click(screen.getByRole('button', { name: 'cardR
 // `src/test/setup.ts` deja `localStorage` como vi.fn() vacíos (y `mockReset` los limpia): aquí se les da un almacén real.
 const storage: Record<string, string> = {}
 const STORED = 'avq:card-refund-attempt:venue-1:o1'
+const AVISO = /^cardRefund\.(pendingAttempt|mayArrive|notArrived)\|/
 
 describe('Devolver a la tarjeta', () => {
   beforeEach(() => {
@@ -283,7 +284,7 @@ describe('Devolver a la tarjeta', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     const lecturas = listCardRefunds.mock.calls.length
     await userEvent.click(screen.getByRole('button', { name: 'cardRefund.open' }))
-    expect(await screen.findByText(`cardRefund.pendingAttempt|${Currency(50)}`)).toBeInTheDocument()
+    expect(await screen.findByText(`cardRefund.mayArrive|${Currency(50)}`)).toBeInTheDocument()
     await waitFor(() => expect(listCardRefunds.mock.calls.length).toBeGreaterThan(lecturas)) // relee la lista al abrir
     expect(monto()).toHaveValue(50)
     expect(screen.getByRole('button', { name: 'refund.reasons.RETURNED_GOODS' })).toHaveAttribute('aria-pressed', 'true')
@@ -294,7 +295,7 @@ describe('Devolver a la tarjeta', () => {
     expect(createCardRefund.mock.calls[1][2]).toEqual(createCardRefund.mock.calls[0][2])
     expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
     // Desenlace definitivo (el replay dice RECORDED) ⇒ se borra el intento y el aviso.
-    await waitFor(() => expect(screen.queryByText(/^cardRefund\.pendingAttempt/)).toBeNull())
+    await waitFor(() => expect(screen.queryByText(AVISO)).toBeNull())
     expect(storage).toEqual({})
 
     escribirMonto('50')
@@ -314,7 +315,7 @@ describe('Devolver a la tarjeta', () => {
     primera.unmount()
 
     await abrir()
-    expect(await screen.findByText(`cardRefund.pendingAttempt|${Currency(80)}`)).toBeInTheDocument()
+    expect(await screen.findByText(`cardRefund.mayArrive|${Currency(80)}`)).toBeInTheDocument()
     expect(monto()).toHaveValue(80)
     await devolver()
     await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
@@ -367,11 +368,11 @@ describe('Devolver a la tarjeta', () => {
     expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
   })
 
-  it('🔴 UNKNOWN y luego la lista trae la devolución RECORDED ⇒ el aviso desaparece y el intento se borra', async () => {
+  it('🔴 UNKNOWN y luego la lista trae SU llave en RECORDED ⇒ el aviso desaparece y el intento se borra', async () => {
     let servidor: ReturnType<typeof refund>[] = []
     listCardRefunds.mockImplementation(async () => servidor)
-    createCardRefund.mockImplementation(async () => {
-      servidor = [refund({ id: 'r9', amount: '80.00', status: 'REQUESTED', createdAt: new Date().toISOString() })]
+    createCardRefund.mockImplementation(async (_v: string, _o: string, _b: unknown, key: string) => {
+      servidor = [refund({ id: 'r9', key, amount: '80.00', status: 'REQUESTED', createdAt: new Date().toISOString() })]
       return { status: 'UNKNOWN', cardRefundStatus: 'REQUESTED', cardRefundId: 'r9', refundId: null, replay: false }
     })
     await abrir()
@@ -382,13 +383,13 @@ describe('Devolver a la tarjeta', () => {
     expect(await screen.findByText(`cardRefund.pendingAttempt|${Currency(80)}`)).toBeInTheDocument()
     expect(storage[STORED]).toBeDefined()
 
-    servidor = [refund({ id: 'r9', amount: '80.00', status: 'RECORDED', createdAt: servidor[0].createdAt })]
+    servidor = [{ ...servidor[0], status: 'RECORDED' }]
     await userEvent.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     await userEvent.click(screen.getByRole('button', { name: 'cardRefund.open' }))
     await screen.findByTestId('card-refund-r9')
     await waitFor(() => expect(screen.getByTestId('card-refund-r9')).toHaveTextContent('cardRefund.outcome.done'))
-    await waitFor(() => expect(screen.queryByText(/^cardRefund\.pendingAttempt/)).toBeNull())
+    await waitFor(() => expect(screen.queryByText(AVISO)).toBeNull())
     expect(storage).toEqual({})
   })
 
@@ -450,6 +451,112 @@ describe('Devolver a la tarjeta', () => {
     expect(createCardRefund).toHaveBeenCalledTimes(1)
   })
 
+  // ── Codex panel r3: la conciliación es EXACTA por la llave que la lista trae de cada devolución (S9); nunca por monto ni fecha ──
+  const DOS_MIN = 2 * 60_000
+
+  it('🔴 un FAILED viejo de $50 no se confunde con el $50 nuevo sin respuesta: al reabrir el pendiente sigue y conserva su llave', async () => {
+    listCardRefunds.mockResolvedValue([
+      refund({ id: 'r1', key: 'llave-vieja-que-fallo', amount: '50.00', status: 'FAILED', createdAt: new Date(Date.now() - 30_000).toISOString() }),
+    ])
+    createCardRefund
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValue({ status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false })
+    await abrir()
+    escribirMonto('50')
+    await motivo('OTHER')
+    await devolver()
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'cardRefund.noResponse' })))
+    const k1 = createCardRefund.mock.calls[0][3]
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await userEvent.click(screen.getByRole('button', { name: 'cardRefund.open' }))
+    await screen.findByTestId('card-refund-r1')
+    expect(await screen.findByText(AVISO)).toBeInTheDocument()
+    expect(JSON.parse(storage[STORED]).key).toBe(k1)
+    await devolver()
+    await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
+    expect(createCardRefund.mock.calls[1][3]).toBe(k1)
+  })
+
+  it('🔴 un pendiente que nunca llegó (la lista no trae su llave): antes de 2 min bloquea; después «no llegó» y «Descartar» deja hacer $40', async () => {
+    createCardRefund
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValue({ status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false })
+    await abrir()
+    escribirMonto('50')
+    await motivo('OTHER')
+    await devolver()
+    expect(await screen.findByText(`cardRefund.mayArrive|${Currency(50)}`)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'cardRefund.discard' })).toBeNull()
+    escribirMonto('40')
+    await devolver()
+    expect(await screen.findByText(`cardRefund.blocked|${Currency(50)}`)).toBeInTheDocument()
+    expect(createCardRefund).toHaveBeenCalledTimes(1)
+    const k1 = createCardRefund.mock.calls[0][3]
+
+    // Pasan los 2 min y la lista (releída al abrir) sigue sin su llave.
+    const ahora = Date.now()
+    const reloj = vi.spyOn(Date, 'now').mockReturnValue(ahora + DOS_MIN + 1000)
+    try {
+      await userEvent.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      await userEvent.click(screen.getByRole('button', { name: 'cardRefund.open' }))
+      expect(await screen.findByText(`cardRefund.notArrived|${Currency(50)}`)).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'cardRefund.discard' }))
+      await waitFor(() => expect(screen.queryByText(AVISO)).toBeNull())
+      expect(storage).toEqual({})
+      escribirMonto('40')
+      await motivo('OTHER')
+      await devolver()
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
+      expect(createCardRefund.mock.calls[1][2]).toEqual({ amount: '40.00', reason: 'OTHER' })
+      expect(createCardRefund.mock.calls[1][3]).not.toBe(k1)
+    } finally {
+      reloj.mockRestore()
+    }
+  })
+
+  it('el mismo cuerpo del pendiente siempre se puede reenviar con su llave, aunque ya pasaron los 2 min', async () => {
+    storage[STORED] = JSON.stringify({ key: 'llave-del-pendiente', amount: '50.00', reason: 'OTHER', note: '', savedAt: Date.now() - DOS_MIN - 5000 })
+    createCardRefund.mockResolvedValue({ status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false })
+    await abrir()
+    expect(await screen.findByText(`cardRefund.notArrived|${Currency(50)}`)).toBeInTheDocument()
+    await devolver() // el formulario viene precargado con el pendiente
+    await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(1))
+    expect(createCardRefund.mock.calls[0][3]).toBe('llave-del-pendiente')
+  })
+
+  it('🔴 lista de un servidor sin `key`: nunca se concilia por monto; el pendiente sigue y «Descartar» sale sólo pasados 2 min', async () => {
+    const enLista = refund({ id: 'r1', amount: '80.00', status: 'RECORDED', createdAt: new Date().toISOString() }) // sin `key`
+    listCardRefunds.mockResolvedValue([enLista])
+    storage[STORED] = JSON.stringify({ key: 'llave-k', amount: '80.00', reason: 'OTHER', note: '', savedAt: Date.now() - 10_000 })
+    const r = await abrir()
+    await screen.findByTestId('card-refund-r1')
+    expect(await screen.findByText(`cardRefund.pendingAttempt|${Currency(80)}`)).toBeInTheDocument()
+    expect(JSON.parse(storage[STORED]).key).toBe('llave-k')
+    expect(screen.queryByRole('button', { name: 'cardRefund.discard' })).toBeNull()
+    r.unmount()
+
+    storage[STORED] = JSON.stringify({ key: 'llave-k', amount: '80.00', reason: 'OTHER', note: '', savedAt: Date.now() - DOS_MIN - 5000 })
+    await abrir()
+    await screen.findByTestId('card-refund-r1')
+    expect(await screen.findByRole('button', { name: 'cardRefund.discard' })).toBeInTheDocument()
+    expect(screen.queryByText(/^cardRefund\.notArrived/)).toBeNull() // sin llaves no se sabe si llegó
+    expect(JSON.parse(storage[STORED]).key).toBe('llave-k')
+  })
+
+  it('con la llave del pendiente en la lista y todavía en curso, el aviso «en proceso» se queda y otro cuerpo no se manda', async () => {
+    listCardRefunds.mockResolvedValue([refund({ id: 'r1', key: 'llave-k', amount: '80.00', status: 'PENDING', createdAt: new Date().toISOString() })])
+    storage[STORED] = JSON.stringify({ key: 'llave-k', amount: '80.00', reason: 'OTHER', note: '', savedAt: Date.now() - DOS_MIN - 5000 })
+    await abrir()
+    expect(await screen.findByText(`cardRefund.pendingAttempt|${Currency(80)}`)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'cardRefund.discard' })).toBeNull() // sí llegó: no hay nada que descartar
+    escribirMonto('30')
+    await devolver()
+    expect(await screen.findByText(`cardRefund.blocked|${Currency(80)}`)).toBeInTheDocument()
+    expect(createCardRefund).not.toHaveBeenCalled()
+  })
+
   it('si la lista no se puede releer antes de una devolución nueva, no se manda', async () => {
     listCardRefunds.mockResolvedValueOnce([]).mockRejectedValue(networkError())
     await abrir()
@@ -462,13 +569,13 @@ describe('Devolver a la tarjeta', () => {
   it('el intento guardado es de ESA cuenta: otra cuenta del negocio no lo ve', async () => {
     storage[STORED] = JSON.stringify({ key: 'llave-vieja-123', amount: '50.00', reason: 'OTHER', note: '' })
     await abrir(order({ orderId: 'o2' }))
-    expect(screen.queryByText(/^cardRefund\.pendingAttempt/)).toBeNull()
+    expect(screen.queryByText(AVISO)).toBeNull()
   })
 
   it('un intento guardado roto (o sin almacenamiento) no tumba la hoja', async () => {
     storage[STORED] = '{no es json'
     await abrir()
-    expect(screen.queryByText(/^cardRefund\.pendingAttempt/)).toBeNull()
+    expect(screen.queryByText(AVISO)).toBeNull()
     vi.mocked(window.localStorage.setItem).mockImplementation(() => {
       throw new Error('QuotaExceededError')
     })

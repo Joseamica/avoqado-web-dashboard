@@ -166,6 +166,8 @@ export type CardRefundResolveMethod = 'CASH' | 'BANK_TRANSFER'
 
 export interface CardRefund {
   id: string
+  /** La Idempotency-Key con que se creó (S9, aditivo): con ella el panel concilia SU intento pendiente. Un servidor viejo no la manda. */
+  key?: string | null
   status: CardRefundStatus
   amount: string
   reason: CardRefundReason
