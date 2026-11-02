@@ -169,6 +169,12 @@
       "payAtPickup": "Cobrar al recoger {{amount}}",
       "paid": "Pagado",
       "noCharge": "Sin cobro",
+      "cardAuthorized": "Con tarjeta: se cobra al aceptar",
+      "cardConfirming": "Confirmando el pago…",
+      "cardPaid": "Pagado con tarjeta",
+      "cardCapturedRefund": "Tarjeta cobrada: devuélvela desde el panel",
+      "cardNotCharged": "No se cobró la tarjeta",
+      "cardReleasing": "Liberando la tarjeta…",
       "collectFirst": "Falta cobrarlo",
       "deadline": "Quedan {{time}} para aceptar",
       "expired": "Se acabó el tiempo para aceptar",
@@ -199,7 +205,8 @@
         "OUT_OF_ITEMS": "Sin ingredientes",
         "CLOSED": "Cerrado",
         "TOO_BUSY": "Muy ocupados",
-        "OTHER": "Otro"
+        "OTHER": "Otro",
+        "PAYMENT_FAILED": "No se pudo cobrar la tarjeta"
       },
       "note": "Nota (opcional)",
       "confirm": "Rechazar"

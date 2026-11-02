@@ -71,7 +71,7 @@ const SECTIONS: Array<{ key: keyof Inbox['counts']; match: (s: OnlineOrderStatus
 ]
 
 type DialogState = { kind: 'accept' | 'reject' | 'cancel'; order: InboxOrder } | null
-type Act = { target: OnlineOrderStatus; run: () => Promise<unknown> }
+type Act = { target: OnlineOrderStatus; run: () => Promise<unknown>; orderId?: string }
 
 /**
  * Bandeja de pedidos en línea. 🔴 No depende del plan (R14): los pedidos que ya llegaron se ven, se contestan y se pausan.
@@ -87,6 +87,9 @@ export function InboxTab() {
   const { data, isError, error, dataUpdatedAt } = useOnlineOrdersInbox(venueId, { trayActive: () => keepsStoreOpen })
 
   const [dialog, setDialog] = useState<DialogState>(null)
+  // 409 CONFIRMING: «Aceptar» de ese pedido queda apagado hasta que una lectura EXITOSA posterior (dataUpdatedAt > la hora del
+  // 409) lo traiga sin `cardStatus: 'CONFIRMING'`. Una relectura fallida no mueve `dataUpdatedAt`: sigue apagado.
+  const [confirmingSince, setConfirmingSince] = useState<Record<string, number>>({})
   const [soundOn, setSoundOn] = useState(readSoundPref)
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const pending = data?.counts.pending ?? 0
@@ -116,6 +119,7 @@ export function InboxTab() {
     onError: (err: unknown, a: Act) => {
       const outcome = actionOutcome(err, a.target)
       if (outcome === 'success') return refresh()
+      if (outcome === 'confirming' && a.orderId) setConfirmingSince(m => ({ ...m, [a.orderId!]: Date.now() }))
       const title =
         outcome === 'gone'
           ? t('inbox.outcome.gone')
@@ -125,17 +129,21 @@ export function InboxTab() {
               ? t('inbox.outcome.hasPayments')
               : outcome === 'network'
                 ? t('inbox.outcome.network')
-                : serverMessage(err, t('inbox.outcome.error'))
+                : outcome === 'confirming'
+                  ? serverMessage(err, t('inbox.card.cardConfirming'))
+                  : outcome === 'paidByCard'
+                    ? serverMessage(err, t('inbox.card.cardPaid'))
+                    : serverMessage(err, t('inbox.outcome.error'))
       toast({ title, ...(outcome === 'error' ? { variant: 'destructive' as const } : {}) })
       return outcome === 'network' ? undefined : refresh()
     },
   })
 
-  const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>) => {
+  const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>, orderId?: string) => {
     if (inFlight.current) return
     inFlight.current = true
     setDialog(null)
-    action.mutate({ target, run: fn })
+    action.mutate({ target, run: fn, orderId })
   }
 
   const onAction = (order: InboxOrder, a: OrderAction) => {
@@ -242,6 +250,7 @@ export function InboxTab() {
                     canAnswer={canAnswer}
                     canCancel={canCancel}
                     busy={action.isPending}
+                    acceptLocked={order.orderId in confirmingSince && dataUpdatedAt <= confirmingSince[order.orderId]}
                     onAction={a => onAction(order, a)}
                   />
                 ))}
@@ -255,7 +264,7 @@ export function InboxTab() {
         <AcceptDialog
           order={dialog.order}
           onClose={() => setDialog(null)}
-          onAccept={minutes => run('ACCEPTED', () => acceptOrder(venueId, dialog.order.orderId, minutes))}
+          onAccept={minutes => run('ACCEPTED', () => acceptOrder(venueId, dialog.order.orderId, minutes), dialog.order.orderId)}
         />
       )}
       {dialog?.kind === 'reject' && (

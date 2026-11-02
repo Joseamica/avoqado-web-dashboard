@@ -540,6 +540,127 @@ describe('InboxTab', () => {
     expect(planFetch).toHaveBeenCalledTimes(1)
   })
 
+  // ── Fase 2: pedidos pagados con tarjeta en línea ──
+  const cardOrder = (over: Record<string, unknown> = {}) =>
+    order({
+      paymentMode: 'CARD_ONLINE',
+      cardStatus: 'AUTHORIZED',
+      card: { status: 'AUTHORIZED', amount: 80, capturedAmount: null, authorizedAt: '2026-10-17T17:55:00.000Z', capturedAt: null },
+      ...over,
+    })
+  const captured = { status: 'CAPTURED', amount: 80, capturedAmount: 80, authorizedAt: '2026-10-17T17:55:00.000Z', capturedAt: '2026-10-17T18:00:00.000Z' }
+  const closedCard = (status: string, charge: string) =>
+    cardOrder({ status, cardStatus: null, card: { ...captured, status: charge, capturedAmount: null }, acceptDeadlineAt: null })
+  const moneyLine = (card: HTMLElement) => within(card).getByText(/^inbox\.card\.(card|payAtPickup|paid|noCharge)/)
+
+  it.each([
+    ['por aceptar (tarjeta apartada)', cardOrder(), 'inbox.card.cardAuthorized'],
+    ['cobrándose', cardOrder({ cardStatus: 'CONFIRMING', card: { ...captured, status: 'CAPTURING', capturedAmount: null } }), 'inbox.card.cardConfirming'],
+    ['aceptado y cobrado', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: captured, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.cardPaid'],
+    ['entregado (remaining 0)', cardOrder({ status: 'COMPLETED', cardStatus: null, card: captured, paymentStatus: 'COMPLETED', remaining: 0, acceptDeadlineAt: null }), 'inbox.card.cardPaid'],
+    ['rechazado con la tarjeta COBRADA', cardOrder({ status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }), 'inbox.card.cardCapturedRefund'],
+    ['vencido con la tarjeta liberada', closedCard('EXPIRED', 'RELEASED'), 'inbox.card.cardNotCharged'],
+    ['rechazado con el cargo abandonado', closedCard('REJECTED', 'ABANDONED'), 'inbox.card.cardNotCharged'],
+    ['rechazado porque no se pudo cobrar', closedCard('REJECTED', 'CAPTURE_FAILED'), 'inbox.card.cardNotCharged'],
+    // Codex ANDROID r1 #1: con el desenlace en duda nunca «No se cobró»: «Liberando la tarjeta…».
+    ['cancelado con la tarjeta liberándose', closedCard('CANCELLED_BY_CUSTOMER', 'RELEASING'), 'inbox.card.cardReleasing'],
+    ['vencido con la tarjeta todavía apartada', closedCard('EXPIRED', 'AUTHORIZED'), 'inbox.card.cardReleasing'],
+    ['cancelado con el cobro en curso', closedCard('CANCELLED_BY_STAFF', 'CAPTURING'), 'inbox.card.cardReleasing'],
+    ['cerrado sin cargo conocido', cardOrder({ status: 'EXPIRED', cardStatus: null, card: null, acceptDeadlineAt: null }), 'inbox.card.cardReleasing'],
+  ])('🔴 tarjeta en línea %s ⇒ su texto de dinero, nunca «Cobrar al recoger»', async (_name, o, text) => {
+    getInbox.mockResolvedValue(inbox([o]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(moneyLine(card)).toHaveTextContent(text)
+    expect(within(card).queryByText(/^inbox\.card\.payAtPickup\|/)).toBeNull()
+    expect(within(card).queryByText('inbox.card.collectFirst')).toBeNull()
+  })
+
+  it('🔴 «Aceptar» apagado mientras se confirma el pago (CONFIRMING); «Rechazar» no', async () => {
+    getInbox.mockResolvedValue(inbox([cardOrder({ cardStatus: 'CONFIRMING' })]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.accept' })).toBeDisabled()
+    expect(within(card).getByRole('button', { name: 'inbox.actions.reject' })).toBeEnabled()
+  })
+
+  it('con la tarjeta apartada «Aceptar» sí se puede', async () => {
+    getInbox.mockResolvedValue(inbox([cardOrder()]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.accept' })).toBeEnabled()
+  })
+
+  it('un pedido de tarjeta listo y con saldo (anomalía) no pide «Falta cobrarlo»: el panel nunca cobra tarjeta', async () => {
+    getInbox.mockResolvedValue(inbox([cardOrder({ status: 'READY', cardStatus: null, card: captured, remaining: 80 })]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).queryByText('inbox.card.collectFirst')).toBeNull()
+  })
+
+  it.each(['PAYMENT_FAILED', 'TOO_BUSY'])('el motivo del rechazo recibido (%s) se ve en la tarjeta', async reason => {
+    getInbox.mockResolvedValue(inbox([cardOrder({ status: 'REJECTED', cardStatus: null, rejectReason: reason, acceptDeadlineAt: null })]))
+    renderTab()
+    const card = await screen.findByTestId('order-o1')
+    expect(within(card).getByText(`inbox.reject.reasons.${reason}`)).toBeInTheDocument()
+  })
+
+  it('🔴 409 ONLINE_ORDER_CONFIRMING_PAYMENT al aceptar ⇒ aviso NEUTRO con el texto del servidor y refresca la bandeja', async () => {
+    getInbox.mockResolvedValue(inbox([cardOrder()]))
+    acceptOrder.mockRejectedValue(http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'Estamos confirmando el pago con la tarjeta' }))
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+  })
+
+  const aceptar = async () => {
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
+  }
+  const confirmingError = () => http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' })
+
+  it('🔴 tras el 409 CONFIRMING, si la relectura FALLA, «Aceptar» sigue apagado aunque la tarjeta vieja diga «apartada»', async () => {
+    getInbox.mockResolvedValueOnce(inbox([cardOrder()]))
+    getInbox.mockRejectedValue(networkError())
+    acceptOrder.mockRejectedValue(confirmingError())
+    renderTab()
+    await aceptar()
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'Estamos confirmando el pago con la tarjeta' }))
+    expect(await screen.findByText('inbox.offline', {}, { timeout: 4000 })).toBeInTheDocument()
+    const card = screen.getByTestId('order-o1')
+    expect(within(card).getByText('inbox.card.cardAuthorized')).toBeInTheDocument() // los datos de antes del 409
+    expect(within(card).getByRole('button', { name: 'inbox.actions.accept' })).toBeDisabled()
+  })
+
+  it('🔴 tras el 409 CONFIRMING, «Aceptar» se vuelve a prender sólo con una lectura EXITOSA que ya no diga CONFIRMING', async () => {
+    getInbox
+      .mockResolvedValueOnce(inbox([cardOrder()]))
+      .mockResolvedValueOnce(inbox([cardOrder({ cardStatus: 'CONFIRMING' })]))
+      .mockResolvedValue(inbox([cardOrder()]))
+    acceptOrder.mockRejectedValue(confirmingError())
+    renderTab()
+    await aceptar()
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+    const card = await screen.findByTestId('order-o1')
+    await waitFor(() => expect(within(card).getByText('inbox.card.cardConfirming')).toBeInTheDocument())
+    expect(within(card).getByRole('button', { name: 'inbox.actions.accept' })).toBeDisabled()
+    act(() => handlers.order_updated({ orderId: 'o1', onlineStatus: 'PENDING_ACCEPTANCE' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(within(screen.getByTestId('order-o1')).getByRole('button', { name: 'inbox.actions.accept' })).toBeEnabled())
+  })
+
+  it('409 ONLINE_ORDER_PAID_BY_CARD ⇒ aviso con el texto del servidor, no un error rojo', async () => {
+    getInbox.mockResolvedValue(inbox([cardOrder({ status: 'READY', cardStatus: null, card: captured, remaining: 0 })]))
+    markDelivered.mockRejectedValue(http(409, { message: 'Este pedido ya se pagó con tarjeta', code: 'ONLINE_ORDER_PAID_BY_CARD' }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.delivered' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'Este pedido ya se pagó con tarjeta' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+  })
+
   it('consulta en error con datos viejos ⇒ «Sin conexión: no llegan pedidos nuevos»', async () => {
     getInbox.mockResolvedValueOnce(inbox([order()]))
     getInbox.mockRejectedValue(Object.assign(new Error('Network Error'), { isAxiosError: true }))

@@ -12,6 +12,22 @@ const NO_CHARGE: ReadonlySet<string> = new Set(['REJECTED', 'EXPIRED', 'CANCELLE
 
 export type OrderAction = 'accept' | 'reject' | 'ready' | 'delivered' | 'cancel'
 
+/** Cerrado sin completar: sólo estos cargos dicen «No se cobró la tarjeta»; los demás siguen en duda («Liberando…»). */
+const CARD_NOT_CHARGED: ReadonlySet<string> = new Set(['RELEASED', 'ABANDONED', 'CAPTURE_FAILED'])
+
+/** El dinero de un pedido con tarjeta en línea (textos de la tabla del plan, iguales en las apps). */
+function cardMoneyKey(order: InboxOrder): string {
+  if (NO_CHARGE.has(order.status)) {
+    const charge = order.card?.status
+    if (charge === 'CAPTURED') return 'inbox.card.cardCapturedRefund'
+    // Codex ANDROID r1 #1: nunca «no se cobró» con el desenlace en duda (RELEASING, AUTHORIZED, CAPTURING u otro).
+    return charge && CARD_NOT_CHARGED.has(charge) ? 'inbox.card.cardNotCharged' : 'inbox.card.cardReleasing'
+  }
+  if (order.cardStatus === 'CONFIRMING') return 'inbox.card.cardConfirming'
+  if (order.paymentStatus === 'PAID' || order.remaining <= 0 || order.card?.status === 'CAPTURED') return 'inbox.card.cardPaid'
+  return 'inbox.card.cardAuthorized'
+}
+
 /** Cuenta regresiva al vencimiento con el reloj del SERVIDOR (`skewMs` = hora del servidor − reloj local). */
 function Countdown({ deadline, skewMs }: { deadline: string; skewMs: number }) {
   const { t } = useTranslation('onlineOrdering')
@@ -33,14 +49,19 @@ interface Props {
   canAnswer: boolean
   canCancel: boolean
   busy: boolean
+  /** El servidor dijo que se está cobrando (409) y la bandeja todavía no lo confirma con una lectura nueva. */
+  acceptLocked?: boolean
   onAction: (action: OrderAction) => void
 }
 
-export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, onAction }: Props) {
+export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLocked = false, onAction }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { formatTime } = useVenueDateTime()
   const noCharge = NO_CHARGE.has(order.status)
-  const owes = !noCharge && order.remaining > 0
+  const isCard = order.paymentMode === 'CARD_ONLINE'
+  // 🔴 Tarjeta en línea: el panel nunca cobra (ni pide «Falta cobrarlo»); el dinero lo dice el cargo.
+  const owes = !isCard && !noCharge && order.remaining > 0
+  const confirming = order.cardStatus === 'CONFIRMING' || acceptLocked
   const isPending = order.status === 'PENDING_ACCEPTANCE'
   const isActive = order.status === 'ACCEPTED' || order.status === 'READY'
   const isDone = !isPending && !isActive
@@ -96,18 +117,27 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, onAction 
         <span className="font-semibold">{Currency(order.total)}</span>
       </div>
       <p className={owes ? 'text-sm font-medium' : 'text-sm text-muted-foreground'}>
-        {noCharge
-          ? t('inbox.card.noCharge')
-          : owes
-            ? t('inbox.card.payAtPickup', { amount: Currency(order.remaining) })
-            : t('inbox.card.paid')}
+        {isCard
+          ? t(cardMoneyKey(order))
+          : noCharge
+            ? t('inbox.card.noCharge')
+            : owes
+              ? t('inbox.card.payAtPickup', { amount: Currency(order.remaining) })
+              : t('inbox.card.paid')}
       </p>
 
-      {isDone && <Badge variant="secondary">{t(`inbox.card.status.${order.status}`, { defaultValue: order.status })}</Badge>}
+      {isDone && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{t(`inbox.card.status.${order.status}`, { defaultValue: order.status })}</Badge>
+          {order.status === 'REJECTED' && order.rejectReason && (
+            <span className="text-sm text-muted-foreground">{t(`inbox.reject.reasons.${order.rejectReason}`)}</span>
+          )}
+        </div>
+      )}
 
       {isPending && canAnswer && (
         <div className="flex gap-2">
-          <Button className="flex-1" disabled={busy} onClick={() => onAction('accept')} data-tour="online-inbox-accept">
+          <Button className="flex-1" disabled={busy || confirming} onClick={() => onAction('accept')} data-tour="online-inbox-accept">
             {t('inbox.actions.accept')}
           </Button>
           <Button variant="outline" className="flex-1" disabled={busy} onClick={() => onAction('reject')}>
