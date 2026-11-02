@@ -58,7 +58,14 @@
     "enableBlocked": "Complete what is missing above to turn it on.",
     "payAtPickup": "Pay at pickup",
     "cardOnline": "Card online",
-    "soon": "Coming soon",
+    "card": {
+      "off": "Off: your customers can only pay at pickup.",
+      "ready": "Your customers can pay by card.",
+      "notConnected": "To charge cards, connect your Stripe account.",
+      "notChargeable": "Your Stripe account can't charge yet.",
+      "connect": "Connect Stripe",
+      "review": "Review Stripe"
+    },
     "minOrder": "Minimum order (MXN)",
     "minOrderHelp": "Price already includes tax. Leave blank to keep it unchanged.",
     "prepTime": "Preparation time",

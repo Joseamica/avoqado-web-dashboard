@@ -58,7 +58,14 @@
     "enableBlocked": "Completa lo que falta arriba para poder encenderla.",
     "payAtPickup": "Pagar al recoger",
     "cardOnline": "Tarjeta en línea",
-    "soon": "Muy pronto",
+    "card": {
+      "off": "Apagado: tus clientes sólo pueden pagar al recoger.",
+      "ready": "Tus clientes pueden pagar con tarjeta.",
+      "notConnected": "Para cobrar con tarjeta, conecta tu cuenta de Stripe.",
+      "notChargeable": "Tu cuenta de Stripe todavía no puede cobrar.",
+      "connect": "Conectar Stripe",
+      "review": "Revisar Stripe"
+    },
     "minOrder": "Pedido mínimo (MXN)",
     "minOrderHelp": "El precio ya incluye IVA. Déjalo en blanco para no cambiarlo.",
     "prepTime": "Tiempo de preparación",
