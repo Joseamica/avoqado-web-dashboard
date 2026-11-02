@@ -92,11 +92,14 @@ export const getOnlineOrder = async (venueId: string, orderId: string): Promise<
 export const listCardRefunds = async (venueId: string, orderId: string): Promise<CardRefund[]> =>
   (await api.get(`${base(venueId)}/orders/${orderId}/card-refunds`)).data.data
 
-/** 🔴 `amount` en PESOS como texto («120.50»), nunca centavos. La llave es la del intento: la MISMA en sus reintentos. */
+/**
+ * 🔴 `amount` en PESOS como texto («120.50»), nunca centavos. La llave y `expectedLatestRefundId` (la última devolución que vio el
+ * operador, `null` si ninguna) son los del intento: los MISMOS en sus reintentos.
+ */
 export const createCardRefund = async (
   venueId: string,
   orderId: string,
-  body: { amount: string; reason: CardRefundReason; note?: string },
+  body: { amount: string; reason: CardRefundReason; note?: string; expectedLatestRefundId: string | null },
   idempotencyKey: string,
 ): Promise<CardRefundResult> =>
   (await api.post(`${base(venueId)}/orders/${orderId}/card-refund`, body, { headers: { 'Idempotency-Key': idempotencyKey } })).data.data
