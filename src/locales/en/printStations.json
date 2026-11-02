@@ -98,7 +98,7 @@
       "leftMarginHint": "Leave this at 0 unless you fitted a narrow roll with adapters into a wider printer: the paper then doesn't start where the printer thinks it does, and receipts come out cut off on the left. Print the test page from the POS, read the first ruler number you can see, and enter it here.",
       "charset": "Accents",
       "active": "Printer active",
-      "posInternalHint": "The ticket prints on the device that charged the sale (the point of sale’s built-in printer). It has no IP address and works even without internet.",
+      "posInternalHint": "Only for terminals with a built-in printer (Sunmi, such as the D3): the ticket prints on the device that charged the sale. It has no IP address and works even without internet. On a Windows computer it does not print: there the printer is set up in the point of sale itself, under «Configurar impresora».",
       "paperWidthHint": "If the ticket prints overlapped or cut off at 80 mm, your printer prints 42 columns: choose “80 mm (42 col.)”.",
       "charsetHint": "Leave it on “Normal”. If accents print as strange symbols (CAFETER═A), choose PC850; if that fails too, PC437 (no accents on capital letters)."
     },
@@ -114,7 +114,7 @@
       "leftMarginRange": "The shift must be between 0 and 16 columns.",
       "addressForbiddenPosInternal": "The built-in printer takes no address: it prints on the device that charged the sale"
     },
-    "connectionPosInternal": "POS built-in printer",
+    "connectionPosInternal": "POS built-in printer (Sunmi)",
     "integratedAddress": "POS built-in",
     "width42": "80 mm (42 col.)",
     "charsetOptions": {
