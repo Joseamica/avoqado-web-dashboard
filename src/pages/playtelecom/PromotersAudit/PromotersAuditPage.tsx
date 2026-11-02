@@ -33,6 +33,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { PromoterLocationModal } from './components/PromoterLocationModal'
 import { PromoterCharts } from './components/PromoterCharts'
 import { DepositValidation } from './components/DepositValidation'
+import { depositoEsperado, seQuedaConElFiltro } from './auditoriaDePromotores'
 import { AllCheckInsDialog } from './components/AllCheckInsDialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -65,6 +66,8 @@ interface PromoterRow {
   checkOutLocation?: { lat: number; lng: number }
   checkOutPhotoUrl?: string
   sales: number // Venta del día/período
+  cashSales: number // D6: efectivo cobrado (lo que se deposita)
+  depositPhotoUrl?: string // D6: foto real del comprobante de depósito
   break: boolean // En descanso
   breakMinutes: number // Tiempo de descanso en minutos
   status: 'ACTIVE' | 'INACTIVE' // Activo/Inactivo
@@ -328,6 +331,8 @@ export default function PromotersAuditPage() {
         checkOutLocation: entryWithCheckout?.clockOutLocation || undefined,
         checkOutPhotoUrl: entryWithCheckout?.checkOutPhotoUrl || undefined,
         sales: staffMember.sales,
+        cashSales: staffMember.cashSales ?? 0,
+        depositPhotoUrl: staffMember.depositPhotoUrl || undefined,
         break: staffMember.break,
         breakMinutes: staffMember.breakMinutes || 0,
         status: staffMember.status,
@@ -342,7 +347,21 @@ export default function PromotersAuditPage() {
 
     return promoters.reduce<PromoterRow[]>((acc, promoter) => {
       const filteredEntries = (promoter.allTimeEntries || []).filter(isEntryInDateFilter)
-      if (filteredEntries.length === 0) return acc
+      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales)) return acc
+      if (filteredEntries.length === 0) {
+        // D6: sin checadas en el rango pero con ventas (p. ej. la devolución de algo que vendió otro día): se ve, sin datos de checada.
+        acc.push({
+          ...promoter,
+          allTimeEntries: [],
+          checkInTime: undefined,
+          checkInLocation: undefined,
+          checkInPhotoUrl: undefined,
+          checkOutTime: undefined,
+          checkOutLocation: undefined,
+          checkOutPhotoUrl: undefined,
+        })
+        return acc
+      }
 
       const sortedEntries = sortEntriesByDate(filteredEntries)
       const mostRecentEntry = sortedEntries[0]
@@ -783,10 +802,10 @@ export default function PromotersAuditPage() {
             <DepositValidation
               promoterId={selectedPromoter.id}
               promoterName={selectedPromoter.name}
-              expectedAmount={selectedPromoter.sales}
-              declaredAmount={selectedPromoter.sales - 500}
-              voucherPhotoUrl="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400"
-              status="PENDING"
+              // D6: lo esperado es el EFECTIVO cobrado y la foto es la real. Sin monto declarado (la terminal todavía no lo registra) no
+              // hay comparación ni botones de aprobar: antes se inventaba «declarado = ventas − 500» con una foto de muestra.
+              expectedAmount={depositoEsperado(selectedPromoter).esperado}
+              voucherPhotoUrl={depositoEsperado(selectedPromoter).comprobante}
             />
 
             {/* Calendar Date Dialog - rendered inside FullScreenModal with aboveModal flag */}

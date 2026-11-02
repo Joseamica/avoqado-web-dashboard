@@ -352,6 +352,8 @@ export interface StaffAttendanceEntry {
   break: boolean
   breakMinutes: number
   sales: number
+  /** Efectivo cobrado (lo que la persona deposita); el servidor lo manda desde siempre. */
+  cashSales?: number
   attendancePercent: number
 }
 
