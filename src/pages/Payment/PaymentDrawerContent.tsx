@@ -40,7 +40,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
-  const { venueId, venue } = useCurrentVenue()
+  const { venueId, venue, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
 
   const [email, setEmail] = useState('')
@@ -517,6 +517,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         open={refundOpen}
         onOpenChange={setRefundOpen}
         onRefunded={() => setRefundOpen(false)}
+        orderHref={orderIdForCustomer ? `${fullBasePath}/orders/${orderIdForCustomer}` : undefined}
       />
 
       {/* Customer create/edit form */}

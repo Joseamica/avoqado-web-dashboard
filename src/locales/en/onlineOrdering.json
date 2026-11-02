@@ -229,5 +229,35 @@
       "resume": "Resume",
       "failed": "Couldn't change the pause. Try again."
     }
+  },
+  "cardRefund": {
+    "open": "Refund to card",
+    "title": "Refund to card · order #{{number}}",
+    "description": "The money goes back to the card the customer paid with.",
+    "history": "Refunds for this order",
+    "empty": "No refunds yet.",
+    "loadFailed": "Couldn't load the refunds.",
+    "upTo": "You can refund up to {{amount}}",
+    "amount": "Amount to refund (MXN)",
+    "amountInvalid": "Enter an amount above $0 with at most 2 decimals.",
+    "reason": "Reason",
+    "note": "Note (optional)",
+    "submit": "Refund to card",
+    "sending": "Refunding…",
+    "noResponse": "No response. Try again: it won't be refunded twice.",
+    "error": "Couldn't make the refund. Try again.",
+    "outcome": {
+      "done": "Refunded to the card",
+      "processing": "Stripe is processing the refund",
+      "failed": "The bank didn't make the refund; nothing was recorded",
+      "reversed": "The refund failed later: refund it another way",
+      "resolved": "Already refunded another way",
+      "unknown": "The refund is in progress; check again in a moment"
+    },
+    "other": {
+      "title": "Refund another way:",
+      "cash": "Cash from the drawer",
+      "transfer": "Bank transfer"
+    }
   }
 }

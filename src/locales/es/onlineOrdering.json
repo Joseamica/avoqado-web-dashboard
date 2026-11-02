@@ -229,5 +229,35 @@
       "resume": "Reanudar",
       "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
     }
+  },
+  "cardRefund": {
+    "open": "Devolver a la tarjeta",
+    "title": "Devolver a la tarjeta · pedido #{{number}}",
+    "description": "El dinero regresa a la tarjeta con la que pagó el cliente.",
+    "history": "Devoluciones de este pedido",
+    "empty": "Todavía no hay devoluciones.",
+    "loadFailed": "No se pudieron cargar las devoluciones.",
+    "upTo": "Puedes devolver hasta {{amount}}",
+    "amount": "Monto a devolver (MXN)",
+    "amountInvalid": "Escribe un monto mayor a $0 con máximo 2 decimales.",
+    "reason": "Motivo",
+    "note": "Nota (opcional)",
+    "submit": "Devolver a la tarjeta",
+    "sending": "Devolviendo…",
+    "noResponse": "No hubo respuesta. Vuelve a intentarlo: no se devuelve dos veces.",
+    "error": "No se pudo hacer la devolución. Vuelve a intentar.",
+    "outcome": {
+      "done": "Devuelto a la tarjeta",
+      "processing": "Stripe está procesando la devolución",
+      "failed": "El banco no hizo la devolución; no se anotó nada",
+      "reversed": "La devolución falló después: devuélvelo por otro medio",
+      "resolved": "Ya se devolvió por otro medio",
+      "unknown": "La devolución está en proceso; revisa en un momento"
+    },
+    "other": {
+      "title": "Devolver por otro medio:",
+      "cash": "Efectivo de la caja",
+      "transfer": "Transferencia"
+    }
   }
 }

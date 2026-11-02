@@ -103,6 +103,7 @@ const status = (over: Record<string, unknown> = {}) => ({
   canAnswer: true,
   canCancel: true,
   canPause: true,
+  canRefund: true,
   keepsStoreOpen: true,
   ...over,
 })
@@ -650,6 +651,28 @@ describe('InboxTab', () => {
     act(() => handlers.order_updated({ orderId: 'o1', onlineStatus: 'PENDING_ACCEPTANCE' }))
     await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(3))
     await waitFor(() => expect(within(screen.getByTestId('order-o1')).getByRole('button', { name: 'inbox.actions.accept' })).toBeEnabled())
+  })
+
+  it('🔴 «Devolver a la tarjeta» en la tarjeta de un pedido COBRADO (también rechazado con la tarjeta cobrada), sólo con permiso', async () => {
+    getInbox.mockResolvedValue(
+      inbox([
+        cardOrder({ status: 'COMPLETED', cardStatus: null, card: captured, remaining: 0, acceptDeadlineAt: null }),
+        cardOrder({ orderId: 'o2', status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }),
+        cardOrder({ orderId: 'o3' }),
+        order({ orderId: 'o4', status: 'COMPLETED', remaining: 0, acceptDeadlineAt: null }),
+      ]),
+    )
+    const { unmount } = renderTab()
+    expect(within(await screen.findByTestId('order-o1')).getByRole('button', { name: 'cardRefund.open' })).toBeInTheDocument()
+    expect(within(screen.getByTestId('order-o2')).getByRole('button', { name: 'cardRefund.open' })).toBeInTheDocument()
+    expect(within(screen.getByTestId('order-o3')).queryByRole('button', { name: 'cardRefund.open' })).toBeNull() // sólo apartada
+    expect(within(screen.getByTestId('order-o4')).queryByRole('button', { name: 'cardRefund.open' })).toBeNull() // al recoger
+    unmount()
+
+    mockStatus.mockReturnValue(status({ canRefund: false }))
+    renderTab()
+    await screen.findByTestId('order-o1')
+    expect(screen.queryByRole('button', { name: 'cardRefund.open' })).toBeNull()
   })
 
   it('409 ONLINE_ORDER_PAID_BY_CARD ⇒ aviso con el texto del servidor, no un error rojo', async () => {

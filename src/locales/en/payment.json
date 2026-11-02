@@ -827,6 +827,7 @@
       "includeTipOn": "The refund is split proportionally between the sale and the original payment's tip.",
       "includeTipOff": "Only the product is refunded; the server's tip stays untouched.",
       "exceeds": "The amount exceeds the maximum refundable"
-    }
+    },
+    "goToOrder": "Open the order"
   }
 }

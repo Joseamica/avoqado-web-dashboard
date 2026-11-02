@@ -39,6 +39,7 @@ import { actionOutcome } from '../lib/actionOutcome'
 import { createChime, type Chime } from '../lib/chime'
 import { pauseLabel } from '../lib/pauseLabel'
 import { AcceptDialog } from './AcceptDialog'
+import { CardRefundButton } from './CardRefundSheet'
 import { OrderCard, type OrderAction } from './OrderCard'
 import { PauseControl } from './PauseControl'
 import { RejectDialog } from './RejectDialog'
@@ -83,7 +84,7 @@ export function InboxTab() {
   const queryClient = useQueryClient()
   const { formatTime } = useVenueDateTime()
   const venueId = useCurrentVenue().venueId ?? ''
-  const { hasPlan, canAnswer, canCancel, canPause, keepsStoreOpen } = useOnlineOrderingStatus()
+  const { hasPlan, canAnswer, canCancel, canPause, canRefund, keepsStoreOpen } = useOnlineOrderingStatus()
   const { data, isError, error, dataUpdatedAt } = useOnlineOrdersInbox(venueId, { trayActive: () => keepsStoreOpen })
 
   const [dialog, setDialog] = useState<DialogState>(null)
@@ -252,7 +253,9 @@ export function InboxTab() {
                     busy={action.isPending}
                     acceptLocked={order.orderId in confirmingSince && dataUpdatedAt <= confirmingSince[order.orderId]}
                     onAction={a => onAction(order, a)}
-                  />
+                  >
+                    {canRefund && <CardRefundButton venueId={venueId} order={order} />}
+                  </OrderCard>
                 ))}
               </div>
             )}

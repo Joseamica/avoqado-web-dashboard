@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
@@ -52,9 +52,11 @@ interface Props {
   /** El servidor dijo que se está cobrando (409) y la bandeja todavía no lo confirma con una lectura nueva. */
   acceptLocked?: boolean
   onAction: (action: OrderAction) => void
+  /** Lo que va al pie de la tarjeta (p. ej. «Devolver a la tarjeta»). */
+  children?: ReactNode
 }
 
-export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLocked = false, onAction }: Props) {
+export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLocked = false, onAction, children }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { formatTime } = useVenueDateTime()
   const noCharge = NO_CHARGE.has(order.status)
@@ -168,6 +170,7 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
           )}
         </div>
       )}
+      {children}
     </div>
   )
 }

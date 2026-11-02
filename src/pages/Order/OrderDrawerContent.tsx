@@ -6,6 +6,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import * as orderService from '@/services/order.service'
 import { Currency } from '@/utils/currency'
 import { formatOrderNumber, getOrderStatusConfig } from '@/utils/orderStatus'
+import { OrderCardRefund } from '@/pages/OnlineOrdering/components/CardRefundSheet'
 import { useQuery } from '@tanstack/react-query'
 import { MoreHorizontal, Printer, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -149,6 +150,8 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
         */}
         <StampRewardsSection order={order} />
         <PaymentsSection order={order} venueTimezone={venueTimezone} />
+        {/* Pedido en línea cobrado con tarjeta: se devuelve aquí (la bandeja sólo guarda 24 h). Sale solo si aplica. */}
+        <OrderCardRefund venueId={venueId} orderId={order.id} source={order.source} />
         <ExchangeLinksCard orderId={order.id} links={order.exchange} />
         <ActivitySection order={order} venueTimezone={venueTimezone} />
       </div>
