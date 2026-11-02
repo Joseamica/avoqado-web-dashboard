@@ -210,7 +210,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   useEffect(() => {
     if (latest === undefined) return
     if (seen === undefined) {
-      if (list.dataUpdatedAt >= readAfter) setSeen(latest)
+      if (list.dataUpdatedAt >= readAfter) {
+        clearForm() // lo llenado sin ver esta lista no cuenta (Codex panel r6)
+        setSeen(latest)
+      }
     } else if (latest !== seen) {
       clearForm()
       setChanged(true)

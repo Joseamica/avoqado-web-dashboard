@@ -338,7 +338,26 @@ describe('Devolver a la tarjeta', () => {
     expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled()
     listCardRefunds.mockResolvedValue([])
     await userEvent.click(screen.getByRole('button', { name: 'cardRefund.reload' }))
+    await waitFor(() => expect(screen.queryByText('cardRefund.loadFailed')).toBeNull())
+    await motivo() // lo llenado sin ver la lista no cuenta: se limpió
     await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeEnabled())
+  })
+
+  it('🔴 lo llenado antes de ver la lista no cuenta: al llegar la lectura se limpia, y hay que decidir ya con ella a la vista', async () => {
+    let llega: (v: unknown) => void = () => {}
+    listCardRefunds.mockImplementation(() => new Promise(r => (llega = r)))
+    wrap(<CardRefundButton venueId="venue-1" order={order()} />)
+    await userEvent.click(screen.getByRole('button', { name: 'cardRefund.open' }))
+    await screen.findByRole('dialog')
+    escribirMonto('50')
+    await motivo()
+    fireEvent.change(screen.getByLabelText('cardRefund.note'), { target: { value: 'hola' } })
+    expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled()
+    llega([refund({ id: 'r-otra', amount: '50.00', createdAt: new Date(Date.now() - 11 * 60_000).toISOString() })])
+    expect(await screen.findByTestId('card-refund-r-otra')).toBeInTheDocument()
+    await waitFor(() => expect((screen.getByLabelText('cardRefund.note') as HTMLTextAreaElement).value).toBe(''))
+    expect(Number(monto().value)).toBe(150)
+    expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled() // falta el motivo
   })
 
   it('🔴 con una lista vieja en caché tampoco se manda: hasta que la lectura de esta apertura termine', async () => {
