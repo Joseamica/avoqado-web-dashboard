@@ -262,7 +262,11 @@
     "other": {
       "title": "Devolver por otro medio:",
       "cash": "Efectivo de la caja",
-      "transfer": "Transferencia"
+      "transfer": "Transferencia",
+      "confirmCASH": "¿Ya le devolviste {{amount}} al cliente en efectivo? Sale de la caja abierta y no se puede deshacer.",
+      "confirmBANK_TRANSFER": "¿Ya le transferiste {{amount}} al cliente? Queda anotado y no se puede deshacer.",
+      "confirmYes": "Sí, ya se lo devolví",
+      "confirmNo": "Todavía no"
     }
   }
 }

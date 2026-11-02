@@ -262,7 +262,11 @@
     "other": {
       "title": "Refund another way:",
       "cash": "Cash from the drawer",
-      "transfer": "Bank transfer"
+      "transfer": "Bank transfer",
+      "confirmCASH": "Did you already give the customer {{amount}} in cash? It comes out of the open drawer and can't be undone.",
+      "confirmBANK_TRANSFER": "Did you already transfer {{amount}} to the customer? It is recorded and can't be undone.",
+      "confirmYes": "Yes, I returned it",
+      "confirmNo": "Not yet"
     }
   }
 }

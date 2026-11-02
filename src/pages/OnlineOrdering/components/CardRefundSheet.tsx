@@ -156,6 +156,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const [seen, setSeen] = useState<string | null | undefined>(undefined)
   const [readAfter, setReadAfter] = useState(() => Date.now())
   const [changed, setChanged] = useState(false)
+  const [other, setOther] = useState<{ id: string; method: CardRefundResolveMethod } | null>(null)
   const attempt = useRef<Attempt | null>(null)
   const busy = useRef(false) // candado síncrono: `isPending` aún no cambia en el segundo de dos clics pegados
 
@@ -237,7 +238,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     onSuccess: () => toast({ title: t('cardRefund.outcome.resolved') }),
     // 409 CASH_DRAWER_NOT_OPEN y los demás: el texto del servidor. Repetir es idempotente.
     onError: err => toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' }),
-    onSettled: reread,
+    onSettled: () => {
+      setOther(null)
+      reread()
+    },
   })
 
   const submit = (confirmed = false) => {
@@ -295,33 +299,42 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                   <p className="text-xs text-muted-foreground">
                     {formatDateTime(r.createdAt)} · {tPay(`refund.reasons.${r.reason}`)}
                   </p>
-                  {r.status === 'REVERSED' && !r.reversal?.resolvedAt && (
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <span className="text-xs font-medium">{t('cardRefund.other.title')}</span>
-                      {can('payments:refund-to-cash') && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={resolve.isPending}
-                          onClick={() => resolve.mutate({ refundId: r.id, method: 'CASH' })}
-                        >
-                          {t('cardRefund.other.cash')}
-                        </Button>
-                      )}
-                      {can('payments:refund') && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={resolve.isPending}
-                          onClick={() => resolve.mutate({ refundId: r.id, method: 'BANK_TRANSFER' })}
-                        >
-                          {t('cardRefund.other.transfer')}
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                  {r.status === 'REVERSED' &&
+                    !r.reversal?.resolvedAt &&
+                    (other?.id === r.id ? (
+                      // Sale de la caja o queda anotado, y no se deshace: nunca con un solo toque (Q1).
+                      <div className="space-y-2 pt-1">
+                        <p className="text-xs font-medium">{t(`cardRefund.other.confirm${other.method}`, { amount: Currency(Number(r.amount)) })}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            disabled={resolve.isPending}
+                            onClick={() => resolve.mutate({ refundId: r.id, method: other.method })}
+                          >
+                            {t('cardRefund.other.confirmYes')}
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" disabled={resolve.isPending} onClick={() => setOther(null)}>
+                            {t('cardRefund.other.confirmNo')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="text-xs font-medium">{t('cardRefund.other.title')}</span>
+                        {can('payments:refund-to-cash') && (
+                          <Button type="button" size="sm" variant="outline" onClick={() => setOther({ id: r.id, method: 'CASH' })}>
+                            {t('cardRefund.other.cash')}
+                          </Button>
+                        )}
+                        {can('payments:refund') && (
+                          <Button type="button" size="sm" variant="outline" onClick={() => setOther({ id: r.id, method: 'BANK_TRANSFER' })}>
+                            {t('cardRefund.other.transfer')}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                 </li>
               ))}
             </ul>
