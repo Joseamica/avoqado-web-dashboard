@@ -160,7 +160,7 @@ describe('Devolver a la tarjeta', () => {
   })
 
   // ── La hoja ──
-  it('la lista (estado, monto, fecha, motivo) y la pista «Puedes devolver hasta» sin contar lo fallido ni lo revertido sin resolver', async () => {
+  it('la lista (estado, monto, fecha, motivo) y la pista «Puedes devolver hasta» sin contar lo fallido', async () => {
     listCardRefunds.mockResolvedValue([
       refund({ id: 'r1', status: 'RECORDED', amount: '50.00' }),
       refund({ id: 'r2', status: 'FAILED', amount: '30.00' }),
@@ -176,9 +176,15 @@ describe('Devolver a la tarjeta', () => {
     expect(r1).toHaveTextContent('refund.reasons.RETURNED_GOODS')
     expect(screen.getByTestId('card-refund-r2')).toHaveTextContent('cardRefund.outcome.failed')
     expect(screen.getByTestId('card-refund-r5')).toHaveTextContent('cardRefund.outcome.processing')
-    // 200 − (50 + 10 + 15.50) = 124.50
-    expect(screen.getByText(`cardRefund.upTo|${Currency(124.5)}`)).toBeInTheDocument()
-    expect(monto()).toHaveValue(124.5) // por omisión, lo que queda
+    // 200 − (50 + 20 + 10 + 15.50) = 104.50
+    expect(screen.getByText(`cardRefund.upTo|${Currency(104.5)}`)).toBeInTheDocument()
+    expect(monto()).toHaveValue(104.5) // por omisión, lo que queda
+  })
+
+  it('🔴 la pista dice lo mismo que el servidor: una revertida sigue contando en el libro; lo que falta se devuelve por otro medio', async () => {
+    listCardRefunds.mockResolvedValue([refund({ id: 'r1', status: 'REVERSED', amount: '30.00', reversal: reversal(null) })])
+    await abrir()
+    expect(screen.getByText(`cardRefund.upTo|${Currency(170)}`)).toBeInTheDocument()
   })
 
   it('🔴 el monto viaja en PESOS como texto con 2 decimales, con la llave en el encabezado', async () => {

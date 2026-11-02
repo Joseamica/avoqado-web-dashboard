@@ -54,13 +54,16 @@ const outcomeKey = (r: Pick<CardRefundResult, 'status' | 'cardRefundStatus'>) =>
 
 const cents = (pesos: string | number) => Math.round(Number(pesos) * 100)
 
-/** Lo que aún se puede devolver, en centavos: lo cobrado menos lo devuelto o en curso (no cuentan FAILED, CANCELED ni REVERSED sin resolver). */
+/**
+ * Lo que aún se puede devolver, en centavos: lo cobrado menos todo lo que no sea FAILED o CANCELED. Una REVERSED sigue en el libro del
+ * servidor (su tope la descuenta): ese dinero se devuelve por otro medio, no a la tarjeta (Q1).
+ */
 const refundableCents = (capturedAmount: number | null | undefined, refunds: CardRefund[]) =>
   Math.max(
     0,
     cents(capturedAmount ?? 0) -
       refunds
-        .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED' && !(r.status === 'REVERSED' && !r.reversal?.resolvedAt))
+        .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
         .reduce((sum, r) => sum + cents(r.amount), 0),
   )
 
