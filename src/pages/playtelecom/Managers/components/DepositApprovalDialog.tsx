@@ -9,14 +9,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,14 +25,7 @@ interface DepositApprovalDialogProps {
   isPending: boolean
 }
 
-export function DepositApprovalDialog({
-  open,
-  onOpenChange,
-  entry,
-  expectedAmount,
-  onConfirm,
-  isPending,
-}: DepositApprovalDialogProps) {
+export function DepositApprovalDialog({ open, onOpenChange, entry, expectedAmount, onConfirm, isPending }: DepositApprovalDialogProps) {
   const { t } = useTranslation('playtelecom')
   const [amount, setAmount] = useState('')
 
@@ -65,9 +51,7 @@ export function DepositApprovalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg" hasTitle>
         <DialogHeader>
-          <DialogTitle>
-            {t('managers.deposit.title', { defaultValue: 'Verificar Deposito Bancario' })}
-          </DialogTitle>
+          <DialogTitle>{t('managers.deposit.title', { defaultValue: 'Verificar Deposito Bancario' })}</DialogTitle>
           <DialogDescription>
             {t('managers.deposit.description', {
               defaultValue: 'Verifica la foto del recibo bancario e ingresa el monto depositado.',
@@ -110,13 +94,14 @@ export function DepositApprovalDialog({
             )}
 
             {/* Bank receipt photo — main element */}
-            {entry.checkOutPhotoUrl ? (
+            {/* Codex D6 r1: el recibo es la foto del DEPÓSITO; `checkOutPhotoUrl` es la selfie de salida. */}
+            {entry.depositPhotoUrl ? (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground uppercase">
                   {t('managers.deposit.receiptPhoto', { defaultValue: 'Foto del Recibo Bancario' })}
                 </Label>
                 <img
-                  src={entry.checkOutPhotoUrl}
+                  src={entry.depositPhotoUrl}
                   alt={t('managers.deposit.receiptAlt', { defaultValue: 'Recibo bancario' })}
                   className="w-full max-h-[300px] object-contain rounded-lg border border-border bg-muted/30"
                 />
@@ -157,11 +142,7 @@ export function DepositApprovalDialog({
             {t('managers.deposit.cancel', { defaultValue: 'Cancelar' })}
           </Button>
           <Button onClick={handleConfirm} disabled={isPending || !isValid}>
-            {isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <Check className="w-4 h-4 mr-2" />
-            )}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
             {t('managers.deposit.confirm', { defaultValue: 'Aprobar y Registrar' })}
           </Button>
         </DialogFooter>

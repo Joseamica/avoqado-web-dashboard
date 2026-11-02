@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { cn } from '@/lib/utils'
 import { AlertTriangle, Camera, CheckCircle2, DollarSign, Download, Receipt, XCircle } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface DepositValidationProps {
   promoterId: string
@@ -33,6 +34,7 @@ export function DepositValidation({
   voucherPhotoUrl,
   status = 'PENDING',
 }: DepositValidationProps) {
+  const { t } = useTranslation('playtelecom')
   const [validationStatus, setValidationStatus] = useState(status)
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
 
@@ -85,7 +87,7 @@ export function DepositValidation({
           <div className="p-4 rounded-xl border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <p className="text-xs font-bold text-blue-900 dark:text-blue-100">Venta Esperada (Sistema)</p>
+              <p className="text-xs font-bold text-blue-900 dark:text-blue-100">{t('promoters.depositExpectedCash')}</p>
             </div>
             <p className="text-2xl font-black text-blue-600 dark:text-blue-400">${expectedAmount.toLocaleString('es-MX')}</p>
           </div>

@@ -70,7 +70,7 @@
     "mergeDesc": "Agrega nuevos productos y categorías. Actualiza productos existentes por SKU. No elimina nada.",
     "replace": "Reemplazar Todo",
     "replaceDesc": "Elimina todos los datos del menú existente y reemplaza con el contenido del CSV. ¡Esto no se puede deshacer!",
-    "warning": "⚠️ Advertencia: El modo Reemplazar eliminará permanentemente tu menú actual"
+    "warning": "⚠️ Advertencia: El modo Reemplazar eliminará permanentemente tu menú actual y lo que muestra cada aparato (vuelven a mostrar todo)"
   },
   "preview": {
     "title": "Vista Previa",

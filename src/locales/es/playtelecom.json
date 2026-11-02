@@ -305,7 +305,8 @@
       "rejectReason": "Motivo del rechazo...",
       "approve": "Aprobar",
       "reject": "Rechazar"
-    }
+    },
+    "depositExpectedCash": "Efectivo esperado (sistema)"
   },
   "users": {
     "title": "Usuarios",

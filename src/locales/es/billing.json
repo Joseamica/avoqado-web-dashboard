@@ -160,6 +160,7 @@
         "pos": "Cobra con tarjeta (TPV)",
         "menuOrders": "Menú y órdenes",
         "tables": "Servicio de mesas",
+        "kitchenDisplay": "Pantalla de cocina (en lugar del papel o junto con él)",
         "reservations": "Reservas y citas",
         "onlineOrdering": "Pedidos en línea",
         "upsell": "Sugerencias «¿algo más?» al cobrar",
@@ -174,6 +175,7 @@
         "giftCards": "Tarjetas de regalo (vender y cobrar con saldo)",
         "inventoryBasic": "Inventario básico",
         "priceLabels": "Etiquetas de precios",
+        "deviceMenus": "Menú de cada aparato",
         "productVariants": "Variantes de producto (talla, color, tamaño)",
         "inventoryFifo": "Inventario FIFO, recetas y costeo",
         "autoReorder": "Reorden automático",
@@ -801,6 +803,7 @@
       "VARIABLE_WEIGHT_BARCODE": "Códigos de peso variable",
       "MASTER_CATALOG": "Catálogo maestro",
       "PRICE_LABELS": "Etiquetas de precios",
+      "DEVICE_MENUS": "Menú de cada aparato",
       "PRODUCT_VARIANTS": "Variantes de producto",
       "AGGREGATOR_PASSES": "Pases (TotalPass · Wellhub)",
       "GIFT_CARDS": "Tarjetas de regalo"

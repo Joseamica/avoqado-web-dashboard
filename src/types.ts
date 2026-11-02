@@ -1016,6 +1016,10 @@ export interface Menu {
   displayOrder: number
   isDefault: boolean
 
+  // ¿Dónde se usa? (al menos uno en true)
+  appliesToDevices: boolean
+  appliesToOnline: boolean
+
   // Scheduling
   active: boolean
   startDate: string | null
@@ -1987,6 +1991,8 @@ export interface CreateMenuDto {
   type: MenuType
   displayOrder?: number
   active?: boolean
+  appliesToDevices?: boolean
+  appliesToOnline?: boolean
   startDate?: string | null
   endDate?: string | null
   availableFrom?: string | null
@@ -2000,6 +2006,8 @@ export interface UpdateMenuDto {
   type?: MenuType
   displayOrder?: number
   active?: boolean
+  appliesToDevices?: boolean
+  appliesToOnline?: boolean
   startDate?: string | null
   endDate?: string | null
   availableFrom?: string | null
