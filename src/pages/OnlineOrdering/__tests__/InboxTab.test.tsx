@@ -559,6 +559,9 @@ describe('InboxTab', () => {
     ['cobrándose', cardOrder({ cardStatus: 'CONFIRMING', card: { ...captured, status: 'CAPTURING', capturedAmount: null } }), 'inbox.card.cardConfirming'],
     ['aceptado y cobrado', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: captured, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.cardPaid'],
     ['entregado (remaining 0)', cardOrder({ status: 'COMPLETED', cardStatus: null, card: captured, paymentStatus: 'COMPLETED', remaining: 0, acceptDeadlineAt: null }), 'inbox.card.cardPaid'],
+    // Codex iOS r1 #4: la cuenta se pagó por otro camino y la tarjeta se soltó: «Pagado», sin atribuírselo a la tarjeta.
+    ['pagado por otro camino, tarjeta liberada', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: { ...captured, status: 'RELEASED', capturedAmount: null }, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.paid'],
+    ['pagado sin cargo conocido', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: null, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.paid'],
     ['rechazado con la tarjeta COBRADA', cardOrder({ status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }), 'inbox.card.cardCapturedRefund'],
     ['vencido con la tarjeta liberada', closedCard('EXPIRED', 'RELEASED'), 'inbox.card.cardNotCharged'],
     ['rechazado con el cargo abandonado', closedCard('REJECTED', 'ABANDONED'), 'inbox.card.cardNotCharged'],

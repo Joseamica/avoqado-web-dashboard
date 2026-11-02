@@ -24,7 +24,9 @@ function cardMoneyKey(order: InboxOrder, confirming: boolean): string {
     return charge && CARD_NOT_CHARGED.has(charge) ? 'inbox.card.cardNotCharged' : 'inbox.card.cardReleasing'
   }
   if (confirming) return 'inbox.card.cardConfirming'
-  if (order.paymentStatus === 'PAID' || order.remaining <= 0 || order.card?.status === 'CAPTURED') return 'inbox.card.cardPaid'
+  if (order.card?.status === 'CAPTURED') return 'inbox.card.cardPaid'
+  // Se pagó por otro camino y la tarjeta se soltó (Codex iOS r1 #4): «Pagado», sin atribuírselo a la tarjeta.
+  if (order.paymentStatus === 'PAID' || order.remaining <= 0) return 'inbox.card.paid'
   return 'inbox.card.cardAuthorized'
 }
 
