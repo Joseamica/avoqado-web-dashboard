@@ -237,6 +237,7 @@
     "history": "Devoluciones de este pedido",
     "empty": "Todavía no hay devoluciones.",
     "loadFailed": "No se pudieron cargar las devoluciones.",
+    "reload": "Volver a cargar",
     "changed": "Hay una devolución nueva en la lista. Revísala antes de devolver.",
     "confirmAnother": "Ya hay una devolución de {{amount}} de hace {{minutes}} min. ¿Hacer OTRA devolución de {{amount}}?",
     "confirmYes": "Sí, otra devolución",

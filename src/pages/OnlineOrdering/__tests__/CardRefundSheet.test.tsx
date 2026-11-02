@@ -336,6 +336,9 @@ describe('Devolver a la tarjeta', () => {
     await motivo()
     expect(await screen.findByText('cardRefund.loadFailed')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled()
+    listCardRefunds.mockResolvedValue([])
+    await userEvent.click(screen.getByRole('button', { name: 'cardRefund.reload' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeEnabled())
   })
 
   it('🔴 con una lista vieja en caché tampoco se manda: hasta que la lectura de esta apertura termine', async () => {
@@ -396,21 +399,49 @@ describe('Devolver a la tarjeta', () => {
     expect(createCardRefund.mock.calls[1][3]).not.toBe(createCardRefund.mock.calls[0][3])
   })
 
-  it('un FAILED no se repite para siempre: otra llave, sobre la fila fallida que ya se ve, sin aviso', async () => {
+  it('🔴 FAILED tardío con otra devolución ya hecha: limpia el formulario; lo siguiente es una decisión nueva sobre lo nuevo que vio', async () => {
     createCardRefund.mockResolvedValueOnce({ status: 'FAILED', cardRefundStatus: 'FAILED', cardRefundId: 'rf', refundId: null, replay: false })
     createCardRefund.mockResolvedValue({ status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false })
     await abrir()
     escribirMonto('50')
     await motivo()
-    listCardRefunds.mockResolvedValue([refund({ id: 'rf', status: 'FAILED', amount: '50.00' })])
+    fireEvent.change(screen.getByLabelText('cardRefund.note'), { target: { value: 'hola' } })
+    const hace11 = new Date(Date.now() - 11 * 60_000).toISOString()
+    listCardRefunds.mockResolvedValue([
+      refund({ id: 'r-de-otro', status: 'RECORDED', amount: '50.00', createdAt: hace11 }),
+      refund({ id: 'rf', status: 'FAILED', amount: '50.00', createdAt: hace11 }),
+    ])
     await devolver()
-    expect(await screen.findByTestId('card-refund-rf')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeEnabled())
-    expect(screen.queryByText('cardRefund.changed')).toBeNull()
+    expect(await screen.findByTestId('card-refund-r-de-otro')).toBeInTheDocument()
+    await waitFor(() => expect(Number(monto().value)).toBe(150))
+    expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled() // el motivo se limpió
+    expect((screen.getByLabelText('cardRefund.note') as HTMLTextAreaElement).value).toBe('')
+    await motivo()
     await devolver()
     await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
     expect(createCardRefund.mock.calls[1][3]).not.toBe(createCardRefund.mock.calls[0][3])
-    expect(createCardRefund.mock.calls[1][2].expectedLatestRefundId).toBe('rf')
+    expect(createCardRefund.mock.calls[1][2].expectedLatestRefundId).toBe('r-de-otro')
+  })
+
+  it('🔴 si falla una relectura el historial se oculta: no se manda, y «Volver a cargar» lo recupera', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <CardRefundButton venueId="venue-1" order={order()} />
+      </QueryClientProvider>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'cardRefund.open' }))
+    await listaLeida()
+    await motivo()
+    expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeEnabled()
+    listCardRefunds.mockRejectedValue(networkError())
+    await qc.invalidateQueries()
+    expect(await screen.findByText('cardRefund.loadFailed')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled()
+    listCardRefunds.mockResolvedValue([])
+    await userEvent.click(screen.getByRole('button', { name: 'cardRefund.reload' }))
+    await waitFor(() => expect(screen.queryByText('cardRefund.loadFailed')).toBeNull())
+    expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeEnabled()
   })
 
   it.each([

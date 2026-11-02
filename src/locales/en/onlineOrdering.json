@@ -237,6 +237,7 @@
     "history": "Refunds for this order",
     "empty": "No refunds yet.",
     "loadFailed": "Couldn't load the refunds.",
+    "reload": "Reload",
     "changed": "There is a new refund in the list. Check it before refunding.",
     "confirmAnother": "There is already a {{amount}} refund from {{minutes}} min ago. Make ANOTHER {{amount}} refund?",
     "confirmYes": "Yes, another refund",

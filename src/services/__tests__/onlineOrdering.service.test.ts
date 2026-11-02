@@ -94,11 +94,16 @@ describe('onlineOrdering.service', () => {
 
   it('createCardRefund: POST …/card-refund con Idempotency-Key y el monto en pesos como texto', async () => {
     post.mockResolvedValue({ data: { data: { status: 'RECORDED', cardRefundStatus: 'RECORDED', replay: false } } })
-    const res = await createCardRefund('v1', 'o1', { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco' }, 'llave-123456')
+    const res = await createCardRefund(
+      'v1',
+      'o1',
+      { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco', expectedLatestRefundId: 'r1' },
+      'llave-123456',
+    )
     expect(res).toEqual({ status: 'RECORDED', cardRefundStatus: 'RECORDED', replay: false })
     expect(post).toHaveBeenLastCalledWith(
       `${base}/orders/o1/card-refund`,
-      { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco' },
+      { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco', expectedLatestRefundId: 'r1' },
       { headers: { 'Idempotency-Key': 'llave-123456' } },
     )
     expect(typeof post.mock.calls[0][1].amount).toBe('string')

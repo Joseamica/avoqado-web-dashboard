@@ -171,8 +171,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     setConfirm(null)
     attempt.current = null
   }
-  /** Lo siguiente que se decida sale de una lectura posterior a este momento; hasta entonces «Devolver» queda apagado. */
-  const waitForRead = () => {
+  /** Decidir otra vez: formulario vacío y una lectura posterior a este momento; hasta entonces «Devolver» queda apagado. */
+  const startOver = () => {
+    clearForm()
     setSeen(undefined)
     setReadAfter(Date.now())
   }
@@ -188,19 +189,16 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       createCardRefund(venueId, order.orderId, { ...v.body, expectedLatestRefundId: v.attempt.expected }, v.attempt.key),
     onSuccess: res => {
       const failed = res.cardRefundStatus === 'FAILED' || res.cardRefundStatus === 'CANCELED'
-      attempt.current = null
-      if (!failed) clearForm()
-      // La fila nueva es la suya: se adopta sin aviso.
-      waitForRead()
+      // También con FAILED: mientras tardó la respuesta pudo hacerse otra devolución, y el formulario lleno se la saltaría (Codex panel r5).
+      startOver()
       toast({ title: t(outcomeKey(res)), ...(failed ? { variant: 'destructive' as const } : {}) })
     },
     onError: err => {
       if (inDoubt(err)) return toast({ title: t('cardRefund.noResponse') })
       attempt.current = null
       if (codeOf(err) === 'CARD_REFUND_STALE_VIEW') {
-        clearForm()
+        startOver()
         setChanged(true)
-        waitForRead()
         return
       }
       toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
@@ -210,7 +208,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
 
   // Lo que ve es lo que decide: si la lista trae otra devolución con la hoja abierta, se avisa y hay que decidir otra vez.
   useEffect(() => {
-    if (latest === undefined || refund.isPending) return
+    if (latest === undefined) return
     if (seen === undefined) {
       if (list.dataUpdatedAt >= readAfter) setSeen(latest)
     } else if (latest !== seen) {
@@ -218,7 +216,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       setChanged(true)
       setSeen(latest)
     }
-  }, [latest, seen, readAfter, list.dataUpdatedAt, refund.isPending])
+  }, [latest, seen, readAfter, list.dataUpdatedAt])
+
+  // Sólo se decide con el historial a la vista: si la relectura falló, se oculta y no se manda.
+  const canSend = seen !== undefined && !list.isError
 
   const resolve = useMutation({
     mutationFn: (v: { refundId: string; method: CardRefundResolveMethod }) =>
@@ -230,7 +231,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   })
 
   const submit = (confirmed = false) => {
-    if (!amountCents || !reason || seen === undefined || refund.isPending) return
+    if (!amountCents || !reason || !canSend || refund.isPending) return
     const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim())
     const sig = sigOf(body)
     setChanged(false)
@@ -261,7 +262,12 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
           {list.isLoading ? (
             <Skeleton className="h-12 w-full rounded-lg" />
           ) : list.isError ? (
-            <p className="text-sm text-destructive">{t('cardRefund.loadFailed')}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-destructive">{t('cardRefund.loadFailed')}</p>
+              <Button type="button" size="sm" variant="outline" disabled={list.isFetching} onClick={() => void list.refetch()}>
+                {t('cardRefund.reload')}
+              </Button>
+            </div>
           ) : !list.data?.length ? (
             <p className="text-sm text-muted-foreground">{t('cardRefund.empty')}</p>
           ) : (
@@ -358,7 +364,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={!amountCents || !reason || seen === undefined || refund.isPending} onClick={() => submit()}>
+          <Button type="button" disabled={!amountCents || !reason || !canSend || refund.isPending} onClick={() => submit()}>
             {refund.isPending ? t('cardRefund.sending') : t('cardRefund.submit')}
           </Button>
         </DialogFooter>
