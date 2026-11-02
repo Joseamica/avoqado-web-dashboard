@@ -46,3 +46,55 @@ describe('MenuWizardDialog — ¿Dónde se usa?', () => {
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
   })
 })
+
+/**
+ * El SERVIDOR sólo lee `availableDays` (códigos MON…SUN), `availableFrom` y `availableUntil` (como la edición). El asistente
+ * mandaba `menuDays`, que el SERVIDOR tira en silencio: el menú quedaba «siempre disponible» y abría la tienda en línea todo el
+ * día (hz D2, 2-nov).
+ */
+describe('MenuWizardDialog — días y horario', () => {
+  async function llegarAlHorario(user: ReturnType<typeof userEvent.setup>) {
+    pintar()
+    await user.type(await screen.findByPlaceholderText('createMenu.fields.menuNamePlaceholder'), 'D2')
+    await user.click(screen.getByRole('button', { name: 'next' }))
+    await screen.findByText('createMenu.fields.allDay')
+  }
+
+  async function terminar(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'next' }))
+    await user.click(await screen.findByRole('button', { name: 'wizard.finish' }))
+  }
+
+  beforeEach(() => {
+    svc.createMenu.mockReset()
+    svc.createMenu.mockResolvedValue({ id: 'm1', name: 'FULLTEST D2' })
+  })
+
+  it('Lunes y Miércoles 9:00–19:30 se mandan como los guarda la edición', async () => {
+    const user = userEvent.setup()
+    await llegarAlHorario(user)
+    await user.click(screen.getByRole('button', { name: 'createMenu.days.mon' }))
+    await user.click(screen.getByRole('button', { name: 'createMenu.days.wed' }))
+    await terminar(user)
+
+    expect(svc.createMenu).toHaveBeenCalledTimes(1)
+    const cuerpo = svc.createMenu.mock.calls[0][1]
+    expect(cuerpo).toMatchObject({ availableDays: ['MON', 'WED'], availableFrom: '09:00', availableUntil: '19:30' })
+    expect(cuerpo).not.toHaveProperty('menuDays')
+  })
+
+  it('«todo el día» = los días elegidos y sin horas', async () => {
+    const user = userEvent.setup()
+    await llegarAlHorario(user)
+    await user.click(screen.getByRole('switch'))
+    await terminar(user)
+
+    const cuerpo = svc.createMenu.mock.calls[0][1]
+    expect(cuerpo).toMatchObject({
+      availableDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+      availableFrom: null,
+      availableUntil: null,
+    })
+    expect(cuerpo).not.toHaveProperty('menuDays')
+  })
+})
