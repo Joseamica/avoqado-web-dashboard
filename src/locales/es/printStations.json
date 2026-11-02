@@ -98,7 +98,7 @@
       "leftMarginHint": "Déjalo en 0 salvo que hayas puesto un rollo angosto con adaptadores en una impresora más ancha: ahí el papel no empieza donde la impresora cree y el ticket sale mocho de la izquierda. Imprime la página de prueba desde el POS, cuenta el primer número de la regla que alcances a ver y escríbelo aquí.",
       "charset": "Acentos",
       "active": "Impresora activa",
-      "posInternalHint": "La comanda sale en el propio aparato que cobró (la impresora integrada del punto de venta). No lleva dirección IP y funciona aun sin red.",
+      "posInternalHint": "Sólo para terminales con impresora integrada (Sunmi, como la D3): la comanda sale en el propio aparato que cobró. No lleva dirección IP y funciona aun sin red. En una computadora con Windows no imprime: ahí la impresora se configura en el propio punto de venta, en «Configurar impresora».",
       "paperWidthHint": "Si la comanda sale encimada o cortada con 80 mm, tu impresora imprime 42 columnas: elige «80 mm (42 col.)».",
       "charsetHint": "Déjalo en «Normal». Si los acentos salen como símbolos raros (CAFETER═A), elige PC850; si tampoco, PC437 (sin acento en las mayúsculas)."
     },
@@ -114,7 +114,7 @@
       "leftMarginRange": "El corrimiento va de 0 a 16 columnas.",
       "addressForbiddenPosInternal": "La impresora integrada no lleva dirección: imprime el propio aparato que cobró"
     },
-    "connectionPosInternal": "Impresora integrada del POS",
+    "connectionPosInternal": "Impresora integrada del POS (Sunmi)",
     "integratedAddress": "Integrada del POS",
     "width42": "80 mm (42 col.)",
     "charsetOptions": {
