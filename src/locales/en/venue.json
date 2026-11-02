@@ -204,6 +204,20 @@
       "permissionError": "You do not have permission to change this setting.",
       "saveError": "An error occurred while saving the setting."
     },
+    "storeCredit": {
+      "title": "Store credit",
+      "description": "In an Exchange or a Refund, the cashier can give what is returned as store credit for the customer. Once the first store credit is given, you can no longer refund money without the original sale (gift card law).",
+      "unavailable": "Ask Avoqado to activate store credit",
+      "switchLabel": "Store credit only",
+      "switchHelp": "Defects and charge errors are always returned the way they were paid",
+      "enabledTitle": "Store credit only enabled",
+      "disabledTitle": "Store credit only disabled",
+      "saved": "Settings saved successfully.",
+      "readOnly": "You need permission to update venue settings.",
+      "errorTitle": "Change not saved",
+      "permissionError": "You do not have permission to change this setting.",
+      "saveError": "An error occurred while saving the setting."
+    },
     "managerPinOverride": {
       "title": "Manager passcode approval",
       "description": "When someone tries an action they don't have permission for, the point of sale asks a manager for their code to approve it that one time. The terminal is never left elevated.",

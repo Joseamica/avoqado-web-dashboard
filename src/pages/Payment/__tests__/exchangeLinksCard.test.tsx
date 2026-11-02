@@ -169,6 +169,26 @@ describe('ExchangeLinksCard', () => {
     expect(screen.queryByText('Regresó al inventario')).not.toBeInTheDocument()
     expect(screen.queryByText('Returned to inventory')).not.toBeInTheDocument()
   })
+
+  it('saldo a favor: «Saldo a favor para {nombre}: $X» y el teléfono distinto; un server viejo (sin storeCredit) no lo pinta', async () => {
+    m.detail.settlement = {
+      kind: 'PAYOUT',
+      method: 'STORE_CREDIT',
+      amountCents: 15050,
+      storeCredit: { customerId: 'c1', customerName: 'Ana López', amountCents: 15050, newBalanceCents: 20000, phoneLast4: '5678', phoneMismatch: true },
+    }
+    card()
+    await expand()
+    expect(screen.getByText('Saldo a favor para Ana López: $150.50')).toBeInTheDocument()
+    expect(screen.getByText(/termina en 5678/)).toBeInTheDocument()
+  })
+
+  it('sin storeCredit en la liquidación (server viejo o cambio normal) no aparece nada de saldo a favor', async () => {
+    card()
+    await expand()
+    expect(screen.queryByText(/Saldo a favor para/)).toBeNull()
+  })
+
   it('shows each original link with its status and a link to that order', () => {
     card()
     expect(screen.getByRole('link', { name: 'Cambiada en ORD-002' })).toHaveAttribute('href', '/venues/iq/orders/o2')

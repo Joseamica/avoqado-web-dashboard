@@ -29,6 +29,8 @@ export interface Customer {
 	referralTier?: 'TIER_1' | 'TIER_2' | 'TIER_3' | null
 	tierUnlockedAt?: string | null
 	referredByCustomerId?: string | null
+	/** Saldo a favor del cliente (centavos). Opcional: un server viejo no lo manda. `blocked` = sobre congelado, no «$0». */
+	storeCredit?: { balanceCents: number; phoneLast4: string; giftCardId: string; blocked?: boolean } | null
 	referredByCustomer?: {
 		id: string
 		firstName: string | null

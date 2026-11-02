@@ -749,7 +749,7 @@ export default function Payments() {
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
           const isCard = payment.method === 'CREDIT_CARD' || payment.method === 'DEBIT_CARD'
           const isCrypto = (payment.method as string) === 'CRYPTOCURRENCY'
-          const methodDisplay = etiquetaDeMetodo(payment.method, t)
+          const methodDisplay = etiquetaDeMetodo(payment.method, t, payment.tenderSystemKind)
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.

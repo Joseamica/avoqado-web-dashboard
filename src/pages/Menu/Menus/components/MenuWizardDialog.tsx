@@ -30,7 +30,8 @@ interface MenuWizardDialogProps {
 
 type WizardStep = 1 | 2 | 3
 
-type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+// Los códigos que guarda el SERVIDOR (`availableDays`), igual que la edición (menuId.tsx).
+type DayOfWeek = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN'
 
 export interface MenuFormData {
   name: string
@@ -49,7 +50,7 @@ export interface MenuFormData {
   type: MenuType
 }
 
-const DAY_ORDER: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
+const DAY_ORDER: DayOfWeek[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 export function MenuWizardDialog({ open, onOpenChange, onSuccess, defaults }: MenuWizardDialogProps) {
   const { t, i18n } = useTranslation('menu')
@@ -61,14 +62,14 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess, defaults }: Me
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
 
   const getInitialDays = (): { label: string; selected: boolean; value: DayOfWeek }[] => {
-    const dayTranslationKeys: Record<string, string> = {
-      MONDAY: 'createMenu.days.mon',
-      TUESDAY: 'createMenu.days.tue',
-      WEDNESDAY: 'createMenu.days.wed',
-      THURSDAY: 'createMenu.days.thu',
-      FRIDAY: 'createMenu.days.fri',
-      SATURDAY: 'createMenu.days.sat',
-      SUNDAY: 'createMenu.days.sun',
+    const dayTranslationKeys: Record<DayOfWeek, string> = {
+      MON: 'createMenu.days.mon',
+      TUE: 'createMenu.days.tue',
+      WED: 'createMenu.days.wed',
+      THU: 'createMenu.days.thu',
+      FRI: 'createMenu.days.fri',
+      SAT: 'createMenu.days.sat',
+      SUN: 'createMenu.days.sun',
     }
     return DAY_ORDER.map(day => ({
       label: t(dayTranslationKeys[day]),
@@ -103,15 +104,8 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess, defaults }: Me
   // Create Mutation
   const createMenuMutation = useMutation({
     mutationFn: async (data: MenuFormData) => {
-      // Transform data for API
-      const selectedDays = data.days.filter(d => d.selected)
-      const menuDays = selectedDays.map(day => ({
-        day: day.value,
-        isFixed: data.isAllDay,
-        startTime: data.isAllDay ? null : data.startTime,
-        endTime: data.isAllDay ? null : data.endTime,
-      }))
-
+      // Misma forma que la edición (menuId.tsx): el SERVIDOR sólo lee availableDays/availableFrom/availableUntil;
+      // «todo el día» = sin horas.
       const payload = {
         name: data.name,
         active: data.active,
@@ -119,8 +113,9 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess, defaults }: Me
         appliesToOnline: data.appliesToOnline,
         type: data.type,
         categoryIds: data.selectedCategories.map(c => c.value),
-        avoqadoProducts: [], // Not supporting direct product assignment in Menu Wizard for now, consistent with createMenu.tsx
-        menuDays: menuDays,
+        availableDays: data.days.filter(d => d.selected).map(d => d.value),
+        availableFrom: data.isAllDay ? null : data.startTime,
+        availableUntil: data.isAllDay ? null : data.endTime,
       }
 
       return await createMenu(venueId!, payload)
