@@ -1,14 +1,53 @@
+import { DateTime } from 'luxon'
+
 /**
  * D6 (Codex r2 de D2 en el SERVIDOR, 1-nov): reglas de la Auditoría de Promotores, fuera del componente para probarlas.
  */
 
 /**
- * Con un filtro de fecha, una fila se queda si tuvo checadas en ese rango o si trae ventas. También negativas: desde el 1-nov el
- * checador cuenta la devolución de hoy de lo que alguien vendió otro día aunque hoy no haya checado; antes esa fila se descartaba aquí
- * y la devolución desaparecía de la pantalla.
+ * Con un filtro de fecha, una fila se queda si tuvo checadas en ese rango o si trae ventas DEL RANGO. También negativas: desde el 1-nov
+ * el checador cuenta la devolución de hoy de lo que alguien vendió otro día aunque hoy no haya checado; antes esa fila se descartaba aquí
+ * y la devolución desaparecía. Codex D6 r1: sólo cuando las ventas son del periodo (`ventasSonDelFiltro`): con «antes de» / «después
+ * de» el servidor responde con el día de hoy, y esas ventas no son del filtro.
  */
-export function seQuedaConElFiltro(checadasEnElFiltro: number, ventas: number): boolean {
-  return checadasEnElFiltro > 0 || ventas !== 0
+export function seQuedaConElFiltro(checadasEnElFiltro: number, ventas: number, ventasDelFiltro: boolean): boolean {
+  return checadasEnElFiltro > 0 || (ventasDelFiltro && ventas !== 0)
+}
+
+/** El servidor sólo acota las ventas al periodo cuando recibe las DOS fechas (el día, entre, últimos). */
+export function ventasSonDelFiltro(params: { startDate?: string; endDate?: string }): boolean {
+  return !!(params.startDate && params.endDate)
+}
+
+/** Día civil (`YYYY-MM-DD`) de un instante en la zona del negocio; `null` si no se entiende. */
+export function diaDelNegocio(instante: string, zona: string): string | null {
+  const fecha = DateTime.fromISO(instante, { zone: 'utc' })
+  return fecha.isValid ? fecha.setZone(zona).toISODate() : null
+}
+
+/**
+ * ¿Ese día del negocio cae en el filtro? «El día», «entre», «antes de» y «después de» comparan días del negocio. Codex D6 r1: antes se
+ * comparaba contra `new Date('YYYY-MM-DD')`, que es medianoche UTC (las 18:00 del día anterior en México) y descartaba checadas reales.
+ * «Últimos N» compara instantes y no pasa por aquí.
+ */
+export function diaEnElFiltro(
+  dia: string,
+  filtro: { operator: string; value?: string | number | null; value2?: string | number | null },
+): boolean {
+  const desde = String(filtro.value ?? '')
+  const hasta = String(filtro.value2 ?? '')
+  switch (filtro.operator) {
+    case 'on':
+      return dia === desde
+    case 'between':
+      return dia >= desde && dia <= hasta
+    case 'before':
+      return dia < desde
+    case 'after':
+      return dia > desde
+    default:
+      return true
+  }
 }
 
 /**

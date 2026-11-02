@@ -33,7 +33,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { PromoterLocationModal } from './components/PromoterLocationModal'
 import { PromoterCharts } from './components/PromoterCharts'
 import { DepositValidation } from './components/DepositValidation'
-import { depositoEsperado, seQuedaConElFiltro } from './auditoriaDePromotores'
+import { depositoEsperado, diaDelNegocio, diaEnElFiltro, seQuedaConElFiltro, ventasSonDelFiltro } from './auditoriaDePromotores'
 import { AllCheckInsDialog } from './components/AllCheckInsDialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -266,27 +266,13 @@ export default function PromotersAuditPage() {
         }
         return entryDate >= cutoffDate
       }
-      case 'before': {
-        const targetDate = new Date(dateFilter.value as string)
-        return entryDate < targetDate
-      }
-      case 'after': {
-        const targetDate = new Date(dateFilter.value as string)
-        return entryDate > targetDate
-      }
-      case 'between': {
-        const startDate = new Date(dateFilter.value as string)
-        const endDate = new Date(dateFilter.value2 as string)
-        endDate.setHours(23, 59, 59, 999)
-        return entryDate >= startDate && entryDate <= endDate
-      }
+      case 'before':
+      case 'after':
+      case 'between':
       case 'on': {
-        const targetDate = new Date(dateFilter.value as string)
-        return (
-          entryDate.getFullYear() === targetDate.getFullYear() &&
-          entryDate.getMonth() === targetDate.getMonth() &&
-          entryDate.getDate() === targetDate.getDate()
-        )
+        // Codex D6 r1: se comparan DÍAS del negocio, no la medianoche UTC de `new Date('YYYY-MM-DD')`.
+        const dia = diaDelNegocio(entryDate.toISOString(), venueTimezone)
+        return dia !== null && diaEnElFiltro(dia, dateFilter)
       }
       default:
         return true
@@ -345,9 +331,10 @@ export default function PromotersAuditPage() {
   const dateFilteredPromoters = useMemo(() => {
     if (!dateFilter) return promoters
 
+    const ventasDelFiltro = ventasSonDelFiltro(getDateParams())
     return promoters.reduce<PromoterRow[]>((acc, promoter) => {
       const filteredEntries = (promoter.allTimeEntries || []).filter(isEntryInDateFilter)
-      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales)) return acc
+      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales, ventasDelFiltro)) return acc
       if (filteredEntries.length === 0) {
         // D6: sin checadas en el rango pero con ventas (p. ej. la devolución de algo que vendió otro día): se ve, sin datos de checada.
         acc.push({
