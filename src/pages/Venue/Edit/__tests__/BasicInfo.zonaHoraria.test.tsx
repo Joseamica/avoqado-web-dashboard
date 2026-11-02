@@ -55,7 +55,7 @@ vi.mock('@/components/timezone-combobox', () => ({
   ),
 }))
 vi.mock('../components/CashReconciliationSetting', () => ({ CashReconciliationSetting: () => null }))
-vi.mock('../components/ExchangesSetting', () => ({ ExchangesSetting: () => null }))
+vi.mock('../components/ExchangesSetting', () => ({ ExchangesSetting: () => null, StoreCreditSetting: () => null }))
 vi.mock('../components/ManagerPinOverrideSetting', () => ({ ManagerPinOverrideSetting: () => null }))
 
 const recargar = vi.fn()

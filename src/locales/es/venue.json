@@ -204,6 +204,20 @@
       "permissionError": "No tienes permiso para cambiar esta configuración.",
       "saveError": "Ocurrió un error al guardar la configuración."
     },
+    "storeCredit": {
+      "title": "Saldo a favor",
+      "description": "En un Cambio o un Reembolso, la cajera puede dar lo que se regresa como saldo a favor de la clienta. Al dar el primer saldo a favor, ya no podrás devolver dinero sin la venta original (es la ley de tarjetas de regalo).",
+      "unavailable": "Pide a Avoqado que active el saldo a favor",
+      "switchLabel": "Sólo saldo a favor",
+      "switchHelp": "Defecto y cobro por error siempre se devuelven como se pagó",
+      "enabledTitle": "Sólo saldo a favor activado",
+      "disabledTitle": "Sólo saldo a favor desactivado",
+      "saved": "La configuración se guardó correctamente.",
+      "readOnly": "Necesitas permiso para actualizar la configuración del local.",
+      "errorTitle": "No se guardó el cambio",
+      "permissionError": "No tienes permiso para cambiar esta configuración.",
+      "saveError": "Ocurrió un error al guardar la configuración."
+    },
     "managerPinOverride": {
       "title": "Autorización con código de encargado",
       "description": "Cuando alguien intente una acción para la que no tiene permiso, el punto de venta pedirá el código de un encargado para autorizarla esa vez. No deja la terminal con permisos abiertos.",
