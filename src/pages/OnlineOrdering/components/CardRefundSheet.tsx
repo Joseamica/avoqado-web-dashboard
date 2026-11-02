@@ -154,6 +154,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const [readAfter, setReadAfter] = useState(() => Date.now())
   const [changed, setChanged] = useState(false)
   const attempt = useRef<Attempt | null>(null)
+  const busy = useRef(false) // candado síncrono: `isPending` aún no cambia en el segundo de dos clics pegados
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   // Cada apertura lee la lista aunque haya caché: lo que se decide debe salir de una lectura de ahora.
@@ -203,7 +204,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       }
       toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
     },
-    onSettled: reread,
+    onSettled: () => {
+      busy.current = false
+      reread()
+    },
   })
 
   // Lo que ve es lo que decide: si la lista trae otra devolución con la hoja abierta, se avisa y hay que decidir otra vez.
@@ -234,11 +238,14 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   })
 
   const submit = (confirmed = false) => {
-    if (!amountCents || !reason || !canSend || refund.isPending) return
+    if (!amountCents || !reason || !canSend || busy.current) return
     const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim())
     const sig = sigOf(body)
     setChanged(false)
-    if (attempt.current?.sig === sig) return refund.mutate({ body, attempt: attempt.current })
+    if (attempt.current?.sig === sig) {
+      busy.current = true
+      return refund.mutate({ body, attempt: attempt.current })
+    }
     if (!confirmed) {
       const now = Date.now()
       const twin = recentTwin(body.amount, list.data ?? [], now)
@@ -249,6 +256,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     }
     setConfirm(null)
     attempt.current = { key: crypto.randomUUID(), expected: seen, sig }
+    busy.current = true
     refund.mutate({ body, attempt: attempt.current })
   }
 

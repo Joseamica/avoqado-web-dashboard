@@ -4,7 +4,7 @@
  * por `cardRefundStatus`, el botón sólo con permiso y cobro con tarjeta, y «Devolver por otro medio» sólo con REVERSED sin resolver.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -202,6 +202,22 @@ describe('Devolver a la tarjeta', () => {
     escribirMonto('0')
     expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled()
     expect(screen.getByText('cardRefund.amountInvalid')).toBeInTheDocument()
+  })
+
+  it('🔴 dos clics pegados mandan UNA sola petición, no dependen del replay del servidor', async () => {
+    let termina: (v: unknown) => void = () => {}
+    createCardRefund.mockImplementation(() => new Promise(r => (termina = r)))
+    await abrir()
+    await motivo()
+    const boton = screen.getByRole('button', { name: 'cardRefund.submit' })
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.sending' })).toBeDisabled())
+    expect(createCardRefund).toHaveBeenCalledTimes(1)
+    await act(async () => termina({ status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false }))
   })
 
   it('🔴 sin respuesta, tocar otra vez lo mismo lleva la MISMA llave y lo mismo que vio', async () => {
