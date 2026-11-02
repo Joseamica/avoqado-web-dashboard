@@ -8,6 +8,7 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -77,6 +78,35 @@ const inDoubt = (err: unknown) => {
   return typeof status !== 'number' || status >= 500
 }
 
+type RefundBody = { amount: string; reason: CardRefundReason; note?: string }
+const bodyOf = (amount: string, reason: CardRefundReason, note: string): RefundBody => ({ amount, reason, ...(note ? { note } : {}) })
+
+/**
+ * Codex panel r1 #1: un envío sin desenlace definitivo (sin respuesta, 5xx, UNKNOWN o PENDING) se queda guardado por negocio y
+ * cuenta, con SU llave: cerrar la hoja o recargar la página no inventa otra llave para la misma devolución (el servidor deduplica
+ * por llave, no por monto). Se guarda ANTES de mandar y se borra sólo con un desenlace definitivo de ESA llave. Best effort: sin
+ * almacenamiento, la protección dura lo que la hoja abierta.
+ */
+type SavedAttempt = { key: string; amount: string; reason: CardRefundReason; note: string }
+const savedKey = (venueId: string, orderId: string) => `avq:card-refund-attempt:${venueId}:${orderId}`
+const readSaved = (k: string): SavedAttempt | null => {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(k) ?? 'null') as Partial<SavedAttempt> | null
+    if (!v || typeof v.key !== 'string' || typeof v.amount !== 'string' || !REASONS.includes(v.reason as CardRefundReason)) return null
+    return { key: v.key, amount: v.amount, reason: v.reason as CardRefundReason, note: typeof v.note === 'string' ? v.note : '' }
+  } catch {
+    return null
+  }
+}
+const writeSaved = (k: string, v: SavedAttempt | null) => {
+  try {
+    if (v) window.localStorage.setItem(k, JSON.stringify(v))
+    else window.localStorage.removeItem(k)
+  } catch {
+    // Sin almacenamiento (modo privado, lleno): queda la llave en memoria mientras la hoja siga abierta.
+  }
+}
+
 const isCardCaptured = (o: Pick<InboxOrder, 'paymentMode' | 'card'>) => o.paymentMode === 'CARD_ONLINE' && o.card?.status === 'CAPTURED'
 
 /** El botón y su hoja. Quien lo pinta ya comprobó `payments:refund` (el servidor lo vuelve a exigir). */
@@ -118,12 +148,17 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const { formatDateTime } = useVenueDateTime()
   const qc = useQueryClient()
 
+  const storeKey = savedKey(venueId, order.orderId)
+  // Una devolución en duda de antes (otra apertura de la hoja u otra carga de la página): se avisa y precarga el formulario.
+  const [pending, setPending] = useState(() => readSaved(storeKey))
   // null = el cajero no ha tocado el monto: va lo que queda (la pista).
-  const [amountStr, setAmountStr] = useState<string | null>(null)
-  const [reason, setReason] = useState<CardRefundReason | null>(null)
-  const [note, setNote] = useState('')
-  // La llave es de la OPERACIÓN: nueva al abrir (la hoja se monta al abrir) o al cambiar el cuerpo; la MISMA en sus reintentos.
-  const attempt = useRef<{ body: string; key: string } | null>(null)
+  const [amountStr, setAmountStr] = useState<string | null>(pending?.amount ?? null)
+  const [reason, setReason] = useState<CardRefundReason | null>(pending?.reason ?? null)
+  const [note, setNote] = useState(pending?.note ?? '')
+  // La llave es de la OPERACIÓN: nueva con otro cuerpo; la MISMA en sus reintentos, también los de una hoja o página anterior.
+  const attempt = useRef<{ body: string; key: string } | null>(
+    pending ? { body: JSON.stringify(bodyOf(pending.amount, pending.reason, pending.note)), key: pending.key } : null,
+  )
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   const list = useQuery({ queryKey: listKey, queryFn: () => listCardRefunds(venueId, order.orderId) })
@@ -137,12 +172,20 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     void qc.invalidateQueries({ queryKey: ['order', venueId, order.orderId] })
   }
 
+  /** Desenlace definitivo de `key` ⇒ se olvida su llave (memoria y almacenamiento); si no, queda guardada y se avisa. */
+  const settle = (key: string, definitive: boolean) => {
+    if (definitive) {
+      if (attempt.current?.key === key) attempt.current = null
+      if (readSaved(storeKey)?.key === key) writeSaved(storeKey, null)
+    }
+    setPending(readSaved(storeKey))
+  }
+
   const refund = useMutation({
-    mutationFn: (v: { body: { amount: string; reason: CardRefundReason; note?: string }; key: string }) =>
-      createCardRefund(venueId, order.orderId, v.body, v.key),
-    onSuccess: res => {
+    mutationFn: (v: { body: RefundBody; key: string }) => createCardRefund(venueId, order.orderId, v.body, v.key),
+    onSuccess: (res, v) => {
       // PENDING y UNKNOWN siguen en curso en el servidor: repetir el mismo cuerpo debe dar la MISMA (replay). Lo demás ya terminó.
-      if (res.status !== 'PENDING' && res.status !== 'UNKNOWN') attempt.current = null
+      settle(v.key, res.status !== 'PENDING' && res.status !== 'UNKNOWN')
       if (res.status === 'RECORDED') {
         setAmountStr(null)
         setReason(null)
@@ -151,9 +194,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       const failed = res.cardRefundStatus === 'FAILED' || res.cardRefundStatus === 'CANCELED'
       toast({ title: t(outcomeKey(res)), ...(failed ? { variant: 'destructive' as const } : {}) })
     },
-    onError: err => {
-      if (inDoubt(err)) return toast({ title: t('cardRefund.noResponse') })
-      attempt.current = null // un 4xx es definitivo: el siguiente intento es otra operación
+    onError: (err, v) => {
+      const doubt = inDoubt(err)
+      settle(v.key, !doubt) // un 4xx es definitivo: el siguiente intento es otra operación
+      if (doubt) return toast({ title: t('cardRefund.noResponse') })
       toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
     },
     onSettled: reread,
@@ -170,11 +214,13 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
 
   const submit = () => {
     if (!amountCents || !reason) return
-    const trimmed = note.trim()
-    const body = { amount: (amountCents / 100).toFixed(2), reason, ...(trimmed ? { note: trimmed } : {}) }
+    const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim())
     const sig = JSON.stringify(body)
     if (attempt.current?.body !== sig) attempt.current = { body: sig, key: crypto.randomUUID() }
-    refund.mutate({ body, key: attempt.current.key })
+    const key = attempt.current.key
+    // ANTES de tocar la red: una recarga a medio envío tampoco inventa otra llave.
+    writeSaved(storeKey, { key, amount: body.amount, reason, note: body.note ?? '' })
+    refund.mutate({ body, key })
   }
 
   return (
@@ -238,6 +284,11 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         </section>
 
         <div className="space-y-4">
+          {pending && (
+            <Alert role="status">
+              <AlertDescription>{t('cardRefund.pendingAttempt', { amount: Currency(Number(pending.amount)) })}</AlertDescription>
+            </Alert>
+          )}
           {hint !== null && <p className="text-sm font-medium">{t('cardRefund.upTo', { amount: Currency(hint / 100) })}</p>}
           <div className="space-y-1.5">
             <Label htmlFor="card-refund-amount">{t('cardRefund.amount')}</Label>

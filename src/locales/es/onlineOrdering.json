@@ -237,6 +237,7 @@
     "history": "Devoluciones de este pedido",
     "empty": "Todavía no hay devoluciones.",
     "loadFailed": "No se pudieron cargar las devoluciones.",
+    "pendingAttempt": "Hay una devolución de {{amount}} en proceso: revisa la lista antes de devolver otra vez.",
     "upTo": "Puedes devolver hasta {{amount}}",
     "amount": "Monto a devolver (MXN)",
     "amountInvalid": "Escribe un monto mayor a $0 con máximo 2 decimales.",

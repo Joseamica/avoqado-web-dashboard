@@ -237,6 +237,7 @@
     "history": "Refunds for this order",
     "empty": "No refunds yet.",
     "loadFailed": "Couldn't load the refunds.",
+    "pendingAttempt": "There is a {{amount}} refund in progress: check the list before refunding again.",
     "upTo": "You can refund up to {{amount}}",
     "amount": "Amount to refund (MXN)",
     "amountInvalid": "Enter an amount above $0 with at most 2 decimals.",
