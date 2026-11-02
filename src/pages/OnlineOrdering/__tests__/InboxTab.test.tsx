@@ -632,7 +632,9 @@ describe('InboxTab', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'Estamos confirmando el pago con la tarjeta' }))
     expect(await screen.findByText('inbox.offline', {}, { timeout: 4000 })).toBeInTheDocument()
     const card = screen.getByTestId('order-o1')
-    expect(within(card).getByText('inbox.card.cardAuthorized')).toBeInTheDocument() // los datos de antes del 409
+    // Codex panel r1 #2: el servidor ya dijo que está cobrando; aunque los datos viejos digan «apartada», el dinero dice «Confirmando».
+    expect(within(card).getByText('inbox.card.cardConfirming')).toBeInTheDocument()
+    expect(within(card).queryByText('inbox.card.cardAuthorized')).toBeNull()
     expect(within(card).getByRole('button', { name: 'inbox.actions.accept' })).toBeDisabled()
   })
 

@@ -16,14 +16,14 @@ export type OrderAction = 'accept' | 'reject' | 'ready' | 'delivered' | 'cancel'
 const CARD_NOT_CHARGED: ReadonlySet<string> = new Set(['RELEASED', 'ABANDONED', 'CAPTURE_FAILED'])
 
 /** El dinero de un pedido con tarjeta en línea (textos de la tabla del plan, iguales en las apps). */
-function cardMoneyKey(order: InboxOrder): string {
+function cardMoneyKey(order: InboxOrder, confirming: boolean): string {
   if (NO_CHARGE.has(order.status)) {
     const charge = order.card?.status
     if (charge === 'CAPTURED') return 'inbox.card.cardCapturedRefund'
     // Codex ANDROID r1 #1: nunca «no se cobró» con el desenlace en duda (RELEASING, AUTHORIZED, CAPTURING u otro).
     return charge && CARD_NOT_CHARGED.has(charge) ? 'inbox.card.cardNotCharged' : 'inbox.card.cardReleasing'
   }
-  if (order.cardStatus === 'CONFIRMING') return 'inbox.card.cardConfirming'
+  if (confirming) return 'inbox.card.cardConfirming'
   if (order.paymentStatus === 'PAID' || order.remaining <= 0 || order.card?.status === 'CAPTURED') return 'inbox.card.cardPaid'
   return 'inbox.card.cardAuthorized'
 }
@@ -63,6 +63,7 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
   const isCard = order.paymentMode === 'CARD_ONLINE'
   // 🔴 Tarjeta en línea: el panel nunca cobra (ni pide «Falta cobrarlo»); el dinero lo dice el cargo.
   const owes = !isCard && !noCharge && order.remaining > 0
+  // Tras un 409 CONFIRMING sin relectura buena (`acceptLocked`), el servidor ya está cobrando: botón y texto lo dicen.
   const confirming = order.cardStatus === 'CONFIRMING' || acceptLocked
   const isPending = order.status === 'PENDING_ACCEPTANCE'
   const isActive = order.status === 'ACCEPTED' || order.status === 'READY'
@@ -120,7 +121,7 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
       </div>
       <p className={owes ? 'text-sm font-medium' : 'text-sm text-muted-foreground'}>
         {isCard
-          ? t(cardMoneyKey(order))
+          ? t(cardMoneyKey(order, confirming))
           : noCharge
             ? t('inbox.card.noCharge')
             : owes
