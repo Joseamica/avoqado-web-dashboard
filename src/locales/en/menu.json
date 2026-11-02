@@ -124,8 +124,8 @@
     },
     "labels": {
       "newCategory": "New Category",
-      "active": "âœ“ Active",
-      "inactive": "âœ— Inactive",
+      "active": "✓ Active",
+      "inactive": "✗ Inactive",
       "menusForCategory": "Menus where the category will appear",
       "addProductsToCategory": "Add products to this category",
       "selectMenus": "Select menus",
@@ -250,7 +250,7 @@
       "errorFetching": "Failed to fetch modifier group data",
       "noData": "No data returned from server",
       "unknownError": "Unknown error",
-      "backToGroups": "â† Back to Modifier Groups",
+      "backToGroups": "← Back to Modifier Groups",
       "toasts": {
         "updatedDesc": "The group details have been updated successfully.",
         "updateErrorDesc": "There was a problem updating the modifier group.",
