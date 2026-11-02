@@ -22,14 +22,18 @@ describe('D6 · Auditoría de Promotores', () => {
     })
   })
 
-  describe('¿las ventas que manda el servidor son del periodo del filtro?', () => {
-    it('sí cuando recibe las dos fechas (el día, entre, últimos)', () => {
-      expect(ventasSonDelFiltro({ startDate: '2026-11-01', endDate: '2026-11-01' })).toBe(true)
+  describe('¿las ventas que manda el servidor son exactamente las del filtro?', () => {
+    it('sí con «el día» y «entre» (el servidor acota por los mismos días)', () => {
+      expect(ventasSonDelFiltro('on')).toBe(true)
+      expect(ventasSonDelFiltro('between')).toBe(true)
     })
-    it('no con una sola fecha (antes de / después de) ni sin filtro de fechas', () => {
-      expect(ventasSonDelFiltro({ endDate: '2026-10-01' })).toBe(false)
-      expect(ventasSonDelFiltro({ startDate: '2026-10-01' })).toBe(false)
-      expect(ventasSonDelFiltro({})).toBe(false)
+    it('no con «antes de» / «después de» (una sola fecha: el servidor responde con hoy) ni sin filtro', () => {
+      expect(ventasSonDelFiltro('before')).toBe(false)
+      expect(ventasSonDelFiltro('after')).toBe(false)
+      expect(ventasSonDelFiltro(undefined)).toBe(false)
+    })
+    it('Codex D6 r2: no con «últimos N» (el servidor manda días completos aunque el filtro sea «la última hora»)', () => {
+      expect(ventasSonDelFiltro('last')).toBe(false)
     })
   })
 

@@ -14,9 +14,13 @@ export function seQuedaConElFiltro(checadasEnElFiltro: number, ventas: number, v
   return checadasEnElFiltro > 0 || (ventasDelFiltro && ventas !== 0)
 }
 
-/** El servidor sólo acota las ventas al periodo cuando recibe las DOS fechas (el día, entre, últimos). */
-export function ventasSonDelFiltro(params: { startDate?: string; endDate?: string }): boolean {
-  return !!(params.startDate && params.endDate)
+/**
+ * ¿Las ventas que manda el servidor son exactamente las del filtro? Sólo con «el día» y «entre»: el servidor acota por días completos.
+ * Con «antes de» / «después de» recibe una sola fecha y responde con hoy (Codex D6 r1), y con «últimos N» recibe días completos aunque el
+ * filtro sea de horas o empiece a media jornada (Codex D6 r2): esas ventas no son del filtro.
+ */
+export function ventasSonDelFiltro(operador: string | null | undefined): boolean {
+  return operador === 'on' || operador === 'between'
 }
 
 /** Día civil (`YYYY-MM-DD`) de un instante en la zona del negocio; `null` si no se entiende. */

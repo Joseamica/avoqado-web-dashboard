@@ -331,7 +331,7 @@ export default function PromotersAuditPage() {
   const dateFilteredPromoters = useMemo(() => {
     if (!dateFilter) return promoters
 
-    const ventasDelFiltro = ventasSonDelFiltro(getDateParams())
+    const ventasDelFiltro = ventasSonDelFiltro(dateFilter.operator)
     return promoters.reduce<PromoterRow[]>((acc, promoter) => {
       const filteredEntries = (promoter.allTimeEntries || []).filter(isEntryInDateFilter)
       if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales, ventasDelFiltro)) return acc
