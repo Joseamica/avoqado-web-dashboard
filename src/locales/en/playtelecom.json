@@ -305,7 +305,8 @@
       "rejectReason": "Rejection reason...",
       "approve": "Approve",
       "reject": "Reject"
-    }
+    },
+    "depositExpectedCash": "Expected cash (system)"
   },
   "users": {
     "title": "Users",
