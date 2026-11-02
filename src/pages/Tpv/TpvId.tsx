@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
@@ -36,7 +37,7 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
-import { terminalAPI, TerminalStatus } from '@/services/superadmin-terminals.service'
+import { terminalAPI, TerminalStatus, type BlockingTerminalPaymentRequest } from '@/services/superadmin-terminals.service'
 import { generateActivationCode, type DisplayModeRequest, type EffectiveDeviceCapabilities } from '@/services/tpv.service'
 import { StaffRole } from '@/types'
 import { type TpvCommandPayload, TpvCommandType } from '@/types/tpv-commands'
@@ -75,7 +76,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -339,6 +340,82 @@ function TpvIdContent() {
     queryFn: () => terminalAPI.getTerminalById(tpvId!),
     enabled: isSuperAdmin && Boolean(tpvId) && canConfigurePayments(tpv?.capabilities),
   })
+
+  const blockingPaymentRequest = terminalDetails?.blockingPaymentRequest
+  const canReleaseTerminal = isSuperAdmin && canConfigurePayments(tpv?.capabilities)
+  const releaseContext =
+    canReleaseTerminal && tpvId && venueId && blockingPaymentRequest?.requestId && blockingPaymentRequest?.venueId
+      ? JSON.stringify([tpvId, venueId, blockingPaymentRequest.requestId, blockingPaymentRequest.venueId])
+      : null
+  const releaseContextRef = useRef(releaseContext)
+  const releaseInFlightRef = useRef<string | null>(null)
+  const [releaseInFlight, setReleaseInFlight] = useState<string | null>(null)
+  const [releaseSelection, setReleaseSelection] = useState<{
+    context: string
+    terminalId: string
+    pageVenueId: string
+    request: BlockingTerminalPaymentRequest
+  } | null>(null)
+  const [releaseReason, setReleaseReason] = useState('')
+  const [releaseFeedback, setReleaseFeedback] = useState<{ requestId: string; venueId: string; message: string } | null>(null)
+  const releasePending = releaseInFlight !== null && releaseInFlight === releaseContext
+  const releaseReasonValid = releaseReason.trim().length >= 3 && releaseReason.trim().length <= 300
+
+  useEffect(() => {
+    releaseContextRef.current = releaseContext
+    return () => {
+      releaseContextRef.current = null
+    }
+  }, [releaseContext])
+
+  useEffect(() => {
+    if (releaseSelection && releaseSelection.context !== releaseContext) {
+      setReleaseSelection(null)
+      setReleaseReason('')
+    }
+  }, [releaseContext, releaseSelection])
+
+  const openReleaseConfirmation = () => {
+    if (!releaseContext || !tpvId || !venueId || !blockingPaymentRequest || releasePending) return
+    setReleaseSelection({ context: releaseContext, terminalId: tpvId, pageVenueId: venueId, request: { ...blockingPaymentRequest } })
+    setReleaseReason('')
+    setReleaseFeedback(null)
+  }
+
+  const handleReleaseTerminal = async () => {
+    const selected = releaseSelection
+    if (!selected || selected.context !== releaseContext || !releaseReasonValid || releaseInFlightRef.current === selected.context) return
+    // El cobro puede pertenecer a una sucursal anterior: la selección, nunca el router, fija su identidad.
+    const body = { venueId: selected.request.venueId, reason: releaseReason.trim() }
+    releaseInFlightRef.current = selected.context
+    setReleaseInFlight(selected.context)
+    setReleaseFeedback(null)
+    try {
+      const result = await terminalAPI.releaseTerminalPaymentRequest(selected.request.requestId, body)
+      if (releaseContextRef.current !== selected.context) return
+      if (result.success === true && result.released === true) {
+        setReleaseSelection(null)
+        setReleaseReason('')
+        toast({ title: t('paymentRelease.success'), description: t('paymentRelease.saleProtected') })
+      } else {
+        setReleaseFeedback({ ...body, requestId: selected.request.requestId, message: result.message || t('paymentRelease.notReleased') })
+      }
+    } catch (error: unknown) {
+      if (releaseContextRef.current === selected.context) {
+        const responseMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+        setReleaseFeedback({ ...body, requestId: selected.request.requestId, message: responseMessage || t('paymentRelease.error') })
+      }
+    } finally {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['superadmin-terminal', selected.terminalId], exact: true }),
+        queryClient.invalidateQueries({ queryKey: ['tpv', selected.pageVenueId, selected.terminalId], exact: true }),
+      ])
+      if (releaseInFlightRef.current === selected.context) {
+        releaseInFlightRef.current = null
+        setReleaseInFlight(null)
+      }
+    }
+  }
 
   // SUPERADMIN: Fetch all merchant accounts (they are global, not per-venue)
   const { data: merchantAccounts = [] } = useQuery({
@@ -1169,6 +1246,58 @@ function TpvIdContent() {
                         </span>
                       </div>
 
+                      {canReleaseTerminal && blockingPaymentRequest && (
+                        <section
+                          className="mb-4 space-y-3 rounded-xl border border-input bg-linear-to-br from-amber-400/10 to-pink-500/10 p-4"
+                          data-tour="tpv-payment-release-panel"
+                        >
+                          <h3 className="text-sm font-semibold">{t('paymentRelease.title')}</h3>
+                          <p className="text-xs text-muted-foreground">{t('paymentRelease.saleProtected')}</p>
+                          <dl className="space-y-2 text-xs">
+                            <div>
+                              <dt className="text-muted-foreground">{t('paymentRelease.request')}</dt>
+                              <dd className="break-all font-mono select-all">{blockingPaymentRequest.requestId || '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-muted-foreground">{t('paymentRelease.venue')}</dt>
+                              <dd className="break-all font-mono select-all">{blockingPaymentRequest.venueId || '—'}</dd>
+                            </div>
+                            <div className="flex flex-wrap justify-between gap-2">
+                              <dt className="text-muted-foreground">{t('paymentRelease.amount')}</dt>
+                              <dd className="font-medium tabular-nums">
+                                {new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(blockingPaymentRequest.amount)}
+                              </dd>
+                            </div>
+                            <div className="flex flex-wrap justify-between gap-2">
+                              <dt className="text-muted-foreground">{t('paymentRelease.state')}</dt>
+                              <dd>{t(`paymentRelease.status.${blockingPaymentRequest.status}`)}</dd>
+                            </div>
+                            <div className="text-muted-foreground">
+                              <dt className="sr-only">{t('paymentRelease.createdAt')}</dt>
+                              <dd>
+                                {formatVenueDate(blockingPaymentRequest.createdAt)} · {t('paymentRelease.age', { count: blockingPaymentRequest.ageMinutes })}
+                              </dd>
+                            </div>
+                          </dl>
+                          <Button
+                            size="sm"
+                            className="w-full whitespace-normal bg-linear-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+                            data-tour="tpv-payment-release-open"
+                            disabled={!releaseContext || releasePending}
+                            onClick={openReleaseConfirmation}
+                          >
+                            {t('paymentRelease.action')}
+                          </Button>
+                        </section>
+                      )}
+                      {canReleaseTerminal && !releaseSelection && releaseFeedback &&
+                        (!blockingPaymentRequest ||
+                          (blockingPaymentRequest.requestId === releaseFeedback.requestId && blockingPaymentRequest.venueId === releaseFeedback.venueId)) && (
+                          <p role="status" className="mb-4 rounded-lg border border-input bg-muted p-3 text-sm">
+                            {releaseFeedback.message}
+                          </p>
+                        )}
+
                       {actionPolicy.canConfigurePayments && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
@@ -1434,6 +1563,52 @@ function TpvIdContent() {
 
       {/* Activation Code Dialog */}
       <ActivationCodeDialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen} activationData={activationData} />
+
+      <AlertDialog
+        open={Boolean(releaseSelection && releaseSelection.context === releaseContext)}
+        onOpenChange={open => {
+          if (!open && !releasePending) {
+            setReleaseSelection(null)
+            setReleaseReason('')
+            setReleaseFeedback(null)
+          }
+        }}
+      >
+        <AlertDialogContent onEscapeKeyDown={event => { if (releasePending) event.preventDefault() }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('paymentRelease.confirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('paymentRelease.confirmDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <p className="break-all font-mono text-xs text-muted-foreground">{releaseSelection?.request.requestId}</p>
+            <Label htmlFor="tpv-payment-release-reason">{t('paymentRelease.reason')}</Label>
+            <Input
+              id="tpv-payment-release-reason"
+              value={releaseReason}
+              onChange={event => setReleaseReason(event.target.value)}
+              disabled={releasePending}
+              data-tour="tpv-payment-release-reason"
+              aria-describedby="tpv-payment-release-reason-help"
+            />
+            <p id="tpv-payment-release-reason-help" className="text-xs text-muted-foreground">{t('paymentRelease.reasonHelp')}</p>
+          </div>
+          {releaseFeedback && <p role="status" className="text-sm">{releaseFeedback.message}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={releasePending}>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!releaseReasonValid || releasePending || !releaseContext}
+              data-tour="tpv-payment-release-confirm"
+              onClick={event => {
+                event.preventDefault()
+                void handleReleaseTerminal()
+              }}
+            >
+              {releasePending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />}
+              {t('paymentRelease.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Deactivate Confirmation Dialog */}
       <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>

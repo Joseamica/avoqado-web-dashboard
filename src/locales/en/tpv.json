@@ -22,6 +22,35 @@
     "customerDisplayInverted": "Invert screens",
     "buyBlockedByKyc": "Activate payments to order a terminal: without it, it could not take card payments."
   },
+  "paymentRelease": {
+    "title": "Payment holding this terminal",
+    "request": "Payment request",
+    "venue": "Payment venue (may be a previous venue)",
+    "amount": "Amount",
+    "state": "Reported status",
+    "createdAt": "Created",
+    "age": "Age when checked: {{count}} min",
+    "action": "Release the terminal (not the sale)",
+    "confirmTitle": "Release this terminal?",
+    "confirmDescription": "This only requests release of the device. It does not confirm whether a payment went through or allow that sale to be charged again. The server will check whether release is possible and record who requested it and why.",
+    "reason": "Reason",
+    "reasonHelp": "Enter 3 to 300 characters, excluding leading and trailing spaces.",
+    "confirm": "Confirm: release the terminal",
+    "saleProtected": "The sale remains protected until the outcome of that payment is confirmed.",
+    "success": "Terminal released",
+    "notReleased": "Release was not confirmed. Check the updated payment status before trying again.",
+    "error": "We could not confirm the response. Your reason was kept: check the updated status before retrying.",
+    "status": {
+      "PENDING": "Awaiting dispatch",
+      "SENT": "Sent to the terminal",
+      "COMPLETED": "Paid",
+      "FAILED": "Failure reported",
+      "CANCELLED": "Cancellation reported",
+      "CANCEL_REQUESTED": "Cancellation requested",
+      "TIMED_OUT": "Response window expired",
+      "UNKNOWN": "Outcome unconfirmed"
+    }
+  },
   "displayMode": {
     "title": "Screen orientation",
     "description": "The confirmed physical state and the submitted request are shown separately.",

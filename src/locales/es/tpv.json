@@ -22,6 +22,35 @@
     "customerDisplayInverted": "Invertir pantallas",
     "buyBlockedByKyc": "Activa tus cobros para pedir una terminal: sin eso no podría cobrar con tarjeta."
   },
+  "paymentRelease": {
+    "title": "Cobro que aparta esta terminal",
+    "request": "Solicitud de cobro",
+    "venue": "Sucursal del cobro (puede ser una anterior)",
+    "amount": "Importe",
+    "state": "Estado reportado",
+    "createdAt": "Creado",
+    "age": "Antigüedad al consultar: {{count}} min",
+    "action": "Soltar la terminal (no la venta)",
+    "confirmTitle": "¿Soltar esta terminal?",
+    "confirmDescription": "Sólo se pide liberar el aparato. Esto no confirma si se cobró ni permite cobrar otra vez esa venta. El servidor revisará si es posible y registrará quién lo pidió y por qué.",
+    "reason": "Motivo",
+    "reasonHelp": "Escribe entre 3 y 300 caracteres, sin contar espacios al principio y al final.",
+    "confirm": "Confirmar: soltar la terminal",
+    "saleProtected": "La venta sigue protegida hasta confirmar el resultado de ese cobro.",
+    "success": "Terminal liberada",
+    "notReleased": "No se confirmó la liberación. Revisa el estado actualizado del cobro antes de volver a intentarlo.",
+    "error": "No pudimos confirmar la respuesta. Conservamos el motivo: revisa el estado actualizado antes de reintentar.",
+    "status": {
+      "PENDING": "Pendiente de envío",
+      "SENT": "Enviado a la terminal",
+      "COMPLETED": "Cobrado",
+      "FAILED": "Fallo reportado",
+      "CANCELLED": "Cancelación reportada",
+      "CANCEL_REQUESTED": "Cancelación solicitada",
+      "TIMED_OUT": "Plazo de respuesta agotado",
+      "UNKNOWN": "Resultado sin confirmar"
+    }
+  },
   "displayMode": {
     "title": "Orientación de pantallas",
     "description": "El estado físico confirmado y la solicitud enviada se muestran por separado.",
