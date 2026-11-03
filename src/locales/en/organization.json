@@ -1437,6 +1437,8 @@
       "SALES_GOAL_UPDATED": "Sales goal updated",
       "SALES_REPORT_EXPORTED": "Sales report exported",
       "SALES_RETENTION_SET": "Sales retention set",
+      "SALE_VERIFICATION_NUMBER_EDIT": "Linking number corrected",
+      "SALE_VERIFICATION_NUMBER_SET": "Linking number captured",
       "SALE_VERIFICATION_EDIT": "Sale verification edited",
       "SALE_VERIFICATION_EDITED_VIA_MCP": "Sale verification edited via assistant",
       "SALE_VERIFICATION_REOPENED_VIA_MCP": "Sale verification reopened via assistant",

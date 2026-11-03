@@ -333,6 +333,30 @@ export function getPermissionPlatform(permission: string): 'dashboard' | 'tpv' |
 }
 
 /**
+ * Categorías de un módulo (VenueModule), no de un plan: sólo las ve la tienda que lo tiene.
+ * «Verificación de ventas» es de PlayTelecom (founder, 2-nov): a nadie más le sirve.
+ * Esconder una categoría no toca lo seleccionado: lo que el rol o el conjunto ya tiene se guarda igual.
+ */
+const CATEGORY_REQUIRED_MODULE: Partial<Record<keyof typeof PERMISSION_CATEGORIES, string>> = {
+  SALE_VERIFICATIONS: 'SERIALIZED_INVENTORY',
+}
+
+export function filterCategoriesByModules(
+  superCategories: SuperCategory[],
+  hasModule: (moduleCode: string) => boolean,
+): SuperCategory[] {
+  return superCategories
+    .map(superCat => ({
+      ...superCat,
+      categoryKeys: superCat.categoryKeys.filter(key => {
+        const requiredModule = CATEGORY_REQUIRED_MODULE[key]
+        return !requiredModule || hasModule(requiredModule)
+      }),
+    }))
+    .filter(superCat => superCat.categoryKeys.length > 0)
+}
+
+/**
  * Filter permissions by search term
  */
 export function filterPermissionsBySearch(

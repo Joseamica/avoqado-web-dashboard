@@ -47,6 +47,10 @@ export interface ManualSaleRow {
   saleStatus?: string
   /** "Motivo de Rechazo" — texto libre; sólo se usa cuando la venta viene rechazada. */
   rejectionNote?: string
+  /** «Número de vinculación» (PlayTelecom) — sólo dígitos; llega SIEMPRE como texto. Sólo cuenta con el interruptor prendido. */
+  linkingNumber?: string
+  /** «Número portado» — sólo en filas de portabilidad. Llega como texto. */
+  portedNumber?: string
 }
 
 /** One row's classification result, as returned by the backend (Task 5). */
@@ -57,6 +61,9 @@ export interface RowResult {
   motivo?: string
   /** Estatus ya normalizado por el backend — lo que de verdad se va a guardar. */
   saleStatus?: 'COMPLETED' | 'REJECTED'
+  /** Sólo con el interruptor prendido: el número ya está en otra venta de la organización (avisa, no frena la fila). */
+  linkingDuplicate?: boolean
+  portedDuplicate?: boolean
 }
 
 /** `{ crear, omitir, error, created? }` — shared shape of preview + apply responses. */
@@ -92,6 +99,11 @@ const HEADER_TO_FIELD: Record<string, keyof ManualSaleRow> = {
   Status: 'saleStatus',
   'Motivo de Rechazo': 'rejectionNote',
   'Motivo del Rechazo': 'rejectionNote',
+  // Los acentos y las mayúsculas se normalizan, así que «Numero de vinculacion» también entra.
+  'Número de vinculación': 'linkingNumber',
+  '# Vinculación': 'linkingNumber',
+  'Número portado': 'portedNumber',
+  '# Portado': 'portedNumber',
 }
 
 /**
@@ -141,6 +153,9 @@ const STRING_FIELDS = new Set<keyof ManualSaleRow>([
   'simType',
   'saleStatus',
   'rejectionNote',
+  // Como texto SIEMPRE: una celda numérica 5512345678 no puede perder dígitos ni volverse 5.51E+09.
+  'linkingNumber',
+  'portedNumber',
 ])
 
 /**
@@ -357,19 +372,25 @@ const TEMPLATE_HEADERS = [
   'Motivo de Rechazo',
 ] as const
 
+/** Las dos columnas nuevas; sólo van en la plantilla con el interruptor del número de vinculación prendido. */
+const LINKING_TEMPLATE_HEADERS = ['Número de vinculación', 'Número portado'] as const
+
 /**
  * Generates and downloads a blank .xlsx template with exactly the headers the
  * operator's sheet uses (no blank leading row — a fresh template starts clean;
  * `parseSalesFile` already tolerates a leading blank row for real-world files
  * that do have one, like Isaac's).
+ *
+ * `includeLinkingNumber` = el interruptor de la organización: apagado, la plantilla es la de siempre.
  */
-export async function downloadTemplate(): Promise<void> {
+export async function downloadTemplate(includeLinkingNumber: boolean): Promise<void> {
+  const headers: readonly string[] = includeLinkingNumber ? [...TEMPLATE_HEADERS, ...LINKING_TEMPLATE_HEADERS] : TEMPLATE_HEADERS
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet('Ventas')
 
-  sheet.addRow([...TEMPLATE_HEADERS])
+  sheet.addRow([...headers])
   sheet.getRow(1).font = { bold: true }
-  sheet.columns = TEMPLATE_HEADERS.map(header => ({ width: Math.max(header.length + 4, 14) }))
+  sheet.columns = headers.map(header => ({ width: Math.max(header.length + 4, 14) }))
 
   const buffer = await workbook.xlsx.writeBuffer()
   const blob = new Blob([buffer], {

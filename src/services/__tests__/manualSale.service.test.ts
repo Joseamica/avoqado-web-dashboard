@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import ExcelJS from 'exceljs'
-import { parseSalesFile, previewManualSales, applyManualSales } from '@/services/manualSale.service'
+import { parseSalesFile, previewManualSales, applyManualSales, downloadTemplate } from '@/services/manualSale.service'
 
 // ---------------------------------------------------------------------------
 // Mock the `api` axios instance
@@ -378,5 +378,110 @@ describe('parseSalesFile — avisa de las columnas que no leyó', () => {
 
     const { unknownHeaders } = await parseSalesFile(file)
     expect(unknownHeaders).toEqual(['Notas'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Número de vinculación y Número portado (PlayTelecom)
+// ---------------------------------------------------------------------------
+async function fileWith(headers: string[], dataRow: unknown[]): Promise<File> {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('Ventas')
+  sheet.addRow(headers)
+  sheet.addRow(dataRow)
+  const buffer = await workbook.xlsx.writeBuffer()
+  return new File([buffer as ArrayBuffer], 'v.xlsx')
+}
+
+const BASE_HEADERS = ['ID SIM', 'Nombre de la Tienda', 'Fecha', 'Tipo de Venta', 'Forma de Pago', 'Monto de Venta']
+const BASE_ROW = ['8952140063000001234', 'BAE Pavón', '2026-07-01', 'Portabilidad', 'Efectivo', 150]
+
+describe('parseSalesFile — número de vinculación y portado', () => {
+  it('lee «Número de vinculación» y «Número portado» como texto', async () => {
+    const file = await fileWith([...BASE_HEADERS, 'Número de vinculación', 'Número portado'], [...BASE_ROW, '5512345678', '5587654321'])
+    const { rows, unknownHeaders } = await parseSalesFile(file)
+
+    expect(rows[0].linkingNumber).toBe('5512345678')
+    expect(rows[0].portedNumber).toBe('5587654321')
+    expect(unknownHeaders).toEqual([])
+  })
+
+  it('una celda NUMÉRICA llega como texto, sin perder dígitos ni notación científica (10 y 9 dígitos)', async () => {
+    const file = await fileWith([...BASE_HEADERS, 'Número de vinculación', 'Número portado'], [...BASE_ROW, 5512345678, 551234567])
+    const { rows } = await parseSalesFile(file)
+
+    expect(rows[0].linkingNumber).toBe('5512345678')
+    expect(rows[0].portedNumber).toBe('551234567')
+    expect(typeof rows[0].linkingNumber).toBe('string')
+  })
+
+  it.each(['# Vinculación', '# vinculacion', 'Numero de vinculacion', 'NÚMERO DE VINCULACIÓN'])(
+    'reconoce el encabezado «%s»',
+    async header => {
+      const file = await fileWith([...BASE_HEADERS, header], [...BASE_ROW, 5512345678])
+      const { rows } = await parseSalesFile(file)
+
+      expect(rows[0].linkingNumber).toBe('5512345678')
+    },
+  )
+
+  it.each(['Numero portado', '# Portado', 'Número Portado'])('reconoce el encabezado de portado «%s»', async header => {
+    const file = await fileWith([...BASE_HEADERS, header], [...BASE_ROW, 5587654321])
+    const { rows } = await parseSalesFile(file)
+
+    expect(rows[0].portedNumber).toBe('5587654321')
+  })
+
+  it('un archivo sin esas columnas no trae las llaves (los archivos viejos siguen igual)', async () => {
+    const { rows } = await parseSalesFile(await fileWith(BASE_HEADERS, BASE_ROW))
+
+    expect('linkingNumber' in rows[0]).toBe(false)
+    expect('portedNumber' in rows[0]).toBe(false)
+  })
+})
+
+describe('downloadTemplate', () => {
+  async function headersOfDownloadedTemplate(includeLinkingNumber: boolean): Promise<string[]> {
+    let blob: Blob | undefined
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      blob = b
+      return 'blob:x'
+    })
+    URL.revokeObjectURL = vi.fn()
+    HTMLAnchorElement.prototype.click = vi.fn()
+
+    await downloadTemplate(includeLinkingNumber)
+
+    const buffer = await new Promise<ArrayBuffer>(resolve => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as ArrayBuffer)
+      reader.readAsArrayBuffer(blob as Blob)
+    })
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(buffer)
+    return (wb.worksheets[0].getRow(1).values as unknown[]).slice(1).map(String)
+  }
+
+  const TODAY = [
+    'ID SIM',
+    'Tipo de SIM',
+    'ID Promotor',
+    'Promotor',
+    'ID Tienda',
+    'Nombre de la Tienda',
+    'Fecha',
+    'Tipo de Venta',
+    'Forma de Pago',
+    'Monto de Venta',
+    'Estatus de Venta',
+    'Motivo de Rechazo',
+  ]
+
+  it('con el interruptor prendido termina en «Número de vinculación» y «Número portado»', async () => {
+    expect(await headersOfDownloadedTemplate(true)).toEqual([...TODAY, 'Número de vinculación', 'Número portado'])
+  })
+
+  it('apagado queda exactamente como hoy', async () => {
+    expect(await headersOfDownloadedTemplate(false)).toEqual(TODAY)
   })
 })

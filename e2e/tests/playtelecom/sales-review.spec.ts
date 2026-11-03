@@ -2,7 +2,8 @@
  * PlayTelecom Sales Review E2E Tests
  *
  * Covers the back-office documentation review flow on the SalesReport page:
- *   - Action buttons appear on PENDING rows when user has sale-verifications:review
+ *   - Action buttons appear on PENDING rows when user has sale-verifications:approve
+ *     (`review` alone only shows the sale)
  *   - Approve flow → row moves to COMPLETED with green badge
  *   - Reject flow → opens dialog with checkboxes, requires reason or notes,
  *     row moves to FAILED with red badge + reasons rendered
@@ -99,12 +100,13 @@ const DAILY_DATA_RESPONSE = { success: true, data: [] }
 
 async function setupSalesReportMocks(page: Page, opts: { withReviewPermission: boolean }) {
   // Build the venue with the new permission applied (or not)
-  const reviewPerm = 'sale-verifications:review'
+  // Deciding (approve/reject) needs `approve`; `review` alone only shows the sale.
+  const reviewPerms = ['sale-verifications:review', 'sale-verifications:approve']
   const basePermissions = [...PLAYTELECOM_VENUE_ALPHA.permissions]
   const venue = {
     ...PLAYTELECOM_VENUE_ALPHA,
     role: StaffRole.OWNER,
-    permissions: opts.withReviewPermission ? [...basePermissions, reviewPerm] : basePermissions,
+    permissions: opts.withReviewPermission ? [...basePermissions, ...reviewPerms] : basePermissions,
   }
   const user = createMockUser(StaffRole.OWNER, [venue])
 
@@ -301,7 +303,7 @@ test.describe('PlayTelecom Sales Review (back-office)', () => {
       })
   })
 
-  test('hides action buttons when user lacks sale-verifications:review permission', async ({ page }) => {
+  test('hides action buttons when user lacks sale-verifications:approve permission', async ({ page }) => {
     await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [PLAYTELECOM_VENUE_ALPHA] })
     await setupSalesReportMocks(page, { withReviewPermission: false })
 
