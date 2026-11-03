@@ -66,6 +66,14 @@ describe('Historial de facturación si falla la carga', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('con facturas en 403 y tokens en 500, sí deja reintentar los tokens (Codex r3)', async () => {
+    mocks.facturas.mockRejectedValue({ response: { status: 403 } })
+    mocks.tokens.mockRejectedValue({ response: { status: 500 } })
+    montar()
+
+    expect(await screen.findByRole('button', { name: 'retry' })).toBeInTheDocument()
+  })
+
   it('sin movimientos sigue diciendo que no hay, sin aviso', async () => {
     mocks.facturas.mockResolvedValue([])
     montar()

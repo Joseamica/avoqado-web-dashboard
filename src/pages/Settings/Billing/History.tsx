@@ -253,13 +253,17 @@ export default function History() {
   // Check if data is loading
   const isLoading = loadingInvoices || loadingTokens
   // La tabla junta facturas y tokens: si falta uno, la lista está incompleta. Un rol sin permiso de tokens no tiene un fallo: ve lo suyo.
+  const tokensFailed = falloDeCarga(tokensQuery) && !esSinPermiso(tokensQuery.error)
+  // Primero el fallo que se puede reintentar: un 403 de facturas no puede dejar sin salida a los tokens.
   const failedQuery = isLoading
     ? null
-    : falloDeCarga(invoicesQuery)
-      ? invoicesQuery
-      : falloDeCarga(tokensQuery) && !esSinPermiso(tokensQuery.error)
-        ? tokensQuery
-        : null
+    : tokensFailed && esSinPermiso(invoicesQuery.error)
+      ? tokensQuery
+      : falloDeCarga(invoicesQuery)
+        ? invoicesQuery
+        : tokensFailed
+          ? tokensQuery
+          : null
 
   return (
     <div className="px-8 pt-6">
