@@ -99,8 +99,18 @@ export default function ManualSalesUpload() {
     try {
       const parsed = await parseSalesFile(file)
       parsedRows = parsed.rows
+      let unknown = parsed.unknownHeaders
+      if (!showLinking) {
+        // Apagado o sin saber: las columnas de número no viajan y vuelven a salir como encabezados no leídos.
+        const extra = [
+          parsedRows.some(r => r.linkingNumber !== undefined) && 'Número de vinculación',
+          parsedRows.some(r => r.portedNumber !== undefined) && 'Número portado',
+        ].filter((h): h is string => !!h)
+        parsedRows = parsedRows.map(({ linkingNumber: _l, portedNumber: _p, ...rest }) => rest)
+        unknown = [...unknown, ...extra]
+      }
       setRows(parsedRows)
-      setUnknownHeaders(parsed.unknownHeaders)
+      setUnknownHeaders(unknown)
 
       if (!orgId) {
         return {
@@ -337,7 +347,8 @@ export default function ManualSalesUpload() {
                                 defaultValue: bucket === 'crear' ? 'Crear' : bucket === 'omitir' ? 'Omitir' : 'Error',
                               })}
                             </Badge>
-                            {showLinking && (linkingDuplicate || portedDuplicate) && (
+                            {/* Sólo lo que manda el SERVIDOR: «desconocido» nunca es «apagado» en un aviso que protege dinero. */}
+                            {(linkingDuplicate || portedDuplicate) && (
                               <Badge
                                 className="border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-400"
                                 title={[

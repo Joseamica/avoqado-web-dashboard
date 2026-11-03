@@ -388,7 +388,8 @@ describe('ManualSalesUpload — columnas no leídas', () => {
 
     it('apagado: la plantilla sale sin las columnas, el texto no las menciona y no hay «Repetido»', async () => {
       mockLinking = { enabled: false, isError: false, refetch: vi.fn() }
-      mockPreviewManualSales.mockResolvedValue(DUP_PREVIEW)
+      // El SERVIDOR con el interruptor apagado no manda `linkingDuplicate`.
+      mockPreviewManualSales.mockResolvedValue({ ...DUP_PREVIEW, crear: DUP_PREVIEW.crear.map(({ linkingDuplicate: _l, ...r }) => r) })
       render(<ManualSalesUpload />)
 
       expect(screen.queryByText(/Número de vinculación/)).not.toBeInTheDocument()
@@ -398,6 +399,42 @@ describe('ManualSalesUpload — columnas no leídas', () => {
       await uploadSampleFile()
       await screen.findByText('Vista previa')
       expect(screen.queryByText('Repetido')).not.toBeInTheDocument()
+    })
+
+    it('apagado: las columnas de número no viajan en la vista previa ni al aplicar, y se avisan como no leídas', async () => {
+      mockLinking = { enabled: false, isError: false, refetch: vi.fn() }
+      mockParseSalesFile.mockResolvedValue({
+        rows: SAMPLE_ROWS.map(r => ({ ...r, linkingNumber: '5512345678', portedNumber: '5598765432' })),
+        unknownHeaders: [],
+      })
+      mockPreviewManualSales.mockResolvedValue(DUP_PREVIEW)
+      mockApplyManualSales.mockResolvedValue({ crear: [], omitir: [], error: [] })
+      render(<ManualSalesUpload />)
+
+      await uploadSampleFile()
+      const sent = mockPreviewManualSales.mock.calls[0][1] as ManualSaleRow[]
+      expect(sent).toHaveLength(3)
+      sent.forEach(r => {
+        expect(r).not.toHaveProperty('linkingNumber')
+        expect(r).not.toHaveProperty('portedNumber')
+      })
+      expect(await screen.findByText('Número de vinculación · Número portado')).toBeInTheDocument()
+
+      fireEvent.click(await screen.findByRole('button', { name: /Crear/ }))
+      await waitFor(() => expect(mockApplyManualSales).toHaveBeenCalled())
+      ;(mockApplyManualSales.mock.calls[0][1] as ManualSaleRow[]).forEach(r => {
+        expect(r).not.toHaveProperty('linkingNumber')
+        expect(r).not.toHaveProperty('portedNumber')
+      })
+    })
+
+    it('desconocido (la consulta falló): «Repetido» sale igual con lo que mandó el servidor', async () => {
+      mockLinking = { enabled: undefined, isError: true, refetch: vi.fn() }
+      mockPreviewManualSales.mockResolvedValue(DUP_PREVIEW)
+      render(<ManualSalesUpload />)
+
+      await uploadSampleFile()
+      expect(await screen.findAllByText('Repetido')).toHaveLength(1)
     })
 
     it('prendido: la plantilla lleva las columnas, el texto las menciona y la fila repetida dice «Repetido»', async () => {
