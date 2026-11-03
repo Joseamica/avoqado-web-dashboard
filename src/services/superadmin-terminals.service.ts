@@ -30,6 +30,23 @@ export interface TerminalMigrationInfo {
   toVenueId: string
 }
 
+export interface BlockingTerminalPaymentRequest {
+  requestId: string
+  venueId: string
+  amount: number
+  status: string
+  createdAt: string
+  ageMinutes: number
+}
+
+export interface TerminalPaymentReleaseResult {
+  success: boolean
+  released: boolean
+  status: string | null
+  paymentId?: string | null
+  message?: string
+}
+
 export interface Terminal {
   id: string
   venueId: string
@@ -40,6 +57,7 @@ export interface Terminal {
   }
   /** In-flight venue migration, or null when none is pending. */
   migration?: TerminalMigrationInfo | null
+  blockingPaymentRequest?: BlockingTerminalPaymentRequest | null
   serialNumber: string
   name: string
   type: TerminalType
@@ -168,6 +186,14 @@ export async function getAllTerminals(filters?: { venueId?: string; status?: str
 export async function getTerminalById(terminalId: string): Promise<Terminal> {
   const response = await api.get(`/api/v1/dashboard/superadmin/terminals/${terminalId}`)
   return response.data.data
+}
+
+export async function releaseTerminalPaymentRequest(
+  requestId: string,
+  data: { venueId: string; reason: string },
+): Promise<TerminalPaymentReleaseResult> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/payment-requests/${encodeURIComponent(requestId)}/release`, data)
+  return response.data
 }
 
 /**
@@ -375,6 +401,7 @@ export async function migrateStatus(terminalId: string, commandId: string): Prom
 export const terminalAPI = {
   getAllTerminals,
   getTerminalById,
+  releaseTerminalPaymentRequest,
   createTerminal,
   updateTerminal,
   generateActivationCode,
