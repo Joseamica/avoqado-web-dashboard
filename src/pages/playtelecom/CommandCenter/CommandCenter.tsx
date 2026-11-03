@@ -144,8 +144,6 @@ export default function CommandCenter() {
     if (!overview) {
       return {
         totalSales: 0,
-        salesTarget: 135000, // TODO: Get from config
-        moneyInStreet: 0,
         stockSims: 0,
         lowStockStores: 0,
         anomalies: 0,
@@ -157,8 +155,6 @@ export default function CommandCenter() {
 
     return {
       totalSales: overview.todaySales || 0,
-      salesTarget: 135000, // TODO: Get from organization config
-      moneyInStreet: 45200, // TODO: Calculate from pending orders
       stockSims: stockSummary?.totalPieces || 0,
       lowStockStores: stockSummary?.lowStockAlerts || 0,
       anomalies: anomaliesData?.anomalies?.length || 0,
@@ -463,10 +459,6 @@ export default function CommandCenter() {
   // Calculate percentage for promoters online
   const promotersPercentage = kpis.promotersTotal > 0 ? Math.round((kpis.promotersOnline / kpis.promotersTotal) * 100) : 0
 
-  // Calculate sales vs target
-  const salesVsTarget = ((kpis.totalSales / kpis.salesTarget) * 100).toFixed(1)
-  const salesAchieved = parseFloat(salesVsTarget) >= 100
-
   // Calculate operational insights from venue data
   const operationalInsights = useMemo(() => {
     if (!venues || venues.length === 0) {
@@ -554,39 +546,24 @@ export default function CommandCenter() {
             <div className="p-2 bg-primary/10 text-primary rounded-lg">
               <DollarSign className="w-5 h-5" />
             </div>
-            <Badge
-              variant={salesAchieved ? 'default' : 'secondary'}
-              className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20"
-            >
-              +12.5% vs ayer
-            </Badge>
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Venta Total Bruta</p>
           <h3 className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.totalSales)}</h3>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Meta diaria: {formatCurrency(kpis.salesTarget)}{' '}
-            <span
-              className={cn('font-bold', salesAchieved ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400')}
-            >
-              ({salesAchieved ? 'Cumplida' : `${salesVsTarget}%`})
-            </span>
-          </p>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500 dark:to-blue-400" />
         </GlassCard>
 
-        {/* Dinero en Calle (Riesgo) */}
-        <GlassCard className="p-6 relative overflow-hidden hover:shadow-md transition-all group border-red-500/20">
+        {/* Dinero en Calle: todavía no se calcula. Era un $45,200 escrito a mano; no se pinta como dato. */}
+        <GlassCard className="p-6 relative overflow-hidden">
           <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg animate-pulse">
+            <div className="p-2 bg-muted text-muted-foreground rounded-lg">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <Button variant="link" className="text-xs font-bold text-red-600 dark:text-red-400 underline h-auto p-0 cursor-pointer">
-              Ver Detalle
-            </Button>
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+              {t('common:common.comingSoon')}
+            </Badge>
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Dinero en Calle (Riesgo)</p>
-          <h3 className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.moneyInStreet)}</h3>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 dark:from-red-400 to-orange-500 dark:to-orange-400" />
+          <h3 className="text-3xl font-bold text-muted-foreground mt-1">—</h3>
         </GlassCard>
 
         {/* Stock de SIMs */}
