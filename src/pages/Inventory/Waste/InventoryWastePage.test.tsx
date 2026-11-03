@@ -146,7 +146,7 @@ describe('InventoryWastePage', () => {
 
     list.mockResolvedValue(pagina([reporte({})], 1, 1))
     // La «X» de la búsqueda y el de la barra se llaman igual: el de la barra es el último.
-    await user.click(screen.getAllByRole('button', { name: es.wasteReports.clearFilters }).at(-1)!)
+    await user.click(screen.getAllByRole('button', { name: es.wasteReports.clearFilters }).slice(-1)[0])
     expect(await screen.findByText('Aguacate', undefined, { timeout: 5000 })).toBeInTheDocument()
   })
 

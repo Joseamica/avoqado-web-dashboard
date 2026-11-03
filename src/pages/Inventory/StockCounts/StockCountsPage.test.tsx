@@ -80,7 +80,7 @@ describe('StockCountsPage', () => {
     const tipo = await screen.findByRole('button', { name: /Tipo/ })
     list.mockRejectedValue(new Error('500'))
     await user.click(tipo)
-    await user.click((await screen.findAllByRole('checkbox')).at(-1)!)
+    await user.click((await screen.findAllByRole('checkbox')).slice(-1)[0])
     await user.click(screen.getByRole('button', { name: 'Aplicar' }))
 
     expect(await screen.findByText(es.stockCounts.loadError, undefined, { timeout: 10_000 })).toBeInTheDocument()

@@ -556,7 +556,7 @@ function DataTable<TData>({
         )}
       </Table>
       {footer}
-      {!hidePagination && <DataTablePagination table={table} />}
+      {!hidePagination && <DataTablePagination table={table} ocultarConteo={falloDeCarga(query) && !hasRows} />}
     </>
   )
 }

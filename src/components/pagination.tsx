@@ -6,9 +6,11 @@ import { useTranslation } from 'react-i18next'
 
 interface DataTablePaginationProps<TData> {
   table: TableType<TData>
+  /** Si no cargó la lista, un «0 de 0» se lee como si no hubiera datos. */
+  ocultarConteo?: boolean
 }
 
-export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
+export function DataTablePagination<TData>({ table, ocultarConteo = false }: DataTablePaginationProps<TData>) {
   const { t } = useTranslation()
   // Safety checks - only render pagination if the table is properly initialized
   if (!table || !table.getState || !table.getFilteredRowModel || !table.getFilteredRowModel().rows) {
@@ -18,7 +20,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
   return (
     <div className="flex items-center justify-between px-2">
       <div className="flex-1 text-sm text-muted-foreground">
-        {t(['pagination.selectedRows', 'tpv.pagination.selectedRows'], {
+        {!ocultarConteo && t(['pagination.selectedRows', 'tpv.pagination.selectedRows'], {
           selected: table.getFilteredSelectedRowModel()?.rows?.length || 0,
           total: table.getFilteredRowModel().rows.length,
           defaultValue: `${table.getFilteredSelectedRowModel()?.rows?.length || 0} of ${table.getFilteredRowModel().rows.length} row(s) selected.`,

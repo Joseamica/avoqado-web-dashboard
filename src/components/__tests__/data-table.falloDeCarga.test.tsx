@@ -50,6 +50,8 @@ describe('DataTable: si falla la carga', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('loadFailure.empty')
     expect(screen.queryByText('no_results')).not.toBeInTheDocument()
+    // Tampoco un «0 de 0» que parezca dato (lo que ya exigía la prueba E2E del catálogo).
+    expect(screen.queryByText(/selectedRows/)).not.toBeInTheDocument()
 
     cargar.mockResolvedValue([fila(1)])
     fireEvent.click(reintentar())
@@ -63,6 +65,7 @@ describe('DataTable: si falla la carga', () => {
 
     expect(await screen.findByText('no_results')).toBeInTheDocument()
     expect(aviso()).not.toBeInTheDocument()
+    expect(screen.getByText(/selectedRows/)).toBeInTheDocument()
   })
 
   it('mientras carga no avisa ni dice «Sin resultados»', async () => {
