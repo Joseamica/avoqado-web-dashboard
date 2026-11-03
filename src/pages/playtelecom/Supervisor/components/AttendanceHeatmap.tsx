@@ -130,6 +130,7 @@ export function AttendanceHeatmap({ startDate, endDate, filterVenueId }: Attenda
   if (!data?.staff?.length) {
     return (
       <GlassCard className="p-6">
+        <AvisoDeCarga query={query} hayDatos />
         <p className="text-muted-foreground text-sm text-center py-8">
           {t('supervisor.attendanceHeatmap.noData')}
         </p>

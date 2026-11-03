@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -297,10 +299,12 @@ const PaymentProviders: React.FC = () => {
   const [providerToDelete, setProviderToDelete] = useState<string | null>(null)
 
   // Query
-  const { data: providers = [], isLoading } = useQuery({
+  const providersQuery = useQuery({
     queryKey: ['payment-providers'],
     queryFn: () => paymentProviderAPI.getAllPaymentProviders(),
   })
+  const { data: providers = [], isLoading } = providersQuery
+  const sinLeer = providersQuery.data === undefined && falloDeCarga(providersQuery)
 
   // Create mutation
   const createMutation = useMutation({
@@ -419,8 +423,10 @@ const PaymentProviders: React.FC = () => {
         </Button>
       </div>
 
+      <AvisoDeCarga query={providersQuery} hayDatos={!sinLeer} />
+
       {/* Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {!sinLeer && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={<CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
           value={providers.length}
@@ -445,7 +451,7 @@ const PaymentProviders: React.FC = () => {
           label="Cuentas Merchant"
           gradient="from-purple-500/20 to-purple-500/5"
         />
-      </div>
+      </div>}
 
       {/* Search */}
       <GlassCard className="p-4">
@@ -465,7 +471,7 @@ const PaymentProviders: React.FC = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
-      ) : filteredProviders.length === 0 ? (
+      ) : sinLeer ? null : filteredProviders.length === 0 ? (
         <GlassCard className="p-8">
           <div className="text-center">
             <div className="p-3 rounded-full bg-muted w-fit mx-auto mb-3">

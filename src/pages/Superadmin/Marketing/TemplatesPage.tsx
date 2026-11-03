@@ -217,7 +217,7 @@ function TemplatesPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">Templates guardados</h3>
-                <p className="text-xs text-muted-foreground">Total: {data?.total || 0} template(s)</p>
+                {data !== undefined && <p className="text-xs text-muted-foreground">Total: {data.total || 0} template(s)</p>}
               </div>
             </div>
             <Button variant="outline" size="sm" className="rounded-full cursor-pointer" onClick={() => refetch()}>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   ChevronDown,
   ChevronRight,
@@ -110,7 +112,7 @@ export function TpvMessagesList({ venueId }: TpvMessagesListProps) {
   const apiStatus = statusFilter.length === 1 ? statusFilter[0] : undefined
   const apiType = typeFilter.length === 1 ? typeFilter[0] : undefined
 
-  const { data: messagesData, isLoading } = useQuery({
+  const messagesQuery = useQuery({
     queryKey: ['tpv-messages', venueId, apiStatus, apiType],
     queryFn: () =>
       getTpvMessages(venueId, {
@@ -120,6 +122,7 @@ export function TpvMessagesList({ venueId }: TpvMessagesListProps) {
       }),
     enabled: Boolean(venueId),
   })
+  const { data: messagesData, isLoading } = messagesQuery
 
   // Client-side filtering for multi-select and date
   const allMessages: TpvMessage[] = useMemo(() => {
@@ -347,7 +350,8 @@ export function TpvMessagesList({ venueId }: TpvMessagesListProps) {
         </div>
 
         {/* Messages List */}
-        {allMessages.length === 0 ? (
+        <AvisoDeCarga query={messagesQuery} hayDatos={messagesData !== undefined} />
+        {messagesData === undefined && falloDeCarga(messagesQuery) ? null : allMessages.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">

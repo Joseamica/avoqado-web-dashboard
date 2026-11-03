@@ -123,7 +123,6 @@ type Caso = {
   /** El aviso de la pantalla, tal como ya existía. */
   aviso: string
   /** Si con el servidor caído dice otra cosa (el mensaje del error). */
-  avisoCaida?: string
   /** Sin botón de reintentar, no aplica ese recorrido. */
   reintentar?: string
 }
@@ -189,8 +188,7 @@ const CASOS: Caso[] = [
     lecturas: [[/reports\/sales-summary/, { success: true, data: { byPaymentMethodDetailed: [], summary: { totalCollected: 0, transactionCount: 0, tips: 0, refunds: 0, platformFees: 0 } } }]],
     caida: /reports\/sales-summary/,
     cero: PESOS_EN_CERO,
-    aviso: 'Error loading payment methods data',
-    avisoCaida: '500',
+    aviso: 'loadFailure.empty',
   },
   {
     nombre: 'ventas de promociones',
@@ -198,8 +196,7 @@ const CASOS: Caso[] = [
     lecturas: [[/reports\/promotions/, { success: true, data: { promotions: [], totals: { timesSold: 0, grossSales: 0, discounts: 0, netSales: 0 } } }]],
     caida: /reports\/promotions/,
     cero: PESOS_EN_CERO,
-    aviso: 'No se pudo cargar el reporte',
-    avisoCaida: '500',
+    aviso: 'loadFailure.empty',
   },
   {
     nombre: 'reembolsos',
@@ -207,26 +204,23 @@ const CASOS: Caso[] = [
     lecturas: [[/reports\/refunds/, { success: true, data: { refunds: [], byReason: [], totals: { totalSale: 0, totalTips: 0, totalRefunded: 0, count: 0 } } }]],
     caida: /reports\/refunds/,
     cero: PESOS_EN_CERO,
-    aviso: 'Error loading refunds data',
-    avisoCaida: '500',
+    aviso: 'loadFailure.empty',
   },
   {
     nombre: 'ventas por categoría',
     pantalla: () => raiz(<SalesByCategory />),
     lecturas: [[/reports\/sales-by-item/, { success: true, data: { items: [], totals: { grossSales: 0 } } }]],
     caida: /reports\/sales-by-item/,
-    cero: /salesByCategory\./,
-    aviso: 'Error loading sales by category data',
-    avisoCaida: '500',
+    cero: PESOS_EN_CERO,
+    aviso: 'loadFailure.empty',
   },
   {
     nombre: 'ventas por artículo',
     pantalla: () => raiz(<SalesByItem />),
     lecturas: [[/reports\/sales-by-item/, { success: true, data: { items: [], totals: { grossSales: 0 } } }]],
     caida: /reports\/sales-by-item/,
-    cero: /salesByItem\./,
-    aviso: 'Error loading sales by item data',
-    avisoCaida: '500',
+    cero: PESOS_EN_CERO,
+    aviso: 'loadFailure.empty',
   },
   {
     nombre: 'modificadores',
@@ -234,8 +228,7 @@ const CASOS: Caso[] = [
     lecturas: [[/modifiers\/inventory\/su/, { data: { totalModifiersWithInventory: 0, totalModifiersLowStock: 0, totalCostImpactPeriod: 0, lowStockModifiers: [], topCostModifiers: [] } }]],
     caida: /modifiers\/inventory\/su/,
     cero: PESOS_EN_CERO,
-    aviso: 'An error occurred while loading modifier analytics.',
-    avisoCaida: '500',
+    aviso: 'loadFailure.empty',
   },
   {
     nombre: 'asistencia: quién está dentro',
@@ -278,13 +271,13 @@ afterEach(() => {
   onlineManager.setOnline(true)
 })
 
-describe.each(CASOS)('$nombre', ({ pantalla, lecturas, caida, cero, aviso, avisoCaida, reintentar }) => {
+describe.each(CASOS)('$nombre', ({ pantalla, lecturas, caida, cero, aviso, reintentar }) => {
   it('caída: sigue su aviso, sin el cero', async () => {
     m.lecturas = lecturas
     m.caida = caida
     pintar(pantalla())
-    await screen.findByText(avisoCaida ?? aviso)
-    if (!avisoCaida) expect(seVe(cero)).toBe(false)
+    await screen.findByText(aviso)
+    expect(seVe(cero)).toBe(false)
   })
 
   it('sin internet: el mismo aviso, y vuelve solo con la red', async () => {

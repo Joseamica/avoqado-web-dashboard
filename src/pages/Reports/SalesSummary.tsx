@@ -1160,75 +1160,9 @@ export default function SalesSummary() {
     }
   }
 
-  // Antes de preguntar si hay datos: sin ellos, el esqueleto de abajo se quedaría para siempre.
-  if (!data && falloDeCarga(salesQuery)) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('salesSummary.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.salesSummary', {
-              defaultValue: 'Resumen de ventas con totales y desglose por metodo, canal y periodo.',
-            })}
-          />
-        </div>
-        <AvisoDeCarga query={salesQuery} hayDatos={false} />
-      </div>
-    )
-  }
-
-  if (isLoading || !data) {
-    return <SalesSummarySkeleton />
-  }
-
-  // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo
-  // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
-  // Sin nada que repartir (los métodos suman 0: p. ej. el único cobro del rango fue con saldo), la barra, la dona y la tabla de
-  // arriba no pintan «0 %» por método (lote ⭐ r1). El total y su conteo siguen; «Métodos de pago» dice su estado vacío.
-  // La barra, la dona y la tabla de arriba: UN arreglo (antes se repetía tres veces). El saldo de tarjeta sale sólo si hubo.
-  // Sin nada que repartir, o con un método en negativo (una devolución del día, Codex r1 #1), no se pintan: serían «0 %» o
-  // porcentajes imposibles. El total, su conteo y «Métodos de pago» siguen.
-  const rv = data.repartoDeVentas
-  const totalVendido = rv.card + rv.cash + rv.other + rv.giftCard
-  const hayReparto = totalVendido > 0 && [rv.card, rv.cash, rv.other, rv.giftCard].every(v => v >= 0)
-  const segmentosDeVentas = [
-    { label: t('salesSummary.paymentTypes.card'), value: rv.card, color: 'bg-blue-500' },
-    { label: t('salesSummary.paymentTypes.cash'), value: rv.cash, color: 'bg-green-500' },
-    { label: t('salesSummary.paymentTypes.other'), value: rv.other, color: 'bg-orange-500' },
-    ...(rv.giftCard !== 0 ? [{ label: t('salesSummary.paymentTypes.giftCardBalance'), value: rv.giftCard, color: 'bg-purple-500' }] : []),
-  ].map(seg => ({ ...seg, percentage: totalVendido > 0 ? (seg.value / totalVendido) * 100 : 0 }))
-  const hayCifrasDeTarjetas =
-    !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
-  // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
-  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
-  const tooltipTotalCobrado = !hayCifrasDeTarjetas
-    ? t('salesSummary.tooltips.totalCollected')
-    : hayRenglonDeCargas
-      ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
-      : t('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')
-  // Lo pagado con saldo NO es un bucket (B5): va aparte y sin porcentaje, porque no es dinero que entró en el periodo (entró
-  // cuando se vendió la tarjeta). BRUTO como los buckets; lo que regresó al saldo se dice aparte, sin restar en el panel (M2).
-  // Sale después del estado de cuenta (Pro, M1) o en «Métodos de pago» (Free, o sin buckets), FUERA de la rama de los buckets:
-  // si el único cobro del rango fue con saldo, el server manda `byPaymentMethodDetailed: []` y la línea igual se dice (lote ⭐).
-  const saldoDeRegalo = apiResponse?.giftCardBalanceBreakdown
-  const lineaDeSaldo = (className: string) =>
-    saldoDeRegalo && (saldoDeRegalo.count > 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0) ? (
-      <p className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)} data-tour="sales-summary-gift-balance">
-        <WalletCards className="w-4 h-4 shrink-0" />
-        {saldoDeRegalo.refunds > 0
-          ? t('salesSummary.giftBalanceLineWithRefunds', {
-              amount: Currency(saldoDeRegalo.amount),
-              count: saldoDeRegalo.count,
-              refunds: Currency(saldoDeRegalo.refunds),
-            })
-          : t('salesSummary.giftBalanceLine', { amount: Currency(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
-      </p>
-    ) : null
-
-  return (
-    <div className="p-4 md:p-6 space-y-6">
-      <AvisoDeCarga query={salesQuery} hayDatos />
+  // El encabezado y los filtros no dependen de lo leído: se conservan aunque la lectura falle.
+  const filtros = (
+    <>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
@@ -2011,6 +1945,72 @@ export default function SalesSummary() {
         />
       </div>
       )}
+    </>
+  )
+
+  // Antes de preguntar si hay datos: sin ellos, el esqueleto de abajo se quedaría para siempre. Los filtros se quedan: sin red son la
+  // salida a un periodo ya leído.
+  if (!data && falloDeCarga(salesQuery)) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        {filtros}
+        <AvisoDeCarga query={salesQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
+  if (isLoading || !data) {
+    return <SalesSummarySkeleton />
+  }
+
+  // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo
+  // (el server no cambia: su totalCollected alimenta el job nocturno y el correo).
+  // Sin nada que repartir (los métodos suman 0: p. ej. el único cobro del rango fue con saldo), la barra, la dona y la tabla de
+  // arriba no pintan «0 %» por método (lote ⭐ r1). El total y su conteo siguen; «Métodos de pago» dice su estado vacío.
+  // La barra, la dona y la tabla de arriba: UN arreglo (antes se repetía tres veces). El saldo de tarjeta sale sólo si hubo.
+  // Sin nada que repartir, o con un método en negativo (una devolución del día, Codex r1 #1), no se pintan: serían «0 %» o
+  // porcentajes imposibles. El total, su conteo y «Métodos de pago» siguen.
+  const rv = data.repartoDeVentas
+  const totalVendido = rv.card + rv.cash + rv.other + rv.giftCard
+  const hayReparto = totalVendido > 0 && [rv.card, rv.cash, rv.other, rv.giftCard].every(v => v >= 0)
+  const segmentosDeVentas = [
+    { label: t('salesSummary.paymentTypes.card'), value: rv.card, color: 'bg-blue-500' },
+    { label: t('salesSummary.paymentTypes.cash'), value: rv.cash, color: 'bg-green-500' },
+    { label: t('salesSummary.paymentTypes.other'), value: rv.other, color: 'bg-orange-500' },
+    ...(rv.giftCard !== 0 ? [{ label: t('salesSummary.paymentTypes.giftCardBalance'), value: rv.giftCard, color: 'bg-purple-500' }] : []),
+  ].map(seg => ({ ...seg, percentage: totalVendido > 0 ? (seg.value / totalVendido) * 100 : 0 }))
+  const hayCifrasDeTarjetas =
+    !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
+  // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
+  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
+  const tooltipTotalCobrado = !hayCifrasDeTarjetas
+    ? t('salesSummary.tooltips.totalCollected')
+    : hayRenglonDeCargas
+      ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
+      : t('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')
+  // Lo pagado con saldo NO es un bucket (B5): va aparte y sin porcentaje, porque no es dinero que entró en el periodo (entró
+  // cuando se vendió la tarjeta). BRUTO como los buckets; lo que regresó al saldo se dice aparte, sin restar en el panel (M2).
+  // Sale después del estado de cuenta (Pro, M1) o en «Métodos de pago» (Free, o sin buckets), FUERA de la rama de los buckets:
+  // si el único cobro del rango fue con saldo, el server manda `byPaymentMethodDetailed: []` y la línea igual se dice (lote ⭐).
+  const saldoDeRegalo = apiResponse?.giftCardBalanceBreakdown
+  const lineaDeSaldo = (className: string) =>
+    saldoDeRegalo && (saldoDeRegalo.count > 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0) ? (
+      <p className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)} data-tour="sales-summary-gift-balance">
+        <WalletCards className="w-4 h-4 shrink-0" />
+        {saldoDeRegalo.refunds > 0
+          ? t('salesSummary.giftBalanceLineWithRefunds', {
+              amount: Currency(saldoDeRegalo.amount),
+              count: saldoDeRegalo.count,
+              refunds: Currency(saldoDeRegalo.refunds),
+            })
+          : t('salesSummary.giftBalanceLine', { amount: Currency(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
+      </p>
+    ) : null
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      {filtros}
+      <AvisoDeCarga query={salesQuery} hayDatos />
 
       {/* Big Number - Total Sales with Dynamic Visualization (FREE: today's headline) */}
       <GlassCard className="p-6 space-y-5">

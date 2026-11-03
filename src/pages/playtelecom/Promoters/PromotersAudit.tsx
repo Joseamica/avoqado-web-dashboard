@@ -15,6 +15,8 @@
 
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -71,11 +73,12 @@ export function PromotersAudit() {
   const debouncedSearch = useDebounce(searchTerm, 300)
 
   // Fetch promoters list
-  const { data: promotersData, isLoading, error } = useQuery({
+  const promotersQuery = useQuery({
     queryKey: ['promoters', venueId, debouncedSearch],
     queryFn: () => getPromoters(venueId!, { search: debouncedSearch || undefined }),
     enabled: !!venueId,
   })
+  const { data: promotersData, isLoading } = promotersQuery
 
   const promoters = promotersData?.promoters || []
   const summary = promotersData?.summary
@@ -221,6 +224,18 @@ export function PromotersAudit() {
     })
   }
 
+  const buscador = (
+    <div className="relative mb-4">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <Input
+        placeholder={t('playtelecom:promoters.search', { defaultValue: 'Buscar promotor...' })}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="pl-10"
+      />
+    </div>
+  )
+
   // Loading state
   if (isLoading) {
     return (
@@ -238,8 +253,8 @@ export function PromotersAudit() {
     )
   }
 
-  // Error state
-  if (error) {
+  // Error state. Sin internet la consulta se pausa sin error: sin esto salían los 4 números en 0 y «No se encontraron promotores».
+  if (promotersData === undefined && falloDeCarga(promotersQuery)) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
@@ -251,12 +266,15 @@ export function PromotersAudit() {
             defaultValue: 'No se pudieron cargar los promotores. Por favor intenta de nuevo.',
           })}
         </p>
+        {/* La lectura que falló pudo ser la de una búsqueda: sin el campo no habría cómo cambiarla. */}
+        {searchTerm && <div className="mt-4 w-full max-w-sm">{buscador}</div>}
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      <AvisoDeCarga query={promotersQuery} hayDatos />
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
@@ -321,15 +339,7 @@ export function PromotersAudit() {
         {/* Left Panel - Promoter List */}
         <GlassCard className="lg:col-span-4 p-4">
           {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t('playtelecom:promoters.search', { defaultValue: 'Buscar promotor...' })}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          {buscador}
 
           {/* Promoter List */}
           <div className="space-y-2 max-h-[600px] overflow-y-auto">

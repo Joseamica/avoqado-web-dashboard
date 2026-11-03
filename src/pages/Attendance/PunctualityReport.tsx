@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle2, Clock, MinusCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { attendanceService, type AttendanceReportRow, type AttendanceStatus } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
 
@@ -26,11 +28,12 @@ export function PunctualityReport({ venueId, startDate, endDate }: Props) {
   const { t } = useTranslation('attendance')
   const { formatCalendarDate, formatTime } = useVenueDateTime()
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const query = useQuery({
     queryKey: ['attendance', 'report', venueId, startDate, endDate],
     queryFn: () => attendanceService.getReport(venueId, startDate, endDate),
     enabled: !!venueId,
   })
+  const { data, isLoading, refetch } = query
 
   const rows = data?.rows ?? []
   const lateCount = rows.filter(r => r.status === 'LATE').length
@@ -40,21 +43,26 @@ export function PunctualityReport({ venueId, startDate, endDate }: Props) {
 
   // Un 500 NO es "todos llegaron a tiempo": antes `rows` vacío caía en el estado sin novedades
   // y un gerente se quedaba tranquilo con un reporte roto (auditoría Codex fase 2, hallazgo 2).
-  if (isError) return <LoadError t={t} onRetry={() => refetch()} />
+  // Tampoco sin internet: la consulta se pausa sin error, y `rows` vacío volvía a decir «sin novedades».
+  if (data === undefined && falloDeCarga(query)) return <LoadError t={t} onRetry={() => refetch()} />
 
   if (rows.length === 0) {
     return (
-      <Card className="border-input">
-        <CardContent className="p-8 text-center space-y-1">
-          <p className="text-sm font-medium">{t('report.empty.title')}</p>
-          <p className="text-sm text-muted-foreground">{t('report.empty.description')}</p>
-        </CardContent>
-      </Card>
+      <>
+        <AvisoDeCarga query={query} hayDatos />
+        <Card className="border-input">
+          <CardContent className="p-8 text-center space-y-1">
+            <p className="text-sm font-medium">{t('report.empty.title')}</p>
+            <p className="text-sm text-muted-foreground">{t('report.empty.description')}</p>
+          </CardContent>
+        </Card>
+      </>
     )
   }
 
   return (
     <div className="space-y-3">
+      <AvisoDeCarga query={query} hayDatos />
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span>{t('report.grace', { minutes: data?.graceMinutes ?? 10 })}</span>
         {lateCount > 0 && (

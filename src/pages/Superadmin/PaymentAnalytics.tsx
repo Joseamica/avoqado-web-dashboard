@@ -1,5 +1,7 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, CreditCard, Percent, Info } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -10,10 +12,11 @@ import { Currency } from '@/utils/currency'
 const PaymentAnalytics: React.FC = () => {
   const { t } = useTranslation('payment')
 
-  const { data: metrics, isLoading } = useQuery({
+  const metricsQuery = useQuery({
     queryKey: ['payment-analytics-profit-metrics'],
     queryFn: () => paymentProviderAPI.getProfitMetrics(),
   })
+  const { data: metrics, isLoading } = metricsQuery
 
   if (isLoading) {
     return (
@@ -23,13 +26,27 @@ const PaymentAnalytics: React.FC = () => {
     )
   }
 
+  const encabezado = (
+    <div>
+      <h1 className="text-3xl font-bold text-foreground">{t('paymentAnalytics.title')}</h1>
+      <p className="text-muted-foreground">{t('paymentAnalytics.subtitle')}</p>
+    </div>
+  )
+
+  if (metrics === undefined && falloDeCarga(metricsQuery)) {
+    return (
+      <div className="space-y-6">
+        {encabezado}
+        <AvisoDeCarga query={metricsQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('paymentAnalytics.title')}</h1>
-        <p className="text-muted-foreground">{t('paymentAnalytics.subtitle')}</p>
-      </div>
+      {encabezado}
+      <AvisoDeCarga query={metricsQuery} hayDatos />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

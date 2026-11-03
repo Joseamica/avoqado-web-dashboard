@@ -92,9 +92,8 @@ export default function PromotionSales() {
     queryFn: () => fetchPromotionSales(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
-  const { data: apiResponse, error } = reportQuery
+  const { data: apiResponse } = reportQuery
   const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
-  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -183,21 +182,9 @@ export default function PromotionSales() {
     </div>
   )
 
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        {header}
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : t('promotionSales.loadError', { defaultValue: 'No se pudo cargar el reporte' })}</p>
-        </GlassCard>
-      </div>
-    )
-  }
-
   return (
     <FeatureGate feature="PROMOTIONS">
       <div className="p-4 md:p-6 space-y-6">
-        <AvisoDeCarga query={reportQuery} hayDatos />
         {header}
 
         {/* Rango + período */}
@@ -224,6 +211,9 @@ export default function PromotionSales() {
             </TabsList>
           </Tabs>
         </div>
+
+        {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
+        <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
 
         {/* Resumen */}
         {apiResponse && (

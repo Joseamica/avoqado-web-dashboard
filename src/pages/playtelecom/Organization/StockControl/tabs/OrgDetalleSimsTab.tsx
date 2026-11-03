@@ -2,6 +2,7 @@ import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Search, History } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -210,7 +211,7 @@ export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDeta
       )}
 
       {/* Desktop table — virtualized via CSS content-visibility */}
-      <AvisoDeCarga query={itemsQuery} hayDatos={filtered.length > 0} />
+      <AvisoDeCarga query={itemsQuery} hayDatos={itemsQuery.data !== undefined} />
 
       <div className="hidden md:block overflow-x-auto" style={{ maxHeight: 'calc(100vh - 460px)', minHeight: 320 }}>
         <table className="w-full">
@@ -242,7 +243,16 @@ export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDeta
                   onAssignToPromoter={() => setAssignPromoterSerials([item.serialNumber])}
                 />
               ))
-            ) : falloDeCarga(itemsQuery) ? null : (
+            ) : itemsQuery.data === undefined ? (
+              // Sin leer no hay «no hay SIMs», tampoco mientras se reintenta.
+              !falloDeCarga(itemsQuery) && (
+                <tr>
+                  <td colSpan={9} className="py-4">
+                    <Skeleton className="h-16 w-full" />
+                  </td>
+                </tr>
+              )
+            ) : (
               <tr>
                 <td colSpan={9} className="py-8 text-center text-muted-foreground">
                   {isFiltered ? 'No se encontraron SIMs con esos filtros' : 'No hay SIMs en el período seleccionado'}
@@ -303,7 +313,9 @@ export function OrgDetalleSimsTab({ orgId, params, categories, venues }: OrgDeta
               </div>
             )
           })
-        ) : falloDeCarga(itemsQuery) ? null : (
+        ) : itemsQuery.data === undefined ? (
+          !falloDeCarga(itemsQuery) && <Skeleton className="h-16 w-full" />
+        ) : (
           <p className="py-8 text-center text-muted-foreground text-sm">{isFiltered ? 'Sin resultados' : 'No hay SIMs en el período'}</p>
         )}
         {hasMore && (

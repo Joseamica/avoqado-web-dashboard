@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -24,7 +26,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
   const { formatUnitWithQuantity } = useUnitTranslation()
 
   // Fetch inventory movements
-  const { data: movements, isLoading } = useQuery({
+  const movementsQuery = useQuery({
     queryKey: ['productInventoryMovements', venueId, product?.id],
     queryFn: async () => {
       if (!product) return []
@@ -33,6 +35,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
     },
     enabled: !!venueId && !!product && open,
   })
+  const { data: movements, isLoading } = movementsQuery
 
   if (!product || !product.inventory) return null
   const unitKey = (product.unit || 'UNIT').toUpperCase()
@@ -72,11 +75,12 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
           </DialogDescription>
         </DialogHeader>
 
+        <AvisoDeCarga query={movementsQuery} hayDatos={movements !== undefined} />
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : !movements || movements.length === 0 ? (
+        ) : movements === undefined && falloDeCarga(movementsQuery) ? null : !movements || movements.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-sm text-muted-foreground">{tCommon('noData')}</p>

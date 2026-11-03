@@ -103,9 +103,8 @@ export default function PaymentMethods() {
     queryFn: () => fetchPaymentMethods(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
-  const { data: apiResponse, error } = reportQuery
+  const { data: apiResponse } = reportQuery
   const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
-  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -177,28 +176,8 @@ export default function PaymentMethods() {
     return <PaymentMethodsSkeleton />
   }
 
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('paymentMethods.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.paymentMethods', {
-              defaultValue: 'Desglose de cuánto cobraste por cada método de pago, incluyendo propinas, reembolsos y comisiones.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading payment methods data'}</p>
-        </GlassCard>
-      </div>
-    )
-  }
-
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <AvisoDeCarga query={reportQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -231,6 +210,9 @@ export default function PaymentMethods() {
           showCompare={false}
         />
       </div>
+
+      {/* Debajo del filtro: sin red es la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
 
       {/* Summary Stats */}
       {apiResponse && (

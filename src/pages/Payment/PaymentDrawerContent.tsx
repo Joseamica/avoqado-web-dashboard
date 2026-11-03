@@ -9,7 +9,7 @@
 import api from '@/api'
 import { ExchangeLinksCard } from './components/ExchangeLinksCard'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -135,7 +135,11 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   if (!payment && !isLoading && falloDeCarga(paymentQuery)) {
     return (
       <div className="p-6">
-        <AvisoDeCarga query={paymentQuery} hayDatos={false} />
+        {detalleNoCargo(paymentQuery) ? (
+          <AvisoDeCarga query={paymentQuery} hayDatos={false} />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('detail.notFound')}</p>
+        )}
       </div>
     )
   }

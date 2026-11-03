@@ -1,7 +1,7 @@
 // src/pages/Settings/Billing/__tests__/Subscriptions.plan.test.tsx
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Subscriptions from '../Subscriptions'
@@ -184,6 +184,17 @@ beforeEach(() => {
 })
 
 describe('the plan row says where the plan comes from', () => {
+  it('sin internet: el aviso del plan, y no un «Gratis» que nadie leyó', async () => {
+    onlineManager.setOnline(false)
+    try {
+      renderPage()
+      expect(await screen.findByText(esBilling.plan.page.planError)).toBeInTheDocument()
+      expect(screen.queryByRole('radio', { name: /Gratis/ })).not.toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
+  })
+
   it('Gratis is the current plan, with no status line', async () => {
     renderPage()
     const free = await screen.findByRole('radio', { name: /Gratis/ })

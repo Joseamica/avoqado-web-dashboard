@@ -192,7 +192,7 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
 export default function BancosReportes() {
   const { t } = useTranslation('financialConnections')
   const { hasAccess } = useTierFeatureAccess('BANKING_HUB')
-  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, refetch } = useBancosData({
+  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, recarga, refetch } = useBancosData({
     enabled: hasAccess,
   })
 
@@ -200,6 +200,7 @@ export default function BancosReportes() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
       <BancosPageHeader title={t('hub.reports.title')} description={t('hub.reports.description')} />
       <FeatureGate feature="BANKING_HUB">
+        {!isError && <AvisoDeCarga query={recarga} hayDatos />}
         {isLoading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : isError ? (

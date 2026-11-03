@@ -33,6 +33,7 @@ import {
 import type { ActivityFeedEvent } from '@/services/storesAnalysis.service'
 import { GlassCard } from '@/components/ui/glass-card'
 import { PorFuente } from '@/components/PorFuente'
+import { Skeleton } from '@/components/ui/skeleton'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { LiveActivityFeed, InsightCard, GaugeChart } from '@/components/playtelecom'
@@ -120,7 +121,8 @@ export default function CommandCenter() {
   // Fetch organization-wide data via venue-level endpoints (white-label access)
   const overviewQuery = useStoresOverview({ refetchInterval: 60000 })
   const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = overviewQuery
-  const { data: venuesResponse, isLoading: venuesLoading, refetch: refetchVenues } = useStoresVenues({ refetchInterval: 60000 })
+  const venuesQuery = useStoresVenues({ refetchInterval: 60000 })
+  const { data: venuesResponse, isLoading: venuesLoading, refetch: refetchVenues } = venuesQuery
   const onlineStaffQuery = useStoresOnlineStaff({ refetchInterval: 60000 })
   const { data: onlineStaff, isLoading: _onlineStaffLoading, refetch: refetchOnlineStaff } = onlineStaffQuery
   const activityFeedQuery = useStoresActivityFeed(500, {
@@ -133,16 +135,20 @@ export default function CommandCenter() {
   const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = stockSummaryQuery
   const anomaliesQuery = useStoresAnomalies({ refetchInterval: 120000 })
   const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = anomaliesQuery
-  const { data: revenueChartData, isLoading: _revenueChartLoading, refetch: refetchRevenueChart } = useStoresRevenueVsTarget({
+  const revenueChartQuery = useStoresRevenueVsTarget({
     refetchInterval: 120000,
     filterVenueId: chartVenueId,
   })
-  const { data: volumeChartData, isLoading: _volumeChartLoading, refetch: refetchVolumeChart } = useStoresVolumeVsTarget({
+  const { data: revenueChartData, isLoading: _revenueChartLoading, refetch: refetchRevenueChart } = revenueChartQuery
+  const volumeChartQuery = useStoresVolumeVsTarget({
     refetchInterval: 120000,
     filterVenueId: chartVenueId,
   })
-  const { data: topPromoter, refetch: refetchTopPromoter } = useStoresTopPromoter({ refetchInterval: 120000 })
-  const { data: worstAttendance, refetch: refetchWorstAttendance } = useStoresWorstAttendance({ refetchInterval: 120000 })
+  const { data: volumeChartData, isLoading: _volumeChartLoading, refetch: refetchVolumeChart } = volumeChartQuery
+  const topPromoterQuery = useStoresTopPromoter({ refetchInterval: 120000 })
+  const { data: topPromoter, refetch: refetchTopPromoter } = topPromoterQuery
+  const worstAttendanceQuery = useStoresWorstAttendance({ refetchInterval: 120000 })
+  const { data: worstAttendance, refetch: refetchWorstAttendance } = worstAttendanceQuery
 
   // Extract venues array from response
   const venues = venuesResponse?.venues
@@ -457,21 +463,12 @@ export default function CommandCenter() {
 
   // Calculate operational insights from venue data
   const operationalInsights = useMemo(() => {
-    if (!venues || venues.length === 0) {
-      return {
-        topStore: null,
-        worstStore: null,
-        topPromoter: { name: 'N/A', sales: 0 },
-        worstAttendance: { storeName: 'N/A', absences: 0 },
-      }
-    }
-
-    // Sort venues by revenue (descending)
-    const sortedByRevenue = [...venues].sort((a, b) => (b.todaySales || 0) - (a.todaySales || 0))
+    // Sort venues by revenue (descending). Cada insight sale de su fuente: sin las tiendas, el promotor que sí llegó sigue valiendo.
+    const sortedByRevenue = [...(venues ?? [])].sort((a, b) => (b.todaySales || 0) - (a.todaySales || 0))
 
     return {
       topStore: sortedByRevenue[0] || null,
-      worstStore: venues.length > 1 ? sortedByRevenue[sortedByRevenue.length - 1] : null,
+      worstStore: sortedByRevenue.length > 1 ? sortedByRevenue[sortedByRevenue.length - 1] : null,
       topPromoter: topPromoter?.promoter
         ? { name: topPromoter.promoter.name, sales: topPromoter.promoter.salesCount }
         : { name: 'Sin datos', sales: 0 },
@@ -639,6 +636,7 @@ export default function CommandCenter() {
                 </span>
               </div>
             </div>
+            <PorFuente query={revenueChartQuery} esqueleto={<Skeleton className="h-full min-h-48 w-full rounded-xl" />}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={revenueChartFormatted}>
                 <defs>
@@ -715,6 +713,7 @@ export default function CommandCenter() {
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            </PorFuente>
           </div>
 
           {/* Volumen vs Meta (Bar + Line) */}
@@ -732,6 +731,7 @@ export default function CommandCenter() {
                 </span>
               </div>
             </div>
+            <PorFuente query={volumeChartQuery} esqueleto={<Skeleton className="h-full min-h-48 w-full rounded-xl" />}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={volumeChartFormatted}>
                 <defs>
@@ -797,6 +797,7 @@ export default function CommandCenter() {
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            </PorFuente>
           </div>
         </div>
       </GlassCard>
@@ -846,40 +847,48 @@ export default function CommandCenter() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 1. Tienda Líder (Ventas) - Top performing store */}
-          <InsightCard
-            icon={Award}
-            title="Tienda Líder (Ventas)"
-            subtitle={operationalInsights.topStore?.name || 'Sin datos'}
-            value={operationalInsights.topStore ? formatCurrency(operationalInsights.topStore.todaySales || 0) : '--'}
-            type="success"
-          />
+          <PorFuente query={venuesQuery} esqueleto={<Skeleton className="h-24 w-full rounded-xl" />}>
+            <InsightCard
+              icon={Award}
+              title="Tienda Líder (Ventas)"
+              subtitle={operationalInsights.topStore?.name || 'Sin datos'}
+              value={operationalInsights.topStore ? formatCurrency(operationalInsights.topStore.todaySales || 0) : '--'}
+              type="success"
+            />
+          </PorFuente>
 
           {/* 2. Menor Venta - Lowest performing store */}
-          <InsightCard
-            icon={TrendingDown}
-            title="Menor Venta"
-            subtitle={operationalInsights.worstStore?.name || 'Sin datos'}
-            value={operationalInsights.worstStore ? formatCurrency(operationalInsights.worstStore.todaySales || 0) : '--'}
-            type="danger"
-          />
+          <PorFuente query={venuesQuery} conAviso={false} esqueleto={<Skeleton className="h-24 w-full rounded-xl" />}>
+            <InsightCard
+              icon={TrendingDown}
+              title="Menor Venta"
+              subtitle={operationalInsights.worstStore?.name || 'Sin datos'}
+              value={operationalInsights.worstStore ? formatCurrency(operationalInsights.worstStore.todaySales || 0) : '--'}
+              type="danger"
+            />
+          </PorFuente>
 
           {/* 3. Top Promotor - Best salesperson */}
-          <InsightCard
-            icon={Award}
-            title="Top Promotor"
-            subtitle={operationalInsights.topPromoter.name}
-            value={`${operationalInsights.topPromoter.sales} SIMs activadas`}
-            type="success"
-          />
+          <PorFuente query={topPromoterQuery} esqueleto={<Skeleton className="h-24 w-full rounded-xl" />}>
+            <InsightCard
+              icon={Award}
+              title="Top Promotor"
+              subtitle={operationalInsights.topPromoter.name}
+              value={`${operationalInsights.topPromoter.sales} SIMs activadas`}
+              type="success"
+            />
+          </PorFuente>
 
           {/* 4. Peor Asistencia - Worst attendance */}
-          <InsightCard
-            icon={UserX}
-            title="Peor Asistencia"
-            subtitle={operationalInsights.worstAttendance.storeName}
-            value={`${operationalInsights.worstAttendance.absences} faltas hoy`}
-            type="danger"
-          />
+          <PorFuente query={worstAttendanceQuery} esqueleto={<Skeleton className="h-24 w-full rounded-xl" />}>
+            <InsightCard
+              icon={UserX}
+              title="Peor Asistencia"
+              subtitle={operationalInsights.worstAttendance.storeName}
+              value={`${operationalInsights.worstAttendance.absences} faltas hoy`}
+              type="danger"
+            />
+          </PorFuente>
         </div>
       </div>
 

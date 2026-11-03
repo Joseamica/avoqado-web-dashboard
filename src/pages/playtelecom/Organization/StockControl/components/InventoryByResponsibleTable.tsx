@@ -106,8 +106,11 @@ export function InventoryByResponsibleTable({ data, isLoading, query }: Props) {
 
   if (!data || (data.cities.length === 0 && unassignedPromoters.length === 0)) {
     return (
-      <div className="rounded-xl border border-input bg-card p-10 text-center">
-        <p className="text-sm text-muted-foreground">No hay inventario en manos de promotores con estos filtros.</p>
+      <div className="space-y-4">
+        <AvisoDeCarga query={query} hayDatos />
+        <div className="rounded-xl border border-input bg-card p-10 text-center">
+          <p className="text-sm text-muted-foreground">No hay inventario en manos de promotores con estos filtros.</p>
+        </div>
       </div>
     )
   }

@@ -6,7 +6,7 @@
  * docs/audit/2026-11-03-d4-numeros-y-tablas/medicion-tablas.md.
  */
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, cleanup, configure, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -150,7 +150,6 @@ type Caso = {
   rutas?: Ruta[]
   /** Lo que la pantalla ya decía en vez del vacío, si no es el aviso común. */
   aviso?: string
-  avisoSinRed?: string
   /** Página de detalle: un 404 es su «no encontrado» de hoy, sin aviso. */
   detalle?: boolean
   params?: Record<string, string>
@@ -162,6 +161,11 @@ type Caso = {
   rutasAlAbrir?: Ruta[]
   /** Si la vacía de verdad no pinta `vacio`: lo que se espera ver antes de comprobar que no hay aviso. */
   listo?: string
+  /**
+   * La tabla vive debajo de otra consulta: sin internet desde el principio lo que avisa es la de arriba y esta fuente ni se monta.
+   * Se lee todo, y sin red sólo esta queda sin leer (`clave`, en su queryKey). `principal` es lo que debe seguir a la vista.
+   */
+  secundaria?: { clave: RegExp; listo: string; principal: string }
 }
 
 const clic = (nombre: string) => fireEvent.click(screen.getByRole('button', { name: nombre }))
@@ -305,7 +309,7 @@ const casos: Caso[] = [
       [/iva|flujo|cashflow/, { rfc: 'XAXX010101000', needsFiscalSetup: false }],
     ],
     vacio: 'cashBasisVat.diotEmpty',
-    avisoSinRed: 'accountingError.body',
+    secundaria: { clave: /diot/, listo: 'cashBasisVat.diotEmpty', principal: 'cashBasisVat.preliminarBanner' },
   },
   {
     nombre: 'Vista previa de la nómina',
@@ -317,7 +321,7 @@ const casos: Caso[] = [
     ],
     // Sin la lectura no deben salir los encabezados solos.
     vacio: 'nomina.col.empleado',
-    avisoSinRed: 'accountingError.body',
+    secundaria: { clave: /preview/, listo: 'nomina.col.empleado', principal: 'nomina.run' },
   },
 
   // ─── Configuración ───
@@ -367,8 +371,7 @@ const casos: Caso[] = [
       [/venues\/v1\/team/, { data: [], meta: { totalCount: 0 } }],
     ],
     vacio: 'who.empty',
-    // Sin internet tampoco llegan los niveles: la pestaña entera avisa.
-    avisoSinRed: 'states.loadError',
+    secundaria: { clave: /"team"/, listo: 'who.empty', principal: 'who.title' },
   },
   {
     nombre: 'Cuadrícula de la tabla de pagos',
@@ -489,8 +492,7 @@ const casos: Caso[] = [
       [/stock-control\/summary/, { data: { summary: { totalSims: 1 }, aggregatesByCategoria: [], aggregatesBySucursal: [] } }],
     ],
     vacio: 'No hay inventario en manos de promotores con estos filtros.',
-    // Sin internet tampoco llega el resumen: la pantalla entera avisa.
-    avisoSinRed: 'No se pudo cargar Control de Stock',
+    secundaria: { clave: /responsible/i, listo: 'No hay inventario en manos de promotores con estos filtros.', principal: 'Control de Stock' },
   },
   {
     nombre: 'Cargas masivas',
@@ -680,8 +682,20 @@ describe.each(casos)('$nombre', caso => {
   })
 
   it('sin internet: aviso, y no el vacío', async () => {
+    if (caso.secundaria) {
+      const { clave, listo, principal } = caso.secundaria
+      await pintar(caso, () => {})
+      await screen.findAllByText(listo)
+      await waitFor(() => expect(client.isFetching()).toBe(0))
+      onlineManager.setOnline(false)
+      void client.resetQueries({ predicate: q => clave.test(JSON.stringify(q.queryKey)) })
+      await screen.findAllByText(aviso)
+      expect(screen.queryAllByText(caso.vacio)).toHaveLength(0)
+      expect(screen.getAllByText(principal).length).toBeGreaterThan(0)
+      return
+    }
     await pintar(caso, () => onlineManager.setOnline(false))
-    await screen.findAllByText(caso.avisoSinRed ?? aviso)
+    await screen.findAllByText(aviso)
     expect(screen.queryAllByText(caso.vacio)).toHaveLength(0)
   })
 

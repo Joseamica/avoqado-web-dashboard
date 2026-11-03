@@ -191,6 +191,7 @@ function SettlementDialogBody({
       ]
 
       const updates: Array<Promise<unknown>> = []
+      const sinFila: TransactionCardType[] = []
       for (const { cardType, days } of desired) {
         if (days === undefined) continue
         const existing = byCard(cardType)
@@ -202,6 +203,7 @@ function SettlementDialogBody({
           console.warn(
             `[SettlementCard] No active settlement row for cardType=${cardType} on merchant ${merchantAccountId} — skipping update`,
           )
+          sinFila.push(cardType)
           continue
         }
         updates.push(
@@ -217,20 +219,26 @@ function SettlementDialogBody({
         )
       }
 
+      // Sin filas activas no se manda nada: decir «actualizada» sería falso.
+      if (updates.length === 0) throw new Error('Este comercio no tiene reglas de liquidación activas que actualizar.')
       await Promise.all(updates)
+      return sinFila
     },
-    onSuccess: () => {
+    onSuccess: sinFila => {
       queryClient.invalidateQueries({
         queryKey: ['settlement-configs-by-merchant', merchantAccountId],
       })
       dispatch({ type: 'SET_SETTLEMENT', settlement: draft })
-      toast({ title: 'Liquidación actualizada' })
+      toast({
+        title: 'Liquidación actualizada',
+        description: sinFila.length ? `Sin regla activa, no se cambió: ${sinFila.join(', ')}` : undefined,
+      })
       onClose()
     },
     onError: (err: any) => {
       toast({
         title: 'No se pudo actualizar la liquidación',
-        description: err?.response?.data?.message || 'Error en el servidor',
+        description: err?.response?.data?.message || (err?.response ? 'Error en el servidor' : err?.message),
         variant: 'destructive',
       })
     },

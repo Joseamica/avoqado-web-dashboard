@@ -1,3 +1,6 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { CashCloseoutDialog } from '@/components/CashCloseout/CashCloseoutDialog'
 import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHistory'
 import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
@@ -56,13 +59,15 @@ type TabValue = 'all' | 'cards' | 'cash'
 function AvailableBalanceContent() {
   const { t } = useTranslation('availableBalance')
   const { t: tCashCloseout } = useTranslation('cashCloseout')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatDate, venueTimezone } = useVenueDateTime()
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ mensaje: string; conReintento: boolean } | null>(null)
+  const [reintento, setReintento] = useState(0)
 
   const [summary, setSummary] = useState<AvailableBalanceSummary | null>(null)
   const [cardBreakdown, setCardBreakdown] = useState<CardTypeBreakdown[]>([])
@@ -82,11 +87,12 @@ function AvailableBalanceContent() {
   const [timelineOpen, setTimelineOpen] = useState(false)
 
   // Query for expected cash info (for alert banner and metadata)
-  const { data: expectedCashData } = useQuery({
+  const expectedCashQuery = useQuery({
     queryKey: ['cash-closeout', 'expected', venueId],
     queryFn: () => getExpectedCash(venueId!),
     enabled: !!venueId,
   })
+  const { data: expectedCashData } = expectedCashQuery
 
   // Simulation form
   const simulationForm = useForm<SimulationParams>({
@@ -171,7 +177,7 @@ function AvailableBalanceContent() {
 
     if (!venueId) {
       setLoading(false)
-      setError(t('error.noVenue'))
+      setError({ mensaje: t('error.noVenue'), conReintento: false })
       return
     }
 
@@ -194,9 +200,11 @@ function AvailableBalanceContent() {
           setTimeline(timelineRes.data)
           setSettlementCalendar(calendarRes.data)
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (mounted) {
-          setError(err.message || err.response?.data?.message || t('error.unexpected'))
+          // El mismo aviso que las consultas de TanStack: el `message` de axios es jerga en inglés.
+          const sinPermiso = esSinPermiso(err)
+          setError({ mensaje: tCommon(sinPermiso ? 'loadFailure.forbidden' : 'loadFailure.empty'), conReintento: !sinPermiso })
         }
       } finally {
         if (mounted) {
@@ -210,7 +218,7 @@ function AvailableBalanceContent() {
     return () => {
       mounted = false
     }
-  }, [venueId, t])
+  }, [venueId, t, tCommon, reintento])
 
   // Handle simulation submission
   const handleSimulation = async (data: SimulationParams) => {
@@ -353,13 +361,14 @@ function AvailableBalanceContent() {
   if (error) {
     return (
       <div className="p-6">
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-destructive">
-              {t('error.prefix')}: {error}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryQueryBoundary
+          isError
+          message={error.mensaje}
+          retryLabel={tCommon('retry')}
+          onRetry={error.conReintento ? () => setReintento(n => n + 1) : undefined}
+        >
+          {null}
+        </SummaryQueryBoundary>
       </div>
     )
   }
@@ -448,6 +457,7 @@ function AvailableBalanceContent() {
       {/* Cash Closeout Reminder Alert - Shows when > 7 days since last closeout
           AND there is actually cash to cut. A card-only venue (no efectivo) was
           getting this reminder forever even with nothing to close out. */}
+      <AvisoDeCarga query={expectedCashQuery} hayDatos={expectedCashData !== undefined} />
       {expectedCashData && expectedCashData.needsCloseout && expectedCashData.daysSinceLastCloseout > 7 && (
         <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />

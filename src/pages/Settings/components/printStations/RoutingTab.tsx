@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -130,7 +132,8 @@ function CategoryProducts({
         onChange={e => setFilter({ search: e.target.value, page: 1 })}
       />
       {query.isLoading && <p role="status">{t('loading')}</p>}
-      {query.isError ? (
+      {query.data !== undefined && <AvisoDeCarga query={query} hayDatos />}
+      {query.data === undefined && falloDeCarga(query) ? (
         <div role="alert">
           {t('routing.lists.loadError')}{' '}
           <Button variant="outline" size="sm" onClick={() => query.refetch()}>
@@ -248,7 +251,7 @@ function RoutingEditor({ venueId }: { venueId: string }) {
         </>
       )}
       {query.isLoading && <p role="status">{t('loading')}</p>}
-      {query.isError && (
+      {data === undefined && falloDeCarga(query) && (
         <div role="alert">
           {t('routing.lists.loadError')}{' '}
           <Button variant="outline" onClick={() => query.refetch()}>
@@ -256,7 +259,7 @@ function RoutingEditor({ venueId }: { venueId: string }) {
           </Button>
         </div>
       )}
-      {stationQuery.isError && (
+      {stationQuery.data === undefined && falloDeCarga(stationQuery) && (
         <div role="alert">
           {t('stations.loadError')}{' '}
           <Button variant="outline" onClick={() => stationQuery.refetch()}>
@@ -264,7 +267,8 @@ function RoutingEditor({ venueId }: { venueId: string }) {
           </Button>
         </div>
       )}
-      {!query.isError && data && (
+      {data && <AvisoDeCarga query={query} hayDatos />}
+      {data && (
         <Card className="border-input">
           <CardContent className="divide-y divide-border p-0">
             {data.categories.length === 0 ? (

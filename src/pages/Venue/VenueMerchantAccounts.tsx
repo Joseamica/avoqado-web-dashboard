@@ -8,6 +8,8 @@
 import React, { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -156,18 +158,20 @@ const VenueMerchantAccounts: React.FC = () => {
   const isSuperadmin = user?.role === 'SUPERADMIN' || staffInfo?.role === StaffRole.SUPERADMIN
 
   // Fetch VenuePaymentConfig to know which accounts are associated with this venue
-  const { data: venuePaymentConfig, isLoading: loadingConfig } = useQuery({
+  const configQuery = useQuery({
     queryKey: ['venue-payment-config', venue?.id],
     queryFn: () => paymentProviderAPI.getVenuePaymentConfig(venue!.id),
     enabled: !!venue?.id,
   })
+  const { data: venuePaymentConfig, isLoading: loadingConfig } = configQuery
 
   // Fetch terminals for this venue to get their assigned merchant accounts
-  const { data: terminals = [], isLoading: loadingTerminals } = useQuery({
+  const terminalsQuery = useQuery({
     queryKey: ['venue-terminals', venue?.id],
     queryFn: () => terminalAPI.getAllTerminals({ venueId: venue!.id }),
     enabled: !!venue?.id,
   })
+  const { data: terminals = [], isLoading: loadingTerminals } = terminalsQuery
 
   // Collect all unique account IDs associated with this venue
   const associatedAccountIds = useMemo(() => {
@@ -189,7 +193,7 @@ const VenueMerchantAccounts: React.FC = () => {
   }, [venuePaymentConfig, terminals])
 
   // Fetch the actual account details
-  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
+  const accountsQuery = useQuery({
     queryKey: ['venue-merchant-accounts-details', associatedAccountIds],
     queryFn: async () => {
       if (associatedAccountIds.length === 0) return []
@@ -199,8 +203,15 @@ const VenueMerchantAccounts: React.FC = () => {
     },
     enabled: associatedAccountIds.length > 0,
   })
+  const { data: accounts = [], isLoading: loadingAccounts } = accountsQuery
 
   const isLoading = loadingConfig || loadingTerminals || loadingAccounts
+
+  // Cada número se tapa por su fuente. Las cuentas salen de la configuración y de las terminales: sin alguna de las dos la lista está incompleta.
+  const configSinLeer = venuePaymentConfig === undefined && falloDeCarga(configQuery)
+  const terminalsSinLeer = terminalsQuery.data === undefined && falloDeCarga(terminalsQuery)
+  const cuentasSinLeer = configSinLeer || terminalsSinLeer || (accountsQuery.data === undefined && falloDeCarga(accountsQuery))
+  const consultaCaida = [configQuery, terminalsQuery, accountsQuery].find(falloDeCarga) ?? null
 
   // Categorize accounts
   const activeAccounts = accounts.filter(a => a.active)
@@ -248,55 +259,65 @@ const VenueMerchantAccounts: React.FC = () => {
         </AlertDescription>
       </Alert>
 
+      <AvisoDeCarga query={consultaCaida} hayDatos={!cuentasSinLeer} />
+
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-              <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{accounts.length}</p>
-              <p className="text-xs text-muted-foreground">Cuentas asociadas</p>
-            </div>
-          </div>
-        </GlassCard>
+        {!cuentasSinLeer && (
+          <>
+            <GlassCard className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                  <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{accounts.length}</p>
+                  <p className="text-xs text-muted-foreground">Cuentas asociadas</p>
+                </div>
+              </div>
+            </GlassCard>
 
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
-              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{activeAccounts.length}</p>
-              <p className="text-xs text-muted-foreground">Activas</p>
-            </div>
-          </div>
-        </GlassCard>
+            <GlassCard className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{activeAccounts.length}</p>
+                  <p className="text-xs text-muted-foreground">Activas</p>
+                </div>
+              </div>
+            </GlassCard>
+          </>
+        )}
 
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-              <Smartphone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        {!terminalsSinLeer && (
+          <GlassCard className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                <Smartphone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{terminals.length}</p>
+                <p className="text-xs text-muted-foreground">Terminales</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{terminals.length}</p>
-              <p className="text-xs text-muted-foreground">Terminales</p>
-            </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
+        )}
 
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5">
-              <Building2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        {!configSinLeer && (
+          <GlassCard className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5">
+                <Building2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{venuePaymentConfig ? 1 : 0}</p>
+                <p className="text-xs text-muted-foreground">Config de pago</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{venuePaymentConfig ? 1 : 0}</p>
-              <p className="text-xs text-muted-foreground">Config de pago</p>
-            </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
+        )}
       </div>
 
       {/* Accounts List */}
@@ -305,7 +326,7 @@ const VenueMerchantAccounts: React.FC = () => {
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           <span className="ml-3 text-muted-foreground">Cargando cuentas...</span>
         </div>
-      ) : accounts.length === 0 ? (
+      ) : cuentasSinLeer ? null : accounts.length === 0 ? (
         <GlassCard className="p-12 text-center">
           <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
             <CreditCard className="w-10 h-10 text-muted-foreground" />

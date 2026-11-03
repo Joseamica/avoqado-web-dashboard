@@ -1076,15 +1076,13 @@ const StaffManagement: React.FC = () => {
   })
 
   // Compute stats from dedicated count queries (real totals, not page-scoped)
-  const stats = useMemo(() => {
-    if (!pagination) return { total: 0, active: 0, withOrg: 0, withVenue: 0 }
-    return {
-      total: pagination.total,
-      active: activeCountData?.pagination.total ?? 0,
-      withOrg: withOrgCountData?.pagination.total ?? 0,
-      withVenue: withVenueCountData?.pagination.total ?? 0,
-    }
-  }, [pagination, activeCountData, withOrgCountData, withVenueCountData])
+  // Cada cifra por su consulta: la que no se leyó dice «—», no 0.
+  const stats = {
+    total: pagination?.total ?? '—',
+    active: activeCountData?.pagination.total ?? '—',
+    withOrg: withOrgCountData?.pagination.total ?? '—',
+    withVenue: withVenueCountData?.pagination.total ?? '—',
+  }
 
   return (
     <div className="space-y-5">

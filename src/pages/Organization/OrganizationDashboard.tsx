@@ -71,27 +71,9 @@ const OrganizationDashboard: React.FC = () => {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'MXN' }).format(amount)
 
-  // ── Loading skeleton ── Sin permiso las consultas nunca corren: ni esqueleto ni $0 eternos, sólo el encabezado.
-  if (canViewOrgAnalytics && overview === undefined && !falloDeCarga(overviewQuery)) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-56 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[120px] rounded-2xl" />
-          ))}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-[380px] rounded-2xl lg:col-span-2" />
-          <Skeleton className="h-[380px] rounded-2xl" />
-        </div>
-        <Skeleton className="h-[300px] rounded-2xl" />
-      </div>
-    )
-  }
+  // Por fuente, nunca un retorno global: mientras llega el resumen siguen el selector y lo que ya llegó. Sin permiso las consultas nunca
+  // corren: ni esqueleto ni $0 eternos, sólo el encabezado.
+  const resumenEnCamino = canViewOrgAnalytics && overview === undefined && !falloDeCarga(overviewQuery)
 
   const kpiCards = [
     {
@@ -158,6 +140,13 @@ const OrganizationDashboard: React.FC = () => {
 
       {/* ── KPI Cards ── Cada fuente por su lado: si una cae, avisa ella y lo demás sigue. */}
       <AvisoDeCarga query={overviewQuery} hayDatos={overview !== undefined} />
+      {resumenEnCamino && (
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[120px] rounded-2xl" />
+          ))}
+        </div>
+      )}
       {overview !== undefined && (
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           {kpiCards.map(card => (
@@ -184,7 +173,11 @@ const OrganizationDashboard: React.FC = () => {
             )}
           </div>
           <div className="lg:col-span-1">
-            {overview !== undefined && <TopVenuesRanking venues={overview.topVenues} isLoading={false} formatCurrency={formatCurrency} />}
+            {overview !== undefined ? (
+              <TopVenuesRanking venues={overview.topVenues} isLoading={false} formatCurrency={formatCurrency} />
+            ) : (
+              resumenEnCamino && <Skeleton className="h-[380px] rounded-2xl" />
+            )}
           </div>
         </div>
       )}
@@ -200,6 +193,7 @@ const OrganizationDashboard: React.FC = () => {
       )}
 
       {/* ── Venues Performance Grid ── */}
+      {resumenEnCamino && <Skeleton className="h-[300px] rounded-2xl" />}
       {overview !== undefined && (
       <GlassCard className="p-5">
         <div className="flex items-center justify-between mb-4">

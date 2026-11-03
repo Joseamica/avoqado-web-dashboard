@@ -160,6 +160,7 @@ export function SalesHeatmap({ startDate, endDate, filterVenueId, currency = 'MX
   if (!data?.staff?.length) {
     return (
       <GlassCard className="p-6">
+        <AvisoDeCarga query={query} hayDatos />
         <p className="text-muted-foreground text-sm text-center py-8">
           {t('supervisor.salesHeatmap.noData')}
         </p>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { SearchCombobox } from '@/components/search-combobox'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
@@ -180,6 +181,7 @@ function ProductSelector({
           onSelect(product)
           setSearchTerm('')
         }}
+        hideNoResults={falloDeCarga(query)}
         isLoading={query.isFetching && !query.isFetchingNextPage}
         isLoadingMore={query.isFetchingNextPage}
         hasMore={query.hasNextPage}
@@ -188,7 +190,7 @@ function ProductSelector({
         }}
         footer={
           <div className="space-y-2 border-t border-border p-3 text-sm text-muted-foreground">
-            {query.isError ? (
+            {falloDeCarga(query) ? (
               <div role="alert">
                 {t('routing.lists.loadError')}{' '}
                 <Button size="sm" variant="outline" onClick={() => query.refetch()}>

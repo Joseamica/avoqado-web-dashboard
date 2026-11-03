@@ -367,7 +367,7 @@ export function SalesReport() {
   const isLoadingSummary = summary === undefined
 
   // Fetch daily data for charts
-  const { data: dailyData } = useQuery({
+  const dailyQuery = useQuery({
     queryKey: ['sale-verifications-daily', venueId, apiDateRange.fromDate, apiDateRange.toDate],
     queryFn: () =>
       saleVerificationService.getDailySalesData(venueId, {
@@ -422,6 +422,8 @@ export function SalesReport() {
     setStartDate('')
     setEndDate('')
   }, [])
+
+  const { data: dailyData } = dailyQuery
 
   // Transform daily data for charts
   const chartData = useMemo(() => {
@@ -664,6 +666,7 @@ export function SalesReport() {
       )}
 
       {/* Charts Row */}
+      <AvisoDeCarga query={dailyQuery} hayDatos={dailyData !== undefined} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Revenue Trend - 2/3 width */}
         <GlassCard className="md:col-span-2 p-4 sm:p-6">

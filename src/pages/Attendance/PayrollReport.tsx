@@ -3,11 +3,13 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { attendanceService, type PayrollSummaryRow } from '@/services/attendance.service'
 import { useAccess } from '@/hooks/use-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { OvertimeApprovalDialog } from './OvertimeApprovalDialog'
 import { LoadError } from './PunctualityReport'
 
@@ -43,23 +45,27 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
   const puedeAutorizar = can('attendance:manage')
   const [revisando, setRevisando] = useState<PayrollSummaryRow | null>(null)
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const query = useQuery({
     queryKey: ['attendance', 'payroll', venueId, startDate, endDate],
     queryFn: () => attendanceService.getPayrollSummary(venueId, startDate, endDate),
     enabled: !!venueId,
   })
+  const { data, isLoading, refetch } = query
 
   if (isLoading) return <p className="text-sm text-muted-foreground">{t('loading')}</p>
-  if (isError) return <LoadError t={t} onRetry={() => refetch()} />
+  if (data === undefined && falloDeCarga(query)) return <LoadError t={t} onRetry={() => refetch()} />
 
   const rows = data?.rows ?? []
   if (rows.length === 0) {
     return (
-      <Card className="border-input">
-        <CardContent className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">{t('payroll.empty')}</p>
-        </CardContent>
-      </Card>
+      <>
+        <AvisoDeCarga query={query} hayDatos />
+        <Card className="border-input">
+          <CardContent className="p-8 text-center">
+            <p className="text-sm text-muted-foreground">{t('payroll.empty')}</p>
+          </CardContent>
+        </Card>
+      </>
     )
   }
 
@@ -151,6 +157,7 @@ export function PayrollReport({ venueId, startDate, endDate }: Props) {
 
   return (
     <div className="space-y-3">
+      <AvisoDeCarga query={query} hayDatos />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">{t('payroll.subtitle')}</p>
         <Button variant="outline" size="sm" className="cursor-pointer" onClick={exportCsv}>

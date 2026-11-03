@@ -39,6 +39,8 @@ import { getOrganizationsList, type OrganizationSimple } from '@/services/supera
 import { SubscriptionPlan, VenueStatus, type SuperadminVenue } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   AlertCircle,
   AlertTriangle,
@@ -304,10 +306,12 @@ const VenueManagement: React.FC = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { data: venues = [], isLoading } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['superadmin-venues'],
     queryFn: superadminAPI.getAllVenues,
   })
+  const { data: venues = [], isLoading } = venuesQuery
+  const sinLeer = venuesQuery.data === undefined && falloDeCarga(venuesQuery)
 
   const { data: organizations = [] } = useQuery<OrganizationSimple[]>({
     queryKey: ['superadmin-organizations-list'],
@@ -491,8 +495,10 @@ const VenueManagement: React.FC = () => {
         </div>
       </div>
 
+      <AvisoDeCarga query={venuesQuery} hayDatos={!sinLeer} />
+
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {!sinLeer && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
           label="Ingresos Totales"
@@ -521,7 +527,7 @@ const VenueManagement: React.FC = () => {
           subtitle="Por venue activo"
           gradient="from-purple-500/20 to-purple-500/5"
         />
-      </div>
+      </div>}
 
       {/* Master-Detail Layout */}
       <GlassCard className="overflow-hidden">
@@ -569,9 +575,11 @@ const VenueManagement: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                {filteredVenues.length} de {venues.length} venues
-              </p>
+              {!sinLeer && (
+                <p className="text-xs text-muted-foreground">
+                  {filteredVenues.length} de {venues.length} venues
+                </p>
+              )}
             </div>
 
             {/* Venue List */}
@@ -583,7 +591,7 @@ const VenueManagement: React.FC = () => {
                     <p className="text-xs text-muted-foreground mt-2">Cargando...</p>
                   </div>
                 </div>
-              ) : filteredVenues.length === 0 ? (
+              ) : sinLeer ? null : filteredVenues.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <div className="p-2.5 rounded-full bg-muted/50 mb-2">
                     <Building2 className="w-5 h-5 text-muted-foreground" />

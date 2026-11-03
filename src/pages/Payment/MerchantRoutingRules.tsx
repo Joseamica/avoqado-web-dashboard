@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Info, Loader2, PlayCircle, ShieldCheck } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,11 +26,13 @@ export default function MerchantRoutingRules() {
   const { t } = useTranslation('merchantRouting')
   const { venueId } = useCurrentVenue()
 
-  const { data, isLoading } = useQuery({
+  const rulesQuery = useQuery({
     queryKey: ['merchantRoutingRules', venueId],
     queryFn: () => getMerchantRoutingRules(venueId!),
     enabled: !!venueId,
   })
+  const { data, isLoading } = rulesQuery
+  const sinLeer = data === undefined && falloDeCarga(rulesQuery)
 
   return (
     <FeatureGate feature="MERCHANT_ROUTING_RULES">
@@ -52,7 +56,9 @@ export default function MerchantRoutingRules() {
           </div>
         )}
 
-        {!isLoading && (data?.merchants.length ?? 0) === 0 && (
+        <AvisoDeCarga query={rulesQuery} hayDatos={!sinLeer} />
+
+        {!isLoading && !sinLeer && (data?.merchants.length ?? 0) === 0 && (
           <Card className="border-input">
             <CardContent className="py-10 text-center text-sm text-muted-foreground">{t('empty')}</CardContent>
           </Card>

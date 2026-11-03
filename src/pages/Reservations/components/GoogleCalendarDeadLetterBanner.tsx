@@ -6,6 +6,7 @@ import { format, type Locale } from 'date-fns'
 import { es, enUS, fr } from 'date-fns/locale'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -86,7 +87,7 @@ export function GoogleCalendarDeadLetterBanner({ venueId }: DeadLetterBannerProp
   // This is the "is the banner visible at all?" signal. The full paginated
   // list lives inside the modal and only fires when the modal opens.
   // ---------------------------------------------------------------------------
-  const { data: probeData } = useQuery({
+  const probeQuery = useQuery({
     queryKey: ['gcal-dead-letter-count', venueId],
     queryFn: () => googleCalendarService.listDeadLetter(venueId, { limit: 50 }),
     enabled: !!venueId,
@@ -95,13 +96,17 @@ export function GoogleCalendarDeadLetterBanner({ venueId }: DeadLetterBannerProp
     staleTime: 5 * 60_000,
   })
 
+  const { data: probeData } = probeQuery
   const rowCount = probeData?.rows.length ?? 0
   // The probe is capped at 50 rows. If the cursor is present, total is "50+".
   const hasMore = !!probeData?.nextCursor
-  if (rowCount === 0) return null
+  // Sin leer no se sabe si hay reservas sin sincronizar: se avisa en vez de desaparecer. Un rol sin permiso no tiene nada que arreglar.
+  const avisoDeLaSonda = esSinPermiso(probeQuery.error) ? null : <AvisoDeCarga query={probeQuery} hayDatos={probeData !== undefined} />
+  if (rowCount === 0) return avisoDeLaSonda
 
   return (
     <>
+      {avisoDeLaSonda}
       <div
         role="alert"
         className="flex items-start gap-3 rounded-md border border-red-500/40 bg-red-50 p-3 text-sm dark:border-red-500/30 dark:bg-red-950/40"

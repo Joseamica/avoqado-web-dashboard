@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,7 +37,7 @@ const RevenueDashboard: React.FC = () => {
   })
 
   // Fetch revenue metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const metricsQuery = useQuery({
     queryKey: ['revenue-metrics', dateRange.startDate, dateRange.endDate],
     queryFn: () =>
       superadminAPI.getRevenueMetrics({
@@ -43,9 +45,10 @@ const RevenueDashboard: React.FC = () => {
         endDate: dateRange.endDate,
       }),
   })
+  const { data: metrics, isLoading: metricsLoading } = metricsQuery
 
   // Fetch revenue breakdown
-  const { data: breakdown, isLoading: breakdownLoading } = useQuery({
+  const breakdownQuery = useQuery({
     queryKey: ['revenue-breakdown', dateRange.startDate, dateRange.endDate],
     queryFn: () =>
       superadminAPI.getRevenueBreakdown({
@@ -53,6 +56,9 @@ const RevenueDashboard: React.FC = () => {
         endDate: dateRange.endDate,
       }),
   })
+  const { data: breakdown, isLoading: breakdownLoading } = breakdownQuery
+  const metricsSinLeer = metrics === undefined && falloDeCarga(metricsQuery)
+  const breakdownSinLeer = breakdown === undefined && falloDeCarga(breakdownQuery)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -150,8 +156,10 @@ const RevenueDashboard: React.FC = () => {
         </div>
       </GlassCard>
 
+      <AvisoDeCarga query={metricsQuery} hayDatos={!metricsSinLeer} />
+
       {/* Revenue Metrics Overview - MetricCard Pattern */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {!metricsSinLeer && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Revenue */}
         <GlassCard>
           <div className="p-4 space-y-3">
@@ -220,10 +228,10 @@ const RevenueDashboard: React.FC = () => {
             </div>
           </div>
         </GlassCard>
-      </div>
+      </div>}
 
       {/* Transaction Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {!metricsSinLeer && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <GlassCard>
           <div className="p-4 space-y-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 w-fit">
@@ -247,10 +255,12 @@ const RevenueDashboard: React.FC = () => {
             </div>
           </div>
         </GlassCard>
-      </div>
+      </div>}
+
+      <AvisoDeCarga query={breakdownQuery} hayDatos={!breakdownSinLeer} />
 
       {/* Detailed Breakdown */}
-      <Tabs defaultValue="venues" className="space-y-4">
+      {!breakdownSinLeer && <Tabs defaultValue="venues" className="space-y-4">
         <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
           <TabsTrigger
             value="venues"
@@ -417,7 +427,7 @@ const RevenueDashboard: React.FC = () => {
             </div>
           </GlassCard>
         </TabsContent>
-      </Tabs>
+      </Tabs>}
     </div>
   )
 }

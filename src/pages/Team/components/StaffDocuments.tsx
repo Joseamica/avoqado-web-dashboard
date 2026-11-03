@@ -13,6 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -71,11 +73,12 @@ export function StaffDocuments({ venueId, staffId }: Props) {
     }
   }
 
-  const { data: documents = [], isLoading } = useQuery({
+  const documentsQuery = useQuery({
     queryKey: ['staff-documents', venueId, staffId],
     queryFn: () => staffDocumentService.list(venueId, staffId),
     enabled: !!venueId && !!staffId,
   })
+  const { data: documents = [], isLoading } = documentsQuery
 
   const addMutation = useMutation({
     mutationFn: ({ input, file }: { input: Parameters<typeof staffDocumentService.add>[2]; file: File }) =>
@@ -189,9 +192,10 @@ export function StaffDocuments({ venueId, staffId }: Props) {
           </Button>
         </PermissionGate>
 
+        <AvisoDeCarga query={documentsQuery} hayDatos={documentsQuery.data !== undefined} />
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
-        ) : documents.length === 0 ? (
+        ) : documentsQuery.data === undefined && falloDeCarga(documentsQuery) ? null : documents.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('documents.empty')}</p>
         ) : (
           <ul className="space-y-2">

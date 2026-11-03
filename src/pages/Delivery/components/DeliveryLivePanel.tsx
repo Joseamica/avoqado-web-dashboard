@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Settings2 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -61,16 +63,13 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
   // horario y el margen que ya tiene. Guardar sólo el id obligaría a buscarlo de nuevo.
   const [ajustesDe, setAjustesDe] = useState<DeliveryChannelLink | null>(null)
 
-  const {
-    data: summary,
-    isLoading: summaryLoading,
-    isError: summaryError,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['deliverySummary', venueId],
     queryFn: () => getDeliverySummary(venueId),
     enabled: !!venueId,
     staleTime: 60_000,
   })
+  const { data: summary, isLoading: summaryLoading } = summaryQuery
 
   const pauseMutation = useMutation({
     mutationFn: ({ linkId, paused }: { linkId: string; paused: boolean }) => pauseChannel(venueId, linkId, paused),
@@ -113,11 +112,12 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
           <CardTitle className="text-base">{t('live.statsTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
+          {summary !== undefined && <AvisoDeCarga query={summaryQuery} hayDatos />}
           {summaryLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : summaryError ? (
+          ) : summary === undefined && falloDeCarga(summaryQuery) ? (
             // Distinguish a failed fetch from a genuine "no orders yet" — otherwise a transient
             // summary error would masquerade as zero delivery activity (Minor #1, task-6 review).
             <p className="text-sm text-destructive">{t('live.statsError')}</p>

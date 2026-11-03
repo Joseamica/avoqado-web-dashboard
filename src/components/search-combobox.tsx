@@ -62,6 +62,8 @@ interface SearchComboboxProps {
   listLabel?: string
   /** Sólo lectura: el campo no se puede enfocar ni abrir. Opcional, los usos de hoy no cambian. */
   disabled?: boolean
+  /** La búsqueda no se pudo leer: «Sin resultados» sería falso. El aviso lo pone quien llama, en `footer`. */
+  hideNoResults?: boolean
 }
 
 /**
@@ -91,6 +93,7 @@ export function SearchCombobox({
   isLoadingMore = false,
   listLabel,
   disabled = false,
+  hideNoResults = false,
 }: SearchComboboxProps) {
   const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
@@ -210,7 +213,7 @@ export function SearchCombobox({
               onWheel={e => e.stopPropagation()}
             >
               {items.length === 0 && value.trim() ? (
-                <CommandEmpty>{t('noResults')}</CommandEmpty>
+                !hideNoResults && <CommandEmpty>{t('noResults')}</CommandEmpty>
               ) : (
                 items.map(item => (
                   <CommandItem

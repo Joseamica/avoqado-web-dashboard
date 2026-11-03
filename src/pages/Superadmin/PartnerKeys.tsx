@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,10 +33,12 @@ const PartnerKeys: React.FC = () => {
   const [deactivateTarget, setDeactivateTarget] = useState<PartnerAPIKey | null>(null)
 
   // ─── Data ──────────────────────────────────────────────────
-  const { data: keys = [], isLoading } = useQuery({
+  const keysQuery = useQuery({
     queryKey: ['partner-keys'],
     queryFn: getPartnerKeys,
   })
+  const { data: keys = [], isLoading } = keysQuery
+  const sinLeer = keysQuery.data === undefined && falloDeCarga(keysQuery)
 
   const { data: organizations = [] } = useQuery({
     queryKey: ['organizations-list'],
@@ -117,8 +121,10 @@ const PartnerKeys: React.FC = () => {
         </Button>
       </div>
 
+      <AvisoDeCarga query={keysQuery} hayDatos={!sinLeer} />
+
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      {!sinLeer && <div className="grid grid-cols-3 gap-4">
         <Card className="border-input">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -158,7 +164,7 @@ const PartnerKeys: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* Filters */}
       <div className="flex gap-3">
@@ -184,7 +190,7 @@ const PartnerKeys: React.FC = () => {
       </div>
 
       {/* Keys List */}
-      {filtered.length === 0 ? (
+      {sinLeer ? null : filtered.length === 0 ? (
         <Card className="border-input">
           <CardContent className="py-12 text-center text-muted-foreground">
             <KeyRound className="h-12 w-12 mx-auto mb-3 opacity-30" />

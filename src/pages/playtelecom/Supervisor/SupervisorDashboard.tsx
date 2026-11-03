@@ -197,6 +197,9 @@ export function SupervisorDashboard() {
   const { data: _revenueData } = useStoresRevenueVsTarget()
   const storePerformanceQuery = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
   const { data: storePerformanceData } = storePerformanceQuery
+  // Sin leer el rendimiento no hay «sin ventas» ni «sin metas»: esqueleto mientras intenta, y si cae, su aviso de arriba y nada más.
+  const rendimientoSinLeer = storePerformanceData === undefined
+  const esqueletoDeRendimiento = !falloDeCarga(storePerformanceQuery) && <Skeleton className="h-36 w-full rounded-xl" />
   const attendanceQuery = useStoresStaffAttendance({
     date: selectedRange.from.toISOString().split('T')[0],
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
@@ -834,6 +837,8 @@ export function SupervisorDashboard() {
                     ))}
                   </div>
                 </>
+              ) : rendimientoSinLeer ? (
+                esqueletoDeRendimiento
               ) : (
                 <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
                   <Store className="w-8 h-8 mb-2 opacity-40" />
@@ -905,6 +910,8 @@ export function SupervisorDashboard() {
                     </div>
                   ))}
                 </div>
+              ) : rendimientoSinLeer ? (
+                esqueletoDeRendimiento
               ) : (
                 <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
                   <Store className="w-8 h-8 mb-2 opacity-40" />

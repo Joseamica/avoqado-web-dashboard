@@ -12,6 +12,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   Package,
   TrendingUp,
@@ -22,7 +24,6 @@ import {
   RefreshCw,
   Smartphone,
   ChevronRight,
-  AlertCircle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -120,22 +121,6 @@ function LoadingSkeleton() {
 }
 
 // Error state
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 px-4">
-      <div className="p-4 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-        <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">Error al cargar datos</h3>
-      <p className="text-sm text-muted-foreground text-center mb-4">{message}</p>
-      <Button onClick={onRetry} variant="outline">
-        <RefreshCw className="w-4 h-4 mr-2" />
-        Reintentar
-      </Button>
-    </div>
-  )
-}
-
 export default function SerializedSalesDemo() {
   const { t: _t } = useTranslation()
   const { venueId } = useCurrentVenue()
@@ -143,33 +128,26 @@ export default function SerializedSalesDemo() {
   const [dateFilter, setDateFilter] = useState('today')
 
   // @temporary - Fetch summary data from backend
-  const {
-    data: summaryData,
-    isLoading: isLoadingSummary,
-    error: summaryError,
-    refetch: refetchSummary,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['serialized-inventory', 'summary', venueId],
     queryFn: () => getSerializedInventorySummary(venueId),
     enabled: !!venueId,
     staleTime: 30000, // 30 seconds
   })
+  const { data: summaryData, isLoading: isLoadingSummary, refetch: refetchSummary } = summaryQuery
 
   // @temporary - Fetch recent sales from backend
-  const {
-    data: recentSalesData,
-    isLoading: isLoadingSales,
-    error: salesError,
-    refetch: refetchSales,
-  } = useQuery({
+  const salesQuery = useQuery({
     queryKey: ['serialized-inventory', 'recent-sales', venueId],
     queryFn: () => getRecentSales(venueId, 10),
     enabled: !!venueId,
     staleTime: 15000, // 15 seconds
   })
+  const { data: recentSalesData, isLoading: isLoadingSales, refetch: refetchSales } = salesQuery
 
   const isLoading = isLoadingSummary || isLoadingSales
-  const error = summaryError || salesError
+  // Sin leer alguna de las dos no hay totales ni «Aún no hay ventas» que enseñar.
+  const sinLeer = [summaryQuery, salesQuery].find(q => q.data === undefined && falloDeCarga(q)) ?? null
 
   // Calculate totals from real data
   const totals = useMemo(() => {
@@ -251,7 +229,7 @@ export default function SerializedSalesDemo() {
     )
   }
 
-  if (error) {
+  if (sinLeer) {
     return (
       <div className="min-h-screen bg-muted/30">
         <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
@@ -259,16 +237,16 @@ export default function SerializedSalesDemo() {
             <h1 className="text-2xl font-bold tracking-tight">Control de Inventario Serializado</h1>
           </div>
         </div>
-        <ErrorState
-          message={error instanceof Error ? error.message : 'Error desconocido'}
-          onRetry={handleRefresh}
-        />
+        <div className="p-6">
+          <AvisoDeCarga query={sinLeer} hayDatos={false} />
+        </div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-muted/30">
+      <AvisoDeCarga query={[summaryQuery, salesQuery].find(falloDeCarga) ?? null} hayDatos />
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
         <div className="px-6 py-4">

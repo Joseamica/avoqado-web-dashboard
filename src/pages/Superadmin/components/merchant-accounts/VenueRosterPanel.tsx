@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Layers, Loader2, ShieldCheck } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -27,11 +29,13 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
   const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const { data, isLoading } = useQuery<VenueMerchantRoster>({
+  const rosterQuery = useQuery<VenueMerchantRoster>({
     queryKey: ['venue-merchant-roster', venueId],
     queryFn: () => paymentProviderAPI.getVenueMerchantRoster(venueId),
     enabled: !!venueId,
   })
+  const { data, isLoading } = rosterQuery
+  const sinLeer = data === undefined && falloDeCarga(rosterQuery)
 
   const accounts = useMemo(() => data?.accounts ?? [], [data])
   const enabled = data?.rosterRolloutEnabled ?? false
@@ -58,9 +62,11 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
           <Layers className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Roster de cuentas{venueName ? ` · ${venueName}` : ''}</h3>
         </div>
-        <Badge variant="outline" className="text-[10px] shrink-0">
-          {data?.count ?? 0} cuentas
-        </Badge>
+        {!sinLeer && (
+          <Badge variant="outline" className="text-[10px] shrink-0">
+            {data?.count ?? 0} cuentas
+          </Badge>
+        )}
       </div>
 
       <p className="mt-1 text-xs text-muted-foreground">
@@ -76,9 +82,11 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
             {enabled ? (
               <Badge className="text-[10px] bg-green-600 hover:bg-green-600">Activo</Badge>
             ) : (
-              <Badge variant="outline" className="text-[10px]">
-                Slots (legacy)
-              </Badge>
+              !sinLeer && (
+                <Badge variant="outline" className="text-[10px]">
+                  Slots (legacy)
+                </Badge>
+              )
             )}
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
@@ -101,11 +109,12 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
 
       {/* Roster list */}
       <div className="mt-4 space-y-2">
+        <AvisoDeCarga query={rosterQuery} hayDatos={!sinLeer} />
         {isLoading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cargando roster…
           </div>
-        ) : accounts.length === 0 ? (
+        ) : sinLeer ? null : accounts.length === 0 ? (
           <p className="text-xs text-muted-foreground">Sin cuentas en el roster todavía.</p>
         ) : (
           accounts.map(a => (

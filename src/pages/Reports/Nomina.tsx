@@ -72,6 +72,7 @@ function NominaInner() {
         <p className="text-xs font-medium">{t('nomina.preliminarBanner')}</p>
       </div>
 
+      {empQuery.data !== undefined && <AvisoDeCarga query={empQuery} hayDatos />}
       {empQuery.data === undefined && hasAccess && !falloDeCarga(empQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : empQuery.data === undefined && falloDeCarga(empQuery) && hasAccess ? (
@@ -103,7 +104,6 @@ function NominaInner() {
         </Card>
       ) : (
         <>
-          <AvisoDeCarga query={empQuery} hayDatos />
           {/* Preview de la corrida */}
           <AvisoDeCarga query={preview} hayDatos={preview.data !== undefined} />
           {!(preview.data === undefined && falloDeCarga(preview)) && (

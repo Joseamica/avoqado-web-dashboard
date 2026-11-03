@@ -1,18 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { getOrgTerminalLocations } from '@/services/terminalLocation.service'
 import { LastLocationCell } from '@/components/location/LastLocationCell'
 
 export default function LiveLocation() {
   const { t } = useTranslation(['organization', 'playtelecom'])
   const { orgId } = useCurrentOrganization()
-  const { data } = useQuery({
+  const locationsQuery = useQuery({
     queryKey: ['org-terminal-locations', orgId],
     queryFn: () => getOrgTerminalLocations(orgId!),
     enabled: !!orgId,
     refetchInterval: 60_000,
   })
+  const { data } = locationsQuery
   const terminals = data?.terminals ?? []
 
   return (
@@ -21,7 +24,8 @@ export default function LiveLocation() {
         <h1 className="text-2xl font-bold">{t('organization:liveLocation.title')}</h1>
         <p className="text-xs text-muted-foreground">{t('playtelecom:location.hint')}</p>
       </div>
-      {terminals.length === 0 ? (
+      <AvisoDeCarga query={locationsQuery} hayDatos={data !== undefined} />
+      {data === undefined && falloDeCarga(locationsQuery) ? null : terminals.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('playtelecom:location.empty')}</p>
       ) : (
         <div className="rounded-lg border border-input divide-y divide-input">

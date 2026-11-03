@@ -72,7 +72,8 @@ type ViewMode = 'grid' | 'list'
 const TiendasList: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
-  const { organization: _organization, basePath: _basePath, venues, venuesQuery, isLoading, error } = useCurrentOrganization()
+  const { organization: _organization, basePath: _basePath, venues, venuesQuery, isLoading } = useCurrentOrganization()
+  const sinLeer = venuesQuery.data === undefined && falloDeCarga(venuesQuery)
 
   // State
   const [searchTerm, setSearchTerm] = useState('')
@@ -114,21 +115,6 @@ const TiendasList: React.FC = () => {
     totalStaff: venues.reduce((sum, v) => sum + (v.metrics?.staffCount || 0), 0),
   }), [venues])
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <Store className="w-12 h-12 text-destructive mb-4" />
-        <h2 className="text-xl font-semibold mb-2">
-          {t('organization:error.loadFailed', { defaultValue: 'Error al cargar datos' })}
-        </h2>
-        <p className="text-muted-foreground mb-4">{error.message}</p>
-        <Button onClick={() => window.location.reload()}>
-          {t('common:retry', { defaultValue: 'Reintentar' })}
-        </Button>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -168,7 +154,7 @@ const TiendasList: React.FC = () => {
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {!sinLeer && <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-purple-500/10">
@@ -224,7 +210,7 @@ const TiendasList: React.FC = () => {
             </div>
           </div>
         </GlassCard>
-      </div>
+      </div>}
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -237,7 +223,7 @@ const TiendasList: React.FC = () => {
         />
       </div>
 
-      <AvisoDeCarga query={venuesQuery} hayDatos={venuesQuery.data !== undefined} />
+      <AvisoDeCarga query={venuesQuery} hayDatos={!sinLeer} />
 
       {/* Loading State */}
       {isLoading && (
@@ -249,7 +235,7 @@ const TiendasList: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {!isLoading && filteredVenues.length === 0 && !(venuesQuery.data === undefined && falloDeCarga(venuesQuery)) && (
+      {!isLoading && filteredVenues.length === 0 && !sinLeer && (
         <GlassCard className="p-12">
           <div className="flex flex-col items-center justify-center text-center">
             <Store className="w-12 h-12 text-muted-foreground mb-4" />

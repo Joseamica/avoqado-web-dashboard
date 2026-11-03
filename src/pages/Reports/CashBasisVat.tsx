@@ -88,6 +88,7 @@ function CashBasisVatInner() {
         </div>
       </header>
 
+      {query.data !== undefined && <AvisoDeCarga query={query} hayDatos />}
       {query.data === undefined && hasAccess && !falloDeCarga(query) ? (
         <Skeleton className="h-80 rounded-2xl" />
       ) : query.data === undefined && falloDeCarga(query) && hasAccess ? (
@@ -111,7 +112,6 @@ function CashBasisVatInner() {
         </Card>
       ) : (
         <>
-          <AvisoDeCarga query={query} hayDatos />
           {/* Banner PRELIMINAR — prominente, no en letra chica */}
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-amber-700 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -187,13 +187,16 @@ function CashBasisVatInner() {
                 ) : hasAccess && diotQuery.isLoading ? (
                   <Skeleton className="h-24 rounded-lg" />
                 ) : !diot || diot.rows.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 py-6 text-center">
-                    <Landmark className="h-7 w-7 text-muted-foreground" />
-                    <p className="max-w-xs text-sm text-muted-foreground">{t('cashBasisVat.diotEmpty')}</p>
-                  </div>
+                  <>
+                    {hasAccess && <AvisoDeCarga query={diotQuery} hayDatos />}
+                    <div className="flex flex-col items-center gap-2 py-6 text-center">
+                      <Landmark className="h-7 w-7 text-muted-foreground" />
+                      <p className="max-w-xs text-sm text-muted-foreground">{t('cashBasisVat.diotEmpty')}</p>
+                    </div>
+                  </>
                 ) : (
                   <>
-                    <AvisoDeCarga query={diotQuery} hayDatos />
+                    {hasAccess && <AvisoDeCarga query={diotQuery} hayDatos />}
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>

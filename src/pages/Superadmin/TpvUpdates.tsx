@@ -1070,15 +1070,17 @@ export default function TpvUpdates() {
   })
   const { data: updates = [], isLoading, isFetching } = updatesQuery
 
-  const { data: latestSandbox } = useQuery({
+  const latestSandboxQuery = useQuery({
     queryKey: ['superadmin', 'app-updates', 'latest', 'SANDBOX'],
     queryFn: () => superadminAPI.getLatestAppUpdate('SANDBOX'),
   })
+  const { data: latestSandbox } = latestSandboxQuery
 
-  const { data: latestProduction } = useQuery({
+  const latestProductionQuery = useQuery({
     queryKey: ['superadmin', 'app-updates', 'latest', 'PRODUCTION'],
     queryFn: () => superadminAPI.getLatestAppUpdate('PRODUCTION'),
   })
+  const { data: latestProduction } = latestProductionQuery
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['superadmin', 'app-updates'] })
@@ -1148,6 +1150,7 @@ export default function TpvUpdates() {
               <p className="text-xs text-muted-foreground">Ultima version</p>
             </div>
           </div>
+          <AvisoDeCarga query={latestProductionQuery} hayDatos={latestProduction !== undefined} />
           {latestProduction ? (
             <div className="flex items-center justify-between">
               <div>
@@ -1160,7 +1163,7 @@ export default function TpvUpdates() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
+            latestProduction !== undefined && <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
           )}
         </GlassCard>
 
@@ -1179,6 +1182,7 @@ export default function TpvUpdates() {
               <p className="text-xs text-muted-foreground">Ultima version</p>
             </div>
           </div>
+          <AvisoDeCarga query={latestSandboxQuery} hayDatos={latestSandbox !== undefined} />
           {latestSandbox ? (
             <div className="flex items-center justify-between">
               <div>
@@ -1191,7 +1195,7 @@ export default function TpvUpdates() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
+            latestSandbox !== undefined && <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
           )}
         </GlassCard>
       </div>

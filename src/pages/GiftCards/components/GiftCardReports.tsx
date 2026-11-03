@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { DateTime } from 'luxon'
 import { AlertTriangle, Download, Info, Loader2 } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -132,13 +134,14 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
         <h2 className="text-base font-semibold">{t('reports.summaryTitle')}</h2>
         <SummaryQueryBoundary
           isLoading={rangoValido && summary.isLoading}
-          isError={summary.isError && !s}
+          isError={falloDeCarga(summary) && !s}
           message={avisoDeError(summary.error, t, 'reports.summaryError')}
           retryLabel={t('reports.retry')}
           onRetry={() => void summary.refetch()}
         >
           {s && (
             <>
+              <AvisoDeCarga query={summary} hayDatos />
               <SummaryCards cards={tarjetas} />
               <p className="mt-2 text-sm text-muted-foreground">
                 {t('reports.adjustments', {
@@ -162,11 +165,12 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
             <Input id="gift-reports-at" type="date" value={al} onChange={e => setAl(e.target.value)} className="w-[170px]" />
           </div>
         </div>
+        {aging.data && <AvisoDeCarga query={aging} hayDatos />}
         {al === '' ? (
           <p className="text-sm text-muted-foreground">{t('reports.aging.pickDate')}</p>
         ) : aging.isLoading ? (
           <Skeleton className="h-32 w-full rounded-lg" />
-        ) : aging.isError && !aging.data ? (
+        ) : falloDeCarga(aging) && !aging.data ? (
           <ErrorConReintento texto={avisoDeError(aging.error, t, 'reports.aging.error')} onRetry={() => void aging.refetch()} />
         ) : (
           aging.data && (
@@ -205,10 +209,11 @@ export function GiftCardReports({ venueId }: { venueId: string }) {
           <h2 className="text-base font-semibold">{t('reports.pending.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('reports.pending.help')}</p>
         </div>
+        {rangoValido && pendientes.length > 0 && <AvisoDeCarga query={pending} hayDatos />}
         {/* Con el rango inválido no se enseñan los pendientes del rango anterior (`keepPreviousData`). */}
         {!rangoValido ? null : pending.isLoading ? (
           <Skeleton className="h-24 w-full rounded-lg" />
-        ) : pending.isError && pendientes.length === 0 ? (
+        ) : falloDeCarga(pending) && pendientes.length === 0 ? (
           <ErrorConReintento texto={avisoDeError(pending.error, t, 'reports.pending.error')} onRetry={() => void pending.refetch()} />
         ) : pendientes.length === 0 ? (
           !pending.isPlaceholderData && <p className="text-sm text-muted-foreground">{t('reports.pending.empty')}</p>

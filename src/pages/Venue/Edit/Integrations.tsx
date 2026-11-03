@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -78,21 +79,24 @@ export default function VenueIntegrations() {
 
   // Status queries for the card footers. These share queryKeys with the
   // management components inside the modals, so the cache is reused.
-  const { data: merchants = [] } = useQuery({
+  const merchantsQuery = useQuery({
     queryKey: ['ecommerce-merchants', venueId],
     queryFn: () => ecommerceMerchantAPI.listByVenue(venueId!),
     enabled: !!venueId,
   })
-  const { data: bankConnections = [] } = useQuery({
+  const { data: merchants = [] } = merchantsQuery
+  const banksQuery = useQuery({
     queryKey: ['financial-connections', venueId],
     queryFn: () => financialConnectionAPI.listConnections(venueId!),
     enabled: !!venueId && canManageBanks,
   })
-  const { data: chatStatus } = useQuery({
+  const { data: bankConnections = [] } = banksQuery
+  const chatQuery = useQuery({
     queryKey: ['venue', venueId, 'chat-status'],
     queryFn: () => getVenueChatStatus(venueId!),
     enabled: !!venueId,
   })
+  const { data: chatStatus } = chatQuery
 
   const { data: venue, isLoading } = useQuery<VenueIntegrations>({
     queryKey: ['venue-integrations', venueId],
@@ -108,7 +112,7 @@ export default function VenueIntegrations() {
   })
 
   // Fetch Google Integration status
-  const { data: googleStatus } = useQuery({
+  const googleQuery = useQuery({
     queryKey: ['google-integration', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/integrations/google/status`)
@@ -120,6 +124,7 @@ export default function VenueIntegrations() {
       return failureCount < 2
     },
   })
+  const { data: googleStatus } = googleQuery
 
   // Pases (TotalPass · Wellhub): el hook consulta con reservations:read y el plan comprobado, tenga o no el plan (R62: sin
   // él la subpágina explica la pausa); sin dato no se inventa el punto de estado.
@@ -155,6 +160,14 @@ export default function VenueIntegrations() {
   })
   const ctaLabel = (connected: boolean) =>
     connected ? t('edit.integrations.catalog.manage') : t('edit.integrations.catalog.connect')
+
+  // Lectura caída o en pausa: no se sabe si hay conexión, igual que Shopify abajo. Ni «Disponible» ni «Conectar»; un 404 sí es «no conectada».
+  const statusDe = (sinLeer: boolean, connected: boolean) =>
+    sinLeer ? { connected: false, label: t('edit.integrations.catalog.status.loadError') } : statusLabel(connected)
+  const googleSinLeer = detalleNoCargo(googleQuery)
+  const whatsappSinLeer = detalleNoCargo(chatQuery)
+  const ecommerceSinLeer = detalleNoCargo(merchantsQuery)
+  const banksSinLeer = detalleNoCargo(banksQuery)
 
   const googleConnected = !!googleStatus?.connected
   const whatsappConnected = !!chatStatus?.mode && chatStatus.mode !== 'DISABLED'
@@ -213,9 +226,9 @@ export default function VenueIntegrations() {
           icon={Globe}
           title={t('edit.integrations.google.title', { defaultValue: 'Google Business Profile' })}
           description={t('edit.integrations.google.description')}
-          status={statusLabel(googleConnected)}
-          actionLabel={ctaLabel(googleConnected)}
-          actionVariant={googleConnected ? 'outline' : 'default'}
+          status={statusDe(googleSinLeer, googleConnected)}
+          actionLabel={ctaLabel(googleConnected || googleSinLeer)}
+          actionVariant={googleConnected || googleSinLeer ? 'outline' : 'default'}
           onAction={() => navigate('google')}
           dataTour="integration-card-google"
         />
@@ -251,9 +264,9 @@ export default function VenueIntegrations() {
           icon={MessageCircle}
           title={t('edit.integrations.catalog.whatsapp.title')}
           description={t('edit.integrations.catalog.whatsapp.description')}
-          status={statusLabel(whatsappConnected)}
-          actionLabel={ctaLabel(whatsappConnected)}
-          actionVariant={whatsappConnected ? 'outline' : 'default'}
+          status={statusDe(whatsappSinLeer, whatsappConnected)}
+          actionLabel={ctaLabel(whatsappConnected || whatsappSinLeer)}
+          actionVariant={whatsappConnected || whatsappSinLeer ? 'outline' : 'default'}
           onAction={() => setWhatsappOpen(true)}
           dataTour="integration-card-whatsapp"
         />
@@ -263,9 +276,9 @@ export default function VenueIntegrations() {
           icon={ShoppingCart}
           title={t('edit.integrations.catalog.ecommerce.title')}
           description={t('edit.integrations.catalog.ecommerce.description')}
-          status={statusLabel(ecommerceConnected)}
-          actionLabel={ctaLabel(ecommerceConnected)}
-          actionVariant={ecommerceConnected ? 'outline' : 'default'}
+          status={statusDe(ecommerceSinLeer, ecommerceConnected)}
+          actionLabel={ctaLabel(ecommerceConnected || ecommerceSinLeer)}
+          actionVariant={ecommerceConnected || ecommerceSinLeer ? 'outline' : 'default'}
           onAction={() => setEcommerceOpen(true)}
           dataTour="integration-card-ecommerce"
         />
@@ -291,9 +304,9 @@ export default function VenueIntegrations() {
             icon={Landmark}
             title={t('edit.integrations.catalog.banks.title')}
             description={t('edit.integrations.catalog.banks.description')}
-            status={statusLabel(banksConnected)}
-            actionLabel={ctaLabel(banksConnected)}
-            actionVariant={banksConnected ? 'outline' : 'default'}
+            status={statusDe(banksSinLeer, banksConnected)}
+            actionLabel={ctaLabel(banksConnected || banksSinLeer)}
+            actionVariant={banksConnected || banksSinLeer ? 'outline' : 'default'}
             onAction={() => navigate(`${fullBasePath}/bancos`)}
             dataTour="integration-card-banks"
           />

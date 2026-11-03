@@ -301,9 +301,8 @@ export default function SalesByCategory() {
     queryFn: () => fetchSalesByCategory(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
-  const { data: apiResponse, error } = reportQuery
+  const { data: apiResponse } = reportQuery
   const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
-  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   // Sort categories
   const sortedCategories = useMemo(() => {
@@ -375,30 +374,10 @@ export default function SalesByCategory() {
     return <SalesByCategorySkeleton />
   }
 
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('salesByCategory.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.salesByCategory', {
-              defaultValue: 'Reporte de ventas agrupadas por categoría para ver qué familias de productos generan más ingresos.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading sales by category data'}</p>
-        </GlassCard>
-      </div>
-    )
-  }
-
   const totalGross = apiResponse?.totals.grossSales || 0
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <AvisoDeCarga query={reportQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -610,6 +589,9 @@ export default function SalesByCategory() {
           onClick={() => openControlPanel('reportType')}
         />
       </div>
+
+      {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
 
       {/* Chart - Only show for time-based reports */}
       {apiResponse && reportType !== 'summary' && apiResponse.byPeriod && apiResponse.byPeriod.length > 0 && (

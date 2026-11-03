@@ -206,14 +206,18 @@ export default function Attendance() {
       ) : errorEntries ? (
         <LoadError t={t} onRetry={() => refetchEntries()} />
       ) : entries.length === 0 ? (
-        <Card className="border-input">
-          <CardContent className="p-8 text-center space-y-1">
-            <p className="text-sm font-medium">{t('empty.title')}</p>
-            <p className="text-sm text-muted-foreground">{t('empty.description')}</p>
-          </CardContent>
-        </Card>
+        <>
+          <AvisoDeCarga query={entriesQuery} hayDatos />
+          <Card className="border-input">
+            <CardContent className="p-8 text-center space-y-1">
+              <p className="text-sm font-medium">{t('empty.title')}</p>
+              <p className="text-sm text-muted-foreground">{t('empty.description')}</p>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <div className="space-y-3">
+          <AvisoDeCarga query={entriesQuery} hayDatos />
           {entries.map(entry => (
             <Card key={entry.id} className="border-input">
               <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">

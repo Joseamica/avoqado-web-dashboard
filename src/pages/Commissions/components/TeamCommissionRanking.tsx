@@ -11,7 +11,9 @@ import { useNavigate } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Trophy, Medal, Award, User, TrendingUp, ExternalLink } from 'lucide-react'
 import { parseISO } from 'date-fns'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import DataTable from '@/components/data-table'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FilterPill, FilterPopoverHeader, FilterPopoverFooter } from '@/components/filters/FilterPill'
@@ -122,7 +124,8 @@ export default function TeamCommissionRanking() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month')
 
   // Fetch summaries and stats
-  const { data: summaries, isLoading: isLoadingSummaries } = useCommissionSummaries()
+  const summariesQuery = useCommissionSummaries()
+  const { data: summaries, isLoading: isLoadingSummaries } = summariesQuery
   const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
 
   // Format currency
@@ -353,11 +356,17 @@ export default function TeamCommissionRanking() {
     )
   }
 
+  // Sin leer no hay «sin comisiones».
+  if (summaries === undefined && falloDeCarga(summariesQuery)) {
+    return <AvisoDeCarga query={summariesQuery} hayDatos={false} />
+  }
+
   if (rankingData.length === 0 && periodFilter !== 'all') {
     // Check if there's data in 'all' mode
     const hasAnyData = summaries && summaries.length > 0
     return (
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
+        <AvisoDeCarga query={summariesQuery} hayDatos />
         <div className="p-4 border-b border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -397,6 +406,7 @@ export default function TeamCommissionRanking() {
   if (rankingData.length === 0) {
     return (
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
+        <AvisoDeCarga query={summariesQuery} hayDatos />
         <div className="p-4 border-b border-border/50">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5">
@@ -455,7 +465,7 @@ export default function TeamCommissionRanking() {
 
       {/* Table */}
       <DataTable<StaffRankingData>
-        query={null}
+        query={summariesQuery}
         columns={columns}
         data={rankingData}
         pagination={pagination}

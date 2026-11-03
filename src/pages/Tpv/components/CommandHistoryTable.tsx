@@ -6,6 +6,8 @@ import { DateTime } from 'luxon'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,7 +35,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
   // Fetch command history
   // Real-time updates handled by TpvId.tsx Socket.IO listener (invalidates this query)
   // Polling as fallback only - 60s is enough since Socket.IO handles real-time
-  const { data, isLoading, isError } = useQuery({
+  const historyQuery = useQuery({
     queryKey: ['commandHistory', venueId, terminalId, page, pageSize, statusFilter],
     queryFn: () =>
       getCommandHistory(venueId, terminalId, {
@@ -44,6 +46,8 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
     enabled: Boolean(terminalId) && Boolean(venueId),
     refetchInterval: 60000, // 60s fallback polling (Socket.IO handles real-time updates)
   })
+  const { data, isLoading } = historyQuery
+  const sinLeer = data === undefined && falloDeCarga(historyQuery)
 
   const commands = useMemo(() => data?.commands || [], [data?.commands])
   const total = data?.total || 0
@@ -225,16 +229,6 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
     )
   }
 
-  if (isError) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <p className="text-muted-foreground">{t('commands.historyError')}</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -244,7 +238,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
               <History className="h-5 w-5 text-primary" />
               {t('commands.history')}
             </CardTitle>
-            <CardDescription>{t('commands.historyDesc', { total })}</CardDescription>
+            {!sinLeer && <CardDescription>{t('commands.historyDesc', { total })}</CardDescription>}
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
@@ -261,7 +255,10 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
         </div>
       </CardHeader>
       <CardContent>
-        {commands.length === 0 ? (
+        {data !== undefined && <AvisoDeCarga query={historyQuery} hayDatos />}
+        {sinLeer ? (
+          <p className="py-8 text-center text-muted-foreground">{t('commands.historyError')}</p>
+        ) : commands.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
             <History className="h-12 w-12 mb-4 opacity-50" />
             <p>{t('commands.noHistory')}</p>

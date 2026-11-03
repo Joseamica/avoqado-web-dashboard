@@ -133,8 +133,12 @@ export default function CommissionsPage() {
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">
 					{/* Cada fuente con su aviso: sin leer la configuración no se pide configurar; sin leer las estadísticas no hay «Calculado $0». */}
-					<AvisoDeCarga query={configsQuery} hayDatos={effectiveConfigs !== undefined} />
-					<AvisoDeCarga query={statsQuery} hayDatos={stats !== undefined} />
+					{/* Un solo aviso: si se cae el servidor, dos iguales sólo estorban. Al resolver uno, sale el otro si sigue caído. */}
+					{falloDeCarga(configsQuery) ? (
+						<AvisoDeCarga query={configsQuery} hayDatos={effectiveConfigs !== undefined} />
+					) : (
+						<AvisoDeCarga query={statsQuery} hayDatos={stats !== undefined} />
+					)}
 					<CommissionKPICards
 						stats={stats}
 						isLoading={stats === undefined}

@@ -3,12 +3,14 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useVenueDateTime } from '@/utils/datetime'
 import {
   getExternalIncidents,
@@ -48,6 +50,7 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
   })
 
   const items = useMemo(() => query.data?.pages.flatMap(page => page.items) ?? [], [query.data?.pages])
+  const sinLeer = query.data === undefined && falloDeCarga(query)
   const isDefaultView = status === 'OPEN' && !areaId && !kind && !dateRange.from && !dateRange.to
 
   const areaOptions = useMemo(() => areas.map(area => ({ value: area.id, label: area.name })), [areas])
@@ -124,7 +127,7 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
         </div>
       )}
 
-      {query.isError && (
+      {sinLeer && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('areaTickets.externalSettlements.loadError')}</AlertTitle>
@@ -132,7 +135,8 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
         </Alert>
       )}
 
-      {!query.isLoading && !query.isError && (
+      {!sinLeer && <AvisoDeCarga query={query} hayDatos />}
+      {!query.isLoading && !sinLeer && (
         <Card className="border-input shadow-sm">
           <CardContent className="p-0">
             <Table>

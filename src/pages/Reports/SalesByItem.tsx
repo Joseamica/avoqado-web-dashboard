@@ -471,9 +471,8 @@ export default function SalesByItem() {
     queryFn: () => fetchSalesByItem(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
-  const { data: apiResponse, error } = reportQuery
+  const { data: apiResponse } = reportQuery
   const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
-  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   // Ordena y junta las variantes de una familia en una fila (sin familias, es la misma tabla de siempre)
   const filas = useMemo(
@@ -529,31 +528,9 @@ export default function SalesByItem() {
     return <SalesByItemSkeleton />
   }
 
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('salesByItem.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.salesByItem', {
-              defaultValue: 'Reporte de ventas por producto para identificar volumen y rentabilidad.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">
-            {error instanceof Error ? error.message : 'Error loading sales by item data'}
-          </p>
-        </GlassCard>
-      </div>
-    )
-  }
-
   return (
     <FeatureGate feature="ADVANCED_REPORTS">
     <div className="p-4 md:p-6 space-y-6">
-      <AvisoDeCarga query={reportQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -874,6 +851,9 @@ export default function SalesByItem() {
           onClick={() => openControlPanel('groupBy')}
         />
       </div>
+
+      {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
 
       {/* Chart - Only show for time-based reports */}
       {apiResponse && reportType !== 'summary' && apiResponse.byPeriod && apiResponse.byPeriod.length > 0 && (

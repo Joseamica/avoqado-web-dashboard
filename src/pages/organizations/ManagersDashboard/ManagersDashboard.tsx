@@ -287,7 +287,8 @@ export function ManagersDashboard() {
       )}
 
       {/* Store Assignment Table */}
-      {!(selectedManagerId && managerDashboard === undefined && falloDeCarga(managerDashboardQuery)) && (
+      {/* Sin el detalle no hay «No hay tiendas asignadas», tampoco mientras se reintenta: arriba está su esqueleto o su aviso. */}
+      {!(selectedManagerId && managerDashboard === undefined) && (
         <StoreAssignmentTable managerId={selectedManagerId} stores={managerDashboard?.stores} managers={managers} />
       )}
     </div>

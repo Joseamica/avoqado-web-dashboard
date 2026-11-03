@@ -78,7 +78,7 @@ export default function Refunds() {
     queryFn: () => fetchRefunds(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
-  const { data: apiResponse, error } = reportQuery
+  const { data: apiResponse } = reportQuery
   const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
   const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
@@ -144,23 +144,6 @@ export default function Refunds() {
     URL.revokeObjectURL(link.href)
   }
 
-  const reportError = isError ? (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <PageTitleWithInfo
-          title={t('refunds.title')}
-          className="text-2xl font-bold"
-          tooltip={t('info.refunds', {
-            defaultValue: 'Todos los reembolsos emitidos en el período, con monto, método, motivo y quién los procesó.',
-          })}
-        />
-      </div>
-      <GlassCard className="p-6">
-        <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading refunds data'}</p>
-      </GlassCard>
-    </div>
-  ) : null
-
   const reportHeader = (
     <>
       {/* Header */}
@@ -195,6 +178,9 @@ export default function Refunds() {
           showCompare={false}
         />
       </div>
+
+      {/* Debajo del filtro: sin red es la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
 
       {/* Summary Stats */}
       {apiResponse && (
@@ -338,8 +324,7 @@ export default function Refunds() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {apiResponse !== undefined && <AvisoDeCarga query={reportQuery} hayDatos />}
-      {isLoading ? <RefundsSkeleton /> : isError ? reportError : reportHeader}
+      {isLoading ? <RefundsSkeleton /> : reportHeader}
       <ExchangesToReviewSection />
       {!isLoading && !isError && reportBody}
     </div>

@@ -5,6 +5,8 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ArrowLeft, ArrowRight, Search, X } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,11 +37,12 @@ export default function TransferDetailPage() {
 
   const [search, setSearch] = useState('')
 
-  const { data, isLoading, isError } = useQuery({
+  const transferQuery = useQuery({
     queryKey: ['inventory-transfer', venueId, transferId],
     queryFn: () => inventoryTransferService.get(venueId!, transferId!),
     enabled: !!venueId && !!transferId,
   })
+  const { data, isLoading } = transferQuery
 
   const transfer = data?.data
 
@@ -80,7 +83,7 @@ export default function TransferDetailPage() {
         </div>
       )}
 
-      {isError && (
+      {data === undefined && falloDeCarga(transferQuery) && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-destructive">
@@ -92,6 +95,7 @@ export default function TransferDetailPage() {
 
       {transfer && (
         <>
+          <AvisoDeCarga query={transferQuery} hayDatos />
           <Card>
             <CardContent className="pt-6">
               {/* Route */}

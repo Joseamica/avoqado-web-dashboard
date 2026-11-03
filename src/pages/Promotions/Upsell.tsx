@@ -3,6 +3,8 @@ import { Check, Eye, Info, Lightbulb, Loader2, MessageSquare, Plus, Sparkles, St
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
 import { FeatureGate } from '@/components/billing/FeatureGate'
@@ -64,24 +66,34 @@ function OriginBadge({ origin }: { origin: UpsellOrigin }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PerformancePanel({ venueId }: { venueId: string }) {
-	const { data, isLoading } = useQuery({
+	const performanceQuery = useQuery({
 		queryKey: ['upsell-performance', venueId],
 		queryFn: () => upsellService.getPerformance(venueId),
 	})
+	const { data, isLoading } = performanceQuery
 
 	if (isLoading) return <Skeleton className="h-36 w-full" />
+	if (data === undefined && falloDeCarga(performanceQuery)) return <AvisoDeCarga query={performanceQuery} hayDatos={false} />
 	if (!data?.hasData) {
 		return (
-			<Card>
-				<CardContent className="py-8 text-center text-sm text-muted-foreground">
-					Todavía no hay datos. Aparecerán cuando el POS empiece a mostrar sugerencias.
-				</CardContent>
-			</Card>
+			<>
+				<AvisoDeCarga query={performanceQuery} hayDatos />
+				<Card>
+					<CardContent className="py-8 text-center text-sm text-muted-foreground">
+						Todavía no hay datos. Aparecerán cuando el POS empiece a mostrar sugerencias.
+					</CardContent>
+				</Card>
+			</>
 		)
 	}
 
 	return (
 		<div className="grid gap-4 md:grid-cols-3">
+			{falloDeCarga(performanceQuery) && (
+				<div className="md:col-span-3">
+					<AvisoDeCarga query={performanceQuery} hayDatos />
+				</div>
+			)}
 			<Card>
 				<CardHeader className="pb-2">
 					<CardTitle className="text-sm font-medium text-muted-foreground">Se ofreció</CardTitle>

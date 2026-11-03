@@ -91,13 +91,14 @@ export default function TeamId() {
 
   // Deactivation impact: only fetched while the remove dialog is open — it's a
   // one-shot warning, not something the screen needs on every load. A failure here
-  // must never block the confirm button, so no error state is surfaced.
-  const { data: deactivationImpact } = useQuery({
+  // must never block the confirm button, but it does say it could not check: «sin avisos» sería afirmar que no hay impacto.
+  const impactQuery = useQuery({
     queryKey: ['team-member-deactivation-impact', venueId, memberId],
     queryFn: () => teamService.getDeactivationImpact(venueId, memberId!),
     enabled: showRemoveDialog && !!memberId,
     retry: false,
   })
+  const { data: deactivationImpact } = impactQuery
   const impactItemsInCustody = deactivationImpact?.serializedItemsInCustody ?? 0
   const impactPendingVerifications = deactivationImpact?.pendingSaleVerifications ?? 0
   const hasDeactivationImpact = impactItemsInCustody > 0 || impactPendingVerifications > 0
@@ -653,6 +654,7 @@ export default function TeamId() {
                 {t('dialogs.removeDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <AvisoDeCarga query={impactQuery} hayDatos={deactivationImpact !== undefined} />
             {hasDeactivationImpact && (
               <div className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-muted p-3 text-sm">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning-foreground" />
