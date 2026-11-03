@@ -8,6 +8,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { DateTime } from 'luxon'
 import api from '@/api'
 import type { SaleVerificationRejectionReason, SaleVerificationStatus } from './saleVerification.service'
 
@@ -96,6 +97,34 @@ export interface NumberAlert {
 }
 
 export type NumberSource = 'TPV' | 'BACKOFFICE' | 'EXTERNAL_SALE' | 'IMPORT'
+
+const MATCH_STATUS_LABELS: Record<SaleVerificationStatus, string> = {
+  PENDING: 'En revisión por administración',
+  COMPLETED: 'Aprobada',
+  FAILED: 'Revisar por promotor',
+  REJECTED: 'Rechazada',
+}
+
+// ponytail: fechas en hora de CDMX (todas las tiendas de PlayTelecom están en México); el histórico se guarda a las 12:00 de CDMX.
+const shortDate = (iso: string) =>
+  DateTime.fromISO(iso, { zone: 'utc' }).setZone('America/Mexico_City').setLocale('es-MX').toFormat('d-LLL')
+
+const matchText = (m: NumberMatch): string =>
+  m.kind === 'HISTORICAL'
+    ? ['Histórico (Excel)', m.date && shortDate(m.date)].filter(Boolean).join(', ')
+    : `${[m.staffName, m.venueName, shortDate(m.date)].filter(Boolean).join(', ')} (${MATCH_STATUS_LABELS[m.status] ?? m.status})`
+
+/** El texto de una alerta, igual en «Razón» y en el Excel: «# de vinculación repetido · choca con …, 12-oct (Aprobada) y 2 más». */
+export function numberAlertText(a: NumberAlert): string {
+  if (a.code === 'NOT_10_DIGITS') return 'Tiene 9 dígitos'
+  if (a.code === 'LINKING_MISSING') return 'Falta número'
+  if (a.code === 'PORTED_MISSING') return 'Falta número portado'
+  const head = a.code === 'LINKING_DUPLICATE' ? '# de vinculación repetido' : '# portado repetido'
+  const matches = a.matches ?? []
+  if (matches.length === 0) return head
+  const more = (a.total ?? matches.length) - matches.length
+  return `${head} · choca con ${matches.map(matchText).join('; ')}${more > 0 ? ` y ${more} más` : ''}`
+}
 
 export interface OrgSaleRow {
   /**

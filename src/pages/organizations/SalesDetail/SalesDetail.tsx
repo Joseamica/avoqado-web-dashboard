@@ -59,11 +59,16 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
 import { exportToExcel, exportToCSV, generateFilename } from '@/utils/export'
 import { ReviewSaleDialog, type ReviewMode } from '@/pages/playtelecom/Sales/components/ReviewSaleDialog'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { EditSaleDialog } from './components/EditSaleDialog'
+import { LinkingNumberCell } from './components/LinkingNumberCell'
+import { NumberAlertBadges } from './components/NumberAlertBadges'
 import {
   listOrgSaleVerifications,
   getOrgSalesSummary,
   reopenOrgSaleVerification,
+  useOrgLinkingNumberEnabled,
+  numberAlertText,
   SALE_TYPE_LABELS,
   PAYMENT_FORM_LABELS,
   type ListOrgSalesParams,
@@ -93,6 +98,15 @@ const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
 const SALE_TYPE_OPTIONS: { value: SaleType; label: string }[] = [
   { value: 'LINEA_NUEVA', label: SALE_TYPE_LABELS.LINEA_NUEVA },
   { value: 'PORTABILIDAD', label: SALE_TYPE_LABELS.PORTABILIDAD },
+]
+
+type NumberAlertFilter = NonNullable<ListOrgSalesParams['numberAlert']>
+
+const NUMBER_ALERT_OPTIONS: { value: NumberAlertFilter; label: string }[] = [
+  { value: 'any', label: 'Cualquiera' },
+  { value: 'duplicate', label: 'Repetido' },
+  { value: 'missing', label: 'Falta' },
+  { value: 'not10', label: '9 dígitos' },
 ]
 
 const PAYMENT_FORM_OPTIONS: { value: PaymentForm; label: string }[] = [
@@ -189,6 +203,11 @@ export default function SalesDetail() {
   // Promotor filter — single-select, server-side via staffId. Per Isaac (2026-06-25):
   // "por promotor a la vez" → one promotor narrows results across ALL pages.
   const [staffFilter, setStaffFilter] = useState<string | null>(null)
+  // Número de vinculación (sólo PlayTelecom, interruptor de la organización). `undefined` = todavía no se sabe: ni se
+  // esconde como apagado ni se exporta sin sus columnas.
+  const linking = useOrgLinkingNumberEnabled(orgId)
+  const linkingOn = linking.enabled === true
+  const [numberAlertFilter, setNumberAlertFilter] = useState<NumberAlertFilter | null>(null)
 
   // Search + pagination
   const [search, setSearch] = useState('')
@@ -247,8 +266,21 @@ export default function SalesDetail() {
       search: debouncedSearch.trim() || undefined,
       fromDate: fromDateStr,
       toDate: toDateStr,
+      numberAlert: linkingOn ? (numberAlertFilter ?? undefined) : undefined,
     }),
-    [pageNumber, statusFilter, venueFilter, staffFilter, saleTypeFilter, paymentFormFilter, debouncedSearch, fromDateStr, toDateStr],
+    [
+      pageNumber,
+      statusFilter,
+      venueFilter,
+      staffFilter,
+      saleTypeFilter,
+      paymentFormFilter,
+      debouncedSearch,
+      fromDateStr,
+      toDateStr,
+      linkingOn,
+      numberAlertFilter,
+    ],
   )
 
   const listQuery = useQuery({
@@ -285,6 +317,12 @@ export default function SalesDetail() {
   }, [listQuery.data?.data, statusFilter, saleTypeFilter, paymentFormFilter, venueFilter])
 
   const pagination = listQuery.data?.pagination
+  // Con el filtro de alertas el servidor puede negarse («acota las fechas»): se dice en vez de «No hay ventas».
+  const alertFilterError =
+    numberAlertFilter && listQuery.isError
+      ? ((listQuery.error as any)?.response?.data?.message ?? 'No se pudo cargar la lista. Intenta de nuevo.')
+      : null
+  const colCount = linkingOn ? 17 : 16
   const totalPages = pagination?.totalPages ?? 1
   const totalCount = pagination?.totalCount ?? 0
 
@@ -409,6 +447,13 @@ export default function SalesDetail() {
         '#': idx + 1,
         'ID Venta': r.id,
         'ID SIM': r.serialNumbers[0] ?? '',
+        ...(linkingOn
+          ? {
+              'Número de vinculación': r.linkingNumber ?? '',
+              'Número portado': r.portedNumber ?? '',
+              'Alertas de número': (r.numberAlerts ?? []).map(numberAlertText).join('; '),
+            }
+          : {}),
         'SIMs Adicionales': r.serialNumbers.slice(1).join(', '),
         'Tipo SIM': r.category?.name ?? '',
         'Sucursal Receptora': receivedFromLabel(r),
@@ -525,7 +570,12 @@ export default function SalesDetail() {
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" disabled={exporting || listQuery.isLoading} className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exporting || listQuery.isLoading || linking.enabled === undefined}
+              className="gap-2"
+            >
               {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               {exporting && exportProgress
                 ? `${exportProgress.fetched.toLocaleString('es-MX')}${exportProgress.total ? ` / ${exportProgress.total.toLocaleString('es-MX')}` : ''}`
@@ -544,6 +594,17 @@ export default function SalesDetail() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {linking.isError && (
+        <SummaryQueryBoundary
+          isError
+          message="No se pudo cargar el número de vinculación"
+          retryLabel="Reintentar"
+          onRetry={linking.refetch}
+        >
+          {null}
+        </SummaryQueryBoundary>
+      )}
 
       {/* Filters + search bar */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -616,6 +677,26 @@ export default function SalesDetail() {
               />
             </FilterPill>
           )}
+          {linkingOn && (
+            <FilterPill
+              label="Alerta de número"
+              activeLabel={NUMBER_ALERT_OPTIONS.find(o => o.value === numberAlertFilter)?.label ?? null}
+              onClear={() => {
+                setNumberAlertFilter(null)
+                setPageNumber(1)
+              }}
+            >
+              <SingleSelectFilterContent
+                title="Alerta de número"
+                options={NUMBER_ALERT_OPTIONS}
+                selectedValue={numberAlertFilter}
+                onSelect={value => {
+                  setNumberAlertFilter(value as NumberAlertFilter)
+                  setPageNumber(1)
+                }}
+              />
+            </FilterPill>
+          )}
         </div>
 
         {/* Search */}
@@ -628,7 +709,7 @@ export default function SalesDetail() {
                 onChange={e => setSearch(e.target.value)}
                 onBlur={() => !search && setIsSearchOpen(false)}
                 autoFocus
-                placeholder="ID SIM, promotor…"
+                placeholder={linkingOn ? 'ID SIM, número, promotor…' : 'ID SIM, promotor…'}
                 className="pl-9 rounded-full w-full sm:w-64"
               />
             </div>
@@ -647,7 +728,9 @@ export default function SalesDetail() {
           {listQuery.isLoading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)
           ) : rows.length === 0 ? (
-            <GlassCard className="p-8 text-center text-sm text-muted-foreground">No hay ventas que coincidan con los filtros.</GlassCard>
+            <GlassCard className="p-8 text-center text-sm text-muted-foreground">
+              {alertFilterError ?? 'No hay ventas que coincidan con los filtros.'}
+            </GlassCard>
           ) : (
             rows.map(row => (
               <SaleCard
@@ -660,6 +743,7 @@ export default function SalesDetail() {
                 onReopen={canReopen ? () => openReopen(row) : undefined}
                 onEdit={canEdit ? () => setEditRow(row) : undefined}
                 onTerminalClick={row.terminal ? () => goToTerminal(row.terminal!.id) : undefined}
+                linking={linkingOn ? { orgId, canEdit } : undefined}
               />
             ))
           )}
@@ -689,6 +773,7 @@ export default function SalesDetail() {
             <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">ID SIM</th>
+                {linkingOn && <th className="px-3 py-2 text-left">Número de vinculación</th>}
                 <th className="px-3 py-2 text-left">Tipo de SIM</th>
                 <th className="px-3 py-2 text-left">Sucursal receptora</th>
                 <th className="px-3 py-2 text-left">Fecha</th>
@@ -710,21 +795,26 @@ export default function SalesDetail() {
               {listQuery.isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-t border-border/30">
-                    <td colSpan={16} className="px-3 py-3">
+                    <td colSpan={colCount} className="px-3 py-3">
                       <Skeleton className="h-6 w-full" />
                     </td>
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={16} className="px-3 py-10 text-center text-muted-foreground">
-                    No hay ventas que coincidan con los filtros.
+                  <td colSpan={colCount} className="px-3 py-10 text-center text-muted-foreground">
+                    {alertFilterError ?? 'No hay ventas que coincidan con los filtros.'}
                   </td>
                 </tr>
               ) : (
                 rows.map(row => (
                   <tr key={row.id} className="border-t border-border/30 hover:bg-muted/20">
                     <td className="px-3 py-2 font-mono text-xs">{row.serialNumbers[0] ?? '—'}</td>
+                    {linkingOn && (
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <LinkingNumberCell row={row} orgId={orgId} canEdit={canEdit} />
+                      </td>
+                    )}
                     <td className="px-3 py-2">{row.category?.name ?? '—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {isVirtualOrigin(row) ? (
@@ -781,8 +871,9 @@ export default function SalesDetail() {
                     </td>
                     <td className="px-3 py-2">{statusBadge(row.status)}</td>
                     <td className="px-3 py-2 text-xs">
-                      {row.rejectionReasons.length > 0 || row.reviewNotes?.trim() ? (
+                      {row.rejectionReasons.length > 0 || row.reviewNotes?.trim() || (linkingOn && row.numberAlerts?.length) ? (
                         <div className="space-y-0.5">
+                          {linkingOn && <NumberAlertBadges alerts={row.numberAlerts ?? []} />}
                           {row.rejectionReasons.map(r => (
                             <div key={r} className="text-yellow-700 dark:text-yellow-400">
                               {SALE_VERIFICATION_REJECTION_REASON_LABELS[r]}
@@ -1083,6 +1174,7 @@ function SaleCard({
   onReopen,
   onEdit,
   onTerminalClick,
+  linking,
 }: {
   row: OrgSaleRow
   formatDate: (d: string | Date | null | undefined) => string
@@ -1095,6 +1187,8 @@ function SaleCard({
   onEdit?: () => void
   /** Provided only when the sale resolved to a known TPV terminal. */
   onTerminalClick?: () => void
+  /** Sólo con el número de vinculación prendido en la organización. */
+  linking?: { orgId: string; canEdit: boolean }
 }) {
   const promoter = row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'
   const venueLabel = row.venue.city ? `${row.venue.name} · ${row.venue.city}` : row.venue.name
@@ -1141,6 +1235,12 @@ function SaleCard({
             <p>—</p>
           )}
         </div>
+        {linking && (
+          <div className="col-span-2 min-w-0">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-tight">Número de vinculación</p>
+            <LinkingNumberCell row={row} orgId={linking.orgId} canEdit={linking.canEdit} />
+          </div>
+        )}
       </div>
 
       {/* Photos */}
@@ -1164,9 +1264,10 @@ function SaleCard({
       )}
 
       {/* Rejection reasons */}
-      {(row.rejectionReasons.length > 0 || !!row.reviewNotes?.trim()) && (
+      {(row.rejectionReasons.length > 0 || !!row.reviewNotes?.trim() || (!!linking && !!row.numberAlerts?.length)) && (
         <div className="text-xs space-y-0.5 pt-2 border-t border-border/30">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Razón</p>
+          {linking && <NumberAlertBadges alerts={row.numberAlerts ?? []} />}
           {row.rejectionReasons.map(r => (
             <div key={r} className="text-yellow-700 dark:text-yellow-400">
               {SALE_VERIFICATION_REJECTION_REASON_LABELS[r]}
