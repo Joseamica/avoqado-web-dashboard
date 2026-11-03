@@ -449,10 +449,12 @@ export async function setOrgSaleVerificationNumbers(
   return response.data.data
 }
 
-/** ¿Está prendida la captura del número en esta organización? */
+/** ¿Está prendida la captura del número en esta organización? Una respuesta sin booleano es un error, nunca «apagado». */
 export async function getLinkingNumberStatus(orgId: string): Promise<boolean> {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/sale-verifications/linking-number-status`)
-  return response.data.enabled === true
+  const enabled = response.data?.enabled
+  if (typeof enabled !== 'boolean') throw new Error('linking-number-status: respuesta sin «enabled»')
+  return enabled
 }
 
 /** `enabled: undefined` = todavía no se sabe (cargando o con error): nunca se trata como apagado. */

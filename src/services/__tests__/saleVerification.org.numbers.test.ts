@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listOrgSaleVerifications, setOrgSaleVerificationNumbers, getLinkingNumberStatus } from '@/services/saleVerification.org.service'
+import { createElement, type ReactNode } from 'react'
+import { renderHook, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  listOrgSaleVerifications,
+  setOrgSaleVerificationNumbers,
+  getLinkingNumberStatus,
+  useOrgLinkingNumberEnabled,
+} from '@/services/saleVerification.org.service'
 
 const mockGet = vi.fn()
 const mockPatch = vi.fn()
@@ -31,5 +39,45 @@ describe('números de vinculación (servicio de ventas de la organización)', ()
     mockGet.mockResolvedValue({ data: { success: true, enabled: true } })
     expect(await getLinkingNumberStatus('org1')).toBe(true)
     expect(mockGet).toHaveBeenCalledWith('/api/v1/dashboard/organizations/org1/sale-verifications/linking-number-status')
+  })
+
+  it('getLinkingNumberStatus lanza si la respuesta no trae un booleano (no es «apagado»)', async () => {
+    mockGet.mockResolvedValue({ data: { success: true } })
+    await expect(getLinkingNumberStatus('org1')).rejects.toThrow()
+    mockGet.mockResolvedValue({ data: { success: true, enabled: 'true' } })
+    await expect(getLinkingNumberStatus('org1')).rejects.toThrow()
+  })
+})
+
+describe('useOrgLinkingNumberEnabled', () => {
+  const wrapper = () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children)
+  }
+
+  it('undefined mientras carga; true/false sólo de una respuesta real', async () => {
+    let resolve!: (v: unknown) => void
+    mockGet.mockReturnValue(new Promise(r => (resolve = r)))
+    const { result } = renderHook(() => useOrgLinkingNumberEnabled('org1'), { wrapper: wrapper() })
+    expect(result.current.enabled).toBeUndefined()
+    expect(result.current.isError).toBe(false)
+    resolve({ data: { success: true, enabled: false } })
+    await waitFor(() => expect(result.current.enabled).toBe(false))
+
+    mockGet.mockResolvedValue({ data: { success: true, enabled: true } })
+    const on = renderHook(() => useOrgLinkingNumberEnabled('org1'), { wrapper: wrapper() })
+    await waitFor(() => expect(on.result.current.enabled).toBe(true))
+  })
+
+  it('con error, o con una respuesta sin booleano, queda undefined e isError', async () => {
+    mockGet.mockRejectedValue(new Error('Network Error'))
+    const caida = renderHook(() => useOrgLinkingNumberEnabled('org1'), { wrapper: wrapper() })
+    await waitFor(() => expect(caida.result.current.isError).toBe(true))
+    expect(caida.result.current.enabled).toBeUndefined()
+
+    mockGet.mockResolvedValue({ data: { success: true } })
+    const rara = renderHook(() => useOrgLinkingNumberEnabled('org1'), { wrapper: wrapper() })
+    await waitFor(() => expect(rara.result.current.isError).toBe(true))
+    expect(rara.result.current.enabled).toBeUndefined()
   })
 })
