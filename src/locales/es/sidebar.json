@@ -42,6 +42,7 @@
   },
   "creditPacks": "Paquetes de Créditos",
   "salesMenu": {
+    "exchanges": "Cambios",
     "title": "Ventas",
     "orders": "Pedidos",
     "transactions": "Transacciones",
@@ -145,6 +146,7 @@
     "delete": "Eliminar"
   },
   "routes": {
+    "exchanges": "Cambios",
     "home": "Inicio",
     "menu": "Menú",
     "menumaker": "Creador de Menú",

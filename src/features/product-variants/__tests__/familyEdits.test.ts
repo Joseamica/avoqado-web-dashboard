@@ -38,7 +38,7 @@ describe('cambios de una variante', () => {
     expect(cambiosDeVariante(variante, { ...edicionDe(variante), price: 19.999 })).toEqual({ ok: false, problema: 'precioInvalido' })
     expect(cambiosDeVariante(variante, { ...edicionDe(variante), cost: 0 })).toEqual({ ok: false, problema: 'costoInvalido' })
     expect(cambiosDeVariante(variante, { ...edicionDe(variante), sku: ' ' })).toEqual({ ok: false, problema: 'skuVacio' })
-    expect(cambiosDeVariante(variante, { ...edicionDe(variante), sku: 'A B' })).toEqual({ ok: false, problema: 'skuInvalido' })
+    expect(cambiosDeVariante(variante, { ...edicionDe(variante), sku: 'A/B' })).toEqual({ ok: false, problema: 'skuInvalido' })
     expect(cambiosDeVariante(variante, { ...edicionDe(variante), gtin: '1'.repeat(15) })).toEqual({ ok: false, problema: 'codigoLargo' })
   })
   it('con campos tocados: sólo valida y manda esos (un precio viejo inválido que nadie tocó no estorba)', () => {

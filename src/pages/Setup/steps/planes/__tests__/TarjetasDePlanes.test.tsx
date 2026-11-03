@@ -66,7 +66,7 @@ function pinta(props: Partial<React.ComponentProps<typeof TarjetasDePlanes>> = {
   const onElegir = vi.fn()
   const vista = render(
     <I18nextProvider i18n={i18n}>
-      <TarjetasDePlanes oferta={null} planQuote={cotizacion} bloqueado={false} onElegir={onElegir} {...props} />
+      <TarjetasDePlanes oferta={null} planQuote={cotizacion} bloqueado={false} onElegir={onElegir} beneficios="restaurante" {...props} />
     </I18nextProvider>,
   )
   return { onElegir, ...vista }
@@ -224,5 +224,72 @@ describe('TarjetasDePlanes con campaña', () => {
     oferta.copy.bullets = []
     pinta({ oferta })
     expect(within(tarjeta('PRO')).getByText('Cobra con tarjeta y efectivo')).toBeInTheDocument()
+  })
+})
+
+describe('TarjetasDePlanes — viñetas según el giro (D13)', () => {
+  const textos = (plan: 'PRO' | 'PREMIUM' | 'ENTERPRISE') => Array.from(tarjeta(plan).querySelectorAll('li')).map(li => li.textContent)
+
+  it('comercio: viñetas de tienda, sin «Mesas» ni recetas ni delivery', () => {
+    pinta({ beneficios: 'comercio' })
+    expect(textos('PRO')).toEqual([
+      'Cobra con tarjeta y efectivo',
+      'Usuarios y cajas ilimitados',
+      'Corte y arqueo de caja',
+      'Lealtad y promociones',
+    ])
+    expect(textos('PREMIUM')).toEqual([
+      'Todo lo de Pro',
+      'Facturación CFDI',
+      'Inventario y existencias por tienda',
+      'Reorden automático de mercancía',
+    ])
+    expect(screen.queryByText(/Mesas|recetas|Uber Eats/)).not.toBeInTheDocument()
+  })
+
+  it('servicios: citas, comisiones y asistencia', () => {
+    pinta({ beneficios: 'servicios' })
+    expect(textos('PRO')).toEqual(['Cobra con tarjeta y efectivo', 'Citas y reservas', 'Usuarios ilimitados', 'Lealtad y promociones'])
+    expect(textos('PREMIUM')).toEqual(['Todo lo de Pro', 'Facturación CFDI', 'Comisiones del personal', 'Control de asistencia del equipo'])
+  })
+
+  it('genérico: nada de restaurante', () => {
+    pinta({ beneficios: 'generico' })
+    expect(textos('PRO')).toEqual([
+      'Cobra con tarjeta y efectivo',
+      'Usuarios ilimitados',
+      'Corte y arqueo de caja',
+      'Lealtad, promociones y reservas',
+    ])
+    expect(textos('PREMIUM')).toEqual(['Todo lo de Pro', 'Facturación CFDI', 'Control de inventario', 'Comisiones del personal'])
+    expect(screen.queryByText(/Mesas/)).not.toBeInTheDocument()
+  })
+
+  it('Enterprise dice lo mismo en todos los giros', () => {
+    pinta({ beneficios: 'comercio' })
+    expect(textos('ENTERPRISE')).toEqual(['Todo lo de Premium', 'Marca propia', 'API e integraciones', 'Soporte dedicado'])
+  })
+
+  it('🔴 las viñetas de la campaña siguen ganando en su tarjeta; la otra usa las del giro', () => {
+    pinta({ beneficios: 'comercio', oferta: ofertaDe('PRO') })
+    expect(textos('PRO')).toEqual(['Viñeta A', 'Viñeta B'])
+    expect(textos('PREMIUM')).toContain('Reorden automático de mercancía')
+  })
+
+  it('en inglés cada juego tiene su texto (ninguna llave cruda en pantalla)', async () => {
+    await i18n.changeLanguage('en')
+    try {
+      for (const beneficios of ['comercio', 'servicios', 'generico'] as const) {
+        const { unmount } = pinta({ beneficios })
+        for (const plan of ['PRO', 'PREMIUM'] as const) {
+          for (const texto of textos(plan)) expect(texto).not.toMatch(/^plans\./)
+        }
+        unmount()
+      }
+      pinta({ beneficios: 'comercio' })
+      expect(textos('PRO')).toContain('Unlimited users and registers')
+    } finally {
+      await i18n.changeLanguage('es')
+    }
   })
 })

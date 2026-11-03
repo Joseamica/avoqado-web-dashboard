@@ -34,10 +34,10 @@ import { GOOGLE_SIGNUP_INTENT_KEY } from '@/lib/googleSignupIntent'
 import { LEGAL_DOCS_VERSION } from '@/config/legal'
 
 let datos: Map<string, string>
-function sembrar(offerParam: string | null, utm: Record<string, string> = {}) {
+function sembrar(offerParam: string | null, utm: Record<string, string> = {}, referrer: string | null = null) {
   datos = new Map<string, string>()
-  if (offerParam || Object.keys(utm).length) {
-    datos.set(ACQUISITION_STORAGE_KEY, JSON.stringify({ offerParam, utm, savedAt: new Date().toISOString() }))
+  if (offerParam || Object.keys(utm).length || referrer) {
+    datos.set(ACQUISITION_STORAGE_KEY, JSON.stringify({ offerParam, utm, referrer, savedAt: new Date().toISOString() }))
   }
   Object.defineProperty(window, 'sessionStorage', {
     value: {
@@ -74,7 +74,7 @@ describe('SignupWizard — alta con Google', () => {
   })
 
   it('🔴 con la casilla, guarda el intento (versión legal + campaña + UTM) ANTES de ir a Google', async () => {
-    sembrar('pos-22-mx', { utm_source: 'google', gclid: 'abc' })
+    sembrar('pos-22-mx', { utm_source: 'google', gclid: 'abc' }, 'avoqado.io')
     resolveLaunchCampaignCode.mockResolvedValue('POS22MX')
     // Se FOTOGRAFÍA lo guardado en el instante de la redirección y se compara afuera: un `expect`
     // dentro del mock lanzaría dentro del componente, cuyo `catch` se lo tragaría (el sabotaje
@@ -94,6 +94,7 @@ describe('SignupWizard — alta con Google', () => {
       legalVersion: LEGAL_DOCS_VERSION,
       launchCampaignCode: 'POS22MX',
       utm: { utm_source: 'google', gclid: 'abc' },
+      referrer: 'avoqado.io',
     })
     expect(resolveLaunchCampaignCode).toHaveBeenCalledWith('pos-22-mx')
     expect(signup).not.toHaveBeenCalled()
@@ -110,6 +111,7 @@ describe('SignupWizard — alta con Google', () => {
     const guardado = JSON.parse(datos.get(GOOGLE_SIGNUP_INTENT_KEY)!)
     expect(guardado.legalVersion).toBe(LEGAL_DOCS_VERSION)
     expect(guardado).not.toHaveProperty('launchCampaignCode')
+    expect(guardado).not.toHaveProperty('referrer')
   })
 
   it('si no se pudo ir a Google, el intento no se queda colgado', async () => {

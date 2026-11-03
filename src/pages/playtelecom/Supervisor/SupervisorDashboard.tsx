@@ -71,7 +71,8 @@ import {
 import { cn } from '@/lib/utils'
 import { getToday } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { format } from 'date-fns'
+import { DateTime } from 'luxon'
+import { diaAnteriorDelNegocio } from '@/components/fechasDelSelector'
 import { recordSalesExportAudit } from '@/services/storesAnalysis.service'
 import {
   fetchAllSalesExportRows,
@@ -157,17 +158,12 @@ export function SupervisorDashboard() {
   const startDateISO = selectedRange.from.toISOString()
   const endDateISO = selectedRange.to.toISOString()
 
-  // YYYY-MM-DD format for heatmap endpoints
-  const startDateStr = format(selectedRange.from, 'yyyy-MM-dd')
-  const endDateStr = format(selectedRange.to, 'yyyy-MM-dd')
+  // YYYY-MM-DD del NEGOCIO para los mapas: el rango son instantes del negocio y la zona del navegador corría un día (D1).
+  const startDateStr = DateTime.fromJSDate(selectedRange.from).setZone(venueTimezone).toISODate() as string
+  const endDateStr = DateTime.fromJSDate(selectedRange.to).setZone(venueTimezone).toISODate() as string
 
-  // Previous day range for "vs dia anterior" comparison
-  const prevDayDates = useMemo(() => {
-    const prev = new Date(selectedRange.from)
-    prev.setDate(prev.getDate() - 1)
-    const end = new Date(prev.getTime() + 86400000 - 1)
-    return { start: prev.toISOString(), end: end.toISOString() }
-  }, [selectedRange.from])
+  // «vs día anterior»: el día entero anterior, en la zona del negocio (con la del navegador se corría unas horas).
+  const prevDayDates = useMemo(() => diaAnteriorDelNegocio(selectedRange.from, venueTimezone), [selectedRange.from, venueTimezone])
 
   // Use venue-level hooks for white-label access — pass date range to filter data
   const { data: overview, isLoading: overviewLoading } = useStoresOverview({

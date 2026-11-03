@@ -1162,3 +1162,30 @@ describe('🔴 I1: el reto falla después de ir a la app del banco y volver', ()
     }
   })
 })
+
+describe('OfferStep — embudo de la tarjeta en PostHog (27-oct)', () => {
+  it('abrir la ventana y cerrarla sin pagar se miden, con la oferta y el tiempo abierto', async () => {
+    pintar()
+    const user = await abrirLaOferta()
+    expect(track).toHaveBeenCalledWith('plan_card_opened', expect.objectContaining({ tier: 'PRO', flow: 'short' }))
+
+    await user.click(screen.getByRole('button', { name: /cerrar|close/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(track).toHaveBeenCalledWith(
+      'plan_card_closed',
+      expect.objectContaining({ tier: 'PRO', flow: 'short', seconds_open: expect.any(Number) }),
+    )
+    const abierto = track.mock.calls.find(([e]) => e === 'plan_card_opened')?.[1] as Record<string, unknown>
+    expect(abierto.launch_offer_code).toBe(OFERTA.code)
+  })
+
+  it('con un cobro en vuelo la ventana no se cierra y NO se cuenta como «cerró sin pagar»', async () => {
+    activatePlan.mockRejectedValue(errorHttp(503, 'PLAN_ACTIVATION_PENDING'))
+    pintar()
+    const user = await abrirLaOferta()
+    await user.click(screen.getByRole('button', { name: /pagar/i }))
+    await screen.findByText(/Confirmando tu pago/i)
+    await user.keyboard('{Escape}')
+    expect(track).not.toHaveBeenCalledWith('plan_card_closed', expect.anything())
+  })
+})

@@ -77,7 +77,9 @@
     "ANNOUNCEMENT": "Announcement",
     "REMINDER": "Reminder",
     "ALERT": "Alert",
-    "ATTENDANCE_LATE": "Late clock-in"
+    "ATTENDANCE_LATE": "Late clock-in",
+    "RESERVATION_NO_SHOW_SUMMARY": "No Show summary per class",
+    "RESERVATION_NEEDS_REVIEW": "Arrivals that need review"
   },
   "priorities": {
     "LOW": "Low",
@@ -115,7 +117,8 @@
     "system": "System",
     "admin": "Admin",
     "reports": "Reports",
-    "general": "General"
+    "general": "General",
+    "reservations": "Reservations"
   },
   "categoryDescriptions": {
     "orders": "Receive updates about order status, new orders, and cancellations",
@@ -125,7 +128,8 @@
     "system": "System health, POS connection, and inventory alerts",
     "admin": "Administrative alerts for managers and owners only",
     "reports": "Daily and periodic sales reports delivered by email",
-    "general": "General announcements, reminders, and alerts"
+    "general": "General announcements, reminders, and alerts",
+    "reservations": "No-show summaries per class and arrivals that need review"
   },
   "typeDescriptions": {
     "NEW_ORDER": "Notified immediately when a new order is received",
@@ -154,7 +158,9 @@
     "ANNOUNCEMENT": "Platform-wide announcements and news",
     "REMINDER": "Custom reminders and scheduled notifications",
     "ALERT": "General alerts requiring your attention",
-    "ATTENDANCE_LATE": "Alert when someone hasn't clocked in past their start time"
+    "ATTENDANCE_LATE": "Alert when someone hasn't clocked in past their start time",
+    "RESERVATION_NO_SHOW_SUMMARY": "One email per class once it ends, listing who was marked as No Show with a link to correct it. If you turn it off, you stop receiving the email.",
+    "RESERVATION_NEEDS_REVIEW": "When an arrival is corrected and something is left to check (unpaid class, fee already charged, kiosk arrival). If you turn it off, you stop receiving the email."
   },
   "channelNames": {
     "IN_APP": "Web",

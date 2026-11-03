@@ -23,6 +23,7 @@ import {
   listGiftCards,
   operateGiftCard,
   releaseGiftCardSaleCancel,
+  resendGiftCard,
   startGiftCardSaleCancel,
   updateGiftCardSettings,
 } from '@/services/giftCard.service'
@@ -31,6 +32,8 @@ import type {
   GiftCardListStatus,
   GiftCardOperation,
   GiftCardOperationResult,
+  GiftCardResendBody,
+  GiftCardResendResult,
   UpdateGiftCardSettingsInput,
 } from '@/types/giftCard'
 
@@ -315,6 +318,93 @@ export function useGiftCardOperation(venueId: string | undefined, giftCardId: st
     [venueId, userId, giftCardId, enviar, invalidate, llaveDe, descartarIntento],
   )
   return { operar, enviando, intentoEnDuda, descartarIntento }
+}
+
+/** «Reenviar» al mismo destino o «Cambiar destino» (1b P1, E14/E15): cada uno guarda su intento en duda aparte. */
+export type ModoDeReenvio = 'mismo' | 'cambiar'
+/** El nombre del único paso de un reenvío en envioUnico. */
+const PASO_DE_REENVIO = 'reenvio'
+
+/**
+ * 1b P1: reenviar o cambiar el destino de UNA tarjeta (`POST …/:giftCardId/resend`, `giftCards:manage`; contrato 1b § 8). El
+ * molde de `useGiftCardOperation`, con sus mismas piezas:
+ * - una llave por operación con la huella del CONTENIDO (`{ reenvio: modo, ...cuerpo }`): nace con el primer envío de ese
+ *   contenido, viaja en todo reintento (el de red de api.ts y el manual tras quedar en duda) y sólo se tira con una respuesta
+ *   definitiva o con «Descartar». Así «una llave = una operación» (S7): tras un reenvío que salió bien el siguiente lleva llave
+ *   nueva, y un cambio de destino en duda nunca se repite con otra llave a otro teléfono (Review Focus 1);
+ * - el cuerpo va a sessionStorage ANTES de mandarlo (si la página se cae a medio envío, también quedó en duda) y se lee con
+ *   `intentoEnDuda(modo)`, también tras recargar;
+ * - `reenviar` devuelve `undefined` si ya hay un envío en vuelo (candado síncrono: un doble clic no manda dos);
+ * - pase lo que pase, la tarjeta se relee SIN esperarlo (lista, detalle y reportes de ESA tarjeta);
+ * - un «cambiar» que sale bien deja atrás un «mismo» en duda: su llave vieja ya no describe la entrega de hoy.
+ * El 429 del límite ocurre ANTES del servicio: rechaza un primer envío conocido, pero no resuelve uno ya incierto
+ * (incluido el reintento automático tras perder la respuesta en `api.ts`).
+ */
+export function useGiftCardResend(venueId: string | undefined, giftCardId: string) {
+  const { enviar, enviando } = useEnvioUnico()
+  const invalidate = useInvalidateGiftCards()
+  const userId = useAccess().access?.userId
+  const llaveDe = useCallback(
+    (modo: ModoDeReenvio) => llaveDeIntento(venueId, userId, giftCardId, `resend-${modo}`),
+    [venueId, userId, giftCardId],
+  )
+  const huellaDe = useCallback(
+    (modo: ModoDeReenvio, cuerpo: GiftCardResendBody) => huellaDeOperacion(giftCardId, { reenvio: modo, ...cuerpo }),
+    [giftCardId],
+  )
+  const intentoEnDuda = useCallback(
+    (modo: ModoDeReenvio) => leerIntento(llaveDe(modo), PASO_DE_REENVIO) as GiftCardResendBody | undefined,
+    [llaveDe],
+  )
+  const descartarIntento = useCallback(
+    (modo: ModoDeReenvio) => {
+      const previo = intentoEnDuda(modo)
+      if (previo) olvidar(huellaDe(modo, previo))
+      borrarIntento(llaveDe(modo))
+    },
+    [intentoEnDuda, huellaDe, llaveDe],
+  )
+  const reenviar = useCallback(
+    async (modo: ModoDeReenvio, cuerpo: GiftCardResendBody): Promise<GiftCardResendResult | undefined> => {
+      if (!venueId) return undefined
+      const k = llaveDe(modo)
+      const huella = huellaDe(modo, cuerpo)
+      const estabaEnDuda = intentoEnDuda(modo) !== undefined
+      let llaveUsada: string | undefined
+      const cambio: GiftCardChange = { kind: 'card', giftCardId }
+      try {
+        const r = await enviar(huella, paso =>
+          paso(PASO_DE_REENVIO, operationKey => {
+            llaveUsada = operationKey
+            if (userId) guardarEnSesion(k, { huella, clave: operationKey, cuerpo, accion: `resend-${modo}` })
+            return resendGiftCard(venueId, giftCardId, { ...cuerpo, operationKey })
+          }),
+        )
+        if (r) {
+          borrarIntento(k)
+          if (modo === 'cambiar') descartarIntento('mismo')
+          void invalidate(venueId, cambio)
+        }
+        return r
+      } catch (err) {
+        const error = err as { response?: { status?: number; data?: { code?: string } }; config?: { _retry?: unknown } } | null
+        const respuesta = error?.response
+        if (
+          (estabaEnDuda || error?.config?._retry === true) &&
+          respuesta?.status === 429 &&
+          respuesta.data?.code === 'GIFT_CARD_RESEND_RATE_LIMITED' &&
+          llaveUsada
+        ) {
+          recordarClave(huella, PASO_DE_REENVIO, llaveUsada)
+          enDuda.set(k, cuerpo)
+        } else anotarFallo(k, cuerpo, err)
+        void invalidate(venueId, cambio)
+        throw err
+      }
+    },
+    [venueId, userId, giftCardId, enviar, invalidate, llaveDe, huellaDe, intentoEnDuda, descartarIntento],
+  )
+  return { reenviar, enviando, intentoEnDuda, descartarIntento }
 }
 
 /**

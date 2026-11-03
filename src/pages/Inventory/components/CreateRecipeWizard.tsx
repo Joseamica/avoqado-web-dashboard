@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -104,6 +104,7 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
   const [showPendingOptions, setShowPendingOptions] = useState(false)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const [createProductOpen, setCreateProductOpen] = useState(false)
+  const sesion = useRef(0) // cambia con cada intención de selección, además de la apertura/sucursal
 
   // Reset wizard when closed
   useEffect(() => {
@@ -117,7 +118,8 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
       setNotes('')
       setIngredients([])
     }
-  }, [open])
+    return () => { sesion.current += 1 } // el detalle de un alta anterior no selecciona en otra apertura o sucursal
+  }, [open, venueId])
 
   // Fetch products without recipes
   const { data: products, isLoading: productsLoading } = useQuery({
@@ -392,17 +394,24 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
               <SearchCombobox
                 placeholder={t('recipeWizard.step1.searchPlaceholder')}
                 value={searchTerm}
-                onChange={setSearchTerm}
+                onChange={value => {
+                  sesion.current += 1
+                  setSearchTerm(value)
+                }}
                 items={productComboboxItems}
                 isLoading={productsLoading}
                 onSelect={item => {
                   const product = products?.find(p => p.id === item.id)
                   if (product) {
+                    sesion.current += 1
                     setSelectedProduct(product)
                     setSearchTerm('')
                   }
                 }}
-                onCreateNew={() => setCreateProductOpen(true)}
+                onCreateNew={() => {
+                  sesion.current += 1
+                  setCreateProductOpen(true)
+                }}
                 createNewLabel={term => t('recipeWizard.step1.createProduct', { name: term })}
               />
 
@@ -426,7 +435,10 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setSelectedProduct(null)}
+                    onClick={() => {
+                      sesion.current += 1
+                      setSelectedProduct(null)
+                    }}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
                   >
                     <X className="h-4 w-4" />
@@ -904,13 +916,16 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
         onOpenChange={setCreateProductOpen}
         mode="create"
         onSuccess={async (productId: string) => {
+          const sesionDelAlta = sesion.current
           try {
             const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
               params: { includeRecipe: true },
             })
             const product = response.data.data as ProductWithRecipe
-            setSelectedProduct(product)
-            setSearchTerm('')
+            if (sesionDelAlta === sesion.current) {
+              setSelectedProduct(product)
+              setSearchTerm('')
+            }
             queryClient.invalidateQueries({ queryKey: ['products-without-recipes', venueId] })
           } catch {
             // Product created but couldn't fetch — user can search for it

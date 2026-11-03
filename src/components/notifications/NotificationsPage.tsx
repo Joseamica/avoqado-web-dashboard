@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { Bell, Filter, Search, Check, CheckCheck, Trash2, Settings, RefreshCw } from 'lucide-react'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useNotifications } from '@/context/NotificationContext'
-import { deleteAllNotifications } from '@/services/notification.service'
+import { deleteAllNotifications, destinoDelAviso } from '@/services/notification.service'
+import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   formatNotificationTime,
@@ -31,7 +32,8 @@ interface NotificationsPageProps {
 export function NotificationsPage({ className }: NotificationsPageProps) {
   const { t } = useTranslation(['notifications', 'common'])
   const navigate = useNavigate()
-  const { venueSlug: _venueSlug, fullBasePath } = useCurrentVenue()
+  const { venueSlug, venueBasePath, fullBasePath } = useCurrentVenue()
+  const { allVenues } = useAuth()
   const {
     notifications,
     unreadCount,
@@ -96,14 +98,12 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
     }
 
     if (notification.actionUrl) {
-      // Handle absolute URLs (http/https or paths starting with /) and relative URLs differently
-      if (notification.actionUrl.startsWith('http') || notification.actionUrl.startsWith('/')) {
-        // Absolute URL or absolute path - use as is
-        window.location.href = notification.actionUrl
-      } else {
-        // Relative path - prepend venue slug
-        window.location.href = `${fullBasePath}/${notification.actionUrl}`
-      }
+      window.location.href = destinoDelAviso(
+        notification.actionUrl,
+        notification,
+        { venueBasePath, fullBasePath, venueSlug },
+        id => allVenues.find(v => v.id === id)?.slug ?? null,
+      )
     }
   }
 

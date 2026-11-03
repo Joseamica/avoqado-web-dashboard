@@ -729,6 +729,49 @@
       "description": "What you entered for this product will be lost.",
       "confirm": "Discard",
       "keepEditing": "Keep editing"
+    },
+    "optional": {
+      "more": "More options",
+      "remove": "Remove section",
+      "removeTitle": "Remove {{section}} from this product?",
+      "removeDescription": "What you entered in this section will be cleared.",
+      "confirmRemove": "Remove",
+      "variants": {
+        "title": "Sizes or colors",
+        "description": "One item in several sizes or colors"
+      },
+      "inventory": {
+        "title": "Inventory",
+        "description": "Track how many items you have and get low stock alerts"
+      },
+      "recipe": {
+        "title": "Recipe and ingredients",
+        "description": "Deduct ingredients every time you sell"
+      },
+      "codes": {
+        "title": "Barcode and SKU",
+        "description": "For scanners, labels and Shopify"
+      },
+      "weight": {
+        "title": "Sold by weight",
+        "description": "For bulk goods, meat or sweets sold by the kilogram"
+      },
+      "modifiers": {
+        "title": "Modifiers",
+        "description": "Let customers choose options and extras"
+      },
+      "preparation": {
+        "title": "Where it is prepared",
+        "description": "Choose the printer or kitchen display"
+      },
+      "description": {
+        "title": "Description",
+        "description": "Customers see it when ordering online"
+      },
+      "fiscal": {
+        "title": "Invoice details",
+        "description": "Let customers request a tax invoice for this sale"
+      }
     }
   },
   "conversion": {

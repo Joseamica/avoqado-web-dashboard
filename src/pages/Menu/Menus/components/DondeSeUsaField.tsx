@@ -1,0 +1,53 @@
+import { useTranslation } from 'react-i18next'
+import { Checkbox } from '@/components/ui/checkbox'
+
+export type DondeSeUsa = { appliesToDevices: boolean; appliesToOnline: boolean }
+
+/**
+ * `tiendaUsabaHorario`: lo GUARDADO tenía la tienda en línea y un horario, así que apagarla le quita ese horario a la tienda.
+ * Un menú nuevo no lo pasa: nunca tuvo uso en línea que perder (revisión final I1).
+ */
+export function DondeSeUsaField({
+  value,
+  onChange,
+  tiendaUsabaHorario = false,
+}: {
+  value: DondeSeUsa
+  onChange: (v: DondeSeUsa) => void
+  tiendaUsabaHorario?: boolean
+}) {
+  const { t } = useTranslation('menu')
+  const base = 'menus.dondeSeUsa'
+  const items = [
+    { key: 'appliesToDevices' as const, label: t(`${base}.aparatos`), hint: t(`${base}.pistaAparatos`) },
+    { key: 'appliesToOnline' as const, label: t(`${base}.tiendaEnLinea`), hint: t(`${base}.pistaTienda`) },
+  ]
+  const soloUna = value.appliesToDevices !== value.appliesToOnline
+
+  return (
+    <div className="space-y-3" data-tour="menu-donde-se-usa">
+      <p className="text-sm font-semibold">{t(`${base}.title`)}</p>
+      {items.map(({ key, label, hint }) => {
+        const bloqueada = soloUna && value[key]
+        const id = `donde-se-usa-${key}`
+        return (
+          <div key={key} className="flex items-start gap-2">
+            <Checkbox
+              id={id}
+              checked={value[key]}
+              disabled={bloqueada}
+              onCheckedChange={checked => onChange({ ...value, [key]: checked === true })}
+              className="mt-0.5"
+            />
+            <label htmlFor={id} className="text-sm leading-tight">
+              {label}
+              <span className="block text-xs text-muted-foreground">{hint}</span>
+              {bloqueada && <span className="block text-xs text-muted-foreground">{t(`${base}.alMenosUna`)}</span>}
+            </label>
+          </div>
+        )
+      })}
+      {tiendaUsabaHorario && !value.appliesToOnline && <p className="text-xs text-muted-foreground">{t(`${base}.avisoHorario`)}</p>}
+    </div>
+  )
+}

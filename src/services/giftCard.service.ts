@@ -14,6 +14,8 @@ import type {
   GiftCardListQuery,
   GiftCardOperation,
   GiftCardOperationResult,
+  GiftCardResendBody,
+  GiftCardResendResult,
   GiftCardSettingsView,
   GiftCardSummary,
   PendingAccountingPage,
@@ -61,6 +63,28 @@ export const operateGiftCard = async (
   giftCardId: string,
   body: GiftCardOperation & { operationKey: string },
 ): Promise<GiftCardOperationResult> => (await api.post(`${base(venueId)}/${giftCardId}/operations`, body)).data.data
+
+/**
+ * POST /:giftCardId/resend (1b S7, `giftCards:manage`; contrato 1b § 8) — sin destino reenvía al MISMO; con destino lo cambia (uno
+ * nuevo repone el código y la liga). La llave va en el CUERPO: una por operación, y un reintento repite el MISMO cuerpo con la MISMA
+ * llave (la del reenvío sólo se recuerda hasta el siguiente; reusarla para otra operación da 409 IDEMPOTENCY_KEY_REUSED).
+ */
+export const resendGiftCard = async (
+  venueId: string,
+  giftCardId: string,
+  body: GiftCardResendBody & { operationKey: string },
+): Promise<GiftCardResendResult> => (await api.post(`${base(venueId)}/${giftCardId}/resend`, body)).data.data
+
+/**
+ * POST /:giftCardId/store-credit-phone (`giftCards:manage`) — el teléfono con que se gasta el saldo a favor. No manda nada. El
+ * cuerpo del server es `{ phone, expectedPhoneLast4? }`; `expectedPhoneLast4` = los 4 que el gerente VIO (si ya cambiaron, 409
+ * STORE_CREDIT_PHONE_OUTDATED sin escribir).
+ */
+export const changeStoreCreditPhone = async (
+  venueId: string,
+  giftCardId: string,
+  body: { phone: string; expectedPhoneLast4?: string },
+): Promise<{ giftCardId: string; phoneLast4: string }> => (await api.post(`${base(venueId)}/${giftCardId}/store-credit-phone`, body)).data.data
 
 /** POST /orders/:orderId/cancel-sale — bloquea TODAS las tarjetas de esa venta con CANCEL_IN_PROGRESS (spec §5.6, paso 1). */
 export const startGiftCardSaleCancel = async (venueId: string, orderId: string, operationKey: string): Promise<{ giftCardIds: string[] }> =>

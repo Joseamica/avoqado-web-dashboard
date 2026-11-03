@@ -35,7 +35,7 @@ vi.mock('@tanstack/react-query', async importOriginal => {
   }
 })
 
-import { useDeliveryStatus } from './use-delivery-status'
+import { intervaloDeRappi, useDeliveryStatus } from './use-delivery-status'
 
 type MockQueryOptions = { queryKey: readonly unknown[]; enabled?: boolean }
 
@@ -162,13 +162,49 @@ describe('useDeliveryStatus', () => {
     expect(result.current.state).toBe('TEASER')
   })
 
-  it('canal PAUSED (no ACTIVE) + solicitud viva → PENDING, no LIVE', () => {
+  it('canal PAUSED → LIVE: sigue en el panel vivo, donde está el control para reanudarlo (Rappi fase 3)', () => {
     mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: false })
     mockQueries({ channels: [activeChannel({ status: 'PAUSED' })], activationRequest: pendingRequest() })
 
     const { result } = renderHook(() => useDeliveryStatus('venue-1'), { wrapper })
 
-    expect(result.current.state).toBe('PENDING')
+    expect(result.current.state).toBe('LIVE')
+  })
+
+  it('canal DISABLED + sin solicitud → TEASER (ahí sale «Reconectar»)', () => {
+    mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: false })
+    mockQueries({ channels: [activeChannel({ provider: 'RAPPI', status: 'DISABLED' })], activationRequest: null })
+
+    const { result } = renderHook(() => useDeliveryStatus('venue-1'), { wrapper })
+
+    expect(result.current.state).toBe('TEASER')
+  })
+
+  it('con alguna tienda de Rappi la lista se refresca cada 30 s (sólo con la pestaña visible); sin Rappi no', () => {
+    mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: false })
+    mockQueries({ channels: [] })
+
+    renderHook(() => useDeliveryStatus('venue-1'), { wrapper })
+
+    const canales = (mockUseQuery.mock.calls as [MockQueryOptions & Record<string, unknown>][])
+      .map(([o]) => o)
+      .find(o => o.queryKey[0] === 'deliveryChannels')!
+    const intervalo = canales.refetchInterval as (q: { state: { data?: DeliveryChannelLink[] } }) => number | false
+    expect(intervalo({ state: { data: [activeChannel({ provider: 'RAPPI' })] } })).toBe(30_000)
+    expect(intervalo({ state: { data: [activeChannel()] } })).toBe(false)
+    expect(intervalo({ state: { data: undefined } })).toBe(false)
+    expect(canales.refetchIntervalInBackground).not.toBe(true)
+    // Al volver a la pestaña SIEMPRE se relee, aunque todavía no haya Rappi (Codex código r1 #2: la primera conexión).
+    expect(canales.refetchOnWindowFocus).toBe('always')
+  })
+
+  it('mientras una tienda de Rappi espera confirmación se refresca cada 10 s, sólo los primeros 5 min', () => {
+    const ahora = Date.parse('2026-10-25T12:00:00.000Z')
+    const esperando = (haceMs: number) =>
+      activeChannel({ provider: 'RAPPI', status: 'PENDING', updatedAt: new Date(ahora - haceMs).toISOString() })
+    expect(intervaloDeRappi([esperando(60_000)], ahora)).toBe(10_000)
+    expect(intervaloDeRappi([esperando(6 * 60_000)], ahora)).toBe(30_000)
+    expect(intervaloDeRappi([activeChannel({ status: 'PENDING', updatedAt: new Date(ahora).toISOString() })], ahora)).toBe(false)
   })
 
   it('tier cargando → isLoading true (independiente de si las queries de canal ya resolvieron)', () => {

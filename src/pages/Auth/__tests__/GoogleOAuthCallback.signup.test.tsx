@@ -48,7 +48,7 @@ beforeEach(() => {
 
 describe('GoogleOAuthCallback — alta', () => {
   it('🔴 manda el intento del alta, registra la conversión y lleva al asistente', async () => {
-    guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' } })
+    guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' }, referrer: 'avoqado.io' })
     googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: true })
 
     render(<GoogleOAuthCallback />)
@@ -58,6 +58,7 @@ describe('GoogleOAuthCallback — alta', () => {
       legalVersion: 'v1',
       launchCampaignCode: 'POS22MX',
       utm: { utm_source: 'google' },
+      referrer: 'avoqado.io',
     })
     expect(trackSignup).toHaveBeenCalledWith('google', 'POS22MX')
     // se consumió: un inicio de sesión posterior no lo reutiliza

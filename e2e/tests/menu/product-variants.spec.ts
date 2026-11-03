@@ -251,6 +251,7 @@ test.describe('Variantes de producto', () => {
     await page.locator('[data-tour="product-wizard-category"] input').click()
     await page.getByRole('option', { name: 'Ropa' }).click()
 
+    await page.locator('[data-tour="product-wizard-add-variants"]').click()
     const casilla = page.locator('#producto-con-variantes')
     await expect(casilla).toBeEnabled()
     await casilla.click()
@@ -365,9 +366,9 @@ test.describe('Variantes de producto', () => {
     await abrirProductos(page)
 
     await abrirAsistente(page)
-    const casilla = page.locator('[data-tour="product-wizard-variants-toggle"]')
+    const casilla = page.locator('[data-tour="product-wizard-add-variants"]')
     await expect(casilla).toBeVisible()
-    await expect(page.locator('#producto-con-variantes')).toBeDisabled()
+    await expect(casilla).toBeDisabled()
     await expect(casilla).toContainText('Pro')
     await expect(casilla).toContainText('Disponible en Pro y Premium.')
     await page.getByRole('button', { name: 'Cancelar' }).click()

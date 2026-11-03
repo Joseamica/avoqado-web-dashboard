@@ -157,6 +157,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
 
     routes: [
       { path: 'payments', element: 'Payments' },
+      { path: 'payments/exchanges', element: 'Exchanges' },
       { path: 'payments/:paymentId', element: 'PaymentId' },
     ],
 

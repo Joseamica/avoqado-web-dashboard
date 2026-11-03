@@ -49,4 +49,11 @@ describe('totalesDelRecibo', () => {
       total: 10,
     })
   })
+
+  it('D1 fotocopia: con la copia, Subtotal $30 y Descuento $3 del papel; propina y total, los del cobro', () => {
+    const lineasDelTicket = { lineas: [{ nombre: 'Café', cantidad: 1, unitarioCents: 3000, totalCents: 3000, nota: 'sin azúcar' }], subtotalCents: 3000, descuentoCents: 300 }
+    const ticketTotals = { kind: 'COBRO' as const, desglosado: false, subtotal: 27, serviceCharge: 0, addedTax: 0, tip: 2, total: 29, parcial: true as const }
+    expect(totalesDelRecibo({ ticketTotals, lineasDelTicket })).toEqual({ ...ticketTotals, subtotal: 30, discount: 3 })
+    expect(totalesDelRecibo({ ticketTotals })).toEqual(ticketTotals)
+  })
 })

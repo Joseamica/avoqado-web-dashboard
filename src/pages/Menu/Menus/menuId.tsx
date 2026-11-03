@@ -1,4 +1,5 @@
 import AlertDialogWrapper from '@/components/alert-dialog'
+import { DondeSeUsaField } from './components/DondeSeUsaField'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -12,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { deleteMenu, getMenu, getMenuCategories, updateMenu } from '@/services/menu.service'
 import { MenuType } from '@/types'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ExampleCard } from '@/components/example-card'
 import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
 import { format } from 'date-fns'
@@ -93,7 +94,13 @@ export default function MenuId() {
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const from = (location.state as any)?.from || '/'
+  // «Qué muestra cada aparato» (Dispositivos) lee los menús: un cambio aquí cambia sus chips y sus opciones (Codex r1 #2).
+  const refrescarAparatos = () => {
+    queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
+    queryClient.invalidateQueries({ queryKey: ['device-menu-options', venueId] })
+  }
 
   // Consulta del menú a editar
   const { data: menuData, isLoading: isMenuLoading } = useQuery({
@@ -120,6 +127,8 @@ export default function MenuId() {
       endTime: '19:30',
       isActive: true,
       isAllDay: false,
+      appliesToDevices: true,
+      appliesToOnline: true,
       startDate: null as Date | null,
       endDate: null as Date | null,
       type: MenuType.REGULAR as MenuType,
@@ -157,6 +166,8 @@ export default function MenuId() {
         endTime: defaultEndTime,
         isActive: menuData.active,
         isAllDay: isAllDayValue,
+        appliesToDevices: menuData.appliesToDevices ?? true,
+        appliesToOnline: menuData.appliesToOnline ?? true,
         startDate: menuData.startDate ? new Date(menuData.startDate) : null,
         endDate: menuData.endDate ? new Date(menuData.endDate) : null,
         type: (menuData.type as MenuType) || MenuType.REGULAR,
@@ -170,6 +181,7 @@ export default function MenuId() {
       return await updateMenu(venueId, menuId, formValues)
     },
     onSuccess: (data: any) => {
+      refrescarAparatos()
       toast({
         title: t('menuId.toast.menuUpdated', { name: data.name.toLowerCase() }),
         description: t('menuId.toast.menuUpdatedDesc'),
@@ -179,7 +191,7 @@ export default function MenuId() {
     onError: (error: any) => {
       toast({
         title: t('menuId.toast.errorSaving'),
-        description: error.message || t('menuId.toast.errorSavingDesc'),
+        description: error.response?.data?.message || error.message || t('menuId.toast.errorSavingDesc'),
         variant: 'destructive',
       })
     },
@@ -191,6 +203,7 @@ export default function MenuId() {
       return await updateMenu(venueId, menuId, { active })
     },
     onSuccess: (data: any) => {
+      refrescarAparatos()
       const statusKey = data.active ? 'menuId.toast.menuStatusActive' : 'menuId.toast.menuStatusInactive'
       toast({
         title: t(statusKey),
@@ -214,6 +227,7 @@ export default function MenuId() {
       await deleteMenu(venueId, menuId)
     },
     onSuccess: () => {
+      refrescarAparatos()
       toast({
         title: t('menuId.toast.menuDeleted'),
         description: t('menuId.toast.menuDeletedDesc'),
@@ -240,6 +254,8 @@ export default function MenuId() {
   const endTime = form.watch('endTime')
   const isAllDay = form.watch('isAllDay')
   const isActive = form.watch('isActive')
+  const appliesToDevices = form.watch('appliesToDevices')
+  const appliesToOnline = form.watch('appliesToOnline')
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
   const menuType = form.watch('type')
@@ -267,7 +283,8 @@ export default function MenuId() {
 
   function onSubmit(formValues: any) {
     form.clearErrors()
-    const { name, categories, days, startTime, endTime, isAllDay, isActive, startDate, endDate, type } = formValues
+    const { name, categories, days, startTime, endTime, isAllDay, isActive, startDate, endDate, type, appliesToDevices, appliesToOnline } =
+      formValues
 
     if (!name.trim()) {
       form.setError('name', { type: 'manual', message: t('menuId.validation.nameRequired') })
@@ -321,6 +338,8 @@ export default function MenuId() {
       name,
       type,
       active: isActive,
+      appliesToDevices,
+      appliesToOnline,
       availableFrom: isAllDay ? null : startTime,
       availableUntil: isAllDay ? null : endTime,
       availableDays: availableDaysPayload,
@@ -358,7 +377,11 @@ export default function MenuId() {
             }
             triggerVariant="outline"
             title={t('menuId.dialogs.deleteTitle')}
-            message={t('menuId.dialogs.deleteMessage')}
+            message={
+              menuData?.appliesToDevices
+                ? t('menuId.dialogs.deleteMessageAparatos', { name: menuData.name })
+                : t('menuId.dialogs.deleteMessageNombre', { name: menuData?.name ?? '' })
+            }
             rightButtonLabel={t('menuId.dialogs.deleteButton')}
             rightButtonVariant="destructive"
             onRightButtonClick={() => deleteMenuMutation.mutate()}
@@ -645,6 +668,18 @@ export default function MenuId() {
                       </label>
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <DondeSeUsaField
+                    value={{ appliesToDevices, appliesToOnline }}
+                    onChange={v => {
+                      form.setValue('appliesToDevices', v.appliesToDevices, { shouldDirty: true })
+                      form.setValue('appliesToOnline', v.appliesToOnline, { shouldDirty: true })
+                    }}
+                    // Sólo si lo guardado tenía la tienda en línea: si ya era sólo de aparatos, no hay horario que perder.
+                    tiendaUsabaHorario={!isAllDay && menuData?.appliesToOnline !== false}
+                  />
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">

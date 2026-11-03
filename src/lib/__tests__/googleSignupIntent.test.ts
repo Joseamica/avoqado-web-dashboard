@@ -28,7 +28,13 @@ describe('intento de alta con Google', () => {
 
   it('lo que se guarda antes de ir a Google vuelve igual al regresar', () => {
     guardarIntentoDeAltaGoogle(
-      { legalVersion: 'v1', hybridOfferSlug: 'septiembre-flex', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' } },
+      {
+        legalVersion: 'v1',
+        hybridOfferSlug: 'septiembre-flex',
+        launchCampaignCode: 'POS22MX',
+        utm: { utm_source: 'google' },
+        referrer: 'avoqado.io',
+      },
       1000,
     )
     expect(tomarIntentoDeAltaGoogle(2000)).toEqual({
@@ -36,7 +42,13 @@ describe('intento de alta con Google', () => {
       hybridOfferSlug: 'septiembre-flex',
       launchCampaignCode: 'POS22MX',
       utm: { utm_source: 'google' },
+      referrer: 'avoqado.io',
     })
+  })
+
+  it('un referrer alterado (no es un host) no viaja al servidor', () => {
+    datos.set(GOOGLE_SIGNUP_INTENT_KEY, JSON.stringify({ legalVersion: 'v1', referrer: 'https://x.com/<script>', savedAt: 1000 }))
+    expect(tomarIntentoDeAltaGoogle(2000)).toEqual({ legalVersion: 'v1' })
   })
 
   it('🔴 se consume UNA vez: un intento viejo no convierte en alta un inicio de sesión posterior', () => {

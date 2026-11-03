@@ -414,3 +414,43 @@ describe('🔴 full-testing 26-sep: tras un rechazo se puede pagar con OTRA tarj
     await waitFor(() => expect(onActivated).toHaveBeenCalledTimes(1))
   })
 })
+
+/**
+ * D13 (28-oct): las tarjetas le hablaban de «Mesas» y «recetas» a una tienda de ropa. El giro que eligió en
+ * el paso 3 (`data.businessType`) decide las viñetas de Pro y Premium.
+ */
+describe('viñetas de los planes según el giro', () => {
+  const vinetas = async (plan: 'PRO' | 'PREMIUM') => {
+    await screen.findByRole('button', { name: 'Elegir Pro' })
+    return Array.from(document.querySelector(`[data-plan="${plan}"]`)!.querySelectorAll('li')).map(li => li.textContent)
+  }
+
+  it('una tienda (CLOTHING) ve las de comercio, sin «Mesas»', async () => {
+    pintarEstandar({ data: { businessType: 'CLOTHING' } })
+    expect(await vinetas('PRO')).toContain('Usuarios y cajas ilimitados')
+    expect(await vinetas('PREMIUM')).toContain('Reorden automático de mercancía')
+    expect(screen.queryByText(/Mesas/)).not.toBeInTheDocument()
+  })
+
+  it('un restaurante ve las de siempre', async () => {
+    pintarEstandar({ data: { businessType: 'RESTAURANT' } })
+    expect(await vinetas('PRO')).toContain('Mesas y usuarios ilimitados')
+    expect(await vinetas('PREMIUM')).toContain('Inventario con recetas y costeo')
+  })
+
+  it('una estética (SALON) ve las de servicios', async () => {
+    pintarEstandar({ data: { businessType: 'SALON' } })
+    expect(await vinetas('PRO')).toContain('Citas y reservas')
+  })
+
+  it.each([['HOTEL'], ['CINEMA'], ['OTHER'], [undefined]])('giro %s ⇒ las genéricas', async businessType => {
+    pintarEstandar({ data: businessType ? { businessType } : undefined })
+    expect(await vinetas('PRO')).toEqual([
+      'Cobra con tarjeta y efectivo',
+      'Usuarios ilimitados',
+      'Corte y arqueo de caja',
+      'Lealtad, promociones y reservas',
+    ])
+    expect(await vinetas('PREMIUM')).toContain('Control de inventario')
+  })
+})

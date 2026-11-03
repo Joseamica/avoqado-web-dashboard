@@ -123,6 +123,7 @@ const CURACION = {
     ['TABLES', ['tables'], 'Table Management'],
     ['RESERVATIONS', ['reservations'], 'Reservations'],
     ['CLASS_SESSIONS', ['class-sessions'], 'Clases asignadas'],
+    ['SELF_SERVICE', ['self-service'], 'Autoservicio'],
     ['CALENDAR', ['calendar'], 'Calendario'],
   ],
   'team-settings': [

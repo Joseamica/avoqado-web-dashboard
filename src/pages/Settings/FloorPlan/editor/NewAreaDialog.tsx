@@ -85,6 +85,9 @@ export function NewAreaDialog({
       max={max}
       value={value ?? ''}
       aria-label={label}
+      // Al picar, el número que trae queda seleccionado y lo que se escribe lo reemplaza: detrás de él, «4» + «6» daba 46
+      // y saltaba al tope (los dueños picaban 3-4 veces para borrarlo, PostHog 19 y 23-oct).
+      onFocus={e => e.currentTarget.select()}
       onChange={e => {
         const raw = e.target.value
         const n = parseInt(raw, 10)

@@ -729,6 +729,49 @@
       "description": "Lo que capturaste de este producto se va a perder.",
       "confirm": "Descartar",
       "keepEditing": "Seguir editando"
+    },
+    "optional": {
+      "more": "Más opciones",
+      "remove": "Quitar sección",
+      "removeTitle": "¿Quitar {{section}} de este producto?",
+      "removeDescription": "Se borra lo que escribiste en esta sección.",
+      "confirmRemove": "Quitar",
+      "variants": {
+        "title": "Tallas o colores",
+        "description": "Una prenda en varias tallas o colores"
+      },
+      "inventory": {
+        "title": "Inventario",
+        "description": "Lleva cuántas piezas tienes y avisa cuando se acaben"
+      },
+      "recipe": {
+        "title": "Receta e insumos",
+        "description": "Descuenta ingredientes cada vez que vendes"
+      },
+      "codes": {
+        "title": "Código de barras y SKU",
+        "description": "Para la pistola, las etiquetas y Shopify"
+      },
+      "weight": {
+        "title": "Se vende por peso",
+        "description": "Para granel, carnicería o dulces por kilo"
+      },
+      "modifiers": {
+        "title": "Modificadores",
+        "description": "Para que el cliente elija sin cebolla o extra queso"
+      },
+      "preparation": {
+        "title": "Dónde se prepara",
+        "description": "A qué impresora o pantalla de cocina sale"
+      },
+      "description": {
+        "title": "Descripción",
+        "description": "La ven tus clientes al pedir en línea"
+      },
+      "fiscal": {
+        "title": "Datos para factura",
+        "description": "Para que la venta se pueda facturar"
+      }
     }
   },
   "conversion": {

@@ -8,6 +8,7 @@ import { LoadingScreen } from './components/spinner'
 import './i18n'
 import './index.css'
 import './theme.css'
+import { capturarBoletoDeAlta } from './lib/boleto-de-alta-capture'
 import { captureDemoTourParams } from './lib/demo-tour-capture'
 import { reloadForChunkError } from './lib/lazyWithRetry'
 import { initPostHog } from './lib/posthog'
@@ -15,6 +16,10 @@ import { initPostHog } from './lib/posthog'
 // Avoqado Tour handoff (?demoTour=...): stash + strip BEFORE the router mounts —
 // the auth/venue redirects would drop the query string before any hook sees it.
 captureDemoTourParams()
+
+// Boleto del alta con código (/auth/entrar#boleto=...): guardarlo y borrarlo de la URL ANTES de PostHog,
+// que captura la URL. Es una credencial de un solo uso.
+capturarBoletoDeAlta()
 
 // PostHog product analytics — no-op unless VITE_POSTHOG_KEY is set
 initPostHog()

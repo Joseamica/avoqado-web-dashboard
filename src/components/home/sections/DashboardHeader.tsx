@@ -7,6 +7,7 @@ import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { getPreviousPeriod } from '@/utils/datetime'
+import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
 interface DashboardHeaderProps {
@@ -53,6 +54,8 @@ export const DashboardHeader = ({
   exportToCSV,
 }: DashboardHeaderProps) => {
   const { t, i18n } = useTranslation('home')
+  // La misma zona con que el selector de fechas arma los días (D4).
+  const venueTimezone = useAuth().activeVenue?.timezone || 'America/Mexico_City'
   const localeCode = getIntlLocale(i18n.language)
 
   return (
@@ -87,7 +90,7 @@ export const DashboardHeader = ({
             showCompare={false}
             onUpdate={({ range }) => {
               setSelectedRange(range)
-              const prevRange = getPreviousPeriod(range)
+              const prevRange = getPreviousPeriod(range, venueTimezone)
               setCompareRange(prevRange)
               setCompareType('custom')
               setComparisonLabel(t('comparison.previousPeriod'))

@@ -15,7 +15,9 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AUTH_STATUS_QUERY_KEY } from '@/services/auth.service'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { ToastAction } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -339,21 +341,40 @@ export function TpvConfiguration() {
   const saveVenueInfoMutation = useMutation({
     mutationFn: async () => {
       if (!venueId) throw new Error('No venue ID')
+      const zonaEnviada = venueTimezone
       await api.put(`/api/v1/dashboard/venues/${venueId}`, {
         name: venueName,
         address: venueAddress,
         city: venueCity,
         state: venueState,
         zipCode: venueZipCode,
-        timezone: venueTimezone,
+        timezone: zonaEnviada,
         latitude: venueLatitude,
         longitude: venueLongitude,
       })
+      return zonaEnviada
     },
-    onSuccess: () => {
+    onSuccess: zonaEnviada => {
       setVenueInfoHasChanges(false)
-      queryClient.invalidateQueries({ queryKey: ['auth-status'] })
+      // ['auth-status'] no lo leía nadie: así la lista de sucursales toma el nombre nuevo.
+      queryClient.invalidateQueries({ queryKey: AUTH_STATUS_QUERY_KEY })
       toast({ title: t('playtelecom:tpvConfig.venueInfoSaved', { defaultValue: 'Informacion de la tienda guardada' }) })
+      // Casi todas las pantallas arman su rango con la zona al abrirse: si la que se guardó no es la que usa el panel, hay
+      // que recargar (D5). Se ofrece y no se hace sola, igual que en «Información del local»: una recarga al terminar el
+      // guardado puede caer encima de algo a medio capturar.
+      if (zonaEnviada !== (activeVenue?.timezone || 'America/Mexico_City')) {
+        toast({
+          title: t('playtelecom:tpvConfig.timezoneReloadPending', {
+            defaultValue: 'Guardaste otra zona horaria. Recarga la página para que todo el panel la use.',
+          }),
+          duration: Infinity, // se queda hasta que la persona recargue o lo cierre: no debe pasar de largo
+          action: (
+            <ToastAction altText={t('playtelecom:tpvConfig.reload', { defaultValue: 'Recargar' })} onClick={() => window.location.reload()}>
+              {t('playtelecom:tpvConfig.reload', { defaultValue: 'Recargar' })}
+            </ToastAction>
+          ),
+        })
+      }
     },
     onError: (error: any) => {
       const msg =

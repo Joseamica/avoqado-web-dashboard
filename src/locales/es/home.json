@@ -76,7 +76,7 @@
   },
   "charts": {
     "sales": "Ventas",
-    "transactions": "NÂ° Transacciones",
+    "transactions": "N° Transacciones",
     "tips": "Propinas",
     "tipPercentage": "Propinas %",
     "revenue": "Ingresos",
@@ -89,7 +89,7 @@
     "totalOrders": "Órdenes totales",
     "ordersLabel": "Órdenes",
     "rating": "Calificación",
-    "reviewCount": "NÂ° Reviews",
+    "reviewCount": "N° Reviews",
     "prepTime": "Tiempo Real",
     "target": "Meta"
   },

@@ -12,6 +12,8 @@ import {
   getDeliverySummary,
   pauseChannel,
   updateChannel,
+  getRappiConnectUrl,
+  disconnectChannel,
 } from '@/services/delivery.service'
 
 const mocked = api as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> }
@@ -161,5 +163,35 @@ describe('delivery.service', () => {
 
     expect(mocked.patch).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/channels/link-1', { orderAcceptanceMode: 'MANUAL' })
     expect(result.orderAcceptanceMode).toBe('MANUAL')
+  })
+
+  // Rappi fase 3 — conectar y desconectar desde la página Delivery
+  it('getRappiConnectUrl: GET a /channels/rappi/connect-url (respuesta sin envoltura data)', async () => {
+    mocked.get.mockResolvedValue({ data: { ok: true, url: 'https://rappi.test/start', instrucciones: 'abre' } })
+
+    const result = await getRappiConnectUrl('v1')
+
+    expect(mocked.get).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/channels/rappi/connect-url')
+    expect(result).toEqual({ ok: true, url: 'https://rappi.test/start', instrucciones: 'abre' })
+  })
+
+  it('disconnectChannel: POST a /channels/:linkId/disconnect con el conexionId y desenvuelve data', async () => {
+    mocked.post.mockResolvedValue({ data: { success: true, data: { id: 'link-1', status: 'DISABLED' }, yaEstaba: false } })
+
+    const result = await disconnectChannel('v1', 'link-1', 'i1:900')
+
+    expect(mocked.post).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/channels/link-1/disconnect', { conexionId: 'i1:900' })
+    expect(result.status).toBe('DISABLED')
+  })
+
+  it('disconnectChannel con forzar manda { conexionId, forzar: true }', async () => {
+    mocked.post.mockResolvedValue({ data: { success: true, data: { id: 'link-1', status: 'DISABLED' } } })
+
+    await disconnectChannel('v1', 'link-1', 'i1:900', { forzar: true })
+
+    expect(mocked.post).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/channels/link-1/disconnect', {
+      conexionId: 'i1:900',
+      forzar: true,
+    })
   })
 })

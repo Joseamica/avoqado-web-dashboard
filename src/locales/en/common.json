@@ -208,7 +208,7 @@
     "dismissButton": "Dismiss banner",
     "liveDemo": {
       "title": "🚀 This is just the demo",
-      "description": "Create your free account and start accepting real payments in minutes. No card required.",
+      "description": "Create your free account and start accepting real payments in minutes. We'll ask for a card when you pick your plan.",
       "signupButton": "Create my free account",
       "salesButton": "Talk to sales"
     }
@@ -449,7 +449,7 @@
       "validation": {
         "nameRequired": "Enter the product name.",
         "priceRequired": "Enter a valid price greater than 0.",
-        "skuInvalid": "SKU only allows letters, numbers, dashes, and underscores.",
+        "skuInvalid": "SKU only allows letters without accents, numbers, spaces, dots, dashes, and underscores.",
         "categoryRequired": "Select a category for the product.",
         "modifierGroupRequired": "Select at least one modifier group."
       },

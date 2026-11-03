@@ -10,12 +10,14 @@
 // ============================================================================
 
 /**
- * SKU Pattern: letters (either case), numbers, hyphens, and underscores — the same rule as the server
- * (`SKU_REGEX`). The forms still uppercase what the user types; a lowercase SKU saved by the wizard, the MCP or an
- * import must not block saving the product (D5, full-testing integral 15-oct).
- * Examples: PROD-001, ITEM_123, ABC123
+ * SKU Pattern: letters without accents (either case), numbers, hyphens, underscores, dots, and spaces between
+ * characters (never at the start or the end) — the same rule as the server (`SKU_REGEX`, menu.schema.ts). Spaces and
+ * dots came in on 30-oct (D3): codes from other POS carry them (MyBusiness: «Q. AHUMADO», «LALA1.5»). The forms still
+ * uppercase what the user types; a lowercase SKU saved by the wizard, the MCP or an import must not block saving the
+ * product (D5, full-testing integral 15-oct).
+ * Examples: PROD-001, ITEM_123, ABC123, Q. AHUMADO
  */
-export const SKU_PATTERN = /^[A-Za-z0-9_-]+$/
+export const SKU_PATTERN = /^[A-Za-z0-9._-](?:[A-Za-z0-9 ._-]*[A-Za-z0-9._-])?$/
 
 /**
  * Get SKU validation rules for react-hook-form
@@ -34,13 +36,20 @@ export const getSkuValidationRules = (t: (key: string) => string) => ({
 // ============================================================================
 
 /**
+ * Most characters a product name can have: the same limit as the server (`ProductBodyBase.name`, `.max(255)` in
+ * `avoqado-server/src/schemas/dashboard/menu.schema.ts`). It was 30, so products that came in with a longer name
+ * (imports, the MCP, a catalog load: 265 of La Galeterie's 934) could not be saved from their product page (D2, 30-oct).
+ */
+export const PRODUCT_NAME_MAX_LENGTH = 255
+
+/**
  * Get product name validation rules
  * @param t - Translation function
  */
 export const getNameValidationRules = (t: (key: string) => string) => ({
   required: { value: true, message: t('forms.validation.nameRequired') },
   minLength: { value: 3, message: t('forms.validation.nameMinLength') },
-  maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
+  maxLength: { value: PRODUCT_NAME_MAX_LENGTH, message: t('forms.validation.productNameMaxLength') },
 })
 
 // ============================================================================

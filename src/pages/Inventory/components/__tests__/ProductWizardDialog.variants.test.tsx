@@ -76,11 +76,13 @@ vi.mock('@/hooks/use-image-uploader', () => ({
     handleFileUpload: subida.nada,
     handleCropConfirm: subida.nada,
     handleFileRemove: subida.nada,
+    resetImage: subida.nada,
     setImageForCrop: subida.nada,
     setCrop: subida.nada,
     setZoom: subida.nada,
   }),
 }))
+vi.mock('@/hooks/use-print-stations', () => ({ usePrintStations: () => ({ data: [], isLoading: false }) }))
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))
 vi.mock('@/components/SatKeyPicker', () => ({ SatKeyPicker: () => null }))
 const catalogo = vi.hoisted(() => ({ maestro: false }))
@@ -120,7 +122,18 @@ function pintar({
 }
 
 const botonGuardar = () => screen.getByRole('button', { name: 'wizard.finish' })
-const casilla = () => screen.findByRole('checkbox', { name: /alta\.casilla/ })
+const casilla = async () => {
+  const opener = document.querySelector<HTMLButtonElement>('[data-tour="product-wizard-add-variants"]')
+  if (opener?.disabled) return opener
+  if (opener) fireEvent.click(opener)
+  return screen.findByRole('checkbox', { name: /alta\.casilla/ })
+}
+const abrirInventario = async () => {
+  const opener = document.querySelector<HTMLButtonElement>('[data-tour="product-wizard-add-inventory"]')!
+  await waitFor(() => expect(opener).toBeEnabled())
+  fireEvent.click(opener)
+}
+
 
 async function llenarNombreYCategoria(nombre: string, categoria = 'Café') {
   fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: nombre } })
@@ -205,8 +218,8 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     pintar()
     fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Agua' } })
     fireEvent.change(screen.getByLabelText(/^wizard\.step1\.price/), { target: { value: '20' } })
-    expect(screen.getByText(Currency(20))).toBeInTheDocument() // la vista previa lateral
-    expect(screen.getByText('wizard.step2.useInventory')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^wizard\.step1\.price/)).toHaveValue(20)
+    expect(document.querySelector('[data-tour="product-wizard-add-inventory"]')).toBeInTheDocument()
     fireEvent.click(await casilla())
     expect(screen.queryByText(Currency(20))).not.toBeInTheDocument() // un precio que no se guarda no se muestra
     expect(screen.queryByLabelText(/^wizard\.step1\.price/)).not.toBeInTheDocument()
@@ -321,12 +334,10 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     productWizardApiMock.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
     pintar()
     fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Playera' } })
-    const usarInventario = screen.getByRole('switch', { name: 'wizard.step2.useInventory' })
-    await waitFor(() => expect(usarInventario).toBeEnabled())
-    fireEvent.click(usarInventario)
-    expect(await screen.findByText('wizard.preview.stock')).toBeInTheDocument()
+    await abrirInventario()
+    expect(screen.getByLabelText(/^wizard\.step3\.initialStock/)).toBeInTheDocument()
     fireEvent.click(await casilla())
-    expect(screen.queryByText('wizard.preview.stock')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^wizard\.step3\.initialStock/)).not.toBeInTheDocument()
   })
 
   it('el precio sale de la validación sólo con la casilla: al desmarcarla vuelve a ser obligatorio y conserva lo tecleado', async () => {
@@ -547,15 +558,13 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(onOpenChange).not.toHaveBeenCalled()
   })
 
-  it('Codex r1 P3: prender sólo el inventario cuenta como captura', async () => {
+  it('abrir inventario sin escribir no cuenta como captura (nuevo contrato Focus3)', async () => {
     productWizardApiMock.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
     const { onOpenChange } = pintar()
-    const usarInventario = await screen.findByRole('switch', { name: 'wizard.step2.useInventory' })
-    await waitFor(() => expect(usarInventario).toBeEnabled())
-    fireEvent.click(usarInventario)
+    await abrirInventario()
     fireEvent.click(screen.getByRole('button', { name: 'cancel' }))
-    expect(await screen.findByText('wizard.discard.title')).toBeInTheDocument()
-    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(screen.queryByText('wizard.discard.title')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
   it('elegir sólo la categoría también cuenta como captura', async () => {
@@ -575,12 +584,12 @@ describe('asistente de producto: alta con variantes (Tarea 5)', () => {
     expect(onOpenChange).not.toHaveBeenCalled()
   })
 
-  it('la vista previa dice cuántas variantes van y su precio (o el rango)', async () => {
+  it('las filas conservan la cantidad de variantes y sus precios al eliminar la vista previa lateral', async () => {
     pintar()
     await prepararFamiliaValida()
-    expect(screen.getByText(`alta.vistaPrevia · ${Currency(199)}`)).toBeInTheDocument()
+    expect(screen.getAllByLabelText('tabla.precio').map(el => (el as HTMLInputElement).value)).toEqual(['199', '199'])
     fireEvent.change(screen.getAllByLabelText('tabla.precio')[1], { target: { value: '249' } })
-    expect(screen.getByText(`alta.vistaPrevia · ${Currency(199)} – ${Currency(249)}`)).toBeInTheDocument()
+    expect(screen.getAllByLabelText('tabla.precio').map(el => (el as HTMLInputElement).value)).toEqual(['199', '249'])
   })
 
   it('🔴 sin la casilla, el alta sigue siendo la de siempre (y termina bien)', async () => {
@@ -624,6 +633,7 @@ describe('asistente de producto: editar una variante (Tarea 13)', () => {
     const { onOpenChange } = pintar({ mode: 'edit' })
     expect(await screen.findByText('variante.aviso')).toBeInTheDocument()
     expect(await screen.findByDisplayValue('Playera · M')).toBeDisabled()
+    fireEvent.click(document.querySelector('[data-tour="product-wizard-add-description"]')!)
     expect(screen.getByPlaceholderText('wizard.step1.descriptionPlaceholder')).toBeDisabled()
     expect(screen.getByPlaceholderText('wizard.step1.categoryPlaceholder')).toBeDisabled()
     expect(screen.getByLabelText(/^wizard\.step1\.price/)).toBeEnabled()

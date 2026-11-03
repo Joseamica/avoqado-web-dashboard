@@ -106,6 +106,11 @@ export interface StampRewardToClaim {
 }
 
 export interface StampCardStatus {
+  /** Null = el cliente aún no tiene cartilla abierta; el ajuste abre una. */
+  stampCardId: string | null
+  /** Cuántos movimientos tiene la cartilla: parte del candado contra ajustes cruzados. */
+  version: number
+  stampsEnabled: boolean
   stampsEarned: number
   /** 🔴 Viene de la CARTILLA, no de la configuración: quien va a la mitad conserva su meta. */
   stampsRequired: number
@@ -117,6 +122,24 @@ export interface StampCardStatus {
 export const stampCardService = {
   async getStatus(venueId: string, customerId: string): Promise<StampCardStatus> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/loyalty/customers/${customerId}/stamp-card`)
+    return response.data
+  },
+
+  /** Fija el TOTAL de sellos de la cartilla vigente (MANAGER+, `loyalty:adjust`). */
+  async adjust(
+    venueId: string,
+    customerId: string,
+    body: {
+      stampsEarned: number
+      expectedStampCardId: string | null
+      expectedStampsEarned: number
+      expectedVersion: number
+      /** La meta de la foto: el servidor da 409 si cambió (sin cartilla, la de la configuración). */
+      expectedStampsRequired: number
+      reason: string
+    },
+  ): Promise<{ stampCardId: string; from: number; to: number; delta: number; completed: boolean; rewardId?: string; stampsRequired: number }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/customers/${customerId}/loyalty/stamps/adjust`, body)
     return response.data
   },
 

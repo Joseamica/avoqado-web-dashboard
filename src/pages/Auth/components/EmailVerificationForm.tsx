@@ -10,9 +10,11 @@ interface EmailVerificationFormProps {
   email: string
   /** V2 wizard users redirect to /setup instead of /onboarding */
   wizardVersion?: number
+  /** Avisa ANTES de refrescar la sesión: la pantalla de arriba ya no debe decir «tu correo ya estaba verificado». */
+  onVerified?: () => void
 }
 
-export function EmailVerificationForm({ email, wizardVersion }: EmailVerificationFormProps) {
+export function EmailVerificationForm({ email, wizardVersion, onVerified }: EmailVerificationFormProps) {
   const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -28,6 +30,7 @@ export function EmailVerificationForm({ email, wizardVersion }: EmailVerificatio
       return response.data
     },
     onSuccess: async () => {
+      onVerified?.()
       // Force refetch auth status to get updated emailVerified: true
       // Use refetchQueries instead of invalidateQueries to bypass HTTP cache (304)
       await queryClient.refetchQueries({

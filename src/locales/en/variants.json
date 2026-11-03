@@ -73,7 +73,7 @@
     "sinPrecio": "The price of “{{nombre}}” is missing.",
     "precioInvalido": "The price of “{{nombre}}” must be greater than 0 with up to 2 decimals.",
     "costoInvalido": "The cost of “{{nombre}}” must be greater than 0 with up to 2 decimals (leave it empty if you don't know it).",
-    "skuInvalido": "The SKU of “{{nombre}}” can only contain letters, numbers, hyphens and underscores.",
+    "skuInvalido": "The SKU of “{{nombre}}” can only contain letters without accents, numbers, spaces, dots, hyphens and underscores.",
     "skuRepetido": "The SKU “{{sku}}” is repeated.",
     "codigoLargo": "The barcode of “{{nombre}}” is longer than 14 digits.",
     "existenciasInvalidas": "The initial stock of “{{nombre}}” must be a whole number.",
@@ -175,7 +175,7 @@
       "precioInvalido": "The price must be greater than 0 with up to 2 decimals.",
       "costoInvalido": "The cost must be greater than 0 (or leave it empty).",
       "skuVacio": "The SKU can't be empty.",
-      "skuInvalido": "The SKU can only contain letters, numbers, hyphens and underscores.",
+      "skuInvalido": "The SKU can only contain letters without accents, numbers, spaces, dots, hyphens and underscores.",
       "codigoLargo": "The barcode is longer than 14 digits."
     },
     "accionesCol": "Actions"

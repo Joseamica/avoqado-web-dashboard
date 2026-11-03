@@ -17,6 +17,9 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { capturarAtribucion } from '@/lib/acquisition'
+import { contrasenaNuevaZod, CONTRASENA_MIN } from '@/lib/contrasenaNueva'
+import { track } from '@/lib/posthog'
 import { validateResetToken, resetPassword } from '@/services/auth.service'
 
 interface ResetPasswordFormData {
@@ -42,23 +45,12 @@ const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('')
 
   // Password requirements validation
-  const hasMinLength = password.length >= 8
-  const hasUppercase = /[A-Z]/.test(password)
-  const hasLowercase = /[a-z]/.test(password)
-  const hasNumber = /[0-9]/.test(password)
-  const hasSpecial = /[^A-Za-z0-9]/.test(password)
-  const allRequirementsMet = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial
+  const allRequirementsMet = password.length >= CONTRASENA_MIN
 
   // Create schema using translations
   const resetPasswordSchema = z
     .object({
-      newPassword: z
-        .string({ required_error: t('resetPassword.newPasswordRequired') })
-        .min(8, t('resetPassword.passwordMinLength'))
-        .regex(/[A-Z]/, t('resetPassword.requirementUppercase'))
-        .regex(/[a-z]/, t('resetPassword.requirementLowercase'))
-        .regex(/[0-9]/, t('resetPassword.requirementNumber'))
-        .regex(/[^A-Za-z0-9]/, t('resetPassword.requirementSpecial')),
+      newPassword: contrasenaNuevaZod(t),
       confirmPassword: z.string({ required_error: t('resetPassword.confirmPasswordRequired') }),
     })
     .refine(data => data.newPassword === data.confirmPassword, {
@@ -74,6 +66,11 @@ const ResetPassword: React.FC = () => {
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
   })
+
+  // La liga del correo de la landing puede traer `?oferta=`/UTMs: se guardan para el asistente (/setup).
+  useEffect(() => {
+    capturarAtribucion()
+  }, [])
 
   // Watch password field for real-time validation
   const watchPassword = watch('newPassword')
@@ -131,9 +128,21 @@ const ResetPassword: React.FC = () => {
     if (!tokenValue) return
 
     setIsSubmitting(true)
+    let entrando = false
 
     try {
-      await resetPassword(tokenValue, data.newPassword)
+      const respuesta = await resetPassword(tokenValue, data.newPassword)
+      if (esCuentaNueva) track('alta_contrasena_creada', { via: 'link' })
+
+      // Prospecto de la landing: el servidor da una liga de entrada (/auth/entrar#boleto=…) y se entra
+      // directo, sin volver a teclear la contraseña. Sólo si es de ESTE dashboard; si no, el camino de siempre.
+      const entrarUrl = ligaDeEntradaPropia(respuesta?.entrarUrl)
+      if (entrarUrl) {
+        entrando = true
+        window.location.assign(entrarUrl)
+        return
+      }
+
       setResetSuccess(true)
 
       toast({
@@ -153,7 +162,8 @@ const ResetPassword: React.FC = () => {
         description: error?.response?.data?.message || t('toast.password_reset_failed_desc'),
       })
     } finally {
-      setIsSubmitting(false)
+      // Mientras el navegador sale a /auth/entrar el botón sigue ocupado: el token ya se gastó.
+      if (!entrando) setIsSubmitting(false)
     }
   }
 
@@ -258,11 +268,7 @@ const ResetPassword: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <p className="font-medium text-foreground">{t('resetPassword.passwordRequirements')}</p>
                       <div className="space-y-1">
-                        <RequirementItem met={hasMinLength} text={t('resetPassword.requirementMinLength')} />
-                        <RequirementItem met={hasUppercase} text={t('resetPassword.requirementUppercase')} />
-                        <RequirementItem met={hasLowercase} text={t('resetPassword.requirementLowercase')} />
-                        <RequirementItem met={hasNumber} text={t('resetPassword.requirementNumber')} />
-                        <RequirementItem met={hasSpecial} text={t('resetPassword.requirementSpecial')} />
+                        <RequirementItem met={allRequirementsMet} text={t('resetPassword.requirementMinLength')} />
                       </div>
                     </div>
 
@@ -329,6 +335,15 @@ const ResetPassword: React.FC = () => {
       </div>
     </div>
   )
+}
+
+function ligaDeEntradaPropia(entrarUrl: string | undefined): string | null {
+  if (!entrarUrl) return null
+  try {
+    return new URL(entrarUrl).origin === window.location.origin ? entrarUrl : null
+  } catch {
+    return null
+  }
 }
 
 // Helper component for password requirements

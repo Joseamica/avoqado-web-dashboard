@@ -2,24 +2,28 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getMenus } from '@/services/menu.service'
 import { MenuWizardDialog } from './components/MenuWizardDialog'
 import { useMenuMakerHeader } from '../MenuMakerLayout'
 
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Menu, MenuCategory } from '@/types'
 import { includesNormalized } from '@/lib/utils'
 
 export default function Menus() {
   const { t } = useTranslation('menu')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
+  // La ruta de Dispositivos pide tpv:read: sin él, el enlace llevaría a una página prohibida.
+  const puedeVerAparatos = useAccess().can('tpv:read')
 
   const location = useLocation()
 
@@ -44,13 +48,20 @@ export default function Menus() {
         />
       ),
       actions: (
-        <Button onClick={() => setWizardOpen(true)} className="flex items-center space-x-2">
-          <span>{t('menus.newMenu')}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {puedeVerAparatos && (
+            <Button variant="outline" asChild>
+              <Link to={`${fullBasePath}/devices?tab=menus`}>{t('menus.dondeSeUsa.enQueAparatos')}</Link>
+            </Button>
+          )}
+          <Button onClick={() => setWizardOpen(true)} className="flex items-center space-x-2">
+            <span>{t('menus.newMenu')}</span>
+          </Button>
+        </div>
       ),
     })
     return () => setHeader({})
-  }, [t, setHeader])
+  }, [t, setHeader, fullBasePath, puedeVerAparatos])
 
   const columns: ColumnDef<Menu, unknown>[] = [
     {
@@ -65,8 +76,20 @@ export default function Menus() {
         </div>
       ),
 
-      cell: ({ cell }) => {
-        return cell.getValue() as string
+      cell: ({ cell, row }) => {
+        const { appliesToDevices, appliesToOnline } = row.original
+        const solo =
+          appliesToDevices && !appliesToOnline ? 'soloAparatos' : !appliesToDevices && appliesToOnline ? 'soloTiendaEnLinea' : null
+        return (
+          <span className="flex items-center gap-2">
+            <span>{cell.getValue() as string}</span>
+            {solo && (
+              <Badge variant="outline" className="text-[10px] font-normal">
+                {t(`menus.dondeSeUsa.${solo}`)}
+              </Badge>
+            )}
+          </span>
+        )
       },
     },
     {

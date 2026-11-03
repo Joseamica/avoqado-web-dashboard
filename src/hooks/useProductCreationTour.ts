@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
 import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
+import { openProductWizardSection } from '@/lib/open-product-wizard-section'
 
 /**
  * Interactive onboarding tour for product creation flow.
@@ -73,6 +74,7 @@ export function useProductCreationTour() {
       nextBtnText: t('tour.next', { defaultValue: 'Siguiente →' }),
       prevBtnText: t('tour.prev', { defaultValue: '← Anterior' }),
       doneBtnText: t('tour.done', { defaultValue: '¡Listo!' }),
+      onDestroyed: () => { driverRef.current = null },
       progressText: t('tour.progress', {
         defaultValue: 'Paso {{current}} de {{total}}',
       }),
@@ -114,10 +116,10 @@ export function useProductCreationTour() {
                 try {
                   await waitForElement('[data-tour="product-type-regular"]')
                 } catch {
-                  /* timeout — advance anyway */
+                  return
                 }
               }
-              d.moveNext()
+              if (driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -144,6 +146,7 @@ export function useProductCreationTour() {
                 regular?.click()
                 // Give React a tick to update the selection state
                 await new Promise(r => setTimeout(r, 120))
+                if (driverRef.current !== d) return
                 const nextBtn = document.querySelector<HTMLButtonElement>(
                   '[data-tour="product-type-next"]',
                 )
@@ -151,10 +154,10 @@ export function useProductCreationTour() {
                 try {
                   await waitForElement('[data-tour="product-wizard-name"]')
                 } catch {
-                  /* timeout — advance anyway */
+                  return
                 }
               }
-              d.moveNext()
+              if (driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -172,6 +175,21 @@ export function useProductCreationTour() {
             }),
             side: 'bottom',
             align: 'start',
+            onNextClick: async () => {
+              if (await openProductWizardSection('description', '[data-tour="product-wizard-optional-description"] textarea', waitForElement) && driverRef.current === d) d.moveNext()
+            },
+          },
+        },
+
+        {
+          element: '[data-tour="product-wizard-optional-description"] textarea',
+          popover: {
+            title: t('tour.stepDescription.title', { defaultValue: 'Agrega una descripción' }),
+            description: t('tour.stepDescription.description', {
+              defaultValue: 'El botón + de Descripción abre este campo opcional. Cuenta brevemente qué vendes; puedes dejarlo vacío.',
+            }),
+            side: 'top',
+            align: 'start',
           },
         },
 
@@ -188,6 +206,9 @@ export function useProductCreationTour() {
             }),
             side: 'bottom',
             align: 'start',
+            onNextClick: async () => {
+              if (await openProductWizardSection('codes', '[data-tour="product-wizard-sku"]', waitForElement) && driverRef.current === d) d.moveNext()
+            },
           },
         },
 
@@ -236,6 +257,9 @@ export function useProductCreationTour() {
             }),
             side: 'left',
             align: 'start',
+            onNextClick: async () => {
+              if (await openProductWizardSection('inventory', '[data-tour="product-wizard-initial-stock"]', waitForElement) && driverRef.current === d) d.moveNext()
+            },
           },
         },
 
@@ -244,31 +268,16 @@ export function useProductCreationTour() {
           element: '[data-tour="product-wizard-track-inventory"]',
           popover: {
             title: t('tour.step6.title', {
-              defaultValue: 'Activa el control de inventario',
+              defaultValue: 'Abre el inventario',
             }),
             description: t('tour.step6.description', {
               defaultValue:
-                'Al prender este switch, cada venta descontará automáticamente del stock. Te avisará cuando esté por agotarse.',
+                'Con el botón + de Inventario abres el conteo por piezas. Cada venta descontará del stock que registres.',
             }),
             side: 'top',
             align: 'start',
             onNextClick: async () => {
-              // Make sure the Track Inventory switch is ON so Stock Inicial becomes visible
-              if (!exists('[data-tour="product-wizard-initial-stock"]')) {
-                const wrapper = document.querySelector(
-                  '[data-tour="product-wizard-track-inventory"]',
-                )
-                const toggle = wrapper?.querySelector<HTMLButtonElement>(
-                  'button[role="switch"]',
-                )
-                toggle?.click()
-                try {
-                  await waitForElement('[data-tour="product-wizard-initial-stock"]')
-                } catch {
-                  /* timeout — advance anyway */
-                }
-              }
-              d.moveNext()
+              if (await openProductWizardSection('inventory', '[data-tour="product-wizard-initial-stock"]', waitForElement) && driverRef.current === d) d.moveNext()
             },
           },
         },
@@ -329,21 +338,62 @@ export function useProductCreationTour() {
     return d
   }, [t])
 
-  const start = useCallback(() => {
-    driverRef.current?.destroy()
-    driverRef.current = buildDriver()
-    driverRef.current.drive(getTourStepIndex('product'))
+  const start = useCallback(async () => {
+    const previous = driverRef.current
+    driverRef.current = null
+    previous?.destroy()
+    const d = buildDriver()
+    driverRef.current = d
+    const index = getTourStepIndex('product')
+    const target = d.getConfig().steps?.[index]?.element
+    const current = () => driverRef.current === d
+
+    // Resume through the same public actions; an open draft must stay untouched.
+    if (typeof target === 'string' && target.includes('product-wizard-')) {
+      if (!exists('[data-tour="product-wizard-name"]')) {
+        if (!exists('[data-tour="product-type-regular"]')) {
+          document.querySelector<HTMLButtonElement>('[data-tour="product-new-btn"]')?.click()
+          try {
+            await waitForElement('[data-tour="product-type-regular"]')
+          } catch {
+            return
+          }
+        }
+        if (!current()) return
+        document.querySelector<HTMLButtonElement>('[data-tour="product-type-regular"]')?.click()
+        await new Promise(resolve => setTimeout(resolve, 120))
+        if (!current()) return
+        document.querySelector<HTMLButtonElement>('[data-tour="product-type-next"]')?.click()
+        try {
+          await waitForElement('[data-tour="product-wizard-name"]')
+        } catch {
+          return
+        }
+      }
+      if (!current()) return
+      if (target.includes('optional-description')) {
+        if (!await openProductWizardSection('description', target, waitForElement)) return
+      } else if (target.includes('-sku') || target.includes('-gtin')) {
+        if (!await openProductWizardSection('codes', target, waitForElement)) return
+      } else if (target.includes('-track-inventory') || target.includes('-initial-stock')) {
+        if (!await openProductWizardSection('inventory', '[data-tour="product-wizard-initial-stock"]', waitForElement)) return
+      }
+    }
+    if (current()) d.drive(index)
   }, [buildDriver])
 
   const stop = useCallback(() => {
-    driverRef.current?.destroy()
+    const current = driverRef.current
     driverRef.current = null
+    current?.destroy()
   }, [])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      driverRef.current?.destroy()
+      const current = driverRef.current
+      driverRef.current = null
+      current?.destroy()
     }
   }, [])
 

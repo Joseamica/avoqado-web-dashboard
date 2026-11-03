@@ -12,7 +12,7 @@ import api from '@/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
@@ -22,6 +22,7 @@ import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
+import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
@@ -185,10 +186,18 @@ export function IssueRefundSheet({
       onRefunded()
     },
     onError: (err: any) => {
+      const delServidor = textoDelServidorEnIdioma(err, tGiftCards)
+      const sinConfirmar = delServidor === undefined && quedoEnDuda(err)
       toast({
-        title: t('refund.error', { defaultValue: 'No se pudo emitir el reembolso' }),
+        title: sinConfirmar
+          ? t('refund.errorUnknownTitle', { defaultValue: 'Reembolso sin confirmar' })
+          : t('refund.error', { defaultValue: 'No se pudo emitir el reembolso' }),
         // Los rechazos de tarjetas de regalo llegan en español con su `code`: con el panel en otro idioma, su traducción.
-        description: textoDelServidorEnIdioma(err, tGiftCards) ?? (err?.response?.data?.message || err?.message),
+        description: delServidor ?? (sinConfirmar
+          ? t('refund.errors.unknown', { defaultValue: 'No supimos si se emitió el reembolso. Revisa los reembolsos de este pago antes de intentarlo otra vez.' })
+          : err?.response?.status === 403
+            ? t('refund.errors.forbidden', { defaultValue: 'No tienes permiso para emitir reembolsos. Pídeselo a quien administra el negocio.' })
+            : err?.response?.data?.message || err?.message),
         variant: 'destructive',
       })
     },
@@ -251,7 +260,7 @@ export function IssueRefundSheet({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 [&>button]:hidden overflow-hidden">
+      <DialogContent hasTitle className="max-w-2xl p-0 gap-0 [&>button]:hidden overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
           {tab === 'items' && itemStep !== 'select' ? (
@@ -268,7 +277,7 @@ export function IssueRefundSheet({
               <X className="h-4 w-4" />
             </Button>
           )}
-          <h2 className="flex-1 text-center text-lg font-semibold pr-9">
+          <DialogTitle className="flex-1 text-center text-lg font-semibold pr-9">
             {tab === 'items' && itemStep === 'restock'
               ? t('refund.restock.title', { defaultValue: 'Reabastecer existencias' })
               : tab === 'items' && itemStep === 'confirm'
@@ -277,8 +286,9 @@ export function IssueRefundSheet({
                     amount: Currency(itemsTotal),
                   })
                 : t('refund.title', { defaultValue: 'Emitir reembolso' })}
-          </h2>
+          </DialogTitle>
         </div>
+        <DialogDescription className="sr-only">{t('refund.description', { defaultValue: 'Elige qué devolver y por qué.' })}</DialogDescription>
 
         {/* Tabs (hidden on step 2/3 of items flow to avoid accidental switch) */}
         {!(tab === 'items' && itemStep !== 'select') && (
@@ -397,7 +407,7 @@ export function IssueRefundSheet({
               onClick={() => refundMutation.mutate()}
             >
               {refundMutation.isPending
-                ? tCommon('processing', { defaultValue: 'Procesando...' })
+                ? t('refund.processing', { defaultValue: 'Procesando...' })
                 : t('refund.confirm', { defaultValue: 'Reembolsar' })}
             </Button>
           )}

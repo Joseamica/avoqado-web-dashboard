@@ -295,4 +295,29 @@ describe('FeatureGrid', () => {
     expect(screen.getByText(/\$149/)).toBeInTheDocument()
     expect(screen.queryByRole('checkbox', { name: 'plan.grid.mark|name=n-LOYALTY_PROGRAM' })).toBeNull()
   })
+
+  it('una función que todavía no existe dice «Próximamente»: ni «En tu plan», ni compra, ni mejora de plan (founder, 1-nov)', () => {
+    const promos = (source: FeatureAccessSource) => entry('CUSTOMER_DISPLAY_PROMOS', 'customers', 'PRO', source, null)
+    const { unmount } = render(
+      <FeatureGrid
+        entries={[promos('PLAN')]}
+        purchasesEnabled
+        mode="ADD"
+        marked={[]}
+        isMarkable={item => isMarkable(item, 'ADD')}
+        onToggle={vi.fn()}
+        onPickTier={vi.fn()}
+        canManage
+        target="PRO"
+      />,
+    )
+    expect(screen.getByText('common:comingSoon')).toBeInTheDocument()
+    expect(screen.queryByText('plan.grid.inPlan')).not.toBeInTheDocument()
+    unmount()
+    const props = renderGrid({ entries: [promos('NONE')], target: 'FREE' })
+    expect(screen.getByText('common:comingSoon')).toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(props.onPickTier).not.toHaveBeenCalled()
+  })
 })

@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Icons } from '@/components/icons'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
+import { contrasenaNuevaZod, CONTRASENA_MIN } from '@/lib/contrasenaNueva'
 import { stashInviteToken } from '@/lib/pendingInvitation'
 import { EmailMismatchWarning } from './Auth/components/EmailMismatchWarning'
 import { DirectAcceptInvitation } from './Auth/components/DirectAcceptInvitation'
@@ -30,12 +31,7 @@ const createAcceptInvitationSchema = (t: any, requirePin = false) =>
     .object({
       firstName: z.string().min(1, t('validation.firstNameRequired')).max(50, t('validation.firstNameMax')),
       lastName: z.string().min(1, t('validation.lastNameRequired')).max(50, t('validation.lastNameMax')),
-      password: z
-        .string()
-        .min(8, t('validation.passwordMin'))
-        .regex(/[A-Z]/, t('validation.passwordUppercase'))
-        .regex(/[a-z]/, t('validation.passwordLowercase'))
-        .regex(/[0-9]/, t('validation.passwordNumber')),
+      password: contrasenaNuevaZod(t),
       confirmPassword: z.string(),
       pin: requirePin
         ? z.string().regex(/^\d{4,10}$/, t('validation.pinFormat'))
@@ -145,11 +141,7 @@ export default function InviteAccept() {
   }, [pinRequired, invitationDetails, trigger])
 
   const passwordValue = watch('password') || ''
-  const hasMinLength = passwordValue.length >= 8
-  const hasUppercase = /[A-Z]/.test(passwordValue)
-  const hasLowercase = /[a-z]/.test(passwordValue)
-  const hasNumber = /[0-9]/.test(passwordValue)
-  const allRequirementsMet = hasMinLength && hasUppercase && hasLowercase && hasNumber
+  const allRequirementsMet = passwordValue.length >= CONTRASENA_MIN
 
   // Fetch invitation details
   useEffect(() => {
@@ -677,10 +669,7 @@ export default function InviteAccept() {
               <div className="space-y-2 text-sm">
                 <p className="font-medium text-foreground">{t('passwordRequirements.title')}</p>
                 <div className="space-y-1">
-                  <RequirementItem met={hasMinLength} text={t('passwordRequirements.minLength')} />
-                  <RequirementItem met={hasUppercase} text={t('passwordRequirements.uppercase')} />
-                  <RequirementItem met={hasLowercase} text={t('passwordRequirements.lowercase')} />
-                  <RequirementItem met={hasNumber} text={t('passwordRequirements.number')} />
+                  <RequirementItem met={allRequirementsMet} text={t('passwordRequirements.minLength')} />
                 </div>
               </div>
             </div>

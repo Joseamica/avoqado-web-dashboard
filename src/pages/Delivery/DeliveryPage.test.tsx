@@ -38,14 +38,20 @@ vi.mock('./components/DeliveryTeaser', () => ({
   DeliveryTeaser: ({ venueId }: { venueId: string }) => <div data-testid="delivery-teaser">teaser-{venueId}</div>,
 }))
 vi.mock('./components/DeliveryPending', () => ({
-  DeliveryPending: ({ request }: { request: DeliveryActivationRequest }) => (
-    <div data-testid="delivery-pending">pending-{request.id}</div>
-  ),
+  DeliveryPending: ({ request }: { request: DeliveryActivationRequest }) => <div data-testid="delivery-pending">pending-{request.id}</div>,
 }))
 vi.mock('./components/DeliveryLivePanel', () => ({
   DeliveryLivePanel: ({ venueId, channels }: { venueId: string; channels: DeliveryChannelLink[] }) => (
     <div data-testid="delivery-live">
       live-{venueId}-{channels.length}
+    </div>
+  ),
+}))
+
+vi.mock('./components/RappiConnectionSection', () => ({
+  RappiConnectionSection: ({ rappiChannels, showRows }: { rappiChannels: DeliveryChannelLink[]; showRows: boolean }) => (
+    <div data-testid="rappi-section" data-rows={String(showRows)}>
+      rappi-{rappiChannels.length}
     </div>
   ),
 }))
@@ -154,5 +160,32 @@ describe('DeliveryPage', () => {
 
     expect(screen.getByTestId('delivery-teaser')).toBeInTheDocument()
     expect(screen.queryByTestId('delivery-pending')).not.toBeInTheDocument()
+  })
+
+  // Rappi fase 3
+  it('TEASER y PENDING muestran la sección de Rappi con sus renglones, sólo con las tiendas de Rappi', () => {
+    mockStatus({
+      state: 'TEASER',
+      channels: [activeChannel({ status: 'DISABLED' }), activeChannel({ id: 'r1', provider: 'RAPPI', status: 'DISABLED' })],
+    })
+    const { unmount } = render(<DeliveryPage />)
+    expect(screen.getByTestId('rappi-section')).toHaveTextContent('rappi-1')
+    expect(screen.getByTestId('rappi-section')).toHaveAttribute('data-rows', 'true')
+    unmount()
+
+    mockStatus({ state: 'PENDING', activationRequest: pendingRequest() })
+    render(<DeliveryPage />)
+    expect(screen.getByTestId('rappi-section')).toHaveAttribute('data-rows', 'true')
+  })
+
+  it('LIVE muestra la sección sin renglones (cada tienda tiene su tarjeta); LOCKED no la muestra', () => {
+    mockStatus({ state: 'LIVE', channels: [activeChannel({ provider: 'RAPPI' })] })
+    const { unmount } = render(<DeliveryPage />)
+    expect(screen.getByTestId('rappi-section')).toHaveAttribute('data-rows', 'false')
+    unmount()
+
+    mockStatus({ state: 'LOCKED' })
+    render(<DeliveryPage />)
+    expect(screen.queryByTestId('rappi-section')).not.toBeInTheDocument()
   })
 })

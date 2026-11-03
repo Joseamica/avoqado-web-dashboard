@@ -65,12 +65,14 @@ vi.mock('@/hooks/use-image-uploader', () => {
     handleFileUpload: () => undefined,
     handleCropConfirm: () => undefined,
     handleFileRemove: () => undefined,
+    resetImage: () => undefined,
     setImageForCrop: () => undefined,
     setCrop: () => undefined,
     setZoom: () => undefined,
   }
   return { useImageUploader: () => subida }
 })
+vi.mock('@/hooks/use-print-stations', () => ({ usePrintStations: () => ({ data: [], isLoading: false }) }))
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))
 vi.mock('@/features/master-catalog/use-master-catalog-error', () => ({ useMasterCatalogError: () => () => false }))
 vi.mock('react-i18next', () => ({
@@ -111,7 +113,7 @@ function montar() {
   const onOpenChange = vi.fn()
   const ui = (open: boolean) => (
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ProductWizardDialog open={open} onOpenChange={onOpenChange} mode="edit" productId="p1" productType="REGULAR" />
       </MemoryRouter>
     </QueryClientProvider>
@@ -203,6 +205,15 @@ describe('asistente de producto (modo edición): el IVA (6b)', () => {
     expect(puts()[0][1]).toMatchObject({ ivaTratamiento: 'EXENTO' })
     // y el estado del IVA se vuelve a pedir: el guardado pudo prender el IVA por producto
     await waitFor(() => expect(svc.getIvaPorProducto.mock.calls.length).toBeGreaterThan(1))
+  })
+
+  it('guardar un producto que ya existe dice «Producto guardado», nunca «Producto creado» (guía del IVA, 31-oct)', async () => {
+    svc.getIvaPorProducto.mockResolvedValue(estado({ encendido: true }))
+    montar()
+    await elegirIva('EXENTO')
+    await guardar()
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'products.detail.toasts.saved' })))
+    expect(toastMock).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'wizard.success' }))
   })
 
   it('si encender necesita algo, la lista aparece junto al selector (guardado sin inventario)', async () => {

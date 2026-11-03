@@ -1,15 +1,27 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EditClassSessionDialog } from '../components/EditClassSessionDialog'
 
-const m = vi.hoisted(() => ({ session: vi.fn(), team: vi.fn(), update: vi.fn() }))
+const m = vi.hoisted(() => ({ session: vi.fn(), team: vi.fn(), update: vi.fn(), preview: vi.fn(), undo: vi.fn() }))
+const access = vi.hoisted(() => ({ allowed: ['reservations:read', 'reservations:update'] as string[] }))
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? k, i18n: { language: 'es' } }),
+  useTranslation: () => ({
+    // El título de «Sí llegó» lleva nombre, clase y hora, y «y N más» lleva el número: se ven en la salida para poder afirmarlos.
+    t: (k: string, o?: { defaultValue?: string }) =>
+      o?.defaultValue ?? ((k === 'undoNoShow.title' || k === 'undoNoShow.rosterMore') && o ? `${k}:${JSON.stringify(o)}` : k),
+    i18n: { language: 'es' },
+  }),
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
-vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City' }) }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p) }) }))
+vi.mock('@/utils/datetime', () => ({
+  useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatTime: (d: string) => d.split('T')[1].substring(0, 5) }),
+}))
+vi.mock('@/services/reservation.service', () => ({
+  default: { previewUndoNoShow: (...a: unknown[]) => m.preview(...a), undoNoShow: (...a: unknown[]) => m.undo(...a) },
+}))
 vi.mock('../components/PagoDeClaseCard', () => ({ PagoDeClaseCard: () => <div>tarjeta de pago</div> }))
 // El TimePicker real llama onChange al elegir de su lista AUNQUE sea la misma hora (time-picker.tsx: handleSelect no
 // compara); este doble hace lo mismo con cada cambio, para probar que elegir la misma hora no mueve nada.
@@ -74,6 +86,7 @@ beforeEach(() => {
   m.session.mockResolvedValue(clase())
   m.team.mockResolvedValue({ data: [ANA] })
   m.update.mockResolvedValue(clase())
+  access.allowed = ['reservations:read', 'reservations:update']
 })
 
 describe('EditClassSessionDialog', () => {
@@ -206,4 +219,112 @@ describe('EditClassSessionDialog', () => {
     await waitFor(() => expect(m.update).toHaveBeenCalled())
     expect(m.update.mock.calls[0][2]).toHaveProperty('assignedStaffId', null)
   })
+// D4 — las faltas viven APARTE de los asistentes (`noShows`): se listan debajo, con «Sí llegó», aunque la clase ya haya terminado.
+describe('EditClassSessionDialog — lista de faltas y «Sí llegó»', () => {
+  const falta = (extra: Record<string, unknown> = {}) => ({
+    id: 'n1',
+    confirmationCode: 'RES-N1',
+    partySize: 1,
+    guestName: 'Karla R.',
+    guestPhone: '+5215550001111',
+    customer: null,
+    noShowAt: '2026-09-28T14:10:00.000Z',
+    status: 'NO_SHOW',
+    aggregatorBooking: null,
+    ...extra,
+  })
+
+  it('pinta las faltas debajo de los asistentes con su etiqueta y «Sí llegó», sin tocar el cupo', async () => {
+    m.session.mockResolvedValue(clase({ noShows: [falta()] }))
+    pintar()
+
+    const cuerpo = await screen.findByTestId('class-session-body')
+    const fila = within(cuerpo).getByText('Karla R.').closest('div[class*="rounded-md"]') as HTMLElement
+    expect(within(fila).getByText('status.NO_SHOW')).toBeInTheDocument()
+    expect(within(fila).getByRole('button', { name: 'undoNoShow.button' })).toBeInTheDocument()
+    // Los asistentes y el cupo siguen igual que antes (8/12): una falta no cuenta.
+    expect(within(cuerpo).getByText('Cliente 7')).toBeInTheDocument()
+    expect(within(cuerpo).getByText('8/12')).toBeInTheDocument()
+  })
+
+  it('una clase COMPLETED sigue enseñando las faltas con «Sí llegó» (la corrección se hace después de la clase)', async () => {
+    m.session.mockResolvedValue(clase({ status: 'COMPLETED', noShows: [falta()] }))
+    pintar()
+
+    expect(await screen.findByRole('button', { name: 'undoNoShow.button' })).toBeInTheDocument()
+    // Ya no se puede editar la clase…
+    expect(screen.queryByRole('button', { name: 'actions.save' })).toBeNull()
+  })
+
+  it('una falta de un pase (aggregatorBooking) lleva la etiqueta «Pase» y NO lleva «Sí llegó»', async () => {
+    m.session.mockResolvedValue(clase({ noShows: [falta({ aggregatorBooking: { id: 'a1', provider: 'TOTALPASS' } })] }))
+    pintar()
+
+    await screen.findByText('Karla R.')
+    expect(screen.getByText('undoNoShow.pass')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'undoNoShow.button' })).toBeNull()
+  })
+
+  it('sin reservations:update se ve la falta pero no «Sí llegó»', async () => {
+    access.allowed = ['reservations:read']
+    m.session.mockResolvedValue(clase({ noShows: [falta()] }))
+    pintar()
+
+    await screen.findByText('Karla R.')
+    expect(screen.queryByRole('button', { name: 'undoNoShow.button' })).toBeNull()
+  })
+
+  it('si hay más faltas que las que trae la lista (noShowsTotal > noShows.length) cierra con «y N más»', async () => {
+    m.session.mockResolvedValue(clase({ noShows: [falta(), falta({ id: 'n2', guestName: 'Pedro G.' })], noShowsTotal: 5 }))
+    pintar()
+
+    expect(await screen.findByText('undoNoShow.rosterMore:{"count":3}')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['el total es igual a lo que trae la lista', { noShows: [falta()], noShowsTotal: 1 }],
+    ['el servidor no manda el total (server anterior)', { noShows: [falta()] }],
+  ])('sin «y N más» cuando %s', async (_caso, extra) => {
+    m.session.mockResolvedValue(clase(extra))
+    pintar()
+
+    await screen.findByText('Karla R.')
+    expect(screen.queryByText(/^undoNoShow\.rosterMore/)).toBeNull()
+  })
+
+  it('una clase sin faltas (o de un server anterior, sin `noShows`) no pinta la sección', async () => {
+    m.session.mockResolvedValue(clase())
+    pintar()
+
+    await screen.findByTestId('class-session-body')
+    expect(screen.queryByText('undoNoShow.rosterTitle')).toBeNull()
+  })
+
+  it('«Sí llegó» desde la lista confirma, deshace esa reserva y refresca la clase', async () => {
+    m.session.mockResolvedValue(clase({ noShows: [falta({ customer: { id: 'c1', firstName: 'Karla', lastName: 'Rodríguez', phone: null } })] }))
+    m.preview.mockResolvedValue({ plan: { creditToReconsume: 1, clearFee: false, restoreDeposit: false, pending: [] } })
+    m.undo.mockResolvedValue({
+      outcome: 'UNDONE',
+      reservation: {},
+      plan: {},
+      correction: { id: 'c1', pending: [], resolvedAt: null },
+    })
+    const { qc } = pintar()
+    const invalidar = vi.spyOn(qc, 'invalidateQueries')
+    fireEvent.click(await screen.findByRole('button', { name: 'undoNoShow.button' }))
+
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(m.preview).toHaveBeenCalledWith('v1', 'n1')
+    // La confirmación nombra a la persona, la clase y la hora de la CLASE (14:00 UTC en el mock).
+    expect(within(dialogo).getByText('undoNoShow.title:{"name":"Karla Rodríguez","className":"Yoga","time":"14:00"}')).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'undoNoShow.confirm' }))
+
+    await waitFor(() => expect(m.undo).toHaveBeenCalledWith('v1', 'n1'))
+    await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: ['class-session', 'v1', 's1'] }))
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: ['reservation', 'v1', 'n1'] })
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: ['reservations', 'v1'] })
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: ['class-sessions', 'v1'] })
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: ['reservation-calendar', 'v1'] })
+  })
+})
 })

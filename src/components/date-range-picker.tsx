@@ -15,6 +15,7 @@ import { getToday, getYesterday, getLast7Days, getLast30Days } from '@/utils/dat
 import { useAuth } from '@/context/AuthContext'
 import { DateTime } from 'luxon'
 import { getIntlLocale, getDateFnsLocale } from '@/utils/i18n-locale'
+import { diaDelNegocio, instantesDelNegocio, mismoDia, mismoRango } from './fechasDelSelector'
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
@@ -40,7 +41,8 @@ const formatDate = (date: Date, locale: string = 'en-US'): string => {
   return DateTime.fromJSDate(date).setLocale(getIntlLocale(locale)).toFormat('d LLL yy')
 }
 
-const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
+// Lo que llega de la pantalla, como DÍA del calendario: un 'YYYY-MM-DD' ya es un día; un instante es el día del negocio.
+const getDateAdjustedForTimezone = (dateInput: Date | string, timezone: string): Date => {
   if (typeof dateInput === 'string') {
     // Split the date string to get year, month, and day parts
     const parts = dateInput.split('-').map(part => parseInt(part, 10))
@@ -49,8 +51,7 @@ const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
     const date = new Date(parts[0], parts[1] - 1, parts[2])
     return date
   } else {
-    // If dateInput is already a Date object, return it directly
-    return dateInput
+    return diaDelNegocio(dateInput, timezone)
   }
 }
 
@@ -107,15 +108,17 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   const defaultFrom = initialDateFrom ?? getToday(venueTimezone).from
   const defaultTo = initialDateTo ?? initialDateFrom ?? getToday(venueTimezone).to
 
+  // 🔴 `range` y `rangeCompare` guardan DÍAS del calendario (medianoche del navegador), nunca instantes: se pintan tal
+  // cual y se vuelven instantes del negocio sólo al avisarle a la pantalla (D1).
   const [range, setRange] = useState<DateRange>({
-    from: getDateAdjustedForTimezone(defaultFrom),
-    to: getDateAdjustedForTimezone(defaultTo),
+    from: getDateAdjustedForTimezone(defaultFrom, venueTimezone),
+    to: getDateAdjustedForTimezone(defaultTo, venueTimezone),
   })
   const [rangeCompare, setRangeCompare] = useState<DateRange | undefined>(
     initialCompareFrom
       ? {
-          from: getDateAdjustedForTimezone(initialCompareFrom),
-          to: initialCompareTo ? getDateAdjustedForTimezone(initialCompareTo) : getDateAdjustedForTimezone(initialCompareFrom),
+          from: getDateAdjustedForTimezone(initialCompareFrom, venueTimezone),
+          to: getDateAdjustedForTimezone(initialCompareTo ?? initialCompareFrom, venueTimezone),
         }
       : undefined,
   )
@@ -256,59 +259,35 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     }
   }
 
-  /**
-   * Adjust date range to include the full "to" day
-   *
-   * When a user selects "Sept 1 - Sept 8", they expect ALL of Sept 8 to be included,
-   * not just Sept 8 00:00:00. This function adjusts the "to" date to 23:59:59.999.
-   *
-   * @param range - Original date range with "to" at start of day
-   * @returns Adjusted range with "to" at end of day
-   */
-  const adjustRangeToEndOfDay = (range: DateRange): DateRange => {
-    if (!range.to) return range
-
-    // Get the date in venue timezone, then set to end of that day
-    const dt = DateTime.fromJSDate(range.to).setZone(venueTimezone)
-    const endOfDayVenue = dt.endOf('day')
-
-    return {
-      from: range.from,
-      to: endOfDayVenue.toJSDate(),
-    }
-  }
-
   const setPreset = (preset: string): void => {
+    // Los atajos ya traen instantes del negocio: la pantalla los recibe tal cual y el calendario pinta sus días.
     const range = getPresetRange(preset, venueTimezone)
-    setRange(range)
+    const dias = { from: diaDelNegocio(range.from, venueTimezone), to: range.to && diaDelNegocio(range.to, venueTimezone) }
+    setRange(dias)
 
     let updatedRangeCompare = rangeCompare
     if (rangeCompare) {
       updatedRangeCompare = {
-        from: new Date(range.from.getFullYear() - 1, range.from.getMonth(), range.from.getDate()),
-        to: range.to ? new Date(range.to.getFullYear() - 1, range.to.getMonth(), range.to.getDate()) : undefined,
+        from: new Date(dias.from.getFullYear() - 1, dias.from.getMonth(), dias.from.getDate()),
+        to: dias.to ? new Date(dias.to.getFullYear() - 1, dias.to.getMonth(), dias.to.getDate()) : undefined,
       }
       setRangeCompare(updatedRangeCompare)
     }
 
     // Auto-apply preset selection (don't wait for "Apply" button)
-    // Note: Presets already return end-of-day times, so no adjustment needed
     setIsOpen(false)
-    onUpdate?.({ range, rangeCompare: updatedRangeCompare })
+    onUpdate?.({ range, rangeCompare: updatedRangeCompare && instantesDelNegocio(updatedRangeCompare, venueTimezone) })
   }
 
   const checkPreset = useCallback((): void => {
     for (const preset of PRESETS) {
       const presetRange = getPresetRange(preset.name, venueTimezone)
 
-      // Compare date parts only (YYYY-MM-DD) to avoid timezone offset issues
-      const rangeFromDate = range.from.toISOString().split('T')[0]
-      const presetFromDate = presetRange.from.toISOString().split('T')[0]
-
-      const rangeToDate = range.to ? range.to.toISOString().split('T')[0] : ''
-      const presetToDate = presetRange.to ? presetRange.to.toISOString().split('T')[0] : ''
-
-      if (rangeFromDate === presetFromDate && rangeToDate === presetToDate) {
+      // Se comparan DÍAS del negocio: `range` ya los guarda así y el atajo trae instantes.
+      if (
+        mismoDia(range.from, diaDelNegocio(presetRange.from, venueTimezone)) &&
+        mismoDia(range.to, presetRange.to && diaDelNegocio(presetRange.to, venueTimezone))
+      ) {
         setSelectedPreset(preset.name)
         return
       }
@@ -319,20 +298,14 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
 
   const resetValues = (): void => {
     setRange({
-      from: getDateAdjustedForTimezone(defaultFrom),
-      to: getDateAdjustedForTimezone(defaultTo),
+      from: getDateAdjustedForTimezone(defaultFrom, venueTimezone),
+      to: getDateAdjustedForTimezone(defaultTo, venueTimezone),
     })
     setRangeCompare(
       initialCompareFrom
         ? {
-            from: typeof initialCompareFrom === 'string' ? getDateAdjustedForTimezone(initialCompareFrom) : initialCompareFrom,
-            to: initialCompareTo
-              ? typeof initialCompareTo === 'string'
-                ? getDateAdjustedForTimezone(initialCompareTo)
-                : initialCompareTo
-              : typeof initialCompareFrom === 'string'
-                ? getDateAdjustedForTimezone(initialCompareFrom)
-                : initialCompareFrom,
+            from: getDateAdjustedForTimezone(initialCompareFrom, venueTimezone),
+            to: getDateAdjustedForTimezone(initialCompareTo ?? initialCompareFrom, venueTimezone),
           }
         : undefined,
     )
@@ -343,8 +316,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   // while NOT interfering with manual date selection when popover is open
   useEffect(() => {
     if (!isOpen) {
-      const newFrom = getDateAdjustedForTimezone(defaultFrom)
-      const newTo = getDateAdjustedForTimezone(defaultTo)
+      const newFrom = getDateAdjustedForTimezone(defaultFrom, venueTimezone)
+      const newTo = getDateAdjustedForTimezone(defaultTo, venueTimezone)
 
       // Only update if dates actually changed (avoid unnecessary re-renders)
       if (range.from.getTime() !== newFrom.getTime() || range.to?.getTime() !== newTo.getTime()) {
@@ -355,7 +328,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialDateFrom, initialDateTo, isOpen])
+  }, [initialDateFrom, initialDateTo, isOpen, venueTimezone])
 
   useEffect(() => {
     checkPreset()
@@ -388,12 +361,6 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       </>
     </Button>
   )
-
-  // Helper function to check if two date ranges are equal
-  const areRangesEqual = (a?: DateRange, b?: DateRange): boolean => {
-    if (!a || !b) return a === b // If either is undefined, return true if both are undefined
-    return a.from.getTime() === b.from.getTime() && (!a.to || !b.to || a.to.getTime() === b.to.getTime())
-  }
 
   // Helper to focus the first focusable element within the popover
   const focusFirstInPopover = (): void => {
@@ -607,12 +574,12 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
           <Button
             onClick={() => {
               setIsOpen(false)
-              if (!areRangesEqual(range, openedRangeRef.current) || !areRangesEqual(rangeCompare, openedRangeCompareRef.current)) {
-                // Adjust "to" date to end of day so full day is included
-                const adjustedRange = adjustRangeToEndOfDay(range)
-                const adjustedRangeCompare = rangeCompare ? adjustRangeToEndOfDay(rangeCompare) : undefined
-
-                onUpdate?.({ range: adjustedRange, rangeCompare: adjustedRangeCompare })
+              if (!mismoRango(range, openedRangeRef.current) || !mismoRango(rangeCompare, openedRangeCompareRef.current)) {
+                // Los días elegidos se vuelven instantes del negocio: del inicio del primero al final del último.
+                onUpdate?.({
+                  range: instantesDelNegocio(range, venueTimezone),
+                  rangeCompare: rangeCompare && instantesDelNegocio(rangeCompare, venueTimezone),
+                })
               }
             }}
           >

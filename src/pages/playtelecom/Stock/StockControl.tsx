@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
+import { DateTime } from 'luxon'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getCategoryStock, getStockMetrics, getStockMovements, getStockResponsibles, type Responsible, type StockMovement } from '@/services/stockDashboard.service'
@@ -36,17 +37,13 @@ import { includesNormalized } from '@/lib/utils'
 // the Supervisor sees the same timeframe across the platform. A 30-day default
 // hides SIMs registered before that window even when they are still in
 // Supervisor/Promoter custody — see custody data drift report 2026-05-04.
-function defaultRangeStart(): Date {
-  const d = new Date()
-  d.setFullYear(d.getFullYear() - 1)
-  d.setHours(0, 0, 0, 0)
-  return d
+// Del inicio del día de hace un año al final de hoy, en la zona del NEGOCIO: es lo que pinta el selector de fechas.
+function defaultRangeStart(timezone: string): Date {
+  return DateTime.now().setZone(timezone).minus({ years: 1 }).startOf('day').toJSDate()
 }
 
-function todayEndOfDay(): Date {
-  const d = new Date()
-  d.setHours(23, 59, 59, 999)
-  return d
+function todayEndOfDay(timezone: string): Date {
+  return DateTime.now().setZone(timezone).endOf('day').toJSDate()
 }
 
 // `lazyWithRetry` instead of raw `lazy` so a stale chunk after a deploy triggers
@@ -167,8 +164,8 @@ export function StockControl() {
   // Shared date range — drives BOTH the Movimientos query and the Custodia
   // panel so Supervisor sees one consistent window across the page.
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
-    from: defaultRangeStart(),
-    to: todayEndOfDay(),
+    from: defaultRangeStart(venueTimezone),
+    to: todayEndOfDay(venueTimezone),
   }))
 
   // DateRangePicker re-emits onUpdate with a fresh `to = new Date()` on every
@@ -521,8 +518,9 @@ ${dataRows}
               <div>
                 <h3 className="text-lg font-semibold">Movimientos Recientes</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Mostrando del {selectedRange.from.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })} al{' '}
-                  {selectedRange.to.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  Mostrando del{' '}
+                  {selectedRange.from.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: venueTimezone })}{' '}
+                  al {selectedRange.to.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: venueTimezone })}
                 </p>
               </div>
               <DropdownMenu>
@@ -778,7 +776,7 @@ ${dataRows}
         <TabsContent value="custodia" className="mt-4">
           {orgIdFromVenue && venueId ? (
             <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-              <VenueSimCustodyPanel orgId={orgIdFromVenue} venueId={venueId} dateRange={selectedRange} />
+              <VenueSimCustodyPanel orgId={orgIdFromVenue} venueId={venueId} dateRange={selectedRange} timeZone={venueTimezone} />
             </Suspense>
           ) : (
             <div className="text-sm text-muted-foreground py-8 text-center">No se pudo determinar la organización del venue activo.</div>

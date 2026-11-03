@@ -14,6 +14,9 @@ import { textoDePrecio } from '../../offer/textoDePrecio'
 
 type Plan = 'PRO' | 'PREMIUM' | 'ENTERPRISE'
 
+/** Qué viñetas llevan Pro y Premium según el giro. 'restaurante' = las de siempre (`plans.benefits.pro.*`). */
+export type JuegoDeBeneficios = 'restaurante' | 'comercio' | 'servicios' | 'generico'
+
 // Nombres de marca: son iguales en español e inglés (como `billing.plan.tiers.*.name`).
 const NOMBRE: Record<Plan, string> = { PRO: 'Pro', PREMIUM: 'Premium', ENTERPRISE: 'Enterprise' }
 const ORDEN: Plan[] = ['PRO', 'PREMIUM', 'ENTERPRISE']
@@ -76,6 +79,8 @@ interface TarjetasDePlanesProps {
   /** Hay un cobro sin cerrar: ningún botón elige plan ni abre ventas. */
   bloqueado: boolean
   onElegir: (tier: 'PRO' | 'PREMIUM') => void
+  /** Viñetas de Pro y Premium según el giro; las de la campaña (`oferta.copy.bullets`) siguen ganando. */
+  beneficios: JuegoDeBeneficios
 }
 
 /**
@@ -84,9 +89,10 @@ interface TarjetasDePlanesProps {
  * 🔴 Sólo formatea centavos que ya vienen del servidor (`formatMXN` / `textoDePrecio`): no suma ni
  * deriva ningún monto. Si falta la cotización, la línea «Luego …» no se pinta en vez de inventarse.
  */
-export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir }: TarjetasDePlanesProps) {
+export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir, beneficios }: TarjetasDePlanesProps) {
   const { t } = useTranslation('setup')
   const esCelular = useIsMobile()
+  const prefijoDeBeneficios = beneficios === 'restaurante' ? 'plans.benefits' : `plans.benefits.${beneficios}`
 
   // La tarjeta de la campaña (Pro o Premium) lleva la oferta y el botón fuerte; sin campaña es Pro.
   const planDestacado: Plan = oferta?.planTier ?? 'PRO'
@@ -153,7 +159,9 @@ export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir }: Tar
               )
             }
             puntos={
-              esLaOferta && oferta.copy.bullets.length > 0 ? oferta.copy.bullets : [1, 2, 3, 4].map(n => t(`plans.benefits.${clave}.${n}`))
+              esLaOferta && oferta.copy.bullets.length > 0
+                ? oferta.copy.bullets
+                : [1, 2, 3, 4].map(n => t(`${prefijoDeBeneficios}.${clave}.${n}`))
             }
             boton={
               esLaOferta

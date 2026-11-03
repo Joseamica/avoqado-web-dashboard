@@ -33,6 +33,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { PromoterLocationModal } from './components/PromoterLocationModal'
 import { PromoterCharts } from './components/PromoterCharts'
 import { DepositValidation } from './components/DepositValidation'
+import { depositoEsperado, diaDelNegocio, diaEnElFiltro, seQuedaConElFiltro, ventasSonDelFiltro } from './auditoriaDePromotores'
 import { AllCheckInsDialog } from './components/AllCheckInsDialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -65,6 +66,8 @@ interface PromoterRow {
   checkOutLocation?: { lat: number; lng: number }
   checkOutPhotoUrl?: string
   sales: number // Venta del día/período
+  cashSales: number // D6: efectivo cobrado (lo que se deposita)
+  depositPhotoUrl?: string // D6: foto real del comprobante de depósito
   break: boolean // En descanso
   breakMinutes: number // Tiempo de descanso en minutos
   status: 'ACTIVE' | 'INACTIVE' // Activo/Inactivo
@@ -263,27 +266,13 @@ export default function PromotersAuditPage() {
         }
         return entryDate >= cutoffDate
       }
-      case 'before': {
-        const targetDate = new Date(dateFilter.value as string)
-        return entryDate < targetDate
-      }
-      case 'after': {
-        const targetDate = new Date(dateFilter.value as string)
-        return entryDate > targetDate
-      }
-      case 'between': {
-        const startDate = new Date(dateFilter.value as string)
-        const endDate = new Date(dateFilter.value2 as string)
-        endDate.setHours(23, 59, 59, 999)
-        return entryDate >= startDate && entryDate <= endDate
-      }
+      case 'before':
+      case 'after':
+      case 'between':
       case 'on': {
-        const targetDate = new Date(dateFilter.value as string)
-        return (
-          entryDate.getFullYear() === targetDate.getFullYear() &&
-          entryDate.getMonth() === targetDate.getMonth() &&
-          entryDate.getDate() === targetDate.getDate()
-        )
+        // Codex D6 r1: se comparan DÍAS del negocio, no la medianoche UTC de `new Date('YYYY-MM-DD')`.
+        const dia = diaDelNegocio(entryDate.toISOString(), venueTimezone)
+        return dia !== null && diaEnElFiltro(dia, dateFilter)
       }
       default:
         return true
@@ -328,6 +317,8 @@ export default function PromotersAuditPage() {
         checkOutLocation: entryWithCheckout?.clockOutLocation || undefined,
         checkOutPhotoUrl: entryWithCheckout?.checkOutPhotoUrl || undefined,
         sales: staffMember.sales,
+        cashSales: staffMember.cashSales ?? 0,
+        depositPhotoUrl: staffMember.depositPhotoUrl || undefined,
         break: staffMember.break,
         breakMinutes: staffMember.breakMinutes || 0,
         status: staffMember.status,
@@ -340,9 +331,24 @@ export default function PromotersAuditPage() {
   const dateFilteredPromoters = useMemo(() => {
     if (!dateFilter) return promoters
 
+    const ventasDelFiltro = ventasSonDelFiltro(dateFilter.operator)
     return promoters.reduce<PromoterRow[]>((acc, promoter) => {
       const filteredEntries = (promoter.allTimeEntries || []).filter(isEntryInDateFilter)
-      if (filteredEntries.length === 0) return acc
+      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales, ventasDelFiltro)) return acc
+      if (filteredEntries.length === 0) {
+        // D6: sin checadas en el rango pero con ventas (p. ej. la devolución de algo que vendió otro día): se ve, sin datos de checada.
+        acc.push({
+          ...promoter,
+          allTimeEntries: [],
+          checkInTime: undefined,
+          checkInLocation: undefined,
+          checkInPhotoUrl: undefined,
+          checkOutTime: undefined,
+          checkOutLocation: undefined,
+          checkOutPhotoUrl: undefined,
+        })
+        return acc
+      }
 
       const sortedEntries = sortEntriesByDate(filteredEntries)
       const mostRecentEntry = sortedEntries[0]
@@ -783,10 +789,10 @@ export default function PromotersAuditPage() {
             <DepositValidation
               promoterId={selectedPromoter.id}
               promoterName={selectedPromoter.name}
-              expectedAmount={selectedPromoter.sales}
-              declaredAmount={selectedPromoter.sales - 500}
-              voucherPhotoUrl="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400"
-              status="PENDING"
+              // D6: lo esperado es el EFECTIVO cobrado y la foto es la real. Sin monto declarado (la terminal todavía no lo registra) no
+              // hay comparación ni botones de aprobar: antes se inventaba «declarado = ventas − 500» con una foto de muestra.
+              expectedAmount={depositoEsperado(selectedPromoter).esperado}
+              voucherPhotoUrl={depositoEsperado(selectedPromoter).comprobante}
             />
 
             {/* Calendar Date Dialog - rendered inside FullScreenModal with aboveModal flag */}

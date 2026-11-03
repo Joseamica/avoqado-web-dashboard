@@ -36,6 +36,7 @@
     "detail": {
       "title": "Detalles del Descuento",
       "notFound": "Descuento no encontrado",
+      "usage": {"total": "Usos: {{count}}", "pos": "En el POS: {{count}}", "links": "En ligas pagadas: {{count}}"},
       "tabs": {
         "general": "General",
         "scope": "Alcance",

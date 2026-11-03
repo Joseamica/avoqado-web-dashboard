@@ -88,7 +88,7 @@
     },
     "charts": {
       "sales": "Ventas",
-      "transactions": "NÂ° Transacciones",
+      "transactions": "N° Transacciones",
       "tips": "Propinas",
       "tipPercentage": "Propinas %",
       "revenue": "Ingresos",
@@ -101,7 +101,7 @@
       "totalOrders": "Ordenes totales",
       "ordersLabel": "Ordenes",
       "rating": "Calificación",
-      "reviewCount": "NÂ° Reviews",
+      "reviewCount": "N° Reviews",
       "prepTime": "Tiempo Real",
       "target": "Meta"
     },
@@ -703,7 +703,7 @@
     "features": {
       "title": "Rendimiento de Ingresos por Funcionalidades",
       "desc": "Ingresos generados por funcionalidades premium",
-      "meta": "{{count}} locales â€¢ {{amount}}/mes",
+      "meta": "{{count}} locales • {{amount}}/mes",
       "empty": "No hay datos de funcionalidades disponibles"
     },
     "timeline": {
@@ -909,10 +909,10 @@
       "title": "Lista de elementos"
     },
     "alerts": {
-      "success": "âœ… Mensaje de éxito con estilo correcto",
-      "error": "âŒ Mensaje de error usando colores destructivos",
-      "warning": "âš ï¸ Mensaje de advertencia con soporte de tema oscuro",
-      "info": "â„¹ï¸ Mensaje informativo con buen contraste"
+      "success": "✅ Mensaje de éxito con estilo correcto",
+      "error": "❌ Mensaje de error usando colores destructivos",
+      "warning": "⚠️ Mensaje de advertencia con soporte de tema oscuro",
+      "info": "ℹ️ Mensaje informativo con buen contraste"
     },
     "modal": {
       "title": "Título del modal",
@@ -1414,7 +1414,7 @@
     "analytics": {
       "title": "Analíticas",
       "overview": "Resumen",
-      "loading": "Cargando analíticasâ€¦",
+      "loading": "Cargando analíticas…",
       "errorPrefix": "Error al cargar:",
       "lastRefreshed": "Actualizado: {{date}}",
       "refreshed": "Actualizado: {{date}}",
@@ -1456,7 +1456,7 @@
       "tooltips": {
         "arr": "Ingresos recurrentes anuales. Ingresos de suscripción normalizados a 12 meses.",
         "mrr": "Ingresos recurrentes mensuales. Ingresos de suscripción del mes actual.",
-        "netNewArr": "Nuevos + Expansión â€“ Contracción â€“ Churn en el período seleccionado.",
+        "netNewArr": "Nuevos + Expansión – Contracción – Churn en el período seleccionado.",
         "nrr": "Retención neta de ingresos = (ARR final + Churn + Contracción) ÷ ARR inicial.",
         "churn": "Porcentaje de ingresos perdidos por cancelaciones/degradaciones en el período.",
         "signups": "Nuevas cuentas creadas en el período seleccionado.",
@@ -1527,9 +1527,6 @@
       "processingError": "Ocurrió un error al procesar la invitación",
       "validation": {
         "passwordMin": "La contraseña debe tener al menos 8 caracteres",
-        "passwordUppercase": "La contraseña debe contener al menos una letra mayúscula",
-        "passwordLowercase": "La contraseña debe contener al menos una letra minúscula",
-        "passwordNumber": "La contraseña debe contener al menos un número",
         "passwordsMismatch": "Las contraseñas no coinciden"
       }
     },
@@ -1635,9 +1632,9 @@
         "paypalDesc": "Habilitar pagos con PayPal",
         "paypalClientId": "PayPal Client ID",
         "defaultCurrency": "Moneda Predeterminada",
-        "euro": "Euro (â‚¬)",
+        "euro": "Euro (€)",
         "dollar": "Dólar ($)",
-        "pound": "Libra (Â£)"
+        "pound": "Libra (£)"
       },
       "apis": {
         "title": "Configuración de APIs Externas",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -31,6 +31,10 @@ export default function EmailVerification() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [isResending, setIsResending] = useState(false)
   const [resendCountdown, setResendCountdown] = useState(0)
+  // Recién verificado AQUÍ: el formulario ya dijo «¡Correo verificado!» y lleva al alta. Sin esto, al refrescar la sesión
+  // salía además «Correo ya verificado… Redirigiendo» y otra navegación a «/» (27-oct).
+  const verificoAqui = useRef(false)
+  // Esta pantalla NO se graba: el código se pinta como texto (no es un input) y la grabación lo conservaba (Codex r1).
 
   // Check if user is logged in and get their email
   const { data: statusData, isLoading: isCheckingAuth } = useQuery({
@@ -99,6 +103,7 @@ export default function EmailVerification() {
 
   // Redirect if already verified
   useEffect(() => {
+    if (verificoAqui.current) return
     if (isAuthenticated && currentUser?.emailVerified) {
       toast({
         title: t('verification.alreadyVerified'),
@@ -186,9 +191,7 @@ export default function EmailVerification() {
               <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
             </div>
             <CardTitle className="text-2xl">{t('verification.alreadyVerified')}</CardTitle>
-            <CardDescription className="text-base mt-2">
-              {t('verification.alreadyVerifiedDescriptionFull')}
-            </CardDescription>
+            <CardDescription className="text-base mt-2">{t('verification.alreadyVerifiedDescriptionFull')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button onClick={() => navigate('/login')} className="w-full" size="lg">
@@ -245,7 +248,7 @@ export default function EmailVerification() {
           </div>
 
           {/* Verification Form */}
-          <EmailVerificationForm email={userEmail} wizardVersion={wizardVersion} />
+          <EmailVerificationForm email={userEmail} wizardVersion={wizardVersion} onVerified={() => (verificoAqui.current = true)} />
 
           {/* Actions - Simplified */}
           <div className="space-y-4">
@@ -279,12 +282,8 @@ export default function EmailVerification() {
       {/* Right Side - Image/Brand */}
       <div className="bg-muted hidden lg:flex lg:w-1/2 lg:items-center lg:justify-center">
         <div className="max-w-md text-center">
-          <h2 className="text-foreground mb-4 text-3xl font-bold">
-            {t('verification.brandTitle')}
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            {t('verification.brandSubtitle')}
-          </p>
+          <h2 className="text-foreground mb-4 text-3xl font-bold">{t('verification.brandTitle')}</h2>
+          <p className="text-muted-foreground text-lg">{t('verification.brandSubtitle')}</p>
         </div>
       </div>
     </div>

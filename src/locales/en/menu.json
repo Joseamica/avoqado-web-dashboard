@@ -50,6 +50,18 @@
       "schedules": "Menu Schedules",
       "categories": "Categories",
       "alwaysAvailable": "Always available"
+    },
+    "dondeSeUsa": {
+      "title": "Where is it used?",
+      "aparatos": "Devices",
+      "tiendaEnLinea": "Online store",
+      "pistaAparatos": "devices can show it and Tables offers it",
+      "pistaTienda": "the online store sells its categories during this menu's schedule",
+      "avisoHorario": "The online store will stop using this menu's schedule. To keep something from being sold online, turn it off in Online orders",
+      "soloAparatos": "Devices only",
+      "soloTiendaEnLinea": "Online store only",
+      "alMenosUna": "At least one must remain",
+      "enQueAparatos": "Which devices show it?"
     }
   },
   "categories": {
@@ -112,8 +124,8 @@
     },
     "labels": {
       "newCategory": "New Category",
-      "active": "âœ“ Active",
-      "inactive": "âœ— Inactive",
+      "active": "✓ Active",
+      "inactive": "✗ Inactive",
       "menusForCategory": "Menus where the category will appear",
       "addProductsToCategory": "Add products to this category",
       "selectMenus": "Select menus",
@@ -125,7 +137,8 @@
     "validation": {
       "nameRequired": "Name is required.",
       "nameMinLength": "Name must be at least 3 characters.",
-      "nameMaxLength": "Name must not exceed 30 characters."
+      "nameMaxLength": "Name must not exceed 30 characters.",
+      "productNameMaxLength": "Name must not exceed 255 characters."
     },
     "buttons": {
       "create": "Create",
@@ -237,7 +250,7 @@
       "errorFetching": "Failed to fetch modifier group data",
       "noData": "No data returned from server",
       "unknownError": "Unknown error",
-      "backToGroups": "â† Back to Modifier Groups",
+      "backToGroups": "← Back to Modifier Groups",
       "toasts": {
         "updatedDesc": "The group details have been updated successfully.",
         "updateErrorDesc": "There was a problem updating the modifier group.",
@@ -477,7 +490,7 @@
       "sku": "SKU",
       "skuPlaceholder": "SKU (e.g., TACO-001)",
       "skuRequired": "SKU is required.",
-      "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
+      "skuPattern": "SKU can only contain letters without accents, numbers, spaces, dots, hyphens and underscores (no leading or trailing spaces).",
       "gtin": "GTIN",
       "gtinPlaceholder": "E.g.: 7501234567890",
       "namePlaceholder": "Enter a name",
@@ -540,7 +553,7 @@
       "inventoryConfigured": "Inventory configuration has been updated successfully.",
       "saving": "Saving...",
       "skuPlaceholder": "SKU (e.g., TACO-001 or Prod-abc123)",
-      "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
+      "skuPattern": "SKU can only contain letters without accents, numbers, spaces, dots, hyphens and underscores (no leading or trailing spaces).",
       "imageUnavailable": "Image unavailable",
       "imageCouldNotLoad": "The image could not be loaded",
       "allowCreditRedemption": "Accepts credit packs",
@@ -696,7 +709,9 @@
     "dialogs": {
       "deleteTitle": "Delete menu",
       "deleteMessage": "Are you sure you want to delete this menu? This action cannot be undone.",
-      "deleteButton": "Delete menu"
+      "deleteButton": "Delete menu",
+      "deleteMessageNombre": "Delete “{{name}}”? This action cannot be undone.",
+      "deleteMessageAparatos": "Delete “{{name}}”? Devices that chose it stop showing it; if it was their only menu, they go back to showing all menus. This action cannot be undone."
     },
     "toast": {
       "menuUpdated": "Menu {{name}} updated",
@@ -892,6 +907,10 @@
       "title": "Set the selling price",
       "description": "Enter the price. You can change it later if needed."
     },
+    "stepDescription": {
+      "title": "Add a description",
+      "description": "The + Description button opens this optional field. Briefly describe what you sell; you can leave it blank."
+    },
     "stepSku": {
       "title": "SKU (internal code)",
       "description": "Unique code to identify the product in reports. <br/><br/>💡 You can leave it blank and we'll <b>auto-generate</b> one. Only fill it in if you have your own naming convention (e.g. <b>HOODIE-WHITE-M</b>)."
@@ -905,8 +924,8 @@
       "description": "Select where it appears in the menu (e.g. <b>Merch</b>, <b>Drinks</b>, <b>Food</b>). If the category doesn't exist, create it first in <b>Categories</b>."
     },
     "step6": {
-      "title": "Enable inventory tracking",
-      "description": "When you turn on this switch, each sale will automatically deduct from stock and you'll be alerted when it's running low."
+      "title": "Open inventory",
+      "description": "The + Inventory button opens unit tracking. Each sale deducts from the stock you enter."
     },
     "step7": {
       "title": "Enter the current stock",
@@ -994,8 +1013,8 @@
       "description": "Choose where it appears in the menu: <b>Drinks</b>, <b>Shakes</b>, <b>Food</b>, etc."
     },
     "step6": {
-      "title": "Enable inventory tracking",
-      "description": "Turning this on lets you pick the tracking method. For recipes, each sale deducts ingredients automatically."
+      "title": "Open the recipe",
+      "description": "The + Recipe button opens the ingredients. Each sale deducts the quantities you define."
     },
     "step7": {
       "title": "Pick \"Recipe-Based\"",

@@ -176,6 +176,7 @@ describe('ShortSetupWizard — guardados', () => {
     const campo = await screen.findByLabelText(/Nombre del negocio/i)
     const user = userEvent.setup()
     await user.type(campo, 'Café Testarudo')
+    await user.type(screen.getByLabelText(/Teléfono/i), '55 1234 5678')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'El servidor dijo que no' })))
@@ -188,10 +189,62 @@ describe('ShortSetupWizard — guardados', () => {
     const campo = await screen.findByLabelText(/Nombre del negocio/i)
     const user = userEvent.setup()
     await user.type(campo, 'Café Testarudo')
+    await user.type(screen.getByLabelText(/Teléfono/i), '55 1234 5678')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
-    await waitFor(() => expect(saveStep).toHaveBeenCalledWith('org_1', 2, { businessName: 'Café Testarudo' }))
+    // Se guarda con la lada (+52 por default), como el resto de los teléfonos del panel.
+    await waitFor(() => expect(saveStep).toHaveBeenCalledWith('org_1', 2, { businessName: 'Café Testarudo', phone: '+525512345678' }))
     expect(await screen.findByText('giro-continuar')).toBeInTheDocument()
+  })
+
+  it('la lada viene en México (+52) y cambia si pegan un número con otra', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {} }))
+    pintar()
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText(/Nombre del negocio/i), 'Café Testarudo')
+    expect(screen.getByRole('combobox')).toHaveTextContent('+52')
+
+    // Elegirla en el selector se prueba en el navegador; aquí, el camino de pegar el número completo.
+    await user.click(screen.getByLabelText(/Teléfono/i))
+    await user.paste('+1 555 123 4567')
+    expect(screen.getByRole('combobox')).toHaveTextContent('+1')
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
+    await waitFor(() => expect(saveStep).toHaveBeenCalledWith('org_1', 2, { businessName: 'Café Testarudo', phone: '+15551234567' }))
+  })
+
+  it('un teléfono sugerido sin lada (de la landing) se guarda con +52', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {}, suggestedBusiness: { name: 'Tacos Lupita', phone: '5512345678' } }))
+    pintar()
+    await userEvent.setup().click(await screen.findByRole('button', { name: /Continuar/i }))
+
+    await waitFor(() => expect(saveStep).toHaveBeenCalledWith('org_1', 2, { businessName: 'Tacos Lupita', phone: '+525512345678' }))
+  })
+
+  // 🔴 Founder, 30-oct: del registro directo sólo llegaba el correo («Nuevo registro directo» y «Empezó el alta» con
+  // «Tel: —») y ventas no podía escribirle a quien se atoraba en el plan. El teléfono se pide aquí, no en el registro.
+  it('sin teléfono no avanza y lo pide', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {} }))
+    pintar()
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText(/Nombre del negocio/i), 'Café Testarudo')
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
+    expect(await screen.findByText(/Escribe un teléfono/i)).toBeInTheDocument()
+    expect(saveStep).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/Nombre del negocio/i)).toBeInTheDocument()
+  })
+
+  it('un teléfono a medias tampoco avanza', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {} }))
+    pintar()
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText(/Nombre del negocio/i), 'Café Testarudo')
+    await user.type(screen.getByLabelText(/Teléfono/i), '5512')
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
+    expect(await screen.findByText(/al menos 8 dígitos/i)).toBeInTheDocument()
+    expect(saveStep).not.toHaveBeenCalled()
   })
 
   it('el giro se guarda en el paso 3 — nunca en el 9 ni en el 5', async () => {
@@ -297,5 +350,23 @@ describe('🔴 Codex ronda 10 — recargar con un cobro sin cerrar', () => {
   it('sin cobro abierto, la oferta NO llega bloqueada (regresión)', async () => {
     pintar()
     expect(await screen.findByTestId('pantalla-oferta')).toHaveAttribute('data-activacion-en-curso', 'false')
+  })
+})
+
+describe('ShortSetupWizard — lo que ya escribió en la landing (27-oct)', () => {
+  it('«Tu negocio» llega con el nombre y el WhatsApp del formulario, no en blanco', async () => {
+    getProgress.mockResolvedValue(progresoDe({ v2SetupData: {}, suggestedBusiness: { name: 'Tacos Lupita', phone: '5512345678' } }))
+    pintar()
+    expect(await screen.findByLabelText(/Nombre del negocio/i)).toHaveValue('Tacos Lupita')
+    expect(screen.getByLabelText(/Teléfono/i)).toHaveValue('5512345678')
+  })
+
+  it('lo que ya guardó en el alta gana sobre la sugerencia', async () => {
+    getProgress.mockResolvedValue(
+      progresoDe({ v2SetupData: { step2: { phone: '5599999999' } }, suggestedBusiness: { name: 'Tacos Lupita', phone: '5512345678' } }),
+    )
+    pintar()
+    expect(await screen.findByLabelText(/Nombre del negocio/i)).toHaveValue('Tacos Lupita')
+    expect(screen.getByLabelText(/Teléfono/i)).toHaveValue('5599999999')
   })
 })

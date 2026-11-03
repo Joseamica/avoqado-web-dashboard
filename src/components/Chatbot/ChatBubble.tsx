@@ -61,6 +61,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 import { useToast } from '../../hooks/use-toast'
+import { SKU_PATTERN } from '../../lib/validators/product'
 import { ChatChart } from './ChatChart'
 import { parseMessageText } from './messageText'
 import {
@@ -1138,7 +1139,7 @@ function ChatInterface({ onClose, initialMessage }: { onClose: () => void; initi
         return
       }
 
-      if (!formState.sku.trim() || !/^[A-Za-z0-9_-]+$/.test(formState.sku.trim())) {
+      if (!formState.sku.trim() || !SKU_PATTERN.test(formState.sku.trim())) {
         toast({
           variant: 'destructive',
           title: tCommon('error'),

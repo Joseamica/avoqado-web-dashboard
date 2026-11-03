@@ -3,8 +3,9 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bell } from 'lucide-react'
 import { useNotificationBadge, useNotifications } from '@/context/NotificationContext'
+import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { formatNotificationTime } from '@/services/notification.service'
+import { destinoDelAviso, formatNotificationTime, type Notification } from '@/services/notification.service'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
@@ -20,17 +21,14 @@ export function NotificationBell({ className }: NotificationBellProps) {
   // BUG #6 FIX: Use fullBasePath for white-label compatibility
   // fullBasePath returns /venues/:slug in normal mode, /wl/venues/:slug in white-label mode
   // venueSlug is used to verify we're in a valid venue context
-  const { fullBasePath, venueSlug } = useCurrentVenue()
+  const { fullBasePath, venueBasePath, venueSlug } = useCurrentVenue()
+  const { allVenues } = useAuth()
 
   const [isOpen, setIsOpen] = useState(false)
   const [anuncioAbierto, setAnuncioAbierto] = useState<string | null>(null)
 
-  const handleNotificationClick = async (
-    notificationId: string,
-    actionUrl?: string,
-    entityType?: string,
-    entityId?: string,
-  ) => {
+  const handleNotificationClick = async (notification: Notification) => {
+    const { id: notificationId, actionUrl, entityType, entityId } = notification
     await markAsRead(notificationId)
 
     // Un anuncio de plataforma NO navega: abre su detalle aquí mismo. No existe una ruta
@@ -43,19 +41,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
     }
 
     if (actionUrl) {
-      // Handle absolute URLs (http/https or paths starting with /) and relative URLs differently
-      if (actionUrl.startsWith('http') || actionUrl.startsWith('/')) {
-        // Absolute URL or absolute path - use as is
-        window.location.href = actionUrl
-      } else if (venueSlug) {
-        // Relative path WITH valid venue context - prepend fullBasePath
-        // This works in both /venues/ and /wl/ modes
-        window.location.href = `${fullBasePath}/${actionUrl}`
-      } else {
-        // Relative path WITHOUT venue context (e.g., in OrganizationLayout)
-        // Treat as absolute path to avoid malformed URLs like "/venues/orders"
-        window.location.href = `/${actionUrl}`
-      }
+      window.location.href = destinoDelAviso(
+        actionUrl,
+        notification,
+        { venueBasePath, fullBasePath, venueSlug },
+        id => allVenues.find(v => v.id === id)?.slug ?? null,
+      )
     }
   }
 
@@ -118,14 +109,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
               <div 
                 key={notification.id} 
                 className={`p-3 hover:bg-accent cursor-pointer ${index < notifications.length - 1 ? 'border-b border-border' : ''}`}
-                onClick={() =>
-                  handleNotificationClick(
-                    notification.id,
-                    notification.actionUrl,
-                    notification.entityType,
-                    notification.entityId,
-                  )
-                }
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start space-x-3">
                   <div

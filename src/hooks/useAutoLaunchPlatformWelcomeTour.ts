@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
 import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { getPlatformTourState } from '@/lib/platform-tour-state'
@@ -28,6 +29,7 @@ export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel:
   const { fullBasePath, venue } = useCurrentVenue()
   const { start, cancel } = usePlatformWelcomeTour()
   const location = useLocation()
+  const isMobile = useIsMobile()
 
   const { value: completed, isLoaded, setValue: setCompleted } = useOnboardingKey<boolean>(
     'platform-welcome-completed',
@@ -58,6 +60,11 @@ export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel:
     // would interrupt them mid-exploration. Manual replay still works.
     if (isDemoVenueStatus(venue?.status)) return
 
+    // En celular el tour se abre encima de la lista de «siguientes pasos», que es lo primero que el
+    // cliente nuevo tiene que ver al terminar el alta (D18, 28-oct). Ahí no se lanza solo: la lista
+    // trae su botón para verlo (`HomeSetupChecklist`).
+    if (isMobile) return
+
     // Don't auto-launch in the middle of a deep link (e.g. /payments/:id) —
     // only on Home or the venue root. The resume effect will pick up if a
     // tour is already active.
@@ -82,7 +89,7 @@ export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel:
       timerRef.current = null
       start()
     }, 1200)
-  }, [isLoaded, completed, user?.id, staffInfo?.role, venue?.status, location.pathname, fullBasePath, start, setCompleted])
+  }, [isLoaded, completed, user?.id, staffInfo?.role, venue?.status, isMobile, location.pathname, fullBasePath, start, setCompleted])
 
   useEffect(() => {
     return () => {

@@ -176,8 +176,8 @@ test.describe('Product Type Selector — CLASS type', () => {
     // maxParticipants input must be visible
     await expect(page.locator('#maxParticipants')).toBeVisible({ timeout: 5_000 })
 
-    // The inventory toggle switch must NOT be visible for CLASS type
-    await expect(page.locator('#track-inventory-left')).not.toBeVisible()
+    // The inventory section opener must NOT be visible for CLASS type
+    await expect(page.locator('[data-tour="product-wizard-add-inventory"]')).not.toBeVisible()
 
     // duration field must NOT be visible for CLASS type
     await expect(page.locator('#duration')).not.toBeVisible()
@@ -192,8 +192,8 @@ test.describe('Product Type Selector — CLASS type', () => {
     // duration input must be visible
     await expect(page.locator('#duration')).toBeVisible({ timeout: 5_000 })
 
-    // Inventory toggle must NOT be visible for APPOINTMENTS_SERVICE
-    await expect(page.locator('#track-inventory-left')).not.toBeVisible()
+    // Inventory section opener must NOT be visible for APPOINTMENTS_SERVICE
+    await expect(page.locator('[data-tour="product-wizard-add-inventory"]')).not.toBeVisible()
 
     // maxParticipants must NOT be visible for APPOINTMENTS_SERVICE
     await expect(page.locator('#maxParticipants')).not.toBeVisible()
@@ -206,8 +206,8 @@ test.describe('Product Type Selector — CLASS type', () => {
 
     await selectProductTypeAndOpenWizard(page, /Regular Item|Artículo Regular/i)
 
-    // Inventory toggle switch must be visible for REGULAR type
-    await expect(page.locator('#track-inventory-left')).toBeVisible({ timeout: 5_000 })
+    // Inventory section opener switch must be visible for REGULAR type
+    await expect(page.locator('[data-tour="product-wizard-add-inventory"]')).toBeVisible({ timeout: 5_000 })
 
     // CLASS-specific field must NOT be present
     await expect(page.locator('#maxParticipants')).not.toBeVisible()
@@ -225,6 +225,6 @@ test.describe('Product Type Selector — CLASS type', () => {
     // Combined regression check: only duration is present
     await expect(page.locator('#duration')).toBeVisible({ timeout: 5_000 })
     await expect(page.locator('#maxParticipants')).not.toBeVisible()
-    await expect(page.locator('#track-inventory-left')).not.toBeVisible()
+    await expect(page.locator('[data-tour="product-wizard-add-inventory"]')).not.toBeVisible()
   })
 })

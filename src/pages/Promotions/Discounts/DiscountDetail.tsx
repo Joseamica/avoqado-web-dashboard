@@ -246,11 +246,12 @@ export default function DiscountDetail() {
 
 interface TabProps {
   discount: Discount
-  t: (key: string) => string
+  t: (key: string, options?: Record<string, unknown>) => string
 }
 
 function GeneralTab({ discount, t }: TabProps) {
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <CardTitle>{t('discounts.detail.sections.basicInfo')}</CardTitle>
@@ -265,6 +266,18 @@ function GeneralTab({ discount, t }: TabProps) {
         <InfoRow label={t('discounts.form.fields.value')} value={formatDiscountValue(discount)} />
       </CardContent>
     </Card>
+    {discount.usage && (
+      <Card>
+        <CardHeader>
+          <CardTitle data-testid="discount-usage-total">{t('discounts.detail.usage.total', { count: discount.usage.total })}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-6">
+          <p className="text-sm" data-testid="discount-usage-pos">{t('discounts.detail.usage.pos', { count: discount.usage.pos })}</p>
+          <p className="text-sm" data-testid="discount-usage-links">{t('discounts.detail.usage.links', { count: discount.usage.ligasPagadas })}</p>
+        </CardContent>
+      </Card>
+    )}
+    </div>
   )
 }
 

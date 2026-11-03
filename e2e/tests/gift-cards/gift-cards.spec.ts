@@ -11,6 +11,8 @@
  * la lista con el aviso (ver saldos nunca se esconde); un CAJERO (sólo giftCards:read) ve saldos e historial pero ninguna acción
  * ni el switch; reportes con el aviso del server, los totales POR TIPO y el CSV tras el clic; y el modo oscuro. Respuestas
  * fingidas con la forma de HOY de C3/C4 (`cancel.message`, `notice`, `totals[kind]`): prueban el navegador, no el server.
+ * 1b P1: la entrega del detalle (`entrega` de S7) — reenviar una que no salió la deja «To send» sin recargar, y un cajero la ve
+ * pero sin «Resend» ni «Change destination».
  * Locale E2E: inglés.
  */
 import { test, expect, type Locator, type Page } from '@playwright/test'
@@ -105,8 +107,11 @@ type Tarjeta = ReturnType<typeof tarjeta>
 /** Lo que manda el server (`evaluarCancelacionDeVenta`, C4) cuando una tarjeta de la venta está bloqueada por OTRO motivo. */
 const NO_CANCELA_BLOQUEADA = 'Una de las tarjetas de esta venta está bloqueada por otro motivo; desbloquéala antes de cancelar la venta.'
 
-/** El detalle PLANO de C4 (`GiftCardDetail`), con su libreta más reciente primero (el BLOCK, si lo hubo). */
-const detalle = (c: Tarjeta, motivoDeBloqueo?: string) => {
+/**
+ * El detalle PLANO de C4 (`GiftCardDetail`), con su libreta más reciente primero (el BLOCK, si lo hubo). 1b S7: `entrega` sólo si el
+ * estado fingido la trae (sin ella, un server sin S7: el detalle se ve como en la 1a).
+ */
+const detalle = (c: Tarjeta, motivoDeBloqueo?: string, entrega?: Record<string, unknown>) => {
   const items = [
     ...(c.status === 'BLOCKED' && motivoDeBloqueo
       ? [
@@ -163,7 +168,18 @@ const detalle = (c: Tarjeta, motivoDeBloqueo?: string) => {
     currentBlock:
       c.status === 'BLOCKED' && motivoDeBloqueo ? { reason: motivoDeBloqueo, note: null, at: '2026-10-14T18:00:00.000Z' } : null,
     activities: { items, nextCursor: null, total: items.length },
+    ...(entrega ? { entrega } : {}),
   }
+}
+/** Una entrega por WhatsApp que no salió (contrato 1b § 8): `destino` ENMASCARADO; el motivo en español con su código. */
+const ENTREGA_FALLIDA = {
+  channel: 'WHATSAPP',
+  status: 'FAILED',
+  deliveredAt: null,
+  error: 'WhatsApp no aceptó el envío.',
+  errorCode: 'WHATSAPP_SEND_FAILED',
+  destino: '55•••••678',
+  intentos: 4,
 }
 const SUMMARY = {
   from: '2026-10-01',
@@ -236,6 +252,10 @@ type Estado = {
   ops: Array<Record<string, unknown>>
   puts: Array<Record<string, unknown>>
   rutas: string[]
+  /** 1b S7: la `entrega` del detalle de cada tarjeta (sin llave = server sin S7). */
+  entregas: Record<string, Record<string, unknown>>
+  /** 1b S7: los cuerpos que llegaron a `POST …/:giftCardId/resend`. */
+  reenvios: Array<Record<string, unknown>>
 }
 const estado = (over: Partial<Estado> = {}): Estado => ({
   settings: SETTINGS_ON,
@@ -247,6 +267,8 @@ const estado = (over: Partial<Estado> = {}): Estado => ({
   ops: [],
   puts: [],
   rutas: [],
+  entregas: {},
+  reenvios: [],
   ...over,
 })
 
@@ -311,9 +333,21 @@ async function mockGiftCards(page: Page, s: Estado) {
         }
         return route.fulfill(ok({ activityIds: [`act-op-${s.ops.length}`] }))
       }
+      // 1b S7: reenviar (sin destino) o cambiar el destino. Reinicia la entrega (intentos en 0) y responde como el server.
+      const reenvio = /^\/([^/]+)\/resend$/.exec(path)
+      if (reenvio && req.method() === 'POST') {
+        const body = req.postDataJSON() as Record<string, unknown>
+        s.reenvios.push(body)
+        const tc = s.cards.find(x => x.id === reenvio[1])
+        const e = tc ? s.entregas[tc.id] : undefined
+        if (tc && e) s.entregas[tc.id] = { ...e, status: 'PENDING', intentos: 0, error: null, errorCode: null }
+        return route.fulfill(
+          ok({ giftCardId: reenvio[1], deliveryStatus: 'PENDING', repuesta: body.deliveryChannel != null, ultimos4: tc?.last4 ?? '' }),
+        )
+      }
       const uno = /^\/([^/]+)$/.exec(path)
       const c = uno ? s.cards.find(x => x.id === uno[1]) : undefined
-      if (c) return route.fulfill(ok(detalle(c, s.bloqueos[c.id])))
+      if (c) return route.fulfill(ok(detalle(c, s.bloqueos[c.id], s.entregas[c.id])))
       return route.fulfill(ok({}))
     },
   )
@@ -506,6 +540,53 @@ test.describe('Tarjetas de regalo — lista y detalle', () => {
     await expect(page.getByRole('switch', { name: 'Sell gift cards' })).toBeDisabled()
     expect(s.ops).toHaveLength(0)
     expect(s.puts).toHaveLength(0)
+  })
+
+  test('obligatoria 1 (entrega): reenviar una tarjeta que no se pudo enviar la deja «To send» SIN recargar, con su llave', async ({
+    page,
+  }) => {
+    const s = estado({ entregas: { gc1: { ...ENTREGA_FALLIDA } } })
+    await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [VENUE], planState: PRO })
+    await mockGiftCards(page, s)
+    await hideDevtools(page)
+    await page.goto('/venues/venue-alpha/gift-cards')
+    await expect(fila(page, '4821')).toBeVisible({ timeout: 15_000 })
+    await fila(page, '4821').click()
+    const hoja = page.locator('[data-tour="gift-card-detail"]')
+    await expect(hoja).toContainText("WhatsApp · Couldn't send")
+    const entrega = page.locator('[data-tour="gift-card-delivery"]')
+    await expect(entrega).toContainText('55•••••678')
+    // En inglés, el motivo sale traducido por su código, nunca el español del server.
+    await expect(entrega).toContainText("WhatsApp didn't accept the message.")
+    await expect(entrega).not.toContainText('WhatsApp no aceptó el envío.')
+    await page.locator('[data-tour="gift-card-delivery"]').screenshot({ path: 'test-results/gift-cards-delivery-failed-light.png' })
+    await page.locator('[data-tour="gift-card-resend"]').click()
+    const dialogo = page.getByRole('alertdialog')
+    await expect(dialogo).toContainText('55•••••678')
+    await dialogo.getByRole('button', { name: 'Resend' }).click()
+    // 🔴 ésta es la prueba, no el aviso: la hoja relee y dice el estado nuevo, sin page.reload()
+    await expect(hoja).toContainText('WhatsApp · To send')
+    await expect(entrega).not.toContainText("WhatsApp didn't accept the message.")
+    expect(s.reenvios).toEqual([{ operationKey: expect.any(String) }])
+    expect(String(s.reenvios[0].operationKey).length).toBeGreaterThanOrEqual(8)
+  })
+
+  test('un cajero ve cómo va la entrega, pero ni «Resend» ni «Change destination»', async ({ page }) => {
+    const s = estado({ entregas: { gc1: { ...ENTREGA_FALLIDA } } })
+    await setupApiMocks(page, { userRole: StaffRole.CASHIER, venues: [CASHIER_VENUE], planState: PRO })
+    await mockGiftCards(page, s)
+    await hideDevtools(page)
+    await page.goto('/venues/venue-alpha/gift-cards')
+    await expect(fila(page, '4821')).toBeVisible({ timeout: 15_000 })
+    await fila(page, '4821').click()
+    const entrega = page.locator('[data-tour="gift-card-delivery"]')
+    await expect(entrega).toContainText('55•••••678')
+    await expect(entrega).toContainText("WhatsApp didn't accept the message.")
+    await expect(page.locator('[data-tour="gift-card-resend"]')).toHaveCount(0)
+    await expect(page.locator('[data-tour="gift-card-change-destination"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Resend' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Change destination' })).toHaveCount(0)
+    expect(s.reenvios).toHaveLength(0)
   })
 
   test('reportes: cifras del agregado, aviso del server, totales por tipo y el CSV sólo tras el clic', async ({ page }) => {

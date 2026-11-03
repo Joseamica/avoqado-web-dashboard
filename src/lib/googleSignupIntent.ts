@@ -23,6 +23,8 @@ export interface GoogleSignupIntent {
   launchCampaignCode?: string
   hybridOfferSlug?: string
   utm?: Record<string, string>
+  /** Host del sitio de donde llegó (`avoqado.io`), como en `acquisition.ts`. */
+  referrer?: string
 }
 
 interface Guardado extends GoogleSignupIntent {
@@ -84,6 +86,7 @@ export function tomarIntentoDeAltaGoogle(ahora: number = Date.now()): GoogleSign
         : {}),
       ...(typeof g.launchCampaignCode === 'string' && g.launchCampaignCode ? { launchCampaignCode: g.launchCampaignCode } : {}),
       ...(utm ? { utm } : {}),
+      ...(typeof g.referrer === 'string' && /^[a-z0-9.-]{1,100}$/.test(g.referrer) ? { referrer: g.referrer } : {}),
     }
   } catch {
     return null

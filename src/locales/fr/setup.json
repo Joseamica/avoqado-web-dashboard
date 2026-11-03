@@ -216,7 +216,8 @@
     "subtitle": "C’est assez pour commencer. Le reste peut attendre.",
     "nameLabel": "Nom de l’établissement",
     "nameRequired": "Saisissez le nom de votre établissement",
-    "phoneLabel": "Téléphone (facultatif)",
+    "phoneLabel": "Téléphone de l’établissement",
+    "phoneRequired": "Saisissez un numéro de téléphone pour que nous puissions vous aider à démarrer",
     "phoneInvalid": "Le téléphone doit contenir au moins 8 chiffres",
     "continue": "Continuer"
   },

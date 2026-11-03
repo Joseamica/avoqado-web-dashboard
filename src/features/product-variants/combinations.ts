@@ -1,3 +1,4 @@
+import { SKU_PATTERN } from '@/lib/validators/product'
 import type { VariantRowInput } from '@/types/productGroup'
 
 /** Topes del server (spec D13; variantNaming.ts). */
@@ -8,7 +9,8 @@ export const MAX_TEXTO_OPCION = 40
 const MAX_DINERO = 10_000_000
 const MAX_EXISTENCIAS = 1_000_000
 export const MAX_CODIGO = 14
-const SKU_VALIDO = /^[A-Za-z0-9_-]+$/
+// La misma regla que la ficha y el servidor (espacio y punto desde D3, 30-oct).
+const SKU_VALIDO = SKU_PATTERN
 const DOS_DECIMALES = /^\d+(\.\d{1,2})?$/
 /** Igual que el conector de Shopify y el server: espacio, punto medio, espacio. */
 export const SEPARADOR = ' · '

@@ -1,4 +1,5 @@
-import type { ReceiptTicketTotals, UnifiedReceiptData } from '@/types/receipt'
+import type { ReceiptLineasDelTicket, ReceiptTicketTotals, UnifiedReceiptData } from '@/types/receipt'
+import { copiaDelRecibo } from '@/components/receipts/productosDelRecibo'
 
 /**
  * IVA por producto, plan 7 (D3; r1 #8; A7-R6): los totales que pinta el visor. Los congelados por el servidor (con `discount`
@@ -7,6 +8,26 @@ import type { ReceiptTicketTotals, UnifiedReceiptData } from '@/types/receipt'
  * subtotal − descuento + cargo + IVA agregado + propina = total.
  */
 export function totalesDelRecibo(data: {
+  payment?: Pick<UnifiedReceiptData['payment'], 'amount' | 'tipAmount'> | null
+  ticketTotals?: ReceiptTicketTotals | null
+  lineasDelTicket?: ReceiptLineasDelTicket | null
+}): ReceiptTicketTotals {
+  const totales = totalesSinCopia(data)
+  // D1 «fotocopia del ticket»: el subtotal y el «Descuento» del papel; la propina y el total, los del cobro. La copia ya cuadra con lo
+  // cobrado sin propina, así que no lleva cargo ni IVA aparte.
+  const copia = copiaDelRecibo(data)
+  if (!copia) return totales
+  const { discount: _sinDescuento, ...resto } = totales
+  return {
+    ...resto,
+    subtotal: copia.subtotalCents / 100,
+    serviceCharge: 0,
+    addedTax: 0,
+    ...(copia.descuentoCents > 0 ? { discount: copia.descuentoCents / 100 } : {}),
+  }
+}
+
+function totalesSinCopia(data: {
   payment?: Pick<UnifiedReceiptData['payment'], 'amount' | 'tipAmount'> | null
   ticketTotals?: ReceiptTicketTotals | null
 }): ReceiptTicketTotals {

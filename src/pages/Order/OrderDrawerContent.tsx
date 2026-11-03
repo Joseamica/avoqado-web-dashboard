@@ -1,3 +1,4 @@
+import { ExchangeLinksCard } from '@/pages/Payment/components/ExchangeLinksCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
@@ -148,6 +149,7 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
         */}
         <StampRewardsSection order={order} />
         <PaymentsSection order={order} venueTimezone={venueTimezone} />
+        <ExchangeLinksCard orderId={order.id} links={order.exchange} />
         <ActivitySection order={order} venueTimezone={venueTimezone} />
       </div>
 

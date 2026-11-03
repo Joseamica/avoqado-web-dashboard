@@ -12,6 +12,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
+import { contrasenaNuevaZod } from '@/lib/contrasenaNueva'
 
 export default function AcceptAdminInvitation() {
   const { t } = useTranslation()
@@ -19,12 +20,7 @@ export default function AcceptAdminInvitation() {
   // Define a schema for password validation with i18n
   const passwordSchema = z
     .object({
-      password: z
-        .string()
-        .min(8, t('adminInvitation.validation.passwordMin'))
-        .regex(/[A-Z]/, t('adminInvitation.validation.passwordUppercase'))
-        .regex(/[a-z]/, t('adminInvitation.validation.passwordLowercase'))
-        .regex(/[0-9]/, t('adminInvitation.validation.passwordNumber')),
+      password: contrasenaNuevaZod(t),
       confirmPassword: z.string(),
     })
     .refine(data => data.password === data.confirmPassword, {
